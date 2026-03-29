@@ -90,6 +90,7 @@ export const sportTypeSchema = z.enum([
   'TEAM_VOLLEYBALL',
   'TENNIS',
   'PADEL',
+  'NUTRITION',
 ])
 
 // ==================== Base Schemas ====================

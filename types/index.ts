@@ -690,6 +690,8 @@ export type SportType =
   // Racket Sports
   | 'TENNIS'
   | 'PADEL'
+  // Non-sport focus areas
+  | 'NUTRITION'
 
 export const TEAM_SPORT_TYPES = [
   'TEAM_FOOTBALL',
