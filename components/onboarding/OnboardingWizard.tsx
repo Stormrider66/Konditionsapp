@@ -68,6 +68,8 @@ interface OnboardingWizardProps {
   locale?: 'en' | 'sv'
   onComplete?: () => void
   basePath?: string
+  initialSport?: SportType
+  initialStep?: number
 }
 
 // Race distances for VDOT calculation
@@ -309,10 +311,13 @@ export function OnboardingWizard({
   locale = 'sv',
   onComplete,
   basePath = '',
+  initialSport,
+  initialStep = 0,
 }: OnboardingWizardProps) {
   const router = useRouter()
   const { toast } = useToast()
-  const [stepIndex, setStepIndex] = useState(0)
+  // If sport was pre-selected during signup (initialStep >= 1), skip the sport selection step
+  const [stepIndex, setStepIndex] = useState(initialSport && initialStep >= 1 ? 1 : 0)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // AI Program generation state
@@ -323,7 +328,7 @@ export function OnboardingWizard({
   const [programGenerated, setProgramGenerated] = useState(false)
 
   const [data, setData] = useState<OnboardingData>({
-    primarySport: null,
+    primarySport: initialSport || null,
     secondarySports: [],
     experience: '',
     biometrics: DEFAULT_BIOMETRICS_DATA,

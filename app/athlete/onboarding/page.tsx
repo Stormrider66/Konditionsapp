@@ -24,12 +24,17 @@ export default async function AthleteOnboardingPage() {
     redirect('/athlete/dashboard')
   }
 
+  const initialSport = client.sportProfile?.primarySport || undefined
+  const initialStep = client.sportProfile?.onboardingStep || 0
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <OnboardingWizard
         clientId={clientId}
         clientName={client.name}
         locale="sv"
+        initialSport={initialSport}
+        initialStep={initialStep}
       />
     </div>
   )

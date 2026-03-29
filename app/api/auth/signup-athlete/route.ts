@@ -56,6 +56,13 @@ const signupSchema = z.object({
   aiCoached: z.boolean().optional(),
   // Desired subscription tier (default: FREE)
   tier: athleteTierSchema.default('FREE'),
+  // Primary sport selected during signup
+  primarySport: z.enum([
+    'RUNNING', 'CYCLING', 'SKIING', 'TRIATHLON', 'HYROX',
+    'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS', 'SWIMMING', 'STRENGTH',
+    'TEAM_ICE_HOCKEY', 'TEAM_FOOTBALL', 'TEAM_HANDBALL', 'TEAM_FLOORBALL',
+    'TEAM_BASKETBALL', 'TEAM_VOLLEYBALL', 'TENNIS', 'PADEL',
+  ]).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -80,7 +87,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, name, birthDate, gender, businessId, inviteCode, aiCoached, tier } = validationResult.data;
+    const { email, password, name, birthDate, gender, businessId, inviteCode, aiCoached, tier, primarySport } = validationResult.data;
 
     let selectedBusiness: { id: string; slug: string; type: string } | null = null
     if (businessId) {
@@ -245,9 +252,9 @@ export async function POST(request: NextRequest) {
       const sportProfile = await tx.sportProfile.create({
         data: {
           clientId: client.id,
-          primarySport: 'RUNNING', // Default, will be updated in onboarding
+          primarySport: primarySport || 'RUNNING',
           onboardingCompleted: false,
-          onboardingStep: 0,
+          onboardingStep: primarySport ? 1 : 0, // Skip sport selection step if already chosen
         },
       });
 

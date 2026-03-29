@@ -9,12 +9,63 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, User, Mail, Lock, Calendar, Users, Check, X, Building2, Search } from 'lucide-react'
+import { Loader2, User, Mail, Lock, Calendar, Users, Check, X, Building2, Search, ChevronDown, ChevronUp } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { ATHLETE_TIER_FEATURES } from '@/lib/ai/cost-data'
 
 type Tier = 'FREE' | 'STANDARD' | 'PRO'
+
+type SportValue =
+  | 'RUNNING' | 'CYCLING' | 'SKIING' | 'TRIATHLON' | 'HYROX'
+  | 'GENERAL_FITNESS' | 'FUNCTIONAL_FITNESS' | 'SWIMMING' | 'STRENGTH'
+  | 'TEAM_ICE_HOCKEY' | 'TEAM_FOOTBALL' | 'TEAM_HANDBALL' | 'TEAM_FLOORBALL'
+  | 'TEAM_BASKETBALL' | 'TEAM_VOLLEYBALL' | 'TENNIS' | 'PADEL'
+
+interface SportCategory {
+  label: string
+  sports: { value: SportValue; label: string; icon: string }[]
+}
+
+const SPORT_CATEGORIES: SportCategory[] = [
+  {
+    label: 'Uthållighet',
+    sports: [
+      { value: 'RUNNING', label: 'Löpning', icon: '🏃' },
+      { value: 'CYCLING', label: 'Cykling', icon: '🚴' },
+      { value: 'SKIING', label: 'Längdskidor', icon: '⛷️' },
+      { value: 'SWIMMING', label: 'Simning', icon: '🏊‍♂️' },
+      { value: 'TRIATHLON', label: 'Triathlon', icon: '🏊' },
+    ],
+  },
+  {
+    label: 'Funktionell & Styrka',
+    sports: [
+      { value: 'HYROX', label: 'HYROX', icon: '💪' },
+      { value: 'GENERAL_FITNESS', label: 'Allmän Fitness', icon: '🏋️' },
+      { value: 'FUNCTIONAL_FITNESS', label: 'Funktionell Fitness', icon: '🔥' },
+      { value: 'STRENGTH', label: 'Styrketräning', icon: '🏋️‍♂️' },
+    ],
+  },
+  {
+    label: 'Lagsporter',
+    sports: [
+      { value: 'TEAM_FOOTBALL', label: 'Fotboll', icon: '⚽' },
+      { value: 'TEAM_ICE_HOCKEY', label: 'Ishockey', icon: '🏒' },
+      { value: 'TEAM_HANDBALL', label: 'Handboll', icon: '🤾' },
+      { value: 'TEAM_FLOORBALL', label: 'Innebandy', icon: '🏑' },
+      { value: 'TEAM_BASKETBALL', label: 'Basket', icon: '🏀' },
+      { value: 'TEAM_VOLLEYBALL', label: 'Volleyboll', icon: '🏐' },
+    ],
+  },
+  {
+    label: 'Racketsporter',
+    sports: [
+      { value: 'TENNIS', label: 'Tennis', icon: '🎾' },
+      { value: 'PADEL', label: 'Padel', icon: '🏓' },
+    ],
+  },
+]
 
 function normalizeTierParam(value: string | null): Tier {
   const normalized = value?.toUpperCase()
@@ -111,6 +162,8 @@ function AthleteSignupForm() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [selectedTier, setSelectedTier] = useState<Tier>(() => normalizeTierParam(searchParams.get('tier')))
+  const [selectedSport, setSelectedSport] = useState<SportValue | null>(null)
+  const [showAllSports, setShowAllSports] = useState(false)
   const [gymSearch, setGymSearch] = useState('')
   const [gymResults, setGymResults] = useState<Array<{ id: string; name: string; city: string | null; type: string; slug?: string }>>([])
   const [selectedGym, setSelectedGym] = useState<{ id: string; name: string; slug?: string } | null>(null)
@@ -165,6 +218,7 @@ function AthleteSignupForm() {
           aiCoached: isAICoached,
           tier: selectedTier,
           businessId: selectedGym?.id,
+          primarySport: selectedSport || undefined,
         }),
       })
 
@@ -224,6 +278,80 @@ function AthleteSignupForm() {
             Du skapar ett konto och blir sedan omdirigerad till betalning.
           </p>
         )}
+      </div>
+
+      {/* Sport Selection */}
+      <div>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Välj din sport</h3>
+        {(() => {
+          const popularSports = SPORT_CATEGORIES[0].sports // Endurance as popular
+          const otherCategories = SPORT_CATEGORIES.slice(1)
+          return (
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                {popularSports.map((sport) => (
+                  <button
+                    key={sport.value}
+                    type="button"
+                    onClick={() => setSelectedSport(sport.value)}
+                    className={`flex flex-col items-center gap-1 rounded-lg border-2 p-3 transition-all text-center ${
+                      selectedSport === sport.value
+                        ? 'border-blue-500 bg-blue-50 shadow-sm'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="text-2xl">{sport.icon}</span>
+                    <span className="text-xs font-medium leading-tight">{sport.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {!showAllSports ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAllSports(true)}
+                  className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 mx-auto"
+                >
+                  Visa fler sporter
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  {otherCategories.map((category) => (
+                    <div key={category.label}>
+                      <p className="text-xs font-medium text-muted-foreground mb-2">{category.label}</p>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {category.sports.map((sport) => (
+                          <button
+                            key={sport.value}
+                            type="button"
+                            onClick={() => setSelectedSport(sport.value)}
+                            className={`flex flex-col items-center gap-1 rounded-lg border-2 p-2.5 transition-all text-center ${
+                              selectedSport === sport.value
+                                ? 'border-blue-500 bg-blue-50 shadow-sm'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <span className="text-xl">{sport.icon}</span>
+                            <span className="text-xs font-medium leading-tight">{sport.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setShowAllSports(false)}
+                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 mx-auto"
+                  >
+                    Visa färre
+                    <ChevronUp className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       <div className="space-y-4 pt-2">

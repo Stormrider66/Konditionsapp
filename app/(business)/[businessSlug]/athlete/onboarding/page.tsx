@@ -38,6 +38,9 @@ export default async function BusinessAthleteOnboardingPage({ params }: Business
     redirect(`${basePath}/athlete/dashboard`)
   }
 
+  const initialSport = client.sportProfile?.primarySport || undefined
+  const initialStep = client.sportProfile?.onboardingStep || 0
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <OnboardingWizard
@@ -45,6 +48,8 @@ export default async function BusinessAthleteOnboardingPage({ params }: Business
         clientName={client.name}
         locale="sv"
         basePath={basePath}
+        initialSport={initialSport}
+        initialStep={initialStep}
       />
     </div>
   )
