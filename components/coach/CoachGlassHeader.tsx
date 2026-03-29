@@ -30,6 +30,9 @@ import {
     ChevronDown,
     Zap,
     Timer,
+    Share2,
+    Trophy,
+    Megaphone,
 } from 'lucide-react'
 import type { BusinessMemberRole } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -123,6 +126,9 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
             label: 'Mer',
             icon: Menu,
             items: [
+                { href: '/coach/social', label: 'Sociala medier', icon: Share2 },
+                { href: '/coach/competitions', label: 'Utmaningar', icon: Trophy },
+                { href: '/coach/community', label: 'Community', icon: Megaphone },
                 { href: '/coach/analytics', label: 'Analys', icon: BarChart3 },
                 { href: '/coach/teams', label: 'Lag', icon: Users2 },
                 { href: '/coach/organizations', label: 'Organisationer', icon: Building2 },

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import {
   GlassCard,
   GlassCardContent,
@@ -52,7 +53,11 @@ function daysRemaining(endDate: string): number {
 const rankColors = ['text-yellow-500', 'text-slate-400', 'text-amber-600']
 const rankIcons = ['🥇', '🥈', '🥉']
 
-export function CompetitionCard() {
+interface CompetitionCardProps {
+  basePath?: string
+}
+
+export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
   const [competitions, setCompetitions] = useState<CompetitionData[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -84,9 +89,14 @@ export function CompetitionCard() {
             <Trophy className="h-4 w-4 text-yellow-500" />
             Utmaningar
           </GlassCardTitle>
-          {activeCompetitions.length > 0 && (
-            <Badge variant="secondary" className="text-xs">{activeCompetitions.length} aktiva</Badge>
-          )}
+          <div className="flex items-center gap-1">
+            {activeCompetitions.length > 0 && (
+              <Badge variant="secondary" className="text-xs">{activeCompetitions.length} aktiva</Badge>
+            )}
+            <Link href={`${basePath}/coach/competitions`}>
+              <Button variant="ghost" size="sm" className="text-xs h-6 px-2">Hantera</Button>
+            </Link>
+          </div>
         </div>
       </GlassCardHeader>
       <GlassCardContent>

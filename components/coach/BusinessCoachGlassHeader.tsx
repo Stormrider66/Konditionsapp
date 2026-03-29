@@ -31,6 +31,9 @@ import {
     Zap,
     Timer,
     UserPlus,
+    Share2,
+    Trophy,
+    Megaphone,
 } from 'lucide-react'
 import type { BusinessMemberRole } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -132,6 +135,9 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
             label: 'Mer',
             icon: Menu,
             items: [
+                { href: `${basePath}/coach/social`, label: 'Sociala medier', icon: Share2 },
+                { href: `${basePath}/coach/competitions`, label: 'Utmaningar', icon: Trophy },
+                { href: `${basePath}/coach/community`, label: 'Community', icon: Megaphone },
                 { href: `${basePath}/coach/analytics`, label: 'Analys', icon: BarChart3 },
                 { href: `${basePath}/coach/teams`, label: 'Lag', icon: Users2 },
                 { href: `${basePath}/coach/browse-athletes`, label: 'Hitta Atleter', icon: UserPlus },

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import {
   GlassCard,
   GlassCardContent,
@@ -56,7 +57,11 @@ const platformIcons: Record<string, string> = {
   THREADS: '🧵',
 }
 
-export function SocialMediaCard() {
+interface SocialMediaCardProps {
+  basePath?: string
+}
+
+export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
   const [posts, setPosts] = useState<SocialPostData[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
@@ -141,13 +146,16 @@ export function SocialMediaCard() {
             <Share2 className="h-4 w-4 text-pink-500" />
             Sociala medier
           </GlassCardTitle>
-          <div className="flex gap-1">
+          <div className="flex items-center gap-1">
             {draftCount > 0 && (
               <Badge variant="secondary" className="text-[10px]">{draftCount} utkast</Badge>
             )}
             {publishedCount > 0 && (
               <Badge className="text-[10px] bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">{publishedCount} publicerade</Badge>
             )}
+            <Link href={`${basePath}/coach/social`}>
+              <Button variant="ghost" size="sm" className="text-xs h-6 px-2">Hantera</Button>
+            </Link>
           </div>
         </div>
       </GlassCardHeader>

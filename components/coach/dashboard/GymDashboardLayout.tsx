@@ -32,8 +32,8 @@ export function GymDashboardLayout({ basePath, pendingFeedbackCount }: GymDashbo
 
       {/* Row 3: Social Media + Competitions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <SocialMediaCard />
-        <CompetitionCard />
+        <SocialMediaCard basePath={basePath} />
+        <CompetitionCard basePath={basePath} />
       </div>
 
       {/* Row 4: PR Feed + Quick Actions + AI */}
