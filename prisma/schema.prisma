@@ -682,6 +682,11 @@ model User {
   workoutTemplates         WorkoutTemplate[]         @relation("WorkoutTemplateOwner")
   workoutTemplateFavorites WorkoutTemplateFavorite[]
 
+  // Gym Dashboard: Tasks & Classes
+  createdTasks  CoachTask[]  @relation("TaskCreator")
+  assignedTasks CoachTask[]  @relation("TaskAssignee")
+  groupClasses  GroupClass[] @relation("GroupClassCoach")
+
   @@index([email])
   @@index([role])
   @@index([referredByBusinessId])
@@ -1011,6 +1016,9 @@ model Client {
   // Live Voice Coaching Sessions
   liveVoiceCoachingSessions LiveVoiceCoachingSession[] @relation("ClientLiveVoiceSessions")
   preferredVoiceCoachVoice  String? // Gemini Live voice name (e.g., Kore, Puck, Aoede)
+
+  // Gym: Group Class Bookings
+  groupClassBookings GroupClassBooking[] @relation("ClientGroupClassBookings")
 
   @@index([userId])
   @@index([businessId])
@@ -1485,6 +1493,10 @@ model Business {
   coachRequests   CoachRequest[]   @relation("BusinessCoachRequests")
   coachAgreements CoachAgreement[] @relation("BusinessCoachAgreements")
 
+  // Gym dashboard
+  coachTasks   CoachTask[]   @relation("BusinessCoachTasks")
+  groupClasses GroupClass[]  @relation("BusinessGroupClasses")
+
   @@index([slug])
   @@index([isActive])
   @@index([customDomain])
@@ -1727,6 +1739,9 @@ model Location {
   agilityAssignments  AgilityWorkoutAssignment[]  @relation("AgilityAssignmentLocation")
   hybridAssignments   HybridWorkoutAssignment[]   @relation("HybridAssignmentLocation")
   teamBroadcasts      TeamWorkoutBroadcast[]      @relation("TeamBroadcastLocation")
+
+  // Gym: Group Classes
+  groupClasses GroupClass[] @relation("GroupClassLocation")
 
   @@unique([businessId, slug])
   @@index([businessId])
@@ -9990,4 +10005,100 @@ model MVAAthleteScore {
 
   @@unique([modelId, athleteId])
   @@index([athleteId])
+}
+
+// ============================================
+// Gym Dashboard: Tasks & Group Classes
+// ============================================
+
+model CoachTask {
+  id           String    @id @default(uuid())
+  businessId   String
+  business     Business  @relation("BusinessCoachTasks", fields: [businessId], references: [id], onDelete: Cascade)
+  createdById  String
+  createdBy    User      @relation("TaskCreator", fields: [createdById], references: [id])
+  assignedToId String?
+  assignedTo   User?     @relation("TaskAssignee", fields: [assignedToId], references: [id])
+
+  title       String
+  description String?
+  priority    String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  dueDate     DateTime?
+  completedAt DateTime?
+  isShared    Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, status])
+  @@index([assignedToId, status])
+  @@index([createdById, status])
+}
+
+model GroupClass {
+  id          String    @id @default(uuid())
+  businessId  String
+  business    Business  @relation("BusinessGroupClasses", fields: [businessId], references: [id], onDelete: Cascade)
+  coachId     String
+  coach       User      @relation("GroupClassCoach", fields: [coachId], references: [id])
+
+  name        String
+  description String?
+  type        String   // SPINNING, HIIT, YOGA, CIRCUIT, CROSSFIT, BODY_PUMP, STRETCHING, OTHER
+  duration    Int      // minutes
+  maxCapacity Int      @default(20)
+  locationId  String?
+  location    Location? @relation("GroupClassLocation", fields: [locationId], references: [id])
+
+  dayOfWeek   Int      // 0=Sunday, 1=Monday...6=Saturday
+  startTime   String   // "07:00"
+  isActive    Boolean  @default(true)
+  color       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  schedules GroupClassSchedule[]
+
+  @@index([businessId, isActive])
+  @@index([coachId])
+}
+
+model GroupClassSchedule {
+  id           String     @id @default(uuid())
+  groupClassId String
+  groupClass   GroupClass  @relation(fields: [groupClassId], references: [id], onDelete: Cascade)
+
+  date      DateTime @db.Date
+  startTime DateTime
+  endTime   DateTime
+  status    String   @default("SCHEDULED") // SCHEDULED, CANCELLED, COMPLETED
+
+  coachId     String?
+  maxCapacity Int?
+  notes       String?
+
+  bookings GroupClassBooking[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([groupClassId, date])
+  @@index([date, status])
+}
+
+model GroupClassBooking {
+  id         String              @id @default(uuid())
+  scheduleId String
+  schedule   GroupClassSchedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  clientId   String
+  client     Client              @relation("ClientGroupClassBookings", fields: [clientId], references: [id], onDelete: Cascade)
+
+  status      String   @default("BOOKED") // BOOKED, CHECKED_IN, CANCELLED, NO_SHOW
+  bookedAt    DateTime @default(now())
+  checkedInAt DateTime?
+  cancelledAt DateTime?
+
+  @@unique([scheduleId, clientId])
+  @@index([clientId])
 }
