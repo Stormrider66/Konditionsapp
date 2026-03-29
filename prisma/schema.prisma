@@ -687,6 +687,13 @@ model User {
   assignedTasks CoachTask[]  @relation("TaskAssignee")
   groupClasses  GroupClass[] @relation("GroupClassCoach")
 
+  // Social media & community
+  socialPosts       SocialPost[]       @relation("UserSocialPosts")
+  competitions      Competition[]      @relation("UserCompetitions")
+  communityPosts    CommunityPost[]    @relation("UserCommunityPosts")
+  communityComments CommunityComment[] @relation("UserCommunityComments")
+  communityLikes    CommunityLike[]    @relation("UserCommunityLikes")
+
   @@index([email])
   @@index([role])
   @@index([referredByBusinessId])
@@ -1017,8 +1024,9 @@ model Client {
   liveVoiceCoachingSessions LiveVoiceCoachingSession[] @relation("ClientLiveVoiceSessions")
   preferredVoiceCoachVoice  String? // Gemini Live voice name (e.g., Kore, Puck, Aoede)
 
-  // Gym: Group Class Bookings
-  groupClassBookings GroupClassBooking[] @relation("ClientGroupClassBookings")
+  // Gym: Group Class Bookings & Competitions
+  groupClassBookings  GroupClassBooking[]  @relation("ClientGroupClassBookings")
+  competitionEntries  CompetitionEntry[]   @relation("ClientCompetitionEntries")
 
   @@index([userId])
   @@index([businessId])
@@ -1496,6 +1504,12 @@ model Business {
   // Gym dashboard
   coachTasks   CoachTask[]   @relation("BusinessCoachTasks")
   groupClasses GroupClass[]  @relation("BusinessGroupClasses")
+
+  // Social media & community
+  socialAccounts  SocialMediaAccount[] @relation("BusinessSocialAccounts")
+  socialPosts     SocialPost[]         @relation("BusinessSocialPosts")
+  competitions    Competition[]        @relation("BusinessCompetitions")
+  communityPosts  CommunityPost[]      @relation("BusinessCommunityPosts")
 
   @@index([slug])
   @@index([isActive])
@@ -10101,4 +10115,185 @@ model GroupClassBooking {
 
   @@unique([scheduleId, clientId])
   @@index([clientId])
+}
+
+// ============================================
+// Social Media & Community System
+// ============================================
+
+model SocialMediaAccount {
+  id             String   @id @default(uuid())
+  businessId     String
+  business       Business @relation("BusinessSocialAccounts", fields: [businessId], references: [id], onDelete: Cascade)
+  platform       String   // INSTAGRAM, FACEBOOK, TIKTOK, LINKEDIN, GOOGLE_BUSINESS, THREADS
+  accountName    String
+  accessToken    String   // Encrypted — or Ayrshare profile key
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  externalId     String?
+  isActive       Boolean  @default(true)
+  lastPostAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  publishes SocialPostPublish[]
+
+  @@unique([businessId, platform])
+  @@index([businessId])
+}
+
+model SocialPost {
+  id            String   @id @default(uuid())
+  businessId    String
+  business      Business @relation("BusinessSocialPosts", fields: [businessId], references: [id], onDelete: Cascade)
+  createdById   String
+  createdBy     User     @relation("UserSocialPosts", fields: [createdById], references: [id])
+
+  caption       String   @db.Text
+  mediaUrl      String?
+  mediaType     String?  // IMAGE, VIDEO, CAROUSEL
+  templateId    String?
+  isAiGenerated Boolean  @default(false)
+
+  triggerType   String?  // PR_ACHIEVED, CHALLENGE_COMPLETE, WEEKLY_SUMMARY, MILESTONE, CLASS_PROMO, MANUAL
+  triggerData   Json?
+
+  athleteConsentIds String[] // Client IDs who consented
+
+  status        String   @default("DRAFT") // DRAFT, APPROVED, QUEUED, PUBLISHED, FAILED
+  approvedById  String?
+  approvedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  publishes SocialPostPublish[]
+
+  @@index([businessId, status])
+  @@index([createdAt])
+}
+
+model SocialPostPublish {
+  id           String             @id @default(uuid())
+  postId       String
+  post         SocialPost         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  accountId    String
+  account      SocialMediaAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  scheduledAt  DateTime?
+  publishedAt  DateTime?
+  status       String   @default("PENDING") // PENDING, PUBLISHING, PUBLISHED, FAILED
+  externalId   String?
+  errorMessage String?  @db.Text
+  retryCount   Int      @default(0)
+
+  @@index([scheduledAt, status])
+  @@index([postId])
+}
+
+// ============================================
+// Competition & Challenge System
+// ============================================
+
+model Competition {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation("BusinessCompetitions", fields: [businessId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User     @relation("UserCompetitions", fields: [createdById], references: [id])
+
+  name        String
+  description String?  @db.Text
+  type        String   // MOST_WORKOUTS, TOTAL_VOLUME, TOTAL_DISTANCE, WEIGHT_LOSS, STREAK, CUSTOM
+  metric      String   // Human-readable metric name
+  unit        String?  // "kg", "km", "pass", etc.
+
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+
+  rules       Json?    // { minWorkouts, allowedExercises, etc. }
+  prizes      Json?    // { first, second, third }
+  imageUrl    String?  // Cover image
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  entries CompetitionEntry[]
+
+  @@index([businessId, isActive])
+  @@index([endDate])
+}
+
+model CompetitionEntry {
+  id            String      @id @default(uuid())
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  clientId      String
+  client        Client      @relation("ClientCompetitionEntries", fields: [clientId], references: [id], onDelete: Cascade)
+
+  currentValue  Float       @default(0)
+  rank          Int?
+  joinedAt      DateTime    @default(now())
+  lastUpdatedAt DateTime    @default(now())
+
+  @@unique([competitionId, clientId])
+  @@index([competitionId, currentValue])
+  @@index([clientId])
+}
+
+// ============================================
+// Community Feed
+// ============================================
+
+model CommunityPost {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation("BusinessCommunityPosts", fields: [businessId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User     @relation("UserCommunityPosts", fields: [authorId], references: [id])
+
+  content     String   @db.Text
+  mediaUrl    String?
+  type        String   @default("GENERAL") // ANNOUNCEMENT, MOTIVATION, WORKOUT_SHARE, ACHIEVEMENT, GENERAL
+  isPinned    Boolean  @default(false)
+
+  likesCount    Int    @default(0)
+  commentsCount Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments CommunityComment[]
+  likes    CommunityLike[]
+
+  @@index([businessId, createdAt])
+  @@index([businessId, isPinned])
+}
+
+model CommunityComment {
+  id     String        @id @default(uuid())
+  postId String
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User        @relation("UserCommunityComments", fields: [authorId], references: [id])
+
+  content String @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([postId, createdAt])
+}
+
+model CommunityLike {
+  id     String        @id @default(uuid())
+  postId String
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User          @relation("UserCommunityLikes", fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
 }
