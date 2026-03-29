@@ -389,10 +389,15 @@ export function createChatTools(
             },
             orderBy: { createdAt: 'desc' },
             take: limit || 10,
-            include: {
-              items: {
-                select: { name: true, calories: true, proteinGrams: true, carbsGrams: true, fatGrams: true },
-              },
+            select: {
+              id: true,
+              mealType: true,
+              time: true,
+              description: true,
+              calories: true,
+              proteinGrams: true,
+              carbsGrams: true,
+              fatGrams: true,
             },
           })
 
@@ -408,7 +413,6 @@ export function createChatTools(
               proteinGrams: m.proteinGrams,
               carbsGrams: m.carbsGrams,
               fatGrams: m.fatGrams,
-              items: m.items,
             })),
             totalCalories: meals.reduce((sum, m) => sum + (m.calories || 0), 0),
           }

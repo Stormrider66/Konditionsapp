@@ -159,29 +159,8 @@ interface AthleteProfileData {
  * Build comprehensive context from athlete's own data
  */
 export async function buildAthleteOwnContext(clientId: string): Promise<string> {
-  // Fetch all athlete data in parallel
-  const [
-    client,
-    sportProfile,
-    recentTests,
-    recentWorkouts,
-    dailyCheckIns,
-    activeProgram,
-    races,
-    injuries,
-    stravaActivities,
-    dailyMetrics,
-    trainingLoad,
-    strengthSessions,
-    agentActions,
-    athleteAccount,
-    totalPlannedWorkouts,
-    completedWorkouts,
-    longestStravaRun,
-    recentMeals,
-    nutritionGoal,
-    dietaryPreferences,
-  ] = await Promise.all([
+  // Fetch all athlete data in parallel (use allSettled so one failing query doesn't kill all context)
+  const results = await Promise.allSettled([
     // Basic client info
     prisma.client.findUnique({
       where: { id: clientId },
@@ -196,9 +175,21 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
       },
     }),
 
-    // Sport profile
+    // Sport profile (explicit select to avoid errors from new columns not yet in production DB)
     prisma.sportProfile.findUnique({
       where: { clientId },
+      select: {
+        primarySport: true,
+        secondarySports: true,
+        runningSettings: true,
+        cyclingSettings: true,
+        swimmingSettings: true,
+        runningExperience: true,
+        cyclingExperience: true,
+        swimmingExperience: true,
+        weeklyAvailability: true,
+        preferredSessionLength: true,
+      },
     }),
 
     // Recent tests (expanded to 10)
@@ -534,6 +525,30 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
       },
     }),
   ])
+
+  // Unwrap allSettled results — failed queries become null/0/[] instead of crashing
+  const v = <T>(r: PromiseSettledResult<T>, fallback: T): T =>
+    r.status === 'fulfilled' ? r.value : fallback
+  const client = v(results[0], null)
+  const sportProfile = v(results[1], null)
+  const recentTests = v(results[2], [] as never[])
+  const recentWorkouts = v(results[3], [] as never[])
+  const dailyCheckIns = v(results[4], [] as never[])
+  const activeProgram = v(results[5], null)
+  const races = v(results[6], [] as never[])
+  const injuries = v(results[7], [] as never[])
+  const stravaActivities = v(results[8], [] as never[])
+  const dailyMetrics = v(results[9], [] as never[])
+  const trainingLoad = v(results[10], null)
+  const strengthSessions = v(results[11], [] as never[])
+  const agentActions = v(results[12], [] as never[])
+  const athleteAccount = v(results[13], null)
+  const totalPlannedWorkouts = v(results[14], 0)
+  const completedWorkouts = v(results[15], 0)
+  const longestStravaRun = v(results[16], null)
+  const recentMeals = v(results[17], [] as never[])
+  const nutritionGoal = v(results[18], null)
+  const dietaryPreferences = v(results[19], null)
 
   if (!client) {
     return 'Ingen atletdata hittades.'
