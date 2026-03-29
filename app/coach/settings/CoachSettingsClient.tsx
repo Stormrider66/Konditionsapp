@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Settings, ChevronLeft, Bot, Palette, ChevronRight, DollarSign, CreditCard, LayoutDashboard } from 'lucide-react'
+import { Settings, ChevronLeft, Bot, Palette, ChevronRight, DollarSign, CreditCard, LayoutDashboard, CalendarDays, Plug } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
@@ -157,6 +157,46 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '' }: 
                                     <div>
                                         <p className="font-semibold text-slate-900 dark:text-white">AI-kostnader</p>
                                         <p className="text-xs text-slate-500 dark:text-slate-400">Se kostnad per funktion och atlet</p>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
+                            </div>
+                        </div>
+                    </Link>
+                </div>
+
+                {/* Integrations */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 px-2">
+                        <div className="w-1.5 h-4 bg-cyan-500 rounded-full" />
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Integrationer</h3>
+                    </div>
+                    <Link href={`${basePath}/settings/calendars`}>
+                        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-cyan-100 dark:bg-cyan-500/10 flex items-center justify-center border border-cyan-200 dark:border-cyan-500/20">
+                                        <CalendarDays className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-slate-900 dark:text-white">Kalendersynk</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Google, Outlook, Apple, iCal</p>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
+                            </div>
+                        </div>
+                    </Link>
+                    <Link href={`${basePath}/settings/gym-platform`}>
+                        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group mt-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-500/10 flex items-center justify-center border border-teal-200 dark:border-teal-500/20">
+                                        <Plug className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-slate-900 dark:text-white">Gymplattformar</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Zoezi, Wondr, Boka Direkt, MindBody</p>
                                     </div>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
