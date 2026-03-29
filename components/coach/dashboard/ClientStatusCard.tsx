@@ -314,7 +314,7 @@ export function ClientStatusCard({ client, basePath }: ClientStatusCardProps) {
 
         {/* Quick actions — contextual */}
         <div className="flex gap-2 pt-1">
-          <Link href={`${basePath}/coach/athletes/${client.id}`} className="flex-1">
+          <Link href={`${basePath}/coach/clients/${client.id}`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full text-xs h-7">
               <User className="h-3 w-3 mr-1" />
               Visa profil
@@ -329,14 +329,14 @@ export function ClientStatusCard({ client, basePath }: ClientStatusCardProps) {
             </Link>
           )}
           {client.engagementLevel === 'NEW' && !client.hasActiveProgram && (
-            <Link href={`${basePath}/coach/athletes/${client.id}`} className="flex-1">
+            <Link href={`${basePath}/coach/clients/${client.id}`} className="flex-1">
               <Button variant="outline" size="sm" className="w-full text-xs h-7 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/20">
                 <UserPlus className="h-3 w-3 mr-1" />
                 Kom igång
               </Button>
             </Link>
           )}
-          <Link href={`${basePath}/coach/athletes/${client.id}`}>
+          <Link href={`${basePath}/coach/clients/${client.id}`}>
             <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
               <ExternalLink className="h-3 w-3" />
             </Button>

@@ -40,7 +40,7 @@ function buildAttentionItems(clients: PTClientStatus[], basePath: string): Atten
         reason: `Låg beredskap (${c.readinessScore})`,
         severity: 'critical',
         actionLabel: 'Visa profil',
-        actionHref: `${basePath}/coach/athletes/${c.id}`,
+        actionHref: `${basePath}/coach/clients/${c.id}`,
         score: 8,
       })
     }
@@ -52,7 +52,7 @@ function buildAttentionItems(clients: PTClientStatus[], basePath: string): Atten
         reason: `Kritisk belastning (ACWR ${c.acwr?.toFixed(2)})`,
         severity: 'critical',
         actionLabel: 'Visa profil',
-        actionHref: `${basePath}/coach/athletes/${c.id}`,
+        actionHref: `${basePath}/coach/clients/${c.id}`,
         score: 7,
       })
     } else if (c.acwrZone === 'DANGER') {
@@ -62,7 +62,7 @@ function buildAttentionItems(clients: PTClientStatus[], basePath: string): Atten
         reason: `Hög belastning (ACWR ${c.acwr?.toFixed(2)})`,
         severity: 'warning',
         actionLabel: 'Visa profil',
-        actionHref: `${basePath}/coach/athletes/${c.id}`,
+        actionHref: `${basePath}/coach/clients/${c.id}`,
         score: 5,
       })
     }
@@ -74,7 +74,7 @@ function buildAttentionItems(clients: PTClientStatus[], basePath: string): Atten
         reason: `${c.injuryCount} aktiv ${c.injuryCount === 1 ? 'skada' : 'skador'}`,
         severity: 'warning',
         actionLabel: 'Visa profil',
-        actionHref: `${basePath}/coach/athletes/${c.id}`,
+        actionHref: `${basePath}/coach/clients/${c.id}`,
         score: 4,
       })
     }
@@ -98,7 +98,7 @@ function buildAttentionItems(clients: PTClientStatus[], basePath: string): Atten
         reason: `Ingen aktivitet på ${c.daysSinceLastActivity} dagar`,
         severity: 'inactive',
         actionLabel: 'Visa profil',
-        actionHref: `${basePath}/coach/athletes/${c.id}`,
+        actionHref: `${basePath}/coach/clients/${c.id}`,
         score: c.daysSinceLastActivity > 14 ? 6 : 2,
       })
     }

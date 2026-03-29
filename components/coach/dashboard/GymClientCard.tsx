@@ -211,7 +211,7 @@ export function GymClientCard({ client, basePath }: GymClientCardProps) {
 
         {/* Quick actions */}
         <div className="flex gap-2 pt-1">
-          <Link href={`${basePath}/coach/athletes/${client.id}`} className="flex-1">
+          <Link href={`${basePath}/coach/clients/${client.id}`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full text-xs h-7">
               <User className="h-3 w-3 mr-1" />
               Visa profil

@@ -235,7 +235,7 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
                     <tr
                       key={athlete.id}
                       className="border-b dark:border-white/5 hover:bg-muted/30 dark:hover:bg-white/5 cursor-pointer transition"
-                      onClick={() => router.push(`${basePath}/coach/athletes/${athlete.id}`)}
+                      onClick={() => router.push(`${basePath}/coach/clients/${athlete.id}`)}
                     >
                       <td className="py-2 pr-2">
                         <div className="flex items-center gap-2">

@@ -91,7 +91,7 @@ export function PTDashboardLayout({
                   {recentTests.slice(0, 3).map(test => (
                     <Link
                       key={test.id}
-                      href={`${basePath}/coach/clients/${test.client.id}/tests/${test.id}`}
+                      href={`${basePath}/coach/tests/${test.id}`}
                       className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 dark:hover:bg-white/5 transition"
                     >
                       <div className="min-w-0">
