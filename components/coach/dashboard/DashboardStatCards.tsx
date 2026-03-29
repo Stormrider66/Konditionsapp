@@ -15,6 +15,7 @@ interface DashboardStatCardsProps {
   clientsCount: number
   activeProgramsCount: number
   completedLogsThisWeek: number
+  totalActivitiesThisWeek?: number
   logsNeedingFeedbackCount: number
   mode: DashboardMode
   readinessDistribution?: {
@@ -35,6 +36,7 @@ export function DashboardStatCards({
   clientsCount,
   activeProgramsCount,
   completedLogsThisWeek,
+  totalActivitiesThisWeek,
   logsNeedingFeedbackCount,
   mode,
   readinessDistribution,
@@ -113,11 +115,16 @@ export function DashboardStatCards({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100 text-sm">{t('workoutsThisWeek')}</p>
-                <p className="text-3xl font-bold">{completedLogsThisWeek}</p>
+                <p className="text-3xl font-bold">{totalActivitiesThisWeek ?? completedLogsThisWeek}</p>
               </div>
               <Activity className="h-8 w-8 opacity-80" />
             </div>
-            <p className="text-xs text-purple-100 mt-2">{t('completedByAthletes')}</p>
+            <p className="text-xs text-purple-100 mt-2">
+              {totalActivitiesThisWeek !== undefined && totalActivitiesThisWeek !== completedLogsThisWeek
+                ? 'Alla källor'
+                : t('completedByAthletes')
+              }
+            </p>
           </GlassCardContent>
         </GlassCard>
       )}

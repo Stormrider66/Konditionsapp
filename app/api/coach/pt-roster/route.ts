@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { subDays, startOfWeek, endOfWeek } from 'date-fns'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 
+type EngagementLevel = 'ACTIVE' | 'MODERATE' | 'INACTIVE' | 'NEW'
+
 export async function GET() {
   try {
     const user = await requireCoach()
@@ -24,7 +26,9 @@ export async function GET() {
       ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
       : [user.id]
 
-    // 9 parallel queries for per-client status
+    const sevenDaysAgo = subDays(now, 7)
+
+    // 14 parallel queries for per-client status
     const [
       clients,
       latestMetrics,
@@ -35,6 +39,11 @@ export async function GET() {
       weeklySummaries,
       activeAlerts,
       activePrograms,
+      stravaLastActivities,
+      garminLastActivities,
+      integrationTokens,
+      stravaWeekly,
+      garminWeekly,
     ] = await Promise.all([
       // 1. Clients with sport profile
       prisma.client.findMany({
@@ -156,6 +165,59 @@ export async function GET() {
         },
         orderBy: { endDate: 'desc' },
       }),
+
+      // 10. Strava — last activity + this-week count per client
+      prisma.stravaActivity.groupBy({
+        by: ['clientId'],
+        where: {
+          client: { userId: { in: coachIds } },
+        },
+        _max: { startDate: true },
+        _count: { id: true },
+      }),
+
+      // 11. Garmin — last activity + this-week count per client
+      prisma.garminActivity.groupBy({
+        by: ['clientId'],
+        where: {
+          client: { userId: { in: coachIds } },
+        },
+        _max: { startDate: true },
+        _count: { id: true },
+      }),
+
+      // 12. Integration tokens — which clients have Strava/Garmin connected
+      prisma.integrationToken.findMany({
+        where: {
+          client: { userId: { in: coachIds } },
+          type: { in: ['STRAVA', 'GARMIN'] },
+          syncEnabled: true,
+        },
+        select: {
+          clientId: true,
+          type: true,
+        },
+      }),
+
+      // 13. Strava activities this week per client
+      prisma.stravaActivity.groupBy({
+        by: ['clientId'],
+        where: {
+          client: { userId: { in: coachIds } },
+          startDate: { gte: sevenDaysAgo },
+        },
+        _count: { id: true },
+      }),
+
+      // 14. Garmin activities this week per client
+      prisma.garminActivity.groupBy({
+        by: ['clientId'],
+        where: {
+          client: { userId: { in: coachIds } },
+          startDate: { gte: sevenDaysAgo },
+        },
+        _count: { id: true },
+      }),
     ])
 
     // Build lookup maps (take first = most recent due to orderBy desc)
@@ -182,9 +244,37 @@ export async function GET() {
       injuryMap.set(i.clientId, i._count.id)
     }
 
-    const activityMap = new Map<string, Date | null>()
+    const programActivityMap = new Map<string, Date | null>()
     for (const a of lastActivities) {
-      activityMap.set(a.athleteId, a._max.completedAt)
+      programActivityMap.set(a.athleteId, a._max.completedAt)
+    }
+
+    const stravaActivityMap = new Map<string, Date | null>()
+    for (const s of stravaLastActivities) {
+      stravaActivityMap.set(s.clientId, s._max.startDate)
+    }
+
+    const garminActivityMap = new Map<string, Date | null>()
+    for (const g of garminLastActivities) {
+      garminActivityMap.set(g.clientId, g._max.startDate)
+    }
+
+    const integrationMap = new Map<string, { strava: boolean; garmin: boolean }>()
+    for (const t of integrationTokens) {
+      const current = integrationMap.get(t.clientId) || { strava: false, garmin: false }
+      if (t.type === 'STRAVA') current.strava = true
+      if (t.type === 'GARMIN') current.garmin = true
+      integrationMap.set(t.clientId, current)
+    }
+
+    const stravaWeeklyMap = new Map<string, number>()
+    for (const s of stravaWeekly) {
+      stravaWeeklyMap.set(s.clientId, s._count.id)
+    }
+
+    const garminWeeklyMap = new Map<string, number>()
+    for (const g of garminWeekly) {
+      garminWeeklyMap.set(g.clientId, g._count.id)
     }
 
     const feedbackMap = new Map<string, number>()
@@ -223,12 +313,48 @@ export async function GET() {
 
     // Build per-client response
     const roster = clients.map(client => {
-      const lastActivityDate = activityMap.get(client.id)
+      // Compute best lastActivity across all sources
+      const programDate = programActivityMap.get(client.id)
+      const stravaDate = stravaActivityMap.get(client.id)
+      const garminDate = garminActivityMap.get(client.id)
+
+      const candidates: { date: Date; source: 'program' | 'strava' | 'garmin' }[] = []
+      if (programDate) candidates.push({ date: new Date(programDate), source: 'program' })
+      if (stravaDate) candidates.push({ date: new Date(stravaDate), source: 'strava' })
+      if (garminDate) candidates.push({ date: new Date(garminDate), source: 'garmin' })
+
+      candidates.sort((a, b) => b.date.getTime() - a.date.getTime())
+      const bestActivity = candidates[0] ?? null
+
       let daysSinceLastActivity: number | null = null
-      if (lastActivityDate) {
+      if (bestActivity) {
         daysSinceLastActivity = Math.floor(
-          (now.getTime() - new Date(lastActivityDate).getTime()) / (1000 * 60 * 60 * 24)
+          (now.getTime() - bestActivity.date.getTime()) / (1000 * 60 * 60 * 24)
         )
+      }
+
+      // Weekly activity count from all sources
+      const programCompleted = complianceMap.get(client.id)?.completed ?? 0
+      const stravaThisWeek = stravaWeeklyMap.get(client.id) ?? 0
+      const garminThisWeek = garminWeeklyMap.get(client.id) ?? 0
+      const totalActivitiesThisWeek = programCompleted + stravaThisWeek + garminThisWeek
+
+      // Integration status
+      const integrations = integrationMap.get(client.id) || { strava: false, garmin: false }
+
+      // Engagement level
+      let engagementLevel: EngagementLevel = 'NEW'
+      if (bestActivity) {
+        if (daysSinceLastActivity !== null && daysSinceLastActivity <= 2) {
+          engagementLevel = 'ACTIVE'
+        } else if (daysSinceLastActivity !== null && daysSinceLastActivity <= 7) {
+          engagementLevel = 'MODERATE'
+        } else {
+          engagementLevel = 'INACTIVE'
+        }
+      } else if (integrations.strava || integrations.garmin) {
+        // Has integration but never synced any activity
+        engagementLevel = 'INACTIVE'
       }
 
       const metrics = metricsMap.get(client.id)
@@ -250,14 +376,19 @@ export async function GET() {
         plannedWorkoutsThisWeek: compliance?.planned ?? 0,
         weeklyCompliancePercent: compliance?.percent ?? null,
         injuryCount: injuryMap.get(client.id) ?? 0,
-        lastActivityDate: lastActivityDate?.toISOString() ?? null,
+        lastActivityDate: bestActivity?.date.toISOString() ?? null,
+        lastActivitySource: bestActivity?.source ?? null,
         daysSinceLastActivity,
+        totalActivitiesThisWeek,
         pendingFeedbackCount: feedbackMap.get(client.id) ?? 0,
         activeAlertCount: alerts?.count ?? 0,
         highestAlertSeverity: alerts?.highestSeverity ?? null,
         hasActiveProgram: !!program,
         programName: program?.name ?? null,
         programEndDate: program?.endDate?.toISOString() ?? null,
+        hasStravaConnected: integrations.strava,
+        hasGarminConnected: integrations.garmin,
+        engagementLevel,
       }
     })
 

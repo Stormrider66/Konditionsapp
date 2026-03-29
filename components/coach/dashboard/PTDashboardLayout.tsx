@@ -18,6 +18,7 @@ import { format, type Locale } from 'date-fns'
 import { CoachAIAssistantPanel } from '@/components/coach/CoachAIAssistantPanel'
 import { TodaysAppointmentsCard } from '@/components/coach/dashboard/TodaysAppointmentsCard'
 import { CoachQuickActions } from '@/components/coach/dashboard/CoachQuickActions'
+import { AthleteAttentionList } from '@/components/coach/dashboard/AthleteAttentionList'
 import { ClientStatusGrid } from '@/components/coach/dashboard/ClientStatusGrid'
 import { cn } from '@/lib/utils'
 
@@ -50,6 +51,9 @@ export function PTDashboardLayout({
 }: PTDashboardLayoutProps) {
   return (
     <>
+      {/* Attention priority list */}
+      <AthleteAttentionList basePath={basePath} />
+
       {/* Client Status Grid — full width centerpiece */}
       <ClientStatusGrid basePath={basePath} />
 

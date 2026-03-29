@@ -10,6 +10,8 @@ import {
   FileText,
   User,
   ExternalLink,
+  Activity,
+  UserPlus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -27,13 +29,18 @@ export interface PTClientStatus {
   weeklyCompliancePercent: number | null
   injuryCount: number
   lastActivityDate: string | null
+  lastActivitySource: 'program' | 'strava' | 'garmin' | null
   daysSinceLastActivity: number | null
+  totalActivitiesThisWeek: number
   pendingFeedbackCount: number
   activeAlertCount: number
   highestAlertSeverity: string | null
   hasActiveProgram: boolean
   programName: string | null
   programEndDate: string | null
+  hasStravaConnected: boolean
+  hasGarminConnected: boolean
+  engagementLevel: 'ACTIVE' | 'MODERATE' | 'INACTIVE' | 'NEW'
 }
 
 interface ClientStatusCardProps {
@@ -42,8 +49,7 @@ interface ClientStatusCardProps {
 }
 
 function getUrgencyBorder(client: PTClientStatus): string {
-  const { readinessScore, acwrZone, highestAlertSeverity } = client
-  // Red
+  const { readinessScore, acwrZone, highestAlertSeverity, engagementLevel } = client
   if (
     (readinessScore !== null && readinessScore < 40) ||
     acwrZone === 'DANGER' || acwrZone === 'CRITICAL' ||
@@ -51,13 +57,15 @@ function getUrgencyBorder(client: PTClientStatus): string {
   ) {
     return 'border-l-4 border-l-red-500'
   }
-  // Yellow
   if (
     (readinessScore !== null && readinessScore >= 40 && readinessScore < 60) ||
     acwrZone === 'CAUTION' ||
     highestAlertSeverity === 'MEDIUM'
   ) {
     return 'border-l-4 border-l-yellow-500'
+  }
+  if (engagementLevel === 'INACTIVE') {
+    return 'border-l-4 border-l-slate-300 dark:border-l-slate-600'
   }
   return 'border-l-4 border-l-transparent'
 }
@@ -96,6 +104,23 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
+function getEngagementDot(level: PTClientStatus['engagementLevel']): { color: string; label: string } {
+  switch (level) {
+    case 'ACTIVE': return { color: 'bg-green-500', label: 'Aktiv' }
+    case 'MODERATE': return { color: 'bg-yellow-500', label: 'Måttlig' }
+    case 'INACTIVE': return { color: 'bg-red-500', label: 'Inaktiv' }
+    case 'NEW': return { color: 'bg-slate-400', label: 'Ny' }
+  }
+}
+
+function getSourceIcon(source: PTClientStatus['lastActivitySource']): string {
+  switch (source) {
+    case 'strava': return '🟧'
+    case 'garmin': return '🔵'
+    default: return ''
+  }
+}
+
 const sportLabels: Record<string, string> = {
   RUNNING: 'Löpning',
   CYCLING: 'Cykling',
@@ -118,12 +143,15 @@ const sportLabels: Record<string, string> = {
 
 export function ClientStatusCard({ client, basePath }: ClientStatusCardProps) {
   const urgencyBorder = getUrgencyBorder(client)
-  const acwrBadge = getAcwrBadge(client.acwrZone)
-  const compliancePct = client.weeklyCompliancePercent ?? (
-    client.plannedWorkoutsThisWeek > 0
-      ? Math.round((client.completedWorkoutsThisWeek / client.plannedWorkoutsThisWeek) * 100)
-      : null
-  )
+  const engagementDot = getEngagementDot(client.engagementLevel)
+
+  // Determine which metrics to show (only those with actual data)
+  const hasReadiness = client.readinessScore !== null
+  const hasAcwr = client.acwr !== null && client.acwrZone !== null
+  const hasCompliance = client.plannedWorkoutsThisWeek > 0
+  const hasInjuries = client.injuryCount > 0
+  const hasWeeklyActivity = client.totalActivitiesThisWeek > 0
+  const hasAnyMetric = hasReadiness || hasAcwr || hasCompliance || hasInjuries || hasWeeklyActivity
 
   return (
     <div className={cn(
@@ -131,102 +159,136 @@ export function ClientStatusCard({ client, basePath }: ClientStatusCardProps) {
       urgencyBorder,
     )}>
       <div className="p-4 space-y-3">
-        {/* Header: Avatar + Name + Sport */}
+        {/* Header: Avatar + Name + Sport + Engagement */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-300 flex-shrink-0">
-            {getInitials(client.name)}
+          <div className="relative">
+            <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-300 flex-shrink-0">
+              {getInitials(client.name)}
+            </div>
+            <div className={cn(
+              'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900',
+              engagementDot.color,
+            )} title={engagementDot.label} />
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-sm truncate dark:text-slate-200">{client.name}</p>
+            <div className="flex items-center gap-1.5">
+              {client.primarySport && (
+                <span className="text-[10px] text-muted-foreground">
+                  {sportLabels[client.primarySport] || client.primarySport}
+                </span>
+              )}
+              {/* Integration icons */}
+              {client.hasStravaConnected && (
+                <span className="text-[10px]" title="Strava">🟧</span>
+              )}
+              {client.hasGarminConnected && (
+                <span className="text-[10px]" title="Garmin">🔵</span>
+              )}
+            </div>
           </div>
-          {client.primarySport && (
-            <Badge variant="secondary" className="text-[10px] h-5 flex-shrink-0">
-              {sportLabels[client.primarySport] || client.primarySport}
-            </Badge>
-          )}
-        </div>
-
-        {/* Readiness bar */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Beredskap</span>
-            <span className={cn(
-              'font-semibold',
-              client.readinessScore === null
-                ? 'text-muted-foreground'
-                : client.readinessScore >= 70
-                  ? 'text-green-600 dark:text-green-400'
-                  : client.readinessScore >= 40
-                    ? 'text-yellow-600 dark:text-yellow-400'
-                    : 'text-red-600 dark:text-red-400'
-            )}>
-              {client.readinessScore !== null ? client.readinessScore : '-'}
-            </span>
-          </div>
-          <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700">
-            {client.readinessScore !== null && (
-              <div
-                className={cn('h-full rounded-full transition-all', getReadinessColor(client.readinessScore))}
-                style={{ width: `${Math.min(100, Math.max(0, client.readinessScore))}%` }}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Metrics row */}
-        <div className="grid grid-cols-4 gap-2 text-center">
-          {/* ACWR */}
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-0.5">ACWR</p>
-            <Badge className={cn('text-[10px] font-medium', acwrBadge.color)}>
-              {client.acwr !== null ? client.acwr.toFixed(2) : acwrBadge.label}
-            </Badge>
-          </div>
-          {/* Compliance */}
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-0.5">Följsamhet</p>
-            <p className="text-xs font-semibold dark:text-slate-200">
-              {client.completedWorkoutsThisWeek}/{client.plannedWorkoutsThisWeek}
-            </p>
-            {compliancePct !== null && (
-              <div className="w-full h-1 rounded-full bg-slate-200 dark:bg-slate-700 mt-0.5">
-                <div
-                  className={cn(
-                    'h-full rounded-full',
-                    compliancePct >= 80 ? 'bg-green-500' : compliancePct >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                  )}
-                  style={{ width: `${Math.min(100, compliancePct)}%` }}
-                />
-              </div>
-            )}
-          </div>
-          {/* Injuries */}
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-0.5">Skador</p>
-            {client.injuryCount > 0 ? (
-              <Badge variant="outline" className="text-[10px] text-red-600 dark:text-red-400 border-red-200 dark:border-red-800">
-                <HeartPulse className="h-3 w-3 mr-0.5" />
-                {client.injuryCount}
-              </Badge>
-            ) : (
-              <span className="text-xs text-muted-foreground">-</span>
-            )}
-          </div>
-          {/* Last activity */}
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-0.5">Senast</p>
+          {/* Last activity with source */}
+          <div className="text-right flex-shrink-0">
             <p className={cn(
               'text-xs font-medium',
               client.daysSinceLastActivity !== null && client.daysSinceLastActivity <= 1
                 ? 'text-green-600 dark:text-green-400'
-                : client.daysSinceLastActivity !== null && client.daysSinceLastActivity > 5
+                : client.daysSinceLastActivity !== null && client.daysSinceLastActivity > 7
                   ? 'text-red-600 dark:text-red-400'
-                  : 'dark:text-slate-300'
+                  : 'text-muted-foreground'
             )}>
               {formatLastActivity(client.daysSinceLastActivity)}
             </p>
+            {client.lastActivitySource && client.lastActivitySource !== 'program' && (
+              <p className="text-[10px] text-muted-foreground">
+                via {client.lastActivitySource === 'strava' ? 'Strava' : 'Garmin'}
+              </p>
+            )}
           </div>
         </div>
+
+        {/* Readiness bar — show when available */}
+        {hasReadiness && (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Beredskap</span>
+              <span className={cn(
+                'font-semibold',
+                client.readinessScore! >= 70
+                  ? 'text-green-600 dark:text-green-400'
+                  : client.readinessScore! >= 40
+                    ? 'text-yellow-600 dark:text-yellow-400'
+                    : 'text-red-600 dark:text-red-400'
+              )}>
+                {client.readinessScore}
+              </span>
+            </div>
+            <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700">
+              <div
+                className={cn('h-full rounded-full transition-all', getReadinessColor(client.readinessScore))}
+                style={{ width: `${Math.min(100, Math.max(0, client.readinessScore!))}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Adaptive metrics — only show what has data */}
+        {hasAnyMetric && (
+          <div className="flex flex-wrap gap-2">
+            {hasAcwr && (() => {
+              const acwrBadge = getAcwrBadge(client.acwrZone)
+              return (
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-muted-foreground">ACWR</span>
+                  <Badge className={cn('text-[10px] font-medium', acwrBadge.color)}>
+                    {client.acwr!.toFixed(2)}
+                  </Badge>
+                </div>
+              )
+            })()}
+            {hasWeeklyActivity && (
+              <div className="flex items-center gap-1">
+                <Activity className="h-3 w-3 text-muted-foreground" />
+                <span className="text-xs font-medium dark:text-slate-300">
+                  {client.totalActivitiesThisWeek} pass
+                </span>
+                <span className="text-[10px] text-muted-foreground">denna vecka</span>
+              </div>
+            )}
+            {hasCompliance && (
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-muted-foreground">Följsamhet</span>
+                <span className="text-xs font-semibold dark:text-slate-200">
+                  {client.completedWorkoutsThisWeek}/{client.plannedWorkoutsThisWeek}
+                </span>
+              </div>
+            )}
+            {hasInjuries && (
+              <Badge variant="outline" className="text-[10px] text-red-600 dark:text-red-400 border-red-200 dark:border-red-800">
+                <HeartPulse className="h-3 w-3 mr-0.5" />
+                {client.injuryCount} {client.injuryCount === 1 ? 'skada' : 'skador'}
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {/* Empty state for NEW athletes */}
+        {!hasAnyMetric && client.engagementLevel === 'NEW' && (
+          <div className="py-1">
+            <p className="text-xs text-muted-foreground italic">
+              Ny atlet — inväntar data
+            </p>
+          </div>
+        )}
+
+        {/* Empty state for INACTIVE athletes without metrics */}
+        {!hasAnyMetric && client.engagementLevel === 'INACTIVE' && (
+          <div className="py-1">
+            <p className="text-xs text-red-500 dark:text-red-400">
+              Inaktiv — {client.daysSinceLastActivity ? `${client.daysSinceLastActivity}d sedan senaste aktivitet` : 'ingen aktivitet registrerad'}
+            </p>
+          </div>
+        )}
 
         {/* Status badges row */}
         <div className="flex flex-wrap gap-1.5">
@@ -250,7 +312,7 @@ export function ClientStatusCard({ client, basePath }: ClientStatusCardProps) {
           )}
         </div>
 
-        {/* Quick actions */}
+        {/* Quick actions — contextual */}
         <div className="flex gap-2 pt-1">
           <Link href={`${basePath}/coach/athletes/${client.id}`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full text-xs h-7">
@@ -263,6 +325,14 @@ export function ClientStatusCard({ client, basePath }: ClientStatusCardProps) {
               <Button variant="outline" size="sm" className="w-full text-xs h-7 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20">
                 <MessageSquare className="h-3 w-3 mr-1" />
                 Ge feedback
+              </Button>
+            </Link>
+          )}
+          {client.engagementLevel === 'NEW' && !client.hasActiveProgram && (
+            <Link href={`${basePath}/coach/athletes/${client.id}`} className="flex-1">
+              <Button variant="outline" size="sm" className="w-full text-xs h-7 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/20">
+                <UserPlus className="h-3 w-3 mr-1" />
+                Kom igång
               </Button>
             </Link>
           )}

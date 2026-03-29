@@ -55,6 +55,8 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     coachProfile,
     teamCount,
     clientSports,
+    stravaWeeklyCount,
+    garminWeeklyCount,
   ] = await Promise.all([
     // Clients count (scoped to business)
     prisma.client.count({
@@ -202,6 +204,22 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
       },
       select: { primarySport: true },
     }),
+
+    // Strava activities this week (all clients)
+    prisma.stravaActivity.count({
+      where: {
+        client: { userId: { in: coachIds } },
+        startDate: { gte: sevenDaysAgo },
+      },
+    }),
+
+    // Garmin activities this week (all clients)
+    prisma.garminActivity.count({
+      where: {
+        client: { userId: { in: coachIds } },
+        startDate: { gte: sevenDaysAgo },
+      },
+    }),
   ])
 
   // Detect dashboard mode
@@ -216,6 +234,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
   // Calculate stats
   const logsNeedingFeedback = recentLogs.filter(log => !log.coachFeedback && log.completed)
   const completedLogsThisWeek = recentLogs.filter(log => log.completed).length
+  const totalActivitiesThisWeek = completedLogsThisWeek + stravaWeeklyCount + garminWeeklyCount
   const feedbackGiven = recentLogs.filter(log => log.coachFeedback).length
   const avgRPE = recentLogs.filter(log => log.perceivedEffort).length > 0
     ? (
@@ -304,6 +323,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
           clientsCount={clientsCount}
           activeProgramsCount={activeProgramsCount}
           completedLogsThisWeek={completedLogsThisWeek}
+          totalActivitiesThisWeek={totalActivitiesThisWeek}
           logsNeedingFeedbackCount={logsNeedingFeedback.length}
           mode={mode}
           readinessDistribution={

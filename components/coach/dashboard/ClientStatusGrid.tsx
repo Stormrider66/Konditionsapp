@@ -23,7 +23,8 @@ function needsAttention(c: PTClientStatus): boolean {
     (c.readinessScore !== null && c.readinessScore < 40) ||
     c.acwrZone === 'DANGER' || c.acwrZone === 'CRITICAL' ||
     c.injuryCount > 0 ||
-    c.activeAlertCount > 0
+    c.activeAlertCount > 0 ||
+    c.engagementLevel === 'INACTIVE'
   )
 }
 
@@ -39,6 +40,8 @@ function urgencyScore(c: PTClientStatus): number {
   else if (c.highestAlertSeverity === 'MEDIUM') score += 2
   if (c.injuryCount > 0) score += 2
   if (c.pendingFeedbackCount > 0) score += 1
+  if (c.engagementLevel === 'INACTIVE' && c.daysSinceLastActivity !== null && c.daysSinceLastActivity > 14) score += 3
+  else if (c.engagementLevel === 'INACTIVE') score += 2
   return score
 }
 
@@ -77,6 +80,13 @@ function buildAttentionChips(clients: PTClientStatus[]): AttentionChip[] {
         clientId: c.id,
         label: `${c.name.split(' ')[0]}: ${c.injuryCount} aktiv skada`,
         color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+      })
+    }
+    if (c.engagementLevel === 'INACTIVE' && c.daysSinceLastActivity !== null && c.daysSinceLastActivity > 7) {
+      chips.push({
+        clientId: c.id,
+        label: `${c.name.split(' ')[0]}: Inaktiv ${c.daysSinceLastActivity}d`,
+        color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400',
       })
     }
   }
