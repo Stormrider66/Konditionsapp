@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useSearchParams, usePathname } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Library, Plus, FolderOpen, Wand2 } from 'lucide-react'
+import { Activity, Calendar, Library, Plus, FolderOpen, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import dynamic from 'next/dynamic'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
@@ -65,7 +65,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const [showCreator, setShowCreator] = React.useState(false)
-  const [activeTab, setActiveTab] = React.useState(searchParams.get('fromCalendar') === 'true' ? 'builder' : 'library')
+  const [activeTab, setActiveTab] = React.useState('builder')
   const [editSession, setEditSession] = React.useState<StrengthSessionData | null>(null)
   const [useSectionBuilder, setUseSectionBuilder] = React.useState(true) // Default to section builder
   const [stats, setStats] = useState<StrengthStats | null>(null)
@@ -239,6 +239,10 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
+          <TabsTrigger value="builder" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Skapa Pass
+          </TabsTrigger>
           <TabsTrigger value="library" className="flex items-center gap-2">
             <Library className="h-4 w-4" />
             Övningar
@@ -246,10 +250,6 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
           <TabsTrigger value="sessions" className="flex items-center gap-2">
             <FolderOpen className="h-4 w-4" />
             Passbibliotek
-          </TabsTrigger>
-          <TabsTrigger value="builder" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Skapa Pass
           </TabsTrigger>
           <TabsTrigger value="progression" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
