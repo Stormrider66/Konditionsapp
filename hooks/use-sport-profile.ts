@@ -38,6 +38,7 @@ export const SPORT_ICONS: Record<SportType, string> = {
   TEAM_VOLLEYBALL: '🏐',
   TENNIS: '🎾',
   PADEL: '🎾',
+  NUTRITION: '🥗',
 }
 
 // Sport labels for display
@@ -59,6 +60,7 @@ export const SPORT_LABELS: Record<SportType, { en: string; sv: string }> = {
   TEAM_VOLLEYBALL: { en: 'Volleyball', sv: 'Volleyboll' },
   TENNIS: { en: 'Tennis', sv: 'Tennis' },
   PADEL: { en: 'Padel', sv: 'Padel' },
+  NUTRITION: { en: 'Nutrition', sv: 'Kost' },
 }
 
 export function useSportProfile(clientId?: string): UseSportProfileResult {

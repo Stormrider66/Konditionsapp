@@ -21,6 +21,7 @@ type SportValue =
   | 'GENERAL_FITNESS' | 'FUNCTIONAL_FITNESS' | 'SWIMMING' | 'STRENGTH'
   | 'TEAM_ICE_HOCKEY' | 'TEAM_FOOTBALL' | 'TEAM_HANDBALL' | 'TEAM_FLOORBALL'
   | 'TEAM_BASKETBALL' | 'TEAM_VOLLEYBALL' | 'TENNIS' | 'PADEL'
+  | 'NUTRITION'
 
 interface SportCategory {
   label: string
@@ -280,9 +281,28 @@ function AthleteSignupForm() {
         )}
       </div>
 
-      {/* Sport Selection */}
+      {/* Sport / Focus Selection */}
       <div>
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Välj din sport</h3>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Vad vill du fokusera på?</h3>
+
+        {/* Nutrition-only option */}
+        <button
+          type="button"
+          onClick={() => setSelectedSport('NUTRITION')}
+          className={`w-full flex items-center gap-3 rounded-lg border-2 p-3 mb-3 transition-all text-left ${
+            selectedSport === 'NUTRITION'
+              ? 'border-emerald-500 bg-emerald-50 shadow-sm'
+              : 'border-gray-200 hover:border-emerald-300'
+          }`}
+        >
+          <span className="text-2xl">🥗</span>
+          <div>
+            <span className="text-sm font-semibold text-gray-900">Kost & Nutrition</span>
+            <p className="text-xs text-muted-foreground">Makrospårning, AI-matanalys, kostmål</p>
+          </div>
+        </button>
+
+        <p className="text-xs font-medium text-muted-foreground mb-2">Eller välj en sport</p>
         {(() => {
           const popularSports = SPORT_CATEGORIES[0].sports // Endurance as popular
           const otherCategories = SPORT_CATEGORIES.slice(1)

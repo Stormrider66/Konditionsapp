@@ -179,6 +179,16 @@ const SPORT_OPTIONS: SportOption[] = [
     color: 'bg-yellow-500/10 border-yellow-500/20 hover:border-yellow-500/40',
     features: ['Court positions', 'Partner play', 'Smash power'],
   },
+  {
+    value: 'NUTRITION',
+    label: 'Nutrition',
+    labelSv: 'Kost & Nutrition',
+    description: 'Focus on nutrition tracking, meal planning, and body composition goals',
+    descriptionSv: 'Fokusera på kostuppföljning, måltidsplanering och kroppssammansättningsmål',
+    icon: '🥗',
+    color: 'bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/40',
+    features: ['Makrospårning', 'AI-matanalys', 'Måluppföljning'],
+  },
 ]
 
 interface SportSelectorProps {

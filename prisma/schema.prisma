@@ -45,6 +45,8 @@ enum SportType {
   // Racket Sports
   TENNIS // Tennis
   PADEL // Padel
+  // Non-sport focus areas
+  NUTRITION // Nutrition-only focus (no primary sport)
 }
 
 enum TestStatus {

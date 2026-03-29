@@ -709,6 +709,7 @@ function buildSportProfileContext(sportProfile: {
     TEAM_VOLLEYBALL: 'Volleyboll',
     TENNIS: 'Tennis',
     PADEL: 'Padel',
+    NUTRITION: 'Kost & Nutrition',
   }
 
   context += `- **Primär idrott**: ${sportNames[sportProfile.primarySport]}\n`

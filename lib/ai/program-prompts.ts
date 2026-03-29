@@ -632,6 +632,33 @@ NYCKELPRINCIPER FÖR PADEL:
 - In-season: Matchfokus, underhållsträning
 - Mellan turneringar: Återhämtning och specifik träning
 - Viktiga turneringar: Taper och mental förberedelse`
+  },
+  NUTRITION: {
+    systemContext: `Du ger kostråd och näringscoaching.
+
+NYCKELPRINCIPER FÖR KOST:
+- Energibalans anpassad efter mål (viktnedgång, viktökning, underhåll)
+- Makrofördelning baserad på aktivitetsnivå och mål
+- Måltidstiming och frekvens
+- Mikronutrienter och kostfiber
+- Hållbara kostvanor framför extrema dieter`,
+    zoneGuidance: `NÄRINGSRIKTLINJER:
+- Protein: 1.6-2.2g/kg kroppsvikt beroende på mål
+- Kolhydrater: Anpassat efter aktivitetsnivå
+- Fett: 0.8-1.2g/kg kroppsvikt minimum
+- Fiber: 25-35g per dag
+- Vätska: 30-40ml/kg kroppsvikt`,
+    sessionTypes: [
+      'Måltidsplanering',
+      'Makrospårning',
+      'Kostanalys',
+      'Matlagning och mealprep',
+    ],
+    periodizationNotes: `KOSTPERIODISERING:
+- Viktnedgång: Måttligt kaloriunderskott (300-500 kcal/dag)
+- Viktökning: Överskott med fokus på protein
+- Underhåll: Balanserat energiintag
+- Body recomp: Högt protein med cyklat energiintag`
   }
 };
 

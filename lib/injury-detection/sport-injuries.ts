@@ -685,6 +685,8 @@ export const SPORT_INJURY_MAPS: Record<SportType, SportInjuryMap> = {
   // Racket sports - use general fitness injuries as base
   TENNIS: GENERAL_FITNESS_INJURIES,
   PADEL: GENERAL_FITNESS_INJURIES,
+  // Non-sport focus areas
+  NUTRITION: GENERAL_FITNESS_INJURIES,
 }
 
 // All injury definitions in a lookup map

@@ -191,6 +191,14 @@ export const SPORT_INTENSITY_DEFAULTS: Record<SportType, IntensityTargets> = {
     methodology: 'BALANCED',
     label: 'Padel',
   },
+  // Non-sport focus areas
+  NUTRITION: {
+    easyPercent: 100,
+    moderatePercent: 0,
+    hardPercent: 0,
+    methodology: 'BALANCED',
+    label: 'Kost',
+  },
 }
 
 /**
@@ -579,6 +587,7 @@ export function getTargetsForAthlete(
     TEAM_VOLLEYBALL: sportProfile.volleyballSettings,
     TENNIS: sportProfile.tennisSettings,
     PADEL: sportProfile.padelSettings,
+    NUTRITION: null,
   }
 
   const sportSettings = settingsMap[activeSport] as Record<string, unknown> | undefined

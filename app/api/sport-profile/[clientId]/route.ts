@@ -441,6 +441,7 @@ export async function PATCH(
       TEAM_VOLLEYBALL: 'volleyballSettings',
       TENNIS: 'tennisSettings',
       PADEL: 'padelSettings',
+      NUTRITION: 'generalFitnessSettings', // Fallback — nutrition users have no sport-specific settings
     }
 
     const settingsField = settingsFieldMap[sport]

@@ -30,6 +30,7 @@ import {
   CalendarDays,
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
+import { NutritionFocusDashboard } from '@/components/athlete/NutritionFocusDashboard'
 import { RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, HeroCardSlider, QuickActionsGrid, GarminHealthCard } from '@/components/athlete/dashboard'
 import { AgentRecommendationsPanel } from '@/components/athlete/agent'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
@@ -107,6 +108,34 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   const primarySport = activeSportCookie && availableSports.includes(activeSportCookie)
     ? activeSportCookie
     : sportProfile?.primarySport
+
+  const now = new Date()
+
+  // Nutrition-focused users get a dedicated dashboard (skip all training data fetches)
+  if (primarySport === 'NUTRITION') {
+    return (
+      <div className="container mx-auto py-8 px-4 sm:px-6 max-w-7xl font-sans">
+        <div className="flex flex-col gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
+              Välkommen tillbaka <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-emerald-400 dark:to-teal-500">{client.name.split(' ')[0]}</span>
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 flex items-center gap-2 transition-colors">
+              <CalendarDays className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
+              <span className="capitalize">{format(now, 'EEEE, d MMMM')}</span>
+              <span className="text-slate-400 dark:text-slate-600">•</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium">{membership.business.name}</span>
+            </p>
+          </div>
+          <QuickActionsGrid
+            sessionHref={`${basePath}/athlete/nutrition`}
+            sessionLabel="Koststatistik"
+          />
+        </div>
+        <NutritionFocusDashboard clientId={clientId} basePath={basePath} />
+      </div>
+    )
+  }
 
   // Get sport-specific intensity targets
   const intensityTargets = sportProfile && primarySport
@@ -203,7 +232,6 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     }
   }
 
-  const now = new Date()
   const todayStart = startOfDay(now)
   const todayEnd = endOfDay(now)
   // Timezone-safe boundaries for training day dates (may be stored at CET/CEST midnight)

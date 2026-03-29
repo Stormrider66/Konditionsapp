@@ -27,6 +27,7 @@ import { BasketballOnboarding, DEFAULT_BASKETBALL_SETTINGS, type BasketballSetti
 import { VolleyballOnboarding, DEFAULT_VOLLEYBALL_SETTINGS, type VolleyballSettings } from './VolleyballOnboarding'
 import { TennisOnboarding, DEFAULT_TENNIS_SETTINGS, type TennisSettings } from './TennisOnboarding'
 import { PadelOnboarding, DEFAULT_PADEL_SETTINGS, type PadelSettings } from './PadelOnboarding'
+import { NutritionOnboarding, DEFAULT_NUTRITION_SETTINGS, type NutritionSettings } from './NutritionOnboarding'
 import { BiometricsStep, DEFAULT_BIOMETRICS_DATA, type BiometricsData } from './BiometricsStep'
 import { FitnessSummary } from './FitnessSummary'
 import { AIProgramOfferStep } from './AIProgramOfferStep'
@@ -109,6 +110,7 @@ interface OnboardingData {
   volleyballSettings: VolleyballSettings
   tennisSettings: TennisSettings
   padelSettings: PadelSettings
+  nutritionSettings: NutritionSettings
 }
 
 // Step definitions for different sports
@@ -266,6 +268,14 @@ const PADEL_STEP: StepDefinition = {
   descriptionSv: 'Konfigurera din position, partnerinformation och fysiska tester.',
 }
 
+const NUTRITION_STEP: StepDefinition = {
+  id: 'sport_specific',
+  titleEn: 'Nutrition Setup',
+  titleSv: 'Kostinställningar',
+  descriptionEn: 'Set your nutrition goals, dietary preferences, and macro targets.',
+  descriptionSv: 'Ställ in dina kostmål, kostpreferenser och makromål.',
+}
+
 const AI_PROGRAM_STEP: StepDefinition = {
   id: 'ai_program',
   titleEn: 'AI Training Program',
@@ -356,6 +366,7 @@ export function OnboardingWizard({
     volleyballSettings: DEFAULT_VOLLEYBALL_SETTINGS,
     tennisSettings: DEFAULT_TENNIS_SETTINGS,
     padelSettings: DEFAULT_PADEL_SETTINGS,
+    nutritionSettings: DEFAULT_NUTRITION_SETTINGS,
   })
 
   // Fetch subscription tier and coach status for AI program step
@@ -445,7 +456,20 @@ export function OnboardingWizard({
   }
 
   // Compute steps based on selected sport
+  const isNutritionFocus = data.primarySport === 'NUTRITION'
+
   const steps = useMemo(() => {
+    // Nutrition-focused users get a streamlined flow
+    if (data.primarySport === 'NUTRITION') {
+      return [
+        BASE_STEPS[0], // Sport selection
+        BASE_STEPS[2], // Biometrics (height/weight needed for TDEE)
+        NUTRITION_STEP, // Nutrition goals & preferences
+        COMMON_STEPS[2], // Goals
+        COMMON_STEPS[3], // Summary
+      ]
+    }
+
     const allSteps = [...BASE_STEPS]
 
     // Add sport-specific step based on selected sport
@@ -579,6 +603,10 @@ export function OnboardingWizard({
         if (data.primarySport === 'PADEL') {
           return !!data.padelSettings.position
         }
+        // Nutrition - always valid (has sensible defaults)
+        if (data.primarySport === 'NUTRITION') {
+          return !!data.nutritionSettings.goalType && !!data.nutritionSettings.activityLevel
+        }
         return true
       case 'availability':
         return Object.values(data.weeklyAvailability).some((d) => d.available)
@@ -693,6 +721,33 @@ export function OnboardingWizard({
 
       if (!response.ok) {
         throw new Error('Failed to save profile')
+      }
+
+      // For nutrition-focused users, also save nutrition goals and dietary preferences
+      if (data.primarySport === 'NUTRITION') {
+        const ns = data.nutritionSettings
+        await Promise.all([
+          fetch('/api/nutrition/goals', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              goalType: ns.goalType,
+              targetWeightKg: ns.targetWeightKg,
+              weeklyChangeKg: ns.weeklyChangeKg,
+              macroProfile: ns.macroProfile,
+              activityLevel: ns.activityLevel,
+            }),
+          }),
+          fetch('/api/nutrition/preferences', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              dietaryStyle: ns.dietaryStyle,
+              allergies: ns.allergies,
+              intolerances: ns.intolerances,
+            }),
+          }),
+        ])
       }
 
       toast({
@@ -975,6 +1030,14 @@ export function OnboardingWizard({
             <PadelOnboarding
               settings={data.padelSettings}
               onUpdate={(settings) => updateData({ padelSettings: settings })}
+            />
+          )}
+
+          {/* Step: Sport-Specific Settings (Nutrition) */}
+          {currentStep.id === 'sport_specific' && data.primarySport === 'NUTRITION' && (
+            <NutritionOnboarding
+              settings={data.nutritionSettings}
+              onUpdate={(settings) => updateData({ nutritionSettings: settings })}
             />
           )}
 

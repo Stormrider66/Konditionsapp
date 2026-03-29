@@ -45,6 +45,7 @@ const SPORT_DISPLAY: Record<SportType, { icon: string; label: string; labelSv: s
   TEAM_VOLLEYBALL: { icon: '🏐', label: 'Volleyball', labelSv: 'Volleyboll' },
   TENNIS: { icon: '🎾', label: 'Tennis', labelSv: 'Tennis' },
   PADEL: { icon: '🎾', label: 'Padel', labelSv: 'Padel' },
+  NUTRITION: { icon: '🥗', label: 'Nutrition', labelSv: 'Kost' },
 }
 
 interface SportProfile {
