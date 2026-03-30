@@ -11,6 +11,7 @@ import { logRoleChange, logAuditEvent, getIpFromRequest, getUserAgentFromRequest
 import { ATHLETE_TIER_FEATURES } from '@/lib/subscription/feature-access';
 import { z } from 'zod';
 import { ensureAthleteClientDefaultsTx } from '@/lib/user-provisioning';
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 
 const COACH_TIER_VALUES = ['FREE', 'BASIC', 'PRO', 'ENTERPRISE'] as const;
 const ATHLETE_TIER_VALUES = ['FREE', 'STANDARD', 'PRO', 'ELITE'] as const;
@@ -20,6 +21,7 @@ type AthleteTierValue = typeof ATHLETE_TIER_VALUES[number];
 
 const updateUserSchema = z.object({
   userId: z.string().uuid(),
+  email: z.string().email().optional(),
   role: z.enum(['COACH', 'ATHLETE', 'ADMIN']).optional(),
   adminRole: z.enum(['SUPER_ADMIN', 'ADMIN', 'SUPPORT']).nullable().optional(),
   tier: z.enum(['FREE', 'BASIC', 'STANDARD', 'PRO', 'ELITE', 'ENTERPRISE']).optional(),
@@ -324,7 +326,68 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { userId, role, adminRole, tier } = validation.data;
+    const { userId, email, role, adminRole, tier } = validation.data;
+
+    // Handle email change (Supabase Auth + Prisma)
+    if (email) {
+      // Check if email is already taken
+      const existingUser = await prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' }, id: { not: userId } },
+        select: { id: true },
+      });
+
+      if (existingUser) {
+        return NextResponse.json(
+          { success: false, error: 'Email is already in use by another user' },
+          { status: 400 }
+        );
+      }
+
+      // Update email in Supabase Auth
+      const supabaseAdmin = createAdminSupabaseClient();
+      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        email,
+        email_confirm: true,
+      });
+
+      if (authError) {
+        logger.error('Failed to update email in Supabase Auth', { userId, email }, authError);
+        return NextResponse.json(
+          { success: false, error: 'Failed to update email in auth system' },
+          { status: 500 }
+        );
+      }
+
+      // Update email in Prisma
+      await prisma.user.update({
+        where: { id: userId },
+        data: { email },
+      });
+
+      await logAuditEvent({
+        action: 'USER_EMAIL_CHANGE',
+        userId: adminUser.id,
+        targetId: userId,
+        targetType: 'User',
+        oldValue: { email: '(previous)' },
+        newValue: { email },
+        ipAddress: getIpFromRequest(request),
+        userAgent: getUserAgentFromRequest(request),
+      });
+
+      // If only email was changed, return early
+      if (!role && adminRole === undefined && !tier) {
+        const updatedUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, email: true, name: true, role: true },
+        });
+        return NextResponse.json({
+          success: true,
+          data: updatedUser,
+          message: 'Email updated successfully',
+        });
+      }
+    }
 
     // Get current user state for audit log
     const targetUser = await prisma.user.findUnique({

@@ -9,6 +9,7 @@ export default async function BusinessAdminPage() {
       businessId={admin.businessId}
       businessName={admin.business.name}
       businessRole={admin.businessRole}
+      isPlatformAdmin={!!admin.adminRole}
     />
   )
 }

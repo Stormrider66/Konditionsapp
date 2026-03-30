@@ -59,6 +59,8 @@ import {
   Plus,
   X,
   Trash2,
+  Pencil,
+  Check,
 } from 'lucide-react';
 import { useTranslations } from '@/i18n/client';
 import { ContractsTable } from '@/components/admin/contracts/ContractsTable';
@@ -188,6 +190,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
   // Business assignment dialog
   const [assignDialogUser, setAssignDialogUser] = useState<User | null>(null);
   const [selectedBusinessId, setSelectedBusinessId] = useState('');
+
+  // Email editing
+  const [editingEmailUserId, setEditingEmailUserId] = useState<string | null>(null);
+  const [editingEmailValue, setEditingEmailValue] = useState('');
 
   // Delete user dialog
   const [deleteDialogUser, setDeleteDialogUser] = useState<User | null>(null);
@@ -375,6 +381,26 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
       }
     } catch (error) {
       console.error('Error updating admin role:', error);
+    }
+  };
+
+  const updateUserEmail = async (targetUserId: string, newEmail: string) => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: targetUserId, email: newEmail }),
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        setEditingEmailUserId(null);
+        fetchUsers();
+      } else {
+        alert(result.error || 'Kunde inte uppdatera e-post');
+      }
+    } catch (error) {
+      console.error('Error updating email:', error);
+      alert('Ett fel uppstod vid uppdatering av e-post');
     }
   };
 
@@ -752,7 +778,61 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                         {users.map((user) => (
                           <TableRow key={user.id}>
                             <TableCell className="font-medium">{user.name || '-'}</TableCell>
-                            <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                              {editingEmailUserId === user.id ? (
+                                <div className="flex items-center gap-1">
+                                  <Input
+                                    type="email"
+                                    value={editingEmailValue}
+                                    onChange={(e) => setEditingEmailValue(e.target.value)}
+                                    className="h-7 text-sm w-[200px]"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && editingEmailValue && editingEmailValue !== user.email) {
+                                        updateUserEmail(user.id, editingEmailValue);
+                                      }
+                                      if (e.key === 'Escape') setEditingEmailUserId(null);
+                                    }}
+                                    autoFocus
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={() => {
+                                      if (editingEmailValue && editingEmailValue !== user.email) {
+                                        updateUserEmail(user.id, editingEmailValue);
+                                      } else {
+                                        setEditingEmailUserId(null);
+                                      }
+                                    }}
+                                  >
+                                    <Check className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={() => setEditingEmailUserId(null)}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1 group">
+                                  <span className="text-sm">{user.email}</span>
+                                  <button
+                                    onClick={() => {
+                                      setEditingEmailUserId(user.id);
+                                      setEditingEmailValue(user.email);
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Ändra e-post"
+                                  >
+                                    <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                  </button>
+                                </div>
+                              )}
+                            </TableCell>
                             <TableCell>
                               <Select
                                 value={user.role}

@@ -21,7 +21,10 @@ import {
   Settings,
   MapPin,
   Palette,
+  Shield,
 } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 import { BusinessAdminProvider } from '@/components/coach/admin/BusinessAdminContext'
 
 interface BusinessAdminClientProps {
@@ -29,12 +32,14 @@ interface BusinessAdminClientProps {
   businessName: string
   businessRole: 'OWNER' | 'ADMIN'
   businessSlug: string
+  isPlatformAdmin?: boolean
 }
 
 export function BusinessAdminClient({
   businessId,
   businessName,
   businessRole,
+  isPlatformAdmin,
 }: BusinessAdminClientProps) {
   const [activeTab, setActiveTab] = useState('overview')
 
@@ -42,13 +47,23 @@ export function BusinessAdminClient({
     <BusinessAdminProvider businessId={businessId}>
       <div className="container mx-auto py-6 px-4 max-w-7xl">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {businessName} Admin
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Manage your business members, API keys, referrals, and settings
-          </p>
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              {businessName} Admin
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Manage your business members, API keys, referrals, and settings
+            </p>
+          </div>
+          {isPlatformAdmin && (
+            <Link href="/admin">
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-red-500" />
+                Platform Admin
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Tabs */}

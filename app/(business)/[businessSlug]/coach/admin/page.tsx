@@ -30,6 +30,7 @@ export default async function BusinessAdminPage({ params }: BusinessAdminPagePro
       businessName={membership.business.name}
       businessRole={membership.role as 'OWNER' | 'ADMIN'}
       businessSlug={businessSlug}
+      isPlatformAdmin={!!user.adminRole}
     />
   )
 }
