@@ -34,7 +34,7 @@ export function SmartTestImportDialog({
   const [isProcessing, setIsProcessing] = useState(false)
   const [result, setResult] = useState<TestImportResult | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewUrls, setPreviewUrls] = useState<string[]>([])
   const [fileName, setFileName] = useState<string | null>(null)
 
   const imageInputRef = useRef<HTMLInputElement | null>(null)
@@ -46,7 +46,7 @@ export function SmartTestImportDialog({
   const resetState = useCallback(() => {
     setResult(null)
     setError(null)
-    setPreviewUrl(null)
+    setPreviewUrls([])
     setFileName(null)
   }, [])
 
@@ -98,18 +98,19 @@ export function SmartTestImportDialog({
     })
   }, [])
 
-  const processFile = useCallback(
-    async (file: File) => {
+  const processFiles = useCallback(
+    async (files: File[]) => {
       setIsProcessing(true)
       setError(null)
       setResult(null)
 
       try {
-        // Resize large images to avoid Vercel body size limit (4.5MB)
-        const processedFile = await resizeImageIfNeeded(file)
-
         const formData = new FormData()
-        formData.append('file', processedFile)
+        // Resize and append all files
+        for (const file of files) {
+          const processedFile = await resizeImageIfNeeded(file)
+          formData.append('file', processedFile)
+        }
         formData.append('testType', testType)
         if (clientId) formData.append('clientId', clientId)
 
@@ -152,14 +153,14 @@ export function SmartTestImportDialog({
 
   const handleImageSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (!file) return
+      const files = Array.from(e.target.files || [])
+      if (files.length === 0) return
       resetState()
-      setPreviewUrl(URL.createObjectURL(file))
-      processFile(file)
+      setPreviewUrls(files.map(f => URL.createObjectURL(f)))
+      processFiles(files)
       e.target.value = ''
     },
-    [processFile, resetState]
+    [processFiles, resetState]
   )
 
   const handleDocSelect = useCallback(
@@ -168,10 +169,10 @@ export function SmartTestImportDialog({
       if (!file) return
       resetState()
       setFileName(file.name)
-      processFile(file)
+      processFiles([file])
       e.target.value = ''
     },
-    [processFile, resetState]
+    [processFiles, resetState]
   )
 
   const handleAudioFileSelect = useCallback(
@@ -180,10 +181,10 @@ export function SmartTestImportDialog({
       if (!file) return
       resetState()
       setFileName(file.name)
-      processFile(file)
+      processFiles([file])
       e.target.value = ''
     },
-    [processFile, resetState]
+    [processFiles, resetState]
   )
 
   const handleStartRecording = useCallback(async () => {
@@ -192,11 +193,11 @@ export function SmartTestImportDialog({
       const blob = await recorder.startRecording()
       const file = new File([blob], 'recording.webm', { type: blob.type })
       setFileName(`Inspelning (${formatDuration(recorder.duration)}s)`)
-      processFile(file)
+      processFiles([file])
     } catch {
       // Error handled by recorder hook
     }
-  }, [recorder, processFile, resetState])
+  }, [recorder, processFiles, resetState])
 
   const handleApply = useCallback(() => {
     if (result) {
@@ -243,7 +244,7 @@ export function SmartTestImportDialog({
             <input
               type="file"
               accept="image/*"
-              capture="environment"
+              multiple
               className="hidden"
               ref={imageInputRef}
               onChange={handleImageSelect}
@@ -257,22 +258,26 @@ export function SmartTestImportDialog({
               <div className="flex flex-col items-center gap-1.5">
                 <Camera className="w-6 h-6 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  Fotografera eller välj bild
+                  Fotografera eller välj bilder
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Utskrifter, handskrivna tabeller, skärmfoton
+                  Välj flera bilder för att kombinera protokoll + spirometri
                 </span>
               </div>
             </Button>
-            {previewUrl && (
-              <div className="relative w-full h-40 rounded border overflow-hidden">
-                <Image
-                  src={previewUrl}
-                  alt="Förhandsvisning"
-                  fill
-                  unoptimized
-                  className="object-contain"
-                />
+            {previewUrls.length > 0 && (
+              <div className="flex gap-2">
+                {previewUrls.map((url, i) => (
+                  <div key={i} className="relative w-1/2 h-32 rounded border overflow-hidden">
+                    <Image
+                      src={url}
+                      alt={`Bild ${i + 1}`}
+                      fill
+                      unoptimized
+                      className="object-contain"
+                    />
+                  </div>
+                ))}
               </div>
             )}
           </TabsContent>
