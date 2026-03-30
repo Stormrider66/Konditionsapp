@@ -365,7 +365,7 @@ export async function PUT(request: NextRequest) {
       });
 
       await logAuditEvent({
-        action: 'USER_EMAIL_CHANGE',
+        action: 'USER_ROLE_CHANGE',
         userId: adminUser.id,
         targetId: userId,
         targetType: 'User',
