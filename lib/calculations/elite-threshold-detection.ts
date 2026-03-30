@@ -222,7 +222,24 @@ export function classifyAthleteProfile(data: LactateDataPoint[]): AthleteProfile
   // If baseline is low (<1.5) and lactate range is high (>3.5), this indicates elite flat
   // Even with a slightly higher slope, this profile needs Bishop Modified D-max
   // Require at least 6 data points to prevent false positives from small datasets
-  const highRangeElite = baselineAvg < 1.5 && lactateRange > 3.5 && data.length >= 6;
+  //
+  // ADDITIONALLY require an extended flat phase: at least 50% of stages must have
+  // lactate within baseline + 0.5 mmol/L consecutively from the start. Without this,
+  // any normal athlete who pushes to exhaustion (high max lactate → high range) gets
+  // misclassified as ELITE_FLAT just because they have a low resting lactate.
+  let consecutiveFlatStages = 0;
+  const flatCeiling = baselineAvg + 0.5;
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].lactate <= flatCeiling) {
+      consecutiveFlatStages++;
+    } else {
+      break;
+    }
+  }
+  const minFlatRequired = Math.max(3, Math.ceil(data.length * 0.5));
+  const hasExtendedFlatPhase = consecutiveFlatStages >= minFlatRequired;
+
+  const highRangeElite = baselineAvg < 1.5 && lactateRange > 3.5 && data.length >= 6 && hasExtendedFlatPhase;
 
   // Method 3: Very low baseline with moderate slope
   // A baseline < 1.2 is extremely low - almost certainly elite even with some slope
@@ -244,7 +261,9 @@ export function classifyAthleteProfile(data: LactateDataPoint[]): AthleteProfile
     baselineSlope,
     maxLactate,
     lactateRange,
-    criteria: { traditionalElite, highRangeElite, veryLowBaseline }
+    consecutiveFlatStages,
+    minFlatRequired,
+    criteria: { traditionalElite, highRangeElite, veryLowBaseline, hasExtendedFlatPhase }
   });
 
   return { type, baselineAvg, baselineSlope, maxLactate, lactateRange };

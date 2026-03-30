@@ -397,30 +397,42 @@ export function calculateAerobicThreshold(stages: TestStage[]): (Threshold & { m
     const eliteResult = detectEliteThresholds(lactateData)
 
     if (eliteResult.lt1) {
-      // Determine unit based on test type
-      let unit: 'km/h' | 'watt' | 'min/km' = 'km/h'
-      if (stages[0]?.power !== undefined && stages[0].power !== null) {
-        unit = 'watt'
-      } else if (stages[0]?.pace !== undefined && stages[0].pace !== null) {
-        unit = 'min/km'
-      }
+      // Physiological sanity check: LT1 (aerobic threshold) lactate should
+      // not exceed ~2.5 mmol/L. If the ensemble produces a higher value,
+      // the elite detection likely overfit (e.g. Log-Log found a late breakpoint).
+      // Fall through to standard methods which are more reliable in this case.
+      if (eliteResult.lt1.lactate > 2.5) {
+        logger.debug('[Aerobic Threshold] Elite LT1 lactate too high (%.2f > 2.5), falling through to standard methods', {
+          lactate: eliteResult.lt1.lactate,
+          intensity: eliteResult.lt1.intensity,
+          method: eliteResult.lt1.method
+        })
+      } else {
+        // Determine unit based on test type
+        let unit: 'km/h' | 'watt' | 'min/km' = 'km/h'
+        if (stages[0]?.power !== undefined && stages[0].power !== null) {
+          unit = 'watt'
+        } else if (stages[0]?.pace !== undefined && stages[0].pace !== null) {
+          unit = 'min/km'
+        }
 
-      logger.debug('[Aerobic Threshold] Elite LT1 detected', {
-        intensity: eliteResult.lt1.intensity,
-        lactate: eliteResult.lt1.lactate,
-        method: eliteResult.lt1.method,
-        confidence: eliteResult.lt1.confidence
-      })
+        logger.debug('[Aerobic Threshold] Elite LT1 detected', {
+          intensity: eliteResult.lt1.intensity,
+          lactate: eliteResult.lt1.lactate,
+          method: eliteResult.lt1.method,
+          confidence: eliteResult.lt1.confidence
+        })
 
-      return {
-        heartRate: Math.round(eliteResult.lt1.heartRate),
-        value: Number(eliteResult.lt1.intensity.toFixed(1)),
-        unit,
-        lactate: Number(eliteResult.lt1.lactate.toFixed(2)),
-        percentOfMax: 0,
-        method: eliteResult.lt1.method,
-        confidence: eliteResult.lt1.confidence,
-        profileType: eliteResult.profile.type
+        return {
+          heartRate: Math.round(eliteResult.lt1.heartRate),
+          value: Number(eliteResult.lt1.intensity.toFixed(1)),
+          unit,
+          lactate: Number(eliteResult.lt1.lactate.toFixed(2)),
+          percentOfMax: 0,
+          method: eliteResult.lt1.method,
+          confidence: eliteResult.lt1.confidence,
+          profileType: eliteResult.profile.type
+        }
       }
     }
   }
