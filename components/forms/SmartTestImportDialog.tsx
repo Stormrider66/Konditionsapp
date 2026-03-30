@@ -104,8 +104,8 @@ export function SmartTestImportDialog({
       try {
         const formData = new FormData()
         // Use smaller images when multiple files to stay within timeout
-        const maxDim = files.length > 1 ? 1280 : 2048
-        const quality = files.length > 1 ? 0.7 : 0.85
+        const maxDim = files.length > 2 ? 1024 : files.length > 1 ? 1280 : 2048
+        const quality = files.length > 2 ? 0.6 : files.length > 1 ? 0.7 : 0.85
         for (const file of files) {
           const processedFile = await resizeImageIfNeeded(file, maxDim, quality)
           formData.append('file', processedFile)

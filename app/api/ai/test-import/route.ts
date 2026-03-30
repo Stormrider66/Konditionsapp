@@ -11,7 +11,7 @@
  * Returns structured data matching TestDataForm fields for pre-fill.
  */
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 import { NextRequest, NextResponse } from 'next/server'
 import { generateObject } from 'ai'
