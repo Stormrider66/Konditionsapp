@@ -21,6 +21,13 @@ export const TestImportResultSchema = z.object({
       cadence: z.number().optional(),
       pace: z.number().optional(),
       incline: z.number().optional(),
+      // Metabol data (spirometri)
+      rer: z.number().optional(),
+      ve: z.number().optional(),
+      vco2: z.number().optional(),
+      fatPercent: z.number().optional(),
+      choPercent: z.number().optional(),
+      respiratoryRate: z.number().optional(),
     })
   ),
   postTestMeasurements: z

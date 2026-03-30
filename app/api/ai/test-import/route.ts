@@ -60,6 +60,10 @@ FÄLTNAMN (matchar formuläret exakt):
 - stages[]: durationMinutes, durationSeconds, heartRate (slag/min), lactate (mmol/L), vo2 (ml/kg/min, valfritt)
   + speed (km/h) för löpning, power (watt) för cykling, pace (min/km) för skidåkning
   + cadence (rpm) för cykling, incline för löpning (valfritt)
+  + METABOL DATA (om tillgänglig från spirometri/Oxycon/Cosmed):
+    rer (Respiratory Exchange Ratio, t.ex. 0.85), ve (minutventilation L/min),
+    vco2 (koldioxidproduktion ml/min), fatPercent (fettförbränning %),
+    choPercent (kolhydratförbränning %), respiratoryRate (andningsfrekvens, andetag/min)
 - restingLactate: vilolaktat i mmol/L (före testet)
 - testDate: datum i YYYY-MM-DD format
 - postTestMeasurements[]: timeMinutes, timeSeconds, lactate — eftermätningar post-max

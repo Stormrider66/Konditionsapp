@@ -206,6 +206,10 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
   const handleSmartImport = useCallback((data: TestImportResult) => {
     if (data.stages.length > 0) {
       replace(data.stages as any)
+      // Auto-expand metabolic section if import contains metabolic data
+      if (data.stages.some(s => s.rer != null || s.ve != null || s.fatPercent != null)) {
+        setShowMetabolicData(true)
+      }
     }
     if (data.restingLactate !== undefined) {
       setValue('restingLactate', data.restingLactate)
