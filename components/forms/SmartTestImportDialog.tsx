@@ -58,16 +58,13 @@ export function SmartTestImportDialog({
     [onOpenChange, resetState]
   )
 
-  const resizeImageIfNeeded = useCallback(async (file: File, maxSizeMB = 4): Promise<File> => {
-    if (!file.type.startsWith('image/') || file.size <= maxSizeMB * 1024 * 1024) {
-      return file
-    }
+  const resizeImageIfNeeded = useCallback(async (file: File, maxDim = 2048, quality = 0.85): Promise<File> => {
+    if (!file.type.startsWith('image/')) return file
 
+    // Always resize images through canvas to ensure consistent size
     return new Promise((resolve) => {
       const img = document.createElement('img')
       img.onload = () => {
-        // Scale down to fit under the size limit while maintaining aspect ratio
-        const maxDim = 2048
         let { width, height } = img
         if (width > maxDim || height > maxDim) {
           const scale = maxDim / Math.max(width, height)
@@ -90,7 +87,7 @@ export function SmartTestImportDialog({
             }
           },
           'image/jpeg',
-          0.85
+          quality
         )
       }
       img.onerror = () => resolve(file)
@@ -106,9 +103,11 @@ export function SmartTestImportDialog({
 
       try {
         const formData = new FormData()
-        // Resize and append all files
+        // Use smaller images when multiple files to stay within timeout
+        const maxDim = files.length > 1 ? 1280 : 2048
+        const quality = files.length > 1 ? 0.7 : 0.85
         for (const file of files) {
-          const processedFile = await resizeImageIfNeeded(file)
+          const processedFile = await resizeImageIfNeeded(file, maxDim, quality)
           formData.append('file', processedFile)
         }
         formData.append('testType', testType)
@@ -266,9 +265,9 @@ export function SmartTestImportDialog({
               </div>
             </Button>
             {previewUrls.length > 0 && (
-              <div className="flex gap-2">
+              <div className={`grid gap-2 ${previewUrls.length === 1 ? 'grid-cols-1' : previewUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                 {previewUrls.map((url, i) => (
-                  <div key={i} className="relative w-1/2 h-32 rounded border overflow-hidden">
+                  <div key={i} className="relative h-28 rounded border overflow-hidden">
                     <Image
                       src={url}
                       alt={`Bild ${i + 1}`}
@@ -279,6 +278,9 @@ export function SmartTestImportDialog({
                   </div>
                 ))}
               </div>
+            )}
+            {previewUrls.length > 1 && (
+              <p className="text-xs text-muted-foreground">{previewUrls.length} bilder — data sammanfogas automatiskt</p>
             )}
           </TabsContent>
 
