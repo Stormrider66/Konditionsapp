@@ -40,6 +40,13 @@ export const testStageSchema = z.object({
   power: optionalNumber(0, 1000),
   cadence: optionalNumber(0, 200),
   pace: optionalNumber(2, 20),
+  // Metabol data (spirometri)
+  rer: optionalNumber(0.5, 1.5),
+  ve: optionalNumber(0, 300),
+  vco2: optionalNumber(0, 10000),
+  fatPercent: optionalNumber(0, 100),
+  choPercent: optionalNumber(0, 100),
+  respiratoryRate: optionalNumber(0, 80),
 })
 
 // Test-stage validering (API version with combined duration)
@@ -53,6 +60,13 @@ export const testStageApiSchema = z.object({
   power: optionalNumber(0, 1000),
   cadence: optionalNumber(0, 200),
   pace: optionalNumber(2, 20),
+  // Metabol data (spirometri)
+  rer: optionalNumber(0.5, 1.5),
+  ve: optionalNumber(0, 300),
+  vco2: optionalNumber(0, 10000),
+  fatPercent: optionalNumber(0, 100),
+  choPercent: optionalNumber(0, 100),
+  respiratoryRate: optionalNumber(0, 80),
 })
 
 // Post-test lactate measurement (form version with separate minutes/seconds)

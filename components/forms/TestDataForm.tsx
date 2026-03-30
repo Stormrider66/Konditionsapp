@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Trash2, Save, Download, Info, Camera, Loader2, CalendarDays, AlertTriangle, Sparkles } from 'lucide-react'
+import { Plus, Trash2, Save, Download, Info, Camera, Loader2, CalendarDays, AlertTriangle, Sparkles, ChevronDown, ChevronRight, Activity } from 'lucide-react'
 import { createTestSchema, CreateTestFormData, detectLactateDecreases } from '@/lib/validations/schemas'
 import { TestType, TestTemplate } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -148,6 +148,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
   const [templateDescription, setTemplateDescription] = useState('')
   const [ocrLoading, setOcrLoading] = useState<number | null>(null)
   const [showImportDialog, setShowImportDialog] = useState(false)
+  const [showMetabolicData, setShowMetabolicData] = useState(false)
   const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({})
 
   // OCR handler for lactate meter photo
@@ -492,6 +493,19 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           </AlertDescription>
         </Alert>
 
+        {/* Toggle metabolic data fields */}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setShowMetabolicData(!showMetabolicData)}
+          className="gap-2"
+        >
+          <Activity className="w-4 h-4" />
+          Metabol data (spirometri)
+          {showMetabolicData ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </Button>
+
         {fields.map((field, index) => (
           <Card key={field.id}>
             <CardContent className="p-4">
@@ -663,6 +677,84 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                   </div>
                 </div>
               </div>
+
+              {/* Metabol data (collapsible) */}
+              {showMetabolicData && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mt-3 pt-3 border-t border-dashed">
+                  <div className="space-y-1">
+                    <Label htmlFor={`stages.${index}.rer`} className="text-xs">
+                      RER
+                    </Label>
+                    <Input
+                      id={`stages.${index}.rer`}
+                      type="number"
+                      step="0.01"
+                      placeholder="0.85"
+                      {...register(`stages.${index}.rer`, { valueAsNumber: true })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`stages.${index}.ve`} className="text-xs">
+                      VE (L/min)
+                    </Label>
+                    <Input
+                      id={`stages.${index}.ve`}
+                      type="number"
+                      step="0.1"
+                      placeholder=""
+                      {...register(`stages.${index}.ve`, { valueAsNumber: true })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`stages.${index}.vco2`} className="text-xs">
+                      VCO₂ (ml/min)
+                    </Label>
+                    <Input
+                      id={`stages.${index}.vco2`}
+                      type="number"
+                      step="1"
+                      placeholder=""
+                      {...register(`stages.${index}.vco2`, { valueAsNumber: true })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`stages.${index}.fatPercent`} className="text-xs">
+                      Fett (%)
+                    </Label>
+                    <Input
+                      id={`stages.${index}.fatPercent`}
+                      type="number"
+                      step="0.1"
+                      placeholder=""
+                      {...register(`stages.${index}.fatPercent`, { valueAsNumber: true })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`stages.${index}.choPercent`} className="text-xs">
+                      Kolhydrat (%)
+                    </Label>
+                    <Input
+                      id={`stages.${index}.choPercent`}
+                      type="number"
+                      step="0.1"
+                      placeholder=""
+                      {...register(`stages.${index}.choPercent`, { valueAsNumber: true })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`stages.${index}.respiratoryRate`} className="text-xs">
+                      Andningsfrekvens
+                    </Label>
+                    <Input
+                      id={`stages.${index}.respiratoryRate`}
+                      type="number"
+                      step="0.1"
+                      placeholder=""
+                      {...register(`stages.${index}.respiratoryRate`, { valueAsNumber: true })}
+                    />
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}

@@ -272,6 +272,12 @@ export async function PATCH(
           incline: stage.incline || null,
           power: stage.power || null,
           cadence: stage.cadence || null,
+          rer: stage.rer || null,
+          ve: stage.ve || null,
+          vco2: stage.vco2 || null,
+          fatPercent: stage.fatPercent || null,
+          choPercent: stage.choPercent || null,
+          respiratoryRate: stage.respiratoryRate || null,
         })),
       })
     }

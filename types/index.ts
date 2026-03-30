@@ -882,6 +882,13 @@ export interface TestStage {
   cadence?: number // rpm
   // Skidåkning (Cross-country skiing)
   pace?: number // min/km
+  // Metabol data (spirometri)
+  rer?: number // Respiratory Exchange Ratio
+  ve?: number // Minutventilation (L/min)
+  vco2?: number // VCO2 (ml/min)
+  fatPercent?: number // Fettförbränning (%)
+  choPercent?: number // Kolhydratförbränning (%)
+  respiratoryRate?: number // Andningsfrekvens (andetag/min)
   // Beräknade
   economy?: number // ml/kg/km
   wattsPerKg?: number // watt/kg

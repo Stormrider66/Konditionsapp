@@ -1193,6 +1193,14 @@ model TestStage {
   // SkidÃ¥kning (Cross-country skiing)
   pace Float? // min/km
 
+  // Metabola data (frÃ¥n spirometri/metabol analysator)
+  rer             Float? // Respiratory Exchange Ratio (VCO2/VO2)
+  ve              Float? // Minutventilation (L/min)
+  vco2            Float? // Koldioxidproduktion (ml/min)
+  fatPercent      Float? // FettfÃ¶rbrÃ¤nning (%)
+  choPercent      Float? // KolhydratfÃ¶rbrÃ¤nning (%)
+  respiratoryRate Float? // Andningsfrekvens (andetag/min)
+
   // BerÃ¤knade vÃ¤rden
   economy    Float? // ml/kg/km fÃ¶r lÃ¶pning
   wattsPerKg Float? // watt/kg fÃ¶r cykling

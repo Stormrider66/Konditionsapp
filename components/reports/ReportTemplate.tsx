@@ -11,6 +11,7 @@ import { SummaryBox } from './SummaryBox'
 import { StrengthsWeaknesses } from './StrengthsWeaknesses'
 import { PaceZones } from './PaceZones'
 import { TrainingFocus } from './TrainingFocus'
+import { SubstrateUtilizationChart } from '../charts/SubstrateUtilizationChart'
 import { generateFullInterpretation } from '@/lib/calculations/interpretations'
 import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext'
 
@@ -516,6 +517,112 @@ export function ReportTemplate({
           <TestChart data={test.testStages} testType={test.testType} />
         )}
       </section>
+
+      {/* Metabol data (visas om spirometridata finns) */}
+      {test.testStages.some(s => s.rer != null || s.ve != null || s.fatPercent != null) && (
+        <>
+          <section className="mt-6 border-b pb-6" data-pdf-section>
+            <h2 className="text-2xl font-semibold mb-4">Metabol analys</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-3 py-2 text-left">
+                      {test.testType === 'RUNNING' ? 'Hastighet' : test.testType === 'CYCLING' ? 'Effekt' : 'Tempo'}
+                    </th>
+                    <th className="px-3 py-2 text-left">Puls</th>
+                    <th className="px-3 py-2 text-left">Laktat</th>
+                    {test.testStages.some(s => s.vo2 != null) && (
+                      <th className="px-3 py-2 text-left">VO₂</th>
+                    )}
+                    {test.testStages.some(s => s.rer != null) && (
+                      <th className="px-3 py-2 text-left">RER</th>
+                    )}
+                    {test.testStages.some(s => s.ve != null) && (
+                      <th className="px-3 py-2 text-left">VE</th>
+                    )}
+                    {test.testStages.some(s => s.vco2 != null) && (
+                      <th className="px-3 py-2 text-left">VCO₂</th>
+                    )}
+                    {test.testStages.some(s => s.fatPercent != null) && (
+                      <th className="px-3 py-2 text-left">Fett%</th>
+                    )}
+                    {test.testStages.some(s => s.choPercent != null) && (
+                      <th className="px-3 py-2 text-left">KH%</th>
+                    )}
+                    {test.testStages.some(s => s.respiratoryRate != null) && (
+                      <th className="px-3 py-2 text-left">Rf</th>
+                    )}
+                    {test.testStages.some(s => s.vo2 != null) && (
+                      <th className="px-3 py-2 text-left">O₂-puls</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {test.testStages.map((stage, index) => {
+                    const intensity = stage.speed ?? stage.power ?? stage.pace ?? 0
+                    const intensityUnit = test.testType === 'RUNNING' ? ' km/h' : test.testType === 'CYCLING' ? ' W' : ' min/km'
+                    const o2Pulse = stage.vo2 && stage.heartRate
+                      ? ((stage.vo2 * (client.weight || 75)) / 1000 / stage.heartRate * 1000).toFixed(1)
+                      : null
+                    return (
+                      <tr key={index} className="border-b hover:bg-gray-50">
+                        <td className="px-3 py-2 font-medium">{intensity}{intensityUnit}</td>
+                        <td className="px-3 py-2">{stage.heartRate}</td>
+                        <td className="px-3 py-2">{stage.lactate}</td>
+                        {test.testStages.some(s => s.vo2 != null) && (
+                          <td className="px-3 py-2">{stage.vo2 ?? '–'}</td>
+                        )}
+                        {test.testStages.some(s => s.rer != null) && (
+                          <td className="px-3 py-2">{stage.rer?.toFixed(2) ?? '–'}</td>
+                        )}
+                        {test.testStages.some(s => s.ve != null) && (
+                          <td className="px-3 py-2">{stage.ve?.toFixed(1) ?? '–'}</td>
+                        )}
+                        {test.testStages.some(s => s.vco2 != null) && (
+                          <td className="px-3 py-2">{stage.vco2 ?? '–'}</td>
+                        )}
+                        {test.testStages.some(s => s.fatPercent != null) && (
+                          <td className="px-3 py-2">{stage.fatPercent?.toFixed(1) ?? '–'}</td>
+                        )}
+                        {test.testStages.some(s => s.choPercent != null) && (
+                          <td className="px-3 py-2">{stage.choPercent?.toFixed(1) ?? '–'}</td>
+                        )}
+                        {test.testStages.some(s => s.respiratoryRate != null) && (
+                          <td className="px-3 py-2">{stage.respiratoryRate?.toFixed(0) ?? '–'}</td>
+                        )}
+                        {test.testStages.some(s => s.vo2 != null) && (
+                          <td className="px-3 py-2">{o2Pulse ?? '–'}</td>
+                        )}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* Substrate Utilization Chart */}
+          {test.testStages.some(s => s.fatPercent != null && s.choPercent != null) && (
+            <section className="mt-6 border-b pb-6 print:break-inside-avoid" data-pdf-section>
+              <h2 className="text-2xl font-semibold mb-4">Substratanvändning</h2>
+              <div className="bg-white p-4 rounded-lg border">
+                <SubstrateUtilizationChart
+                  stages={test.testStages}
+                  testType={test.testType}
+                />
+              </div>
+              <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-sm text-gray-700">
+                  Diagrammet visar andelen fett- och kolhydratförbränning vid varje intensitet.
+                  <strong> Crossover-punkten</strong> är där kolhydratförbränningen övertar fettförbränningen —
+                  under denna intensitet dominerar fettoxidation, vilket är viktigt för grundträning och uthållighet.
+                </p>
+              </div>
+            </section>
+          )}
+        </>
+      )}
 
       {/* Power Zones (endast för cykeltester) */}
       {test.testType === 'CYCLING' && calculations.cyclingData && calculations.cyclingData.powerZones && (
