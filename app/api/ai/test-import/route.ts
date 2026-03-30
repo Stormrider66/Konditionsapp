@@ -126,13 +126,13 @@ export async function POST(request: NextRequest) {
     })
     if (rateLimited) return rateLimited
 
-    // Parse FormData — supports multiple files for merging sources
+    // Parse FormData
     const formData = await request.formData()
-    const files = formData.getAll('file') as File[]
+    const file = formData.get('file') as File | null
     const testType = formData.get('testType') as string | null
     const clientId = formData.get('clientId') as string | null
 
-    if (files.length === 0) {
+    if (!file) {
       return NextResponse.json(
         { error: 'Ingen fil uppladdad' },
         { status: 400 }
@@ -146,31 +146,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate all files
-    let category: 'image' | 'document' | 'audio' | null = null
-    for (const file of files) {
-      const fileCategory = getMediaCategory(file.type)
-      if (!fileCategory) {
-        return NextResponse.json(
-          { error: 'Filtypen stöds inte. Använd bild (JPEG/PNG/WebP/HEIC), dokument (PDF/CSV), eller ljud (WebM/MP4/WAV/OGG).' },
-          { status: 400 }
-        )
-      }
-      if (!category) category = fileCategory
-      const maxSize = getMaxSize(fileCategory)
-      if (file.size > maxSize) {
-        return NextResponse.json(
-          { error: `Filen får inte vara större än ${maxSize / (1024 * 1024)}MB.` },
-          { status: 400 }
-        )
-      }
+    // Validate file type
+    const category = getMediaCategory(file.type)
+    if (!category) {
+      return NextResponse.json(
+        { error: 'Filtypen stöds inte. Använd bild (JPEG/PNG/WebP/HEIC), dokument (PDF/CSV), eller ljud (WebM/MP4/WAV/OGG).' },
+        { status: 400 }
+      )
     }
 
-    if (!category) {
-      return NextResponse.json({ error: 'Ingen giltig fil' }, { status: 400 })
+    // Validate file size
+    const maxSize = getMaxSize(category)
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: `Filen får inte vara större än ${maxSize / (1024 * 1024)}MB.` },
+        { status: 400 }
+      )
     }
-    // Use first file for backward compat with single-file paths
-    const file = files[0]
 
     // Validate client access if provided
     if (clientId) {
@@ -197,36 +189,13 @@ export async function POST(request: NextRequest) {
 
     // Initialize Gemini
     const google = createGoogleGenerativeAI({ apiKey: googleKey })
-    let prompt = buildPrompt(testType, category)
-
-    // Add merge instruction when multiple files are provided
-    if (files.length > 1) {
-      prompt += `
-
-FLERA BILDER/FILER:
-Du har fått ${files.length} bilder. Dessa kan komma från olika källor, t.ex.:
-- Ett handskrivet protokoll med hastighet, puls, laktat, VO₂
-- En spirometri/metabol analysator-skärm (Oxycon/Cosmed) med RER, VE, VCO2, FAT%, CHO%, Rf
-
-SAMMANFOGA data från alla bilder till EN uppsättning stages genom att matcha på hastighet eller stegnummer.
-Om samma fält finns i flera bilder, prioritera det mest specifika/exakta värdet.`
-    }
+    const prompt = buildPrompt(testType, category)
 
     let result
 
     if (category === 'image') {
-      // Build content array with all images
-      const imageContents: Array<{ type: 'image'; image: string } | { type: 'text'; text: string }> = []
-
-      for (const f of files) {
-        const arrayBuffer = await f.arrayBuffer()
-        const base64 = Buffer.from(arrayBuffer).toString('base64')
-        imageContents.push({
-          type: 'image',
-          image: `data:${f.type};base64,${base64}`,
-        })
-      }
-      imageContents.push({ type: 'text', text: prompt })
+      const arrayBuffer = await file.arrayBuffer()
+      const base64 = Buffer.from(arrayBuffer).toString('base64')
 
       result = await generateObject({
         model: google(GEMINI_MODELS.FLASH),
@@ -234,7 +203,13 @@ Om samma fält finns i flera bilder, prioritera det mest specifika/exakta värde
         messages: [
           {
             role: 'user',
-            content: imageContents,
+            content: [
+              {
+                type: 'image',
+                image: `data:${file.type};base64,${base64}`,
+              },
+              { type: 'text', text: prompt },
+            ],
           },
         ],
       })

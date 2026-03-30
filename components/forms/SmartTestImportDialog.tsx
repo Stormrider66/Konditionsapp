@@ -95,6 +95,70 @@ export function SmartTestImportDialog({
     })
   }, [])
 
+  const processSingleFile = useCallback(
+    async (file: File): Promise<TestImportResult | null> => {
+      const processedFile = await resizeImageIfNeeded(file)
+
+      const formData = new FormData()
+      formData.append('file', processedFile)
+      formData.append('testType', testType)
+      if (clientId) formData.append('clientId', clientId)
+
+      const response = await fetch('/api/ai/test-import', {
+        method: 'POST',
+        body: formData,
+      })
+
+      let data
+      try {
+        data = await response.json()
+      } catch {
+        throw new Error(response.status === 413
+          ? 'Filen är för stor. Försök med en mindre bild.'
+          : `Serverfel (${response.status}). Försök igen.`)
+      }
+
+      if (!response.ok) throw new Error(data.error || 'Kunde inte bearbeta filen')
+      if (data.success && data.result) return data.result as TestImportResult
+      throw new Error(data.error || 'Ingen data kunde extraheras')
+    },
+    [testType, clientId, resizeImageIfNeeded]
+  )
+
+  const mergeResults = useCallback((base: TestImportResult, extra: TestImportResult): TestImportResult => {
+    // Merge extra stages into base by matching speed/power/pace (within ±0.5)
+    const merged = { ...base }
+    merged.stages = base.stages.map(baseStage => {
+      const intensity = baseStage.speed ?? baseStage.power ?? baseStage.pace ?? 0
+      // Find matching stage in extra by closest intensity
+      const match = extra.stages.reduce((best, s) => {
+        const extraIntensity = s.speed ?? s.power ?? s.pace ?? 0
+        const bestIntensity = best ? (best.speed ?? best.power ?? best.pace ?? 0) : Infinity
+        return Math.abs(extraIntensity - intensity) < Math.abs(bestIntensity - intensity) ? s : best
+      }, null as typeof extra.stages[0] | null)
+
+      if (!match) return baseStage
+      const matchIntensity = match.speed ?? match.power ?? match.pace ?? 0
+      if (Math.abs(matchIntensity - intensity) > 1.5) return baseStage // Too far apart
+
+      // Merge: base fields take priority, fill in missing metabolic data from extra
+      return {
+        ...baseStage,
+        rer: baseStage.rer ?? match.rer,
+        ve: baseStage.ve ?? match.ve,
+        vco2: baseStage.vco2 ?? match.vco2,
+        fatPercent: baseStage.fatPercent ?? match.fatPercent,
+        choPercent: baseStage.choPercent ?? match.choPercent,
+        respiratoryRate: baseStage.respiratoryRate ?? match.respiratoryRate,
+        vo2: baseStage.vo2 ?? match.vo2,
+      }
+    })
+    merged.sourceDescription = `${base.sourceDescription} + ${extra.sourceDescription}`
+    merged.confidence = Math.min(base.confidence, extra.confidence)
+    merged.warnings = [...base.warnings, ...extra.warnings]
+    return merged
+  }, [])
+
   const processFiles = useCallback(
     async (files: File[]) => {
       setIsProcessing(true)
@@ -102,52 +166,43 @@ export function SmartTestImportDialog({
       setResult(null)
 
       try {
-        const formData = new FormData()
-        // Use smaller images when multiple files to stay within timeout
-        const maxDim = files.length > 2 ? 1024 : files.length > 1 ? 1280 : 2048
-        const quality = files.length > 2 ? 0.6 : files.length > 1 ? 0.7 : 0.85
-        for (const file of files) {
-          const processedFile = await resizeImageIfNeeded(file, maxDim, quality)
-          formData.append('file', processedFile)
-        }
-        formData.append('testType', testType)
-        if (clientId) formData.append('clientId', clientId)
-
-        const response = await fetch('/api/ai/test-import', {
-          method: 'POST',
-          body: formData,
-        })
-
-        // Handle non-JSON responses (e.g. Vercel 413 error page)
-        let data
-        try {
-          data = await response.json()
-        } catch {
-          if (response.status === 413) {
-            setError('Filen är för stor. Försök med en mindre bild.')
-          } else {
-            setError(`Serverfel (${response.status}). Försök igen.`)
-          }
-          return
-        }
-
-        if (!response.ok) {
-          setError(data.error || 'Kunde inte bearbeta filen')
-          return
-        }
-
-        if (data.success && data.result) {
-          setResult(data.result)
+        if (files.length === 1) {
+          // Single file — straightforward
+          const importResult = await processSingleFile(files[0])
+          if (importResult) setResult(importResult)
         } else {
-          setError(data.error || 'Ingen data kunde extraheras')
+          // Multiple files — process each separately and merge
+          // This avoids multi-image timeout issues
+          let mergedResult: TestImportResult | null = null
+
+          for (let i = 0; i < files.length; i++) {
+            setError(null)
+            const importResult = await processSingleFile(files[i])
+            if (!importResult) continue
+
+            if (!mergedResult) {
+              // First result with most stages becomes the base
+              mergedResult = importResult
+            } else {
+              // Merge subsequent results into base
+              if (importResult.stages.length > mergedResult.stages.length) {
+                mergedResult = mergeResults(importResult, mergedResult)
+              } else {
+                mergedResult = mergeResults(mergedResult, importResult)
+              }
+            }
+          }
+
+          if (mergedResult) setResult(mergedResult)
+          else setError('Kunde inte extrahera data från bilderna')
         }
-      } catch {
-        setError('Kunde inte ansluta till servern. Kontrollera din internetanslutning.')
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Kunde inte ansluta till servern.')
       } finally {
         setIsProcessing(false)
       }
     },
-    [testType, clientId, resizeImageIfNeeded]
+    [processSingleFile, mergeResults]
   )
 
   const handleImageSelect = useCallback(
