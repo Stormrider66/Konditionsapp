@@ -58,6 +58,46 @@ export function SmartTestImportDialog({
     [onOpenChange, resetState]
   )
 
+  const resizeImageIfNeeded = useCallback(async (file: File, maxSizeMB = 4): Promise<File> => {
+    if (!file.type.startsWith('image/') || file.size <= maxSizeMB * 1024 * 1024) {
+      return file
+    }
+
+    return new Promise((resolve) => {
+      const img = document.createElement('img')
+      img.onload = () => {
+        // Scale down to fit under the size limit while maintaining aspect ratio
+        const maxDim = 2048
+        let { width, height } = img
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height)
+          width = Math.round(width * scale)
+          height = Math.round(height * scale)
+        }
+
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0, width, height)
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
+            } else {
+              resolve(file)
+            }
+          },
+          'image/jpeg',
+          0.85
+        )
+      }
+      img.onerror = () => resolve(file)
+      img.src = URL.createObjectURL(file)
+    })
+  }, [])
+
   const processFile = useCallback(
     async (file: File) => {
       setIsProcessing(true)
@@ -65,8 +105,11 @@ export function SmartTestImportDialog({
       setResult(null)
 
       try {
+        // Resize large images to avoid Vercel body size limit (4.5MB)
+        const processedFile = await resizeImageIfNeeded(file)
+
         const formData = new FormData()
-        formData.append('file', file)
+        formData.append('file', processedFile)
         formData.append('testType', testType)
         if (clientId) formData.append('clientId', clientId)
 
@@ -75,7 +118,18 @@ export function SmartTestImportDialog({
           body: formData,
         })
 
-        const data = await response.json()
+        // Handle non-JSON responses (e.g. Vercel 413 error page)
+        let data
+        try {
+          data = await response.json()
+        } catch {
+          if (response.status === 413) {
+            setError('Filen är för stor. Försök med en mindre bild.')
+          } else {
+            setError(`Serverfel (${response.status}). Försök igen.`)
+          }
+          return
+        }
 
         if (!response.ok) {
           setError(data.error || 'Kunde inte bearbeta filen')
@@ -88,12 +142,12 @@ export function SmartTestImportDialog({
           setError(data.error || 'Ingen data kunde extraheras')
         }
       } catch {
-        setError('Kunde inte ansluta till servern')
+        setError('Kunde inte ansluta till servern. Kontrollera din internetanslutning.')
       } finally {
         setIsProcessing(false)
       }
     },
-    [testType, clientId]
+    [testType, clientId, resizeImageIfNeeded]
   )
 
   const handleImageSelect = useCallback(
