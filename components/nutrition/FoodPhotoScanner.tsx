@@ -36,6 +36,8 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
+  Zap,
+  ZapOff,
 } from 'lucide-react'
 
 const SESSION_KEY = 'food-scanner-state'
@@ -184,6 +186,8 @@ export function FoodPhotoScanner({
 
   // Inline camera state
   const [showInlineCamera, setShowInlineCamera] = useState(false)
+  const [torchOn, setTorchOn] = useState(false)
+  const [torchSupported, setTorchSupported] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const cameraStreamRef = useRef<MediaStream | null>(null)
 
@@ -520,6 +524,8 @@ export function FoodPhotoScanner({
 
   const handleOpenCamera = async () => {
     setError(null)
+    setTorchOn(false)
+    setTorchSupported(false)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
@@ -527,6 +533,20 @@ export function FoodPhotoScanner({
       })
       cameraStreamRef.current = stream
       setShowInlineCamera(true)
+
+      // Check if torch/flash is supported on this device
+      const videoTrack = stream.getVideoTracks()[0]
+      if (videoTrack) {
+        try {
+          const capabilities = videoTrack.getCapabilities?.()
+          if (capabilities && 'torch' in capabilities) {
+            setTorchSupported(true)
+          }
+        } catch {
+          // getCapabilities not supported — torch unavailable
+        }
+      }
+
       // Wait for the video element to mount, then attach the stream
       requestAnimationFrame(() => {
         if (videoRef.current) {
@@ -536,6 +556,18 @@ export function FoodPhotoScanner({
     } catch {
       // Camera not available (denied or desktop) — fall back to native file input
       cameraInputRef.current?.click()
+    }
+  }
+
+  const handleToggleTorch = async () => {
+    const videoTrack = cameraStreamRef.current?.getVideoTracks()[0]
+    if (!videoTrack) return
+    const next = !torchOn
+    try {
+      await videoTrack.applyConstraints({ advanced: [{ torch: next } as MediaTrackConstraintSet] })
+      setTorchOn(next)
+    } catch {
+      // Torch toggle failed — ignore
     }
   }
 
@@ -552,6 +584,7 @@ export function FoodPhotoScanner({
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
     stopCameraStream()
     setShowInlineCamera(false)
+    setTorchOn(false)
 
     canvas.toBlob(
       (blob) => {
@@ -570,6 +603,7 @@ export function FoodPhotoScanner({
   const handleCloseCamera = () => {
     stopCameraStream()
     setShowInlineCamera(false)
+    setTorchOn(false)
   }
 
   const handleRefine = async () => {
@@ -824,7 +858,18 @@ export function FoodPhotoScanner({
                     >
                       <Camera className="h-7 w-7" />
                     </Button>
-                    <div className="h-10 w-10" /> {/* Spacer for centering */}
+                    {torchSupported ? (
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className={`h-10 w-10 rounded-full ${torchOn ? 'bg-yellow-400/80 hover:bg-yellow-400 text-black' : 'bg-white/20 hover:bg-white/30'}`}
+                        onClick={handleToggleTorch}
+                      >
+                        {torchOn ? <ZapOff className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
+                      </Button>
+                    ) : (
+                      <div className="h-10 w-10" /> /* Spacer for centering */
+                    )}
                   </div>
                 </div>
               ) : (
