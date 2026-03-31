@@ -182,6 +182,11 @@ export function FoodPhotoScanner({
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
 
+  // Inline camera state
+  const [showInlineCamera, setShowInlineCamera] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const cameraStreamRef = useRef<MediaStream | null>(null)
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -236,6 +241,8 @@ export function FoodPhotoScanner({
   useEffect(() => {
     return () => {
       revokePreviewUrl()
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      cameraStreamRef.current?.getTracks().forEach((t) => t.stop())
     }
   }, [revokePreviewUrl])
 
@@ -500,6 +507,69 @@ export function FoodPhotoScanner({
     setIsTranscribing(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
     if (cameraInputRef.current) cameraInputRef.current.value = ''
+    stopCameraStream()
+    setShowInlineCamera(false)
+  }
+
+  const stopCameraStream = useCallback(() => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((t) => t.stop())
+      cameraStreamRef.current = null
+    }
+  }, [])
+
+  const handleOpenCamera = async () => {
+    setError(null)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+      })
+      cameraStreamRef.current = stream
+      setShowInlineCamera(true)
+      // Wait for the video element to mount, then attach the stream
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+        }
+      })
+    } catch {
+      // Camera not available (denied or desktop) — fall back to native file input
+      cameraInputRef.current?.click()
+    }
+  }
+
+  const handleCaptureFromVideo = () => {
+    const video = videoRef.current
+    if (!video) return
+
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth || 1920
+    canvas.height = video.videoHeight || 1080
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    stopCameraStream()
+    setShowInlineCamera(false)
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return
+        const file = new File([blob], 'camera-photo.jpg', { type: 'image/jpeg' })
+        const requestId = selectionRequestIdRef.current + 1
+        selectionRequestIdRef.current = requestId
+        setSelectedImage(file)
+        void normalizeSelectedImage(file, requestId)
+      },
+      'image/jpeg',
+      0.92
+    )
+  }
+
+  const handleCloseCamera = () => {
+    stopCameraStream()
+    setShowInlineCamera(false)
   }
 
   const handleRefine = async () => {
@@ -728,46 +798,78 @@ export function FoodPhotoScanner({
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  asChild
-                  variant="outline"
-                  className="h-28 flex-col gap-2 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white cursor-pointer"
-                >
-                  <label htmlFor={cameraInputId} role="button" tabIndex={0} onClick={saveStateToSessionStorage}>
-                    <Camera className="h-7 w-7" />
-                    <span className="text-sm">Kamera</span>
-                  </label>
-                </Button>
+              {showInlineCamera ? (
+                <div className="relative rounded-lg overflow-hidden border border-white/10 bg-black">
+                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-auto max-h-80 object-cover"
+                  />
+                  <div className="absolute bottom-0 inset-x-0 flex items-center justify-center gap-4 p-4 bg-gradient-to-t from-black/70">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-10 w-10 rounded-full bg-white/20 hover:bg-white/30"
+                      onClick={handleCloseCamera}
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      className="h-16 w-16 rounded-full bg-white hover:bg-white/90 text-black shadow-lg"
+                      onClick={handleCaptureFromVideo}
+                    >
+                      <Camera className="h-7 w-7" />
+                    </Button>
+                    <div className="h-10 w-10" /> {/* Spacer for centering */}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      variant="outline"
+                      className="h-28 flex-col gap-2 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white cursor-pointer"
+                      onClick={handleOpenCamera}
+                    >
+                      <Camera className="h-7 w-7" />
+                      <span className="text-sm">Kamera</span>
+                    </Button>
 
-                <Button
-                  asChild
-                  variant="outline"
-                  className="h-28 flex-col gap-2 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white cursor-pointer"
-                >
-                  <label htmlFor={fileInputId} role="button" tabIndex={0}>
-                    <Upload className="h-7 w-7" />
-                    <span className="text-sm">Välj bild</span>
-                  </label>
-                </Button>
-                <input
-                  id={cameraInputId}
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="sr-only"
-                  onChange={handleFileSelect}
-                />
-                <input
-                  id={fileInputId}
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={handleFileSelect}
-                />
-              </div>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="h-28 flex-col gap-2 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white cursor-pointer"
+                    >
+                      <label htmlFor={fileInputId} role="button" tabIndex={0}>
+                        <Upload className="h-7 w-7" />
+                        <span className="text-sm">Välj bild</span>
+                      </label>
+                    </Button>
+                  </div>
+                  {/* Hidden native file input as fallback for camera + gallery picker */}
+                  <input
+                    id={cameraInputId}
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="sr-only"
+                    onChange={handleFileSelect}
+                  />
+                  <input
+                    id={fileInputId}
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={handleFileSelect}
+                  />
+                </>
+              )}
               <p className="text-center text-xs text-slate-500 dark:text-slate-400">
                 Ta en bild av din måltid för att automatiskt uppskatta kalorier och makros
               </p>
