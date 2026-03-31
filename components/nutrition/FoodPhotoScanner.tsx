@@ -261,11 +261,16 @@ export function FoodPhotoScanner({
     }
   }, [revokePreviewUrl])
 
-  // Safety net: detect return from native camera when onChange may not fire
+  // Safety net: detect return from native camera when onChange may not fire.
+  // On Android the browser may fully reload the page (not bfcache), so we
+  // listen on visibilitychange (most reliable on mobile), pageshow (both
+  // bfcache and fresh loads), and focus as a fallback. We also retry the
+  // check a second time after a longer delay for slow devices.
   useEffect(() => {
     if (step !== 'CAPTURE') return
 
     let checkTimeoutId: ReturnType<typeof setTimeout> | null = null
+    let retryTimeoutId: ReturnType<typeof setTimeout> | null = null
 
     const checkForFiles = () => {
       const cameraFile = cameraInputRef.current?.files?.[0]
@@ -284,20 +289,34 @@ export function FoodPhotoScanner({
 
     const handleFocusReturn = () => {
       if (checkTimeoutId) clearTimeout(checkTimeoutId)
-      checkTimeoutId = setTimeout(checkForFiles, 500)
+      if (retryTimeoutId) clearTimeout(retryTimeoutId)
+      // First check after a short delay
+      checkTimeoutId = setTimeout(checkForFiles, 300)
+      // Retry after a longer delay for slow Android devices where the file
+      // input value is populated late
+      retryTimeoutId = setTimeout(checkForFiles, 1500)
     }
 
-    const handlePageShow = (event: PageTransitionEvent) => {
-      if (event.persisted) handleFocusReturn()
+    const handlePageShow = () => {
+      handleFocusReturn()
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleFocusReturn()
+      }
     }
 
     window.addEventListener('focus', handleFocusReturn)
     window.addEventListener('pageshow', handlePageShow)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
       window.removeEventListener('focus', handleFocusReturn)
       window.removeEventListener('pageshow', handlePageShow)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
       if (checkTimeoutId) clearTimeout(checkTimeoutId)
+      if (retryTimeoutId) clearTimeout(retryTimeoutId)
     }
   }, [step, clearSessionStorage, setSelectedImage, normalizeSelectedImage])
 
@@ -737,7 +756,7 @@ export function FoodPhotoScanner({
                   type="file"
                   accept="image/*"
                   capture="environment"
-                  className="absolute -left-[9999px] h-px w-px opacity-0"
+                  className="sr-only"
                   onChange={handleFileSelect}
                 />
                 <input
@@ -745,7 +764,7 @@ export function FoodPhotoScanner({
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  className="absolute -left-[9999px] h-px w-px opacity-0"
+                  className="sr-only"
                   onChange={handleFileSelect}
                 />
               </div>
