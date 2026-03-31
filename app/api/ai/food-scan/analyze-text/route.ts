@@ -21,6 +21,8 @@ import { logger } from '@/lib/logger'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 import { z } from 'zod'
 
+export const maxDuration = 30
+
 const requestSchema = z.object({
   description: z.string().min(1, 'Beskrivning krävs'),
 })

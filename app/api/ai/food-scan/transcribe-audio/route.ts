@@ -21,6 +21,8 @@ import {
 import { logger } from '@/lib/logger'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 
+export const maxDuration = 30
+
 const MAX_AUDIO_SIZE = 5 * 1024 * 1024 // 5MB
 
 export async function POST(request: NextRequest) {

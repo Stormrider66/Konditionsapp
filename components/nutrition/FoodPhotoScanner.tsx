@@ -529,8 +529,8 @@ export function FoodPhotoScanner({
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Kunde inte uppdatera analysen')
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error || 'Kunde inte uppdatera analysen')
       }
 
       const data = await response.json()
