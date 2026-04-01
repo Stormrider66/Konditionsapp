@@ -80,7 +80,7 @@ export default async function BusinessAthleteTestsPage({ params }: BusinessTests
               <Activity className="h-8 w-8" />
             </div>
             <div>
-              <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-1 text-slate-900 dark:text-white transition-colors">
+              <h1 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tighter mb-1 text-slate-900 dark:text-white transition-colors">
                 Mina <span className="text-blue-600 dark:text-blue-400 transition-colors">Konditionstester</span>
               </h1>
               <p className="text-slate-500 dark:text-slate-400 font-medium transition-colors">

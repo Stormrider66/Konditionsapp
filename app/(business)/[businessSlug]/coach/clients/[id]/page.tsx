@@ -559,10 +559,10 @@ export default function BusinessClientDetailPage() {
 
   const programsContent = (
     <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
         <h2 className="text-lg sm:text-xl font-semibold dark:text-white">Träningsprogram</h2>
-        <Link href={`${basePath}/programs/new`}>
-          <Button size="sm">+ Nytt program</Button>
+        <Link href={`${basePath}/programs/new`} className="shrink-0">
+          <Button size="sm" className="w-full sm:w-auto">+ Nytt program</Button>
         </Link>
       </div>
 

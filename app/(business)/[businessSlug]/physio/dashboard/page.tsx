@@ -338,7 +338,7 @@ export default function BusinessPhysioDashboardPage() {
                     <CardHeader>
                         <CardTitle className="text-white">Quick Actions</CardTitle>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-3">
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <Button asChild variant="outline" className="h-20 flex-col gap-2 bg-slate-800/50 border-white/10 hover:bg-slate-800 hover:border-emerald-500/30">
                             <Link href={`${basePath}/treatments/new`}>
                                 <Stethoscope className="w-6 h-6 text-emerald-500" />

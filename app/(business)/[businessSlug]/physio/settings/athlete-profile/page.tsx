@@ -71,7 +71,7 @@ export default async function BusinessPhysioAthleteProfileSettingsPage({ params 
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-3 bg-slate-50 rounded-lg">
                   <p className="text-xs text-slate-500 uppercase tracking-wide">Name</p>
                   <p className="font-medium">{fullUser.selfAthleteClient.name}</p>

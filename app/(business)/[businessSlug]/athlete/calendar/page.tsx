@@ -57,7 +57,7 @@ export default async function BusinessAthleteCalendarPage({ params }: BusinessCa
               <CalendarIcon className="h-8 w-8 text-orange-600 dark:text-orange-400 transition-colors" />
             </div>
             <div>
-              <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-1 transition-colors">
+              <h1 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tighter mb-1 transition-colors">
                 Min <span className="text-orange-600 dark:text-orange-400 transition-colors">Kalender</span>
               </h1>
               <p className="text-slate-600 dark:text-slate-400 font-medium transition-colors">

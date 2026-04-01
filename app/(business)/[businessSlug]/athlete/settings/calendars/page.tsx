@@ -107,7 +107,7 @@ export default async function BusinessCalendarConnectionsPage({ params }: Busine
             <CalendarIcon className="h-8 w-8 text-orange-400" />
           </div>
           <div>
-            <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-1">
+            <h1 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tighter mb-1">
               Kalender<span className="text-orange-400">anslutningar</span>
             </h1>
             <p className="text-slate-400 font-medium max-w-2xl">
