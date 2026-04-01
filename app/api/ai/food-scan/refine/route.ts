@@ -122,9 +122,11 @@ ${JSON.stringify(originalAnalysis, null, 2)}
 
 Användaren säger: "${refinementText}"
 
-Uppdatera analysen baserat på användarens korrigering. Behåll all befintlig information men justera det som användaren påpekar. Om användaren nämner nya livsmedel, lägg till dem. Om användaren korrigerar portionsstorlekar eller mängder, uppdatera kalorier och makros därefter.
+Uppdatera analysen baserat på användarens korrigering. Behåll all befintlig information men justera det som användaren påpekar. Om användaren nämner nya livsmedel, lägg till dem. Om användaren korrigerar portionsstorlekar eller mängder, uppdatera kalorier och makros därefter. Om användaren säger att en matvara egentligen är något annat, byt ut den och räkna om näringsvärden.
 
-Returnera en komplett uppdaterad analys.${enhancedMode ? `
+VIKTIGT: Sätt alltid success till true — maten har redan identifierats och vi uppdaterar bara analysen.
+
+Returnera en komplett uppdaterad analys med alla matvaro — inte bara de ändrade.${enhancedMode ? `
 
 UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, fleromättat), kolhydratfördelning (socker, komplexa kolhydrater) och proteinkvalitet (isCompleteProtein) per matvara och i totals.` : ''}`,
     })

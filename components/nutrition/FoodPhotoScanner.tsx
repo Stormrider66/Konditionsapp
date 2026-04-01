@@ -613,10 +613,11 @@ export function FoodPhotoScanner({
     setError(null)
 
     try {
-      // Build original analysis from current items state
+      // Build original analysis from current items state.
+      // Strip nutrientDensity (internal field) to avoid confusing the AI model.
       const originalAnalysis = {
         success: true,
-        items,
+        items: items.map(({ nutrientDensity: _nd, ...rest }) => rest),
         totals: calculateFoodTotals(items),
         mealDescription,
         confidence,
@@ -625,11 +626,12 @@ export function FoodPhotoScanner({
 
       // Re-read the uploaded file instead of using the preview URL.
       // The preview is usually a blob: URL after canvas normalization.
+      // Use a generous timeout — mobile devices can be slow reading large camera photos.
       let imageBase64: string | undefined
       let imageMimeType: string | undefined
       if (imageFile) {
         try {
-          const dataUrl = await readFileAsDataUrl(imageFile, 8000)
+          const dataUrl = await readFileAsDataUrl(imageFile, 30000)
           const base64Part = dataUrl.split(',')[1]
           if (base64Part) {
             imageBase64 = base64Part
@@ -659,7 +661,9 @@ export function FoodPhotoScanner({
       const data = await response.json()
       const result: FoodPhotoAnalysisResult = data.result
 
-      if (!result.success) {
+      // For refinements, use the returned items even if success is false —
+      // we already know food exists from the original analysis.
+      if (!result.success && (!result.items || result.items.length === 0)) {
         setError('Kunde inte uppdatera analysen utifrån korrigeringen. Försök beskriva ändringen mer exakt.')
         return
       }
@@ -1029,6 +1033,14 @@ export function FoodPhotoScanner({
                 {isRefining && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 Uppdatera analys
               </Button>
+            )}
+
+            {/* Show refinement errors inline so they're visible */}
+            {error && (
+              <div className="flex items-start gap-2 p-2 rounded-lg bg-red-950/30 border border-red-500/20">
+                <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-red-300">{error}</p>
+              </div>
             )}
           </div>
 
