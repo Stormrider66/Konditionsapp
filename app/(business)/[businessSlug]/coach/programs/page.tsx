@@ -69,15 +69,15 @@ export default async function BusinessCoachProgramsPage({ params }: BusinessCoac
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-white">Träningsprogram</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-slate-900 dark:text-white">Träningsprogram</h1>
           <p className="text-slate-600 dark:text-slate-400">
             Hantera och skapa träningsprogram för dina atleter
           </p>
         </div>
-        <Link href={`${basePath}/coach/programs/new`}>
-          <Button size="lg" disabled={!canCreateMore}>
+        <Link href={`${basePath}/coach/programs/new`} className="shrink-0">
+          <Button size="lg" disabled={!canCreateMore} className="w-full sm:w-auto">
             <PlusIcon className="mr-2 h-5 w-5" />
             Skapa nytt program
           </Button>
