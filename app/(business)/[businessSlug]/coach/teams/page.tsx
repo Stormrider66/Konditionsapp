@@ -265,9 +265,9 @@ export default function BusinessTeamsPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <h2 className="text-2xl font-bold dark:text-white">Mina lag</h2>
-            <Button onClick={() => setShowForm(true)} className="gap-2">
+            <Button onClick={() => setShowForm(true)} className="gap-2 w-full sm:w-auto">
               <Plus className="w-4 h-4" />
               Nytt lag
             </Button>
