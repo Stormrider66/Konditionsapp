@@ -33,20 +33,20 @@ export function CardioDashboard() {
   }, [pathname])
 
   return (
-    <div className="container mx-auto py-6 space-y-8">
-      <div className="flex justify-between items-center">
+    <div className="container mx-auto py-6 px-4 space-y-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Cardio Studio</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Cardio Studio</h1>
+          <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
             Design running sessions, manage intervals, and track endurance progression.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowAutoGenerate(true)}>
+        <div className="flex gap-2 shrink-0">
+          <Button variant="outline" onClick={() => setShowAutoGenerate(true)} size="sm" className="sm:size-default">
             <Sparkles className="mr-2 h-4 w-4" />
             Auto-Generera
           </Button>
-          <Button onClick={() => { setEditSession(null); setActiveTab('builder') }}>
+          <Button onClick={() => { setEditSession(null); setActiveTab('builder') }} size="sm" className="sm:size-default">
             <Plus className="mr-2 h-4 w-4" />
             Nytt Pass
           </Button>
