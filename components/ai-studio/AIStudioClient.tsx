@@ -162,7 +162,7 @@ export function AIStudioClient({
   const [programContextLoaded, setProgramContextLoaded] = useState(false)
 
   // State
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true)
   const [selectedAthlete, setSelectedAthlete] = useState<string | null>(initialClientId || null)
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([])
   const [webSearchEnabled, setWebSearchEnabled] = useState(false)
@@ -779,14 +779,21 @@ ${messageContent}`
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex">
+    <div className="h-[calc(100vh-4rem)] flex relative">
       {/* Left Sidebar - Context Panel */}
+      {/* Mobile: overlay, Desktop: inline */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-20 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
       <div
         className={`${
-          sidebarOpen ? 'w-96' : 'w-0'
-        } transition-all duration-300 border-r bg-muted/30 overflow-hidden flex-shrink-0`}
+          sidebarOpen ? 'w-80 md:w-96' : 'w-0'
+        } transition-all duration-300 border-r bg-muted/30 overflow-hidden flex-shrink-0 fixed md:relative z-30 md:z-auto h-full`}
       >
-        <div className="w-96 h-full flex flex-col">
+        <div className="w-80 md:w-96 h-full flex flex-col">
           <ContextPanel
             clients={clients}
             documents={documents}
@@ -803,7 +810,7 @@ ${messageContent}`
       {/* Toggle Sidebar Button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-background border rounded-r-lg p-1 hover:bg-muted transition"
+        className="hidden md:block absolute top-1/2 -translate-y-1/2 z-10 bg-background border rounded-r-lg p-1 hover:bg-muted transition"
         style={{ left: sidebarOpen ? '384px' : '0' }}
       >
         {sidebarOpen ? (
@@ -817,67 +824,51 @@ ${messageContent}`
       <div className="flex-1 flex flex-col min-w-0">
         {/* Program Mode Banner */}
         {programMode && programContext && (
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-b px-4 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Wand2 className="h-5 w-5 text-blue-600" />
-              <div>
-                <span className="font-medium text-sm">Programskapningsläge</span>
-                <span className="text-muted-foreground text-sm ml-2">
-                  {programContext.wizardData.clientName} • {getSportLabel(programContext.wizardData.sport)} • {getGoalLabel(programContext.wizardData.goal)}
-                </span>
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-b px-3 md:px-4 py-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Wand2 className="h-5 w-5 text-blue-600 shrink-0" />
+                <div className="min-w-0">
+                  <span className="font-medium text-sm">Programskapningsläge</span>
+                  <span className="text-muted-foreground text-xs sm:text-sm ml-1 sm:ml-2 block sm:inline truncate">
+                    {programContext.wizardData.clientName} • {getSportLabel(programContext.wizardData.sport)} • {getGoalLabel(programContext.wizardData.goal)}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={handleBackToWizard}>
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Tillbaka till guiden
-              </Button>
-              <Button variant="ghost" size="sm" onClick={exitProgramMode}>
-                Avsluta läge
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button variant="ghost" size="sm" onClick={handleBackToWizard}>
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">Tillbaka till guiden</span>
+                  <span className="sm:hidden">Tillbaka</span>
+                </Button>
+                <Button variant="ghost" size="sm" onClick={exitProgramMode}>
+                  Avsluta
+                </Button>
+              </div>
             </div>
           </div>
         )}
 
         {/* Header */}
-        <div className="border-b p-4 flex items-center justify-between bg-background">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Bot className="h-6 w-6 text-blue-600" />
-              <h1 className="text-xl font-bold">AI Studio</h1>
+        <div className="border-b p-3 md:p-4 bg-background">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="md:hidden shrink-0 p-1.5 rounded-md hover:bg-muted transition"
+              >
+                <Settings className="h-5 w-5 text-muted-foreground" />
+              </button>
+              <Bot className="h-5 w-5 md:h-6 md:w-6 text-blue-600 shrink-0" />
+              <h1 className="text-lg md:text-xl font-bold truncate">AI Studio</h1>
             </div>
-            {selectedAthleteData && (
-              <Badge variant="outline" className="flex items-center gap-1">
-                <User className="h-3 w-3" />
-                {selectedAthleteData.name}
-              </Badge>
-            )}
-            {selectedDocuments.length > 0 && (
-              <Badge variant="outline" className="flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                {selectedDocuments.length} dokument
-              </Badge>
-            )}
-            {webSearchEnabled && (
-              <Badge variant="outline" className="flex items-center gap-1">
-                <Globe className="h-3 w-3" />
-                Webbsökning
-              </Badge>
-            )}
-            {deepThinkEnabled && currentModel?.provider === 'GOOGLE' && (
-              <Badge variant="outline" className="flex items-center gap-1 bg-purple-50 border-purple-200 text-purple-700">
-                <BrainCircuit className="h-3 w-3" />
-                Deep Think
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {/* Deep Think Toggle - Only for Gemini */}
+            <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
+            {/* Deep Think Toggle - Only for Gemini, hidden on mobile */}
             {currentModel?.provider === 'GOOGLE' && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted/50 border">
+                    <div className="hidden md:flex items-center gap-2 px-2 py-1 rounded-md bg-muted/50 border">
                       <BrainCircuit className={`h-4 w-4 ${deepThinkEnabled ? 'text-purple-600' : 'text-muted-foreground'}`} />
                       <Label htmlFor="deep-think" className="text-xs font-medium cursor-pointer">
                         Deep Think
@@ -911,6 +902,7 @@ ${messageContent}`
                     variant="outline"
                     size="sm"
                     onClick={() => setBudgetSettingsOpen(true)}
+                    className="hidden md:inline-flex"
                   >
                     <DollarSign className="h-4 w-4" />
                   </Button>
@@ -925,6 +917,7 @@ ${messageContent}`
                     variant="outline"
                     size="sm"
                     asChild
+                    className="hidden md:inline-flex"
                   >
                     <Link href={`${basePath}/settings/ai-kostnader`}>
                       <BookOpen className="h-4 w-4" />
@@ -938,6 +931,7 @@ ${messageContent}`
               variant="outline"
               size="sm"
               onClick={() => setResearchHistoryOpen(true)}
+              className="hidden md:inline-flex"
             >
               <History className="h-4 w-4 mr-1" />
               Research
@@ -947,22 +941,51 @@ ${messageContent}`
               size="sm"
               onClick={() => setResearchPanelOpen(true)}
             >
-              <FlaskConical className="h-4 w-4 mr-1" />
-              Deep Research
+              <FlaskConical className="h-4 w-4 md:mr-1" />
+              <span className="hidden md:inline">Deep Research</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setChatHistoryOpen(true)}
             >
-              <History className="h-4 w-4 mr-1" />
-              Historik
+              <History className="h-4 w-4 md:mr-1" />
+              <span className="hidden md:inline">Historik</span>
             </Button>
             <Button variant="outline" size="sm" onClick={startNewChat}>
-              <Plus className="h-4 w-4 mr-1" />
-              Ny chatt
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
+          </div>
+          {/* Context badges - shown below header on mobile */}
+          {(selectedAthleteData || selectedDocuments.length > 0 || webSearchEnabled || (deepThinkEnabled && currentModel?.provider === 'GOOGLE')) && (
+            <div className="flex items-center gap-2 flex-wrap mt-2 px-1">
+              {selectedAthleteData && (
+                <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                  <User className="h-3 w-3" />
+                  {selectedAthleteData.name}
+                </Badge>
+              )}
+              {selectedDocuments.length > 0 && (
+                <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                  <FileText className="h-3 w-3" />
+                  {selectedDocuments.length} dokument
+                </Badge>
+              )}
+              {webSearchEnabled && (
+                <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                  <Globe className="h-3 w-3" />
+                  Webb
+                </Badge>
+              )}
+              {deepThinkEnabled && currentModel?.provider === 'GOOGLE' && (
+                <Badge variant="outline" className="flex items-center gap-1 text-xs bg-purple-50 border-purple-200 text-purple-700">
+                  <BrainCircuit className="h-3 w-3" />
+                  Deep Think
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Messages Area */}
@@ -1178,7 +1201,7 @@ ${messageContent}`
         </ScrollArea>
 
         {/* Input Area */}
-        <div className="border-t p-4 bg-background">
+        <div className="border-t p-3 md:p-4 bg-background">
           <form onSubmit={handleFormSubmit} className="max-w-4xl mx-auto">
             <div className="relative">
               <Textarea
