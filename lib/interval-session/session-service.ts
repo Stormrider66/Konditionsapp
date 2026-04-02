@@ -79,18 +79,23 @@ export async function createIntervalSession(
   coachId: string,
   input: CreateIntervalSessionInput
 ): Promise<IntervalSessionFull> {
+  // Build create data - only include restMode if non-default (graceful if column not migrated yet)
+  const createData: Record<string, unknown> = {
+    coachId,
+    name: input.name,
+    teamId: input.teamId,
+    sportType: input.sportType,
+    protocol: input.protocol ? JSON.parse(JSON.stringify(input.protocol)) : undefined,
+    scheduledDate: input.scheduledDate ? new Date(input.scheduledDate) : undefined,
+    scheduledTime: input.scheduledTime,
+    status: 'SETUP',
+  }
+  if (input.restMode && input.restMode !== 'NONE') {
+    createData.restMode = input.restMode
+  }
+
   const session = await prisma.intervalSession.create({
-    data: {
-      coachId,
-      name: input.name,
-      teamId: input.teamId,
-      sportType: input.sportType,
-      restMode: input.restMode || 'NONE',
-      protocol: input.protocol ? JSON.parse(JSON.stringify(input.protocol)) : undefined,
-      scheduledDate: input.scheduledDate ? new Date(input.scheduledDate) : undefined,
-      scheduledTime: input.scheduledTime,
-      status: 'SETUP',
-    },
+    data: createData as Parameters<typeof prisma.intervalSession.create>[0]['data'],
     include: {
       team: { select: { name: true } },
     },
@@ -161,8 +166,8 @@ export async function getSession(sessionId: string): Promise<IntervalSessionFull
     currentInterval: session.currentInterval,
     timerStartedAt: session.timerStartedAt?.toISOString() ?? null,
     protocol: session.protocol as IntervalSessionFull['protocol'],
-    restMode: (session.restMode || 'NONE') as RestMode,
-    groupRestStartedAt: session.groupRestStartedAt?.toISOString() ?? null,
+    restMode: ((session as Record<string, unknown>).restMode as string || 'NONE') as RestMode,
+    groupRestStartedAt: ((session as Record<string, unknown>).groupRestStartedAt as Date)?.toISOString() ?? null,
     scheduledDate: session.scheduledDate?.toISOString() ?? null,
     scheduledTime: session.scheduledTime ?? null,
     startedAt: session.startedAt.toISOString(),
@@ -331,13 +336,20 @@ export async function advanceInterval(
 
   if (!existing || existing.status === 'ENDED') return null
 
+  const advanceData: Record<string, unknown> = {
+    currentInterval: existing.currentInterval + 1,
+    status: 'ACTIVE',
+  }
+
+  // Only reset groupRestStartedAt if the column exists (rest mode is enabled)
+  const existingAny = existing as Record<string, unknown>
+  if ('groupRestStartedAt' in existingAny) {
+    advanceData.groupRestStartedAt = null
+  }
+
   await prisma.intervalSession.update({
     where: { id: sessionId },
-    data: {
-      currentInterval: existing.currentInterval + 1,
-      status: 'ACTIVE',
-      groupRestStartedAt: null,
-    },
+    data: advanceData as Parameters<typeof prisma.intervalSession.update>[0]['data'],
   })
 
   logger.info('Advanced interval', { sessionId, newInterval: existing.currentInterval + 1 })
@@ -352,16 +364,15 @@ export async function checkAndStartGroupRest(
   sessionId: string,
   coachId: string
 ): Promise<void> {
-  const session = await prisma.intervalSession.findFirst({
-    where: { id: sessionId, coachId },
-    include: {
-      participants: {
-        include: {
-          laps: { where: { intervalNumber: undefined as unknown as number } },
-        },
-      },
-    },
-  })
+  let session: Record<string, unknown> | null
+  try {
+    session = await prisma.intervalSession.findFirst({
+      where: { id: sessionId, coachId },
+    }) as Record<string, unknown> | null
+  } catch {
+    // restMode/groupRestStartedAt columns may not exist yet
+    return
+  }
 
   if (!session || session.restMode !== 'GROUP' || session.groupRestStartedAt) return
 
