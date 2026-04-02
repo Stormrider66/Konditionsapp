@@ -172,7 +172,7 @@ export function CreateIntervalSessionDialog({
           <span className="sm:hidden">Ny session</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Skapa intervallsession</DialogTitle>
         </DialogHeader>
