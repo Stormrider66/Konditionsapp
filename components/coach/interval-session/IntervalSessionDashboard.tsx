@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { IntervalSessionControls } from './IntervalSessionControls'
 import { AthleteTimingGrid } from './AthleteTimingGrid'
@@ -37,12 +37,6 @@ export function IntervalSessionDashboard({
   const [availableClients, setAvailableClients] = useState(initialAvailableClients)
   const [isConnected, setIsConnected] = useState(false)
   const [connectionError, setConnectionError] = useState<string | null>(null)
-  const individualAutoAdvanceRef = useRef(false)
-
-  // Reset individual auto-advance flag when interval changes
-  useEffect(() => {
-    individualAutoAdvanceRef.current = false
-  }, [data.currentInterval])
 
   // Connect to SSE stream
   useEffect(() => {
@@ -100,7 +94,7 @@ export function IntervalSessionDashboard({
     }
   }, [sessionId])
 
-  // Auto-advance handler (called by controls for group rest, or by individual rest check)
+  // Auto-advance handler (called by controls for group rest)
   const handleAutoAdvance = useCallback(async () => {
     try {
       await fetch(`/api/coach/interval-sessions/${sessionId}/advance`, { method: 'POST' })
@@ -108,52 +102,6 @@ export function IntervalSessionDashboard({
       toast.error('Kunde inte avancera automatiskt')
     }
   }, [sessionId])
-
-  // Individual rest: check if all participants' rests are done and auto-advance
-  useEffect(() => {
-    if (data.restMode !== 'INDIVIDUAL' || !data.restDurationSeconds || !data.summary.allTapped) return
-    if (individualAutoAdvanceRef.current) return
-
-    // Check if all participants' rests have ended
-    const now = Date.now()
-    const allRestDone = data.participants.every((p) => {
-      if (!p.restStartedAt) return false
-      const restEndMs = new Date(p.restStartedAt).getTime() + data.restDurationSeconds! * 1000
-      return now >= restEndMs
-    })
-
-    if (allRestDone) {
-      individualAutoAdvanceRef.current = true
-      handleAutoAdvance()
-    }
-  }, [data, handleAutoAdvance])
-
-  // For individual mode, also set up a timer to check rest completion
-  useEffect(() => {
-    if (data.restMode !== 'INDIVIDUAL' || !data.restDurationSeconds || !data.summary.allTapped) return
-    if (individualAutoAdvanceRef.current) return
-
-    // Find the latest rest end time
-    const restEndTimes = data.participants
-      .filter((p) => p.restStartedAt)
-      .map((p) => new Date(p.restStartedAt!).getTime() + data.restDurationSeconds! * 1000)
-
-    if (restEndTimes.length === 0) return
-
-    const latestRestEnd = Math.max(...restEndTimes)
-    const msUntilDone = latestRestEnd - Date.now()
-
-    if (msUntilDone <= 0) return // Already handled by the effect above
-
-    const timeout = setTimeout(() => {
-      if (!individualAutoAdvanceRef.current) {
-        individualAutoAdvanceRef.current = true
-        handleAutoAdvance()
-      }
-    }, msUntilDone + 200) // Small buffer
-
-    return () => clearTimeout(timeout)
-  }, [data, handleAutoAdvance])
 
   // Handle tap — record lap with client-side cumulative time
   const handleTap = useCallback(

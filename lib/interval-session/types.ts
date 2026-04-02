@@ -48,6 +48,10 @@ export interface IntervalParticipantData {
   garminEnrichment: GarminEnrichmentData | null
   /** ISO timestamp when this athlete's rest started (from their lap recordedAt) */
   restStartedAt: string | null
+  /** Per-athlete current interval (lap count + 1), used in INDIVIDUAL mode */
+  athleteCurrentInterval: number
+  /** Whether this athlete has completed all intervals */
+  allIntervalsCompleted: boolean
 }
 
 export interface IntervalLapData {

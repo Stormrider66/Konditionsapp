@@ -35,11 +35,20 @@ function mapParticipant(
     }[]
     garminEnrichment: unknown
   },
-  currentInterval?: number
+  currentInterval?: number,
+  protocol?: { intervalCount?: number } | null,
 ): IntervalParticipantData {
-  // Find the lap for the current interval to derive rest start time
-  const currentLap = currentInterval
-    ? p.laps.find((l) => l.intervalNumber === currentInterval)
+  // Per-athlete interval = lap count + 1
+  const athleteCurrentInterval = p.laps.length + 1
+  const allIntervalsCompleted = !!(protocol?.intervalCount && p.laps.length >= protocol.intervalCount)
+
+  // Find the latest lap to derive rest start time (for individual mode)
+  const latestLap = p.laps.length > 0 ? p.laps[p.laps.length - 1] : undefined
+
+  // For session-wide mode, use the session's currentInterval
+  // For individual mode, use the athlete's latest lap
+  const restLap = currentInterval
+    ? p.laps.find((l) => l.intervalNumber === currentInterval) ?? latestLap
     : undefined
 
   return {
@@ -62,7 +71,9 @@ function mapParticipant(
       notes: lac.notes,
     })),
     garminEnrichment: p.garminEnrichment as IntervalParticipantData['garminEnrichment'],
-    restStartedAt: currentLap?.recordedAt.toISOString() ?? null,
+    restStartedAt: restLap?.recordedAt.toISOString() ?? null,
+    athleteCurrentInterval,
+    allIntervalsCompleted,
   }
 }
 
@@ -153,7 +164,8 @@ export async function getSession(sessionId: string): Promise<IntervalSessionFull
 
   if (!session) return null
 
-  const participants = session.participants.map((p) => mapParticipant(p, session.currentInterval))
+  const sessionProtocol = session.protocol as { intervalCount?: number } | null
+  const participants = session.participants.map((p) => mapParticipant(p, session.currentInterval, sessionProtocol))
 
   return {
     id: session.id,

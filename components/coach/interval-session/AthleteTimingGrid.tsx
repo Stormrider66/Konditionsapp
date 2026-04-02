@@ -46,6 +46,8 @@ export function AthleteTimingGrid({
           restMode={restMode}
           restDurationSeconds={restDurationSeconds}
           restStartedAt={p.restStartedAt}
+          athleteCurrentInterval={p.athleteCurrentInterval}
+          allIntervalsCompleted={p.allIntervalsCompleted}
         />
       ))}
     </div>

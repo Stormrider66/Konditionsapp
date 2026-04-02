@@ -8,8 +8,9 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
 /**
- * Record a lap for a participant in the current interval.
- * Calculates splitTimeMs from previous cumulative or from 0.
+ * Record a lap for a participant.
+ * In INDIVIDUAL rest mode, the interval number is per-athlete (lap count + 1).
+ * In other modes, it uses the session's currentInterval.
  */
 export async function recordLap(
   sessionId: string,
@@ -26,13 +27,12 @@ export async function recordLap(
     return { success: false, error: 'Session not found or not active' }
   }
 
-  // Find participant
+  // Find participant with all laps (need count for INDIVIDUAL mode)
   const participant = await prisma.intervalSessionParticipant.findFirst({
     where: { sessionId, clientId },
     include: {
       laps: {
         orderBy: { intervalNumber: 'desc' },
-        take: 1,
       },
     },
   })
@@ -41,8 +41,19 @@ export async function recordLap(
     return { success: false, error: 'Participant not found' }
   }
 
+  // Determine interval number
+  const restMode = (session as Record<string, unknown>).restMode as string || 'NONE'
+  let intervalNumber: number
+
+  if (restMode === 'INDIVIDUAL') {
+    // Per-athlete: next interval = their lap count + 1
+    intervalNumber = participant.laps.length + 1
+  } else {
+    intervalNumber = session.currentInterval
+  }
+
   // Calculate split time from previous cumulative
-  const previousLap = participant.laps[0]
+  const previousLap = participant.laps[0] // Already ordered desc
   const previousCumulativeMs = previousLap?.cumulativeMs ?? 0
   const splitTimeMs = cumulativeMs - previousCumulativeMs
 
@@ -50,20 +61,34 @@ export async function recordLap(
     return { success: false, error: 'Invalid cumulative time' }
   }
 
+  // Check protocol limit
+  const protocol = session.protocol as { intervalCount?: number } | null
+  if (protocol?.intervalCount && intervalNumber > protocol.intervalCount) {
+    return { success: false, error: 'All intervals completed for this athlete' }
+  }
+
   try {
     await prisma.intervalLap.create({
       data: {
         participantId: participant.id,
-        intervalNumber: session.currentInterval,
+        intervalNumber,
         splitTimeMs,
         cumulativeMs,
       },
     })
 
+    // In INDIVIDUAL mode, update session's currentInterval to track the highest
+    if (restMode === 'INDIVIDUAL' && intervalNumber > session.currentInterval) {
+      await prisma.intervalSession.update({
+        where: { id: sessionId },
+        data: { currentInterval: intervalNumber },
+      })
+    }
+
     logger.info('Recorded lap', {
       sessionId,
       clientId,
-      interval: session.currentInterval,
+      interval: intervalNumber,
       splitTimeMs,
       cumulativeMs,
     })
