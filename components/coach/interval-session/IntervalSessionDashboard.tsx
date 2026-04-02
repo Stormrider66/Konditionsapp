@@ -175,17 +175,18 @@ export function IntervalSessionDashboard({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Button
             variant="ghost"
             size="sm"
+            className="shrink-0"
             onClick={() => router.push(`${businessSlug ? `/${businessSlug}` : ''}/coach/interval-sessions`)}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-xl font-bold dark:text-white">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold dark:text-white truncate">
               {data.sessionName || 'Intervallsession'}
             </h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -202,7 +203,7 @@ export function IntervalSessionDashboard({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {isEnded && (
             <Button
               variant="outline"

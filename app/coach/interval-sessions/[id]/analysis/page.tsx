@@ -25,7 +25,7 @@ export default async function IntervalSessionAnalysisPage({ params }: PageProps)
   }
 
   return (
-    <div className="container mx-auto py-8 max-w-5xl">
+    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-5xl">
       <div className="flex items-center gap-3 mb-6">
         <Link href={`/coach/interval-sessions/${id}`}>
           <Button variant="ghost" size="sm">

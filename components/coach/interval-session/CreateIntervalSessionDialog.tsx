@@ -164,9 +164,10 @@ export function CreateIntervalSessionDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button className="shrink-0 whitespace-nowrap">
           <Plus className="h-4 w-4 mr-2" />
-          Ny intervallsession
+          <span className="hidden sm:inline">Ny intervallsession</span>
+          <span className="sm:hidden">Ny session</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

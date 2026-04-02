@@ -63,16 +63,18 @@ export function LactateCurveComparisonChart({ data }: LactateCurveComparisonChar
         <CardTitle>Laktatkurvor</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={350}>
-          <ComposedChart data={chartData}>
+        <ResponsiveContainer width="100%" height={280} className="sm:!h-[350px]">
+          <ComposedChart data={chartData} margin={{ left: -10, right: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="interval" />
+            <XAxis dataKey="interval" tick={{ fontSize: 12 }} />
             <YAxis
-              label={{ value: 'mmol/L', angle: -90, position: 'insideLeft' }}
+              label={{ value: 'mmol/L', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
               domain={[0, 'auto']}
+              tick={{ fontSize: 12 }}
+              width={50}
             />
             <Tooltip />
-            <Legend />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
             {/* 4 mmol/L anaerobic threshold reference line */}
             <ReferenceLine
               y={4}

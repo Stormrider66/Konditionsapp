@@ -125,14 +125,14 @@ export function IntervalSessionControls({
     <div className="bg-card border rounded-lg p-4 space-y-4">
       {/* Timer display */}
       <div className="text-center">
-        <div className="text-5xl font-mono font-bold tabular-nums dark:text-white">
+        <div className="text-4xl sm:text-5xl font-mono font-bold tabular-nums dark:text-white">
           {formatTime(elapsed)}
         </div>
         <div className="text-sm text-muted-foreground mt-1">{intervalLabel}</div>
       </div>
 
       {/* Control buttons */}
-      <div className="flex justify-center gap-3">
+      <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
         {status === 'SETUP' && (
           <Button size="lg" onClick={handleStart} disabled={loading} className="px-8">
             <Play className="h-5 w-5 mr-2" />
@@ -143,25 +143,28 @@ export function IntervalSessionControls({
         {status === 'ACTIVE' && (
           <>
             <Button
-              size="lg"
+              size="default"
               variant="outline"
               onClick={handleLactateMode}
               disabled={loading}
+              className="sm:size-lg"
             >
-              <Droplets className="h-5 w-5 mr-2" />
+              <Droplets className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
               Laktat
             </Button>
-            <Button size="lg" onClick={handleAdvance} disabled={loading}>
-              <SkipForward className="h-5 w-5 mr-2" />
-              Nasta intervall
+            <Button size="default" onClick={handleAdvance} disabled={loading} className="sm:size-lg">
+              <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+              <span className="hidden sm:inline">Nasta intervall</span>
+              <span className="sm:hidden">Nasta</span>
             </Button>
             <Button
-              size="lg"
+              size="default"
               variant="destructive"
               onClick={handleEnd}
               disabled={loading}
+              className="sm:size-lg"
             >
-              <Square className="h-5 w-5 mr-2" />
+              <Square className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
               Avsluta
             </Button>
           </>
@@ -169,21 +172,24 @@ export function IntervalSessionControls({
 
         {status === 'LACTATE_ENTRY' && (
           <>
-            <Button size="lg" onClick={handleResume} disabled={loading}>
-              <Play className="h-5 w-5 mr-2" />
-              Aterga till timing
+            <Button size="default" onClick={handleResume} disabled={loading} className="sm:size-lg">
+              <Play className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+              <span className="hidden sm:inline">Aterga till timing</span>
+              <span className="sm:hidden">Timing</span>
             </Button>
-            <Button size="lg" onClick={handleAdvance} disabled={loading}>
-              <SkipForward className="h-5 w-5 mr-2" />
-              Nasta intervall
+            <Button size="default" onClick={handleAdvance} disabled={loading} className="sm:size-lg">
+              <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+              <span className="hidden sm:inline">Nasta intervall</span>
+              <span className="sm:hidden">Nasta</span>
             </Button>
             <Button
-              size="lg"
+              size="default"
               variant="destructive"
               onClick={handleEnd}
               disabled={loading}
+              className="sm:size-lg"
             >
-              <Square className="h-5 w-5 mr-2" />
+              <Square className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
               Avsluta
             </Button>
           </>

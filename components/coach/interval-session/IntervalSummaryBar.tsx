@@ -22,11 +22,11 @@ export function IntervalSummaryBar({
   avgSplitMs,
 }: IntervalSummaryBarProps) {
   return (
-    <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-2 text-sm">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-0 bg-muted/50 rounded-lg px-3 sm:px-4 py-2 text-sm">
       <div>
         <span className="font-medium">Intervall {currentInterval}</span>
       </div>
-      <div className="flex gap-6">
+      <div className="flex gap-4 sm:gap-6">
         <div>
           <span className="text-muted-foreground">Tappade: </span>
           <span className="font-medium">

@@ -43,19 +43,21 @@ export function SplitDriftChart({ data }: SplitDriftChartProps) {
         <CardTitle>Splitdrift per intervall</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={350}>
-          <LineChart data={chartData}>
+        <ResponsiveContainer width="100%" height={280} className="sm:!h-[350px]">
+          <LineChart data={chartData} margin={{ left: -10, right: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="interval" />
+            <XAxis dataKey="interval" tick={{ fontSize: 12 }} />
             <YAxis
               tickFormatter={(v) => formatSplit(v)}
               domain={['auto', 'auto']}
+              tick={{ fontSize: 12 }}
+              width={50}
             />
             <Tooltip
               formatter={(value: number) => formatSplit(value)}
               labelFormatter={(label) => label}
             />
-            <Legend />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
             {data.participants.map((p) => (
               <Line
                 key={p.clientId}

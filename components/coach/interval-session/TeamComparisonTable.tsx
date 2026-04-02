@@ -37,7 +37,7 @@ export function TeamComparisonTable({ data }: TeamComparisonTableProps) {
       <CardHeader>
         <CardTitle>Lagjamforelse</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
