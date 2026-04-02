@@ -15,10 +15,24 @@ import { logger } from '@/lib/logger'
 const TIME_WINDOW_MS = 2 * 60 * 60 * 1000 // ±2 hours
 const DURATION_TOLERANCE = 0.3 // ±30%
 
+// If the ad-hoc time is near midnight (within this threshold), treat it as "date-only"
+// and skip strict time matching (user likely didn't set a specific time)
+const MIDNIGHT_THRESHOLD_MS = 5 * 60 * 1000 // within 5 minutes of midnight
+
 interface ParsedStructure {
   duration?: number
   type?: string
   sport?: string
+}
+
+/**
+ * Check if a Date is near midnight (00:00), indicating no specific time was set.
+ */
+function isDateOnly(date: Date): boolean {
+  const hours = date.getUTCHours()
+  const minutes = date.getUTCMinutes()
+  const msFromMidnight = (hours * 60 + minutes) * 60 * 1000
+  return msFromMidnight < MIDNIGHT_THRESHOLD_MS || msFromMidnight > (24 * 60 * 60 * 1000 - MIDNIGHT_THRESHOLD_MS)
 }
 
 /**
@@ -57,11 +71,15 @@ export async function findMatchingGarminActivity(
   const parsed = adHoc.parsedStructure as ParsedStructure | null
   const adHocDuration = parsed?.duration ? parsed.duration * 60 : null // minutes → seconds
   const adHocType = adHoc.parsedType || parsed?.type || parsed?.sport || 'OTHER'
+  const adHocIsDateOnly = isDateOnly(adHoc.workoutDate)
 
   const matches = candidates.filter((garmin) => {
-    // Time window check (if ad-hoc has a meaningful time component)
-    const timeDiff = Math.abs(garmin.startDate.getTime() - adHoc.workoutDate.getTime())
-    if (timeDiff > TIME_WINDOW_MS) return false
+    // Time window check - skip if ad-hoc has no meaningful time (date-only)
+    if (!adHocIsDateOnly) {
+      const timeDiff = Math.abs(garmin.startDate.getTime() - adHoc.workoutDate.getTime())
+      if (timeDiff > TIME_WINDOW_MS) return false
+    }
+    // If ad-hoc is date-only, same day is enough (already filtered by dayStart/dayEnd)
 
     // Duration check (if both have duration)
     if (adHocDuration && garmin.duration) {
@@ -97,7 +115,7 @@ export async function findMatchingAdHocWorkout(
   const candidates = await prisma.adHocWorkout.findMany({
     where: {
       athleteId: garmin.clientId,
-      status: 'CONFIRMED',
+      status: { in: ['CONFIRMED', 'READY_FOR_REVIEW'] },
       workoutDate: { gte: dayStart, lte: dayEnd },
       garminActivityId: null, // Not already linked
       inputType: { notIn: ['STRAVA_IMPORT', 'GARMIN_IMPORT', 'CONCEPT2_IMPORT'] },
@@ -116,9 +134,13 @@ export async function findMatchingAdHocWorkout(
   const garminDuration = garmin.duration // in seconds
 
   const matches = candidates.filter((adHoc) => {
-    // Time window
-    const timeDiff = Math.abs(garmin.startDate.getTime() - adHoc.workoutDate.getTime())
-    if (timeDiff > TIME_WINDOW_MS) return false
+    const adHocIsDateOnly = isDateOnly(adHoc.workoutDate)
+
+    // Time window - skip strict check if ad-hoc is date-only
+    if (!adHocIsDateOnly) {
+      const timeDiff = Math.abs(garmin.startDate.getTime() - adHoc.workoutDate.getTime())
+      if (timeDiff > TIME_WINDOW_MS) return false
+    }
 
     // Duration check
     const parsed = adHoc.parsedStructure as ParsedStructure | null
