@@ -276,10 +276,27 @@ export function CreateIntervalSessionDialog({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Ingen specifik</SelectItem>
-                    <SelectItem value="RUNNING">Lopning</SelectItem>
+                    {/* Endurance */}
+                    <SelectItem value="RUNNING">Löpning</SelectItem>
                     <SelectItem value="CYCLING">Cykling</SelectItem>
-                    <SelectItem value="SKIING">Skidakning</SelectItem>
+                    <SelectItem value="SKIING">Skidåkning</SelectItem>
                     <SelectItem value="SWIMMING">Simning</SelectItem>
+                    <SelectItem value="TRIATHLON">Triathlon</SelectItem>
+                    {/* Functional */}
+                    <SelectItem value="HYROX">HYROX</SelectItem>
+                    <SelectItem value="GENERAL_FITNESS">Allmän fitness</SelectItem>
+                    <SelectItem value="FUNCTIONAL_FITNESS">Funktionell fitness</SelectItem>
+                    <SelectItem value="STRENGTH">Styrka</SelectItem>
+                    {/* Team */}
+                    <SelectItem value="FOOTBALL">Fotboll</SelectItem>
+                    <SelectItem value="ICE_HOCKEY">Ishockey</SelectItem>
+                    <SelectItem value="HANDBALL">Handboll</SelectItem>
+                    <SelectItem value="FLOORBALL">Innebandy</SelectItem>
+                    <SelectItem value="BASKETBALL">Basket</SelectItem>
+                    <SelectItem value="VOLLEYBALL">Volleyboll</SelectItem>
+                    {/* Racket */}
+                    <SelectItem value="TENNIS">Tennis</SelectItem>
+                    <SelectItem value="PADEL">Padel</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
