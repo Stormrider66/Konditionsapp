@@ -8,6 +8,7 @@ export const createSessionSchema = z.object({
   name: z.string().max(200).optional(),
   teamId: z.string().uuid().optional(),
   sportType: z.string().max(50).optional(),
+  restMode: z.enum(['NONE', 'INDIVIDUAL', 'GROUP']).optional(),
   protocol: z
     .object({
       intervalCount: z.number().int().min(1).max(100).optional(),

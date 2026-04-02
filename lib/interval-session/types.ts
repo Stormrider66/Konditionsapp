@@ -7,11 +7,15 @@
 // Session statuses
 export type IntervalSessionStatus = 'SETUP' | 'ACTIVE' | 'LACTATE_ENTRY' | 'ENDED'
 
+// Rest modes
+export type RestMode = 'NONE' | 'INDIVIDUAL' | 'GROUP'
+
 // Session creation input
 export interface CreateIntervalSessionInput {
   name?: string
   teamId?: string
   sportType?: string
+  restMode?: RestMode
   protocol?: IntervalProtocol
   participantIds?: string[]
   scheduledDate?: string // ISO date
@@ -42,6 +46,8 @@ export interface IntervalParticipantData {
   laps: IntervalLapData[]
   lactates: IntervalLactateData[]
   garminEnrichment: GarminEnrichmentData | null
+  /** ISO timestamp when this athlete's rest started (from their lap recordedAt) */
+  restStartedAt: string | null
 }
 
 export interface IntervalLapData {
@@ -77,11 +83,15 @@ export interface IntervalSessionStreamData {
   timerStartedAt: string | null
   timestamp: string
   protocol: IntervalProtocol | null
+  restMode: RestMode
+  restDurationSeconds: number | null
+  groupRestStartedAt: string | null
   participants: IntervalParticipantData[]
   summary: {
     totalParticipants: number
     tappedThisInterval: number
     avgSplitMs: number | null
+    allTapped: boolean
   }
 }
 
@@ -97,6 +107,8 @@ export interface IntervalSessionFull {
   currentInterval: number
   timerStartedAt: string | null
   protocol: IntervalProtocol | null
+  restMode: RestMode
+  groupRestStartedAt: string | null
   scheduledDate: string | null
   scheduledTime: string | null
   startedAt: string

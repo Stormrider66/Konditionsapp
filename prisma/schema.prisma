@@ -9861,6 +9861,10 @@ model IntervalSession {
   scheduledDate DateTime? @db.Date
   scheduledTime String?   // "HH:mm" format
 
+  // Rest mode: NONE (manual advance), INDIVIDUAL (per-athlete countdown), GROUP (shared countdown)
+  restMode            String    @default("NONE")
+  groupRestStartedAt  DateTime? // Anchor for group rest countdown
+
   // Lifecycle: SETUP → ACTIVE → LACTATE_ENTRY → ENDED
   status          String    @default("SETUP")
   timerStartedAt  DateTime? // Client-side timer anchor

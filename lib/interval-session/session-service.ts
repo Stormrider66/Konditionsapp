@@ -14,25 +14,34 @@ import {
   IntervalSessionStatus,
   IntervalParticipantData,
   IntervalSessionStreamData,
+  RestMode,
   ATHLETE_COLORS,
 } from './types'
 
-function mapParticipant(p: {
-  id: string
-  clientId: string
-  client: { id: string; name: string }
-  color: string | null
-  sortOrder: number
-  laps: { id: string; intervalNumber: number; splitTimeMs: number; cumulativeMs: number }[]
-  lactates: {
+function mapParticipant(
+  p: {
     id: string
-    intervalNumber: number
-    lactate: number
-    heartRate: number | null
-    notes: string | null
-  }[]
-  garminEnrichment: unknown
-}): IntervalParticipantData {
+    clientId: string
+    client: { id: string; name: string }
+    color: string | null
+    sortOrder: number
+    laps: { id: string; intervalNumber: number; splitTimeMs: number; cumulativeMs: number; recordedAt: Date }[]
+    lactates: {
+      id: string
+      intervalNumber: number
+      lactate: number
+      heartRate: number | null
+      notes: string | null
+    }[]
+    garminEnrichment: unknown
+  },
+  currentInterval?: number
+): IntervalParticipantData {
+  // Find the lap for the current interval to derive rest start time
+  const currentLap = currentInterval
+    ? p.laps.find((l) => l.intervalNumber === currentInterval)
+    : undefined
+
   return {
     id: p.id,
     clientId: p.client.id,
@@ -53,12 +62,13 @@ function mapParticipant(p: {
       notes: lac.notes,
     })),
     garminEnrichment: p.garminEnrichment as IntervalParticipantData['garminEnrichment'],
+    restStartedAt: currentLap?.recordedAt.toISOString() ?? null,
   }
 }
 
 const participantInclude = {
   client: { select: { id: true, name: true } },
-  laps: { orderBy: { intervalNumber: 'asc' as const } },
+  laps: { orderBy: { intervalNumber: 'asc' as const }, select: { id: true, intervalNumber: true, splitTimeMs: true, cumulativeMs: true, recordedAt: true } },
   lactates: { orderBy: { intervalNumber: 'asc' as const } },
 }
 
@@ -75,6 +85,7 @@ export async function createIntervalSession(
       name: input.name,
       teamId: input.teamId,
       sportType: input.sportType,
+      restMode: input.restMode || 'NONE',
       protocol: input.protocol ? JSON.parse(JSON.stringify(input.protocol)) : undefined,
       scheduledDate: input.scheduledDate ? new Date(input.scheduledDate) : undefined,
       scheduledTime: input.scheduledTime,
@@ -137,7 +148,7 @@ export async function getSession(sessionId: string): Promise<IntervalSessionFull
 
   if (!session) return null
 
-  const participants = session.participants.map(mapParticipant)
+  const participants = session.participants.map((p) => mapParticipant(p, session.currentInterval))
 
   return {
     id: session.id,
@@ -150,6 +161,8 @@ export async function getSession(sessionId: string): Promise<IntervalSessionFull
     currentInterval: session.currentInterval,
     timerStartedAt: session.timerStartedAt?.toISOString() ?? null,
     protocol: session.protocol as IntervalSessionFull['protocol'],
+    restMode: (session.restMode || 'NONE') as RestMode,
+    groupRestStartedAt: session.groupRestStartedAt?.toISOString() ?? null,
     scheduledDate: session.scheduledDate?.toISOString() ?? null,
     scheduledTime: session.scheduledTime ?? null,
     startedAt: session.startedAt.toISOString(),
@@ -183,6 +196,9 @@ export async function getSessionStreamData(
       ? Math.round(currentSplits.reduce((a, b) => a + b, 0) / currentSplits.length)
       : null
 
+  const protocol = session.protocol
+  const restDurationSeconds = protocol?.restDurationSeconds ?? null
+
   return {
     sessionId: session.id,
     sessionName: session.name,
@@ -191,11 +207,15 @@ export async function getSessionStreamData(
     timerStartedAt: session.timerStartedAt,
     timestamp: new Date().toISOString(),
     protocol: session.protocol,
+    restMode: session.restMode,
+    restDurationSeconds,
+    groupRestStartedAt: session.groupRestStartedAt,
     participants: session.participants,
     summary: {
       totalParticipants: session.participantCount,
       tappedThisInterval,
       avgSplitMs,
+      allTapped: tappedThisInterval === session.participantCount && session.participantCount > 0,
     },
   }
 }
@@ -316,10 +336,87 @@ export async function advanceInterval(
     data: {
       currentInterval: existing.currentInterval + 1,
       status: 'ACTIVE',
+      groupRestStartedAt: null,
     },
   })
 
   logger.info('Advanced interval', { sessionId, newInterval: existing.currentInterval + 1 })
+
+  return getSession(sessionId)
+}
+
+/**
+ * Check if all athletes have tapped and auto-start group rest (GROUP mode only)
+ */
+export async function checkAndStartGroupRest(
+  sessionId: string,
+  coachId: string
+): Promise<void> {
+  const session = await prisma.intervalSession.findFirst({
+    where: { id: sessionId, coachId },
+    include: {
+      participants: {
+        include: {
+          laps: { where: { intervalNumber: undefined as unknown as number } },
+        },
+      },
+    },
+  })
+
+  if (!session || session.restMode !== 'GROUP' || session.groupRestStartedAt) return
+
+  // Re-query with correct interval filter
+  const sess = await prisma.intervalSession.findUnique({
+    where: { id: sessionId },
+    select: {
+      currentInterval: true,
+      participants: {
+        select: {
+          laps: true,
+        },
+      },
+    },
+  })
+
+  if (!sess) return
+
+  const totalParticipants = sess.participants.length
+  if (totalParticipants === 0) return
+
+  const tapped = sess.participants.filter((p) =>
+    p.laps.some((l) => l.intervalNumber === sess.currentInterval)
+  ).length
+
+  if (tapped === totalParticipants) {
+    await prisma.intervalSession.update({
+      where: { id: sessionId },
+      data: { groupRestStartedAt: new Date() },
+    })
+    logger.info('Auto-started group rest (all athletes tapped)', { sessionId })
+  }
+}
+
+/**
+ * Start group rest timer (manual trigger or called after all athletes tapped)
+ */
+export async function startGroupRest(
+  sessionId: string,
+  coachId: string
+): Promise<IntervalSessionFull | null> {
+  const existing = await prisma.intervalSession.findFirst({
+    where: { id: sessionId, coachId },
+  })
+
+  if (!existing || existing.status === 'ENDED') return null
+
+  await prisma.intervalSession.update({
+    where: { id: sessionId },
+    data: {
+      groupRestStartedAt: new Date(),
+    },
+  })
+
+  logger.info('Started group rest', { sessionId })
 
   return getSession(sessionId)
 }

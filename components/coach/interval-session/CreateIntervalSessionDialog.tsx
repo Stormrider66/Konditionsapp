@@ -61,6 +61,7 @@ export function CreateIntervalSessionDialog({
   const [intervalCount, setIntervalCount] = useState('')
   const [targetDuration, setTargetDuration] = useState('')
   const [restDuration, setRestDuration] = useState('')
+  const [restMode, setRestMode] = useState<'NONE' | 'INDIVIDUAL' | 'GROUP'>('NONE')
   const [scheduledDate, setScheduledDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
   const [templates, setTemplates] = useState<Template[]>([])
@@ -139,6 +140,7 @@ export function CreateIntervalSessionDialog({
           name: name || undefined,
           teamId: teamId && teamId !== 'none' ? teamId : undefined,
           sportType: sportType && sportType !== 'none' ? sportType : undefined,
+          restMode: restMode !== 'NONE' ? restMode : undefined,
           protocol,
           scheduledDate: scheduledDate || undefined,
           scheduledTime: scheduledTime || undefined,
@@ -317,6 +319,61 @@ export function CreateIntervalSessionDialog({
                   </div>
                 </div>
               </div>
+
+              {/* Rest mode selector - only show when rest duration is set */}
+              {restDuration && parseInt(restDuration) > 0 && (
+                <div className="border-t pt-4">
+                  <p className="text-sm font-medium mb-3">Viloläge</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRestMode('NONE')}
+                      className={`rounded-lg border p-2.5 text-center text-xs transition-colors ${
+                        restMode === 'NONE'
+                          ? 'border-primary bg-primary/10 font-medium'
+                          : 'border-muted hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="font-medium mb-0.5">Manuell</div>
+                      <div className="text-muted-foreground">Ingen auto-vila</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRestMode('INDIVIDUAL')}
+                      className={`rounded-lg border p-2.5 text-center text-xs transition-colors ${
+                        restMode === 'INDIVIDUAL'
+                          ? 'border-primary bg-primary/10 font-medium'
+                          : 'border-muted hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="font-medium mb-0.5">Individuell</div>
+                      <div className="text-muted-foreground">Vila per atlet</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRestMode('GROUP')}
+                      className={`rounded-lg border p-2.5 text-center text-xs transition-colors ${
+                        restMode === 'GROUP'
+                          ? 'border-primary bg-primary/10 font-medium'
+                          : 'border-muted hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="font-medium mb-0.5">Grupp</div>
+                      <div className="text-muted-foreground">Gemensam vila</div>
+                    </button>
+                  </div>
+                  {restMode === 'INDIVIDUAL' && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Vila startar for varje atlet nar de registreras. Nasta intervall startar automatiskt nar alla vilat klart.
+                    </p>
+                  )}
+                  {restMode === 'GROUP' && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Gemensam vila startar nar sista atleten registreras eller manuellt. Nasta intervall startar automatiskt.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="border-t pt-4">
                 <p className="text-sm font-medium mb-3">Schemalägg (valfritt)</p>

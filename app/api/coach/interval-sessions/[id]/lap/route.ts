@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { recordLap, deleteLap } from '@/lib/interval-session/timing-service'
 import { recordLapSchema, deleteLapSchema } from '@/lib/interval-session/validation'
+import { checkAndStartGroupRest } from '@/lib/interval-session/session-service'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -34,6 +35,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 })
     }
+
+    // Auto-start group rest when all athletes have tapped (GROUP mode only)
+    await checkAndStartGroupRest(id, user.id)
 
     return NextResponse.json({ success: true }, { status: 201 })
   } catch (error) {

@@ -1,7 +1,7 @@
 'use client'
 
 import { AthleteTimingButton } from './AthleteTimingButton'
-import type { IntervalParticipantData } from '@/lib/interval-session/types'
+import type { IntervalParticipantData, RestMode } from '@/lib/interval-session/types'
 
 interface AthleteTimingGridProps {
   participants: IntervalParticipantData[]
@@ -9,6 +9,8 @@ interface AthleteTimingGridProps {
   disabled: boolean
   onTap: (clientId: string) => void
   onUndo: (clientId: string, intervalNumber: number) => void
+  restMode?: RestMode
+  restDurationSeconds?: number | null
 }
 
 export function AthleteTimingGrid({
@@ -17,6 +19,8 @@ export function AthleteTimingGrid({
   disabled,
   onTap,
   onUndo,
+  restMode = 'NONE',
+  restDurationSeconds,
 }: AthleteTimingGridProps) {
   if (participants.length === 0) {
     return (
@@ -39,6 +43,9 @@ export function AthleteTimingGrid({
           disabled={disabled}
           onTap={onTap}
           onUndo={onUndo}
+          restMode={restMode}
+          restDurationSeconds={restDurationSeconds}
+          restStartedAt={p.restStartedAt}
         />
       ))}
     </div>
