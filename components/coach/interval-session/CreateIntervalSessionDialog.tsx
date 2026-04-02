@@ -298,7 +298,7 @@ export function CreateIntervalSessionDialog({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Malduration (s)</Label>
+                    <Label className="text-xs">Målduration (s)</Label>
                     <Input
                       type="number"
                       inputMode="numeric"
