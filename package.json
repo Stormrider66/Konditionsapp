@@ -7,7 +7,7 @@
     "dev": "next dev",
     "garmin-webhook:dev": "node apps/garmin-webhook/bootstrap.js",
     "garmin-webhook:start": "NODE_ENV=production node apps/garmin-webhook/bootstrap.js",
-    "build": "prisma db push --skip-generate && cross-env NODE_OPTIONS=--max-old-space-size=6144 next build --no-lint",
+    "build": "prisma db push --skip-generate --accept-data-loss && cross-env NODE_OPTIONS=--max-old-space-size=6144 next build --no-lint",
     "start": "next start",
     "lint": "next lint",
     "prisma:generate": "prisma generate",
