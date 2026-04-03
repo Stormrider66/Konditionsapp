@@ -89,13 +89,15 @@ export function AthleteTimingButton({
     return () => clearInterval(interval)
   }, [restMode, restStartedAt, restDurationSeconds, latestLap])
 
-  const isResting = restMode === 'INDIVIDUAL' && restRemaining !== null && restRemaining > 0 && tapped
-  const restDone = restMode === 'INDIVIDUAL' && restRemaining === 0 && !allIntervalsCompleted
+  // Rest state: athlete has completed a lap and is waiting for rest to end
+  const hasCompletedALap = latestLap !== undefined && laps.length > 0
+  const isResting = restMode === 'INDIVIDUAL' && restRemaining !== null && restRemaining > 0 && hasCompletedALap && !tapped
+  const restDone = restMode === 'INDIVIDUAL' && restRemaining === 0 && hasCompletedALap && !tapped && !allIntervalsCompleted
   const restAlmostDone = isResting && restRemaining < 5 // Last 5 seconds
 
   // In INDIVIDUAL mode, athlete is tappable when:
   // - Not currently tapped for this interval, AND
-  // - Not currently resting (or rest is done), AND
+  // - Not currently resting (rest is done or no rest needed), AND
   // - Not all intervals completed
   const individualReady = restMode === 'INDIVIDUAL' && !tapped && !isResting && !allIntervalsCompleted
   const isDisabled = restMode === 'INDIVIDUAL'
