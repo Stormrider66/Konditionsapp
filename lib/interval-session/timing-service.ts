@@ -59,7 +59,7 @@ export async function recordLap(
 
   // In INDIVIDUAL/GROUP rest mode, subtract rest duration from split
   // (split = total elapsed since last lap, which includes rest)
-  const protocol = session.protocol as { restDurationSeconds?: number } | null
+  const protocol = session.protocol as { restDurationSeconds?: number; intervalCount?: number } | null
   if (previousLap && protocol?.restDurationSeconds && restMode !== 'NONE') {
     const restMs = protocol.restDurationSeconds * 1000
     splitTimeMs = Math.max(0, splitTimeMs - restMs)
@@ -70,7 +70,6 @@ export async function recordLap(
   }
 
   // Check protocol limit
-  const protocol = session.protocol as { intervalCount?: number } | null
   if (protocol?.intervalCount && intervalNumber > protocol.intervalCount) {
     return { success: false, error: 'All intervals completed for this athlete' }
   }
