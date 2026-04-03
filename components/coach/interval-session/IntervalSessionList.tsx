@@ -16,7 +16,7 @@ interface IntervalSessionListProps {
 }
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  SETUP: { label: 'Foreberedelse', variant: 'outline' },
+  SETUP: { label: 'Förberedelse', variant: 'outline' },
   ACTIVE: { label: 'Aktiv', variant: 'default' },
   LACTATE_ENTRY: { label: 'Laktat', variant: 'secondary' },
   ENDED: { label: 'Avslutad', variant: 'destructive' },
@@ -38,7 +38,7 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
         setSessions(data.sessions)
       }
     } catch {
-      toast.error('Kunde inte hamta sessioner')
+      toast.error('Kunde inte hämta sessioner')
     } finally {
       setLoading(false)
     }
@@ -90,7 +90,7 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
 
       {sessions.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          Inga intervallsessioner annu. Skapa en ny for att borja.
+          Inga intervallsessioner ännu. Skapa en ny för att börja.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

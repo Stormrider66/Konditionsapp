@@ -140,7 +140,7 @@ export function IntervalSessionDashboard({
           toast.error(err.error || 'Kunde inte registrera varv')
         }
       } catch {
-        toast.error('Natverksfel')
+        toast.error('Nätverksfel')
       }
     },
     [sessionId, data.timerStartedAt]
@@ -157,10 +157,10 @@ export function IntervalSessionDashboard({
         })
 
         if (res.ok) {
-          toast.success('Varv aterkallt')
+          toast.success('Varv återkallat')
         }
       } catch {
-        toast.error('Kunde inte aterkalla varv')
+        toast.error('Kunde inte återkalla varv')
       }
     },
     [sessionId]

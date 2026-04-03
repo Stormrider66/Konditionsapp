@@ -250,8 +250,8 @@ export function IntervalSessionControls({
             ) : null}
             <Button size="default" onClick={handleAdvance} disabled={loading} className="sm:size-lg">
               <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-              <span className="hidden sm:inline">Nasta intervall</span>
-              <span className="sm:hidden">Nasta</span>
+              <span className="hidden sm:inline">Nästa intervall</span>
+              <span className="sm:hidden">Nästa</span>
             </Button>
             <Button
               size="default"
@@ -270,7 +270,7 @@ export function IntervalSessionControls({
           <>
             <Button size="default" onClick={handleAdvance} disabled={loading} className="sm:size-lg">
               <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-              <span className="hidden sm:inline">Hoppa over vila</span>
+              <span className="hidden sm:inline">Hoppa över vila</span>
               <span className="sm:hidden">Hoppa</span>
             </Button>
             <Button
@@ -290,13 +290,13 @@ export function IntervalSessionControls({
           <>
             <Button size="default" onClick={handleResume} disabled={loading} className="sm:size-lg">
               <Play className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-              <span className="hidden sm:inline">Aterga till timing</span>
+              <span className="hidden sm:inline">Återgå till timing</span>
               <span className="sm:hidden">Timing</span>
             </Button>
             <Button size="default" onClick={handleAdvance} disabled={loading} className="sm:size-lg">
               <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-              <span className="hidden sm:inline">Nasta intervall</span>
-              <span className="sm:hidden">Nasta</span>
+              <span className="hidden sm:inline">Nästa intervall</span>
+              <span className="sm:hidden">Nästa</span>
             </Button>
             <Button
               size="default"

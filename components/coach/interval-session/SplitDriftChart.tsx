@@ -31,7 +31,7 @@ export function SplitDriftChart({ data }: SplitDriftChartProps) {
     for (const p of data.participants) {
       const split = p.splits.find((s) => s.interval === interval)
       if (split) {
-        point[p.clientName] = split.splitTimeMs
+        point[p.displayName] = split.splitTimeMs
       }
     }
     return point
@@ -62,7 +62,7 @@ export function SplitDriftChart({ data }: SplitDriftChartProps) {
               <Line
                 key={p.clientId}
                 type="monotone"
-                dataKey={p.clientName}
+                dataKey={p.displayName}
                 stroke={p.color}
                 strokeWidth={2}
                 dot={{ r: 4 }}

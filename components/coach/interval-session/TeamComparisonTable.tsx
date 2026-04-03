@@ -35,7 +35,7 @@ export function TeamComparisonTable({ data }: TeamComparisonTableProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Lagjamforelse</CardTitle>
+        <CardTitle>Lagjämförelse</CardTitle>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <Table>
@@ -45,8 +45,8 @@ export function TeamComparisonTable({ data }: TeamComparisonTableProps) {
               <TableHead>Namn</TableHead>
               <TableHead className="text-right">Varv</TableHead>
               <TableHead className="text-right">Snitt</TableHead>
-              <TableHead className="text-right">Basta</TableHead>
-              <TableHead className="text-right">Samsta</TableHead>
+              <TableHead className="text-right">Bästa</TableHead>
+              <TableHead className="text-right">Sämsta</TableHead>
               <TableHead className="text-right">Max laktat</TableHead>
             </TableRow>
           </TableHeader>
@@ -62,7 +62,7 @@ export function TeamComparisonTable({ data }: TeamComparisonTableProps) {
                     {i + 1}
                   </div>
                 </TableCell>
-                <TableCell className="font-medium">{p.clientName}</TableCell>
+                <TableCell className="font-medium">{p.displayName}</TableCell>
                 <TableCell className="text-right">{p.splits.length}</TableCell>
                 <TableCell className="text-right font-mono">
                   {formatSplit(p.avgSplitMs)}

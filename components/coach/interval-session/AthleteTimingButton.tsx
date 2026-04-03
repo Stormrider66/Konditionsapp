@@ -254,7 +254,7 @@ export function AthleteTimingButton({
           <span className="font-mono text-lg font-bold text-green-600 dark:text-green-400">
             {intervalElapsed !== null ? formatElapsed(intervalElapsed) : ''}
           </span>
-          <span className="text-[10px] text-green-600/70 dark:text-green-400/70">lopande</span>
+          <span className="text-[10px] text-green-600/70 dark:text-green-400/70">löpande</span>
         </>
       ) : tapped ? (
         <span className="font-mono text-sm text-white/90 mt-1">
@@ -262,7 +262,7 @@ export function AthleteTimingButton({
         </span>
       ) : (
         <span className={cn('text-xs mt-1', isDisabled ? 'text-muted-foreground' : 'opacity-60')}>
-          {isDisabled ? '-' : 'Vantar'}
+          {isDisabled ? '-' : 'Väntar'}
         </span>
       )}
 

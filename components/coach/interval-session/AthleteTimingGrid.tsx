@@ -25,7 +25,7 @@ export function AthleteTimingGrid({
   if (participants.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        Inga atleter tillagda. Lagg till atleter for att borja.
+        Inga atleter tillagda. Lägg till atleter för att börja.
       </div>
     )
   }

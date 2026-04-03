@@ -10,6 +10,7 @@ export interface AnalysisData {
   participants: {
     clientId: string
     clientName: string
+    displayName: string // Unique name for charts (appends number if duplicate)
     color: string
     splits: { interval: number; splitTimeMs: number }[]
     lactates: { interval: number; lactate: number; heartRate: number | null }[]
@@ -51,6 +52,14 @@ export async function getAnalysisData(
   }
   const intervals = Array.from(allIntervals).sort((a, b) => a - b)
 
+  // Build unique display names for participants with the same name
+  const nameCounts = new Map<string, number>()
+  const nameIndex = new Map<string, number>()
+  for (const p of session.participants) {
+    const name = p.client.name
+    nameCounts.set(name, (nameCounts.get(name) || 0) + 1)
+  }
+
   const participants = session.participants.map((p) => {
     const splits = p.laps.map((l) => ({
       interval: l.intervalNumber,
@@ -74,9 +83,20 @@ export async function getAnalysisData(
     const lactateValues = lactates.map((l) => l.lactate)
     const maxLactate = lactateValues.length > 0 ? Math.max(...lactateValues) : null
 
+    // Generate unique display name
+    const name = p.client.name
+    const count = nameCounts.get(name) || 1
+    let displayName = name
+    if (count > 1) {
+      const idx = (nameIndex.get(name) || 0) + 1
+      nameIndex.set(name, idx)
+      displayName = `${name} (${idx})`
+    }
+
     return {
       clientId: p.client.id,
       clientName: p.client.name,
+      displayName,
       color: p.color || '#3B82F6',
       splits,
       lactates,

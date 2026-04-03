@@ -37,17 +37,17 @@ export function AddParticipantDialog({
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <UserPlus className="h-4 w-4 mr-2" />
-          Lagg till atlet
+          Lägg till atlet
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Lagg till atlet</DialogTitle>
+          <DialogTitle>Lägg till atlet</DialogTitle>
         </DialogHeader>
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {availableClients.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">
-              Alla atleter ar redan tillagda
+              Alla atleter är redan tillagda
             </p>
           ) : (
             availableClients.map((client) => (

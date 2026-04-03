@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SplitDriftChart } from './SplitDriftChart'
 import { LactateCurveComparisonChart } from './LactateCurveComparisonChart'
 import { TeamComparisonTable } from './TeamComparisonTable'
+import { DetailedLapTable } from './DetailedLapTable'
 import { GarminSyncPanel } from './GarminSyncPanel'
 import type { AnalysisData } from '@/lib/interval-session/analysis-service'
 import { toast } from 'sonner'
@@ -27,7 +28,7 @@ export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
           setData(await res.json())
         }
       } catch {
-        toast.error('Kunde inte hamta analysdata')
+        toast.error('Kunde inte hämta analysdata')
       } finally {
         setLoading(false)
       }
@@ -58,12 +59,17 @@ export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
     <div className="space-y-6">
       <GarminSyncPanel sessionId={sessionId} />
 
-      <Tabs defaultValue="splits" className="space-y-4">
-        <TabsList>
+      <Tabs defaultValue="laps" className="space-y-4">
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="laps">Alla varv</TabsTrigger>
           <TabsTrigger value="splits">Splittider</TabsTrigger>
           <TabsTrigger value="lactate">Laktat</TabsTrigger>
-          <TabsTrigger value="comparison">Lagjamforelse</TabsTrigger>
+          <TabsTrigger value="comparison">Lagjämförelse</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="laps">
+          <DetailedLapTable data={data} />
+        </TabsContent>
 
         <TabsContent value="splits">
           <SplitDriftChart data={data} />

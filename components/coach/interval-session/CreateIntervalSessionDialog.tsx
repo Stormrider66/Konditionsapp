@@ -90,7 +90,7 @@ export function CreateIntervalSessionDialog({
 
   const handleSaveTemplate = async () => {
     if (!name) {
-      toast.error('Ange ett namn for mallen')
+      toast.error('Ange ett namn för mallen')
       return
     }
 
@@ -254,7 +254,7 @@ export function CreateIntervalSessionDialog({
                   <Label>Lag (valfritt)</Label>
                   <Select value={teamId} onValueChange={setTeamId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Valj lag..." />
+                      <SelectValue placeholder="Välj lag..." />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Inget lag</SelectItem>
@@ -272,7 +272,7 @@ export function CreateIntervalSessionDialog({
                 <Label>Sport (valfritt)</Label>
                 <Select value={sportType} onValueChange={setSportType}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Valj sport..." />
+                    <SelectValue placeholder="Välj sport..." />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Ingen specifik</SelectItem>
@@ -381,12 +381,12 @@ export function CreateIntervalSessionDialog({
                   </div>
                   {restMode === 'INDIVIDUAL' && (
                     <p className="text-xs text-muted-foreground mt-2">
-                      Vila startar for varje atlet nar de registreras. Nasta intervall startar automatiskt nar alla vilat klart.
+                      Vila startar för varje atlet när de registreras. Nästa intervall startar automatiskt när alla vilat klart.
                     </p>
                   )}
                   {restMode === 'GROUP' && (
                     <p className="text-xs text-muted-foreground mt-2">
-                      Gemensam vila startar nar sista atleten registreras eller manuellt. Nasta intervall startar automatiskt.
+                      Gemensam vila startar när sista atleten registreras eller manuellt. Nästa intervall startar automatiskt.
                     </p>
                   )}
                 </div>

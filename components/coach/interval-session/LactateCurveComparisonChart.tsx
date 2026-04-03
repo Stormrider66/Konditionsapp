@@ -51,7 +51,7 @@ export function LactateCurveComparisonChart({ data }: LactateCurveComparisonChar
     for (const p of data.participants) {
       const lac = p.lactates.find((l) => l.interval === interval)
       if (lac) {
-        point[p.clientName] = lac.lactate
+        point[p.displayName] = lac.lactate
       }
     }
     return point
@@ -86,7 +86,7 @@ export function LactateCurveComparisonChart({ data }: LactateCurveComparisonChar
               <Line
                 key={p.clientId}
                 type="monotone"
-                dataKey={p.clientName}
+                dataKey={p.displayName}
                 stroke={p.color}
                 strokeWidth={2}
                 dot={{ r: 4 }}
