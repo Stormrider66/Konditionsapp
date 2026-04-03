@@ -154,6 +154,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     const toolsByMode: Record<string, typeof allToolItems[keyof typeof allToolItems][]> = {
         PT: [
             allToolItems.test, allToolItems.strength, allToolItems.cardio,
+            allToolItems.hybrid, allToolItems.agility,
             allToolItems.intervals, allToolItems.aiStudio,
         ],
         TEAM: [
@@ -162,8 +163,8 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
             allToolItems.monitoring, allToolItems.liveHR,
         ],
         GYM: [
-            allToolItems.strength, allToolItems.cardio, allToolItems.hybrid,
-            allToolItems.ergometer, allToolItems.aiStudio,
+            allToolItems.test, allToolItems.strength, allToolItems.cardio,
+            allToolItems.hybrid, allToolItems.ergometer, allToolItems.aiStudio,
         ],
     }
 
@@ -176,7 +177,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
             allMoreItems.teams, allMoreItems.messages, allMoreItems.settings,
         ],
         GYM: [
-            allMoreItems.community, allMoreItems.competitions, allMoreItems.messages, allMoreItems.settings,
+            allMoreItems.messages, allMoreItems.settings,
         ],
     }
 
