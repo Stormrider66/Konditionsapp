@@ -5,30 +5,24 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireUser } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await requireUser()
+    const { clientId } = await requireAthleteOrCoachInAthleteMode()
 
     const { searchParams } = new URL(req.url)
     const limit = parseInt(searchParams.get('limit') || '20')
     const sportType = searchParams.get('sportType') || undefined
 
-    // Find the client record for this user
-    const client = await prisma.client.findFirst({
-      where: { email: user.email },
-      select: { id: true },
-    })
-
-    if (!client) {
+    if (!clientId) {
       return NextResponse.json({ results: [] })
     }
 
     const participations = await prisma.intervalSessionParticipant.findMany({
       where: {
-        clientId: client.id,
+        clientId,
         session: {
           status: 'ENDED',
           ...(sportType ? { sportType } : {}),
