@@ -171,13 +171,13 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     // Mode-specific "more" items (prioritized) + remaining items
     const moreByMode: Record<string, typeof allMoreItems[keyof typeof allMoreItems][]> = {
         PT: [
-            allMoreItems.messages, allMoreItems.settings,
+            allMoreItems.community, allMoreItems.competitions, allMoreItems.messages, allMoreItems.settings,
         ],
         TEAM: [
             allMoreItems.teams, allMoreItems.messages, allMoreItems.settings,
         ],
         GYM: [
-            allMoreItems.messages, allMoreItems.settings,
+            allMoreItems.community, allMoreItems.competitions, allMoreItems.messages, allMoreItems.settings,
         ],
     }
 
