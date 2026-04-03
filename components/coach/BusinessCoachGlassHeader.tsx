@@ -65,22 +65,24 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     const [businessRole, setBusinessRole] = useState<BusinessMemberRole | null>(null)
     const [businessName, setBusinessName] = useState<string | null>(null)
     const [platformAdminRole, setPlatformAdminRole] = useState<string | null>(null)
+    const [dashboardMode, setDashboardMode] = useState<'PT' | 'TEAM' | 'GYM'>('PT')
     const displayName = user?.email || 'Coach'
 
     // Base path for all business-scoped routes
     const basePath = `/${businessSlug}`
 
-    // Fetch business context to check if user is a business admin
+    // Fetch business context and dashboard mode
     useEffect(() => {
         const fetchBusinessContext = async () => {
             try {
-                const response = await fetch('/api/coach/admin/context', {
-                    headers: {
-                        'x-business-slug': businessSlug,
-                    },
-                })
-                if (response.ok) {
-                    const result = await response.json()
+                const [contextRes, modeRes] = await Promise.all([
+                    fetch('/api/coach/admin/context', {
+                        headers: { 'x-business-slug': businessSlug },
+                    }),
+                    fetch('/api/coach/dashboard-mode'),
+                ])
+                if (contextRes.ok) {
+                    const result = await contextRes.json()
                     if (result.data?.role) {
                         setBusinessRole(result.data.role as BusinessMemberRole)
                     }
@@ -89,6 +91,12 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                     }
                     if (result.data?.adminRole) {
                         setPlatformAdminRole(result.data.adminRole)
+                    }
+                }
+                if (modeRes.ok) {
+                    const modeData = await modeRes.json()
+                    if (modeData.dashboardMode) {
+                        setDashboardMode(modeData.dashboardMode)
                     }
                 }
             } catch (err) {
@@ -112,55 +120,104 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
         { href: `${basePath}/coach/programs`, label: 'Program', icon: FileStack },
     ]
 
-    // Dropdown Groups - using business-scoped URLs
+    // All tool items
+    const allToolItems = {
+        test: { href: `${basePath}/coach/test`, label: 'Nytt Test', icon: Activity },
+        aiStudio: { href: `${basePath}/coach/ai-studio`, label: 'AI Studio', icon: Sparkles },
+        hybrid: { href: `${basePath}/coach/hybrid-studio`, label: 'Hybrid Studio', icon: Flame },
+        strength: { href: `${basePath}/coach/strength`, label: 'Strength Studio', icon: Dumbbell },
+        cardio: { href: `${basePath}/coach/cardio`, label: 'Cardio Studio', icon: Heart },
+        agility: { href: `${basePath}/coach/agility-studio`, label: 'Agility Studio', icon: Zap },
+        ergometer: { href: `${basePath}/coach/ergometer-tests`, label: 'Ergometertester', icon: Gauge },
+        video: { href: `${basePath}/coach/video-analysis`, label: 'Videoanalys', icon: Video },
+        monitoring: { href: `${basePath}/coach/monitoring`, label: 'Monitorering', icon: Activity },
+        liveHR: { href: `${basePath}/coach/live-hr`, label: 'Live HR', icon: Heart },
+        intervals: { href: `${basePath}/coach/interval-sessions`, label: 'Intervaller', icon: Timer },
+    }
+
+    // All "more" items
+    const allMoreItems = {
+        social: { href: `${basePath}/coach/social`, label: 'Sociala medier', icon: Share2 },
+        competitions: { href: `${basePath}/coach/competitions`, label: 'Utmaningar', icon: Trophy },
+        community: { href: `${basePath}/coach/community`, label: 'Community', icon: Megaphone },
+        analytics: { href: `${basePath}/coach/analytics`, label: 'Analys', icon: BarChart3 },
+        teams: { href: `${basePath}/coach/teams`, label: 'Lag', icon: Users2 },
+        browse: { href: `${basePath}/coach/browse-athletes`, label: 'Hitta Atleter', icon: UserPlus },
+        orgs: { href: `${basePath}/coach/organizations`, label: 'Organisationer', icon: Building2 },
+        docs: { href: `${basePath}/coach/documents`, label: 'Dokument', icon: FileStack },
+        messages: { href: `${basePath}/coach/messages`, label: 'Meddelanden', icon: MessageSquare },
+        referrals: { href: `${basePath}/coach/referrals`, label: 'Värvningar', icon: Gift },
+        settings: { href: `${basePath}/coach/settings`, label: 'Inställningar', icon: Settings },
+    }
+
+    // Mode-specific tool items
+    const toolsByMode: Record<string, typeof allToolItems[keyof typeof allToolItems][]> = {
+        PT: [
+            allToolItems.test, allToolItems.strength, allToolItems.cardio,
+            allToolItems.intervals, allToolItems.aiStudio,
+        ],
+        TEAM: [
+            allToolItems.test, allToolItems.strength, allToolItems.cardio,
+            allToolItems.hybrid, allToolItems.agility, allToolItems.intervals,
+            allToolItems.monitoring, allToolItems.liveHR,
+        ],
+        GYM: [
+            allToolItems.strength, allToolItems.cardio, allToolItems.hybrid,
+            allToolItems.ergometer, allToolItems.aiStudio,
+        ],
+    }
+
+    // Mode-specific "more" items (prioritized) + remaining items
+    const moreByMode: Record<string, typeof allMoreItems[keyof typeof allMoreItems][]> = {
+        PT: [
+            allMoreItems.messages, allMoreItems.settings,
+        ],
+        TEAM: [
+            allMoreItems.teams, allMoreItems.messages, allMoreItems.settings,
+        ],
+        GYM: [
+            allMoreItems.community, allMoreItems.competitions, allMoreItems.messages, allMoreItems.settings,
+        ],
+    }
+
+    // Get prioritized items, then add remaining ones not already included
+    const prioritizedTools = toolsByMode[dashboardMode] || toolsByMode.PT
+    const allToolValues = Object.values(allToolItems)
+    const remainingTools = allToolValues.filter((t) => !prioritizedTools.some((p) => p.href === t.href))
+
+    const prioritizedMore = moreByMode[dashboardMode] || moreByMode.PT
+    const allMoreValues = Object.values(allMoreItems)
+    const remainingMore = allMoreValues.filter((m) => !prioritizedMore.some((p) => p.href === m.href))
+
+    // Dropdown Groups
     const navGroups = {
         tools: {
             label: 'Verktyg',
             icon: Wrench,
-            items: [
-                { href: `${basePath}/coach/test`, label: 'Nytt Test', icon: Activity },
-                { href: `${basePath}/coach/ai-studio`, label: 'AI Studio', icon: Sparkles },
-                { href: `${basePath}/coach/hybrid-studio`, label: 'Hybrid Studio', icon: Flame },
-                { href: `${basePath}/coach/strength`, label: 'Strength Studio', icon: Dumbbell },
-                { href: `${basePath}/coach/cardio`, label: 'Cardio Studio', icon: Heart },
-                { href: `${basePath}/coach/agility-studio`, label: 'Agility Studio', icon: Zap },
-                { href: `${basePath}/coach/ergometer-tests`, label: 'Ergometertester', icon: Gauge },
-                { href: `${basePath}/coach/video-analysis`, label: 'Videoanalys', icon: Video },
-                { href: `${basePath}/coach/monitoring`, label: 'Monitorering', icon: Activity },
-                { href: `${basePath}/coach/live-hr`, label: 'Live HR', icon: Heart },
-                { href: `${basePath}/coach/interval-sessions`, label: 'Intervaller', icon: Timer },
-            ]
+            items: [...prioritizedTools, ...remainingTools],
         },
         more: {
             label: 'Mer',
             icon: Menu,
-            items: [
-                { href: `${basePath}/coach/social`, label: 'Sociala medier', icon: Share2 },
-                { href: `${basePath}/coach/competitions`, label: 'Utmaningar', icon: Trophy },
-                { href: `${basePath}/coach/community`, label: 'Community', icon: Megaphone },
-                { href: `${basePath}/coach/analytics`, label: 'Analys', icon: BarChart3 },
-                { href: `${basePath}/coach/teams`, label: 'Lag', icon: Users2 },
-                { href: `${basePath}/coach/browse-athletes`, label: 'Hitta Atleter', icon: UserPlus },
-                { href: `${basePath}/coach/organizations`, label: 'Organisationer', icon: Building2 },
-                { href: `${basePath}/coach/documents`, label: 'Dokument', icon: FileStack },
-                { href: `${basePath}/coach/messages`, label: 'Meddelanden', icon: MessageSquare },
-                { href: `${basePath}/coach/referrals`, label: 'Värvningar', icon: Gift },
-                { href: `${basePath}/coach/settings`, label: 'Inställningar', icon: Settings },
-            ]
+            items: [...prioritizedMore, ...remainingMore],
         }
     }
 
     // Compute more items with optional Admin link
-    const moreItems = [
-        ...navGroups.more.items,
-        // Add Business Admin link if user is OWNER or ADMIN of business
+    // Admin links
+    const adminLinks = [
         ...((businessRole === 'OWNER' || businessRole === 'ADMIN')
             ? [{ href: `${basePath}/coach/admin`, label: 'Admin', icon: Shield }]
             : []),
-        // Add Platform Admin link if user has a platform adminRole
         ...(platformAdminRole
             ? [{ href: '/admin', label: 'Platform Admin', icon: Shield }]
             : [])
+    ]
+
+    const moreItems = [
+        ...prioritizedMore,
+        ...remainingMore,
+        ...adminLinks,
     ]
 
     // Mobile specific flat list (concatenating all)
@@ -221,7 +278,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="w-56 bg-slate-950 border-white/10 text-slate-200" align="start">
-                            {navGroups.tools.items.map((item) => (
+                            {prioritizedTools.map((item) => (
                                 <DropdownMenuItem key={item.href} asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
                                     <Link href={item.href} className="flex items-center gap-2">
                                         <item.icon className="w-4 h-4" />
@@ -229,6 +286,19 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                     </Link>
                                 </DropdownMenuItem>
                             ))}
+                            {remainingTools.length > 0 && (
+                                <>
+                                    <div className="my-1 h-px bg-white/10" />
+                                    {remainingTools.map((item) => (
+                                        <DropdownMenuItem key={item.href} asChild className="focus:bg-white/10 focus:text-white cursor-pointer opacity-60">
+                                            <Link href={item.href} className="flex items-center gap-2">
+                                                <item.icon className="w-4 h-4" />
+                                                {item.label}
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    ))}
+                                </>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
 
@@ -247,7 +317,28 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="w-56 bg-slate-900 border-white/10 text-slate-200" align="start">
-                            {moreItems.map((item) => (
+                            {prioritizedMore.map((item) => (
+                                <DropdownMenuItem key={item.href} asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
+                                    <Link href={item.href} className="flex items-center gap-2">
+                                        <item.icon className="w-4 h-4" />
+                                        {item.label}
+                                    </Link>
+                                </DropdownMenuItem>
+                            ))}
+                            {remainingMore.length > 0 && (
+                                <>
+                                    <div className="my-1 h-px bg-white/10" />
+                                    {remainingMore.map((item) => (
+                                        <DropdownMenuItem key={item.href} asChild className="focus:bg-white/10 focus:text-white cursor-pointer opacity-60">
+                                            <Link href={item.href} className="flex items-center gap-2">
+                                                <item.icon className="w-4 h-4" />
+                                                {item.label}
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    ))}
+                                </>
+                            )}
+                            {adminLinks.map((item) => (
                                 <DropdownMenuItem key={item.href} asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
                                     <Link href={item.href} className="flex items-center gap-2">
                                         <item.icon className="w-4 h-4" />
