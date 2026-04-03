@@ -35,6 +35,13 @@ function formatCountdown(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
+function formatElapsed(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  const tenths = Math.floor((seconds % 1) * 10)
+  return `${mins}:${secs.toString().padStart(2, '0')}.${tenths}`
+}
+
 export function AthleteTimingButton({
   clientId,
   clientName,
@@ -56,49 +63,56 @@ export function AthleteTimingButton({
     : currentInterval
 
   const currentLap = laps.find((l) => l.intervalNumber === effectiveInterval)
-  // In INDIVIDUAL mode, check if they have a lap for their current interval
   const tapped = !!currentLap
-  // Latest lap for showing split time during rest
   const latestLap = laps.length > 0 ? laps[laps.length - 1] : undefined
 
   const [restRemaining, setRestRemaining] = useState<number | null>(null)
+  const [intervalElapsed, setIntervalElapsed] = useState<number | null>(null)
 
-  // Rest countdown (for INDIVIDUAL mode)
+  // Rest countdown + elapsed timer (for INDIVIDUAL mode)
   useEffect(() => {
     if (restMode !== 'INDIVIDUAL' || !restStartedAt || !restDurationSeconds || disabled) {
       setRestRemaining(null)
+      setIntervalElapsed(null)
       return
     }
 
-    // Only show countdown if the athlete has completed at least one lap
     if (!latestLap) {
       setRestRemaining(null)
+      setIntervalElapsed(null)
       return
     }
 
     const restEndMs = new Date(restStartedAt).getTime() + restDurationSeconds * 1000
 
     const tick = () => {
-      const remaining = Math.max(0, (restEndMs - Date.now()) / 1000)
-      setRestRemaining(remaining <= 0 ? 0 : remaining)
+      const now = Date.now()
+      const rawRemaining = (restEndMs - now) / 1000
+      // Cap at restDurationSeconds to prevent showing more than configured
+      const remaining = Math.max(0, Math.min(rawRemaining, restDurationSeconds))
+      setRestRemaining(remaining)
+
+      // If rest is done, show elapsed time since rest ended (= interval running time)
+      if (rawRemaining <= 0) {
+        setIntervalElapsed(Math.abs(rawRemaining))
+      } else {
+        setIntervalElapsed(null)
+      }
     }
 
     tick()
-    const interval = setInterval(tick, 200)
+    const interval = setInterval(tick, 100)
 
     return () => clearInterval(interval)
-  }, [restMode, restStartedAt, restDurationSeconds, latestLap])
+  }, [restMode, restStartedAt, restDurationSeconds, latestLap, disabled])
 
-  // Rest state: athlete has completed a lap and is waiting for rest to end
+  // States
   const hasCompletedALap = latestLap !== undefined && laps.length > 0
   const isResting = restMode === 'INDIVIDUAL' && restRemaining !== null && restRemaining > 0 && hasCompletedALap && !tapped
   const restDone = restMode === 'INDIVIDUAL' && restRemaining === 0 && hasCompletedALap && !tapped && !allIntervalsCompleted
-  const restAlmostDone = isResting && restRemaining < 5 // Last 5 seconds
+  const restAlmostDone = isResting && restRemaining < 5
 
-  // In INDIVIDUAL mode, athlete is tappable when:
-  // - Not currently tapped for this interval, AND
-  // - Not currently resting (rest is done or no rest needed), AND
-  // - Not all intervals completed
+  // Tappability
   const individualReady = restMode === 'INDIVIDUAL' && !tapped && !isResting && !allIntervalsCompleted
   const isDisabled = restMode === 'INDIVIDUAL'
     ? !individualReady
@@ -116,10 +130,8 @@ export function AthleteTimingButton({
     }
   }
 
-  // First name only for compact display
   const displayName = clientName.split(' ')[0]
 
-  // Rest progress ring (0 to 1)
   const restProgress = isResting && restDurationSeconds
     ? 1 - restRemaining / restDurationSeconds
     : 0
@@ -134,19 +146,15 @@ export function AthleteTimingButton({
         'min-h-[100px] min-w-[100px] w-full select-none',
         'touch-manipulation',
         'focus:outline-none focus:ring-2 focus:ring-offset-2',
-        // Completed all intervals
         allIntervalsCompleted && 'opacity-60',
-        // Disabled (non-individual mode)
         isDisabled && !tapped && !isResting && !restDone && !allIntervalsCompleted && 'opacity-40 cursor-not-allowed',
-        // Tapped (solid color)
         tapped && !isResting && !restDone
           ? 'text-white shadow-lg scale-[0.97]'
           : isResting
             ? 'border-2 shadow-md'
             : restDone
-              ? 'border-2 border-green-500 bg-green-50 dark:bg-green-950 animate-pulse'
+              ? 'border-2 border-green-500 bg-green-50 dark:bg-green-950'
               : 'border-2 hover:scale-[1.02] active:scale-[0.95] cursor-pointer',
-        // Almost done resting - pulsing glow
         restAlmostDone && 'ring-2 ring-green-400 ring-offset-1 animate-pulse',
       )}
       style={
@@ -195,13 +203,13 @@ export function AthleteTimingButton({
         <Check className="absolute top-2 right-2 h-4 w-4 text-white/80" />
       )}
 
-      {/* Interval badge (INDIVIDUAL mode) */}
+      {/* Interval badge - bolder and more visible */}
       {restMode === 'INDIVIDUAL' && (
         <span className={cn(
-          'absolute top-1 left-2 text-[10px] font-medium',
-          tapped && !isResting && !restDone ? 'text-white/70' : 'opacity-50',
+          'absolute top-1.5 left-2 text-xs font-bold',
+          tapped && !isResting && !restDone ? 'text-white/80' : 'opacity-70',
         )}>
-          Int {restDone || (!tapped && !isResting) ? effectiveInterval : effectiveInterval}
+          Int {effectiveInterval}
         </span>
       )}
 
@@ -227,7 +235,7 @@ export function AthleteTimingButton({
         </>
       ) : isResting ? (
         <>
-          {/* Show split time from last interval */}
+          {/* Split time from last interval */}
           <span className="font-mono text-xs opacity-70 mb-0.5" style={{ color }}>
             {latestLap ? formatSplit(latestLap.splitTimeMs) : ''}
           </span>
@@ -242,12 +250,11 @@ export function AthleteTimingButton({
         </>
       ) : restDone ? (
         <>
-          <span className="font-mono text-xs text-muted-foreground">
-            {latestLap ? formatSplit(latestLap.splitTimeMs) : ''}
+          {/* Elapsed time since rest ended = how long they've been running */}
+          <span className="font-mono text-lg font-bold text-green-600 dark:text-green-400">
+            {intervalElapsed !== null ? formatElapsed(intervalElapsed) : ''}
           </span>
-          <span className="text-sm text-green-600 dark:text-green-400 font-medium">
-            Redo
-          </span>
+          <span className="text-[10px] text-green-600/70 dark:text-green-400/70">lopande</span>
         </>
       ) : tapped ? (
         <span className="font-mono text-sm text-white/90 mt-1">
@@ -259,10 +266,11 @@ export function AthleteTimingButton({
         </span>
       )}
 
-      {/* Lap count badge */}
+      {/* Lap count badge - bolder */}
       {laps.length > 0 && (
         <span className={cn(
-          'absolute bottom-1 left-2 text-[10px] opacity-60',
+          'absolute bottom-1.5 left-2 text-[11px] font-semibold',
+          tapped && !isResting && !restDone ? 'text-white/70' : 'opacity-70',
           restDone && 'text-green-700 dark:text-green-300',
         )}>
           {laps.length} varv
