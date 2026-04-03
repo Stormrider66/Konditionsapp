@@ -55,7 +55,15 @@ export async function recordLap(
   // Calculate split time from previous cumulative
   const previousLap = participant.laps[0] // Already ordered desc
   const previousCumulativeMs = previousLap?.cumulativeMs ?? 0
-  const splitTimeMs = cumulativeMs - previousCumulativeMs
+  let splitTimeMs = cumulativeMs - previousCumulativeMs
+
+  // In INDIVIDUAL/GROUP rest mode, subtract rest duration from split
+  // (split = total elapsed since last lap, which includes rest)
+  const protocol = session.protocol as { restDurationSeconds?: number } | null
+  if (previousLap && protocol?.restDurationSeconds && restMode !== 'NONE') {
+    const restMs = protocol.restDurationSeconds * 1000
+    splitTimeMs = Math.max(0, splitTimeMs - restMs)
+  }
 
   if (splitTimeMs < 0) {
     return { success: false, error: 'Invalid cumulative time' }
