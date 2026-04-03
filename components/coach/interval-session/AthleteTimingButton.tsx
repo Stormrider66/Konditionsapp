@@ -65,12 +65,12 @@ export function AthleteTimingButton({
 
   // Rest countdown (for INDIVIDUAL mode)
   useEffect(() => {
-    if (restMode !== 'INDIVIDUAL' || !restStartedAt || !restDurationSeconds) {
+    if (restMode !== 'INDIVIDUAL' || !restStartedAt || !restDurationSeconds || disabled) {
       setRestRemaining(null)
       return
     }
 
-    // Only show countdown if the athlete has been tapped (has a latest lap)
+    // Only show countdown if the athlete has completed at least one lap
     if (!latestLap) {
       setRestRemaining(null)
       return
@@ -217,24 +217,36 @@ export function AthleteTimingButton({
 
       {/* Content area */}
       {allIntervalsCompleted && !tapped && !isResting ? (
-        <span className="text-xs text-muted-foreground mt-1">Klar</span>
+        <>
+          <span className="text-xs text-muted-foreground mt-1">Klar</span>
+          {latestLap && (
+            <span className="font-mono text-[10px] text-muted-foreground">
+              {formatSplit(latestLap.splitTimeMs)}
+            </span>
+          )}
+        </>
       ) : isResting ? (
         <>
+          {/* Show split time from last interval */}
+          <span className="font-mono text-xs opacity-70 mb-0.5" style={{ color }}>
+            {latestLap ? formatSplit(latestLap.splitTimeMs) : ''}
+          </span>
+          {/* Rest countdown */}
           <span className={cn(
-            'font-mono text-xl font-bold mt-0.5',
+            'font-mono text-lg font-bold',
             restAlmostDone && 'text-green-600 dark:text-green-400',
           )} style={restAlmostDone ? {} : { color }}>
             {formatCountdown(restRemaining)}
           </span>
-          <span className="text-[10px] opacity-60 mt-0.5">vila</span>
+          <span className="text-[10px] opacity-60">vila</span>
         </>
       ) : restDone ? (
         <>
-          <span className="text-sm text-green-600 dark:text-green-400 font-medium mt-1">
-            Redo
-          </span>
-          <span className="font-mono text-[10px] text-muted-foreground">
+          <span className="font-mono text-xs text-muted-foreground">
             {latestLap ? formatSplit(latestLap.splitTimeMs) : ''}
+          </span>
+          <span className="text-sm text-green-600 dark:text-green-400 font-medium">
+            Redo
           </span>
         </>
       ) : tapped ? (

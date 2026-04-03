@@ -42,14 +42,12 @@ function mapParticipant(
   const athleteCurrentInterval = p.laps.length + 1
   const allIntervalsCompleted = !!(protocol?.intervalCount && p.laps.length >= protocol.intervalCount)
 
-  // Find the latest lap to derive rest start time (for individual mode)
+  // Find the latest lap to derive rest start time
   const latestLap = p.laps.length > 0 ? p.laps[p.laps.length - 1] : undefined
 
-  // For session-wide mode, use the session's currentInterval
-  // For individual mode, use the athlete's latest lap
-  const restLap = currentInterval
-    ? p.laps.find((l) => l.intervalNumber === currentInterval) ?? latestLap
-    : undefined
+  // Always use the latest lap's recordedAt as rest start time
+  // (In INDIVIDUAL mode, rest starts when their last lap was recorded)
+  const restStartedAt = latestLap?.recordedAt.toISOString() ?? null
 
   return {
     id: p.id,
@@ -71,7 +69,7 @@ function mapParticipant(
       notes: lac.notes,
     })),
     garminEnrichment: p.garminEnrichment as IntervalParticipantData['garminEnrichment'],
-    restStartedAt: restLap?.recordedAt.toISOString() ?? null,
+    restStartedAt,
     athleteCurrentInterval,
     allIntervalsCompleted,
   }
