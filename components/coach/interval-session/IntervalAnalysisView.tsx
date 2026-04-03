@@ -59,12 +59,12 @@ export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
     <div className="space-y-6">
       <GarminSyncPanel sessionId={sessionId} />
 
-      <Tabs defaultValue="laps" className="space-y-4">
+      <Tabs defaultValue="splits" className="space-y-4">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="laps">Alla varv</TabsTrigger>
           <TabsTrigger value="splits">Splittider</TabsTrigger>
           <TabsTrigger value="lactate">Laktat</TabsTrigger>
           <TabsTrigger value="comparison">Lagjämförelse</TabsTrigger>
+          <TabsTrigger value="laps">Alla varv</TabsTrigger>
         </TabsList>
 
         <TabsContent value="laps">

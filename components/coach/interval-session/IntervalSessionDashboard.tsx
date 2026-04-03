@@ -283,10 +283,16 @@ export function IntervalSessionDashboard({
       {/* Summary bar */}
       {data.status !== 'SETUP' && (
         <IntervalSummaryBar
-          currentInterval={data.currentInterval}
+          currentInterval={
+            data.restMode === 'INDIVIDUAL'
+              ? Math.max(...data.participants.map((p) => p.athleteCurrentInterval), 1)
+              : data.currentInterval
+          }
           totalParticipants={data.summary.totalParticipants}
           tappedThisInterval={data.summary.tappedThisInterval}
           avgSplitMs={data.summary.avgSplitMs}
+          restMode={data.restMode}
+          participants={data.restMode === 'INDIVIDUAL' ? data.participants : undefined}
         />
       )}
 
