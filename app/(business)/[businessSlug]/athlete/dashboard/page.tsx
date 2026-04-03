@@ -26,6 +26,7 @@ import { BasketballDashboard } from '@/components/athlete/BasketballDashboard'
 import { VolleyballDashboard } from '@/components/athlete/VolleyballDashboard'
 import { TennisDashboard } from '@/components/athlete/TennisDashboard'
 import { PadelDashboard } from '@/components/athlete/PadelDashboard'
+import { IntervalResultsHistory } from '@/components/athlete/interval-results/IntervalResultsHistory'
 import {
   CalendarDays,
 } from 'lucide-react'
@@ -800,6 +801,8 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
           <NutritionDashboard clientId={clientId} />
 
           <IntegratedRecentActivity clientId={clientId} variant="glass" />
+
+          <IntervalResultsHistory />
         </div>
 
         {/* Right Column (1/3) */}
