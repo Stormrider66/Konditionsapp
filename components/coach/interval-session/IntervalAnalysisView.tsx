@@ -6,7 +6,9 @@ import { SplitDriftChart } from './SplitDriftChart'
 import { LactateCurveComparisonChart } from './LactateCurveComparisonChart'
 import { TeamComparisonTable } from './TeamComparisonTable'
 import { DetailedLapTable } from './DetailedLapTable'
+import { AthleteSessionComparison } from './AthleteSessionComparison'
 import { GarminSyncPanel } from './GarminSyncPanel'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { AnalysisData } from '@/lib/interval-session/analysis-service'
 import { toast } from 'sonner'
 
@@ -17,6 +19,7 @@ interface IntervalAnalysisViewProps {
 export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
   const [data, setData] = useState<AnalysisData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>('')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -25,7 +28,12 @@ export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
           `/api/coach/interval-sessions/${sessionId}/analysis`
         )
         if (res.ok) {
-          setData(await res.json())
+          const analysisData = await res.json()
+          setData(analysisData)
+          // Auto-select first athlete for history tab
+          if (analysisData.participants?.length > 0) {
+            setSelectedAthleteId(analysisData.participants[0].clientId)
+          }
         }
       } catch {
         toast.error('Kunde inte hämta analysdata')
@@ -65,11 +73,8 @@ export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
           <TabsTrigger value="lactate">Laktat</TabsTrigger>
           <TabsTrigger value="comparison">Lagjämförelse</TabsTrigger>
           <TabsTrigger value="laps">Alla varv</TabsTrigger>
+          <TabsTrigger value="history">Historik</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="laps">
-          <DetailedLapTable data={data} />
-        </TabsContent>
 
         <TabsContent value="splits">
           <SplitDriftChart data={data} />
@@ -81,6 +86,32 @@ export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
 
         <TabsContent value="comparison">
           <TeamComparisonTable data={data} />
+        </TabsContent>
+
+        <TabsContent value="laps">
+          <DetailedLapTable data={data} />
+        </TabsContent>
+
+        <TabsContent value="history">
+          <div className="space-y-4">
+            {data.participants.length > 1 && (
+              <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
+                <SelectTrigger className="w-full sm:w-64">
+                  <SelectValue placeholder="Välj atlet..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {data.participants.map((p) => (
+                    <SelectItem key={p.clientId} value={p.clientId}>
+                      {p.displayName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {selectedAthleteId && (
+              <AthleteSessionComparison clientId={selectedAthleteId} />
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
