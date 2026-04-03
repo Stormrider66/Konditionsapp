@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { Timer, Users, Trash2, Calendar } from 'lucide-react'
+import { Timer, Users, Trash2, Calendar, BarChart3 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { IntervalSessionListItem } from '@/lib/interval-session/types'
 
@@ -145,14 +145,30 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
                       {new Date(session.startedAt).toLocaleDateString('sv-SE')}
                     </span>
                     {session.status === 'ENDED' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-destructive"
-                        onClick={(e) => handleDelete(session.id, e)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(
+                              `${businessSlug ? `/${businessSlug}` : ''}/coach/interval-sessions/${session.id}/analysis`
+                            )
+                          }}
+                        >
+                          <BarChart3 className="h-3.5 w-3.5 mr-1" />
+                          Analys
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-destructive"
+                          onClick={(e) => handleDelete(session.id, e)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </CardContent>
