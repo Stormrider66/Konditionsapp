@@ -158,8 +158,8 @@ export function CommunityFeed() {
             onChange={e => setNewContent(e.target.value)}
             rows={3}
           />
-          <div className="flex items-center justify-between">
-            <div className="flex gap-1">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex gap-1 overflow-x-auto">
               {Object.entries(typeConfig).map(([key, config]) => {
                 const Icon = config.icon
                 return (
@@ -167,7 +167,7 @@ export function CommunityFeed() {
                     key={key}
                     variant={newType === key ? 'default' : 'ghost'}
                     size="sm"
-                    className="text-xs h-7"
+                    className="text-xs h-7 shrink-0"
                     onClick={() => setNewType(key)}
                   >
                     <Icon className={cn('h-3 w-3 mr-1', newType !== key && config.color)} />
@@ -176,7 +176,7 @@ export function CommunityFeed() {
                 )
               })}
             </div>
-            <Button onClick={createPost} disabled={posting || !newContent.trim()} size="sm">
+            <Button onClick={createPost} disabled={posting || !newContent.trim()} size="sm" className="shrink-0 self-end">
               {posting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Send className="h-3 w-3 mr-1" />}
               Publicera
             </Button>
