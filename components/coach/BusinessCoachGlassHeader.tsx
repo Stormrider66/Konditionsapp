@@ -220,7 +220,26 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
         ...adminLinks,
     ]
 
-    // Mobile specific flat list (concatenating all)
+    // Build sets of prioritized hrefs for mobile rendering
+    const prioritizedHrefs = new Set([
+        ...mainNavItems.map((i) => i.href),
+        ...prioritizedTools.map((i) => i.href),
+        ...prioritizedMore.map((i) => i.href),
+        ...adminLinks.map((i) => i.href),
+    ])
+
+    // Mobile: prioritized items first, then separator, then remaining
+    const mobilePrioritized = [
+        ...mainNavItems,
+        ...prioritizedTools,
+        ...prioritizedMore,
+        ...adminLinks,
+    ]
+    const mobileRemaining = [
+        ...remainingTools,
+        ...remainingMore,
+    ]
+
     const mobileNavItems = [
         ...mainNavItems,
         ...navGroups.tools.items,
@@ -421,7 +440,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
 
                                 {/* Mobile Nav Items */}
                                 <div className="flex flex-col gap-1">
-                                    {mobileNavItems.map((item) => {
+                                    {mobilePrioritized.map((item) => {
                                         const isActive = pathname === item.href
                                         return (
                                             <Link
@@ -440,6 +459,31 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                             </Link>
                                         )
                                     })}
+                                    {mobileRemaining.length > 0 && (
+                                        <>
+                                            <div className="my-2 mx-4 h-px bg-white/10" />
+                                            <p className="px-4 py-1 text-[10px] uppercase tracking-widest text-slate-500">Fler verktyg</p>
+                                            {mobileRemaining.map((item) => {
+                                                const isActive = pathname === item.href
+                                                return (
+                                                    <Link
+                                                        key={item.href}
+                                                        href={item.href}
+                                                        onClick={() => setIsOpen(false)}
+                                                        className={cn(
+                                                            "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors",
+                                                            isActive
+                                                                ? "bg-white/10 text-white"
+                                                                : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                                                        )}
+                                                    >
+                                                        <item.icon className={cn("w-4 h-4", isActive ? "text-blue-500" : "")} />
+                                                        <span className="text-sm">{item.label}</span>
+                                                    </Link>
+                                                )
+                                            })}
+                                        </>
+                                    )}
                                 </div>
 
                                 <div className="h-px bg-white/10 my-2" />
