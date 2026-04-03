@@ -103,6 +103,24 @@ export function IntervalSessionDashboard({
     }
   }, [sessionId])
 
+  // Auto-end session when all athletes complete all intervals (INDIVIDUAL mode)
+  useEffect(() => {
+    if (data.restMode !== 'INDIVIDUAL' || data.status !== 'ACTIVE') return
+    if (data.participants.length === 0) return
+
+    const allDone = data.participants.every((p) => p.allIntervalsCompleted)
+    if (allDone) {
+      // End the session
+      fetch(`/api/coach/interval-sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'ENDED' }),
+      }).then(() => {
+        toast.success('Alla atleter klara - session avslutad')
+      }).catch(() => {})
+    }
+  }, [data.restMode, data.status, data.participants, sessionId])
+
   // Handle tap — record lap with client-side cumulative time
   const handleTap = useCallback(
     async (clientId: string) => {

@@ -71,7 +71,7 @@ export function AthleteTimingButton({
 
   // Rest countdown + elapsed timer (for INDIVIDUAL mode)
   useEffect(() => {
-    if (restMode !== 'INDIVIDUAL' || !restStartedAt || !restDurationSeconds || disabled) {
+    if (restMode !== 'INDIVIDUAL' || !restStartedAt || !restDurationSeconds || disabled || allIntervalsCompleted) {
       setRestRemaining(null)
       setIntervalElapsed(null)
       return
