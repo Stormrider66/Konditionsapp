@@ -696,7 +696,8 @@ model User {
   competitions      Competition[]      @relation("UserCompetitions")
   communityPosts    CommunityPost[]    @relation("UserCommunityPosts")
   communityComments CommunityComment[] @relation("UserCommunityComments")
-  communityLikes    CommunityLike[]    @relation("UserCommunityLikes")
+  communityLikes          CommunityLike[]          @relation("UserCommunityLikes")
+  broadcastNotifications  BroadcastNotification[]  @relation("UserBroadcastNotifications")
 
   @@index([email])
   @@index([role])
@@ -760,6 +761,9 @@ model Team {
 
   // Assistant coach assignments
   coachAssignments TeamCoachAssignment[]
+
+  // Community posts scoped to this team
+  communityPosts CommunityPost[]
 
   // Physiotherapist System relations
   physioAssignments PhysioAssignment[] @relation("TeamPhysioAssignments")
@@ -10334,6 +10338,28 @@ model CompetitionEntry {
 }
 
 // ============================================
+// Broadcast Notifications
+// ============================================
+
+model BroadcastNotification {
+  id          String   @id @default(uuid())
+  userId      String
+  postId      String
+  title       String
+  message     String   @db.Text
+  type        String   @default("ANNOUNCEMENT") // ANNOUNCEMENT, MOTIVATION, ACHIEVEMENT
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+
+  createdAt   DateTime @default(now())
+
+  user User          @relation("UserBroadcastNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([postId])
+}
+
 // Community Feed
 // ============================================
 
@@ -10349,17 +10375,28 @@ model CommunityPost {
   type        String   @default("GENERAL") // ANNOUNCEMENT, MOTIVATION, WORKOUT_SHARE, ACHIEVEMENT, GENERAL
   isPinned    Boolean  @default(false)
 
+  // Broadcast / notification delivery
+  teamId       String?  // Scope to a specific team (null = all members)
+  notifyInApp  Boolean  @default(false)
+  notifyEmail  Boolean  @default(false)
+  notifySMS    Boolean  @default(false)
+  notifiedAt   DateTime? // When notifications were sent
+
   likesCount    Int    @default(0)
   commentsCount Int    @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  comments CommunityComment[]
-  likes    CommunityLike[]
+  comments      CommunityComment[]
+  likes         CommunityLike[]
+  notifications BroadcastNotification[]
+
+  team Team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
 
   @@index([businessId, createdAt])
   @@index([businessId, isPinned])
+  @@index([teamId])
 }
 
 model CommunityComment {

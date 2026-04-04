@@ -16,6 +16,8 @@ import {
   Trophy,
   Zap,
   Users,
+  Bell,
+  Mail,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -71,6 +73,8 @@ export function CommunityFeed() {
   const [newContent, setNewContent] = useState('')
   const [newType, setNewType] = useState('GENERAL')
   const [posting, setPosting] = useState(false)
+  const [notifyInApp, setNotifyInApp] = useState(false)
+  const [notifyEmail, setNotifyEmail] = useState(false)
 
   // Comment state
   const [commentingOn, setCommentingOn] = useState<string | null>(null)
@@ -100,11 +104,18 @@ export function CommunityFeed() {
       const res = await fetch('/api/coach/community', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newContent, type: newType }),
+        body: JSON.stringify({
+          content: newContent,
+          type: newType,
+          notifyInApp,
+          notifyEmail,
+        }),
       })
       if (res.ok) {
         setNewContent('')
         setNewType('GENERAL')
+        setNotifyInApp(false)
+        setNotifyEmail(false)
         fetchPosts()
       }
     } catch {
@@ -180,6 +191,36 @@ export function CommunityFeed() {
               {posting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Send className="h-3 w-3 mr-1" />}
               Publicera
             </Button>
+          </div>
+          {/* Notification toggles */}
+          <div className="flex items-center gap-3 pt-1 border-t">
+            <span className="text-xs text-muted-foreground">Notifiera:</span>
+            <button
+              type="button"
+              onClick={() => setNotifyInApp(!notifyInApp)}
+              className={cn(
+                'flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors',
+                notifyInApp
+                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                  : 'text-muted-foreground hover:bg-muted'
+              )}
+            >
+              <Bell className="h-3 w-3" />
+              I appen
+            </button>
+            <button
+              type="button"
+              onClick={() => setNotifyEmail(!notifyEmail)}
+              className={cn(
+                'flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors',
+                notifyEmail
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : 'text-muted-foreground hover:bg-muted'
+              )}
+            >
+              <Mail className="h-3 w-3" />
+              E-post
+            </button>
           </div>
         </CardContent>
       </Card>

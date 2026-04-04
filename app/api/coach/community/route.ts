@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { sendBroadcast } from '@/lib/broadcast/send-broadcast'
 
 export async function GET() {
   try {
@@ -105,6 +106,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Default: create post
+    const notifyInApp = body.notifyInApp || false
+    const notifyEmail = body.notifyEmail || false
+    const notifySMS = body.notifySMS || false
+
     const post = await prisma.communityPost.create({
       data: {
         businessId: membership.businessId,
@@ -113,6 +118,10 @@ export async function POST(request: NextRequest) {
         mediaUrl: body.mediaUrl || null,
         type: body.type || 'GENERAL',
         isPinned: body.isPinned || false,
+        teamId: body.teamId || null,
+        notifyInApp,
+        notifyEmail,
+        notifySMS,
       },
       select: {
         id: true,
@@ -122,6 +131,23 @@ export async function POST(request: NextRequest) {
         author: { select: { name: true } },
       },
     })
+
+    // Send broadcast notifications if any delivery method is enabled
+    if (notifyInApp || notifyEmail || notifySMS) {
+      // Fire and forget - don't block the response
+      sendBroadcast({
+        postId: post.id,
+        businessId: membership.businessId,
+        teamId: body.teamId || null,
+        authorName: post.author.name || 'Coach',
+        title: body.type === 'ANNOUNCEMENT' ? 'Nytt meddelande' : '',
+        message: body.content,
+        type: body.type || 'GENERAL',
+        notifyInApp,
+        notifyEmail,
+        notifySMS,
+      }).catch((err) => console.error('Broadcast error:', err))
+    }
 
     return NextResponse.json({ post })
   } catch {
