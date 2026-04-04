@@ -588,6 +588,7 @@ model User {
   createdCalendarEvents  CalendarEvent[]       @relation("CreatedCalendarEvents")
   modifiedCalendarEvents CalendarEvent[]       @relation("ModifiedCalendarEvents")
   calendarChanges        CalendarEventChange[] @relation("CalendarChanges")
+  createdTeamEvents      TeamEvent[]           @relation("CreatedTeamEvents")
 
   // Scheduling responsibility relations (assignments shown in coach calendar)
   responsibleStrengthAssignments StrengthSessionAssignment[] @relation("StrengthAssignmentResponsibleCoach")
@@ -753,12 +754,58 @@ model Team {
   // Live Interval Session System
   intervalSessions IntervalSession[]
 
+  // Team Calendar
+  events TeamEvent[]
+
   // Physiotherapist System relations
   physioAssignments PhysioAssignment[] @relation("TeamPhysioAssignments")
 
   @@index([userId])
   @@index([name])
   @@index([organizationId])
+}
+
+/// Team calendar events (practices, games, tests, off-days)
+model TeamEvent {
+  id     String @id @default(uuid())
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  // Event details
+  title       String
+  description String? @db.Text
+  type        String  @default("PRACTICE") // PRACTICE, GAME, TEST, INTERVAL_SESSION, OFF_DAY, MEETING, OTHER
+  location    String?
+
+  // Date/time
+  startDate DateTime
+  endDate   DateTime?
+  allDay    Boolean   @default(false)
+
+  // Recurrence (iCal RRULE)
+  isRecurring        Boolean @default(false)
+  recurrenceRule     String? // e.g. "FREQ=WEEKLY;BYDAY=MO,WE,FR"
+  recurrenceParentId String?
+  recurrenceParent   TeamEvent?  @relation("TeamEventRecurrence", fields: [recurrenceParentId], references: [id], onDelete: SetNull)
+  recurrenceChildren TeamEvent[] @relation("TeamEventRecurrence")
+
+  // Optional links to existing features
+  intervalSessionId String?          @unique
+  intervalSession   IntervalSession? @relation(fields: [intervalSessionId], references: [id], onDelete: SetNull)
+
+  // Tracking
+  createdById String
+  createdBy   User   @relation("CreatedTeamEvents", fields: [createdById], references: [id])
+
+  // Attendance (JSON array of { clientId, status: "ATTENDING"|"ABSENT"|"UNKNOWN" })
+  attendance Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teamId, startDate])
+  @@index([teamId, type])
+  @@index([createdById])
 }
 
 /// Tracks when a workout was assigned to an entire team
@@ -9873,6 +9920,7 @@ model IntervalSession {
   endedAt         DateTime?
 
   participants IntervalSessionParticipant[]
+  teamEvent    TeamEvent?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

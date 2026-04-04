@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { TeamForm } from '@/components/forms/TeamForm'
-import { Trash2, Edit2, Users, Plus, BarChart3, Building2 } from 'lucide-react'
+import { Trash2, Edit2, Users, Plus, BarChart3, Building2, Calendar } from 'lucide-react'
 import type { Team } from '@/types'
 import {
   AlertDialog,
@@ -76,6 +76,11 @@ function TeamCard({
             )}
           </div>
           <div className="flex gap-1">
+            <Link href={`${basePath}/${team.id}/calendar`}>
+              <Button variant="ghost" size="sm" title="Kalender">
+                <Calendar className="w-4 h-4" />
+              </Button>
+            </Link>
             <Link href={`${basePath}/${team.id}`}>
               <Button variant="ghost" size="sm" title="Visa dashboard">
                 <BarChart3 className="w-4 h-4" />
