@@ -21,19 +21,20 @@ export async function GET(req: NextRequest) {
     const days = parseInt(searchParams.get('days') || '30')
     const to = new Date(new Date(from).getTime() + days * 24 * 60 * 60 * 1000).toISOString()
 
-    // Find all teams this athlete belongs to
+    // Find the athlete's team
     const client = await prisma.client.findUnique({
       where: { id: clientId },
       select: {
-        teams: { select: { id: true, name: true } },
+        teamId: true,
+        team: { select: { id: true, name: true } },
       },
     })
 
-    if (!client || client.teams.length === 0) {
+    if (!client || !client.teamId || !client.team) {
       return NextResponse.json({ events: [] })
     }
 
-    const teamIds = client.teams.map((t) => t.id)
+    const teamIds = [client.teamId]
 
     const events = await prisma.teamEvent.findMany({
       where: {
