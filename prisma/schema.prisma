@@ -589,6 +589,7 @@ model User {
   modifiedCalendarEvents CalendarEvent[]       @relation("ModifiedCalendarEvents")
   calendarChanges        CalendarEventChange[] @relation("CalendarChanges")
   createdTeamEvents      TeamEvent[]           @relation("CreatedTeamEvents")
+  teamCoachAssignments   TeamCoachAssignment[] @relation("TeamCoachAssignments")
 
   // Scheduling responsibility relations (assignments shown in coach calendar)
   responsibleStrengthAssignments StrengthSessionAssignment[] @relation("StrengthAssignmentResponsibleCoach")
@@ -756,6 +757,9 @@ model Team {
 
   // Team Calendar
   events TeamEvent[]
+
+  // Assistant coach assignments
+  coachAssignments TeamCoachAssignment[]
 
   // Physiotherapist System relations
   physioAssignments PhysioAssignment[] @relation("TeamPhysioAssignments")
@@ -1583,7 +1587,7 @@ model BusinessMember {
   userId     String
 
   // Role within business
-  role String @default("MEMBER") // "OWNER", "ADMIN", "MEMBER", "COACH"
+  role String @default("MEMBER") // "OWNER", "ADMIN", "MEMBER", "COACH", "ASSISTANT_COACH"
 
   // Permissions (JSON for flexibility)
   permissions Json? // { canManageTesters, canViewAllTests, canManageClients, etc. }
@@ -1603,6 +1607,27 @@ model BusinessMember {
   @@index([businessId])
   @@index([userId])
   @@index([role])
+}
+
+/// Links assistant coaches to specific teams they can access
+model TeamCoachAssignment {
+  id     String @id @default(uuid())
+  teamId String
+  userId String
+
+  // What the assistant can do
+  canRunTests     Boolean @default(true)
+  canRunIntervals Boolean @default(true)
+  canCreateEvents Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation("TeamCoachAssignments", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@index([teamId])
 }
 
 /// API keys for business external integrations

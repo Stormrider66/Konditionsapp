@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 
-const COACH_BUSINESS_ROLES = ['OWNER', 'ADMIN', 'COACH'] as const
+const COACH_BUSINESS_ROLES = ['OWNER', 'ADMIN', 'COACH', 'ASSISTANT_COACH'] as const
 const PHYSIO_BUSINESS_ROLES = ['PHYSIO'] as const
 
 export async function canAccessCoachPlatform(userId: string): Promise<boolean> {

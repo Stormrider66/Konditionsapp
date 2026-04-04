@@ -66,6 +66,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     const [businessName, setBusinessName] = useState<string | null>(null)
     const [platformAdminRole, setPlatformAdminRole] = useState<string | null>(null)
     const [dashboardMode, setDashboardMode] = useState<'PT' | 'TEAM' | 'GYM'>('PT')
+    const [isAssistantCoach, setIsAssistantCoach] = useState(false)
     const displayName = user?.email || 'Coach'
 
     // Base path for all business-scoped routes
@@ -75,11 +76,12 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     useEffect(() => {
         const fetchBusinessContext = async () => {
             try {
-                const [contextRes, modeRes] = await Promise.all([
+                const [contextRes, modeRes, permRes] = await Promise.all([
                     fetch('/api/coach/admin/context', {
                         headers: { 'x-business-slug': businessSlug },
                     }),
                     fetch('/api/coach/dashboard-mode'),
+                    fetch('/api/coach/permissions'),
                 ])
                 if (contextRes.ok) {
                     const result = await contextRes.json()
@@ -98,6 +100,10 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                     if (modeData.dashboardMode) {
                         setDashboardMode(modeData.dashboardMode)
                     }
+                }
+                if (permRes.ok) {
+                    const permData = await permRes.json()
+                    setIsAssistantCoach(permData.isAssistantCoach || false)
                 }
             } catch (err) {
                 console.error('[BusinessContext] Failed to fetch:', err)
@@ -181,13 +187,21 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
         ],
     }
 
+    // Items restricted for assistant coaches
+    const assistantHiddenToolHrefs = isAssistantCoach
+        ? new Set([allToolItems.aiStudio.href, allToolItems.ergometer.href, allToolItems.video.href])
+        : new Set<string>()
+    const assistantHiddenMoreHrefs = isAssistantCoach
+        ? new Set([allMoreItems.settings.href, allMoreItems.referrals.href, allMoreItems.orgs.href, allMoreItems.browse.href])
+        : new Set<string>()
+
     // Get prioritized items, then add remaining ones not already included
-    const prioritizedTools = toolsByMode[dashboardMode] || toolsByMode.PT
-    const allToolValues = Object.values(allToolItems)
+    const prioritizedTools = (toolsByMode[dashboardMode] || toolsByMode.PT).filter((t) => !assistantHiddenToolHrefs.has(t.href))
+    const allToolValues = Object.values(allToolItems).filter((t) => !assistantHiddenToolHrefs.has(t.href))
     const remainingTools = allToolValues.filter((t) => !prioritizedTools.some((p) => p.href === t.href))
 
-    const prioritizedMore = moreByMode[dashboardMode] || moreByMode.PT
-    const allMoreValues = Object.values(allMoreItems)
+    const prioritizedMore = (moreByMode[dashboardMode] || moreByMode.PT).filter((m) => !assistantHiddenMoreHrefs.has(m.href))
+    const allMoreValues = Object.values(allMoreItems).filter((m) => !assistantHiddenMoreHrefs.has(m.href))
     const remainingMore = allMoreValues.filter((m) => !prioritizedMore.some((p) => p.href === m.href))
 
     // Dropdown Groups

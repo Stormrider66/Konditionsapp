@@ -676,7 +676,7 @@ export async function canAccessClient(
             where: {
               userId,
               isActive: true,
-              role: { in: ['OWNER', 'ADMIN', 'COACH'] },
+              role: { in: ['OWNER', 'ADMIN', 'COACH', 'ASSISTANT_COACH'] },
             },
             select: { businessId: true },
           })
@@ -705,6 +705,15 @@ export async function canAccessClient(
           })
         : null
       if (team) return true
+
+      // Check assistant coach team assignment
+      const assistantAssignment = await prisma.teamCoachAssignment.findFirst({
+        where: {
+          teamId: clientTeam.teamId,
+          userId,
+        },
+      })
+      if (assistantAssignment) return true
     }
 
     return false
