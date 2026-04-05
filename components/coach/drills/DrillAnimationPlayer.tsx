@@ -132,7 +132,7 @@ export function DrillAnimationPlayer({
     }
   }, [structure])
 
-  const AnimationComponent = IceHockeyDrillAnimation as React.ComponentType<Record<string, unknown>>
+  const AnimationComponent = IceHockeyDrillAnimation as unknown as React.ComponentType<Record<string, unknown>>
   const progress = (currentFrame / totalFrames) * 100
   const currentTime = (currentFrame / fps).toFixed(1)
   const totalTime = (totalFrames / fps).toFixed(1)
