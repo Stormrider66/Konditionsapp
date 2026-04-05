@@ -26,6 +26,8 @@ import { VolleyballDashboard } from '@/components/athlete/VolleyballDashboard'
 import { TennisDashboard } from '@/components/athlete/TennisDashboard'
 import { PadelDashboard } from '@/components/athlete/PadelDashboard'
 import { IntervalResultsHistory } from '@/components/athlete/interval-results/IntervalResultsHistory'
+import { UpcomingTeamEvents } from '@/components/athlete/UpcomingTeamEvents'
+import { AthleteDrillList } from '@/components/athlete/AthleteDrillList'
 import {
   CalendarDays,
 } from 'lucide-react'
@@ -717,6 +719,8 @@ export default async function AthleteDashboardPage() {
 
         {/* Left Column (2/3) */}
         <div className="lg:col-span-2 space-y-6">
+          <UpcomingTeamEvents />
+
           <UpcomingWorkouts items={upcomingItems} variant="glass" basePath={basePath} />
 
           <WeeklyTrainingSummaryCard
@@ -735,6 +739,8 @@ export default async function AthleteDashboardPage() {
           <IntegratedRecentActivity clientId={clientId} variant="glass" />
 
           <IntervalResultsHistory />
+
+          <AthleteDrillList />
         </div>
 
         {/* Right Column (1/3) */}

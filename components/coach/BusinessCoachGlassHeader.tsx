@@ -67,6 +67,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     const [platformAdminRole, setPlatformAdminRole] = useState<string | null>(null)
     const [dashboardMode, setDashboardMode] = useState<'PT' | 'TEAM' | 'GYM'>('PT')
     const [isAssistantCoach, setIsAssistantCoach] = useState(false)
+    const [staffRole, setStaffRole] = useState<string>('COACH')
     const displayName = user?.email || 'Coach'
 
     // Base path for all business-scoped routes
@@ -103,7 +104,8 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                 }
                 if (permRes.ok) {
                     const permData = await permRes.json()
-                    setIsAssistantCoach(permData.isAssistantCoach || false)
+                    setIsAssistantCoach(permData.role === 'ASSISTANT_COACH')
+                    setStaffRole(permData.role || 'COACH')
                 }
             } catch (err) {
                 console.error('[BusinessContext] Failed to fetch:', err)
@@ -191,24 +193,46 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
 
     // Items restricted for non-admin/owner roles
     const isAdmin = businessRole === 'OWNER' || businessRole === 'ADMIN'
-    const assistantHiddenToolHrefs = isAssistantCoach
-        ? new Set([allToolItems.aiStudio.href, allToolItems.ergometer.href, allToolItems.video.href])
-        : new Set<string>()
+
+    // Role-based menu filtering
+    const hiddenToolHrefs = new Set<string>()
     const hiddenMoreHrefs = new Set<string>()
-    if (isAssistantCoach) {
+
+    if (staffRole === 'ASSISTANT_COACH') {
+        // Assistants: no AI, no video, no ergometer
+        hiddenToolHrefs.add(allToolItems.aiStudio.href)
+        hiddenToolHrefs.add(allToolItems.ergometer.href)
+        hiddenToolHrefs.add(allToolItems.video.href)
         hiddenMoreHrefs.add(allMoreItems.settings.href)
         hiddenMoreHrefs.add(allMoreItems.referrals.href)
         hiddenMoreHrefs.add(allMoreItems.orgs.href)
         hiddenMoreHrefs.add(allMoreItems.browse.href)
-        hiddenMoreHrefs.add(allMoreItems.staff.href)
+    } else if (staffRole === 'PHYSICAL_TRAINER') {
+        // Fystränare: has studios and AI, no settings/billing
+        hiddenMoreHrefs.add(allMoreItems.settings.href)
+        hiddenMoreHrefs.add(allMoreItems.referrals.href)
+        hiddenMoreHrefs.add(allMoreItems.orgs.href)
+    } else if (staffRole === 'PHYSIO') {
+        // Physio: limited to medical tools
+        hiddenToolHrefs.add(allToolItems.aiStudio.href)
+        hiddenToolHrefs.add(allToolItems.strength.href)
+        hiddenToolHrefs.add(allToolItems.cardio.href)
+        hiddenToolHrefs.add(allToolItems.hybrid.href)
+        hiddenToolHrefs.add(allToolItems.ergometer.href)
+        hiddenToolHrefs.add(allToolItems.drills.href)
+        hiddenMoreHrefs.add(allMoreItems.settings.href)
+        hiddenMoreHrefs.add(allMoreItems.referrals.href)
+        hiddenMoreHrefs.add(allMoreItems.orgs.href)
     }
+
+    // Staff management only visible to ADMIN/OWNER
     if (!isAdmin) {
         hiddenMoreHrefs.add(allMoreItems.staff.href)
     }
 
     // Get prioritized items, then add remaining ones not already included
-    const prioritizedTools = (toolsByMode[dashboardMode] || toolsByMode.PT).filter((t) => !assistantHiddenToolHrefs.has(t.href))
-    const allToolValues = Object.values(allToolItems).filter((t) => !assistantHiddenToolHrefs.has(t.href))
+    const prioritizedTools = (toolsByMode[dashboardMode] || toolsByMode.PT).filter((t) => !hiddenToolHrefs.has(t.href))
+    const allToolValues = Object.values(allToolItems).filter((t) => !hiddenToolHrefs.has(t.href))
     const remainingTools = allToolValues.filter((t) => !prioritizedTools.some((p) => p.href === t.href))
 
     const prioritizedMore = (moreByMode[dashboardMode] || moreByMode.PT).filter((m) => !hiddenMoreHrefs.has(m.href))

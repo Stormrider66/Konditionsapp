@@ -41,6 +41,7 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { NotificationBell } from '@/components/calendar/NotificationsPanel'
+import { BroadcastNotificationBell } from '@/components/athlete/BroadcastNotificationBell'
 import { SportSwitcher } from './SportSwitcher'
 import { SportType } from '@prisma/client'
 import { AthleteModeToggle } from '@/components/coach/AthleteModeToggle'
@@ -245,6 +246,7 @@ export function BusinessAthleteHeader({
                     {/* Language & Notifications (Desktop) */}
                     <div className="hidden md:flex items-center gap-1 text-slate-200">
                         <LanguageSwitcher showLabel={false} variant="ghost" />
+                        <BroadcastNotificationBell />
                         <NotificationBell clientId={clientId} />
                     </div>
 
@@ -309,6 +311,7 @@ export function BusinessAthleteHeader({
                                     <span className="font-bold text-lg">{businessName}</span>
                                     <div className="flex gap-1">
                                         <LanguageSwitcher showLabel={false} variant="ghost" />
+                                        <BroadcastNotificationBell />
                                         <NotificationBell clientId={clientId} />
                                     </div>
                                 </div>

@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { UserPlus, Users, Shield, Dumbbell, Heart, Clipboard } from 'lucide-react'
+import { UserPlus, Users, Shield, Dumbbell, Heart, Clipboard, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Team {
@@ -97,6 +97,22 @@ export function StaffManagement({ teams }: StaffManagementProps) {
       setLoading(false)
     }
   }, [])
+
+  const handleRemove = async (memberId: string, name: string) => {
+    if (!confirm(`Ta bort ${name} från personalen?`)) return
+    try {
+      const res = await fetch(`/api/coach/staff/${memberId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setStaff((prev) => prev.filter((m) => m.id !== memberId))
+        toast.success(`${name} borttagen`)
+      } else {
+        const err = await res.json()
+        toast.error(err.error || 'Kunde inte ta bort')
+      }
+    } catch {
+      toast.error('Nätverksfel')
+    }
+  }
 
   useEffect(() => {
     fetchStaff()
@@ -246,7 +262,7 @@ export function StaffManagement({ teams }: StaffManagementProps) {
             const Icon = ROLE_ICONS[member.role] || Users
             const colorClass = ROLE_COLORS[member.role] || ROLE_COLORS.MEMBER
             return (
-              <Card key={member.id}>
+              <Card key={member.id} className="group">
                 <CardContent className="p-3 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center ${colorClass}`}>
@@ -268,6 +284,16 @@ export function StaffManagement({ teams }: StaffManagementProps) {
                     <Badge className={`text-[10px] ${colorClass} border-0`}>
                       {member.roleLabel}
                     </Badge>
+                    {member.role !== 'OWNER' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-destructive opacity-0 group-hover:opacity-100"
+                        onClick={() => handleRemove(member.id, member.name)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

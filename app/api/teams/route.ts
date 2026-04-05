@@ -34,9 +34,19 @@ export async function GET() {
       )
     }
 
+    // Get teams the user owns OR is assigned to as staff
+    const assignments = await prisma.teamCoachAssignment.findMany({
+      where: { userId: user.id },
+      select: { teamId: true },
+    })
+    const assignedTeamIds = assignments.map((a) => a.teamId)
+
     const teams = await prisma.team.findMany({
       where: {
-        userId: user.id,
+        OR: [
+          { userId: user.id },
+          ...(assignedTeamIds.length > 0 ? [{ id: { in: assignedTeamIds } }] : []),
+        ],
       },
       include: {
         members: true,
