@@ -1,0 +1,124 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { IceHockeyRink, type DrillStructure } from './IceHockeyRink'
+import { ClipboardList, Calendar } from 'lucide-react'
+import { toast } from 'sonner'
+
+interface Drill {
+  id: string
+  title: string
+  description: string | null
+  sportType: string
+  structure: DrillStructure
+  sourceType: string
+  isPublished: boolean
+  createdAt: string
+  team: { name: string } | null
+  createdBy: { name: string }
+}
+
+interface DrillListProps {
+  teamId?: string
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+export function DrillList({ teamId }: DrillListProps) {
+  const [drills, setDrills] = useState<Drill[]>([])
+  const [loading, setLoading] = useState(true)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchDrills = async () => {
+      try {
+        const params = new URLSearchParams()
+        if (teamId) params.set('teamId', teamId)
+        const res = await fetch(`/api/coach/drills?${params}`)
+        if (res.ok) {
+          const data = await res.json()
+          setDrills(data.drills || [])
+        }
+      } catch {
+        toast.error('Kunde inte hämta övningar')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchDrills()
+  }, [teamId])
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2].map((i) => (
+          <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />
+        ))}
+      </div>
+    )
+  }
+
+  if (drills.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <ClipboardList className="h-8 w-8 mx-auto mb-2 opacity-40" />
+        <p>Inga övningar ännu</p>
+        <p className="text-xs mt-1">Skapa en ny övning från ett foto eller manuellt</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {drills.map((drill) => (
+        <Card
+          key={drill.id}
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => setExpandedId(expandedId === drill.id ? null : drill.id)}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between mb-1">
+              <div>
+                <h3 className="font-semibold">{drill.title}</h3>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                  <span>{formatDate(drill.createdAt)}</span>
+                  <span>·</span>
+                  <span>{drill.createdBy.name}</span>
+                  {drill.team && (
+                    <>
+                      <span>·</span>
+                      <span>{drill.team.name}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {drill.sourceType === 'CLIPBOARD_PHOTO' && (
+                  <Badge variant="outline" className="text-[10px]">AI</Badge>
+                )}
+                <Badge variant={drill.isPublished ? 'default' : 'secondary'} className="text-[10px]">
+                  {drill.isPublished ? 'Publicerad' : 'Utkast'}
+                </Badge>
+              </div>
+            </div>
+
+            {drill.description && (
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{drill.description}</p>
+            )}
+
+            {/* Expanded: show rink */}
+            {expandedId === drill.id && (
+              <div className="mt-4 pt-4 border-t">
+                <IceHockeyRink structure={drill.structure} className="mx-auto" />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
