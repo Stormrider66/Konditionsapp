@@ -143,6 +143,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
         liveHR: { href: `${basePath}/coach/live-hr`, label: 'Live HR', icon: Heart },
         intervals: { href: `${basePath}/coach/interval-sessions`, label: 'Intervaller', icon: Timer },
         drills: { href: `${basePath}/coach/drills`, label: 'Taktiktavla', icon: FileStack },
+        hockeyTests: { href: `${basePath}/coach/hockey-tests`, label: 'Hockeytester', icon: Shield },
     }
 
     // All "more" items
@@ -171,7 +172,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
         TEAM: [
             allToolItems.test, allToolItems.testOverview, allToolItems.strength, allToolItems.cardio,
             allToolItems.hybrid, allToolItems.agility, allToolItems.intervals,
-            allToolItems.drills, allToolItems.monitoring, allToolItems.liveHR,
+            allToolItems.drills, allToolItems.hockeyTests, allToolItems.monitoring, allToolItems.liveHR,
         ],
         GYM: [
             allToolItems.test, allToolItems.testOverview, allToolItems.strength, allToolItems.cardio,

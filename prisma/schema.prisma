@@ -591,6 +591,7 @@ model User {
   createdTeamEvents      TeamEvent[]           @relation("CreatedTeamEvents")
   teamCoachAssignments   TeamCoachAssignment[] @relation("TeamCoachAssignments")
   createdDrills          TeamDrill[]           @relation("CreatedDrills")
+  conductedHockeyTests   HockeyPhysicalTest[]  @relation("CoachHockeyTests")
 
   // Scheduling responsibility relations (assignments shown in coach calendar)
   responsibleStrengthAssignments StrengthSessionAssignment[] @relation("StrengthAssignmentResponsibleCoach")
@@ -768,6 +769,9 @@ model Team {
 
   // Team drills
   drills TeamDrill[]
+
+  // Hockey physical tests
+  hockeyPhysicalTests HockeyPhysicalTest[]
 
   // Physiotherapist System relations
   physioAssignments PhysioAssignment[] @relation("TeamPhysioAssignments")
@@ -1018,6 +1022,7 @@ model Client {
 
   // Live Interval Session System relations
   intervalSessionParticipations IntervalSessionParticipant[]
+  hockeyPhysicalTests           HockeyPhysicalTest[]
 
   // Habit Formation System relations
   habits Habit[]
@@ -10343,6 +10348,65 @@ model CompetitionEntry {
 }
 
 // ============================================
+// Hockey Physical Testing
+// ============================================
+
+/// Hockey-specific physical test session (batch of tests for one athlete on one date)
+model HockeyPhysicalTest {
+  id        String   @id @default(uuid())
+  clientId  String
+  teamId    String?
+  coachId   String   // Who administered the test
+  testDate  DateTime
+  notes     String?  @db.Text
+
+  // On-Ice Agility: 5-10-5m shuttle (seconds)
+  agility505Left   Float?  // Left side
+  agility505Right  Float?  // Right side
+
+  // On-Ice Sprints (seconds)
+  sprint10m     Float?  // 10m standing start
+  sprint20mFly  Float?  // 20m flying start
+  sprint30mFly  Float?  // 30m flying start
+
+  // On-Ice Endurance: 7x40m (JSON array of 7 times in seconds)
+  endurance7x40  Json?  // [5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8]
+
+  // Power: Jumping Squat Ladder (JSON: {load_kg: watts} pairs)
+  // e.g. {"20": 1200, "40": 1100, "60": 950, "80": 800, "100": 650}
+  jumpSquatLadder  Json?
+
+  // Power: Single Leg Jump Smith Machine (JSON per leg)
+  // e.g. {"30": 450, "35": 430, "40": 410, "45": 380, "50": 350, "55": 320}
+  singleLegJumpLeft   Json?
+  singleLegJumpRight  Json?
+
+  // Grip Strength (kg)
+  gripStrengthLeft   Float?
+  gripStrengthRight  Float?
+
+  // Standing Long Jump (cm)
+  standingLongJump  Float?
+
+  // Standing 3-Jump same leg (cm)
+  threeJumpLeft   Float?
+  threeJumpRight  Float?
+
+  // Source: MANUAL or MUSCLE_LAB_IMPORT
+  sourceType  String @default("MANUAL")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  team   Team?  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  coach  User   @relation("CoachHockeyTests", fields: [coachId], references: [id])
+
+  @@index([clientId, testDate])
+  @@index([teamId, testDate])
+  @@index([coachId])
+}
+
 // Broadcast Notifications
 // ============================================
 
