@@ -1,0 +1,69 @@
+'use client'
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Users, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+
+interface TeamGroupStats {
+  teamName: string
+  athleteCount: number
+  vo2max: { avg: number | null; min: number | null; max: number | null }
+  maxHR: { avg: number | null; min: number | null; max: number | null }
+  maxLactate: { avg: number | null; min: number | null; max: number | null }
+}
+
+interface GroupStatsProps {
+  stats: TeamGroupStats[]
+}
+
+function StatValue({ label, avg, min, max, unit }: {
+  label: string; avg: number | null; min: number | null; max: number | null; unit: string
+}) {
+  if (avg === null) return null
+  return (
+    <div className="text-center">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">{label}</p>
+      <p className="text-xl font-bold">{avg.toFixed(1)}</p>
+      <p className="text-[10px] text-muted-foreground">{unit}</p>
+      {min !== null && max !== null && (
+        <p className="text-[10px] text-muted-foreground mt-0.5">
+          {min.toFixed(1)} – {max.toFixed(1)}
+        </p>
+      )}
+    </div>
+  )
+}
+
+export function GroupStats({ stats }: GroupStatsProps) {
+  if (stats.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground text-sm">
+        Inga testresultat tillgängliga
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {stats.map((team) => (
+        <Card key={team.teamName}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              {team.teamName}
+              <span className="text-xs text-muted-foreground font-normal">
+                {team.athleteCount} atleter
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4">
+              <StatValue label="VO2max" avg={team.vo2max.avg} min={team.vo2max.min} max={team.vo2max.max} unit="ml/kg/min" />
+              <StatValue label="Max HR" avg={team.maxHR.avg} min={team.maxHR.min} max={team.maxHR.max} unit="bpm" />
+              <StatValue label="Max Laktat" avg={team.maxLactate.avg} min={team.maxLactate.min} max={team.maxLactate.max} unit="mmol/L" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}

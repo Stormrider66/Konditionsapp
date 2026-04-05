@@ -131,6 +131,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     // All tool items
     const allToolItems = {
         test: { href: `${basePath}/coach/test`, label: 'Nytt Test', icon: Activity },
+        testOverview: { href: `${basePath}/coach/test-overview`, label: 'Testöversikt', icon: BarChart3 },
         aiStudio: { href: `${basePath}/coach/ai-studio`, label: 'AI Studio', icon: Sparkles },
         hybrid: { href: `${basePath}/coach/hybrid-studio`, label: 'Hybrid Studio', icon: Flame },
         strength: { href: `${basePath}/coach/strength`, label: 'Strength Studio', icon: Dumbbell },
@@ -163,17 +164,17 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     // Mode-specific tool items
     const toolsByMode: Record<string, typeof allToolItems[keyof typeof allToolItems][]> = {
         PT: [
-            allToolItems.test, allToolItems.strength, allToolItems.cardio,
+            allToolItems.test, allToolItems.testOverview, allToolItems.strength, allToolItems.cardio,
             allToolItems.hybrid, allToolItems.agility,
             allToolItems.intervals, allToolItems.aiStudio,
         ],
         TEAM: [
-            allToolItems.test, allToolItems.strength, allToolItems.cardio,
+            allToolItems.test, allToolItems.testOverview, allToolItems.strength, allToolItems.cardio,
             allToolItems.hybrid, allToolItems.agility, allToolItems.intervals,
             allToolItems.drills, allToolItems.monitoring, allToolItems.liveHR,
         ],
         GYM: [
-            allToolItems.test, allToolItems.strength, allToolItems.cardio,
+            allToolItems.test, allToolItems.testOverview, allToolItems.strength, allToolItems.cardio,
             allToolItems.hybrid, allToolItems.ergometer, allToolItems.aiStudio,
         ],
     }
