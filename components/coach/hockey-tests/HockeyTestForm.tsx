@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { ChevronDown, Timer, Zap, Dumbbell, ArrowUpDown, Save } from 'lucide-react'
+import { ChevronDown, Timer, Zap, Dumbbell, ArrowUpDown, Save, Camera, Upload, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -69,7 +69,88 @@ function SectionHeader({ icon: Icon, title, open }: { icon: typeof Timer; title:
   )
 }
 
+/**
+ * Parse Muscle Lab CSV export for power test data.
+ * Supports common formats: load-power tables, jump test results.
+ */
+function parseMusclLabCSV(text: string): Record<string, unknown> {
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
+  const data: Record<string, unknown> = {}
+
+  // Try to extract jump squat ladder and single leg data
+  const jumpSquatLadder: Record<string, number> = {}
+  const singleLegLeft: Record<string, number> = {}
+  const singleLegRight: Record<string, number> = {}
+
+  for (const line of lines) {
+    const parts = line.split(/[,;\t]/).map((p) => p.trim())
+    if (parts.length < 2) continue
+
+    const label = parts[0].toLowerCase()
+    const values = parts.slice(1).map((v) => parseFloat(v)).filter((v) => !isNaN(v))
+
+    // Detect jump squat rows (e.g., "Squat Jump, 20, 1200" or "SJ 20kg, 1200")
+    if ((label.includes('squat') || label.includes('sj')) && !label.includes('single') && !label.includes('one')) {
+      const kgMatch = label.match(/(\d+)\s*kg/i)
+      if (kgMatch && values.length > 0) {
+        jumpSquatLadder[kgMatch[1]] = Math.round(values[0])
+      } else if (values.length >= 2) {
+        // Format: label, kg, watts
+        jumpSquatLadder[String(Math.round(values[0]))] = Math.round(values[1])
+      }
+    }
+
+    // Detect single leg rows
+    if (label.includes('single') || label.includes('one leg') || label.includes('enbens')) {
+      const isLeft = label.includes('left') || label.includes('vänster') || label.includes('v.')
+      const isRight = label.includes('right') || label.includes('höger') || label.includes('h.')
+      const kgMatch = label.match(/(\d+)\s*kg/i)
+      const target = isLeft ? singleLegLeft : isRight ? singleLegRight : singleLegLeft
+      if (kgMatch && values.length > 0) {
+        target[kgMatch[1]] = Math.round(values[0])
+      } else if (values.length >= 2) {
+        target[String(Math.round(values[0]))] = Math.round(values[1])
+      }
+    }
+
+    // Detect grip strength
+    if (label.includes('grip') || label.includes('grepp')) {
+      if (label.includes('left') || label.includes('vänster') || label.includes('v.')) {
+        data.gripStrengthLeft = values[0]
+      } else if (label.includes('right') || label.includes('höger') || label.includes('h.')) {
+        data.gripStrengthRight = values[0]
+      } else if (values.length >= 2) {
+        data.gripStrengthLeft = values[0]
+        data.gripStrengthRight = values[1]
+      }
+    }
+
+    // Detect standing long jump
+    if ((label.includes('standing') || label.includes('stående')) && label.includes('jump' || 'hopp') && !label.includes('3')) {
+      data.standingLongJump = values[0]
+    }
+
+    // Detect 3-jump
+    if (label.includes('3-') || label.includes('triple') || label.includes('trehopp')) {
+      if (label.includes('left') || label.includes('vänster')) {
+        data.threeJumpLeft = values[0]
+      } else if (label.includes('right') || label.includes('höger')) {
+        data.threeJumpRight = values[0]
+      }
+    }
+  }
+
+  if (Object.keys(jumpSquatLadder).length > 0) data.jumpSquatLadder = jumpSquatLadder
+  if (Object.keys(singleLegLeft).length > 0) data.singleLegJumpLeft = singleLegLeft
+  if (Object.keys(singleLegRight).length > 0) data.singleLegJumpRight = singleLegRight
+
+  return data
+}
+
 export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps) {
+  const scanInputRef = useRef<HTMLInputElement>(null)
+  const csvInputRef = useRef<HTMLInputElement>(null)
+  const [scanning, setScanning] = useState(false)
   const [saving, setSaving] = useState(false)
   const [clientId, setClientId] = useState('')
   const [testDate, setTestDate] = useState(new Date().toISOString().split('T')[0])
@@ -101,6 +182,86 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
   const [threeJumpRight, setThreeJumpRight] = useState('')
 
   const selectedClient = clients.find((c) => c.id === clientId)
+
+  // Apply scanned/imported data to form
+  const applyData = (data: Record<string, unknown>) => {
+    if (data.agility505Left) setAgility505Left(String(data.agility505Left))
+    if (data.agility505Right) setAgility505Right(String(data.agility505Right))
+    if (data.sprint10m) setSprint10m(String(data.sprint10m))
+    if (data.sprint20mFly) setSprint20mFly(String(data.sprint20mFly))
+    if (data.sprint30mFly) setSprint30mFly(String(data.sprint30mFly))
+    if (Array.isArray(data.endurance7x40)) {
+      setEndurance7x40(data.endurance7x40.map(String).concat(Array(7).fill('')).slice(0, 7))
+    }
+    if (data.jumpSquatLadder && typeof data.jumpSquatLadder === 'object') {
+      const jsl = data.jumpSquatLadder as Record<string, number>
+      setJumpSquat((prev) => {
+        const next = { ...prev }
+        for (const [k, v] of Object.entries(jsl)) next[k] = String(v)
+        return next
+      })
+      setPowerOpen(true)
+    }
+    if (data.singleLegJumpLeft && typeof data.singleLegJumpLeft === 'object') {
+      const sl = data.singleLegJumpLeft as Record<string, number>
+      setSingleLegLeft((prev) => { const n = { ...prev }; for (const [k, v] of Object.entries(sl)) n[k] = String(v); return n })
+      setPowerOpen(true)
+    }
+    if (data.singleLegJumpRight && typeof data.singleLegJumpRight === 'object') {
+      const sr = data.singleLegJumpRight as Record<string, number>
+      setSingleLegRight((prev) => { const n = { ...prev }; for (const [k, v] of Object.entries(sr)) n[k] = String(v); return n })
+      setPowerOpen(true)
+    }
+    if (data.gripStrengthLeft) { setGripLeft(String(data.gripStrengthLeft)); setPowerOpen(true) }
+    if (data.gripStrengthRight) { setGripRight(String(data.gripStrengthRight)); setPowerOpen(true) }
+    if (data.standingLongJump) { setStandingLong(String(data.standingLongJump)); setJumpOpen(true) }
+    if (data.threeJumpLeft) { setThreeJumpLeft(String(data.threeJumpLeft)); setJumpOpen(true) }
+    if (data.threeJumpRight) { setThreeJumpRight(String(data.threeJumpRight)); setJumpOpen(true) }
+    if (data.testDate) setTestDate(String(data.testDate))
+    // Auto-select athlete by name if found
+    if (data.athleteName) {
+      const match = clients.find((c) => c.name.toLowerCase().includes(String(data.athleteName).toLowerCase()))
+      if (match) setClientId(match.id)
+    }
+    setIceOpen(true)
+  }
+
+  // Photo scan handler
+  const handleScan = async (file: File) => {
+    setScanning(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/coach/hockey-tests/scan', { method: 'POST', body: formData })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Scan misslyckades')
+      }
+      const data = await res.json()
+      applyData(data)
+      const confidence = data.confidence ? `${Math.round(data.confidence * 100)}%` : ''
+      toast.success(`Testdata extraherad ${confidence ? `(${confidence} säkerhet)` : ''}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Kunde inte läsa bilden')
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  // CSV import handler (Muscle Lab)
+  const handleCSVImport = async (file: File) => {
+    setScanning(true)
+    try {
+      const text = await file.text()
+      const data = parseMusclLabCSV(text)
+      applyData(data)
+      toast.success('Muscle Lab-data importerad')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Kunde inte läsa CSV-filen')
+    } finally {
+      setScanning(false)
+    }
+  }
 
   const handleSave = async () => {
     if (!clientId || !testDate) {
@@ -162,6 +323,29 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
 
   return (
     <div className="space-y-4">
+      {/* Scan / Import */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input ref={scanInputRef} type="file" accept="image/*" capture="environment" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleScan(f); e.target.value = '' }} />
+            <input ref={csvInputRef} type="file" accept=".csv,.txt,.tsv" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCSVImport(f); e.target.value = '' }} />
+            <Button variant="outline" className="flex-1" onClick={() => scanInputRef.current?.click()} disabled={scanning}>
+              {scanning ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
+              Skanna testprotokoll
+            </Button>
+            <Button variant="outline" className="flex-1" onClick={() => csvInputRef.current?.click()} disabled={scanning}>
+              <Upload className="h-4 w-4 mr-2" />
+              Importera Muscle Lab
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-2">
+            Fotografera ett testprotokoll eller importera CSV-export från Muscle Lab
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Athlete & date */}
       <Card>
         <CardContent className="p-4 space-y-3">

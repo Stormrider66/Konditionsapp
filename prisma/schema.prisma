@@ -592,6 +592,8 @@ model User {
   teamCoachAssignments   TeamCoachAssignment[] @relation("TeamCoachAssignments")
   createdDrills          TeamDrill[]           @relation("CreatedDrills")
   conductedHockeyTests   HockeyPhysicalTest[]  @relation("CoachHockeyTests")
+  createdTestProtocols   CustomTestProtocol[]  @relation("CreatedTestProtocols")
+  customTestResults      CustomTestResult[]    @relation("CoachCustomTestResults")
 
   // Scheduling responsibility relations (assignments shown in coach calendar)
   responsibleStrengthAssignments StrengthSessionAssignment[] @relation("StrengthAssignmentResponsibleCoach")
@@ -772,6 +774,9 @@ model Team {
 
   // Hockey physical tests
   hockeyPhysicalTests HockeyPhysicalTest[]
+
+  // Custom test results
+  customTestResults CustomTestResult[]
 
   // Physiotherapist System relations
   physioAssignments PhysioAssignment[] @relation("TeamPhysioAssignments")
@@ -1023,6 +1028,7 @@ model Client {
   // Live Interval Session System relations
   intervalSessionParticipations IntervalSessionParticipant[]
   hockeyPhysicalTests           HockeyPhysicalTest[]
+  customTestResults             CustomTestResult[]
 
   // Habit Formation System relations
   habits Habit[]
@@ -1585,6 +1591,7 @@ model Business {
   competitions    Competition[]        @relation("BusinessCompetitions")
   communityPosts  CommunityPost[]      @relation("BusinessCommunityPosts")
   drills          TeamDrill[]          @relation("BusinessDrills")
+  testProtocols   CustomTestProtocol[] @relation("BusinessTestProtocols")
 
   // Gym platform integrations
   gymPlatformConnections GymPlatformConnection[] @relation("BusinessGymPlatforms")
@@ -10348,6 +10355,65 @@ model CompetitionEntry {
 }
 
 // ============================================
+// Custom Test Protocols
+// ============================================
+
+/// Coach-defined custom test protocol templates
+model CustomTestProtocol {
+  id          String  @id @default(uuid())
+  businessId  String
+  createdById String
+
+  name        String  // e.g., "SAIK Försäsongstest"
+  description String? @db.Text
+  sportType   String? // Optional sport association
+
+  // Protocol definition: ordered list of metrics to collect
+  // JSON array of { id, name, unit, type, category, min?, max?, required? }
+  // type: "number" | "time" | "array" | "ladder"
+  // category: "ice" | "power" | "jump" | "endurance" | "flexibility" | "other"
+  metrics     Json    // The protocol definition
+
+  isPublished Boolean @default(false) // Available to other coaches in same business
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business  Business @relation("BusinessTestProtocols", fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy User     @relation("CreatedTestProtocols", fields: [createdById], references: [id])
+  results   CustomTestResult[]
+
+  @@index([businessId])
+  @@index([createdById])
+}
+
+/// Results recorded using a custom test protocol
+model CustomTestResult {
+  id          String  @id @default(uuid())
+  protocolId  String
+  clientId    String
+  coachId     String
+  teamId      String?
+  testDate    DateTime
+
+  // Actual measured values (JSON object matching protocol metrics)
+  // { metricId: value, metricId: [array], metricId: {ladder} }
+  values      Json
+  notes       String? @db.Text
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  protocol CustomTestProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  client   Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  coach    User               @relation("CoachCustomTestResults", fields: [coachId], references: [id])
+  team     Team?              @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([protocolId, testDate])
+  @@index([clientId, testDate])
+  @@index([teamId])
+}
+
 // Hockey Physical Testing
 // ============================================
 
