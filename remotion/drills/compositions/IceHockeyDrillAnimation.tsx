@@ -1,10 +1,34 @@
 import React, { useMemo } from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import { IceHockeyRinkSurface } from "../surfaces/IceHockeyRinkSurface";
+import { FootballPitchSurface } from "../surfaces/FootballPitchSurface";
+import { HandballCourtSurface } from "../surfaces/HandballCourtSurface";
+import { BasketballCourtSurface } from "../surfaces/BasketballCourtSurface";
+import { FloorballRinkSurface } from "../surfaces/FloorballRinkSurface";
 import { DrillPlayer } from "../components/DrillPlayer";
 import { Puck } from "../components/Puck";
 import { AnimatedMovement } from "../components/AnimatedMovement";
 import { PhaseOverlay } from "../components/PhaseOverlay";
+
+// ─── Sport surface mapping (inline to avoid index barrel in Remotion) ────
+
+type SportType = "ICE_HOCKEY" | "FOOTBALL" | "HANDBALL" | "BASKETBALL" | "FLOORBALL";
+
+const SPORT_SURFACE_MAP: Record<SportType, { Surface: React.FC; w: number; h: number; bg: string }> = {
+  ICE_HOCKEY: { Surface: IceHockeyRinkSurface, w: 200, h: 85, bg: "#f0f4f8" },
+  FOOTBALL: { Surface: FootballPitchSurface, w: 210, h: 136, bg: "#3a7d32" },
+  HANDBALL: { Surface: HandballCourtSurface, w: 200, h: 100, bg: "#c49a5c" },
+  BASKETBALL: { Surface: BasketballCourtSurface, w: 280, h: 150, bg: "#b07838" },
+  FLOORBALL: { Surface: FloorballRinkSurface, w: 200, h: 100, bg: "#e8e8e8" },
+};
+
+const SPORT_MOVEMENT_LABELS: Record<SportType, Record<string, Record<string, string>>> = {
+  ICE_HOCKEY: { sv: { skate: "Åkning", pass: "Passning", shot: "Skott", puck: "Puck" }, en: { skate: "Skate", pass: "Pass", shot: "Shot", puck: "Puck" } },
+  FOOTBALL: { sv: { skate: "Löpning", pass: "Passning", shot: "Skott", puck: "Boll" }, en: { skate: "Run", pass: "Pass", shot: "Shot", puck: "Ball" } },
+  HANDBALL: { sv: { skate: "Löpning", pass: "Passning", shot: "Skott", puck: "Boll" }, en: { skate: "Run", pass: "Pass", shot: "Shot", puck: "Ball" } },
+  BASKETBALL: { sv: { skate: "Löpning", pass: "Passning", shot: "Skott", puck: "Boll" }, en: { skate: "Run", pass: "Pass", shot: "Shot", puck: "Ball" } },
+  FLOORBALL: { sv: { skate: "Löpning", pass: "Passning", shot: "Skott", puck: "Boll" }, en: { skate: "Run", pass: "Pass", shot: "Shot", puck: "Ball" } },
+};
 
 // ─── Types (mirrors the DrillStructure from IceHockeyRink.tsx) ───────────
 
@@ -59,6 +83,7 @@ export interface IceHockeyDrillAnimationProps {
   description?: string;
   structure: DrillStructure;
   locale?: "en" | "sv";
+  sportType?: SportType;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────
@@ -207,7 +232,13 @@ export const IceHockeyDrillAnimation: React.FC<IceHockeyDrillAnimationProps> = (
   description,
   structure,
   locale = "sv",
+  sportType = "ICE_HOCKEY",
 }) => {
+  const sportSurface = SPORT_SURFACE_MAP[sportType] || SPORT_SURFACE_MAP.ICE_HOCKEY;
+  const sportLabels = SPORT_MOVEMENT_LABELS[sportType]?.[locale] || SPORT_MOVEMENT_LABELS.ICE_HOCKEY[locale];
+  const SurfaceComponent = sportSurface.Surface;
+  const surfW = sportSurface.w;
+  const surfH = sportSurface.h;
   const frame = useCurrentFrame();
   const { timeline, totalFrames: _ } = useMemo(
     () => buildTimeline(structure.movements),
@@ -263,41 +294,33 @@ export const IceHockeyDrillAnimation: React.FC<IceHockeyDrillAnimationProps> = (
     };
   }, [activePuck, frame]);
 
-  // Build phase labels from movements
+  // Build phase labels from movements (sport-aware)
   const phases = useMemo(() => {
     return timeline.map((entry, i) => {
-      const m = entry.movement;
-      const typeLabel =
-        m.type === "skate"
-          ? locale === "sv" ? "Åkning" : "Skate"
-          : m.type === "pass"
-            ? locale === "sv" ? "Passning" : "Pass"
-            : m.type === "shot"
-              ? locale === "sv" ? "Skott" : "Shot"
-              : locale === "sv" ? "Puck" : "Puck";
+      const typeLabel = sportLabels[entry.movement.type] || entry.movement.type;
       return {
         label: `${i + 1}. ${typeLabel}`,
         startFrame: entry.startFrame,
         endFrame: entry.endFrame,
       };
     });
-  }, [timeline, locale]);
+  }, [timeline, sportLabels]);
 
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: "#f0f4f8",
+        backgroundColor: sportSurface.bg,
         fontFamily: "system-ui, -apple-system, sans-serif",
       }}
     >
       <svg
         width="100%"
         height="100%"
-        viewBox="-5 -10 210 110"
+        viewBox={`-5 -10 ${surfW + 10} ${surfH + 20}`}
         preserveAspectRatio="xMidYMid meet"
       >
-        {/* Rink surface */}
-        <IceHockeyRinkSurface />
+        {/* Sport surface (dynamic) */}
+        <SurfaceComponent />
 
         {/* Zone overlays */}
         {structure.zones?.map((zone) => (

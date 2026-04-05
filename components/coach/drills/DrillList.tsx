@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { IceHockeyRink, type DrillStructure } from './IceHockeyRink'
 import { DrillAnimationPlayer } from './DrillAnimationPlayer'
+import type { DrillSportType } from '@/remotion/drills/surfaces'
 import { Button } from '@/components/ui/button'
 import { ClipboardList, Play } from 'lucide-react'
 import { toast } from 'sonner'
@@ -122,6 +123,7 @@ export function DrillList({ teamId }: DrillListProps) {
                     description={drill.description || undefined}
                     structure={drill.structure}
                     locale="sv"
+                    sportType={(drill.sportType as DrillSportType) || 'ICE_HOCKEY'}
                   />
                 ) : (
                   <IceHockeyRink structure={drill.structure} className="mx-auto" />

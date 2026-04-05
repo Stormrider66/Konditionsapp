@@ -17,6 +17,7 @@ import { Save, Send, Play, Pencil } from 'lucide-react'
 import { InteractiveDrillEditor } from './InteractiveDrillEditor'
 import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 import type { DrillStructure } from './IceHockeyRink'
+import { DRILL_SPORT_OPTIONS, type DrillSportType } from '@/remotion/drills/surfaces'
 import { toast } from 'sonner'
 
 interface Team {
@@ -34,6 +35,7 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
   const [teamId, setTeamId] = useState('')
   const [saving, setSaving] = useState(false)
   const [showAnimation, setShowAnimation] = useState(false)
+  const [sportType, setSportType] = useState<DrillSportType>('ICE_HOCKEY')
 
   const [structure, setStructure] = useState<DrillStructure>({
     players: [],
@@ -64,7 +66,7 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
           title: title || 'Övning',
           description,
           teamId: teamId && teamId !== 'none' ? teamId : null,
-          sportType: 'ICE_HOCKEY',
+          sportType,
           structure,
           sourceType: 'MANUAL_EDITOR',
           isPublished: publish,
@@ -109,21 +111,45 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            Placera spelare, rita rörelser och passningar direkt på rinken.
+            Placera spelare, rita rörelser och passningar direkt på planen.
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Sport selector */}
+          <div className="flex flex-wrap gap-1.5">
+            {DRILL_SPORT_OPTIONS.map((opt) => (
+              <Button
+                key={opt.value}
+                variant={sportType === opt.value ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => {
+                  setSportType(opt.value)
+                  // Reset structure when switching sports (different coordinate systems)
+                  if (opt.value !== sportType && hasContent) {
+                    setStructure({ players: [], movements: [], zones: [], annotations: [] })
+                    setShowAnimation(false)
+                  }
+                }}
+              >
+                {opt.label}
+              </Button>
+            ))}
+          </div>
+
           {showAnimation ? (
             <DrillAnimationPlayer
               title={title || 'Övning'}
               description={description || undefined}
               structure={structure}
               locale="sv"
+              sportType={sportType}
             />
           ) : (
             <InteractiveDrillEditor
               initialStructure={structure}
               onChange={handleStructureChange}
+              sportType={sportType}
             />
           )}
         </CardContent>

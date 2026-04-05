@@ -26,6 +26,10 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import type { DrillStructure } from './IceHockeyRink'
+import {
+  getSportConfig,
+  type DrillSportType,
+} from '@/remotion/drills/surfaces'
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -73,6 +77,7 @@ interface Annotation {
 interface InteractiveDrillEditorProps {
   initialStructure?: DrillStructure
   onChange: (structure: DrillStructure) => void
+  sportType?: DrillSportType
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────
@@ -83,17 +88,16 @@ function nextId(prefix: string) {
   return `${prefix}-${Date.now()}-${_idCounter}`
 }
 
-const RINK_W = 200
-const RINK_H = 85
 const VIEWBOX_PADDING = 2
 
-const PLAYER_LABELS = ['C', 'LW', 'RW', 'LD', 'RD', 'G', '1', '2', '3', '4', '5', '6']
-
-const MOVEMENT_STYLES: Record<MovementType, { label: string; color: string; icon: string }> = {
-  skate: { label: 'Åkning', color: '#1a1a1a', icon: '→' },
-  pass: { label: 'Passning', color: '#2563eb', icon: '⇢' },
-  shot: { label: 'Skott', color: '#dc2626', icon: '⚡' },
-  puck: { label: 'Puck', color: '#1a1a1a', icon: '●' },
+function getMovementStyles(sportType?: DrillSportType): Record<MovementType, { label: string; color: string; icon: string }> {
+  const config = getSportConfig(sportType)
+  return {
+    skate: { label: config.movementLabels.skate, color: '#1a1a1a', icon: '→' },
+    pass: { label: config.movementLabels.pass, color: '#2563eb', icon: '⇢' },
+    shot: { label: config.movementLabels.shot, color: '#dc2626', icon: '⚡' },
+    puck: { label: config.movementLabels.puck, color: '#1a1a1a', icon: '●' },
+  }
 }
 
 const ZONE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
@@ -103,7 +107,15 @@ const ZONE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06
 export function InteractiveDrillEditor({
   initialStructure,
   onChange,
+  sportType = 'ICE_HOCKEY',
 }: InteractiveDrillEditorProps) {
+  const sportConfig = useMemo(() => getSportConfig(sportType), [sportType])
+  const SURFACE_W = sportConfig.width
+  const SURFACE_H = sportConfig.height
+  const PLAYER_LABELS = sportConfig.positionLabels
+  const MOVEMENT_STYLES = useMemo(() => getMovementStyles(sportType), [sportType])
+  const SurfaceComponent = sportConfig.Surface
+
   // State
   const [players, setPlayers] = useState<Player[]>(initialStructure?.players || [])
   const [movements, setMovements] = useState<Movement[]>(initialStructure?.movements || [])
@@ -112,7 +124,7 @@ export function InteractiveDrillEditor({
 
   const [activeTool, setActiveTool] = useState<Tool>('select')
   const [movementType, setMovementType] = useState<MovementType>('skate')
-  const [playerLabel, setPlayerLabel] = useState('C')
+  const [playerLabel, setPlayerLabel] = useState(PLAYER_LABELS[0])
   const [playerTeam, setPlayerTeam] = useState<PlayerTeam>('home')
   const [zoneColor, setZoneColor] = useState(ZONE_COLORS[0])
   const [annotationText, setAnnotationText] = useState('')
@@ -174,8 +186,8 @@ export function InteractiveDrillEditor({
       if (!ctm) return { x: 0, y: 0 }
       const svgPt = pt.matrixTransform(ctm.inverse())
       return {
-        x: Math.max(0, Math.min(RINK_W, Math.round(svgPt.x * 2) / 2)),
-        y: Math.max(0, Math.min(RINK_H, Math.round(svgPt.y * 2) / 2)),
+        x: Math.max(0, Math.min(SURFACE_W, Math.round(svgPt.x * 2) / 2)),
+        y: Math.max(0, Math.min(SURFACE_H, Math.round(svgPt.y * 2) / 2)),
       }
     },
     []
@@ -643,7 +655,7 @@ export function InteractiveDrillEditor({
         <div className="border rounded-lg overflow-hidden bg-slate-50">
           <svg
             ref={svgRef}
-            viewBox={`${-VIEWBOX_PADDING} ${-VIEWBOX_PADDING} ${RINK_W + VIEWBOX_PADDING * 2} ${RINK_H + VIEWBOX_PADDING * 2}`}
+            viewBox={`${-VIEWBOX_PADDING} ${-VIEWBOX_PADDING} ${SURFACE_W + VIEWBOX_PADDING * 2} ${SURFACE_H + VIEWBOX_PADDING * 2}`}
             className="w-full"
             style={{
               cursor:
@@ -660,31 +672,8 @@ export function InteractiveDrillEditor({
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
           >
-            {/* Rink surface */}
-            <rect x="0" y="0" width="200" height="85" rx="14" ry="14" fill="#e8f4f8" stroke="#1a5276" strokeWidth="0.8" />
-            <line x1="100" y1="0" x2="100" y2="85" stroke="#cc0000" strokeWidth="0.6" />
-            <line x1="65" y1="0" x2="65" y2="85" stroke="#1a5276" strokeWidth="0.6" />
-            <line x1="135" y1="0" x2="135" y2="85" stroke="#1a5276" strokeWidth="0.6" />
-            <line x1="11" y1="0" x2="11" y2="85" stroke="#cc0000" strokeWidth="0.4" />
-            <line x1="189" y1="0" x2="189" y2="85" stroke="#cc0000" strokeWidth="0.4" />
-            <circle cx="100" cy="42.5" r="7.5" fill="none" stroke="#1a5276" strokeWidth="0.4" />
-            <circle cx="100" cy="42.5" r="0.8" fill="#1a5276" />
-            <circle cx="31" cy="22" r="7.5" fill="none" stroke="#cc0000" strokeWidth="0.4" />
-            <circle cx="31" cy="22" r="0.6" fill="#cc0000" />
-            <circle cx="31" cy="63" r="7.5" fill="none" stroke="#cc0000" strokeWidth="0.4" />
-            <circle cx="31" cy="63" r="0.6" fill="#cc0000" />
-            <circle cx="169" cy="22" r="7.5" fill="none" stroke="#cc0000" strokeWidth="0.4" />
-            <circle cx="169" cy="22" r="0.6" fill="#cc0000" />
-            <circle cx="169" cy="63" r="7.5" fill="none" stroke="#cc0000" strokeWidth="0.4" />
-            <circle cx="169" cy="63" r="0.6" fill="#cc0000" />
-            <circle cx="80" cy="22" r="0.6" fill="#cc0000" />
-            <circle cx="80" cy="63" r="0.6" fill="#cc0000" />
-            <circle cx="120" cy="22" r="0.6" fill="#cc0000" />
-            <circle cx="120" cy="63" r="0.6" fill="#cc0000" />
-            <path d="M 7 38 A 3 3 0 0 1 7 47" fill="rgba(135,206,250,0.3)" stroke="#1a5276" strokeWidth="0.3" />
-            <path d="M 193 38 A 3 3 0 0 0 193 47" fill="rgba(135,206,250,0.3)" stroke="#1a5276" strokeWidth="0.3" />
-            <rect x="3" y="39.5" width="4" height="6" rx="0.5" fill="none" stroke="#cc0000" strokeWidth="0.5" />
-            <rect x="193" y="39.5" width="4" height="6" rx="0.5" fill="none" stroke="#cc0000" strokeWidth="0.5" />
+            {/* Sport surface (dynamic) */}
+            <SurfaceComponent />
 
             {/* Arrow markers */}
             <defs>

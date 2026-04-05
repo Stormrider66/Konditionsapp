@@ -7,6 +7,7 @@ import {
   calculateDrillDuration,
   type DrillStructure,
 } from '@/remotion/drills/compositions/IceHockeyDrillAnimation'
+import { getSportConfig, type DrillSportType } from '@/remotion/drills/surfaces'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Play, Pause, RotateCcw, Maximize2, Minimize2 } from 'lucide-react'
@@ -16,6 +17,7 @@ interface DrillAnimationPlayerProps {
   description?: string
   structure: DrillStructure
   locale?: 'en' | 'sv'
+  sportType?: DrillSportType
 }
 
 const SPEED_OPTIONS = [0.5, 1, 1.5, 2] as const
@@ -25,7 +27,9 @@ export function DrillAnimationPlayer({
   description,
   structure,
   locale = 'sv',
+  sportType = 'ICE_HOCKEY',
 }: DrillAnimationPlayerProps) {
+  const sportConfig = useMemo(() => getSportConfig(sportType), [sportType])
   const playerRef = useRef<PlayerRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -139,12 +143,12 @@ export function DrillAnimationPlayer({
       className={`bg-slate-50 rounded-lg overflow-hidden ${isFullscreen ? 'p-4' : ''}`}
     >
       {/* Player */}
-      <div className="relative aspect-[800/420] bg-slate-100">
+      <div className="relative bg-slate-100" style={{ aspectRatio: `${sportConfig.width + 10} / ${sportConfig.height + 20}` }}>
         <Player
           ref={playerRef}
           component={AnimationComponent}
           compositionWidth={800}
-          compositionHeight={420}
+          compositionHeight={Math.round(800 * (sportConfig.height + 20) / (sportConfig.width + 10))}
           durationInFrames={totalFrames}
           fps={fps}
           style={{ width: '100%', height: '100%' }}
@@ -153,6 +157,7 @@ export function DrillAnimationPlayer({
             description: description || '',
             structure,
             locale,
+            sportType,
           }}
           playbackRate={playbackRate}
           loop
