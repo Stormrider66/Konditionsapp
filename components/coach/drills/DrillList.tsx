@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { IceHockeyRink, type DrillStructure } from './IceHockeyRink'
-import { ClipboardList, Calendar } from 'lucide-react'
+import { DrillAnimationPlayer } from './DrillAnimationPlayer'
+import { Button } from '@/components/ui/button'
+import { ClipboardList, Play } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Drill {
@@ -32,6 +34,7 @@ export function DrillList({ teamId }: DrillListProps) {
   const [drills, setDrills] = useState<Drill[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [animatingId, setAnimatingId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchDrills = async () => {
@@ -110,10 +113,36 @@ export function DrillList({ teamId }: DrillListProps) {
               <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{drill.description}</p>
             )}
 
-            {/* Expanded: show rink */}
+            {/* Expanded: show rink + animate toggle */}
             {expandedId === drill.id && (
-              <div className="mt-4 pt-4 border-t">
-                <IceHockeyRink structure={drill.structure} className="mx-auto" />
+              <div className="mt-4 pt-4 border-t space-y-3">
+                {animatingId === drill.id ? (
+                  <DrillAnimationPlayer
+                    title={drill.title}
+                    description={drill.description || undefined}
+                    structure={drill.structure}
+                    locale="sv"
+                  />
+                ) : (
+                  <IceHockeyRink structure={drill.structure} className="mx-auto" />
+                )}
+
+                {/* Toggle animation button */}
+                {drill.structure.movements?.length > 0 && (
+                  <div className="flex justify-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setAnimatingId(animatingId === drill.id ? null : drill.id)
+                      }}
+                    >
+                      <Play className="h-3.5 w-3.5 mr-1.5" />
+                      {animatingId === drill.id ? 'Visa diagram' : 'Animera'}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

@@ -13,8 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Camera, Upload, Loader2, Save, Send, Sparkles } from 'lucide-react'
+import { Camera, Upload, Loader2, Save, Send, Sparkles, Play } from 'lucide-react'
 import { IceHockeyRink, type DrillStructure } from './IceHockeyRink'
+import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 import { toast } from 'sonner'
 
 interface Team {
@@ -38,6 +39,7 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
   const [structure, setStructure] = useState<DrillStructure | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [sourceImageUrl, setSourceImageUrl] = useState<string | null>(null)
+  const [showAnimation, setShowAnimation] = useState(false)
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -194,10 +196,31 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
           {/* Rink visualization */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Övningsdiagram</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Övningsdiagram</CardTitle>
+                {structure.movements?.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAnimation(!showAnimation)}
+                  >
+                    <Play className="h-3.5 w-3.5 mr-1.5" />
+                    {showAnimation ? 'Visa diagram' : 'Animera'}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              <IceHockeyRink structure={structure} className="mx-auto" />
+              {showAnimation ? (
+                <DrillAnimationPlayer
+                  title={title || 'Övning'}
+                  description={description || undefined}
+                  structure={structure}
+                  locale="sv"
+                />
+              ) : (
+                <IceHockeyRink structure={structure} className="mx-auto" />
+              )}
             </CardContent>
           </Card>
 

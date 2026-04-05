@@ -12,6 +12,7 @@ import { StarDrillAnimation } from "./agility/compositions/StarDrillAnimation";
 import { ConeZigZagAnimation } from "./agility/compositions/ConeZigZagAnimation";
 import { LadderDrillAnimation } from "./agility/compositions/LadderDrillAnimation";
 import { ExerciseAnimation } from "./exercises/ExerciseAnimation";
+import { IceHockeyDrillAnimation } from "./drills/compositions/IceHockeyDrillAnimation";
 
 // Type helper to cast animation components for Remotion Composition
 type AnyComponent = React.ComponentType<Record<string, unknown>>;
@@ -262,6 +263,41 @@ export const RemotionRoot: React.FC = () => {
           drillType: "in-out" as const,
           athleteTime: 5.5,
           benchmarkTier: "average" as const,
+          locale: "sv" as const,
+        }}
+      />
+
+      {/* Ice Hockey Drill Animation (data-driven) */}
+      <Composition
+        id="IceHockeyDrill"
+        component={IceHockeyDrillAnimation as unknown as AnyComponent}
+        durationInFrames={300}
+        fps={30}
+        width={800}
+        height={420}
+        defaultProps={{
+          title: "Breakout-övning",
+          description: "3-mot-2 breakout från egen zon",
+          structure: {
+            players: [
+              { id: "d1", x: 25, y: 30, label: "LD", team: "home" as const },
+              { id: "d2", x: 25, y: 55, label: "RD", team: "home" as const },
+              { id: "c", x: 50, y: 42.5, label: "C", team: "home" as const },
+              { id: "lw", x: 60, y: 20, label: "LW", team: "home" as const },
+              { id: "rw", x: 60, y: 65, label: "RW", team: "home" as const },
+            ],
+            movements: [
+              { id: "m1", fromX: 25, fromY: 30, toX: 45, toY: 35, type: "skate" as const },
+              { id: "m2", fromX: 45, fromY: 35, toX: 70, toY: 42.5, type: "pass" as const },
+              { id: "m3", fromX: 50, fromY: 42.5, toX: 100, toY: 42.5, type: "skate" as const },
+              { id: "m4", fromX: 60, fromY: 20, toX: 120, toY: 25, type: "skate" as const },
+              { id: "m5", fromX: 100, fromY: 42.5, toX: 140, toY: 25, type: "pass" as const },
+            ],
+            zones: [
+              { id: "z1", x: 0, y: 0, width: 65, height: 85, color: "#3b82f6", label: "Egen zon" },
+            ],
+            annotations: [],
+          },
           locale: "sv" as const,
         }}
       />
