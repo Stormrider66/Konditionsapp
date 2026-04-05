@@ -20,6 +20,7 @@ import { buildAthleteOwnContext } from '@/lib/ai/athlete-context-builder';
 import { buildAthleteSystemPrompt, MemoryContext, AthleteCapabilities } from '@/lib/ai/athlete-prompts';
 import { webSearch, formatSearchResultsForContext } from '@/lib/ai/web-search';
 import { getConsentStatus } from '@/lib/agent/gdpr/consent-manager';
+import { getStaffPermissions, ROLE_LABELS } from '@/lib/permissions/assistant-coach';
 import { extractMemoriesFromConversation, saveMemories } from '@/lib/ai/memory-extractor';
 import { getPlatformAiKeyOwnerId, getResolvedAiKeys } from '@/lib/user-api-keys';
 import { buildCalendarContext } from '@/lib/ai/calendar-context-builder';
@@ -140,6 +141,8 @@ export async function POST(request: NextRequest) {
     let calendarProgramEndDate: Date | undefined;
     // Athlete capabilities for AI chat (self-coached athletes)
     let athleteCapabilities: AthleteCapabilities | undefined;
+    // Staff role permissions
+    let staffPermissions: Awaited<ReturnType<typeof getStaffPermissions>> | undefined;
     // Strict provider allowlist from athlete model settings (if explicitly configured)
     let athleteAllowedProviders: Set<LowerProvider> | null = null;
     let effectiveBusinessId: string | null = request.headers.get('x-business-id');
@@ -334,6 +337,9 @@ export async function POST(request: NextRequest) {
       const user = await requireCoach();
       userId = user.id;
       apiKeyUserId = user.id; // Use own API keys
+
+      // Get staff permissions for role-aware context
+      staffPermissions = await getStaffPermissions(user.id);
     }
 
     // Rate limit AI chat per authenticated user (Redis-backed with in-memory fallback)
@@ -406,9 +412,18 @@ export async function POST(request: NextRequest) {
     // Coach chat mode: Use full context with athlete data (same as athlete's floating chat)
     // GDPR: Only include athlete context if athlete has given consent
     else if (athleteId && hasAthleteConsent) {
-      // First verify that the athlete belongs to this coach
+      // Verify that the athlete belongs to this coach OR is in their assigned teams
+      const teamScope = staffPermissions?.isTeamScoped && staffPermissions.assignedTeamIds.length > 0
+        ? { teamId: { in: staffPermissions.assignedTeamIds } }
+        : undefined;
       const athleteCheck = await prisma.client.findFirst({
-        where: { id: athleteId, userId: userId },
+        where: {
+          id: athleteId,
+          OR: [
+            { userId: userId },
+            ...(teamScope ? [teamScope] : []),
+          ],
+        },
         select: {
           id: true,
           trainingPrograms: {
@@ -775,6 +790,17 @@ ${calendarContext ? `
 - FLYTTA nyckelpass (intervaller, långpass) till fullt tillgängliga dagar
 - INFORMERA om hur kalenderbegränsningar påverkar programmet` : ''}
 
+${staffPermissions ? `
+## DIN ROLL
+Du assisterar en ${staffPermissions.roleLabel}.
+${staffPermissions.isTeamScoped ? `Denna person har tillgång till specifika lag och kan INTE se data från andra lag.` : ''}
+${!staffPermissions.canEditPrograms ? 'Denna person kan INTE skapa eller ändra träningsprogram. Ge inte instruktioner för att göra det.' : ''}
+${!staffPermissions.canAccessAI ? 'Begränsa dina svar till information och rådgivning inom personens behörighetsområde.' : ''}
+${staffPermissions.role === 'ADMIN' ? 'Som sportchef har denna person full insyn i alla lags resultat, tester och framsteg. Hjälp med personalfrågor, översikt och strategisk planering.' : ''}
+${staffPermissions.role === 'PHYSICAL_TRAINER' ? 'Som fystränare kan denna person skapa träningsprogram, köra tester och intervallsessioner. Fokusera på fysisk träning, kondition och styrka.' : ''}
+${staffPermissions.role === 'ASSISTANT_COACH' ? 'Som assisterande tränare kan denna person köra tester och intervallsessioner. Hjälp med testgenomförande, teknik och resultatanalys.' : ''}
+${staffPermissions.role === 'PHYSIO' ? 'Som fysioterapeut fokuserar denna person på skadehantering, rehabilitering och preventivt arbete.' : ''}
+` : ''}
 ${athleteId && !hasAthleteConsent ? '\n## OBS: SAMTYCKE SAKNAS\nAtletens data kan inte inkluderas i denna konversation — atleten har inte samtyckt till databehandling för AI-analys. Du kan fortfarande hjälpa coachen med generella frågor.\n' : ''}
 ${athleteContext}
 ${sportSpecificContext}
