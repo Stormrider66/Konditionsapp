@@ -1,0 +1,55 @@
+/**
+ * Text-to-Drill Generation API
+ *
+ * POST - Coach describes a drill in natural language, AI generates structure
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { requireCoach } from '@/lib/auth-utils'
+import { generateDrillFromText } from '@/lib/drills/generate-from-text'
+import { prisma } from '@/lib/prisma'
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = await requireCoach()
+
+    const body = await req.json()
+    const { prompt, sportType } = body
+
+    if (!prompt || typeof prompt !== 'string' || prompt.trim().length < 5) {
+      return NextResponse.json(
+        { error: 'Beskriv övningen med minst några ord' },
+        { status: 400 },
+      )
+    }
+
+    if (prompt.length > 2000) {
+      return NextResponse.json(
+        { error: 'Beskrivningen är för lång (max 2000 tecken)' },
+        { status: 400 },
+      )
+    }
+
+    // Get business context for API key resolution
+    const membership = await prisma.businessMember.findFirst({
+      where: { userId: user.id, isActive: true },
+      select: { businessId: true },
+    })
+
+    const result = await generateDrillFromText(
+      prompt.trim(),
+      sportType || 'ICE_HOCKEY',
+      user.id,
+      membership?.businessId,
+    )
+
+    return NextResponse.json(result)
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const message = error instanceof Error ? error.message : 'Generation failed'
+    console.error('Drill generation error:', error)
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}

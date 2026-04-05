@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Camera, Upload, Loader2, Save, Send, Sparkles, Play, Pencil } from 'lucide-react'
+import { Camera, Upload, Loader2, Save, Send, Sparkles, Play, Pencil, MessageSquare } from 'lucide-react'
 import { IceHockeyRink, type DrillStructure } from './IceHockeyRink'
 import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 import { InteractiveDrillEditor } from './InteractiveDrillEditor'
@@ -42,6 +42,8 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
   const [sourceImageUrl, setSourceImageUrl] = useState<string | null>(null)
   const [showAnimation, setShowAnimation] = useState(false)
   const [editorMode, setEditorMode] = useState(false)
+  const [textPrompt, setTextPrompt] = useState('')
+  const [generating, setGenerating] = useState(false)
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -86,6 +88,40 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
     }
   }
 
+  const handleTextGenerate = async () => {
+    if (!textPrompt.trim() || textPrompt.trim().length < 5) {
+      toast.error('Beskriv övningen med minst några ord')
+      return
+    }
+
+    setGenerating(true)
+    try {
+      const res = await fetch('/api/coach/drills/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: textPrompt.trim(),
+          sportType: 'ICE_HOCKEY',
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Generering misslyckades')
+      }
+
+      const result = await res.json()
+      setTitle(result.title)
+      setDescription(result.description)
+      setStructure(result.structure)
+      toast.success('Övning genererad!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Kunde inte generera övning')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   const handleSave = async (publish: boolean) => {
     if (!structure) {
       toast.error('Ingen övning att spara')
@@ -103,7 +139,7 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
           teamId: teamId && teamId !== 'none' ? teamId : null,
           sportType: 'ICE_HOCKEY',
           structure,
-          sourceType: previewImage ? 'CLIPBOARD_PHOTO' : editorMode ? 'MANUAL_EDITOR' : 'MANUAL',
+          sourceType: previewImage ? 'CLIPBOARD_PHOTO' : editorMode ? 'MANUAL_EDITOR' : textPrompt ? 'AI_TEXT' : 'MANUAL',
           sourceImageUrl,
           isPublished: publish,
         }),
@@ -193,6 +229,49 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Text-to-drill */}
+      {!structure && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <MessageSquare className="h-5 w-5 text-green-500" />
+              Beskriv övning med text
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Beskriv övningen i fritext. AI genererar ett övningsdiagram automatiskt.
+            </p>
+
+            <Textarea
+              value={textPrompt}
+              onChange={(e) => setTextPrompt(e.target.value)}
+              placeholder="T.ex. 'Breakout-övning för 5 spelare. Back hämtar puck bakom eget mål, passning till center som skickar vidare till wingen...'"
+              rows={3}
+              disabled={generating}
+            />
+
+            <Button
+              onClick={handleTextGenerate}
+              disabled={generating || textPrompt.trim().length < 5}
+              className="w-full"
+            >
+              {generating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Genererar övning...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generera övning
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Manual editor */}
       {!editorMode && !structure && (

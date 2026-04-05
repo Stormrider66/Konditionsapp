@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DrillCreator } from '@/components/coach/drills/DrillCreator'
 import { DrillList } from '@/components/coach/drills/DrillList'
 import { DrillEditorPage } from '@/components/coach/drills/DrillEditorPage'
+import { DrillTemplatePage } from '@/components/coach/drills/DrillTemplatePage'
+import { PracticePlanner } from '@/components/coach/drills/PracticePlanner'
 import { ClipboardList } from 'lucide-react'
 
 interface PageProps {
@@ -38,10 +40,12 @@ export default async function DrillsPage({ params }: PageProps) {
       </div>
 
       <Tabs defaultValue="create" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto gap-0.5">
           <TabsTrigger value="create">Skapa ny</TabsTrigger>
           <TabsTrigger value="draw">Rita</TabsTrigger>
-          <TabsTrigger value="library">Övningsbibliotek</TabsTrigger>
+          <TabsTrigger value="templates">Mallar</TabsTrigger>
+          <TabsTrigger value="plan">Planera</TabsTrigger>
+          <TabsTrigger value="library">Sparade</TabsTrigger>
         </TabsList>
 
         <TabsContent value="create">
@@ -50,6 +54,14 @@ export default async function DrillsPage({ params }: PageProps) {
 
         <TabsContent value="draw">
           <DrillEditorPage teams={teams} />
+        </TabsContent>
+
+        <TabsContent value="templates">
+          <DrillTemplatePage teams={teams} />
+        </TabsContent>
+
+        <TabsContent value="plan">
+          <PracticePlanner teams={teams} />
         </TabsContent>
 
         <TabsContent value="library">
