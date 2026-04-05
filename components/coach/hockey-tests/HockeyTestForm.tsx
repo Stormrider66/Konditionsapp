@@ -126,7 +126,7 @@ function parseMusclLabCSV(text: string): Record<string, unknown> {
     }
 
     // Detect standing long jump
-    if ((label.includes('standing') || label.includes('stående')) && label.includes('jump' || 'hopp') && !label.includes('3')) {
+    if ((label.includes('standing') || label.includes('stående')) && (label.includes('jump') || label.includes('hopp')) && !label.includes('3')) {
       data.standingLongJump = values[0]
     }
 
