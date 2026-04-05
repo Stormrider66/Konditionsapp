@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     // Create coach trial subscription (outside transaction as it uses its own prisma call)
     await createCoachTrialSubscription(result.user.id, 14)
 
-    const redirectUrl = `/${result.business.slug}/coach/dashboard`
+    const redirectUrl = `/${result.business.slug}/coach/onboarding-wizard`
 
     return NextResponse.json(
       {
