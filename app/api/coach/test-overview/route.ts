@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
       },
       include: {
         client: { select: { id: true, name: true, teamId: true, team: { select: { name: true } } } },
-        stages: { orderBy: { sequence: 'asc' } },
+        testStages: { orderBy: { sequence: 'asc' } },
       },
       orderBy: { testDate: 'desc' },
       take: 200,
@@ -144,7 +144,7 @@ export async function GET(req: NextRequest) {
         maxHR: t.maxHR,
         maxLactate: t.maxLactate,
         restingLactate: t.restingLactate,
-        stageCount: t.stages.length,
+        stageCount: t.testStages.length,
       })),
       fieldTests: fieldTests.map((ft) => ({
         id: ft.id,
