@@ -144,6 +144,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
 
     // All "more" items
     const allMoreItems = {
+        staff: { href: `${basePath}/coach/staff`, label: 'Personal', icon: Shield },
         social: { href: `${basePath}/coach/social`, label: 'Sociala medier', icon: Share2 },
         competitions: { href: `${basePath}/coach/competitions`, label: 'Utmaningar', icon: Trophy },
         community: { href: `${basePath}/coach/community`, label: 'Community', icon: Megaphone },
@@ -181,28 +182,37 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
             allMoreItems.community, allMoreItems.competitions, allMoreItems.messages, allMoreItems.settings,
         ],
         TEAM: [
-            allMoreItems.teams, allMoreItems.messages, allMoreItems.settings,
+            allMoreItems.staff, allMoreItems.teams, allMoreItems.messages, allMoreItems.settings,
         ],
         GYM: [
             allMoreItems.community, allMoreItems.competitions, allMoreItems.messages, allMoreItems.settings,
         ],
     }
 
-    // Items restricted for assistant coaches
+    // Items restricted for non-admin/owner roles
+    const isAdmin = businessRole === 'OWNER' || businessRole === 'ADMIN'
     const assistantHiddenToolHrefs = isAssistantCoach
         ? new Set([allToolItems.aiStudio.href, allToolItems.ergometer.href, allToolItems.video.href])
         : new Set<string>()
-    const assistantHiddenMoreHrefs = isAssistantCoach
-        ? new Set([allMoreItems.settings.href, allMoreItems.referrals.href, allMoreItems.orgs.href, allMoreItems.browse.href])
-        : new Set<string>()
+    const hiddenMoreHrefs = new Set<string>()
+    if (isAssistantCoach) {
+        hiddenMoreHrefs.add(allMoreItems.settings.href)
+        hiddenMoreHrefs.add(allMoreItems.referrals.href)
+        hiddenMoreHrefs.add(allMoreItems.orgs.href)
+        hiddenMoreHrefs.add(allMoreItems.browse.href)
+        hiddenMoreHrefs.add(allMoreItems.staff.href)
+    }
+    if (!isAdmin) {
+        hiddenMoreHrefs.add(allMoreItems.staff.href)
+    }
 
     // Get prioritized items, then add remaining ones not already included
     const prioritizedTools = (toolsByMode[dashboardMode] || toolsByMode.PT).filter((t) => !assistantHiddenToolHrefs.has(t.href))
     const allToolValues = Object.values(allToolItems).filter((t) => !assistantHiddenToolHrefs.has(t.href))
     const remainingTools = allToolValues.filter((t) => !prioritizedTools.some((p) => p.href === t.href))
 
-    const prioritizedMore = (moreByMode[dashboardMode] || moreByMode.PT).filter((m) => !assistantHiddenMoreHrefs.has(m.href))
-    const allMoreValues = Object.values(allMoreItems).filter((m) => !assistantHiddenMoreHrefs.has(m.href))
+    const prioritizedMore = (moreByMode[dashboardMode] || moreByMode.PT).filter((m) => !hiddenMoreHrefs.has(m.href))
+    const allMoreValues = Object.values(allMoreItems).filter((m) => !hiddenMoreHrefs.has(m.href))
     const remainingMore = allMoreValues.filter((m) => !prioritizedMore.some((p) => p.href === m.href))
 
     // Dropdown Groups

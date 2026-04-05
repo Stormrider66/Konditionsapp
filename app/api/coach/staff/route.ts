@@ -1,0 +1,151 @@
+/**
+ * Staff Management API (Sportchef)
+ *
+ * GET  - List all staff members with their roles and team assignments
+ * POST - Invite a new staff member (uses inviteUserToBusiness)
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { requireCoach } from '@/lib/auth-utils'
+import { prisma } from '@/lib/prisma'
+import { inviteUserToBusiness } from '@/lib/invite-utils'
+import { getStaffPermissions, ROLE_LABELS } from '@/lib/permissions/assistant-coach'
+import { z } from 'zod'
+
+const inviteSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1).max(100),
+  role: z.enum(['COACH', 'PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO', 'ADMIN']),
+  teamIds: z.array(z.string().uuid()).optional(),
+})
+
+export async function GET() {
+  try {
+    const user = await requireCoach()
+    const permissions = await getStaffPermissions(user.id)
+
+    if (!permissions.canInviteStaff) {
+      return NextResponse.json({ error: 'Ingen behörighet' }, { status: 403 })
+    }
+
+    const membership = await prisma.businessMember.findFirst({
+      where: { userId: user.id, isActive: true },
+      select: { businessId: true },
+    })
+
+    if (!membership) {
+      return NextResponse.json({ staff: [] })
+    }
+
+    const members = await prisma.businessMember.findMany({
+      where: {
+        businessId: membership.businessId,
+        isActive: true,
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    // Get team assignments for each member
+    const staffWithTeams = await Promise.all(
+      members.map(async (m) => {
+        const assignments = await prisma.teamCoachAssignment.findMany({
+          where: { userId: m.userId },
+          include: { team: { select: { id: true, name: true } } },
+        })
+
+        return {
+          id: m.id,
+          userId: m.userId,
+          name: m.user.name,
+          email: m.user.email,
+          role: m.role,
+          roleLabel: ROLE_LABELS[m.role] || m.role,
+          teams: assignments.map((a) => ({ id: a.team.id, name: a.team.name })),
+          invitedAt: m.invitedAt.toISOString(),
+          acceptedAt: m.acceptedAt?.toISOString() ?? null,
+        }
+      })
+    )
+
+    return NextResponse.json({ staff: staffWithTeams })
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = await requireCoach()
+    const permissions = await getStaffPermissions(user.id)
+
+    if (!permissions.canInviteStaff) {
+      return NextResponse.json({ error: 'Ingen behörighet att bjuda in personal' }, { status: 403 })
+    }
+
+    const membership = await prisma.businessMember.findFirst({
+      where: { userId: user.id, isActive: true },
+      select: { businessId: true },
+    })
+
+    if (!membership) {
+      return NextResponse.json({ error: 'Ingen verksamhet' }, { status: 400 })
+    }
+
+    const body = await req.json()
+    const parsed = inviteSchema.safeParse(body)
+
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Ogiltig indata', details: parsed.error.flatten() }, { status: 400 })
+    }
+
+    // Invite user to business with the specified role
+    const result = await inviteUserToBusiness({
+      email: parsed.data.email,
+      name: parsed.data.name,
+      businessId: membership.businessId,
+      role: parsed.data.role as any,
+    })
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 400 })
+    }
+
+    // If team-scoped role, create team assignments
+    const teamScopedRoles = ['PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO']
+    if (teamScopedRoles.includes(parsed.data.role) && parsed.data.teamIds && result.userId) {
+      for (const teamId of parsed.data.teamIds) {
+        try {
+          await prisma.teamCoachAssignment.create({
+            data: {
+              teamId,
+              userId: result.userId,
+              canRunTests: parsed.data.role !== 'PHYSIO',
+              canRunIntervals: parsed.data.role !== 'PHYSIO',
+              canCreateEvents: true,
+            },
+          })
+        } catch {
+          // Duplicate - ignore
+        }
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      userId: result.userId,
+      roleLabel: ROLE_LABELS[parsed.data.role],
+    }, { status: 201 })
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    console.error('Error inviting staff:', error)
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+  }
+}

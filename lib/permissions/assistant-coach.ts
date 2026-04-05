@@ -1,110 +1,179 @@
 /**
- * Assistant Coach Permission System
+ * Staff Permission System
  *
- * Defines what assistant coaches can and cannot do.
+ * Centralized permission definitions for all business roles.
  * Used by API routes and UI components to enforce access control.
+ *
+ * Role Hierarchy:
+ * - OWNER:             Full access, billing
+ * - ADMIN (Sportchef): Full view, staff management, no billing
+ * - COACH (Huvudtränare): Full coaching, programs, AI, tests
+ * - PHYSICAL_TRAINER (Fystränare): Programs, tests, intervals, studios (team-scoped)
+ * - ASSISTANT_COACH (Assisterande tränare): Run tests/intervals, view only (team-scoped)
+ * - PHYSIO (Fysioterapeut): Medical, restrictions, injury (team-scoped)
  */
 
 import { prisma } from '@/lib/prisma'
 
-export interface AssistantCoachPermissions {
-  isAssistantCoach: boolean
-  /** Can view athletes, test results, programs (read-only) */
+export type StaffRole = 'OWNER' | 'ADMIN' | 'COACH' | 'PHYSICAL_TRAINER' | 'ASSISTANT_COACH' | 'PHYSIO' | 'MEMBER'
+
+export const ROLE_LABELS: Record<string, string> = {
+  OWNER: 'Ägare',
+  ADMIN: 'Sportchef',
+  COACH: 'Huvudtränare',
+  PHYSICAL_TRAINER: 'Fystränare',
+  ASSISTANT_COACH: 'Assisterande tränare',
+  PHYSIO: 'Fysioterapeut',
+  MEMBER: 'Medlem',
+}
+
+export const INVITABLE_ROLES: { value: StaffRole; label: string; description: string }[] = [
+  { value: 'COACH', label: 'Huvudtränare', description: 'Full tillgång till coaching, program och AI' },
+  { value: 'PHYSICAL_TRAINER', label: 'Fystränare', description: 'Träningsprogram, tester, intervaller för tilldelade lag' },
+  { value: 'ASSISTANT_COACH', label: 'Assisterande tränare', description: 'Köra tester och intervaller, visa resultat' },
+  { value: 'PHYSIO', label: 'Fysioterapeut', description: 'Skadehantering och rehabilitering' },
+  { value: 'ADMIN', label: 'Sportchef', description: 'Personalhantering, full översikt, kalender' },
+]
+
+export interface StaffPermissions {
+  role: StaffRole
+  roleLabel: string
+  isTeamScoped: boolean
+
+  // Content access
   canViewAthletes: boolean
-  /** Can run interval timing sessions */
-  canRunIntervals: boolean
-  /** Can run physiological tests */
-  canRunTests: boolean
-  /** Can create team calendar events */
-  canCreateEvents: boolean
-  /** Can create/edit training programs */
+  canViewTestResults: boolean
+  canViewProgress: boolean
+
+  // Training
   canEditPrograms: boolean
-  /** Can access AI Studio features */
+  canRunIntervals: boolean
+  canRunTests: boolean
+  canAccessStudios: boolean
   canAccessAI: boolean
-  /** Can manage billing/subscription */
+
+  // Calendar
+  canViewCalendar: boolean
+  canCreateEvents: boolean
+
+  // Management
+  canInviteStaff: boolean
+  canAssignTeams: boolean
   canManageBilling: boolean
-  /** Can change business settings */
   canManageSettings: boolean
-  /** Team IDs this assistant has access to */
+
+  // Team scope
   assignedTeamIds: string[]
 }
 
-const FULL_ACCESS: AssistantCoachPermissions = {
-  isAssistantCoach: false,
-  canViewAthletes: true,
-  canRunIntervals: true,
-  canRunTests: true,
-  canCreateEvents: true,
-  canEditPrograms: true,
-  canAccessAI: true,
-  canManageBilling: true,
-  canManageSettings: true,
-  assignedTeamIds: [],
+const PERMISSION_MATRIX: Record<string, Omit<StaffPermissions, 'role' | 'roleLabel' | 'assignedTeamIds'>> = {
+  OWNER: {
+    isTeamScoped: false,
+    canViewAthletes: true, canViewTestResults: true, canViewProgress: true,
+    canEditPrograms: true, canRunIntervals: true, canRunTests: true, canAccessStudios: true, canAccessAI: true,
+    canViewCalendar: true, canCreateEvents: true,
+    canInviteStaff: true, canAssignTeams: true, canManageBilling: true, canManageSettings: true,
+  },
+  ADMIN: {
+    isTeamScoped: false,
+    canViewAthletes: true, canViewTestResults: true, canViewProgress: true,
+    canEditPrograms: false, canRunIntervals: false, canRunTests: false, canAccessStudios: false, canAccessAI: false,
+    canViewCalendar: true, canCreateEvents: true,
+    canInviteStaff: true, canAssignTeams: true, canManageBilling: false, canManageSettings: true,
+  },
+  COACH: {
+    isTeamScoped: false,
+    canViewAthletes: true, canViewTestResults: true, canViewProgress: true,
+    canEditPrograms: true, canRunIntervals: true, canRunTests: true, canAccessStudios: true, canAccessAI: true,
+    canViewCalendar: true, canCreateEvents: true,
+    canInviteStaff: false, canAssignTeams: false, canManageBilling: false, canManageSettings: false,
+  },
+  PHYSICAL_TRAINER: {
+    isTeamScoped: true,
+    canViewAthletes: true, canViewTestResults: true, canViewProgress: true,
+    canEditPrograms: true, canRunIntervals: true, canRunTests: true, canAccessStudios: true, canAccessAI: true,
+    canViewCalendar: true, canCreateEvents: true,
+    canInviteStaff: false, canAssignTeams: false, canManageBilling: false, canManageSettings: false,
+  },
+  ASSISTANT_COACH: {
+    isTeamScoped: true,
+    canViewAthletes: true, canViewTestResults: true, canViewProgress: true,
+    canEditPrograms: false, canRunIntervals: true, canRunTests: true, canAccessStudios: false, canAccessAI: false,
+    canViewCalendar: true, canCreateEvents: true,
+    canInviteStaff: false, canAssignTeams: false, canManageBilling: false, canManageSettings: false,
+  },
+  PHYSIO: {
+    isTeamScoped: true,
+    canViewAthletes: true, canViewTestResults: true, canViewProgress: true,
+    canEditPrograms: false, canRunIntervals: false, canRunTests: false, canAccessStudios: false, canAccessAI: false,
+    canViewCalendar: true, canCreateEvents: false,
+    canInviteStaff: false, canAssignTeams: false, canManageBilling: false, canManageSettings: false,
+  },
+  MEMBER: {
+    isTeamScoped: false,
+    canViewAthletes: false, canViewTestResults: false, canViewProgress: false,
+    canEditPrograms: false, canRunIntervals: false, canRunTests: false, canAccessStudios: false, canAccessAI: false,
+    canViewCalendar: false, canCreateEvents: false,
+    canInviteStaff: false, canAssignTeams: false, canManageBilling: false, canManageSettings: false,
+  },
 }
 
 /**
  * Get permissions for a user in a business context.
- * Returns full access for OWNER/ADMIN/COACH roles.
- * Returns restricted access for ASSISTANT_COACH.
  */
-export async function getCoachPermissions(
+export async function getStaffPermissions(
   userId: string,
   businessSlug?: string
-): Promise<AssistantCoachPermissions> {
-  // Find the user's business membership
+): Promise<StaffPermissions> {
   const membership = await prisma.businessMember.findFirst({
     where: {
       userId,
       isActive: true,
       ...(businessSlug ? { business: { slug: businessSlug } } : {}),
     },
-    select: { role: true, businessId: true },
+    select: { role: true },
   })
 
+  const role = (membership?.role || 'MEMBER') as StaffRole
+
+  // Check if user is a direct COACH (no business membership)
   if (!membership) {
-    // Check if user is a direct COACH (no business)
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { role: true },
     })
     if (user?.role === 'COACH' || user?.role === 'ADMIN') {
-      return FULL_ACCESS
+      return {
+        ...PERMISSION_MATRIX.COACH,
+        role: 'COACH',
+        roleLabel: ROLE_LABELS.COACH,
+        assignedTeamIds: [],
+      }
     }
-    return { ...FULL_ACCESS, isAssistantCoach: true, canEditPrograms: false, canAccessAI: false, canManageBilling: false, canManageSettings: false, assignedTeamIds: [] }
   }
 
-  // Full access for OWNER, ADMIN, COACH
-  if (membership.role !== 'ASSISTANT_COACH') {
-    return FULL_ACCESS
-  }
+  const perms = PERMISSION_MATRIX[role] || PERMISSION_MATRIX.MEMBER
 
-  // Assistant coach - get team assignments
-  const assignments = await prisma.teamCoachAssignment.findMany({
-    where: { userId },
-    select: {
-      teamId: true,
-      canRunTests: true,
-      canRunIntervals: true,
-      canCreateEvents: true,
-    },
-  })
+  // Get team assignments for team-scoped roles
+  let assignedTeamIds: string[] = []
+  if (perms.isTeamScoped) {
+    const assignments = await prisma.teamCoachAssignment.findMany({
+      where: { userId },
+      select: { teamId: true },
+    })
+    assignedTeamIds = assignments.map((a) => a.teamId)
+  }
 
   return {
-    isAssistantCoach: true,
-    canViewAthletes: true,
-    canRunIntervals: assignments.some((a) => a.canRunIntervals),
-    canRunTests: assignments.some((a) => a.canRunTests),
-    canCreateEvents: assignments.some((a) => a.canCreateEvents),
-    canEditPrograms: false,
-    canAccessAI: false,
-    canManageBilling: false,
-    canManageSettings: false,
-    assignedTeamIds: assignments.map((a) => a.teamId),
+    ...perms,
+    role,
+    roleLabel: ROLE_LABELS[role] || role,
+    assignedTeamIds,
   }
 }
 
 /**
- * Check if a user can access a specific team (as assistant or coach).
+ * Check if a user can access a specific team.
  */
 export async function canAccessTeam(userId: string, teamId: string): Promise<boolean> {
   // Check if user owns the team
@@ -113,7 +182,17 @@ export async function canAccessTeam(userId: string, teamId: string): Promise<boo
   })
   if (team) return true
 
-  // Check assistant coach assignment
+  // Check if user has a non-team-scoped role (OWNER, ADMIN, COACH)
+  const membership = await prisma.businessMember.findFirst({
+    where: {
+      userId,
+      isActive: true,
+      role: { in: ['OWNER', 'ADMIN', 'COACH'] },
+    },
+  })
+  if (membership) return true
+
+  // Check team-scoped assignment
   const assignment = await prisma.teamCoachAssignment.findFirst({
     where: { teamId, userId },
   })
@@ -122,10 +201,8 @@ export async function canAccessTeam(userId: string, teamId: string): Promise<boo
 
 /**
  * Check if user can access a specific client (athlete).
- * Assistant coaches can access athletes in their assigned teams.
  */
-export async function canAssistantAccessClient(userId: string, clientId: string): Promise<boolean> {
-  // Get assistant's team assignments
+export async function canStaffAccessClient(userId: string, clientId: string): Promise<boolean> {
   const assignments = await prisma.teamCoachAssignment.findMany({
     where: { userId },
     select: { teamId: true },
@@ -133,7 +210,6 @@ export async function canAssistantAccessClient(userId: string, clientId: string)
 
   if (assignments.length === 0) return false
 
-  // Check if the client belongs to any of the assigned teams
   const client = await prisma.client.findFirst({
     where: {
       id: clientId,

@@ -676,7 +676,7 @@ export async function canAccessClient(
             where: {
               userId,
               isActive: true,
-              role: { in: ['OWNER', 'ADMIN', 'COACH', 'ASSISTANT_COACH'] },
+              role: { in: ['OWNER', 'ADMIN', 'COACH', 'PHYSICAL_TRAINER', 'ASSISTANT_COACH'] },
             },
             select: { businessId: true },
           })
