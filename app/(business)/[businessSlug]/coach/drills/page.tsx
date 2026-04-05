@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DrillCreator } from '@/components/coach/drills/DrillCreator'
 import { DrillList } from '@/components/coach/drills/DrillList'
+import { DrillEditorPage } from '@/components/coach/drills/DrillEditorPage'
 import { ClipboardList } from 'lucide-react'
 
 interface PageProps {
@@ -39,11 +40,16 @@ export default async function DrillsPage({ params }: PageProps) {
       <Tabs defaultValue="create" className="space-y-4">
         <TabsList>
           <TabsTrigger value="create">Skapa ny</TabsTrigger>
+          <TabsTrigger value="draw">Rita</TabsTrigger>
           <TabsTrigger value="library">Övningsbibliotek</TabsTrigger>
         </TabsList>
 
         <TabsContent value="create">
           <DrillCreator teams={teams} businessSlug={businessSlug} />
+        </TabsContent>
+
+        <TabsContent value="draw">
+          <DrillEditorPage teams={teams} />
         </TabsContent>
 
         <TabsContent value="library">

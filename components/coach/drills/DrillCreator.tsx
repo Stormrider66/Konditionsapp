@@ -13,9 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Camera, Upload, Loader2, Save, Send, Sparkles, Play } from 'lucide-react'
+import { Camera, Upload, Loader2, Save, Send, Sparkles, Play, Pencil } from 'lucide-react'
 import { IceHockeyRink, type DrillStructure } from './IceHockeyRink'
 import { DrillAnimationPlayer } from './DrillAnimationPlayer'
+import { InteractiveDrillEditor } from './InteractiveDrillEditor'
 import { toast } from 'sonner'
 
 interface Team {
@@ -40,6 +41,7 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [sourceImageUrl, setSourceImageUrl] = useState<string | null>(null)
   const [showAnimation, setShowAnimation] = useState(false)
+  const [editorMode, setEditorMode] = useState(false)
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -101,7 +103,7 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
           teamId: teamId && teamId !== 'none' ? teamId : null,
           sportType: 'ICE_HOCKEY',
           structure,
-          sourceType: previewImage ? 'CLIPBOARD_PHOTO' : 'MANUAL',
+          sourceType: previewImage ? 'CLIPBOARD_PHOTO' : editorMode ? 'MANUAL_EDITOR' : 'MANUAL',
           sourceImageUrl,
           isPublished: publish,
         }),
@@ -116,6 +118,8 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
       setStructure(null)
       setPreviewImage(null)
       setTeamId('')
+      setEditorMode(false)
+      setShowAnimation(false)
     } catch {
       toast.error('Kunde inte spara övningen')
     } finally {
@@ -190,14 +194,40 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
         </CardContent>
       </Card>
 
-      {/* Drill details (shown after analysis or manual creation) */}
-      {structure && (
-        <>
-          {/* Rink visualization */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Övningsdiagram</CardTitle>
+      {/* Manual editor */}
+      {!editorMode && !structure && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Pencil className="h-5 w-5 text-blue-500" />
+              Rita övning manuellt
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Placera spelare, rita rörelser och passningar direkt på rinken.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditorMode(true)
+                setStructure({ players: [], movements: [], zones: [], annotations: [] })
+              }}
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Öppna redigerare
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Interactive editor */}
+      {editorMode && structure && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Redigerare</CardTitle>
+              <div className="flex items-center gap-2">
                 {structure.movements?.length > 0 && (
                   <Button
                     variant="outline"
@@ -205,24 +235,65 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
                     onClick={() => setShowAnimation(!showAnimation)}
                   >
                     <Play className="h-3.5 w-3.5 mr-1.5" />
-                    {showAnimation ? 'Visa diagram' : 'Animera'}
+                    {showAnimation ? 'Redigera' : 'Förhandsgranska'}
                   </Button>
                 )}
               </div>
-            </CardHeader>
-            <CardContent>
-              {showAnimation ? (
-                <DrillAnimationPlayer
-                  title={title || 'Övning'}
-                  description={description || undefined}
-                  structure={structure}
-                  locale="sv"
-                />
-              ) : (
-                <IceHockeyRink structure={structure} className="mx-auto" />
-              )}
-            </CardContent>
-          </Card>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {showAnimation ? (
+              <DrillAnimationPlayer
+                title={title || 'Övning'}
+                description={description || undefined}
+                structure={structure}
+                locale="sv"
+              />
+            ) : (
+              <InteractiveDrillEditor
+                initialStructure={structure}
+                onChange={(s) => setStructure(s)}
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Drill details (shown after analysis or manual creation) */}
+      {structure && (
+        <>
+          {/* Rink visualization (only for AI-analyzed drills, editor has its own) */}
+          {!editorMode && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Övningsdiagram</CardTitle>
+                  {structure.movements?.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAnimation(!showAnimation)}
+                    >
+                      <Play className="h-3.5 w-3.5 mr-1.5" />
+                      {showAnimation ? 'Visa diagram' : 'Animera'}
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {showAnimation ? (
+                  <DrillAnimationPlayer
+                    title={title || 'Övning'}
+                    description={description || undefined}
+                    structure={structure}
+                    locale="sv"
+                  />
+                ) : (
+                  <IceHockeyRink structure={structure} className="mx-auto" />
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Edit details */}
           <Card>
