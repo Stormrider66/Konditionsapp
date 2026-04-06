@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { IceHockeyRink, type DrillStructure } from './IceHockeyRink'
 import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 import type { DrillSportType } from '@/remotion/drills/surfaces'
 import { Button } from '@/components/ui/button'
-import { ClipboardList, Play } from 'lucide-react'
+import { ClipboardList, Play, Download } from 'lucide-react'
+import { exportDrillPDF } from '@/lib/drills/export-pdf'
 import { toast } from 'sonner'
 
 interface Drill {
@@ -36,6 +37,33 @@ export function DrillList({ teamId }: DrillListProps) {
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [animatingId, setAnimatingId] = useState<string | null>(null)
+  const rinkRef = useRef<HTMLDivElement>(null)
+
+  const handleExportPDF = useCallback(
+    async (drill: Drill) => {
+      // Find the SVG element inside the rink container
+      const svg = rinkRef.current?.querySelector('svg')
+      if (!svg) {
+        toast.error('Visa diagrammet först')
+        return
+      }
+      try {
+        await exportDrillPDF(svg as SVGSVGElement, {
+          title: drill.title,
+          description: drill.description || undefined,
+          sportType: drill.sportType,
+          structure: drill.structure,
+          createdBy: drill.createdBy.name,
+          teamName: drill.team?.name,
+          createdAt: drill.createdAt,
+        })
+        toast.success('PDF nedladdad!')
+      } catch {
+        toast.error('Kunde inte skapa PDF')
+      }
+    },
+    []
+  )
 
   useEffect(() => {
     const fetchDrills = async () => {
@@ -126,12 +154,14 @@ export function DrillList({ teamId }: DrillListProps) {
                     sportType={(drill.sportType as DrillSportType) || 'ICE_HOCKEY'}
                   />
                 ) : (
-                  <IceHockeyRink structure={drill.structure} className="mx-auto" />
+                  <div ref={rinkRef}>
+                    <IceHockeyRink structure={drill.structure} className="mx-auto" />
+                  </div>
                 )}
 
-                {/* Toggle animation button */}
-                {drill.structure.movements?.length > 0 && (
-                  <div className="flex justify-center">
+                {/* Action buttons */}
+                <div className="flex justify-center gap-2">
+                  {drill.structure.movements?.length > 0 && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -143,8 +173,21 @@ export function DrillList({ teamId }: DrillListProps) {
                       <Play className="h-3.5 w-3.5 mr-1.5" />
                       {animatingId === drill.id ? 'Visa diagram' : 'Animera'}
                     </Button>
-                  </div>
-                )}
+                  )}
+                  {animatingId !== drill.id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleExportPDF(drill)
+                      }}
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1.5" />
+                      PDF
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </CardContent>

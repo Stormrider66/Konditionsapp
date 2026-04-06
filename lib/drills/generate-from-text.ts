@@ -49,6 +49,13 @@ Player labels: PG, SG, SF, PF, C.`,
 - Y: 0 (top boards) to 100 (bottom boards)
 - Center: x=100, y=50
 Player labels: C, LW, RW, LD, RD, G.`,
+
+  VOLLEYBALL: `Coordinate system (FIVB volleyball court):
+- X: 0 (left end) to 180 (right end)
+- Y: 0 (top sideline) to 90 (bottom sideline)
+- Net/center line at x=90
+- Attack lines at x=60 and x=120
+Player labels: S (setter), OH (outside hitter), OPP (opposite), MB (middle blocker), L (libero), RS (right side).`,
 }
 
 function buildPrompt(sportType: string): string {

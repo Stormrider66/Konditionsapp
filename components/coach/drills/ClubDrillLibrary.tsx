@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -22,7 +22,9 @@ import {
   Globe,
   Users,
   Calendar,
+  Download,
 } from 'lucide-react'
+import { exportDrillPDF } from '@/lib/drills/export-pdf'
 import { toast } from 'sonner'
 
 interface SharedDrill {
@@ -71,6 +73,32 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [animatingId, setAnimatingId] = useState<string | null>(null)
   const [copying, setCopying] = useState<string | null>(null)
+  const rinkRef = useRef<HTMLDivElement>(null)
+
+  const handleExportPDF = useCallback(
+    async (drill: SharedDrill) => {
+      const svg = rinkRef.current?.querySelector('svg')
+      if (!svg) {
+        toast.error('Visa diagrammet först')
+        return
+      }
+      try {
+        await exportDrillPDF(svg as SVGSVGElement, {
+          title: drill.title,
+          description: drill.description || undefined,
+          sportType: drill.sportType,
+          structure: drill.structure,
+          createdBy: drill.createdBy.name,
+          teamName: drill.team?.name,
+          createdAt: drill.createdAt,
+        })
+        toast.success('PDF nedladdad!')
+      } catch {
+        toast.error('Kunde inte skapa PDF')
+      }
+    },
+    []
+  )
 
   useEffect(() => {
     const fetchDrills = async () => {
@@ -272,7 +300,9 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
                           sportType={(drill.sportType as DrillSportType) || 'ICE_HOCKEY'}
                         />
                       ) : (
-                        <IceHockeyRink structure={drill.structure} className="mx-auto" />
+                        <div ref={rinkRef}>
+                          <IceHockeyRink structure={drill.structure} className="mx-auto" />
+                        </div>
                       )}
 
                       <div className="flex flex-wrap items-center gap-2 justify-center">
@@ -304,6 +334,16 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
                               ))}
                             </SelectContent>
                           </Select>
+                        )}
+                        {!isAnimating && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleExportPDF(drill)}
+                          >
+                            <Download className="h-3.5 w-3.5 mr-1" />
+                            PDF
+                          </Button>
                         )}
                       </div>
                     </div>

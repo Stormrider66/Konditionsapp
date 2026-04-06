@@ -5,6 +5,7 @@ import { FootballPitchSurface } from "../surfaces/FootballPitchSurface";
 import { HandballCourtSurface } from "../surfaces/HandballCourtSurface";
 import { BasketballCourtSurface } from "../surfaces/BasketballCourtSurface";
 import { FloorballRinkSurface } from "../surfaces/FloorballRinkSurface";
+import { VolleyballCourtSurface } from "../surfaces/VolleyballCourtSurface";
 import { DrillPlayer } from "../components/DrillPlayer";
 import { Puck } from "../components/Puck";
 import { AnimatedMovement } from "../components/AnimatedMovement";
@@ -12,7 +13,7 @@ import { PhaseOverlay } from "../components/PhaseOverlay";
 
 // ─── Sport surface mapping (inline to avoid index barrel in Remotion) ────
 
-type SportType = "ICE_HOCKEY" | "FOOTBALL" | "HANDBALL" | "BASKETBALL" | "FLOORBALL";
+type SportType = "ICE_HOCKEY" | "FOOTBALL" | "HANDBALL" | "BASKETBALL" | "FLOORBALL" | "VOLLEYBALL";
 
 const SPORT_SURFACE_MAP: Record<SportType, { Surface: React.FC; w: number; h: number; bg: string }> = {
   ICE_HOCKEY: { Surface: IceHockeyRinkSurface, w: 200, h: 85, bg: "#f0f4f8" },
@@ -20,6 +21,7 @@ const SPORT_SURFACE_MAP: Record<SportType, { Surface: React.FC; w: number; h: nu
   HANDBALL: { Surface: HandballCourtSurface, w: 200, h: 100, bg: "#c49a5c" },
   BASKETBALL: { Surface: BasketballCourtSurface, w: 280, h: 150, bg: "#b07838" },
   FLOORBALL: { Surface: FloorballRinkSurface, w: 200, h: 100, bg: "#e8e8e8" },
+  VOLLEYBALL: { Surface: VolleyballCourtSurface, w: 180, h: 90, bg: "#d49530" },
 };
 
 const SPORT_MOVEMENT_LABELS: Record<SportType, Record<string, Record<string, string>>> = {
@@ -28,6 +30,7 @@ const SPORT_MOVEMENT_LABELS: Record<SportType, Record<string, Record<string, str
   HANDBALL: { sv: { skate: "Löpning", pass: "Passning", shot: "Skott", puck: "Boll" }, en: { skate: "Run", pass: "Pass", shot: "Shot", puck: "Ball" } },
   BASKETBALL: { sv: { skate: "Löpning", pass: "Passning", shot: "Skott", puck: "Boll" }, en: { skate: "Run", pass: "Pass", shot: "Shot", puck: "Ball" } },
   FLOORBALL: { sv: { skate: "Löpning", pass: "Passning", shot: "Skott", puck: "Boll" }, en: { skate: "Run", pass: "Pass", shot: "Shot", puck: "Ball" } },
+  VOLLEYBALL: { sv: { skate: "Löpning", pass: "Passning", shot: "Smash", puck: "Boll" }, en: { skate: "Run", pass: "Pass", shot: "Spike", puck: "Ball" } },
 };
 
 // ─── Types (mirrors the DrillStructure from IceHockeyRink.tsx) ───────────

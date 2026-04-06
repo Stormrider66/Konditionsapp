@@ -4,6 +4,7 @@ import { FootballPitchSurface, FOOTBALL_PITCH_CONFIG } from "./FootballPitchSurf
 import { HandballCourtSurface, HANDBALL_COURT_CONFIG } from "./HandballCourtSurface";
 import { BasketballCourtSurface, BASKETBALL_COURT_CONFIG } from "./BasketballCourtSurface";
 import { FloorballRinkSurface, FLOORBALL_RINK_CONFIG } from "./FloorballRinkSurface";
+import { VolleyballCourtSurface, VOLLEYBALL_COURT_CONFIG } from "./VolleyballCourtSurface";
 
 // ─── Sport type literals ────────────────────────────────────────────────
 
@@ -12,7 +13,8 @@ export type DrillSportType =
   | "FOOTBALL"
   | "HANDBALL"
   | "BASKETBALL"
-  | "FLOORBALL";
+  | "FLOORBALL"
+  | "VOLLEYBALL";
 
 // ─── Config per sport ───────────────────────────────────────────────────
 
@@ -104,6 +106,18 @@ export const SPORT_SURFACES: Record<DrillSportType, SportSurfaceConfig> = {
       puck: "Boll",
     },
   },
+  VOLLEYBALL: {
+    ...VOLLEYBALL_COURT_CONFIG,
+    Surface: VolleyballCourtSurface,
+    positionLabels: ["S", "OH", "OPP", "MB", "L", "RS"],
+    ballLabel: "Boll",
+    movementLabels: {
+      skate: "Löpning",
+      pass: "Passning",
+      shot: "Smash",
+      puck: "Boll",
+    },
+  },
 };
 
 /**
@@ -125,4 +139,5 @@ export const DRILL_SPORT_OPTIONS: { value: DrillSportType; label: string }[] = [
   { value: "HANDBALL", label: "Handboll" },
   { value: "BASKETBALL", label: "Basket" },
   { value: "FLOORBALL", label: "Innebandy" },
+  { value: "VOLLEYBALL", label: "Volleyboll" },
 ];
