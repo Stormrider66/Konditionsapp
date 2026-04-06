@@ -7,6 +7,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { isSMSConfigured, sendBulkSMS, normalizePhoneNumber } from '@/lib/sms'
 
 interface BroadcastOptions {
   postId: string
@@ -147,6 +148,40 @@ export async function sendBroadcast(options: BroadcastOptions): Promise<{ sent: 
       }
     } catch (err) {
       logger.error('Email broadcast failed', { postId, error: String(err) })
+    }
+  }
+
+  // Send SMS (if configured and requested)
+  if (options.notifySMS && isSMSConfigured()) {
+    try {
+      // Get phone numbers for target users' athlete clients
+      const clientsWithPhone = await prisma.client.findMany({
+        where: {
+          phone: { not: null },
+          athleteAccount: {
+            userId: { in: targetUserIds },
+          },
+        },
+        select: { phone: true },
+      })
+
+      const smsRecipients = clientsWithPhone
+        .filter((c) => c.phone)
+        .map((c) => ({
+          phone: c.phone!,
+          body: `${authorName}: ${title || type}\n\n${message.slice(0, 160)}`,
+        }))
+
+      if (smsRecipients.length > 0) {
+        const result = await sendBulkSMS(smsRecipients)
+        logger.info('Sent SMS broadcast', {
+          postId,
+          sent: result.sent,
+          failed: result.failed,
+        })
+      }
+    } catch (err) {
+      logger.error('SMS broadcast failed', { postId, error: String(err) })
     }
   }
 
