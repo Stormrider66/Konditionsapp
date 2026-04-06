@@ -154,9 +154,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
       // Create free athlete subscription
       await tx.athleteSubscription.create({
         data: {
-          userId: user.id,
+          clientId: client.id,
           tier: 'FREE',
-          isActive: true,
         },
       })
 
