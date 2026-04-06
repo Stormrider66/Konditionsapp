@@ -8,6 +8,7 @@ import { DrillList } from '@/components/coach/drills/DrillList'
 import { DrillEditorPage } from '@/components/coach/drills/DrillEditorPage'
 import { DrillTemplatePage } from '@/components/coach/drills/DrillTemplatePage'
 import { PracticePlanner } from '@/components/coach/drills/PracticePlanner'
+import { ClubDrillLibrary } from '@/components/coach/drills/ClubDrillLibrary'
 import { ClipboardList } from 'lucide-react'
 
 interface PageProps {
@@ -45,6 +46,7 @@ export default async function DrillsPage({ params }: PageProps) {
           <TabsTrigger value="draw">Rita</TabsTrigger>
           <TabsTrigger value="templates">Mallar</TabsTrigger>
           <TabsTrigger value="plan">Planera</TabsTrigger>
+          <TabsTrigger value="club">Klubb</TabsTrigger>
           <TabsTrigger value="library">Sparade</TabsTrigger>
         </TabsList>
 
@@ -62,6 +64,10 @@ export default async function DrillsPage({ params }: PageProps) {
 
         <TabsContent value="plan">
           <PracticePlanner teams={teams} />
+        </TabsContent>
+
+        <TabsContent value="club">
+          <ClubDrillLibrary teams={teams} />
         </TabsContent>
 
         <TabsContent value="library">

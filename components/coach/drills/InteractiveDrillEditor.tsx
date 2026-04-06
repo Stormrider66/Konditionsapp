@@ -344,6 +344,45 @@ export function InteractiveDrillEditor({
     }
   }, [draggingId, players, movements, zones, annotations, emitChange])
 
+  // ─── Touch handlers (map to mouse events) ─────────────────────────
+
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent<SVGSVGElement>) => {
+      if (e.touches.length !== 1) return
+      e.preventDefault()
+      const touch = e.touches[0]
+      const syntheticEvent = {
+        button: 0,
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+      } as React.MouseEvent<SVGSVGElement>
+      handleMouseDown(syntheticEvent)
+    },
+    [handleMouseDown]
+  )
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent<SVGSVGElement>) => {
+      if (e.touches.length !== 1) return
+      e.preventDefault()
+      const touch = e.touches[0]
+      const syntheticEvent = {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+      } as React.MouseEvent<SVGSVGElement>
+      handleMouseMove(syntheticEvent)
+    },
+    [handleMouseMove]
+  )
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent<SVGSVGElement>) => {
+      e.preventDefault()
+      handleMouseUp()
+    },
+    [handleMouseUp]
+  )
+
   // ─── Delete selected ──────────────────────────────────────────────
 
   const deleteSelected = useCallback(() => {
@@ -671,6 +710,9 @@ export function InteractiveDrillEditor({
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           >
             {/* Sport surface (dynamic) */}
             <SurfaceComponent />

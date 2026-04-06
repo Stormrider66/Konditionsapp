@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { IceHockeyRink, type DrillStructure } from '@/components/coach/drills/IceHockeyRink'
-import { ClipboardList } from 'lucide-react'
+import type { DrillStructure } from '@/components/coach/drills/IceHockeyRink'
+import { AthleteDrillViewer } from './AthleteDrillViewer'
+import { ClipboardList, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface Drill {
   id: string
@@ -17,11 +18,23 @@ interface Drill {
   createdBy: { name: string }
 }
 
+interface AthleteDrillListProps {
+  athletePosition?: string // e.g. "LW" — highlight on rink
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
 }
 
-export function AthleteDrillList() {
+const SPORT_LABELS: Record<string, string> = {
+  ICE_HOCKEY: 'Ishockey',
+  FOOTBALL: 'Fotboll',
+  HANDBALL: 'Handboll',
+  BASKETBALL: 'Basket',
+  FLOORBALL: 'Innebandy',
+}
+
+export function AthleteDrillList({ athletePosition }: AthleteDrillListProps) {
   const [drills, setDrills] = useState<Drill[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -55,37 +68,54 @@ export function AthleteDrillList() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {drills.map((drill) => (
-          <div
-            key={drill.id}
-            className="cursor-pointer"
-            onClick={() => setExpandedId(expandedId === drill.id ? null : drill.id)}
-          >
-            <div className="flex items-start justify-between py-2">
-              <div>
-                <p className="font-medium text-sm">{drill.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {formatDate(drill.createdAt)} · {drill.createdBy.name}
-                  {drill.team && ` · ${drill.team.name}`}
-                </p>
+        {drills.map((drill) => {
+          const isExpanded = expandedId === drill.id
+          return (
+            <div key={drill.id}>
+              <div
+                className="cursor-pointer flex items-start justify-between py-2"
+                onClick={() => setExpandedId(isExpanded ? null : drill.id)}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-medium text-sm truncate">{drill.title}</p>
+                    {isExpanded ? (
+                      <ChevronUp className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(drill.createdAt)} · {drill.createdBy.name}
+                    {drill.team && ` · ${drill.team.name}`}
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-[9px] shrink-0">
+                  {SPORT_LABELS[drill.sportType] || drill.sportType}
+                </Badge>
               </div>
-              <Badge variant="outline" className="text-[9px] shrink-0">
-                {drill.sportType === 'ICE_HOCKEY' ? 'Ishockey' : drill.sportType}
-              </Badge>
+
+              {isExpanded && (
+                <div className="pb-3 space-y-3">
+                  {drill.description && (
+                    <p className="text-sm text-muted-foreground">{drill.description}</p>
+                  )}
+                  <AthleteDrillViewer
+                    title={drill.title}
+                    description={drill.description || undefined}
+                    structure={drill.structure}
+                    sportType={drill.sportType}
+                    highlightPosition={athletePosition}
+                  />
+                </div>
+              )}
+
+              {!isExpanded && drills.indexOf(drill) < drills.length - 1 && (
+                <div className="border-b" />
+              )}
             </div>
-            {expandedId === drill.id && (
-              <div className="pb-3">
-                {drill.description && (
-                  <p className="text-sm text-muted-foreground mb-3">{drill.description}</p>
-                )}
-                <IceHockeyRink structure={drill.structure} className="mx-auto" />
-              </div>
-            )}
-            {expandedId !== drill.id && drills.indexOf(drill) < drills.length - 1 && (
-              <div className="border-b" />
-            )}
-          </div>
-        ))}
+          )
+        })}
       </CardContent>
     </Card>
   )

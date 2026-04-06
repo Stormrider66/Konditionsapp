@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const teamId = searchParams.get('teamId')
     const sportType = searchParams.get('sportType')
+    const shared = searchParams.get('shared') === 'true'
 
     const membership = await prisma.businessMember.findFirst({
       where: { userId: user.id, isActive: true },
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
     const drills = await prisma.teamDrill.findMany({
       where: {
         businessId: membership.businessId,
+        ...(shared ? { isPublished: true } : {}),
         ...(teamId ? { teamId } : {}),
         ...(sportType ? { sportType } : {}),
       },
