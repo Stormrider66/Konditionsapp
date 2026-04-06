@@ -19,6 +19,7 @@ import { InteractiveDrillEditor } from './InteractiveDrillEditor'
 import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 import type { DrillStructure } from './IceHockeyRink'
 import type { DrillTemplate } from '@/lib/drills/templates'
+import type { DrillSportType } from '@/remotion/drills/surfaces'
 import { toast } from 'sonner'
 
 interface Team {
@@ -144,10 +145,12 @@ export function DrillTemplatePage({ teams }: DrillTemplatePageProps) {
               description={description || undefined}
               structure={structure}
               locale="sv"
+              sportType={(selectedTemplate?.sportType as DrillSportType) || 'ICE_HOCKEY'}
             />
           ) : (
             <InteractiveDrillEditor
               initialStructure={structure}
+              sportType={(selectedTemplate?.sportType as DrillSportType) || 'ICE_HOCKEY'}
               onChange={(s) => {
                 setStructure(s)
                 setShowAnimation(false)

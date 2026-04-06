@@ -156,6 +156,8 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
       setTeamId('')
       setEditorMode(false)
       setShowAnimation(false)
+      setTextPrompt('')
+      setGenerating(false)
     } catch {
       toast.error('Kunde inte spara övningen')
     } finally {

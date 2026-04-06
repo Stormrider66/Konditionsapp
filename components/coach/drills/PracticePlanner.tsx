@@ -83,10 +83,10 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
   useEffect(() => {
     const fetchDrills = async () => {
       try {
-        const res = await fetch('/api/coach/drills')
+        const res = await fetch('/api/coach/drills?shared=true')
         if (res.ok) {
           const data = await res.json()
-          setSavedDrills((data.drills || []).filter((d: SavedDrill & { isPublished: boolean }) => d.isPublished))
+          setSavedDrills(data.drills || [])
         }
       } catch {
         // silently fail
