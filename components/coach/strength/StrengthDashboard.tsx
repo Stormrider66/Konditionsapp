@@ -408,7 +408,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
           </div>
 
           {/* Weekly program banner */}
-          {weeklySessionQueue.length > 1 && (
+          {weeklySessionQueue.length > 1 && weeklySessionQueue.length > currentWeeklyIndex && (
             <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div>
@@ -445,7 +445,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
               onSaved={(sessionId) => {
                 if (fromCalendar && calendarClientId && calendarDate && sessionId) {
                   setCalendarAssignSessionId(sessionId)
-                } else if (weeklySessionQueue.length > 1) {
+                } else if (weeklySessionQueue.length > 0) {
                   // Track saved session ID
                   if (sessionId) {
                     setWeeklySavedIds((prev) => [...prev, sessionId])
@@ -470,6 +470,9 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
                 setEditSession(null)
                 setWeeklySessionQueue([])
                 setCurrentWeeklyIndex(0)
+                setWeeklyRationales([])
+                setWeeklySavedIds([])
+                setWeeklyAthleteId(null)
                 setActiveTab('sessions')
               } : undefined}
             />

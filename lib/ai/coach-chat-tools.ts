@@ -9,6 +9,9 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { generateStrengthSession, generateWeeklyProgram, type AutoGenerateParams } from '@/lib/training-engine/generators/auto-strength-generator'
+import { calculatePhases, estimateGenerationMinutes, generateMultiPartProgram, type GenerationContext } from '@/lib/ai/program-generator'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
+import { resolveModel } from '@/types/ai-models'
 import { logger } from '@/lib/logger'
 import type { StrengthPhase } from '@prisma/client'
 
@@ -525,6 +528,153 @@ export function createCoachChatTools(coachUserId: string) {
         } catch (error) {
           logger.error('Error in createSportWorkout tool', {}, error)
           return { success: false, error: 'Kunde inte skapa sportpass.' }
+        }
+      },
+    }),
+
+    generateTrainingProgram: tool({
+      description: 'Starta generering av ett komplett flervekkors träningsprogram åt en atlet. Programmet genereras i bakgrunden (1-10 min) med AI och sparas automatiskt. Stödjer alla sporter och metodiker (Polarized, Norwegian, Canova, Pyramidal). Kräver atletens clientId — använd listAthletes först om du inte har det.',
+      inputSchema: z.object({
+        clientId: z.string().describe('Atletens client-ID (hämta med listAthletes)'),
+        sport: z.string().describe('Primär sport (t.ex. "Running", "Cycling", "Swimming", "HYROX", "Triathlon", "Football")'),
+        totalWeeks: z.number().min(1).max(52).describe('Programlängd i veckor'),
+        sessionsPerWeek: z.number().min(1).max(14).optional().describe('Antal pass per vecka'),
+        goal: z.string().describe('Atletens huvudmål (t.ex. "Springa ett marathon under 3:30")'),
+        goalDate: z.string().optional().describe('Måldatum i ISO-format (t.ex. "2026-06-15")'),
+        methodology: z.enum(['POLARIZED', 'NORWEGIAN', 'CANOVA', 'PYRAMIDAL', 'GENERAL']).optional().describe('Träningsmetodik'),
+        notes: z.string().optional().describe('Ytterligare önskemål eller begränsningar'),
+      }),
+      execute: async ({ clientId, sport, totalWeeks, sessionsPerWeek, goal, goalDate, methodology, notes }) => {
+        try {
+          // Check for active generation
+          const activeSession = await prisma.programGenerationSession.findFirst({
+            where: {
+              athleteId: clientId,
+              status: { in: ['PENDING', 'GENERATING_OUTLINE', 'GENERATING_PHASE', 'MERGING'] },
+            },
+            select: { id: true, status: true },
+          })
+
+          if (activeSession) {
+            return {
+              success: false,
+              error: 'Det pågår redan en programgenerering för denna atlet. Vänta tills den är klar.',
+            }
+          }
+
+          // Fetch client data
+          const clientRecord = await prisma.client.findUnique({
+            where: { id: clientId },
+            select: { id: true, name: true, weight: true, height: true, birthDate: true },
+          })
+
+          if (!clientRecord) {
+            return { success: false, error: 'Atleten hittades inte.' }
+          }
+
+          // Get coach's API keys
+          const apiKeys = await getResolvedAiKeys(coachUserId)
+          const resolved = resolveModel(apiKeys, 'powerful')
+          if (!resolved) {
+            return {
+              success: false,
+              error: 'Inga AI-nycklar konfigurerade. Gå till Inställningar → AI för att lägga till API-nycklar.',
+            }
+          }
+
+          // Fetch test data and injuries
+          const [latestTest, injuries] = await Promise.all([
+            prisma.test.findFirst({
+              where: { clientId },
+              orderBy: { testDate: 'desc' },
+              select: { vo2max: true, maxHR: true, anaerobicThreshold: true },
+            }),
+            prisma.injuryAssessment.findMany({
+              where: { clientId, status: { in: ['ACTIVE', 'MONITORING'] } },
+              select: { injuryType: true, status: true, notes: true },
+            }),
+          ])
+
+          // Calculate age
+          const age = clientRecord.birthDate
+            ? Math.floor((Date.now() - new Date(clientRecord.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+            : undefined
+
+          const generationContext: GenerationContext = {
+            sport,
+            totalWeeks,
+            sessionsPerWeek,
+            methodology: methodology || undefined,
+            goal,
+            goalDate: goalDate || undefined,
+            athleteId: clientId,
+            athleteName: clientRecord.name || undefined,
+            athleteAge: age,
+            athleteWeight: clientRecord.weight || undefined,
+            athleteHeight: clientRecord.height || undefined,
+            vo2max: latestTest?.vo2max ?? undefined,
+            maxHR: latestTest?.maxHR ?? undefined,
+            lactateThreshold: latestTest?.anaerobicThreshold
+              ? { hr: (latestTest.anaerobicThreshold as { hr?: number })?.hr }
+              : undefined,
+            injuries: injuries.map((i) => ({
+              type: i.injuryType || 'unknown',
+              status: i.status,
+              notes: i.notes || undefined,
+            })),
+            notes: notes || undefined,
+          }
+
+          const phases = calculatePhases(totalWeeks)
+          const totalPhases = phases.length
+          const estimatedMinutes = estimateGenerationMinutes(totalPhases)
+
+          const providerUpperMap: Record<string, 'ANTHROPIC' | 'GOOGLE' | 'OPENAI'> = {
+            anthropic: 'ANTHROPIC', google: 'GOOGLE', openai: 'OPENAI',
+          }
+          const providerUpper = providerUpperMap[resolved.provider] || 'ANTHROPIC'
+
+          const session = await prisma.programGenerationSession.create({
+            data: {
+              coachId: coachUserId,
+              athleteId: clientId,
+              query: `${sport} program: ${goal}`,
+              totalWeeks,
+              sport,
+              methodology: methodology || null,
+              athleteContext: generationContext as unknown as object,
+              status: 'PENDING',
+              totalPhases,
+              provider: providerUpper,
+              modelUsed: resolved.modelId,
+            },
+          })
+
+          // Fire-and-forget background generation
+          generateMultiPartProgram({
+            sessionId: session.id,
+            context: generationContext,
+            apiKey: resolved.apiKey,
+            provider: providerUpper,
+            modelId: resolved.modelId,
+          }).catch((error) => {
+            logger.error('Background program generation failed', { sessionId: session.id, clientId }, error)
+          })
+
+          return {
+            success: true,
+            sessionId: session.id,
+            athleteName: clientRecord.name,
+            sport,
+            totalWeeks,
+            totalPhases,
+            estimatedMinutes,
+            goal,
+            message: `Programgenerering startad för ${clientRecord.name}! ${totalWeeks} veckor ${sport}, ${totalPhases} faser. Beräknad tid: ${estimatedMinutes} minuter. Programmet dyker upp automatiskt på atletens profil när det är klart.`,
+          }
+        } catch (error) {
+          logger.error('Failed to start program generation via coach chat', { coachUserId }, error)
+          return { success: false, error: 'Kunde inte starta programgenereringen. Försök igen.' }
         }
       },
     }),

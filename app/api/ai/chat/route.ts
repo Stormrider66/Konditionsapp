@@ -776,6 +776,14 @@ Skapa sportspecifika pass med blandade sektioner. Perfekt för lagsporter och mu
 - Kräver en specifik atlet (clientId) — sparas som träningspass åt atleten
 - Idealiskt när coachen vill ha ett komplett sportspecifikt pass
 
+### generateTrainingProgram
+Starta generering av ett komplett flervekkors träningsprogram åt en atlet.
+- Genereras i bakgrunden med AI (1-10 min beroende på längd)
+- Stödjer alla sporter och metodiker (Polarized, Norwegian, Canova, Pyramidal)
+- Använder atletens testdata (VO2max, trösklar, maxpuls) och skador automatiskt
+- Kräver atletens clientId — använd listAthletes först
+- Programmet sparas automatiskt på atletens profil
+
 ### listAthletes
 Lista coachens atleter. Använd detta för att hitta rätt atlet-ID.
 
@@ -785,6 +793,8 @@ Lista coachens atleter. Använd detta för att hitta rätt atlet-ID.
 - "Ge mig ett AMRAP" → createHybridWorkout
 - "Jag behöver ett fotbollspass" → createSportWorkout (med agility + kondition + styrka)
 - "Skapa ett HYROX-pass" → createHybridWorkout (FOR_TIME/CHIPPER) eller createCardioSession (REPEAT_GROUP)
+- "Skapa ett 12-veckors löpprogram för Anna" → listAthletes + generateTrainingProgram
+- "Bygg ett träningsprogram" → generateTrainingProgram (fråga om atlet, sport, mål, veckor)
 Fråga bara om information du behöver om det är oklart.
 
 ## INSTRUKTIONER
