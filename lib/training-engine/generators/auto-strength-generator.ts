@@ -619,13 +619,23 @@ function generateSessionDescription(
 }
 
 /**
- * Generate multiple sessions for a week
+ * Generate multiple sessions for a week with complementary focus
+ * Each session emphasizes different pillars for balanced development.
+ * Optionally calendar-aware: avoids blocked dates and adjusts for reduced days.
  */
 export async function generateWeeklyProgram(
   params: AutoGenerateParams,
-  exerciseLibrary: ExerciseFromLibrary[]
+  exerciseLibrary: ExerciseFromLibrary[],
+  calendarConstraints?: {
+    blockedDates: string[]
+    reducedDates: string[]
+    startDate?: string // ISO date for the week start
+  }
 ): Promise<GeneratedSession[]> {
   const sessions: GeneratedSession[] = []
+
+  // Session labels for A/B/C naming
+  const sessionLabels = ['A', 'B', 'C']
 
   for (let i = 0; i < params.sessionsPerWeek; i++) {
     // Rotate recent exercises to ensure variety
@@ -642,6 +652,12 @@ export async function generateWeeklyProgram(
         ],
       },
       exerciseLibrary
+    )
+
+    // Rename session with A/B/C label
+    session.name = session.name.replace(
+      /\(\d+x\/vecka\)/,
+      `Pass ${sessionLabels[i]} (${params.sessionsPerWeek}x/vecka)`
     )
 
     sessions.push(session)

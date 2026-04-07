@@ -32,13 +32,24 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         name: true,
-        sport: true,
         aiInstructions: true,
       },
     })
 
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
+
+    // Fetch sport from sport profile
+    let sport: string | null = null
+    try {
+      const sportProfile = await prisma.sportProfile.findFirst({
+        where: { clientId },
+        select: { primarySport: true },
+      })
+      sport = sportProfile?.primarySport || null
+    } catch {
+      // Not critical
     }
 
     // Fetch athlete profile for level
@@ -128,7 +139,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         level,
-        sport: client.sport,
+        sport,
         aiInstructions: client.aiInstructions,
         restrictions,
         recentPain,

@@ -7,9 +7,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
-import { generateStrengthSession, type AutoGenerateParams } from '@/lib/training-engine/generators/auto-strength-generator'
+import { generateStrengthSession, generateWeeklyProgram, type AutoGenerateParams } from '@/lib/training-engine/generators/auto-strength-generator'
 import { StrengthPhase } from '@prisma/client'
 import { logger } from '@/lib/logger'
+import { getCalendarConstraints } from '@/lib/calendar/availability-calculator'
 
 interface GenerateRequestBody {
   clientId?: string
@@ -22,6 +23,8 @@ interface GenerateRequestBody {
   includeWarmup?: boolean
   includeCore?: boolean
   includeCooldown?: boolean
+  mode?: 'single' | 'weekly'
+  weekStartDate?: string // ISO date string
 }
 
 export async function POST(request: NextRequest) {
@@ -40,6 +43,8 @@ export async function POST(request: NextRequest) {
       includeWarmup = true,
       includeCore = true,
       includeCooldown = true,
+      mode = 'single',
+      weekStartDate,
     } = body
 
     // Validate required fields
@@ -184,7 +189,7 @@ export async function POST(request: NextRequest) {
         isPlyometric: ex.category === 'PLYOMETRIC',
       }))
 
-    // Generate session
+    // Build generation params
     const params: AutoGenerateParams = {
       athleteId: clientId || user.id,
       goal,
@@ -200,10 +205,46 @@ export async function POST(request: NextRequest) {
       oneRmData,
     }
 
+    if (mode === 'weekly') {
+      // Weekly program mode — generate multiple complementary sessions
+      // Fetch calendar constraints if athlete selected
+      let calendarConstraintsData: { blockedDates: string[]; reducedDates: string[]; startDate?: string } | undefined
+      if (clientId && weekStartDate) {
+        try {
+          const start = new Date(weekStartDate)
+          const end = new Date(start)
+          end.setDate(end.getDate() + 6)
+          const constraints = await getCalendarConstraints(clientId, start, end)
+          calendarConstraintsData = {
+            blockedDates: constraints.blockedDates,
+            reducedDates: constraints.reducedDates,
+            startDate: weekStartDate,
+          }
+        } catch {
+          // Calendar constraints not available — generate without
+        }
+      }
+
+      const sessions = await generateWeeklyProgram(params, exerciseLibraryFiltered, calendarConstraintsData)
+
+      // Attach calendar info to response
+      return NextResponse.json({
+        success: true,
+        mode: 'weekly',
+        data: sessions,
+        calendar: calendarConstraintsData ? {
+          blockedDates: calendarConstraintsData.blockedDates,
+          reducedDates: calendarConstraintsData.reducedDates,
+        } : null,
+      })
+    }
+
+    // Single session mode (default)
     const generatedSession = await generateStrengthSession(params, exerciseLibraryFiltered)
 
     return NextResponse.json({
       success: true,
+      mode: 'single',
       data: generatedSession,
     })
   } catch (error) {
