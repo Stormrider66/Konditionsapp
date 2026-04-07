@@ -43,6 +43,7 @@ interface GeneratedSession {
   }>
   totalExercises: number
   totalSets: number
+  rationale?: string
 }
 
 interface StrengthStats {
@@ -71,6 +72,9 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
   const [stats, setStats] = useState<StrengthStats | null>(null)
   const [weeklySessionQueue, setWeeklySessionQueue] = useState<StrengthSessionData[]>([])
   const [currentWeeklyIndex, setCurrentWeeklyIndex] = useState(0)
+  const [weeklyRationales, setWeeklyRationales] = useState<string[]>([])
+  const [weeklySavedIds, setWeeklySavedIds] = useState<string[]>([])
+  const [weeklyAthleteId, setWeeklyAthleteId] = useState<string | null>(null)
 
   // Calendar assignment flow
   const fromCalendar = searchParams.get('fromCalendar') === 'true'
@@ -262,6 +266,11 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
       return data
     })
 
+    // Store rationales and reset saved IDs
+    setWeeklyRationales(sessions.map((s) => s.rationale || ''))
+    setWeeklySavedIds([])
+    setWeeklyAthleteId(null) // Will be set from the dialog's selected athlete
+
     // Load first session into builder, store rest in queue
     setWeeklySessionQueue(converted)
     setCurrentWeeklyIndex(0)
@@ -393,26 +402,33 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
 
           {/* Weekly program banner */}
           {weeklySessionQueue.length > 1 && (
-            <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-3 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">
-                  Veckoprogram — Pass {currentWeeklyIndex + 1} av {weeklySessionQueue.length}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Spara detta pass för att gå vidare till nästa.
-                </p>
+            <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">
+                    Veckoprogram — Pass {currentWeeklyIndex + 1} av {weeklySessionQueue.length}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Spara detta pass för att gå vidare till nästa.
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {weeklySessionQueue.map((_, i) => (
+                    <div
+                      key={i}
+                      className={`h-2 w-2 rounded-full ${
+                        i < currentWeeklyIndex ? 'bg-green-500' :
+                        i === currentWeeklyIndex ? 'bg-primary' : 'bg-muted-foreground/30'
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                {weeklySessionQueue.map((_, i) => (
-                  <div
-                    key={i}
-                    className={`h-2 w-2 rounded-full ${
-                      i < currentWeeklyIndex ? 'bg-green-500' :
-                      i === currentWeeklyIndex ? 'bg-primary' : 'bg-muted-foreground/30'
-                    }`}
-                  />
-                ))}
-              </div>
+              {weeklyRationales[currentWeeklyIndex] && (
+                <p className="text-xs text-muted-foreground border-t border-primary/10 pt-2">
+                  {weeklyRationales[currentWeeklyIndex]}
+                </p>
+              )}
             </div>
           )}
 
@@ -422,13 +438,24 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
               onSaved={(sessionId) => {
                 if (fromCalendar && calendarClientId && calendarDate && sessionId) {
                   setCalendarAssignSessionId(sessionId)
-                } else if (weeklySessionQueue.length > 1 && currentWeeklyIndex < weeklySessionQueue.length - 1) {
-                  // Move to next session in weekly queue
-                  handleNextWeeklySession()
+                } else if (weeklySessionQueue.length > 1) {
+                  // Track saved session ID
+                  if (sessionId) {
+                    setWeeklySavedIds((prev) => [...prev, sessionId])
+                  }
+                  if (currentWeeklyIndex < weeklySessionQueue.length - 1) {
+                    // Move to next session in weekly queue
+                    handleNextWeeklySession()
+                  } else {
+                    // All sessions saved
+                    setEditSession(null)
+                    setWeeklySessionQueue([])
+                    setCurrentWeeklyIndex(0)
+                    setWeeklyRationales([])
+                    setActiveTab('sessions')
+                  }
                 } else {
                   setEditSession(null)
-                  setWeeklySessionQueue([])
-                  setCurrentWeeklyIndex(0)
                   setActiveTab('sessions')
                 }
               }}

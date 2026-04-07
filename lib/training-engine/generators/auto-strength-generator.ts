@@ -59,6 +59,7 @@ export interface GeneratedSession {
   exercises: GeneratedExercise[] // Flat list of all exercises
   totalExercises: number
   totalSets: number
+  rationale?: string // Brief explanation of exercise choices
 }
 
 // Warmup exercise templates (dynamic stretches and activation)
@@ -303,6 +304,29 @@ export async function generateStrengthSession(
   const sessionName = generateSessionName(goal, phase, params.sessionsPerWeek)
   const description = generateSessionDescription(goal, phase, athleteLevel)
 
+  // Generate rationale
+  const rationaleExercises = allExercises.filter((e) => e.section === 'MAIN')
+  const pillarCounts: Record<string, number> = {}
+  for (const ex of rationaleExercises) {
+    const found = exerciseLibrary.find((e) => e.id === ex.exerciseId)
+    if (found?.biomechanicalPillar) {
+      const label = found.biomechanicalPillar.replace(/_/g, ' ').toLowerCase()
+      pillarCounts[label] = (pillarCounts[label] || 0) + 1
+    }
+  }
+  const pillarSummary = Object.entries(pillarCounts)
+    .map(([pillar, count]) => `${count}x ${pillar}`)
+    .join(', ')
+
+  const goalLabels: Record<string, string> = {
+    strength: 'maximal styrka',
+    power: 'kraft och explosivitet',
+    'injury-prevention': 'skadeförebyggande och stabilitet',
+    'running-economy': 'löpekonomi',
+  }
+
+  const rationale = `${totalExercises} övningar valda för ${goalLabels[goal] || goal}. Pillarfördelning: ${pillarSummary}. Fas: ${phase.replace(/_/g, ' ').toLowerCase()} med ${phaseProtocol.reps.min}-${phaseProtocol.reps.max} reps @ ${phaseProtocol.intensity.min}-${phaseProtocol.intensity.max}% 1RM.`
+
   return {
     name: sessionName,
     description,
@@ -312,6 +336,7 @@ export async function generateStrengthSession(
     exercises: allExercises,
     totalExercises,
     totalSets,
+    rationale,
   }
 }
 
@@ -618,6 +643,71 @@ function generateSessionDescription(
   return descriptions[goal] + levelNote
 }
 
+// Session focus patterns for A/B/C variation
+// Each session shifts pillar emphasis for complementary training
+const SESSION_FOCUS_SHIFTS: Record<number, Array<{
+  label: string
+  focusDescription: string
+  goalModifier: (base: typeof GOAL_EXERCISE_WEIGHTS['strength']) => typeof GOAL_EXERCISE_WEIGHTS['strength']
+}>> = {
+  1: [
+    {
+      label: 'A',
+      focusDescription: 'Helkropp',
+      goalModifier: (base) => ({ ...base }),
+    },
+  ],
+  2: [
+    {
+      label: 'A',
+      focusDescription: 'Posterior chain & höft',
+      goalModifier: (base) => ({
+        ...base,
+        posteriorChain: base.posteriorChain + 1,
+        kneeDominance: Math.max(1, base.kneeDominance - 1),
+      }),
+    },
+    {
+      label: 'B',
+      focusDescription: 'Knädominant & unilateral',
+      goalModifier: (base) => ({
+        ...base,
+        kneeDominance: base.kneeDominance + 1,
+        unilateral: base.unilateral + 1,
+        posteriorChain: Math.max(1, base.posteriorChain - 1),
+      }),
+    },
+  ],
+  3: [
+    {
+      label: 'A',
+      focusDescription: 'Posterior chain & styrka',
+      goalModifier: (base) => ({
+        ...base,
+        posteriorChain: base.posteriorChain + 1,
+      }),
+    },
+    {
+      label: 'B',
+      focusDescription: 'Knädominant & explosivitet',
+      goalModifier: (base) => ({
+        ...base,
+        kneeDominance: base.kneeDominance + 1,
+        plyometric: base.plyometric + 1,
+      }),
+    },
+    {
+      label: 'C',
+      focusDescription: 'Unilateral & stabilitet',
+      goalModifier: (base) => ({
+        ...base,
+        unilateral: base.unilateral + 1,
+        core: base.core + 1,
+      }),
+    },
+  ],
+}
+
 /**
  * Generate multiple sessions for a week with complementary focus
  * Each session emphasizes different pillars for balanced development.
@@ -633,15 +723,21 @@ export async function generateWeeklyProgram(
   }
 ): Promise<GeneratedSession[]> {
   const sessions: GeneratedSession[] = []
-
-  // Session labels for A/B/C naming
-  const sessionLabels = ['A', 'B', 'C']
+  const focusPatterns = SESSION_FOCUS_SHIFTS[params.sessionsPerWeek] || SESSION_FOCUS_SHIFTS[1]
+  const baseGoalWeights = GOAL_EXERCISE_WEIGHTS[params.goal]
 
   for (let i = 0; i < params.sessionsPerWeek; i++) {
-    // Rotate recent exercises to ensure variety
+    const focus = focusPatterns[i]
+
+    // Rotate recent exercises to ensure variety between sessions
     const recentFromPreviousSessions = sessions.flatMap((s) =>
       s.exercises.map((e) => e.exerciseId)
     )
+
+    // Temporarily override goal weights by modifying the goal lookup
+    const modifiedWeights = focus.goalModifier(baseGoalWeights)
+    const originalWeights = GOAL_EXERCISE_WEIGHTS[params.goal]
+    GOAL_EXERCISE_WEIGHTS[params.goal] = modifiedWeights
 
     const session = await generateStrengthSession(
       {
@@ -654,11 +750,17 @@ export async function generateWeeklyProgram(
       exerciseLibrary
     )
 
-    // Rename session with A/B/C label
+    // Restore original weights
+    GOAL_EXERCISE_WEIGHTS[params.goal] = originalWeights
+
+    // Name with A/B/C label and focus description
     session.name = session.name.replace(
       /\(\d+x\/vecka\)/,
-      `Pass ${sessionLabels[i]} (${params.sessionsPerWeek}x/vecka)`
+      `Pass ${focus.label} — ${focus.focusDescription}`
     )
+
+    // Enrich rationale with session focus
+    session.rationale = `${focus.label}: Fokus på ${focus.focusDescription.toLowerCase()}. ${session.rationale || ''}`
 
     sessions.push(session)
   }
