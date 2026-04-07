@@ -71,12 +71,14 @@ export const PAGE_CONTEXT_REGISTRY: Record<string, PageContextConfig> = {
   },
   'coach/strength': {
     pageTitle: 'Styrketräning',
-    description: 'Styrketräningsplanering med övningsbibliotek, periodisering och progressionsregler.',
-    concepts: ['oneRM', 'twoForTwo', 'strengthPhases', 'rpe'],
+    description: 'Strength Studio: Övningsbibliotek (250+ övningar, 6 biomechaniska pelare), auto-generering av enskilda pass eller veckoprogram (A/B/C), atletmedveten generering med restriktioner och kalendermedvetenhet, periodisering (5 faser), progressionsspårning med 1RM och 2-for-2-regeln.',
+    concepts: ['oneRM', 'twoForTwo', 'strengthPhases', 'rpe', 'biomechanicalPillars'],
     cards: [
       { id: '1rm-overview', title: '1RM-översikt', conceptKey: 'oneRM' },
       { id: 'progression', title: 'Progression', conceptKey: 'twoForTwo' },
       { id: 'phases', title: 'Träningsfaser', conceptKey: 'strengthPhases' },
+      { id: 'auto-generate', title: 'Auto-generering', conceptKey: 'strengthPhases' },
+      { id: 'pillars', title: 'Biomechaniska pelare', conceptKey: 'biomechanicalPillars' },
     ],
   },
   'coach/injury-prevention': {

@@ -105,8 +105,15 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
         complianceRate: stats.complianceRate,
         prsThisWeek: stats.prsThisWeek,
         topPrExercises: stats.topPrExercises,
+        capabilities: {
+          autoGenerate: 'Kan auto-generera enskilda pass eller veckoprogram (A/B/C) med varierad pelarfokus',
+          athleteAware: 'Generering anpassas efter atletens profil, restriktioner, smärta och kalender',
+          exerciseLibrary: 'Övningsbibliotek med favoriter och mest använda',
+          periodization: 'Anatomisk anpassning → Maxstyrka → Power → Underhåll → Taper',
+          biomechanicalPillars: 'Posterior chain, Knee dominance, Unilateral, Foot/ankle, Anti-rotation/core, Upper body',
+        },
       },
-      summary: `Styrketräning: ${stats.totalExercises} övningar, ${stats.activePrograms} aktiva pass, ${stats.complianceRate}% genomförande, ${stats.prsThisWeek} PR denna vecka.`,
+      summary: `Styrketräning: ${stats.totalExercises} övningar, ${stats.activePrograms} aktiva pass, ${stats.complianceRate}% genomförande, ${stats.prsThisWeek} PR denna vecka. Auto-generering stödjer enskilda pass och veckoprogram med atletmedveten restriktionsfiltrering.`,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats])

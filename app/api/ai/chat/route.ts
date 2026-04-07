@@ -636,6 +636,56 @@ ${pageContext}
 - Längdskidåkning (klassisk/fristil, dubbelstakning)
 - Biomekanisk videoanalys av löpteknik (kadans, markkontakttid, asymmetri, skaderisk)
 
+## STRENGTH STUDIO — STYRKEPASSBYGGAREN
+Du kan hjälpa coacher med styrketräningsplanering i Strength Studio. Här är vad som stöds:
+
+### Övningsbibliotek
+- 250+ övningar kategoriserade efter biomechanisk pelare: POSTERIOR_CHAIN, KNEE_DOMINANCE, UNILATERAL, FOOT_ANKLE, ANTI_ROTATION_CORE, UPPER_BODY
+- Tre progressionsnivåer: Level 1 (statisk/stabilitet), Level 2 (styrka/belastning), Level 3 (dynamisk/ballistisk)
+- Kategorier: STRENGTH, PLYOMETRIC, CORE, MOBILITY
+- Coacher kan skapa egna övningar och dölja övningar de inte vill se
+
+### Auto-generera styrkepass
+Coacher kan auto-generera enskilda pass eller veckoprogram:
+- **Enskilt pass**: Genererar ett styrkepass baserat på mål, fas, utrustning och tid
+- **Veckoprogram**: Genererar 2-3 kompletterande pass (A/B/C) med varierad pelarfokus:
+  - 2x/vecka: Pass A = posterior chain & höft, Pass B = knädominant & unilateral
+  - 3x/vecka: Pass A = posterior chain, Pass B = knädominant & explosivitet, Pass C = unilateral & stabilitet
+
+### Atletmedveten generering
+Om en atlet väljs vid generering:
+- Nivån hämtas automatiskt från atletprofilen
+- Aktiva träningsrestriktioner och skador respekteras — övningar som strider mot restriktioner exkluderas
+- Senaste smärtrapporter (7 dagar) visas som varning
+- 1RM-data används för belastningsberäkning
+- Övningar från senaste 14 dagarna undviks för variation
+- Kalendern kontrolleras för blockerade/reducerade dagar (semester, sjukdom, höjdläger)
+
+### Träningsmål
+- **Generell Styrka**: Posterior chain + knädominans + unilateral
+- **Kraft & Explosivitet**: Posterior chain + knädominans + plyometri
+- **Skadeförebyggande**: Unilateral + core + stabilitet
+- **Löpekonomi**: Balanserad + plyometri
+
+### Träningsfaser (periodisering)
+- **Anatomisk Anpassning**: 12-20 reps @ 40-60% 1RM, 30-60s vila
+- **Maxstyrka**: 3-6 reps @ 80-95% 1RM, 2-4 min vila
+- **Power**: 4-6 reps, explosivt tempo, 2-3 min vila
+- **Underhåll**: 3-5 reps @ 75-85% 1RM, minimal volym
+- **Taper**: 3-5 reps, reducerad volym inför tävling
+
+### Passbyggare
+- Sektionsbyggare: Uppvärmning → Huvudpass → Core → Nedvarvning
+- Enkel byggare: Bara övningslista
+- Drag-and-drop-ordning inom sektioner
+- Set, reps, vikt, vila, tempo och noter per övning
+
+### Progression
+- 1RM-estimering (Epley/Brzycki)
+- 2-for-2-regeln: Om atleten klarar 2 extra reps i 2 pass → öka vikt
+- Plåtpetektering: Automatisk identifiering av platåer
+- Deload-rekommendationer baserat på progressionsstatus
+
 ## CARDIO STUDIO — KONDITIONSPASSBYGGAREN
 Du kan hjälpa coacher att designa konditionspass i Cardio Studio. Här är vad som stöds:
 
