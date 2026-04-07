@@ -50,9 +50,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get athlete's recent exercises if clientId provided
+    // Get athlete's recent exercises, 1RM data, and restrictions if clientId provided
     let recentExerciseIds: string[] = []
     let oneRmData: Record<string, number> = {}
+    let restrictedExerciseIds: string[] = []
+    let restrictedBodyParts: string[] = []
+    let restrictionTypes: string[] = []
 
     if (clientId) {
       // Get exercises from last 2 weeks
@@ -91,12 +94,37 @@ export async function POST(request: NextRequest) {
         acc[rm.exerciseId] = rm.oneRepMax
         return acc
       }, {} as Record<string, number>)
+
+      // Get active training restrictions
+      try {
+        const restrictions = await prisma.trainingRestriction.findMany({
+          where: {
+            clientId,
+            isActive: true,
+            OR: [
+              { endDate: null },
+              { endDate: { gte: new Date() } },
+            ],
+          },
+          select: {
+            type: true,
+            bodyParts: true,
+            affectedExerciseIds: true,
+          },
+        })
+
+        restrictedExerciseIds = restrictions.flatMap((r) => r.affectedExerciseIds || [])
+        restrictedBodyParts = restrictions.flatMap((r) => r.bodyParts || [])
+        restrictionTypes = restrictions.map((r) => r.type)
+      } catch {
+        // Table may not exist — skip
+      }
     }
 
-    // Fetch exercise library
+    // Fetch exercise library (include contraindications and targetBodyParts for filtering)
     const exerciseLibrary = await prisma.exercise.findMany({
       where: {
-        isPublic: true,
+        OR: [{ isPublic: true }, ...(clientId ? [{ coachId: user.id }] : [])],
       },
       select: {
         id: true,
@@ -106,14 +134,55 @@ export async function POST(request: NextRequest) {
         progressionLevel: true,
         equipment: true,
         category: true,
+        targetBodyParts: true,
+        contraindications: true,
       },
     })
 
-    // Map to include isPlyometric based on category
-    const exerciseLibraryWithPlyometric = exerciseLibrary.map((ex) => ({
-      ...ex,
-      isPlyometric: ex.category === 'PLYOMETRIC',
-    }))
+    // Filter out restricted exercises and map
+    const exerciseLibraryFiltered = exerciseLibrary
+      .filter((ex) => {
+        // Exclude specifically restricted exercises
+        if (restrictedExerciseIds.includes(ex.id)) return false
+
+        // Exclude exercises targeting restricted body parts
+        if (restrictedBodyParts.length > 0 && ex.targetBodyParts && ex.targetBodyParts.length > 0) {
+          const hasRestrictedPart = ex.targetBodyParts.some((part: string) =>
+            restrictedBodyParts.some((restricted) =>
+              part.toLowerCase().includes(restricted.toLowerCase()) ||
+              restricted.toLowerCase().includes(part.toLowerCase())
+            )
+          )
+          if (hasRestrictedPart) return false
+        }
+
+        // Exclude exercises contraindicated by restriction types
+        if (ex.contraindications && ex.contraindications.length > 0) {
+          const hasContraindication = ex.contraindications.some((ci: string) =>
+            restrictionTypes.some((rt) =>
+              ci.toLowerCase().includes(rt.toLowerCase().replace(/_/g, ' ')) ||
+              rt.toLowerCase().replace(/_/g, ' ').includes(ci.toLowerCase())
+            )
+          )
+          if (hasContraindication) return false
+        }
+
+        // Exclude jumping/plyometric exercises if NO_JUMPING restriction
+        if (restrictionTypes.includes('NO_JUMPING') && ex.category === 'PLYOMETRIC') return false
+
+        // Exclude upper body if NO_UPPER_BODY restriction
+        if (restrictionTypes.includes('NO_UPPER_BODY') && ex.biomechanicalPillar === 'UPPER_BODY') return false
+
+        // Exclude lower body pillars if NO_LOWER_BODY restriction
+        if (restrictionTypes.includes('NO_LOWER_BODY') &&
+          ['POSTERIOR_CHAIN', 'KNEE_DOMINANCE', 'FOOT_ANKLE'].includes(ex.biomechanicalPillar || '')) return false
+
+        return true
+      })
+      .map((ex) => ({
+        ...ex,
+        isPlyometric: ex.category === 'PLYOMETRIC',
+      }))
 
     // Generate session
     const params: AutoGenerateParams = {
@@ -131,7 +200,7 @@ export async function POST(request: NextRequest) {
       oneRmData,
     }
 
-    const generatedSession = await generateStrengthSession(params, exerciseLibraryWithPlyometric)
+    const generatedSession = await generateStrengthSession(params, exerciseLibraryFiltered)
 
     return NextResponse.json({
       success: true,
