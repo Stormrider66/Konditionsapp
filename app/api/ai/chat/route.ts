@@ -29,6 +29,7 @@ import { matchKnowledgeSkills, fetchSkillContext } from '@/lib/ai/knowledge-skil
 import { logger } from '@/lib/logger'
 import { buildConstitutionPreamble } from '@/lib/ai/constitution'
 import { createChatTools } from '@/lib/ai/chat-tools'
+import { createCoachChatTools } from '@/lib/ai/coach-chat-tools'
 
 // Allow longer execution time for AI streaming responses (60 seconds)
 export const maxDuration = 60;
@@ -743,6 +744,21 @@ Atleten ser passet som en platt steg-för-steg-lista:
 - Kalorier visas i stegbeskrivningen
 - Utrustning och mål visas som anteckningar
 
+## VERKTYG
+Du har tillgång till följande verktyg som du kan anropa direkt:
+
+### generateStrengthSession
+Generera och spara styrkepass direkt. Använd detta när coachen ber dig skapa styrkepass eller veckoprogram.
+- Stödjer enskilt pass (mode: "single") eller veckoprogram med A/B/C variation (mode: "weekly")
+- Kan anpassas efter en specifik atlet (clientId) — respekterar deras restriktioner och 1RM
+- Välj mål, fas, utrustning, tid och nivå
+- Passet sparas automatiskt i Passbiblioteket
+
+### listAthletes
+Lista coachens atleter. Använd detta för att hitta rätt atlet-ID innan du genererar ett anpassat styrkepass.
+
+**Viktigt:** Använd verktyg proaktivt! Om coachen säger "skapa ett styrkepass" eller "generera ett veckoprogram", anropa generateStrengthSession direkt med rimliga standardvärden. Fråga bara om information du behöver (t.ex. vilken atlet, mål, fas) om det är oklart.
+
 ## INSTRUKTIONER
 - Svara ALLTID på svenska
 - Var konkret och ge praktiska råd baserade på vetenskaplig grund
@@ -963,6 +979,11 @@ ${pageContext}
         tools: createChatTools(athleteClientId, conversationId, athleteCapabilities
           ? { canGenerateProgram: athleteCapabilities.canGenerateProgram }
           : undefined),
+        maxSteps: 4,
+      }),
+      // Tool calling for coach chat (generate strength sessions etc.)
+      ...(!isAthleteChat && {
+        tools: createCoachChatTools(userId),
         maxSteps: 4,
       }),
       // Provider-specific options for Gemini Deep Think
