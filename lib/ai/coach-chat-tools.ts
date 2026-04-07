@@ -266,5 +266,267 @@ export function createCoachChatTools(coachUserId: string) {
         }
       },
     }),
+
+    createCardioSession: tool({
+      description: 'Skapa ett konditionspass/intervallpass. Sparas i Cardio Studio. Stödjer löpning, cykling, simning, rodd, HYROX m.m. Segmenten kan vara intervaller, steady state, repeat groups (upprepningsblock med flera steg), uppvärmning och nedvarvning.',
+      inputSchema: z.object({
+        name: z.string().describe('Passnamn på svenska'),
+        description: z.string().optional().describe('Kort beskrivning'),
+        sport: z.enum(['RUNNING', 'CYCLING', 'SWIMMING', 'SKIING', 'TRIATHLON', 'HYROX', 'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS']).default('RUNNING').describe('Sport/aktivitet'),
+        segments: z.array(z.object({
+          type: z.enum(['WARMUP', 'COOLDOWN', 'INTERVAL', 'STEADY', 'RECOVERY', 'HILL', 'DRILLS', 'REPEAT_GROUP']).describe('Segmenttyp'),
+          duration: z.number().optional().describe('Tid i sekunder'),
+          distance: z.number().optional().describe('Distans i meter'),
+          pace: z.string().optional().describe('Tempo t.ex. "4:30" (min/km)'),
+          zone: z.number().min(1).max(5).optional().describe('Pulszon 1-5'),
+          notes: z.string().optional().describe('Instruktioner'),
+          repeats: z.number().optional().describe('Antal upprepningar (för intervaller)'),
+          restDuration: z.number().optional().describe('Vila i sekunder (mellan upprepningar)'),
+          calories: z.number().optional().describe('Kalorimål (för ergometer)'),
+          // For REPEAT_GROUP
+          steps: z.array(z.object({
+            type: z.enum(['INTERVAL', 'STEADY', 'RECOVERY']).describe('Stegtyp'),
+            duration: z.number().optional(),
+            distance: z.number().optional(),
+            pace: z.string().optional(),
+            zone: z.number().min(1).max(5).optional(),
+            notes: z.string().optional(),
+            calories: z.number().optional(),
+            targetType: z.string().optional().describe('Mål: watt, rpm, tempo, puls'),
+            targetValue: z.string().optional().describe('Målvärde t.ex. "250" (W)'),
+            equipment: z.string().optional().describe('Utrustning t.ex. "Wattbike"'),
+          })).optional().describe('Steg i repeat group'),
+          restBetweenRounds: z.number().optional().describe('Vila mellan rundor i sekunder'),
+        })).describe('Passets segment i ordning'),
+        tags: z.array(z.string()).optional(),
+      }),
+      execute: async ({ name, description, sport, segments, tags }) => {
+        try {
+          // Calculate totals
+          let totalDuration = 0
+          let totalDistance = 0
+          for (const s of segments) {
+            if (s.type === 'REPEAT_GROUP' && s.steps) {
+              const reps = s.repeats || 1
+              const stepsDur = s.steps.reduce((sum, step) => sum + (step.duration || 0), 0)
+              const stepsDist = s.steps.reduce((sum, step) => sum + (step.distance || 0), 0)
+              const rest = (s.restBetweenRounds || 0) * Math.max(reps - 1, 0)
+              totalDuration += (stepsDur * reps) + rest
+              totalDistance += stepsDist * reps
+            } else {
+              const reps = (s.repeats && s.repeats > 1) ? s.repeats : 1
+              const rest = (s.restDuration || 0) * Math.max(reps - 1, 0)
+              totalDuration += (s.duration || 0) * reps + rest
+              totalDistance += (s.distance || 0) * reps
+            }
+          }
+
+          const session = await prisma.cardioSession.create({
+            data: {
+              name,
+              description,
+              sport: sport || 'RUNNING',
+              segments: segments as any,
+              totalDuration: totalDuration > 0 ? totalDuration : null,
+              totalDistance: totalDistance > 0 ? totalDistance : null,
+              coachId: coachUserId,
+              tags: tags || [],
+            },
+          })
+
+          const durationMin = totalDuration ? Math.round(totalDuration / 60) : 0
+          const distanceKm = totalDistance ? (totalDistance / 1000).toFixed(1) : null
+
+          return {
+            success: true,
+            savedSessionId: session.id,
+            name,
+            sport,
+            totalDuration: `${durationMin} min`,
+            totalDistance: distanceKm ? `${distanceKm} km` : null,
+            segmentCount: segments.length,
+            message: `Konditionspass "${name}" skapat och sparat i Cardio Studio.${distanceKm ? ` Total distans: ${distanceKm} km.` : ''} Total tid: ${durationMin} min.`,
+          }
+        } catch (error) {
+          logger.error('Error in createCardioSession tool', {}, error)
+          return { success: false, error: 'Kunde inte skapa konditionspass.' }
+        }
+      },
+    }),
+
+    createHybridWorkout: tool({
+      description: 'Skapa ett hybridpass/funktionellt pass (CrossFit-stil, HYROX, circuit etc). Sparas i Hybrid Studio. Stödjer AMRAP, For Time, EMOM, Tabata, Chipper. Övningarna definieras med namn — de matchas automatiskt mot övningsbiblioteket.',
+      inputSchema: z.object({
+        name: z.string().describe('Passnamn'),
+        description: z.string().optional(),
+        format: z.enum(['AMRAP', 'FOR_TIME', 'EMOM', 'TABATA', 'CHIPPER']).describe('Passformat'),
+        timeCap: z.number().optional().describe('Tidsbegränsning i sekunder (0 = ingen)'),
+        workTime: z.number().optional().describe('Arbetstid per intervall (EMOM/Tabata) i sekunder'),
+        restTime: z.number().optional().describe('Vilotid per intervall i sekunder'),
+        totalRounds: z.number().optional().describe('Antal rundor'),
+        totalMinutes: z.number().optional().describe('Total tid i minuter (för AMRAP/EMOM)'),
+        repScheme: z.string().optional().describe('Repschema t.ex. "21-15-9" eller "5-5-5-5-5"'),
+        movements: z.array(z.object({
+          exerciseName: z.string().describe('Övningsnamn på engelska eller svenska'),
+          order: z.number().describe('Ordning'),
+          reps: z.number().optional(),
+          calories: z.number().optional(),
+          distance: z.number().optional().describe('Distans i meter'),
+          duration: z.number().optional().describe('Tid i sekunder'),
+          weightMale: z.number().optional().describe('Vikt herrar i kg'),
+          weightFemale: z.number().optional().describe('Vikt damer i kg'),
+          notes: z.string().optional(),
+        })).describe('Övningar/rörelser i passet'),
+        tags: z.array(z.string()).optional(),
+      }),
+      execute: async ({ name, description, format, timeCap, workTime, restTime, totalRounds, totalMinutes, repScheme, movements, tags }) => {
+        try {
+          // Look up exercises in the library by name
+          const allExercises = await prisma.exercise.findMany({
+            where: { OR: [{ isPublic: true }, { coachId: coachUserId }] },
+            select: { id: true, name: true, nameSv: true },
+          })
+
+          const movementData = movements.map((m) => {
+            // Try to match by name (case-insensitive)
+            const match = allExercises.find((e) =>
+              e.name.toLowerCase() === m.exerciseName.toLowerCase() ||
+              (e.nameSv && e.nameSv.toLowerCase() === m.exerciseName.toLowerCase())
+            )
+            return {
+              exerciseId: match?.id || allExercises[0]?.id, // Fallback to first exercise
+              order: m.order,
+              reps: m.reps,
+              calories: m.calories,
+              distance: m.distance,
+              duration: m.duration,
+              weightMale: m.weightMale,
+              weightFemale: m.weightFemale,
+              notes: m.notes ? `${m.exerciseName}: ${m.notes}` : (!match ? `⚠️ "${m.exerciseName}" — ej matchad i biblioteket` : undefined),
+            }
+          })
+
+          const workout = await prisma.hybridWorkout.create({
+            data: {
+              name,
+              description,
+              format,
+              timeCap,
+              workTime,
+              restTime,
+              totalRounds,
+              totalMinutes,
+              repScheme,
+              scalingLevel: 'RX',
+              coachId: coachUserId,
+              tags: tags || [],
+              movements: {
+                create: movementData,
+              },
+            },
+          })
+
+          return {
+            success: true,
+            savedWorkoutId: workout.id,
+            name,
+            format,
+            movementCount: movements.length,
+            message: `Hybridpass "${name}" (${format}) skapat med ${movements.length} övningar och sparat i Hybrid Studio.`,
+          }
+        } catch (error) {
+          logger.error('Error in createHybridWorkout tool', {}, error)
+          return { success: false, error: 'Kunde inte skapa hybridpass.' }
+        }
+      },
+    }),
+
+    createSportWorkout: tool({
+      description: 'Skapa ett sportspecifikt träningspass med blandade sektioner. Kan kombinera uppvärmning, styrka, kondition, agility/teknik och nedvarvning i ett pass. Idealiskt för lagsporter (fotboll, ishockey, handboll, basket etc), HYROX, tennis, padel m.m. Passet sparas som en AI-genererad WOD åt en specifik atlet.',
+      inputSchema: z.object({
+        clientId: z.string().describe('Atletens client-ID'),
+        title: z.string().describe('Passtitel på svenska'),
+        description: z.string().describe('Beskrivning'),
+        sport: z.string().describe('Sport t.ex. FOOTBALL, ICE_HOCKEY, BASKETBALL, HANDBALL, HYROX, TENNIS, PADEL, RUNNING, CYCLING'),
+        duration: z.number().min(10).max(180).describe('Total tid i minuter'),
+        intensity: z.enum(['recovery', 'easy', 'moderate', 'threshold']).optional(),
+        sections: z.array(z.object({
+          type: z.enum(['WARMUP', 'MAIN', 'CORE', 'COOLDOWN', 'AGILITY', 'CONDITIONING']).describe('Sektionstyp'),
+          name: z.string().describe('Sektionsnamn på svenska'),
+          duration: z.number().describe('Sektionslängd i minuter'),
+          exercises: z.array(z.object({
+            name: z.string().describe('Övningsnamn på engelska'),
+            nameSv: z.string().describe('Övningsnamn på svenska'),
+            sets: z.number().optional(),
+            reps: z.string().optional(),
+            duration: z.number().optional().describe('Tid i sekunder'),
+            distance: z.number().optional().describe('Distans i meter'),
+            restSeconds: z.number().optional(),
+            notes: z.string().optional(),
+          })),
+        })),
+      }),
+      execute: async ({ clientId, title, description, sport, duration, intensity, sections }) => {
+        try {
+          const totalExercises = sections.reduce((sum, s) => sum + s.exercises.length, 0)
+          const totalSets = sections.reduce(
+            (sum, s) => s.exercises.reduce((eSum, e) => eSum + (e.sets || 1), 0) + sum, 0
+          )
+
+          const workoutJson = {
+            title,
+            subtitle: sport,
+            description,
+            workoutType: 'mixed',
+            duration,
+            intensity: intensity || 'moderate',
+            totalExercises,
+            totalSets,
+            sections: sections.map((s) => ({
+              type: s.type,
+              name: s.name,
+              duration: s.duration,
+              exercises: s.exercises.map((e) => ({
+                name: e.name,
+                nameSv: e.nameSv,
+                sets: e.sets,
+                reps: e.reps,
+                duration: e.duration,
+                distance: e.distance,
+                restSeconds: e.restSeconds,
+                notes: e.notes,
+              })),
+            })),
+          }
+
+          const wod = await prisma.aIGeneratedWOD.create({
+            data: {
+              clientId,
+              title,
+              description,
+              workoutType: 'mixed',
+              requestedDuration: duration,
+              workoutJson: workoutJson as any,
+              source: 'chat',
+              status: 'GENERATED',
+            },
+          })
+
+          return {
+            success: true,
+            wodId: wod.id,
+            title,
+            sport,
+            duration: `${duration} min`,
+            totalExercises,
+            sectionNames: sections.map((s) => s.name).join(', '),
+            message: `Sportpass "${title}" skapat för atleten. ${totalExercises} övningar i ${sections.length} sektioner (${sections.map(s => s.name).join(', ')}).`,
+          }
+        } catch (error) {
+          logger.error('Error in createSportWorkout tool', {}, error)
+          return { success: false, error: 'Kunde inte skapa sportpass.' }
+        }
+      },
+    }),
   }
 }
