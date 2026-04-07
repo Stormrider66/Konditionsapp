@@ -17,15 +17,19 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const hidden = await prisma.hiddenExercise.findMany({
-      where: { userId: user.id },
-      select: { exerciseId: true },
-    })
-
-    return NextResponse.json({
-      success: true,
-      data: hidden.map((h) => h.exerciseId),
-    })
+    try {
+      const hidden = await prisma.hiddenExercise.findMany({
+        where: { userId: user.id },
+        select: { exerciseId: true },
+      })
+      return NextResponse.json({
+        success: true,
+        data: hidden.map((h) => h.exerciseId),
+      })
+    } catch {
+      // Table may not exist yet — return empty list
+      return NextResponse.json({ success: true, data: [] })
+    }
   } catch (error) {
     logger.error('Error fetching hidden exercises', {}, error)
     return NextResponse.json(

@@ -128,11 +128,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Exclude exercises hidden by this user
-    const hiddenExercises = await prisma.hiddenExercise.findMany({
-      where: { userId: user.id },
-      select: { exerciseId: true },
-    })
-    const hiddenIds = hiddenExercises.map((h) => h.exerciseId)
+    let hiddenIds: string[] = []
+    try {
+      const hiddenExercises = await prisma.hiddenExercise.findMany({
+        where: { userId: user.id },
+        select: { exerciseId: true },
+      })
+      hiddenIds = hiddenExercises.map((h) => h.exerciseId)
+    } catch {
+      // Table may not exist yet if migration hasn't run — skip filtering
+    }
 
     const where: Prisma.ExerciseWhereInput = {
       AND: [
