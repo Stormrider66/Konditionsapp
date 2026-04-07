@@ -62,6 +62,7 @@ import {
   TrendingDown,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
@@ -327,6 +328,48 @@ export function ExerciseLibraryBrowser({
     )
   }
 
+  // Delete exercise
+  const deleteExercise = async (exercise: Exercise) => {
+    if (exercise.isPublic) {
+      toast({
+        title: 'Cannot delete',
+        description: 'Public library exercises cannot be deleted.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/exercises/${exercise.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        toast({
+          title: 'Cannot delete',
+          description: data.message || data.error || 'Failed to delete exercise',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      toast({
+        title: 'Deleted',
+        description: `"${exercise.nameSv || exercise.name}" has been deleted.`,
+      })
+      setShowDetailModal(false)
+      setSelectedExercise(null)
+      fetchExercises()
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete exercise',
+        variant: 'destructive',
+      })
+    }
+  }
+
   // Render exercise row (list view)
   const renderExerciseRow = (exercise: Exercise) => {
     const isFavorite = favorites.has(exercise.id)
@@ -337,11 +380,12 @@ export function ExerciseLibraryBrowser({
         className="cursor-pointer hover:shadow-md transition-shadow mb-2"
         onClick={() => handleSelectExercise(exercise)}
       >
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
+              className="h-8 w-8 flex-shrink-0"
               onClick={(e) => {
                 e.stopPropagation()
                 toggleFavorite(exercise.id)
@@ -354,35 +398,33 @@ export function ExerciseLibraryBrowser({
               )}
             </Button>
 
-            <div className="flex-1 grid grid-cols-5 gap-4">
-              <div className="col-span-2">
-                <p className="font-semibold">{exercise.name}</p>
-                <p className="text-sm text-gray-500">{exercise.muscleGroup}</p>
-              </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
+                <div className="min-w-0 sm:w-2/5">
+                  <p className="font-semibold text-sm truncate">{exercise.nameSv || exercise.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{exercise.muscleGroup}</p>
+                </div>
 
-              <div className="flex items-center gap-2">
-                {exercise.biomechanicalPillar && (
-                  <Badge className={`text-xs ${getPillarColor(exercise.biomechanicalPillar)}`}>
-                    {exercise.biomechanicalPillar}
-                  </Badge>
-                )}
-              </div>
-
-              <div className="flex items-center">
-                {exercise.progressionLevel && (
-                  <Badge variant="outline" className="text-xs">
-                    {exercise.progressionLevel}
-                  </Badge>
-                )}
-              </div>
-
-              <div className="flex items-center text-sm text-gray-600">
-                {exercise.equipment || 'None'}
+                <div className="flex flex-wrap items-center gap-1.5 mt-1 sm:mt-0 sm:flex-1">
+                  {exercise.biomechanicalPillar && (
+                    <Badge className={`text-[10px] px-1.5 py-0 leading-5 ${getPillarColor(exercise.biomechanicalPillar)}`}>
+                      {exercise.biomechanicalPillar.replace(/_/g, ' ')}
+                    </Badge>
+                  )}
+                  {exercise.progressionLevel && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 leading-5">
+                      {exercise.progressionLevel.replace(/_/g, ' ')}
+                    </Badge>
+                  )}
+                  {exercise.equipment && (
+                    <span className="text-xs text-gray-500 truncate max-w-[120px]">{exercise.equipment}</span>
+                  )}
+                </div>
               </div>
             </div>
 
             {mode === 'select' && (
-              <Button size="sm" onClick={() => onSelectExercise?.(exercise)}>
+              <Button size="sm" className="flex-shrink-0" onClick={() => onSelectExercise?.(exercise)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add
               </Button>
@@ -502,14 +544,30 @@ export function ExerciseLibraryBrowser({
             </div>
           </ScrollArea>
 
-          {mode === 'select' && (
-            <div className="flex justify-end">
+          <div className="flex items-center justify-between pt-2 border-t">
+            {!selectedExercise.isPublic ? (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  if (confirm(`Are you sure you want to delete "${selectedExercise.nameSv || selectedExercise.name}"?`)) {
+                    deleteExercise(selectedExercise)
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            ) : (
+              <div />
+            )}
+            {mode === 'select' && (
               <Button onClick={() => onSelectExercise?.(selectedExercise)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add to Workout
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     )
