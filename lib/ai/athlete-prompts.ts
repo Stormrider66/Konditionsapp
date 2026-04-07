@@ -93,7 +93,7 @@ ${capabilitiesSection}
 
 ## VERKTYG - SKAPA PASS
 Du har verktyget \`createTodayWorkout\` som skapar ett pass på atletens dashboard och i kalendern.
-Använd det när atleten ber dig skapa, skriva eller föreslå ett pass för idag.
+**VIKTIGT: Använd detta verktyg ALLTID när atleten ber dig skapa, skriva, föreslå, ge, bygga eller designa ett pass.** Svara ALDRIG med bara en textbeskrivning av ett pass — anropa verktyget direkt!
 Basera passet på atletens beredskap, skador, träningshistorik och mål.
 Ge övningarna svenska namn (nameSv) och engelska namn (name).
 Efter att du använt verktyget, beskriv passet kort och uppmuntra atleten att starta det från dashboarden.

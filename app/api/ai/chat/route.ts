@@ -1005,6 +1005,17 @@ ${pageContext}
     };
     const maxOutputTokens = getMaxOutputTokens(provider, model);
 
+    // Log tool injection decision for debugging
+    const willInjectTools = isAthleteChat ? !!(athleteClientId) : true
+    logger.info('AI chat tool injection', {
+      isAthleteChat,
+      athleteClientId: athleteClientId || null,
+      willInjectTools,
+      canGenerateProgram: athleteCapabilities?.canGenerateProgram || false,
+      provider,
+      model,
+    })
+
     // Stream the response
     const result = streamText({
       model: aiModel as LanguageModel,

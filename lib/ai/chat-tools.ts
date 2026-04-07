@@ -69,6 +69,7 @@ export function createChatTools(
       }),
       execute: async ({ title, subtitle, description, workoutType, duration, intensity, sections }) => {
         const startTime = Date.now()
+        logger.info('createTodayWorkout tool called', { clientId, title, workoutType, duration, sectionCount: sections.length })
 
         try {
           // Fetch athlete context for readiness-aware creation
