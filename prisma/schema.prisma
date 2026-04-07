@@ -683,8 +683,9 @@ model User {
   // Visual Report System relations
   visualReports VisualReport[] @relation("CoachVisualReports")
 
-  // Exercise Favorites
+  // Exercise Favorites & Hidden
   exerciseFavorites ExerciseFavorite[]
+  hiddenExercises   HiddenExercise[]
 
   // Workout Template Discovery
   workoutTemplates         WorkoutTemplate[]         @relation("WorkoutTemplateOwner")
@@ -2622,10 +2623,24 @@ model Exercise {
   @@index([progressionExerciseId])
   @@index([regressionExerciseId])
 
-  favorites ExerciseFavorite[]
+  favorites       ExerciseFavorite[]
+  hiddenByUsers   HiddenExercise[]
 }
 
 model ExerciseFavorite {
+  id         String   @id @default(uuid())
+  userId     String
+  exerciseId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, exerciseId])
+  @@index([userId])
+}
+
+model HiddenExercise {
   id         String   @id @default(uuid())
   userId     String
   exerciseId String

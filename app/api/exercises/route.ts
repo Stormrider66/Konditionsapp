@@ -127,8 +127,19 @@ export async function GET(request: NextRequest) {
       ]
     }
 
+    // Exclude exercises hidden by this user
+    const hiddenExercises = await prisma.hiddenExercise.findMany({
+      where: { userId: user.id },
+      select: { exerciseId: true },
+    })
+    const hiddenIds = hiddenExercises.map((h) => h.exerciseId)
+
     const where: Prisma.ExerciseWhereInput = {
-      AND: [accessWhere, filtersWhere],
+      AND: [
+        accessWhere,
+        filtersWhere,
+        ...(hiddenIds.length > 0 ? [{ id: { notIn: hiddenIds } }] : []),
+      ],
     }
 
     const [exercises, totalCount] = await prisma.$transaction([

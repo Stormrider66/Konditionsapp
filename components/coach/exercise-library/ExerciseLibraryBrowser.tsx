@@ -63,6 +63,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
+  EyeOff,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
@@ -328,17 +329,8 @@ export function ExerciseLibraryBrowser({
     )
   }
 
-  // Delete exercise
+  // Delete exercise (custom only)
   const deleteExercise = async (exercise: Exercise) => {
-    if (exercise.isPublic) {
-      toast({
-        title: 'Cannot delete',
-        description: 'Public library exercises cannot be deleted.',
-        variant: 'destructive',
-      })
-      return
-    }
-
     try {
       const response = await fetch(`/api/exercises/${exercise.id}`, {
         method: 'DELETE',
@@ -365,6 +357,40 @@ export function ExerciseLibraryBrowser({
       toast({
         title: 'Error',
         description: 'Failed to delete exercise',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Hide exercise from library view
+  const hideExercise = async (exercise: Exercise) => {
+    try {
+      const response = await fetch('/api/exercises/hidden', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exerciseId: exercise.id }),
+      })
+
+      if (!response.ok) {
+        toast({
+          title: 'Error',
+          description: 'Failed to hide exercise',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      toast({
+        title: 'Hidden',
+        description: `"${exercise.nameSv || exercise.name}" has been hidden from your library.`,
+      })
+      setShowDetailModal(false)
+      setSelectedExercise(null)
+      fetchExercises()
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to hide exercise',
         variant: 'destructive',
       })
     }
@@ -544,23 +570,35 @@ export function ExerciseLibraryBrowser({
             </div>
           </ScrollArea>
 
-          <div className="flex items-center justify-between pt-2 border-t">
-            {!selectedExercise.isPublic ? (
+          <div className="flex items-center justify-between pt-2 border-t gap-2">
+            <div className="flex items-center gap-2">
+              {!selectedExercise.isPublic && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    if (confirm(`Are you sure you want to delete "${selectedExercise.nameSv || selectedExercise.name}"?`)) {
+                      deleteExercise(selectedExercise)
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              )}
               <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (confirm(`Are you sure you want to delete "${selectedExercise.nameSv || selectedExercise.name}"?`)) {
-                    deleteExercise(selectedExercise)
+                  if (confirm(`Hide "${selectedExercise.nameSv || selectedExercise.name}" from your library?`)) {
+                    hideExercise(selectedExercise)
                   }
                 }}
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
+                <EyeOff className="h-4 w-4 mr-2" />
+                Hide
               </Button>
-            ) : (
-              <div />
-            )}
+            </div>
             {mode === 'select' && (
               <Button onClick={() => onSelectExercise?.(selectedExercise)}>
                 <Plus className="h-4 w-4 mr-2" />
