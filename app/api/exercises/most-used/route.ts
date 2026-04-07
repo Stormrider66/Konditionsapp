@@ -1,0 +1,72 @@
+/**
+ * Most Used Exercises API
+ *
+ * GET /api/exercises/most-used - Get exercise IDs ranked by usage frequency
+ * Counts occurrences across the coach's StrengthSessions (exercises JSON field).
+ */
+
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
+
+export async function GET() {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Fetch all strength sessions for this coach
+    const sessions = await prisma.strengthSession.findMany({
+      where: { coachId: user.id },
+      select: {
+        exercises: true,
+        warmupData: true,
+        coreData: true,
+        cooldownData: true,
+      },
+    })
+
+    // Count exercise usage across all sessions
+    const counts: Record<string, number> = {}
+
+    for (const session of sessions) {
+      // Main exercises
+      const mainExercises = session.exercises as any[] | null
+      if (Array.isArray(mainExercises)) {
+        for (const ex of mainExercises) {
+          if (ex.exerciseId) {
+            counts[ex.exerciseId] = (counts[ex.exerciseId] || 0) + 1
+          }
+        }
+      }
+
+      // Section exercises (warmup, core, cooldown)
+      for (const sectionData of [session.warmupData, session.coreData, session.cooldownData]) {
+        const section = sectionData as { exercises?: any[] } | null
+        if (section?.exercises && Array.isArray(section.exercises)) {
+          for (const ex of section.exercises) {
+            if (ex.exerciseId) {
+              counts[ex.exerciseId] = (counts[ex.exerciseId] || 0) + 1
+            }
+          }
+        }
+      }
+    }
+
+    // Sort by usage count descending, return top 50
+    const ranked = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 50)
+      .map(([exerciseId, count]) => ({ exerciseId, count }))
+
+    return NextResponse.json({ success: true, data: ranked })
+  } catch (error) {
+    logger.error('Error fetching most-used exercises', {}, error)
+    return NextResponse.json(
+      { error: 'Failed to fetch most-used exercises' },
+      { status: 500 }
+    )
+  }
+}

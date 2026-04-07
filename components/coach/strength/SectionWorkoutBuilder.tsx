@@ -63,6 +63,8 @@ import {
   Flame,
   Target,
   Sparkles,
+  Star,
+  TrendingUp,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CustomExerciseCreator } from '@/components/coach/exercise-library/CustomExerciseCreator'
@@ -218,6 +220,9 @@ export function SectionWorkoutBuilder({
   const [availableExercises, setAvailableExercises] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
+  const [browseMode, setBrowseMode] = useState<'all' | 'favorites' | 'most-used'>('all')
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
+  const [mostUsedIds, setMostUsedIds] = useState<string[]>([])
   const [targetSection, setTargetSection] = useState<SectionType>('MAIN')
   const [showExerciseCreator, setShowExerciseCreator] = useState(false)
 
@@ -349,14 +354,52 @@ export function SectionWorkoutBuilder({
     fetchExercises()
   }, [fetchExercises])
 
+  // Fetch favorites and most-used on mount
+  useEffect(() => {
+    async function loadFavorites() {
+      try {
+        const res = await fetch('/api/exercises/favorites')
+        if (res.ok) {
+          const data = await res.json()
+          if (data.data) setFavoriteIds(new Set(data.data))
+        }
+      } catch { /* non-critical */ }
+    }
+    async function loadMostUsed() {
+      try {
+        const res = await fetch('/api/exercises/most-used')
+        if (res.ok) {
+          const data = await res.json()
+          if (data.data) setMostUsedIds(data.data.map((d: any) => d.exerciseId))
+        }
+      } catch { /* non-critical */ }
+    }
+    loadFavorites()
+    loadMostUsed()
+  }, [])
+
   // Filter exercises
-  const filteredExercises = availableExercises.filter((ex) => {
-    const matchesSearch =
-      ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (ex.muscleGroup && ex.muscleGroup.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesCategory = categoryFilter === 'ALL' || ex.category === categoryFilter
-    return matchesSearch && matchesCategory
-  })
+  const filteredExercises = (() => {
+    let list = availableExercises
+
+    // Apply browse mode
+    if (browseMode === 'favorites') {
+      list = list.filter((ex) => favoriteIds.has(ex.id))
+    } else if (browseMode === 'most-used') {
+      list = list.filter((ex) => mostUsedIds.includes(ex.id))
+      // Sort by usage frequency
+      list = [...list].sort((a, b) => mostUsedIds.indexOf(a.id) - mostUsedIds.indexOf(b.id))
+    }
+
+    // Apply search and category filters
+    return list.filter((ex) => {
+      const matchesSearch =
+        ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (ex.muscleGroup && ex.muscleGroup.toLowerCase().includes(searchTerm.toLowerCase()))
+      const matchesCategory = categoryFilter === 'ALL' || ex.category === categoryFilter
+      return matchesSearch && matchesCategory
+    })
+  })()
 
   // DnD sensors
   const sensors = useSensors(
@@ -868,6 +911,35 @@ export function SectionWorkoutBuilder({
                     ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="flex gap-1">
+              <Button
+                variant={browseMode === 'all' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-7 text-xs flex-1"
+                onClick={() => setBrowseMode('all')}
+              >
+                Alla
+              </Button>
+              <Button
+                variant={browseMode === 'favorites' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-7 text-xs flex-1"
+                onClick={() => setBrowseMode('favorites')}
+              >
+                <Star className="h-3 w-3 mr-1" />
+                Favoriter
+              </Button>
+              <Button
+                variant={browseMode === 'most-used' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-7 text-xs flex-1"
+                onClick={() => setBrowseMode('most-used')}
+              >
+                <TrendingUp className="h-3 w-3 mr-1" />
+                Mest använda
+              </Button>
             </div>
 
             <div className="space-y-1 max-h-[350px] overflow-y-auto pr-1">
