@@ -115,7 +115,7 @@ export function VideoAnalysisList() {
 
   const fetchExercises = async () => {
     try {
-      const response = await fetch('/api/exercises?limit=100')
+      const response = await fetch('/api/exercises?limit=500')
       const data = await response.json()
       if (data.exercises) {
         setExercises(data.exercises.map((e: { id: string; name: string; nameSv: string | null }) => ({

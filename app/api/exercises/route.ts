@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Pagination with limits
     // Keep a hard cap to prevent accidental heavy queries/DoS.
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')))
+    const limit = Math.min(500, Math.max(1, parseInt(searchParams.get('limit') || '50')))
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'))
 
     // Validate sortBy to prevent injection

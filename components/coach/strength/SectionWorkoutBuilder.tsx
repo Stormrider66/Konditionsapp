@@ -326,7 +326,7 @@ export function SectionWorkoutBuilder({
   // Fetch exercises
   const fetchExercises = useCallback(async () => {
     try {
-      const res = await fetch('/api/exercises?limit=100')
+      const res = await fetch('/api/exercises?limit=500')
       if (res.ok) {
         const data = await res.json()
         const exercisesList = Array.isArray(data) ? data : (data.exercises || [])
