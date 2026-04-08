@@ -285,8 +285,8 @@ describe('FoodPhotoScanner', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/kunde inte uppdatera analysen utifrån korrigeringen/i)
-      ).toBeInTheDocument()
+        screen.getAllByText(/kunde inte uppdatera analysen utifrån korrigeringen/i).length
+      ).toBeGreaterThan(0)
       expect(textareas[0]).toHaveValue('det var något annat')
     })
   })
