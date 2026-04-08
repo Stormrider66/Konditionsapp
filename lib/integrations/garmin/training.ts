@@ -437,3 +437,96 @@ export function serializeWorkoutToGarmin(workout: {
   if (workout.description) result.description = workout.description
   return result
 }
+
+// ─── Strength Session → Garmin Serializer ──────────────────────────────────
+
+interface StrengthExercise {
+  exerciseId: string
+  exerciseName: string
+  sets: number
+  reps: number | string
+  weight?: number
+  restSeconds?: number
+  notes?: string
+}
+
+interface StrengthSessionForGarmin {
+  name: string
+  description?: string
+  exercises: StrengthExercise[]
+  warmupExercises?: StrengthExercise[]
+  cooldownExercises?: StrengthExercise[]
+}
+
+/**
+ * Serialize a strength session to a Garmin workout.
+ *
+ * Garmin represents strength workouts as:
+ * - Sport type: STRENGTH_TRAINING (ID 5)
+ * - Each exercise = a RepeatGroup with N repetitions (sets)
+ *   containing a work step (reps description) + rest step
+ * - Warmup/cooldown as timed steps
+ */
+export function buildGarminStrengthWorkout(session: StrengthSessionForGarmin): GarminWorkout {
+  const sportTypeObj = SPORT_TYPE_OBJECTS.STRENGTH_TRAINING
+  const steps: GarminWorkoutStepUnion[] = []
+  let stepOrder = 1
+
+  // Warmup exercises as simple timed steps
+  if (session.warmupExercises?.length) {
+    for (const ex of session.warmupExercises) {
+      steps.push(buildStep(stepOrder++, 'warmup', {
+        durationSeconds: 60,
+        description: `${ex.exerciseName}${ex.notes ? ` - ${ex.notes}` : ''}`,
+      }))
+    }
+  }
+
+  // Main exercises — each as a repeat group (sets × [work + rest])
+  for (const ex of session.exercises) {
+    const repsStr = typeof ex.reps === 'number' ? `${ex.reps}` : ex.reps
+    const weightStr = ex.weight ? ` @ ${ex.weight}kg` : ''
+    const exerciseDescription = `${ex.exerciseName}: ${repsStr} reps${weightStr}`
+
+    if (ex.sets > 1 && ex.restSeconds && ex.restSeconds > 0) {
+      // Repeat group: sets × (work + rest)
+      const childSteps = [
+        buildStep(1, 'interval', {
+          isLapButton: true,
+          description: exerciseDescription,
+        }),
+        buildStep(2, 'rest', {
+          durationSeconds: ex.restSeconds,
+          description: 'Vila',
+        }),
+      ]
+      steps.push(buildRepeatGroup(stepOrder++, ex.sets, childSteps))
+    } else {
+      // Single step with lap button per set
+      for (let s = 0; s < ex.sets; s++) {
+        steps.push(buildStep(stepOrder++, 'interval', {
+          isLapButton: true,
+          description: `${exerciseDescription} (set ${s + 1}/${ex.sets})`,
+        }))
+      }
+    }
+  }
+
+  // Cooldown exercises
+  if (session.cooldownExercises?.length) {
+    for (const ex of session.cooldownExercises) {
+      steps.push(buildStep(stepOrder++, 'cooldown', {
+        durationSeconds: 60,
+        description: `${ex.exerciseName}${ex.notes ? ` - ${ex.notes}` : ''}`,
+      }))
+    }
+  }
+
+  return {
+    workoutName: session.name,
+    sport: 'STRENGTH_TRAINING',
+    sportType: sportTypeObj,
+    description: session.description,
+    steps,
+  } as GarminWorkout
+}
