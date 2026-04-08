@@ -21,8 +21,14 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import dynamic from 'next/dynamic'
 import { StrengthTemplateSelector } from '@/components/athlete/strength/StrengthTemplateSelector'
 import { StrengthFocusMode } from '@/components/athlete/strength/StrengthFocusMode'
+
+const ProgressionDashboard = dynamic(
+  () => import('@/components/coach/progression/ProgressionDashboard').then(mod => mod.ProgressionDashboard),
+  { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground">Laddar progression...</div> }
+)
 import {
   Dumbbell,
   Calendar,
@@ -36,6 +42,7 @@ import {
   Timer,
   History,
   Play,
+  TrendingUp,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
@@ -64,6 +71,7 @@ interface Assignment {
 }
 
 interface AthleteStrengthClientProps {
+  clientId?: string
   selfServiceEnabled: boolean
   subscriptionTier: string
   upcomingAssignments: Assignment[]
@@ -72,6 +80,7 @@ interface AthleteStrengthClientProps {
 }
 
 export function AthleteStrengthClient({
+  clientId: clientIdProp,
   selfServiceEnabled,
   subscriptionTier,
   upcomingAssignments,
@@ -90,7 +99,7 @@ export function AthleteStrengthClient({
   return (
     <div className="space-y-8">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 max-w-lg bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
           <TabsTrigger
             value="history"
             className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
@@ -111,6 +120,13 @@ export function AthleteStrengthClient({
           >
             <CalendarDays className="h-4 w-4" />
             Tilldelade ({upcomingAssignments.length})
+          </TabsTrigger>
+          <TabsTrigger
+            value="progression"
+            className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
+          >
+            <TrendingUp className="h-4 w-4" />
+            Progression
           </TabsTrigger>
         </TabsList>
 
@@ -329,6 +345,17 @@ export function AthleteStrengthClient({
                 </Button>
               </GlassCardContent>
             </GlassCard>
+          )}
+        </TabsContent>
+
+        <TabsContent value="progression" className="mt-8">
+          {clientIdProp ? (
+            <ProgressionDashboard clientId={clientIdProp} />
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <TrendingUp className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+              <p>Progressionsdata laddas...</p>
+            </div>
           )}
         </TabsContent>
       </Tabs>

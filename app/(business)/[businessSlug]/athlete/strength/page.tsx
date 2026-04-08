@@ -116,6 +116,7 @@ export default async function BusinessStrengthPage({ params }: BusinessStrengthP
 
       <Suspense fallback={<LoadingSkeleton />}>
         <AthleteStrengthClient
+          clientId={clientId}
           selfServiceEnabled={selfServiceEnabled}
           subscriptionTier={subscriptionTier}
           upcomingAssignments={data.upcomingAssignments.map((a) => ({

@@ -100,6 +100,7 @@ export default async function AthleteStrengthPage() {
 
       <Suspense fallback={<LoadingSkeleton />}>
         <AthleteStrengthClient
+          clientId={clientId}
           selfServiceEnabled={selfServiceEnabled}
           subscriptionTier={subscriptionTier}
           upcomingAssignments={data.upcomingAssignments.map((a) => ({

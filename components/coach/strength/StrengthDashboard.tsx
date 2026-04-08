@@ -31,6 +31,11 @@ import type { StrengthSessionData } from '@/types'
 import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog'
 import { MuscleGroupDashboard } from '@/components/strength/MuscleGroupDashboard'
 
+const ProgressionDashboard = dynamic(
+  () => import('@/components/coach/progression/ProgressionDashboard').then(mod => mod.ProgressionDashboard),
+  { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground">Laddar progression...</div> }
+)
+
 interface GeneratedSession {
   name: string
   description: string
@@ -87,6 +92,10 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
   const [weeklyAthleteId, setWeeklyAthleteId] = useState<string | null>(null)
   const [weeklyAthleteName, setWeeklyAthleteName] = useState<string | null>(null)
   const [showWeeklyAssignDialog, setShowWeeklyAssignDialog] = useState(false)
+
+  // Progression tab state
+  const [progressionAthletes, setProgressionAthletes] = useState<Array<{ id: string; name: string }>>([])
+  const [progressionClientId, setProgressionClientId] = useState<string>('')
 
   // Calendar assignment flow
   const fromCalendar = searchParams.get('fromCalendar') === 'true'
@@ -148,6 +157,21 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
       }
     }
     fetchStats()
+    // Also fetch athletes for progression tab
+    async function fetchAthletes() {
+      try {
+        const res = await fetch('/api/clients')
+        if (res.ok) {
+          const data = await res.json()
+          const list = (data.clients || data || []).map((c: any) => ({
+            id: c.id,
+            name: c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Unnamed',
+          }))
+          setProgressionAthletes(list)
+        }
+      } catch { /* non-critical */ }
+    }
+    fetchAthletes()
   }, [businessId])
 
   // Handle auto-generated session
@@ -575,7 +599,34 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
         </TabsContent>
 
         <TabsContent value="progression">
-          <MuscleGroupDashboard businessId={businessId} />
+          <div className="space-y-6">
+            {/* Athlete selector for progression */}
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+              <div className="flex-1 max-w-xs">
+                <Label className="text-sm font-medium mb-1.5 block">Välj atlet</Label>
+                <select
+                  value={progressionClientId}
+                  onChange={(e) => setProgressionClientId(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Välj en atlet...</option>
+                  {progressionAthletes.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Progression dashboard for selected athlete */}
+            {progressionClientId ? (
+              <ProgressionDashboard
+                clientId={progressionClientId}
+                clientName={progressionAthletes.find((a) => a.id === progressionClientId)?.name}
+              />
+            ) : (
+              <MuscleGroupDashboard businessId={businessId} />
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 

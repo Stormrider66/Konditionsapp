@@ -65,7 +65,7 @@ import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface ProgressionDashboardProps {
   clientId: string
-  clientName: string
+  clientName?: string
 }
 
 interface ProgressionData {
