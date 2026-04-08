@@ -64,6 +64,8 @@ import {
   ChevronRight,
   Trash2,
   EyeOff,
+  ImagePlus,
+  Loader2,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
@@ -105,6 +107,10 @@ export function ExerciseLibraryBrowser({
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
+
+  // Image generation state
+  const [isGeneratingImages, setIsGeneratingImages] = useState(false)
+  const [imageStats, setImageStats] = useState<{ withoutImages: number } | null>(null)
 
   // Progression path state
   const [progressionPath, setProgressionPath] = useState<{
@@ -183,6 +189,59 @@ export function ExerciseLibraryBrowser({
     }
     loadFavorites()
   }, [])
+
+  // Fetch image stats on mount
+  useEffect(() => {
+    async function loadImageStats() {
+      try {
+        const res = await fetch('/api/exercises/generate-images')
+        if (res.ok) {
+          const data = await res.json()
+          setImageStats({ withoutImages: data.withoutImages })
+        }
+      } catch { /* non-critical */ }
+    }
+    loadImageStats()
+  }, [])
+
+  // Generate images for exercises missing them
+  const generateImages = async () => {
+    setIsGeneratingImages(true)
+    try {
+      const res = await fetch('/api/exercises/generate-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchSize: 5 }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast({
+          title: 'Fel',
+          description: data.error || 'Kunde inte generera bilder',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      toast({
+        title: `${data.generated} bilder genererade`,
+        description: data.remaining > 0
+          ? `${data.remaining} övningar kvar utan bilder. Kör igen för fler.`
+          : 'Alla övningar har nu bilder!',
+      })
+      setImageStats({ withoutImages: data.remaining })
+      fetchExercises() // Refresh to show new images
+    } catch {
+      toast({
+        title: 'Fel',
+        description: 'Kunde inte generera bilder',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsGeneratingImages(false)
+    }
+  }
 
   // Fetch progression path when exercise selected
   useEffect(() => {
@@ -622,6 +681,22 @@ export function ExerciseLibraryBrowser({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {imageStats && imageStats.withoutImages > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={generateImages}
+              disabled={isGeneratingImages}
+              className="text-xs"
+            >
+              {isGeneratingImages ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <ImagePlus className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              {isGeneratingImages ? 'Genererar...' : `Generera bilder (${imageStats.withoutImages})`}
+            </Button>
+          )}
           <Button
             variant={viewMode === 'grid' ? 'default' : 'outline'}
             size="icon"
