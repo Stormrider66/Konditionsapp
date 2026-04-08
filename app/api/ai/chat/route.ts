@@ -769,6 +769,13 @@ Skapa funktionella/hybrid pass (CrossFit-stil, HYROX, circuit). Sparas i Hybrid 
 - Repschema stöd ("21-15-9", "5-5-5-5-5")
 - Övningsnamn matchas automatiskt mot övningsbiblioteket
 
+### modifyStrengthSession
+Modifiera ett befintligt styrkepass med AI. Kräver sessionId.
+- Byta ut övningar (t.ex. "byt knäböj mot benspress")
+- Justera volym/intensitet (t.ex. "gör passet lättare")
+- Anpassa för skador (t.ex. "ta bort alla hoppövningar")
+- AI behåller strukturen och förklarar ändringarna
+
 ### createSportWorkout
 Skapa sportspecifika pass med blandade sektioner. Perfekt för lagsporter och multisportpass.
 - Kombinerar uppvärmning, styrka, kondition, agility/teknik, core och nedvarvning

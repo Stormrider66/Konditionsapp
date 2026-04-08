@@ -10,6 +10,11 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { generateStrengthSession, generateWeeklyProgram, type AutoGenerateParams } from '@/lib/training-engine/generators/auto-strength-generator'
 import { calculatePhases, estimateGenerationMinutes, generateMultiPartProgram, type GenerationContext } from '@/lib/ai/program-generator'
+import { modifyStrengthSessionPrompt } from '@/lib/ai/strength-program-prompts'
+import { generateText } from 'ai'
+import { createAnthropic } from '@ai-sdk/anthropic'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { createOpenAI } from '@ai-sdk/openai'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resolveModel } from '@/types/ai-models'
 import { logger } from '@/lib/logger'
@@ -528,6 +533,122 @@ export function createCoachChatTools(coachUserId: string) {
         } catch (error) {
           logger.error('Error in createSportWorkout tool', {}, error)
           return { success: false, error: 'Kunde inte skapa sportpass.' }
+        }
+      },
+    }),
+
+    modifyStrengthSession: tool({
+      description: 'Modifiera ett befintligt styrkepass med AI. Kan byta ut övningar, justera volym/intensitet, anpassa för skador, göra lättare/svårare etc. Kräver sessionId.',
+      inputSchema: z.object({
+        sessionId: z.string().describe('Styrkepassets ID'),
+        modification: z.string().describe('Vad ska ändras (t.ex. "byt ut knäböj mot benspress", "gör passet lättare", "ta bort alla hoppövningar")'),
+      }),
+      execute: async ({ sessionId, modification }) => {
+        try {
+          // Fetch current session
+          const session = await prisma.strengthSession.findUnique({
+            where: { id: sessionId },
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              phase: true,
+              exercises: true,
+              warmupData: true,
+              coreData: true,
+              cooldownData: true,
+              coachId: true,
+            },
+          })
+
+          if (!session) {
+            return { success: false, error: 'Passet hittades inte.' }
+          }
+
+          if (session.coachId !== coachUserId) {
+            return { success: false, error: 'Du har inte tillgång till detta pass.' }
+          }
+
+          // Build the AI prompt
+          const sessionJson = JSON.stringify({
+            name: session.name,
+            description: session.description,
+            phase: session.phase,
+            exercises: session.exercises,
+            warmupData: session.warmupData,
+            coreData: session.coreData,
+            cooldownData: session.cooldownData,
+          }, null, 2)
+
+          const prompt = modifyStrengthSessionPrompt(sessionJson, modification)
+
+          // Get AI model
+          const apiKeys = await getResolvedAiKeys(coachUserId)
+          const resolved = resolveModel(apiKeys, 'balanced')
+          if (!resolved) {
+            return { success: false, error: 'Inga AI-nycklar konfigurerade.' }
+          }
+
+          // Create model instance
+          let aiModel: any
+          if (resolved.provider === 'anthropic') {
+            const anthropic = createAnthropic({ apiKey: resolved.apiKey })
+            aiModel = anthropic(resolved.modelId)
+          } else if (resolved.provider === 'google') {
+            const google = createGoogleGenerativeAI({ apiKey: resolved.apiKey })
+            aiModel = google(resolved.modelId)
+          } else {
+            const openai = createOpenAI({ apiKey: resolved.apiKey })
+            aiModel = openai(resolved.modelId)
+          }
+
+          // Call AI
+          const result = await generateText({
+            model: aiModel,
+            system: 'Du är en expert på styrketräning. Returnera ALLTID ett giltigt JSON-objekt i ett ```json``` kodblock.',
+            prompt,
+            maxOutputTokens: 4096,
+          })
+
+          // Parse the JSON from the response
+          const jsonMatch = result.text.match(/```json\s*([\s\S]*?)\s*```/)
+          if (!jsonMatch?.[1]) {
+            return {
+              success: false,
+              error: 'AI kunde inte generera ett giltigt modifierat pass.',
+              aiResponse: result.text.slice(0, 500),
+            }
+          }
+
+          const modified = JSON.parse(jsonMatch[1])
+
+          // Update the session
+          await prisma.strengthSession.update({
+            where: { id: sessionId },
+            data: {
+              name: modified.name || session.name,
+              description: modified.description || session.description,
+              exercises: modified.exercises || session.exercises,
+              warmupData: modified.warmupData ?? session.warmupData,
+              coreData: modified.coreData ?? session.coreData,
+              cooldownData: modified.cooldownData ?? session.cooldownData,
+            },
+          })
+
+          // Extract explanation from AI response (text after JSON block)
+          const explanation = result.text.split('```').pop()?.trim() || 'Passet har uppdaterats.'
+
+          return {
+            success: true,
+            sessionId,
+            name: modified.name || session.name,
+            modification,
+            explanation,
+            message: `Passet "${modified.name || session.name}" har modifierats: ${modification}`,
+          }
+        } catch (error) {
+          logger.error('Error in modifyStrengthSession tool', {}, error)
+          return { success: false, error: 'Kunde inte modifiera passet.' }
         }
       },
     }),
