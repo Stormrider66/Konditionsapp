@@ -129,14 +129,14 @@ describe('GET /api/exercises', () => {
       expect(mockPrisma.$transaction).toHaveBeenCalled()
     })
 
-    it('caps limit at 100', async () => {
+    it('caps limit at 500', async () => {
       mockPrisma.$transaction.mockResolvedValue([[], 0])
 
-      const request = createGetRequest({ limit: '500' })
+      const request = createGetRequest({ limit: '1000' })
       const response = await GET(request)
       const body = await response.json()
 
-      expect(body.pagination.limit).toBe(100)
+      expect(body.pagination.limit).toBe(500)
     })
 
     it('ensures limit is at least 1', async () => {
