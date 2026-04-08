@@ -62,6 +62,14 @@ export interface BriefingContext {
     painLevel: number
     phase?: string
   }[]
+  recentNutrition?: {
+    date: string
+    totalCalories: number
+    totalProtein: number
+    totalCarbs: number
+    totalFat: number
+    mealCount: number
+  }[]
   dayOfWeek: string
 }
 
@@ -90,10 +98,23 @@ async function getPreviousBriefingTopics(clientId: string): Promise<string[]> {
       },
       orderBy: { scheduledFor: 'desc' },
       take: 3,
-      select: { highlights: true },
+      select: { highlights: true, alerts: true },
     })
 
-    return previous.flatMap((b) => b.highlights)
+    const topics = previous.flatMap((b) => b.highlights)
+
+    // Also include alert messages so the AI avoids repeating the same warnings
+    for (const b of previous) {
+      if (Array.isArray(b.alerts)) {
+        for (const alert of b.alerts as { message?: string }[]) {
+          if (alert.message) {
+            topics.push(alert.message)
+          }
+        }
+      }
+    }
+
+    return topics
   } catch (error) {
     logger.error('Error fetching previous briefing topics', { clientId }, error)
     return []
@@ -281,6 +302,64 @@ async function getActiveInjuries(
   }
 }
 
+async function getRecentNutrition(
+  clientId: string
+): Promise<BriefingContext['recentNutrition']> {
+  try {
+    const threeDaysAgo = new Date()
+    threeDaysAgo.setHours(0, 0, 0, 0)
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
+
+    const meals = await prisma.mealLog.findMany({
+      where: {
+        clientId,
+        date: { gte: threeDaysAgo },
+      },
+      select: {
+        date: true,
+        calories: true,
+        proteinGrams: true,
+        carbsGrams: true,
+        fatGrams: true,
+      },
+      orderBy: { date: 'desc' },
+    })
+
+    if (meals.length === 0) return undefined
+
+    // Aggregate by date
+    const byDay = new Map<
+      string,
+      { totalCalories: number; totalProtein: number; totalCarbs: number; totalFat: number; mealCount: number }
+    >()
+
+    for (const meal of meals) {
+      const dateStr = meal.date.toISOString().split('T')[0]
+      const day = byDay.get(dateStr) || {
+        totalCalories: 0,
+        totalProtein: 0,
+        totalCarbs: 0,
+        totalFat: 0,
+        mealCount: 0,
+      }
+      day.totalCalories += meal.calories ?? 0
+      day.totalProtein += meal.proteinGrams ?? 0
+      day.totalCarbs += meal.carbsGrams ?? 0
+      day.totalFat += meal.fatGrams ?? 0
+      day.mealCount += 1
+      byDay.set(dateStr, day)
+    }
+
+    return Array.from(byDay.entries()).map(([date, totals]) => ({
+      date,
+      ...totals,
+    }))
+  } catch (error) {
+    logger.error('Error fetching recent nutrition', { clientId }, error)
+    return undefined
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Build context for morning briefing generation
 // ---------------------------------------------------------------------------
@@ -362,6 +441,7 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
     currentWeeklySummary,
     recentWorkoutCompletions,
     activeInjuries,
+    recentNutrition,
   ] = await Promise.all([
     getTodaysWorkout(clientId),
     getPreviousBriefingTopics(clientId),
@@ -373,6 +453,7 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
       ? getRecentWorkoutCompletions(client.athleteAccount.userId)
       : Promise.resolve([] as { name: string; completedAt: Date; feeling?: string; rpe?: number }[]),
     getActiveInjuries(clientId),
+    getRecentNutrition(clientId),
   ])
 
   // Filter milestones already mentioned in previous briefings
@@ -434,6 +515,7 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
     currentWeeklySummary,
     recentWorkoutCompletions,
     activeInjuries,
+    recentNutrition,
     dayOfWeek: SWEDISH_DAYS[now.getDay()],
   }
 }
@@ -589,6 +671,17 @@ function buildBriefingPrompt(context: BriefingContext): string {
     dataLines += `\n- Vilopuls: ${context.restingHR} bpm`
   }
   sections.push(`ATLETENS DATA IDAG:${dataLines || '\n- Ingen check-in-data tillgänglig'}`)
+
+  // 2b. Recent nutrition data
+  if (context.recentNutrition && context.recentNutrition.length > 0) {
+    const nutritionLines = context.recentNutrition.map(
+      (day) =>
+        `- ${day.date}: ${Math.round(day.totalCalories)} kcal | P ${Math.round(day.totalProtein)}g | K ${Math.round(day.totalCarbs)}g | F ${Math.round(day.totalFat)}g (${day.mealCount} måltider)`
+    )
+    sections.push(
+      `NÄRING (SENASTE 3 DAGARNA):\n${nutritionLines.join('\n')}\nOBS: Använd AKTUELLA siffror ovan — referera INTE till äldre näringsvärden från minnen eller varningar.`
+    )
+  }
 
   // 3. Active warnings (Tier 1 — urgent)
   const warnings: string[] = []
