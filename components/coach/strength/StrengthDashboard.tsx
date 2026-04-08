@@ -3,8 +3,18 @@
 import React, { useEffect, useState } from 'react'
 import { useSearchParams, usePathname } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Activity, Calendar, Library, Plus, FolderOpen, Wand2 } from 'lucide-react'
+import { Activity, Calendar, Library, Plus, FolderOpen, Wand2, CalendarPlus, CheckCircle2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { toast } from 'sonner'
 import dynamic from 'next/dynamic'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 
@@ -75,6 +85,8 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
   const [weeklyRationales, setWeeklyRationales] = useState<string[]>([])
   const [weeklySavedIds, setWeeklySavedIds] = useState<string[]>([])
   const [weeklyAthleteId, setWeeklyAthleteId] = useState<string | null>(null)
+  const [weeklyAthleteName, setWeeklyAthleteName] = useState<string | null>(null)
+  const [showWeeklyAssignDialog, setShowWeeklyAssignDialog] = useState(false)
 
   // Calendar assignment flow
   const fromCalendar = searchParams.get('fromCalendar') === 'true'
@@ -208,7 +220,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
   }
 
   // Handle weekly generated sessions (multiple)
-  const handleWeeklyGenerated = (sessions: GeneratedSession[]) => {
+  const handleWeeklyGenerated = (sessions: GeneratedSession[], options?: { athleteId?: string; athleteName?: string }) => {
     const converted = sessions.map((session) => {
       const warmupSection = session.sections.find((s) => s.type === 'WARMUP')
       const mainSection = session.sections.find((s) => s.type === 'MAIN')
@@ -273,10 +285,11 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
       return data
     })
 
-    // Store rationales and reset saved IDs
+    // Store rationales, athlete info, and reset saved IDs
     setWeeklyRationales(sessions.map((s) => s.rationale || ''))
     setWeeklySavedIds([])
-    setWeeklyAthleteId(null) // Will be set from the dialog's selected athlete
+    setWeeklyAthleteId(options?.athleteId || null)
+    setWeeklyAthleteName(options?.athleteName || null)
 
     // Load first session into builder, store rest in queue
     setWeeklySessionQueue(converted)
@@ -298,6 +311,68 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
       setCurrentWeeklyIndex(0)
       setEditSession(null)
     }
+  }
+
+  // Assign all weekly sessions to athlete
+  const [assignStartDate, setAssignStartDate] = useState(() => {
+    const now = new Date()
+    const day = now.getDay()
+    const daysUntilMonday = day === 0 ? 1 : 8 - day
+    const next = new Date(now)
+    next.setDate(now.getDate() + daysUntilMonday)
+    return next.toISOString().split('T')[0]
+  })
+  const [isAssigning, setIsAssigning] = useState(false)
+
+  const handleBatchAssign = async () => {
+    if (!weeklyAthleteId || weeklySavedIds.length === 0) return
+
+    setIsAssigning(true)
+    try {
+      const startDate = new Date(assignStartDate)
+      let assignedCount = 0
+
+      // Spread sessions across the week (e.g., Mon/Wed/Fri for 3 sessions)
+      const dayOffsets = weeklySavedIds.length === 1 ? [0]
+        : weeklySavedIds.length === 2 ? [0, 2] // Mon, Wed
+        : [0, 2, 4] // Mon, Wed, Fri
+
+      for (let i = 0; i < weeklySavedIds.length; i++) {
+        const date = new Date(startDate)
+        date.setDate(date.getDate() + (dayOffsets[i] || i * 2))
+
+        const res = await fetch(`/api/strength-sessions/${weeklySavedIds[i]}/assign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            athleteIds: [weeklyAthleteId],
+            assignedDate: date.toISOString().split('T')[0],
+            createCalendarEvent: true,
+          }),
+        })
+
+        if (res.ok) assignedCount++
+      }
+
+      toast.success(`${assignedCount} pass tilldelade`, {
+        description: `Tilldelat ${weeklyAthleteName} med start ${assignStartDate}`,
+      })
+
+      setShowWeeklyAssignDialog(false)
+      cleanupWeeklyState()
+      setActiveTab('sessions')
+    } catch {
+      toast.error('Kunde inte tilldela pass')
+    } finally {
+      setIsAssigning(false)
+    }
+  }
+
+  const cleanupWeeklyState = () => {
+    setWeeklySavedIds([])
+    setWeeklyAthleteId(null)
+    setWeeklyAthleteName(null)
+    setWeeklyRationales([])
   }
 
   const handleExerciseCreated = (_exerciseId: string) => {
@@ -459,7 +534,15 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
                     setWeeklySessionQueue([])
                     setCurrentWeeklyIndex(0)
                     setWeeklyRationales([])
-                    setActiveTab('sessions')
+                    // If generated for a specific athlete, offer to assign
+                    if (weeklyAthleteId && weeklySavedIds.length > 0) {
+                      // Include the last saved session ID
+                      const allIds = sessionId ? [...weeklySavedIds, sessionId] : weeklySavedIds
+                      setWeeklySavedIds(allIds)
+                      setShowWeeklyAssignDialog(true)
+                    } else {
+                      setActiveTab('sessions')
+                    }
                   }
                 } else {
                   setEditSession(null)
@@ -510,6 +593,80 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
           businessSlug={businessSlug}
         />
       )}
+
+      {/* Weekly Assign Dialog */}
+      <Dialog open={showWeeklyAssignDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowWeeklyAssignDialog(false)
+          cleanupWeeklyState()
+          setActiveTab('sessions')
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarPlus className="h-5 w-5 text-primary" />
+              Tilldela veckoprogram
+            </DialogTitle>
+            <DialogDescription>
+              {weeklySavedIds.length} pass sparade. Tilldela till {weeklyAthleteName}?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Vecka börjar</Label>
+              <input
+                type="date"
+                value={assignStartDate}
+                onChange={(e) => setAssignStartDate(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </div>
+
+            <div className="rounded-md bg-muted/50 p-3 space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Schema:</p>
+              {weeklySavedIds.map((_, i) => {
+                const dayOffsets = weeklySavedIds.length === 1 ? [0]
+                  : weeklySavedIds.length === 2 ? [0, 2]
+                  : [0, 2, 4]
+                const date = new Date(assignStartDate)
+                date.setDate(date.getDate() + (dayOffsets[i] || i * 2))
+                const dayName = date.toLocaleDateString('sv-SE', { weekday: 'long' })
+                const dateStr = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+                return (
+                  <p key={i} className="text-sm">
+                    Pass {String.fromCharCode(65 + i)} → <span className="font-medium capitalize">{dayName}</span> {dateStr}
+                  </p>
+                )
+              })}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => {
+              setShowWeeklyAssignDialog(false)
+              cleanupWeeklyState()
+              setActiveTab('sessions')
+            }}>
+              Hoppa över
+            </Button>
+            <Button onClick={handleBatchAssign} disabled={isAssigning}>
+              {isAssigning ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Tilldelar...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Tilldela {weeklySavedIds.length} pass
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Custom Exercise Creator Dialog */}
       <CustomExerciseCreator
