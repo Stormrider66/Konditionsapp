@@ -639,7 +639,8 @@ export function SectionWorkoutBuilder({
         toast.success(isEditing ? 'Pass uppdaterat!' : 'Pass sparat!', {
           description: `"${sessionName}" har ${isEditing ? 'uppdaterats' : 'sparats'}.`,
         })
-        onSaved?.(result.id || initialData?.id)
+        const savedId = result.id || result.session?.id || initialData?.id
+        onSaved?.(savedId)
       } else {
         const data = await response.json()
         toast.error('Kunde inte spara', {
