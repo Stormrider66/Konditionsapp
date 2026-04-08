@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StrengthTemplateSelector } from '@/components/athlete/strength/StrengthTemplateSelector'
+import { StrengthFocusMode } from '@/components/athlete/strength/StrengthFocusMode'
 import {
   Dumbbell,
   Calendar,
@@ -34,6 +35,7 @@ import {
   MapPin,
   Timer,
   History,
+  Play,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
@@ -78,6 +80,7 @@ export function AthleteStrengthClient({
 }: AthleteStrengthClientProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<string>('history')
+  const [focusModeAssignmentId, setFocusModeAssignmentId] = useState<string | null>(null)
 
   const handleAssigned = () => {
     // Refresh the page to show updated assignments
@@ -222,9 +225,7 @@ export function AthleteStrengthClient({
                   <GlassCard
                     key={assignment.id}
                     className="cursor-pointer hover:border-blue-300 dark:hover:border-blue-500/50 transition-all duration-300 group hover:shadow-lg dark:border-white/5 border-slate-200"
-                    onClick={() =>
-                      router.push(`${basePath}/athlete/workout/${assignment.sessionId}`)
-                    }
+                    onClick={() => setFocusModeAssignmentId(assignment.id)}
                   >
                     <GlassCardContent className="p-5">
                       <div className="flex items-center justify-between">
@@ -282,8 +283,8 @@ export function AthleteStrengthClient({
                           <Badge className={`${phaseInfo.color} text-white border-0 font-bold uppercase tracking-wider shadow-sm`}>
                             {phaseInfo.label}
                           </Badge>
-                          <div className="h-8 w-8 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-500/10 transition-colors">
-                            <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+                          <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">
+                            <Play className="h-4 w-4 text-white ml-0.5" />
                           </div>
                         </div>
                       </div>
@@ -331,6 +332,18 @@ export function AthleteStrengthClient({
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Focus Mode Overlay */}
+      {focusModeAssignmentId && (
+        <StrengthFocusMode
+          assignmentId={focusModeAssignmentId}
+          onClose={() => {
+            setFocusModeAssignmentId(null)
+            router.refresh()
+          }}
+          onComplete={() => router.refresh()}
+        />
+      )}
     </div>
   )
 }
