@@ -18,6 +18,7 @@ import { IceHockeyRink, type DrillStructure } from './IceHockeyRink'
 import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 import { InteractiveDrillEditor } from './InteractiveDrillEditor'
 import { toast } from 'sonner'
+import { DRILL_SPORTS } from '@/lib/drills/templates'
 
 interface Team {
   id: string
@@ -44,6 +45,7 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
   const [editorMode, setEditorMode] = useState(false)
   const [textPrompt, setTextPrompt] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [sportType, setSportType] = useState('ICE_HOCKEY')
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -101,7 +103,7 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: textPrompt.trim(),
-          sportType: 'ICE_HOCKEY',
+          sportType,
         }),
       })
 
@@ -137,7 +139,7 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
           title: title || 'Övning',
           description,
           teamId: teamId && teamId !== 'none' ? teamId : null,
-          sportType: 'ICE_HOCKEY',
+          sportType,
           structure,
           sourceType: previewImage ? 'CLIPBOARD_PHOTO' : editorMode ? 'MANUAL_EDITOR' : textPrompt ? 'AI_TEXT' : 'MANUAL',
           sourceImageUrl,
@@ -387,6 +389,20 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
               <div className="space-y-2">
                 <Label>Beskrivning</Label>
                 <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Beskriv övningen..." rows={3} />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Sport</Label>
+                <Select value={sportType} onValueChange={setSportType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DRILL_SPORTS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {teams.length > 0 && (

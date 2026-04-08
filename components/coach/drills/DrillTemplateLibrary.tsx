@@ -8,9 +8,19 @@ import { IceHockeyRink, type DrillStructure } from './IceHockeyRink'
 import {
   HOCKEY_DRILL_TEMPLATES,
   DRILL_CATEGORIES,
+  SPORT_CATEGORIES,
+  DRILL_SPORTS,
+  getTemplatesBySport,
   type DrillTemplate,
   type DrillCategory,
 } from '@/lib/drills/templates'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Copy, Users, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface DrillTemplateLibraryProps {
@@ -24,16 +34,27 @@ const DIFFICULTY_LABELS: Record<string, { label: string; color: string }> = {
 }
 
 export function DrillTemplateLibrary({ onSelect }: DrillTemplateLibraryProps) {
+  const [selectedSport, setSelectedSport] = useState('ICE_HOCKEY')
   const [selectedCategory, setSelectedCategory] = useState<DrillCategory | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const filtered = useMemo(() => {
-    if (!selectedCategory) return HOCKEY_DRILL_TEMPLATES
-    return HOCKEY_DRILL_TEMPLATES.filter((t) => t.category === selectedCategory)
-  }, [selectedCategory])
+  const sportCategories = SPORT_CATEGORIES[selectedSport] || DRILL_CATEGORIES
+  const templates = useMemo(() => getTemplatesBySport(selectedSport, selectedCategory || undefined), [selectedSport, selectedCategory])
 
   return (
     <div className="space-y-4">
+      {/* Sport selector */}
+      <Select value={selectedSport} onValueChange={(v) => { setSelectedSport(v); setSelectedCategory(null) }}>
+        <SelectTrigger className="w-48">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {DRILL_SPORTS.map((s) => (
+            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
       {/* Category filter */}
       <div className="flex flex-wrap gap-1.5">
         <Button
@@ -42,28 +63,30 @@ export function DrillTemplateLibrary({ onSelect }: DrillTemplateLibraryProps) {
           className="h-7 text-xs"
           onClick={() => setSelectedCategory(null)}
         >
-          Alla ({HOCKEY_DRILL_TEMPLATES.length})
+          Alla
         </Button>
-        {DRILL_CATEGORIES.map((cat) => {
-          const count = HOCKEY_DRILL_TEMPLATES.filter((t) => t.category === cat.value).length
-          if (count === 0) return null
-          return (
-            <Button
-              key={cat.value}
-              variant={selectedCategory === cat.value ? 'default' : 'outline'}
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setSelectedCategory(cat.value)}
-            >
-              {cat.label} ({count})
-            </Button>
-          )
-        })}
+        {sportCategories.map((cat) => (
+          <Button
+            key={cat.value}
+            variant={selectedCategory === cat.value ? 'default' : 'outline'}
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setSelectedCategory(cat.value as DrillCategory)}
+          >
+            {cat.label}
+          </Button>
+        ))}
       </div>
 
       {/* Template cards */}
       <div className="space-y-2">
-        {filtered.map((template) => {
+        {templates.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>Inga fördefinierade mallar för denna sport ännu.</p>
+            <p className="text-sm mt-1">Använd AI-generering eller rita manuellt i editorn.</p>
+          </div>
+        )}
+        {templates.map((template) => {
           const diff = DIFFICULTY_LABELS[template.difficulty]
           const isExpanded = expandedId === template.id
 

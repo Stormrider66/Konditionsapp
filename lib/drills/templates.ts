@@ -435,10 +435,89 @@ export const HOCKEY_DRILL_TEMPLATES: DrillTemplate[] = [
   },
 ]
 
+// ─── SPORT-SPECIFIC CATEGORIES ────────────────────────────────
+
+export type FootballCategory = 'passing' | 'shooting' | 'dribbling' | 'pressing' | 'possession' | 'set_piece' | 'warmup' | 'conditioning'
+export type BasketballCategory = 'fast_break' | 'half_court' | 'defense' | 'shooting' | 'passing' | 'warmup' | 'conditioning'
+export type HandballCategory = 'fast_break' | 'set_play' | 'defense' | 'shooting' | 'wing_play' | 'warmup' | 'conditioning'
+export type FloorballCategory = 'breakout' | 'forecheck' | 'powerplay' | 'shooting' | 'passing' | 'warmup' | 'conditioning'
+export type VolleyballCategory = 'serving' | 'receiving' | 'setting' | 'attacking' | 'blocking' | 'defense' | 'warmup'
+
+export const SPORT_CATEGORIES: Record<string, { value: string; label: string }[]> = {
+  ICE_HOCKEY: DRILL_CATEGORIES,
+  FOOTBALL: [
+    { value: 'passing', label: 'Passning' },
+    { value: 'shooting', label: 'Skottövning' },
+    { value: 'dribbling', label: 'Dribbling' },
+    { value: 'pressing', label: 'Pressing' },
+    { value: 'possession', label: 'Bollinnehav' },
+    { value: 'set_piece', label: 'Fasta situationer' },
+    { value: 'warmup', label: 'Uppvärmning' },
+    { value: 'conditioning', label: 'Kondition' },
+  ],
+  BASKETBALL: [
+    { value: 'fast_break', label: 'Fast break' },
+    { value: 'half_court', label: 'Halvplansspel' },
+    { value: 'defense', label: 'Försvar' },
+    { value: 'shooting', label: 'Skottövning' },
+    { value: 'passing', label: 'Passning' },
+    { value: 'warmup', label: 'Uppvärmning' },
+    { value: 'conditioning', label: 'Kondition' },
+  ],
+  HANDBALL: [
+    { value: 'fast_break', label: 'Kontring' },
+    { value: 'set_play', label: 'Anfallsspel' },
+    { value: 'defense', label: 'Försvar' },
+    { value: 'shooting', label: 'Skottövning' },
+    { value: 'wing_play', label: 'Kantspel' },
+    { value: 'warmup', label: 'Uppvärmning' },
+    { value: 'conditioning', label: 'Kondition' },
+  ],
+  FLOORBALL: [
+    { value: 'breakout', label: 'Utspel' },
+    { value: 'forecheck', label: 'Forecheck' },
+    { value: 'powerplay', label: 'Powerplay' },
+    { value: 'shooting', label: 'Skottövning' },
+    { value: 'passing', label: 'Passning' },
+    { value: 'warmup', label: 'Uppvärmning' },
+    { value: 'conditioning', label: 'Kondition' },
+  ],
+  VOLLEYBALL: [
+    { value: 'serving', label: 'Serve' },
+    { value: 'receiving', label: 'Mottagning' },
+    { value: 'setting', label: 'Passning/upplägg' },
+    { value: 'attacking', label: 'Anfall' },
+    { value: 'blocking', label: 'Blockering' },
+    { value: 'defense', label: 'Försvar' },
+    { value: 'warmup', label: 'Uppvärmning' },
+  ],
+}
+
+/** Supported drill sports with display labels */
+export const DRILL_SPORTS = [
+  { value: 'ICE_HOCKEY', label: 'Ishockey' },
+  { value: 'FOOTBALL', label: 'Fotboll' },
+  { value: 'BASKETBALL', label: 'Basket' },
+  { value: 'HANDBALL', label: 'Handboll' },
+  { value: 'FLOORBALL', label: 'Innebandy' },
+  { value: 'VOLLEYBALL', label: 'Volleyboll' },
+]
+
 /**
- * Get templates filtered by category.
+ * Get templates filtered by sport and/or category.
  */
 export function getTemplatesByCategory(category?: DrillCategory): DrillTemplate[] {
   if (!category) return HOCKEY_DRILL_TEMPLATES
   return HOCKEY_DRILL_TEMPLATES.filter((t) => t.category === category)
+}
+
+export function getTemplatesBySport(sport: string, category?: string): DrillTemplate[] {
+  // Currently only hockey has predefined templates
+  // Other sports will use AI generation or manual creation
+  if (sport === 'ICE_HOCKEY') {
+    if (!category) return HOCKEY_DRILL_TEMPLATES
+    return HOCKEY_DRILL_TEMPLATES.filter((t) => t.category === category)
+  }
+  // Return empty for other sports — coaches use AI generation or manual editor
+  return []
 }
