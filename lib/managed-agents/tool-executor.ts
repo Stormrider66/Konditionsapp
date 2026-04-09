@@ -345,7 +345,7 @@ async function readUpcomingWorkouts(clientId: string, days: number): Promise<Too
       where: {
         clientId,
         scheduledDate: { gte: new Date(), lte: endDate },
-        status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
+        status: { in: ['SCHEDULED', 'PENDING'] },
       },
       include: { strengthSession: { select: { name: true, type: true } } },
       orderBy: { scheduledDate: 'asc' },
@@ -355,7 +355,7 @@ async function readUpcomingWorkouts(clientId: string, days: number): Promise<Too
       where: {
         clientId,
         scheduledDate: { gte: new Date(), lte: endDate },
-        status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
+        status: { in: ['SCHEDULED', 'PENDING'] },
       },
       include: { cardioSession: { select: { name: true, type: true, targetDuration: true } } },
       orderBy: { scheduledDate: 'asc' },
