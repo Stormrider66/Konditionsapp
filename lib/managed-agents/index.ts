@@ -24,3 +24,4 @@ export {
   executeCalculateTool,
   executeWriteTool,
 } from './tool-executor'
+export { invokeAgent } from './agent-client'

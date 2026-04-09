@@ -267,6 +267,17 @@ export async function POST(request: NextRequest) {
           });
 
           logger.debug('Synced Strava activity', { clientId, objectId })
+
+          // Dispatch to Managed Agent (non-blocking)
+          import('@/lib/managed-agents').then(({ dispatchEvent }) =>
+            dispatchEvent({
+              id: crypto.randomUUID(),
+              type: 'STRAVA_ACTIVITY',
+              entityId: clientId,
+              data: { activityType: activity.type, distance: activity.distance, duration: activity.moving_time, tss },
+              timestamp: new Date(),
+            })
+          ).catch(err => logger.warn('Failed to dispatch Strava event to agent', { error: String(err) }))
         } catch (error) {
           logger.error('Failed to sync Strava activity', { clientId, objectId }, error)
           // Still return 200 to acknowledge receipt

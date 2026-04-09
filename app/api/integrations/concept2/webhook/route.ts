@@ -299,6 +299,17 @@ export async function POST(request: NextRequest) {
         });
 
         logger.debug('Synced Concept2 result', { clientId, resultId: result.id })
+
+        // Dispatch to Managed Agent (non-blocking)
+        import('@/lib/managed-agents').then(({ dispatchEvent }) =>
+          dispatchEvent({
+            id: crypto.randomUUID(),
+            type: 'CONCEPT2_RESULT',
+            entityId: clientId,
+            data: { equipmentType: result.type, distance: result.distance, duration: result.time / 10, tss },
+            timestamp: new Date(),
+          })
+        ).catch(err => logger.warn('Failed to dispatch Concept2 event to agent', { error: String(err) }))
       } catch (error) {
         logger.error('Failed to sync Concept2 result', { clientId, resultId: result.id }, error)
       }
