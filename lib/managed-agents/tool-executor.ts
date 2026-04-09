@@ -187,14 +187,14 @@ async function readAthleteProfile(clientId: string): Promise<ToolResult> {
     where: { id: clientId },
     select: {
       id: true,
-      firstName: true,
-      lastName: true,
-      sport: true,
+      name: true,
       isAICoached: true,
       userId: true,
       gender: true,
-      dateOfBirth: true,
-      experienceLevel: true,
+      birthDate: true,
+      sportProfile: {
+        select: { primarySport: true },
+      },
     },
   })
 
@@ -204,12 +204,11 @@ async function readAthleteProfile(clientId: string): Promise<ToolResult> {
     success: true,
     data: {
       id: client.id,
-      name: `${client.firstName} ${client.lastName}`.trim(),
-      sport: client.sport,
+      name: client.name,
+      sport: client.sportProfile?.primarySport || null,
       isAICoached: client.isAICoached,
       gender: client.gender,
-      dateOfBirth: client.dateOfBirth,
-      experienceLevel: client.experienceLevel,
+      birthDate: client.birthDate,
     },
   }
 }
@@ -308,8 +307,8 @@ async function readActiveInjuries(clientId: string): Promise<ToolResult> {
       clientId,
       isActive: true,
       OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } },
+        { endDate: null },
+        { endDate: { gt: new Date() } },
       ],
     },
   })
@@ -331,7 +330,7 @@ async function readActiveInjuries(clientId: string): Promise<ToolResult> {
         type: r.type,
         severity: r.severity,
         description: r.description,
-        expiresAt: r.expiresAt,
+        endDate: r.endDate,
       })),
     },
   }
@@ -456,10 +455,10 @@ async function readMealsToday(clientId: string): Promise<ToolResult> {
 
   const totalMacros = meals.reduce(
     (acc, meal) => ({
-      calories: acc.calories + (meal.totalCalories || 0),
-      protein: acc.protein + (meal.totalProtein || 0),
-      carbs: acc.carbs + (meal.totalCarbs || 0),
-      fat: acc.fat + (meal.totalFat || 0),
+      calories: acc.calories + (meal.calories || 0),
+      protein: acc.protein + (meal.proteinGrams || 0),
+      carbs: acc.carbs + (meal.carbsGrams || 0),
+      fat: acc.fat + (meal.fatGrams || 0),
     }),
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   )
@@ -471,10 +470,10 @@ async function readMealsToday(clientId: string): Promise<ToolResult> {
       meals: meals.map(m => ({
         id: m.id,
         type: m.mealType,
-        calories: m.totalCalories,
-        protein: m.totalProtein,
-        carbs: m.totalCarbs,
-        fat: m.totalFat,
+        calories: m.calories,
+        protein: m.proteinGrams,
+        carbs: m.carbsGrams,
+        fat: m.fatGrams,
         itemCount: m.items.length,
       })),
       totalMacros,
@@ -488,9 +487,9 @@ async function readBodyCompHistory(clientId: string, days: number): Promise<Tool
   const measurements = await prisma.bodyComposition.findMany({
     where: {
       clientId,
-      measuredAt: { gte: since },
+      measurementDate: { gte: since },
     },
-    orderBy: { measuredAt: 'asc' },
+    orderBy: { measurementDate: 'asc' },
   })
 
   return {
@@ -498,10 +497,10 @@ async function readBodyCompHistory(clientId: string, days: number): Promise<Tool
     data: {
       count: measurements.length,
       measurements: measurements.map(m => ({
-        date: m.measuredAt,
-        weight: m.weight,
+        date: m.measurementDate,
+        weight: m.weightKg,
         bodyFatPercent: m.bodyFatPercent,
-        muscleMass: m.muscleMass,
+        muscleMass: m.muscleMassKg,
         bmi: m.bmi,
         visceralFat: m.visceralFat,
       })),
@@ -728,8 +727,9 @@ async function createCoachAlert(
     data: {
       coachId,
       clientId,
-      type: alertType,
+      alertType,
       severity,
+      title: `Agent Alert: ${alertType.replace(/_/g, ' ').toLowerCase()}`,
       message,
       expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours
     },
@@ -813,7 +813,7 @@ async function readRehabProgress(clientId: string, programId?: string): Promise<
       programs: programs.map(p => {
         const recentLogs = p.progressLogs || []
         const painValues = recentLogs
-          .map(l => l.painLevel)
+          .map(l => l.painDuring)
           .filter((v): v is number => v !== null)
 
         return {
@@ -822,7 +822,7 @@ async function readRehabProgress(clientId: string, programId?: string): Promise<
           phase: p.currentPhase,
           status: p.status,
           completionRate: recentLogs.length > 0
-            ? recentLogs.filter(l => l.completed).length / recentLogs.length
+            ? recentLogs.reduce((sum, l) => sum + (l.completionPercent || 0), 0) / recentLogs.length
             : 0,
           avgPainLast7d: painValues.length > 0
             ? painValues.reduce((a, b) => a + b, 0) / painValues.length
@@ -921,9 +921,9 @@ async function flagForPhysioReview(
 // ============================================================================
 
 async function readNutritionGoal(clientId: string): Promise<ToolResult> {
-  const goal = await prisma.nutritionGoal.findFirst({
-    where: { clientId, isActive: true },
-    orderBy: { createdAt: 'desc' },
+  // NutritionGoal has @unique clientId, so findUnique works
+  const goal = await prisma.nutritionGoal.findUnique({
+    where: { clientId },
   })
 
   if (!goal) return { success: true, data: { hasGoal: false } }
@@ -933,16 +933,13 @@ async function readNutritionGoal(clientId: string): Promise<ToolResult> {
     data: {
       hasGoal: true,
       goalType: goal.goalType,
-      targetWeight: goal.targetWeight,
-      weeklyChangeRate: goal.weeklyChangeRate,
-      targetBodyFat: goal.targetBodyFat,
+      targetWeightKg: goal.targetWeightKg,
+      weeklyChangeKg: goal.weeklyChangeKg,
+      targetBodyFatPercent: goal.targetBodyFatPercent,
       macroProfile: goal.macroProfile,
       customProteinPerKg: goal.customProteinPerKg,
       activityLevel: goal.activityLevel,
-      targetCalories: goal.targetCalories,
-      targetProtein: goal.targetProtein,
-      targetCarbs: goal.targetCarbs,
-      targetFat: goal.targetFat,
+      customBmrKcal: goal.customBmrKcal,
     },
   }
 }
@@ -950,26 +947,26 @@ async function readNutritionGoal(clientId: string): Promise<ToolResult> {
 async function calculateTDEE(clientId: string): Promise<ToolResult> {
   const client = await prisma.client.findUnique({
     where: { id: clientId },
-    select: { gender: true, dateOfBirth: true },
+    select: { gender: true, birthDate: true, weight: true, height: true },
   })
 
   const latestBodyComp = await prisma.bodyComposition.findFirst({
     where: { clientId },
-    orderBy: { measuredAt: 'desc' },
+    orderBy: { measurementDate: 'desc' },
   })
 
-  const goal = await prisma.nutritionGoal.findFirst({
-    where: { clientId, isActive: true },
+  const goal = await prisma.nutritionGoal.findUnique({
+    where: { clientId },
   })
 
-  if (!latestBodyComp?.weight) {
-    return { success: false, error: 'No body composition data available for TDEE calculation' }
+  const weight = latestBodyComp?.weightKg || client?.weight
+  if (!weight) {
+    return { success: false, error: 'No weight data available for TDEE calculation' }
   }
 
-  const weight = latestBodyComp.weight
-  const height = 175 // Default if not available — would need to be stored
-  const age = client?.dateOfBirth
-    ? Math.floor((Date.now() - new Date(client.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+  const height = client?.height || 175
+  const age = client?.birthDate
+    ? Math.floor((Date.now() - new Date(client.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
     : 30
 
   // Mifflin-St Jeor equation
@@ -995,10 +992,10 @@ async function calculateTDEE(clientId: string): Promise<ToolResult> {
   // Adjust for goal
   let targetCalories = tdee
   if (goal?.goalType === 'WEIGHT_LOSS') {
-    const weeklyDeficit = (goal.weeklyChangeRate || 0.5) * 7700 // kcal per kg fat
+    const weeklyDeficit = (goal.weeklyChangeKg || 0.5) * 7700 // kcal per kg fat
     targetCalories = Math.max(1200, tdee - Math.round(weeklyDeficit / 7))
   } else if (goal?.goalType === 'WEIGHT_GAIN') {
-    const weeklySurplus = (goal.weeklyChangeRate || 0.25) * 7700
+    const weeklySurplus = (goal.weeklyChangeKg || 0.25) * 7700
     targetCalories = tdee + Math.round(weeklySurplus / 7)
   }
 
@@ -1025,9 +1022,7 @@ async function getAthletesNeedingAttention(coachId: string): Promise<ToolResult>
     where: { userId: coachId },
     select: {
       id: true,
-      firstName: true,
-      lastName: true,
-      sport: true,
+      name: true,
     },
     take: 100,
   })
@@ -1104,7 +1099,7 @@ async function getAthletesNeedingAttention(coachId: string): Promise<ToolResult>
     if (issues.length > 0) {
       concerns.push({
         clientId: client.id,
-        name: `${client.firstName} ${client.lastName}`.trim(),
+        name: client.name,
         issues,
       })
     }
@@ -1134,18 +1129,18 @@ async function getUpcomingRaces(coachId: string, days: number): Promise<ToolResu
 
   const clients = await prisma.client.findMany({
     where: { userId: coachId },
-    select: { id: true, firstName: true, lastName: true },
+    select: { id: true, name: true },
   })
 
   const clientIds = clients.map(c => c.id)
-  const clientMap = new Map(clients.map(c => [c.id, `${c.firstName} ${c.lastName}`.trim()]))
+  const clientMap = new Map(clients.map(c => [c.id, c.name]))
 
   const races = await prisma.race.findMany({
     where: {
       clientId: { in: clientIds },
-      raceDate: { gte: new Date(), lte: endDate },
+      date: { gte: new Date(), lte: endDate },
     },
-    orderBy: { raceDate: 'asc' },
+    orderBy: { date: 'asc' },
   })
 
   return {
@@ -1157,11 +1152,11 @@ async function getUpcomingRaces(coachId: string, days: number): Promise<ToolResu
         athleteName: clientMap.get(r.clientId) || 'Unknown',
         clientId: r.clientId,
         name: r.name,
-        date: r.raceDate,
+        date: r.date,
         distance: r.distance,
         targetTime: r.targetTime,
         classification: r.classification,
-        daysUntil: Math.ceil((new Date(r.raceDate).getTime() - Date.now()) / (24 * 60 * 60 * 1000)),
+        daysUntil: Math.ceil((new Date(r.date).getTime() - Date.now()) / (24 * 60 * 60 * 1000)),
       })),
     },
   }
