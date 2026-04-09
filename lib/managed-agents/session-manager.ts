@@ -5,8 +5,8 @@
  * Each agent session maps to a Claude Managed Agent session via the API.
  */
 
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { resolveModel } from '@/types/ai-models'
 import type { AgentType, AgentEvent, AgentSessionStatus, EscalationContext } from './types'
 import { AGENT_MODEL_INTENT, resolveAgentModelIntent, EVENT_TO_AGENT } from './types'
 
@@ -155,7 +155,7 @@ export async function dispatchEvent(event: AgentEvent): Promise<{
     data: {
       eventType: event.type,
       entityId: event.entityId,
-      eventData: event.data as Record<string, unknown>,
+      eventData: event.data as Prisma.InputJsonValue,
       createdAt: event.timestamp,
     },
   })
