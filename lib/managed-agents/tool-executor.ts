@@ -343,22 +343,22 @@ async function readUpcomingWorkouts(clientId: string, days: number): Promise<Too
   const [strength, cardio] = await Promise.all([
     prisma.strengthSessionAssignment.findMany({
       where: {
-        clientId,
-        scheduledDate: { gte: new Date(), lte: endDate },
+        athleteId: clientId,
+        assignedDate: { gte: new Date(), lte: endDate },
         status: { in: ['SCHEDULED', 'PENDING'] },
       },
-      include: { strengthSession: { select: { name: true, type: true } } },
-      orderBy: { scheduledDate: 'asc' },
+      include: { session: { select: { name: true } } },
+      orderBy: { assignedDate: 'asc' },
       take: 20,
     }),
     prisma.cardioSessionAssignment.findMany({
       where: {
-        clientId,
-        scheduledDate: { gte: new Date(), lte: endDate },
+        athleteId: clientId,
+        assignedDate: { gte: new Date(), lte: endDate },
         status: { in: ['SCHEDULED', 'PENDING'] },
       },
-      include: { cardioSession: { select: { name: true, type: true, targetDuration: true } } },
-      orderBy: { scheduledDate: 'asc' },
+      include: { session: { select: { name: true, sport: true } } },
+      orderBy: { assignedDate: 'asc' },
       take: 20,
     }),
   ])
@@ -368,17 +368,16 @@ async function readUpcomingWorkouts(clientId: string, days: number): Promise<Too
     data: {
       strength: strength.map(s => ({
         id: s.id,
-        name: s.strengthSession?.name,
-        type: s.strengthSession?.type,
-        scheduledDate: s.scheduledDate,
+        name: s.session?.name,
+        type: 'STRENGTH',
+        assignedDate: s.assignedDate,
         status: s.status,
       })),
       cardio: cardio.map(c => ({
         id: c.id,
-        name: c.cardioSession?.name,
-        type: c.cardioSession?.type,
-        targetDuration: c.cardioSession?.targetDuration,
-        scheduledDate: c.scheduledDate,
+        name: c.session?.name,
+        sport: c.session?.sport,
+        assignedDate: c.assignedDate,
         status: c.status,
       })),
     },
@@ -584,7 +583,7 @@ async function detectMilestones(clientId: string): Promise<ToolResult> {
 
   // Check workout count
   const workoutCount = await prisma.strengthSessionAssignment.count({
-    where: { clientId, status: 'COMPLETED' },
+    where: { athleteId: clientId, status: 'COMPLETED' },
   })
 
   const milestones: { type: string; value: number; celebration: string }[] = []
@@ -654,7 +653,7 @@ async function modifyWorkoutIntensity(
 
   // Try strength assignment first, then cardio
   const strength = await prisma.strengthSessionAssignment.findUnique({ where: { id: assignmentId } })
-  if (strength && strength.clientId === clientId) {
+  if (strength && strength.athleteId === clientId) {
     await prisma.strengthSessionAssignment.update({
       where: { id: assignmentId },
       data: { notes: `[Agent] Intensity reduced by ${reductionPercent}% due to recovery needs` },
@@ -663,7 +662,7 @@ async function modifyWorkoutIntensity(
   }
 
   const cardio = await prisma.cardioSessionAssignment.findUnique({ where: { id: assignmentId } })
-  if (cardio && cardio.clientId === clientId) {
+  if (cardio && cardio.athleteId === clientId) {
     await prisma.cardioSessionAssignment.update({
       where: { id: assignmentId },
       data: { notes: `[Agent] Intensity reduced by ${reductionPercent}% due to recovery needs` },
@@ -676,7 +675,7 @@ async function modifyWorkoutIntensity(
 
 async function skipWorkout(clientId: string, assignmentId: string, reason: string): Promise<ToolResult> {
   const strength = await prisma.strengthSessionAssignment.findUnique({ where: { id: assignmentId } })
-  if (strength && strength.clientId === clientId) {
+  if (strength && strength.athleteId === clientId) {
     await prisma.strengthSessionAssignment.update({
       where: { id: assignmentId },
       data: { status: 'SKIPPED', notes: `[Agent] Skipped: ${reason}` },
@@ -685,7 +684,7 @@ async function skipWorkout(clientId: string, assignmentId: string, reason: strin
   }
 
   const cardio = await prisma.cardioSessionAssignment.findUnique({ where: { id: assignmentId } })
-  if (cardio && cardio.clientId === clientId) {
+  if (cardio && cardio.athleteId === clientId) {
     await prisma.cardioSessionAssignment.update({
       where: { id: assignmentId },
       data: { status: 'SKIPPED', notes: `[Agent] Skipped: ${reason}` },
