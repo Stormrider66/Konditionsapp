@@ -130,8 +130,67 @@ export async function markSessionError(
 }
 
 // ============================================================================
-// EVENT ROUTING
+// EVENT ROUTING & DEBOUNCE
 // ============================================================================
+
+/**
+ * In-memory debounce cache.
+ * Key: `${entityId}:${eventType}` → timestamp of last dispatch.
+ *
+ * Prevents burst dispatches when multiple webhooks fire for the same
+ * athlete in quick succession (e.g., Garmin syncs activity + sleep + HRV
+ * within seconds of each other).
+ */
+const debounceCache = new Map<string, number>()
+
+/** Debounce windows per event type (in milliseconds) */
+const DEBOUNCE_WINDOWS: Partial<Record<string, number>> = {
+  GARMIN_ACTIVITY: 30_000,         // 30s — one activity at a time
+  GARMIN_SLEEP: 60_000,            // 60s — sleep data arrives once
+  GARMIN_HRV: 60_000,             // 60s — HRV data arrives once
+  GARMIN_DAILY: 60_000,           // 60s — daily summary once
+  GARMIN_BODY_COMPOSITION: 60_000, // 60s — weigh-in once
+  GARMIN_STRESS: 60_000,          // 60s — stress once
+  STRAVA_ACTIVITY: 30_000,        // 30s — one activity
+  CONCEPT2_RESULT: 30_000,        // 30s — one result
+  CHECKIN_SUBMITTED: 10_000,      // 10s — prevent double-submit
+  MEAL_LOGGED: 10_000,            // 10s — prevent double-submit
+  FOOD_SCANNED: 10_000,           // 10s — prevent double-submit
+}
+
+/** Default debounce window for event types not listed above */
+const DEFAULT_DEBOUNCE_MS = 5_000
+
+/** Max entries before we clean up stale debounce keys */
+const DEBOUNCE_CACHE_MAX = 10_000
+
+/**
+ * Check if an event should be debounced (skipped).
+ * Returns true if a matching event was dispatched recently.
+ */
+function shouldDebounce(entityId: string, eventType: string): boolean {
+  const key = `${entityId}:${eventType}`
+  const now = Date.now()
+  const lastDispatch = debounceCache.get(key)
+  const window = DEBOUNCE_WINDOWS[eventType] ?? DEFAULT_DEBOUNCE_MS
+
+  if (lastDispatch && now - lastDispatch < window) {
+    return true // Too soon — skip this event
+  }
+
+  // Record this dispatch
+  debounceCache.set(key, now)
+
+  // Periodic cleanup to prevent memory leaks
+  if (debounceCache.size > DEBOUNCE_CACHE_MAX) {
+    const cutoff = now - 120_000 // Remove entries older than 2 min
+    for (const [k, ts] of debounceCache) {
+      if (ts < cutoff) debounceCache.delete(k)
+    }
+  }
+
+  return false
+}
 
 /**
  * Route an event to the appropriate agent(s).
@@ -143,10 +202,17 @@ export function routeEvent(event: AgentEvent): AgentType[] {
 
 /**
  * Store an event and route it to the appropriate agent sessions.
+ * Applies debounce to prevent burst dispatches for the same entity+event.
  */
 export async function dispatchEvent(event: AgentEvent): Promise<{
   dispatched: { agentType: AgentType; sessionId: string }[]
+  debounced: boolean
 }> {
+  // Check debounce — skip if same entity+eventType was dispatched recently
+  if (shouldDebounce(event.entityId, event.type)) {
+    return { dispatched: [], debounced: true }
+  }
+
   const targetAgents = routeEvent(event)
   const dispatched: { agentType: AgentType; sessionId: string }[] = []
 
@@ -173,7 +239,7 @@ export async function dispatchEvent(event: AgentEvent): Promise<{
     dispatched.push({ agentType, sessionId })
   }
 
-  return { dispatched }
+  return { dispatched, debounced: false }
 }
 
 // ============================================================================

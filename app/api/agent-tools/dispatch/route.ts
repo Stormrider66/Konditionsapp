@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       dispatched: result.dispatched,
+      debounced: result.debounced,
     })
   } catch (error) {
     console.error('[agent-tools/dispatch] Error:', error)

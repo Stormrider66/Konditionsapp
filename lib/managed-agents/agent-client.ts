@@ -24,6 +24,50 @@ import { PHYSIO_AGENT_SYSTEM_PROMPT } from './prompts/physio-agent'
 import { COACH_DASHBOARD_AGENT_SYSTEM_PROMPT } from './prompts/coach-dashboard-agent'
 
 // ============================================================================
+// TOOL ROUTING REGISTRY
+// ============================================================================
+
+/**
+ * Maps every tool name to its executor category.
+ * Adding a new tool? Add it here — no need to touch the agentic loop.
+ */
+type ToolCategory = 'read' | 'calculate' | 'write'
+
+const TOOL_REGISTRY: Record<string, ToolCategory> = {
+  // READ tools (no side effects)
+  readAthleteProfile: 'read',
+  readReadiness: 'read',
+  readTrainingLoad: 'read',
+  readActiveInjuries: 'read',
+  readUpcomingWorkouts: 'read',
+  readRecentDecisions: 'read',
+  readGarminLatest: 'read',
+  readMealsToday: 'read',
+  readBodyCompHistory: 'read',
+  readRehabProgress: 'read',
+  readNutritionGoal: 'read',
+  getAthletesNeedingAttention: 'read',
+  getUpcomingRaces: 'read',
+
+  // CALCULATE tools (deterministic, no side effects)
+  detectPatterns: 'calculate',
+  detectMilestones: 'calculate',
+  calculateInjuryRisk: 'calculate',
+  calculateTDEE: 'calculate',
+  assessRestrictionReadiness: 'calculate',
+
+  // WRITE tools (side effects, consent-gated)
+  modifyWorkoutIntensity: 'write',
+  modifyWorkoutDuration: 'write',
+  skipWorkout: 'write',
+  sendNotification: 'write',
+  createCoachAlert: 'write',
+  logAgentAction: 'write',
+  flagForPhysioReview: 'write',
+  sendNutritionNudge: 'write',
+}
+
+// ============================================================================
 // AGENT DEFINITIONS - Tool schemas for each agent type
 // ============================================================================
 
@@ -520,15 +564,14 @@ async function runAgentLoop(
           input: JSON.stringify(input).slice(0, 200),
         })
 
-        // Route to appropriate executor
-        let result
-        if (['readAthleteProfile', 'readReadiness', 'readTrainingLoad', 'readActiveInjuries', 'readUpcomingWorkouts', 'readRecentDecisions', 'readGarminLatest', 'readMealsToday', 'readBodyCompHistory', 'readRehabProgress', 'readNutritionGoal', 'getAthletesNeedingAttention', 'getUpcomingRaces'].includes(toolUse.name)) {
-          result = await executeReadTool(toolUse.name, input)
-        } else if (['detectPatterns', 'detectMilestones', 'calculateInjuryRisk', 'calculateTDEE', 'assessRestrictionReadiness'].includes(toolUse.name)) {
-          result = await executeCalculateTool(toolUse.name, input)
-        } else {
-          result = await executeWriteTool(toolUse.name, input)
-        }
+        // Route to appropriate executor via registry
+        const category = TOOL_REGISTRY[toolUse.name] || 'write'
+        const executor = category === 'read'
+          ? executeReadTool
+          : category === 'calculate'
+          ? executeCalculateTool
+          : executeWriteTool
+        const result = await executor(toolUse.name, input)
 
         toolResults.push({
           type: 'tool_result',
