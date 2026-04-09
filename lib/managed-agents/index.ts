@@ -33,3 +33,10 @@ export {
   processEventWithAgent,
   getShadowComparison,
 } from './shadow-mode'
+export {
+  getTransport,
+  getSessionsConfig,
+  createOrResumeSession,
+  sendSessionMessage,
+  setupAgentsAndEnvironments,
+} from './sessions-api'
