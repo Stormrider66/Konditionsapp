@@ -25,3 +25,11 @@ export {
   executeWriteTool,
 } from './tool-executor'
 export { invokeAgent } from './agent-client'
+export {
+  getAgentMode,
+  isAgentProcessingEnabled,
+  shouldExecuteWrites,
+  shouldCronsRun,
+  processEventWithAgent,
+  getShadowComparison,
+} from './shadow-mode'

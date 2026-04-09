@@ -262,10 +262,14 @@ export async function processGarminWebhookPayload(payload: GarminWebhookPayload)
     errorCount: results.errors.length,
   })
 
-  // Dispatch events to Managed Agents (non-blocking)
-  dispatchGarminEventsToAgents(payload, results).catch(err =>
-    logger.warn('Failed to dispatch Garmin events to agents', { error: err instanceof Error ? err.message : 'Unknown' })
-  )
+  // Dispatch events to Managed Agents (non-blocking, respects mode)
+  import('@/lib/managed-agents').then(({ isAgentProcessingEnabled }) => {
+    if (isAgentProcessingEnabled()) {
+      dispatchGarminEventsToAgents(payload, results).catch(err =>
+        logger.warn('Failed to dispatch Garmin events to agents', { error: err instanceof Error ? err.message : 'Unknown' })
+      )
+    }
+  }).catch(() => { /* module load failed, agents disabled */ })
 
   return results
 }

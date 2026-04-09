@@ -20,6 +20,8 @@ import { getOrCreateSession, updateSessionUsage, markSessionError } from './sess
 import { executeReadTool, executeCalculateTool, executeWriteTool } from './tool-executor'
 import { COACHING_AGENT_SYSTEM_PROMPT } from './prompts/coaching-agent'
 import { NUTRITION_AGENT_SYSTEM_PROMPT } from './prompts/nutrition-agent'
+import { PHYSIO_AGENT_SYSTEM_PROMPT } from './prompts/physio-agent'
+import { COACH_DASHBOARD_AGENT_SYSTEM_PROMPT } from './prompts/coach-dashboard-agent'
 
 // ============================================================================
 // AGENT DEFINITIONS - Tool schemas for each agent type
@@ -244,16 +246,91 @@ const NUTRITION_TOOLS: Anthropic.Tool[] = [
   },
 ]
 
+/** Physio Agent tools */
+const PHYSIO_TOOLS: Anthropic.Tool[] = [
+  ...COACHING_TOOLS.filter(t => ['readAthleteProfile', 'readReadiness', 'readActiveInjuries', 'sendNotification', 'logAgentAction', 'createCoachAlert'].includes(t.name)),
+  {
+    name: 'readRehabProgress',
+    description: 'Get rehab program progress: completion rate, pain trends, phase status.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        clientId: { type: 'string' },
+        programId: { type: 'string', description: 'Specific program ID (optional, defaults to active programs)' },
+      },
+      required: ['clientId'],
+    },
+  },
+  {
+    name: 'assessRestrictionReadiness',
+    description: 'Assess whether a training restriction is ready for downgrade or clearance based on pain trends and duration.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        clientId: { type: 'string' },
+        restrictionId: { type: 'string', description: 'The restriction ID to assess' },
+      },
+      required: ['clientId', 'restrictionId'],
+    },
+  },
+  {
+    name: 'flagForPhysioReview',
+    description: 'Create a notification flagging an athlete for physio review.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        physioId: { type: 'string', description: 'The physio user ID' },
+        clientId: { type: 'string' },
+        reason: { type: 'string', description: 'Why physio review is needed' },
+        priority: { type: 'string', enum: ['LOW', 'NORMAL', 'HIGH', 'URGENT'] },
+      },
+      required: ['physioId', 'clientId', 'reason', 'priority'],
+    },
+  },
+]
+
+/** Coach Dashboard Agent tools */
+const COACH_DASHBOARD_TOOLS: Anthropic.Tool[] = [
+  ...COACHING_TOOLS.filter(t => ['readAthleteProfile', 'readReadiness', 'readTrainingLoad', 'readActiveInjuries', 'readUpcomingWorkouts', 'sendNotification', 'createCoachAlert', 'logAgentAction'].includes(t.name)),
+  {
+    name: 'getAthletesNeedingAttention',
+    description: 'Scan all coach athletes and return those with concerning metrics (low readiness, high ACWR, missed check-ins, high pain).',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        coachId: { type: 'string', description: 'The coach user ID' },
+      },
+      required: ['coachId'],
+    },
+  },
+  {
+    name: 'getUpcomingRaces',
+    description: 'Get upcoming races across all coach athletes.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        coachId: { type: 'string', description: 'The coach user ID' },
+        days: { type: 'number', description: 'Days to look ahead (default 14)' },
+      },
+      required: ['coachId'],
+    },
+  },
+]
+
 /** Map agent types to their tool definitions */
 const AGENT_TOOLS: Partial<Record<AgentType, Anthropic.Tool[]>> = {
   COACHING: COACHING_TOOLS,
   NUTRITION: NUTRITION_TOOLS,
+  PHYSIO: PHYSIO_TOOLS,
+  COACH_DASHBOARD: COACH_DASHBOARD_TOOLS,
 }
 
 /** Map agent types to their system prompts */
 const AGENT_PROMPTS: Partial<Record<AgentType, string>> = {
   COACHING: COACHING_AGENT_SYSTEM_PROMPT,
   NUTRITION: NUTRITION_AGENT_SYSTEM_PROMPT,
+  PHYSIO: PHYSIO_AGENT_SYSTEM_PROMPT,
+  COACH_DASHBOARD: COACH_DASHBOARD_AGENT_SYSTEM_PROMPT,
 }
 
 // ============================================================================
@@ -414,9 +491,9 @@ async function runAgentLoop(
 
         // Route to appropriate executor
         let result
-        if (['readAthleteProfile', 'readReadiness', 'readTrainingLoad', 'readActiveInjuries', 'readUpcomingWorkouts', 'readRecentDecisions', 'readGarminLatest', 'readMealsToday', 'readBodyCompHistory'].includes(toolUse.name)) {
+        if (['readAthleteProfile', 'readReadiness', 'readTrainingLoad', 'readActiveInjuries', 'readUpcomingWorkouts', 'readRecentDecisions', 'readGarminLatest', 'readMealsToday', 'readBodyCompHistory', 'readRehabProgress', 'readNutritionGoal', 'getAthletesNeedingAttention', 'getUpcomingRaces'].includes(toolUse.name)) {
           result = await executeReadTool(toolUse.name, input)
-        } else if (['detectPatterns', 'detectMilestones', 'calculateInjuryRisk'].includes(toolUse.name)) {
+        } else if (['detectPatterns', 'detectMilestones', 'calculateInjuryRisk', 'calculateTDEE', 'assessRestrictionReadiness'].includes(toolUse.name)) {
           result = await executeCalculateTool(toolUse.name, input)
         } else {
           result = await executeWriteTool(toolUse.name, input)

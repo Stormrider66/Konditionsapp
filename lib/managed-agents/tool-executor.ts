@@ -39,6 +39,14 @@ export async function executeReadTool(
         return await readMealsToday(input.clientId as string)
       case 'readBodyCompHistory':
         return await readBodyCompHistory(input.clientId as string, (input.days as number) || 90)
+      case 'readRehabProgress':
+        return await readRehabProgress(input.clientId as string, input.programId as string | undefined)
+      case 'readNutritionGoal':
+        return await readNutritionGoal(input.clientId as string)
+      case 'getAthletesNeedingAttention':
+        return await getAthletesNeedingAttention(input.coachId as string)
+      case 'getUpcomingRaces':
+        return await getUpcomingRaces(input.coachId as string, (input.days as number) || 14)
       default:
         return { success: false, error: `Unknown read tool: ${toolName}` }
     }
@@ -63,6 +71,10 @@ export async function executeCalculateTool(
         return await detectMilestones(input.clientId as string)
       case 'calculateInjuryRisk':
         return await calculateInjuryRisk(input.clientId as string)
+      case 'calculateTDEE':
+        return await calculateTDEE(input.clientId as string)
+      case 'assessRestrictionReadiness':
+        return await assessRestrictionReadiness(input.clientId as string, input.restrictionId as string)
       default:
         return { success: false, error: `Unknown calculate tool: ${toolName}` }
     }
@@ -119,6 +131,20 @@ export async function executeWriteTool(
           input.reasoning as string,
           input.confidence as number,
           input.priority as string
+        )
+      case 'flagForPhysioReview':
+        return await flagForPhysioReview(
+          input.physioId as string,
+          clientId,
+          input.reason as string,
+          input.priority as string
+        )
+      case 'sendNutritionNudge':
+        return await sendNotification(
+          clientId,
+          'NUTRITION',
+          input.title as string || 'Nutrition',
+          input.message as string
         )
       default:
         return { success: false, error: `Unknown write tool: ${toolName}` }
@@ -757,4 +783,386 @@ function calculateTrend(values: number[]): number {
   }
   const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
   return slope
+}
+
+// ============================================================================
+// PHYSIO TOOLS
+// ============================================================================
+
+async function readRehabProgress(clientId: string, programId?: string): Promise<ToolResult> {
+  const where = programId
+    ? { id: programId, clientId }
+    : { clientId, status: { in: ['ACTIVE', 'IN_PROGRESS'] } }
+
+  const programs = await prisma.rehabProgram.findMany({
+    where: where as never,
+    include: {
+      progressLogs: {
+        orderBy: { date: 'desc' as const },
+        take: 14,
+      },
+    },
+    orderBy: { createdAt: 'desc' as const },
+    take: 5,
+  })
+
+  return {
+    success: true,
+    data: {
+      count: programs.length,
+      programs: programs.map(p => {
+        const recentLogs = p.progressLogs || []
+        const painValues = recentLogs
+          .map(l => l.painLevel)
+          .filter((v): v is number => v !== null)
+
+        return {
+          id: p.id,
+          name: p.name,
+          phase: p.currentPhase,
+          status: p.status,
+          completionRate: recentLogs.length > 0
+            ? recentLogs.filter(l => l.completed).length / recentLogs.length
+            : 0,
+          avgPainLast7d: painValues.length > 0
+            ? painValues.reduce((a, b) => a + b, 0) / painValues.length
+            : null,
+          painTrend: painValues.length >= 3 ? calculateTrend(painValues.reverse()) : null,
+          lastLogDate: recentLogs[0]?.date || null,
+          daysSinceLastLog: recentLogs[0]
+            ? Math.floor((Date.now() - new Date(recentLogs[0].date).getTime()) / (24 * 60 * 60 * 1000))
+            : null,
+        }
+      }),
+    },
+  }
+}
+
+async function assessRestrictionReadiness(clientId: string, restrictionId: string): Promise<ToolResult> {
+  const restriction = await prisma.trainingRestriction.findUnique({
+    where: { id: restrictionId },
+  })
+
+  if (!restriction || restriction.clientId !== clientId) {
+    return { success: false, error: 'Restriction not found' }
+  }
+
+  // Get pain trend from recent check-ins
+  const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
+  const checkIns = await prisma.dailyCheckIn.findMany({
+    where: { clientId, date: { gte: since } },
+    orderBy: { date: 'asc' },
+  })
+
+  const painValues = checkIns
+    .map(c => c.soreness)
+    .filter((v): v is number => v !== null)
+
+  const currentPain = painValues.length > 0 ? painValues[painValues.length - 1] : null
+  const painTrend = painValues.length >= 3 ? calculateTrend(painValues) : null
+  const daysInCurrentSeverity = Math.floor(
+    (Date.now() - new Date(restriction.updatedAt).getTime()) / (24 * 60 * 60 * 1000)
+  )
+
+  // Assess readiness criteria
+  const criteria = {
+    painBelow3: currentPain !== null && currentPain <= 3,
+    painDecreasing: painTrend !== null && painTrend < -0.1,
+    minimumDuration: daysInCurrentSeverity >= 14,
+    sufficientData: painValues.length >= 5,
+  }
+
+  const readyForDowngrade = criteria.painBelow3 && criteria.minimumDuration && criteria.sufficientData
+  const readyForClearance = currentPain !== null && currentPain <= 1 && daysInCurrentSeverity >= 21
+
+  return {
+    success: true,
+    data: {
+      restrictionId,
+      currentSeverity: restriction.severity,
+      currentPain,
+      painTrend,
+      daysInCurrentSeverity,
+      criteria,
+      readyForDowngrade,
+      readyForClearance,
+      recommendation: readyForClearance
+        ? 'SUGGEST_CLEARANCE'
+        : readyForDowngrade
+        ? 'SUGGEST_DOWNGRADE'
+        : 'CONTINUE_MONITORING',
+    },
+  }
+}
+
+async function flagForPhysioReview(
+  physioId: string,
+  clientId: string,
+  reason: string,
+  priority: string
+): Promise<ToolResult> {
+  // Create a notification for the physio
+  const notification = await prisma.aINotification.create({
+    data: {
+      clientId,
+      type: 'AGENT_RECOMMENDATION',
+      title: 'Physio Review Needed',
+      message: reason,
+      priority: priority === 'HIGH' || priority === 'URGENT' ? 'HIGH' : 'NORMAL',
+      contextData: { physioId, source: 'PHYSIO_AGENT', priority },
+    },
+  })
+
+  return { success: true, data: { notificationId: notification.id } }
+}
+
+// ============================================================================
+// NUTRITION TOOLS
+// ============================================================================
+
+async function readNutritionGoal(clientId: string): Promise<ToolResult> {
+  const goal = await prisma.nutritionGoal.findFirst({
+    where: { clientId, isActive: true },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  if (!goal) return { success: true, data: { hasGoal: false } }
+
+  return {
+    success: true,
+    data: {
+      hasGoal: true,
+      goalType: goal.goalType,
+      targetWeight: goal.targetWeight,
+      weeklyChangeRate: goal.weeklyChangeRate,
+      targetBodyFat: goal.targetBodyFat,
+      macroProfile: goal.macroProfile,
+      customProteinPerKg: goal.customProteinPerKg,
+      activityLevel: goal.activityLevel,
+      targetCalories: goal.targetCalories,
+      targetProtein: goal.targetProtein,
+      targetCarbs: goal.targetCarbs,
+      targetFat: goal.targetFat,
+    },
+  }
+}
+
+async function calculateTDEE(clientId: string): Promise<ToolResult> {
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: { gender: true, dateOfBirth: true },
+  })
+
+  const latestBodyComp = await prisma.bodyComposition.findFirst({
+    where: { clientId },
+    orderBy: { measuredAt: 'desc' },
+  })
+
+  const goal = await prisma.nutritionGoal.findFirst({
+    where: { clientId, isActive: true },
+  })
+
+  if (!latestBodyComp?.weight) {
+    return { success: false, error: 'No body composition data available for TDEE calculation' }
+  }
+
+  const weight = latestBodyComp.weight
+  const height = 175 // Default if not available — would need to be stored
+  const age = client?.dateOfBirth
+    ? Math.floor((Date.now() - new Date(client.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+    : 30
+
+  // Mifflin-St Jeor equation
+  const isMale = client?.gender === 'MALE'
+  const bmr = isMale
+    ? 10 * weight + 6.25 * height - 5 * age + 5
+    : 10 * weight + 6.25 * height - 5 * age - 161
+
+  // Activity multiplier
+  const multipliers: Record<string, number> = {
+    SEDENTARY: 1.2,
+    LIGHTLY_ACTIVE: 1.375,
+    MODERATELY_ACTIVE: 1.55,
+    VERY_ACTIVE: 1.725,
+    EXTRA_ACTIVE: 1.9,
+    ELITE_ATHLETE: 2.0,
+  }
+
+  const activityLevel = goal?.activityLevel || 'MODERATELY_ACTIVE'
+  const multiplier = multipliers[activityLevel] || 1.55
+  const tdee = Math.round(bmr * multiplier)
+
+  // Adjust for goal
+  let targetCalories = tdee
+  if (goal?.goalType === 'WEIGHT_LOSS') {
+    const weeklyDeficit = (goal.weeklyChangeRate || 0.5) * 7700 // kcal per kg fat
+    targetCalories = Math.max(1200, tdee - Math.round(weeklyDeficit / 7))
+  } else if (goal?.goalType === 'WEIGHT_GAIN') {
+    const weeklySurplus = (goal.weeklyChangeRate || 0.25) * 7700
+    targetCalories = tdee + Math.round(weeklySurplus / 7)
+  }
+
+  return {
+    success: true,
+    data: {
+      bmr: Math.round(bmr),
+      tdee,
+      activityLevel,
+      targetCalories,
+      goalType: goal?.goalType || 'MAINTAIN',
+      currentWeight: weight,
+    },
+  }
+}
+
+// ============================================================================
+// COACH DASHBOARD TOOLS
+// ============================================================================
+
+async function getAthletesNeedingAttention(coachId: string): Promise<ToolResult> {
+  // Find all athletes managed by this coach
+  const clients = await prisma.client.findMany({
+    where: { userId: coachId },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      sport: true,
+    },
+    take: 100,
+  })
+
+  const concerns: {
+    clientId: string
+    name: string
+    issues: { type: string; severity: string; detail: string }[]
+  }[] = []
+
+  for (const client of clients) {
+    const issues: { type: string; severity: string; detail: string }[] = []
+
+    // Check readiness
+    const metrics = await prisma.dailyMetrics.findFirst({
+      where: { clientId: client.id },
+      orderBy: { date: 'desc' },
+    })
+
+    if (metrics?.readinessScore && metrics.readinessScore < 50) {
+      issues.push({
+        type: 'LOW_READINESS',
+        severity: metrics.readinessScore < 30 ? 'HIGH' : 'MEDIUM',
+        detail: `Readiness ${metrics.readinessScore}/100`,
+      })
+    }
+
+    // Check ACWR
+    const load = await prisma.trainingLoad.findFirst({
+      where: { clientId: client.id },
+      orderBy: { date: 'desc' },
+    })
+
+    if (load?.acwrZone === 'CRITICAL' || load?.acwrZone === 'DANGER') {
+      issues.push({
+        type: 'HIGH_ACWR',
+        severity: load.acwrZone === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
+        detail: `ACWR ${load.acwr?.toFixed(2)} (${load.acwrZone})`,
+      })
+    }
+
+    // Check missed check-ins
+    const lastCheckIn = await prisma.dailyCheckIn.findFirst({
+      where: { clientId: client.id },
+      orderBy: { date: 'desc' },
+    })
+
+    if (lastCheckIn) {
+      const daysSince = Math.floor((Date.now() - new Date(lastCheckIn.date).getTime()) / (24 * 60 * 60 * 1000))
+      if (daysSince >= 3) {
+        issues.push({
+          type: 'MISSED_CHECKINS',
+          severity: daysSince >= 7 ? 'HIGH' : 'MEDIUM',
+          detail: `No check-in for ${daysSince} days`,
+        })
+      }
+    }
+
+    // Check active injuries with high pain
+    const injuries = await prisma.injuryAssessment.findMany({
+      where: { clientId: client.id, status: { in: ['ACTIVE', 'MONITORING'] } },
+    })
+
+    for (const injury of injuries) {
+      if (injury.painLevel && injury.painLevel >= 7) {
+        issues.push({
+          type: 'HIGH_PAIN',
+          severity: injury.painLevel >= 9 ? 'CRITICAL' : 'HIGH',
+          detail: `${injury.bodyPart}: pain ${injury.painLevel}/10`,
+        })
+      }
+    }
+
+    if (issues.length > 0) {
+      concerns.push({
+        clientId: client.id,
+        name: `${client.firstName} ${client.lastName}`.trim(),
+        issues,
+      })
+    }
+  }
+
+  // Sort by severity
+  const severityOrder: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
+  concerns.sort((a, b) => {
+    const aMax = Math.min(...a.issues.map(i => severityOrder[i.severity] ?? 3))
+    const bMax = Math.min(...b.issues.map(i => severityOrder[i.severity] ?? 3))
+    return aMax - bMax
+  })
+
+  return {
+    success: true,
+    data: {
+      totalAthletes: clients.length,
+      athletesNeedingAttention: concerns.length,
+      concerns,
+    },
+  }
+}
+
+async function getUpcomingRaces(coachId: string, days: number): Promise<ToolResult> {
+  const endDate = new Date()
+  endDate.setDate(endDate.getDate() + days)
+
+  const clients = await prisma.client.findMany({
+    where: { userId: coachId },
+    select: { id: true, firstName: true, lastName: true },
+  })
+
+  const clientIds = clients.map(c => c.id)
+  const clientMap = new Map(clients.map(c => [c.id, `${c.firstName} ${c.lastName}`.trim()]))
+
+  const races = await prisma.race.findMany({
+    where: {
+      clientId: { in: clientIds },
+      raceDate: { gte: new Date(), lte: endDate },
+    },
+    orderBy: { raceDate: 'asc' },
+  })
+
+  return {
+    success: true,
+    data: {
+      count: races.length,
+      races: races.map(r => ({
+        id: r.id,
+        athleteName: clientMap.get(r.clientId) || 'Unknown',
+        clientId: r.clientId,
+        name: r.name,
+        date: r.raceDate,
+        distance: r.distance,
+        targetTime: r.targetTime,
+        classification: r.classification,
+        daysUntil: Math.ceil((new Date(r.raceDate).getTime() - Date.now()) / (24 * 60 * 60 * 1000)),
+      })),
+    },
+  }
 }
