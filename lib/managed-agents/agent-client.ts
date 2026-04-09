@@ -244,6 +244,37 @@ const NUTRITION_TOOLS: Anthropic.Tool[] = [
       required: ['clientId'],
     },
   },
+  {
+    name: 'readNutritionGoal',
+    description: 'Get the athlete\'s active nutrition goal: goal type, target weight, macro targets, calorie targets.',
+    input_schema: {
+      type: 'object' as const,
+      properties: { clientId: { type: 'string' } },
+      required: ['clientId'],
+    },
+  },
+  {
+    name: 'calculateTDEE',
+    description: 'Calculate Total Daily Energy Expenditure using Mifflin-St Jeor equation with activity multiplier. Returns BMR, TDEE, and goal-adjusted target calories.',
+    input_schema: {
+      type: 'object' as const,
+      properties: { clientId: { type: 'string' } },
+      required: ['clientId'],
+    },
+  },
+  {
+    name: 'sendNutritionNudge',
+    description: 'Send a nutrition-related nudge/notification to the athlete.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        clientId: { type: 'string' },
+        title: { type: 'string', description: 'Nudge title' },
+        message: { type: 'string', description: 'Nudge message' },
+      },
+      required: ['clientId', 'message'],
+    },
+  },
 ]
 
 /** Physio Agent tools */
