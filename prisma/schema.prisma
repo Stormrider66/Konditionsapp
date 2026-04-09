@@ -9647,6 +9647,56 @@ model AgentAuditLog {
   @@index([clientId])
 }
 
+// ============================================================================
+// MANAGED AGENT SESSIONS
+// ============================================================================
+
+/// Tracks Claude Managed Agent sessions for event-driven agent processing.
+/// Each session maps to a Claude API agent session with tool access.
+model ManagedAgentSession {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  agentType  String // COACHING, PROGRAM_GENERATION, COACH_DASHBOARD, NUTRITION, PHYSIO, RESEARCH, LEARNING
+  entityId   String // clientId, coachId, or physioId depending on agent type
+  externalId String? // Claude Managed Agent session ID from the API
+
+  status      String   @default("ACTIVE") // ACTIVE, PAUSED, EXPIRED, ERROR
+  modelIntent String   @default("balanced") // fast, balanced, powerful
+  lastEventAt DateTime @default(now())
+
+  totalTokensUsed Int   @default(0)
+  totalCostUsd    Float @default(0)
+  metadata        Json?
+
+  events AgentEvent[]
+
+  @@index([agentType, entityId])
+  @@index([status])
+  @@index([lastEventAt])
+}
+
+/// Events that trigger managed agent processing.
+/// Each event is routed to the appropriate agent type(s).
+model AgentEvent {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  eventType String // GARMIN_ACTIVITY, CHECKIN_SUBMITTED, MEAL_LOGGED, etc.
+  entityId  String // The entity this event is for
+  eventData Json   // Event-specific payload
+
+  sessionId   String?
+  session     ManagedAgentSession? @relation(fields: [sessionId], references: [id])
+  processedAt DateTime?
+  result      Json? // Agent response after processing
+
+  @@index([sessionId, createdAt])
+  @@index([entityId, eventType])
+  @@index([processedAt])
+}
+
 /// General audit log for security-sensitive operations
 /// Tracks admin actions, role changes, data deletions, etc.
 model AuditLog {

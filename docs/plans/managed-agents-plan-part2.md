@@ -1,5 +1,72 @@
 # Claude Managed Agents Implementation Plan - Part 2: Agent Specifications
 
+## Model Strategy
+
+### Per-Agent Model Assignment
+
+| Agent | Default Model | Intent | Escalation Model | Escalation Trigger |
+|-------|--------------|--------|-------------------|-------------------|
+| Coaching Agent | Sonnet 4.6 | `balanced` | Opus 4.6 | ACWR critical + injury + multi-factor complexity |
+| Program Generation | Opus 4.6 | `powerful` | — | Always uses powerful (quality-critical) |
+| Coach Dashboard | Sonnet 4.6 | `balanced` | — | Sufficient for synthesis and queries |
+| Nutrition Agent | Haiku 4.5 | `fast` | Sonnet 4.6 | Plateau analysis, weekly reports, behavioral coaching |
+| Physio Agent | Sonnet 4.6 | `balanced` | Opus 4.6 | Complex return-to-sport clearance decisions |
+| Research Agent | Opus 4.6 | `powerful` | — | Always uses powerful (deep reasoning) |
+| Learning Agent | Sonnet 4.6 | `balanced` | — | Background batch processing |
+
+### Integration with Existing ModelIntent System
+
+```typescript
+const AGENT_MODEL_INTENT: Record<AgentType, ModelIntent> = {
+  COACHING:            'balanced',   // Sonnet 4.6
+  PROGRAM_GENERATION:  'powerful',   // Opus 4.6
+  COACH_DASHBOARD:     'balanced',   // Sonnet 4.6
+  NUTRITION:           'fast',       // Haiku 4.5
+  PHYSIO:              'balanced',   // Sonnet 4.6
+  RESEARCH:            'powerful',   // Opus 4.6
+  LEARNING:            'balanced',   // Sonnet 4.6
+}
+```
+
+### Dynamic Model Escalation
+
+Agents start with their default model and escalate when complexity requires it:
+
+```typescript
+function resolveAgentModel(agentType: AgentType, context: AgentContext): ModelIntent {
+  const base = AGENT_MODEL_INTENT[agentType]
+
+  // Nutrition: escalate for weekly reports and plateau strategies
+  if (agentType === 'NUTRITION' && (context.isWeeklyReport || context.plateauDetected)) {
+    return 'balanced' // Haiku -> Sonnet
+  }
+
+  // Coaching: escalate for multi-factor critical decisions
+  if (agentType === 'COACHING' && context.acwrZone === 'CRITICAL' && context.activeInjury) {
+    return 'powerful' // Sonnet -> Opus
+  }
+
+  // Physio: escalate for return-to-sport clearance
+  if (agentType === 'PHYSIO' && context.rehabPhase === 'RETURN_TO_SPORT') {
+    return 'powerful' // Sonnet -> Opus
+  }
+
+  return base
+}
+```
+
+### Cost Estimate by Model Tier
+
+| Tier | Model | Input $/1M tokens | Output $/1M tokens | Primary Use |
+|------|-------|-------------------|--------------------|----|
+| Fast | Haiku 4.5 | $0.80 | $4.00 | Meal nudges, simple notifications |
+| Balanced | Sonnet 4.6 | $3.00 | $15.00 | Coaching decisions, briefings, physio analysis |
+| Powerful | Opus 4.6 | $15.00 | $75.00 | Program generation, research, critical safety |
+
+**Estimated cost per athlete per month**: ~$1-2 (80% Haiku/Sonnet, 20% Opus escalations)
+
+---
+
 ## Agent 1: Coaching Agent (Per Athlete)
 
 **Replaces**: perceive, decide, execute crons + pattern-detection + milestone-detection

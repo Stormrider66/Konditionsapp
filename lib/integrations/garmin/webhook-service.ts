@@ -262,7 +262,103 @@ export async function processGarminWebhookPayload(payload: GarminWebhookPayload)
     errorCount: results.errors.length,
   })
 
+  // Dispatch events to Managed Agents (non-blocking)
+  dispatchGarminEventsToAgents(payload, results).catch(err =>
+    logger.warn('Failed to dispatch Garmin events to agents', { error: err instanceof Error ? err.message : 'Unknown' })
+  )
+
   return results
+}
+
+/**
+ * Dispatch Garmin webhook data as agent events for real-time processing.
+ * Runs asynchronously - does not block the webhook response.
+ */
+async function dispatchGarminEventsToAgents(
+  payload: GarminWebhookPayload,
+  results: GarminWebhookResults
+): Promise<void> {
+  const { dispatchEvent } = await import('@/lib/managed-agents')
+
+  // Map each processed data type to agent events
+  const dispatches: Promise<unknown>[] = []
+
+  if (results.activities > 0 && payload.activities) {
+    for (const activity of payload.activities) {
+      const clientId = await findClientId(activity.userId)
+      if (clientId) {
+        dispatches.push(dispatchEvent({
+          id: crypto.randomUUID(),
+          type: 'GARMIN_ACTIVITY',
+          entityId: clientId,
+          data: { activityType: activity.activityType, distance: activity.distanceInMeters, duration: activity.activityDurationInSeconds },
+          timestamp: new Date(),
+        }))
+      }
+    }
+  }
+
+  if (results.sleeps > 0 && payload.sleeps) {
+    for (const sleep of payload.sleeps) {
+      const clientId = await findClientId(sleep.userId)
+      if (clientId) {
+        dispatches.push(dispatchEvent({
+          id: crypto.randomUUID(),
+          type: 'GARMIN_SLEEP',
+          entityId: clientId,
+          data: { duration: sleep.durationInSeconds, scores: sleep.sleepScores },
+          timestamp: new Date(),
+        }))
+      }
+    }
+  }
+
+  if (results.hrv > 0 && payload.hrv) {
+    for (const hrv of payload.hrv) {
+      const clientId = await findClientId(hrv.userId)
+      if (clientId) {
+        dispatches.push(dispatchEvent({
+          id: crypto.randomUUID(),
+          type: 'GARMIN_HRV',
+          entityId: clientId,
+          data: { weeklyAvg: hrv.weeklyAvg, lastNightAvg: hrv.lastNightAvg, status: hrv.status },
+          timestamp: new Date(),
+        }))
+      }
+    }
+  }
+
+  if (results.dailies > 0 && payload.dailies) {
+    for (const daily of payload.dailies) {
+      const clientId = await findClientId(daily.userId)
+      if (clientId) {
+        dispatches.push(dispatchEvent({
+          id: crypto.randomUUID(),
+          type: 'GARMIN_DAILY',
+          entityId: clientId,
+          data: { steps: daily.steps, restingHR: daily.restingHeartRateInBeatsPerMinute, stress: daily.averageStressLevel },
+          timestamp: new Date(),
+        }))
+      }
+    }
+  }
+
+  if (results.bodyComps > 0 && payload.bodyComps) {
+    for (const bodyComp of payload.bodyComps) {
+      const clientId = await findClientId(bodyComp.userId)
+      if (clientId) {
+        dispatches.push(dispatchEvent({
+          id: crypto.randomUUID(),
+          type: 'GARMIN_BODY_COMPOSITION',
+          entityId: clientId,
+          data: { weightKg: bodyComp.weightInKilograms ?? (bodyComp.weightInGrams ? bodyComp.weightInGrams / 1000 : null), bodyFatPercent: bodyComp.bodyFatInPercent },
+          timestamp: new Date(),
+        }))
+      }
+    }
+  }
+
+  await Promise.allSettled(dispatches)
 }
 
 async function getAthleteMaxHR(clientId: string): Promise<number> {
