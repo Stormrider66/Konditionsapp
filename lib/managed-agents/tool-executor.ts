@@ -704,7 +704,7 @@ async function sendNotification(
   const notification = await prisma.aINotification.create({
     data: {
       clientId,
-      type: 'AGENT_RECOMMENDATION',
+      notificationType: 'AGENT_RECOMMENDATION',
       title,
       message,
       priority: 'NORMAL',
@@ -904,7 +904,7 @@ async function flagForPhysioReview(
   const notification = await prisma.aINotification.create({
     data: {
       clientId,
-      type: 'AGENT_RECOMMENDATION',
+      notificationType: 'AGENT_RECOMMENDATION',
       title: 'Physio Review Needed',
       message: reason,
       priority: priority === 'HIGH' || priority === 'URGENT' ? 'HIGH' : 'NORMAL',
