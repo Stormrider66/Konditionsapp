@@ -285,7 +285,7 @@ async function readTrainingLoad(clientId: string): Promise<ToolResult> {
       chronicLoad: load.chronicLoad,
       acwr: load.acwr,
       acwrZone: load.acwrZone,
-      dailyTSS: load.dailyTSS,
+      dailyLoad: load.dailyLoad,
       date: load.date,
       isStale,
     },
