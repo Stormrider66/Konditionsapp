@@ -243,7 +243,7 @@ async function readReadiness(clientId: string, date?: string): Promise<ToolResul
     data: {
       source: checkIn ? 'DAILY_CHECKIN' : metrics ? 'DAILY_METRICS' : 'NONE',
       checkIn: checkIn ? {
-        readiness: checkIn.readiness,
+        readinessScore: checkIn.readinessScore,
         sleepQuality: checkIn.sleepQuality,
         sleepHours: checkIn.sleepHours,
         fatigue: checkIn.fatigue,
