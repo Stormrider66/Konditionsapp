@@ -25,3 +25,6 @@ export { executeOperatorTool } from './tool-executor'
 // Register agents (side-effect imports)
 import './agents/platform-health-agent'
 import './agents/support-agent'
+import './agents/cost-guardian-agent'
+import './agents/feature-curator-agent'
+import './agents/churn-predictor-agent'
