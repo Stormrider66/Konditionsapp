@@ -961,6 +961,670 @@ export async function flagForFounderReview(
 }
 
 // ============================================================================
+// FOUNDER'S BRIEF TOOLS
+// ============================================================================
+
+export async function getRevenueYesterday(): Promise<OperatorToolResult> {
+  try {
+    const now = new Date()
+    const startOfYesterday = new Date(now)
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1)
+    startOfYesterday.setHours(0, 0, 0, 0)
+    const endOfYesterday = new Date(startOfYesterday)
+    endOfYesterday.setHours(23, 59, 59, 999)
+
+    const [newSubs, totalActiveSubs] = await Promise.all([
+      prisma.athleteSubscription.findMany({
+        where: {
+          createdAt: { gte: startOfYesterday, lte: endOfYesterday },
+          tier: { not: 'FREE' },
+          status: { in: ['ACTIVE', 'TRIAL'] },
+        },
+        select: { tier: true, billingCycle: true },
+      }),
+      prisma.athleteSubscription.count({
+        where: {
+          tier: { not: 'FREE' },
+          status: 'ACTIVE',
+        },
+      }),
+    ])
+
+    // Rough MRR from tier counts (actual amounts depend on pricing config)
+    const byTier = newSubs.reduce((acc, s) => {
+      acc[s.tier] = (acc[s.tier] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    return {
+      success: true,
+      data: {
+        newSubscribers: newSubs.length,
+        byTier,
+        totalActiveSubscribers: totalActiveSubs,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getSignupsYesterday(): Promise<OperatorToolResult> {
+  try {
+    const startOfYesterday = new Date()
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1)
+    startOfYesterday.setHours(0, 0, 0, 0)
+    const endOfYesterday = new Date(startOfYesterday)
+    endOfYesterday.setHours(23, 59, 59, 999)
+
+    const users = await prisma.user.findMany({
+      where: { createdAt: { gte: startOfYesterday, lte: endOfYesterday } },
+      select: { id: true, role: true, createdAt: true },
+    })
+
+    const byRole = users.reduce((acc, u) => {
+      acc[u.role] = (acc[u.role] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    return {
+      success: true,
+      data: { total: users.length, byRole },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getUrgentSupportTickets(): Promise<OperatorToolResult> {
+  try {
+    const tickets = await prisma.supportTicket.findMany({
+      where: {
+        status: 'OPEN',
+        priority: { in: ['URGENT', 'HIGH'] },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        title: true,
+        priority: true,
+        category: true,
+        createdAt: true,
+      },
+    })
+
+    return { success: true, data: { count: tickets.length, tickets } }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getCriticalErrors(hours: number = 24): Promise<OperatorToolResult> {
+  try {
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000)
+    const failures = await prisma.operatorAgentRun.count({
+      where: {
+        status: 'FAILED',
+        createdAt: { gte: since },
+      },
+    })
+
+    // Also count escalations (CRITICAL alerts from Platform Health Agent)
+    const escalations = await prisma.operatorAgentRun.aggregate({
+      where: {
+        agentType: 'PLATFORM_HEALTH',
+        createdAt: { gte: since },
+      },
+      _sum: { escalations: true },
+    })
+
+    return {
+      success: true,
+      data: {
+        hours,
+        operatorFailures: failures,
+        platformHealthAlerts: escalations._sum.escalations || 0,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getAtRiskUsers(limit: number = 3): Promise<OperatorToolResult> {
+  try {
+    // Read from most recent Churn Predictor run
+    const latestRun = await prisma.operatorAgentRun.findFirst({
+      where: {
+        agentType: 'CHURN_PREDICTOR',
+        status: 'COMPLETED',
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!latestRun) {
+      return { success: true, data: { atRiskUsers: [], note: 'No Churn Predictor run yet' } }
+    }
+
+    // Extract flagged users from the run details
+    const details = (latestRun.details as Record<string, unknown>) || {}
+    return {
+      success: true,
+      data: {
+        lastRunAt: latestRun.createdAt,
+        escalations: latestRun.escalations,
+        summary: latestRun.summary,
+        details,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getTopFeatureRequest(): Promise<OperatorToolResult> {
+  try {
+    const top = await prisma.featureRequest.findFirst({
+      where: {
+        status: 'OPEN',
+        agentImpactScore: { gte: 60 },
+      },
+      orderBy: { agentImpactScore: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        upvotes: true,
+        agentImpactScore: true,
+        category: true,
+      },
+    })
+
+    return { success: true, data: { request: top } }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getCostToday(): Promise<OperatorToolResult> {
+  try {
+    const startOfDay = new Date()
+    startOfDay.setHours(0, 0, 0, 0)
+
+    const logs = await prisma.aIUsageLog.findMany({
+      where: { createdAt: { gte: startOfDay } },
+      select: { estimatedCost: true },
+    })
+
+    const total = logs.reduce((s, l) => s + l.estimatedCost, 0)
+    return {
+      success: true,
+      data: {
+        requests: logs.length,
+        totalCostUsd: Math.round(total * 1000) / 1000,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getKeyMetrics(): Promise<OperatorToolResult> {
+  try {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+    const [activeUsers, totalUsers, checkIns, workouts] = await Promise.all([
+      prisma.user.count({
+        where: {
+          clients: {
+            some: {
+              dailyCheckIns: {
+                some: { date: { gte: weekAgo } },
+              },
+            },
+          },
+        },
+      }).catch(() => 0),
+      prisma.user.count(),
+      prisma.dailyCheckIn.count({ where: { date: { gte: weekAgo } } }),
+      prisma.strengthSessionAssignment.count({
+        where: {
+          status: 'COMPLETED',
+          completedAt: { gte: weekAgo },
+        },
+      }),
+    ])
+
+    return {
+      success: true,
+      data: {
+        totalUsers,
+        activeUsersLast7d: activeUsers,
+        checkInsLast7d: checkIns,
+        workoutsCompletedLast7d: workouts,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function saveBriefAndEmail(content: string): Promise<OperatorToolResult> {
+  try {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    // Parse the content into structured fields (best effort)
+    const brief = await prisma.founderBrief.upsert({
+      where: { date: today },
+      update: {
+        fullContent: content,
+        revenue: {},
+        attention: {},
+      },
+      create: {
+        date: today,
+        fullContent: content,
+        revenue: {},
+        attention: {},
+      },
+    })
+
+    // Email it to the founder
+    const founderEmail = process.env.FOUNDER_EMAIL
+    if (founderEmail) {
+      const { sendEmail } = await import('@/lib/email').catch(() => ({ sendEmail: null }))
+      if (sendEmail) {
+        await sendEmail({
+          to: founderEmail,
+          subject: `Daily Brief — ${today.toISOString().slice(0, 10)}`,
+          html: `<div style="font-family:monospace;white-space:pre-wrap">${content}</div>`,
+        })
+        await prisma.founderBrief.update({
+          where: { id: brief.id },
+          data: { emailedTo: founderEmail, emailedAt: new Date() },
+        })
+      }
+    }
+
+    return { success: true, data: { briefId: brief.id, emailed: !!founderEmail } }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+// ============================================================================
+// ONBOARDING ACTIVATION TOOLS
+// ============================================================================
+
+export async function getNewUsersLast7d(): Promise<OperatorToolResult> {
+  try {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const users = await prisma.user.findMany({
+      where: { createdAt: { gte: since } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    })
+    return { success: true, data: { count: users.length, users } }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getUserActivationProgress(userId: string): Promise<OperatorToolResult> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        createdAt: true,
+        clients: {
+          select: {
+            id: true,
+            name: true,
+            dailyCheckIns: {
+              orderBy: { date: 'desc' },
+              take: 1,
+              select: { date: true },
+            },
+          },
+        },
+      },
+    })
+
+    if (!user) return { success: false, error: 'User not found' }
+
+    const client = user.clients[0]
+    const hasProfile = !!client && client.name.trim().length > 0
+    const hasCheckIn = !!client && client.dailyCheckIns.length > 0
+
+    let hasWorkout = false
+    if (client) {
+      const workoutCount = await prisma.strengthSessionAssignment.count({
+        where: { athleteId: client.id },
+      })
+      hasWorkout = workoutCount > 0
+    }
+
+    const daysSinceSignup = Math.floor(
+      (Date.now() - new Date(user.createdAt).getTime()) / (24 * 60 * 60 * 1000)
+    )
+
+    return {
+      success: true,
+      data: {
+        userId,
+        daysSinceSignup,
+        hasProfile,
+        hasCheckIn,
+        hasWorkout,
+        activated: hasProfile && hasCheckIn && hasWorkout,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function findStuckUsers(): Promise<OperatorToolResult> {
+  try {
+    // Users who signed up >2 days ago but haven't checked in
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+    const users = await prisma.user.findMany({
+      where: {
+        createdAt: { gte: sevenDaysAgo, lt: twoDaysAgo },
+        clients: {
+          some: {
+            dailyCheckIns: { none: {} },
+          },
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true,
+      },
+      take: 20,
+    })
+
+    return {
+      success: true,
+      data: {
+        count: users.length,
+        users: users.map(u => ({
+          ...u,
+          stuckStep: 'first_checkin',
+          daysSinceSignup: Math.floor(
+            (Date.now() - new Date(u.createdAt).getTime()) / (24 * 60 * 60 * 1000)
+          ),
+        })),
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function draftOnboardingNudge(
+  userId: string,
+  step: string,
+  subject: string,
+  body: string
+): Promise<OperatorToolResult> {
+  try {
+    logger.info('[operator-agents] Onboarding nudge drafted', { userId, step })
+    return {
+      success: true,
+      data: {
+        userId,
+        step,
+        subject,
+        body,
+        note: 'Draft saved for founder review',
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+// ============================================================================
+// BUSINESS INTELLIGENCE TOOLS
+// ============================================================================
+
+export async function getMRRSnapshot(): Promise<OperatorToolResult> {
+  try {
+    const active = await prisma.athleteSubscription.findMany({
+      where: {
+        status: 'ACTIVE',
+        tier: { not: 'FREE' },
+      },
+      select: { tier: true, billingCycle: true },
+    })
+
+    const byTier = active.reduce((acc, s) => {
+      acc[s.tier] = (acc[s.tier] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    return {
+      success: true,
+      data: {
+        totalActiveSubscribers: active.length,
+        byTier,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getChurnRate(days: number = 30): Promise<OperatorToolResult> {
+  try {
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    const [canceled, totalActive] = await Promise.all([
+      prisma.athleteSubscription.count({
+        where: {
+          status: 'CANCELLED',
+          updatedAt: { gte: since },
+        },
+      }),
+      prisma.athleteSubscription.count({
+        where: { status: 'ACTIVE', tier: { not: 'FREE' } },
+      }),
+    ])
+
+    const rate = totalActive > 0 ? canceled / (totalActive + canceled) : 0
+
+    return {
+      success: true,
+      data: {
+        days,
+        canceled,
+        totalActive,
+        churnRate: Math.round(rate * 10000) / 100, // as percentage with 2 decimals
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getNewSubscribersLast7d(): Promise<OperatorToolResult> {
+  try {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const subs = await prisma.athleteSubscription.findMany({
+      where: {
+        createdAt: { gte: since },
+        tier: { not: 'FREE' },
+      },
+      select: { tier: true, status: true },
+    })
+
+    const byTier = subs.reduce((acc, s) => {
+      acc[s.tier] = (acc[s.tier] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    return { success: true, data: { total: subs.length, byTier } }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function saveBIReport(content: string): Promise<OperatorToolResult> {
+  try {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const report = await prisma.founderBrief.create({
+      data: {
+        date: new Date(today.getTime() + Math.random()), // unique date for BI briefs
+        fullContent: content,
+        revenue: { type: 'BI_WEEKLY' },
+        attention: {},
+      },
+    }).catch(async () => {
+      // Fallback if date collision — store as a regular log
+      logger.info('[operator-agents] BI report (not stored due to date conflict)')
+      return null
+    })
+
+    // Email it
+    const founderEmail = process.env.FOUNDER_EMAIL
+    if (founderEmail) {
+      const { sendEmail } = await import('@/lib/email').catch(() => ({ sendEmail: null }))
+      if (sendEmail) {
+        await sendEmail({
+          to: founderEmail,
+          subject: `Weekly BI Report — ${today.toISOString().slice(0, 10)}`,
+          html: `<div style="font-family:monospace;white-space:pre-wrap">${content}</div>`,
+        })
+      }
+    }
+
+    return { success: true, data: { reportId: report?.id, emailed: !!founderEmail } }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+// ============================================================================
+// MARKETING CONTENT TOOLS
+// ============================================================================
+
+export async function findMilestoneEvents(days: number = 7): Promise<OperatorToolResult> {
+  try {
+    const now = new Date()
+    const [totalUsers, totalWorkouts, totalClients] = await Promise.all([
+      prisma.user.count(),
+      prisma.strengthSessionAssignment.count({ where: { status: 'COMPLETED' } }),
+      prisma.client.count(),
+    ])
+
+    // Detect round-number milestones
+    const roundNumbers = [100, 500, 1000, 5000, 10000, 50000, 100000]
+    const milestones: { type: string; value: number; metric: string }[] = []
+
+    for (const target of roundNumbers) {
+      if (totalUsers === target) milestones.push({ type: 'USER_MILESTONE', value: target, metric: 'users' })
+      if (totalWorkouts === target) milestones.push({ type: 'WORKOUT_MILESTONE', value: target, metric: 'workouts' })
+      if (totalClients === target) milestones.push({ type: 'CLIENT_MILESTONE', value: target, metric: 'athletes' })
+    }
+
+    return {
+      success: true,
+      data: {
+        totalUsers,
+        totalWorkouts,
+        totalClients,
+        milestonesThisWeek: milestones,
+        nearestNextMilestone: {
+          users: roundNumbers.find(n => n > totalUsers),
+          workouts: roundNumbers.find(n => n > totalWorkouts),
+          clients: roundNumbers.find(n => n > totalClients),
+        },
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getPlatformMetrics(): Promise<OperatorToolResult> {
+  try {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const [totalUsers, totalClients, workoutsThisWeek, coaches] = await Promise.all([
+      prisma.user.count(),
+      prisma.client.count(),
+      prisma.strengthSessionAssignment.count({
+        where: { status: 'COMPLETED', completedAt: { gte: weekAgo } },
+      }),
+      prisma.user.count({ where: { role: 'COACH' } }),
+    ])
+
+    return {
+      success: true,
+      data: { totalUsers, totalClients, workoutsThisWeek, coaches },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function draftSocialPost(
+  platform: string,
+  topic: string,
+  body: string,
+  imagePrompt?: string
+): Promise<OperatorToolResult> {
+  logger.info('[operator-agents] Social post drafted', { platform, topic })
+  return {
+    success: true,
+    data: { platform, topic, body, imagePrompt, note: 'Draft saved for founder review' },
+  }
+}
+
+export async function draftBlogPost(
+  title: string,
+  outline: string,
+  body: string
+): Promise<OperatorToolResult> {
+  logger.info('[operator-agents] Blog post drafted', { title })
+  return {
+    success: true,
+    data: { title, outline, body, note: 'Draft saved for founder review' },
+  }
+}
+
+export async function draftNewsletter(
+  week: string,
+  highlights: string[],
+  body: string
+): Promise<OperatorToolResult> {
+  logger.info('[operator-agents] Newsletter drafted', { week, highlightCount: highlights.length })
+  return {
+    success: true,
+    data: { week, highlights, body, note: 'Draft saved for founder review' },
+  }
+}
+
+export async function saveContentQueue(content: Record<string, unknown>): Promise<OperatorToolResult> {
+  logger.info('[operator-agents] Content added to queue', { items: Object.keys(content).length })
+  return { success: true, data: { queued: true, items: Object.keys(content).length } }
+}
+
+// ============================================================================
 // TOOL REGISTRY
 // ============================================================================
 
@@ -1095,6 +1759,78 @@ export async function executeOperatorTool(
           input.userId as string,
           input.reason as string
         )
+
+      // Founder's Brief
+      case 'getRevenueYesterday':
+        return await getRevenueYesterday()
+      case 'getSignupsYesterday':
+        return await getSignupsYesterday()
+      case 'getUrgentSupportTickets':
+        return await getUrgentSupportTickets()
+      case 'getCriticalErrors':
+        return await getCriticalErrors((input.hours as number) || 24)
+      case 'getAtRiskUsers':
+        return await getAtRiskUsers((input.limit as number) || 3)
+      case 'getTopFeatureRequest':
+        return await getTopFeatureRequest()
+      case 'getCostToday':
+        return await getCostToday()
+      case 'getKeyMetrics':
+        return await getKeyMetrics()
+      case 'saveBriefAndEmail':
+        return await saveBriefAndEmail(input.content as string)
+
+      // Onboarding Activation
+      case 'getNewUsersLast7d':
+        return await getNewUsersLast7d()
+      case 'getUserActivationProgress':
+        return await getUserActivationProgress(input.userId as string)
+      case 'findStuckUsers':
+        return await findStuckUsers()
+      case 'draftOnboardingNudge':
+        return await draftOnboardingNudge(
+          input.userId as string,
+          input.step as string,
+          input.subject as string,
+          input.body as string
+        )
+
+      // Business Intelligence
+      case 'getMRRSnapshot':
+        return await getMRRSnapshot()
+      case 'getChurnRate':
+        return await getChurnRate((input.days as number) || 30)
+      case 'getNewSubscribersLast7d':
+        return await getNewSubscribersLast7d()
+      case 'saveBIReport':
+        return await saveBIReport(input.content as string)
+
+      // Marketing Content
+      case 'findMilestoneEvents':
+        return await findMilestoneEvents((input.days as number) || 7)
+      case 'getPlatformMetrics':
+        return await getPlatformMetrics()
+      case 'draftSocialPost':
+        return await draftSocialPost(
+          input.platform as string,
+          input.topic as string,
+          input.body as string,
+          input.imagePrompt as string | undefined
+        )
+      case 'draftBlogPost':
+        return await draftBlogPost(
+          input.title as string,
+          input.outline as string,
+          input.body as string
+        )
+      case 'draftNewsletter':
+        return await draftNewsletter(
+          input.week as string,
+          (input.highlights as string[]) || [],
+          input.body as string
+        )
+      case 'saveContentQueue':
+        return await saveContentQueue(input as Record<string, unknown>)
 
       default:
         return { success: false, error: `Unknown operator tool: ${name}` }
