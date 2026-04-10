@@ -9908,6 +9908,22 @@ model OperatorAgentJob {
   @@index([agentType, createdAt])
 }
 
+/// Runtime platform configuration as key-value pairs.
+/// Used for values that need to change without a code deploy (FX rates,
+/// feature flags, thresholds, etc.). Admin-only access.
+model PlatformConfig {
+  key       String   @id
+  value     String   @db.Text
+  valueType String   @default("string") // string | number | boolean | json
+  category  String?  // Grouping: "fx" | "thresholds" | "features" etc.
+  description String? @db.Text
+
+  updatedAt DateTime @updatedAt
+  updatedBy String? // User ID who last updated (or "system" for crons)
+
+  @@index([category])
+}
+
 /// Auth events for security monitoring (failed logins, lockouts, etc.).
 /// Used by the Compliance & Security operator agent.
 model AuthEvent {

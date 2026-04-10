@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
+import { logAuthEventClient } from '@/lib/auth/log-auth-event-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
@@ -63,12 +64,19 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient()
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       })
 
       if (error) {
+        // Log failed login attempt for security monitoring
+        logAuthEventClient({
+          eventType: 'LOGIN_FAILURE',
+          email: data.email,
+          failureReason: error.message,
+        })
+
         toast({
           title: 'Inloggning misslyckades',
           description: error.message,
@@ -76,6 +84,13 @@ export default function LoginPage() {
         })
         return
       }
+
+      // Log successful login
+      logAuthEventClient({
+        eventType: 'LOGIN_SUCCESS',
+        userId: authData.user?.id,
+        email: data.email,
+      })
 
       toast({
         title: 'Välkommen!',
@@ -85,6 +100,12 @@ export default function LoginPage() {
       router.push('/')
       router.refresh()
     } catch (error) {
+      logAuthEventClient({
+        eventType: 'LOGIN_FAILURE',
+        email: data.email,
+        failureReason: 'client_exception',
+      })
+
       toast({
         title: 'Ett fel uppstod',
         description: 'Kunde inte logga in. Försök igen senare.',

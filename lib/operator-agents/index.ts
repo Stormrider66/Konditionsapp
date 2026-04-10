@@ -22,7 +22,7 @@ export type {
 } from './agent-runner'
 export { executeOperatorTool } from './tool-executor'
 export { enqueueAgentJob, processPendingJobs } from './job-queue'
-export { getSekPerUsd, sekToUsd, usdToSek } from './fx-rates'
+export { getSekPerUsd, sekToUsd, usdToSek, setSekPerUsd, fetchLiveFxRate } from './fx-rates'
 
 // Register agents (side-effect imports)
 import './agents/platform-health-agent'

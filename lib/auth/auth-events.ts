@@ -16,6 +16,7 @@ import { logger } from '@/lib/logger'
 export type AuthEventType =
   | 'LOGIN_SUCCESS'
   | 'LOGIN_FAILURE'
+  | 'SIGN_OUT'
   | 'PASSWORD_RESET'
   | 'LOCKOUT'
   | 'OAUTH_START'

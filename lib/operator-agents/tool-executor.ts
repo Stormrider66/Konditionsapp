@@ -901,10 +901,13 @@ export async function getUsersNearLimits(thresholdPercent: number = 80): Promise
 
 /**
  * Get the monthly revenue per tier from PricingTier config.
- * Converts SEK → USD using the FX rate from FX_SEK_TO_USD env var.
+ * Converts SEK → USD using the FX rate from PlatformConfig / env var.
  */
 async function getTierRevenueMap(): Promise<Map<string, number>> {
-  const { sekToUsd } = await import('./fx-rates')
+  const { getSekPerUsd } = await import('./fx-rates')
+
+  // Fetch the rate ONCE for the batch
+  const sekPerUsd = await getSekPerUsd()
 
   const tiers = await prisma.pricingTier.findMany({
     where: { tierType: 'ATHLETE', isActive: true },
@@ -915,7 +918,7 @@ async function getTierRevenueMap(): Promise<Map<string, number>> {
   for (const t of tiers) {
     // Convert öre (cents) to SEK, then SEK to USD using configured rate
     const monthlySek = t.monthlyPriceCents / 100
-    const monthlyUsd = t.currency === 'USD' ? monthlySek : sekToUsd(monthlySek)
+    const monthlyUsd = t.currency === 'USD' ? monthlySek : monthlySek / sekPerUsd
     map.set(t.tierName, monthlyUsd)
   }
   return map
