@@ -95,17 +95,17 @@ export function PricingTiersManager() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-1.5">
-                <CreditCard className="h-5 w-5" />
+          <div className="flex flex-col sm:flex-row gap-4 sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-1.5 flex-wrap">
+                <CreditCard className="h-5 w-5 flex-shrink-0" />
                 Pricing Management <InfoTooltip conceptKey="subscriptionTiers" />
               </CardTitle>
               <CardDescription>
                 Manage subscription tiers and pricing
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={fetchTiers} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 Refresh

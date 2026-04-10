@@ -147,7 +147,7 @@ export function BusinessDetailPanel({ businessId, onUpdate }: BusinessDetailPane
   return (
     <div className="mt-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="members">Members ({business._count.members})</TabsTrigger>
           <TabsTrigger value="locations">Locations ({business._count.locations})</TabsTrigger>

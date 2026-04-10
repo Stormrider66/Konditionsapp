@@ -210,12 +210,12 @@ export function WeeklyReportsPanel() {
 
       {/* Selected report viewer (modal-style) */}
       {selectedId && selectedData?.report && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <Card className="max-w-4xl w-full max-h-[90vh] flex flex-col">
-            <CardHeader className="flex-row items-center justify-between flex-shrink-0 border-b">
-              <div>
-                <CardTitle>{selectedData.report.title}</CardTitle>
-                <CardDescription>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+          <Card className="w-full max-w-[calc(100vw-1rem)] md:max-w-4xl max-h-[95vh] sm:max-h-[90vh] flex flex-col">
+            <CardHeader className="flex-row items-start justify-between flex-shrink-0 border-b gap-2">
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-base sm:text-lg break-words">{selectedData.report.title}</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   {REPORT_TYPE_INFO[selectedData.report.reportType]?.label} ·
                   Week of {new Date(selectedData.report.weekStart).toLocaleDateString('sv-SE')}
                 </CardDescription>
@@ -223,6 +223,7 @@ export function WeeklyReportsPanel() {
               <Button
                 variant="ghost"
                 size="icon"
+                className="flex-shrink-0"
                 onClick={() => {
                   setSelectedId(null)
                   mutate() // Refresh list to update readAt state
@@ -232,7 +233,7 @@ export function WeeklyReportsPanel() {
               </Button>
             </CardHeader>
             <CardContent className="overflow-y-auto flex-1 pt-4">
-              <div className="prose prose-invert max-w-none whitespace-pre-wrap font-mono text-sm">
+              <div className="prose prose-invert max-w-none whitespace-pre-wrap font-mono text-xs sm:text-sm break-words">
                 {selectedData.report.fullContent}
               </div>
             </CardContent>

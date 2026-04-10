@@ -71,9 +71,9 @@ export function MonitoringDashboard() {
   return (
     <div className="space-y-6">
       {/* Connection Status */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Activity className="h-5 w-5" />
+          <Activity className="h-5 w-5 flex-shrink-0" />
           Real-Time Monitoring
         </h2>
         <Badge

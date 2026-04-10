@@ -470,42 +470,45 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6 flex-wrap">
-          <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
-          <TabsTrigger value="users">{t('users')}</TabsTrigger>
-          <TabsTrigger value="businesses" className="flex items-center gap-1">
-            <Building2 className="h-3 w-3" />
-            Businesses
-          </TabsTrigger>
-          <TabsTrigger value="pricing" className="flex items-center gap-1">
-            <CreditCard className="h-3 w-3" />
-            Pricing
-          </TabsTrigger>
-          <TabsTrigger value="contracts" className="flex items-center gap-1">
-            <FileText className="h-3 w-3" />
-            Contracts
-          </TabsTrigger>
-          <TabsTrigger value="monitoring" className="flex items-center gap-1">
-            <Monitor className="h-3 w-3" />
-            Monitoring
-          </TabsTrigger>
-          <TabsTrigger value="data-health" className="flex items-center gap-1">
-            <Shield className="h-3 w-3" />
-            Data Health
-          </TabsTrigger>
-          <TabsTrigger value="ai-models" className="flex items-center gap-1">
-            <Bot className="h-3 w-3" />
-            AI Models
-          </TabsTrigger>
-          <TabsTrigger value="operator-agents" className="flex items-center gap-1">
-            <Bot className="h-3 w-3" />
-            Agents
-          </TabsTrigger>
-          <TabsTrigger value="weekly-reports" className="flex items-center gap-1">
-            <FileText className="h-3 w-3" />
-            Reports
-          </TabsTrigger>
-        </TabsList>
+        {/* Horizontally scrollable tab bar on mobile, wraps naturally on desktop */}
+        <div className="mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto sm:overflow-x-visible">
+          <TabsList className="inline-flex sm:flex sm:flex-wrap w-max sm:w-auto">
+            <TabsTrigger value="overview" className="whitespace-nowrap">{t('overview')}</TabsTrigger>
+            <TabsTrigger value="users" className="whitespace-nowrap">{t('users')}</TabsTrigger>
+            <TabsTrigger value="businesses" className="flex items-center gap-1 whitespace-nowrap">
+              <Building2 className="h-3 w-3" />
+              Businesses
+            </TabsTrigger>
+            <TabsTrigger value="pricing" className="flex items-center gap-1 whitespace-nowrap">
+              <CreditCard className="h-3 w-3" />
+              Pricing
+            </TabsTrigger>
+            <TabsTrigger value="contracts" className="flex items-center gap-1 whitespace-nowrap">
+              <FileText className="h-3 w-3" />
+              Contracts
+            </TabsTrigger>
+            <TabsTrigger value="monitoring" className="flex items-center gap-1 whitespace-nowrap">
+              <Monitor className="h-3 w-3" />
+              Monitoring
+            </TabsTrigger>
+            <TabsTrigger value="data-health" className="flex items-center gap-1 whitespace-nowrap">
+              <Shield className="h-3 w-3" />
+              Data Health
+            </TabsTrigger>
+            <TabsTrigger value="ai-models" className="flex items-center gap-1 whitespace-nowrap">
+              <Bot className="h-3 w-3" />
+              AI Models
+            </TabsTrigger>
+            <TabsTrigger value="operator-agents" className="flex items-center gap-1 whitespace-nowrap">
+              <Bot className="h-3 w-3" />
+              Agents
+            </TabsTrigger>
+            <TabsTrigger value="weekly-reports" className="flex items-center gap-1 whitespace-nowrap">
+              <FileText className="h-3 w-3" />
+              Reports
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Overview Tab */}
         <TabsContent value="overview">

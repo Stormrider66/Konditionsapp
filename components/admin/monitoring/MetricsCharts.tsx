@@ -148,7 +148,7 @@ export function MetricsCharts() {
 
         {/* Summary Stats */}
         {data?.summary && Object.keys(data.summary).length > 0 && (
-          <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 pt-4 border-t">
             {Object.entries(data.summary).slice(0, 4).map(([name, stats]) => (
               <div key={name} className="text-center">
                 <p className="text-xs text-muted-foreground truncate">{name}</p>
