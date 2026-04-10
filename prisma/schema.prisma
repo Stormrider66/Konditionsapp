@@ -9816,7 +9816,12 @@ model OperatorAgentRun {
 model FounderBrief {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
-  date      DateTime @unique @db.Date
+  date      DateTime @db.Date
+
+  /// Type of brief: DAILY (Founder's Daily Brief), BI_WEEKLY (Business
+  /// Intelligence weekly report), COMPETITOR (Competitor Intelligence
+  /// weekly digest). Multiple types can exist for the same date.
+  briefType String @default("DAILY")
 
   // Content sections (JSON for flexibility)
   revenue         Json // { mrrDelta, newSignups, arr, etc. }
@@ -9829,7 +9834,9 @@ model FounderBrief {
   emailedAt DateTime?
   readAt    DateTime?
 
+  @@unique([date, briefType])
   @@index([date])
+  @@index([briefType])
 }
 
 /// General audit log for security-sensitive operations

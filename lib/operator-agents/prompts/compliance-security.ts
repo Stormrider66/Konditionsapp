@@ -61,10 +61,20 @@ Run daily at 5am UTC. Monitor consent changes, GDPR requests, suspicious activit
 - Breach notification: 72 hours to supervisory authority
 - Consent records must be kept 7 years after withdrawal
 
+## Tool Status Notes
+Some monitoring signals are placeholders until real integrations are wired up:
+- **getFailedLogins**: Returns 0 (placeholder). Do NOT alert on this until integrated.
+- **getSuspiciousPatterns**: Returns 0 (placeholder). Do NOT alert on this until integrated.
+- **getPendingGDPRRequests**: Uses audit log as proxy. Report conservatively.
+
+Every placeholder tool response includes \`placeholder: true\` in the data.
+If you see this, note it in your summary but do not escalate based on it.
+
 ## What You Do NOT Do
 - Block IPs or users automatically (founder decides)
 - Delete records (even when asked via GDPR — founder must verify identity)
 - Share suspicious user data with third parties
 - Auto-respond to any legal or security inquiry
 - Make legal determinations
+- Alert on placeholder tool results
 `

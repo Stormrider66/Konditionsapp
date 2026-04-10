@@ -10,6 +10,68 @@ import { logger } from '@/lib/logger'
 import type { OperatorToolResult } from './types'
 
 // ============================================================================
+// INTERNAL HELPERS
+// ============================================================================
+
+/**
+ * Send an email to the founder with consistent error handling.
+ * Used by all agents that deliver reports/alerts to the founder.
+ *
+ * Uses dynamic import because the email module depends on Resend which
+ * may not be configured in all environments. If the import fails or
+ * FOUNDER_EMAIL is not set, we log a warning but don't throw — the
+ * caller can decide what to do based on the `sent` flag.
+ */
+async function sendFounderEmail(
+  subject: string,
+  content: string
+): Promise<{ sent: boolean; to?: string; reason?: string }> {
+  const founderEmail = process.env.FOUNDER_EMAIL
+  if (!founderEmail) {
+    logger.warn('[operator-agents] FOUNDER_EMAIL not configured — email skipped', { subject })
+    return { sent: false, reason: 'FOUNDER_EMAIL not configured' }
+  }
+
+  let sendEmail: ((args: { to: string; subject: string; html: string }) => Promise<unknown>) | null = null
+  try {
+    const mod = await import('@/lib/email')
+    sendEmail = mod.sendEmail
+  } catch (error) {
+    logger.error('[operator-agents] Failed to load email module', { subject }, error)
+    return { sent: false, reason: 'Email module not available' }
+  }
+
+  if (!sendEmail) {
+    return { sent: false, reason: 'sendEmail not exported' }
+  }
+
+  try {
+    await sendEmail({
+      to: founderEmail,
+      subject,
+      html: `<div style="font-family:sans-serif;white-space:pre-wrap;line-height:1.5">${escapeHtml(content)}</div>`,
+    })
+    return { sent: true, to: founderEmail }
+  } catch (error) {
+    logger.error('[operator-agents] Failed to send founder email', { subject }, error)
+    return { sent: false, reason: String(error) }
+  }
+}
+
+/**
+ * Minimal HTML escape for email content.
+ * Agents control the content, but we still escape to avoid injection.
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+// ============================================================================
 // PLATFORM HEALTH TOOLS
 // ============================================================================
 
@@ -117,29 +179,10 @@ export async function alertFounder(
   title: string,
   message: string
 ): Promise<OperatorToolResult> {
-  // Use existing email infrastructure
-  try {
-    const founderEmail = process.env.FOUNDER_EMAIL
-    if (!founderEmail) {
-      logger.warn('[operator-agents] FOUNDER_EMAIL not set — alert suppressed', { severity, title })
-      return { success: true, data: { sent: false, reason: 'FOUNDER_EMAIL not configured' } }
-    }
-
-    // Import lazily to avoid circular dependencies
-    const { sendEmail } = await import('@/lib/email').catch(() => ({ sendEmail: null }))
-    if (!sendEmail) {
-      return { success: true, data: { sent: false, reason: 'sendEmail not available' } }
-    }
-
-    await sendEmail({
-      to: founderEmail,
-      subject: `[${severity}] ${title}`,
-      html: `<h2>${title}</h2><pre style="white-space:pre-wrap;font-family:monospace">${message}</pre>`,
-    })
-
-    return { success: true, data: { sent: true, to: founderEmail } }
-  } catch (error) {
-    return { success: false, error: String(error) }
+  const result = await sendFounderEmail(`[${severity}] ${title}`, message)
+  return {
+    success: true,
+    data: result,
   }
 }
 
@@ -327,19 +370,36 @@ export async function getUserContext(userId: string): Promise<OperatorToolResult
   }
 }
 
+/**
+ * Create a GitHub issue for a confirmed bug.
+ *
+ * TODO: wire up real GitHub integration. Options:
+ * 1. Use @octokit/rest with a GITHUB_TOKEN env var (simplest)
+ * 2. Use GitHub MCP server when available in this environment
+ * 3. Call the GitHub REST API directly via fetch
+ *
+ * Until then, this records the intent so the Support Agent's workflow
+ * can continue. The draft content is preserved in the ticket so the
+ * founder can create the issue manually.
+ */
 export async function createGitHubIssue(
   title: string,
   body: string,
   labels: string[] = []
 ): Promise<OperatorToolResult> {
-  // Placeholder — wire up to GitHub MCP when available
-  // For now, log intent and return a fake URL so the agent flow continues
-  logger.info('[operator-agents] Would create GitHub issue', { title, labels })
+  logger.warn('[operator-agents] createGitHubIssue called — GitHub integration NOT wired up yet', {
+    title,
+    labelsCount: labels.length,
+  })
   return {
     success: true,
     data: {
-      url: `https://github.com/stormrider66/konditionsapp/issues/pending-${Date.now()}`,
-      note: 'GitHub MCP integration pending — issue not actually created',
+      url: null,
+      draftedTitle: title,
+      draftedBody: body,
+      draftedLabels: labels,
+      note: 'GitHub integration pending. Draft preserved for manual creation. See TODO in tool-executor.ts.',
+      placeholder: true,
     },
   }
 }
@@ -1672,9 +1732,9 @@ export async function saveBriefAndEmail(content: string): Promise<OperatorToolRe
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // Parse the content into structured fields (best effort)
+    // Upsert on composite unique (date, briefType)
     const brief = await prisma.founderBrief.upsert({
-      where: { date: today },
+      where: { date_briefType: { date: today, briefType: 'DAILY' } },
       update: {
         fullContent: content,
         revenue: {},
@@ -1682,6 +1742,7 @@ export async function saveBriefAndEmail(content: string): Promise<OperatorToolRe
       },
       create: {
         date: today,
+        briefType: 'DAILY',
         fullContent: content,
         revenue: {},
         attention: {},
@@ -1689,23 +1750,18 @@ export async function saveBriefAndEmail(content: string): Promise<OperatorToolRe
     })
 
     // Email it to the founder
-    const founderEmail = process.env.FOUNDER_EMAIL
-    if (founderEmail) {
-      const { sendEmail } = await import('@/lib/email').catch(() => ({ sendEmail: null }))
-      if (sendEmail) {
-        await sendEmail({
-          to: founderEmail,
-          subject: `Daily Brief — ${today.toISOString().slice(0, 10)}`,
-          html: `<div style="font-family:monospace;white-space:pre-wrap">${content}</div>`,
-        })
-        await prisma.founderBrief.update({
-          where: { id: brief.id },
-          data: { emailedTo: founderEmail, emailedAt: new Date() },
-        })
-      }
+    const emailResult = await sendFounderEmail(
+      `Daily Brief — ${today.toISOString().slice(0, 10)}`,
+      content
+    )
+    if (emailResult.sent) {
+      await prisma.founderBrief.update({
+        where: { id: brief.id },
+        data: { emailedTo: emailResult.to, emailedAt: new Date() },
+      })
     }
 
-    return { success: true, data: { briefId: brief.id, emailed: !!founderEmail } }
+    return { success: true, data: { briefId: brief.id, emailed: emailResult.sent } }
   } catch (error) {
     return { success: false, error: String(error) }
   }
@@ -1945,33 +2001,30 @@ export async function saveBIReport(content: string): Promise<OperatorToolResult>
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    const report = await prisma.founderBrief.create({
-      data: {
-        date: new Date(today.getTime() + Math.random()), // unique date for BI briefs
+    const report = await prisma.founderBrief.upsert({
+      where: { date_briefType: { date: today, briefType: 'BI_WEEKLY' } },
+      update: { fullContent: content },
+      create: {
+        date: today,
+        briefType: 'BI_WEEKLY',
         fullContent: content,
-        revenue: { type: 'BI_WEEKLY' },
+        revenue: {},
         attention: {},
       },
-    }).catch(async () => {
-      // Fallback if date collision — store as a regular log
-      logger.info('[operator-agents] BI report (not stored due to date conflict)')
-      return null
     })
 
-    // Email it
-    const founderEmail = process.env.FOUNDER_EMAIL
-    if (founderEmail) {
-      const { sendEmail } = await import('@/lib/email').catch(() => ({ sendEmail: null }))
-      if (sendEmail) {
-        await sendEmail({
-          to: founderEmail,
-          subject: `Weekly BI Report — ${today.toISOString().slice(0, 10)}`,
-          html: `<div style="font-family:monospace;white-space:pre-wrap">${content}</div>`,
-        })
-      }
+    const emailResult = await sendFounderEmail(
+      `Weekly BI Report — ${today.toISOString().slice(0, 10)}`,
+      content
+    )
+    if (emailResult.sent) {
+      await prisma.founderBrief.update({
+        where: { id: report.id },
+        data: { emailedTo: emailResult.to, emailedAt: new Date() },
+      })
     }
 
-    return { success: true, data: { reportId: report?.id, emailed: !!founderEmail } }
+    return { success: true, data: { reportId: report.id, emailed: emailResult.sent } }
   } catch (error) {
     return { success: false, error: String(error) }
   }
@@ -2356,36 +2409,48 @@ export async function getAuditLogAnomalies(hours: number = 24): Promise<Operator
   }
 }
 
+/**
+ * Detect failed login attempts (brute force signals).
+ *
+ * TODO: wire up real auth event monitoring. Options:
+ * 1. NextAuth signIn error callback → log to a new AuthEvent table
+ * 2. Query Sentry for auth-related errors (already integrated)
+ * 3. Track failed login attempts in Redis with IP-based counters
+ *
+ * Until implemented, returns 0 — meaning this check is effectively
+ * disabled. The Compliance Agent should NOT alert based on this metric
+ * until the integration is complete.
+ */
 export async function getFailedLogins(hours: number = 24): Promise<OperatorToolResult> {
-  try {
-    // Placeholder — failed logins typically come from auth provider logs
-    // In production: query NextAuth error events or Sentry
-    return {
-      success: true,
-      data: {
-        hours,
-        failedLogins: 0,
-        note: 'Failed login monitoring requires auth provider integration',
-      },
-    }
-  } catch (error) {
-    return { success: false, error: String(error) }
+  logger.warn('[operator-agents] getFailedLogins called — auth monitoring NOT wired up yet', { hours })
+  return {
+    success: true,
+    data: {
+      hours,
+      failedLogins: 0,
+      note: 'Failed login monitoring not wired up. See TODO in tool-executor.ts.',
+      placeholder: true,
+    },
   }
 }
 
+/**
+ * Detect suspicious access patterns (device/IP anomalies).
+ *
+ * TODO: requires session IP tracking. Options:
+ * 1. Add an ipAddress field to Session model and track on every request
+ * 2. Use Vercel's geolocation headers for country-level anomaly detection
+ * 3. Integrate with a fraud detection service (Castle, Arkose, etc.)
+ */
 export async function getSuspiciousPatterns(): Promise<OperatorToolResult> {
-  try {
-    // Placeholder for device/IP anomaly detection
-    // In production: track session IPs and flag rapid changes
-    return {
-      success: true,
-      data: {
-        suspiciousPatterns: 0,
-        note: 'Requires session IP tracking integration',
-      },
-    }
-  } catch (error) {
-    return { success: false, error: String(error) }
+  logger.warn('[operator-agents] getSuspiciousPatterns called — session tracking NOT wired up yet')
+  return {
+    success: true,
+    data: {
+      suspiciousPatterns: 0,
+      note: 'Session IP tracking not wired up. See TODO in tool-executor.ts.',
+      placeholder: true,
+    },
   }
 }
 
@@ -2451,15 +2516,27 @@ export async function getKnownCompetitors(): Promise<OperatorToolResult> {
   }
 }
 
+/**
+ * Web search for competitor intelligence research.
+ *
+ * TODO: wire up a real search API. Recommended options:
+ * 1. Tavily (tavily-python / REST) — optimized for LLM agents
+ * 2. Brave Search API — no tracking, simple REST
+ * 3. Google Custom Search JSON API (requires API key + CSE ID)
+ *
+ * Set TAVILY_API_KEY (or BRAVE_API_KEY / GOOGLE_SEARCH_API_KEY) and
+ * implement the fetch call here. Until then, the Competitor Intel agent
+ * runs but returns empty research results.
+ */
 export async function webSearch(query: string): Promise<OperatorToolResult> {
-  // Placeholder — in production, wire up to Brave/Google/Tavily search API
-  logger.info('[operator-agents] Web search requested', { query })
+  logger.warn('[operator-agents] webSearch called — search API NOT wired up yet', { query })
   return {
     success: true,
     data: {
       query,
       results: [],
-      note: 'Web search API integration pending. Wire up to Tavily, Brave, or Google Custom Search.',
+      note: 'Web search integration pending. See TODO in tool-executor.ts for setup.',
+      placeholder: true,
     },
   }
 }
@@ -2503,30 +2580,30 @@ export async function saveCompetitorDigest(content: string): Promise<OperatorToo
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // Store as a FounderBrief with a marker in revenue field
-    const brief = await prisma.founderBrief.create({
-      data: {
-        date: new Date(today.getTime() + Math.random() * 1000), // Unique date
+    const brief = await prisma.founderBrief.upsert({
+      where: { date_briefType: { date: today, briefType: 'COMPETITOR' } },
+      update: { fullContent: content },
+      create: {
+        date: today,
+        briefType: 'COMPETITOR',
         fullContent: content,
-        revenue: { type: 'COMPETITOR_DIGEST' },
+        revenue: {},
         attention: {},
       },
-    }).catch(() => null)
+    })
 
-    // Email it
-    const founderEmail = process.env.FOUNDER_EMAIL
-    if (founderEmail) {
-      const { sendEmail } = await import('@/lib/email').catch(() => ({ sendEmail: null }))
-      if (sendEmail) {
-        await sendEmail({
-          to: founderEmail,
-          subject: `Competitor Intelligence — Week of ${today.toISOString().slice(0, 10)}`,
-          html: `<div style="font-family:sans-serif;white-space:pre-wrap">${content}</div>`,
-        })
-      }
+    const emailResult = await sendFounderEmail(
+      `Competitor Intelligence — Week of ${today.toISOString().slice(0, 10)}`,
+      content
+    )
+    if (emailResult.sent) {
+      await prisma.founderBrief.update({
+        where: { id: brief.id },
+        data: { emailedTo: emailResult.to, emailedAt: new Date() },
+      })
     }
 
-    return { success: true, data: { digestId: brief?.id, emailed: !!founderEmail } }
+    return { success: true, data: { digestId: brief.id, emailed: emailResult.sent } }
   } catch (error) {
     return { success: false, error: String(error) }
   }
