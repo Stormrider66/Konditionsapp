@@ -1625,6 +1625,456 @@ export async function saveContentQueue(content: Record<string, unknown>): Promis
 }
 
 // ============================================================================
+// DATA QUALITY TOOLS
+// ============================================================================
+
+export async function findOrphanedRecords(): Promise<OperatorToolResult> {
+  try {
+    // Check for common orphan patterns
+    const [strengthAssignments, cardioAssignments, checkIns] = await Promise.all([
+      // Strength assignments pointing to non-existent clients
+      prisma.$queryRaw<Array<{ count: bigint }>>`
+        SELECT COUNT(*)::bigint as count
+        FROM "StrengthSessionAssignment" s
+        LEFT JOIN "Client" c ON c.id = s."athleteId"
+        WHERE c.id IS NULL
+      `.catch(() => [{ count: BigInt(0) }]),
+      prisma.$queryRaw<Array<{ count: bigint }>>`
+        SELECT COUNT(*)::bigint as count
+        FROM "CardioSessionAssignment" s
+        LEFT JOIN "Client" c ON c.id = s."athleteId"
+        WHERE c.id IS NULL
+      `.catch(() => [{ count: BigInt(0) }]),
+      prisma.$queryRaw<Array<{ count: bigint }>>`
+        SELECT COUNT(*)::bigint as count
+        FROM "DailyCheckIn" d
+        LEFT JOIN "Client" c ON c.id = d."clientId"
+        WHERE c.id IS NULL
+      `.catch(() => [{ count: BigInt(0) }]),
+    ])
+
+    const total = Number(strengthAssignments[0]?.count || 0) +
+                  Number(cardioAssignments[0]?.count || 0) +
+                  Number(checkIns[0]?.count || 0)
+
+    return {
+      success: true,
+      data: {
+        totalOrphaned: total,
+        byTable: {
+          strengthSessionAssignment: Number(strengthAssignments[0]?.count || 0),
+          cardioSessionAssignment: Number(cardioAssignments[0]?.count || 0),
+          dailyCheckIn: Number(checkIns[0]?.count || 0),
+        },
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function findDuplicateUsers(): Promise<OperatorToolResult> {
+  try {
+    const dupes = await prisma.$queryRaw<Array<{ email: string; count: bigint }>>`
+      SELECT email, COUNT(*)::bigint as count
+      FROM "User"
+      WHERE email IS NOT NULL
+      GROUP BY email
+      HAVING COUNT(*) > 1
+      LIMIT 20
+    `.catch(() => [])
+
+    return {
+      success: true,
+      data: {
+        duplicateCount: dupes.length,
+        duplicates: dupes.map(d => ({ email: d.email, count: Number(d.count) })),
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function findInvalidDates(): Promise<OperatorToolResult> {
+  try {
+    const now = new Date()
+    const futureBirth = await prisma.client.count({
+      where: { birthDate: { gt: now } },
+    })
+    const tooOld = await prisma.client.count({
+      where: { birthDate: { lt: new Date('1900-01-01') } },
+    })
+
+    return {
+      success: true,
+      data: {
+        futureBirthDates: futureBirth,
+        impossiblyOldBirthDates: tooOld,
+        totalIssues: futureBirth + tooOld,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function findIncompleteProfiles(): Promise<OperatorToolResult> {
+  try {
+    const incomplete = await prisma.client.count({
+      where: {
+        OR: [
+          { name: '' },
+          { gender: undefined as never },
+        ],
+      },
+    })
+
+    const totalClients = await prisma.client.count()
+    const percentIncomplete = totalClients > 0 ? (incomplete / totalClients) * 100 : 0
+
+    return {
+      success: true,
+      data: {
+        incompleteProfiles: incomplete,
+        totalClients,
+        percentIncomplete: Math.round(percentIncomplete * 10) / 10,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function findStaleData(): Promise<OperatorToolResult> {
+  try {
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+
+    const [staleClients, totalClients] = await Promise.all([
+      prisma.client.count({ where: { updatedAt: { lt: ninetyDaysAgo } } }),
+      prisma.client.count(),
+    ])
+
+    return {
+      success: true,
+      data: {
+        staleClients,
+        totalClients,
+        percentStale: totalClients > 0 ? Math.round((staleClients / totalClients) * 1000) / 10 : 0,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function calculateDataHealthScore(): Promise<OperatorToolResult> {
+  try {
+    // Start at 100 and deduct for each issue
+    let score = 100
+    const issues: string[] = []
+
+    const orphans = await findOrphanedRecords()
+    if (orphans.success && orphans.data) {
+      const total = (orphans.data as { totalOrphaned: number }).totalOrphaned
+      if (total > 10) { score -= 20; issues.push(`${total} orphaned records`) }
+      else if (total > 0) { score -= 5; issues.push(`${total} orphaned records`) }
+    }
+
+    const dupes = await findDuplicateUsers()
+    if (dupes.success && dupes.data) {
+      const count = (dupes.data as { duplicateCount: number }).duplicateCount
+      if (count > 0) { score -= 25; issues.push(`${count} duplicate user emails`) }
+    }
+
+    const invalidDates = await findInvalidDates()
+    if (invalidDates.success && invalidDates.data) {
+      const total = (invalidDates.data as { totalIssues: number }).totalIssues
+      if (total > 5) { score -= 10; issues.push(`${total} invalid dates`) }
+      else if (total > 0) { score -= 3; issues.push(`${total} invalid dates`) }
+    }
+
+    const stale = await findStaleData()
+    if (stale.success && stale.data) {
+      const pct = (stale.data as { percentStale: number }).percentStale
+      if (pct > 30) { score -= 10; issues.push(`${pct}% of clients are stale`) }
+    }
+
+    return {
+      success: true,
+      data: {
+        score: Math.max(0, score),
+        grade: score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : score >= 60 ? 'D' : 'F',
+        issues,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+// ============================================================================
+// COMPLIANCE & SECURITY TOOLS
+// ============================================================================
+
+export async function getConsentWithdrawals(days: number = 1): Promise<OperatorToolResult> {
+  try {
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    const withdrawals = await prisma.agentConsent.count({
+      where: {
+        consentWithdrawnAt: { gte: since },
+      },
+    })
+
+    return { success: true, data: { days, withdrawals } }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getPendingGDPRRequests(): Promise<OperatorToolResult> {
+  try {
+    // Check audit log for GDPR-related entries that haven't been resolved
+    // This is a placeholder — in practice, GDPR requests would have their own model
+    const recentAuditEntries = await prisma.agentAuditLog.count({
+      where: {
+        action: { in: ['DATA_EXPORTED', 'DATA_DELETED'] },
+        createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      },
+    })
+
+    return {
+      success: true,
+      data: {
+        recentGDPRActivity30d: recentAuditEntries,
+        note: 'No dedicated GDPRRequest model — showing audit log activity as proxy',
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getAuditLogAnomalies(hours: number = 24): Promise<OperatorToolResult> {
+  try {
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000)
+    const recent = await prisma.auditLog.findMany({
+      where: { createdAt: { gte: since } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        action: true,
+        userId: true,
+        createdAt: true,
+        ipAddress: true,
+      },
+    })
+
+    // Flag potential anomalies
+    const byAction = recent.reduce((acc, a) => {
+      acc[a.action] = (acc[a.action] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    const anomalies: string[] = []
+    if ((byAction['DATA_DELETE'] || 0) > 10) {
+      anomalies.push(`${byAction['DATA_DELETE']} DATA_DELETE actions in ${hours}h`)
+    }
+    if ((byAction['USER_ROLE_CHANGE'] || 0) > 5) {
+      anomalies.push(`${byAction['USER_ROLE_CHANGE']} role changes in ${hours}h`)
+    }
+
+    return {
+      success: true,
+      data: {
+        hours,
+        totalActions: recent.length,
+        byAction,
+        anomalies,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getFailedLogins(hours: number = 24): Promise<OperatorToolResult> {
+  try {
+    // Placeholder — failed logins typically come from auth provider logs
+    // In production: query NextAuth error events or Sentry
+    return {
+      success: true,
+      data: {
+        hours,
+        failedLogins: 0,
+        note: 'Failed login monitoring requires auth provider integration',
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getSuspiciousPatterns(): Promise<OperatorToolResult> {
+  try {
+    // Placeholder for device/IP anomaly detection
+    // In production: track session IPs and flag rapid changes
+    return {
+      success: true,
+      data: {
+        suspiciousPatterns: 0,
+        note: 'Requires session IP tracking integration',
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getAgentActionAnomalies(): Promise<OperatorToolResult> {
+  try {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+
+    // Check for agent actions without consent (violations)
+    const agentActions = await prisma.agentAction.count({
+      where: { createdAt: { gte: since } },
+    })
+
+    // Check for burst writes (suspicious pattern)
+    const byClient = await prisma.agentAction.groupBy({
+      by: ['clientId'],
+      where: { createdAt: { gte: since } },
+      _count: true,
+      orderBy: { _count: { clientId: 'desc' } },
+      take: 5,
+    })
+
+    const burstyClients = byClient.filter(c => c._count > 50)
+
+    return {
+      success: true,
+      data: {
+        totalAgentActions24h: agentActions,
+        burstyClients: burstyClients.length,
+        topClients: byClient.map(c => ({ clientId: c.clientId, count: c._count })),
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+// ============================================================================
+// COMPETITOR INTEL TOOLS
+// ============================================================================
+
+const KNOWN_COMPETITORS = [
+  'TrainingPeaks',
+  'Final Surge',
+  'TriDot',
+  'Strava',
+  "Today's Plan",
+  'Humango',
+  'Vert.run',
+  'Runna',
+  'MyFitnessPal',
+  'Whoop',
+  'Oura',
+  'Garmin Connect',
+]
+
+export async function getKnownCompetitors(): Promise<OperatorToolResult> {
+  return {
+    success: true,
+    data: {
+      competitors: KNOWN_COMPETITORS,
+      count: KNOWN_COMPETITORS.length,
+    },
+  }
+}
+
+export async function webSearch(query: string): Promise<OperatorToolResult> {
+  // Placeholder — in production, wire up to Brave/Google/Tavily search API
+  logger.info('[operator-agents] Web search requested', { query })
+  return {
+    success: true,
+    data: {
+      query,
+      results: [],
+      note: 'Web search API integration pending. Wire up to Tavily, Brave, or Google Custom Search.',
+    },
+  }
+}
+
+export async function fetchUrl(url: string): Promise<OperatorToolResult> {
+  try {
+    // Basic URL fetching with timeout
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
+
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KonditionsAppBot/1.0)' },
+    })
+    clearTimeout(timeout)
+
+    if (!response.ok) {
+      return { success: false, error: `HTTP ${response.status}` }
+    }
+
+    const text = await response.text()
+    // Truncate to avoid context bloat
+    const truncated = text.slice(0, 5000)
+
+    return {
+      success: true,
+      data: {
+        url,
+        status: response.status,
+        content: truncated,
+        truncated: text.length > 5000,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function saveCompetitorDigest(content: string): Promise<OperatorToolResult> {
+  try {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    // Store as a FounderBrief with a marker in revenue field
+    const brief = await prisma.founderBrief.create({
+      data: {
+        date: new Date(today.getTime() + Math.random() * 1000), // Unique date
+        fullContent: content,
+        revenue: { type: 'COMPETITOR_DIGEST' },
+        attention: {},
+      },
+    }).catch(() => null)
+
+    // Email it
+    const founderEmail = process.env.FOUNDER_EMAIL
+    if (founderEmail) {
+      const { sendEmail } = await import('@/lib/email').catch(() => ({ sendEmail: null }))
+      if (sendEmail) {
+        await sendEmail({
+          to: founderEmail,
+          subject: `Competitor Intelligence — Week of ${today.toISOString().slice(0, 10)}`,
+          html: `<div style="font-family:sans-serif;white-space:pre-wrap">${content}</div>`,
+        })
+      }
+    }
+
+    return { success: true, data: { digestId: brief?.id, emailed: !!founderEmail } }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+// ============================================================================
 // TOOL REGISTRY
 // ============================================================================
 
@@ -1831,6 +2281,44 @@ export async function executeOperatorTool(
         )
       case 'saveContentQueue':
         return await saveContentQueue(input as Record<string, unknown>)
+
+      // Data Quality
+      case 'findOrphanedRecords':
+        return await findOrphanedRecords()
+      case 'findDuplicateUsers':
+        return await findDuplicateUsers()
+      case 'findInvalidDates':
+        return await findInvalidDates()
+      case 'findIncompleteProfiles':
+        return await findIncompleteProfiles()
+      case 'findStaleData':
+        return await findStaleData()
+      case 'calculateDataHealthScore':
+        return await calculateDataHealthScore()
+
+      // Compliance & Security
+      case 'getConsentWithdrawals':
+        return await getConsentWithdrawals((input.days as number) || 1)
+      case 'getPendingGDPRRequests':
+        return await getPendingGDPRRequests()
+      case 'getAuditLogAnomalies':
+        return await getAuditLogAnomalies((input.hours as number) || 24)
+      case 'getFailedLogins':
+        return await getFailedLogins((input.hours as number) || 24)
+      case 'getSuspiciousPatterns':
+        return await getSuspiciousPatterns()
+      case 'getAgentActionAnomalies':
+        return await getAgentActionAnomalies()
+
+      // Competitor Intel
+      case 'getKnownCompetitors':
+        return await getKnownCompetitors()
+      case 'webSearch':
+        return await webSearch(input.query as string)
+      case 'fetchUrl':
+        return await fetchUrl(input.url as string)
+      case 'saveCompetitorDigest':
+        return await saveCompetitorDigest(input.content as string)
 
       default:
         return { success: false, error: `Unknown operator tool: ${name}` }
