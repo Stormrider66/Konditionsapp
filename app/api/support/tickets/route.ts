@@ -62,11 +62,17 @@ export async function POST(req: NextRequest) {
 
     logger.info('[support] New ticket created', { ticketId: ticket.id, userId: user?.id })
 
-    // Trigger support agent asynchronously. Errors are logged but don't
-    // block the response (the scheduled cron will catch any missed tickets).
-    triggerSupportAgentAsync(ticket.id).catch(err =>
-      logger.error('[support] Failed to trigger support agent', { ticketId: ticket.id }, err)
-    )
+    // Enqueue the Support Agent via the job queue.
+    // The worker cron will pick it up within ~1 minute. This is
+    // serverless-friendly: no blocking, no in-process workers.
+    try {
+      const { enqueueAgentJob } = await import('@/lib/operator-agents/job-queue')
+      await enqueueAgentJob('SUPPORT', 'new_ticket', { ticketId: ticket.id })
+    } catch (err) {
+      // Queue failures don't block the response — the scheduled cron
+      // still processes tickets every 30 min as a safety net.
+      logger.error('[support] Failed to enqueue agent job', { ticketId: ticket.id }, err)
+    }
 
     return NextResponse.json({
       success: true,
@@ -75,26 +81,6 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     logger.error('[support] Failed to create ticket', {}, error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
-
-/**
- * Trigger the support operator agent in the background.
- * Uses static-style dynamic import to avoid dragging the entire
- * operator-agents module into the request hot path on cold start.
- */
-async function triggerSupportAgentAsync(ticketId: string): Promise<void> {
-  try {
-    const { runOperatorAgent } = await import('@/lib/operator-agents')
-    const result = await runOperatorAgent('SUPPORT', { triggeredBy: 'event' })
-    logger.info('[support] Agent triggered from ticket submission', {
-      ticketId,
-      agentStatus: result.status,
-      itemsProcessed: result.itemsProcessed,
-    })
-  } catch (error) {
-    logger.error('[support] Agent invocation failed', { ticketId }, error)
-    throw error
   }
 }
 

@@ -174,19 +174,34 @@ export async function runOperatorAgent(
 
 /**
  * Estimate cost based on model and token usage.
+ *
+ * Reads pricing from types/ai-models.ts AI_MODELS config as the single
+ * source of truth. Falls back to Sonnet pricing if the model isn't found
+ * (shouldn't happen in practice).
  */
 export function estimateOperatorCost(
   model: string,
   inputTokens: number,
   outputTokens: number
 ): number {
-  const rates: Record<string, { input: number; output: number }> = {
-    'claude-haiku-4-5-20251016': { input: 1.0, output: 5.0 },
-    'claude-sonnet-4-6': { input: 3.0, output: 15.0 },
-    'claude-opus-4-6': { input: 15.0, output: 75.0 },
+  // Lazy-loaded to avoid circular dependency at module init time
+  const { AI_MODELS } = require('@/types/ai-models') as typeof import('@/types/ai-models')
+
+  // Match by Anthropic modelId (e.g. "claude-sonnet-4-6")
+  const modelConfig = AI_MODELS.find(m => m.modelId === model)
+
+  if (!modelConfig) {
+    // Fallback to Sonnet pricing — conservative middle ground
+    const fallback = AI_MODELS.find(m => m.modelId === 'claude-sonnet-4-6')
+    if (!fallback) return 0 // Should never happen
+    return (
+      (inputTokens * fallback.pricing.input + outputTokens * fallback.pricing.output) / 1_000_000
+    )
   }
-  const rate = rates[model] || rates['claude-sonnet-4-6']
-  return (inputTokens * rate.input + outputTokens * rate.output) / 1_000_000
+
+  return (
+    (inputTokens * modelConfig.pricing.input + outputTokens * modelConfig.pricing.output) / 1_000_000
+  )
 }
 
 /**

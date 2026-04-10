@@ -621,22 +621,24 @@ async function resolveApiKey(entityId: string): Promise<string | null> {
 /**
  * Estimate cost based on model and token usage.
  */
+/**
+ * Estimate cost based on model and token usage.
+ * Reads pricing from AI_MODELS config as the single source of truth.
+ */
 function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
-  // Find pricing from MODEL_TIERS
-  for (const tier of Object.values(MODEL_TIERS)) {
-    if (tier.anthropic.modelId === model) {
-      // Look up from AI_MODELS for pricing — use approximate rates
-      break
-    }
+  const { AI_MODELS } = require('@/types/ai-models') as typeof import('@/types/ai-models')
+
+  const modelConfig = AI_MODELS.find(m => m.modelId === model)
+
+  if (!modelConfig) {
+    const fallback = AI_MODELS.find(m => m.modelId === 'claude-sonnet-4-6')
+    if (!fallback) return 0
+    return (
+      (inputTokens * fallback.pricing.input + outputTokens * fallback.pricing.output) / 1_000_000
+    )
   }
 
-  // Approximate pricing per 1M tokens
-  const rates: Record<string, { input: number; output: number }> = {
-    'claude-haiku-4-5-20251016': { input: 1.0, output: 5.0 },
-    'claude-sonnet-4-6': { input: 3.0, output: 15.0 },
-    'claude-opus-4-6': { input: 15.0, output: 75.0 },
-  }
-
-  const rate = rates[model] || rates['claude-sonnet-4-6']
-  return (inputTokens * rate.input + outputTokens * rate.output) / 1_000_000
+  return (
+    (inputTokens * modelConfig.pricing.input + outputTokens * modelConfig.pricing.output) / 1_000_000
+  )
 }

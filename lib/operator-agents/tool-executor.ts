@@ -8,6 +8,8 @@
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import type { OperatorToolResult } from './types'
+import * as github from './integrations/github'
+import * as webSearchApi from './integrations/web-search'
 
 // ============================================================================
 // INTERNAL HELPERS
@@ -373,33 +375,49 @@ export async function getUserContext(userId: string): Promise<OperatorToolResult
 /**
  * Create a GitHub issue for a confirmed bug.
  *
- * TODO: wire up real GitHub integration. Options:
- * 1. Use @octokit/rest with a GITHUB_TOKEN env var (simplest)
- * 2. Use GitHub MCP server when available in this environment
- * 3. Call the GitHub REST API directly via fetch
- *
- * Until then, this records the intent so the Support Agent's workflow
- * can continue. The draft content is preserved in the ticket so the
- * founder can create the issue manually.
+ * Uses the GitHub REST API via lib/operator-agents/integrations/github.ts.
+ * Requires GITHUB_TOKEN and GITHUB_REPO env vars. If not configured,
+ * preserves the draft so the founder can create the issue manually.
  */
 export async function createGitHubIssue(
   title: string,
   body: string,
   labels: string[] = []
 ): Promise<OperatorToolResult> {
-  logger.warn('[operator-agents] createGitHubIssue called — GitHub integration NOT wired up yet', {
-    title,
-    labelsCount: labels.length,
-  })
+  const result = await github.createIssue({ title, body, labels })
+
+  if (!result.configured) {
+    return {
+      success: true,
+      data: {
+        url: null,
+        draftedTitle: title,
+        draftedBody: body,
+        draftedLabels: labels,
+        note: 'GitHub not configured (missing GITHUB_TOKEN or GITHUB_REPO). Draft preserved.',
+        placeholder: true,
+      },
+    }
+  }
+
+  if (!result.created) {
+    return {
+      success: false,
+      error: result.error || 'Unknown error creating GitHub issue',
+      data: {
+        draftedTitle: title,
+        draftedBody: body,
+        draftedLabels: labels,
+      },
+    }
+  }
+
   return {
     success: true,
     data: {
-      url: null,
-      draftedTitle: title,
-      draftedBody: body,
-      draftedLabels: labels,
-      note: 'GitHub integration pending. Draft preserved for manual creation. See TODO in tool-executor.ts.',
-      placeholder: true,
+      url: result.url,
+      issueNumber: result.issueNumber,
+      created: true,
     },
   }
 }
@@ -883,17 +901,21 @@ export async function getUsersNearLimits(thresholdPercent: number = 80): Promise
 
 /**
  * Get the monthly revenue per tier from PricingTier config.
+ * Converts SEK → USD using the FX rate from FX_SEK_TO_USD env var.
  */
 async function getTierRevenueMap(): Promise<Map<string, number>> {
+  const { sekToUsd } = await import('./fx-rates')
+
   const tiers = await prisma.pricingTier.findMany({
     where: { tierType: 'ATHLETE', isActive: true },
-    select: { tierName: true, monthlyPriceCents: true },
+    select: { tierName: true, monthlyPriceCents: true, currency: true },
   })
 
   const map = new Map<string, number>()
   for (const t of tiers) {
-    // Convert öre (cents) to SEK, then roughly to USD (10 SEK ≈ $1 — approximate)
-    const monthlyUsd = (t.monthlyPriceCents / 100) / 10
+    // Convert öre (cents) to SEK, then SEK to USD using configured rate
+    const monthlySek = t.monthlyPriceCents / 100
+    const monthlyUsd = t.currency === 'USD' ? monthlySek : sekToUsd(monthlySek)
     map.set(t.tierName, monthlyUsd)
   }
   return map
@@ -1029,7 +1051,7 @@ export async function getRevenueVsCost(days: number = 30): Promise<OperatorToolR
         counts: { losses, freeLosses, thinMargin, profitable: entries.length - losses - freeLosses - thinMargin },
         byTier,
         worstOffenders: entries.slice(0, 10),
-        note: 'Revenue uses approximate USD conversion from PricingTier (SEK / 10). Update conversion if FX rates change significantly.',
+        note: 'Revenue uses FX_SEK_TO_USD env var (default 10.5) to convert PricingTier SEK amounts to USD. Update if FX rates change significantly.',
       },
     }
   } catch (error) {
@@ -1732,9 +1754,9 @@ export async function saveBriefAndEmail(content: string): Promise<OperatorToolRe
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // Upsert on composite unique (date, briefType)
+    // FounderBrief has @unique(date) — simple upsert
     const brief = await prisma.founderBrief.upsert({
-      where: { date_briefType: { date: today, briefType: 'DAILY' } },
+      where: { date: today },
       update: {
         fullContent: content,
         revenue: {},
@@ -1742,14 +1764,12 @@ export async function saveBriefAndEmail(content: string): Promise<OperatorToolRe
       },
       create: {
         date: today,
-        briefType: 'DAILY',
         fullContent: content,
         revenue: {},
         attention: {},
       },
     })
 
-    // Email it to the founder
     const emailResult = await sendFounderEmail(
       `Daily Brief — ${today.toISOString().slice(0, 10)}`,
       content
@@ -1765,6 +1785,19 @@ export async function saveBriefAndEmail(content: string): Promise<OperatorToolRe
   } catch (error) {
     return { success: false, error: String(error) }
   }
+}
+
+/**
+ * Get the start of the current week (Monday 00:00 UTC) for grouping weekly reports.
+ */
+function getWeekStart(): Date {
+  const now = new Date()
+  const day = now.getUTCDay() // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const diff = day === 0 ? -6 : 1 - day // Back up to Monday
+  const monday = new Date(now)
+  monday.setUTCDate(now.getUTCDate() + diff)
+  monday.setUTCHours(0, 0, 0, 0)
+  return monday
 }
 
 // ============================================================================
@@ -1998,27 +2031,23 @@ export async function getNewSubscribersLast7d(): Promise<OperatorToolResult> {
 
 export async function saveBIReport(content: string): Promise<OperatorToolResult> {
   try {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const weekStart = getWeekStart()
+    const title = `BI Report — Week of ${weekStart.toISOString().slice(0, 10)}`
 
-    const report = await prisma.founderBrief.upsert({
-      where: { date_briefType: { date: today, briefType: 'BI_WEEKLY' } },
-      update: { fullContent: content },
+    const report = await prisma.weeklyReport.upsert({
+      where: { weekStart_reportType: { weekStart, reportType: 'BI_WEEKLY' } },
+      update: { fullContent: content, title },
       create: {
-        date: today,
-        briefType: 'BI_WEEKLY',
+        weekStart,
+        reportType: 'BI_WEEKLY',
+        title,
         fullContent: content,
-        revenue: {},
-        attention: {},
       },
     })
 
-    const emailResult = await sendFounderEmail(
-      `Weekly BI Report — ${today.toISOString().slice(0, 10)}`,
-      content
-    )
+    const emailResult = await sendFounderEmail(title, content)
     if (emailResult.sent) {
-      await prisma.founderBrief.update({
+      await prisma.weeklyReport.update({
         where: { id: report.id },
         data: { emailedTo: emailResult.to, emailedAt: new Date() },
       })
@@ -2412,45 +2441,86 @@ export async function getAuditLogAnomalies(hours: number = 24): Promise<Operator
 /**
  * Detect failed login attempts (brute force signals).
  *
- * TODO: wire up real auth event monitoring. Options:
- * 1. NextAuth signIn error callback → log to a new AuthEvent table
- * 2. Query Sentry for auth-related errors (already integrated)
- * 3. Track failed login attempts in Redis with IP-based counters
- *
- * Until implemented, returns 0 — meaning this check is effectively
- * disabled. The Compliance Agent should NOT alert based on this metric
- * until the integration is complete.
+ * Reads from the AuthEvent table. For auth events to be populated, the
+ * NextAuth signIn callback must call logAuthEvent() from lib/auth/auth-events.ts
+ * on each login attempt. If AuthEvents are empty, either there are truly
+ * no failed logins or the logging hook isn't wired up yet.
  */
 export async function getFailedLogins(hours: number = 24): Promise<OperatorToolResult> {
-  logger.warn('[operator-agents] getFailedLogins called — auth monitoring NOT wired up yet', { hours })
-  return {
-    success: true,
-    data: {
-      hours,
-      failedLogins: 0,
-      note: 'Failed login monitoring not wired up. See TODO in tool-executor.ts.',
-      placeholder: true,
-    },
+  try {
+    const { getFailedLoginCount, findBruteForceAttempts } = await import('@/lib/auth/auth-events')
+
+    const totalFailures = await getFailedLoginCount({ hours })
+    const bruteForce = await findBruteForceAttempts({ hours: 1, threshold: 10 })
+
+    return {
+      success: true,
+      data: {
+        hours,
+        failedLogins: totalFailures,
+        bruteForceIps: bruteForce.byIp,
+        bruteForceEmails: bruteForce.byEmail,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
   }
 }
 
 /**
- * Detect suspicious access patterns (device/IP anomalies).
+ * Detect suspicious access patterns from AuthEvent logs.
  *
- * TODO: requires session IP tracking. Options:
- * 1. Add an ipAddress field to Session model and track on every request
- * 2. Use Vercel's geolocation headers for country-level anomaly detection
- * 3. Integrate with a fraud detection service (Castle, Arkose, etc.)
+ * Looks for:
+ * - Successful logins from IPs that recently had failed attempts
+ * - Users with logins from multiple IPs in a short window
+ * - Unusual OAuth failure spikes
  */
 export async function getSuspiciousPatterns(): Promise<OperatorToolResult> {
-  logger.warn('[operator-agents] getSuspiciousPatterns called — session tracking NOT wired up yet')
-  return {
-    success: true,
-    data: {
-      suspiciousPatterns: 0,
-      note: 'Session IP tracking not wired up. See TODO in tool-executor.ts.',
-      placeholder: true,
-    },
+  try {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
+
+    // Users with logins from multiple IPs in last hour
+    const recentLogins = await prisma.authEvent.findMany({
+      where: {
+        eventType: 'LOGIN_SUCCESS',
+        createdAt: { gte: oneHourAgo },
+        ipAddress: { not: null },
+        userId: { not: null },
+      },
+      select: { userId: true, ipAddress: true },
+    })
+
+    const userIpMap = new Map<string, Set<string>>()
+    for (const r of recentLogins) {
+      if (!r.userId || !r.ipAddress) continue
+      if (!userIpMap.has(r.userId)) userIpMap.set(r.userId, new Set())
+      userIpMap.get(r.userId)!.add(r.ipAddress)
+    }
+
+    const multiIpUsers = Array.from(userIpMap.entries())
+      .filter(([_, ips]) => ips.size >= 3)
+      .map(([userId, ips]) => ({ userId, ipCount: ips.size }))
+
+    // OAuth failure spike
+    const oauthFailures = await prisma.authEvent.count({
+      where: {
+        eventType: 'OAUTH_FAILURE',
+        createdAt: { gte: oneHourAgo },
+      },
+    })
+
+    const suspiciousCount = multiIpUsers.length + (oauthFailures > 20 ? 1 : 0)
+
+    return {
+      success: true,
+      data: {
+        suspiciousPatterns: suspiciousCount,
+        multiIpUsers: multiIpUsers.slice(0, 10),
+        oauthFailuresLastHour: oauthFailures,
+      },
+    }
+  } catch (error) {
+    return { success: false, error: String(error) }
   }
 }
 
@@ -2519,24 +2589,40 @@ export async function getKnownCompetitors(): Promise<OperatorToolResult> {
 /**
  * Web search for competitor intelligence research.
  *
- * TODO: wire up a real search API. Recommended options:
- * 1. Tavily (tavily-python / REST) — optimized for LLM agents
- * 2. Brave Search API — no tracking, simple REST
- * 3. Google Custom Search JSON API (requires API key + CSE ID)
- *
- * Set TAVILY_API_KEY (or BRAVE_API_KEY / GOOGLE_SEARCH_API_KEY) and
- * implement the fetch call here. Until then, the Competitor Intel agent
- * runs but returns empty research results.
+ * Uses Tavily via lib/operator-agents/integrations/web-search.ts.
+ * Requires TAVILY_API_KEY env var. Falls back to empty results with
+ * placeholder=true if not configured — the agent prompt is aware of this.
  */
 export async function webSearch(query: string): Promise<OperatorToolResult> {
-  logger.warn('[operator-agents] webSearch called — search API NOT wired up yet', { query })
+  const result = await webSearchApi.search(query, {
+    searchDepth: 'basic',
+    days: 30,
+    maxResults: 5,
+  })
+
+  if (!result.configured) {
+    return {
+      success: true,
+      data: {
+        query,
+        results: [],
+        note: 'Web search not configured (missing TAVILY_API_KEY).',
+        placeholder: true,
+      },
+    }
+  }
+
+  if (result.error) {
+    return { success: false, error: result.error, data: { query, results: [] } }
+  }
+
   return {
     success: true,
     data: {
       query,
-      results: [],
-      note: 'Web search integration pending. See TODO in tool-executor.ts for setup.',
-      placeholder: true,
+      answer: result.answer,
+      results: result.results,
+      count: result.results.length,
     },
   }
 }
@@ -2577,33 +2663,29 @@ export async function fetchUrl(url: string): Promise<OperatorToolResult> {
 
 export async function saveCompetitorDigest(content: string): Promise<OperatorToolResult> {
   try {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const weekStart = getWeekStart()
+    const title = `Competitor Intelligence — Week of ${weekStart.toISOString().slice(0, 10)}`
 
-    const brief = await prisma.founderBrief.upsert({
-      where: { date_briefType: { date: today, briefType: 'COMPETITOR' } },
-      update: { fullContent: content },
+    const report = await prisma.weeklyReport.upsert({
+      where: { weekStart_reportType: { weekStart, reportType: 'COMPETITOR' } },
+      update: { fullContent: content, title },
       create: {
-        date: today,
-        briefType: 'COMPETITOR',
+        weekStart,
+        reportType: 'COMPETITOR',
+        title,
         fullContent: content,
-        revenue: {},
-        attention: {},
       },
     })
 
-    const emailResult = await sendFounderEmail(
-      `Competitor Intelligence — Week of ${today.toISOString().slice(0, 10)}`,
-      content
-    )
+    const emailResult = await sendFounderEmail(title, content)
     if (emailResult.sent) {
-      await prisma.founderBrief.update({
-        where: { id: brief.id },
+      await prisma.weeklyReport.update({
+        where: { id: report.id },
         data: { emailedTo: emailResult.to, emailedAt: new Date() },
       })
     }
 
-    return { success: true, data: { digestId: brief.id, emailed: emailResult.sent } }
+    return { success: true, data: { digestId: report.id, emailed: emailResult.sent } }
   } catch (error) {
     return { success: false, error: String(error) }
   }
