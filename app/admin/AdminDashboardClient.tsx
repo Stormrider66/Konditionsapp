@@ -69,6 +69,7 @@ import { MonitoringDashboard } from '@/components/admin/monitoring/MonitoringDas
 import { BusinessesTable } from '@/components/admin/businesses/BusinessesTable';
 import { AIModelsManager } from '@/components/admin/ai-models/AIModelsManager';
 import { AthleteIntegrityHealthPanel } from '@/components/admin/data-health/AthleteIntegrityHealthPanel';
+import { OperatorAgentsPanel } from '@/components/admin/operator-agents/OperatorAgentsPanel';
 import {
   LineChart,
   Line,
@@ -494,6 +495,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
           <TabsTrigger value="ai-models" className="flex items-center gap-1">
             <Bot className="h-3 w-3" />
             AI Models
+          </TabsTrigger>
+          <TabsTrigger value="operator-agents" className="flex items-center gap-1">
+            <Bot className="h-3 w-3" />
+            Agents
           </TabsTrigger>
         </TabsList>
 
@@ -984,6 +989,11 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
         {/* AI Models Tab */}
         <TabsContent value="ai-models">
           <AIModelsManager />
+        </TabsContent>
+
+        {/* Operator Agents Tab */}
+        <TabsContent value="operator-agents">
+          <OperatorAgentsPanel />
         </TabsContent>
       </Tabs>
 
