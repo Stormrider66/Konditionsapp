@@ -72,15 +72,34 @@ export async function runOperatorAgent(
   const triggeredBy = options.triggeredBy || 'cron'
   const startedAt = new Date()
 
-  // Create run record
-  const run = await prisma.operatorAgentRun.create({
-    data: {
+  // Create run record — if this fails (e.g. table doesn't exist yet),
+  // return a failure result instead of throwing so the caller can
+  // handle it gracefully.
+  let run: { id: string } | null = null
+  try {
+    run = await prisma.operatorAgentRun.create({
+      data: {
+        agentType,
+        status: 'RUNNING',
+        triggeredBy,
+        startedAt,
+      },
+    })
+  } catch (dbError) {
+    const msg = dbError instanceof Error ? dbError.message : String(dbError)
+    logger.error('[operator-agents] Failed to create run record', { agentType, error: msg })
+    return {
       agentType,
-      status: 'RUNNING',
-      triggeredBy,
-      startedAt,
-    },
-  })
+      status: 'FAILED',
+      itemsProcessed: 0,
+      actionsTaken: 0,
+      escalations: 0,
+      summary: `Failed to create run record: ${msg.slice(0, 200)}. This usually means the OperatorAgentRun table does not exist yet — run the Prisma migration.`,
+      tokensUsed: 0,
+      costUsd: 0,
+      errorMessage: msg,
+    }
+  }
 
   try {
     // Look up agent definition
@@ -112,24 +131,32 @@ export async function runOperatorAgent(
       modelIntent,
     })
 
-    // Update run with results
+    // Update run with results (best-effort — don't fail the whole
+    // agent run if the update fails)
     const completedAt = new Date()
-    await prisma.operatorAgentRun.update({
-      where: { id: run.id },
-      data: {
-        status: result.status,
-        completedAt,
-        durationMs: completedAt.getTime() - startedAt.getTime(),
-        itemsProcessed: result.itemsProcessed,
-        actionsTaken: result.actionsTaken,
-        escalations: result.escalations,
-        summary: result.summary,
-        details: result.details as never,
-        modelUsed: result.modelUsed || modelId,
-        tokensUsed: result.tokensUsed,
-        costUsd: result.costUsd,
-      },
-    })
+    try {
+      await prisma.operatorAgentRun.update({
+        where: { id: run.id },
+        data: {
+          status: result.status,
+          completedAt,
+          durationMs: completedAt.getTime() - startedAt.getTime(),
+          itemsProcessed: result.itemsProcessed,
+          actionsTaken: result.actionsTaken,
+          escalations: result.escalations,
+          summary: result.summary,
+          details: result.details as never,
+          modelUsed: result.modelUsed || modelId,
+          tokensUsed: result.tokensUsed,
+          costUsd: result.costUsd,
+        },
+      })
+    } catch (updateError) {
+      logger.warn('[operator-agents] Failed to update run record', {
+        runId: run.id,
+        error: updateError instanceof Error ? updateError.message : String(updateError),
+      })
+    }
 
     logger.info(`[operator-agents] Completed ${agentType}`, {
       runId: run.id,
@@ -144,15 +171,19 @@ export async function runOperatorAgent(
     logger.error(`[operator-agents] Failed ${agentType}`, { runId: run.id, error: errorMessage })
 
     const completedAt = new Date()
-    await prisma.operatorAgentRun.update({
-      where: { id: run.id },
-      data: {
-        status: 'FAILED',
-        completedAt,
-        durationMs: completedAt.getTime() - startedAt.getTime(),
-        errorMessage,
-      },
-    })
+    try {
+      await prisma.operatorAgentRun.update({
+        where: { id: run.id },
+        data: {
+          status: 'FAILED',
+          completedAt,
+          durationMs: completedAt.getTime() - startedAt.getTime(),
+          errorMessage,
+        },
+      })
+    } catch {
+      // Best-effort — already logged the original error
+    }
 
     return {
       agentType,

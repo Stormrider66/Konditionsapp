@@ -17,19 +17,50 @@ import { logger } from '@/lib/logger'
 // ============================================================================
 
 export async function GET(req: NextRequest) {
+  // Separate auth check from data fetch so we return the correct status code
   try {
     await requireAdmin()
+  } catch (error) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
+  try {
     const searchParams = req.nextUrl.searchParams
     const days = parseInt(searchParams.get('days') || '7', 10)
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 
-    // Get recent runs grouped by agent
-    const runs = await prisma.operatorAgentRun.findMany({
-      where: { createdAt: { gte: since } },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-    })
+    // Get recent runs grouped by agent. If the OperatorAgentRun table
+    // doesn't exist yet (migration not run), fall back to empty data
+    // instead of crashing the admin page.
+    let runs: Array<{
+      id: string
+      agentType: string
+      status: string
+      createdAt: Date
+      startedAt: Date
+      durationMs: number | null
+      itemsProcessed: number | null
+      actionsTaken: number | null
+      escalations: number | null
+      summary: string | null
+      tokensUsed: number
+      costUsd: number
+    }> = []
+
+    try {
+      runs = await prisma.operatorAgentRun.findMany({
+        where: { createdAt: { gte: since } },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+      })
+    } catch (dbError) {
+      logger.warn('[admin/operator-agents] OperatorAgentRun query failed — returning empty', {
+        error: dbError instanceof Error ? dbError.message : String(dbError),
+        hint: 'If this is P2021 (table not found), run the Prisma migration.',
+      })
+      // Return empty data so the UI still renders
+      runs = []
+    }
 
     // Aggregate per agent type
     const agentTypes = Object.keys(OPERATOR_MODEL_INTENT) as OperatorAgentType[]
@@ -80,8 +111,14 @@ export async function GET(req: NextRequest) {
       agents,
     })
   } catch (error) {
-    logger.error('[admin/operator-agents] Failed to get status', {}, error)
-    return NextResponse.json({ error: 'Unauthorized or error' }, { status: 401 })
+    logger.error('[admin/operator-agents] Unexpected error', {}, error)
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
   }
 }
 
@@ -92,6 +129,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await requireAdmin()
+  } catch (error) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
     const body = await req.json()
     const agentType = body.agentType as OperatorAgentType
 
@@ -103,6 +145,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, result })
   } catch (error) {
     logger.error('[admin/operator-agents] Failed to trigger agent', {}, error)
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Internal error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
   }
 }

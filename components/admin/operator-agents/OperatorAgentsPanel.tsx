@@ -35,7 +35,14 @@ import {
   Eye,
 } from 'lucide-react'
 
-const fetcher = (url: string) => fetch(url).then(r => r.json())
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`HTTP ${res.status}: ${body.slice(0, 200)}`)
+  }
+  return res.json()
+}
 
 const AGENT_INFO: Record<string, { label: string; icon: React.ElementType; color: string; description: string }> = {
   SUPPORT: {
@@ -187,6 +194,28 @@ export function OperatorAgentsPanel() {
         <CardContent className="py-12 text-center">
           <AlertTriangle className="mx-auto h-8 w-8 text-yellow-500 mb-2" />
           <p className="text-muted-foreground">Failed to load operator agents</p>
+          {error && (
+            <p className="text-xs text-muted-foreground mt-2">
+              {error instanceof Error ? error.message : String(error)}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Validate API response shape — if the server returned an error JSON
+  // (e.g. 401), data.summary or data.agents might be missing.
+  if (!data.summary || !Array.isArray(data.agents)) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <AlertTriangle className="mx-auto h-8 w-8 text-yellow-500 mb-2" />
+          <p className="text-muted-foreground">Agent data unavailable</p>
+          <p className="text-xs text-muted-foreground mt-2">
+            {/* @ts-expect-error - data may have an error field */}
+            {data.error || 'The operator agents tables may not exist yet. Run the Prisma migration to create them.'}
+          </p>
         </CardContent>
       </Card>
     )

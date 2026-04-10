@@ -11,69 +11,109 @@ import { requireAdmin } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 export async function GET(req: NextRequest) {
+  // Separate auth check from data fetch for accurate status codes
   try {
     await requireAdmin()
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
+  try {
     const searchParams = req.nextUrl.searchParams
     const id = searchParams.get('id')
 
     if (id) {
-      const report = await prisma.weeklyReport.findUnique({
-        where: { id },
-      })
+      try {
+        const report = await prisma.weeklyReport.findUnique({
+          where: { id },
+        })
 
-      if (!report) {
+        if (!report) {
+          return NextResponse.json({ error: 'Not found' }, { status: 404 })
+        }
+
+        // Mark as read when accessed
+        if (!report.readAt) {
+          await prisma.weeklyReport.update({
+            where: { id },
+            data: { readAt: new Date() },
+          }).catch(() => { /* best-effort */ })
+        }
+
+        return NextResponse.json({ report })
+      } catch (dbError) {
+        logger.warn('[admin/weekly-reports] WeeklyReport query failed', {
+          error: dbError instanceof Error ? dbError.message : String(dbError),
+        })
         return NextResponse.json({ error: 'Not found' }, { status: 404 })
       }
-
-      // Mark as read when accessed
-      if (!report.readAt) {
-        await prisma.weeklyReport.update({
-          where: { id },
-          data: { readAt: new Date() },
-        })
-      }
-
-      return NextResponse.json({ report })
     }
 
     // List mode with filters
-    const reportType = searchParams.get('type') // BI_WEEKLY | COMPETITOR | MARKETING_WEEKLY
+    const reportType = searchParams.get('type')
     const weeks = parseInt(searchParams.get('weeks') || '12', 10)
     const since = new Date(Date.now() - weeks * 7 * 24 * 60 * 60 * 1000)
 
-    const reports = await prisma.weeklyReport.findMany({
-      where: {
-        weekStart: { gte: since },
-        ...(reportType ? { reportType } : {}),
-      },
-      orderBy: { weekStart: 'desc' },
-      take: 50,
-      select: {
-        id: true,
-        weekStart: true,
-        reportType: true,
-        title: true,
-        createdAt: true,
-        emailedAt: true,
-        readAt: true,
-      },
-    })
+    // Graceful fallback: if the WeeklyReport table doesn't exist yet
+    // (migration not run), return empty lists instead of crashing.
+    let reports: Array<{
+      id: string
+      weekStart: Date
+      reportType: string
+      title: string
+      createdAt: Date
+      emailedAt: Date | null
+      readAt: Date | null
+    }> = []
+    let countsMap: Record<string, number> = {}
 
-    // Counts by type
-    const counts = await prisma.weeklyReport.groupBy({
-      by: ['reportType'],
-      where: { weekStart: { gte: since } },
-      _count: true,
-    })
+    try {
+      reports = await prisma.weeklyReport.findMany({
+        where: {
+          weekStart: { gte: since },
+          ...(reportType ? { reportType } : {}),
+        },
+        orderBy: { weekStart: 'desc' },
+        take: 50,
+        select: {
+          id: true,
+          weekStart: true,
+          reportType: true,
+          title: true,
+          createdAt: true,
+          emailedAt: true,
+          readAt: true,
+        },
+      })
+
+      const counts = await prisma.weeklyReport.groupBy({
+        by: ['reportType'],
+        where: { weekStart: { gte: since } },
+        _count: true,
+      })
+      countsMap = Object.fromEntries(counts.map(c => [c.reportType, c._count]))
+    } catch (dbError) {
+      logger.warn('[admin/weekly-reports] WeeklyReport query failed — returning empty', {
+        error: dbError instanceof Error ? dbError.message : String(dbError),
+        hint: 'If this is P2021 (table not found), run the Prisma migration.',
+      })
+      reports = []
+      countsMap = {}
+    }
 
     return NextResponse.json({
       reports,
-      counts: Object.fromEntries(counts.map(c => [c.reportType, c._count])),
+      counts: countsMap,
       totalCount: reports.length,
     })
   } catch (error) {
-    logger.error('[admin/weekly-reports] Failed', {}, error)
-    return NextResponse.json({ error: 'Unauthorized or error' }, { status: 401 })
+    logger.error('[admin/weekly-reports] Unexpected error', {}, error)
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
   }
 }

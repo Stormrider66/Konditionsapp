@@ -32,7 +32,14 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 
-const fetcher = (url: string) => fetch(url).then(r => r.json())
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`HTTP ${res.status}: ${body.slice(0, 200)}`)
+  }
+  return res.json()
+}
 
 const REPORT_TYPE_INFO: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   BI_WEEKLY: { label: 'Business Intelligence', icon: BarChart3, color: '#14b8a6' },
@@ -95,12 +102,17 @@ export function WeeklyReportsPanel() {
     )
   }
 
-  if (error || !data) {
+  if (error || !data || !Array.isArray(data.reports) || !data.counts) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
           <AlertTriangle className="mx-auto h-8 w-8 text-yellow-500 mb-2" />
           <p className="text-muted-foreground">Failed to load weekly reports</p>
+          {error && (
+            <p className="text-xs text-muted-foreground mt-2">
+              {error instanceof Error ? error.message : String(error)}
+            </p>
+          )}
         </CardContent>
       </Card>
     )
