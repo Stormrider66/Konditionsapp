@@ -36,7 +36,7 @@ export const OPERATOR_MODEL_INTENT: Record<OperatorAgentType, ModelIntent> = {
   CHURN_PREDICTOR: 'balanced',      // Sonnet — pattern recognition
   FEATURE_CURATOR: 'fast',          // Haiku — categorization
   PLATFORM_HEALTH: 'fast',          // Haiku — alert routing
-  COST_GUARDIAN: 'fast',            // Haiku — math + thresholds
+  COST_GUARDIAN: 'balanced',        // Sonnet — cost distribution + margin reasoning + optimization recommendations
   FOUNDERS_BRIEF: 'balanced',       // Sonnet — synthesis
   ONBOARDING_ACTIVATION: 'fast',    // Haiku — rule-based nudges
   BUSINESS_INTELLIGENCE: 'balanced',// Sonnet — trend analysis
