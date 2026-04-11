@@ -73,27 +73,86 @@ export function ProgramExportButton({
     }
   }
 
-  const handleExportPDF = async () => {
-    setExporting('pdf')
-    try {
-      // Wait a tick for the hidden PDF content to render
-      await new Promise((resolve) => setTimeout(resolve, 100))
+  /**
+   * Client-side PDF fallback: renders the hidden ProgramPDFContent element
+   * via html2canvas + jsPDF. This is the original path; we keep it as a
+   * fallback for the server route in case the request fails.
+   */
+  const exportPdfClientSide = async (): Promise<void> => {
+    // Wait a tick for the hidden PDF content to render
+    await new Promise((resolve) => setTimeout(resolve, 100))
 
-      const pdfElement = pdfContentRef.current
-      if (!pdfElement) {
-        throw new Error('PDF content not found')
-      }
+    const pdfElement = pdfContentRef.current
+    if (!pdfElement) {
+      throw new Error('PDF content not found')
+    }
 
-      const pdfBlob = await generateProgramPDFFromElement(pdfElement, {
+    const pdfBlob = await generateProgramPDFFromElement(pdfElement, {
+      program,
+      athleteName,
+      coachName,
+      organization,
+      startDate,
+    })
+
+    const filename = generateProgramPDFFilename(program.name)
+    downloadProgramPDF(pdfBlob, filename)
+  }
+
+  /**
+   * Download a PDF blob as a file using a temporary object URL.
+   */
+  const downloadBlob = (blob: Blob, filename: string): void => {
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  /**
+   * Server-side PDF path: POST the already-parsed program to
+   * /api/exports/program-pdf and stream the PDF response. This is the
+   * default path — it removes the html2canvas CPU burn on the client,
+   * which is what times out for large periodized programs on slow
+   * devices/connections.
+   */
+  const exportPdfServerSide = async (): Promise<void> => {
+    const response = await fetch('/api/exports/program-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         program,
         athleteName,
         coachName,
         organization,
-        startDate,
-      })
+        startDate: startDate ? startDate.toISOString() : undefined,
+      }),
+    })
 
-      const filename = generateProgramPDFFilename(program.name)
-      downloadProgramPDF(pdfBlob, filename)
+    if (!response.ok) {
+      throw new Error(`Server PDF generation failed (${response.status})`)
+    }
+
+    const blob = await response.blob()
+    downloadBlob(blob, generateProgramPDFFilename(program.name))
+  }
+
+  const handleExportPDF = async () => {
+    setExporting('pdf')
+    try {
+      try {
+        await exportPdfServerSide()
+      } catch (serverError) {
+        console.warn(
+          'Server PDF export failed, falling back to client-side generator',
+          serverError
+        )
+        await exportPdfClientSide()
+      }
 
       toast({
         title: 'PDF exporterad!',

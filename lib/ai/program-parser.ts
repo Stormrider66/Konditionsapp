@@ -94,7 +94,7 @@ const PhaseSchema = z.object({
 });
 
 // Main program schema
-const ProgramSchema = z.object({
+export const ProgramSchema = z.object({
   name: z.string(),
   description: z.string(),
   totalWeeks: z.number(),
