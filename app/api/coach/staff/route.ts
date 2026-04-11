@@ -48,27 +48,37 @@ export async function GET() {
       orderBy: { createdAt: 'asc' },
     })
 
-    // Get team assignments for each member
-    const staffWithTeams = await Promise.all(
-      members.map(async (m) => {
-        const assignments = await prisma.teamCoachAssignment.findMany({
-          where: { userId: m.userId },
+    // Fetch all team assignments for every member in a single query, then
+    // group by userId in memory (avoids N+1).
+    const memberUserIds = members.map((m) => m.userId)
+    const allAssignments = memberUserIds.length
+      ? await prisma.teamCoachAssignment.findMany({
+          where: { userId: { in: memberUserIds } },
           include: { team: { select: { id: true, name: true } } },
         })
+      : []
 
-        return {
-          id: m.id,
-          userId: m.userId,
-          name: m.user.name,
-          email: m.user.email,
-          role: m.role,
-          roleLabel: ROLE_LABELS[m.role] || m.role,
-          teams: assignments.map((a) => ({ id: a.team.id, name: a.team.name })),
-          invitedAt: m.invitedAt.toISOString(),
-          acceptedAt: m.acceptedAt?.toISOString() ?? null,
-        }
-      })
-    )
+    const assignmentsByUserId = new Map<
+      string,
+      Array<{ id: string; name: string }>
+    >()
+    for (const a of allAssignments) {
+      const existing = assignmentsByUserId.get(a.userId) ?? []
+      existing.push({ id: a.team.id, name: a.team.name })
+      assignmentsByUserId.set(a.userId, existing)
+    }
+
+    const staffWithTeams = members.map((m) => ({
+      id: m.id,
+      userId: m.userId,
+      name: m.user.name,
+      email: m.user.email,
+      role: m.role,
+      roleLabel: ROLE_LABELS[m.role] || m.role,
+      teams: assignmentsByUserId.get(m.userId) ?? [],
+      invitedAt: m.invitedAt.toISOString(),
+      acceptedAt: m.acceptedAt?.toISOString() ?? null,
+    }))
 
     return NextResponse.json({ staff: staffWithTeams })
   } catch (error) {
