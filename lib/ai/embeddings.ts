@@ -280,14 +280,6 @@ export async function getUserEmbeddingKeys(userId: string): Promise<EmbeddingKey
   return { googleKey: keys.googleKey, openaiKey: keys.openaiKey };
 }
 
-/**
- * @deprecated Use `getUserEmbeddingKeys` + `hasEmbeddingKeys` instead.
- */
-export async function getUserOpenAIKey(userId: string): Promise<string | null> {
-  const keys = await getResolvedAiKeys(userId);
-  return keys.openaiKey;
-}
-
 // ─── Vector Column Management ───────────────────────────────────────────────
 
 // Track if we've initialized vector columns per table.column
