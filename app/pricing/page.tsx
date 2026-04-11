@@ -1,11 +1,13 @@
-'use client'
-
 import Link from 'next/link'
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
 import {
   Activity,
   Check,
@@ -17,7 +19,7 @@ import {
   Building2,
   Crown,
 } from 'lucide-react'
-import { useTranslations } from '@/i18n/client'
+import { getTranslations } from '@/i18n/server'
 import {
   Accordion,
   AccordionContent,
@@ -27,59 +29,87 @@ import {
 import { LandingHeader } from '@/components/landing/LandingHeader'
 import { LandingFooter } from '@/components/landing/LandingFooter'
 import { CTASection } from '@/components/landing/CTASection'
+import { BillingToggle } from '@/components/pricing/BillingToggle'
 
-export default function PricingPage() {
-  const t = useTranslations('pricing')
-  const tLanding = useTranslations('landing')
-  const [isYearly, setIsYearly] = useState(true)
+const plans = [
+  {
+    id: 'starter',
+    icon: <Zap className="w-6 h-6" />,
+    color: 'text-slate-600',
+    bgColor: 'bg-slate-100',
+    borderColor: 'border-slate-200',
+    features: ['lactateTests', 'trainingZones', 'basicPrograms', 'emailSupport'],
+  },
+  {
+    id: 'professional',
+    icon: <Users className="w-6 h-6" />,
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-100',
+    borderColor: 'border-blue-200',
+    popular: true,
+    features: [
+      'allStarter',
+      'advancedPrograms',
+      'aiStudio',
+      'videoAnalysis',
+      'athletePortal',
+      'prioritySupport',
+    ],
+  },
+  {
+    id: 'business',
+    icon: <Building2 className="w-6 h-6" />,
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-100',
+    borderColor: 'border-purple-200',
+    features: [
+      'allProfessional',
+      'multipleCoaches',
+      'teamManagement',
+      'customBranding',
+      'apiAccess',
+      'dedicatedSupport',
+    ],
+  },
+  {
+    id: 'enterprise',
+    icon: <Crown className="w-6 h-6" />,
+    color: 'text-amber-600',
+    bgColor: 'bg-amber-100',
+    borderColor: 'border-amber-200',
+    features: [
+      'allBusiness',
+      'unlimitedAthletes',
+      'sso',
+      'customIntegrations',
+      'sla',
+      'dedicatedManager',
+    ],
+  },
+] as const
 
-  const plans = [
-    {
-      id: 'starter',
-      icon: <Zap className="w-6 h-6" />,
-      color: 'text-slate-600',
-      bgColor: 'bg-slate-100',
-      borderColor: 'border-slate-200',
-      features: ['lactateTests', 'trainingZones', 'basicPrograms', 'emailSupport'],
-    },
-    {
-      id: 'professional',
-      icon: <Users className="w-6 h-6" />,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
-      borderColor: 'border-blue-200',
-      popular: true,
-      features: ['allStarter', 'advancedPrograms', 'aiStudio', 'videoAnalysis', 'athletePortal', 'prioritySupport'],
-    },
-    {
-      id: 'business',
-      icon: <Building2 className="w-6 h-6" />,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
-      borderColor: 'border-purple-200',
-      features: ['allProfessional', 'multipleCoaches', 'teamManagement', 'customBranding', 'apiAccess', 'dedicatedSupport'],
-    },
-    {
-      id: 'enterprise',
-      icon: <Crown className="w-6 h-6" />,
-      color: 'text-amber-600',
-      bgColor: 'bg-amber-100',
-      borderColor: 'border-amber-200',
-      features: ['allBusiness', 'unlimitedAthletes', 'sso', 'customIntegrations', 'sla', 'dedicatedManager'],
-    },
-  ]
+const faqs = ['trial', 'changePlan', 'payment', 'cancelAnytime'] as const
 
-  const faqs = ['trial', 'changePlan', 'payment', 'cancelAnytime']
+interface PricingPageProps {
+  // Next.js 15: searchParams is a Promise.
+  searchParams: Promise<{ billing?: string }>
+}
 
-  const getPrice = (planId: string) => {
+export default async function PricingPage({ searchParams }: PricingPageProps) {
+  const { billing } = await searchParams
+  const isYearly = billing !== 'monthly'
+
+  const t = await getTranslations('pricing')
+  const tLanding = await getTranslations('landing')
+
+  const getPrice = (planId: string): string => {
     if (planId === 'starter') return t('free')
     if (planId === 'enterprise') return t('customPricing')
-
     const priceKey = isYearly ? 'priceYearly' : 'priceMonthly'
     return t(`${planId}.${priceKey}`)
   }
 
-  const getPriceSuffix = (planId: string) => {
+  const getPriceSuffix = (planId: string): string => {
     if (planId === 'starter' || planId === 'enterprise') return ''
     return t('perMonth')
   }
@@ -99,24 +129,13 @@ export default function PricingPage() {
               {t('subtitle')}
             </p>
 
-            {/* Billing Toggle */}
-            <div className="flex items-center justify-center gap-4 mb-12">
-              <span className={`text-sm font-medium ${!isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
-                {t('monthly')}
-              </span>
-              <Switch
-                checked={isYearly}
-                onCheckedChange={setIsYearly}
-              />
-              <span className={`text-sm font-medium ${isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
-                {t('yearly')}
-              </span>
-              {isYearly && (
-                <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                  -17%
-                </Badge>
-              )}
-            </div>
+            {/* Billing Toggle — the only client island on this page */}
+            <BillingToggle
+              isYearly={isYearly}
+              monthlyLabel={t('monthly')}
+              yearlyLabel={t('yearly')}
+              discountLabel="-17%"
+            />
           </div>
         </section>
 
@@ -137,7 +156,9 @@ export default function PricingPage() {
                     </div>
                   )}
                   <CardHeader className="text-center pb-4">
-                    <div className={`w-12 h-12 rounded-xl ${plan.bgColor} flex items-center justify-center mx-auto mb-4 ${plan.color}`}>
+                    <div
+                      className={`w-12 h-12 rounded-xl ${plan.bgColor} flex items-center justify-center mx-auto mb-4 ${plan.color}`}
+                    >
                       {plan.icon}
                     </div>
                     <CardTitle className="text-xl">{t(`${plan.id}.name`)}</CardTitle>
@@ -163,13 +184,18 @@ export default function PricingPage() {
                       {plan.features.map((feature) => (
                         <li key={feature} className="flex items-start gap-2">
                           <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm">{t(`${plan.id}.features.${feature}`)}</span>
+                          <span className="text-sm">
+                            {t(`${plan.id}.features.${feature}`)}
+                          </span>
                         </li>
                       ))}
                     </ul>
 
                     {/* CTA Button */}
-                    <Link href={plan.id === 'enterprise' ? '/contact' : '/signup'} className="block">
+                    <Link
+                      href={plan.id === 'enterprise' ? '/contact' : '/signup'}
+                      className="block"
+                    >
                       <Button
                         className={`w-full ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
                         variant={plan.popular ? 'default' : 'outline'}
@@ -188,23 +214,33 @@ export default function PricingPage() {
         {/* Common Features */}
         <section className="py-16 bg-slate-50 dark:bg-slate-950">
           <div className="container mx-auto px-4">
-            <h2 className="text-2xl font-bold text-center mb-8">{t('allPlansInclude')}</h2>
+            <h2 className="text-2xl font-bold text-center mb-8">
+              {t('allPlansInclude')}
+            </h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
               <div className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-lg border">
                 <Shield className="w-5 h-5 text-green-500" />
-                <span className="text-sm font-medium">{t('commonFeatures.secureData')}</span>
+                <span className="text-sm font-medium">
+                  {t('commonFeatures.secureData')}
+                </span>
               </div>
               <div className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-lg border">
                 <Check className="w-5 h-5 text-green-500" />
-                <span className="text-sm font-medium">{t('commonFeatures.gdprCompliant')}</span>
+                <span className="text-sm font-medium">
+                  {t('commonFeatures.gdprCompliant')}
+                </span>
               </div>
               <div className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-lg border">
                 <Zap className="w-5 h-5 text-green-500" />
-                <span className="text-sm font-medium">{t('commonFeatures.regularUpdates')}</span>
+                <span className="text-sm font-medium">
+                  {t('commonFeatures.regularUpdates')}
+                </span>
               </div>
               <div className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-lg border">
                 <Activity className="w-5 h-5 text-green-500" />
-                <span className="text-sm font-medium">{t('commonFeatures.mobileApp')}</span>
+                <span className="text-sm font-medium">
+                  {t('commonFeatures.mobileApp')}
+                </span>
               </div>
             </div>
           </div>
