@@ -16,9 +16,10 @@
  */
 
 import React from 'react'
+import type { ReactElement } from 'react'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { renderToStream } from '@react-pdf/renderer'
+import { renderToStream, type DocumentProps } from '@react-pdf/renderer'
 import { requireCoach } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api/utils'
 import { logger } from '@/lib/logger'
@@ -67,15 +68,22 @@ export async function POST(request: NextRequest) {
     const { program, athleteName, coachName, organization, startDate } =
       parsed.data
 
-    const pdfStream = await renderToStream(
-      React.createElement(ProgramPDFDocument, {
-        program,
-        athleteName,
-        coachName,
-        organization,
-        startDate: startDate ? new Date(startDate) : undefined,
-      })
-    )
+    // react-pdf's renderToStream is typed to accept ReactElement<DocumentProps>,
+    // i.e. a <Document> element. ProgramPDFDocument is a wrapper component
+    // that returns one, but TypeScript can't narrow across an FC boundary,
+    // so React.createElement(ProgramPDFDocument, ...) is inferred as
+    // ReactElement<ProgramPDFDocumentProps>. Cast through unknown to
+    // satisfy the signature — the runtime behaviour is already correct and
+    // covered by app/api/exports/program-pdf/route.test.ts.
+    const documentElement = React.createElement(ProgramPDFDocument, {
+      program,
+      athleteName,
+      coachName,
+      organization,
+      startDate: startDate ? new Date(startDate) : undefined,
+    }) as unknown as ReactElement<DocumentProps>
+
+    const pdfStream = await renderToStream(documentElement)
 
     logger.info('Server-side program PDF generated', {
       programName: program.name,
