@@ -1,0 +1,22 @@
+# Pre-push typecheck
+#
+# Runs the same strict tsc pass Vercel's production build does, so we
+# catch Next.js-only type errors (FC type narrowing, server-component
+# prop shapes, route-handler signatures, ReactElement<DocumentProps>
+# mismatches) before they hit the remote.
+#
+# Three out of three deploy failures since adding this session's work
+# were exactly this class of error — Vitest's transform is looser than
+# Next's production tsc on API route handlers and server pages, so a
+# fully green `npm test` does not guarantee a successful build.
+#
+# Takes ~60–90s on a dev machine with enough RAM. If the project has
+# grown past what tsc can handle in a single pass, run `npm run build`
+# locally instead — that's the authoritative check and mirrors Vercel
+# exactly.
+#
+# To bypass in an emergency use:
+#   git push --no-verify
+# …but prefer fixing the error.
+
+npm run typecheck
