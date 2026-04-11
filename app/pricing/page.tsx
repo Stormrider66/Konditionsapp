@@ -38,6 +38,7 @@ const plans = [
     color: 'text-slate-600',
     bgColor: 'bg-slate-100',
     borderColor: 'border-slate-200',
+    popular: false,
     features: ['lactateTests', 'trainingZones', 'basicPrograms', 'emailSupport'],
   },
   {
@@ -62,6 +63,7 @@ const plans = [
     color: 'text-purple-600',
     bgColor: 'bg-purple-100',
     borderColor: 'border-purple-200',
+    popular: false,
     features: [
       'allProfessional',
       'multipleCoaches',
@@ -77,6 +79,7 @@ const plans = [
     color: 'text-amber-600',
     bgColor: 'bg-amber-100',
     borderColor: 'border-amber-200',
+    popular: false,
     features: [
       'allBusiness',
       'unlimitedAthletes',
