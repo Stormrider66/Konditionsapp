@@ -255,7 +255,12 @@ export function BusinessApiKeysTab() {
                         readOnly
                         className="font-mono text-sm"
                       />
-                      <Button variant="outline" size="icon" onClick={copyKey}>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={copyKey}
+                        aria-label={copied ? 'Kopierad' : 'Kopiera API-nyckel'}
+                      >
                         {copied ? (
                           <Check className="h-4 w-4 text-green-500" />
                         ) : (

@@ -127,6 +127,7 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
           size="icon"
           className="absolute left-2 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 rounded-full bg-white/80 shadow-md hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 sm:inline-flex"
           onClick={goPrev}
+          aria-label="Föregående kort"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -137,6 +138,7 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
           size="icon"
           className="absolute right-2 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 rounded-full bg-white/80 shadow-md hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 sm:inline-flex"
           onClick={goNext}
+          aria-label="Nästa kort"
         >
           <ChevronRight className="h-4 w-4" />
         </Button>

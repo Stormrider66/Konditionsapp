@@ -414,7 +414,12 @@ export function IntervalTimer({
             <Minus className="h-4 w-4 mr-1" />
             15s
           </Button>
-          <Button variant="outline" size="icon" onClick={toggleTimer}>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleTimer}
+            aria-label={isRunning ? 'Pausa timer' : 'Starta timer'}
+          >
             {isRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
           </Button>
           <Button variant="outline" size="sm" onClick={() => extendTime(30)}>

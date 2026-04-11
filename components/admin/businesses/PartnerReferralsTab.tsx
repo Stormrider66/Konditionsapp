@@ -192,7 +192,12 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
               readOnly
               className="font-mono text-sm"
             />
-            <Button variant="outline" size="icon" onClick={copyReferralLink}>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={copyReferralLink}
+              aria-label={copied ? 'Kopierad' : 'Kopiera referenslänk'}
+            >
               {copied ? (
                 <Check className="h-4 w-4 text-green-500" />
               ) : (
@@ -294,7 +299,13 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
                   <SelectItem value="EXPIRED">Expired</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="icon" onClick={fetchReferrals} disabled={loading}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={fetchReferrals}
+                disabled={loading}
+                aria-label="Uppdatera referenslista"
+              >
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               </Button>
             </div>

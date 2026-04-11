@@ -310,16 +310,22 @@ export function TabataTimer({
       {/* Controls */}
       {hasStarted && !isComplete && (
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" onClick={toggleTimer}>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleTimer}
+            aria-label={isRunning ? 'Pausa timer' : 'Starta timer'}
+          >
             {isRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
           </Button>
-          <Button variant="outline" size="icon" onClick={resetTimer}>
+          <Button variant="outline" size="icon" onClick={resetTimer} aria-label="Återställ timer">
             <RotateCcw className="h-5 w-5" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsMuted(!isMuted)}
+            aria-label={isMuted ? 'Aktivera ljud' : 'Stäng av ljud'}
           >
             {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
           </Button>

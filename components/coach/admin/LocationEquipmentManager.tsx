@@ -315,7 +315,7 @@ export function LocationEquipmentManager({ locationId, locationName, onBack }: L
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onBack}>
+          <Button variant="ghost" size="icon" onClick={onBack} aria-label="Tillbaka">
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div>

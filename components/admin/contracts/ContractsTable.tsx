@@ -186,7 +186,12 @@ export function ContractsTable({ onViewContract }: ContractsTableProps) {
               <SelectItem value="EXPIRED">Expired</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="icon" onClick={fetchContracts}>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={fetchContracts}
+            aria-label="Uppdatera kontraktslista"
+          >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>

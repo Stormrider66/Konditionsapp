@@ -171,7 +171,12 @@ export function BusinessesTable() {
                 <Search className="h-4 w-4" />
               </Button>
             </div>
-            <Button variant="outline" size="icon" onClick={fetchBusinesses}>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={fetchBusinesses}
+              aria-label="Uppdatera lista"
+            >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>

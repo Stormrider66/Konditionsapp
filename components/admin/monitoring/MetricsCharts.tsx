@@ -93,7 +93,12 @@ export function MetricsCharts() {
                 <SelectItem value="168">7d</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="icon" onClick={fetchMetrics}>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={fetchMetrics}
+              aria-label="Uppdatera mätvärden"
+            >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>

@@ -141,13 +141,13 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateWeek(-1)}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateWeek(-1)} aria-label="Föregående vecka">
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={goToday}>
             Idag
           </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateWeek(1)}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateWeek(1)} aria-label="Nästa vecka">
             <ChevronRight className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium ml-2">

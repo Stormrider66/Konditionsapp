@@ -837,6 +837,7 @@ export function VideoAnalysisCard({
               size="icon"
               onClick={handleDelete}
               disabled={isDeleting}
+              aria-label="Radera videoanalys"
             >
               {isDeleting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
