@@ -167,7 +167,22 @@ export async function performAllCalculations(
   // Ekonomi (endast för löpning)
   let economyData
   if (test.testType === 'RUNNING') {
-    economyData = calculateAllEconomy(stages, client.gender)
+    const economyResult = calculateAllEconomy(stages, client.gender)
+    economyData = economyResult.data
+    if (economyResult.skippedStageSequences.length > 0) {
+      const skipped = economyResult.skippedStageSequences
+      warnings.push({
+        type: 'DATA_QUALITY',
+        severity: 'warning',
+        message: `Löpekonomi kunde inte beräknas för ${skipped.length} steg (saknar VO2- eller hastighetsdata): steg ${skipped.join(', ')}.`,
+        details: {
+          skippedStages: skipped,
+        },
+      })
+      logger.warn('Economy calculation skipped stages due to missing VO2/speed', {
+        skippedStages: skipped,
+      })
+    }
   }
 
   // Cykeldata (endast för cykling)

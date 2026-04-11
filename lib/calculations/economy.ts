@@ -23,19 +23,35 @@ export function evaluateRunningEconomy(economy: number, gender: Gender): string 
   }
 }
 
-export function calculateAllEconomy(stages: TestStage[], gender: Gender): EconomyData[] {
-  return stages
-    .filter((stage) => stage.vo2 && stage.speed)
-    .map((stage) => {
-      const economy = calculateRunningEconomy(stage.vo2!, stage.speed!)
-      const efficiency = evaluateRunningEconomy(economy, gender)
-      return {
-        speed: stage.speed,
-        vo2: stage.vo2!,
-        economy,
-        efficiency: efficiency as EconomyData['efficiency'],
-      }
+export interface EconomyCalculationResult {
+  data: EconomyData[]
+  /** Sequence numbers of stages that were skipped because vo2 or speed was missing */
+  skippedStageSequences: number[]
+}
+
+export function calculateAllEconomy(
+  stages: TestStage[],
+  gender: Gender
+): EconomyCalculationResult {
+  const data: EconomyData[] = []
+  const skippedStageSequences: number[] = []
+
+  for (const stage of stages) {
+    if (!stage.vo2 || !stage.speed) {
+      skippedStageSequences.push(stage.sequence)
+      continue
+    }
+    const economy = calculateRunningEconomy(stage.vo2, stage.speed)
+    const efficiency = evaluateRunningEconomy(economy, gender)
+    data.push({
+      speed: stage.speed,
+      vo2: stage.vo2,
+      economy,
+      efficiency: efficiency as EconomyData['efficiency'],
     })
+  }
+
+  return { data, skippedStageSequences }
 }
 
 export function calculateWattsPerKg(power: number, weight: number): number {

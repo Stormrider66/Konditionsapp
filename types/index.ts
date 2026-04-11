@@ -967,6 +967,8 @@ export interface CalculationWarning {
   details?: {
     correctedStages?: { stage: number; original: number; corrected: number }[]
     trueBaseline?: number
+    /** Sequence numbers of stages that were skipped during a calculation (e.g. missing VO2) */
+    skippedStages?: number[]
   }
 }
 
