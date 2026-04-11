@@ -14,6 +14,7 @@ import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { lookupOrGenerateExercise } from '@/lib/ai/exercise-generator'
 import { logger } from '@/lib/logger'
+import { handleApiError } from '@/lib/api/utils'
 
 export const maxDuration = 60
 
@@ -113,11 +114,7 @@ export async function POST(request: NextRequest) {
       message: `${generated} bilder genererade. ${remaining} övningar kvar utan bilder.`,
     })
   } catch (error) {
-    logger.error('Error in bulk image generation', {}, error)
-    return NextResponse.json(
-      { error: 'Failed to generate images' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -147,7 +144,6 @@ export async function GET() {
       withoutImages: totalWithout,
     })
   } catch (error) {
-    logger.error('Error counting exercises without images', {}, error)
-    return NextResponse.json({ error: 'Failed to count' }, { status: 500 })
+    return handleApiError(error)
   }
 }

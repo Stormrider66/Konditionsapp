@@ -10,6 +10,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { inviteUserToBusiness } from '@/lib/invite-utils'
 import { getStaffPermissions, ROLE_LABELS } from '@/lib/permissions/assistant-coach'
+import { handleApiError } from '@/lib/api/utils'
 import { z } from 'zod'
 
 const inviteSchema = z.object({
@@ -82,10 +83,7 @@ export async function GET() {
 
     return NextResponse.json({ staff: staffWithTeams })
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return handleApiError(error)
   }
 }
 
@@ -152,10 +150,6 @@ export async function POST(req: NextRequest) {
       roleLabel: ROLE_LABELS[parsed.data.role],
     }, { status: 201 })
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    console.error('Error inviting staff:', error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return handleApiError(error)
   }
 }

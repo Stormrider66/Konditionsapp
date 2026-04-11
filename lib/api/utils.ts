@@ -156,6 +156,14 @@ export async function requireAthleteAuth() {
 
 /**
  * Handle API errors
+ *
+ * Centralised catch-block handler for API routes. Recognises common auth
+ * error messages thrown by auth-utils (Unauthorized / Not authenticated /
+ * Forbidden) and maps them to the correct HTTP status. Everything else
+ * falls through to a 500 with a production-safe message.
+ *
+ * Usage:
+ *   try { ... } catch (error) { return handleApiError(error) }
  */
 export function handleApiError(error: unknown): NextResponse<ApiError> {
   logger.error('API Error', {}, error)
@@ -165,8 +173,18 @@ export function handleApiError(error: unknown): NextResponse<ApiError> {
   }
 
   if (error instanceof Error) {
+    // Auth errors thrown by requireCoach / requireAthlete / getCurrentUser.
+    // Match by message so we don't need a custom error class everywhere.
+    const msg = error.message
+    if (msg === 'Unauthorized' || msg === 'Not authenticated') {
+      return errorResponse('Authentication required', 401)
+    }
+    if (msg === 'Forbidden' || msg === 'Access denied') {
+      return errorResponse('Forbidden', 403)
+    }
+
     const isProd = process.env.NODE_ENV === 'production'
-    return errorResponse(isProd ? 'Internal server error' : error.message, 500);
+    return errorResponse(isProd ? 'Internal server error' : msg, 500);
   }
 
   return errorResponse('An unexpected error occurred', 500);
