@@ -17,6 +17,7 @@
 
 import React from 'react'
 import type { ReactElement } from 'react'
+import type { Readable } from 'node:stream'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { renderToStream, type DocumentProps } from '@react-pdf/renderer'
@@ -83,7 +84,11 @@ export async function POST(request: NextRequest) {
       startDate: startDate ? new Date(startDate) : undefined,
     }) as unknown as ReactElement<DocumentProps>
 
-    const pdfStream = await renderToStream(documentElement)
+    // renderToStream is typed as Promise<NodeJS.ReadableStream> (the
+    // minimal interface, which exposes .on() but not .destroy()). At
+    // runtime react-pdf returns a Node Readable, so cast to the
+    // concrete class so we can use destroy() in the cancel handler.
+    const pdfStream = (await renderToStream(documentElement)) as unknown as Readable
 
     logger.info('Server-side program PDF generated', {
       programName: program.name,
