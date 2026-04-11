@@ -119,22 +119,36 @@ export const createTestSchema = z.object({
 })
 
 // Test-validering (API version - for server-side validation)
-export const createTestApiSchema = z.object({
-  clientId: z.string().uuid().optional(),
-  testDate: z.string(),
-  testType: z.enum(['RUNNING', 'CYCLING', 'SKIING']),
-  location: z.string().optional(),
-  testLeader: z.string().optional(),
-  inclineUnit: z.enum(['PERCENT', 'DEGREES']).optional(),
-  stages: z.array(testStageApiSchema).min(3, 'Minst 3 steg krävs'),
-  notes: z.string().optional(),
-  // Pre-test measurements
-  restingLactate: optionalNumber(0, 10),
-  // Post-test measurements (post-max lactate)
-  postTestMeasurements: z.array(postTestMeasurementApiSchema).optional(),
-  // Recommended next test date
-  recommendedNextTestDate: z.string().optional(),
-})
+export const createTestApiSchema = z
+  .object({
+    clientId: z.string().uuid().optional(),
+    testDate: z.string(),
+    testType: z.enum(['RUNNING', 'CYCLING', 'SKIING']),
+    location: z.string().optional(),
+    testLeader: z.string().optional(),
+    inclineUnit: z.enum(['PERCENT', 'DEGREES']).optional(),
+    stages: z.array(testStageApiSchema).min(3, 'Minst 3 steg krävs'),
+    notes: z.string().optional(),
+    // Pre-test measurements
+    restingLactate: optionalNumber(0, 10),
+    // Post-test measurements (post-max lactate)
+    postTestMeasurements: z.array(postTestMeasurementApiSchema).optional(),
+    // Recommended next test date
+    recommendedNextTestDate: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    // Reject lactate curves with significant mid-test drops. A progressive
+    // incremental test should show non-decreasing lactate (small noise is
+    // tolerated by detectLactateDecreases, which only flags drops > 0.3 mmol/L).
+    const drops = detectLactateDecreases(data.stages)
+    for (const drop of drops) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['stages', drop.toStage - 1, 'lactate'],
+        message: `Laktat sjönk med ${drop.drop} mmol/L från steg ${drop.fromStage} till steg ${drop.toStage}. En progressiv belastningstest ska ha stigande laktat.`,
+      })
+    }
+  })
 
 // Löptest-specifik validering
 export const runningTestSchema = createTestSchema.extend({
