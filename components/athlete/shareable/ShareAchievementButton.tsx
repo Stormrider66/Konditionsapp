@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import html2canvas from 'html2canvas'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -63,6 +62,10 @@ export function ShareAchievementButton({
     setIsGenerating(true)
 
     try {
+      // Lazy-load html2canvas only when the user actually clicks share —
+      // keeps it out of the initial client bundle.
+      const { default: html2canvas } = await import('html2canvas')
+
       // Render the card to canvas
       const canvas = await html2canvas(cardRef.current, {
         width: 1200,
