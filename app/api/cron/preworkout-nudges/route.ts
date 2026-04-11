@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { findUpcomingWorkouts, createPreWorkoutNudge } from '@/lib/ai/preworkout-nudge-generator'
 import { logger } from '@/lib/logger'
+import { processInBatches } from '@/lib/utils/concurrent'
 
 const DEFAULT_BATCH_LIMIT = 120
 const DEFAULT_PAGE_SIZE = 200
@@ -128,15 +129,14 @@ export async function GET(request: NextRequest) {
       }
       const athletesToProcess = athletes.slice(0, remainingCapacity)
 
-      for (let i = 0; i < athletesToProcess.length; i += concurrency) {
-        if (Date.now() - startTime >= executionBudgetMs) {
-          results.timedOut = true
-          break
+      for await (const outcomes of processInBatches(
+        athletesToProcess,
+        processAthlete,
+        {
+          concurrency,
+          shouldStop: () => Date.now() - startTime >= executionBudgetMs,
         }
-
-        const chunk = athletesToProcess.slice(i, i + concurrency)
-        const outcomes = await Promise.all(chunk.map(processAthlete))
-
+      )) {
         for (const outcome of outcomes) {
           results.processed++
           if (outcome === 'created') {
@@ -153,7 +153,10 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      if (results.timedOut) {
+      // shouldStop silently ends the generator on timeout; re-check here
+      // so the outer while loop can exit with results.timedOut set.
+      if (Date.now() - startTime >= executionBudgetMs) {
+        results.timedOut = true
         break
       }
 
