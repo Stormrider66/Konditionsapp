@@ -164,9 +164,20 @@ UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, flerom�
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Surface a more helpful message when possible
+    const errMsg = error instanceof Error ? error.message : ''
+    let userMessage = 'Kunde inte uppdatera analysen'
+    if (errMsg.includes('timed out') || errMsg.includes('timeout') || errMsg.includes('TIMEOUT')) {
+      userMessage = 'Uppdateringen tog för lång tid. Försök igen eller beskriv ändringen kortare.'
+    } else if (errMsg.includes('quota') || errMsg.includes('429') || errMsg.includes('rate')) {
+      userMessage = 'AI-tjänsten är tillfälligt överbelastad. Försök igen om en stund.'
+    } else if (errMsg.includes('body') || errMsg.includes('too large') || errMsg.includes('ENTITY_TOO_LARGE')) {
+      userMessage = 'Bilden är för stor. Försök utan bild eller ta en ny bild.'
+    }
+
     return NextResponse.json(
       {
-        error: 'Kunde inte uppdatera analysen',
+        error: userMessage,
         details:
           process.env.NODE_ENV === 'production'
             ? undefined

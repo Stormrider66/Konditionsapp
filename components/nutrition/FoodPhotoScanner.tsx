@@ -150,6 +150,51 @@ const normalizeImageToJpeg = async (file: File) => {
   }
 }
 
+/**
+ * Compress an image file to a base64 data URL suitable for JSON payloads.
+ * Resizes to max 1024px on the longest side and uses 0.75 JPEG quality
+ * to keep the base64 payload under ~1MB (avoiding Vercel body size limits).
+ */
+const compressImageForRefine = (file: File, timeoutMs = 15000): Promise<string | null> =>
+  new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), timeoutMs)
+
+    const reader = new FileReader()
+    reader.onerror = () => { clearTimeout(timer); resolve(null) }
+    reader.onabort = () => { clearTimeout(timer); resolve(null) }
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') { clearTimeout(timer); resolve(null); return }
+
+      const img = new Image()
+      img.onerror = () => { clearTimeout(timer); resolve(null) }
+      img.onload = () => {
+        try {
+          const MAX_DIM = 1024
+          let { naturalWidth: w, naturalHeight: h } = img
+          if (w > MAX_DIM || h > MAX_DIM) {
+            const scale = MAX_DIM / Math.max(w, h)
+            w = Math.round(w * scale)
+            h = Math.round(h * scale)
+          }
+          const canvas = document.createElement('canvas')
+          canvas.width = w
+          canvas.height = h
+          const ctx = canvas.getContext('2d')
+          if (!ctx) { clearTimeout(timer); resolve(null); return }
+          ctx.drawImage(img, 0, 0, w, h)
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.75)
+          clearTimeout(timer)
+          resolve(dataUrl)
+        } catch {
+          clearTimeout(timer)
+          resolve(null)
+        }
+      }
+      img.src = reader.result
+    }
+    reader.readAsDataURL(file)
+  })
+
 export function FoodPhotoScanner({
   onMealSaved,
   onClose,
@@ -624,25 +669,27 @@ export function FoodPhotoScanner({
         notes: notes ? notes.split('\n') : [],
       }
 
-      // Re-read the uploaded file instead of using the preview URL.
-      // The preview is usually a blob: URL after canvas normalization.
-      // Use a generous timeout — mobile devices can be slow reading large camera photos.
+      // Compress the image for the JSON payload to avoid exceeding Vercel's
+      // body size limit (~4.5MB). The original file can be 3-8MB, which becomes
+      // 4-10MB as base64 in JSON. We resize to 1024px and use lower quality.
       let imageBase64: string | undefined
       let imageMimeType: string | undefined
       if (imageFile) {
         try {
-          const dataUrl = await readFileAsDataUrl(imageFile, 30000)
-          const base64Part = dataUrl.split(',')[1]
-          if (base64Part) {
-            imageBase64 = base64Part
-            imageMimeType = imageFile.type
+          const compressedDataUrl = await compressImageForRefine(imageFile)
+          if (compressedDataUrl) {
+            const base64Part = compressedDataUrl.split(',')[1]
+            if (base64Part) {
+              imageBase64 = base64Part
+              imageMimeType = 'image/jpeg'
+            }
           }
         } catch {
-          // Fall back to text-only refine if the image cannot be re-read.
+          // Fall back to text-only refine if the image cannot be compressed.
         }
       }
 
-      const response = await fetch('/api/ai/food-scan/refine', {
+      let response = await fetch('/api/ai/food-scan/refine', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -652,6 +699,19 @@ export function FoodPhotoScanner({
           imageMimeType,
         }),
       })
+
+      // If the request failed and we included an image, retry without the
+      // image — the payload may have been too large or timed out.
+      if (!response.ok && imageBase64) {
+        response = await fetch('/api/ai/food-scan/refine', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            originalAnalysis,
+            refinementText: refinementText.trim(),
+          }),
+        })
+      }
 
       if (!response.ok) {
         const data = await response.json().catch(() => null)
