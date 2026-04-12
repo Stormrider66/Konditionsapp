@@ -264,23 +264,24 @@ export function TrainingTrendChart({
       </CardHeader>
 
       <CardContent>
-        <div className="h-64">
+        <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={chartData}
-              margin={{ top: 10, right: 10, left: -10, bottom: 20 }}
+              margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis
                 dataKey="weekLabel"
                 tick={{ fontSize: 11 }}
-                stroke="#9ca3af"
+                tickLine={false}
                 tickMargin={8}
               />
               <YAxis
                 yAxisId="left"
                 tick={{ fontSize: 11 }}
-                stroke="#9ca3af"
+                tickLine={false}
+                axisLine={false}
                 tickMargin={4}
               />
               {showACWR && selectedMetric === 'tss' && (
@@ -289,7 +290,8 @@ export function TrainingTrendChart({
                   orientation="right"
                   domain={[0, 2]}
                   tick={{ fontSize: 11 }}
-                  stroke="#9ca3af"
+                  tickLine={false}
+                  axisLine={false}
                   tickMargin={4}
                 />
               )}
@@ -301,15 +303,15 @@ export function TrainingTrendChart({
                     yAxisId="right"
                     y1={ACWR_ZONES.optimal.min}
                     y2={ACWR_ZONES.optimal.max}
-                    fill={ACWR_ZONES.optimal.color}
-                    fillOpacity={1}
+                    fill="#10b981"
+                    fillOpacity={0.08}
                   />
                   <ReferenceArea
                     yAxisId="right"
                     y1={ACWR_ZONES.high.min}
                     y2={ACWR_ZONES.high.max}
-                    fill={ACWR_ZONES.high.color}
-                    fillOpacity={1}
+                    fill="#f59e0b"
+                    fillOpacity={0.08}
                   />
                   <ReferenceLine
                     yAxisId="right"
@@ -323,10 +325,11 @@ export function TrainingTrendChart({
 
               <Tooltip
                 contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e5e7eb',
+                  backgroundColor: 'hsl(var(--background))',
+                  border: '1px solid hsl(var(--border))',
                   borderRadius: '0.5rem',
                   fontSize: '0.75rem',
+                  color: 'hsl(var(--foreground))',
                 }}
                 formatter={(value: number, name: string) => {
                   if (name === 'ACWR') return [value?.toFixed(2), name];
@@ -336,7 +339,7 @@ export function TrainingTrendChart({
                 }}
               />
               <Legend
-                wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
+                wrapperStyle={{ paddingTop: '8px', fontSize: '12px' }}
                 verticalAlign="bottom"
               />
 
@@ -347,7 +350,7 @@ export function TrainingTrendChart({
                 fill={metricConfig.color}
                 name={metricConfig.label}
                 radius={[4, 4, 0, 0]}
-                opacity={0.8}
+                opacity={0.9}
               />
 
               {/* ACWR line (only when showing TSS) */}
