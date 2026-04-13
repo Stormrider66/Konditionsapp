@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Settings, ChevronLeft, Bot, Palette, ChevronRight, DollarSign, CreditCard, LayoutDashboard, CalendarDays, Plug } from 'lucide-react'
+import { Settings, ChevronLeft, Bot, Palette, ChevronRight, DollarSign, CreditCard, LayoutDashboard, CalendarDays, Plug, Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
@@ -9,13 +9,15 @@ import { ProfileSettings } from '@/components/settings/ProfileSettings'
 import { PasswordChangeForm } from '@/components/settings/PasswordChangeForm'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { DashboardModeSelector } from '@/components/coach/settings/DashboardModeSelector'
+import { CalendarSharingSettings } from '@/components/coach/settings/CalendarSharingSettings'
 interface CoachSettingsClientProps {
     userEmail: string
     businessSlug?: string
     userName?: string
+    businessId?: string
 }
 
-export function CoachSettingsClient({ userEmail, businessSlug, userName = '' }: CoachSettingsClientProps) {
+export function CoachSettingsClient({ userEmail, businessSlug, userName = '', businessId }: CoachSettingsClientProps) {
     const displayName = userName || userEmail || 'Coach'
     const basePath = businessSlug ? `/${businessSlug}/coach` : '/coach'
 
@@ -204,6 +206,17 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '' }: 
                         </div>
                     </Link>
                 </div>
+
+                {/* Calendar Sharing (for multi-org coaches) */}
+                {businessId && (
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 px-2">
+                            <div className="w-1.5 h-4 bg-indigo-500 rounded-full" />
+                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Kalenderdelning</h3>
+                        </div>
+                        <CalendarSharingSettings businessId={businessId} />
+                    </div>
+                )}
 
             </div>
         </div>

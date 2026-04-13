@@ -704,6 +704,9 @@ model User {
   communityLikes          CommunityLike[]          @relation("UserCommunityLikes")
   broadcastNotifications  BroadcastNotification[]  @relation("UserBroadcastNotifications")
 
+  // Multi-org calendar preferences
+  calendarPreference UserCalendarPreference?
+
   @@index([email])
   @@index([role])
   @@index([referredByBusinessId])
@@ -1596,6 +1599,9 @@ model Business {
 
   // Gym platform integrations
   gymPlatformConnections GymPlatformConnection[] @relation("BusinessGymPlatforms")
+
+  // Multi-org calendar settings
+  calendarSettings BusinessCalendarSettings?
 
   @@index([slug])
   @@index([isActive])
@@ -11006,4 +11012,48 @@ model GymSyncedBooking {
   @@unique([connectionId, externalId])
   @@index([connectionId, startTime])
   @@index([clientId])
+}
+
+// ==================== MULTI-ORG CALENDAR PLANNING ====================
+
+enum CalendarVisibility {
+  FULL_DETAILS // Members see full event details in cross-org view
+  BUSY_ONLY    // Members see time blocks only (no details)
+  HIDDEN       // Calendar hidden from cross-org views entirely
+}
+
+enum CrossOrgCalendarMode {
+  PERSONAL   // My schedule across all orgs
+  ALL_TEAMS  // Full team calendars from all orgs
+  PLANNING   // Interactive planning mode with conflict detection
+}
+
+/// Business owner controls how their calendar appears to multi-org members
+model BusinessCalendarSettings {
+  id         String @id @default(uuid())
+  businessId String @unique
+
+  calendarVisibility CalendarVisibility @default(FULL_DETAILS)
+  shareTeamEvents    Boolean            @default(true)
+  shareAthleteEvents Boolean            @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+/// Per-user preferences for the unified cross-org calendar view
+model UserCalendarPreference {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  defaultMode       CrossOrgCalendarMode @default(PERSONAL)
+  hiddenBusinessIds  Json                @default("[]")   // String[] of business IDs the user chose to hide
+  colorMapping       Json                @default("{}")   // { businessId: "#hex" } overrides (falls back to Business.primaryColor)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

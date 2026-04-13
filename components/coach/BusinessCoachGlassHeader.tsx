@@ -52,6 +52,7 @@ import { cn } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { NotificationBell } from '@/components/calendar/NotificationsPanel'
 import { AthleteModeToggle } from '@/components/coach/AthleteModeToggle'
+import { OrgSwitcher } from '@/components/coach/OrgSwitcher'
 
 interface BusinessCoachGlassHeaderProps {
     user: any
@@ -318,6 +319,9 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
 
                 {/* Desktop Navigation */}
                 <nav className="hidden lg:flex items-center gap-6">
+                    {/* Org Switcher */}
+                    <OrgSwitcher currentSlug={businessSlug} />
+
                     {/* Main Items */}
                     {mainNavItems.map((item) => {
                         const isActive = pathname === item.href
@@ -490,6 +494,11 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                         <LanguageSwitcher showLabel={false} variant="ghost" />
                                         <NotificationBell />
                                     </div>
+                                </div>
+
+                                {/* Mobile Org Switcher */}
+                                <div className="px-4">
+                                    <OrgSwitcher currentSlug={businessSlug} />
                                 </div>
 
                                 {/* Mobile Nav Items */}

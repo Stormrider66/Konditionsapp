@@ -18,5 +18,5 @@ export default async function BusinessCoachSettingsPage({ params }: BusinessCoac
     notFound()
   }
 
-  return <CoachSettingsClient userEmail={user.email || ''} businessSlug={businessSlug} userName={user.name || ''} />
+  return <CoachSettingsClient userEmail={user.email || ''} businessSlug={businessSlug} userName={user.name || ''} businessId={membership.businessId} />
 }
