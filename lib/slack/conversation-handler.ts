@@ -44,7 +44,7 @@ async function getThreadContext(threadTs: string): Promise<Anthropic.MessagePara
       return []
     }
 
-    return (ctx.messages as Anthropic.MessageParam[]) || []
+    return (ctx.messages as unknown as Anthropic.MessageParam[]) || []
   } catch {
     return [] // DB error — start fresh
   }
