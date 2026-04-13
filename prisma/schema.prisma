@@ -10322,6 +10322,7 @@ model IntervalSession {
   updatedAt    DateTime @updatedAt
 
   @@index([coachId])
+  @@index([coachId, scheduledDate])
   @@index([status])
   @@index([scheduledDate])
 }

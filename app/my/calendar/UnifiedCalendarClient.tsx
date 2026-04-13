@@ -22,6 +22,9 @@ import {
   CalendarDays,
   Filter,
   ArrowLeft,
+  Briefcase,
+  Heart,
+  Loader2,
 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -35,7 +38,6 @@ import {
   startOfMonth,
   endOfMonth,
   eachDayOfInterval,
-  isSameDay,
   isSameMonth,
   addMonths,
   subMonths,
@@ -94,9 +96,17 @@ const EVENT_ICONS: Record<string, React.ElementType> = {
   TRAINING_CAMP: Mountain,
   TRAVEL: Plane,
   ILLNESS: Thermometer,
+  VACATION: CalendarDays,
+  WORK_BLOCKER: Briefcase,
+  PERSONAL_BLOCKER: Heart,
+  SCHEDULED_WORKOUT: Clock,
+  EXTERNAL_EVENT: CalendarDays,
   TEAM_EVENT: Users,
   INTERVAL_SESSION: Timer,
 }
+
+const PREFS_CACHE_KEY = 'unified-calendar-prefs'
+const PREFS_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 type ViewMode = 'week' | 'month'
 
@@ -104,6 +114,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
   const [events, setEvents] = useState<CrossOrgEvent[]>([])
   const [conflicts, setConflicts] = useState<Conflict[]>([])
   const [businesses, setBusinesses] = useState<BusinessInfo[]>([])
+  const [businessesLoading, setBusinessesLoading] = useState(true)
   const [hiddenBusinessIds, setHiddenBusinessIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
   const [calendarMode, setCalendarMode] = useState<'PERSONAL' | 'ALL_TEAMS' | 'PLANNING'>('PERSONAL')
@@ -111,6 +122,17 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedEvent, setSelectedEvent] = useState<CrossOrgEvent | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+
+  // New event dialog state
+  const [showNewEvent, setShowNewEvent] = useState(false)
+  const [newEventDate, setNewEventDate] = useState<string>('')
+  const [newEventTitle, setNewEventTitle] = useState('')
+  const [newEventBizId, setNewEventBizId] = useState('')
+  const [newEventType, setNewEventType] = useState<'TEAM_EVENT' | 'CALENDAR_EVENT'>('TEAM_EVENT')
+  const [newEventAllDay, setNewEventAllDay] = useState(true)
+  const [newEventStartTime, setNewEventStartTime] = useState('09:00')
+  const [newEventEndTime, setNewEventEndTime] = useState('10:00')
+  const [newEventSaving, setNewEventSaving] = useState(false)
 
   // Compute date range based on view mode
   const dateRange = useMemo(() => {
@@ -139,23 +161,43 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
         }
       } catch (err) {
         console.error('[UnifiedCalendar] Failed to fetch businesses:', err)
+      } finally {
+        setBusinessesLoading(false)
       }
     }
     fetchBusinesses()
   }, [])
 
-  // Fetch user preferences
+  // Fetch user preferences (with localStorage cache)
   useEffect(() => {
+    const loadPrefs = (prefs: { defaultMode?: string; hiddenBusinessIds?: string[] }) => {
+      if (prefs?.defaultMode) setCalendarMode(prefs.defaultMode as 'PERSONAL' | 'ALL_TEAMS' | 'PLANNING')
+      if (prefs?.hiddenBusinessIds) setHiddenBusinessIds(new Set(prefs.hiddenBusinessIds))
+    }
+
+    // Try localStorage first
+    try {
+      const cached = localStorage.getItem(PREFS_CACHE_KEY)
+      if (cached) {
+        const { data, ts } = JSON.parse(cached)
+        if (Date.now() - ts < PREFS_CACHE_TTL) {
+          loadPrefs(data)
+        }
+      }
+    } catch { /* ignore */ }
+
+    // Fetch from API
     const fetchPrefs = async () => {
       try {
         const res = await fetch('/api/user/calendar-preferences')
         if (res.ok) {
           const data = await res.json()
           const prefs = data.preferences
-          if (prefs?.defaultMode) setCalendarMode(prefs.defaultMode)
-          if (prefs?.hiddenBusinessIds) {
-            setHiddenBusinessIds(new Set(prefs.hiddenBusinessIds))
-          }
+          loadPrefs(prefs)
+          // Cache in localStorage
+          try {
+            localStorage.setItem(PREFS_CACHE_KEY, JSON.stringify({ data: prefs, ts: Date.now() }))
+          } catch { /* ignore */ }
         }
       } catch (err) {
         console.error('[UnifiedCalendar] Failed to fetch preferences:', err)
@@ -353,6 +395,8 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                       <button
                         key={biz.businessId}
                         onClick={() => toggleBusiness(biz.businessId)}
+                        aria-label={`${isHidden ? 'Visa' : 'Dölj'} ${biz.name}`}
+                        aria-pressed={!isHidden}
                         className={cn(
                           'flex items-center gap-3 w-full p-2 rounded-lg transition-colors text-left',
                           isHidden ? 'opacity-40 hover:opacity-60' : 'hover:bg-white/5'
@@ -423,6 +467,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                   variant="ghost"
                   size="icon"
                   onClick={goPrev}
+                  aria-label="Föregående"
                   className="text-slate-400 hover:text-white hover:bg-white/10 h-8 w-8"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -431,6 +476,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                   variant="ghost"
                   size="sm"
                   onClick={goToday}
+                  aria-label="Gå till idag"
                   className="text-slate-400 hover:text-white hover:bg-white/10 text-xs"
                 >
                   Idag
@@ -439,6 +485,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                   variant="ghost"
                   size="icon"
                   onClick={goNext}
+                  aria-label="Nästa"
                   className="text-slate-400 hover:text-white hover:bg-white/10 h-8 w-8"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -500,6 +547,13 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                                 variant="ghost"
                                 size="sm"
                                 className="text-slate-500 hover:text-white h-7 text-xs"
+                                aria-label={`Skapa händelse ${format(day, 'd MMMM', { locale: sv })}`}
+                                onClick={() => {
+                                  setNewEventDate(format(day, 'yyyy-MM-dd'))
+                                  setNewEventTitle('')
+                                  setNewEventBizId(businesses[0]?.businessId || '')
+                                  setShowNewEvent(true)
+                                }}
                               >
                                 <Plus className="w-3 h-3 mr-1" />
                                 Ny
@@ -651,10 +705,23 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                   <div className="text-center py-20">
                     <CalendarDays className="w-12 h-12 text-slate-600 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-slate-400">Inga händelser</h3>
-                    <p className="text-sm text-slate-600 mt-1">
-                      {hiddenBusinessIds.size > 0
-                        ? 'Prova att visa fler organisationer i filtret.'
-                        : 'Det finns inga händelser för den valda perioden.'}
+                    <p className="text-sm text-slate-600 mt-1 max-w-sm mx-auto">
+                      {hiddenBusinessIds.size > 0 ? (
+                        <>
+                          Du har dolt {hiddenBusinessIds.size} organisation{hiddenBusinessIds.size > 1 ? 'er' : ''}.{' '}
+                          <button
+                            onClick={() => setShowFilters(true)}
+                            className="text-blue-400 hover:text-blue-300 underline"
+                          >
+                            Öppna filtret
+                          </button>{' '}
+                          för att visa fler.
+                        </>
+                      ) : businesses.length === 0 && !businessesLoading ? (
+                        'Du är inte medlem i någon organisation ännu.'
+                      ) : (
+                        'Det finns inga händelser för den valda perioden. Prova att byta vy eller tidsperiod.'
+                      )}
                     </p>
                   </div>
                 )}
@@ -666,7 +733,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
 
       {/* Event Detail Dialog */}
       <Dialog open={!!selectedEvent} onOpenChange={(open) => !open && setSelectedEvent(null)}>
-        <DialogContent className="bg-slate-900 border-white/10 text-slate-200 max-w-md">
+        <DialogContent className="bg-slate-900 border-white/10 text-slate-200 max-w-md max-h-[90vh] overflow-y-auto">
           {selectedEvent && (
             <>
               <DialogHeader>
@@ -752,6 +819,161 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* New Event Creation Dialog */}
+      <Dialog open={showNewEvent} onOpenChange={setShowNewEvent}>
+        <DialogContent className="bg-slate-900 border-white/10 text-slate-200 max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Ny händelse</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault()
+              if (!newEventTitle.trim() || !newEventBizId || !newEventDate) return
+              setNewEventSaving(true)
+              try {
+                const startDate = newEventAllDay
+                  ? `${newEventDate}T00:00:00`
+                  : `${newEventDate}T${newEventStartTime}:00`
+                const endDate = newEventAllDay
+                  ? `${newEventDate}T23:59:59`
+                  : `${newEventDate}T${newEventEndTime}:00`
+
+                const res = await fetch('/api/calendar/cross-org/events', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    businessId: newEventBizId,
+                    eventType: newEventType,
+                    title: newEventTitle.trim(),
+                    startDate,
+                    endDate,
+                    allDay: newEventAllDay,
+                    // For team events we'd need a teamId — for now create as calendar event
+                    teamEventType: 'OTHER',
+                  }),
+                })
+                if (res.ok) {
+                  setShowNewEvent(false)
+                  fetchEvents() // Refresh
+                }
+              } catch (err) {
+                console.error('Failed to create event:', err)
+              } finally {
+                setNewEventSaving(false)
+              }
+            }}
+            className="space-y-4 mt-2"
+          >
+            {/* Title */}
+            <div>
+              <label htmlFor="new-event-title" className="block text-xs text-slate-500 mb-1">Titel</label>
+              <input
+                id="new-event-title"
+                type="text"
+                value={newEventTitle}
+                onChange={(e) => setNewEventTitle(e.target.value)}
+                placeholder="Händelsetitel..."
+                required
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              />
+            </div>
+
+            {/* Business */}
+            <div>
+              <label htmlFor="new-event-biz" className="block text-xs text-slate-500 mb-1">Organisation</label>
+              <select
+                id="new-event-biz"
+                value={newEventBizId}
+                onChange={(e) => setNewEventBizId(e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              >
+                {businesses.map((biz) => (
+                  <option key={biz.businessId} value={biz.businessId} className="bg-slate-900">
+                    {biz.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date */}
+            <div>
+              <label htmlFor="new-event-date" className="block text-xs text-slate-500 mb-1">Datum</label>
+              <input
+                id="new-event-date"
+                type="date"
+                value={newEventDate}
+                onChange={(e) => setNewEventDate(e.target.value)}
+                required
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              />
+            </div>
+
+            {/* All day toggle */}
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={newEventAllDay}
+                onChange={(e) => setNewEventAllDay(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
+              />
+              <span className="text-sm text-slate-300">Heldag</span>
+            </label>
+
+            {/* Time inputs */}
+            {!newEventAllDay && (
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label htmlFor="new-event-start" className="block text-xs text-slate-500 mb-1">Start</label>
+                  <input
+                    id="new-event-start"
+                    type="time"
+                    value={newEventStartTime}
+                    onChange={(e) => setNewEventStartTime(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label htmlFor="new-event-end" className="block text-xs text-slate-500 mb-1">Slut</label>
+                  <input
+                    id="new-event-end"
+                    type="time"
+                    value={newEventEndTime}
+                    onChange={(e) => setNewEventEndTime(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Submit */}
+            <div className="flex gap-2 pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setShowNewEvent(false)}
+                className="flex-1 text-slate-400 hover:text-white"
+              >
+                Avbryt
+              </Button>
+              <Button
+                type="submit"
+                disabled={newEventSaving || !newEventTitle.trim()}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {newEventSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    Sparar...
+                  </>
+                ) : (
+                  'Skapa händelse'
+                )}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

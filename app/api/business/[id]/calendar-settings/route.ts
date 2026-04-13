@@ -69,8 +69,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Forbidden — only owners/admins can change calendar settings' }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { calendarVisibility, shareTeamEvents, shareAthleteEvents } = body
+    let body: Record<string, unknown>
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+    const { calendarVisibility, shareTeamEvents, shareAthleteEvents } = body as {
+      calendarVisibility?: 'FULL_DETAILS' | 'BUSY_ONLY' | 'HIDDEN'
+      shareTeamEvents?: boolean
+      shareAthleteEvents?: boolean
+    }
 
     const settings = await prisma.businessCalendarSettings.upsert({
       where: { businessId: id },

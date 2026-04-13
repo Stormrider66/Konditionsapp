@@ -58,13 +58,15 @@ export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
     fetchBusinesses()
   }, [])
 
-  // Don't render if user only has one business
+  // Don't render if user only has one business or still loading
   if (isLoading || businesses.length <= 1) {
     return null
   }
 
   const current = businesses.find((b) => b.slug === currentSlug)
-  const currentRole = current ? ROLE_LABELS[current.role] || current.role : ''
+  // Fallback: if slug doesn't match any business (stale URL), use first business
+  const displayBiz = current || businesses[0]
+  const currentRole = ROLE_LABELS[displayBiz.role] || displayBiz.role
 
   // When switching orgs, preserve the sub-path if possible
   const getOrgHref = (slug: string) => {
@@ -82,11 +84,12 @@ export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
       <DropdownMenuTrigger asChild>
         <button
           className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-white text-slate-400 max-w-[180px]"
-          title={current ? `${current.name} — ${currentRole}` : 'Byt organisation'}
+          title={`${displayBiz.name} — ${currentRole}`}
+          aria-label={`Byt organisation, nuvarande: ${displayBiz.name}`}
         >
           <Building2 className="w-4 h-4 shrink-0 opacity-50" />
           <span className="truncate hidden sm:inline">
-            {current?.name || 'Organisation'}
+            {displayBiz.name}
           </span>
           <ChevronDown className="w-3 h-3 opacity-50 shrink-0" />
         </button>

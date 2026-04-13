@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Eye, EyeOff, Users, UserIcon, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -18,7 +18,9 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
   })
   const [isOwner, setIsOwner] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -42,22 +44,48 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
     if (businessId) fetchSettings()
   }, [businessId])
 
-  const updateSetting = async (updates: Partial<CalendarSettingsState>) => {
-    const newSettings = { ...settings, ...updates }
-    setSettings(newSettings)
+  const persistSettings = useCallback(async (newSettings: CalendarSettingsState) => {
     setSaving(true)
+    setSaveError(false)
     try {
-      await fetch(`/api/business/${businessId}/calendar-settings`, {
+      const res = await fetch(`/api/business/${businessId}/calendar-settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSettings),
       })
+      if (!res.ok) throw new Error('Save failed')
     } catch (err) {
       console.error('Failed to save calendar settings:', err)
+      setSaveError(true)
     } finally {
       setSaving(false)
     }
+  }, [businessId])
+
+  const updateSetting = (updates: Partial<CalendarSettingsState>) => {
+    const oldSettings = { ...settings }
+    const newSettings = { ...settings, ...updates }
+    setSettings(newSettings)
+    setSaveError(false)
+
+    // Debounce: wait 500ms before saving to batch rapid changes
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      try {
+        await persistSettings(newSettings)
+      } catch {
+        // Rollback on failure
+        setSettings(oldSettings)
+      }
+    }, 500)
   }
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
 
   if (!loaded) return null
   if (!isOwner) {
@@ -83,11 +111,13 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
       <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 space-y-3">
         <h4 className="text-sm font-semibold text-slate-900 dark:text-white">Synlighet i samlad kalender</h4>
         <p className="text-xs text-slate-500">Styr hur din organisations kalender syns för medlemmar som arbetar med flera organisationer.</p>
-        <div className="space-y-2">
+        <div className="space-y-2" role="radiogroup" aria-label="Kalendersynlighet">
           {visibilityOptions.map((opt) => (
             <button
               key={opt.value}
               onClick={() => updateSetting({ calendarVisibility: opt.value })}
+              role="radio"
+              aria-checked={settings.calendarVisibility === opt.value}
               className={cn(
                 'flex items-center gap-3 w-full p-3 rounded-xl border text-left transition-all',
                 settings.calendarVisibility === opt.value
@@ -130,6 +160,7 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
               checked={settings.shareTeamEvents}
               onChange={(e) => updateSetting({ shareTeamEvents: e.target.checked })}
               className="w-5 h-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
+              aria-label="Dela laghändelser"
             />
           </label>
           <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/10 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
@@ -145,12 +176,15 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
               checked={settings.shareAthleteEvents}
               onChange={(e) => updateSetting({ shareAthleteEvents: e.target.checked })}
               className="w-5 h-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
+              aria-label="Dela atlethändelser"
             />
           </label>
         </div>
       )}
 
+      {/* Status feedback */}
       {saving && <p className="text-xs text-slate-500 text-center">Sparar...</p>}
+      {saveError && <p className="text-xs text-red-400 text-center">Kunde inte spara. Försök igen.</p>}
     </div>
   )
 }

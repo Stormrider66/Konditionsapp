@@ -39,8 +39,17 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { defaultMode, hiddenBusinessIds, colorMapping } = body
+    let body: Record<string, unknown>
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+    const { defaultMode, hiddenBusinessIds, colorMapping } = body as {
+      defaultMode?: 'PERSONAL' | 'ALL_TEAMS' | 'PLANNING'
+      hiddenBusinessIds?: string[]
+      colorMapping?: Record<string, string>
+    }
 
     const prefs = await prisma.userCalendarPreference.upsert({
       where: { userId: user.id },

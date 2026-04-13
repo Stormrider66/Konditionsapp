@@ -166,6 +166,7 @@ const RESERVED_ROUTES = [
   'for-gyms',
   'for-clubs',
   '_next',
+  'my',
 ]
 
 // Coach routes that should be redirected to business-scoped routes
@@ -673,6 +674,14 @@ export async function middleware(request: NextRequest) {
         }
 
         // User has access to this business route - continue
+        return finalizeResponse(response)
+      }
+
+      // Cross-org routes (/my/*) — require COACH or ADMIN role
+      if (pathname.startsWith('/my/')) {
+        if (role !== 'COACH' && role !== 'ADMIN') {
+          return NextResponse.redirect(new URL('/', request.url))
+        }
         return finalizeResponse(response)
       }
 

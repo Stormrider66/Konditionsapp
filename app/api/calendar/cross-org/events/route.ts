@@ -2,12 +2,13 @@
  * POST /api/calendar/cross-org/events
  *
  * Create a calendar event or team event from the unified calendar view.
- * Validates that the user has permission to create events in the target business.
+ * Validates business membership, team/client ownership, and date formats.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import type { CalendarEventType, EventImpact } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,30 +17,58 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
+    let body: Record<string, unknown>
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+
     const {
       businessId,
-      eventType, // 'CALENDAR_EVENT' | 'TEAM_EVENT'
+      eventType,
       title,
       description,
-      startDate,
-      endDate,
+      startDate: startDateStr,
+      endDate: endDateStr,
       allDay,
-      // For CALENDAR_EVENT
       clientId,
       calendarEventType,
       trainingImpact,
-      // For TEAM_EVENT
       teamId,
       teamEventType,
       location,
-    } = body
+    } = body as {
+      businessId?: string
+      eventType?: string
+      title?: string
+      description?: string
+      startDate?: string
+      endDate?: string
+      allDay?: boolean
+      clientId?: string
+      calendarEventType?: string
+      trainingImpact?: string
+      teamId?: string
+      teamEventType?: string
+      location?: string
+    }
 
-    if (!businessId || !title || !startDate || !endDate) {
+    if (!businessId || !title || !startDateStr || !endDateStr) {
       return NextResponse.json(
         { error: 'Missing required fields: businessId, title, startDate, endDate' },
         { status: 400 }
       )
+    }
+
+    // Validate date formats
+    const startDate = new Date(startDateStr)
+    const endDate = new Date(endDateStr)
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return NextResponse.json({ error: 'Invalid date format for startDate or endDate' }, { status: 400 })
+    }
+    if (endDate < startDate) {
+      return NextResponse.json({ error: 'endDate must be after startDate' }, { status: 400 })
     }
 
     // Verify user is a member of this business with appropriate role
@@ -59,15 +88,35 @@ export async function POST(request: NextRequest) {
     }
 
     if (eventType === 'TEAM_EVENT' && teamId) {
-      // Create a team event
+      // Verify team exists and belongs to a coach in this business
+      const team = await prisma.team.findUnique({
+        where: { id: teamId },
+        select: { id: true, userId: true },
+      })
+      if (!team) {
+        return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      }
+
+      // Verify the team's coach is in this business
+      const teamCoachMembership = await prisma.businessMember.findFirst({
+        where: {
+          userId: team.userId,
+          businessId,
+          isActive: true,
+        },
+      })
+      if (!teamCoachMembership) {
+        return NextResponse.json({ error: 'Team does not belong to this business' }, { status: 403 })
+      }
+
       const teamEvent = await prisma.teamEvent.create({
         data: {
           teamId,
           title,
           description: description || null,
           type: teamEventType || 'PRACTICE',
-          startDate: new Date(startDate),
-          endDate: new Date(endDate),
+          startDate,
+          endDate,
           allDay: allDay ?? false,
           location: location || null,
           createdById: user.id,
@@ -77,17 +126,42 @@ export async function POST(request: NextRequest) {
     }
 
     if (eventType === 'CALENDAR_EVENT' && clientId) {
-      // Create a calendar event for a specific athlete
+      // Verify client exists and belongs to a coach in this business
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { id: true, userId: true, businessId: true },
+      })
+      if (!client) {
+        return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      }
+
+      // Verify client is in this business (either by businessId or coach membership)
+      if (client.businessId && client.businessId !== businessId) {
+        return NextResponse.json({ error: 'Client does not belong to this business' }, { status: 403 })
+      }
+      if (!client.businessId) {
+        const clientCoachMembership = await prisma.businessMember.findFirst({
+          where: {
+            userId: client.userId,
+            businessId,
+            isActive: true,
+          },
+        })
+        if (!clientCoachMembership) {
+          return NextResponse.json({ error: 'Client does not belong to this business' }, { status: 403 })
+        }
+      }
+
       const calendarEvent = await prisma.calendarEvent.create({
         data: {
           clientId,
-          type: calendarEventType || 'EXTERNAL_EVENT',
+          type: (calendarEventType || 'EXTERNAL_EVENT') as CalendarEventType,
           title,
           description: description || null,
-          startDate: new Date(startDate),
-          endDate: new Date(endDate),
+          startDate,
+          endDate,
           allDay: allDay ?? false,
-          trainingImpact: trainingImpact || 'NORMAL',
+          trainingImpact: (trainingImpact || 'NORMAL') as EventImpact,
           createdById: user.id,
         },
       })
