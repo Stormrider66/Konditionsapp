@@ -100,24 +100,56 @@ When an operator agent posts an alert in the channel, you may jump in with conte
 // ============================================================================
 
 const SLACK_TOOLS: Anthropic.Tool[] = [
-  // --- Operator tools (DB queries) ---
-  { name: 'getOpenSupportTickets', description: 'Get unprocessed support tickets.', input_schema: { type: 'object' as const, properties: {} } },
+  // --- Platform Health & Monitoring ---
+  { name: 'getSentryErrors', description: 'Get recent Sentry errors.', input_schema: { type: 'object' as const, properties: { minutes: { type: 'number' } } } },
+  { name: 'getCronJobFailures', description: 'Get failed cron jobs.', input_schema: { type: 'object' as const, properties: { hours: { type: 'number' } } } },
+  { name: 'getAgentErrorRate', description: 'Get operator agent error rate (last 24h).', input_schema: { type: 'object' as const, properties: {} } },
+  { name: 'getKeyMetrics', description: 'Get platform metrics: active users, check-ins, workouts.', input_schema: { type: 'object' as const, properties: {} } },
+
+  // --- Cost & Revenue ---
   { name: 'getAIUsage24h', description: 'Get AI API spend in the last 24 hours.', input_schema: { type: 'object' as const, properties: {} } },
   { name: 'getAIUsageMonthToDate', description: 'Get current month running AI cost total.', input_schema: { type: 'object' as const, properties: {} } },
-  { name: 'predictMonthEnd', description: 'Project month-end AI cost.', input_schema: { type: 'object' as const, properties: {} } },
+  { name: 'predictMonthEnd', description: 'Project month-end AI cost with last-month comparison.', input_schema: { type: 'object' as const, properties: {} } },
+  { name: 'getTopSpendingUsers', description: 'Top AI spenders with tier and subscription status.', input_schema: { type: 'object' as const, properties: { days: { type: 'number' }, limit: { type: 'number' } } } },
+  { name: 'getCostBreakdownByEntity', description: 'Split AI cost by role (athlete/coach/admin).', input_schema: { type: 'object' as const, properties: { days: { type: 'number' } } } },
+  { name: 'getCostBreakdownByBusiness', description: 'AI cost per business.', input_schema: { type: 'object' as const, properties: { days: { type: 'number' } } } },
+  { name: 'detectCostAnomalies', description: 'Users whose spend jumped >3x baseline.', input_schema: { type: 'object' as const, properties: {} } },
+  { name: 'getUsersNearLimits', description: 'Users at/near AI chat message limits (EXCEEDED/CRITICAL/WARNING).', input_schema: { type: 'object' as const, properties: { thresholdPercent: { type: 'number' } } } },
+  { name: 'getRevenueVsCost', description: 'Gross margin per user/tier — PROFITABLE, THIN_MARGIN, LOSS, FREE_LOSS.', input_schema: { type: 'object' as const, properties: { days: { type: 'number' } } } },
+  { name: 'getMarginAtRiskUsers', description: 'Users in LOSS or FREE_LOSS status.', input_schema: { type: 'object' as const, properties: { days: { type: 'number' } } } },
+  { name: 'getMRRSnapshot', description: 'Get MRR and subscriber counts by tier.', input_schema: { type: 'object' as const, properties: {} } },
+  { name: 'getChurnRate', description: 'Get churn rate.', input_schema: { type: 'object' as const, properties: { days: { type: 'number' } } } },
+  { name: 'getNewSubscribersLast7d', description: 'New paying subscribers in the last 7 days.', input_schema: { type: 'object' as const, properties: {} } },
+
+  // --- Support & Feature Requests ---
+  { name: 'getOpenSupportTickets', description: 'Get unprocessed support tickets.', input_schema: { type: 'object' as const, properties: {} } },
   { name: 'getActiveSubscriptions', description: 'Get all paying subscribers.', input_schema: { type: 'object' as const, properties: {} } },
   { name: 'getOpenFeatureRequests', description: 'Get uncurated feature requests.', input_schema: { type: 'object' as const, properties: {} } },
   { name: 'getAllFeatureRequests', description: 'Get all open/planned feature requests.', input_schema: { type: 'object' as const, properties: {} } },
-  { name: 'getKeyMetrics', description: 'Get platform metrics: active users, check-ins, workouts.', input_schema: { type: 'object' as const, properties: {} } },
-  { name: 'getMRRSnapshot', description: 'Get MRR and subscriber counts by tier.', input_schema: { type: 'object' as const, properties: {} } },
-  { name: 'getChurnRate', description: 'Get churn rate.', input_schema: { type: 'object' as const, properties: { days: { type: 'number' } } } },
-  { name: 'calculateDataHealthScore', description: 'Get overall data quality score (0-100).', input_schema: { type: 'object' as const, properties: {} } },
-  { name: 'getRevenueVsCost', description: 'Get margin analysis: revenue vs AI cost per user/tier.', input_schema: { type: 'object' as const, properties: { days: { type: 'number' } } } },
-  { name: 'getUsersNearLimits', description: 'Find users at/near AI chat message limits.', input_schema: { type: 'object' as const, properties: { thresholdPercent: { type: 'number' } } } },
-  { name: 'getCostBreakdownByEntity', description: 'Split AI cost by role (athlete/coach/admin).', input_schema: { type: 'object' as const, properties: { days: { type: 'number' } } } },
-  { name: 'getSentryErrors', description: 'Get recent Sentry errors.', input_schema: { type: 'object' as const, properties: { minutes: { type: 'number' } } } },
-  { name: 'getCronJobFailures', description: 'Get failed cron jobs.', input_schema: { type: 'object' as const, properties: { hours: { type: 'number' } } } },
+
+  // --- Onboarding & Engagement ---
+  { name: 'getNewUsersLast7d', description: 'Users who signed up in the last 7 days.', input_schema: { type: 'object' as const, properties: {} } },
+  { name: 'findStuckUsers', description: 'Users stuck >2 days on same onboarding step.', input_schema: { type: 'object' as const, properties: {} } },
+  { name: 'getRevenueYesterday', description: 'Yesterday\'s new subs, MRR changes.', input_schema: { type: 'object' as const, properties: {} } },
+  { name: 'getSignupsYesterday', description: 'Yesterday\'s signups by role.', input_schema: { type: 'object' as const, properties: {} } },
+
+  // --- Data Quality & Compliance ---
+  { name: 'calculateDataHealthScore', description: 'Overall data quality score (0-100, grade A-F).', input_schema: { type: 'object' as const, properties: {} } },
+  { name: 'findOrphanedRecords', description: 'Find records with dangling FK references.', input_schema: { type: 'object' as const, properties: {} } },
+  { name: 'findDuplicateUsers', description: 'Find users with duplicate emails.', input_schema: { type: 'object' as const, properties: {} } },
+  { name: 'getConsentWithdrawals', description: 'Users who withdrew consent recently.', input_schema: { type: 'object' as const, properties: { days: { type: 'number' } } } },
+  { name: 'getFailedLogins', description: 'Failed login attempts (brute force detection).', input_schema: { type: 'object' as const, properties: { hours: { type: 'number' } } } },
+  { name: 'getAuditLogAnomalies', description: 'Unusual admin actions in audit log.', input_schema: { type: 'object' as const, properties: { hours: { type: 'number' } } } },
+
+  // --- Competitor & Marketing ---
+  { name: 'getKnownCompetitors', description: 'List of tracked competitors.', input_schema: { type: 'object' as const, properties: {} } },
+  { name: 'webSearch', description: 'Search the web (via Tavily) for competitor news.', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
+  { name: 'getPlatformMetrics', description: 'Platform-wide metrics for content.', input_schema: { type: 'object' as const, properties: {} } },
+  { name: 'findMilestoneEvents', description: 'Platform-wide milestones (1000 users, etc.).', input_schema: { type: 'object' as const, properties: { days: { type: 'number' } } } },
+
+  // --- Actions (approval-gated) ---
   { name: 'alertFounder', description: 'Send an email alert to the founder.', input_schema: { type: 'object' as const, properties: { severity: { type: 'string' }, title: { type: 'string' }, message: { type: 'string' } }, required: ['severity', 'title', 'message'] } },
+  { name: 'createGitHubIssue', description: 'Create a GitHub issue from a bug report.', input_schema: { type: 'object' as const, properties: { title: { type: 'string' }, body: { type: 'string' }, labels: { type: 'array', items: { type: 'string' } } }, required: ['title', 'body'] } },
 
   // --- GitHub code tools ---
   {

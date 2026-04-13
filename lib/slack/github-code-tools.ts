@@ -89,8 +89,10 @@ async function searchCode(query: string): Promise<{
   if (!config) return { success: false, error: 'GitHub not configured' }
 
   try {
+    // text-match+json header enables text_matches in response
     const response = await githubFetch(
-      `/search/code?q=${encodeURIComponent(query)}+repo:${config.repo}&per_page=10`
+      `/search/code?q=${encodeURIComponent(query)}+repo:${config.repo}&per_page=10`,
+      { headers: { 'Accept': 'application/vnd.github.v3.text-match+json' } }
     )
 
     if (!response.ok) {

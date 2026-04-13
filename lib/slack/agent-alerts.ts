@@ -16,11 +16,29 @@ import type { OperatorAgentRunResult } from '@/lib/operator-agents/types'
 /**
  * Post an agent's result to Slack if there's something worth reporting.
  * Called after every agent run. Filters out "nothing to report" runs.
+ *
+ * All posts are wrapped in try/catch — Slack failures should NEVER
+ * affect the agent's actual work.
  */
 export async function postAgentResultToSlack(
   result: OperatorAgentRunResult
 ): Promise<void> {
   if (!isSlackConfigured()) return
+
+  try {
+    await postAgentResultToSlackInner(result)
+  } catch (error) {
+    // Slack failures are non-critical — log and move on
+    logger.warn('[slack-alerts] Failed to post agent result to Slack', {
+      agentType: result.agentType,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+}
+
+async function postAgentResultToSlackInner(
+  result: OperatorAgentRunResult
+): Promise<void> {
 
   // Skip posting for clean runs with nothing interesting
   if (result.status === 'COMPLETED' && result.escalations === 0 && result.actionsTaken === 0) {

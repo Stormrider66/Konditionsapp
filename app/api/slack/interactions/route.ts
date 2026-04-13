@@ -17,14 +17,17 @@ import { logger } from '@/lib/logger'
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()
 
-  // Verify the request
+  // Verify the request (REQUIRED — protects approval actions)
   const signingSecret = process.env.SLACK_SIGNING_SECRET
-  if (signingSecret) {
-    const timestamp = req.headers.get('x-slack-request-timestamp') || ''
-    const signature = req.headers.get('x-slack-signature') || ''
-    if (!verifySlackRequest(signingSecret, timestamp, rawBody, signature)) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-    }
+  if (!signingSecret) {
+    logger.error('[slack/interactions] SLACK_SIGNING_SECRET not configured — rejecting')
+    return NextResponse.json({ error: 'Security misconfiguration' }, { status: 500 })
+  }
+
+  const timestamp = req.headers.get('x-slack-request-timestamp') || ''
+  const signature = req.headers.get('x-slack-signature') || ''
+  if (!verifySlackRequest(signingSecret, timestamp, rawBody, signature)) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
   // Slack sends interactions as form-encoded with a `payload` field

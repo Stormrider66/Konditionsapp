@@ -39,15 +39,27 @@ function isDuplicate(eventId: string): boolean {
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()
 
-  // Step 1: Verify the request is from Slack (optional but recommended)
+  // Step 1: Verify the request is from Slack (REQUIRED)
   const signingSecret = process.env.SLACK_SIGNING_SECRET
-  if (signingSecret) {
-    const timestamp = req.headers.get('x-slack-request-timestamp') || ''
-    const signature = req.headers.get('x-slack-signature') || ''
+  if (!signingSecret) {
+    logger.error('[slack/events] SLACK_SIGNING_SECRET not configured — rejecting all requests')
+    return NextResponse.json({ error: 'Security misconfiguration' }, { status: 500 })
+  }
 
-    if (!verifySlackRequest(signingSecret, timestamp, rawBody, signature)) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-    }
+  const timestamp = req.headers.get('x-slack-request-timestamp') || ''
+  const signature = req.headers.get('x-slack-signature') || ''
+
+  if (!verifySlackRequest(signingSecret, timestamp, rawBody, signature)) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+  }
+
+  // Step 1b: Reject Slack retries to prevent duplicate processing.
+  // On Vercel serverless, in-memory dedup doesn't persist across cold starts,
+  // so this header check is the primary deduplication mechanism.
+  const retryNum = req.headers.get('x-slack-retry-num')
+  if (retryNum && parseInt(retryNum, 10) > 0) {
+    // Slack is retrying because we were slow — we already processed it (or are processing)
+    return NextResponse.json({ ok: true })
   }
 
   const body = JSON.parse(rawBody)
