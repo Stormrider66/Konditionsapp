@@ -15,44 +15,85 @@ import { replyInThread } from './client'
 import { executeOperatorTool } from '@/lib/operator-agents/tool-executor'
 import * as githubCode from './github-code-tools'
 import { MODEL_TIERS } from '@/types/ai-models'
+import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 // ============================================================================
-// CONVERSATION MEMORY (per Slack thread)
+// CONVERSATION MEMORY (DB-backed, survives cold starts)
 // ============================================================================
 
-interface ThreadContext {
-  messages: Anthropic.MessageParam[]
-  lastActivity: number
-}
+const MAX_MESSAGES = 20
+const MAX_CONTEXT_AGE_MS = 60 * 60 * 1000 // 1 hour
 
-// In-memory thread context (per-server-instance)
-// For persistent memory across deploys, use a DB — but for Vercel
-// serverless this is fine (each function invocation is stateless anyway,
-// and Slack threads provide natural context boundaries)
-const threadContexts = new Map<string, ThreadContext>()
-const MAX_CONTEXT_AGE_MS = 30 * 60 * 1000 // 30 minutes
-const MAX_THREADS = 100
+/**
+ * Load thread context from the database.
+ * Returns empty array if thread is new or expired.
+ */
+async function getThreadContext(threadTs: string): Promise<Anthropic.MessageParam[]> {
+  try {
+    const ctx = await prisma.slackThreadContext.findUnique({
+      where: { threadTs },
+    })
 
-function getThreadContext(threadTs: string): Anthropic.MessageParam[] {
-  const ctx = threadContexts.get(threadTs)
-  if (ctx && Date.now() - ctx.lastActivity < MAX_CONTEXT_AGE_MS) {
-    return ctx.messages
-  }
-  return []
-}
+    if (!ctx) return []
 
-function saveThreadContext(threadTs: string, messages: Anthropic.MessageParam[]): void {
-  threadContexts.set(threadTs, {
-    messages: messages.slice(-20), // Keep last 20 messages max
-    lastActivity: Date.now(),
-  })
-
-  // Cleanup old threads
-  if (threadContexts.size > MAX_THREADS) {
-    const cutoff = Date.now() - MAX_CONTEXT_AGE_MS
-    for (const [key, ctx] of threadContexts) {
-      if (ctx.lastActivity < cutoff) threadContexts.delete(key)
+    // Check if context is stale
+    if (Date.now() - ctx.lastActivityAt.getTime() > MAX_CONTEXT_AGE_MS) {
+      // Expired — delete and return empty
+      await prisma.slackThreadContext.delete({ where: { threadTs } }).catch(() => {})
+      return []
     }
+
+    return (ctx.messages as Anthropic.MessageParam[]) || []
+  } catch {
+    return [] // DB error — start fresh
+  }
+}
+
+/**
+ * Save thread context to the database.
+ * Keeps last MAX_MESSAGES messages to prevent unbounded growth.
+ */
+async function saveThreadContext(
+  threadTs: string,
+  channelId: string,
+  messages: Anthropic.MessageParam[]
+): Promise<void> {
+  const trimmed = messages.slice(-MAX_MESSAGES)
+
+  try {
+    await prisma.slackThreadContext.upsert({
+      where: { threadTs },
+      update: {
+        messages: trimmed as unknown as Prisma.InputJsonValue,
+        lastActivityAt: new Date(),
+        messageCount: trimmed.length,
+      },
+      create: {
+        threadTs,
+        channelId,
+        messages: trimmed as unknown as Prisma.InputJsonValue,
+        lastActivityAt: new Date(),
+        messageCount: trimmed.length,
+      },
+    })
+  } catch (error) {
+    logger.warn('[slack] Failed to save thread context', { threadTs, error: String(error) })
+  }
+}
+
+/**
+ * Cleanup expired thread contexts. Called periodically (e.g., from a cron).
+ */
+export async function cleanupExpiredThreadContexts(): Promise<number> {
+  try {
+    const cutoff = new Date(Date.now() - MAX_CONTEXT_AGE_MS)
+    const result = await prisma.slackThreadContext.deleteMany({
+      where: { lastActivityAt: { lt: cutoff } },
+    })
+    return result.count
+  } catch {
+    return 0
   }
 }
 
@@ -212,6 +253,96 @@ const SLACK_TOOLS: Anthropic.Tool[] = [
 ]
 
 // ============================================================================
+// TOOL PRUNING — select relevant tools based on message intent
+// ============================================================================
+
+/**
+ * Tool categories with keyword triggers.
+ * When a message matches keywords in a category, those tools are included.
+ * A "core" set is always included regardless of message content.
+ */
+const TOOL_CATEGORIES: Record<string, { keywords: string[]; toolNames: string[] }> = {
+  core: {
+    keywords: [], // Always included
+    toolNames: ['getKeyMetrics', 'alertFounder'],
+  },
+  health: {
+    keywords: ['error', 'sentry', 'cron', 'down', 'broken', 'crash', 'bug', 'health', 'status', 'failing', 'issue', 'fix', 'wrong'],
+    toolNames: ['getSentryErrors', 'getCronJobFailures', 'getAgentErrorRate', 'getOpenSupportTickets', 'createGitHubIssue'],
+  },
+  cost: {
+    keywords: ['cost', 'spend', 'budget', 'expensive', 'price', 'margin', 'revenue', 'money', 'dollar', 'billing', 'mrr', 'churn', 'subscription'],
+    toolNames: ['getAIUsage24h', 'getAIUsageMonthToDate', 'predictMonthEnd', 'getTopSpendingUsers', 'getCostBreakdownByEntity', 'getCostBreakdownByBusiness', 'detectCostAnomalies', 'getUsersNearLimits', 'getRevenueVsCost', 'getMarginAtRiskUsers', 'getMRRSnapshot', 'getChurnRate', 'getNewSubscribersLast7d', 'getActiveSubscriptions'],
+  },
+  users: {
+    keywords: ['user', 'signup', 'onboard', 'stuck', 'activation', 'new user', 'growth', 'funnel', 'register', 'athlete', 'coach'],
+    toolNames: ['getNewUsersLast7d', 'findStuckUsers', 'getRevenueYesterday', 'getSignupsYesterday', 'getActiveSubscriptions'],
+  },
+  features: {
+    keywords: ['feature', 'request', 'roadmap', 'vote', 'idea', 'feedback', 'want', 'suggest'],
+    toolNames: ['getOpenFeatureRequests', 'getAllFeatureRequests'],
+  },
+  data: {
+    keywords: ['data', 'quality', 'orphan', 'duplicate', 'integrity', 'stale', 'health score'],
+    toolNames: ['calculateDataHealthScore', 'findOrphanedRecords', 'findDuplicateUsers'],
+  },
+  security: {
+    keywords: ['security', 'login', 'consent', 'gdpr', 'compliance', 'audit', 'suspicious', 'brute', 'hack'],
+    toolNames: ['getConsentWithdrawals', 'getFailedLogins', 'getAuditLogAnomalies'],
+  },
+  competitor: {
+    keywords: ['competitor', 'market', 'industry', 'trainingpeaks', 'strava', 'search', 'news'],
+    toolNames: ['getKnownCompetitors', 'webSearch', 'getPlatformMetrics', 'findMilestoneEvents'],
+  },
+  code: {
+    keywords: ['code', 'file', 'function', 'fix', 'bug', 'pr', 'pull request', 'merge', 'branch', 'deploy', 'commit', 'github', 'read', 'search code', 'implement'],
+    toolNames: ['readFile', 'searchCode', 'createBranchAndPushFix', 'mergePR', 'listOpenPRs'],
+  },
+}
+
+/**
+ * Select tools relevant to the user's message.
+ * Always includes core tools + any categories whose keywords match.
+ * Falls back to ALL tools if no specific intent is detected.
+ */
+function pruneToolsByIntent(message: string): Anthropic.Tool[] {
+  const lower = message.toLowerCase()
+  const matchedToolNames = new Set<string>()
+
+  // Always include core tools
+  for (const name of TOOL_CATEGORIES.core.toolNames) {
+    matchedToolNames.add(name)
+  }
+
+  // Match keyword categories
+  let anyMatch = false
+  for (const [category, config] of Object.entries(TOOL_CATEGORIES)) {
+    if (category === 'core') continue
+    if (config.keywords.some(kw => lower.includes(kw))) {
+      anyMatch = true
+      for (const name of config.toolNames) {
+        matchedToolNames.add(name)
+      }
+    }
+  }
+
+  // If no keywords matched, include everything (broad query)
+  if (!anyMatch) {
+    return SLACK_TOOLS
+  }
+
+  // Filter SLACK_TOOLS to only matched names
+  const pruned = SLACK_TOOLS.filter(t => matchedToolNames.has(t.name))
+
+  // Ensure we have at least 5 tools (fallback to all if too few)
+  if (pruned.length < 5) {
+    return SLACK_TOOLS
+  }
+
+  return pruned
+}
+
+// ============================================================================
 // TOOL EXECUTOR (routes to operator tools or GitHub tools)
 // ============================================================================
 
@@ -251,8 +382,8 @@ export async function handleSlackMessage(options: {
   const client = new Anthropic({ apiKey })
   const model = MODEL_TIERS['balanced'].anthropic.modelId
 
-  // Build message history from thread context
-  const previousMessages = getThreadContext(threadTs)
+  // Build message history from thread context (DB-backed)
+  const previousMessages = await getThreadContext(threadTs)
   const messages: Anthropic.MessageParam[] = [
     ...previousMessages,
     { role: 'user', content: userMessage },
@@ -260,6 +391,15 @@ export async function handleSlackMessage(options: {
 
   try {
     // Run the agentic tool-calling loop
+    // Prune tools based on message intent to save ~60% input tokens.
+    // Falls back to full tool set if no specific intent is detected.
+    const tools = pruneToolsByIntent(userMessage)
+    logger.info('[slack] Tool pruning', {
+      message: userMessage.slice(0, 100),
+      allTools: SLACK_TOOLS.length,
+      selectedTools: tools.length,
+    })
+
     let iterations = 0
     const maxIterations = 15
 
@@ -270,7 +410,7 @@ export async function handleSlackMessage(options: {
         model,
         max_tokens: 4096,
         system: SLACK_SYSTEM_PROMPT,
-        tools: SLACK_TOOLS,
+        tools,
         messages,
       })
 
@@ -291,7 +431,7 @@ export async function handleSlackMessage(options: {
 
         // Save context for future messages in this thread
         messages.push({ role: 'assistant', content: response.content })
-        saveThreadContext(threadTs, messages)
+        await saveThreadContext(threadTs, channel, messages)
         return
       }
 

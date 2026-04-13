@@ -9930,6 +9930,28 @@ model PlatformConfig {
   @@index([category])
 }
 
+/// Slack thread conversation context for multi-turn Claude conversations.
+/// Persists across Vercel cold starts so the bot remembers what you were
+/// discussing even if the serverless function recycles.
+model SlackThreadContext {
+  /// Slack thread timestamp (unique identifier for a thread)
+  threadTs String @id
+  /// Channel ID (for looking up context by channel+thread)
+  channelId String
+  /// Serialized message history (Anthropic MessageParam[] as JSON)
+  messages Json
+  /// When this context was last used (for TTL cleanup)
+  lastActivityAt DateTime @default(now())
+  /// Number of messages in the context (for monitoring)
+  messageCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([channelId])
+  @@index([lastActivityAt])
+}
+
 /// Auth events for security monitoring (failed logins, lockouts, etc.).
 /// Used by the Compliance & Security operator agent.
 model AuthEvent {

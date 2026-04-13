@@ -118,7 +118,12 @@ async function searchCode(query: string): Promise<{
 }
 
 /**
- * Create a branch, push file changes, and open a PR.
+ * Create a branch, push file changes as a single atomic commit, and open a PR.
+ *
+ * Uses the Git Trees API instead of the Contents API so that all file
+ * changes land in one commit (clean history, no partial states).
+ *
+ * Flow: get base tree → create blobs → create new tree → create commit → create branch → create PR
  */
 async function createBranchAndPushFix(options: {
   branchName: string
@@ -130,21 +135,91 @@ async function createBranchAndPushFix(options: {
   if (!config) return { success: false, error: 'GitHub not configured' }
 
   try {
-    // 1. Get the SHA of main branch
+    // 1. Get the SHA of main branch head commit
     const mainRef = await githubFetch(`/repos/${config.repo}/git/ref/heads/main`)
     if (!mainRef.ok) {
       return { success: false, error: `Failed to get main branch: ${mainRef.status}` }
     }
     const mainData = await mainRef.json() as { object: { sha: string } }
-    const baseSha = mainData.object.sha
+    const baseCommitSha = mainData.object.sha
 
-    // 2. Create branch
+    // 2. Get the base tree SHA from the head commit
+    const commitRes = await githubFetch(`/repos/${config.repo}/git/commits/${baseCommitSha}`)
+    if (!commitRes.ok) {
+      return { success: false, error: `Failed to get base commit: ${commitRes.status}` }
+    }
+    const commitData = await commitRes.json() as { tree: { sha: string } }
+    const baseTreeSha = commitData.tree.sha
+
+    // 3. Create blobs for each file and build tree entries
+    const treeEntries: Array<{ path: string; mode: string; type: string; sha: string }> = []
+
+    for (const file of options.files) {
+      const blobRes = await githubFetch(`/repos/${config.repo}/git/blobs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: Buffer.from(file.content).toString('base64'),
+          encoding: 'base64',
+        }),
+      })
+
+      if (!blobRes.ok) {
+        const err = await blobRes.text()
+        return { success: false, error: `Failed to create blob for ${file.path}: ${err.slice(0, 200)}` }
+      }
+
+      const blobData = await blobRes.json() as { sha: string }
+      treeEntries.push({
+        path: file.path,
+        mode: '100644', // Regular file
+        type: 'blob',
+        sha: blobData.sha,
+      })
+    }
+
+    // 4. Create new tree with the file changes
+    const treeRes = await githubFetch(`/repos/${config.repo}/git/trees`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        base_tree: baseTreeSha,
+        tree: treeEntries,
+      }),
+    })
+
+    if (!treeRes.ok) {
+      const err = await treeRes.text()
+      return { success: false, error: `Failed to create tree: ${err.slice(0, 200)}` }
+    }
+
+    const treeData = await treeRes.json() as { sha: string }
+
+    // 5. Create the commit (single atomic commit for all files)
+    const newCommitRes = await githubFetch(`/repos/${config.repo}/git/commits`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `fix: ${options.prTitle}`,
+        tree: treeData.sha,
+        parents: [baseCommitSha],
+      }),
+    })
+
+    if (!newCommitRes.ok) {
+      const err = await newCommitRes.text()
+      return { success: false, error: `Failed to create commit: ${err.slice(0, 200)}` }
+    }
+
+    const newCommitData = await newCommitRes.json() as { sha: string }
+
+    // 6. Create branch pointing to the new commit
     const branchRes = await githubFetch(`/repos/${config.repo}/git/refs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ref: `refs/heads/${options.branchName}`,
-        sha: baseSha,
+        sha: newCommitData.sha,
       }),
     })
 
@@ -153,34 +228,7 @@ async function createBranchAndPushFix(options: {
       return { success: false, error: `Failed to create branch: ${err.slice(0, 200)}` }
     }
 
-    // 3. Push each file
-    for (const file of options.files) {
-      // Check if file exists to get its SHA (needed for updates)
-      const existingRes = await githubFetch(
-        `/repos/${config.repo}/contents/${file.path}?ref=${options.branchName}`
-      )
-      const existingData = existingRes.ok
-        ? await existingRes.json() as { sha: string }
-        : null
-
-      const putRes = await githubFetch(`/repos/${config.repo}/contents/${file.path}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `fix: ${options.prTitle}`,
-          content: Buffer.from(file.content).toString('base64'),
-          branch: options.branchName,
-          ...(existingData ? { sha: existingData.sha } : {}),
-        }),
-      })
-
-      if (!putRes.ok) {
-        const err = await putRes.text()
-        return { success: false, error: `Failed to push ${file.path}: ${err.slice(0, 200)}` }
-      }
-    }
-
-    // 4. Create PR
+    // 7. Create PR
     const prRes = await githubFetch(`/repos/${config.repo}/pulls`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
