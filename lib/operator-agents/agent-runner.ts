@@ -165,6 +165,11 @@ export async function runOperatorAgent(
       cost: result.costUsd,
     })
 
+    // Post to Slack if there's something worth reporting (non-blocking)
+    import('@/lib/slack/agent-alerts').then(({ postAgentResultToSlack }) =>
+      postAgentResultToSlack(result)
+    ).catch(() => { /* Slack not configured or import failed — silent */ })
+
     return result
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -185,7 +190,7 @@ export async function runOperatorAgent(
       // Best-effort — already logged the original error
     }
 
-    return {
+    const failureResult: OperatorAgentRunResult = {
       agentType,
       status: 'FAILED',
       itemsProcessed: 0,
@@ -196,6 +201,13 @@ export async function runOperatorAgent(
       costUsd: 0,
       errorMessage,
     }
+
+    // Post failures to Slack so the founder knows
+    import('@/lib/slack/agent-alerts').then(({ postAgentResultToSlack }) =>
+      postAgentResultToSlack(failureResult)
+    ).catch(() => {})
+
+    return failureResult
   }
 }
 
