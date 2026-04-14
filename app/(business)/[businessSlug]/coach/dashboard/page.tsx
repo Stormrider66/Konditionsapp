@@ -7,6 +7,7 @@ import { sv, enUS } from 'date-fns/locale'
 import { getTranslations, getLocale } from '@/i18n/server'
 import { notFound } from 'next/navigation'
 import { detectDashboardMode } from '@/lib/coach/dashboard-mode'
+import { resolveCoachWidgets, visibleKeys } from '@/lib/dashboard/resolve-widgets'
 import { DashboardStatCards } from '@/components/coach/dashboard/DashboardStatCards'
 import { DashboardModeIndicator } from '@/components/coach/dashboard/DashboardModeIndicator'
 import { PTDashboardLayout } from '@/components/coach/dashboard/PTDashboardLayout'
@@ -302,6 +303,11 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     }
   }
 
+  // Resolve coach's widget preferences for this dashboard mode
+  const resolvedWidgets = await resolveCoachWidgets({ userId: user.id, mode })
+  const visible = visibleKeys(resolvedWidgets)
+  const orderMap = new Map(resolvedWidgets.map(w => [w.key, w.order]))
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="container mx-auto py-6 px-4 max-w-7xl">
@@ -318,22 +324,24 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
         </div>
 
         {/* Key Stats - 4 cards */}
-        <DashboardStatCards
-          basePath={basePath}
-          clientsCount={clientsCount}
-          activeProgramsCount={activeProgramsCount}
-          completedLogsThisWeek={completedLogsThisWeek}
-          totalActivitiesThisWeek={totalActivitiesThisWeek}
-          logsNeedingFeedbackCount={logsNeedingFeedback.length}
-          mode={mode}
-          readinessDistribution={
-            mode === 'TEAM'
-              ? { high: highReadiness, medium: mediumReadiness, low: lowReadiness }
-              : undefined
-          }
-          gymStats={gymStats}
-          t={t}
-        />
+        {visible.has('dashboard-stat-cards') && (
+          <DashboardStatCards
+            basePath={basePath}
+            clientsCount={clientsCount}
+            activeProgramsCount={activeProgramsCount}
+            completedLogsThisWeek={completedLogsThisWeek}
+            totalActivitiesThisWeek={totalActivitiesThisWeek}
+            logsNeedingFeedbackCount={logsNeedingFeedback.length}
+            mode={mode}
+            readinessDistribution={
+              mode === 'TEAM'
+                ? { high: highReadiness, medium: mediumReadiness, low: lowReadiness }
+                : undefined
+            }
+            gymStats={gymStats}
+            t={t}
+          />
+        )}
 
         {/* Conditional layout based on mode */}
         {mode === 'TEAM' ? (
@@ -346,11 +354,15 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
               low: lowReadiness,
               total: readinessScores.length,
             }}
+            visible={visible}
+            orderMap={orderMap}
           />
         ) : mode === 'GYM' ? (
           <GymDashboardLayout
             basePath={basePath}
             pendingFeedbackCount={logsNeedingFeedback.length}
+            visible={visible}
+            orderMap={orderMap}
           />
         ) : (
           <PTDashboardLayout
@@ -359,6 +371,8 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
             recentTests={recentTests}
             upcomingEvents={upcomingEvents}
             pendingFeedbackCount={logsNeedingFeedback.length}
+            visible={visible}
+            orderMap={orderMap}
           />
         )}
       </div>
