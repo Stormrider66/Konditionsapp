@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Settings, ChevronLeft, Bot, Palette, ChevronRight, DollarSign, CreditCard, LayoutDashboard, CalendarDays, Plug, Building2 } from 'lucide-react'
+import { Settings, ChevronLeft, Bot, Palette, ChevronRight, DollarSign, CreditCard, LayoutDashboard, CalendarDays, Plug, Building2, Users } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
@@ -124,8 +124,24 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <LayoutDashboard className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">Anpassa dashboard</p>
+                                        <p className="font-semibold text-slate-900 dark:text-white">Anpassa min dashboard</p>
                                         <p className="text-xs text-slate-500 dark:text-slate-400">Välj vilka widgets du vill se och i vilken ordning</p>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
+                            </div>
+                        </div>
+                    </Link>
+                    <Link href={`${basePath}/settings/athlete-dashboards`}>
+                        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-pink-100 dark:bg-pink-500/10 flex items-center justify-center border border-pink-200 dark:border-pink-500/20">
+                                        <Users className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-slate-900 dark:text-white">Atleternas dashboards</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Sätt mallar för verksamhet, lag eller individ</p>
                                     </div>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
