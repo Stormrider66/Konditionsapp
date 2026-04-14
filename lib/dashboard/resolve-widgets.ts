@@ -46,7 +46,9 @@ interface WidgetEntry {
 interface ResolveAthleteParams {
   userId: string
   clientId: string
-  businessId: string
+  /** Optional — when missing (e.g. legacy /athlete/dashboard with no business),
+   *  coach templates are skipped and only user prefs + registry defaults apply. */
+  businessId?: string | null
   sport?: SportType | null
 }
 
@@ -65,48 +67,52 @@ export const resolveAthleteWidgets = cache(async function resolveAthleteWidgets(
   const { userId, clientId, businessId, sport } = params
 
   // Pull all the data we need in parallel.
-  const [userPrefs, teamMemberships, individualTemplates, teamTemplates, businessTemplate] =
-    await Promise.all([
-      prisma.dashboardPreference.findMany({
-        where: { userId, role: 'ATHLETE' },
-      }),
-      prisma.team.findMany({
-        where: { members: { some: { id: clientId } } },
-        select: { id: true },
-      }),
-      prisma.coachDashboardTemplate.findMany({
-        where: {
-          businessId,
-          scope: 'INDIVIDUAL',
-          targetId: clientId,
-          OR: [{ sport: null }, { sport: sport ?? undefined }],
-        },
-      }),
-      prisma.coachDashboardTemplate.findMany({
-        where: {
-          businessId,
-          scope: 'TEAM',
-          OR: [{ sport: null }, { sport: sport ?? undefined }],
-        },
-      }),
-      prisma.coachDashboardTemplate.findFirst({
-        where: {
-          businessId,
-          scope: 'BUSINESS_DEFAULT',
-          OR: [{ sport: null }, { sport: sport ?? undefined }],
-        },
-        // Sport-specific default beats null-sport default
-        orderBy: { sport: 'desc' },
-      }),
-    ])
+  // When businessId is absent (legacy /athlete/dashboard fallback), skip
+  // coach-template queries entirely.
+  const [userPrefs, teamMemberships, allTemplates] = await Promise.all([
+    prisma.dashboardPreference.findMany({
+      where: { userId, role: 'ATHLETE' },
+    }),
+    businessId
+      ? prisma.team.findMany({
+          where: { members: { some: { id: clientId } } },
+          select: { id: true },
+        })
+      : Promise.resolve([] as Array<{ id: string }>),
+    businessId
+      ? prisma.coachDashboardTemplate.findMany({
+          where: {
+            businessId,
+            OR: [{ sport: null }, { sport: sport ?? undefined }],
+            // Cover all three scopes in one query — filter in JS below.
+          },
+        })
+      : Promise.resolve([] as never[]),
+  ])
 
-  // Filter team templates to ones that target a team this athlete belongs to
+  // Partition templates by scope and pick the most relevant one per bucket.
+  // For BUSINESS_DEFAULT: sport-specific beats sport-null.
+  // For TEAM: must match a team this athlete belongs to.
+  // For INDIVIDUAL: must match this athlete (clientId).
   const athleteTeamIds = new Set(teamMemberships.map(t => t.id))
-  const relevantTeamTemplates = teamTemplates.filter(
-    t => t.targetId && athleteTeamIds.has(t.targetId)
+  const pickBest = <T extends { sport: SportType | null }>(rows: T[]): T | null => {
+    if (rows.length === 0) return null
+    // Sport-specific (sport === active sport) beats sport-null.
+    const sportSpecific = rows.find(r => r.sport === sport)
+    return sportSpecific ?? rows[0]
+  }
+
+  const individualTemplate = pickBest(
+    allTemplates.filter(t => t.scope === 'INDIVIDUAL' && t.targetId === clientId)
   )
-  const teamTemplate = relevantTeamTemplates[0] ?? null
-  const individualTemplate = individualTemplates[0] ?? null
+  const teamTemplate = pickBest(
+    allTemplates.filter(
+      t => t.scope === 'TEAM' && t.targetId && athleteTeamIds.has(t.targetId)
+    )
+  )
+  const businessTemplate = pickBest(
+    allTemplates.filter(t => t.scope === 'BUSINESS_DEFAULT')
+  )
 
   // Build per-key lookup map for user prefs.
   // Sport-specific prefs (sport === current sport) override sport-null prefs
@@ -127,10 +133,14 @@ export const resolveAthleteWidgets = cache(async function resolveAthleteWidgets(
 
   const audienceWidgets = getAthleteWidgets()
 
-  // Filter widgets by sport relevance
+  // Filter widgets by sport relevance.
+  // Required widgets ALWAYS pass — they're safety/billing critical and must
+  // not be filtered out just because their sports list doesn't include the
+  // athlete's current sport.
   const sportRelevant = audienceWidgets.filter(w => {
+    if (w.required) return true
     if (!w.sports || w.sports.length === 0) return true
-    if (!sport) return false
+    if (!sport) return true // No active sport → don't filter
     return w.sports.includes(sport)
   })
 

@@ -14,6 +14,7 @@
 import { NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { prisma } from '@/lib/prisma'
 import { upsertCoachTemplateSchema } from '@/lib/validations/dashboard-preferences'
 import type { SportType } from '@prisma/client'
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
 
   const membership = await prisma.businessMember.findFirst({
     where: { businessId, userId: user.id, isActive: true },
+    select: { role: true },
   })
   if (!membership) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -70,6 +72,44 @@ export async function POST(request: Request) {
 
   const { name, scope, targetId, sport, widgets } = parsed.data
 
+  // Validate that the target (team or athlete) belongs to this coach.
+  // Without this check, a coach could create a template for someone else's
+  // team/athlete in the same business.
+  if (scope !== 'BUSINESS_DEFAULT' && targetId) {
+    const coachIds = await getCoachScopedIds(user.id, businessId, membership.role)
+    if (scope === 'TEAM') {
+      const team = await prisma.team.findFirst({
+        where: { id: targetId, userId: { in: coachIds } },
+        select: { id: true },
+      })
+      if (!team) {
+        return NextResponse.json(
+          { error: 'Team not found or not owned by this coach' },
+          { status: 403 }
+        )
+      }
+    } else if (scope === 'INDIVIDUAL') {
+      const client = await prisma.client.findFirst({
+        where: { id: targetId, userId: { in: coachIds } },
+        select: { id: true },
+      })
+      if (!client) {
+        return NextResponse.json(
+          { error: 'Athlete not found or not coached by this coach' },
+          { status: 403 }
+        )
+      }
+    }
+  }
+
+  // Server-side enforcement: required widgets are always visible regardless
+  // of what the client sends.
+  const { WIDGET_REGISTRY } = await import('@/lib/dashboard/widget-registry')
+  const sanitizedWidgets = widgets.map(w => ({
+    ...w,
+    visible: WIDGET_REGISTRY[w.widgetKey]?.required ? true : w.visible,
+  }))
+
   // Upsert by unique (businessId, scope, targetId, sport)
   const template = await prisma.coachDashboardTemplate.upsert({
     where: {
@@ -82,7 +122,7 @@ export async function POST(request: Request) {
     },
     update: {
       name,
-      widgets: widgets as any,
+      widgets: sanitizedWidgets as any,
     },
     create: {
       coachId: user.id,
@@ -91,7 +131,7 @@ export async function POST(request: Request) {
       scope,
       targetId: targetId ?? null,
       sport: (sport as SportType | null) ?? null,
-      widgets: widgets as any,
+      widgets: sanitizedWidgets as any,
     },
   })
 

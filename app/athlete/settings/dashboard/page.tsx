@@ -26,6 +26,7 @@ import {
   type WidgetDefinition,
 } from '@/lib/dashboard/widget-registry'
 import { Sparkles } from 'lucide-react'
+import type { SportType } from '@prisma/client'
 
 interface PreferenceRow {
   widgetKey: string
@@ -40,7 +41,12 @@ interface WidgetState {
   definition: WidgetDefinition
 }
 
-export default function DashboardSettingsPage() {
+interface DashboardSettingsPageProps {
+  /** The athlete's currently active sport — used to make presets sport-aware. */
+  currentSport?: SportType | null
+}
+
+export default function DashboardSettingsPage({ currentSport = null }: DashboardSettingsPageProps = {}) {
   const basePath = useBasePath()
   const allWidgets = useMemo(() => getAthleteWidgets(), [])
 
@@ -114,7 +120,9 @@ export default function DashboardSettingsPage() {
   function applyPreset(presetKey: PresetKey) {
     const preset = PRESETS[presetKey]
     if (!preset) return
-    const visibleSet = preset.resolve(allWidgets, null)
+    // Pass the athlete's current sport so sport-aware presets (e.g. sport-focus)
+    // can curate the right widget set.
+    const visibleSet = preset.resolve(allWidgets, currentSport)
     setWidgets(prev =>
       prev.map(w => ({
         ...w,
@@ -317,11 +325,18 @@ export default function DashboardSettingsPage() {
 
                   {/* Widget info */}
                   <div className="flex-1 min-w-0">
-                    <Label className="text-base font-medium flex items-center gap-2">
+                    <Label className="text-base font-medium flex items-center gap-2 flex-wrap">
                       {w.definition.name}
                       {w.definition.required && (
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                           <Lock className="h-3 w-3" /> krävs
+                        </span>
+                      )}
+                      {w.definition.sports && w.definition.sports.length > 0 && (
+                        <span className="text-xs text-amber-600 dark:text-amber-400">
+                          {currentSport && w.definition.sports.includes(currentSport)
+                            ? '• visas för din sport'
+                            : '• endast för vissa sporter'}
                         </span>
                       )}
                     </Label>

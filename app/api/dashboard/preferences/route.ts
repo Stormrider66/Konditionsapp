@@ -14,6 +14,7 @@ import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { updatePreferencesSchema } from '@/lib/validations/dashboard-preferences'
+import { WIDGET_REGISTRY } from '@/lib/dashboard/widget-registry'
 import type { Prisma, SportType } from '@prisma/client'
 
 export async function GET(request: Request) {
@@ -77,7 +78,9 @@ export async function PUT(request: Request) {
         mode: mode ?? null,
         sport: (sport as SportType | null) ?? null,
         widgetKey: p.widgetKey,
-        visible: p.visible,
+        // Server-side enforcement: required widgets are always visible
+        // regardless of what the client sends.
+        visible: WIDGET_REGISTRY[p.widgetKey]?.required ? true : p.visible,
         order: p.order ?? idx * 10,
       })),
     }),
