@@ -20,9 +20,12 @@ import { useBasePath } from '@/lib/contexts/BasePathContext'
 import {
   getAthleteWidgets,
   CATEGORY_LABELS,
+  PRESETS,
+  type PresetKey,
   type WidgetCategory,
   type WidgetDefinition,
 } from '@/lib/dashboard/widget-registry'
+import { Sparkles } from 'lucide-react'
 
 interface PreferenceRow {
   widgetKey: string
@@ -102,6 +105,24 @@ export default function DashboardSettingsPage() {
     )
     setHasChanges(true)
     setSaveMessage(null)
+  }
+
+  /**
+   * Apply a preset by setting visibility to the preset's curated widget set.
+   * Doesn't save automatically — user reviews and clicks Save.
+   */
+  function applyPreset(presetKey: PresetKey) {
+    const preset = PRESETS[presetKey]
+    if (!preset) return
+    const visibleSet = preset.resolve(allWidgets, null)
+    setWidgets(prev =>
+      prev.map(w => ({
+        ...w,
+        visible: w.definition.required ? true : visibleSet.has(w.key),
+      }))
+    )
+    setHasChanges(true)
+    setSaveMessage(`Förhandsgranskning av "${preset.name}" — klicka Spara för att aktivera`)
   }
 
   /**
@@ -212,6 +233,45 @@ export default function DashboardSettingsPage() {
           </p>
         </div>
       </div>
+
+      {/* Sport-aware info */}
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-foreground">Tips:</strong> Vissa widgets visas bara när de är relevanta för din valda sport.
+            Om du byter sport anpassas dashboardvyn automatiskt — du behöver inte ändra inställningarna varje gång.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Presets */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-amber-500" />
+            Snabbinställningar
+          </CardTitle>
+          <CardDescription>
+            Förvalda kombinationer för olika fokus. Du kan finjustera efteråt.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {(Object.keys(PRESETS) as PresetKey[]).map(key => {
+            const p = PRESETS[key]
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => applyPreset(key)}
+                className="text-left p-3 rounded-lg border bg-card hover:bg-muted/40 transition"
+              >
+                <p className="font-medium">{p.name}</p>
+                <p className="text-xs text-muted-foreground">{p.description}</p>
+              </button>
+            )
+          })}
+        </CardContent>
+      </Card>
 
       {/* Widget groups */}
       {(Object.keys(grouped) as WidgetCategory[]).map(category => {

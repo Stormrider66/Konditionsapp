@@ -108,13 +108,18 @@ export const resolveAthleteWidgets = cache(async function resolveAthleteWidgets(
   const teamTemplate = relevantTeamTemplates[0] ?? null
   const individualTemplate = individualTemplates[0] ?? null
 
-  // Build per-key lookup maps
-  const userMap = new Map(
-    userPrefs
-      // For now, ignore per-sport user prefs (Phase 5+) — only widgetKey-level
-      .filter(p => p.sport === null || p.sport === sport)
-      .map(p => [p.widgetKey, p])
-  )
+  // Build per-key lookup map for user prefs.
+  // Sport-specific prefs (sport === current sport) override sport-null prefs
+  // so the dashboard adapts when the athlete switches sport.
+  const userMap = new Map<string, (typeof userPrefs)[number]>()
+  for (const p of userPrefs) {
+    if (p.sport !== null && p.sport !== sport) continue
+    const existing = userMap.get(p.widgetKey)
+    // Prefer sport-specific over sport-null
+    if (!existing || (p.sport !== null && existing.sport === null)) {
+      userMap.set(p.widgetKey, p)
+    }
+  }
 
   const individualMap = mapTemplateWidgets(individualTemplate?.widgets)
   const teamMap = mapTemplateWidgets(teamTemplate?.widgets)

@@ -173,6 +173,11 @@ const ATHLETE_WIDGETS: WidgetDefinition[] = [
     audience: ['athlete'],
     defaultVisible: true,
     defaultOrder: 120,
+    // Only relevant for team / racket sports where athletes are part of a team
+    sports: [
+      'TEAM_FOOTBALL', 'TEAM_ICE_HOCKEY', 'TEAM_HANDBALL', 'TEAM_FLOORBALL',
+      'TEAM_BASKETBALL', 'TEAM_VOLLEYBALL', 'TENNIS', 'PADEL',
+    ],
   },
   {
     key: 'upcoming-workouts',
@@ -209,6 +214,8 @@ const ATHLETE_WIDGETS: WidgetDefinition[] = [
     audience: ['athlete'],
     defaultVisible: true,
     defaultOrder: 160,
+    // Zone training is meaningful for endurance + triathlon
+    sports: ['RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'TRIATHLON'],
   },
   {
     key: 'nutrition-dashboard',
@@ -236,6 +243,12 @@ const ATHLETE_WIDGETS: WidgetDefinition[] = [
     audience: ['athlete'],
     defaultVisible: true,
     defaultOrder: 190,
+    // Interval testing is most common for endurance + team conditioning
+    sports: [
+      'RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'TRIATHLON',
+      'TEAM_FOOTBALL', 'TEAM_ICE_HOCKEY', 'TEAM_HANDBALL', 'TEAM_FLOORBALL',
+      'TEAM_BASKETBALL', 'TEAM_VOLLEYBALL',
+    ],
   },
   {
     key: 'athlete-drill-list',
@@ -245,6 +258,11 @@ const ATHLETE_WIDGETS: WidgetDefinition[] = [
     audience: ['athlete'],
     defaultVisible: true,
     defaultOrder: 200,
+    // Drills are mainly for team + racket sports
+    sports: [
+      'TEAM_FOOTBALL', 'TEAM_ICE_HOCKEY', 'TEAM_HANDBALL', 'TEAM_FLOORBALL',
+      'TEAM_BASKETBALL', 'TEAM_VOLLEYBALL', 'TENNIS', 'PADEL',
+    ],
   },
 
   // --- Secondary grid (right) ---
@@ -293,6 +311,8 @@ const ATHLETE_WIDGETS: WidgetDefinition[] = [
     audience: ['athlete'],
     defaultVisible: true,
     defaultOrder: 250,
+    // WODs are CrossFit/HYROX/general fitness style
+    sports: ['HYROX', 'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS', 'STRENGTH'],
   },
   {
     key: 'garmin-health-card',
@@ -497,6 +517,141 @@ export function groupByCategory(widgets: WidgetDefinition[]): Record<WidgetCateg
     groups[w.category].push(w)
   }
   return groups
+}
+
+// ---------------------------------------------------------------------------
+// PRESETS
+// ---------------------------------------------------------------------------
+
+export type PresetKey = 'standard' | 'minimal' | 'performance' | 'recovery' | 'sport-focus'
+
+export interface Preset {
+  key: PresetKey
+  name: string
+  description: string
+  /** Returns the visible widget keys for this preset, given the athlete's sport. */
+  resolve: (allWidgets: WidgetDefinition[], sport?: SportType | null) => Set<string>
+}
+
+const teamSports: SportType[] = [
+  'TEAM_FOOTBALL', 'TEAM_ICE_HOCKEY', 'TEAM_HANDBALL', 'TEAM_FLOORBALL',
+  'TEAM_BASKETBALL', 'TEAM_VOLLEYBALL',
+]
+const enduranceSports: SportType[] = ['RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'TRIATHLON']
+const strengthFocusSports: SportType[] = ['STRENGTH', 'HYROX', 'FUNCTIONAL_FITNESS', 'GENERAL_FITNESS']
+
+export const PRESETS: Record<PresetKey, Preset> = {
+  standard: {
+    key: 'standard',
+    name: 'Standard',
+    description: 'Visa allt — den fullständiga dashboard-vyn',
+    resolve: (all) => new Set(all.filter(w => w.defaultVisible).map(w => w.key)),
+  },
+  minimal: {
+    key: 'minimal',
+    name: 'Minimal',
+    description: 'Bara det viktigaste: dagens pass, readiness och program',
+    resolve: (all) => {
+      const keep = new Set([
+        'hero-card-slider',
+        'readiness-panel',
+        'active-restrictions',
+        'active-programs',
+        'upcoming-workouts',
+        'morning-briefing',
+      ])
+      return new Set(all.filter(w => w.required || keep.has(w.key)).map(w => w.key))
+    },
+  },
+  performance: {
+    key: 'performance',
+    name: 'Prestation',
+    description: 'Fokus på träningsanalys, trender och AI-insikter',
+    resolve: (all) => {
+      const keep = new Set([
+        'hero-card-slider',
+        'readiness-panel',
+        'active-restrictions',
+        'morning-briefing',
+        'pre-workout-nudge',
+        'pattern-alert',
+        'mental-prep',
+        'ai-suggestions-banner',
+        'agent-recommendations',
+        'sport-specific-dashboard',
+        'weekly-training-summary',
+        'training-trend-chart',
+        'zone-distribution-chart',
+        'integrated-recent-activity',
+        'wod-history-summary',
+        'active-programs',
+        'upcoming-workouts',
+        'garmin-health-card',
+      ])
+      return new Set(all.filter(w => w.required || keep.has(w.key)).map(w => w.key))
+    },
+  },
+  recovery: {
+    key: 'recovery',
+    name: 'Återhämtning',
+    description: 'Fokus på readiness, sömn, näring och mental hälsa',
+    resolve: (all) => {
+      const keep = new Set([
+        'hero-card-slider',
+        'readiness-panel',
+        'active-restrictions',
+        'garmin-health-card',
+        'mental-prep',
+        'nutrition-timing',
+        'nutrition-dashboard',
+        'post-workout-check',
+        'morning-briefing',
+        'pattern-alert',
+        'milestone-celebration',
+        'accountability-streak',
+      ])
+      return new Set(all.filter(w => w.required || keep.has(w.key)).map(w => w.key))
+    },
+  },
+  'sport-focus': {
+    key: 'sport-focus',
+    name: 'Sport-fokus',
+    description: 'Anpassad efter din primära sport (lag-, kondition- eller styrkefokus)',
+    resolve: (all, sport) => {
+      // Sport-aware curated set
+      const base = new Set([
+        'hero-card-slider',
+        'readiness-panel',
+        'active-restrictions',
+        'sport-specific-dashboard',
+        'active-programs',
+        'upcoming-workouts',
+      ])
+      if (sport && teamSports.includes(sport)) {
+        base.add('upcoming-team-events')
+        base.add('athlete-drill-list')
+        base.add('interval-results-history')
+        base.add('agent-recommendations')
+      } else if (sport && enduranceSports.includes(sport)) {
+        base.add('weekly-training-summary')
+        base.add('training-trend-chart')
+        base.add('zone-distribution-chart')
+        base.add('integrated-recent-activity')
+        base.add('garmin-health-card')
+        base.add('morning-briefing')
+      } else if (sport && strengthFocusSports.includes(sport)) {
+        base.add('wod-history-summary')
+        base.add('weekly-training-summary')
+        base.add('nutrition-dashboard')
+        base.add('milestone-celebration')
+      } else if (sport === 'TENNIS' || sport === 'PADEL') {
+        base.add('upcoming-team-events')
+        base.add('agent-recommendations')
+        base.add('weekly-training-summary')
+      }
+      return new Set(all.filter(w => w.required || base.has(w.key)).map(w => w.key))
+    },
+  },
 }
 
 export const CATEGORY_LABELS: Record<WidgetCategory, string> = {
