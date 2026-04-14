@@ -6,11 +6,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { ArrowLeft, Save, Loader2, RotateCcw, LayoutDashboard, Lock } from 'lucide-react'
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  RotateCcw,
+  LayoutDashboard,
+  Lock,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import {
   getAthleteWidgets,
-  groupByCategory,
   CATEGORY_LABELS,
   type WidgetCategory,
   type WidgetDefinition,
@@ -22,19 +30,27 @@ interface PreferenceRow {
   order: number
 }
 
+interface WidgetState {
+  key: string
+  visible: boolean
+  order: number
+  definition: WidgetDefinition
+}
+
 export default function DashboardSettingsPage() {
   const basePath = useBasePath()
   const allWidgets = useMemo(() => getAthleteWidgets(), [])
-  const grouped = useMemo(() => groupByCategory(allWidgets), [allWidgets])
 
   // Build initial state from registry defaults — overridden by saved prefs after fetch.
-  const buildDefaults = (): Record<string, boolean> => {
-    const map: Record<string, boolean> = {}
-    for (const w of allWidgets) map[w.key] = w.defaultVisible
-    return map
-  }
+  const buildDefaults = (): WidgetState[] =>
+    allWidgets.map(w => ({
+      key: w.key,
+      visible: w.defaultVisible,
+      order: w.defaultOrder,
+      definition: w,
+    }))
 
-  const [visibility, setVisibility] = useState<Record<string, boolean>>(buildDefaults)
+  const [widgets, setWidgets] = useState<WidgetState[]>(buildDefaults)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
@@ -48,11 +64,15 @@ export default function DashboardSettingsPage() {
           const data = await res.json()
           const prefs: PreferenceRow[] = data.preferences ?? []
           if (prefs.length > 0) {
-            setVisibility(prev => {
-              const next = { ...prev }
-              for (const p of prefs) next[p.widgetKey] = p.visible
-              return next
-            })
+            const prefMap = new Map(prefs.map(p => [p.widgetKey, p]))
+            setWidgets(prev =>
+              prev
+                .map(w => {
+                  const p = prefMap.get(w.key)
+                  return p ? { ...w, visible: p.visible, order: p.order } : w
+                })
+                .sort((a, b) => a.order - b.order)
+            )
           }
         }
       } catch (err) {
@@ -64,9 +84,49 @@ export default function DashboardSettingsPage() {
     load()
   }, [])
 
-  function toggle(widget: WidgetDefinition, value: boolean) {
-    if (widget.required) return
-    setVisibility(prev => ({ ...prev, [widget.key]: value }))
+  // Group widgets by category, preserving the current order within each group
+  const grouped = useMemo(() => {
+    const map: Partial<Record<WidgetCategory, WidgetState[]>> = {}
+    for (const w of widgets) {
+      const cat = w.definition.category
+      if (!map[cat]) map[cat] = []
+      map[cat]!.push(w)
+    }
+    return map
+  }, [widgets])
+
+  function toggle(widget: WidgetState, value: boolean) {
+    if (widget.definition.required) return
+    setWidgets(prev =>
+      prev.map(w => (w.key === widget.key ? { ...w, visible: value } : w))
+    )
+    setHasChanges(true)
+    setSaveMessage(null)
+  }
+
+  /**
+   * Move a widget up or down within its category. Swaps order values with
+   * the previous/next visible-or-hidden widget in the same category.
+   */
+  function move(widget: WidgetState, direction: 'up' | 'down') {
+    const cat = widget.definition.category
+    const inCategory = widgets.filter(w => w.definition.category === cat)
+    const idx = inCategory.findIndex(w => w.key === widget.key)
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= inCategory.length) return
+
+    const a = inCategory[idx]
+    const b = inCategory[swapIdx]
+
+    setWidgets(prev =>
+      prev
+        .map(w => {
+          if (w.key === a.key) return { ...w, order: b.order }
+          if (w.key === b.key) return { ...w, order: a.order }
+          return w
+        })
+        .sort((x, y) => x.order - y.order)
+    )
     setHasChanges(true)
     setSaveMessage(null)
   }
@@ -75,10 +135,10 @@ export default function DashboardSettingsPage() {
     setIsSaving(true)
     setSaveMessage(null)
     try {
-      const preferences = allWidgets.map((w, idx) => ({
+      const preferences = widgets.map(w => ({
         widgetKey: w.key,
-        visible: w.required ? true : (visibility[w.key] ?? w.defaultVisible),
-        order: w.defaultOrder + idx, // stable ordering until Phase 2 reorder UI
+        visible: w.definition.required ? true : w.visible,
+        order: w.order,
       }))
 
       const res = await fetch('/api/dashboard/preferences', {
@@ -108,7 +168,7 @@ export default function DashboardSettingsPage() {
     try {
       const res = await fetch('/api/dashboard/preferences?role=ATHLETE', { method: 'DELETE' })
       if (res.ok) {
-        setVisibility(buildDefaults())
+        setWidgets(buildDefaults())
         setHasChanges(false)
         setSaveMessage('Återställt till standardinställningar')
         setTimeout(() => setSaveMessage(null), 3000)
@@ -130,8 +190,8 @@ export default function DashboardSettingsPage() {
     )
   }
 
-  const visibleCount = Object.values(visibility).filter(Boolean).length
-  const totalCount = allWidgets.length
+  const visibleCount = widgets.filter(w => w.visible).length
+  const totalCount = widgets.length
 
   return (
     <div className="container max-w-3xl py-8 space-y-6">
@@ -148,39 +208,71 @@ export default function DashboardSettingsPage() {
             Anpassa dashboard
           </h1>
           <p className="text-muted-foreground text-sm">
-            Välj vilka widgets du vill se på din dashboard ({visibleCount} av {totalCount} synliga)
+            Välj vilka widgets du vill se och i vilken ordning ({visibleCount} av {totalCount} synliga)
           </p>
         </div>
       </div>
 
       {/* Widget groups */}
       {(Object.keys(grouped) as WidgetCategory[]).map(category => {
-        const widgets = grouped[category]
-        if (!widgets || widgets.length === 0) return null
+        const items = grouped[category]
+        if (!items || items.length === 0) return null
         return (
           <Card key={category}>
             <CardHeader>
               <CardTitle>{CATEGORY_LABELS[category]}</CardTitle>
-              <CardDescription>{widgets.length} widget{widgets.length === 1 ? '' : 's'}</CardDescription>
+              <CardDescription>
+                {items.length} widget{items.length === 1 ? '' : 's'} {'\u2022'} ändra ordning med pilarna
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {widgets.map(widget => (
-                <div key={widget.key} className="flex items-center justify-between gap-4">
+            <CardContent className="space-y-3">
+              {items.map((w, idx) => (
+                <div
+                  key={w.key}
+                  className="flex items-center gap-3 p-3 rounded-lg border bg-card"
+                >
+                  {/* Reorder controls */}
+                  <div className="flex flex-col gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      disabled={idx === 0}
+                      onClick={() => move(w, 'up')}
+                      aria-label="Flytta upp"
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      disabled={idx === items.length - 1}
+                      onClick={() => move(w, 'down')}
+                      aria-label="Flytta ner"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Widget info */}
                   <div className="flex-1 min-w-0">
                     <Label className="text-base font-medium flex items-center gap-2">
-                      {widget.name}
-                      {widget.required && (
+                      {w.definition.name}
+                      {w.definition.required && (
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                           <Lock className="h-3 w-3" /> krävs
                         </span>
                       )}
                     </Label>
-                    <p className="text-sm text-muted-foreground">{widget.description}</p>
+                    <p className="text-sm text-muted-foreground">{w.definition.description}</p>
                   </div>
+
+                  {/* Visibility toggle */}
                   <Switch
-                    checked={widget.required ? true : (visibility[widget.key] ?? widget.defaultVisible)}
-                    onCheckedChange={v => toggle(widget, v)}
-                    disabled={widget.required}
+                    checked={w.definition.required ? true : w.visible}
+                    onCheckedChange={v => toggle(w, v)}
+                    disabled={w.definition.required}
                   />
                 </div>
               ))}
@@ -197,7 +289,13 @@ export default function DashboardSettingsPage() {
             Återställ
           </Button>
           {saveMessage && (
-            <p className={`text-sm ${saveMessage.includes('sparade') || saveMessage.includes('Återställt') ? 'text-green-600' : 'text-red-600'}`}>
+            <p
+              className={`text-sm ${
+                saveMessage.includes('sparade') || saveMessage.includes('Återställt')
+                  ? 'text-green-600'
+                  : 'text-red-600'
+              }`}
+            >
               {saveMessage}
             </p>
           )}

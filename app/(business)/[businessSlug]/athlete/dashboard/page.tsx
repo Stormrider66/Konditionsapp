@@ -126,6 +126,11 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   })
   const visible = visibleKeys(resolvedWidgets)
   const isVisible = (key: string) => visible.has(key)
+  // Map widgetKey -> order so we can sort sections by user-defined ordering.
+  const orderMap = new Map(resolvedWidgets.map(w => [w.key, w.order]))
+  const orderOf = (key: string) => orderMap.get(key) ?? 9999
+  const sortByOrder = <T extends { key: string }>(items: T[]): T[] =>
+    [...items].sort((a, b) => orderOf(a.key) - orderOf(b.key))
 
   // Nutrition-focused users get a dedicated dashboard (skip all training data fetches)
   if (primarySport === 'NUTRITION') {
@@ -764,47 +769,23 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         )}
       </div>
 
-      {/* Contextual Cards */}
-      {isVisible('milestone-celebration') && (
-        <div className="mb-6">
-          <MilestoneCelebrationCard />
-        </div>
-      )}
-      {isVisible('morning-briefing') && (
-        <div className="mb-6">
-          <MorningBriefingCard />
-        </div>
-      )}
-      {isVisible('pre-workout-nudge') && (
-        <div className="mb-6">
-          <PreWorkoutNudgeCard />
-        </div>
-      )}
-      {isVisible('pattern-alert') && (
-        <div className="mb-6">
-          <PatternAlertCard />
-        </div>
-      )}
-      {isVisible('mental-prep') && (
-        <div className="mb-6">
-          <MentalPrepCard />
-        </div>
-      )}
-      {isVisible('nutrition-timing') && (
-        <div className="mb-6">
-          <NutritionTimingCard />
-        </div>
-      )}
-      {isVisible('post-workout-check') && (
-        <div className="mb-6">
-          <PostWorkoutCheckCard />
-        </div>
-      )}
-      {isVisible('ai-suggestions-banner') && (
-        <div className="mb-8">
-          <AISuggestionsBanner />
-        </div>
-      )}
+      {/* Contextual Cards — rendered in user-defined order */}
+      {sortByOrder([
+        { key: 'milestone-celebration', node: <MilestoneCelebrationCard /> },
+        { key: 'morning-briefing', node: <MorningBriefingCard /> },
+        { key: 'pre-workout-nudge', node: <PreWorkoutNudgeCard /> },
+        { key: 'pattern-alert', node: <PatternAlertCard /> },
+        { key: 'mental-prep', node: <MentalPrepCard /> },
+        { key: 'nutrition-timing', node: <NutritionTimingCard /> },
+        { key: 'post-workout-check', node: <PostWorkoutCheckCard /> },
+        { key: 'ai-suggestions-banner', node: <AISuggestionsBanner /> },
+      ])
+        .filter(item => isVisible(item.key))
+        .map(item => (
+          <div key={item.key} className="mb-6">
+            {item.node}
+          </div>
+        ))}
 
       {/* Sport-Specific Dashboard */}
       {isVisible('sport-specific-dashboard') && renderSportDashboard() && (
@@ -816,92 +797,74 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
       {/* Secondary Grid (Widget Layout) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* Left Column (2/3) */}
+        {/* Left Column (2/3) — rendered in user-defined order */}
         <div className="lg:col-span-2 space-y-6">
-          {isVisible('upcoming-team-events') && <UpcomingTeamEvents />}
-
-          {isVisible('upcoming-workouts') && (
-            <UpcomingWorkouts items={upcomingItems} variant="glass" basePath={basePath} />
-          )}
-
-          {isVisible('weekly-training-summary') && (
-            <WeeklyTrainingSummaryCard
-              clientId={clientId}
-              variant="glass"
-              activeSport={primarySport || 'RUNNING'}
-              intensityTargets={intensityTargets}
-            />
-          )}
-
-          {isVisible('training-trend-chart') && (
-            <TrainingTrendChart clientId={clientId} variant="glass" weeks={12} />
-          )}
-
-          {isVisible('zone-distribution-chart') && (
-            <ZoneDistributionChart clientId={clientId} variant="glass" />
-          )}
-
-          {isVisible('nutrition-dashboard') && <NutritionDashboard clientId={clientId} />}
-
-          {isVisible('integrated-recent-activity') && (
-            <IntegratedRecentActivity clientId={clientId} variant="glass" />
-          )}
-
-          {isVisible('interval-results-history') && <IntervalResultsHistory />}
-
-          {isVisible('athlete-drill-list') && <AthleteDrillList />}
+          {sortByOrder([
+            { key: 'upcoming-team-events', node: <UpcomingTeamEvents /> },
+            { key: 'upcoming-workouts', node: <UpcomingWorkouts items={upcomingItems} variant="glass" basePath={basePath} /> },
+            { key: 'weekly-training-summary', node: (
+              <WeeklyTrainingSummaryCard
+                clientId={clientId}
+                variant="glass"
+                activeSport={primarySport || 'RUNNING'}
+                intensityTargets={intensityTargets}
+              />
+            ) },
+            { key: 'training-trend-chart', node: <TrainingTrendChart clientId={clientId} variant="glass" weeks={12} /> },
+            { key: 'zone-distribution-chart', node: <ZoneDistributionChart clientId={clientId} variant="glass" /> },
+            { key: 'nutrition-dashboard', node: <NutritionDashboard clientId={clientId} /> },
+            { key: 'integrated-recent-activity', node: <IntegratedRecentActivity clientId={clientId} variant="glass" /> },
+            { key: 'interval-results-history', node: <IntervalResultsHistory /> },
+            { key: 'athlete-drill-list', node: <AthleteDrillList /> },
+          ])
+            .filter(item => isVisible(item.key))
+            .map(item => <div key={item.key}>{item.node}</div>)}
         </div>
 
-        {/* Right Column (1/3) */}
+        {/* Right Column (1/3) — rendered in user-defined order.
+            Active restrictions stay pinned at top: it's a required, safety-critical widget. */}
         <div className="space-y-6">
-          {isVisible('accountability-streak') && (
-            <AccountabilityStreakWidget basePath={basePath} />
-          )}
-
-          {isVisible('agent-recommendations') && (
-            <AgentRecommendationsPanel basePath={basePath} />
-          )}
-
-          {/* Active restrictions — required widget, safety-critical */}
           <ActiveRestrictionsCard clientId={clientId} />
 
-          {isVisible('active-programs') && (
-            <ActivePrograms
-              programs={activePrograms}
-              variant="glass"
-              basePath={basePath}
-              lastCompletedProgram={lastCompletedProgram ? {
-                id: lastCompletedProgram.id,
-                name: lastCompletedProgram.name,
-                endDate: lastCompletedProgram.endDate,
-              } : undefined}
-              athleteContext={dashboardAthleteContext}
-            />
-          )}
-
-          {isVisible('wod-history-summary') && (
-            <WODHistorySummary recentWods={wodHistory} stats={wodStats} basePath={basePath} />
-          )}
-
-          {isVisible('garmin-health-card') && (
-            <GarminHealthCard
-              hrvRMSSD={latestMetrics?.hrvRMSSD}
-              hrvStatus={latestMetrics?.hrvStatus}
-              restingHR={latestMetrics?.restingHR}
-              sleepHours={latestMetrics?.sleepHours}
-              sleepQuality={latestMetrics?.sleepQuality}
-              stress={latestMetrics?.stress}
-              sleepDetails={(() => {
-                const fs = latestMetrics?.factorScores as Record<string, any> | null
-                return fs?.garminSleep ? {
-                  deepSleepMinutes: fs.garminSleep.deepSleepMinutes,
-                  lightSleepMinutes: fs.garminSleep.lightSleepMinutes,
-                  remSleepMinutes: fs.garminSleep.remSleepMinutes,
-                  awakeMinutes: fs.garminSleep.awakeMinutes,
-                } : null
-              })()}
-            />
-          )}
+          {sortByOrder([
+            { key: 'accountability-streak', node: <AccountabilityStreakWidget basePath={basePath} /> },
+            { key: 'agent-recommendations', node: <AgentRecommendationsPanel basePath={basePath} /> },
+            { key: 'active-programs', node: (
+              <ActivePrograms
+                programs={activePrograms}
+                variant="glass"
+                basePath={basePath}
+                lastCompletedProgram={lastCompletedProgram ? {
+                  id: lastCompletedProgram.id,
+                  name: lastCompletedProgram.name,
+                  endDate: lastCompletedProgram.endDate,
+                } : undefined}
+                athleteContext={dashboardAthleteContext}
+              />
+            ) },
+            { key: 'wod-history-summary', node: <WODHistorySummary recentWods={wodHistory} stats={wodStats} basePath={basePath} /> },
+            { key: 'garmin-health-card', node: (
+              <GarminHealthCard
+                hrvRMSSD={latestMetrics?.hrvRMSSD}
+                hrvStatus={latestMetrics?.hrvStatus}
+                restingHR={latestMetrics?.restingHR}
+                sleepHours={latestMetrics?.sleepHours}
+                sleepQuality={latestMetrics?.sleepQuality}
+                stress={latestMetrics?.stress}
+                sleepDetails={(() => {
+                  const fs = latestMetrics?.factorScores as Record<string, any> | null
+                  return fs?.garminSleep ? {
+                    deepSleepMinutes: fs.garminSleep.deepSleepMinutes,
+                    lightSleepMinutes: fs.garminSleep.lightSleepMinutes,
+                    remSleepMinutes: fs.garminSleep.remSleepMinutes,
+                    awakeMinutes: fs.garminSleep.awakeMinutes,
+                  } : null
+                })()}
+              />
+            ) },
+          ])
+            .filter(item => isVisible(item.key))
+            .map(item => <div key={item.key}>{item.node}</div>)}
         </div>
 
       </div>
