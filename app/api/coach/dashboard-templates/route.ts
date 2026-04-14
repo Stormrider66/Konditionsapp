@@ -110,30 +110,38 @@ export async function POST(request: Request) {
     visible: WIDGET_REGISTRY[w.widgetKey]?.required ? true : w.visible,
   }))
 
-  // Upsert by unique (businessId, scope, targetId, sport)
-  const template = await prisma.coachDashboardTemplate.upsert({
+  // Find existing template matching the unique tuple. Prisma's compound unique
+  // typing rejects nullable fields in `findUnique`, so we use findFirst + then
+  // update/create.
+  const normalizedTargetId = targetId ?? null
+  const normalizedSport = (sport as SportType | null) ?? null
+
+  const existing = await prisma.coachDashboardTemplate.findFirst({
     where: {
-      businessId_scope_targetId_sport: {
-        businessId,
-        scope,
-        targetId: targetId ?? null,
-        sport: (sport as SportType | null) ?? null,
-      },
-    },
-    update: {
-      name,
-      widgets: sanitizedWidgets as any,
-    },
-    create: {
-      coachId: user.id,
       businessId,
-      name,
       scope,
-      targetId: targetId ?? null,
-      sport: (sport as SportType | null) ?? null,
-      widgets: sanitizedWidgets as any,
+      targetId: normalizedTargetId,
+      sport: normalizedSport,
     },
+    select: { id: true },
   })
+
+  const template = existing
+    ? await prisma.coachDashboardTemplate.update({
+        where: { id: existing.id },
+        data: { name, widgets: sanitizedWidgets as any },
+      })
+    : await prisma.coachDashboardTemplate.create({
+        data: {
+          coachId: user.id,
+          businessId,
+          name,
+          scope,
+          targetId: normalizedTargetId,
+          sport: normalizedSport,
+          widgets: sanitizedWidgets as any,
+        },
+      })
 
   return NextResponse.json({ template })
 }
