@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react'
-import { Settings, ChevronLeft, Bot, Bell, ChevronRight, Target, User, DollarSign, Lock, CreditCard, LogOut, Building2, Shield } from 'lucide-react'
+import { Settings, ChevronLeft, Bot, Bell, ChevronRight, Target, User, DollarSign, Lock, CreditCard, LogOut, Building2, Shield, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
@@ -220,6 +220,30 @@ export function AthleteSettingsClient({
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Utseende</h3>
           </div>
           <ThemeSelector variant="glass" />
+        </div>
+
+        {/* Dashboard Customization */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-2">
+            <div className="w-1.5 h-4 bg-indigo-500 rounded-full" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Dashboard</h3>
+          </div>
+          <Link href={`${basePath}/athlete/settings/dashboard`}>
+            <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/10 flex items-center justify-center border border-indigo-200 dark:border-indigo-500/20">
+                    <LayoutDashboard className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">Anpassa dashboard</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Välj vilka widgets du vill se</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
+              </div>
+            </div>
+          </Link>
         </div>
 
         {/* Intensity Targets Settings */}

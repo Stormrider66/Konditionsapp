@@ -707,6 +707,10 @@ model User {
   // Multi-org calendar preferences
   calendarPreference UserCalendarPreference?
 
+  // Customizable dashboards
+  dashboardPreferences     DashboardPreference[]
+  coachDashboardTemplates  CoachDashboardTemplate[] @relation("CoachDashboardTemplates")
+
   @@index([email])
   @@index([role])
   @@index([referredByBusinessId])
@@ -1602,6 +1606,9 @@ model Business {
 
   // Multi-org calendar settings
   calendarSettings BusinessCalendarSettings?
+
+  // Customizable dashboards
+  dashboardTemplates CoachDashboardTemplate[]
 
   @@index([slug])
   @@index([isActive])
@@ -11079,4 +11086,74 @@ model UserCalendarPreference {
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Customizable Dashboards
+// ---------------------------------------------------------------------------
+
+enum DashboardPreferenceRole {
+  ATHLETE
+  COACH
+}
+
+enum DashboardTemplateScope {
+  BUSINESS_DEFAULT
+  TEAM
+  INDIVIDUAL
+}
+
+/// Per-user widget visibility/order overrides for the dashboard.
+/// Resolution chain (highest priority first):
+///   athlete preference -> coach INDIVIDUAL template -> coach TEAM template ->
+///   coach BUSINESS_DEFAULT template -> hard-coded registry defaults.
+model DashboardPreference {
+  id        String                  @id @default(uuid())
+  userId    String
+  role      DashboardPreferenceRole
+  /// For coaches: "PT" | "TEAM" | "GYM" (matches detectDashboardMode). Null for athletes.
+  mode      String?
+  /// For athletes (Phase 5+): per-sport overrides. Null = applies to all sports.
+  sport     SportType?
+  widgetKey String
+  visible   Boolean                 @default(true)
+  order     Int                     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role, mode, sport, widgetKey])
+  @@index([userId, role])
+}
+
+/// Coach-defined dashboard templates that apply to their athletes.
+/// Scope determines who the template applies to:
+///   BUSINESS_DEFAULT -> all athletes in the business without a more specific template
+///   TEAM             -> all members of targetId (Team.id)
+///   INDIVIDUAL       -> one specific athlete (targetId = Client.id)
+model CoachDashboardTemplate {
+  id         String                 @id @default(uuid())
+  coachId    String
+  businessId String
+  name       String
+  scope      DashboardTemplateScope
+  /// Team.id for TEAM scope, Client.id for INDIVIDUAL scope, null for BUSINESS_DEFAULT.
+  targetId   String?
+  /// Optional sport filter (e.g. "use this template only for hockey players").
+  sport      SportType?
+  /// JSON: [{ widgetKey: string, visible: boolean, order: number }]
+  widgets    Json                   @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  coach    User     @relation("CoachDashboardTemplates", fields: [coachId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, scope, targetId, sport])
+  @@index([coachId, businessId])
+  @@index([businessId, scope])
+  @@index([targetId])
 }

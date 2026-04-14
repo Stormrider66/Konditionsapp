@@ -68,6 +68,7 @@ import {
   mapAdHocWorkoutToDashboard,
 } from '@/types/dashboard-items'
 import { getDashboardRecentActivitySummary, getDashboardWeeklyTSS } from '@/lib/dashboard/activity-insights'
+import { resolveAthleteWidgets, visibleKeys } from '@/lib/dashboard/resolve-widgets'
 
 interface BusinessAthleteDashboardProps {
   params: Promise<{ businessSlug: string }>
@@ -113,6 +114,18 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     : sportProfile?.primarySport
 
   const now = new Date()
+
+  // Resolve user's customized widget visibility (precedence: user pref ->
+  // coach individual template -> coach team template -> coach business default
+  // -> registry defaults). `required` widgets are always visible.
+  const resolvedWidgets = await resolveAthleteWidgets({
+    userId: user.id,
+    clientId,
+    businessId: membership.businessId,
+    sport: primarySport ?? null,
+  })
+  const visible = visibleKeys(resolvedWidgets)
+  const isVisible = (key: string) => visible.has(key)
 
   // Nutrition-focused users get a dedicated dashboard (skip all training data fetches)
   if (primarySport === 'NUTRITION') {
@@ -718,7 +731,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
 
       {/* Main Grid - Hero Card + Readiness Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* HERO CARD(S) (Left 2/3) */}
+        {/* HERO CARD(S) (Left 2/3) — required, always visible */}
         {sortedTodayItems.length > 0 ? (
           <HeroCardSlider
             items={sortedTodayItems}
@@ -738,45 +751,63 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         )}
 
         {/* READINESS PANEL (Right 1/3) */}
-        <ReadinessPanel
-          readinessScore={readinessScore}
-          weeklyTSS={weeklyTSS}
-          weeklyTSSTarget={weeklyTSSTarget}
-          muscularFatigue={muscularFatigue}
-          hasCheckedInToday={hasCheckedInToday}
-          activeInjuries={activeInjuries.filter((injury): injury is { painLocation: string; painLevel: number } => injury.painLocation !== null)}
-          basePath={basePath}
-        />
+        {isVisible('readiness-panel') && (
+          <ReadinessPanel
+            readinessScore={readinessScore}
+            weeklyTSS={weeklyTSS}
+            weeklyTSSTarget={weeklyTSSTarget}
+            muscularFatigue={muscularFatigue}
+            hasCheckedInToday={hasCheckedInToday}
+            activeInjuries={activeInjuries.filter((injury): injury is { painLocation: string; painLevel: number } => injury.painLocation !== null)}
+            basePath={basePath}
+          />
+        )}
       </div>
 
       {/* Contextual Cards */}
-      <div className="mb-6">
-        <MilestoneCelebrationCard />
-      </div>
-      <div className="mb-6">
-        <MorningBriefingCard />
-      </div>
-      <div className="mb-6">
-        <PreWorkoutNudgeCard />
-      </div>
-      <div className="mb-6">
-        <PatternAlertCard />
-      </div>
-      <div className="mb-6">
-        <MentalPrepCard />
-      </div>
-      <div className="mb-6">
-        <NutritionTimingCard />
-      </div>
-      <div className="mb-6">
-        <PostWorkoutCheckCard />
-      </div>
-      <div className="mb-8">
-        <AISuggestionsBanner />
-      </div>
+      {isVisible('milestone-celebration') && (
+        <div className="mb-6">
+          <MilestoneCelebrationCard />
+        </div>
+      )}
+      {isVisible('morning-briefing') && (
+        <div className="mb-6">
+          <MorningBriefingCard />
+        </div>
+      )}
+      {isVisible('pre-workout-nudge') && (
+        <div className="mb-6">
+          <PreWorkoutNudgeCard />
+        </div>
+      )}
+      {isVisible('pattern-alert') && (
+        <div className="mb-6">
+          <PatternAlertCard />
+        </div>
+      )}
+      {isVisible('mental-prep') && (
+        <div className="mb-6">
+          <MentalPrepCard />
+        </div>
+      )}
+      {isVisible('nutrition-timing') && (
+        <div className="mb-6">
+          <NutritionTimingCard />
+        </div>
+      )}
+      {isVisible('post-workout-check') && (
+        <div className="mb-6">
+          <PostWorkoutCheckCard />
+        </div>
+      )}
+      {isVisible('ai-suggestions-banner') && (
+        <div className="mb-8">
+          <AISuggestionsBanner />
+        </div>
+      )}
 
       {/* Sport-Specific Dashboard */}
-      {renderSportDashboard() && (
+      {isVisible('sport-specific-dashboard') && renderSportDashboard() && (
         <div className="mb-8">
           {renderSportDashboard()}
         </div>
@@ -787,69 +818,90 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
 
         {/* Left Column (2/3) */}
         <div className="lg:col-span-2 space-y-6">
-          <UpcomingTeamEvents />
+          {isVisible('upcoming-team-events') && <UpcomingTeamEvents />}
 
-          <UpcomingWorkouts items={upcomingItems} variant="glass" basePath={basePath} />
+          {isVisible('upcoming-workouts') && (
+            <UpcomingWorkouts items={upcomingItems} variant="glass" basePath={basePath} />
+          )}
 
-          <WeeklyTrainingSummaryCard
-            clientId={clientId}
-            variant="glass"
-            activeSport={primarySport || 'RUNNING'}
-            intensityTargets={intensityTargets}
-          />
+          {isVisible('weekly-training-summary') && (
+            <WeeklyTrainingSummaryCard
+              clientId={clientId}
+              variant="glass"
+              activeSport={primarySport || 'RUNNING'}
+              intensityTargets={intensityTargets}
+            />
+          )}
 
-          <TrainingTrendChart clientId={clientId} variant="glass" weeks={12} />
+          {isVisible('training-trend-chart') && (
+            <TrainingTrendChart clientId={clientId} variant="glass" weeks={12} />
+          )}
 
-          <ZoneDistributionChart clientId={clientId} variant="glass" />
+          {isVisible('zone-distribution-chart') && (
+            <ZoneDistributionChart clientId={clientId} variant="glass" />
+          )}
 
-          <NutritionDashboard clientId={clientId} />
+          {isVisible('nutrition-dashboard') && <NutritionDashboard clientId={clientId} />}
 
-          <IntegratedRecentActivity clientId={clientId} variant="glass" />
+          {isVisible('integrated-recent-activity') && (
+            <IntegratedRecentActivity clientId={clientId} variant="glass" />
+          )}
 
-          <IntervalResultsHistory />
+          {isVisible('interval-results-history') && <IntervalResultsHistory />}
 
-          <AthleteDrillList />
+          {isVisible('athlete-drill-list') && <AthleteDrillList />}
         </div>
 
         {/* Right Column (1/3) */}
         <div className="space-y-6">
-          <AccountabilityStreakWidget basePath={basePath} />
+          {isVisible('accountability-streak') && (
+            <AccountabilityStreakWidget basePath={basePath} />
+          )}
 
-          <AgentRecommendationsPanel basePath={basePath} />
+          {isVisible('agent-recommendations') && (
+            <AgentRecommendationsPanel basePath={basePath} />
+          )}
 
+          {/* Active restrictions — required widget, safety-critical */}
           <ActiveRestrictionsCard clientId={clientId} />
 
-          <ActivePrograms
-            programs={activePrograms}
-            variant="glass"
-            basePath={basePath}
-            lastCompletedProgram={lastCompletedProgram ? {
-              id: lastCompletedProgram.id,
-              name: lastCompletedProgram.name,
-              endDate: lastCompletedProgram.endDate,
-            } : undefined}
-            athleteContext={dashboardAthleteContext}
-          />
+          {isVisible('active-programs') && (
+            <ActivePrograms
+              programs={activePrograms}
+              variant="glass"
+              basePath={basePath}
+              lastCompletedProgram={lastCompletedProgram ? {
+                id: lastCompletedProgram.id,
+                name: lastCompletedProgram.name,
+                endDate: lastCompletedProgram.endDate,
+              } : undefined}
+              athleteContext={dashboardAthleteContext}
+            />
+          )}
 
-          <WODHistorySummary recentWods={wodHistory} stats={wodStats} basePath={basePath} />
+          {isVisible('wod-history-summary') && (
+            <WODHistorySummary recentWods={wodHistory} stats={wodStats} basePath={basePath} />
+          )}
 
-          <GarminHealthCard
-            hrvRMSSD={latestMetrics?.hrvRMSSD}
-            hrvStatus={latestMetrics?.hrvStatus}
-            restingHR={latestMetrics?.restingHR}
-            sleepHours={latestMetrics?.sleepHours}
-            sleepQuality={latestMetrics?.sleepQuality}
-            stress={latestMetrics?.stress}
-            sleepDetails={(() => {
-              const fs = latestMetrics?.factorScores as Record<string, any> | null
-              return fs?.garminSleep ? {
-                deepSleepMinutes: fs.garminSleep.deepSleepMinutes,
-                lightSleepMinutes: fs.garminSleep.lightSleepMinutes,
-                remSleepMinutes: fs.garminSleep.remSleepMinutes,
-                awakeMinutes: fs.garminSleep.awakeMinutes,
-              } : null
-            })()}
-          />
+          {isVisible('garmin-health-card') && (
+            <GarminHealthCard
+              hrvRMSSD={latestMetrics?.hrvRMSSD}
+              hrvStatus={latestMetrics?.hrvStatus}
+              restingHR={latestMetrics?.restingHR}
+              sleepHours={latestMetrics?.sleepHours}
+              sleepQuality={latestMetrics?.sleepQuality}
+              stress={latestMetrics?.stress}
+              sleepDetails={(() => {
+                const fs = latestMetrics?.factorScores as Record<string, any> | null
+                return fs?.garminSleep ? {
+                  deepSleepMinutes: fs.garminSleep.deepSleepMinutes,
+                  lightSleepMinutes: fs.garminSleep.lightSleepMinutes,
+                  remSleepMinutes: fs.garminSleep.remSleepMinutes,
+                  awakeMinutes: fs.garminSleep.awakeMinutes,
+                } : null
+              })()}
+            />
+          )}
         </div>
 
       </div>
