@@ -39,7 +39,7 @@ const AI_MODELS = [
   },
   {
     provider: 'ANTHROPIC' as const,
-    modelId: 'claude-haiku-4-5-20251001',
+    modelId: 'claude-haiku-4-5',
     displayName: 'Claude Haiku 4.5',
     description: 'Snabbast och billigast, bra för enkla uppgifter',
     capabilities: ['text', 'code', 'vision'],

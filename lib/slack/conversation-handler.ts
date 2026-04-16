@@ -168,6 +168,9 @@ const SLACK_TOOLS: Anthropic.Tool[] = [
   { name: 'getOpenFeatureRequests', description: 'Get uncurated feature requests.', input_schema: { type: 'object' as const, properties: {} } },
   { name: 'getAllFeatureRequests', description: 'Get all open/planned feature requests.', input_schema: { type: 'object' as const, properties: {} } },
 
+  // --- Nutrition ---
+  { name: 'getNutritionUsageStats', description: 'Nutrition feature usage: meal logs, goals, active users, top users.', input_schema: { type: 'object' as const, properties: {} } },
+
   // --- Onboarding & Engagement ---
   { name: 'getNewUsersLast7d', description: 'Users who signed up in the last 7 days.', input_schema: { type: 'object' as const, properties: {} } },
   { name: 'findStuckUsers', description: 'Users stuck >2 days on same onboarding step.', input_schema: { type: 'object' as const, properties: {} } },
@@ -297,6 +300,10 @@ const TOOL_CATEGORIES: Record<string, { keywords: string[]; toolNames: string[] 
   code: {
     keywords: ['code', 'file', 'function', 'fix', 'bug', 'pr', 'pull request', 'merge', 'branch', 'deploy', 'commit', 'github', 'read', 'search code', 'implement'],
     toolNames: ['readFile', 'searchCode', 'createBranchAndPushFix', 'mergePR', 'listOpenPRs'],
+  },
+  nutrition: {
+    keywords: ['nutrition', 'meal', 'food', 'diet', 'calorie', 'macro', 'protein', 'carb', 'fat', 'eating', 'weight'],
+    toolNames: ['getNutritionUsageStats'],
   },
 }
 

@@ -98,7 +98,7 @@ export const AI_MODELS: AIModelConfig[] = [
     id: 'claude-haiku',
     name: 'Claude Haiku 4.5',
     provider: 'anthropic',
-    modelId: 'claude-haiku-4-5-20251016',
+    modelId: 'claude-haiku-4-5',
     description: 'Snabb och billig. Bra för enkla uppgifter.',
     costTier: 'low',
     capabilities: {
@@ -357,7 +357,7 @@ export const MODEL_TIERS: Record<ModelIntent, {
 }> = {
   fast: {
     google:    { modelId: 'gemini-3.1-flash-lite-preview', displayName: 'Gemini 3.1 Flash Lite' },
-    anthropic: { modelId: 'claude-haiku-4-5-20251016',    displayName: 'Claude Haiku 4.5' },
+    anthropic: { modelId: 'claude-haiku-4-5',    displayName: 'Claude Haiku 4.5' },
     openai:    { modelId: 'gpt-5.3-instant',              displayName: 'GPT-5.3 Instant' },
   },
   balanced: {
