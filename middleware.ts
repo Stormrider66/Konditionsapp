@@ -1,8 +1,9 @@
 // middleware.ts
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { readJwtClaims, type AppClaims } from '@/lib/auth/jwt-claims'
 
-type CachedAuthUser = { id: string; email: string | null } | null
+type CachedAuthUser = { id: string; email: string | null; appMetadata: Record<string, unknown> | null } | null
 
 /**
  * Resolve the Supabase service role key for edge-side tenant lookups.
@@ -391,7 +392,11 @@ async function getSupabaseUserCached(
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) return null
-    return { id: user.id, email: user.email ?? null }
+    return {
+      id: user.id,
+      email: user.email ?? null,
+      appMetadata: (user.app_metadata ?? null) as Record<string, unknown> | null,
+    }
   })()
 
   authUserInFlight.set(cacheKey, lookupPromise)
@@ -674,17 +679,41 @@ export async function middleware(request: NextRequest) {
 
   // If authenticated, check role-based access
   if (supabaseUser) {
-    // Query user role from Supabase (edge-compatible, no Prisma)
-    // Select id to handle legacy users where DB User.id differs from Supabase Auth ID
-    const { data: userData, error } = await supabase
-      .from('User')
-      .select('id, role, adminRole')
-      .eq('email', supabaseUser.email!)
-      .single()
+    // Prefer JWT-claim source when the custom_access_token_hook is wired up
+    // (Phase 4). Falls back to the legacy email-based DB lookup otherwise so
+    // we can roll the flag independently of the Supabase dashboard change.
+    const useJwtClaims = process.env.USE_JWT_CLAIMS === 'true'
+    let claims: AppClaims | null = useJwtClaims ? readJwtClaims(supabaseUser.appMetadata) : null
 
-    if (!error && userData) {
-      const role = userData.role
-      const dbUserId = userData.id
+    if (!claims) {
+      const { data: userData, error } = await supabase
+        .from('User')
+        .select('id, role, adminRole, selfAthleteClientId')
+        .eq('email', supabaseUser.email!)
+        .single()
+      if (!error && userData) {
+        claims = {
+          dbUserId: userData.id,
+          role: userData.role ?? null,
+          adminRole: userData.adminRole ?? null,
+          primarySlug: null,
+          memberBusinessSlugs: [],
+          selfAthleteClientId: userData.selfAthleteClientId ?? null,
+        }
+      }
+    }
+
+    if (claims) {
+      const role = claims.role
+      const dbUserId = claims.dbUserId
+      // Prefer cheap claim lookup; fall back to DB helpers when the claim is
+      // missing (e.g. flag off, hook disabled, or stale token).
+      const lookupPrimarySlug = async () =>
+        claims!.primarySlug ?? (await getBusinessSlugForUser(dbUserId))
+      const lookupIsMember = async (slug: string) =>
+        claims!.memberBusinessSlugs.includes(slug)
+          ? true
+          : await isUserMemberOfBusiness(dbUserId, slug)
 
       // Check if this is a business-scoped route (e.g., /star-by-thomson/coach/dashboard or /star-by-thomson/athlete/dashboard or /star-by-thomson/physio/dashboard)
       const pathSegments = pathname.split('/').filter(Boolean)
@@ -699,11 +728,11 @@ export async function middleware(request: NextRequest) {
         const businessSlug = firstSegment
 
         // Verify user is a member of this business (service role key bypasses RLS)
-        const isMember = await isUserMemberOfBusiness(dbUserId, businessSlug)
+        const isMember = await lookupIsMember(businessSlug)
 
         if (!isMember) {
           // User is not a member of this business - redirect to their own business or home
-          const userBusinessSlug = await getBusinessSlugForUser(dbUserId)
+          const userBusinessSlug = await lookupPrimarySlug()
 
           if (userBusinessSlug) {
             const newPath = pathname.replace(`/${businessSlug}/`, `/${userBusinessSlug}/`)
@@ -741,7 +770,7 @@ export async function middleware(request: NextRequest) {
         )
 
         if (shouldRedirect) {
-          const businessSlug = await getBusinessSlugForUser(dbUserId)
+          const businessSlug = await lookupPrimarySlug()
           if (businessSlug) {
             const newPath = pathname.replace('/coach/', `/${businessSlug}/coach/`)
             return NextResponse.redirect(new URL(newPath, request.url))
@@ -761,7 +790,7 @@ export async function middleware(request: NextRequest) {
           )
 
           if (shouldRedirectAthlete) {
-            const athleteBusinessSlug = await getBusinessSlugForUser(dbUserId)
+            const athleteBusinessSlug = await lookupPrimarySlug()
             if (athleteBusinessSlug) {
               const newAthletePath = pathname.replace('/athlete/', `/${athleteBusinessSlug}/athlete/`)
               return NextResponse.redirect(new URL(newAthletePath, request.url))
@@ -770,13 +799,17 @@ export async function middleware(request: NextRequest) {
           }
         } else if ((role === 'COACH' || role === 'ADMIN') && athleteModeCookie) {
           // Coach/Admin in athlete mode - verify they have a self-athlete profile
-          const { data: userWithSelfAthlete } = await supabase
-            .from('User')
-            .select('selfAthleteClientId')
-            .eq('id', dbUserId)
-            .single()
+          let selfAthleteClientId = claims.selfAthleteClientId
+          if (!selfAthleteClientId) {
+            const { data: userWithSelfAthlete } = await supabase
+              .from('User')
+              .select('selfAthleteClientId')
+              .eq('id', dbUserId)
+              .single()
+            selfAthleteClientId = userWithSelfAthlete?.selfAthleteClientId ?? null
+          }
 
-          if (!userWithSelfAthlete?.selfAthleteClientId) {
+          if (!selfAthleteClientId) {
             // No athlete profile set up - redirect to setup page
             return NextResponse.redirect(new URL('/coach/settings/athlete-profile', request.url))
           }
@@ -787,7 +820,7 @@ export async function middleware(request: NextRequest) {
           )
 
           if (shouldRedirectCoachAthlete) {
-            const coachBizSlug = await getBusinessSlugForUser(dbUserId)
+            const coachBizSlug = await lookupPrimarySlug()
             if (coachBizSlug) {
               const newCoachAthletePath = pathname.replace('/athlete/', `/${coachBizSlug}/athlete/`)
               return NextResponse.redirect(new URL(newCoachAthletePath, request.url))
@@ -804,7 +837,7 @@ export async function middleware(request: NextRequest) {
       }
 
       if (pathname.startsWith('/admin')) {
-        const adminRole = userData.adminRole
+        const adminRole = claims.adminRole
         if (role !== 'ADMIN' && !adminRole) {
           if (role === 'COACH') {
             return NextResponse.redirect(new URL('/coach/dashboard', request.url))
@@ -837,7 +870,7 @@ export async function middleware(request: NextRequest) {
         )
 
         if (shouldRedirectPhysio) {
-          const physioBusinessSlug = await getBusinessSlugForUser(dbUserId)
+          const physioBusinessSlug = await lookupPrimarySlug()
           if (physioBusinessSlug) {
             const newPhysioPath = pathname.replace('/physio/', `/${physioBusinessSlug}/physio/`)
             return NextResponse.redirect(new URL(newPhysioPath, request.url))
@@ -849,21 +882,21 @@ export async function middleware(request: NextRequest) {
       // Redirect from login/register pages if authenticated (but allow access to /)
       if (pathname === '/login' || pathname === '/register') {
         if (role === 'ATHLETE') {
-          const athleteLoginSlug = await getBusinessSlugForUser(dbUserId)
+          const athleteLoginSlug = await lookupPrimarySlug()
           if (athleteLoginSlug) {
             return NextResponse.redirect(new URL(`/${athleteLoginSlug}/athlete/dashboard`, request.url))
           }
           return NextResponse.redirect(new URL('/athlete/dashboard', request.url))
         }
         if (role === 'COACH' || role === 'ADMIN') {
-          const coachLoginSlug = await getBusinessSlugForUser(dbUserId)
+          const coachLoginSlug = await lookupPrimarySlug()
           if (coachLoginSlug) {
             return NextResponse.redirect(new URL(`/${coachLoginSlug}/coach/dashboard`, request.url))
           }
           return NextResponse.redirect(new URL('/', request.url))
         }
         if (role === 'PHYSIO') {
-          const physioLoginSlug = await getBusinessSlugForUser(dbUserId)
+          const physioLoginSlug = await lookupPrimarySlug()
           if (physioLoginSlug) {
             return NextResponse.redirect(new URL(`/${physioLoginSlug}/physio/dashboard`, request.url))
           }
