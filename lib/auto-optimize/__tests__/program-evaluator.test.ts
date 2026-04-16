@@ -485,7 +485,7 @@ const GYM_PROGRAM: ParsedProgram = {
           type: 'STRENGTH',
           name: 'Underkropp',
           description: 'Knäböj 3x10, RDL 3x10, Hip Thrust 3x12, Utfallssteg 3x10',
-          intensity: 'heavy',
+          intensity: 'hard',
           duration: 60,
           segments: [
             { order: 1, type: 'warmup', duration: 10, description: 'Uppvärmning' },
@@ -507,7 +507,7 @@ const GYM_PROGRAM: ParsedProgram = {
           type: 'STRENGTH',
           name: 'Upper A',
           description: 'Bänkpress 4x8 @ RPE 8, Rodd 4x8 @ RPE 8, Axelpress 3x10, Biceps 3x12',
-          intensity: 'heavy',
+          intensity: 'hard',
           duration: 60,
           segments: [
             { order: 1, type: 'warmup', duration: 10, description: 'RAMP uppvärmning' },
@@ -520,7 +520,7 @@ const GYM_PROGRAM: ParsedProgram = {
           type: 'STRENGTH',
           name: 'Lower A',
           description: 'Knäböj 4x8 @ RPE 8, RDL 3x10, Hip Thrust 3x12, Vadpress 4x15',
-          intensity: 'heavy',
+          intensity: 'hard',
           duration: 60,
           segments: [
             { order: 1, type: 'warmup', duration: 10, description: 'RAMP uppvärmning' },
@@ -545,7 +545,7 @@ const GYM_PROGRAM: ParsedProgram = {
           type: 'STRENGTH',
           name: 'Lower B',
           description: 'Marklyft 4x6 tungt @ RPE 8, Front squat 3x8, Walking lunges 3x12',
-          intensity: 'heavy',
+          intensity: 'hard',
           duration: 60,
           segments: [
             { order: 1, type: 'warmup', duration: 10, description: 'Uppvärmning' },

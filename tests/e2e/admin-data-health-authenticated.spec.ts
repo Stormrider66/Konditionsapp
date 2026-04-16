@@ -95,7 +95,7 @@ test.describe('Authenticated Admin Data Health', () => {
       },
     } as const
 
-    let currentReport = initialReport
+    let currentReport: typeof initialReport | typeof repairedResult.reportAfter = initialReport
     let lastRepairRequestBody: unknown = null
 
     await mockAdminStats(page)

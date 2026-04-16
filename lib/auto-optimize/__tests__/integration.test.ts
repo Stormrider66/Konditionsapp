@@ -8,7 +8,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { evaluateProgram } from '../program-evaluator'
 import { TEST_SCENARIOS, getScenario, getScenarios } from '../test-scenarios'
-import type { ParsedProgram } from '@/lib/ai/program-parser'
+import type { ParsedProgram, ParsedPhase } from '@/lib/ai/program-parser'
 import type { EvaluationContext } from '../types'
 
 // ── Test Scenarios Validation ───────────────────────────────────────
@@ -115,7 +115,7 @@ describe('Scenario → Evaluation flow', () => {
   function buildWeeklyTemplate(
     scenario: typeof TEST_SCENARIOS[0],
     phase: 'easy' | 'moderate' | 'recovery'
-  ) {
+  ): NonNullable<ParsedPhase['weeklyTemplate']> {
     const hasInjury = scenario.injuries && scenario.injuries.length > 0
     const injuryNote = hasInjury
       ? `. Anpassad för ${scenario.injuries![0].bodyPart}-skada, undvik belastning.`
@@ -189,7 +189,7 @@ describe('Scenario → Evaluation flow', () => {
 
     days.sunday = { type: 'REST', name: 'Vila', description: 'Vila och återhämtning' }
 
-    return days
+    return days as unknown as NonNullable<ParsedPhase['weeklyTemplate']>
   }
 
   it('evaluates all 13 scenarios with synthetic programs scoring > 60', () => {

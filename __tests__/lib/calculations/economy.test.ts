@@ -21,7 +21,6 @@ import type { TestStage } from '@/types'
 const makeStage = (overrides: Partial<TestStage> & { sequence: number }): TestStage => ({
   id: `stage-${overrides.sequence}`,
   testId: 'test-1',
-  sequence: overrides.sequence,
   duration: 4,
   heartRate: 150,
   lactate: 2,

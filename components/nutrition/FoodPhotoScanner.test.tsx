@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import React from 'react'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { FoodPhotoScanner } from './FoodPhotoScanner'

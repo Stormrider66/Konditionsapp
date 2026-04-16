@@ -126,7 +126,7 @@ describeIfDatabase('Prompt Variant CRUD', () => {
 
     const updated = await getVariant(id)
     expect(updated!.overallAccuracy).toBe(78.5)
-    const params = updated!.parameters as Record<string, unknown>
+    const params = updated!.parameters as unknown as Record<string, unknown>
     expect(params.lastEvaluationScores).toHaveProperty('structuralCompleteness', 85)
     expect(params.scenarioScores).toHaveProperty('running-polarized-12w-beginner', 82)
   })
@@ -143,7 +143,7 @@ describeIfDatabase('Prompt Variant CRUD', () => {
     })
 
     const variant = await getVariant(id)
-    const params = variant!.parameters as Record<string, unknown>
+    const params = variant!.parameters as unknown as Record<string, unknown>
     const history = params.iterationHistory as unknown[]
     expect(history).toHaveLength(1)
     expect((history[0] as Record<string, unknown>).runId).toBe('test_run_001')

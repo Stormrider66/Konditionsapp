@@ -76,7 +76,7 @@ describe('coach admin member route', () => {
         delete: vi.fn(),
       },
     }
-    mockPrisma.$transaction.mockImplementation(async (callback: (tx: typeof tx) => Promise<unknown>) => callback(tx))
+    mockPrisma.$transaction.mockImplementation(async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx))
 
     const request = new NextRequest('http://localhost/api/coach/admin/members/member-1', {
       method: 'DELETE',

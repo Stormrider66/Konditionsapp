@@ -97,7 +97,7 @@ describe('signup-coach route', () => {
       },
     }
 
-    mockPrisma.$transaction.mockImplementation(async (callback: (tx: typeof tx) => Promise<unknown>) => callback(tx))
+    mockPrisma.$transaction.mockImplementation(async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx))
 
     const request = new NextRequest('http://localhost/api/auth/signup-coach', {
       method: 'POST',
