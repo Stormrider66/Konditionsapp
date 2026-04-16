@@ -19,7 +19,7 @@ import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 
-export const maxDuration = 30
+export const maxDuration = 120
 
 export async function POST(request: NextRequest) {
   let logContext:
