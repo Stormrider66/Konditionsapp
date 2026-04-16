@@ -2713,21 +2713,21 @@ export async function getNutritionUsageStats(): Promise<OperatorToolResult> {
     uniqueUsers7d,
   ] = await Promise.all([
     prisma.mealLog.count(),
-    prisma.mealLog.count({ where: { loggedAt: { gte: sevenDaysAgo } } }),
-    prisma.mealLog.count({ where: { loggedAt: { gte: thirtyDaysAgo } } }),
+    prisma.mealLog.count({ where: { date: { gte: sevenDaysAgo } } }),
+    prisma.mealLog.count({ where: { date: { gte: thirtyDaysAgo } } }),
     prisma.nutritionGoal.count(),
-    prisma.nutritionGoal.count({ where: { isActive: true } }),
+    prisma.client.count({ where: { nutritionGoal: { isNot: null } } }),
     prisma.mealLog.groupBy({ by: ['clientId'] }).then(g => g.length),
     prisma.mealLog.groupBy({
       by: ['clientId'],
-      where: { loggedAt: { gte: sevenDaysAgo } },
+      where: { date: { gte: sevenDaysAgo } },
     }).then(g => g.length),
   ])
 
   const topUsers = await prisma.mealLog.groupBy({
     by: ['clientId'],
     _count: true,
-    where: { loggedAt: { gte: thirtyDaysAgo } },
+    where: { date: { gte: thirtyDaysAgo } },
     orderBy: { _count: { clientId: 'desc' } },
     take: 10,
   })
@@ -2746,7 +2746,7 @@ export async function getNutritionUsageStats(): Promise<OperatorToolResult> {
         totalMealLogs,
         uniqueUsersEver,
         nutritionGoalsCreated: nutritionGoals,
-        activeNutritionGoals: activeGoals,
+        usersWithNutritionGoals: activeGoals,
       },
       last7days: { mealLogs: mealLogs7d, uniqueUsers: uniqueUsers7d },
       last30days: { mealLogs: mealLogs30d },
