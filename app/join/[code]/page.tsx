@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -224,9 +225,9 @@ export default function JoinTeamPage() {
 
             <p className="text-xs text-center text-muted-foreground">
               Har du redan ett konto?{' '}
-              <a href="/login" className="text-primary hover:underline">
+              <Link href="/login" className="text-primary hover:underline">
                 Logga in
-              </a>
+              </Link>
             </p>
           </form>
         </CardContent>

@@ -203,7 +203,6 @@ const severityColors: Record<string, string> = {
 
 // --- Sparkline Component ---
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function Sparkline({ data, dataKey, color = '#3b82f6', height = 40 }: {
   data: any[]
   dataKey: string

@@ -53,7 +53,7 @@ export function ProtocolList({ onSelect }: ProtocolListProps) {
       <div className="text-center py-12 text-muted-foreground">
         <ClipboardList className="h-8 w-8 mx-auto mb-2 opacity-40" />
         <p>Inga testprotokoll skapade ännu</p>
-        <p className="text-xs mt-1">Skapa ditt första protokoll under "Skapa protokoll"</p>
+        <p className="text-xs mt-1">Skapa ditt första protokoll under &quot;Skapa protokoll&quot;</p>
       </div>
     )
   }
