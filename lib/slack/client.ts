@@ -186,6 +186,36 @@ export async function addReaction(
 }
 
 /**
+ * Remove a reaction emoji from a message.
+ */
+export async function removeReaction(
+  channel: string,
+  timestamp: string,
+  emoji: string
+): Promise<{ ok: boolean }> {
+  const token = getBotToken()
+  if (!token) return { ok: false }
+
+  try {
+    const response = await fetch(`${SLACK_API}/reactions.remove`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        channel,
+        timestamp,
+        name: emoji.replace(/:/g, ''),
+      }),
+    })
+    return await response.json() as { ok: boolean }
+  } catch {
+    return { ok: false }
+  }
+}
+
+/**
  * Update an existing message (e.g., replace buttons with "Approved ✓").
  */
 export async function updateMessage(

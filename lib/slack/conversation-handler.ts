@@ -11,7 +11,7 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import { logger } from '@/lib/logger'
-import { replyInThread } from './client'
+import { replyInThread, addReaction, removeReaction } from './client'
 import { executeOperatorTool } from '@/lib/operator-agents/tool-executor'
 import * as githubCode from './github-code-tools'
 import { MODEL_TIERS } from '@/types/ai-models'
@@ -373,8 +373,13 @@ export async function handleSlackMessage(options: {
 }): Promise<void> {
   const { channel, threadTs, userMessage, userId } = options
 
+  // Show thinking indicator immediately so user knows bot is working
+  const messageTs = threadTs
+  await addReaction(channel, messageTs, 'eyes')
+
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
+    await removeReaction(channel, messageTs, 'eyes')
     await replyInThread(channel, threadTs, 'ANTHROPIC_API_KEY not configured.')
     return
   }
@@ -432,6 +437,9 @@ export async function handleSlackMessage(options: {
         // Save context for future messages in this thread
         messages.push({ role: 'assistant', content: response.content })
         await saveThreadContext(threadTs, channel, messages)
+        // Done — swap eyes for checkmark
+        await removeReaction(channel, messageTs, 'eyes')
+        await addReaction(channel, messageTs, 'white_check_mark')
         return
       }
 
@@ -466,9 +474,13 @@ export async function handleSlackMessage(options: {
       }
     }
 
+    await removeReaction(channel, messageTs, 'eyes')
+    await addReaction(channel, messageTs, 'warning')
     await replyInThread(channel, threadTs, 'Reached max iterations. Please try again with a simpler request.')
   } catch (error) {
     logger.error('[slack] Conversation handler failed', {}, error)
+    await removeReaction(channel, messageTs, 'eyes')
+    await addReaction(channel, messageTs, 'x')
     await replyInThread(
       channel,
       threadTs,

@@ -16,6 +16,7 @@ export {
   replyInThread,
   postApprovalRequest,
   addReaction,
+  removeReaction,
   updateMessage,
   postAgentAlert,
   verifySlackRequest,
