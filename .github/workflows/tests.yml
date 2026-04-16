@@ -30,6 +30,9 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
+      - name: RLS coverage allowlist check
+        run: npm run audit:rls-coverage -- --check-allowlist
+
   unit-and-validation:
     runs-on: ubuntu-latest
     steps:
