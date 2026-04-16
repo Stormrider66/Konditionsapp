@@ -295,7 +295,11 @@ function allowsInAppCamera(pathname: string): boolean {
 /**
  * Add security headers to response
  */
-function addSecurityHeaders(response: NextResponse, pathname: string): NextResponse {
+function addSecurityHeaders(
+  response: NextResponse,
+  pathname: string,
+  nonce: string,
+): NextResponse {
   const isProd = process.env.NODE_ENV === 'production'
 
   // Prevent MIME type sniffing
@@ -325,14 +329,30 @@ function addSecurityHeaders(response: NextResponse, pathname: string): NextRespo
     `${allowsInAppCamera(pathname) ? 'camera=(self)' : 'camera=()'}, microphone=(self), geolocation=(), interest-cohort=()`
   )
 
-  // Content Security Policy (keep dev flexible; tighten in production)
-  const scriptSrc = [
-    "'self'",
-    "'unsafe-inline'",
-    "'wasm-unsafe-eval'", // Required for MediaPipe WASM (pose analysis)
-    ...(isProd ? [] : ["'unsafe-eval'"]),
-    'https://cdn.jsdelivr.net',
-  ].join(' ')
+  // Content Security Policy.
+  //
+  // Production: per-request nonce + strict-dynamic. No 'unsafe-inline' in
+  // script-src — Next.js picks up the x-nonce request header and stamps it
+  // on the inline scripts it generates. Any new inline script must opt in
+  // via the nonce helper in lib/csp.ts.
+  //
+  // Development: keep 'unsafe-inline' + 'unsafe-eval' so the Next dev
+  // runtime / React refresh works without babysitting every HMR payload.
+  const scriptSrc = isProd
+    ? [
+        "'self'",
+        `'nonce-${nonce}'`,
+        "'strict-dynamic'",
+        "'wasm-unsafe-eval'", // MediaPipe WASM (pose analysis)
+        'https://cdn.jsdelivr.net',
+      ].join(' ')
+    : [
+        "'self'",
+        "'unsafe-inline'",
+        "'unsafe-eval'",
+        "'wasm-unsafe-eval'",
+        'https://cdn.jsdelivr.net',
+      ].join(' ')
 
   response.headers.set(
     'Content-Security-Policy',
@@ -421,9 +441,17 @@ export async function middleware(request: NextRequest) {
   const correlationId = crypto.randomUUID()
   request.headers.set('x-correlation-id', correlationId)
 
+  // Per-request CSP nonce. Thread it through the request headers so Server
+  // Components (and Next's internal inline scripts) can read it via
+  // `headers().get('x-nonce')`, and through the CSP response header so the
+  // browser knows which inline scripts to trust.
+  const cspNonce = crypto.randomUUID().replace(/-/g, '')
+  request.headers.set('x-nonce', cspNonce)
+
   function finalizeResponse(res: NextResponse): NextResponse {
     res.headers.set('x-correlation-id', correlationId)
-    return addSecurityHeaders(res, pathname)
+    res.headers.set('x-nonce', cspNonce)
+    return addSecurityHeaders(res, pathname, cspNonce)
   }
 
   // =========================
