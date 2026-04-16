@@ -449,7 +449,7 @@ export function QuickMealLog({
           </div>
 
           {/* AI estimate button */}
-          {formData.description.trim() && !formData.calories && (
+          {formData.description.trim() && (
             <Button
               variant="outline"
               size="sm"
@@ -462,7 +462,11 @@ export function QuickMealLog({
               ) : (
                 <Sparkles className="h-4 w-4" />
               )}
-              {isAnalyzing ? 'Analyserar...' : 'Uppskatta med AI'}
+              {isAnalyzing
+                ? 'Analyserar...'
+                : formData.calories
+                  ? 'Analysera om med AI'
+                  : 'Uppskatta med AI'}
             </Button>
           )}
 
