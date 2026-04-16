@@ -1,0 +1,353 @@
+// CALENDAR domain models & enums.
+// Auto-grouped from schema.prisma — keep new declarations here.
+
+// ==================== CALENDAR SYSTEM ====================
+enum CalendarEventType {
+  ALTITUDE_CAMP // Multi-day training camp at altitude
+  TRAINING_CAMP // Multi-day training camp (non-altitude)
+  TRAVEL // Travel days with reduced/no training
+  ILLNESS // Illness tracking with return-to-training protocol
+  VACATION // Personal time off
+  WORK_BLOCKER // Work commitments blocking training
+  PERSONAL_BLOCKER // Personal events (weddings, family, etc.)
+  EXTERNAL_EVENT // Imported from external calendar
+  SCHEDULED_WORKOUT // Coach-scheduled workout session with time/location
+}
+
+enum CalendarEventStatus {
+  SCHEDULED // Future event
+  ACTIVE // Currently ongoing
+  COMPLETED // Past event
+  CANCELLED // Cancelled but kept for history
+}
+
+enum EventImpact {
+  NO_TRAINING // No training possible
+  REDUCED // Reduced training (50% or less)
+  MODIFIED // Training with modifications
+  NORMAL // Normal training continues
+}
+
+/// Team calendar events (practices, games, tests, off-days)
+model TeamEvent {
+  id     String @id @default(uuid())
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  // Event details
+  title       String
+  description String? @db.Text
+  type        String  @default("PRACTICE") // PRACTICE, GAME, TEST, INTERVAL_SESSION, OFF_DAY, MEETING, OTHER
+  location    String?
+
+  // Date/time
+  startDate DateTime
+  endDate   DateTime?
+  allDay    Boolean   @default(false)
+
+  // Recurrence (iCal RRULE)
+  isRecurring        Boolean @default(false)
+  recurrenceRule     String? // e.g. "FREQ=WEEKLY;BYDAY=MO,WE,FR"
+  recurrenceParentId String?
+  recurrenceParent   TeamEvent?  @relation("TeamEventRecurrence", fields: [recurrenceParentId], references: [id], onDelete: SetNull)
+  recurrenceChildren TeamEvent[] @relation("TeamEventRecurrence")
+
+  // Optional links to existing features
+  intervalSessionId String?          @unique
+  intervalSession   IntervalSession? @relation(fields: [intervalSessionId], references: [id], onDelete: SetNull)
+
+  // Tracking
+  createdById String
+  createdBy   User   @relation("CreatedTeamEvents", fields: [createdById], references: [id])
+
+  // Attendance (JSON array of { clientId, status: "ATTENDING"|"ABSENT"|"UNKNOWN" })
+  attendance Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teamId, startDate])
+  @@index([teamId, type])
+  @@index([createdById])
+}
+
+/// Tracks when a workout was assigned to an entire team
+/// Links individual assignments for aggregation/reporting
+model TeamWorkoutBroadcast {
+  id      String @id @default(uuid())
+  teamId  String
+  coachId String
+
+  // What was assigned (polymorphic - one will be set)
+  strengthSessionId String?
+  cardioSessionId   String?
+  hybridWorkoutId   String?
+  agilityWorkoutId  String?
+
+  // Assignment metadata
+  assignedDate DateTime @db.Date
+  notes        String?  @db.Text
+
+  // Scheduling fields (optional appointment info for team sessions)
+  startTime    String? // "HH:mm" format
+  endTime      String? // "HH:mm" format
+  locationId   String? // FK to Location
+  locationName String? // Fallback text if no Location record
+
+  // Cached stats for dashboard
+  totalAssigned  Int @default(0)
+  totalCompleted Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  team  Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  coach User @relation("CoachBroadcasts", fields: [coachId], references: [id])
+
+  strengthSession StrengthSession? @relation(fields: [strengthSessionId], references: [id])
+  cardioSession   CardioSession?   @relation(fields: [cardioSessionId], references: [id])
+  hybridWorkout   HybridWorkout?   @relation(fields: [hybridWorkoutId], references: [id])
+  agilityWorkout  AgilityWorkout?  @relation("AgilityWorkoutBroadcasts", fields: [agilityWorkoutId], references: [id])
+
+  // Relations for scheduling
+  location Location? @relation("TeamBroadcastLocation", fields: [locationId], references: [id])
+
+  // Individual assignments from this broadcast
+  strengthAssignments StrengthSessionAssignment[]
+  cardioAssignments   CardioSessionAssignment[]
+  hybridAssignments   HybridWorkoutAssignment[]
+  agilityAssignments  AgilityWorkoutAssignment[]
+
+  @@index([teamId])
+  @@index([coachId])
+  @@index([assignedDate])
+  @@index([locationId])
+  @@index([strengthSessionId])
+  @@index([cardioSessionId])
+  @@index([hybridWorkoutId])
+  @@index([agilityWorkoutId])
+}
+
+// ==================== CALENDAR SYSTEM ====================
+
+/// Calendar events for tracking non-training activities (travel, camps, illness, vacation)
+model CalendarEvent {
+  id       String @id @default(uuid())
+  clientId String
+
+  // Event basics
+  type        CalendarEventType
+  title       String
+  description String?             @db.Text
+  status      CalendarEventStatus @default(SCHEDULED)
+
+  // Date/time
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  allDay    Boolean  @default(true)
+  startTime String? // "HH:mm" if not all-day
+  endTime   String? // "HH:mm" if not all-day
+
+  // Training impact
+  trainingImpact EventImpact @default(NO_TRAINING)
+  impactNotes    String? // "Morning sessions only", etc.
+
+  // Altitude-specific (when type = ALTITUDE_CAMP)
+  altitude           Int? // meters above sea level
+  adaptationPhase    AltitudeAdaptationPhase?
+  seaLevelReturnDate DateTime? // When athlete returns to sea level
+
+  // Illness-specific (when type = ILLNESS)
+  illnessType          String? // "RESPIRATORY", "GI", "FEVER", etc.
+  returnToTrainingDate DateTime?
+  medicalClearance     Boolean   @default(false)
+
+  // External calendar integration
+  externalCalendarId   String? // ID in external system
+  externalCalendarType String? // "GOOGLE", "OUTLOOK", "APPLE"
+  externalCalendarName String? // "Work Calendar", etc.
+  lastSyncedAt         DateTime?
+  isReadOnly           Boolean   @default(false) // Imported events cannot be edited
+
+  // Recurrence (future phase)
+  isRecurring        Boolean @default(false)
+  recurrenceRule     String? // iCal RRULE format
+  recurrenceParentId String? // Link to parent event
+
+  // Metadata
+  createdById      String
+  lastModifiedById String?
+  color            String? // Custom color override
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  client         Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy      User                  @relation("CreatedCalendarEvents", fields: [createdById], references: [id])
+  lastModifiedBy User?                 @relation("ModifiedCalendarEvents", fields: [lastModifiedById], references: [id])
+  changeHistory  CalendarEventChange[]
+
+  // Scheduled workout assignment links (for linking calendar events to assignments)
+  strengthAssignments StrengthSessionAssignment[] @relation("StrengthAssignmentCalendar")
+  cardioAssignments   CardioSessionAssignment[]   @relation("CardioAssignmentCalendar")
+  agilityAssignments  AgilityWorkoutAssignment[]  @relation("AgilityAssignmentCalendar")
+  hybridAssignments   HybridWorkoutAssignment[]   @relation("HybridAssignmentCalendar")
+
+  @@index([clientId, startDate, endDate])
+  @@index([clientId, type])
+  @@index([externalCalendarId, externalCalendarType])
+  @@index([createdById])
+  @@index([status])
+  @@index([lastModifiedById])
+}
+
+/// Change history for calendar events (for notifications and audit trail)
+model CalendarEventChange {
+  id       String  @id @default(uuid())
+  eventId  String?
+  clientId String
+
+  // Change details
+  changeType  String // EVENT_CREATED, EVENT_UPDATED, EVENT_DELETED, WORKOUT_RESCHEDULED, CONFLICT_DETECTED
+  changedById String
+  description String @db.Text
+
+  // Snapshot data
+  previousData Json? // Snapshot of old state
+  newData      Json? // Snapshot of new state
+
+  // Notification tracking
+  notificationRead   Boolean   @default(false)
+  notificationReadAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  event     CalendarEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  changedBy User           @relation("CalendarChanges", fields: [changedById], references: [id])
+
+  @@index([clientId, notificationRead, createdAt])
+  @@index([eventId])
+  @@index([changedById])
+}
+
+/// External calendar connections (Google, Outlook, Apple iCal, Bokadirekt, Zoezi)
+model ExternalCalendarConnection {
+  id       String  @id @default(uuid())
+  clientId String? // For athlete connections
+  userId   String? // For coach connections (Bokadirekt, Zoezi, etc.)
+
+  // Provider info
+  provider     String // GOOGLE, OUTLOOK, APPLE, ICAL_URL, BOKADIREKT, ZOEZI
+  calendarName String // Display name
+  calendarId   String // External calendar ID
+
+  // OAuth tokens (Google/Outlook)
+  accessToken  String?   @db.Text
+  refreshToken String?   @db.Text
+  expiresAt    DateTime?
+
+  // iCal URL (Apple/generic/Bokadirekt)
+  icalUrl String? @db.Text
+
+  // Sync settings
+  syncEnabled   Boolean   @default(true)
+  lastSyncAt    DateTime?
+  lastSyncError String?
+
+  // Import settings
+  importAsType  CalendarEventType @default(EXTERNAL_EVENT)
+  defaultImpact EventImpact       @default(NORMAL)
+
+  // Color coding
+  color String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  client Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user   User?   @relation("UserCalendarConnections", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, provider, calendarId])
+  @@unique([userId, provider, calendarId])
+  @@index([clientId])
+  @@index([userId])
+  @@index([provider])
+}
+
+// ==================== TEAM SPORTS - MATCH SCHEDULE ====================
+
+/// External match schedule integration for team sports (hockey, football, etc.)
+model ExternalMatchSchedule {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Match details
+  externalMatchId String // ID from external source (league API, team app)
+  opponent        String // Opponent team name
+  isHome          Boolean // Home or away game
+  scheduledDate   DateTime // Match date and time
+  venue           String? // Arena/stadium name
+
+  // Competition info
+  competition String? // League name, cup name, etc.
+  matchday    Int? // Round/matchday number
+
+  // Post-match data
+  result         String? // "3-2", "W 4-1", etc.
+  minutesPlayed  Float? // Player's ice time / minutes on field
+  goals          Int? // Goals scored
+  assists        Int? // Assists
+  plusMinus      Int? // +/- for hockey
+  penaltyMinutes Int? // PIM for hockey
+
+  // GPS/tracking data (for football)
+  distanceKm     Float? // Total distance covered
+  sprintDistance Float? // High-speed running distance
+  maxSpeed       Float? // Max speed achieved (km/h)
+
+  // Calendar integration
+  calendarEventId String? // Link to CalendarEvent if synced
+
+  // Source tracking
+  externalSource String   @default("manual") // "manual", "hockey_app", "swehockey", "fogis", "gps_provider"
+  lastSyncedAt   DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, externalMatchId, externalSource])
+  @@index([clientId, scheduledDate])
+  @@index([externalSource])
+}
+
+// ==================== MULTI-ORG CALENDAR PLANNING ====================
+enum CalendarVisibility {
+  FULL_DETAILS // Members see full event details in cross-org view
+  BUSY_ONLY    // Members see time blocks only (no details)
+  HIDDEN       // Calendar hidden from cross-org views entirely
+}
+
+enum CrossOrgCalendarMode {
+  PERSONAL   // My schedule across all orgs
+  ALL_TEAMS  // Full team calendars from all orgs
+  PLANNING   // Interactive planning mode with conflict detection
+}
+
+/// Per-user preferences for the unified cross-org calendar view
+model UserCalendarPreference {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  defaultMode       CrossOrgCalendarMode @default(PERSONAL)
+  hiddenBusinessIds  Json                @default("[]")   // String[] of business IDs the user chose to hide
+  colorMapping       Json                @default("{}")   // { businessId: "#hex" } overrides (falls back to Business.primaryColor)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

@@ -1,0 +1,416 @@
+// INTEGRATIONS domain models & enums.
+// Auto-grouped from schema.prisma — keep new declarations here.
+
+enum IntegrationType {
+  STRAVA // Strava OAuth integration
+  GARMIN // Garmin Health API integration
+  CONCEPT2 // Concept2 Logbook integration
+}
+
+// ==================== INTEGRATIONS (Strava, Garmin) ====================
+
+/// OAuth tokens for external integrations
+model IntegrationToken {
+  id       String          @id @default(uuid())
+  clientId String
+  type     IntegrationType
+
+  // OAuth tokens (encrypted at application level)
+  accessToken  String    @db.Text
+  refreshToken String?   @db.Text
+  expiresAt    DateTime?
+
+  // Integration-specific data
+  externalUserId String? // Strava athlete ID, Garmin user ID
+  scope          String? // OAuth scopes granted
+
+  // Sync status
+  lastSyncAt    DateTime?
+  lastSyncError String?
+  syncEnabled   Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, type])
+  @@index([clientId])
+  @@index([type])
+  @@index([lastSyncAt])
+}
+
+/// Temporary OAuth PKCE state (stores code_verifier + state during authorization redirect)
+/// Short-lived (10 min), cleaned up after use or expiration
+model OAuthRequestToken {
+  id           String   @id @default(uuid())
+  clientId     String // Client initiating the OAuth flow
+  provider     String // e.g., "GARMIN"
+  codeVerifier String // PKCE code_verifier — encrypted
+  state        String // Random state parameter for CSRF protection
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime // Auto-expire after 10 minutes
+
+  @@unique([clientId, provider])
+  @@index([expiresAt])
+}
+
+/// Synced Strava activities for training load analysis
+model StravaActivity {
+  id       String @id @default(uuid())
+  clientId String
+  stravaId String @unique // Strava activity ID
+
+  // Basic activity info
+  name        String
+  type        String // Strava activity type (Run, Ride, etc.)
+  sportType   String? // Strava sport_type
+  startDate   DateTime
+  description String?  @db.Text
+
+  // Metrics
+  distance      Float? // meters
+  movingTime    Int? // seconds
+  elapsedTime   Int? // seconds
+  elevationGain Float? // meters
+  averageSpeed  Float? // m/s
+  maxSpeed      Float? // m/s
+
+  // Heart rate
+  averageHeartrate Float?
+  maxHeartrate     Float?
+
+  // Cadence
+  averageCadence Float?
+
+  // Power (cycling)
+  averageWatts         Float?
+  weightedAverageWatts Float?
+  kilojoules           Float?
+
+  // Strava scores
+  sufferScore Int?
+  calories    Float?
+
+  // Activity flags
+  trainer Boolean @default(false)
+  manual  Boolean @default(false)
+
+  // Map data
+  mapPolyline String? @db.Text
+
+  // Calculated metrics
+  tss   Float? // Training Stress Score
+  trimp Float? // Training Impulse
+
+  // Mapped to our internal types
+  mappedType      String? // RUNNING, CYCLING, etc.
+  mappedIntensity String? // EASY, MODERATE, HARD
+
+  // Detailed data (JSON)
+  splitsMetric Json? // Kilometer splits
+  laps         Json? // Lap data
+
+  // HR Stream data for zone tracking
+  hrStream        Json? // Second-by-second HR data: number[]
+  hrStreamFetched Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client           Client                      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  zoneDistribution ActivityHRZoneDistribution?
+
+  @@index([clientId])
+  @@index([startDate])
+  @@index([type])
+  @@index([mappedType])
+}
+
+/// Garmin Connect synced activities (Gap 5 fix - normalizes Garmin data like Strava)
+model GarminActivity {
+  id               String @id @default(uuid())
+  clientId         String
+  garminActivityId BigInt @unique // Garmin activity ID (can be large)
+
+  // Basic activity info
+  name        String?
+  type        String // Garmin activity type (RUNNING, CYCLING, etc.)
+  startDate   DateTime
+  description String?  @db.Text
+
+  // Metrics
+  distance      Float? // meters
+  duration      Int? // seconds (movingTime equivalent)
+  elapsedTime   Int? // seconds (total elapsed time)
+  elevationGain Float? // meters
+  averageSpeed  Float? // m/s
+  maxSpeed      Float? // m/s
+
+  // Heart rate
+  averageHeartrate Float?
+  maxHeartrate     Float?
+
+  // Cadence
+  averageCadence Float?
+
+  // Power (cycling)
+  averageWatts    Float?
+  normalizedPower Float?
+  maxWatts        Float?
+
+  // Garmin-specific scores
+  trainingEffect  Float? // Garmin Training Effect (0-5 scale)
+  anaerobicEffect Float? // Garmin Anaerobic Training Effect
+  calories        Float?
+
+  // Activity flags
+  indoor Boolean @default(false)
+  manual Boolean @default(false)
+
+  // Calculated metrics
+  tss   Float? // Training Stress Score
+  trimp Float? // Training Impulse
+
+  // Mapped to our internal types
+  mappedType      String? // RUNNING, CYCLING, STRENGTH, etc.
+  mappedIntensity String? // EASY, MODERATE, HARD
+
+  // Device info (for Garmin brand compliance attribution)
+  deviceName String? // Garmin device model (e.g. "Forerunner 265")
+
+  // Detailed data (JSON)
+  laps   Json? // Lap data from Garmin
+  splits Json? // Split data
+
+  // HR Zone data from Garmin activity details
+  hrZoneSeconds Json? // { zone1: 120, zone2: 300, ... }
+
+  // HR Stream data for accurate zone tracking
+  hrStream        Json? // Second-by-second HR data: number[]
+  hrStreamFetched Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client           Client                      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  zoneDistribution ActivityHRZoneDistribution?
+  adHocWorkout     AdHocWorkout?               @relation("AdHocGarminLink")
+
+  @@index([clientId])
+  @@index([startDate])
+  @@index([type])
+  @@index([mappedType])
+}
+
+/// Concept2 Logbook workout results (rowing, SkiErg, BikeErg)
+model Concept2Result {
+  id         String @id @default(uuid())
+  clientId   String
+  concept2Id Int    @unique // Concept2 result ID
+
+  // Equipment & workout info
+  type        String // rower, skierg, bike, dynamic, etc.
+  workoutType String? // JustRow, FixedDistanceSplits, etc.
+  date        DateTime
+  timezone    String?
+  comments    String?  @db.Text
+
+  // Core metrics
+  distance   Int // meters
+  time       Int // tenths of seconds
+  calories   Int?
+  strokeRate Float? // avg strokes/min (or rpm for bike)
+  dragFactor Int?
+
+  // Heart rate
+  avgHeartRate Float?
+  maxHeartRate Float?
+  minHeartRate Float?
+
+  // Pace (derived - seconds per 500m for rowing/ski, or calculated for bike)
+  pace Float?
+
+  // Splits/intervals (JSON)
+  splits    Json?
+  intervals Json?
+
+  // Stroke data availability
+  hasStrokeData Boolean @default(false)
+
+  // Calculated metrics
+  tss   Float? // Training Stress Score
+  trimp Float? // Training Impulse
+
+  // Mapped to our internal types
+  mappedType      String? // ROWING, SKIING, CYCLING
+  mappedIntensity String? // EASY, MODERATE, HARD
+
+  // Verification status from Concept2
+  isVerified Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([date])
+  @@index([type])
+  @@index([mappedType])
+}
+
+model GroupClass {
+  id          String    @id @default(uuid())
+  businessId  String
+  business    Business  @relation("BusinessGroupClasses", fields: [businessId], references: [id], onDelete: Cascade)
+  coachId     String
+  coach       User      @relation("GroupClassCoach", fields: [coachId], references: [id])
+
+  name        String
+  description String?
+  type        String   // SPINNING, HIIT, YOGA, CIRCUIT, CROSSFIT, BODY_PUMP, STRETCHING, OTHER
+  duration    Int      // minutes
+  maxCapacity Int      @default(20)
+  locationId  String?
+  location    Location? @relation("GroupClassLocation", fields: [locationId], references: [id])
+
+  dayOfWeek   Int      // 0=Sunday, 1=Monday...6=Saturday
+  startTime   String   // "07:00"
+  isActive    Boolean  @default(true)
+  color       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  schedules GroupClassSchedule[]
+
+  @@index([businessId, isActive])
+  @@index([coachId])
+}
+
+model GroupClassSchedule {
+  id           String     @id @default(uuid())
+  groupClassId String
+  groupClass   GroupClass  @relation(fields: [groupClassId], references: [id], onDelete: Cascade)
+
+  date      DateTime @db.Date
+  startTime DateTime
+  endTime   DateTime
+  status    String   @default("SCHEDULED") // SCHEDULED, CANCELLED, COMPLETED
+
+  coachId     String?
+  maxCapacity Int?
+  notes       String?
+
+  bookings GroupClassBooking[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([groupClassId, date])
+  @@index([date, status])
+}
+
+model GroupClassBooking {
+  id         String              @id @default(uuid())
+  scheduleId String
+  schedule   GroupClassSchedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  clientId   String
+  client     Client              @relation("ClientGroupClassBookings", fields: [clientId], references: [id], onDelete: Cascade)
+
+  status      String   @default("BOOKED") // BOOKED, CHECKED_IN, CANCELLED, NO_SHOW
+  bookedAt    DateTime @default(now())
+  checkedInAt DateTime?
+  cancelledAt DateTime?
+
+  @@unique([scheduleId, clientId])
+  @@index([clientId])
+}
+
+// ============================================
+// Gym Platform Integrations (Zoezi, Wondr, Boka Direkt, MindBody)
+// ============================================
+model GymPlatformConnection {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation("BusinessGymPlatforms", fields: [businessId], references: [id], onDelete: Cascade)
+
+  provider    String   // ZOEZI, WONDR, BOKADIREKT, MINDBODY
+  displayName String
+
+  // Authentication (encrypted at application layer)
+  apiKey         String?  @db.Text
+  apiSecret      String?  @db.Text
+  siteId         String?
+  accessToken    String?  @db.Text
+  refreshToken   String?  @db.Text
+  tokenExpiresAt DateTime?
+
+  // Sync configuration
+  syncClasses    Boolean @default(true)
+  syncBookings   Boolean @default(true)
+  pushWorkouts   Boolean @default(false)
+  syncInterval   Int     @default(30) // minutes
+
+  // Status
+  isActive       Boolean  @default(true)
+  lastSyncAt     DateTime?
+  lastSyncError  String?
+  lastSyncStats  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  syncedClasses  GymSyncedClass[]
+  syncedBookings GymSyncedBooking[]
+
+  @@unique([businessId, provider])
+  @@index([businessId])
+}
+
+model GymSyncedClass {
+  id              String                @id @default(uuid())
+  connectionId    String
+  connection      GymPlatformConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  externalId      String
+
+  name            String
+  instructor      String?
+  startTime       DateTime
+  endTime         DateTime
+  location        String?
+  maxCapacity     Int?
+  bookedCount     Int?
+  description     String?
+
+  groupClassScheduleId String?
+
+  lastSyncedAt    DateTime @default(now())
+
+  @@unique([connectionId, externalId])
+  @@index([connectionId, startTime])
+}
+
+model GymSyncedBooking {
+  id               String                @id @default(uuid())
+  connectionId     String
+  connection       GymPlatformConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  externalId       String
+
+  type             String   // CLASS, PT_SESSION, DROP_IN
+  clientName       String
+  clientEmail      String?
+  clientExternalId String?
+  clientId         String?
+
+  className        String?
+  startTime        DateTime
+  endTime          DateTime?
+  status           String   // BOOKED, CHECKED_IN, CANCELLED, NO_SHOW
+
+  lastSyncedAt     DateTime @default(now())
+
+  @@unique([connectionId, externalId])
+  @@index([connectionId, startTime])
+  @@index([clientId])
+}

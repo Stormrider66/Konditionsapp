@@ -1,0 +1,625 @@
+// AGENTS domain models & enums.
+// Auto-grouped from schema.prisma — keep new declarations here.
+
+// ============================================
+// DEEP RESEARCH SYSTEM
+// Added: 2026-01
+// Purpose: AI-powered autonomous research with budget management
+// ============================================
+
+/// Provider for deep research operations
+enum DeepResearchProvider {
+  GEMINI // Gemini Deep Research (Interactions API)
+  OPENAI_QUICK // GPT-5 Mini + web_search
+  OPENAI_STANDARD // GPT-5.4 Thinking + web_search
+  OPENAI_DEEP // o4-mini-deep-research
+  OPENAI_EXPERT // o3-deep-research
+  LANGCHAIN // LangChain open_deep_research (future)
+}
+
+/// Status for deep research sessions
+enum DeepResearchStatus {
+  PENDING // Created, not started
+  RUNNING // Research in progress
+  COMPLETED // Research finished successfully
+  FAILED // Research failed
+  CANCELLED // User cancelled
+  TIMEOUT // Exceeded max duration
+}
+
+/// Deep Research sessions
+model DeepResearchSession {
+  id        String  @id @default(uuid())
+  coachId   String
+  athleteId String? // Optional - for athlete-specific research
+
+  // Configuration
+  provider         DeepResearchProvider
+  query            String               @db.Text
+  systemPrompt     String?              @db.Text
+  contextDocuments String[]             @default([]) // CoachDocument IDs
+  athleteContext   Json? // Snapshot of athlete data at research time
+
+  // Progress tracking
+  status          DeepResearchStatus @default(PENDING)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  progressPercent Int? // 0-100
+  progressMessage String? // Human-readable status
+  currentStep     String? // "searching", "analyzing", "synthesizing"
+
+  // External tracking (provider-specific)
+  externalJobId String? // Gemini interaction ID or OpenAI response ID
+
+  // Results
+  report    String? @db.Text // Final markdown report
+  sources   Json? // Array of source citations
+  reasoning String? @db.Text // Chain of thought (if available)
+
+  // Document integration
+  savedDocumentId String?        @unique // Link to CoachDocument if saved
+  savedDocument   CoachDocument? @relation("ResearchDocument", fields: [savedDocumentId], references: [id], onDelete: SetNull)
+
+  // Athlete sharing
+  sharedWithAthletes String[] @default([]) // Client IDs with access
+  isPublicToAthlete  Boolean  @default(false) // Share with linked athlete automatically
+
+  // Usage & costs
+  tokensUsed      Int?
+  estimatedCost   Float? // USD
+  searchQueries   Int? // Number of web searches performed
+  sourcesAnalyzed Int? // Number of sources analyzed
+
+  // Error handling
+  errorMessage String?
+  errorCode    String?
+  retryCount   Int     @default(0)
+
+  // Relationships
+  coach           User                   @relation("CoachResearchSessions", fields: [coachId], references: [id], onDelete: Cascade)
+  athlete         Client?                @relation("AthleteResearchSessions", fields: [athleteId], references: [id], onDelete: SetNull)
+  progressUpdates DeepResearchProgress[]
+  sharedAccess    SharedResearchAccess[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([athleteId])
+  @@index([status])
+  @@index([provider])
+  @@index([externalJobId])
+  @@index([createdAt])
+}
+
+/// Progress updates for deep research (for SSE streaming)
+model DeepResearchProgress {
+  id        String @id @default(uuid())
+  sessionId String
+
+  timestamp DateTime @default(now())
+  step      String // "initializing", "searching", "reading", "analyzing", "synthesizing"
+  message   String // Human-readable progress message
+  percent   Int? // 0-100
+  metadata  Json? // Additional step-specific data
+
+  session DeepResearchSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([timestamp])
+}
+
+/// Shared research access for athletes
+model SharedResearchAccess {
+  id        String   @id @default(uuid())
+  sessionId String
+  clientId  String
+  sharedAt  DateTime @default(now())
+  notified  Boolean  @default(false) // Email notification sent
+
+  session DeepResearchSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  client  Client              @relation("SharedResearchAccess", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, clientId])
+  @@index([clientId])
+  @@index([sharedAt])
+}
+
+// ==================== MULTI-PART PROGRAM GENERATION ====================
+
+/// Status for multi-part program generation sessions
+enum ProgramGenerationStatus {
+  PENDING // Created, not started
+  GENERATING_OUTLINE // Creating program structure
+  GENERATING_PHASE // Generating a phase
+  MERGING // Merging all phases
+  COMPLETED // Generation finished successfully
+  FAILED // Generation failed
+}
+
+/// Multi-part program generation sessions
+/// Splits long programs (>8 weeks) into phases and generates each sequentially
+model ProgramGenerationSession {
+  id             String  @id @default(uuid())
+  coachId        String
+  conversationId String?
+
+  // Request configuration
+  query          String  @db.Text // Original request/prompt
+  totalWeeks     Int // Target program length
+  sport          String // Primary sport
+  methodology    String? // POLARIZED, NORWEGIAN, etc.
+  athleteContext Json? // Snapshot of athlete data
+  athleteId      String? // Target athlete (optional)
+
+  // Progress tracking
+  status          ProgramGenerationStatus @default(PENDING)
+  currentPhase    Int                     @default(0)
+  totalPhases     Int                     @default(1)
+  progressPercent Int                     @default(0) // 0-100
+  progressMessage String? // Human-readable status
+
+  // Generation results (phases stored as they complete)
+  programOutline Json? // Initial outline with phase structure
+  phases         Json[] @default([]) // Completed phases
+  mergedProgram  Json? // Final merged program
+
+  // AI model configuration
+  modelUsed String? // Model used for generation
+  provider  String? // ANTHROPIC, GOOGLE, OPENAI
+
+  // Timing
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // Error handling & retries
+  errorMessage String?
+  errorCode    String?
+  retryCount   Int       @default(0)
+  lastRetryAt  DateTime?
+
+  // Usage tracking
+  totalTokensUsed Int   @default(0)
+  estimatedCost   Float @default(0)
+
+  // Relationships
+  coach           User                        @relation("CoachProgramGenSessions", fields: [coachId], references: [id], onDelete: Cascade)
+  conversation    AIConversation?             @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  progressUpdates ProgramGenerationProgress[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([conversationId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// Progress updates for program generation (for SSE streaming)
+model ProgramGenerationProgress {
+  id        String @id @default(uuid())
+  sessionId String
+
+  timestamp   DateTime @default(now())
+  step        String // "outline", "phase_1", "phase_2", "merging", etc.
+  message     String // Human-readable progress message
+  percent     Int? // 0-100
+  phaseNumber Int? // Which phase (1, 2, 3...)
+  metadata    Json? // Additional step-specific data (e.g., phase preview)
+
+  session ProgramGenerationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([timestamp])
+}
+
+// ============================================================================
+// AUTONOMOUS AI AGENT SYSTEM
+// ============================================================================
+enum AgentAutonomyLevel {
+  ADVISORY // Recommendations only, athlete decides
+  LIMITED // Auto-adjust within narrow bounds
+  SUPERVISED // Actions with coach notification
+  AUTONOMOUS // Full autonomy, critical escalations only
+}
+
+enum AgentActionType {
+  WORKOUT_INTENSITY_REDUCTION
+  WORKOUT_DURATION_REDUCTION
+  WORKOUT_SUBSTITUTION
+  WORKOUT_SKIP_RECOMMENDATION
+  REST_DAY_INJECTION
+  RECOVERY_ACTIVITY_SUGGESTION
+  PROGRAM_ADJUSTMENT
+  ESCALATE_TO_COACH
+  ESCALATE_TO_SUPPORT
+  MOTIVATIONAL_NUDGE
+  CHECK_IN_REQUEST
+}
+
+enum AgentActionStatus {
+  PROPOSED // Action proposed, waiting for response
+  ACCEPTED // Athlete accepted recommendation
+  REJECTED // Athlete rejected recommendation
+  AUTO_APPLIED // Automatically applied within autonomy bounds
+  COACH_OVERRIDDEN // Coach overrode the action
+  EXPIRED // Action expired without response
+}
+
+enum AgentConfidence {
+  LOW // <60% confidence
+  MEDIUM // 60-80% confidence
+  HIGH // 80-95% confidence
+  VERY_HIGH // >95% confidence
+}
+
+/// Agent preferences per athlete - controls autonomy and communication
+model AgentPreferences {
+  id       String @id @default(uuid())
+  clientId String @unique
+
+  // Autonomy settings
+  autonomyLevel            AgentAutonomyLevel @default(ADVISORY)
+  allowWorkoutModification Boolean            @default(false)
+  allowRestDayInjection    Boolean            @default(false)
+  maxIntensityReduction    Int                @default(20) // Max % intensity can be reduced
+
+  // Communication preferences
+  dailyBriefingEnabled   Boolean @default(true)
+  proactiveNudgesEnabled Boolean @default(true)
+  preferredContactMethod String  @default("IN_APP") // IN_APP, EMAIL, SMS
+
+  // Safety bounds
+  minRestDaysPerWeek     Int @default(1) // Minimum rest days per week
+  maxConsecutiveHardDays Int @default(3) // Max high-intensity consecutive days
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
+
+/// GDPR consent for AI agent data processing
+model AgentConsent {
+  id       String @id @default(uuid())
+  clientId String @unique
+
+  // Required consents for agent operation
+  dataProcessingConsent       Boolean @default(false) // Required for any agent operation
+  automatedDecisionConsent    Boolean @default(false) // Required for auto-applied actions
+  healthDataProcessingConsent Boolean @default(false) // Required for processing readiness/injury data
+
+  // Optional consents
+  learningContributionConsent Boolean @default(true) // Use decisions for model improvement
+  anonymizedResearchConsent   Boolean @default(true) // Use data in anonymized research
+
+  // Consent metadata
+  consentVersion     String    @default("1.0") // Version for tracking consent changes
+  consentGivenAt     DateTime? // When consent was granted
+  consentWithdrawnAt DateTime? // When consent was withdrawn (null = active)
+  ipAddress          String? // IP address when consent was given
+  userAgent          String? // Browser/app info when consent was given
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
+
+/// Agent perception snapshot - captures athlete state at a point in time
+model AgentPerception {
+  id          String   @id @default(uuid())
+  clientId    String
+  perceivedAt DateTime @default(now())
+
+  // Readiness scores (0-100 scale)
+  readinessScore Float? // Overall readiness
+  fatigueScore   Float? // Fatigue level
+  sleepScore     Float? // Sleep quality
+  stressScore    Float? // Stress level
+
+  // Training load metrics
+  acuteLoad   Float? // 7-day rolling load
+  chronicLoad Float? // 28-day rolling load
+  acwr        Float? // Acute:Chronic Workload Ratio
+  acwrZone    String? // OPTIMAL, CAUTION, DANGER, CRITICAL
+
+  // Status flags
+  hasActiveInjury Boolean @default(false) // Any active injury
+  hasRestrictions Boolean @default(false) // Any training restrictions
+
+  // Behavioral metrics
+  checkInStreak    Int @default(0) // Consecutive check-in days
+  missedWorkouts7d Int @default(0) // Missed workouts in last 7 days
+
+  // Detected patterns
+  detectedPatterns Json? // Array of detected training patterns
+  patternSeverity  String? // NONE, LOW, MEDIUM, HIGH, CRITICAL
+
+  // Full context snapshot (for debugging/learning)
+  contextSnapshot Json? // Snapshot of all data used in perception
+
+  createdAt DateTime @default(now())
+
+  client  Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  actions AgentAction[]
+
+  @@index([clientId, perceivedAt])
+  @@index([clientId])
+}
+
+/// Agent action/decision - tracks all agent recommendations and actions
+model AgentAction {
+  id           String  @id @default(uuid())
+  clientId     String
+  perceptionId String? // Link to perception that triggered this action
+
+  // Action details
+  actionType AgentActionType
+  actionData Json // Action-specific data (workout changes, etc.)
+  reasoning  String          @db.Text // AI reasoning for the action
+
+  // Confidence
+  confidence      AgentConfidence
+  confidenceScore Float // Numeric confidence (0-1)
+  priority        String          @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+
+  // Target (optional - not all actions target specific workouts)
+  targetWorkoutId String? // ID of workout being modified
+  targetDate      DateTime? // Date the action applies to
+
+  // Status tracking
+  status     AgentActionStatus @default(PROPOSED)
+  proposedAt DateTime          @default(now())
+  decidedAt  DateTime? // When athlete/coach decided
+  decidedBy  String? // User ID who decided (or "SYSTEM" for auto)
+
+  // Feedback
+  athleteFeedback     String? @db.Text // Athlete's feedback on the action
+  coachOverride       Boolean @default(false) // Coach overrode this action
+  coachOverrideReason String? @db.Text // Reason for coach override
+
+  // Outcome tracking (for learning)
+  outcomeTracked Boolean  @default(false) // Whether outcome was tracked
+  outcomeSuccess Boolean? // Whether the action led to good outcome
+
+  // Expiration
+  expiresAt DateTime? // When the action expires if not acted upon
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client        Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  perception    AgentPerception?    @relation(fields: [perceptionId], references: [id])
+  oversightItem AgentOversightItem?
+
+  @@index([clientId, status])
+  @@index([status, expiresAt])
+  @@index([clientId])
+  @@index([perceptionId])
+}
+
+/// Coach oversight queue - items requiring coach review
+model AgentOversightItem {
+  id       String @id @default(uuid())
+  coachId  String // Coach who should review
+  clientId String // Athlete the action affects
+  actionId String @unique // The agent action requiring review
+
+  // Categorization
+  priority String @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  category String // SAFETY, MODIFICATION, ESCALATION
+
+  // Review status
+  status     String    @default("PENDING") // PENDING, APPROVED, REJECTED, MODIFIED
+  reviewedAt DateTime?
+  reviewNote String?   @db.Text // Coach's review notes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  action AgentAction @relation(fields: [actionId], references: [id], onDelete: Cascade)
+
+  @@index([coachId, status])
+  @@index([coachId])
+  @@index([clientId])
+}
+
+/// Learning events for model improvement
+model AgentLearningEvent {
+  id       String  @id @default(uuid())
+  clientId String
+  actionId String? // Optional link to source action
+
+  // Event data
+  eventType         String // OUTCOME_POSITIVE, OUTCOME_NEGATIVE, COACH_OVERRIDE, ATHLETE_FEEDBACK
+  agentDecision     Json // What the agent decided
+  actualOutcome     Json // What actually happened
+  contextAtDecision Json // Context when decision was made
+
+  // Processing
+  processedForTraining Boolean @default(false) // Whether used for model training
+
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([eventType])
+  @@index([processedForTraining])
+  @@index([clientId])
+}
+
+/// GDPR audit log - tracks all agent data access and actions
+model AgentAuditLog {
+  id       String @id @default(uuid())
+  clientId String
+
+  // Action details
+  action   String // DATA_ACCESS, DECISION_MADE, ACTION_TAKEN, CONSENT_CHANGED
+  resource String // What resource was accessed (perception, action, etc.)
+  details  Json // Action-specific details
+
+  // Actor
+  actorType String // AGENT, ATHLETE, COACH, SYSTEM
+  actorId   String? // User ID if human actor
+  ipAddress String? // IP address if web request
+
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([action])
+  @@index([clientId])
+}
+
+// ============================================================================
+// MANAGED AGENT SESSIONS
+// ============================================================================
+
+/// Tracks Claude Managed Agent sessions for event-driven agent processing.
+/// Each session maps to a Claude API agent session with tool access.
+model ManagedAgentSession {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  agentType  String // COACHING, PROGRAM_GENERATION, COACH_DASHBOARD, NUTRITION, PHYSIO, RESEARCH, LEARNING
+  entityId   String // clientId, coachId, or physioId depending on agent type
+  externalId String? // Claude Managed Agent session ID from the API
+
+  status      String   @default("ACTIVE") // ACTIVE, PAUSED, EXPIRED, ERROR
+  modelIntent String   @default("balanced") // fast, balanced, powerful
+  lastEventAt DateTime @default(now())
+
+  totalTokensUsed Int   @default(0)
+  totalCostUsd    Float @default(0)
+  metadata        Json?
+
+  events AgentEvent[]
+
+  @@index([agentType, entityId])
+  @@index([status])
+  @@index([lastEventAt])
+}
+
+/// Events that trigger managed agent processing.
+/// Each event is routed to the appropriate agent type(s).
+model AgentEvent {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  eventType String // GARMIN_ACTIVITY, CHECKIN_SUBMITTED, MEAL_LOGGED, etc.
+  entityId  String // The entity this event is for
+  eventData Json   // Event-specific payload
+
+  sessionId   String?
+  session     ManagedAgentSession? @relation(fields: [sessionId], references: [id])
+  processedAt DateTime?
+  result      Json? // Agent response after processing
+
+  @@index([sessionId, createdAt])
+  @@index([entityId, eventType])
+  @@index([processedAt])
+}
+
+/// Execution log for every operator agent run
+/// Used by the admin UI to show agent health, costs, and recent activity
+model OperatorAgentRun {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  agentType   String // SUPPORT | CHURN | FEATURE_CURATOR | PLATFORM_HEALTH | ...
+  status      String // RUNNING | COMPLETED | FAILED
+  triggeredBy String // cron | event | manual
+  startedAt   DateTime
+  completedAt DateTime?
+  durationMs  Int?
+
+  // Results
+  itemsProcessed Int? // E.g., tickets triaged, users analyzed
+  actionsTaken   Int? // E.g., emails drafted, issues created
+  escalations    Int? // Items flagged for founder review
+  summary        String? @db.Text // Human-readable summary
+  details        Json? // Full agent output
+
+  // Usage
+  modelUsed  String? // e.g., "claude-sonnet-4-6"
+  tokensUsed Int     @default(0)
+  costUsd    Float   @default(0)
+
+  // Errors
+  errorMessage String? @db.Text
+
+  @@index([agentType, createdAt])
+  @@index([status])
+}
+
+/// Queue for asynchronous operator agent invocations.
+/// Used when events (like new support tickets) need to trigger an agent
+/// without blocking the HTTP response. A cron worker picks up pending
+/// jobs every minute.
+model OperatorAgentJob {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Which agent to run (e.g. "SUPPORT", "CHURN_PREDICTOR")
+  agentType String
+
+  /// Reason for the trigger (e.g. "new_ticket", "checkout_failure")
+  triggeredBy String
+
+  /// Status: PENDING | PROCESSING | COMPLETED | FAILED
+  status String @default("PENDING")
+
+  /// Optional: when should the job run? (defaults to immediately)
+  scheduledFor DateTime @default(now())
+
+  /// Retry tracking
+  attempts     Int    @default(0)
+  maxAttempts  Int    @default(3)
+  lastError    String? @db.Text
+
+  /// Input context for the agent (referenced IDs, etc.)
+  context Json?
+
+  /// Result after processing
+  result Json?
+
+  /// Lifecycle timestamps
+  lockedAt    DateTime?
+  lockedBy    String? // Worker/process that claimed the job
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([status, scheduledFor])
+  @@index([agentType, createdAt])
+}
+
+/// Slack thread conversation context for multi-turn Claude conversations.
+/// Persists across Vercel cold starts so the bot remembers what you were
+/// discussing even if the serverless function recycles.
+model SlackThreadContext {
+  /// Slack thread timestamp (unique identifier for a thread)
+  threadTs String @id
+  /// Channel ID (for looking up context by channel+thread)
+  channelId String
+  /// Serialized message history (Anthropic MessageParam[] as JSON)
+  messages Json
+  /// When this context was last used (for TTL cleanup)
+  lastActivityAt DateTime @default(now())
+  /// Number of messages in the context (for monitoring)
+  messageCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([channelId])
+  @@index([lastActivityAt])
+}

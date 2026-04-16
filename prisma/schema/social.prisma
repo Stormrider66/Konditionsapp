@@ -1,0 +1,158 @@
+// SOCIAL domain models & enums.
+// Auto-grouped from schema.prisma — keep new declarations here.
+
+model SharedAchievement {
+  id              String   @id @default(uuid())
+  clientId        String
+  achievementType String   // "MILESTONE" | "STREAK"
+  title           String
+  description     String
+  imageUrl        String?
+  storagePath     String?
+  contextData     Json?
+  publicToken     String   @unique
+  publicExpiresAt DateTime
+  createdAt       DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
+
+// ============================================
+// Social Media & Community System
+// ============================================
+model SocialMediaAccount {
+  id             String   @id @default(uuid())
+  businessId     String
+  business       Business @relation("BusinessSocialAccounts", fields: [businessId], references: [id], onDelete: Cascade)
+  platform       String   // INSTAGRAM, FACEBOOK, TIKTOK, LINKEDIN, GOOGLE_BUSINESS, THREADS
+  accountName    String
+  accessToken    String   // Encrypted — or Ayrshare profile key
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  externalId     String?
+  isActive       Boolean  @default(true)
+  lastPostAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  publishes SocialPostPublish[]
+
+  @@unique([businessId, platform])
+  @@index([businessId])
+}
+
+model SocialPost {
+  id            String   @id @default(uuid())
+  businessId    String
+  business      Business @relation("BusinessSocialPosts", fields: [businessId], references: [id], onDelete: Cascade)
+  createdById   String
+  createdBy     User     @relation("UserSocialPosts", fields: [createdById], references: [id])
+
+  caption       String   @db.Text
+  mediaUrl      String?
+  mediaType     String?  // IMAGE, VIDEO, CAROUSEL
+  templateId    String?
+  isAiGenerated Boolean  @default(false)
+
+  triggerType   String?  // PR_ACHIEVED, CHALLENGE_COMPLETE, WEEKLY_SUMMARY, MILESTONE, CLASS_PROMO, MANUAL
+  triggerData   Json?
+
+  athleteConsentIds String[] // Client IDs who consented
+
+  status        String   @default("DRAFT") // DRAFT, APPROVED, QUEUED, PUBLISHED, FAILED
+  approvedById  String?
+  approvedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  publishes SocialPostPublish[]
+
+  @@index([businessId, status])
+  @@index([createdAt])
+}
+
+model SocialPostPublish {
+  id           String             @id @default(uuid())
+  postId       String
+  post         SocialPost         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  accountId    String
+  account      SocialMediaAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  scheduledAt  DateTime?
+  publishedAt  DateTime?
+  status       String   @default("PENDING") // PENDING, PUBLISHING, PUBLISHED, FAILED
+  externalId   String?
+  errorMessage String?  @db.Text
+  retryCount   Int      @default(0)
+
+  @@index([scheduledAt, status])
+  @@index([postId])
+}
+
+// Community Feed
+// ============================================
+model CommunityPost {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation("BusinessCommunityPosts", fields: [businessId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User     @relation("UserCommunityPosts", fields: [authorId], references: [id])
+
+  content     String   @db.Text
+  mediaUrl    String?
+  type        String   @default("GENERAL") // ANNOUNCEMENT, MOTIVATION, WORKOUT_SHARE, ACHIEVEMENT, GENERAL
+  isPinned    Boolean  @default(false)
+
+  // Broadcast / notification delivery
+  teamId       String?  // Scope to a specific team (null = all members)
+  notifyInApp  Boolean  @default(false)
+  notifyEmail  Boolean  @default(false)
+  notifySMS    Boolean  @default(false)
+  notifiedAt   DateTime? // When notifications were sent
+
+  likesCount    Int    @default(0)
+  commentsCount Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments      CommunityComment[]
+  likes         CommunityLike[]
+  notifications BroadcastNotification[]
+
+  team Team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, createdAt])
+  @@index([businessId, isPinned])
+  @@index([teamId])
+}
+
+model CommunityComment {
+  id     String        @id @default(uuid())
+  postId String
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User        @relation("UserCommunityComments", fields: [authorId], references: [id])
+
+  content String @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([postId, createdAt])
+}
+
+model CommunityLike {
+  id     String        @id @default(uuid())
+  postId String
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User          @relation("UserCommunityLikes", fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}

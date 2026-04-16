@@ -1,0 +1,1137 @@
+// AI domain models & enums.
+// Auto-grouped from schema.prisma — keep new declarations here.
+
+enum BiomechanicalPillar {
+  POSTERIOR_CHAIN // Hip dominance - glutes, hamstrings
+  KNEE_DOMINANCE // Quad strength & stiffness
+  UNILATERAL // Single-leg exercises
+  FOOT_ANKLE // Calf, ankle, foot strength
+  ANTI_ROTATION_CORE // Core stability & anti-rotation
+  UPPER_BODY // Upper body strength (optional for runners)
+}
+
+// ============================================
+// AI STUDIO MODELS
+// Added: 2024-12
+// Purpose: AI-powered training program generation with RAG
+// ============================================
+
+/// Provider for AI models
+enum AIProvider {
+  ANTHROPIC // Claude models
+  GOOGLE // Gemini models
+  OPENAI // GPT models & embeddings
+}
+
+/// Document types for coach uploads
+enum DocumentType {
+  PDF
+  EXCEL
+  MARKDOWN
+  VIDEO
+  TEXT
+  RESEARCH_REPORT // AI Deep Research generated reports
+}
+
+/// Coach document library for RAG knowledge base
+model CoachDocument {
+  id          String       @id @default(uuid())
+  coachId     String
+  name        String // Display name
+  description String?      @db.Text
+  fileType    DocumentType
+  fileUrl     String // Supabase Storage URL
+  fileSize    Int? // bytes
+  mimeType    String? // e.g., "application/pdf"
+
+  // System vs coach uploaded
+  isSystem Boolean @default(false)
+
+  // Processing status
+  processingStatus String  @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  processingError  String?
+  chunkCount       Int     @default(0)
+
+  // Metadata
+  metadata Json? // page count, sheet names, duration, etc.
+
+  coach  User             @relation("CoachDocuments", fields: [coachId], references: [id], onDelete: Cascade)
+  chunks KnowledgeChunk[]
+
+  // Deep Research - link if this document was created from research
+  researchSession DeepResearchSession? @relation("ResearchDocument")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([fileType])
+  @@index([isSystem])
+  @@index([processingStatus])
+}
+
+/// Knowledge chunks for RAG - embeddings stored separately via pgvector
+model KnowledgeChunk {
+  id         String @id @default(uuid())
+  documentId String
+  coachId    String
+
+  content    String @db.Text // Actual text content
+  chunkIndex Int // Order within document
+
+  // Embedding stored via raw SQL (pgvector)
+  // embedding    vector(1536) -- Added via migration
+  embeddingModel String? // e.g., "text-embedding-ada-002"
+
+  // Chunk metadata
+  metadata   Json? // page number, section header, etc.
+  tokenCount Int? // Tokens in this chunk
+
+  document CoachDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([documentId])
+  @@index([coachId])
+  @@index([chunkIndex])
+}
+
+/// AI conversation sessions in AI Studio
+model AIConversation {
+  id        String  @id @default(uuid())
+  coachId   String
+  athleteId String? // Optional - can be general knowledge query
+
+  title     String? // Auto-generated or user-set
+  modelUsed String // e.g., "claude-4.5-opus", "gemini-3-pro"
+  provider  AIProvider @default(ANTHROPIC)
+
+  // Context configuration
+  contextDocuments    String[] @default([]) // Array of document IDs included
+  athleteDataIncluded Json? // Which athlete data points are included
+  webSearchEnabled    Boolean  @default(false)
+
+  // Usage tracking
+  totalTokensUsed Int   @default(0)
+  totalCost       Float @default(0) // Estimated cost in USD
+
+  // Status
+  status String @default("ACTIVE") // ACTIVE, ARCHIVED, DELETED
+
+  coach                     User                       @relation("CoachConversations", fields: [coachId], references: [id], onDelete: Cascade)
+  athlete                   Client?                    @relation("AthleteConversations", fields: [athleteId], references: [id], onDelete: SetNull)
+  messages                  AIMessage[]
+  generatedPrograms         AIGeneratedProgram[]
+  programGenerationSessions ProgramGenerationSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([athleteId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// Individual messages in AI conversations
+model AIMessage {
+  id             String @id @default(uuid())
+  conversationId String
+
+  role    String // "user", "assistant", "system"
+  content String @db.Text
+
+  // Token usage for this message
+  inputTokens  Int?
+  outputTokens Int?
+
+  // If assistant used tools
+  toolCalls   Json? // Array of tool calls made
+  toolResults Json? // Results from tools
+
+  // Metadata
+  modelUsed String? // Model that generated this (for assistant messages)
+  latencyMs Int? // Response time
+
+  conversation AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId])
+  @@index([role])
+  @@index([createdAt])
+}
+
+/// Programs generated by AI (before saving to TrainingProgram)
+model AIGeneratedProgram {
+  id             String  @id @default(uuid())
+  conversationId String
+  programId      String? // Link to TrainingProgram if saved
+
+  // Program data (JSON structure matching TrainingProgram)
+  programJson Json
+
+  // Generation metadata
+  prompt    String? @db.Text // The prompt that generated this
+  reasoning String? @db.Text // AI's reasoning/explanation
+
+  // Status
+  isSaved Boolean @default(false)
+
+  conversation AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([conversationId])
+  @@index([programId])
+  @@index([isSaved])
+}
+
+/// AI-generated Workout of the Day for athletes
+model AIGeneratedWOD {
+  id       String @id @default(uuid())
+  clientId String
+  client   Client @relation("ClientWODs", fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Generation configuration
+  mode              WODMode  @default(STRUCTURED)
+  workoutType       String?  @default("strength") // "strength", "cardio", "mixed", "core"
+  requestedDuration Int      @default(45) // Minutes
+  equipment         String[] @default([])
+  focusArea         String? // "upper_body", "lower_body", "full_body", "cardio", "recovery"
+
+  // AI-generated content
+  title       String // Swedish title
+  subtitle    String? // Motivational tagline
+  description String? @db.Text // What the workout targets
+  workoutJson Json // Full workout structure with sections/exercises
+  coachNotes  String? @db.Text // AI reasoning for the workout
+
+  // Context at generation time
+  readinessAtGeneration Float?
+  intensityAdjusted     String? // "recovery", "easy", "moderate", "threshold"
+  guardrailsApplied     String[] @default([]) // E.g., "ACWR_WARNING", "INJURY_MODIFIED"
+  primarySport          String? // Sport used for generation
+
+  // Execution tracking
+  status         WODStatus @default(GENERATED)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  actualDuration Int? // Actual time taken (minutes)
+  sessionRPE     Int? // 1-10 perceived effort
+  exerciseLogs   Json? // Per-exercise completion data
+
+  // Usage & metrics
+  tokensUsed       Int?
+  generationTimeMs Int?
+  modelUsed        String? // e.g., "claude-sonnet-4-6"
+
+  // Source tracking
+  source              String?  // "generator" | "chat" | "cron"
+  chatConversationId  String?  // Link back to AI conversation
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([mode])
+}
+
+/// Video analysis results (technique analysis using Gemini)
+model VideoAnalysis {
+  id         String  @id @default(uuid())
+  coachId    String
+  athleteId  String?
+  exerciseId String? // Link to exercise from library
+
+  // Video source
+  videoUrl     String // Supabase Storage URL
+  videoType    String // "STRENGTH", "RUNNING_GAIT", "SPORT_SPECIFIC", "SKIING_*", "HYROX_STATION"
+  hyroxStation String? // For HYROX_STATION: "SKIERG", "SLED_PUSH", "SLED_PULL", etc.
+  cameraAngle  String? // "FRONT", "SIDE", "BACK" - camera angle for view-specific analysis
+  duration     Int? // seconds
+
+  // MediaPipe landmarks data (if processed locally)
+  landmarksData Json? // Skeletal tracking data
+
+  // AI analysis results
+  aiAnalysis     String?    @db.Text
+  aiPoseAnalysis Json? // Structured AI pose analysis from Gemini (interpretation, technicalFeedback, patterns, recommendations, score)
+  aiProvider     AIProvider @default(GOOGLE)
+  modelUsed      String? // e.g., "gemini-3-pro"
+
+  // Structured results
+  formScore       Int? // 0-100
+  issuesDetected  Json? // Array of {issue, severity, timestamp}
+  recommendations Json? // Array of recommended corrections
+  comparisonData  Json? // If comparing to previous video
+
+  // Processing status
+  status          String  @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  processingError String?
+
+  coach    User      @relation("CoachVideoAnalyses", fields: [coachId], references: [id], onDelete: Cascade)
+  athlete  Client?   @relation("AthleteVideoAnalyses", fields: [athleteId], references: [id], onDelete: SetNull)
+  exercise Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+
+  // Extended analysis (for RUNNING_GAIT type)
+  runningGaitAnalysis RunningGaitAnalysis?
+
+  // Extended analysis (for SKIING_* types)
+  skiingTechniqueAnalysis SkiingTechniqueAnalysis?
+
+  // Extended analysis (for HYROX_STATION type)
+  hyroxStationAnalysis HyroxStationAnalysis?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([athleteId])
+  @@index([exerciseId])
+  @@index([status])
+}
+
+/// Available AI models (admin-configurable)
+model AIModel {
+  id String @id @default(uuid())
+
+  provider    AIProvider
+  modelId     String     @unique // e.g., "claude-4.5-opus-20250101"
+  displayName String // e.g., "Claude 4.5 Opus"
+  description String?
+
+  // Capabilities
+  capabilities    String[] @default([]) // ["text", "vision", "code", "web_search"]
+  maxTokens       Int? // Max context window
+  maxOutputTokens Int? // Max output tokens
+
+  // Pricing (per 1K tokens)
+  inputCostPer1k  Float?
+  outputCostPer1k Float?
+
+  // Availability
+  isActive             Boolean @default(true)
+  isDefault            Boolean @default(false) // Default model for new conversations
+  availableForAthletes Boolean @default(true)  // Super admin toggle: can athletes use this model?
+
+  // Versioning
+  releasedAt   DateTime?
+  deprecatedAt DateTime?
+
+  // User preferences
+  userDefaults UserApiKey[] @relation("UserDefaultModel")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([provider])
+  @@index([isActive])
+  @@index([isDefault])
+}
+
+// ==================== GEMINI 3 PRO FEATURES ====================
+
+/// Extended running gait analysis data (Gemini 3 Pro structured output)
+model RunningGaitAnalysis {
+  id              String @id @default(uuid())
+  videoAnalysisId String @unique
+
+  // Biometric data (structured from video)
+  cadence             Int? // steps per minute
+  groundContactTime   Float? // milliseconds
+  verticalOscillation Float? // centimeters
+  strideLength        Float? // meters
+  footStrikePattern   String? // "HEEL", "MIDFOOT", "FOREFOOT"
+
+  // Asymmetry data (left/right differences)
+  asymmetryPercent  Float? // overall asymmetry %
+  leftContactTime   Float?
+  rightContactTime  Float?
+  leftStrideLength  Float?
+  rightStrideLength Float?
+
+  // Injury risk assessment
+  injuryRiskLevel   String? // "LOW", "MODERATE", "HIGH"
+  injuryRiskScore   Int? // 0-10
+  injuryRiskFactors Json? // Array of risk factor objects
+
+  // Efficiency metrics
+  runningEfficiency String? // "EXCELLENT", "GOOD", "MODERATE", "POOR"
+  energyLeakages    Json? // Array of identified inefficiencies
+
+  // Phase-specific analysis
+  stancePhaseData Json? // { duration, issues, recommendations }
+  swingPhaseData  Json? // { duration, issues, recommendations }
+
+  // Coaching cues (Swedish)
+  coachingCues         Json? // Array of { cue, priority, drillName, explanation }
+  drillRecommendations Json? // Array of corrective drills
+
+  // Comparison data
+  previousComparison Json? // Delta from previous analysis
+
+  // Overall assessment
+  overallScore Int? // 0-100
+  summary      String? @db.Text // Swedish summary
+
+  videoAnalysis VideoAnalysis @relation(fields: [videoAnalysisId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([videoAnalysisId])
+  @@index([injuryRiskLevel])
+  @@index([cadence])
+}
+
+/// Skiing technique analysis (for SKIING_CLASSIC, SKIING_SKATING, SKIING_DOUBLE_POLE types)
+model SkiingTechniqueAnalysis {
+  id              String @id @default(uuid())
+  videoAnalysisId String @unique
+
+  // Technique context
+  techniqueType  String // CLASSIC, SKATING, DOUBLE_POLE
+  skatingVariant String? // V1, V2, V2_ALT (only for SKATING)
+  terrainType    String? // FLAT, UPHILL, DOWNHILL
+
+  // Overall scores (0-100)
+  overallScore    Float?
+  balanceScore    Float? // Classic/Skating only
+  timingScore     Float? // Classic/Skating only
+  efficiencyScore Float?
+  powerScore      Float? // Double pole only
+  rhythmScore     Float? // Double pole only
+
+  // Pole mechanics (all techniques)
+  poleAngleAtPlant     Float? // degrees
+  poleAngleAtRelease   Float? // degrees
+  polePlantTiming      String? // EARLY, ON_TIME, LATE
+  poleForceApplication String? // GOOD, WEAK, INCONSISTENT
+  armSwingSymmetry     Float? // 0-100 percentage
+
+  // Hip and core position (all techniques)
+  hipPositionScore     Float? // 0-100
+  hipHeightConsistency Float? // 0-100
+  coreEngagement       String? // GOOD, MODERATE, POOR
+  forwardLean          Float? // degrees from vertical
+
+  // Weight transfer (all techniques)
+  weightTransferScore Float? // 0-100
+  weightShiftTiming   String? // EARLY, ON_TIME, LATE
+  lateralStability    Float? // 0-100
+
+  // Classic-specific metrics
+  kickTimingScore     Float? // 0-100
+  kickExtension       String? // FULL, PARTIAL, INCOMPLETE
+  glidePhaseDuration  Float? // seconds
+  legRecoveryPattern  String? // EFFICIENT, MODERATE, INEFFICIENT
+  waxPocketEngagement String? // GOOD, PARTIAL, POOR
+
+  // Skating-specific metrics
+  edgeAngleLeft     Float? // degrees
+  edgeAngleRight    Float? // degrees
+  edgeAngleSymmetry Float? // 0-100
+  pushOffAngle      Float? // degrees from ski direction
+  vPatternWidth     Float? // cm estimated
+  skateFrequency    Float? // cycles per second
+  recoveryLegPath   String? // COMPACT, WIDE, INCONSISTENT
+
+  // Double pole-specific metrics
+  trunkFlexionRange    Float? // degrees
+  compressionDepth     String? // SHALLOW, OPTIMAL, EXCESSIVE
+  returnPhaseSpeed     String? // FAST, MODERATE, SLOW
+  legDriveContribution String? // SIGNIFICANT, MODERATE, MINIMAL
+  rhythmConsistency    Float? // 0-100
+
+  // AI insights (Swedish)
+  primaryStrengths  Json? // string[]
+  primaryWeaknesses Json? // string[]
+  techniqueDrills   Json? // { drill: string, focus: string, priority: number }[]
+  comparisonToElite String? @db.Text // narrative comparison
+
+  videoAnalysis VideoAnalysis @relation(fields: [videoAnalysisId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([videoAnalysisId])
+  @@index([techniqueType])
+  @@index([overallScore])
+}
+
+/// Audio recordings for voice-based daily check-in (Gemini 3 Pro transcription)
+model AudioJournal {
+  id       String   @id @default(uuid())
+  clientId String
+  date     DateTime @db.Date
+
+  // Audio file data
+  audioUrl String // Supabase Storage URL
+  duration Int // seconds (30-60 typical)
+  mimeType String? // "audio/webm", "audio/mp4", etc.
+  fileSize Int? // bytes
+
+  // Transcription
+  transcription           String? @db.Text // Full text from Gemini
+  transcriptionModel      String? // "gemini-3-pro"
+  transcriptionConfidence Float?
+
+  // Structured extraction (from transcription)
+  extractedData        Json? // { rpe, sleepQuality, soreness, energy, etc. }
+  extractionConfidence Float?
+
+  // AI interpretation
+  aiInterpretation Json? // { readinessEstimate, recommendedAction, flaggedConcerns }
+
+  // Link to DailyCheckIn (if populated from audio)
+  dailyCheckInId String? @unique
+
+  // Processing status
+  status           String  @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  processingError  String?
+  processingTimeMs Int?
+
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  dailyCheckIn DailyCheckIn? @relation(fields: [dailyCheckInId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, date])
+  @@index([clientId, date])
+  @@index([status])
+}
+
+/// AI usage budget management per coach
+model AIUsageBudget {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  // Monthly limits (in USD)
+  monthlyBudget Float? // null = unlimited
+
+  // Current period tracking
+  periodStart DateTime @default(now())
+  periodSpent Float    @default(0)
+
+  // Alerts
+  alertThreshold Float   @default(0.8) // Alert at 80% of budget
+  alertSent      Boolean @default(false)
+
+  // Category-specific limits (optional granularity)
+  researchBudget Float? // Specific limit for deep research
+  chatBudget     Float? // Specific limit for AI chat
+
+  user User @relation("UserAIBudget", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([periodStart])
+}
+
+/// AI usage logging for cost tracking
+model AIUsageLog {
+  id     String @id @default(uuid())
+  userId String
+
+  category String // "research", "chat", "embedding"
+  provider String // "GEMINI", "OPENAI", "ANTHROPIC"
+  model    String // Specific model used
+
+  inputTokens   Int
+  outputTokens  Int
+  estimatedCost Float // USD
+
+  // Link to source (optional)
+  researchSessionId String?
+  conversationId    String?
+
+  user User @relation("UserAIUsageLogs", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([category])
+  @@index([provider])
+  @@index([createdAt])
+}
+
+// ==================== CONVERSATIONAL MEMORY SYSTEM ====================
+// Purpose: AI remembers important facts from conversations with athletes
+// Enables personalized, relationship-building AI interactions
+
+/// Individual memory items extracted from conversations
+model ConversationMemory {
+  id       String @id @default(uuid())
+  clientId String
+
+  // Memory content
+  memoryType String // INJURY_MENTION, GOAL_STATEMENT, PREFERENCE, LIFE_EVENT, etc.
+  category   String? // Sub-category: "injury", "goal", "preference", "life_event"
+  content    String  @db.Text // "Mentioned knee discomfort after long runs"
+  context    String? @db.Text // Additional context if needed
+
+  // Importance and lifecycle
+  importance  Int       @default(3) // 1-5 for retrieval priority
+  extractedAt DateTime  @default(now())
+  expiresAt   DateTime? // Some memories fade (e.g., temporary injury)
+
+  // Source tracking
+  sourceMessageId String? // Link to original AI message if available
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  client Client @relation("ClientMemories", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, memoryType])
+  @@index([clientId, importance])
+  @@index([clientId, expiresAt])
+}
+
+/// Weekly conversation summaries for context
+model ConversationSummary {
+  id       String @id @default(uuid())
+  clientId String
+
+  // Time period
+  weekStart DateTime @db.Date // Monday of the week
+  weekEnd   DateTime @db.Date // Sunday of the week
+
+  // AI-generated content
+  summary   String   @db.Text // Summary of week's conversations
+  keyTopics String[] @default([]) // ["recovery", "nutrition", "race prep"]
+  sentiment String? // "positive", "neutral", "concerned", "frustrated"
+
+  // Extracted highlights
+  highlights String[] @default([]) // Key achievements or positive moments
+  concerns   String[] @default([]) // Issues raised by athlete
+
+  // Metadata
+  messageCount Int @default(0) // Number of messages summarized
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  client Client @relation("ClientConversationSummaries", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, weekStart])
+  @@index([clientId, weekStart])
+}
+
+/// AI-generated daily briefings for athletes
+model AIBriefing {
+  id       String @id @default(uuid())
+  clientId String
+
+  // Briefing content
+  briefingType String   @default("MORNING") // MORNING, PRE_WORKOUT, POST_WORKOUT, WEEKLY_RECAP
+  title        String // "God morgon Henrik!"
+  content      String   @db.Text // Full briefing text
+  highlights   String[] @default([]) // Key points as bullet items
+
+  // Structured data for UI
+  readinessScore Float? // Today's readiness if available
+  todaysWorkout  String? // Brief workout summary
+  alerts         Json? // { type: "warning" | "info", message: string }[]
+  quickActions   Json? // { label: string, action: string }[]
+
+  // Delivery
+  scheduledFor DateTime // When to show the briefing
+  deliveredAt  DateTime? // When actually shown to user
+  readAt       DateTime? // When user engaged with it
+  dismissedAt  DateTime? // When user dismissed
+
+  // Generation metadata
+  modelUsed   String? // AI model used for generation
+  generatedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  client Client @relation("ClientBriefings", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, scheduledFor])
+  @@index([clientId, briefingType, scheduledFor])
+  @@index([clientId, readAt])
+}
+
+/// Proactive AI notifications and nudges
+model AINotification {
+  id       String @id @default(uuid())
+  clientId String
+
+  // Notification type and priority
+  notificationType String // PRE_WORKOUT, PATTERN_ALERT, MILESTONE, RECOVERY_CHECK, WEATHER_ALERT
+  priority         String @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+
+  // Content
+  title       String
+  message     String  @db.Text
+  icon        String? // Emoji or icon name
+  actionUrl   String? // Deep link if applicable
+  actionLabel String? // "Se detaljer", "Chatta med AI"
+
+  // Context data
+  contextData Json? // Additional data for the notification
+
+  // Trigger info
+  triggeredBy   String? // "cron", "event", "pattern_detection"
+  triggerReason String? // Human-readable explanation
+
+  // Delivery status
+  scheduledFor  DateTime? // For scheduled notifications
+  deliveredAt   DateTime?
+  readAt        DateTime?
+  dismissedAt   DateTime?
+  actionTakenAt DateTime? // If user clicked action
+
+  // Expiry
+  expiresAt DateTime? // Auto-dismiss after this time
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  client Client @relation("ClientAINotifications", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([clientId, notificationType])
+  @@index([clientId, readAt])
+  @@index([clientId, expiresAt])
+}
+
+/// AI notification preferences per athlete
+model AINotificationPreferences {
+  id       String @id @default(uuid())
+  clientId String @unique
+
+  // Feature toggles
+  morningBriefingEnabled  Boolean @default(true)
+  preWorkoutNudgeEnabled  Boolean @default(true)
+  postWorkoutCheckEnabled Boolean @default(true)
+  patternAlertsEnabled    Boolean @default(true)
+  milestoneAlertsEnabled  Boolean @default(true)
+  weatherAlertsEnabled    Boolean @default(false)
+
+  // Timing preferences
+  morningBriefingTime String @default("07:00") // HH:mm format
+  preWorkoutLeadTime  Int    @default(120) // Minutes before workout
+  timezone            String @default("Europe/Stockholm")
+
+  // Communication style
+  verbosityLevel  String @default("NORMAL") // BRIEF, NORMAL, DETAILED
+  motivationStyle String @default("BALANCED") // SUPPORTIVE, BALANCED, DIRECT
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  client Client @relation("ClientAINotificationPrefs", fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// ==================== DATA MOAT SYSTEM ====================
+// Platform-wide data collection for competitive advantage
+// Applies to all customers - individual coaches, teams, and enterprise businesses
+
+// ===== DATA MOAT ENUMS =====
+enum AISuggestionType {
+  WORKOUT
+  ZONE_CALCULATION
+  PROGRAM_PERIODIZATION
+  RECOVERY_RECOMMENDATION
+  LOAD_ADJUSTMENT
+  EXERCISE_SELECTION
+  INTENSITY_PRESCRIPTION
+  VOLUME_PRESCRIPTION
+  TAPER_PLAN
+  OTHER
+}
+
+/// Logs AI predictions for later validation and accuracy tracking
+model AIPrediction {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Prediction details
+  predictionType  PredictionType
+  predictedValue  Json // Can be number, string, or complex object
+  confidenceScore Float // 0-1
+  confidenceLower Float? // Lower bound of CI
+  confidenceUpper Float? // Upper bound of CI
+
+  // Model info
+  modelVersion    String
+  modelParameters Json?
+
+  // Input snapshot for reproducibility
+  inputDataSnapshot Json
+
+  // Context
+  athlete   Client  @relation("AthletePredictions", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId String
+  coach     User?   @relation("CoachPredictions", fields: [coachId], references: [id])
+  coachId   String?
+
+  // Validity
+  validUntil DateTime? // Prediction expiry
+
+  // User interaction
+  displayedToUser Boolean               @default(false)
+  userAction      PredictionUserAction?
+
+  // Validation
+  validation PredictionValidation?
+  validated  Boolean               @default(false)
+
+  // Data Moat: Race result validation
+  raceResults RaceResult[] @relation("RacePredictionValidation")
+
+  // Data Moat Phase 4: Feedback loops
+  feedbackLoops AIFeedbackLoop[] @relation("PredictionFeedback")
+
+  @@index([athleteId])
+  @@index([coachId])
+  @@index([predictionType])
+  @@index([createdAt])
+  @@index([validated])
+}
+
+/// Links predictions to actual outcomes for accuracy measurement
+model PredictionValidation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Link to prediction
+  prediction   AIPrediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  predictionId String       @unique
+
+  // Actual outcome
+  actualValue Json
+  occurredAt  DateTime
+
+  // Error metrics
+  absoluteError            Float
+  percentageError          Float
+  withinConfidenceInterval Boolean
+
+  // Context
+  environmentalFactors Json? // Weather, altitude, illness, etc.
+
+  // Quality
+  validationSource  ValidationSource
+  validationQuality Float // 0-1, reliability score
+
+  // Analysis
+  errorExplanation  String? @db.Text
+  usedForRetraining Boolean @default(false)
+
+  @@index([predictionId])
+  @@index([occurredAt])
+  @@index([validationSource])
+}
+
+// ==================== DATA MOAT PHASE 4: AI LEARNING LOOP ====================
+enum FeedbackCategory {
+  PREDICTION_ERROR // AI prediction was wrong
+  DECISION_OVERRIDE // Coach overrode AI suggestion
+  PATTERN_DISCOVERED // New pattern identified
+  ACCURACY_IMPROVEMENT // Model accuracy improved
+  USER_FEEDBACK // Direct user feedback
+  OUTCOME_MISMATCH // Expected vs actual outcome mismatch
+}
+
+enum LessonStatus {
+  IDENTIFIED // Lesson extracted
+  VALIDATED // Confirmed by multiple sources
+  APPLIED // Applied to AI prompts
+  DEPRECATED // No longer valid
+}
+
+enum ModelStatus {
+  DEVELOPMENT // In development
+  TESTING // A/B testing
+  ACTIVE // Currently deployed
+  DEPRECATED // Phased out
+  ARCHIVED // Historical reference
+}
+
+/// Captures lessons learned from AI predictions and coach decisions
+model AIFeedbackLoop {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Source of feedback
+  feedbackCategory FeedbackCategory
+
+  // Links to source data (at least one should be present)
+  coachDecision     CoachDecision?         @relation("DecisionFeedback", fields: [coachDecisionId], references: [id], onDelete: SetNull)
+  coachDecisionId   String?
+  prediction        AIPrediction?          @relation("PredictionFeedback", fields: [predictionId], references: [id], onDelete: SetNull)
+  predictionId      String?
+  trainingOutcome   TrainingPeriodOutcome? @relation("OutcomeFeedback", fields: [trainingOutcomeId], references: [id], onDelete: SetNull)
+  trainingOutcomeId String?
+  pattern           PerformancePattern?    @relation("PatternFeedback", fields: [patternId], references: [id], onDelete: SetNull)
+  patternId         String?
+
+  // Lesson learned
+  lessonTitle       String // "Athletes over 40 need longer recovery"
+  lessonDescription String @db.Text
+  lessonCategory    String // "recovery", "intensity", "periodization"
+  lessonConfidence  Float // 0-1
+
+  // Evidence
+  evidenceCount  Int   @default(1)
+  evidenceData   Json? // Supporting data points
+  contradictions Int   @default(0)
+
+  // Prompt adjustment (if applicable)
+  promptAdjustment String?  @db.Text // New prompt text or modification
+  affectedPrompts  String[] // Which AI prompts this affects
+
+  // Status tracking
+  lessonStatus LessonStatus @default(IDENTIFIED)
+  validatedAt  DateTime?
+  appliedAt    DateTime?
+
+  // Model version affected
+  modelVersion   AIModelVersion? @relation("VersionFeedback", fields: [modelVersionId], references: [id])
+  modelVersionId String?
+
+  // Impact measurement (filled after application)
+  impactMeasured     Boolean @default(false)
+  impactDescription  String? @db.Text
+  accuracyBefore     Float?
+  accuracyAfter      Float?
+  improvementPercent Float?
+
+  @@index([feedbackCategory])
+  @@index([lessonStatus])
+  @@index([lessonCategory])
+  @@index([createdAt])
+  @@index([coachDecisionId])
+  @@index([predictionId])
+  @@index([modelVersionId])
+  @@index([trainingOutcomeId])
+  @@index([patternId])
+}
+
+/// Tracks AI model versions and their performance
+model AIModelVersion {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Version identification
+  versionName   String // "v1.2.0", "race-prediction-v3"
+  versionNumber Int // Sequential number
+  modelType     String // "race_prediction", "injury_risk", "workout_generation"
+
+  // Description
+  description String? @db.Text
+  changelog   String? @db.Text // What changed from previous version
+
+  // Training data
+  trainingDataStart DateTime? // Start of training data period
+  trainingDataEnd   DateTime? // End of training data period
+  trainingDataSize  Int? // Number of samples
+  trainingDataHash  String? // Hash for data integrity
+
+  // Prompt/Configuration
+  promptTemplate String? @db.Text
+  parameters     Json? // Model parameters/settings
+
+  // Status
+  status       ModelStatus @default(DEVELOPMENT)
+  deployedAt   DateTime?
+  deprecatedAt DateTime?
+
+  // Accuracy metrics (updated periodically)
+  overallAccuracy Float? // 0-1
+  accuracyByType  Json? // { "5K": 0.92, "marathon": 0.87 }
+
+  // Detailed metrics
+  meanAbsoluteError Float?
+  meanSquaredError  Float?
+  rSquared          Float?
+  within5Percent    Float? // % of predictions within 5%
+  within10Percent   Float? // % of predictions within 10%
+
+  // Sample counts
+  predictionCount Int @default(0)
+  validatedCount  Int @default(0)
+
+  // A/B Testing
+  abTestId      String? // If part of an A/B test
+  abTestVariant String? // "control", "treatment"
+  abTestResult  Json? // Test results
+
+  // Feedback incorporated
+  feedbackLoops AIFeedbackLoop[] @relation("VersionFeedback")
+
+  // Relations
+  previousVersion   AIModelVersion?  @relation("VersionHistory", fields: [previousVersionId], references: [id])
+  previousVersionId String?
+  nextVersions      AIModelVersion[] @relation("VersionHistory")
+
+  @@unique([modelType, versionNumber])
+  @@index([modelType])
+  @@index([status])
+  @@index([deployedAt])
+  @@index([versionName])
+  @@index([previousVersionId])
+}
+
+/// Periodic snapshots of prediction accuracy for the dashboard
+model AccuracySnapshot {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Snapshot period
+  periodStart  DateTime
+  periodEnd    DateTime
+  snapshotType String // "daily", "weekly", "monthly", "all_time"
+
+  // Race prediction accuracy
+  racePredictions Json? // { total, mae, within5pct, within10pct, byDistance: {...} }
+
+  // Threshold prediction accuracy
+  thresholdPredictions Json? // { total, meanError, correlation, byTestType: {...} }
+
+  // Injury prediction accuracy
+  injuryPredictions Json? // { total, sensitivity, specificity, falsePositiveRate, auc }
+
+  // Readiness prediction accuracy
+  readinessPredictions Json? // { total, correlation, mae }
+
+  // Program outcome accuracy
+  programOutcomes Json? // { total, goalAchievementRate, avgImprovement, byProgramType: {...} }
+
+  // Overall metrics
+  overallSampleSize Int
+  overallAccuracy   Float? // Weighted average
+  confidenceLevel   Float? // Statistical confidence
+
+  // Comparison to previous period
+  previousSnapshotId String?
+  previousSnapshot   AccuracySnapshot?  @relation("SnapshotHistory", fields: [previousSnapshotId], references: [id])
+  nextSnapshots      AccuracySnapshot[] @relation("SnapshotHistory")
+  changeFromPrevious Json? // Delta metrics
+
+  // Visibility
+  isPublic Boolean @default(false) // Shown on public dashboard
+
+  @@unique([periodStart, periodEnd, snapshotType])
+  @@index([snapshotType])
+  @@index([createdAt])
+  @@index([isPublic])
+  @@index([previousSnapshotId])
+}
+
+/// Stores AI prompt templates with version history
+model AIPromptTemplate {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Identification
+  promptName     String // "workout_generation", "injury_risk_assessment"
+  promptCategory String // "training", "health", "prediction"
+  version        Int    @default(1)
+
+  // Content
+  systemPrompt       String  @db.Text
+  userPromptTemplate String? @db.Text // Template with {{variables}}
+  outputFormat       Json? // Expected output structure
+
+  // Metadata
+  description String?  @db.Text
+  variables   String[] // ["athleteName", "currentFitness", "goals"]
+
+  // Status
+  isActive      Boolean   @default(true)
+  activatedAt   DateTime?
+  deactivatedAt DateTime?
+
+  // Performance tracking
+  usageCount         Int    @default(0)
+  avgResponseQuality Float? // Based on user feedback
+  avgLatencyMs       Int?
+
+  // A/B testing
+  abTestGroup  String? // "control", "variant_a", etc.
+  abTestWeight Float? // Traffic allocation
+
+  // Version history
+  previousVersion   AIPromptTemplate?  @relation("PromptVersionHistory", fields: [previousVersionId], references: [id])
+  previousVersionId String?
+  nextVersions      AIPromptTemplate[] @relation("PromptVersionHistory")
+
+  // Feedback that led to this version
+  basedOnFeedback String[] // IDs of AIFeedbackLoop entries
+
+  @@unique([promptName, version])
+  @@index([promptName])
+  @@index([promptCategory])
+  @@index([isActive])
+  @@index([previousVersionId])
+}
+
+// ============================================================================
+// Knowledge Skills - Auto-retrieval system for curated expert knowledge
+// ============================================================================
+enum KnowledgeCategory {
+  METHODOLOGY // Training methodologies (Polarized, Norwegian, etc.)
+  PHYSIOLOGY // VO2max, lactate, thresholds
+  TESTING // Test protocols, field tests, ergometer
+  STRENGTH // Strength training, periodization, 1RM
+  INJURY_PREVENTION // ACWR, Delaware rules, rehab
+  NUTRITION // Fueling, race nutrition
+  SPORT_SPECIFIC // HYROX, cycling, swimming, skiing, triathlon
+  PROGRAMMING // Periodization, program structure
+  RECOVERY // Recovery methods, overtraining
+  PERFORMANCE // Race strategy, pacing, competition execution
+  MONITORING // Wearable data, training load metrics, HRV
+  YOUTH // Youth development, LTAD, PHV
+  MASTERS // Masters athlete training, aging
+  PSYCHOLOGY // Sports psychology, mental training
+  MOBILITY // Warm-up, mobility, movement preparation
+  TEAM_SPORTS // Team sport conditioning, GPS metrics
+  ANALYSIS // Multivariate analysis, PCA, PLS
+  PLATFORM // Platform features, AI tools, voice coaching
+}
+
+/// Curated knowledge skills for automatic RAG retrieval
+/// The AI auto-retrieves relevant skills based on user query keywords/embeddings
+model KnowledgeSkill {
+  id          String            @id @default(uuid())
+  name        String // "Polariserad Träning", "Skadeförebyggande"
+  nameEn      String? // English name for matching
+  description String            @db.Text // Detailed description (used for embedding match)
+  category    KnowledgeCategory
+  keywords    String[] // Trigger keywords: ["polarized", "80/20", "polariserad"]
+  priority    Int               @default(0) // Higher = preferred when multiple match
+  isActive    Boolean           @default(true)
+
+  // Which system documents belong to this skill
+  documentIds String[] // CoachDocument IDs where isSystem=true
+
+  // Embedding of description stored via raw SQL (pgvector)
+  // embedding vector(1536)
+
+  maxChunks Int @default(3) // Max chunks to retrieve for this skill
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}

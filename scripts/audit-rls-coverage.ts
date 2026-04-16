@@ -1,7 +1,7 @@
 /**
  * RLS coverage audit.
  *
- * Compares the set of Prisma models in `prisma/schema.prisma` against the
+ * Compares the set of Prisma models in prisma/schema/ against the
  * Postgres tables that currently have Row Level Security enabled
  * (`pg_class.relrowsecurity = true`) and prints the gap.
  *
@@ -67,8 +67,22 @@ const OWNERSHIP_CANDIDATES = [
 type OwnershipCol = typeof OWNERSHIP_CANDIDATES[number] | 'NONE'
 
 function parseSchema(): ModelInfo[] {
-  const schemaPath = path.join(process.cwd(), 'prisma', 'schema.prisma')
-  const src = fs.readFileSync(schemaPath, 'utf8')
+  // Schema lives in `prisma/schema/*.prisma` after Phase 6. Fall back to a
+  // single `prisma/schema.prisma` file for compatibility with older checkouts.
+  const schemaDir = path.join(process.cwd(), 'prisma', 'schema')
+  const legacyFile = path.join(process.cwd(), 'prisma', 'schema.prisma')
+  let src = ''
+  if (fs.existsSync(schemaDir) && fs.statSync(schemaDir).isDirectory()) {
+    for (const f of fs.readdirSync(schemaDir).sort()) {
+      if (f.endsWith('.prisma')) {
+        src += '\n' + fs.readFileSync(path.join(schemaDir, f), 'utf8')
+      }
+    }
+  } else if (fs.existsSync(legacyFile)) {
+    src = fs.readFileSync(legacyFile, 'utf8')
+  } else {
+    throw new Error('No Prisma schema found in prisma/schema/ or prisma/schema.prisma')
+  }
   const models: ModelInfo[] = []
 
   const modelRe = /^model\s+(\w+)\s*\{([\s\S]*?)^\}/gm

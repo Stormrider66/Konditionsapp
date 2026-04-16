@@ -1,0 +1,2155 @@
+// CORE domain models & enums.
+// Auto-grouped from schema.prisma — keep new declarations here.
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+// ==================== MULTI-SPORT SYSTEM ====================
+enum SportType {
+  RUNNING // Road, trail, track running
+  CYCLING // Road, indoor, MTB cycling
+  SKIING // Cross-country skiing (classic, skate)
+  SWIMMING // Pool/open water swimming
+  TRIATHLON // Swim/Bike/Run combined
+  HYROX // Functional fitness racing
+  GENERAL_FITNESS // CrossFit-style, general PT programs
+  FUNCTIONAL_FITNESS // CrossFit-style functional training (benchmarks, gymnastics, olympic lifting)
+  STRENGTH // Standalone strength training programs
+  // Team Sports
+  TEAM_FOOTBALL // Soccer/Football
+  TEAM_ICE_HOCKEY // Ice hockey
+  TEAM_HANDBALL // Handball
+  TEAM_FLOORBALL // Floorball (innebandy)
+  TEAM_BASKETBALL // Basketball
+  TEAM_VOLLEYBALL // Volleyball
+  // Racket Sports
+  TENNIS // Tennis
+  PADEL // Padel
+  // Non-sport focus areas
+  NUTRITION // Nutrition-only focus (no primary sport)
+}
+
+enum UserRole {
+  ADMIN
+  COACH
+  ATHLETE
+  PHYSIO
+}
+
+enum InvitationType {
+  ATHLETE_SIGNUP // Invite athlete to create account
+  REPORT_VIEW // Public report link
+  REFERRAL // Referral bonus link
+  BUSINESS_CLAIM // Claim ownership of admin-approved business
+}
+
+// ==================== BUSINESS TYPE & APPLICATIONS ====================
+enum BusinessType {
+  INDEPENDENT_COACH // Self-registered PT/coach
+  GYM // Gym/studio (admin-approved)
+  CLUB // Team/club (admin-approved)
+}
+
+enum BusinessApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BackgroundJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ==================== COACH MARKETPLACE ====================
+enum CoachRequestStatus {
+  PENDING // Request sent, awaiting coach response
+  ACCEPTED // Coach accepted, agreement created
+  REJECTED // Coach rejected the request
+  EXPIRED // Request expired (14 days without response)
+  CANCELLED // Athlete cancelled their request
+}
+
+enum CoachAgreementStatus {
+  ACTIVE // Active coaching relationship
+  PAUSED // Temporarily paused (e.g., injury, vacation)
+  ENDED // Relationship ended
+}
+
+// ==================== ADMIN SYSTEM ====================
+enum AdminRole {
+  SUPER_ADMIN // Full system access, can delete contracts
+  ADMIN // System administration
+  SUPPORT // Customer support access
+}
+
+// ==================== EQUIPMENT & LOCATION SERVICES ====================
+enum EquipmentCategory {
+  CARDIO_MACHINE // RowErg, SkiErg, BikeErg, Wattbike, Treadmill
+  STRENGTH_MACHINE // Cable machine, Leg press
+  FREE_WEIGHTS // Barbells, Dumbbells, Kettlebells
+  RACKS // Squat rack, Power cage
+  TESTING // Lactate analyzer, VO2max system, Force plates
+  ACCESSORIES // Bands, Boxes, Balls
+  RECOVERY // Massage gun, Foam roller, Sauna
+  AGILITY // Cones, Ladders, Hurdles, Poles, Reaction equipment
+  TIMING_SYSTEMS // Timing gates, Reaction lights, Laser systems
+}
+
+/// Long-Term Athlete Development stages
+enum DevelopmentStage {
+  FUNDAMENTALS // Ages 6-9: FUNdamentals, basic movement skills
+  LEARNING_TO_TRAIN // Ages 9-12: Learning to train, skill development
+  TRAINING_TO_TRAIN // Ages 12-16: Training to train, aerobic base
+  TRAINING_TO_COMPETE // Ages 16-18+: Training to compete, specialization
+  TRAINING_TO_WIN // Ages 18+: Training to win, peak performance
+  ELITE // Professional/elite level athletes
+}
+
+enum ServiceType {
+  LACTATE_TESTING
+  VO2MAX_TESTING
+  BODY_COMPOSITION
+  STRENGTH_TRAINING
+  CARDIO_TRAINING
+  GROUP_CLASSES
+  PERSONAL_TRAINING
+  REHABILITATION
+  NUTRITION_COACHING
+  VIDEO_ANALYSIS
+  REMOTE_COACHING
+}
+
+enum FeatureFlag {
+  // Core modules
+  LACTATE_TESTING
+  ERGOMETER_TESTING
+  TRAINING_PROGRAMS
+  AI_STUDIO
+  VIDEO_ANALYSIS
+
+  // Advanced
+  HYBRID_WORKOUTS
+  VBT_TRACKING
+  NUTRITION_TRACKING
+  MENSTRUAL_TRACKING
+
+  // Integrations
+  STRAVA_SYNC
+  GARMIN_SYNC
+  CONCEPT2_SYNC
+
+  // Enterprise
+  MULTI_LOCATION
+  API_ACCESS
+  WHITE_LABEL
+  CUSTOM_BRANDING
+  SSO_LOGIN
+
+  // Limits
+  UNLIMITED_ATHLETES
+  UNLIMITED_COACHES
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  name      String
+  role      UserRole   @default(COACH)
+  adminRole AdminRole? // Admin-specific role for admin panel access
+  language  String     @default("sv") // "sv" or "en"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Existing relations
+  tests   Test[]
+  clients Client[]
+  teams   Team[]
+
+  // New relations for training programs
+  coachPrograms    TrainingProgram[] @relation("CoachPrograms")
+  exercises        Exercise[]
+  workoutLogs      WorkoutLog[]
+  sentMessages     Message[]         @relation("SentMessages")
+  receivedMessages Message[]         @relation("ReceivedMessages")
+  athleteAccount   AthleteAccount?
+  subscription     Subscription?
+  // AI Studio relations
+  coachDocuments   CoachDocument[]   @relation("CoachDocuments")
+  aiConversations  AIConversation[]  @relation("CoachConversations")
+  videoAnalyses    VideoAnalysis[]   @relation("CoachVideoAnalyses")
+  apiKeys          UserApiKey?       @relation("UserApiKeys")
+
+  // Hybrid Studio relations
+  hybridWorkouts HybridWorkout[] @relation("CoachHybridWorkouts")
+
+  // Strength & Cardio Studio relations
+  strengthSessions  StrengthSession[]  @relation("CoachStrengthSessions")
+  cardioSessions    CardioSession[]    @relation("CoachCardioSessions")
+  strengthTemplates StrengthTemplate[] @relation("StrengthTemplateOwner")
+
+  // Agility Studio relations
+  agilityDrills      AgilityDrill[]      @relation("CoachAgilityDrills")
+  agilityWorkouts    AgilityWorkout[]    @relation("CoachAgilityWorkouts")
+  timingGateSessions TimingGateSession[] @relation("CoachTimingGateSessions")
+
+  // Business & Organization relations
+  businessMemberships  BusinessMember[]
+  businessJoinRequests BusinessJoinRequest[]
+  tester               Tester?
+
+  // Team Sports System relations
+  organizations         Organization[]
+  teamWorkoutBroadcasts TeamWorkoutBroadcast[] @relation("CoachBroadcasts")
+
+  // Calendar System relations
+  createdCalendarEvents  CalendarEvent[]       @relation("CreatedCalendarEvents")
+  modifiedCalendarEvents CalendarEvent[]       @relation("ModifiedCalendarEvents")
+  calendarChanges        CalendarEventChange[] @relation("CalendarChanges")
+  createdTeamEvents      TeamEvent[]           @relation("CreatedTeamEvents")
+  teamCoachAssignments   TeamCoachAssignment[] @relation("TeamCoachAssignments")
+  createdDrills          TeamDrill[]           @relation("CreatedDrills")
+  conductedHockeyTests   HockeyPhysicalTest[]  @relation("CoachHockeyTests")
+  createdTestProtocols   CustomTestProtocol[]  @relation("CreatedTestProtocols")
+  customTestResults      CustomTestResult[]    @relation("CoachCustomTestResults")
+
+  // Scheduling responsibility relations (assignments shown in coach calendar)
+  responsibleStrengthAssignments StrengthSessionAssignment[] @relation("StrengthAssignmentResponsibleCoach")
+  responsibleCardioAssignments   CardioSessionAssignment[]   @relation("CardioAssignmentResponsibleCoach")
+  responsibleAgilityAssignments  AgilityWorkoutAssignment[]  @relation("AgilityAssignmentResponsibleCoach")
+  responsibleHybridAssignments   HybridWorkoutAssignment[]   @relation("HybridAssignmentResponsibleCoach")
+
+  // Referral System relations
+  referralCode    ReferralCode? // Coach's unique referral code
+  referralsMade   Referral[]       @relation("ReferrerUser") // Referrals this user made
+  referredBy      Referral[]       @relation("ReferredUser") // How this user was referred
+  referralRewards ReferralReward[] // Rewards received
+
+  // Deep Research System relations
+  deepResearchSessions DeepResearchSession[] @relation("CoachResearchSessions")
+  aiUsageBudget        AIUsageBudget?        @relation("UserAIBudget")
+  aiUsageLogs          AIUsageLog[]          @relation("UserAIUsageLogs")
+
+  // Multi-part program generation sessions
+  programGenerationSessions ProgramGenerationSession[] @relation("CoachProgramGenSessions")
+
+  // Live HR Streaming System relations
+  liveHRSessions LiveHRSession[] @relation("CoachLiveHRSessions")
+
+  // Live Interval Session System relations
+  intervalSessions  IntervalSession[]         @relation("CoachIntervalSessions")
+  intervalTemplates IntervalSessionTemplate[] @relation("CoachIntervalTemplates")
+
+  // Sport-Specific Testing System relations
+  sportTests SportTest[] @relation("UserSportTests")
+
+  // Admin System relations
+  contractChanges EnterpriseContractChange[] @relation("ContractChanges")
+  resolvedErrors  SystemError[]              @relation("ResolvedErrors")
+
+  // Partner Referral System
+  referredByBusinessId String?
+  referredByBusiness   Business?        @relation("PartnerReferredUsers", fields: [referredByBusinessId], references: [id], onDelete: SetNull)
+  partnerReferral      PartnerReferral? @relation("ReferredUserPartner")
+
+  // Location Staff assignments
+  locationStaff LocationStaff[]
+
+  // Self-coaching: link to coach's own athlete profile
+  selfAthleteClientId String? @unique
+  selfAthleteClient   Client? @relation("SelfAthleteClient", fields: [selfAthleteClientId], references: [id], onDelete: SetNull)
+
+  // Data Moat System relations
+  coachDecisions   CoachDecision[] @relation("CoachDecisions")
+  coachPredictions AIPrediction[]  @relation("CoachPredictions")
+
+  // Data Moat Phase 2: Training-Performance Correlation
+  coachTrainingOutcomes TrainingPeriodOutcome[] @relation("CoachTrainingOutcomes")
+
+  // Physiotherapist System relations
+  physioAssignments      PhysioAssignment[]    @relation("PhysioAssignments")
+  treatmentSessions      TreatmentSession[]    @relation("PhysioTreatmentSessions")
+  rehabPrograms          RehabProgram[]        @relation("PhysioRehabPrograms")
+  movementScreens        MovementScreen[]      @relation("PhysioMovementScreens")
+  createdRestrictions    TrainingRestriction[] @relation("UserCreatedRestrictions")
+  acuteInjuryReports     AcuteInjuryReport[]   @relation("UserAcuteInjuryReports")
+  createdCareTeamThreads CareTeamThread[]      @relation("UserCreatedCareTeamThreads")
+  careTeamMessages       CareTeamMessage[]     @relation("UserCareTeamMessages")
+  careTeamParticipations CareTeamParticipant[] @relation("UserCareTeamParticipations")
+  assessedInjuries       InjuryAssessment[]    @relation("AssessedInjuries")
+
+  // Voice Workout Creation
+  voiceWorkoutSessions VoiceWorkoutSession[] @relation("CoachVoiceWorkouts")
+
+  // Live Voice Coaching (key owner attribution)
+  liveVoiceCoachingKeyOwner LiveVoiceCoachingSession[] @relation("UserLiveVoiceKeyOwner")
+
+  // External Calendar Connections (Bokadirekt, Zoezi, etc.)
+  externalCalendarConnections ExternalCalendarConnection[] @relation("UserCalendarConnections")
+
+  // Security Audit Logs
+  auditLogs AuditLog[]
+
+  // Coach Marketplace relations
+  coachProfile               CoachProfile?
+  coachRequestsReceived      CoachRequest[]          @relation("CoachRequestsReceived")
+  coachAgreementsAsCoach     CoachAgreement[]        @relation("CoachAgreementsAsCoach")
+  coachAgreementsAssigned    CoachAgreement[]        @relation("CoachAgreementsAssignedBy")
+  coachEarnings              CoachEarnings[]         @relation("CoachEarnings")
+  athleteSubscriptionsCoached AthleteSubscription[]  @relation("CoachAthleteSubscriptions")
+
+  // Visual Report System relations
+  visualReports VisualReport[] @relation("CoachVisualReports")
+
+  // Exercise Favorites & Hidden
+  exerciseFavorites ExerciseFavorite[]
+  hiddenExercises   HiddenExercise[]
+
+  // Workout Template Discovery
+  workoutTemplates         WorkoutTemplate[]         @relation("WorkoutTemplateOwner")
+  workoutTemplateFavorites WorkoutTemplateFavorite[]
+
+  // Gym Dashboard: Tasks & Classes
+  createdTasks  CoachTask[]  @relation("TaskCreator")
+  assignedTasks CoachTask[]  @relation("TaskAssignee")
+  groupClasses  GroupClass[] @relation("GroupClassCoach")
+
+  // Social media & community
+  socialPosts       SocialPost[]       @relation("UserSocialPosts")
+  competitions      Competition[]      @relation("UserCompetitions")
+  communityPosts    CommunityPost[]    @relation("UserCommunityPosts")
+  communityComments CommunityComment[] @relation("UserCommunityComments")
+  communityLikes          CommunityLike[]          @relation("UserCommunityLikes")
+  broadcastNotifications  BroadcastNotification[]  @relation("UserBroadcastNotifications")
+
+  // Multi-org calendar preferences
+  calendarPreference UserCalendarPreference?
+
+  // Customizable dashboards
+  dashboardPreferences     DashboardPreference[]
+  coachDashboardTemplates  CoachDashboardTemplate[] @relation("CoachDashboardTemplates")
+
+  @@index([email])
+  @@index([role])
+  @@index([referredByBusinessId])
+  @@index([selfAthleteClientId])
+}
+
+// ==================== TEAM SPORTS SYSTEM ====================
+
+/// Organization groups multiple teams (e.g., "IFK GÃ¶teborg" with U19, U21, Senior)
+model Organization {
+  id          String     @id @default(uuid())
+  userId      String // Coach who owns the organization
+  name        String // e.g., "IFK GÃ¶teborg"
+  description String?
+  sportType   SportType? // Primary sport for this organization
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id])
+  teams Team[] // Teams belonging to this organization
+
+  // Physiotherapist System relations
+  physioAssignments PhysioAssignment[] @relation("OrgPhysioAssignments")
+
+  @@index([userId])
+  @@index([name])
+}
+
+model Team {
+  id          String  @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+
+  // Organization grouping (optional)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  // Team sport configuration
+  sportType SportType?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id])
+  members Client[]
+
+  // Team workout broadcasts
+  workoutBroadcasts TeamWorkoutBroadcast[]
+
+  // Live HR Streaming System
+  liveHRSessions LiveHRSession[]
+
+  // Live Interval Session System
+  intervalSessions IntervalSession[]
+
+  // Team Calendar
+  events TeamEvent[]
+
+  // Assistant coach assignments
+  coachAssignments TeamCoachAssignment[]
+
+  // Community posts scoped to this team
+  communityPosts CommunityPost[]
+
+  // Team drills
+  drills TeamDrill[]
+
+  // Hockey physical tests
+  hockeyPhysicalTests HockeyPhysicalTest[]
+
+  // Custom test results
+  customTestResults CustomTestResult[]
+
+  // Physiotherapist System relations
+  physioAssignments PhysioAssignment[] @relation("TeamPhysioAssignments")
+
+  @@index([userId])
+  @@index([name])
+  @@index([organizationId])
+}
+
+model Client {
+  id         String   @id @default(uuid())
+  userId     String
+  businessId String?
+  teamId     String?
+  name      String
+  email     String?
+  phone     String?
+  gender    Gender
+  birthDate DateTime
+  height    Float // cm
+  weight    Float // kg
+  notes     String?
+
+  // AI-specific instructions for this athlete (injected into AI system prompt)
+  // Use for chronic conditions, special considerations, coaching style preferences
+  // Example: "Chronic GI condition — adapt nutrition/recovery, be discreet"
+  aiInstructions String? @db.Text
+
+  // Manual physiological values (self-reported by athlete)
+  manualVo2max Float? // ml/kg/min — used when no lab test exists
+  manualMaxHR  Int?   // bpm — used when no lab test exists
+
+  // Direct athlete flag (not onboarded via coach)
+  isDirect Boolean @default(false)
+
+  // AI-coached mode (no human coach, AI agent is primary coach)
+  isAICoached Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id])
+  business         Business?         @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  team             Team?             @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  tests            Test[]
+  trainingPrograms TrainingProgram[]
+  athleteAccount   AthleteAccount?
+
+  // Training Engine relationships
+  athleteProfile        AthleteProfile?
+  dailyMetrics          DailyMetrics[]
+  trainingLoads         TrainingLoad[]
+  programsEngine        TrainingProgramEngine[]
+  fieldTests            FieldTest[]
+  selfReportedLactates  SelfReportedLactate[]
+  raceCalendars         RaceCalendar[]
+  races                 Race[]
+  injuryAssessments     InjuryAssessment[]
+  crossTrainingSessions CrossTrainingSession[]
+  strengthSessions      StrengthTrainingSession[]
+  progressionTracking   ProgressionTracking[]
+  oneRepMaxHistory      OneRepMaxHistory[]
+  raceResults           RaceResult[]
+  dailyCheckIns         DailyCheckIn[]
+  sportProfile          SportProfile?
+  sportPerformances     SportPerformance[]
+
+  // AI Studio relations
+  aiConversations  AIConversation[]  @relation("AthleteConversations")
+  videoAnalyses    VideoAnalysis[]   @relation("AthleteVideoAnalyses")
+  bodyCompositions BodyComposition[] @relation("ClientBodyComposition")
+  aiGeneratedWODs  AIGeneratedWOD[]  @relation("ClientWODs")
+
+  // Gemini 3 Pro features
+  audioJournals      AudioJournal[]
+  menstrualCycles    MenstrualCycle[]
+  menstrualDailyLogs MenstrualDailyLog[]
+
+  // Hybrid Studio relations
+  hybridWorkoutResults     HybridWorkoutResult[]
+  hybridWorkoutAssignments HybridWorkoutAssignment[]
+  hybridWorkoutLogs        HybridWorkoutLog[]        @relation("AthleteHybridLogs")
+
+  // Strength & Cardio Studio relations
+  strengthSessionAssignments StrengthSessionAssignment[]
+  cardioSessionAssignments   CardioSessionAssignment[]
+  cardioSessionLogs          CardioSessionLog[]          @relation("AthleteCardioLogs")
+
+  // Agility Studio relations
+  agilityWorkoutAssignments AgilityWorkoutAssignment[]
+  agilityWorkoutResults     AgilityWorkoutResult[]
+  timingGateResults         TimingGateResult[]
+
+  // Nutrition Timing System relations
+  dietaryPreferences DietaryPreferences?
+  nutritionGoal      NutritionGoal?
+
+  // Athlete Subscription & Integrations
+  athleteSubscription AthleteSubscription?
+  integrationTokens   IntegrationToken[]
+  stravaActivities    StravaActivity[]
+  garminActivities    GarminActivity[]
+  concept2Results     Concept2Result[]
+
+  // VBT (Velocity-Based Training) relations
+  vbtSessions          VBTSession[]
+  loadVelocityProfiles LoadVelocityProfile[]
+
+  // Calendar System relations
+  calendarEvents       CalendarEvent[]
+  calendarEventChanges CalendarEventChange[]
+
+  // Ergometer Field Testing System relations
+  ergometerFieldTests         ErgometerFieldTest[]         @relation("ClientErgometerTests")
+  ergometerThresholds         ErgometerThreshold[]         @relation("ClientErgometerThresholds")
+  ergometerZones              ErgometerZone[]              @relation("ClientErgometerZones")
+  externalCalendarConnections ExternalCalendarConnection[]
+
+  // Deep Research System relations
+  deepResearchSessions DeepResearchSession[]  @relation("AthleteResearchSessions")
+  sharedResearchAccess SharedResearchAccess[] @relation("SharedResearchAccess")
+
+  // Conversational Memory System relations
+  conversationMemories  ConversationMemory[]  @relation("ClientMemories")
+  conversationSummaries ConversationSummary[] @relation("ClientConversationSummaries")
+
+  // Proactive AI System relations
+  aiBriefings     AIBriefing[]     @relation("ClientBriefings")
+  aiNotifications AINotification[] @relation("ClientAINotifications")
+
+  // Ad-hoc Workout Logging relations
+  adHocWorkouts       AdHocWorkout[]             @relation("ClientAdHocWorkouts")
+  aiNotificationPrefs AINotificationPreferences? @relation("ClientAINotificationPrefs")
+
+  // Coach-AI Collaboration relations
+  coachAlerts CoachAlert[] @relation("ClientCoachAlerts")
+
+  // Accountability tracking
+  bestCheckInStreak    Int?      @default(0)
+  bestStreakAchievedAt DateTime?
+
+  // Training Summary System relations
+  weeklyTrainingSummaries  WeeklyTrainingSummary[]  @relation("ClientWeeklySummaries")
+  monthlyTrainingSummaries MonthlyTrainingSummary[] @relation("ClientMonthlySummaries")
+  yearlySummaries          YearlySummary[]          @relation("ClientYearlySummaries")
+
+  // Live HR Streaming System relations
+  liveHRParticipations LiveHRParticipant[]
+
+  // Live Interval Session System relations
+  intervalSessionParticipations IntervalSessionParticipant[]
+  hockeyPhysicalTests           HockeyPhysicalTest[]
+  customTestResults             CustomTestResult[]
+
+  // Habit Formation System relations
+  habits Habit[]
+
+  // Meal Logging System relations
+  mealLogs                MealLog[]
+  athleteCoachPermission  AthleteCoachPermission?
+  nutritionWrappeds       NutritionWrapped[]
+
+  // Team Sports Match Schedule relations
+  matchSchedule ExternalMatchSchedule[]
+
+  // Sport-Specific Testing System relations
+  sportTests SportTest[] @relation("ClientSportTests")
+
+  // Self-coaching: coach who owns this as their personal athlete profile
+  selfCoachUser User? @relation("SelfAthleteClient")
+
+  // Data Moat System relations
+  athleteDecisions   CoachDecision[]  @relation("AthleteDecisions")
+  athletePredictions AIPrediction[]   @relation("AthletePredictions")
+  dataMoatConsent    DataMoatConsent? @relation("AthleteDataMoatConsent")
+
+  // Data Moat Phase 2: Training-Performance Correlation
+  trainingOutcomes          TrainingPeriodOutcome[]    @relation("AthleteTrainingOutcomes")
+  exerciseEffectiveness     ExerciseEffectiveness[]    @relation("AthleteExerciseEffectiveness")
+  testPredictiveValidations TestPredictiveValidation[] @relation("AthleteTestValidations")
+
+  // Data Moat Phase 3: Cross-Athlete Intelligence
+  benchmarkComparisons BenchmarkComparison[] @relation("AthleteBenchmarks")
+  patternMatches       AthletePatternMatch[] @relation("AthletePatternMatches")
+
+  // Visual Report System relations
+  visualReports VisualReport[] @relation("ClientVisualReports")
+
+  // Physiotherapist System relations
+  physioAssignments    PhysioAssignment[]    @relation("ClientPhysioAssignments")
+  treatmentSessions    TreatmentSession[]    @relation("ClientTreatmentSessions")
+  rehabPrograms        RehabProgram[]        @relation("ClientRehabPrograms")
+  rehabProgressLogs    RehabProgressLog[]    @relation("ClientRehabProgressLogs")
+  trainingRestrictions TrainingRestriction[] @relation("ClientTrainingRestrictions")
+  movementScreens      MovementScreen[]      @relation("ClientMovementScreens")
+  acuteInjuryReports   AcuteInjuryReport[]   @relation("ClientAcuteInjuryReports")
+  careTeamThreads      CareTeamThread[]      @relation("ClientCareTeamThreads")
+  dailyMetricsProcessingJobs DailyMetricsProcessingJob[]
+
+  // Autonomous AI Agent System relations
+  agentPreferences    AgentPreferences?
+  agentConsent        AgentConsent?
+  agentPerceptions    AgentPerception[]
+  agentActions        AgentAction[]
+  agentLearningEvents AgentLearningEvent[]
+  agentAuditLogs      AgentAuditLog[]
+
+  // Coach Marketplace relations
+  coachRequests       CoachRequest[]   @relation("AthleteCoachRequests")
+  coachAgreements     CoachAgreement[] @relation("AthleteCoachAgreements")
+  coachReviews        CoachReview[]    @relation("AthleteCoachReviews")
+  coachEarningsSource CoachEarnings[]  @relation("AthleteCoachEarnings")
+
+  // Shared Achievement relations
+  sharedAchievements SharedAchievement[]
+
+  // Live Voice Coaching Sessions
+  liveVoiceCoachingSessions LiveVoiceCoachingSession[] @relation("ClientLiveVoiceSessions")
+  preferredVoiceCoachVoice  String? // Gemini Live voice name (e.g., Kore, Puck, Aoede)
+
+  // Gym: Group Class Bookings & Competitions
+  groupClassBookings  GroupClassBooking[]  @relation("ClientGroupClassBookings")
+  competitionEntries  CompetitionEntry[]   @relation("ClientCompetitionEntries")
+
+  @@index([userId])
+  @@index([businessId])
+  @@index([teamId])
+  @@index([name])
+  @@index([email])
+  @@index([isDirect])
+}
+
+// ==================== BUSINESS & ORGANIZATION ====================
+
+/// Business entity (gym, testing center, coaching company)
+model Business {
+  id          String  @id @default(uuid())
+  name        String
+  slug        String  @unique // URL-friendly identifier
+  description String? @db.Text
+
+  // Business type
+  type BusinessType @default(INDEPENDENT_COACH)
+
+  // Contact info
+  email   String?
+  phone   String?
+  website String?
+
+  // Address
+  address    String?
+  city       String?
+  postalCode String?
+  country    String? @default("SE")
+
+  // Stripe Connect for revenue sharing
+  stripeConnectAccountId String?
+  stripeConnectStatus    String? // "PENDING", "ACTIVE", "RESTRICTED"
+  defaultRevenueShare    Float   @default(20) // Default platform share %
+
+  // Custom ELITE tier pricing (set by PT/gym, in SEK öre - 79900 = 799 kr)
+  elitePriceMonthly Int? // null = ELITE not offered by this business
+  elitePriceYearly  Int? // null = no yearly option
+  eliteDescription  String? @db.Text // PT can describe what's included
+
+  // Branding (Tier 0: all businesses)
+  logoUrl      String?
+  primaryColor String? @default("#3b82f6")
+
+  // Branding (Tier 1: CUSTOM_BRANDING feature)
+  secondaryColor  String?  // Accent hex color
+  backgroundColor String?  // Background tint hex
+  fontFamily      String?  // From curated list (Inter, DM Sans, Roboto, Poppins, Lato, Nunito)
+  faviconUrl      String?  // 32x32 PNG/ICO URL
+
+  // Branding (Tier 2: WHITE_LABEL feature)
+  customDomain         String?   @unique
+  domainVerified       Boolean   @default(false)
+  domainVerifiedAt     DateTime?
+  domainTxtRecord      String?   // Generated verification token
+  emailSenderName      String?   // Custom "from" name for emails
+  pageTitle            String?   // Custom HTML <title>
+  hidePlatformBranding Boolean   @default(false)
+
+  // Settings
+  isActive Boolean @default(true)
+  settings Json? // Business-specific settings
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members              BusinessMember[]
+  clients              Client[]
+  testers              Tester[]
+  locations            Location[]
+  athleteSubscriptions AthleteSubscription[]
+  invitations          Invitation[]
+
+  // Admin System relations
+  enterpriseContract EnterpriseContract?
+  pricingOverrides   PricingOverride[]
+  apiKeys            BusinessApiKey[]
+  aiKeys             BusinessAiKeys?
+
+  // Partner Referral System
+  partnerReferrals PartnerReferral[]
+  referredUsers    User[]            @relation("PartnerReferredUsers")
+
+  // Enterprise Features
+  features BusinessFeature[]
+
+  // Physiotherapist System relations
+  physioAssignments PhysioAssignment[] @relation("BusinessPhysioAssignments")
+
+  // Business application & join request relations
+  application  BusinessApplication?
+  joinRequests BusinessJoinRequest[]
+
+  // Coach-athlete connection within business
+  coachRequests   CoachRequest[]   @relation("BusinessCoachRequests")
+  coachAgreements CoachAgreement[] @relation("BusinessCoachAgreements")
+
+  // Gym dashboard
+  coachTasks   CoachTask[]   @relation("BusinessCoachTasks")
+  groupClasses GroupClass[]  @relation("BusinessGroupClasses")
+
+  // Social media & community
+  socialAccounts  SocialMediaAccount[] @relation("BusinessSocialAccounts")
+  socialPosts     SocialPost[]         @relation("BusinessSocialPosts")
+  competitions    Competition[]        @relation("BusinessCompetitions")
+  communityPosts  CommunityPost[]      @relation("BusinessCommunityPosts")
+  drills          TeamDrill[]          @relation("BusinessDrills")
+  testProtocols   CustomTestProtocol[] @relation("BusinessTestProtocols")
+
+  // Gym platform integrations
+  gymPlatformConnections GymPlatformConnection[] @relation("BusinessGymPlatforms")
+
+  // Multi-org calendar settings
+  calendarSettings BusinessCalendarSettings?
+
+  // Customizable dashboards
+  dashboardTemplates CoachDashboardTemplate[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([customDomain])
+}
+
+/// Links users to businesses with roles
+model BusinessMember {
+  id         String @id @default(uuid())
+  businessId String
+  userId     String
+
+  // Role within business
+  role String @default("MEMBER") // "OWNER", "ADMIN" (Sportchef), "COACH" (Huvudtränare), "PHYSICAL_TRAINER" (Fystränare), "ASSISTANT_COACH" (Assisterande tränare), "PHYSIO" (Fysioterapeut), "MEMBER"
+
+  // Permissions (JSON for flexibility)
+  permissions Json? // { canManageTesters, canViewAllTests, canManageClients, etc. }
+
+  // Status
+  isActive   Boolean   @default(true)
+  invitedAt  DateTime  @default(now())
+  acceptedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+  @@index([businessId])
+  @@index([userId])
+  @@index([role])
+}
+
+/// Links assistant coaches to specific teams they can access
+model TeamCoachAssignment {
+  id     String @id @default(uuid())
+  teamId String
+  userId String
+
+  // What the assistant can do
+  canRunTests     Boolean @default(true)
+  canRunIntervals Boolean @default(true)
+  canCreateEvents Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation("TeamCoachAssignments", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@index([teamId])
+}
+
+/// API keys for business external integrations
+model BusinessApiKey {
+  id         String @id @default(uuid())
+  businessId String
+  name       String // "Production API Key", "Development Key"
+  keyHash    String @unique // SHA-256 hash of the actual key
+  keyPrefix  String // First 8 chars for display: "bak_xxxx..."
+
+  // Rate limiting
+  requestsPerMinute Int @default(60)
+  requestsPerDay    Int @default(10000)
+
+  // Scopes/permissions
+  scopes String[] @default([]) // ["read:athletes", "write:workouts", etc.]
+
+  // Status
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([keyHash])
+}
+
+/// Business-level AI API keys (shared across all members)
+model BusinessAiKeys {
+  id         String @id @default(uuid())
+  businessId String @unique
+
+  anthropicKeyEncrypted String?
+  googleKeyEncrypted    String?
+  openaiKeyEncrypted    String?
+
+  anthropicKeyValid Boolean @default(false)
+  googleKeyValid    Boolean @default(false)
+  openaiKeyValid    Boolean @default(false)
+
+  anthropicKeyLastValidated DateTime?
+  googleKeyLastValidated    DateTime?
+  openaiKeyLastValidated    DateTime?
+
+  defaultModelId         String?
+  allowedModelIds        String[] @default([])
+  allowedAthleteModelIds String[] @default([])
+  athleteDefaultModelId  String?
+
+  business  Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+}
+
+// ==================== TESTERS & LOCATIONS ====================
+
+/// Personnel who conduct tests (can have privacy restrictions)
+model Tester {
+  id         String  @id @default(uuid())
+  businessId String? // Optional - can be independent
+  userId     String? @unique // Link to User if they have account
+  name       String
+  email      String?
+
+  // Privacy settings
+  isPrivate Boolean @default(false) // Only sees own tests
+
+  // Stats (cached for performance)
+  totalTests Int       @default(0)
+  lastTestAt DateTime?
+
+  // Contact info
+  phone String?
+  title String? // "Fysiolog", "Coach", etc.
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tests    Test[]
+
+  @@index([businessId])
+  @@index([userId])
+  @@index([isActive])
+}
+
+/// Physical location where tests are conducted
+model Location {
+  id         String  @id @default(uuid())
+  businessId String
+  name       String
+  slug       String? // For URL: /star-by-thomson/locations/nordstan
+  city       String?
+
+  // Contact
+  address    String?
+  postalCode String?
+  phone      String?
+  email      String?
+
+  // Coordinates (for map display)
+  latitude  Float?
+  longitude Float?
+
+  // Operating hours
+  openingHours Json? // { "monday": "06:00-22:00", ... }
+
+  // Capabilities (computed from equipment/services)
+  capabilities String[] // ["lactate_testing", "strength_training"]
+
+  // Stats (cached for performance)
+  totalTests Int       @default(0)
+  lastTestAt DateTime?
+
+  // Settings
+  isActive  Boolean @default(true)
+  isPrimary Boolean @default(false) // HQ/main location
+  settings  Json? // Location-specific settings
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business         Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  tests            Test[]
+  equipment        LocationEquipment[]
+  services         LocationService[]
+  staff            LocationStaff[]
+  athletePreferred AthleteAccount[]    @relation("AthletePreferredLocation")
+
+  // Physiotherapist System relations
+  physioAssignments PhysioAssignment[] @relation("LocationPhysioAssignments")
+
+  // Agility Studio relations
+  timingGateSessions TimingGateSession[] @relation("TimingGateSessionLocation")
+
+  // Appointment scheduling relations
+  strengthAssignments StrengthSessionAssignment[] @relation("StrengthAssignmentLocation")
+  cardioAssignments   CardioSessionAssignment[]   @relation("CardioAssignmentLocation")
+  agilityAssignments  AgilityWorkoutAssignment[]  @relation("AgilityAssignmentLocation")
+  hybridAssignments   HybridWorkoutAssignment[]   @relation("HybridAssignmentLocation")
+  teamBroadcasts      TeamWorkoutBroadcast[]      @relation("TeamBroadcastLocation")
+
+  // Gym: Group Classes
+  groupClasses GroupClass[] @relation("GroupClassLocation")
+
+  @@unique([businessId, slug])
+  @@index([businessId])
+  @@index([city])
+  @@index([isActive])
+}
+
+/// Master catalog of all possible equipment
+model Equipment {
+  id          String            @id @default(uuid())
+  name        String // "Concept2 RowErg"
+  nameSv      String? // "Concept2 Roddmaskin"
+  category    EquipmentCategory
+  brand       String? // "Concept2", "Technogym"
+  description String?
+  imageUrl    String?
+
+  // What this equipment enables
+  enablesTests     String[] // ["rowing_2k", "rowing_cp"]
+  enablesExercises String[] // Exercise IDs or categories
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  locations LocationEquipment[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+/// What equipment each location has
+model LocationEquipment {
+  id          String @id @default(uuid())
+  locationId  String
+  equipmentId String
+
+  quantity  Int     @default(1)
+  condition String? // "Good", "Needs maintenance"
+  notes     String?
+
+  // Availability
+  isAvailable   Boolean   @default(true)
+  availableFrom DateTime?
+  availableTo   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  location  Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, equipmentId])
+  @@index([locationId])
+  @@index([equipmentId])
+}
+
+/// Services offered at each location
+model LocationService {
+  id         String @id @default(uuid())
+  locationId String
+
+  serviceType ServiceType
+  name        String // Custom name override
+  description String?
+
+  // Requirements
+  requiredEquipment String[] // Equipment IDs needed
+  requiredStaff     String[] // Certifications needed
+
+  // Pricing (optional)
+  price        Float?
+  currency     String  @default("SEK")
+  pricingModel String? // "per_session", "monthly", "included"
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@index([serviceType])
+}
+
+/// Staff assigned to locations
+model LocationStaff {
+  id         String @id @default(uuid())
+  locationId String
+  userId     String
+
+  role      String // "Manager", "Coach", "Tester"
+  isPrimary Boolean @default(false) // Their main location
+
+  // Availability
+  schedule Json? // Weekly schedule
+
+  createdAt DateTime @default(now())
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, userId])
+  @@index([locationId])
+  @@index([userId])
+}
+
+/// Business feature flags - what modules are enabled
+model BusinessFeature {
+  id         String @id @default(uuid())
+  businessId String
+
+  feature   FeatureFlag
+  isEnabled Boolean     @default(false)
+
+  // Optional config
+  config Json?
+
+  // Limits
+  usageLimit Int @default(-1) // -1 = unlimited
+  usageCount Int @default(0)
+
+  enabledAt DateTime?
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, feature])
+  @@index([businessId])
+}
+
+// ==================== INVITATIONS & REFERRALS ====================
+
+/// Invitations and referral codes
+model Invitation {
+  id   String         @id @default(uuid())
+  code String         @unique
+  type InvitationType
+
+  // Sender (optional)
+  senderId   String? // User who sent invitation
+  businessId String? // Business context
+
+  // Recipient
+  recipientEmail String?
+  recipientName  String?
+
+  // Usage
+  usedAt         DateTime?
+  usedByClientId String? // Client who used the invitation
+
+  // Expiry
+  expiresAt   DateTime?
+  maxUses     Int       @default(1)
+  currentUses Int       @default(0)
+
+  // Referral bonus tracking
+  bonusAwarded Boolean @default(false)
+  bonusAmount  Float?
+
+  // Metadata
+  metadata Json? // Additional context data
+
+  createdAt DateTime @default(now())
+
+  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  @@index([code])
+  @@index([type])
+  @@index([senderId])
+  @@index([businessId])
+  @@index([expiresAt])
+}
+
+// ==================== ATHLETE ACCOUNTS ====================
+
+// Links a Client to an Athlete User account (1-to-1)
+model AthleteAccount {
+  id       String @id @default(uuid())
+  clientId String @unique
+  userId   String @unique
+
+  // Athlete preferences
+  notificationPrefs          Json? // { email: boolean, push: boolean, workoutReminders: boolean }
+  crossTrainingPreferences   Json? // { preferredModalities: string[], equipmentAccess: string[] }
+  preferredLocationId String? // Preferred gym location for WOD generation
+
+  // Athlete self-description (for AI personalization)
+  trainingBackground    String? @db.Text // Training history and story
+  longTermAmbitions     String? @db.Text // Dreams and big goals
+  seasonalFocus         String? @db.Text // Current season priorities
+  personalMotivations   String? @db.Text // Why they train
+  trainingPreferences   String? @db.Text // Likes and dislikes
+  constraints           String? @db.Text // Limitations (schedule, equipment, etc.)
+  dietaryNotes          String? @db.Text // Nutrition preferences/restrictions
+  profileLastUpdated    DateTime? // Track when athlete last updated their profile
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredLocation Location? @relation("AthletePreferredLocation", fields: [preferredLocationId], references: [id], onDelete: SetNull)
+
+  @@index([clientId])
+  @@index([userId])
+  @@index([preferredLocationId])
+}
+
+model HiddenExercise {
+  id         String   @id @default(uuid())
+  userId     String
+  exerciseId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, exerciseId])
+  @@index([userId])
+}
+
+// ==================== MESSAGING ====================
+model Message {
+  id         String @id @default(uuid())
+  senderId   String
+  receiverId String
+
+  subject String?
+  content String  @db.Text
+
+  // Optional: link to specific workout
+  workoutId String?
+
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  sender   User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  workout  Workout? @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([workoutId])
+  @@index([createdAt])
+  @@index([isRead])
+}
+
+// ============================================
+// ATHLETE PROFILING & CATEGORIZATION
+// ============================================
+
+/// Central profile for each athlete with categorization and baselines
+model AthleteProfile {
+  id       String @id @default(uuid())
+  clientId String @unique
+
+  // Categorization (affects methodology selection)
+  category           String // "BEGINNER", "RECREATIONAL", "ADVANCED", "ELITE"
+  vo2maxPercentile   Float? // Percentile for age/gender
+  lt2AsPercentVO2max Float? // Key categorization metric
+
+  // VDOT-based training data (from race performance)
+  currentVDOT        Float? // Most recent VDOT calculation
+  vdotSource         String? // "RACE_5K", "RACE_10K", "RACE_HM", "RACE_MARATHON", "ESTIMATED"
+  vdotConfidence     String? // "VERY_HIGH", "HIGH", "MEDIUM", "LOW"
+  vdotLastUpdated    DateTime?
+  vdotAgeAdjusted    Boolean   @default(false) // Whether age adjustment was applied
+  vdotGenderAdjusted Boolean   @default(false) // Whether gender adjustment was applied
+
+  // Lactate profile data (from lab or field tests)
+  maxLactate        Float? // Maximum lactate achieved (mmol/L)
+  lt2LactateRatio   Float? // LT2 as % of max lactate (individual ratio)
+  lt2Speed          Float? // LT2 speed (km/h)
+  lt2HeartRate      Int? // LT2 heart rate (bpm)
+  lactateTestDate   DateTime? // Date of most recent lactate test
+  lactateConfidence String? // "VERY_HIGH", "HIGH", "MEDIUM", "LOW"
+
+  // Metabolic type (affects training recommendations)
+  metabolicType       String? // "SLOW_TWITCH", "FAST_TWITCH_ENDURANCE", "FAST_TWITCH_POWER", "MIXED"
+  metabolicTypeSource String? // "LACTATE_PROFILE", "RACE_PATTERN", "ESTIMATED"
+
+  // Dynamic compression factor (for marathon pace calculation)
+  compressionFactor Float? // MP as % of LT2 pace (0.75-0.98)
+  compressionSource String? // "LEVEL_BASED", "AGE_ADJUSTED", "GENDER_ADJUSTED", "CUSTOM"
+
+  // Complete pace zones (stored for quick access)
+  danielsZones       Json? // DanielsZones object
+  canovaZones        Json? // CanovaZones object
+  norwegianZones     Json? // NorwegianZones object
+  hrZones            Json? // HRZones object
+  zonesLastUpdated   DateTime?
+  zonesPrimarySource String? // "VDOT", "LACTATE_RATIO", "HR_ESTIMATION", "PROFILE_ESTIMATION"
+
+  // Monitoring baselines (established over 14-21 days)
+  hrvBaseline    Float? // RMSSD in ms
+  hrvStdDev      Float? // Standard deviation for thresholds
+  hrvLastUpdated DateTime?
+  rhrBaseline    Float? // bpm
+  rhrLastUpdated DateTime?
+
+  // Current training zones (DEPRECATED - use specific zone fields above)
+  trainingZones Json?
+
+  // Equipment & capabilities
+  hasLactateMeter Boolean @default(false)
+  hasHRVMonitor   Boolean @default(false)
+  hasPowerMeter   Boolean @default(false)
+
+  // Cross-training preferences (JSON: preferredOrder, equipment, limitations, injuryOverrides)
+  crossTrainingPreferences Json?
+
+  // Training history context
+  yearsRunning    Int?
+  typicalWeeklyKm Float?
+  longestLongRun  Float?
+
+  // Norwegian Method tracking
+  norwegianPhase Int? // Current phase (1-4) in Norwegian transition
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([category])
+  @@index([hasLactateMeter, hasHRVMonitor]) // Filter athletes by monitoring capabilities
+  @@index([vo2maxPercentile]) // Rank athletes by VO2max
+  @@index([norwegianPhase]) // Track Norwegian Method progression
+  @@index([currentVDOT]) // Rank athletes by VDOT
+  @@index([metabolicType]) // Group by metabolic profile
+  @@index([vdotLastUpdated]) // Find stale VDOT data
+}
+
+// ============================================
+// MULTI-SPORT PROFILE SYSTEM
+// Added: 2025-11
+// Purpose: Sport-specific athlete profiles for multi-sport platform
+// ============================================
+
+/// Central sport profile for each athlete - determines UI, zones, and program types
+model SportProfile {
+  id       String @id @default(uuid())
+  clientId String @unique
+
+  // Primary sport (determines dashboard variant)
+  primarySport SportType @default(RUNNING)
+
+  // Secondary sports (for cross-training or multi-sport athletes)
+  secondarySports SportType[] @default([])
+
+  // Onboarding completed
+  onboardingCompleted Boolean @default(false)
+  onboardingStep      Int     @default(0)
+
+  // LTAD (Long-Term Athlete Development)
+  developmentStage   DevelopmentStage? // Current LTAD stage
+  peakHeightVelocity DateTime? // Estimated PHV date (for youth athletes)
+  biologicalAge      Float? // Biological vs chronological age offset
+
+  // Sport-specific settings (JSON for flexibility)
+  runningSettings           Json? // { preferredDistances, terrainPrefs, shoeRotation, etc. }
+  cyclingSettings           Json? // { bikeType, ftpHistory, indoorOutdoorRatio, etc. }
+  skiingSettings            Json? // { technique: 'CLASSIC' | 'SKATE', skiLength, etc. }
+  triathlonSettings         Json? // { primaryDistance: 'SPRINT' | 'OLYMPIC' | 'HALF' | 'FULL', swimCss, etc. }
+  hyroxSettings             Json? // { division, stationWeaknesses, bestTime, etc. }
+  generalFitnessSettings    Json? // { preferredFormats, equipmentAccess, etc. }
+  functionalFitnessSettings Json? // { benchmarks, gymnasticsSkills, olympicLiftingLevel, etc. }
+  swimmingSettings          Json? // { poolLength, cssSpeed, strokePrefs, etc. }
+  ergometerSettings         Json? // { preferredModalities, dragFactors, equipmentAccess, bikeBrand, etc. }
+
+  // Team Sports Settings
+  hockeySettings     Json? // { position, teamName, leagueLevel, seasonPhase, averageIceTimeMinutes, etc. }
+  footballSettings   Json? // { position, teamName, leagueLevel, avgMatchDistanceKm, gpsProvider, etc. }
+  handballSettings   Json? // { position, clubName, leagueLevel, seasonPhase, matchesPerWeek, etc. }
+  floorballSettings  Json? // { position, clubName, leagueLevel, seasonPhase, matchesPerWeek, etc. }
+  basketballSettings Json? // { position, clubName, leagueLevel, seasonPhase, matchesPerWeek, etc. }
+  volleyballSettings Json? // { position, clubName, leagueLevel, seasonPhase, matchesPerWeek, etc. }
+
+  // Racket Sports Settings
+  tennisSettings Json? // { playStyle, clubName, leagueLevel, seasonPhase, preferredSurface, etc. }
+  padelSettings  Json? // { position, clubName, leagueLevel, seasonPhase, preferredPartner, etc. }
+
+  // Equipment access (affects workout generation)
+  equipment Json? // { treadmill, bike, rower, skiErg, pool, gym, etc. }
+
+  // Training availability (weekly schedule)
+  weeklyAvailability     Json? // { monday: { available: true, maxHours: 2 }, ... }
+  preferredSessionLength Int? // minutes
+
+  // Goals and targets
+  currentGoal  String? // "Marathon PR", "Finish HYROX", "Lose weight", etc.
+  targetDate   DateTime?
+  targetMetric Json? // { type: 'TIME' | 'DISTANCE' | 'WEIGHT', value, unit }
+
+  // Theme preferences for workout display
+  themePreferences Json? // { appTheme: 'FITAPP_DARK' | 'MINIMALIST_WHITE', pdfTheme: 'FITAPP_DARK' | 'MINIMALIST_WHITE' }
+
+  // Biometrics for fitness estimation (training zone calculation)
+  biometrics Json? // { restingHR, maxHR, watchVO2maxEstimate, watchBrand }
+
+  // Recent race time for VDOT calculation
+  recentRaceTime Json? // { distance: '5K' | '10K' | etc., timeMinutes: number }
+
+  // Calculated fitness estimate (stored for quick access)
+  fitnessEstimate Json? // { level, estimatedVO2max, confidence, source, lt1PercentHRmax, lt2PercentHRmax }
+
+  // Experience levels per sport
+  runningExperience           String? // "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "ELITE"
+  cyclingExperience           String?
+  swimmingExperience          String?
+  strengthExperience          String?
+  functionalFitnessExperience String?
+
+  // Active subscription/program info
+  activeStandardProgram String? // ID of purchased standard program template
+  hasCustomProgram      Boolean @default(false)
+
+  // AI preferences
+  preferredAIModelId String? // Preferred AI model for WOD and assistant (e.g., 'gemini-3-flash')
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([primarySport])
+  @@index([onboardingCompleted])
+}
+
+/// User API keys for BYOK (Bring Your Own Key) model
+model UserApiKey {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  // Encrypted API keys (encrypted at application level)
+  anthropicKeyEncrypted String? // Claude API key
+  googleKeyEncrypted    String? // Gemini API key
+  openaiKeyEncrypted    String? // OpenAI API key (for embeddings)
+
+  // Key status (validated = successfully tested)
+  anthropicKeyValid Boolean @default(false)
+  googleKeyValid    Boolean @default(false)
+  openaiKeyValid    Boolean @default(false)
+
+  // Last validation timestamps
+  anthropicKeyLastValidated DateTime?
+  googleKeyLastValidated    DateTime?
+  openaiKeyLastValidated    DateTime?
+
+  // Default AI model preference (used across all AI features)
+  defaultModelId String?
+  defaultModel   AIModel? @relation("UserDefaultModel", fields: [defaultModelId], references: [id], onDelete: SetNull)
+
+  // Athlete AI settings (which models athletes can choose from)
+  // Empty array = all available models allowed
+  allowedAthleteModelIds String[] @default([])
+  athleteDefaultModelId  String? // Default model for athletes if not selected
+
+  user User @relation("UserApiKeys", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([defaultModelId])
+}
+
+/// Scaling levels for hybrid workouts
+enum ScalingLevel {
+  RX // Prescribed/competition standard
+  SCALED // Reduced load/modified movements
+  FOUNDATIONS // Beginner-friendly version
+  CUSTOM // Custom modifications for individual athlete
+}
+
+/// Equipment types for movements
+enum EquipmentType {
+  BARBELL
+  KETTLEBELL
+  DUMBBELL
+  BODYWEIGHT
+  PULL_UP_BAR
+  RINGS
+  BOX
+  ROPE
+  GHD
+  MACHINE_ROW
+  MACHINE_BIKE
+  MACHINE_SKI
+  ASSAULT_BIKE
+  WALL_BALL
+  MEDICINE_BALL
+  SANDBAG
+  SLED
+  RUNNING
+  JUMP_ROPE
+  YOKE
+  SWIMMING
+  PARALLETTES
+}
+
+/// Privacy permissions controlling what coaches can see
+model AthleteCoachPermission {
+  id              String @id @default(cuid())
+  athleteClientId String @unique
+  client          Client @relation(fields: [athleteClientId], references: [id], onDelete: Cascade)
+
+  // Granular permission flags — default true (sharing enabled)
+  shareFoodDetails     Boolean @default(true) // Individual food items & patterns
+  shareFoodSummaries   Boolean @default(true) // Wrapped summaries, aggregate stats
+  shareBodyComposition Boolean @default(true) // Weight, body fat, etc.
+  shareWorkoutNotes    Boolean @default(true) // Personal notes on workouts
+  shareDailyCheckIns   Boolean @default(true) // Readiness, mood, sleep details
+  shareMenstrualData   Boolean @default(false) // Sensitive — default off
+  shareInjuryDetails   Boolean @default(true) // Pain reports, assessments
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([athleteClientId])
+}
+
+// ============================================================================
+// COACH-AI COLLABORATION SYSTEM
+// ============================================================================
+
+/// Alerts generated by AI for coaches about athletes needing attention
+model CoachAlert {
+  id       String @id @default(uuid())
+  coachId  String // Coach's user ID
+  clientId String // Athlete's client ID
+
+  // Alert classification
+  alertType   String // READINESS_DROP, MISSED_CHECKINS, MISSED_WORKOUTS, PAIN_MENTION, HIGH_ACWR
+  severity    String // LOW, MEDIUM, HIGH, CRITICAL
+  title       String
+  message     String  @db.Text
+  contextData Json? // Additional structured data
+  sourceId    String? // Link to source record (ConversationMemory.id, etc.)
+
+  // Status tracking
+  status      String    @default("ACTIVE") // ACTIVE, DISMISSED, RESOLVED, ACTIONED
+  dismissedAt DateTime?
+  resolvedAt  DateTime?
+  actionedAt  DateTime?
+  actionNote  String?   @db.Text
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  expiresAt DateTime? // Auto-expire old alerts
+
+  // Relations
+  client Client @relation("ClientCoachAlerts", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([coachId, status])
+  @@index([coachId, createdAt])
+  @@index([clientId])
+  @@index([alertType])
+  @@index([severity])
+}
+
+// ==================== ADMIN SYSTEM - MONITORING ====================
+
+/// System errors tracked for monitoring
+model SystemError {
+  id String @id @default(uuid())
+
+  level   String  @default("ERROR") // ERROR, WARN, CRITICAL
+  message String  @db.Text
+  stack   String? @db.Text
+
+  // Context
+  userId     String?
+  route      String?
+  method     String?
+  statusCode Int?
+  userAgent  String?
+
+  // Sentry link
+  sentryEventId String?
+
+  metadata Json?
+
+  // Resolution
+  isResolved   Boolean   @default(false)
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   User?     @relation("ResolvedErrors", fields: [resolvedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([level, createdAt])
+  @@index([isResolved, createdAt])
+  @@index([route])
+  @@index([resolvedById])
+}
+
+/// System metrics for dashboard
+model SystemMetric {
+  id String @id @default(uuid())
+
+  metricName String // active_users, api_requests, error_rate, avg_response_time
+  value      Float
+  unit       String? // count, ms, percent
+
+  dimensions Json? // { route: '/api/...', method: 'GET' }
+
+  timestamp DateTime @default(now())
+
+  @@index([metricName, timestamp])
+}
+
+// ============================================================================
+// DATA MOAT: PHASE 3 - Cross-Athlete Intelligence
+// ============================================================================
+
+/// Experience level for cohort segmentation
+enum ExperienceLevel {
+  BEGINNER // <1 year
+  INTERMEDIATE // 1-3 years
+  ADVANCED // 3-7 years
+  ELITE // 7+ years or competitive
+}
+
+/// Primary goal types for cohort segmentation
+enum GoalType {
+  GENERAL_FITNESS
+  WEIGHT_LOSS
+  ENDURANCE_PERFORMANCE
+  STRENGTH_GAIN
+  SPORT_SPECIFIC
+  COMPETITION
+  HEALTH_MAINTENANCE
+}
+
+// ============================================================================
+// OPERATOR AGENTS (Super Admin)
+// ============================================================================
+
+/// User-submitted support tickets (bug reports, questions, complaints)
+/// Processed by the Support Operator Agent for auto-classification and triage
+model SupportTicket {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Reporter
+  userId        String?
+  reporterEmail String? // fallback contact if not logged in
+
+  // Content
+  title       String
+  description String @db.Text
+  category    String? // bug | question | feature_request | complaint | other
+  priority    String @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
+
+  // Context at report time
+  url        String? // Page where bug occurred
+  userAgent  String?
+  screenshot String? // URL to uploaded image
+  metadata   Json? // Additional debugging context
+
+  // Agent processing
+  agentClassified      Boolean  @default(false)
+  agentDraftResponse   String?  @db.Text // AI-drafted reply for founder review
+  agentCategory        String?
+  agentSimilarTickets  String[] @default([]) // IDs of related tickets
+
+  // Linked items
+  githubIssueUrl   String? // If agent created a GH issue
+  featureRequestId String? // If reclassified as feature request
+
+  // Resolution
+  status     String    @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED | CLOSED
+  resolvedAt DateTime?
+  resolvedBy String? // founder user ID
+  resolution String?   @db.Text
+
+  featureRequest FeatureRequest? @relation(fields: [featureRequestId], references: [id], onDelete: SetNull)
+
+  @@index([status, priority])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+/// User-submitted feature requests with voting and AI-powered curation
+model FeatureRequest {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Submission
+  submittedBy String
+  title       String
+  description String @db.Text
+  category    String? // training | ai | billing | mobile | physio | nutrition | ui
+
+  // Voting
+  upvotes Int      @default(0)
+  voters  String[] @default([]) // userIds who upvoted
+
+  // Agent curation
+  agentImpactScore Float? // Calculated 0-100
+  agentDuplicateOf String? // Another request ID if duplicate
+  agentSummary     String? @db.Text
+
+  // Status
+  status         String  @default("OPEN") // OPEN | PLANNED | IN_PROGRESS | SHIPPED | DECLINED
+  githubIssueUrl String?
+
+  // Related
+  supportTickets SupportTicket[]
+
+  @@index([status, agentImpactScore])
+  @@index([category])
+}
+
+/// Daily brief generated by the Founder's Daily Brief agent
+/// Stored for historical viewing and trend analysis
+/// Daily brief generated by the Founder's Daily Brief operator agent.
+/// Stored for historical viewing and trend analysis.
+model FounderBrief {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  date      DateTime @unique @db.Date
+
+  // Content sections (JSON for flexibility)
+  revenue         Json // { mrrDelta, newSignups, arr, etc. }
+  attention       Json // Urgent items needing focus
+  topRequest      Json? // Highest-impact feature request this week
+  focusSuggestion String? @db.Text // AI-suggested top priority
+  fullContent     String  @db.Text // Full markdown email body
+
+  emailedTo String?
+  emailedAt DateTime?
+  readAt    DateTime?
+
+  @@index([date])
+}
+
+/// Runtime platform configuration as key-value pairs.
+/// Used for values that need to change without a code deploy (FX rates,
+/// feature flags, thresholds, etc.). Admin-only access.
+model PlatformConfig {
+  key       String   @id
+  value     String   @db.Text
+  valueType String   @default("string") // string | number | boolean | json
+  category  String?  // Grouping: "fx" | "thresholds" | "features" etc.
+  description String? @db.Text
+
+  updatedAt DateTime @updatedAt
+  updatedBy String? // User ID who last updated (or "system" for crons)
+
+  @@index([category])
+}
+
+/// Auth events for security monitoring (failed logins, lockouts, etc.).
+/// Used by the Compliance & Security operator agent.
+model AuthEvent {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  /// Event type: LOGIN_SUCCESS | LOGIN_FAILURE | PASSWORD_RESET |
+  /// LOCKOUT | OAUTH_START | OAUTH_SUCCESS | OAUTH_FAILURE
+  eventType String
+
+  /// User ID if known (may be null for failed login attempts on non-existent users)
+  userId String?
+
+  /// Email used in the attempt (stored for security monitoring, not PII export)
+  email String?
+
+  /// Failure reason if applicable (invalid_password, user_not_found, etc.)
+  failureReason String?
+
+  ipAddress String?
+  userAgent String?
+
+  /// Extra context (provider, 2FA status, etc.)
+  metadata Json?
+
+  @@index([eventType, createdAt])
+  @@index([ipAddress, createdAt])
+  @@index([email, createdAt])
+  @@index([userId, createdAt])
+}
+
+/// General audit log for security-sensitive operations
+/// Tracks admin actions, role changes, data deletions, etc.
+model AuditLog {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  // Action
+  action String // USER_ROLE_CHANGE, DATA_DELETE, SETTINGS_CHANGE, etc.
+
+  // Actor (who performed the action)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Target (what was affected)
+  targetId   String? // ID of the affected resource
+  targetType String? // Type of resource (User, Business, etc.)
+
+  // Change tracking
+  oldValue Json? // Previous state
+  newValue Json? // New state
+  metadata Json? // Additional context
+
+  // Request context
+  ipAddress String?
+  userAgent String?
+
+  @@index([userId, createdAt])
+  @@index([action])
+  @@index([targetId, targetType])
+  @@index([createdAt])
+}
+
+// ==================== COACH MARKETPLACE SYSTEM ====================
+
+/// Public profile for coaches in the marketplace
+model CoachProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  slug   String @unique // URL: /coaches/john-doe
+
+  // Public profile
+  headline      String? // "Marathon Coach & Exercise Physiologist"
+  bio           String? @db.Text
+  imageUrl      String?
+  coverImageUrl String?
+
+  // Specializations
+  specialties     SportType[] // RUNNING, CYCLING, TRIATHLON, etc.
+  methodologies   String[] // Polarized, Norwegian, Canova, etc.
+  experienceYears Int?
+  credentials     String[] // Certifications
+  dashboardMode   String? // "TEAM", "PT", "GYM" — null = auto-detect
+
+  // Marketplace settings
+  isPublic           Boolean @default(false)
+  isVerified         Boolean @default(false)
+  isAcceptingClients Boolean @default(true)
+
+  // Location & availability
+  location  String? // "Stockholm, Sweden"
+  timezone  String? // "Europe/Stockholm"
+  languages String[] @default(["sv", "en"])
+
+  // Stats (calculated, updated by triggers/cron)
+  totalClients  Int    @default(0)
+  activeClients Int    @default(0)
+  averageRating Float?
+  reviewCount   Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews CoachReview[]
+
+  @@index([slug])
+  @@index([isPublic, isAcceptingClients])
+  @@index([isVerified])
+}
+
+/// Request from athlete to connect with a coach
+model CoachRequest {
+  id              String @id @default(uuid())
+  athleteClientId String
+  coachUserId     String
+  businessId      String? // When set, this is an intra-business request
+
+  initiatedBy   String             @default("ATHLETE") // "ATHLETE" or "COACH"
+  status        CoachRequestStatus @default(PENDING)
+  message       String?            @db.Text // Intro message from whoever initiated
+  coachResponse String?            @db.Text
+
+  requestedAt DateTime  @default(now())
+  respondedAt DateTime?
+  expiresAt   DateTime // Auto-expire after 14 days
+
+  athlete  Client    @relation("AthleteCoachRequests", fields: [athleteClientId], references: [id], onDelete: Cascade)
+  coach    User      @relation("CoachRequestsReceived", fields: [coachUserId], references: [id], onDelete: Cascade)
+  business Business? @relation("BusinessCoachRequests", fields: [businessId], references: [id], onDelete: SetNull)
+
+  @@unique([athleteClientId, coachUserId])
+  @@index([coachUserId, status])
+  @@index([expiresAt])
+  @@index([athleteClientId])
+  @@index([businessId, status])
+}
+
+/// Active coaching relationship between athlete and coach
+model CoachAgreement {
+  id              String @id @default(uuid())
+  athleteClientId String
+  coachUserId     String
+  businessId      String? // Business context (null = marketplace)
+  assignedByUserId String? // Who assigned (null = athlete-initiated)
+
+  status    CoachAgreementStatus @default(ACTIVE)
+  startedAt DateTime             @default(now())
+  endedAt   DateTime?
+  endReason String?
+
+  // Revenue share tracking
+  revenueSharePercent   Float     @default(75) // Coach gets 75%
+  revenueShareStartDate DateTime? // When share kicks in (next billing)
+
+  // What happens to existing program
+  programAction String? // 'KEPT', 'MODIFIED', 'REPLACED'
+
+  athlete    Client    @relation("AthleteCoachAgreements", fields: [athleteClientId], references: [id], onDelete: Cascade)
+  coach      User      @relation("CoachAgreementsAsCoach", fields: [coachUserId], references: [id], onDelete: Cascade)
+  business   Business? @relation("BusinessCoachAgreements", fields: [businessId], references: [id], onDelete: SetNull)
+  assignedBy User?     @relation("CoachAgreementsAssignedBy", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([athleteClientId, coachUserId])
+  @@index([coachUserId, status])
+  @@index([athleteClientId])
+  @@index([businessId, status])
+}
+
+/// Earnings from athlete subscriptions (coach revenue share)
+model CoachEarnings {
+  id              String @id @default(uuid())
+  coachUserId     String
+  athleteClientId String
+  subscriptionId  String
+
+  periodStart DateTime
+  periodEnd   DateTime
+
+  totalAmount    Int   // Total payment in öre (cents)
+  coachAmount    Int   // Coach's share
+  platformAmount Int   // Platform's share
+  sharePercent   Float // Share % at time of payment
+
+  status    String    @default("PENDING") // PENDING, PAID_OUT
+  paidOutAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  coach   User   @relation("CoachEarnings", fields: [coachUserId], references: [id])
+  athlete Client @relation("AthleteCoachEarnings", fields: [athleteClientId], references: [id], onDelete: Cascade)
+
+  @@index([coachUserId, status])
+  @@index([periodStart])
+  @@index([athleteClientId])
+}
+
+/// Tracks processed Stripe webhook events for idempotency and auditing
+model StripeWebhookEvent {
+  id        String   @id // Stripe event ID (evt_xxx) - natural key for deduplication
+  type      String // Event type (e.g. "checkout.session.completed")
+  handled   Boolean  @default(false)
+  message   String? // Handler result message
+  metadata  Json? // Event metadata snapshot for debugging
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ==================== BUSINESS APPLICATIONS & JOIN REQUESTS ====================
+
+/// Interest form submissions from gyms/clubs, reviewed by platform admin
+model BusinessApplication {
+  id               String                    @id @default(uuid())
+  type             BusinessType // GYM or CLUB
+  status           BusinessApplicationStatus @default(PENDING)
+  contactName      String
+  contactEmail     String
+  contactPhone     String?
+  organizationName String
+  city             String?
+  country          String?                   @default("SE")
+  website          String?
+  description      String?                   @db.Text
+  primarySport     String? // For clubs
+  estimatedMembers Int?
+  estimatedCoaches Int?
+  reviewedById     String?
+  reviewNotes      String?                   @db.Text
+  reviewedAt       DateTime?
+  businessId       String?                   @unique
+  business         Business?                 @relation(fields: [businessId], references: [id])
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+
+  @@index([status])
+  @@index([contactEmail])
+}
+
+/// PTs who self-register and want to join an existing gym/club business
+model BusinessJoinRequest {
+  id           String            @id @default(uuid())
+  userId       String
+  businessId   String
+  status       JoinRequestStatus @default(PENDING)
+  message      String?           @db.Text
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business     Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, businessId])
+  @@index([businessId, status])
+}
+
+// ============================================
+// Gym Dashboard: Tasks & Group Classes
+// ============================================
+model CoachTask {
+  id           String    @id @default(uuid())
+  businessId   String
+  business     Business  @relation("BusinessCoachTasks", fields: [businessId], references: [id], onDelete: Cascade)
+  createdById  String
+  createdBy    User      @relation("TaskCreator", fields: [createdById], references: [id])
+  assignedToId String?
+  assignedTo   User?     @relation("TaskAssignee", fields: [assignedToId], references: [id])
+
+  title       String
+  description String?
+  priority    String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  dueDate     DateTime?
+  completedAt DateTime?
+  isShared    Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, status])
+  @@index([assignedToId, status])
+  @@index([createdById, status])
+}
+
+// Broadcast Notifications
+// ============================================
+
+/// Team drills created from clipboard photos or manually
+model TeamDrill {
+  id          String   @id @default(uuid())
+  teamId      String?
+  businessId  String
+  createdById String
+
+  title       String
+  description String?  @db.Text
+  sportType   String   @default("ICE_HOCKEY") // ICE_HOCKEY, FOOTBALL, HANDBALL, etc.
+
+  // Drill structure (JSON: positions, movements, zones, annotations)
+  structure   Json     // { players: [...], movements: [...], zones: [...], annotations: [...] }
+
+  // Source info
+  sourceType  String   @default("MANUAL") // MANUAL, CLIPBOARD_PHOTO, VIDEO
+  sourceImageUrl String? // Original clipboard photo URL
+  aiAnalysis  String?  @db.Text // Raw AI analysis text
+
+  // Visibility
+  isPublished Boolean  @default(false)
+  publishedAt DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  team      Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  business  Business @relation("BusinessDrills", fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy User     @relation("CreatedDrills", fields: [createdById], references: [id])
+
+  @@index([teamId])
+  @@index([businessId])
+  @@index([createdById])
+  @@index([sportType])
+}
+
+model BroadcastNotification {
+  id          String   @id @default(uuid())
+  userId      String
+  postId      String
+  title       String
+  message     String   @db.Text
+  type        String   @default("ANNOUNCEMENT") // ANNOUNCEMENT, MOTIVATION, ACHIEVEMENT
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+
+  createdAt   DateTime @default(now())
+
+  user User          @relation("UserBroadcastNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([postId])
+}
+
+/// Business owner controls how their calendar appears to multi-org members
+model BusinessCalendarSettings {
+  id         String @id @default(uuid())
+  businessId String @unique
+
+  calendarVisibility CalendarVisibility @default(FULL_DETAILS)
+  shareTeamEvents    Boolean            @default(true)
+  shareAthleteEvents Boolean            @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Customizable Dashboards
+// ---------------------------------------------------------------------------
+enum DashboardPreferenceRole {
+  ATHLETE
+  COACH
+}
+
+enum DashboardTemplateScope {
+  BUSINESS_DEFAULT
+  TEAM
+  INDIVIDUAL
+}
+
+/// Per-user widget visibility/order overrides for the dashboard.
+/// Resolution chain (highest priority first):
+///   athlete preference -> coach INDIVIDUAL template -> coach TEAM template ->
+///   coach BUSINESS_DEFAULT template -> hard-coded registry defaults.
+model DashboardPreference {
+  id        String                  @id @default(uuid())
+  userId    String
+  role      DashboardPreferenceRole
+  /// For coaches: "PT" | "TEAM" | "GYM" (matches detectDashboardMode). Null for athletes.
+  mode      String?
+  /// For athletes (Phase 5+): per-sport overrides. Null = applies to all sports.
+  sport     SportType?
+  widgetKey String
+  visible   Boolean                 @default(true)
+  order     Int                     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role, mode, sport, widgetKey])
+  @@index([userId, role])
+}
+
+/// Coach-defined dashboard templates that apply to their athletes.
+/// Scope determines who the template applies to:
+///   BUSINESS_DEFAULT -> all athletes in the business without a more specific template
+///   TEAM             -> all members of targetId (Team.id)
+///   INDIVIDUAL       -> one specific athlete (targetId = Client.id)
+model CoachDashboardTemplate {
+  id         String                 @id @default(uuid())
+  coachId    String
+  businessId String
+  name       String
+  scope      DashboardTemplateScope
+  /// Team.id for TEAM scope, Client.id for INDIVIDUAL scope, null for BUSINESS_DEFAULT.
+  targetId   String?
+  /// Optional sport filter (e.g. "use this template only for hockey players").
+  sport      SportType?
+  /// JSON: [{ widgetKey: string, visible: boolean, order: number }]
+  widgets    Json                   @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  coach    User     @relation("CoachDashboardTemplates", fields: [coachId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, scope, targetId, sport])
+  @@index([coachId, businessId])
+  @@index([businessId, scope])
+  @@index([targetId])
+}

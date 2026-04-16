@@ -1,0 +1,1974 @@
+// TRAINING domain models & enums.
+// Auto-grouped from schema.prisma — keep new declarations here.
+
+enum InclineUnit {
+  PERCENT
+  DEGREES
+}
+
+enum WorkoutType {
+  RUNNING
+  STRENGTH
+  PLYOMETRIC
+  CORE
+  RECOVERY
+  CYCLING
+  SKIING
+  SWIMMING
+  TRIATHLON
+  HYROX
+  ALTERNATIVE
+  OTHER
+}
+
+enum WorkoutTemplateCategory {
+  STRENGTH
+  CARDIO
+  FUNCTIONAL
+  CORE
+  STRETCHING
+}
+
+enum WorkoutTemplateDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum WorkoutIntensity {
+  RECOVERY // Very easy
+  EASY // Zone 1-2
+  MODERATE // Zone 3
+  THRESHOLD // Zone 4
+  INTERVAL // Zone 5
+  MAX // All-out
+}
+
+enum WorkoutSectionType {
+  WARMUP // Warm-up exercises, dynamic stretches, activation
+  MAIN // Primary strength exercises
+  CORE // Core-specific exercises
+  COOLDOWN // Cooldown, stretching, mobility
+}
+
+enum AltitudeAdaptationPhase {
+  ACUTE // First 3-5 days (reduced intensity)
+  ADAPTATION // Days 6-14 (gradual increase)
+  OPTIMAL // Day 15+ (full adaptation)
+  POST_CAMP // Return to sea level (monitor for 14 days)
+}
+
+enum ProgressionLevel {
+  LEVEL_1 // Static/Stability - beginners
+  LEVEL_2 // Strength/Loading - intermediate
+  LEVEL_3 // Dynamic/Ballistic - advanced
+}
+
+enum ProgressionStatus {
+  ON_TRACK // Progressing as expected
+  PLATEAU // No progress for 3+ weeks
+  REGRESSING // Performance declining
+  DELOAD_NEEDED // Volume/intensity too high
+}
+
+// ==================== HABIT TRACKING ====================
+enum HabitCategory {
+  NUTRITION // Drink water, eat protein
+  SLEEP // Bedtime routine, wake time
+  MOVEMENT // Daily walks, stretching
+  MINDFULNESS // Meditation, journaling
+  TRAINING // Gym attendance
+  RECOVERY // Foam rolling, ice bath
+}
+
+enum HabitFrequency {
+  DAILY
+  WEEKDAYS
+  SPECIFIC_DAYS
+  X_TIMES_WEEK
+}
+
+// ==================== TRAINING PROGRAMS ====================
+model TrainingProgram {
+  id       String  @id @default(uuid())
+  clientId String
+  coachId  String // User who created it
+  testId   String? // Optional: linked to specific test results
+
+  name        String // "Marathon Training - Spring 2025"
+  description String?   @db.Text
+  goalRace    String? // "Stockholm Marathon", "Get in shape", "5K PR"
+  goalDate    DateTime?
+  goalType    String? // "marathon", "half-marathon", "10k", "5k", "fitness", "cycling", "skiing"
+
+  startDate DateTime
+  endDate   DateTime
+
+  // Metadata
+  isActive   Boolean @default(true)
+  isTemplate Boolean @default(false) // Can be reused as template
+
+  // Generated from which test?
+  generatedFromTest Boolean @default(false)
+
+  // AI-generated infographic
+  infographicUrl   String? // Supabase Storage public URL
+  infographicModel String? // Model used: "gemini-2.5-flash-image" or "gemini-3-pro-image-preview"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  coach  User   @relation("CoachPrograms", fields: [coachId], references: [id])
+  test   Test?  @relation(fields: [testId], references: [id], onDelete: SetNull)
+
+  weeks TrainingWeek[]
+
+  // Data Moat System relations
+  coachDecisions CoachDecision[] @relation("ProgramDecisions")
+
+  // Data Moat Phase 2: Training-Performance Correlation
+  programOutcomes TrainingPeriodOutcome[] @relation("ProgramOutcomes")
+
+  @@index([clientId])
+  @@index([coachId])
+  @@index([testId])
+  @@index([startDate, endDate])
+  @@index([isActive])
+}
+
+model TrainingWeek {
+  id        String @id @default(uuid())
+  programId String
+
+  weekNumber Int // 1, 2, 3...
+  startDate  DateTime
+  endDate    DateTime
+
+  phase        PeriodPhase
+  focus        String? // "Build endurance", "Taper week", "Recovery"
+  weeklyVolume Float? // Planned total hours or km
+
+  notes String? @db.Text
+
+  program TrainingProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  days    TrainingDay[]
+
+  @@unique([programId, weekNumber])
+  @@index([programId])
+  @@index([startDate, endDate])
+}
+
+model TrainingDay {
+  id     String @id @default(uuid())
+  weekId String
+
+  dayNumber Int // 1=Monday, 2=Tuesday, etc.
+  date      DateTime
+
+  notes String? @db.Text
+
+  week     TrainingWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  workouts Workout[]
+
+  @@unique([weekId, dayNumber])
+  @@index([weekId])
+  @@index([date])
+}
+
+model Workout {
+  id    String @id @default(uuid())
+  dayId String
+
+  type        WorkoutType
+  name        String // "Long Run", "Tempo Run", "Upper Body Strength"
+  description String?     @db.Text
+  status      String      @default("PLANNED") // "PLANNED", "MODIFIED", "CANCELLED", "COMPLETED"
+
+  intensity WorkoutIntensity
+  duration  Int? // Planned minutes
+  distance  Float? // Planned km (for running)
+
+  // Coach instructions
+  instructions String? @db.Text
+  coachNotes   String? @db.Text
+
+  // Ordering (if multiple workouts in one day)
+  order Int @default(1)
+
+  // Is this a custom workout added by athlete?
+  isCustom Boolean @default(false)
+
+  // Ad-hoc workout flag (logged outside of program)
+  isAdHoc     Boolean       @default(false)
+  adHocSource AdHocWorkout? @relation("AdHocSourceWorkout")
+
+  // Hero Card Fields (AI-generated or rule-based)
+  heroTitle        String? // "Posterior Chain Focus"
+  heroDescription  String?   @db.Text // "Focus on hinge movements. Primary lift: Deadlift"
+  heroCategory     String? // "HEAVY_LOWER_BODY", "QUAD_DOMINANT", etc.
+  heroImageKey     String? // Key for exercise image lookup
+  focusGeneratedAt DateTime?
+  focusGeneratedBy String? // "AI" | "RULE_BASED"
+
+  // Garmin Connect integration
+  garminWorkoutId String? // Garmin workout ID after push to Connect
+  garminPushedAt  DateTime? // When workout was last pushed
+
+  day      TrainingDay      @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  segments WorkoutSegment[]
+  logs     WorkoutLog[]
+  messages Message[]
+
+  // Data Moat System relations
+  coachDecisions CoachDecision[] @relation("WorkoutDecisions")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([dayId, order])
+  @@index([type])
+  @@index([isCustom])
+  @@index([isAdHoc])
+  @@index([status]) // Filter by workout status
+}
+
+model WorkoutSegment {
+  id        String @id @default(uuid())
+  workoutId String
+
+  order Int // 1, 2, 3...
+  type  String // "warmup", "interval", "cooldown", "exercise", "rest", "work"
+
+  // Running/Cycling specific
+  duration  Int? // minutes
+  distance  Float? // km
+  pace      String? // "5:00/km" or calculated from zone
+  zone      Int? // Training zone 1-5
+  heartRate String? // "140-150 bpm" or zone-based
+  power     Int? // watts (cycling)
+
+  // Interval-specific
+  reps Int? // Number of repetitions (for intervals)
+
+  // Strength/Plyo/Core specific
+  exerciseId String? // FK to Exercise library
+  sets       Int?
+  repsCount  String? // "10" or "10-12" or "AMRAP" or "30 seconds"
+  weight     String? // "80kg" or "BW" or "50% 1RM"
+  tempo      String? // "3-1-1" (eccentric-pause-concentric)
+  rest       Int? // seconds between sets
+
+  // Section grouping (for structured strength workouts)
+  section WorkoutSectionType @default(MAIN)
+
+  // General
+  description String? @db.Text
+  notes       String? @db.Text
+
+  workout  Workout   @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+  setLogs  SetLog[] // Per-set logging data
+
+  createdAt DateTime @default(now())
+
+  @@index([workoutId, order])
+  @@index([exerciseId])
+}
+
+// ==================== EXERCISE LIBRARY ====================
+model Exercise {
+  id          String      @id @default(uuid())
+  coachId     String? // NULL = system exercise, else custom
+  name        String // "Back Squat", "Box Jump", "Plank"
+  category    WorkoutType // STRENGTH, PLYOMETRIC, CORE
+  muscleGroup String? // "Legs", "Core", "Upper Body"
+
+  description  String? @db.Text
+  instructions String? @db.Text
+  videoUrl     String? // YouTube/Vimeo link
+  equipment    String? // "Barbell, Rack", "Box", "None"
+
+  difficulty String? // "Beginner", "Intermediate", "Advanced"
+
+  isPublic Boolean @default(true) // System exercises vs coach-specific
+
+  // Swedish/English names
+  nameSv String?
+  nameEn String?
+
+  // Scientific Framework Fields
+  biomechanicalPillar BiomechanicalPillar? // Primary movement pattern
+  progressionLevel    ProgressionLevel? // Level 1-3 progression
+  plyometricIntensity PlyometricIntensity? // For plyometric exercises only
+  contactsPerRep      Int? // Ground contacts per rep (plyometric)
+
+  // Exercise substitutions and progressions
+  substitutes     String? // JSON array of alternative exercise IDs
+  progressionPath String? // JSON array: [easier_id, current_id, harder_id]
+
+  // Hybrid Studio Fields
+  isHybridMovement     Boolean           @default(false) // Is this a CrossFit/HYROX movement?
+  movementCategory     MovementCategory? // OLYMPIC_LIFT, POWERLIFTING, GYMNASTICS, etc.
+  equipmentTypes       EquipmentType[]   @default([]) // Required equipment
+  defaultReps          Int? // Default rep count for this movement
+  defaultWeightMale    Float? // Default male Rx weight (kg)
+  defaultWeightFemale  Float? // Default female Rx weight (kg)
+  scaledWeightMale     Float? // Scaled male weight (kg)
+  scaledWeightFemale   Float? // Scaled female weight (kg)
+  foundationMovement   String? // Alternative for Foundations level
+  standardAbbreviation String? // e.g., "C&J" for Clean & Jerk, "MU" for Muscle-Up
+
+  // Icon fields for themed workout display
+  iconUrl      String? // URL to exercise-specific icon
+  iconCategory String? // Category for fallback icon: "strength", "cardio", "core", "plyometric", "olympic", "gymnastics"
+
+  // Exercise images (AI-generated, stored in Supabase)
+  imageUrls         Json? // Array of image paths: ["system/posterior-chain/squat-1.webp", ...]
+  primaryImageIndex Int?  @default(0) // Index of primary image for thumbnails
+
+  coach               User?                 @relation(fields: [coachId], references: [id], onDelete: SetNull)
+  segments            WorkoutSegment[]
+  progressionTracking ProgressionTracking[]
+  oneRepMaxHistory    OneRepMaxHistory[]
+
+  // AI Studio relations
+  videoAnalyses VideoAnalysis[]
+
+  // Hybrid Studio relations
+  hybridMovements HybridMovement[]
+
+  // VBT (Velocity-Based Training) relations
+  vbtMeasurements      VBTMeasurement[]
+  loadVelocityProfiles LoadVelocityProfile[]
+
+  // Per-set logging
+  setLogs SetLog[]
+
+  // Data Moat Phase 2: Exercise Effectiveness Tracking
+  effectivenessRecords ExerciseEffectiveness[]  @relation("ExerciseEffectivenessRecords")
+  outcomePatterns      ExerciseOutcomePattern[] @relation("ExerciseOutcomePatterns")
+
+  // Physiotherapist System relations
+  rehabExercises RehabExercise[] @relation("RehabExerciseRef")
+
+  // Rehab Exercise Library Fields (Phase 6)
+  isRehabExercise       Boolean      @default(false) // Is this a rehab-specific exercise?
+  rehabPhases           RehabPhase[] @default([]) // Which phases is this exercise suitable for?
+  targetBodyParts       String[]     @default([]) // Body parts this exercise targets/rehabilitates
+  contraindications     String[]     @default([]) // Conditions where this exercise should be avoided
+  progressionExerciseId String? // ID of harder progression exercise
+  regressionExerciseId  String? // ID of easier regression exercise
+
+  // Self-relations for progression path
+  progressionExercise Exercise?  @relation("ExerciseProgression", fields: [progressionExerciseId], references: [id])
+  regressionExercise  Exercise?  @relation("ExerciseRegression", fields: [regressionExerciseId], references: [id])
+  progressionOf       Exercise[] @relation("ExerciseProgression")
+  regressionOf        Exercise[] @relation("ExerciseRegression")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([category])
+  @@index([name])
+  @@index([isPublic])
+  @@index([biomechanicalPillar])
+  @@index([progressionLevel])
+  @@index([isHybridMovement])
+  @@index([movementCategory])
+  @@index([isRehabExercise])
+  @@index([progressionExerciseId])
+  @@index([regressionExerciseId])
+
+  favorites       ExerciseFavorite[]
+  hiddenByUsers   HiddenExercise[]
+}
+
+model ExerciseFavorite {
+  id         String   @id @default(uuid())
+  userId     String
+  exerciseId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, exerciseId])
+  @@index([userId])
+}
+
+// ==================== WORKOUT LOGGING ====================
+model WorkoutLog {
+  id        String  @id @default(uuid())
+  workoutId String
+  athleteId String // User with ATHLETE role
+  completed Boolean @default(false)
+
+  completedAt DateTime?
+
+  // Actual values
+  duration Int? // actual minutes
+  distance Float? // actual km
+  avgPace  String? // "5:15/km"
+  avgHR    Int? // bpm
+  maxHR    Int? // bpm
+
+  // Cycling-specific power data
+  avgPower        Int? // average watts
+  normalizedPower Int? // normalized power (NP)
+  maxPower        Int? // peak power
+  avgCadence      Int? // average RPM
+  elevation       Int? // total elevation gain in meters
+  tss             Float? // Training Stress Score
+  intensityFactor Float? // IF (NP/FTP ratio)
+  powerZone       Int? // primary zone trained in
+
+  // Subjective feedback
+  perceivedEffort Int? // 1-10 RPE scale
+  difficulty      Int? // 1-5 stars
+  feeling         String? // "Great", "Good", "Okay", "Tired", "Struggled"
+  notes           String? @db.Text
+
+  // File uploads (Garmin .fit, Strava link, etc.)
+  dataFileUrl String?
+  stravaUrl   String?
+
+  // Per-interval results (JSON array of segment results with reps)
+  intervalResults Json?
+
+  // Coach feedback
+  coachFeedback String?   @db.Text
+  coachViewedAt DateTime?
+
+  workout Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  athlete User     @relation(fields: [athleteId], references: [id])
+  setLogs SetLog[] // Per-set logging data for strength exercises
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workoutId])
+  @@index([athleteId])
+  @@index([completedAt])
+  @@index([completed])
+}
+
+// ==================== PER-SET LOGGING ====================
+model SetLog {
+  id String @id @default(uuid())
+
+  // Parent relationships (at least one should be set)
+  workoutLogId String? // For WorkoutLog-based logging
+  segmentId    String? // Link to specific segment
+  assignmentId String? // For StrengthSessionAssignment-based logging
+
+  // Exercise identification
+  exerciseId String
+  setNumber  Int // 1, 2, 3...
+
+  // Core metrics
+  weight        Float // kg
+  repsCompleted Int
+  repsTarget    Int?
+  rpe           Int? // 1-10
+
+  // VBT metrics (optional manual entry)
+  meanVelocity Float? // m/s
+  peakVelocity Float? // m/s
+  meanPower    Float? // watts
+  peakPower    Float? // watts
+
+  // Timing
+  restTaken Int? // seconds of rest taken after this set
+
+  // Calculated fields
+  estimated1RM Float? // calculated from weight/reps
+  velocityZone String? // STRENGTH, POWER, SPEED based on velocity
+
+  // Notes
+  notes String? @db.Text
+
+  completedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  // Relations
+  exercise   Exercise                   @relation(fields: [exerciseId], references: [id])
+  workoutLog WorkoutLog?                @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+  segment    WorkoutSegment?            @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  assignment StrengthSessionAssignment? @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([workoutLogId])
+  @@index([segmentId])
+  @@index([assignmentId])
+  @@index([exerciseId])
+  @@index([completedAt])
+}
+
+// ============================================
+// DAILY MONITORING SYSTEM
+// ============================================
+
+/// Quick daily check-in for athletes (<2 minutes)
+model DailyCheckIn {
+  id       String   @id @default(uuid())
+  clientId String
+  date     DateTime @db.Date
+
+  // Optional HRV/RHR (if athlete has monitors)
+  hrv       Float? // RMSSD in ms
+  restingHR Float? // bpm
+
+  // Wellness questionnaire (1-10 scale, 7 questions)
+  sleepQuality Int // 1=terrible, 10=perfect
+  sleepHours   Float? // Actual hours slept
+  soreness     Int // 1=none, 10=severe
+  fatigue      Int // 1=none, 10=extreme
+  stress       Int // 1=none, 10=extreme
+  mood         Int // 1=terrible, 10=excellent
+  motivation   Int // 1=none, 10=extremely motivated
+
+  // Derived readiness score (0-100)
+  readinessScore    Int?
+  readinessDecision String? // "PROCEED", "REDUCE", "EASY", "REST"
+
+  // Notes
+  notes String?
+
+  // Audio journal (if populated from voice input)
+  audioJournal AudioJournal?
+
+  // Rehab Compliance (Phase 7 - Physio System)
+  rehabExercisesDone   Boolean @default(false) // Did athlete complete rehab exercises today?
+  rehabPainDuring      Int? // Pain during rehab exercises (0-10)
+  rehabPainAfter       Int? // Pain after rehab exercises (0-10)
+  rehabNotes           String? @db.Text // Notes about rehab session
+  requestPhysioContact Boolean @default(false) // Athlete requests physio contact
+  physioContactReason  String? @db.Text // Why the athlete wants to contact physio
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, date])
+  @@index([clientId, date])
+  @@index([readinessScore])
+  @@index([readinessDecision])
+  @@index([requestPhysioContact])
+}
+
+/// Daily metrics for athlete monitoring and readiness assessment
+model DailyMetrics {
+  id       String   @id @default(uuid())
+  clientId String
+  date     DateTime @db.Date
+
+  // HRV data
+  hrvRMSSD           Float? // Primary HRV metric (ms)
+  hrvQuality         String? // "GOOD", "FAIR", "POOR"
+  hrvArtifactPercent Float? // % of recording with artifacts
+  hrvDuration        Float? // Duration of measurement in seconds
+  hrvPosition        String? // "SUPINE", "SEATED"
+  hrvStatus          String? // "EXCELLENT", "GOOD", "MODERATE", "FAIR", "POOR", "VERY_POOR"
+  hrvPercent         Float? // % of baseline
+  hrvTrend           String? // "IMPROVING", "STABLE", "DECLINING"
+
+  // Resting Heart Rate
+  restingHR       Float? // bpm
+  restingHRDev    Float? // Deviation from baseline (bpm)
+  restingHRStatus String? // Status based on deviation
+
+  // Wellness questionnaire (1-10 scale)
+  sleepQuality   Int? // 1=terrible, 10=perfect
+  sleepHours     Float? // Actual hours slept
+  muscleSoreness Int? // 1=none, 10=severe
+  energyLevel    Int? // 1=exhausted, 10=energized
+  mood           Int? // 1=terrible, 10=excellent
+  stress         Int? // 1=none, 10=extreme
+  injuryPain     Int? // 1=none, 10=severe
+
+  // Derived scores
+  wellnessScore  Float? // Weighted composite (0-10)
+  wellnessStatus String? // "EXCELLENT" to "VERY_POOR"
+
+  // Composite readiness
+  readinessScore    Float? // 0-10 weighted composite
+  readinessLevel    String? // "EXCELLENT", "GOOD", "MODERATE", "FAIR", "POOR", "VERY_POOR"
+  recommendedAction String? // "PROCEED", "MODIFY_LIGHT", "MODIFY_MODERATE", "MODIFY_SIGNIFICANT", "REST_REQUIRED"
+
+  // Detailed breakdown
+  factorScores Json? // Factor contributions
+  redFlags     Json? // Critical issues
+  yellowFlags  Json? // Warnings
+
+  // Notes
+  athleteNotes String?
+  coachNotes   String?
+
+  // Injury details (when injuryPain >= 3)
+  injuryBodyPart     String? // Body part selected: KNEE, LOWER_LEG, etc.
+  injurySpecificType String? // Specific injury type: PATELLOFEMORAL, SHIN_SPLINTS, etc.
+  injurySide         String? // LEFT, RIGHT, BOTH, NA
+  isIllness          Boolean @default(false) // True if reporting illness vs injury
+  illnessType        String? // FEVER, GASTROINTESTINAL, COLD, HEADACHE, GENERAL_ILLNESS
+
+  // Keyword analysis from notes
+  detectedKeywords Json? // Array of detected keywords with categories
+  keywordBodyPart  String? // Body part detected from notes
+  keywordSeverity  String? // Severity level from keywords: LOW, MEDIUM, HIGH
+  keywordSummary   String? // Human-readable summary for coach
+
+  // Rehab Compliance (Phase 7 - Physio System)
+  rehabExercisesDone   Boolean @default(false) // Did athlete complete rehab exercises today?
+  rehabPainDuring      Int? // Pain during rehab exercises (0-10)
+  rehabPainAfter       Int? // Pain after rehab exercises (0-10)
+  rehabNotes           String? @db.Text // Notes about rehab session
+  requestPhysioContact Boolean @default(false) // Athlete requests physio contact
+  physioContactReason  String? @db.Text // Why the athlete wants to contact physio
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, date])
+  @@index([clientId, date])
+  @@index([clientId, readinessScore]) // Filter athletes by readiness score
+  @@index([clientId, readinessLevel]) // Filter by readiness level categories
+  @@index([date, readinessLevel]) // Daily readiness overview across all athletes
+  @@index([requestPhysioContact]) // Filter by physio contact requests
+}
+
+model DailyMetricsProcessingJob {
+  id        String              @id @default(uuid())
+  jobKey    String              @unique
+  clientId  String
+  date      DateTime            @db.Date
+  signature String
+  payload   Json
+  status    BackgroundJobStatus @default(PENDING)
+  attempts  Int                 @default(0)
+  lastError String?             @db.Text
+  runAfter  DateTime            @default(now())
+  lockedAt  DateTime?
+  startedAt DateTime?
+  completedAt DateTime?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([status, runAfter])
+  @@index([clientId, date])
+  @@index([lockedAt])
+}
+
+// ============================================
+// TRAINING LOAD & ACWR TRACKING
+// ============================================
+
+/// Daily training load with ACWR calculation using EWMA method
+model TrainingLoad {
+  id       String   @id @default(uuid())
+  clientId String
+  date     DateTime @db.Date
+
+  // Daily training load
+  dailyLoad Float // TSS or TRIMP value
+  loadType  String // "TSS", "TRIMP_EDWARDS", "TRIMP_BANISTER", "TRIMP_LUCIA"
+
+  // ACWR calculations
+  acuteLoad   Float? // 7-day EWMA
+  chronicLoad Float? // 28-day EWMA
+  acwr        Float? // Acute:Chronic ratio
+  acwrZone    String? // "DETRAINING", "OPTIMAL", "CAUTION", "DANGER", "CRITICAL"
+  injuryRisk  String? // "LOW", "MODERATE", "HIGH", "VERY_HIGH"
+
+  // Session details
+  duration  Float // minutes
+  distance  Float? // km
+  avgHR     Float? // bpm
+  maxHR     Float? // bpm
+  avgPace   Float? // sec/km
+  intensity String // "RECOVERY", "EASY", "MODERATE", "HARD", "VERY_HARD"
+
+  // Session type
+  workoutType String? // "EASY", "LONG", "THRESHOLD", "INTERVALS", "TEMPO", "RECOVERY", "RACE"
+  workoutId   String? // Link to planned workout
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([clientId, date])
+  @@index([clientId, acwrZone]) // Filter by ACWR risk zone
+  @@index([clientId, injuryRisk]) // Filter by injury risk level
+}
+
+// ============================================
+// TRAINING SUMMARIES (Weekly & Monthly Aggregation)
+// ============================================
+
+/// Weekly aggregated training data for efficient trend analysis
+model WeeklyTrainingSummary {
+  id       String @id @default(uuid())
+  clientId String
+  client   Client @relation("ClientWeeklySummaries", fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Week identification
+  weekStart  DateTime @db.Date // Monday of the week
+  weekEnd    DateTime @db.Date // Sunday of the week
+  weekNumber Int // ISO week number (1-53)
+  year       Int
+
+  // Volume metrics
+  totalTSS      Float @default(0)
+  totalDistance Float @default(0) // km
+  totalDuration Int   @default(0) // minutes
+  totalCalories Int?
+
+  // Workout counts
+  workoutCount          Int    @default(0)
+  plannedWorkoutCount   Int? // From program
+  completedWorkoutCount Int? // Actual completed
+  compliancePercent     Float? // completed/planned * 100
+
+  // Breakdown by type (JSON maps)
+  workoutsByType Json @default("{}") // { "RUNNING": 3, "STRENGTH": 2 }
+  tssByType      Json @default("{}") // { "RUNNING": 450, "STRENGTH": 120 }
+  distanceByType Json @default("{}") // { "RUNNING": 42.5, "CYCLING": 80 }
+  durationByType Json @default("{}") // { "RUNNING": 240, "STRENGTH": 90 }
+
+  // Intensity distribution (for 80/20 tracking)
+  easyMinutes       Int    @default(0) // Zone 1-2
+  moderateMinutes   Int    @default(0) // Zone 3
+  hardMinutes       Int    @default(0) // Zone 4-5
+  polarizationRatio Float? // easy% vs hard% (target: 80/20)
+
+  // 5-Zone HR distribution (more granular than easy/moderate/hard)
+  zone1Minutes Int @default(0) // Recovery zone
+  zone2Minutes Int @default(0) // Aerobic base zone
+  zone3Minutes Int @default(0) // Tempo zone
+  zone4Minutes Int @default(0) // Threshold zone
+  zone5Minutes Int @default(0) // VO2max zone
+
+  // Load management
+  avgDailyTSS   Float?
+  peakDailyTSS  Float?
+  acwrAtWeekEnd Float? // ACWR snapshot at end of week
+  acwrZone      String? // OPTIMAL, CAUTION, DANGER
+
+  // Readiness & wellness (weekly averages)
+  avgReadiness    Float?
+  avgSleepHours   Float?
+  avgSleepQuality Float?
+  avgFatigue      Float?
+  avgSoreness     Float?
+
+  // Strength training (if applicable)
+  strengthSets   Int?
+  strengthVolume Float? // Total tonnage (sets * reps * weight)
+
+  // Data sources (for transparency)
+  stravaActivities Int @default(0)
+  garminActivities Int @default(0)
+  manualActivities Int @default(0)
+  programWorkouts  Int @default(0)
+
+  // Timestamps
+  calculatedAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([clientId, weekStart])
+  @@index([clientId, year])
+  @@index([weekStart])
+}
+
+/// Monthly aggregated training data for long-term trend analysis
+model MonthlyTrainingSummary {
+  id       String @id @default(uuid())
+  clientId String
+  client   Client @relation("ClientMonthlySummaries", fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Month identification
+  month      Int // 1-12
+  year       Int
+  monthStart DateTime @db.Date
+  monthEnd   DateTime @db.Date
+
+  // Aggregated totals
+  totalTSS      Float @default(0)
+  totalDistance Float @default(0) // km
+  totalDuration Int   @default(0) // minutes
+  totalCalories Int?
+  workoutCount  Int   @default(0)
+
+  // Weekly averages
+  avgWeeklyTSS      Float?
+  avgWeeklyDistance Float?
+  avgWeeklyDuration Float?
+  avgWeeklyWorkouts Float?
+
+  // Breakdown by type
+  workoutsByType Json @default("{}")
+  tssByType      Json @default("{}")
+
+  // Intensity distribution
+  avgPolarizationRatio Float?
+  totalEasyMinutes     Int    @default(0)
+  totalHardMinutes     Int    @default(0)
+
+  // Load progression
+  avgACWR          Float?
+  peakACWR         Float?
+  daysInDangerZone Int    @default(0)
+
+  // Compliance
+  avgCompliancePercent Float?
+
+  // Readiness trends
+  avgReadiness   Float?
+  readinessTrend String? // IMPROVING, STABLE, DECLINING
+
+  // Comparison to previous month
+  tssChangePercent      Float?
+  distanceChangePercent Float?
+
+  // Timestamps
+  calculatedAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([clientId, month, year])
+  @@index([clientId, year])
+}
+
+/// HR Zone distribution per activity (from Strava streams or Garmin zones)
+model ActivityHRZoneDistribution {
+  id String @id @default(uuid())
+
+  // Link to source activity (one or the other, not both)
+  stravaActivityId String? @unique
+  garminActivityId String? @unique
+
+  // Zone time distribution (seconds in each zone)
+  zone1Seconds Int @default(0) // Recovery zone
+  zone2Seconds Int @default(0) // Aerobic base
+  zone3Seconds Int @default(0) // Tempo
+  zone4Seconds Int @default(0) // Threshold
+  zone5Seconds Int @default(0) // VO2max
+
+  // Total tracked time (should equal sum of zones)
+  totalTrackedSeconds Int @default(0)
+
+  // Source metadata
+  zoneSource   String // 'STRAVA_STREAM' | 'GARMIN_ZONES' | 'ESTIMATED'
+  zoneConfig   Json // Snapshot of zone thresholds used: { zone1: {hrMin, hrMax}, ... }
+  calculatedAt DateTime @default(now())
+
+  // Relations
+  stravaActivity StravaActivity? @relation(fields: [stravaActivityId], references: [id], onDelete: Cascade)
+  garminActivity GarminActivity? @relation(fields: [garminActivityId], references: [id], onDelete: Cascade)
+}
+
+/// Yearly aggregated training summary for annual tracking
+model YearlySummary {
+  id       String @id @default(uuid())
+  clientId String
+  client   Client @relation("ClientYearlySummaries", fields: [clientId], references: [id], onDelete: Cascade)
+
+  year Int
+
+  // Volume totals
+  totalTSS      Float @default(0)
+  totalDistance Float @default(0) // km
+  totalDuration Int   @default(0) // minutes
+  totalCalories Int?
+  workoutCount  Int   @default(0)
+
+  // 5-Zone distribution (minutes)
+  zone1Minutes Int @default(0)
+  zone2Minutes Int @default(0)
+  zone3Minutes Int @default(0)
+  zone4Minutes Int @default(0)
+  zone5Minutes Int @default(0)
+
+  // Monthly breakdown for charts (JSON arrays)
+  monthlyHours            Json @default("[]") // [jan, feb, ..., dec] in hours
+  monthlyZoneDistribution Json @default("[]") // [{z1, z2, z3, z4, z5}, ...] per month
+
+  // Breakdown by type
+  workoutsByType Json @default("{}")
+  hoursByType    Json @default("{}") // { "RUNNING": 450, "CYCLING": 200 }
+
+  // Polarization metrics
+  avgPolarizationRatio Float? // Average (zone1+zone2) / total %
+
+  // Timestamps
+  calculatedAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([clientId, year])
+  @@index([clientId])
+}
+
+// ============================================
+// ENHANCED TRAINING PROGRAMS
+// ============================================
+
+/// Complete training program with periodization and methodology
+model TrainingProgramEngine {
+  id       String @id @default(uuid())
+  clientId String
+
+  // Core settings
+  name        String
+  methodology String // "POLARIZED", "NORWEGIAN", "CANOVA", "PYRAMIDAL", "LYDIARD"
+  status      String @default("DRAFT") // "DRAFT", "ACTIVE", "COMPLETED", "PAUSED", "ARCHIVED"
+
+  // Timeline
+  startDate    DateTime
+  endDate      DateTime
+  totalWeeks   Int
+  currentWeek  Int      @default(1)
+  currentPhase String? // "BASE", "BUILD", "PEAK", "TAPER", "RECOVERY"
+
+  // Goals
+  targetRaceDate DateTime?
+  targetDistance String? // "5K", "10K", "HALF", "MARATHON", "ULTRA"
+  targetTime     String? // HH:MM:SS
+
+  // Program structure (JSON for flexibility)
+  periodization Json
+  weeklyPlans   Json
+
+  // Methodology-specific settings
+  methodologyConfig Json?
+
+  // Generation metadata
+  generatedBy   String // "COACH" or "AUTO"
+  generatedFrom Json? // {testId, fieldTestId, thresholdData}
+
+  // Tracking
+  completedWeeks   Int @default(0)
+  missedWorkouts   Int @default(0)
+  modifiedWorkouts Int @default(0)
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, status])
+  @@index([clientId, startDate, endDate])
+  @@index([methodology, status]) // Filter programs by training methodology
+  @@index([currentPhase]) // Track athletes in specific training phases
+}
+
+// ============================================
+// WORKOUT MODIFICATIONS
+// ============================================
+
+/// Tracks automatic and manual workout modifications
+model WorkoutModification {
+  id        String   @id @default(uuid())
+  workoutId String
+  date      DateTime @default(now())
+
+  // Decision
+  decision      String // "PROCEED", "MINOR_MODIFICATION", "MODERATE_MODIFICATION", "MAJOR_MODIFICATION", "CANCEL"
+  autoGenerated Boolean @default(true)
+
+  // Original plan
+  plannedType      String
+  plannedDuration  Float // minutes
+  plannedDistance  Float? // km
+  plannedIntensity String
+  plannedDetails   Json?
+
+  // Modified plan
+  modifiedType      String?
+  modifiedDuration  Float?
+  modifiedDistance  Float?
+  modifiedIntensity String?
+  modifiedDetails   Json?
+
+  // Reasoning
+  readinessScore Float?
+  factors        Json // Array of {factor, weight, contribution, status}
+  reasoning      String // Human-readable explanation
+  methodology    String? // Methodology-specific guidance
+
+  // References
+  dailyMetricsId String?
+  acwr           Float?
+
+  createdAt DateTime @default(now())
+
+  @@index([workoutId])
+  @@index([date])
+  @@index([decision])
+  @@index([workoutId, date]) // Temporal workout modification history
+  @@index([autoGenerated, decision]) // Filter manual vs automatic modifications
+}
+
+// ============================================
+// RACE CALENDAR & MULTI-RACE PLANNING
+// ============================================
+
+/// Season-level race planning with A/B/C classification
+model RaceCalendar {
+  id         String   @id @default(uuid())
+  clientId   String
+  seasonName String // "Spring 2025", "Fall Marathon Build"
+  startDate  DateTime
+  endDate    DateTime
+
+  races Race[]
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+/// Individual race with classification, goals, and results
+model Race {
+  id         String @id @default(uuid())
+  calendarId String
+  clientId   String
+
+  // Race details
+  name           String
+  date           DateTime
+  distance       String // "5K", "10K", "HALF", "MARATHON"
+  classification String // "A", "B", "C"
+  priority       Int      @default(1)
+
+  // Goals
+  targetTime String? // HH:MM:SS
+  targetPace Float? // sec/km
+
+  // Preparation
+  taperWeeks      Int?
+  lastQualityDate DateTime?
+
+  // Results
+  actualTime String?
+  actualPace Float?
+  place      Int?
+  avgHR      Float?
+  maxHR      Float?
+  splits     Json?
+  conditions Json?
+
+  // Analysis
+  vdot        Float?
+  equivalents Json?
+  assessment  String? // "EXCEEDED", "MET", "CLOSE", "MISSED"
+
+  notes  String?
+  photos Json?
+
+  calendar  RaceCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  client    Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([clientId, date])
+  @@index([classification, date])
+  @@index([calendarId])
+}
+
+// ============================================
+// CROSS-TRAINING SYSTEM
+// ============================================
+
+/// Cross-training sessions with running equivalencies
+model CrossTrainingSession {
+  id        String   @id @default(uuid())
+  clientId  String
+  date      DateTime
+  workoutId String? // Link to replaced running workout
+
+  // Session details
+  modality String // "DEEP_WATER_RUNNING", "CYCLING", "ELLIPTICAL", etc.
+  duration Float // minutes
+  distance Float? // km (if applicable)
+  avgHR    Float? // bpm
+  maxHR    Float? // bpm
+  avgPower Float? // watts (cycling)
+  rpe      Int? // 1-10 scale
+
+  // Intensity structure
+  intensity String // "EASY", "MODERATE", "HARD"
+  structure Json? // Intervals, rest periods
+
+  // Equipment specific
+  bodyWeightSupport Float? // % for AlterG
+  resistance        String?
+  strokeRate        Float? // Swimming
+
+  // Conversion calculations
+  runningEquivalent Json // {estimatedTSS, runningDistance, runningDuration, fitnessRetention}
+  tssEquivalent     Float?
+
+  // Context
+  reason        String? // "INJURY", "VARIETY", "WEATHER", "PREFERENCE"
+  injuryType    String?
+  effectiveness String? // "EXCELLENT", "GOOD", "MODERATE", "POOR"
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, date])
+  @@index([modality, date])
+  @@index([clientId, modality]) // Track preferred/used modalities per athlete
+  @@index([reason, injuryType]) // Analyze cross-training usage patterns
+}
+
+// ============================================
+// AUTOMATIC PROGRESSION TRACKING
+// ============================================
+
+/// Tracks load progression for strength exercises with 1RM estimation
+model ProgressionTracking {
+  id         String   @id @default(uuid())
+  clientId   String
+  exerciseId String
+  date       DateTime
+
+  // Workout data
+  sets          Int
+  repsCompleted Int // Actual reps achieved
+  repsTarget    Int // Target reps prescribed
+  actualLoad    Float // Weight used (kg)
+  rpe           Int? // 1-10 rate of perceived exertion
+
+  // 1RM estimation (calculated)
+  estimated1RM     Float // Calculated from Epley/Brzycki formulas
+  estimationMethod String // "EPLEY", "BRZYCKI", "AVERAGE"
+
+  // Progression tracking
+  progressionStatus   ProgressionStatus @default(ON_TRACK)
+  weeksAtCurrentLoad  Int               @default(0)
+  lastIncrease        DateTime? // Date when load was last increased
+  nextRecommendedLoad Float? // Auto-calculated next load
+
+  // Phase context
+  strengthPhase StrengthPhase?
+
+  // 2-for-2 rule tracking
+  consecutiveSessionsWithExtraReps Int     @default(0)
+  readyForIncrease                 Boolean @default(false)
+
+  // Plateau detection
+  plateauWeeks      Int     @default(0)
+  deloadRecommended Boolean @default(false)
+
+  // Notes and overrides
+  notes          String? @db.Text
+  manualOverride Boolean @default(false) // Coach manually adjusted
+  locked         Boolean @default(false) // Prevent auto-progression
+
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, exerciseId, date])
+  @@index([clientId, progressionStatus])
+  @@index([exerciseId, date])
+  @@index([readyForIncrease])
+  @@index([plateauWeeks])
+  @@index([clientId, strengthPhase])
+}
+
+// ============================================
+// RACE RESULTS & PERFORMANCE TRACKING
+// ============================================
+
+/// Race results for VDOT calculation and pace zone determination
+model RaceResult {
+  id       String @id @default(uuid())
+  clientId String
+
+  // Race details
+  raceName         String? // "Stockholm Marathon", "Local 5K"
+  raceDate         DateTime
+  distance         String // "5K", "10K", "HALF_MARATHON", "MARATHON", "CUSTOM"
+  customDistanceKm Float? // For CUSTOM distance
+
+  // Performance
+  timeMinutes   Float // Total race time in minutes
+  timeFormatted String // "1:28:00", "45:30", etc.
+
+  // Environmental conditions
+  temperature Float? // Celsius
+  humidity    Float? // Percentage
+  windSpeed   Float? // m/s
+  elevation   Float? // Meters above sea level
+  terrain     String? // "FLAT", "ROLLING", "HILLY", "TRAIL"
+
+  // Calculated VDOT data (stored for historical tracking)
+  vdot         Float? // Calculated VDOT value
+  vdotAdjusted Float? // Gender/age adjusted VDOT
+  confidence   String? // "VERY_HIGH", "HIGH", "MEDIUM", "LOW"
+  ageInDays    Int? // Age of result (for confidence decay)
+
+  // Training paces (stored snapshot at time of race)
+  trainingPaces   Json? // Complete DanielsTrainingPaces snapshot
+  equivalentTimes Json? // Equivalent race times for other distances
+
+  // Race context
+  goalTime     String? // Intended goal time
+  goalAchieved Boolean @default(false)
+  raceType     String? // "TRAINING_RACE", "B_RACE", "A_RACE", "TIME_TRIAL"
+
+  // Performance analysis
+  avgHeartRate Int? // bpm
+  maxHeartRate Int? // bpm
+  avgPace      String? // "4:30/km"
+  splits       Json? // Array of split times
+
+  // Notes and feedback
+  conditions   String? @db.Text // Weather, course, etc.
+  athleteNotes String? @db.Text // How they felt
+  coachNotes   String? @db.Text // Coach analysis
+
+  // Integration
+  usedForZones      Boolean @default(false) // Is this being used for current training zones?
+  trainingProgramId String? // Link to program this race was part of
+
+  // Data Moat: Prediction validation & outcome tracking
+  linkedPredictionId String? // Link to AI prediction that was made for this race
+  linkedPrediction   AIPrediction? @relation("RacePredictionValidation", fields: [linkedPredictionId], references: [id])
+  satisfactionScore  Int? // 1-5 athlete satisfaction with performance
+  conditionFactors   Json? // Structured factors: { heat: true, altitude: false, illness: false, ... }
+  coachAnalysis      Json? // Structured post-race analysis: { pacing, execution, nutrition, mental, recommendations }
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, raceDate])
+  @@index([clientId, usedForZones]) // Find active race results
+  @@index([distance, raceDate]) // Compare performances by distance
+  @@index([vdot]) // Rank athletes by VDOT
+  @@index([confidence]) // Filter high-confidence results
+  @@index([linkedPredictionId]) // Find races linked to predictions
+}
+
+/// WOD (Workout of the Day) generation mode
+enum WODMode {
+  STRUCTURED // Science-based, periodization-aware
+  CASUAL // Lower pressure, flexible
+  FUN // Variety-focused, gamified
+}
+
+/// WOD execution status
+enum WODStatus {
+  GENERATED // Created but not started
+  STARTED // In progress
+  COMPLETED // Finished
+  ABANDONED // Started but not finished
+}
+
+/// Body composition tracking (bioimpedance measurements)
+model BodyComposition {
+  id       String @id @default(uuid())
+  clientId String
+
+  measurementDate DateTime @db.Date
+
+  // Core measurements
+  weightKg       Float?
+  bodyFatPercent Float?
+  muscleMassKg   Float?
+
+  // Additional bioimpedance data
+  visceralFat               Int? // Scale typically 1-59
+  boneMassKg                Float?
+  waterPercent              Float? // Total body water
+  intracellularWaterPercent Float? // ICW - water inside cells
+  extracellularWaterPercent Float? // ECW - water outside cells
+
+  // Metabolic data
+  bmrKcal      Int? // Basal Metabolic Rate
+  metabolicAge Int?
+
+  // Calculated fields
+  bmi  Float? // Calculated from weight/height
+  ffmi Float? // Fat-Free Mass Index
+
+  // Source and quality
+  deviceBrand     String? // "Tanita", "InBody", "Omron", etc.
+  measurementTime String? // "MORNING_FASTED", "POST_WORKOUT", etc.
+
+  notes String? @db.Text
+
+  client Client @relation("ClientBodyComposition", fields: [clientId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, measurementDate])
+  @@index([clientId])
+  @@index([measurementDate])
+}
+
+/// Movement categories for hybrid workouts
+enum MovementCategory {
+  OLYMPIC_LIFT // Clean, Snatch, Jerk variations
+  POWERLIFTING // Squat, Deadlift, Bench
+  GYMNASTICS // Pull-ups, Muscle-ups, HSPU
+  MONOSTRUCTURAL // Run, Row, Bike, Ski
+  KETTLEBELL_WORK // Swings, Turkish Get-up
+  STRONGMAN // Carries, Sled work
+  CORE_WORK // Sit-ups, Toes-to-Bar, Planks
+  ACCESSORY // Lunges, Step-ups
+  HYROX_STATION // HYROX-specific movements
+}
+
+enum AssignmentStatus {
+  PENDING // Not started
+  SCHEDULED // Athlete acknowledged
+  COMPLETED // Done
+  SKIPPED // Athlete skipped
+  MODIFIED // Coach modified assignment
+}
+
+// ==================== LIVE HR STREAMING SYSTEM ====================
+
+/// Live HR monitoring session - coach creates to start monitoring athletes in real-time
+model LiveHRSession {
+  id      String @id @default(uuid())
+  coachId String
+  coach   User   @relation("CoachLiveHRSessions", fields: [coachId], references: [id])
+
+  name   String? // Optional session name
+  teamId String? // Optional: monitor a team
+  team   Team?   @relation(fields: [teamId], references: [id])
+
+  status    String    @default("ACTIVE") // ACTIVE, PAUSED, ENDED
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  participants LiveHRParticipant[]
+
+  @@index([coachId])
+  @@index([teamId])
+  @@index([status])
+}
+
+/// Athletes participating in a live HR monitoring session
+model LiveHRParticipant {
+  id        String        @id @default(uuid())
+  sessionId String
+  session   LiveHRSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  joinedAt    DateTime  @default(now())
+  lastReading DateTime?
+
+  readings LiveHRReading[]
+
+  @@unique([sessionId, clientId])
+  @@index([sessionId])
+  @@index([clientId])
+}
+
+/// Individual HR readings pushed by athletes during live sessions
+model LiveHRReading {
+  id            String            @id @default(uuid())
+  participantId String
+  participant   LiveHRParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  heartRate Int // BPM
+  timestamp DateTime @default(now())
+
+  zone     Int? // 1-5 calculated from athlete's zones
+  deviceId String? // Future: identify source device
+
+  @@index([participantId, timestamp])
+}
+
+// ==================== HABIT FORMATION SYSTEM ====================
+
+/// Habits for behavior tracking and formation (gym attendance, nutrition, sleep, etc.)
+model Habit {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  name       String // e.g., "Drink 2L water", "Go to gym"
+  category   HabitCategory
+  frequency  HabitFrequency
+  targetDays Int[] // For SPECIFIC_DAYS: [1,3,5] = Mon, Wed, Fri; For X_TIMES_WEEK: [3] = 3 times/week
+  targetTime String? // Optional time of day: "morning", "evening", specific time
+
+  // Habit loop (based on behavioral science)
+  trigger String? // What triggers the habit? "After waking up", "Before lunch"
+  routine String? // The actual behavior
+  reward  String? // The reward/benefit
+
+  // Streak tracking
+  currentStreak    Int @default(0)
+  longestStreak    Int @default(0)
+  totalCompletions Int @default(0)
+
+  // Status
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  // Relations
+  logs HabitLog[]
+
+  @@index([clientId, isActive])
+  @@index([category])
+}
+
+/// Daily log entries for habit completion
+model HabitLog {
+  id      String @id @default(cuid())
+  habitId String
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  date      DateTime @db.Date
+  completed Boolean
+  note      String? // Optional note for the day
+  value     Float? // For quantifiable habits (e.g., 8 glasses of water)
+
+  createdAt DateTime @default(now())
+
+  @@unique([habitId, date])
+  @@index([date])
+  @@index([habitId])
+}
+
+// ============================================
+// AD-HOC WORKOUT LOGGING SYSTEM
+// ============================================
+
+/// Input method for ad-hoc workout logging
+enum AdHocInputType {
+  PHOTO // Photo of whiteboard/paper
+  SCREENSHOT // Screenshot from app/website
+  VOICE // Voice recording
+  TEXT // Free-form text input
+  STRAVA_IMPORT // Imported from Strava activity
+  GARMIN_IMPORT // Imported from Garmin activity
+  CONCEPT2_IMPORT // Imported from Concept2
+  MANUAL_FORM // Structured manual entry form
+}
+
+/// Processing status for ad-hoc workout
+enum AdHocWorkoutStatus {
+  PENDING // Just created, awaiting AI parsing
+  PROCESSING // AI is parsing
+  READY_FOR_REVIEW // Parsed, athlete needs to confirm
+  CONFIRMED // Athlete confirmed, workout created
+  FAILED // Parsing failed
+}
+
+/// Ad-hoc workout entry - captures workouts done outside of training programs
+model AdHocWorkout {
+  id        String @id @default(cuid())
+  athleteId String
+
+  // Input tracking
+  inputType   AdHocInputType
+  inputDate   DateTime       @default(now()) // When they captured it
+  workoutDate DateTime // When they did the workout
+  workoutName String? // Optional name for the workout
+
+  // Raw input storage
+  rawInputUrl      String? // Photo/voice file URL (Supabase storage)
+  rawInputText     String? @db.Text // Transcription or typed text
+  rawInputMetadata Json? // External import raw data
+
+  // AI parsing results
+  parsedType        WorkoutType?
+  parsedStructure   Json? // Full workout structure (ParsedWorkout JSON)
+  parsingModel      String? // "gemini-3-flash", "gemini-3-pro", etc.
+  parsingConfidence Float?
+  parsingError      String?      @db.Text // If parsing failed
+
+  // Athlete review
+  status          AdHocWorkoutStatus @default(PENDING)
+  athleteReviewed Boolean            @default(false)
+  athleteEdits    Json? // What they changed from AI interpretation
+
+  // Link to created workout (after confirmation)
+  createdWorkoutId String?  @unique
+  createdWorkout   Workout? @relation("AdHocSourceWorkout", fields: [createdWorkoutId], references: [id])
+
+  // Training load reference (created after confirmation)
+  trainingLoadId String?
+
+  // Link to matching Garmin activity (auto-linked or manual)
+  garminActivityId String?          @unique
+  garminActivity   GarminActivity?  @relation("AdHocGarminLink", fields: [garminActivityId], references: [id], onDelete: SetNull)
+
+  // Relations
+  athlete Client @relation("ClientAdHocWorkouts", fields: [athleteId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([athleteId])
+  @@index([workoutDate])
+  @@index([status])
+  @@index([athleteId, status])
+}
+
+/// Tracks effectiveness of training periods/programs
+model TrainingPeriodOutcome {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  athlete   Client           @relation("AthleteTrainingOutcomes", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId String
+  coach     User             @relation("CoachTrainingOutcomes", fields: [coachId], references: [id])
+  coachId   String
+  program   TrainingProgram? @relation("ProgramOutcomes", fields: [programId], references: [id])
+  programId String?
+
+  // Training period
+  periodName    String // "Marathon Build Phase 2", "Base Training"
+  periodType    String? // "BASE", "BUILD", "PEAK", "TAPER", "RECOVERY"
+  startDate     DateTime
+  endDate       DateTime
+  durationWeeks Int
+
+  // Goals
+  goalMetrics     Json // { targetRaceTime: "3:30:00", targetFTP: 280, ... }
+  goalDescription String? @db.Text
+
+  // Actual outcomes
+  actualMetrics Json? // { actualRaceTime: "3:28:15", actualFTP: 285, ... }
+  outcomeClass  TrainingOutcome
+
+  // Training summary
+  totalVolume     Float? // Total hours or km
+  avgWeeklyVolume Float? // Average weekly hours/km
+  compliance      Float? // 0-1, how much of planned training was completed
+  missedSessions  Int? // Number of skipped workouts
+
+  // Analysis
+  contributingFactors Json? // { injury: false, illness: true, travel: false, ... }
+  coachAssessment     String? @db.Text
+  athleteFeedback     String? @db.Text
+  lessonsLearned      String? @db.Text
+
+  // Fingerprint link
+  fingerprint TrainingFingerprint? @relation("OutcomeFingerprint")
+
+  // Data Moat Phase 4: Feedback loops
+  feedbackLoops AIFeedbackLoop[] @relation("OutcomeFeedback")
+
+  @@index([athleteId])
+  @@index([coachId])
+  @@index([programId])
+  @@index([startDate, endDate])
+  @@index([outcomeClass])
+}
+
+/// Captures the "signature" of a training period for pattern matching
+model TrainingFingerprint {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Link to outcome
+  periodOutcome   TrainingPeriodOutcome @relation("OutcomeFingerprint", fields: [periodOutcomeId], references: [id], onDelete: Cascade)
+  periodOutcomeId String                @unique
+
+  // Zone distribution (percentage in each zone)
+  zone1Percent Float // Recovery
+  zone2Percent Float // Aerob bas
+  zone3Percent Float // Tempo
+  zone4Percent Float // Tröskel
+  zone5Percent Float // VO2max
+
+  // Volume patterns
+  avgWeeklyHours        Float
+  weeklyVolumeVariation Float // Standard deviation of weekly volume
+  longSessionRatio      Float // % of sessions >90min
+
+  // Intensity patterns
+  intensityDistribution Json // { easy: 0.7, moderate: 0.2, hard: 0.1 }
+  avgSessionIntensity   Float // 0-1 scale
+  hardDayFrequency      Float // Hard sessions per week
+
+  // Session composition
+  strengthSessionsPerWeek Float
+  crossTrainingPercent    Float
+  restDaysPerWeek         Float
+
+  // Periodization pattern
+  periodizationType String? // "LINEAR", "BLOCK", "POLARIZED", "PYRAMIDAL"
+  progressionRate   Float? // Weekly volume/intensity increase %
+
+  // Key workout types
+  keyWorkoutTypes Json // ["long_run", "tempo", "intervals", ...]
+
+  @@index([periodOutcomeId])
+  @@index([zone2Percent]) // For polarized training queries
+  @@index([avgWeeklyHours])
+}
+
+// ==================== VOICE WORKOUT CREATION ====================
+
+/// Voice-to-workout creation session
+/// Tracks audio upload, transcription, intent parsing, and generated workout
+model VoiceWorkoutSession {
+  id      String @id @default(uuid())
+  coachId String
+  coach   User   @relation("CoachVoiceWorkouts", fields: [coachId], references: [id], onDelete: Cascade)
+
+  // Audio file data
+  audioUrl String // Supabase Storage URL
+  duration Int // seconds
+  mimeType String? // "audio/webm", "audio/mp4", etc.
+
+  // Processing status
+  status String @default("PENDING") // PENDING, PROCESSING, PARSED, CONFIRMED, FAILED
+
+  // Transcription
+  transcription String? @db.Text
+
+  // Parsed intent (structured data from AI)
+  parsedIntent Json? // VoiceWorkoutIntent structure
+
+  // Generated workout (polymorphic - one will be set after confirmation)
+  workoutType       String? // CARDIO, STRENGTH, HYBRID
+  strengthSessionId String?
+  cardioSessionId   String?
+  hybridWorkoutId   String?
+
+  strengthSession StrengthSession? @relation("StrengthSessionVoiceWorkouts", fields: [strengthSessionId], references: [id], onDelete: SetNull)
+  cardioSession   CardioSession?   @relation("CardioSessionVoiceWorkouts", fields: [cardioSessionId], references: [id], onDelete: SetNull)
+  hybridWorkout   HybridWorkout?   @relation("HybridWorkoutVoiceWorkouts", fields: [hybridWorkoutId], references: [id], onDelete: SetNull)
+
+  // Assignment target
+  targetType   String? // ATHLETE, TEAM
+  targetId     String? // Client ID or Team ID
+  assignedDate DateTime? @db.Date
+
+  // Processing metadata
+  processingTimeMs Int?
+  modelUsed        String? // "gemini-2.0-flash"
+  errorMessage     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([strengthSessionId])
+  @@index([cardioSessionId])
+  @@index([hybridWorkoutId])
+}
+
+/// Live Voice Coaching Session - tracks real-time Gemini Live API voice coaching during workouts
+model LiveVoiceCoachingSession {
+  id       String @id @default(uuid())
+  clientId String
+
+  // Workout reference (one of these is set based on workoutType)
+  workoutType            String  @default("CARDIO") // CARDIO, STRENGTH, or HYBRID
+  cardioAssignmentId     String?
+  strengthAssignmentId   String?
+  hybridAssignmentId     String?
+
+  // Tracking
+  status             String @default("ACTIVE") // ACTIVE, COMPLETED, ERROR
+  durationSeconds    Int?
+  audioInputSeconds  Float?
+  audioOutputSeconds Float?
+  estimatedCostUsd   Float?
+  modelUsed          String @default("gemini-3.1-flash-live-preview")
+  endReason          String? // completed, user_cancelled, error, timeout
+  segmentsCompleted  Int    @default(0)
+
+  // Post-session intelligence
+  summary            String?  @db.Text // AI-generated session summary
+  extractedMemories  Json?    // Memories extracted from transcripts
+  painOrInjuryFlagged Boolean @default(false) // Whether coach alert was triggered
+
+  // Who paid for it (for cost attribution)
+  keyOwnerId String
+
+  client               Client                       @relation("ClientLiveVoiceSessions", fields: [clientId], references: [id], onDelete: Cascade)
+  cardioAssignment     CardioSessionAssignment?      @relation("AssignmentLiveVoiceSessions", fields: [cardioAssignmentId], references: [id], onDelete: Cascade)
+  strengthAssignment   StrengthSessionAssignment?    @relation("StrengthAssignmentLiveVoiceSessions", fields: [strengthAssignmentId], references: [id], onDelete: Cascade)
+  hybridAssignment     HybridWorkoutAssignment?      @relation("HybridAssignmentLiveVoiceSessions", fields: [hybridAssignmentId], references: [id], onDelete: Cascade)
+  keyOwner             User                          @relation("UserLiveVoiceKeyOwner", fields: [keyOwnerId], references: [id], onDelete: Cascade)
+  transcripts          LiveVoiceTranscript[]
+
+  createdAt DateTime @default(now())
+  endedAt   DateTime?
+
+  @@index([clientId])
+  @@index([cardioAssignmentId])
+  @@index([strengthAssignmentId])
+  @@index([hybridAssignmentId])
+  @@index([keyOwnerId])
+  @@index([createdAt])
+}
+
+/// Individual transcript entries from a live voice coaching session
+model LiveVoiceTranscript {
+  id        String @id @default(uuid())
+  sessionId String
+  role      String // 'athlete' or 'coach_ai'
+  content   String @db.Text
+  timestamp DateTime
+
+  session LiveVoiceCoachingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([timestamp])
+}
+
+/// Weekly reports (BI, Competitor Intel, future types).
+/// Separated from FounderBrief because these run weekly with different
+/// schemas and lifecycle.
+model WeeklyReport {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  weekStart DateTime @db.Date
+
+  /// Report type: BI_WEEKLY | COMPETITOR | MARKETING_WEEKLY
+  reportType String
+
+  /// Title for display (e.g. "BI Report — Week of 2026-04-10")
+  title String
+
+  /// Full markdown content of the report
+  fullContent String @db.Text
+
+  /// Structured data for UI rendering (charts, tables, key metrics)
+  structuredData Json?
+
+  /// Agent run that generated this report (for traceability)
+  agentRunId String?
+
+  emailedTo String?
+  emailedAt DateTime?
+  readAt    DateTime?
+
+  @@unique([weekStart, reportType])
+  @@index([weekStart])
+  @@index([reportType])
+}
+
+// ==================== LIVE INTERVAL SESSION SYSTEM ====================
+
+/// A timed interval session where coaches record lap splits for athletes
+model IntervalSession {
+  id      String @id @default(uuid())
+  coachId String
+  coach   User   @relation("CoachIntervalSessions", fields: [coachId], references: [id])
+  teamId  String?
+  team    Team?  @relation(fields: [teamId], references: [id])
+  name    String?
+  sportType String?
+
+  // Protocol (optional structured definition)
+  protocol Json? // { intervalCount, targetDurationSeconds, restDurationSeconds, description }
+
+  // Scheduling (optional — schedule a session in advance)
+  scheduledDate DateTime? @db.Date
+  scheduledTime String?   // "HH:mm" format
+
+  // Rest mode: NONE (manual advance), INDIVIDUAL (per-athlete countdown), GROUP (shared countdown)
+  restMode            String    @default("NONE")
+  groupRestStartedAt  DateTime? // Anchor for group rest countdown
+
+  // Lifecycle: SETUP → ACTIVE → LACTATE_ENTRY → ENDED
+  status          String    @default("SETUP")
+  timerStartedAt  DateTime? // Client-side timer anchor
+  currentInterval Int       @default(1)
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+
+  participants IntervalSessionParticipant[]
+  teamEvent    TeamEvent?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([coachId, scheduledDate])
+  @@index([status])
+  @@index([scheduledDate])
+}
+
+/// Athletes participating in an interval timing session
+model IntervalSessionParticipant {
+  id        String          @id @default(uuid())
+  sessionId String
+  session   IntervalSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  color     String? // Hex color for button
+  sortOrder Int     @default(0)
+
+  // Garmin enrichment (post-session)
+  garminActivityId String?
+  garminEnrichment Json? // { avgHR, maxHR, avgSpeed, laps, hrSamples, hrZoneSeconds }
+
+  laps     IntervalLap[]
+  lactates IntervalLactate[]
+  joinedAt DateTime @default(now())
+
+  @@unique([sessionId, clientId])
+  @@index([sessionId])
+  @@index([clientId])
+}
+
+/// Individual lap/split times recorded during interval sessions
+model IntervalLap {
+  id             String                    @id @default(uuid())
+  participantId  String
+  participant    IntervalSessionParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  intervalNumber Int    // 1-based
+  splitTimeMs    Int    // This lap duration (ms)
+  cumulativeMs   Int    // From session start (ms)
+  recordedAt     DateTime @default(now())
+
+  @@unique([participantId, intervalNumber])
+  @@index([participantId])
+}
+
+/// Lactate measurements taken between intervals
+model IntervalLactate {
+  id             String                    @id @default(uuid())
+  participantId  String
+  participant    IntervalSessionParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  intervalNumber Int    // 0 = resting/pre-session
+  lactate        Float  // mmol/L
+  heartRate      Int?
+  notes          String?
+  recordedAt     DateTime @default(now())
+
+  @@unique([participantId, intervalNumber])
+  @@index([participantId])
+}
+
+/// Saved interval session templates for reuse
+model IntervalSessionTemplate {
+  id        String @id @default(uuid())
+  coachId   String
+  coach     User   @relation("CoachIntervalTemplates", fields: [coachId], references: [id])
+  name      String
+  sportType String?
+  protocol  Json   // { intervalCount, targetDurationSeconds, restDurationSeconds, description }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
+}
+
+// ==================== WORKOUT TEMPLATE DISCOVERY ====================
+model WorkoutTemplate {
+  id              String                     @id @default(uuid())
+  name            String
+  nameSv          String
+  description     String?
+  descriptionSv   String?
+  category        WorkoutTemplateCategory
+  workoutType     WorkoutType
+  difficulty      WorkoutTemplateDifficulty
+  targetSports    SportType[]
+  muscleGroups    String[]
+  equipment       String[]
+  estimatedDuration Int
+  sections        Json
+  isSystem        Boolean                    @default(true)
+  coachId         String?
+  coach           User?                      @relation("WorkoutTemplateOwner", fields: [coachId], references: [id], onDelete: SetNull)
+  usageCount      Int                        @default(0)
+  tags            String[]
+  favorites       WorkoutTemplateFavorite[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([workoutType])
+  @@index([difficulty])
+  @@index([isSystem])
+  @@index([usageCount])
+  @@index([coachId])
+}
+
+model WorkoutTemplateFavorite {
+  id         String   @id @default(uuid())
+  userId     String
+  templateId String
+  createdAt  DateTime @default(now())
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template WorkoutTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, templateId])
+  @@index([userId])
+}
+
+// ============================================
+// Competition & Challenge System
+// ============================================
+model Competition {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation("BusinessCompetitions", fields: [businessId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User     @relation("UserCompetitions", fields: [createdById], references: [id])
+
+  name        String
+  description String?  @db.Text
+  type        String   // MOST_WORKOUTS, TOTAL_VOLUME, TOTAL_DISTANCE, WEIGHT_LOSS, STREAK, CUSTOM
+  metric      String   // Human-readable metric name
+  unit        String?  // "kg", "km", "pass", etc.
+
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+
+  rules       Json?    // { minWorkouts, allowedExercises, etc. }
+  prizes      Json?    // { first, second, third }
+  imageUrl    String?  // Cover image
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  entries CompetitionEntry[]
+
+  @@index([businessId, isActive])
+  @@index([endDate])
+}
+
+model CompetitionEntry {
+  id            String      @id @default(uuid())
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  clientId      String
+  client        Client      @relation("ClientCompetitionEntries", fields: [clientId], references: [id], onDelete: Cascade)
+
+  currentValue  Float       @default(0)
+  rank          Int?
+  joinedAt      DateTime    @default(now())
+  lastUpdatedAt DateTime    @default(now())
+
+  @@unique([competitionId, clientId])
+  @@index([competitionId, currentValue])
+  @@index([clientId])
+}

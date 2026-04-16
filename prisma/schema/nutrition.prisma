@@ -1,0 +1,177 @@
+// NUTRITION domain models & enums.
+// Auto-grouped from schema.prisma — keep new declarations here.
+
+// ==================== NUTRITION TIMING SYSTEM ====================
+
+/// Athlete dietary preferences for nutrition guidance personalization
+model DietaryPreferences {
+  id       String @id @default(uuid())
+  clientId String @unique
+
+  // Dietary style
+  dietaryStyle String? // OMNIVORE | VEGETARIAN | VEGAN | PESCATARIAN | FLEXITARIAN
+
+  // Allergies & intolerances (JSON arrays for flexibility)
+  allergies    Json? // ["NUTS", "SHELLFISH", "DAIRY", "GLUTEN", "SOY", "EGGS", "FISH"]
+  intolerances Json? // ["LACTOSE", "FRUCTOSE", "HISTAMINE"]
+
+  // Food dislikes (for suggestion filtering)
+  dislikedFoods Json? // ["oatmeal", "fish", "beans"]
+
+  // Preferences
+  preferLowFODMAP    Boolean @default(false)
+  preferWholeGrain   Boolean @default(true)
+  preferSwedishFoods Boolean @default(true) // Prioritize Swedish food suggestions
+  enhancedMacroAnalysis Boolean @default(false)
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+/// Athlete nutrition goals (weight, body composition, macro preferences)
+model NutritionGoal {
+  id       String @id @default(uuid())
+  clientId String @unique
+
+  // Weight goals
+  goalType       String // WEIGHT_LOSS | WEIGHT_GAIN | MAINTAIN | BODY_RECOMP
+  targetWeightKg Float?
+  weeklyChangeKg Float? // Target weekly change: 0.25, 0.5, 0.75 kg/week
+  targetDate     DateTime?
+
+  // Body composition goals
+  targetBodyFatPercent Float?
+
+  // Macro preference (overrides sport-based defaults)
+  macroProfile String? // BALANCED | HIGH_PROTEIN | LOW_CARB | ENDURANCE | STRENGTH | KETO | CUSTOM
+
+  // Custom macro percentages (0-100, must sum to 100 when all provided)
+  customProteinPercent Float?
+  customCarbsPercent   Float?
+  customFatPercent     Float?
+
+  // Activity level (for TDEE calculation)
+  activityLevel String @default("ACTIVE") // SEDENTARY | LIGHTLY_ACTIVE | ACTIVE | VERY_ACTIVE | ATHLETE
+
+  // Custom protein target (g per kg body weight, overrides calculated value)
+  customProteinPerKg Float?
+
+  // Custom BMR (kcal) from bio-impedance screening or other measurement
+  // Overrides the calculated Mifflin-St Jeor estimate for TDEE-based guidance
+  customBmrKcal Int?
+
+  // Display preferences
+  showMacroTargets Boolean @default(true)
+  showHydration    Boolean @default(true)
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+// ==================== MEAL LOGGING SYSTEM ====================
+
+/// Meal type enum for categorizing meals
+enum MealType {
+  BREAKFAST
+  MORNING_SNACK
+  LUNCH
+  AFTERNOON_SNACK
+  PRE_WORKOUT
+  POST_WORKOUT
+  DINNER
+  EVENING_SNACK
+}
+
+/// MealLog for tracking daily food intake
+model MealLog {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Meal info
+  date        DateTime @db.Date
+  mealType    MealType
+  time        String? // "08:30", "12:00" etc.
+  description String // "Havregrynsgröt med banan och nötter"
+
+  // Macros (optional - can be estimated or precise)
+  calories     Int?
+  proteinGrams Float?
+  carbsGrams   Float?
+  fatGrams     Float?
+  fiberGrams   Float?
+
+  // Enhanced macro subcategories (optional)
+  saturatedFatGrams       Float?
+  monounsaturatedFatGrams Float?
+  polyunsaturatedFatGrams Float?
+  sugarGrams              Float?
+  complexCarbsGrams       Float?
+  isCompleteProtein       Boolean?
+
+  // Hydration (optional)
+  waterMl Int?
+
+  // Meal quality indicators
+  isHighProtein Boolean @default(false) // 20g+ protein
+  isPreWorkout  Boolean @default(false)
+  isPostWorkout Boolean @default(false)
+
+  // Photo (optional - stored as URL)
+  photoUrl String?
+
+  notes String?
+
+  // Individual food items (from AI photo/voice analysis)
+  items MealFoodItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, date])
+  @@index([date])
+}
+
+/// Individual food item within a meal (from AI analysis)
+model MealFoodItem {
+  id        String  @id @default(cuid())
+  mealLogId String
+  mealLog   MealLog @relation(fields: [mealLogId], references: [id], onDelete: Cascade)
+
+  // Food identity
+  name           String  // "Kyckling" — Swedish name from AI
+  normalizedName String  // Lowercase, trimmed — for aggregation queries
+  category       String? // PROTEIN | CARB | FAT | VEGETABLE | FRUIT | DAIRY | GRAIN | BEVERAGE | OTHER
+
+  // Portion
+  estimatedGrams     Float
+  portionDescription String? // "1 kycklingfilé", "2 dl"
+
+  // Macros (per this item)
+  calories     Float
+  proteinGrams Float
+  carbsGrams   Float
+  fatGrams     Float
+  fiberGrams   Float @default(0)
+
+  // Enhanced subcategories (optional)
+  saturatedFatGrams       Float?
+  monounsaturatedFatGrams Float?
+  polyunsaturatedFatGrams Float?
+  sugarGrams              Float?
+  complexCarbsGrams       Float?
+  isCompleteProtein       Boolean?
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([mealLogId])
+  @@index([normalizedName])
+}

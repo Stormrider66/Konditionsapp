@@ -1,0 +1,799 @@
+// PHYSIO domain models & enums.
+// Auto-grouped from schema.prisma — keep new declarations here.
+
+enum PeriodPhase {
+  BASE // Building aerobic base
+  BUILD // Increasing intensity
+  PEAK // Race-specific training
+  TAPER // Pre-race recovery
+  RECOVERY // Post-race recovery
+  TRANSITION // Off-season
+}
+
+// ============================================
+// INJURY MANAGEMENT SYSTEM
+// ============================================
+
+/// Injury assessment and pain tracking (University of Delaware Soreness Rules)
+model InjuryAssessment {
+  id           String   @id @default(uuid())
+  clientId     String
+  assessedById String? // User who created the assessment
+  date         DateTime @default(now())
+  detectedAt   DateTime @default(now()) // Timestamp of injury detection
+
+  // Injury classification
+  bodyPart    String? // "KNEE", "ANKLE", "SHOULDER", etc.
+  side        String? // "LEFT", "RIGHT", "BILATERAL", "CENTRAL"
+  mechanism   String? // How the injury occurred
+  description String? // Detailed description
+
+  // Pain assessment (0-10 scale)
+  painLevel    Int // 0=none, 10=severe
+  painLocation String? // "PLANTAR_FASCIA", "ACHILLES", "IT_BAND", etc.
+  painTiming   String? // "DURING_WARMUP", "DURING_WORKOUT", etc.
+  gaitAffected Boolean @default(false) // RED FLAG if true
+
+  // Soreness rules assessment
+  painDuringWarmup          Boolean @default(false)
+  painContinuesThroughout   Boolean @default(false)
+  painDisappearsAfterWarmup Boolean @default(false)
+  painRedevelopsLater       Boolean @default(false)
+  painPersists1HourPost     Boolean @default(false)
+
+  // Delaware pain rule
+  delawarePainRuleTriggered Boolean @default(false)
+  delawareRule              String? // Which Delaware rule was triggered
+
+  // Functional assessment
+  rangeOfMotion         String? // "NORMAL", "SLIGHTLY_LIMITED", etc.
+  swelling              Boolean @default(false)
+  discoloration         Boolean @default(false)
+  weightBearing         String? // "NORMAL", "SLIGHTLY_AFFECTED", "LIMPING", "UNABLE"
+  functionalLimitations Json? // Array of functional limitations
+  redFlags              Json? // Array of red flag indicators
+
+  // Assessment result
+  assessment String? // "CONTINUE", "MODIFY", "REST_1_DAY", etc.
+  status     String  @default("ACTIVE") // "ACTIVE", "MONITORING", "RESOLVED"
+  injuryType String?
+  phase      String? // "ACUTE", "SUBACUTE", "CHRONIC", "RECOVERY"
+
+  // Protocol recommendations
+  recommendedProtocol Json?
+  estimatedTimeOff    String?
+
+  // Follow-up
+  resolved     Boolean   @default(false)
+  resolvedDate DateTime?
+  notes        String?
+
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assessedBy User?    @relation("AssessedInjuries", fields: [assessedById], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations to physio system
+  treatmentSessions    TreatmentSession[]
+  trainingRestrictions TrainingRestriction[]
+  rehabPrograms        RehabProgram[]
+  acuteInjuryReports   AcuteInjuryReport[]
+  careTeamThreads      CareTeamThread[]      @relation("InjuryCareTeamThreads")
+
+  @@index([clientId, date])
+  @@index([painLevel, gaitAffected])
+  @@index([clientId, resolved]) // Track active vs resolved injuries
+  @@index([injuryType, phase]) // Track injury types and phases across athletes
+  @@index([clientId, injuryType, resolved]) // Track specific injury resolution
+  @@index([assessedById])
+}
+
+// ============================================
+// PHYSIOTHERAPIST SYSTEM
+// Added: 2025-01
+// Purpose: Injury management, rehabilitation, and care team communication
+// ============================================
+
+/// Treatment type for physiotherapy sessions
+enum TreatmentType {
+  ASSESSMENT // Initial or follow-up assessment
+  MANUAL_THERAPY // Hands-on treatment (massage, mobilization)
+  DRY_NEEDLING // Acupuncture/dry needling
+  EXERCISE_THERAPY // Supervised exercise session
+  ELECTROTHERAPY // TENS, ultrasound, etc.
+  TAPING // Kinesio or rigid taping
+  EDUCATION // Patient education session
+  DISCHARGE // Final session/discharge
+  OTHER // Other treatment type
+}
+
+/// Physio assignment role type
+enum PhysioAssignmentRole {
+  PRIMARY // Primary physiotherapist
+  SECONDARY // Secondary/backup physiotherapist
+  CONSULTANT // Consulting physiotherapist
+}
+
+/// Rehabilitation phase
+enum RehabPhase {
+  ACUTE // 0-7 days post-injury, focus on protection
+  SUBACUTE // 7-21 days, controlled loading begins
+  REMODELING // 3-12 weeks, progressive loading
+  FUNCTIONAL // 12+ weeks, sport-specific training
+  RETURN_TO_SPORT // Final phase, full activity clearance
+}
+
+/// Training restriction type
+enum RestrictionType {
+  NO_RUNNING // No running allowed
+  NO_JUMPING // No jumping/plyometrics
+  NO_IMPACT // No high-impact activities
+  NO_UPPER_BODY // No upper body exercises
+  NO_LOWER_BODY // No lower body exercises
+  REDUCED_VOLUME // Reduce training volume by percentage
+  REDUCED_INTENSITY // Cap intensity (e.g., no Zone 4-5)
+  MODIFIED_ONLY // Only modified exercises allowed
+  SPECIFIC_EXERCISES // Block specific exercises only
+  CUSTOM // Custom restriction
+}
+
+/// Restriction severity level
+enum RestrictionSeverity {
+  MILD // Minor modification needed
+  MODERATE // Significant modification needed
+  SEVERE // Major restriction on activity
+  COMPLETE // No activity allowed
+}
+
+/// Source of the restriction
+enum RestrictionSource {
+  INJURY_CASCADE // Auto-created from injury check-in
+  PHYSIO_MANUAL // Manually set by physiotherapist
+  COACH_MANUAL // Manually set by coach
+  SYSTEM_AUTO // System-generated (e.g., ACWR)
+}
+
+/// Injury mechanism for acute reports
+enum InjuryMechanism {
+  CONTACT // Contact injury (collision)
+  NON_CONTACT // Non-contact injury (twist, sudden movement)
+  OVERUSE // Gradual onset from overuse
+  UNKNOWN // Unknown mechanism
+}
+
+/// Urgency level for acute injuries
+enum InjuryUrgency {
+  EMERGENCY // Requires immediate medical attention
+  URGENT // Needs same-day assessment
+  MODERATE // Needs assessment within 24-48h
+  LOW // Can wait for scheduled appointment
+}
+
+/// Care team thread status
+enum CareTeamThreadStatus {
+  OPEN // Active discussion
+  RESOLVED // Issue resolved
+  ARCHIVED // Archived for reference
+}
+
+/// Care team thread priority
+enum CareTeamThreadPriority {
+  URGENT // Requires immediate attention
+  HIGH // High priority
+  NORMAL // Normal priority
+  LOW // Low priority
+}
+
+/// Movement screen type
+enum MovementScreenType {
+  FMS // Functional Movement Screen
+  SFMA // Selective Functional Movement Assessment
+  Y_BALANCE // Y-Balance Test
+  CUSTOM // Custom screening protocol
+}
+
+/// Physio assignment - links physiotherapists to athletes/teams/organizations
+model PhysioAssignment {
+  id           String @id @default(uuid())
+  physioUserId String // User with PHYSIO role
+
+  // Scope (one of these should be set)
+  clientId       String? // Individual athlete assignment
+  teamId         String? // Entire team assignment
+  organizationId String? // All teams in organization
+  businessId     String? // All athletes in business (enterprise)
+  locationId     String? // All athletes at specific location
+
+  // Role and permissions
+  role                  PhysioAssignmentRole @default(PRIMARY)
+  canModifyPrograms     Boolean              @default(false) // Can modify training programs
+  canCreateRestrictions Boolean              @default(true) // Can create training restrictions
+  canViewFullHistory    Boolean              @default(true) // Can view full injury/medical history
+
+  // Status
+  isActive  Boolean   @default(true)
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  physio       User          @relation("PhysioAssignments", fields: [physioUserId], references: [id], onDelete: Cascade)
+  client       Client?       @relation("ClientPhysioAssignments", fields: [clientId], references: [id], onDelete: Cascade)
+  team         Team?         @relation("TeamPhysioAssignments", fields: [teamId], references: [id], onDelete: Cascade)
+  organization Organization? @relation("OrgPhysioAssignments", fields: [organizationId], references: [id], onDelete: Cascade)
+  business     Business?     @relation("BusinessPhysioAssignments", fields: [businessId], references: [id], onDelete: Cascade)
+  location     Location?     @relation("LocationPhysioAssignments", fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([physioUserId])
+  @@index([clientId])
+  @@index([teamId])
+  @@index([organizationId])
+  @@index([businessId])
+  @@index([locationId])
+  @@index([isActive])
+}
+
+/// Treatment session with SOAP notes format
+model TreatmentSession {
+  id           String  @id @default(uuid())
+  physioUserId String // Treating physiotherapist
+  clientId     String // Athlete being treated
+  injuryId     String? // Link to InjuryAssessment if applicable
+
+  sessionDate   DateTime      @default(now())
+  duration      Int? // Session duration in minutes
+  treatmentType TreatmentType
+
+  // SOAP Notes format
+  subjective String? @db.Text // Patient's symptoms, history, complaints
+  objective  String? @db.Text // Measurable/observable findings
+  assessment String? @db.Text // Clinical reasoning/diagnosis
+  plan       String? @db.Text // Treatment plan going forward
+
+  // Pain tracking (0-10 scale)
+  painBefore Int?
+  painAfter  Int?
+
+  // Range of Motion measurements (JSON for flexibility)
+  romMeasurements Json? // { "shoulderFlexion": { "left": 170, "right": 165 }, ... }
+
+  // Treatment modalities used
+  modalitiesUsed String[] @default([]) // Array of treatment modalities applied
+
+  // Follow-up
+  followUpRequired Boolean   @default(false)
+  followUpDate     DateTime?
+  followUpNotes    String?
+
+  // Billing/admin
+  isBillable  Boolean @default(true)
+  billingCode String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  physio User              @relation("PhysioTreatmentSessions", fields: [physioUserId], references: [id])
+  client Client            @relation("ClientTreatmentSessions", fields: [clientId], references: [id], onDelete: Cascade)
+  injury InjuryAssessment? @relation(fields: [injuryId], references: [id], onDelete: SetNull)
+
+  @@index([physioUserId])
+  @@index([clientId])
+  @@index([injuryId])
+  @@index([sessionDate])
+  @@index([treatmentType])
+}
+
+/// Rehabilitation program with phases and milestones
+model RehabProgram {
+  id           String  @id @default(uuid())
+  physioUserId String // Creating physiotherapist
+  clientId     String
+  injuryId     String? // Link to InjuryAssessment
+
+  name        String
+  description String? @db.Text
+
+  // Phase management
+  currentPhase   RehabPhase @default(ACUTE)
+  phaseStartDate DateTime   @default(now())
+
+  // Timeline
+  startDate        DateTime  @default(now())
+  estimatedEndDate DateTime?
+  actualEndDate    DateTime?
+
+  // Goals
+  shortTermGoals String[] @default([]) // Goals for current phase
+  longTermGoals  String[] @default([]) // Final outcome goals
+
+  // Contraindications and precautions
+  contraindications String[] @default([]) // Movements/activities to avoid
+  precautions       String[] @default([]) // Cautions to observe
+
+  // Pain thresholds
+  acceptablePainDuring Int @default(3) // Max pain during exercise (0-10)
+  acceptablePainAfter  Int @default(5) // Max pain allowed 24h post (0-10)
+
+  // Status
+  status String @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED, DISCONTINUED
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  physio          User               @relation("PhysioRehabPrograms", fields: [physioUserId], references: [id])
+  client          Client             @relation("ClientRehabPrograms", fields: [clientId], references: [id], onDelete: Cascade)
+  injury          InjuryAssessment?  @relation(fields: [injuryId], references: [id], onDelete: SetNull)
+  exercises       RehabExercise[]
+  milestones      RehabMilestone[]
+  progressLogs    RehabProgressLog[]
+  careTeamThreads CareTeamThread[]   @relation("RehabProgramCareTeamThreads")
+
+  @@index([physioUserId])
+  @@index([clientId])
+  @@index([injuryId])
+  @@index([status])
+  @@index([currentPhase])
+}
+
+/// Exercise prescription within a rehab program
+model RehabExercise {
+  id         String @id @default(uuid())
+  programId  String
+  exerciseId String // Link to Exercise library
+
+  // Prescription
+  sets      Int?
+  reps      String? // "10-12", "AMRAP", "30 sec hold"
+  duration  Int? // Duration in seconds (for timed exercises)
+  frequency String? // "Daily", "3x/week", "Every other day"
+  intensity String? // "Light", "Moderate", "As tolerated"
+
+  // Progression criteria
+  progressionCriteria String? @db.Text // When to progress to next level
+  regressionCriteria  String? @db.Text // When to regress
+
+  // Phase applicability
+  phases RehabPhase[] @default([]) // Which phases this exercise applies to
+
+  // Order within program
+  order Int @default(0)
+
+  // Notes
+  notes     String?  @db.Text
+  cuePoints String[] @default([]) // Key coaching cues
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  program  RehabProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  exercise Exercise     @relation("RehabExerciseRef", fields: [exerciseId], references: [id])
+
+  @@index([programId])
+  @@index([exerciseId])
+  @@index([isActive])
+}
+
+/// Milestones for tracking rehab progress
+model RehabMilestone {
+  id        String @id @default(uuid())
+  programId String
+
+  name        String
+  description String? @db.Text
+
+  // Criteria for achievement
+  criteria     String? @db.Text // Description of what needs to be achieved
+  criteriaJson Json? // Structured criteria: { "painLevel": "<=2", "romFlexion": ">=160" }
+
+  // Phase association
+  phase RehabPhase
+
+  // Target and actual dates
+  targetDate   DateTime?
+  achievedDate DateTime?
+
+  // Status
+  isAchieved Boolean @default(false)
+  notes      String? @db.Text
+
+  order Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  program RehabProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+  @@index([phase])
+  @@index([isAchieved])
+}
+
+/// Progress log for athlete rehab exercise completion
+model RehabProgressLog {
+  id        String @id @default(uuid())
+  programId String
+  clientId  String
+
+  date DateTime @default(now())
+
+  // Completion
+  exercisesCompleted String[] @default([]) // Array of exercise IDs completed
+  completionPercent  Float? // Overall completion percentage
+
+  // Pain tracking
+  painDuring Int? // Pain during exercises (0-10)
+  painAfter  Int? // Pain 24h after (0-10)
+
+  // Self-assessment
+  difficultyRating Int? // 1-5 how difficult was it
+  notes            String? @db.Text
+
+  // Physio review
+  physioReviewed   Boolean   @default(false)
+  physioNotes      String?   @db.Text
+  physioReviewedAt DateTime?
+  physioReviewedBy String? // Physio userId who reviewed
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  program RehabProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  client  Client       @relation("ClientRehabProgressLogs", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+  @@index([clientId])
+  @@index([date])
+  @@index([physioReviewed])
+}
+
+/// Training restrictions applied to athletes
+model TrainingRestriction {
+  id          String  @id @default(uuid())
+  clientId    String
+  createdById String // Physio or Coach who created it
+  injuryId    String? // Link to InjuryAssessment if applicable
+
+  // Restriction details
+  type     RestrictionType
+  severity RestrictionSeverity @default(MODERATE)
+  source   RestrictionSource   @default(PHYSIO_MANUAL)
+
+  // Affected areas
+  bodyParts            String[] @default([]) // Affected body parts
+  affectedWorkoutTypes String[] @default([]) // Workout types affected (RUNNING, STRENGTH, etc.)
+  affectedExerciseIds  String[] @default([]) // Specific exercises blocked
+
+  // Duration
+  startDate DateTime  @default(now())
+  endDate   DateTime? // null = indefinite until cleared
+
+  // For volume/intensity restrictions
+  volumeReductionPercent Int? // e.g., 50 = reduce volume by 50%
+  maxIntensityZone       Int? // e.g., 3 = no Zone 4-5 work
+
+  // Description
+  description String? @db.Text
+  reason      String? // Brief reason for restriction
+
+  // Status
+  isActive    Boolean   @default(true)
+  clearedAt   DateTime?
+  clearedById String? // Who cleared the restriction
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  client          Client            @relation("ClientTrainingRestrictions", fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy       User              @relation("UserCreatedRestrictions", fields: [createdById], references: [id])
+  injury          InjuryAssessment? @relation(fields: [injuryId], references: [id], onDelete: SetNull)
+  careTeamThreads CareTeamThread[]  @relation("RestrictionCareTeamThreads")
+
+  @@index([clientId])
+  @@index([createdById])
+  @@index([injuryId])
+  @@index([isActive])
+  @@index([type])
+  @@index([endDate])
+}
+
+/// Movement screening assessments
+model MovementScreen {
+  id           String @id @default(uuid())
+  physioUserId String
+  clientId     String
+
+  screenDate DateTime           @default(now())
+  screenType MovementScreenType
+
+  // Results (flexible JSON structure for different screen types)
+  results Json // { "deepSquat": 2, "hurdleStep": { "left": 2, "right": 3 }, ... }
+
+  // Scores
+  totalScore    Int? // Overall score if applicable
+  asymmetryFlag Boolean @default(false) // Any significant L/R asymmetries
+
+  // Comparison
+  previousScreenId String? // Link to previous screen for comparison
+  improvement      String? // IMPROVED, STABLE, DECLINED
+
+  // Recommendations
+  recommendations String[] @default([]) // Exercise/intervention recommendations
+  priorityAreas   String[] @default([]) // Areas needing attention
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  physio User   @relation("PhysioMovementScreens", fields: [physioUserId], references: [id])
+  client Client @relation("ClientMovementScreens", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([physioUserId])
+  @@index([clientId])
+  @@index([screenDate])
+  @@index([screenType])
+}
+
+/// Acute injury reports for match-day injuries
+model AcuteInjuryReport {
+  id         String  @id @default(uuid())
+  reporterId String // Who reported (coach, physio, or athlete)
+  clientId   String
+  injuryId   String? // Link to created InjuryAssessment
+
+  reportDate   DateTime @default(now())
+  incidentDate DateTime // When injury occurred
+  incidentTime String? // Time of incident
+
+  // Injury details
+  mechanism   InjuryMechanism
+  bodyPart    String // Primary body part affected
+  side        String? // LEFT, RIGHT, BOTH, N/A
+  description String?         @db.Text // Description of what happened
+
+  // Urgency and severity
+  urgency         InjuryUrgency @default(MODERATE)
+  initialSeverity Int           @default(5) // 1-10 scale
+
+  // Context
+  activityType      String? // "MATCH", "TRAINING", "WARMUP", etc.
+  surfaceType       String? // "GRASS", "INDOOR", "ARTIFICIAL", etc.
+  equipmentInvolved String? // Any equipment involved
+
+  // Immediate care
+  immediateCareGiven String? @db.Text // What first aid was provided
+  iceApplied         Boolean @default(false)
+  removedFromPlay    Boolean @default(false)
+  ambulanceCalled    Boolean @default(false)
+
+  // Referral
+  referralNeeded  Boolean @default(false)
+  referralType    String? // "HOSPITAL", "IMAGING", "SPECIALIST"
+  referralUrgency String? // "IMMEDIATE", "SAME_DAY", "WITHIN_WEEK"
+
+  // Follow-up
+  physioNotified    Boolean   @default(false)
+  physioNotifiedAt  DateTime?
+  coachNotified     Boolean   @default(false)
+  coachNotifiedAt   DateTime?
+  followUpScheduled DateTime?
+
+  // Status
+  status String @default("PENDING_REVIEW") // PENDING_REVIEW, REVIEWED, ASSESSED, CLOSED
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  reporter User              @relation("UserAcuteInjuryReports", fields: [reporterId], references: [id])
+  client   Client            @relation("ClientAcuteInjuryReports", fields: [clientId], references: [id], onDelete: Cascade)
+  injury   InjuryAssessment? @relation(fields: [injuryId], references: [id], onDelete: SetNull)
+
+  @@index([reporterId])
+  @@index([clientId])
+  @@index([injuryId])
+  @@index([reportDate])
+  @@index([urgency])
+  @@index([status])
+}
+
+/// Care team communication thread
+model CareTeamThread {
+  id          String @id @default(uuid())
+  clientId    String // Athlete being discussed
+  createdById String // Who created the thread
+
+  // Context
+  subject     String
+  description String? @db.Text
+
+  // Linked items (optional context)
+  injuryId       String? // Link to injury being discussed
+  rehabProgramId String? // Link to rehab program
+  restrictionId  String? // Link to restriction
+
+  // Status
+  status   CareTeamThreadStatus   @default(OPEN)
+  priority CareTeamThreadPriority @default(NORMAL)
+
+  // Timestamps
+  lastMessageAt DateTime?
+  resolvedAt    DateTime?
+  resolvedById  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  client       Client                @relation("ClientCareTeamThreads", fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy    User                  @relation("UserCreatedCareTeamThreads", fields: [createdById], references: [id])
+  injury       InjuryAssessment?     @relation("InjuryCareTeamThreads", fields: [injuryId], references: [id])
+  rehabProgram RehabProgram?         @relation("RehabProgramCareTeamThreads", fields: [rehabProgramId], references: [id])
+  restriction  TrainingRestriction?  @relation("RestrictionCareTeamThreads", fields: [restrictionId], references: [id])
+  messages     CareTeamMessage[]
+  participants CareTeamParticipant[]
+
+  @@index([clientId])
+  @@index([createdById])
+  @@index([injuryId])
+  @@index([rehabProgramId])
+  @@index([restrictionId])
+  @@index([status])
+  @@index([priority])
+  @@index([lastMessageAt])
+}
+
+/// Messages within care team threads
+model CareTeamMessage {
+  id       String @id @default(uuid())
+  threadId String
+  senderId String
+
+  content String @db.Text
+
+  // Mentions
+  mentionedUserIds String[] @default([]) // Users @mentioned in message
+
+  // Attachments
+  attachments Json? // Array of { url, name, type }
+
+  // Read tracking
+  readByUserIds String[] @default([]) // Users who have read this message
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  thread CareTeamThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User           @relation("UserCareTeamMessages", fields: [senderId], references: [id])
+
+  @@index([threadId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+/// Participants in care team threads
+model CareTeamParticipant {
+  id       String @id @default(uuid())
+  threadId String
+  userId   String
+
+  // Role in thread
+  role String @default("PARTICIPANT") // OWNER, PHYSIO, COACH, ATHLETE
+
+  // Notification preferences
+  notifyEmail Boolean @default(true)
+  notifyPush  Boolean @default(true)
+
+  // Activity tracking
+  lastReadAt   DateTime?
+  lastViewedAt DateTime?
+
+  // Status
+  isActive   Boolean   @default(true)
+  mutedUntil DateTime?
+
+  joinedAt DateTime @default(now())
+
+  // Relations
+  thread CareTeamThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User           @relation("UserCareTeamParticipations", fields: [userId], references: [id])
+
+  @@unique([threadId, userId])
+  @@index([threadId])
+  @@index([userId])
+  @@index([isActive])
+}
+
+/// Menstrual cycle tracking for female athletes
+model MenstrualCycle {
+  id       String @id @default(uuid())
+  clientId String
+
+  // Cycle metadata
+  cycleNumber Int? // Sequential cycle number
+  startDate   DateTime  @db.Date
+  endDate     DateTime? @db.Date
+  cycleLength Int? // days
+
+  // Phase tracking
+  currentPhase  String? // "MENSTRUAL", "FOLLICULAR", "OVULATORY", "LUTEAL"
+  ovulationDate DateTime? @db.Date
+
+  // AI-generated insights
+  phaseRecommendations Json? // { phase: { intensityModifier, volumeModifier, focusAreas } }
+  aiInsights           Json? // Patterns, predictions, recommendations
+
+  // Notes
+  notes String? @db.Text
+
+  client    Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  dailyLogs MenstrualDailyLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, startDate])
+  @@index([currentPhase])
+}
+
+/// Daily menstrual symptom log
+model MenstrualDailyLog {
+  id       String   @id @default(uuid())
+  clientId String
+  cycleId  String?
+  date     DateTime @db.Date
+
+  // Current phase (auto-calculated)
+  cycleDay Int? // Day 1-28+ in current cycle
+  phase    String? // Current phase
+
+  // Symptom tracking (1-5 scale)
+  flowIntensity    Int? // 0=none, 1-5 for flow days
+  cramps           Int? // 1=none, 5=severe
+  bloating         Int?
+  breastTenderness Int?
+  headache         Int?
+  fatigue          Int? // 1=low fatigue, 5=extreme
+  moodScore        Int? // 1=very low, 5=excellent
+  cravings         Int?
+
+  // Training performance
+  perceivedEffort Int? // RPE for that day
+  actualVsPlanned String? // "EXCEEDED", "MET", "REDUCED", "SKIPPED"
+
+  // Notes
+  notes String? @db.Text
+
+  // AI flags
+  aiWarnings Json? // Flagged patterns
+
+  client Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  cycle  MenstrualCycle? @relation(fields: [cycleId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, date])
+  @@index([clientId, date])
+  @@index([phase])
+  @@index([cycleId])
+}

@@ -1,0 +1,417 @@
+// BILLING domain models & enums.
+// Auto-grouped from schema.prisma — keep new declarations here.
+
+enum SubscriptionTier {
+  FREE // Basic features
+  BASIC // Up to 5 athletes
+  PRO // Up to 50 athletes
+  ENTERPRISE // Unlimited athletes
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  TRIAL
+}
+
+// ==================== ATHLETE SUBSCRIPTION TIERS ====================
+enum AthleteSubscriptionTier {
+  FREE // View reports only - no AI access
+  STANDARD // Basic AI chat (50 msg/month), workout logging, daily check-in
+  PRO // Full AI agent, unlimited AI, video analysis, Strava/Garmin sync
+  ELITE // Everything in PRO + assigned real PT/coach (custom pricing per business)
+}
+
+enum PaymentSource {
+  DIRECT // Athlete pays directly - 100% to platform
+  BUSINESS // Athlete onboarded via business - revenue shared
+}
+
+// ==================== REFERRAL SYSTEM ====================
+enum ReferralStatus {
+  PENDING // User signed up but hasn't completed onboarding/subscription
+  COMPLETED // User completed signup and referral is valid
+  EXPIRED // Referral expired (e.g., user never completed signup)
+  REVOKED // Referral was revoked (e.g., refund, fraud)
+}
+
+enum ReferralRewardType {
+  FREE_MONTH // One month free subscription
+  DISCOUNT_PERCENT // Percentage discount on next billing
+  EXTENDED_TRIAL // Extended trial period
+  ATHLETE_SLOTS // Additional athlete slots
+}
+
+enum EnterpriseContractStatus {
+  DRAFT // Contract being prepared
+  PENDING_APPROVAL // Awaiting approval
+  ACTIVE // Active contract
+  SUSPENDED // Temporarily suspended
+  CANCELLED // Cancelled contract
+  EXPIRED // Contract period ended
+}
+
+// ==================== SUBSCRIPTION & BILLING ====================
+model Subscription {
+  id     String             @id @default(uuid())
+  userId String             @unique
+  tier   SubscriptionTier   @default(FREE)
+  status SubscriptionStatus @default(TRIAL)
+
+  // Limits based on tier
+  maxAthletes     Int @default(0) // 0=FREE, 5=BASIC, 50=PRO, -1=ENTERPRISE (unlimited)
+  currentAthletes Int @default(0)
+
+  // Billing
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?  @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+
+  trialEndsAt DateTime?
+  cancelAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([tier])
+}
+
+// ==================== REFERRAL SYSTEM ====================
+
+/// Unique referral code for each coach
+model ReferralCode {
+  id       String  @id @default(uuid())
+  userId   String  @unique // One code per coach
+  code     String  @unique // e.g., "JOHN2024", "STAR-ABC123"
+  isActive Boolean @default(true)
+
+  // Usage tracking
+  totalUses           Int @default(0) // Total times code was used
+  successfulReferrals Int @default(0) // Completed referrals
+
+  // Optional limits
+  maxUses   Int? // null = unlimited
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referrals Referral[]
+
+  @@index([code])
+  @@index([userId])
+  @@index([isActive])
+}
+
+/// Tracks individual referrals (when someone signs up using a referral code)
+model Referral {
+  id             String  @id @default(uuid())
+  referralCodeId String
+  referrerUserId String // Coach who made the referral
+  referredUserId String? // User who signed up (null until they complete signup)
+  referredEmail  String // Email used during signup (for tracking before account created)
+
+  status ReferralStatus @default(PENDING)
+
+  // Reward tracking
+  referrerRewardGranted Boolean @default(false)
+  referredRewardGranted Boolean @default(false)
+
+  // Timestamps
+  signupAt    DateTime? // When referred user signed up
+  completedAt DateTime? // When referral was marked complete
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  referralCode ReferralCode     @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+  referrerUser User             @relation("ReferrerUser", fields: [referrerUserId], references: [id], onDelete: Cascade)
+  referredUser User?            @relation("ReferredUser", fields: [referredUserId], references: [id], onDelete: SetNull)
+  rewards      ReferralReward[]
+
+  @@unique([referralCodeId, referredEmail]) // Prevent duplicate referrals for same email
+  @@index([referrerUserId])
+  @@index([referredUserId])
+  @@index([referredEmail])
+  @@index([status])
+  @@index([referralCodeId])
+}
+
+/// Rewards granted for successful referrals
+model ReferralReward {
+  id         String @id @default(uuid())
+  referralId String
+  userId     String // User who received the reward
+
+  rewardType ReferralRewardType
+  value      Float // e.g., 1 for 1 month, 20 for 20% discount, 5 for 5 athlete slots
+
+  // Status
+  applied   Boolean   @default(false)
+  appliedAt DateTime?
+  expiresAt DateTime?
+
+  // For subscription-related rewards
+  stripeDiscountId String? // If using Stripe coupon
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  referral Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([referralId])
+  @@index([userId])
+  @@index([applied])
+}
+
+// ==================== ATHLETE SUBSCRIPTION (Direct Athletes) ====================
+
+/// Subscription for individual athletes (separate from coach Subscription)
+model AthleteSubscription {
+  id            String                  @id @default(uuid())
+  clientId      String                  @unique
+  tier          AthleteSubscriptionTier @default(FREE)
+  status        SubscriptionStatus      @default(TRIAL)
+  paymentSource PaymentSource           @default(DIRECT)
+
+  // Stripe integration
+  stripeCustomerId     String?
+  stripeSubscriptionId String?  @unique
+  billingCycle         String? // "MONTHLY" | "YEARLY"
+
+  // Revenue sharing (if paymentSource = BUSINESS)
+  businessId          String?
+  revenueSharePercent Float? // Platform's share (e.g., 20 = 20%)
+
+  // Coach marketplace - assigned coach (independent of business)
+  assignedCoachId            String? // Coach user ID from marketplace connection
+  coachRevenueSharePercent   Float? // Coach's share (e.g., 75 = 75% to coach)
+  coachRevenueShareStartDate DateTime? // When coach revenue share kicks in (next billing cycle)
+
+  // Feature flags (cached for performance)
+  aiChatEnabled         Boolean @default(false)
+  aiChatMessagesUsed    Int     @default(0)
+  aiChatMessagesLimit   Int     @default(0) // 0 = disabled, -1 = unlimited
+  videoAnalysisEnabled  Boolean @default(false)
+  garminEnabled         Boolean @default(false)
+  stravaEnabled         Boolean @default(false)
+  workoutLoggingEnabled Boolean @default(false)
+  dailyCheckInEnabled   Boolean @default(false)
+
+  // Trial
+  trialEndsAt DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client        Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  business      Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  assignedCoach User?     @relation("CoachAthleteSubscriptions", fields: [assignedCoachId], references: [id], onDelete: SetNull)
+
+  @@index([clientId])
+  @@index([tier])
+  @@index([status])
+  @@index([businessId])
+  @@index([paymentSource])
+  @@index([assignedCoachId])
+}
+
+// ==================== PARTNER REFERRAL SYSTEM ====================
+enum PartnerReferralStatus {
+  PENDING // User signed up but hasn't subscribed yet
+  ACTIVE // User has active subscription, revenue being shared
+  CHURNED // User cancelled subscription
+  EXPIRED // Referral expired (no subscription within window)
+}
+
+/// Tracks partner/business referrals and ongoing revenue sharing
+model PartnerReferral {
+  id         String @id @default(uuid())
+  businessId String
+  userId     String @unique // The user who was referred
+
+  // Referral tracking
+  referralCode   String? // Optional code used (e.g., "STAR2024")
+  referralSource String? // "link", "code", "api", "manual"
+  landingPage    String? // URL they landed on
+
+  status PartnerReferralStatus @default(PENDING)
+
+  // Revenue sharing terms (copied from contract at time of referral)
+  revenueSharePercent  Float @default(70) // Business gets this % (e.g., 70 = 70%)
+  platformSharePercent Float @default(30) // Platform gets this % (e.g., 30 = 30%)
+
+  // Subscription tracking
+  subscriptionTier    String? // "FREE", "STANDARD", "PRO"
+  monthlyAmount       Int? // Amount in smallest currency unit (öre)
+  currency            String    @default("SEK")
+  firstSubscriptionAt DateTime?
+  lastPaymentAt       DateTime?
+
+  // Revenue totals (updated on each payment)
+  totalRevenue       Int @default(0) // Total revenue generated (öre)
+  totalBusinessShare Int @default(0) // Total paid to business (öre)
+  totalPlatformShare Int @default(0) // Total kept by platform (öre)
+  paymentCount       Int @default(0) // Number of payments processed
+
+  // Payout tracking
+  pendingPayout    Int       @default(0) // Amount pending payout to business (öre)
+  lastPayoutAt     DateTime?
+  lastPayoutAmount Int?
+
+  // Timestamps
+  signedUpAt  DateTime  @default(now())
+  activatedAt DateTime? // When subscription started
+  churnedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation("ReferredUserPartner", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([status])
+  @@index([signedUpAt])
+  @@index([activatedAt])
+}
+
+// ==================== ADMIN SYSTEM - ENTERPRISE CONTRACTS ====================
+
+/// Enterprise contract for business customers
+model EnterpriseContract {
+  id         String   @id @default(uuid())
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // Contract info
+  contractNumber String  @unique // EC-2026-001
+  contractName   String
+  contactName    String
+  contactEmail   String
+  contactPhone   String?
+
+  // Pricing
+  monthlyFee          Float
+  currency            String @default("SEK")
+  revenueSharePercent Float  @default(75) // Business gets this %
+
+  // Limits
+  athleteLimit Int @default(-1) // -1 = unlimited
+  coachLimit   Int @default(-1)
+
+  // Terms
+  billingCycle     String    @default("MONTHLY") // MONTHLY, QUARTERLY, YEARLY
+  paymentTermDays  Int       @default(30)
+  startDate        DateTime
+  endDate          DateTime?
+  autoRenew        Boolean   @default(true)
+  noticePeriodDays Int       @default(90)
+
+  // Status
+  status EnterpriseContractStatus @default(DRAFT)
+
+  // Features (JSON for flexibility)
+  customFeatures Json?
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  activatedAt DateTime?
+  cancelledAt DateTime?
+
+  changeHistory EnterpriseContractChange[]
+
+  @@index([status])
+  @@index([endDate])
+}
+
+/// Audit trail for enterprise contract changes
+model EnterpriseContractChange {
+  id         String             @id @default(uuid())
+  contractId String
+  contract   EnterpriseContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  changeType  String // CREATED, UPDATED, ACTIVATED, RENEWED, CANCELLED, SUSPENDED
+  changedById String
+  changedBy   User   @relation("ContractChanges", fields: [changedById], references: [id])
+
+  previousData Json?
+  newData      Json?
+  notes        String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([contractId, createdAt])
+  @@index([changedById])
+}
+
+// ==================== ADMIN SYSTEM - PRICING MANAGEMENT ====================
+
+/// Pricing tier configuration
+model PricingTier {
+  id String @id @default(uuid())
+
+  tierType    String // COACH, ATHLETE
+  tierName    String // FREE, BASIC, PRO, ENTERPRISE, STANDARD
+  displayName String
+  description String? @db.Text
+  features    Json // ["Feature 1", "Feature 2", ...]
+
+  // Pricing (in smallest currency unit, e.g., öre for SEK)
+  monthlyPriceCents Int
+  yearlyPriceCents  Int?
+  currency          String @default("SEK")
+
+  // Stripe
+  stripeProductId      String?
+  stripePriceIdMonthly String?
+  stripePriceIdYearly  String?
+
+  // Limits
+  maxAthletes Int @default(0)
+  aiChatLimit Int @default(0)
+
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  overrides PricingOverride[]
+
+  @@unique([tierType, tierName])
+  @@index([tierType, isActive])
+}
+
+/// Business-specific pricing overrides
+model PricingOverride {
+  id         String      @id @default(uuid())
+  tierId     String
+  tier       PricingTier @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  businessId String
+  business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // Overrides (null = use default)
+  monthlyPriceCents Int?
+  yearlyPriceCents  Int?
+  maxAthletes       Int?
+  aiChatLimit       Int?
+
+  validFrom  DateTime  @default(now())
+  validUntil DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tierId, businessId])
+  @@index([tierId])
+  @@index([businessId])
+}

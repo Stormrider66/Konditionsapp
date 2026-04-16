@@ -1,0 +1,465 @@
+// DATA_MOAT domain models & enums.
+// Auto-grouped from schema.prisma — keep new declarations here.
+
+/// Pre-computed monthly/yearly nutrition summary ("Wrapped")
+model NutritionWrapped {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Period
+  periodType String // MONTHLY | YEARLY
+  month      Int? // 1-12 for monthly
+  year       Int
+
+  // Pre-computed summary stats (JSON for flexibility)
+  stats Json
+
+  generatedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([clientId, periodType, year, month])
+  @@index([clientId])
+  @@index([periodType, year])
+}
+
+enum DecisionReason {
+  ATHLETE_FEEDBACK
+  FATIGUE_OBSERVED
+  HRV_LOW
+  SLEEP_POOR
+  INJURY_CONCERN
+  SCHEDULE_CONFLICT
+  PROGRESSION_ADJUSTMENT
+  WEATHER_CONDITIONS
+  EQUIPMENT_UNAVAILABLE
+  COACH_INTUITION
+  ATHLETE_PREFERENCE
+  TECHNIQUE_FOCUS
+  MENTAL_FRESHNESS
+  TRAVEL_FATIGUE
+  ILLNESS_RECOVERY
+  COMPETITION_PROXIMITY
+  OTHER
+}
+
+enum OutcomeAssessment {
+  BETTER_THAN_AI
+  SAME_AS_AI
+  WORSE_THAN_AI
+  UNKNOWN
+}
+
+enum PredictionType {
+  RACE_TIME
+  THRESHOLD_POWER
+  THRESHOLD_PACE
+  THRESHOLD_HEART_RATE
+  VO2MAX_ESTIMATE
+  INJURY_RISK
+  READINESS_SCORE
+  RECOVERY_TIME
+  IMPROVEMENT_RATE
+  PEAK_TIMING
+  OPTIMAL_TAPER
+  FTP_ESTIMATE
+  CRITICAL_POWER
+  WEIGHT_PREDICTION
+  BODY_COMPOSITION
+}
+
+enum PredictionUserAction {
+  ACCEPTED
+  IGNORED
+  MODIFIED
+  REJECTED
+}
+
+enum ValidationSource {
+  AUTO_STRAVA_IMPORT
+  AUTO_GARMIN_IMPORT
+  AUTO_RACE_RESULT
+  AUTO_TEST_RESULT
+  MANUAL_ENTRY
+  DEVICE_SYNC
+}
+
+// ===== DATA MOAT MODELS =====
+
+/// Tracks when coaches modify AI suggestions - captures expertise for AI improvement
+model CoachDecision {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  coach     User   @relation("CoachDecisions", fields: [coachId], references: [id])
+  coachId   String
+  athlete   Client @relation("AthleteDecisions", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId String
+
+  // AI Suggestion
+  aiSuggestionType AISuggestionType
+  aiSuggestionData Json // Full AI suggestion
+  aiConfidence     Float? // AI's confidence (0-1)
+
+  // Modification
+  modificationData      Json // What coach changed to
+  modificationMagnitude Float? // How different (0-1 scale)
+
+  // Reasoning
+  reasonCategory  DecisionReason
+  reasonNotes     String?        @db.Text
+  coachConfidence Float? // Coach's confidence (0-1)
+
+  // Athlete context at decision time
+  athleteContext Json? // HRV, sleep, fatigue, etc.
+
+  // Outcome tracking
+  outcomeAssessment  OutcomeAssessment?
+  outcomeNotes       String?            @db.Text
+  outcomeValidatedAt DateTime?
+
+  // Quality flags
+  validated         Boolean @default(false)
+  usedForAITraining Boolean @default(false)
+
+  // Related entities (optional links)
+  workoutId String?
+  workout   Workout?         @relation("WorkoutDecisions", fields: [workoutId], references: [id], onDelete: SetNull)
+  programId String?
+  program   TrainingProgram? @relation("ProgramDecisions", fields: [programId], references: [id], onDelete: SetNull)
+
+  // Data Moat Phase 4: Feedback loops
+  feedbackLoops AIFeedbackLoop[] @relation("DecisionFeedback")
+
+  @@index([coachId])
+  @@index([athleteId])
+  @@index([reasonCategory])
+  @@index([createdAt])
+  @@index([aiSuggestionType])
+  @@index([validated])
+  @@index([workoutId])
+  @@index([programId])
+}
+
+/// Manages athlete consent for data usage in the Data Moat system
+model DataMoatConsent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Athlete
+  athlete   Client @relation("AthleteDataMoatConsent", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId String @unique
+
+  // Consent levels
+  anonymizedBenchmarking Boolean @default(true)
+  patternContribution    Boolean @default(true)
+  predictionValidation   Boolean @default(true)
+  coachDecisionSharing   Boolean @default(true)
+
+  // Opt-outs
+  excludeFromResearch    Boolean @default(false)
+  excludeFromPublicStats Boolean @default(false)
+
+  // Version tracking
+  consentVersion String   @default("1.0")
+  acceptedAt     DateTime @default(now())
+
+  @@index([athleteId])
+}
+
+// ============================================================================
+// DATA MOAT: PHASE 2 - Training-Performance Correlation
+// ============================================================================
+
+/// Outcome classification for training periods
+enum TrainingOutcome {
+  EXCEEDED_GOALS // Significantly better than expected
+  MET_GOALS // Achieved target metrics
+  PARTIALLY_MET // Some goals achieved
+  MISSED_GOALS // Did not achieve targets
+  ABANDONED // Program stopped early
+  INJURED // Training interrupted by injury
+}
+
+/// Tracks which exercises improve specific metrics for specific athletes
+model ExerciseEffectiveness {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Relationships
+  exercise   Exercise @relation("ExerciseEffectivenessRecords", fields: [exerciseId], references: [id])
+  exerciseId String
+  athlete    Client   @relation("AthleteExerciseEffectiveness", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId  String
+
+  // Target metric
+  targetMetric    String // "vertical_jump", "5k_time", "1rm_squat", ...
+  baselineMeasure Float // Starting value
+  baselineDate    DateTime
+
+  // Training period
+  trainingWeeks     Int
+  volumeDescription String? // "3x10 twice/week"
+  avgIntensity      Float? // 0-1 scale or % of 1RM
+
+  // Post-period measurement
+  postMeasure Float?
+  postDate    DateTime?
+
+  // Results
+  absoluteImprovement Float? // postMeasure - baselineMeasure
+  percentImprovement  Float? // % improvement
+  effectivenessScore  Float? // Normalized 0-1 score
+
+  // Confounding factors
+  confoundingFactors Json? // { other_exercises: [...], diet_change: false, ... }
+  notes              String? @db.Text
+
+  @@unique([exerciseId, athleteId, targetMetric, baselineDate])
+  @@index([exerciseId])
+  @@index([athleteId])
+  @@index([targetMetric])
+  @@index([effectivenessScore])
+}
+
+/// Aggregated patterns across athletes for exercise effectiveness
+model ExerciseOutcomePattern {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Exercise
+  exercise   Exercise @relation("ExerciseOutcomePatterns", fields: [exerciseId], references: [id])
+  exerciseId String
+
+  // Target metric
+  targetMetric String // "vertical_jump", "5k_time", etc.
+
+  // Sample statistics
+  sampleSize         Int // Number of athletes
+  avgImprovement     Float // Mean improvement
+  stdDeviation       Float // Standard deviation
+  confidenceLevel    Float // Statistical confidence 0-1
+  confidenceInterval Json // { lower: 0.05, upper: 0.12 }
+
+  // Athlete type modifiers
+  athleteTypeModifiers Json? // { "beginner": 1.2, "advanced": 0.8, "age>40": 0.9 }
+
+  // Validity
+  lastCalculated DateTime
+  isSignificant  Boolean // p < 0.05
+
+  @@unique([exerciseId, targetMetric])
+  @@index([exerciseId])
+  @@index([targetMetric])
+  @@index([avgImprovement])
+}
+
+/// Aggregated metrics for athlete cohorts (anonymized benchmarks)
+model AthleteCohort {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Cohort definition
+  sport           String // "RUNNING", "CYCLING", "TRIATHLON", etc.
+  ageRangeLower   Int // e.g., 30
+  ageRangeUpper   Int // e.g., 39
+  experienceLevel ExperienceLevel
+  weeklyVolumeMin Float? // Minimum weekly hours
+  weeklyVolumeMax Float? // Maximum weekly hours
+  primaryGoal     GoalType?
+  gender          String? // "MALE", "FEMALE", "ALL"
+
+  // Sample info
+  sampleSize     Int // Number of athletes in cohort
+  lastCalculated DateTime
+
+  // Aggregated metrics (all anonymized averages)
+  avgWeeklyHours             Float?
+  avgZone2Percent            Float?
+  avgHighIntensityPercent    Float?
+  avgStrengthSessionsPerWeek Float?
+  avgRestDaysPerWeek         Float?
+
+  // Performance benchmarks
+  benchmarks Json // { "5k_time": { p10: X, p25: X, p50: X, p75: X, p90: X }, ... }
+
+  // Outcome statistics
+  avgSuccessRate Float? // % meeting/exceeding goals
+  avgInjuryRate  Float? // % with injury outcomes
+  avgImprovement Float? // Average improvement %
+
+  // Confidence
+  confidenceLevel Float // Statistical confidence 0-1
+
+  // Comparisons generated
+  comparisons BenchmarkComparison[] @relation("CohortComparisons")
+
+  @@unique([sport, ageRangeLower, ageRangeUpper, experienceLevel, gender])
+  @@index([sport])
+  @@index([experienceLevel])
+  @@index([sampleSize])
+}
+
+/// Pattern confidence level
+enum PatternConfidence {
+  PRELIMINARY // n < 20
+  MODERATE // n >= 20, p < 0.1
+  HIGH // n >= 50, p < 0.05
+  VERY_HIGH // n >= 100, p < 0.01
+}
+
+/// Cross-athlete performance patterns (what works across many athletes)
+model PerformancePattern {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Pattern identification
+  patternName        String // "High Responder to Polarized Training"
+  patternDescription String? @db.Text
+
+  // Pattern criteria (what defines this pattern)
+  criteria Json // { zoneDistribution: { zone2: ">75%" }, consistency: ">85%" }
+
+  // Outcome correlation
+  outcomeType        String // "improvement_rate", "injury_prevention", "goal_achievement"
+  outcomeCorrelation Float // Effect size
+  outcomeDescription String? // "14% higher improvement rate"
+
+  // Statistical validity
+  sampleSize      Int
+  pValue          Float?
+  effectSize      Float?
+  confidenceLevel PatternConfidence
+
+  // Applicability
+  applicableSports     String[] // ["RUNNING", "CYCLING"] or ["ALL"]
+  applicableAgeMin     Int?
+  applicableAgeMax     Int?
+  applicableExperience ExperienceLevel[]
+
+  // Discovery metadata
+  discoveredAt    DateTime  @default(now())
+  lastValidated   DateTime?
+  validationCount Int       @default(1)
+
+  // Status
+  isActive    Boolean @default(true)
+  isPublished Boolean @default(false) // Shown to users
+
+  // Matches
+  athleteMatches AthletePatternMatch[] @relation("PatternMatches")
+
+  // Data Moat Phase 4: Feedback loops
+  feedbackLoops AIFeedbackLoop[] @relation("PatternFeedback")
+
+  @@index([patternName])
+  @@index([outcomeType])
+  @@index([confidenceLevel])
+  @@index([isActive, isPublished])
+}
+
+/// Links athletes to patterns they match
+model AthletePatternMatch {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Athlete
+  athlete   Client @relation("AthletePatternMatches", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId String
+
+  // Pattern
+  pattern   PerformancePattern @relation("PatternMatches", fields: [patternId], references: [id], onDelete: Cascade)
+  patternId String
+
+  // Match quality
+  matchScore      Float // 0-1, how well athlete matches pattern criteria
+  matchedCriteria Json // Which criteria were matched
+
+  // Recommendation
+  recommendation         String?  @db.Text
+  recommendationAccepted Boolean?
+
+  // Outcome tracking (if recommendation was applied)
+  appliedAt      DateTime?
+  outcomeTracked Boolean   @default(false)
+  outcomeResult  String? // "POSITIVE", "NEGATIVE", "NEUTRAL"
+  outcomeNotes   String?   @db.Text
+
+  @@unique([athleteId, patternId])
+  @@index([athleteId])
+  @@index([patternId])
+  @@index([matchScore])
+  @@index([outcomeTracked])
+}
+
+/// Review of a coach by an athlete
+model CoachReview {
+  id              String @id @default(uuid())
+  coachProfileId  String
+  athleteClientId String
+
+  rating  Int     // 1-5
+  title   String?
+  comment String? @db.Text
+
+  isPublic   Boolean @default(true)
+  isVerified Boolean @default(false) // Had active agreement
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  coachProfile CoachProfile @relation(fields: [coachProfileId], references: [id], onDelete: Cascade)
+  athlete      Client       @relation("AthleteCoachReviews", fields: [athleteClientId], references: [id], onDelete: Cascade)
+
+  @@unique([coachProfileId, athleteClientId])
+  @@index([coachProfileId, isPublic])
+  @@index([athleteClientId])
+}
+
+// ==================== MULTIVARIATE ANALYSIS (MVA) ====================
+model MVAModel {
+  id                 String    @id @default(cuid())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  teamId             String
+  coachId            String
+  sport              SportType
+  modelType          String    // "PCA", "PLS"
+  config             Json      // PreprocessingConfig
+  xVariables         Json      // string[] of variable IDs included
+  nObservations      Int
+  nXVariables        Int
+  nComponents        Int
+  explainedVarianceX Float[]   // per component
+  modelData          Json      // Serialized loadings, means, stds for reconstruction
+  status             String    @default("COMPLETED")
+  version            Int       @default(1)
+  athleteScores      MVAAthleteScore[]
+
+  @@index([teamId, modelType])
+  @@index([teamId, createdAt])
+}
+
+model MVAAthleteScore {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  modelId         String
+  model           MVAModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  athleteId       String
+  scores          Float[]  // [PC1, PC2, ..., PCn]
+  hotellingT2     Float
+  dmodx           Float
+  isOutlierT2     Boolean  @default(false)
+  isOutlierDModX  Boolean  @default(false)
+  topContributors Json?    // [{ variableId, contribution, direction }]
+
+  @@unique([modelId, athleteId])
+  @@index([athleteId])
+}

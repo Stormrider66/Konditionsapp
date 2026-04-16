@@ -1,0 +1,1065 @@
+// TESTING domain models & enums.
+// Auto-grouped from schema.prisma — keep new declarations here.
+
+enum TestType {
+  RUNNING
+  CYCLING
+  SKIING
+}
+
+enum TestStatus {
+  DRAFT
+  COMPLETED
+  ARCHIVED
+}
+
+// ==================== ERGOMETER FIELD TESTING ====================
+enum ErgometerType {
+  WATTBIKE // Wattbike indoor cycling ergometer
+  CONCEPT2_ROW // Concept2 RowErg (rowing machine)
+  CONCEPT2_SKIERG // Concept2 SkiErg (skiing machine)
+  CONCEPT2_BIKEERG // Concept2 BikeErg (cycling machine)
+  ASSAULT_BIKE // Air bike / fan bike (Assault, Echo, Schwinn, etc.)
+}
+
+enum ErgometerTestProtocol {
+  // Peak Power Tests (Anaerobic Capacity)
+  PEAK_POWER_6S // 6-second max power - Wattbike neuromuscular test
+  PEAK_POWER_7_STROKE // 7-stroke max power - Concept2 machines
+  PEAK_POWER_30S // 30-second Wingate-style sprint
+
+  // Threshold / Time Trial Tests
+  TT_1K // 1000m time trial - SkiErg standard
+  TT_2K // 2000m time trial - Row/Ski/BikeErg standard
+  TT_10MIN // 10-minute max calories - Air Bike threshold
+  TT_20MIN // 20-minute FTP test - Wattbike/Cycling
+
+  // MAP Tests (Maximal Aerobic Power)
+  MAP_RAMP // Incremental ramp test to exhaustion
+
+  // Critical Power Tests
+  CP_3MIN_ALL_OUT // 3-minute all-out test (CP + W' calculation)
+  CP_MULTI_TRIAL // Multiple trials (3-min + 12-min) for CP model
+
+  // Interval Tests
+  INTERVAL_4X4 // 4Ã—4min with 3min rest - custom threshold test
+}
+
+// ==================== SPORT-SPECIFIC TESTING SYSTEM ====================
+enum SportTestCategory {
+  POWER // Jump tests, peak power, force plate tests
+  SPEED // Sprint tests (5m, 10m, 20m, 40m)
+  AGILITY // Change of direction tests (T-test, 5-10-5, Illinois)
+  STRENGTH // 1RM tests, isometric tests
+  ENDURANCE_FIELD // Yo-Yo IR, Beep test, Cooper test, CSS
+  SPORT_SPECIFIC // Sport-specific tests (serve speed, spike jump, etc.)
+}
+
+enum SportTestProtocol {
+  // Power Tests
+  VERTICAL_JUMP_CMJ // Counter-movement jump
+  VERTICAL_JUMP_SJ // Squat jump (no arm swing)
+  VERTICAL_JUMP_DJ // Drop jump (reactive strength)
+  STANDING_LONG_JUMP // Broad jump / horizontal power
+  SPIKE_JUMP // Volleyball spike approach jump
+  BLOCK_JUMP // Volleyball block jump
+  MEDICINE_BALL_THROW // Rotational/overhead power (handball)
+
+  // Speed Tests
+  SPRINT_5M // 5m acceleration
+  SPRINT_10M // 10m sprint
+  SPRINT_20M // 20m sprint
+  SPRINT_30M // 30m sprint
+  SPRINT_40M // 40m maximal speed
+  FLYING_10M // Flying 10m (max velocity)
+  RSA_6X30M // Repeated Sprint Ability (6x30m)
+
+  // Agility Tests
+  T_TEST // T-test agility
+  ILLINOIS_AGILITY // Illinois agility run
+  PRO_AGILITY_5_10_5 // 5-10-5 pro agility shuttle
+  LANE_AGILITY // Basketball lane agility
+  ARROWHEAD_AGILITY // Multi-directional agility
+
+  // Endurance Field Tests
+  YOYO_IR1 // Yo-Yo Intermittent Recovery Level 1
+  YOYO_IR2 // Yo-Yo Intermittent Recovery Level 2
+  BEEP_TEST // Multi-stage fitness test (Beep/Bleep)
+  COOPER_TEST // 12-minute run test
+  TIME_TRIAL_5K // 5K running time trial
+  TIME_TRIAL_10K // 10K running time trial
+
+  // Strength Tests
+  BENCH_PRESS_1RM // Bench press max
+  SQUAT_1RM // Back squat max
+  DEADLIFT_1RM // Deadlift max
+  LEG_PRESS_1RM // Leg press max
+  OVERHEAD_PRESS_1RM // Overhead press max
+
+  // Swimming Tests
+  CSS_TEST // Critical Swim Speed (400m + 200m)
+  SWOLF_TEST // Stroke efficiency (strokes + time)
+  SWIM_TIME_TRIAL_100M // 100m swim time trial
+  SWIM_TIME_TRIAL_400M // 400m swim time trial
+
+  // HYROX Station Tests
+  HYROX_SKIERG_1K // SkiErg 1km
+  HYROX_ROW_1K // Rowing 1km
+  HYROX_SLED_PUSH // Sled push 50m
+  HYROX_SLED_PULL // Sled pull 50m
+  HYROX_BURPEE_BROAD_JUMP // 80m burpee broad jumps
+  HYROX_FARMERS_CARRY // 200m farmers carry
+  HYROX_SANDBAG_LUNGE // 100m sandbag lunges
+  HYROX_WALL_BALLS // 75-100 wall balls
+
+  // Sport-Specific Tests
+  SERVE_SPEED // Tennis/Padel serve speed (km/h)
+  SHOT_SPEED // Hockey shot speed
+}
+
+model Test {
+  id       String     @id @default(uuid())
+  clientId String
+  userId   String
+  testDate DateTime
+  testType TestType
+  status   TestStatus @default(DRAFT)
+
+  // Test metadata (legacy string fields - prefer relations below)
+  location    String? // PiteÃ¥, SkellefteÃ¥, etc. (LEGACY - use locationId)
+  testLeader  String? // Name of test leader (LEGACY - use testerId)
+  inclineUnit InclineUnit @default(PERCENT) // For running tests: % or degrees
+
+  // Structured references (preferred over string fields)
+  testerId   String? // FK to Tester
+  locationId String? // FK to Location
+
+  // Public report sharing
+  publicToken     String?   @unique // Random token for public access
+  publicExpiresAt DateTime? // When public link expires
+
+  // Pre-test baseline measurements
+  restingLactate   Float? // Resting lactate before test (mmol/L)
+  restingHeartRate Int? // Resting heart rate before test (bpm)
+
+  // Post-test measurements (to capture peak lactate, 1-5 min after test)
+  postTestMeasurements Json? // Array of {timeMin: number, lactate: number, heartRate?: number}
+
+  // Recommended next test date
+  recommendedNextTestDate DateTime?
+
+  // BerÃ¤knade vÃ¤rden
+  maxHR      Int?
+  maxLactate Float?
+  vo2max     Float?
+
+  // TrÃ¶skelvÃ¤rden
+  aerobicThreshold   Json? // {hr: number, value: number, unit: string}
+  anaerobicThreshold Json? // {hr: number, value: number, unit: string}
+
+  // Manual threshold overrides (set by test leader when algorithm fails)
+  manualLT1Lactate   Float? // Manual LT1 lactate value (mmol/L)
+  manualLT1Intensity Float? // Manual LT1 intensity (speed/power/pace)
+  manualLT2Lactate   Float? // Manual LT2 lactate value (mmol/L)
+  manualLT2Intensity Float? // Manual LT2 intensity (speed/power/pace)
+
+  // TrÃ¤ningszoner
+  trainingZones Json? // Array av zoner
+
+  // Anteckningar
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id])
+  testStages       TestStage[]
+  report           Report?
+  trainingPrograms TrainingProgram[]
+
+  // Training Engine relationships
+  thresholdCalculation ThresholdCalculation?
+
+  // Tester & Location relations
+  tester       Tester?   @relation(fields: [testerId], references: [id], onDelete: SetNull)
+  testLocation Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([clientId])
+  @@index([userId])
+  @@index([testDate])
+  @@index([location])
+  @@index([testerId])
+  @@index([locationId])
+  @@index([publicToken])
+
+  // Visual Report System relations
+  visualReports VisualReport[] @relation("TestVisualReports")
+}
+
+model VisualReport {
+  id       String @id @default(uuid())
+  clientId String
+  coachId  String
+
+  reportType String  // "progression" | "training-summary" | "test-report" | "program"
+  sportType  String? // SportType enum value
+
+  // Source entity (polymorphic)
+  testId    String?
+  programId String?
+
+  // Time period (progression / training-summary)
+  periodStart DateTime?
+  periodEnd   DateTime?
+
+  // Storage
+  imageUrl    String
+  storagePath String
+  mimeType    String @default("image/png")
+  model       String // gemini model used
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation("ClientVisualReports", fields: [clientId], references: [id], onDelete: Cascade)
+  coach  User   @relation("CoachVisualReports", fields: [coachId], references: [id])
+  test   Test?  @relation("TestVisualReports", fields: [testId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, reportType])
+  @@index([testId])
+  @@index([programId])
+  @@index([clientId, reportType, createdAt(sort: Desc)])
+}
+
+model TestStage {
+  id       String @id @default(uuid())
+  testId   String
+  sequence Int // Ordning i testet
+
+  // Gemensamma fÃ¤lt
+  duration  Float // minuter
+  heartRate Int // slag/min
+  lactate   Float // mmol/L
+  vo2       Float? // ml/kg/min
+
+  // LÃ¶pspecifika
+  speed   Float? // km/h
+  incline Float? // procent
+
+  // Cykelspecifika
+  power   Float? // watt
+  cadence Int? // rpm
+
+  // SkidÃ¥kning (Cross-country skiing)
+  pace Float? // min/km
+
+  // Metabola data (frÃ¥n spirometri/metabol analysator)
+  rer             Float? // Respiratory Exchange Ratio (VCO2/VO2)
+  ve              Float? // Minutventilation (L/min)
+  vco2            Float? // Koldioxidproduktion (ml/min)
+  fatPercent      Float? // FettfÃ¶rbrÃ¤nning (%)
+  choPercent      Float? // KolhydratfÃ¶rbrÃ¤nning (%)
+  respiratoryRate Float? // Andningsfrekvens (andetag/min)
+
+  // BerÃ¤knade vÃ¤rden
+  economy    Float? // ml/kg/km fÃ¶r lÃ¶pning
+  wattsPerKg Float? // watt/kg fÃ¶r cykling
+
+  createdAt DateTime @default(now())
+
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@index([testId])
+  @@index([sequence])
+}
+
+model Report {
+  id     String @id @default(uuid())
+  testId String @unique
+
+  // Rapportdata
+  htmlContent String  @db.Text
+  pdfUrl      String?
+
+  // Metadata
+  generatedAt DateTime @default(now())
+  generatedBy String
+
+  // Anpassningar
+  customNotes     String?
+  recommendations String?
+
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
+}
+
+model TestTemplate {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  testType    TestType
+  description String?
+  stages      Json // Array of stage configurations
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([testType])
+  @@index([name])
+}
+
+// ============================================
+// TRAINING ENGINE MODELS
+// Added: 2025-11-14
+// Purpose: Elite training program generation with monitoring and adaptation
+// ============================================
+
+// ============================================
+// ENHANCED THRESHOLD CALCULATIONS
+// ============================================
+
+/// Stores results from D-max, Mod-Dmax, and field test threshold calculations
+model ThresholdCalculation {
+  id         String @id @default(uuid())
+  testId     String @unique
+  method     String // "D-MAX", "MOD-DMAX", "OBLA", "FIELD_TEST", "SELF_REPORTED"
+  confidence String // "VERY_HIGH", "HIGH", "MEDIUM", "LOW"
+
+  // D-max specific data
+  polynomialCoeffs Json? // {a: number, b: number, c: number, d: number}
+  r2               Float? // Goodness of fit (require â‰¥0.90 for high confidence)
+  dmaxIntensity    Float? // Intensity at D-max point
+  dmaxLactate      Float? // Lactate at D-max point
+  dmaxHr           Float? // Heart rate at D-max point
+
+  // LT1 (Aerobic Threshold) data
+  lt1Intensity Float // km/h, watts, or m/s
+  lt1Lactate   Float // mmol/L
+  lt1Hr        Float // bpm
+  lt1Method    String // "BASELINE_PLUS_0.5", "HR_DRIFT", "TALK_TEST"
+
+  // LT2 (Anaerobic Threshold) data
+  lt2Intensity     Float
+  lt2Lactate       Float
+  lt2Hr            Float
+  lt2PercentVO2max Float? // LT2 as % of VO2max (for categorization)
+
+  // Metadata
+  testDate DateTime
+  notes    String?
+  warnings Json? // Array of validation warnings
+
+  test      Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([testId])
+  @@index([method, confidence]) // Filter by calculation method and confidence level
+  @@index([testDate]) // Sort by test date for temporal queries
+}
+
+/// Field test schedule and reminders
+model FieldTestSchedule {
+  id            String   @id @default(uuid())
+  clientId      String
+  testType      String // "30MIN_TT", "HR_DRIFT", "CRITICAL_VELOCITY"
+  scheduledDate DateTime
+  required      Boolean  @default(false) // Critical tests must be completed
+
+  completed     Boolean   @default(false)
+  completedDate DateTime?
+  fieldTestId   String? // Link to completed FieldTest
+
+  // Reminders
+  reminderSent Boolean   @default(false)
+  reminderDate DateTime?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, scheduledDate])
+  @@index([completed, scheduledDate])
+  @@index([clientId, completed])
+}
+
+// ============================================
+// FIELD TESTS
+// ============================================
+
+/// Results from field tests (alternative to lab testing)
+model FieldTest {
+  id       String   @id @default(uuid())
+  clientId String
+  testType String // "30MIN_TT", "20MIN_TT", "HR_DRIFT", "CRITICAL_VELOCITY", "TALK_TEST", "RACE_BASED"
+  date     DateTime
+
+  // Test conditions
+  conditions Json? // {temperature, humidity, wind, terrain}
+
+  // Raw results (JSON for flexibility across test types)
+  results Json
+
+  // Derived thresholds
+  lt1Pace    Float? // sec/km
+  lt1HR      Float? // bpm
+  lt2Pace    Float? // sec/km
+  lt2HR      Float? // bpm
+  confidence String? // "VERY_HIGH", "HIGH", "MEDIUM", "LOW"
+
+  // Validation
+  valid    Boolean @default(true)
+  warnings Json?
+  errors   Json?
+
+  notes String?
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([clientId, date])
+  @@index([testType, date])
+  @@index([clientId, testType, date]) // Composite index for test type filtering
+  @@index([confidence, valid]) // Filter high-confidence valid tests
+}
+
+// ============================================
+// SELF-REPORTED LACTATE MEASUREMENTS
+// ============================================
+
+/// Athletes can track their own lactate measurements between lab tests
+model SelfReportedLactate {
+  id       String   @id @default(uuid())
+  clientId String
+  date     DateTime
+
+  // Measurement context
+  measurementType String // "WORKOUT", "RACE", "STANDALONE_TEST"
+  workoutType     String? // "EASY", "TEMPO", "THRESHOLD", "INTERVALS", "LONG"
+
+  // Single measurement data
+  intensity Float? // km/h, watts, or pace
+  lactate   Float? // mmol/L
+  heartRate Float? // bpm
+  rpe       Int? // 1-10 scale
+
+  // Multi-stage test data
+  measurements Json? // [{stage, intensity, lactate, heartRate, rpe}]
+
+  // Equipment & quality
+  meterBrand    String? // "Lactate Plus", "Lactate Scout", etc.
+  calibrated    Boolean @default(false)
+  qualityRating String? // "GOOD", "FAIR", "POOR"
+
+  // Derived insights
+  estimatedLT1 Float?
+  estimatedLT2 Float?
+  confidence   String? // "LOW", "MEDIUM", "HIGH"
+
+  // Context
+  workoutId String?
+  notes     String?
+  photos    Json? // Array of photo URLs
+
+  // Validation status
+  validated       Boolean   @default(false)
+  validatedBy     String? // Coach userId
+  validatedAt     DateTime?
+  validationNotes String?
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, date])
+  @@index([clientId, measurementType])
+  @@index([validated])
+  @@index([validated, clientId]) // Coach validation workflow - pending validations
+  @@index([validatedBy, validatedAt]) // Track coach validation activity
+}
+
+/// Sport-specific performance results (Cycling, Swimming, Triathlon, HYROX, Skiing)
+/// Unified model for tracking PRs and performance metrics across all sports
+model SportPerformance {
+  id       String @id @default(uuid())
+  clientId String
+
+  // Core fields
+  sport     SportType // CYCLING, SWIMMING, TRIATHLON, HYROX, SKIING
+  eventType String // Sport-specific: "FTP_TEST", "CSS_TEST", "HYROX_RACE", etc.
+  eventName String? // "VÃ¤tternrundan", "SM 50m", etc.
+  eventDate DateTime
+
+  // Primary result (time-based events)
+  timeSeconds    Float? // Total time in seconds
+  timeFormatted  String? // "1:28:00", "25:30", etc.
+  distanceMeters Float? // Distance in meters
+
+  // Power metrics (Cycling)
+  powerWatts      Float? // Average power
+  powerMax        Float? // Max power
+  ftp             Float? // Functional Threshold Power
+  wattsPerKg      Float? // W/kg
+  normalizedPower Float? // NP for cycling
+
+  // Pace metrics (Swimming, Running)
+  pacePerHundred Float? // Swimming: seconds per 100m
+  css            Float? // Critical Swim Speed (m/s)
+  strokeRate     Float? // Strokes per minute
+  strokeType     String? // "FREESTYLE", "BACKSTROKE", etc.
+  poolLength     Int? // 25 or 50 meters
+
+  // HYROX specific
+  hyroxDivision  String? // "OPEN", "PRO", "DOUBLES"
+  hyroxStations  Json? // { skiErg: 120, sled: 90, ... } times in seconds
+  hyroxRunSplits Json? // Array of 8 run split times
+  hyroxTotalTime Float? // Total race time in seconds
+
+  // Triathlon specific
+  swimTime          Float? // Swim leg in seconds
+  bikeTime          Float? // Bike leg in seconds
+  runTime           Float? // Run leg in seconds
+  t1Time            Float? // Transition 1 in seconds
+  t2Time            Float? // Transition 2 in seconds
+  triathlonDistance String? // "SPRINT", "OLYMPIC", "HALF", "FULL"
+
+  // Skiing specific
+  skiingTechnique String? // "CLASSIC", "SKATE", "BOTH"
+  skiingTerrain   String? // "FLAT", "ROLLING", "HILLY"
+  snowConditions  String? // "HARD", "SOFT", "WET", "ICY"
+
+  // Heart rate data
+  avgHeartRate Int?
+  maxHeartRate Int?
+
+  // Environmental
+  temperature Float?
+  humidity    Float?
+  altitude    Float?
+  conditions  String? @db.Text
+
+  // Notes
+  athleteNotes String? @db.Text
+  coachNotes   String? @db.Text
+  isPR         Boolean @default(false) // Mark as personal record
+  usedForZones Boolean @default(false) // Used for training zone calculation
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, sport])
+  @@index([clientId, eventType])
+  @@index([sport, eventDate])
+  @@index([clientId, isPR])
+}
+
+// ==================== ERGOMETER FIELD TESTING SYSTEM ====================
+// Purpose: Field tests for ergometer-based conditioning
+// Supports: Wattbike, Concept2 Row/SkiErg/BikeErg, Assault/Air Bikes
+// Primary users: Team sports (hockey, football, handball) and functional fitness (HYROX, CrossFit)
+model ErgometerFieldTest {
+  id            String                @id @default(uuid())
+  clientId      String
+  ergometerType ErgometerType
+  testProtocol  ErgometerTestProtocol
+  testDate      DateTime
+
+  // Equipment Settings
+  dragFactor       Int? // Concept2: 80-200 (Row: 110-130, Ski: 80-100)
+  damperSetting    Int? // Concept2: 1-10
+  airResistance    Int? // Wattbike: 1-10
+  magnetResistance Int? // Wattbike: 1-4
+  bikeBrand        String? // Air bike brand: ASSAULT, ECHO, SCHWINN (brand-agnostic storage)
+
+  // Environmental Conditions
+  conditions Json? // { temperature, humidity, altitude }
+
+  // Raw Test Data (flexible JSON per protocol)
+  rawData Json // Protocol-specific raw data
+
+  // Derived Metrics - Power
+  peakPower       Float? // Watts (instantaneous max)
+  avgPower        Float? // Watts (test average)
+  endPower        Float? // Watts (last 30s for CP tests)
+  normalizedPower Float? // Watts (NP calculation)
+
+  // Derived Metrics - Pace (Concept2 only)
+  avgPace  Float? // seconds per 500m
+  bestPace Float? // seconds per 500m (fastest split)
+
+  // Derived Metrics - Critical Power Model
+  criticalPower Float? // CP in Watts
+  wPrime        Float? // W' in Joules (anaerobic work capacity)
+  wPrimeKJ      Float? // W' in kJ (for display)
+
+  // Derived Metrics - Distance/Time/Calories
+  totalDistance Float? // meters
+  totalTime     Float? // seconds
+  totalCalories Float? // for Air Bike tests
+  strokeRate    Float? // strokes/min or RPM
+
+  // Heart Rate Data
+  avgHR   Float? // bpm
+  maxHR   Float? // bpm
+  hrAtEnd Float? // bpm (threshold estimation)
+
+  // Interval Test Data (4Ã—4min etc)
+  intervalData Json? // Array of { avgPower, avgHR, duration }
+
+  // Model Quality & Confidence
+  r2         Float? // RÂ² for CP model fit (0-1)
+  confidence String? // VERY_HIGH, HIGH, MEDIUM, LOW
+  modelFit   String? // EXCELLENT, GOOD, FAIR, POOR
+
+  // Validation
+  valid    Boolean @default(true)
+  warnings Json? // Array of warning strings
+  errors   Json? // Array of error strings
+  notes    String?
+  rpe      Int? // 1-10 perceived exertion
+
+  // Relationships
+  client    Client   @relation("ClientErgometerTests", fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, ergometerType])
+  @@index([clientId, testDate])
+  @@index([ergometerType, testProtocol])
+  @@index([confidence, valid])
+}
+
+model ErgometerThreshold {
+  id            String        @id @default(uuid())
+  clientId      String
+  ergometerType ErgometerType
+
+  // Source test reference
+  sourceTestId String? // ErgometerFieldTest ID
+  sourceMethod String // CP_MODEL, FTP_TEST, MAP_RAMP, TT_BASED, INTERVAL_TEST
+
+  // Critical Power Model Parameters
+  criticalPower Float? // CP in Watts
+  wPrime        Float? // W' in Joules
+  wPrimeKJ      Float? // W' in kJ
+
+  // FTP-based (Wattbike mainly)
+  ftp                 Float? // Functional Threshold Power
+  ftpCorrectionFactor Float? // 0.90 for non-cyclists, 0.95 for cyclists
+
+  // MAP-based
+  mapWatts Float? // Maximal Aerobic Power
+
+  // Peak Power
+  peakPower         Float? // Peak power (6s or 30s)
+  peakPowerDuration String? // 6S, 30S, 7_STROKE
+
+  // HR at threshold
+  thresholdHR Float? // bpm at CP/FTP
+
+  // Pace (Concept2 only)
+  thresholdPace Float? // sec/500m at threshold
+
+  // Validity
+  testDate   DateTime
+  expiresAt  DateTime? // Suggest retest after 8-12 weeks
+  confidence String? // VERY_HIGH, HIGH, MEDIUM, LOW
+  valid      Boolean   @default(true)
+
+  // Relationships
+  client    Client          @relation("ClientErgometerThresholds", fields: [clientId], references: [id], onDelete: Cascade)
+  zones     ErgometerZone[] @relation("ThresholdZones")
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@unique([clientId, ergometerType])
+  @@index([clientId, ergometerType])
+  @@index([testDate])
+}
+
+model ErgometerZone {
+  id            String        @id @default(uuid())
+  clientId      String
+  ergometerType ErgometerType
+
+  // Zone definition (1-6 standard, 1-7 for detailed)
+  zone        Int // 1-6 (or 1-7)
+  name        String // Recovery, Endurance, Tempo, Threshold, VO2max, Anaerobic
+  nameSwedish String // Ã…terhÃ¤mtning, UthÃ¥llighet, Tempo, TrÃ¶skel, VO2max, Anaerob
+
+  // Power targets
+  powerMin   Float // Watts (lower bound)
+  powerMax   Float // Watts (upper bound)
+  percentMin Float // % of CP/FTP (lower)
+  percentMax Float // % of CP/FTP (upper)
+
+  // Pace targets (Concept2 only) - note: lower pace = faster
+  paceMin Float? // sec/500m (faster, lower number)
+  paceMax Float? // sec/500m (slower, higher number)
+
+  // HR targets (optional)
+  hrMin Float? // bpm (lower)
+  hrMax Float? // bpm (upper)
+
+  // Training application
+  description        String // Training effect/application
+  descriptionSwedish String? // Swedish description
+  typicalDuration    String? // Typical interval duration (e.g., "4-8 min")
+
+  // Source
+  sourceThresholdId String
+  calculationMethod String // CP_BASED, FTP_BASED, MAP_BASED, TT_BASED
+
+  // Relationships
+  client          Client             @relation("ClientErgometerZones", fields: [clientId], references: [id], onDelete: Cascade)
+  sourceThreshold ErgometerThreshold @relation("ThresholdZones", fields: [sourceThresholdId], references: [id], onDelete: Cascade)
+  createdAt       DateTime           @default(now())
+
+  @@index([clientId, ergometerType])
+  @@index([zone])
+  @@index([sourceThresholdId])
+}
+
+model ErgometerBenchmark {
+  id            String                @id @default(uuid())
+  ergometerType ErgometerType
+  testProtocol  ErgometerTestProtocol
+  sport         SportType? // NULL = general, or specific sport context
+  gender        String // MALE, FEMALE
+  tier          String // ELITE, ADVANCED, INTERMEDIATE, BEGINNER
+
+  // Benchmark values - Power
+  powerMin Float? // Watts (lower bound for tier)
+  powerMax Float? // Watts (upper bound for tier)
+
+  // Benchmark values - Pace (Concept2)
+  paceMin Float? // sec/500m (faster, lower = better)
+  paceMax Float? // sec/500m (slower)
+
+  // Benchmark values - Time (for TT tests)
+  timeMin Float? // seconds (faster, lower = better)
+  timeMax Float? // seconds (slower)
+
+  // Benchmark values - Calories (Air Bike)
+  caloriesMin Float? // calories (lower bound)
+  caloriesMax Float? // calories (upper bound)
+
+  // Relative benchmarks
+  wattsPerKg Float? // W/kg (relative power)
+
+  // Metadata
+  description        String? // Description of benchmark tier
+  descriptionSwedish String? // Swedish description
+  source             String? // Reference source for benchmark data
+
+  createdAt DateTime @default(now())
+
+  @@unique([ergometerType, testProtocol, sport, gender, tier])
+  @@index([ergometerType, gender, tier])
+  @@index([sport, gender])
+}
+
+// ==================== SPORT-SPECIFIC TEST RESULTS ====================
+
+/// Unified model for all sport-specific physical tests (power, speed, agility, strength, etc.)
+model SportTest {
+  id       String   @id @default(uuid())
+  clientId String
+  userId   String
+  testDate DateTime
+
+  // Test categorization
+  category SportTestCategory
+  protocol SportTestProtocol
+  sport    SportType? // Optional sport context for benchmarking
+
+  // Environmental conditions (JSON: temperature, humidity, surface, wind, etc.)
+  conditions Json?
+
+  // Raw test data (protocol-specific JSON structure)
+  rawData Json
+
+  // Primary result (main metric for this test type)
+  primaryResult Float? // e.g., jump height (cm), sprint time (s), weight (kg)
+  primaryUnit   String? // cm, s, kg, m/s, W, km/h, etc.
+
+  // Secondary result (if applicable)
+  secondaryResult Float? // e.g., contact time for DJ, reps for estimated 1RM
+  secondaryUnit   String?
+
+  // Power-specific derived metrics
+  peakPower     Float? // Peak power in Watts
+  avgPower      Float? // Average power in Watts
+  relativePower Float? // Power per kg (W/kg)
+
+  // Speed-specific derived metrics
+  splits       Json? // Array of split times for sprint tests
+  acceleration Float? // Acceleration in m/s²
+  maxVelocity  Float? // Maximum velocity in m/s
+
+  // Endurance-specific derived metrics
+  estimatedVO2max Float? // Estimated VO2max from Yo-Yo/Beep test
+  distance        Float? // Total distance covered (m)
+  level           Float? // Yo-Yo/Beep test level achieved
+
+  // Benchmarking results
+  benchmarkTier String? // ELITE, ADVANCED, INTERMEDIATE, BEGINNER
+  percentile    Float? // 0-100 percentile ranking
+  positionRank  String? // Position-specific ranking (for team sports)
+
+  // Validation
+  valid    Boolean @default(true)
+  warnings Json? // Array of warning messages
+  notes    String? // Tester notes
+
+  // Attempt tracking (for tests with multiple attempts)
+  attemptNumber Int? // Which attempt this was (1, 2, 3...)
+  bestAttempt   Boolean @default(false) // Is this the best attempt?
+
+  // Link to existing ergometer test if applicable
+  ergometerTestId String? @unique
+
+  // Relations
+  client Client @relation("ClientSportTests", fields: [clientId], references: [id], onDelete: Cascade)
+  user   User   @relation("UserSportTests", fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, testDate])
+  @@index([category, protocol])
+  @@index([sport, category])
+  @@index([clientId, protocol])
+  @@index([benchmarkTier])
+  @@index([userId])
+}
+
+/// Benchmark reference data for sport-specific tests
+model SportTestBenchmark {
+  id       String            @id @default(uuid())
+  protocol SportTestProtocol
+  sport    SportType? // NULL = general benchmark, otherwise sport-specific
+  gender   String // MALE, FEMALE
+
+  // Position-specific benchmarks (for team sports)
+  position String? // GK, DEF, MID, FWD, WING, BACK, CENTER, etc.
+
+  // Age group (optional)
+  ageGroupMin Int? // Minimum age for this benchmark
+  ageGroupMax Int? // Maximum age for this benchmark
+
+  // Tier classification
+  tier String // ELITE, ADVANCED, INTERMEDIATE, BEGINNER
+
+  // Benchmark thresholds
+  valueMin Float? // Lower bound for this tier
+  valueMax Float? // Upper bound for this tier
+  unit     String // cm, s, kg, W, W/kg, m, level, etc.
+
+  // Descriptive information
+  description        String? // English description
+  descriptionSwedish String? // Swedish description
+  source             String? // Reference source (research paper, organization)
+
+  createdAt DateTime @default(now())
+
+  @@unique([protocol, sport, gender, position, tier, ageGroupMin])
+  @@index([protocol, gender, tier])
+  @@index([sport, protocol])
+}
+
+/// Validates that test metrics (lactate, VO2max) predict actual performance
+model TestPredictiveValidation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Source test
+  testType String // "LACTATE", "VO2MAX", "FTP", "CRITICAL_POWER"
+  testId   String // Reference to actual test record
+  testDate DateTime
+
+  // Prediction made
+  predictedMetric String // "10k_time", "marathon_time", "ftp"
+  predictedValue  Float
+  predictionDate  DateTime
+
+  // Athlete
+  athlete   Client @relation("AthleteTestValidations", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId String
+
+  // Validation event
+  validationEventType String? // "RACE", "TIME_TRIAL", "FTP_TEST"
+  validationEventId   String? // Reference to race result or test
+  validationDate      DateTime?
+  actualValue         Float?
+
+  // Error metrics
+  absoluteError   Float?
+  percentageError Float?
+
+  // Environmental factors
+  environmentalFactors Json? // { heat: true, altitude: 1500, ... }
+
+  // Quality
+  validationQuality Float? // 0-1, reliability of the validation
+
+  @@index([athleteId])
+  @@index([testType])
+  @@index([predictedMetric])
+  @@index([validationDate])
+}
+
+/// Individual athlete comparison to their cohort
+model BenchmarkComparison {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Athlete
+  athlete   Client @relation("AthleteBenchmarks", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId String
+
+  // Cohort
+  cohort   AthleteCohort @relation("CohortComparisons", fields: [cohortId], references: [id], onDelete: Cascade)
+  cohortId String
+
+  // Comparison metrics
+  metricName       String // "5k_time", "weekly_volume", "zone2_percent"
+  athleteValue     Float
+  cohortPercentile Float // 0-100, where athlete ranks
+
+  // Percentile details
+  cohortP25 Float?
+  cohortP50 Float?
+  cohortP75 Float?
+
+  // Interpretation
+  interpretation String? // "Above average", "Top 10%", etc.
+  recommendation String? @db.Text
+
+  @@index([athleteId])
+  @@index([cohortId])
+  @@index([metricName])
+  @@index([cohortPercentile])
+}
+
+// ============================================
+// Custom Test Protocols
+// ============================================
+
+/// Coach-defined custom test protocol templates
+model CustomTestProtocol {
+  id          String  @id @default(uuid())
+  businessId  String
+  createdById String
+
+  name        String  // e.g., "SAIK Försäsongstest"
+  description String? @db.Text
+  sportType   String? // Optional sport association
+
+  // Protocol definition: ordered list of metrics to collect
+  // JSON array of { id, name, unit, type, category, min?, max?, required? }
+  // type: "number" | "time" | "array" | "ladder"
+  // category: "ice" | "power" | "jump" | "endurance" | "flexibility" | "other"
+  metrics     Json    // The protocol definition
+
+  isPublished Boolean @default(false) // Available to other coaches in same business
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business  Business @relation("BusinessTestProtocols", fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy User     @relation("CreatedTestProtocols", fields: [createdById], references: [id])
+  results   CustomTestResult[]
+
+  @@index([businessId])
+  @@index([createdById])
+}
+
+/// Results recorded using a custom test protocol
+model CustomTestResult {
+  id          String  @id @default(uuid())
+  protocolId  String
+  clientId    String
+  coachId     String
+  teamId      String?
+  testDate    DateTime
+
+  // Actual measured values (JSON object matching protocol metrics)
+  // { metricId: value, metricId: [array], metricId: {ladder} }
+  values      Json
+  notes       String? @db.Text
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  protocol CustomTestProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  client   Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  coach    User               @relation("CoachCustomTestResults", fields: [coachId], references: [id])
+  team     Team?              @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([protocolId, testDate])
+  @@index([clientId, testDate])
+  @@index([teamId])
+}
+
+// Hockey Physical Testing
+// ============================================
+
+/// Hockey-specific physical test session (batch of tests for one athlete on one date)
+model HockeyPhysicalTest {
+  id        String   @id @default(uuid())
+  clientId  String
+  teamId    String?
+  coachId   String   // Who administered the test
+  testDate  DateTime
+  notes     String?  @db.Text
+
+  // On-Ice Agility: 5-10-5m shuttle (seconds)
+  agility505Left   Float?  // Left side
+  agility505Right  Float?  // Right side
+
+  // On-Ice Sprints (seconds)
+  sprint10m     Float?  // 10m standing start
+  sprint20mFly  Float?  // 20m flying start
+  sprint30mFly  Float?  // 30m flying start
+
+  // On-Ice Endurance: 7x40m (JSON array of 7 times in seconds)
+  endurance7x40  Json?  // [5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8]
+
+  // Power: Jumping Squat Ladder (JSON: {load_kg: watts} pairs)
+  // e.g. {"20": 1200, "40": 1100, "60": 950, "80": 800, "100": 650}
+  jumpSquatLadder  Json?
+
+  // Power: Single Leg Jump Smith Machine (JSON per leg)
+  // e.g. {"30": 450, "35": 430, "40": 410, "45": 380, "50": 350, "55": 320}
+  singleLegJumpLeft   Json?
+  singleLegJumpRight  Json?
+
+  // Grip Strength (kg)
+  gripStrengthLeft   Float?
+  gripStrengthRight  Float?
+
+  // Standing Long Jump (cm)
+  standingLongJump  Float?
+
+  // Standing 3-Jump same leg (cm)
+  threeJumpLeft   Float?
+  threeJumpRight  Float?
+
+  // Source: MANUAL or MUSCLE_LAB_IMPORT
+  sourceType  String @default("MANUAL")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  team   Team?  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  coach  User   @relation("CoachHockeyTests", fields: [coachId], references: [id])
+
+  @@index([clientId, testDate])
+  @@index([teamId, testDate])
+  @@index([coachId])
+}
