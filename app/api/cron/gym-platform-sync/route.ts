@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { syncConnection } from '@/lib/integrations/gym-platforms/sync-engine'
@@ -9,7 +9,13 @@ import { subMinutes } from 'date-fns'
  * Periodic sync of all active gym platform connections.
  * Should run every 15 minutes via Vercel Cron.
  */
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const authHeader = request.headers.get('authorization')
+  const cronSecret = process.env.CRON_SECRET
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const now = new Date()
 

@@ -12,7 +12,7 @@ import {
   calculateAltitudeEffect,
   calculateWindEffect,
 } from '@/lib/calculations/environmental';
-import { rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit';
+import { rateLimitIp, RATE_LIMITS } from '@/lib/api/rate-limit';
 
 const requestSchema = z.object({
   // Weather data
@@ -35,8 +35,7 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  // Rate limiting for calculation routes
-  const rateLimited = rateLimitResponse(request, RATE_LIMITS.calculation);
+  const rateLimited = await rateLimitIp(request, RATE_LIMITS.calculation, 'calc:environmental');
   if (rateLimited) return rateLimited;
 
   try {

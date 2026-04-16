@@ -4,6 +4,47 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
 type CachedAuthUser = { id: string; email: string | null } | null
 
+/**
+ * Resolve the Supabase service role key for edge-side tenant lookups.
+ *
+ * This key bypasses RLS and is used by middleware to resolve custom domains
+ * and business membership. Silent fallback to the anon key used to be the
+ * default — that was a footgun because it made the policy gates appear to
+ * work locally while failing open in production. Fail fast instead.
+ *
+ * In local dev (`NODE_ENV !== 'production'`) we still tolerate a missing key
+ * and fall back to anon so that contributors without a service key in their
+ * `.env.local` can run the app; a loud warning is emitted once.
+ */
+let warnedMissingServiceKey = false
+function resolveSupabaseServiceKey(): string {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (serviceKey) return serviceKey
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY is required in production. Middleware ' +
+        'cannot resolve tenants without it. Configure it in the Vercel ' +
+        'environment and redeploy.'
+    )
+  }
+
+  if (!warnedMissingServiceKey) {
+    warnedMissingServiceKey = true
+    console.warn(
+      '[middleware] SUPABASE_SERVICE_ROLE_KEY missing — falling back to anon key for dev only.'
+    )
+  }
+
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!anon) {
+    throw new Error(
+      'Neither SUPABASE_SERVICE_ROLE_KEY nor NEXT_PUBLIC_SUPABASE_ANON_KEY is set.'
+    )
+  }
+  return anon
+}
+
 // Middleware runs in the Edge runtime. `supabase.auth.getUser()` can be a major bottleneck
 // under load because it may involve network I/O. Cache it briefly and dedupe in-flight
 // lookups to avoid stampeding (especially for k6 which uses a single cookie across VUs).
@@ -32,7 +73,7 @@ async function getBusinessSlugForUser(dbUserId: string): Promise<string | null> 
 
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    const serviceKey = resolveSupabaseServiceKey()
 
     const res = await fetch(
       `${supabaseUrl}/rest/v1/BusinessMember?userId=eq.${encodeURIComponent(dbUserId)}&isActive=eq.true&select=Business!inner(slug,isActive)&order=createdAt.asc&limit=1`,
@@ -77,7 +118,7 @@ async function getBusinessSlugForUser(dbUserId: string): Promise<string | null> 
 async function isUserMemberOfBusiness(dbUserId: string, businessSlug: string): Promise<boolean> {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    const serviceKey = resolveSupabaseServiceKey()
 
     const res = await fetch(
       `${supabaseUrl}/rest/v1/BusinessMember?userId=eq.${encodeURIComponent(dbUserId)}&isActive=eq.true&select=id,Business!inner(slug,isActive)&Business.slug=eq.${encodeURIComponent(businessSlug)}&Business.isActive=eq.true&limit=1`,
@@ -407,7 +448,7 @@ export async function middleware(request: NextRequest) {
       // Look up domain via Supabase (Edge-compatible, no Prisma)
       try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        const supabaseKey = resolveSupabaseServiceKey()
         const lookupRes = await fetch(
           `${supabaseUrl}/rest/v1/Business?customDomain=eq.${encodeURIComponent(requestHost)}&domainVerified=eq.true&isActive=eq.true&select=slug`,
           {

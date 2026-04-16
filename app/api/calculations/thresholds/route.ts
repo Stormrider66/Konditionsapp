@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { validateRequest, successResponse, handleApiError, requireAuth } from '@/lib/api/utils';
 import { performAllCalculations } from '@/lib/calculations';
 import { Test, Client, TestStage, TestCalculations } from '@/types';
-import { rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit';
+import { rateLimitIp, RATE_LIMITS } from '@/lib/api/rate-limit';
 
 // Minimal types for API request that can be coerced to full types
 type CalculationTestInput = Pick<Test, 'testType' | 'testDate'> & {
@@ -46,8 +46,7 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  // Rate limiting for calculation routes
-  const rateLimited = rateLimitResponse(request, RATE_LIMITS.calculation);
+  const rateLimited = await rateLimitIp(request, RATE_LIMITS.calculation, 'calc:thresholds');
   if (rateLimited) return rateLimited;
 
   try {
