@@ -4,7 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenAI } from '@google/genai'
 import crypto from 'crypto'
 
 // Load environment variables
@@ -223,8 +223,7 @@ async function main() {
   // Generate AI nudge
   console.log('🤖 Generating AI pre-workout nudge with Gemini...\n')
 
-  const genAI = new GoogleGenerativeAI(googleKey)
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+  const ai = new GoogleGenAI({ apiKey: googleKey })
 
   const context: NudgeContext = {
     athleteName: athlete.name.split(' ')[0],
@@ -237,8 +236,11 @@ async function main() {
   }
 
   const prompt = buildNudgePrompt(context)
-  const result = await model.generateContent(prompt)
-  const responseText = result.response.text()
+  const result = await ai.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: prompt,
+  })
+  const responseText = result.text ?? ''
 
   // Parse JSON
   const jsonMatch = responseText.match(/\{[\s\S]*\}/)

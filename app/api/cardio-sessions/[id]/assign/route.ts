@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
 import { logError } from '@/lib/logger-console'
+import { logger } from '@/lib/logger'
 import {
   createGarminWorkout,
   scheduleGarminWorkout,
@@ -354,7 +355,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
         if (pushToGarmin && garminWorkoutPayload && garminTokensByAthlete.has(athleteId)) {
           try {
-            console.log('[Garmin Push] Sending workout for athlete:', athleteId, JSON.stringify(garminWorkoutPayload, null, 2).slice(0, 2000));
+            logger.info('[Garmin Push] Sending workout', { athleteId, payload: JSON.stringify(garminWorkoutPayload, null, 2).slice(0, 2000) });
             const created = await createGarminWorkout(athleteId, garminWorkoutPayload);
 
             const wid = created.workoutId ?? (created as unknown as { id?: string }).id
@@ -363,7 +364,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
               // Schedule on the assigned date
               if (dateStr) {
                 try {
-                  console.log('[Garmin Schedule] workoutId:', wid, 'date:', dateStr)
+                  logger.info('[Garmin Schedule]', { workoutId: wid, date: dateStr })
                   await scheduleGarminWorkout(athleteId, {
                     workoutId: workoutIdStr,
                     date: dateStr,

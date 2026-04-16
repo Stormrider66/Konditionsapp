@@ -481,7 +481,7 @@ describe('Fitness Level Estimation', () => {
       const eliteZ2 = elite.zones.find(z => z.zone === 2)
 
       // Elite should have higher Zone 2 ceiling (higher LT1)
-      expect(eliteZ2?.hrMax).toBeGreaterThan(beginnerZ2?.hrMax!)
+      expect(eliteZ2?.hrMax).toBeGreaterThan(beginnerZ2!.hrMax)
     })
 
     it('should have non-overlapping zone boundaries', () => {
