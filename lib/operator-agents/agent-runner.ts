@@ -248,6 +248,46 @@ export function estimateOperatorCost(
 }
 
 /**
+ * Call Anthropic with exponential backoff for transient errors.
+ *
+ * Retries on: 529 (overloaded), 429 (rate limit), 5xx, and network errors.
+ * Does NOT retry: 4xx errors other than 429 (those are real bugs).
+ */
+async function createMessageWithRetry(
+  client: Anthropic,
+  params: Anthropic.MessageCreateParamsNonStreaming,
+  maxAttempts: number = 4
+): Promise<Anthropic.Message> {
+  let lastError: unknown
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await client.messages.create(params)
+    } catch (error) {
+      lastError = error
+      const status = (error as { status?: number })?.status
+      const isRetryable =
+        status === 529 ||
+        status === 429 ||
+        (typeof status === 'number' && status >= 500) ||
+        status === undefined // network error
+
+      if (!isRetryable || attempt === maxAttempts) throw error
+
+      // Exponential backoff with jitter: 1s, 2s, 4s, 8s (+ up to 500ms jitter)
+      const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 8000) + Math.floor(Math.random() * 500)
+      logger.warn('[operator-agents] Anthropic API transient error, retrying', {
+        status,
+        attempt,
+        maxAttempts,
+        backoffMs,
+      })
+      await new Promise(resolve => setTimeout(resolve, backoffMs))
+    }
+  }
+  throw lastError
+}
+
+/**
  * Run a simple tool-calling loop for an operator agent.
  * Mirrors the managed-agents pattern but simpler (no persistent sessions).
  */
@@ -269,7 +309,7 @@ export async function runAgentLoop(
   let messages: Anthropic.MessageParam[] = [{ role: 'user', content: initialPrompt }]
 
   for (let i = 0; i < maxIterations; i++) {
-    const response = await ctx.client.messages.create({
+    const response = await createMessageWithRetry(ctx.client, {
       model: ctx.model,
       max_tokens: 4096,
       system: definition.systemPrompt,
