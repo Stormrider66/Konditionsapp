@@ -49,7 +49,8 @@ export class GeminiLiveVoiceClient {
     this.callbacks = callbacks
 
     // The SDK accepts ephemeral tokens in place of API keys
-    this.ai = new GoogleGenAI({ apiKey: token })
+    // Live API requires v1alpha endpoint
+    this.ai = new GoogleGenAI({ apiKey: token, httpOptions: { apiVersion: 'v1alpha' } })
 
     this.session = await this.ai.live.connect({
       model,
