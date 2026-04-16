@@ -32,8 +32,8 @@ export function createCoachChatTools(coachUserId: string) {
         goal: z.enum(['strength', 'power', 'injury-prevention', 'running-economy']).describe('Träningsmål: strength=generell styrka, power=kraft & explosivitet, injury-prevention=skadeförebyggande, running-economy=löpekonomi'),
         phase: z.enum(['ANATOMICAL_ADAPTATION', 'MAXIMUM_STRENGTH', 'POWER', 'MAINTENANCE', 'TAPER']).describe('Träningsfas/periodisering'),
         athleteLevel: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ELITE']).default('INTERMEDIATE').describe('Atletens nivå'),
-        sessionsPerWeek: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(2).describe('Antal pass per vecka'),
-        timePerSession: z.number().min(20).max(90).default(45).describe('Tid per pass i minuter'),
+        sessionsPerWeek: z.enum(['1', '2', '3']).default('2').describe('Antal pass per vecka (1, 2 eller 3)'),
+        timePerSession: z.enum(['20', '30', '45', '60', '75', '90']).default('45').describe('Tid per pass i minuter'),
         equipmentAvailable: z.array(z.string()).default(['barbell', 'dumbbell', 'bodyweight']).describe('Tillgänglig utrustning: barbell, dumbbell, kettlebell, bodyweight, cable, machine, bands, box'),
         mode: z.enum(['single', 'weekly']).default('single').describe('single=enskilt pass, weekly=veckoprogram med A/B/C variation'),
         includeWarmup: z.boolean().default(true),
@@ -47,14 +47,16 @@ export function createCoachChatTools(coachUserId: string) {
             goal,
             phase,
             athleteLevel,
-            sessionsPerWeek,
-            timePerSession,
+            sessionsPerWeek: sessionsPerWeekStr,
+            timePerSession: timePerSessionStr,
             equipmentAvailable,
             mode,
             includeWarmup,
             includeCore,
             includeCooldown,
           } = params
+          const sessionsPerWeek = parseInt(sessionsPerWeekStr) as 1 | 2 | 3
+          const timePerSession = parseInt(timePerSessionStr)
 
           // Fetch athlete context if clientId provided
           let recentExerciseIds: string[] = []
