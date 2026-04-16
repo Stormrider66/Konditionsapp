@@ -1,0 +1,111 @@
+import { logger } from '@/lib/logger'
+import type { Client, Test, CreateTrainingProgramDTO } from '@/types'
+import { generateCyclingProgram, type CyclingProgramParams } from '../generators/cycling-generator'
+import { generateSkiingProgram, type SkiingProgramParams } from '../generators/skiing-generator'
+import { generateSwimmingProgram, type SwimmingProgramParams } from '../generators/swimming-generator'
+import { generateTriathlonProgram, type TriathlonProgramParams } from '../generators/triathlon-generator'
+import { generateHyroxProgram, type HyroxProgramParams } from '../generators/hyrox-generator'
+import { generateStrengthProgram, type StrengthProgramParams } from '../generators/strength-generator'
+import type { SportProgramParams } from './types'
+import { applyCalendarConstraints } from './calendar-constraints'
+import { generateRunningProgram } from './running'
+import { generateGeneralFitnessProgram } from './general-fitness'
+
+
+/**
+ * Main sport router - routes to appropriate generator based on sport type
+ */
+export async function generateSportProgram(
+  params: SportProgramParams,
+  client: Client,
+  test?: Test
+): Promise<CreateTrainingProgramDTO> {
+  logger.debug('[SPORT ROUTER] Generating program', {
+    sport: params.sport,
+    goal: params.goal,
+    dataSource: params.dataSource,
+    ...(params.calendarConstraints && {
+      calendarBlockedDates: params.calendarConstraints.blockedDates.length,
+      calendarReducedDates: params.calendarConstraints.reducedDates.length
+    })
+  })
+
+  let program: CreateTrainingProgramDTO
+
+  switch (params.sport) {
+    case 'RUNNING':
+      program = await generateRunningProgram(params, client, test)
+      break
+
+    case 'CYCLING':
+      program = await generateCyclingProgram({
+        ...params,
+        ftp: params.manualFtp,
+        weeklyHours: params.weeklyHours || 8,
+        bikeType: params.bikeType as any,
+      } as CyclingProgramParams, client)
+      break
+
+    case 'SKIING':
+      program = await generateSkiingProgram({
+        ...params,
+        technique: params.technique as any,
+      } as SkiingProgramParams, client, test)
+      break
+
+    case 'SWIMMING':
+      program = await generateSwimmingProgram({
+        ...params,
+        css: params.manualCss,
+        poolLength: params.poolLength as any,
+      } as SwimmingProgramParams, client)
+      break
+
+    case 'TRIATHLON':
+      program = await generateTriathlonProgram({
+        ...params,
+        ftp: params.manualFtp,
+        css: params.manualCss,
+        vdot: params.manualVdot,
+      } as TriathlonProgramParams, client, test)
+      break
+
+    case 'HYROX':
+      program = await generateHyroxProgram({
+        ...params,
+        experienceLevel: params.experienceLevel,
+        // Pass race result data for VDOT calculation (pure running races only)
+        recentRaceDistance: params.recentRaceDistance,
+        recentRaceTime: params.recentRaceTime,
+        // Pass HYROX-specific data
+        hyroxStationTimes: params.hyroxStationTimes,
+        hyroxDivision: params.hyroxDivision,
+        hyroxGender: params.hyroxGender,
+        hyroxBodyweight: params.hyroxBodyweight,
+        strengthPRs: params.strengthPRs,
+      } as HyroxProgramParams, client)
+      break
+
+    case 'STRENGTH':
+      program = await generateStrengthProgram({
+        ...params,
+      } as StrengthProgramParams, client)
+      break
+
+    case 'GENERAL_FITNESS':
+      program = await generateGeneralFitnessProgram(params, client)
+      break
+
+    default:
+      throw new Error(`Unsupported sport type: ${params.sport}`)
+  }
+
+  // Apply calendar constraints - remove workouts from blocked dates
+  if (params.calendarConstraints) {
+    logger.debug('[SPORT ROUTER] Applying calendar constraints to program')
+    program = applyCalendarConstraints(program, params.calendarConstraints)
+  }
+
+  return program
+}
+
