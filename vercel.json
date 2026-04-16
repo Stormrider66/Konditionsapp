@@ -5,6 +5,12 @@
   "functions": {
     "app/api/integrations/garmin/webhook/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/slack/events/route.ts": {
+      "maxDuration": 120
+    },
+    "app/api/cron/operator/**/*.ts": {
+      "maxDuration": 120
     }
   },
   "headers": [
@@ -94,6 +100,63 @@
     {
       "path": "/api/cron/link-workouts",
       "schedule": "*/15 * * * *"
+    },
+
+    {
+      "path": "/api/cron/operator/platform-health",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/operator/support",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/operator/cost-guardian",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/operator/churn-predictor",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/operator/daily-brief",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/operator/onboarding",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/operator/data-quality",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/operator/compliance",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/operator/business-intel",
+      "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/cron/operator/feature-curator",
+      "schedule": "0 2 * * 0"
+    },
+    {
+      "path": "/api/cron/operator/marketing",
+      "schedule": "0 15 * * 5"
+    },
+    {
+      "path": "/api/cron/operator/competitor-intel",
+      "schedule": "0 10 * * 5"
+    },
+    {
+      "path": "/api/cron/operator/job-worker",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/operator/fx-refresh",
+      "schedule": "0 3 * * 1"
     }
   ]
 }
