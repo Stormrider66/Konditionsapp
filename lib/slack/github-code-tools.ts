@@ -79,6 +79,11 @@ async function readFile(path: string): Promise<{ success: boolean; content?: str
 
 /**
  * Search the codebase for a string.
+ *
+ * Strategy: try GitHub Code Search API first (fast but unreliable,
+ * often 403s on private repos). Falls back to Git Trees API —
+ * lists all files, filters by name, then reads matched files
+ * to find the query string in content.
  */
 async function searchCode(query: string): Promise<{
   success: boolean
@@ -88,30 +93,114 @@ async function searchCode(query: string): Promise<{
   const config = getConfig()
   if (!config) return { success: false, error: 'GitHub not configured' }
 
+  // Try GitHub Code Search API first
   try {
-    // text-match+json header enables text_matches in response
     const response = await githubFetch(
       `/search/code?q=${encodeURIComponent(query)}+repo:${config.repo}&per_page=10`,
       { headers: { 'Accept': 'application/vnd.github.v3.text-match+json' } }
     )
 
-    if (!response.ok) {
-      return { success: false, error: `Search failed: ${response.status}` }
+    if (response.ok) {
+      const data = await response.json() as {
+        items: Array<{
+          path: string
+          text_matches?: Array<{ fragment: string }>
+        }>
+      }
+
+      const results = data.items.map(item => ({
+        path: item.path,
+        matches: (item.text_matches || []).map(m => m.fragment).slice(0, 3),
+      }))
+
+      if (results.length > 0) return { success: true, results }
     }
 
-    const data = await response.json() as {
-      items: Array<{
-        path: string
-        text_matches?: Array<{ fragment: string }>
-      }>
+    // Code Search failed or returned empty — fall through to tree search
+    logger.info('[github] Code Search returned empty or failed, using tree fallback')
+  } catch {
+    logger.info('[github] Code Search threw, using tree fallback')
+  }
+
+  // Fallback: Git Trees API — list all files, filter by name match,
+  // then read a few to check content
+  try {
+    const treeResp = await githubFetch(
+      `/repos/${config.repo}/git/trees/main?recursive=1`
+    )
+    if (!treeResp.ok) {
+      return { success: false, error: `Tree listing failed: ${treeResp.status}` }
     }
 
-    const results = data.items.map(item => ({
-      path: item.path,
-      matches: (item.text_matches || []).map(m => m.fragment).slice(0, 3),
-    }))
+    const tree = await treeResp.json() as {
+      tree: Array<{ path: string; type: string; size?: number }>
+    }
 
-    return { success: true, results }
+    const lowerQuery = query.toLowerCase()
+    const codeExtensions = ['.ts', '.tsx', '.js', '.jsx', '.prisma', '.sql', '.json', '.md']
+
+    // First pass: files whose PATH contains the query
+    const pathMatches = tree.tree
+      .filter(f =>
+        f.type === 'blob' &&
+        f.path.toLowerCase().includes(lowerQuery) &&
+        codeExtensions.some(ext => f.path.endsWith(ext))
+      )
+      .slice(0, 10)
+
+    // Second pass: if few path matches, check file contents for common code files
+    const contentCandidates = tree.tree
+      .filter(f =>
+        f.type === 'blob' &&
+        (f.size || 0) < 100_000 &&
+        codeExtensions.some(ext => f.path.endsWith(ext)) &&
+        !pathMatches.some(pm => pm.path === f.path)
+      )
+
+    // Prioritize likely files (schema, models, types, lib)
+    const prioritized = contentCandidates.sort((a, b) => {
+      const score = (p: string) => {
+        if (p.includes('schema.prisma')) return 0
+        if (p.includes('types/')) return 1
+        if (p.includes('lib/')) return 2
+        if (p.includes('components/')) return 3
+        return 4
+      }
+      return score(a.path) - score(b.path)
+    })
+
+    // Read up to 8 files to search content (stay within reason)
+    const toCheck = prioritized.slice(0, 8)
+    const contentResults: { path: string; matches: string[] }[] = []
+
+    for (const pm of pathMatches) {
+      contentResults.push({ path: pm.path, matches: ['(path match)'] })
+    }
+
+    for (const file of toCheck) {
+      try {
+        const fileResult = await readFile(file.path)
+        if (fileResult.success && fileResult.content) {
+          const lines = fileResult.content.split('\n')
+          const matchingLines = lines
+            .filter(l => l.toLowerCase().includes(lowerQuery))
+            .slice(0, 3)
+            .map(l => l.trim().slice(0, 200))
+
+          if (matchingLines.length > 0) {
+            contentResults.push({ path: file.path, matches: matchingLines })
+          }
+        }
+      } catch {
+        // Skip files that fail to read
+      }
+    }
+
+    if (contentResults.length === 0) {
+      return { success: true, results: [], error: `No matches found for "${query}" in ${pathMatches.length + toCheck.length} files checked` }
+    }
+
+    return { success: true, results: contentResults.slice(0, 10) }
   } catch (error) {
     return { success: false, error: String(error) }
   }
