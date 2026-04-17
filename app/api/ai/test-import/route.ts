@@ -95,7 +95,24 @@ REGLER:
 FLERA BILDER (${imageCount} st) — SAMMANFOGA:
 Bilderna kommer i ordning. BILD 1 är ALLTID testprotokollet (handskriven/utskriven
 tabell med steg, puls, laktat, hastighet/effekt, tid). Bild 2${imageCount > 2 ? ' och 3' : ''} är
-spirometri/metaboldata från metabol mätvagn (Cosmed, Cortex, Vyntus, Oxycon etc.).
+spirometri/metaboldata från metabol mätvagn (Cosmed, Cortex, Vyntus, Oxycon, Jaeger etc.).
+
+VIKTIGT OM SPIROMETRIBILDERNA:
+- Bilderna kan vara ROTERADE 90° (telefon i liggande, skärm i stående) — orientera
+  tabellen mentalt så att kolumnrubrikerna står överst och tidsraderna löper nedåt.
+- Jaeger/Vyntus visar typiskt dessa kolumner (matcha mot våra fältnamn):
+    Time / Phase / T (MM:SS)         → tidsstämpel för raden
+    V'O2/kg eller VO2/kg (ml/kg/min) → vo2
+    V'O2 STPD (ml/min eller L/min)   → använd V'O2/kg om båda finns
+    V'CO2 (ml/min)                   → vco2
+    RER eller RQ                     → rer
+    V'E eller VE (L/min, BTPS)       → ve
+    BF eller Bf (1/min)              → respiratoryRate
+    %FAT / Fat                       → fatPercent
+    %CHO / CHO                       → choPercent
+- Ignorera kolumner som inte mappar (FetO2, FetCO2, VEqO2, EE, PaCO2 osv.).
+- Om bilden har färgade band (t.ex. grön=warmup, gul=test, vit=recovery), använd
+  dem som ledtråd för var stegen börjar/slutar.
 
 HUR DU SAMMANFOGAR:
 1. KRITISKT: stages[] måste innehålla EXAKT lika många steg som finns i BILD 1.
@@ -117,8 +134,14 @@ HUR DU SAMMANFOGAR:
 6. Om ett stegs tidsfönster saknas i metaboldata — lämna BARA de metabola
    fälten tomma. Behåll alltid stage-objektet med protokolldata.
 7. Sätt sourceDescription = "Protokoll + spirometri (${imageCount} bilder)".
-8. Varna om tidsjustering mellan bilderna är osäker
-   (t.ex. "kunde inte matcha steg 5 mot metaboldata").
+8. Varna SPECIFIKT om varför metaboldata saknas. Exempel:
+   - "Spirometribilden är otydlig/blank på höger sida — kolumnerna RER och VE
+     kunde inte läsas av."
+   - "Bild 2 visar bara grafer, ingen numerisk tabell — ingen metaboldata extraherad."
+   - "Steg 5 har 5 min duration medan spirometri saknar matchande tidsfönster
+     mellan 20:00–25:00."
+   Varna inte bara att 'tidssynkronisering är osäker' — säg vad som faktiskt
+   gick fel så användaren vet om de behöver fota om eller mata in manuellt.
 - Om handskrivet: var extra noga med siffror som kan förväxlas (1/7, 5/6, 3/8).
 - Varna om någon bild är suddig, bländad, eller delvis avskuren.`
     }
