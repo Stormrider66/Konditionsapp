@@ -11,7 +11,7 @@
  * Returns structured data matching TestDataForm fields for pre-fill.
  */
 
-export const maxDuration = 120
+export const maxDuration = 300
 
 import { NextRequest, NextResponse } from 'next/server'
 import { generateObject } from 'ai'
@@ -266,6 +266,9 @@ export async function POST(request: NextRequest) {
       result = await generateObject({
         model: google(GEMINI_MODELS.FLASH),
         schema: TestImportResultSchema,
+        // Cap retries: a malformed JSON loop on a slow model burns the
+        // entire function budget. Better to fail fast and surface the error.
+        maxRetries: 1,
         messages: [
           {
             role: 'user',
@@ -326,6 +329,9 @@ export async function POST(request: NextRequest) {
       result = await generateObject({
         model: google(GEMINI_MODELS.FLASH),
         schema: TestImportResultSchema,
+        // Cap retries: a malformed JSON loop on a slow model burns the
+        // entire function budget. Better to fail fast and surface the error.
+        maxRetries: 1,
         messages: [
           {
             role: 'user',
