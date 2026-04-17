@@ -266,9 +266,6 @@ export async function POST(request: NextRequest) {
       result = await generateObject({
         model: google(GEMINI_MODELS.FLASH),
         schema: TestImportResultSchema,
-        // Cap retries: a malformed JSON loop on a slow model burns the
-        // entire function budget. Better to fail fast and surface the error.
-        maxRetries: 1,
         messages: [
           {
             role: 'user',
@@ -329,9 +326,6 @@ export async function POST(request: NextRequest) {
       result = await generateObject({
         model: google(GEMINI_MODELS.FLASH),
         schema: TestImportResultSchema,
-        // Cap retries: a malformed JSON loop on a slow model burns the
-        // entire function budget. Better to fail fast and surface the error.
-        maxRetries: 1,
         messages: [
           {
             role: 'user',
@@ -363,7 +357,27 @@ export async function POST(request: NextRequest) {
       generatedAt: new Date().toISOString(),
     })
   } catch (error) {
-    logger.error('Test import error', {}, error)
+    // AI SDK errors (schema validation, API errors, etc.) carry useful
+    // structured fields — flatten them so they make it into the log.
+    const e = error as {
+      name?: string
+      message?: string
+      cause?: unknown
+      text?: string
+      value?: unknown
+      errors?: unknown
+      statusCode?: number
+    }
+    logger.error('Test import error', {
+      name: e?.name,
+      message: e?.message,
+      statusCode: e?.statusCode,
+      cause: e?.cause,
+      // generateObject attaches the raw text / attempted value / Zod errors:
+      aiRawText: typeof e?.text === 'string' ? e.text.slice(0, 2000) : undefined,
+      aiValue: e?.value,
+      aiZodErrors: e?.errors,
+    }, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
