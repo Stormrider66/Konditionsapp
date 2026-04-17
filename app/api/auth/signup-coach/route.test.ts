@@ -95,6 +95,18 @@ describe('signup-coach route', () => {
       subscription: {
         create: vi.fn().mockResolvedValue({ id: 'sub-1' }),
       },
+      businessMember: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({ id: 'bm-1' }),
+      },
+      business: {
+        findUnique: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({
+          id: 'biz-1',
+          slug: 'coach-examples-coaching',
+          name: 'Coach Examples coaching',
+        }),
+      },
     }
 
     mockPrisma.$transaction.mockImplementation(async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx))
@@ -155,6 +167,12 @@ describe('signup-coach route', () => {
     expect(body.data).toEqual({
       id: 'auth-coach-1',
       role: 'COACH',
+      business: {
+        id: 'biz-1',
+        slug: 'coach-examples-coaching',
+        name: 'Coach Examples coaching',
+        created: true,
+      },
     })
   })
 

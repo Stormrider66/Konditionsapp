@@ -200,6 +200,11 @@ function CoachSignupForm() {
           return
         }
 
+        // signup-coach always returns a business — either the gym invite we
+        // accepted earlier in the wizard or a freshly provisioned personal one.
+        const signupResult = await response.json().catch(() => null)
+        const personalBusiness = signupResult?.data?.business as { slug: string } | undefined
+
         // Accept business invitation if present
         const invitationCode = searchParams.get('invitation')
         let acceptedBusiness: { slug: string } | null = null
@@ -247,10 +252,13 @@ function CoachSignupForm() {
           description: referralInfo ? t('accountCreatedWithReferral') : t('accountCreatedSuccess'),
         })
 
-        // Redirect to business if invitation was accepted, otherwise home
-        if (acceptedBusiness) {
-          router.push(`/${acceptedBusiness.slug}/coach`)
+        // Every coach now has a business — invitation-scoped or personally
+        // provisioned. Land them inside their slug regardless.
+        const targetSlug = acceptedBusiness?.slug ?? personalBusiness?.slug
+        if (targetSlug) {
+          router.push(`/${targetSlug}/coach`)
         } else {
+          // Defensive fallback — should not happen with the new signup flow.
           router.push('/')
         }
         router.refresh()

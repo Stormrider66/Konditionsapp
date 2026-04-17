@@ -10,6 +10,7 @@ import {
   createSelfAthleteProfileTx,
   getCoachTrialSubscriptionData,
 } from '@/lib/user-provisioning'
+import { createPersonalBusinessTx } from '@/lib/personal-business'
 
 const signupCoachSchema = z.object({
   name: z.string().min(1),
@@ -121,8 +122,9 @@ export async function POST(request: NextRequest) {
     const trialSubscriptionData = getCoachTrialSubscriptionData(supabaseUser.id)
 
     const result = await prisma.$transaction(async (tx) => {
+      let user
       if (existingUser) {
-        const updatedUser = await tx.user.update({
+        user = await tx.user.update({
           where: { id: supabaseUser.id },
           data: {
             name,
@@ -139,7 +141,7 @@ export async function POST(request: NextRequest) {
 
         if (createAthleteProfile && !existingUser.selfAthleteClientId) {
           await createSelfAthleteProfileTx(tx, {
-            userId: updatedUser.id,
+            userId: user.id,
             name,
             email: supabaseEmail,
             gender: gender as Gender,
@@ -154,55 +156,68 @@ export async function POST(request: NextRequest) {
             },
           })
         }
-
-        return updatedUser
-      }
-
-      createdFreshUser = true
-
-      const createdUser = await tx.user.create({
-        data: {
-          id: supabaseUser.id,
-          email: supabaseEmail,
-          name,
-          role: 'COACH',
-          language: 'sv',
-        },
-      })
-
-      await tx.subscription.create({
-        data: trialSubscriptionData,
-      })
-
-      if (createAthleteProfile) {
-        await createSelfAthleteProfileTx(tx, {
-          userId: createdUser.id,
-          name,
-          email: supabaseEmail,
-          gender: gender as Gender,
-          birthDate: new Date(birthDate as string),
-          height: height as number,
-          weight: weight as number,
-          subscriptionSeed: {
-            tier: 'PRO',
-            status: 'TRIAL',
-            paymentSource: 'DIRECT',
-            trialEndsAt: trialSubscriptionData.trialEndsAt,
+      } else {
+        createdFreshUser = true
+        user = await tx.user.create({
+          data: {
+            id: supabaseUser.id,
+            email: supabaseEmail,
+            name,
+            role: 'COACH',
+            language: 'sv',
           },
         })
+
+        await tx.subscription.create({
+          data: trialSubscriptionData,
+        })
+
+        if (createAthleteProfile) {
+          await createSelfAthleteProfileTx(tx, {
+            userId: user.id,
+            name,
+            email: supabaseEmail,
+            gender: gender as Gender,
+            birthDate: new Date(birthDate as string),
+            height: height as number,
+            weight: weight as number,
+            subscriptionSeed: {
+              tier: 'PRO',
+              status: 'TRIAL',
+              paymentSource: 'DIRECT',
+              trialEndsAt: trialSubscriptionData.trialEndsAt,
+            },
+          })
+        }
       }
 
-      return createdUser
+      // Always provision a personal business. If the user already has an
+      // active BusinessMember (e.g. accepted a gym invite earlier in the
+      // wizard) this is a no-op and returns that business.
+      const personalBusiness = await createPersonalBusinessTx(tx, {
+        userId: user.id,
+        userName: name,
+        role: 'COACH',
+      })
+
+      return { user, personalBusiness }
     })
 
     try {
       await sendWelcomeEmail(supabaseEmail, name, 'sv')
     } catch (emailError) {
-      logger.error('Failed to send coach welcome email', { userId: result.id }, emailError)
+      logger.error('Failed to send coach welcome email', { userId: result.user.id }, emailError)
     }
 
     return NextResponse.json(
-      { success: true, data: { id: result.id, role: 'COACH' } },
+      {
+        success: true,
+        data: {
+          id: result.user.id,
+          role: 'COACH',
+          business: result.personalBusiness,
+        },
+      },
       { status: 201 }
     )
   } catch (error) {

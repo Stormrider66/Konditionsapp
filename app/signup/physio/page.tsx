@@ -122,6 +122,11 @@ function PhysioSignupForm() {
         return
       }
 
+      // signup-physio always returns a business — either a practice invite
+      // we accept below or a freshly provisioned personal one.
+      const signupResult = await response.json().catch(() => null)
+      const personalBusiness = signupResult?.data?.business as { slug: string } | undefined
+
       const invitationCode = searchParams.get('invitation')
       let acceptedBusiness: { slug: string } | null = null
       if (invitationCode) {
@@ -145,10 +150,13 @@ function PhysioSignupForm() {
         description: 'Your physiotherapist account is ready.',
       })
 
-      if (acceptedBusiness) {
-        router.push(`/${acceptedBusiness.slug}/physio/dashboard`)
+      // Every physio now has a business. Prefer the invited one, fall back
+      // to the personal practice we just provisioned.
+      const targetSlug = acceptedBusiness?.slug ?? personalBusiness?.slug
+      if (targetSlug) {
+        router.push(`/${targetSlug}/physio/dashboard`)
       } else {
-        router.push('/physio/dashboard')
+        router.push('/')
       }
       router.refresh()
     } catch {

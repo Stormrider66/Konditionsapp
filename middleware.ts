@@ -211,40 +211,13 @@ const RESERVED_ROUTES = [
   'my',
 ]
 
-// Coach routes that should be redirected to business-scoped routes
-const COACH_REDIRECT_ROUTES = [
-  '/coach/dashboard',
-  '/coach/admin',
-  '/coach/clients',
-  '/coach/programs',
-  '/coach/ai-studio',
-  '/coach/hybrid-studio',
-  '/coach/strength',
-  '/coach/cardio',
-  '/coach/ergometer-tests',
-  '/coach/video-analysis',
-  '/coach/monitoring',
-  '/coach/live-hr',
-  '/coach/interval-sessions',
-  '/coach/analytics',
-  '/coach/documents',
-  '/coach/messages',
-  '/coach/referrals',
-  '/coach/settings',
-  '/coach/injuries',
-  '/coach/field-tests',
-  '/coach/organizations',
-  '/coach/calendar',
-  '/coach/agility-studio',
-  '/coach/teams',
-  '/coach/test',
-  '/coach/subscription',
-  '/coach/invitations',
-  '/coach/onboarding',
-  '/coach/exercises',
-]
-
-// Athlete routes that should be redirected to business-scoped routes
+// Athlete routes that redirect to the business-scoped equivalent when
+// the user has a primarySlug, and fall through to the legacy `/athlete/**`
+// page when they don't (solo / direct-to-consumer tier).
+//
+// Coach and physio accounts always have a business (auto-provisioned at
+// signup — see lib/personal-business.ts), so those routes redirect
+// unconditionally and no allowlist is needed.
 const ATHLETE_REDIRECT_ROUTES = [
   '/athlete/dashboard',
   '/athlete/check-in',
@@ -274,18 +247,6 @@ const ATHLETE_REDIRECT_ROUTES = [
   '/athlete/onboarding',
   '/athlete/rehab',
   '/athlete/predictions',
-]
-
-// Physio routes that should be redirected to business-scoped routes
-const PHYSIO_REDIRECT_ROUTES = [
-  '/physio/dashboard',
-  '/physio/athletes',
-  '/physio/treatments',
-  '/physio/rehab-programs',
-  '/physio/screenings',
-  '/physio/restrictions',
-  '/physio/messages',
-  '/physio/settings',
 ]
 
 function allowsInAppCamera(pathname: string): boolean {
@@ -792,19 +753,15 @@ export async function middleware(request: NextRequest) {
           return NextResponse.redirect(new URL('/', request.url))
         }
 
-        // Check if this coach route should redirect to business-scoped route
-        const shouldRedirect = COACH_REDIRECT_ROUTES.some(
-          (route) => pathname === route || pathname.startsWith(route + '/')
-        )
-
-        if (shouldRedirect) {
-          const businessSlug = await lookupPrimarySlug()
-          if (businessSlug) {
-            const newPath = pathname.replace('/coach/', `/${businessSlug}/coach/`)
-            return NextResponse.redirect(new URL(newPath, request.url))
-          }
-          // If no business membership, allow access to legacy routes
+        // Every coach has a business (auto-provisioned at signup).
+        // Redirect every /coach/** hit to /{slug}/coach/**.
+        const businessSlug = await lookupPrimarySlug()
+        if (businessSlug) {
+          const newPath = pathname.replace('/coach/', `/${businessSlug}/coach/`)
+          return NextResponse.redirect(new URL(newPath, request.url))
         }
+        // No slug — shouldn't happen post Phase 8. Send to marketing.
+        return NextResponse.redirect(new URL('/', request.url))
       }
 
       if (pathname.startsWith('/athlete')) {
@@ -838,8 +795,10 @@ export async function middleware(request: NextRequest) {
           }
 
           if (!selfAthleteClientId) {
-            // No athlete profile set up - redirect to setup page
-            return NextResponse.redirect(new URL('/coach/settings/athlete-profile', request.url))
+            // No athlete profile set up - redirect to setup page under the coach's slug
+            const slug = await lookupPrimarySlug()
+            const target = slug ? `/${slug}/coach/settings/athlete-profile` : '/'
+            return NextResponse.redirect(new URL(target, request.url))
           }
 
           // Redirect coach in athlete mode to business-scoped athlete routes
@@ -856,8 +815,9 @@ export async function middleware(request: NextRequest) {
           }
           // If no business membership, allow access to legacy routes
         } else if (role === 'COACH' || role === 'ADMIN') {
-          // Coach/Admin NOT in athlete mode - redirect to coach dashboard
-          return NextResponse.redirect(new URL('/coach/dashboard', request.url))
+          // Coach/Admin NOT in athlete mode - redirect to coach dashboard under slug.
+          const slug = await lookupPrimarySlug()
+          return NextResponse.redirect(new URL(slug ? `/${slug}/coach/dashboard` : '/', request.url))
         } else {
           // Unknown role - redirect to home
           return NextResponse.redirect(new URL('/', request.url))
@@ -868,13 +828,15 @@ export async function middleware(request: NextRequest) {
         const adminRole = claims.adminRole
         if (role !== 'ADMIN' && !adminRole) {
           if (role === 'COACH') {
-            return NextResponse.redirect(new URL('/coach/dashboard', request.url))
+            const slug = await lookupPrimarySlug()
+            return NextResponse.redirect(new URL(slug ? `/${slug}/coach/dashboard` : '/', request.url))
           }
           if (role === 'ATHLETE') {
             return NextResponse.redirect(new URL('/athlete/dashboard', request.url))
           }
           if (role === 'PHYSIO') {
-            return NextResponse.redirect(new URL('/physio/dashboard', request.url))
+            const slug = await lookupPrimarySlug()
+            return NextResponse.redirect(new URL(slug ? `/${slug}/physio/dashboard` : '/', request.url))
           }
           return NextResponse.redirect(new URL('/', request.url))
         }
@@ -884,7 +846,8 @@ export async function middleware(request: NextRequest) {
       if (pathname.startsWith('/physio')) {
         if (role !== 'PHYSIO' && role !== 'ADMIN') {
           if (role === 'COACH') {
-            return NextResponse.redirect(new URL('/coach/dashboard', request.url))
+            const slug = await lookupPrimarySlug()
+            return NextResponse.redirect(new URL(slug ? `/${slug}/coach/dashboard` : '/', request.url))
           }
           if (role === 'ATHLETE') {
             return NextResponse.redirect(new URL('/athlete/dashboard', request.url))
@@ -892,19 +855,13 @@ export async function middleware(request: NextRequest) {
           return NextResponse.redirect(new URL('/', request.url))
         }
 
-        // Check if this physio route should redirect to business-scoped route
-        const shouldRedirectPhysio = PHYSIO_REDIRECT_ROUTES.some(
-          (route) => pathname === route || pathname.startsWith(route + '/')
-        )
-
-        if (shouldRedirectPhysio) {
-          const physioBusinessSlug = await lookupPrimarySlug()
-          if (physioBusinessSlug) {
-            const newPhysioPath = pathname.replace('/physio/', `/${physioBusinessSlug}/physio/`)
-            return NextResponse.redirect(new URL(newPhysioPath, request.url))
-          }
-          // If no business membership, allow access to legacy routes
+        // Every physio has a business (auto-provisioned at signup).
+        const physioBusinessSlug = await lookupPrimarySlug()
+        if (physioBusinessSlug) {
+          const newPhysioPath = pathname.replace('/physio/', `/${physioBusinessSlug}/physio/`)
+          return NextResponse.redirect(new URL(newPhysioPath, request.url))
         }
+        return NextResponse.redirect(new URL('/', request.url))
       }
 
       // Redirect from login/register pages if authenticated (but allow access to /)
@@ -928,7 +885,8 @@ export async function middleware(request: NextRequest) {
           if (physioLoginSlug) {
             return NextResponse.redirect(new URL(`/${physioLoginSlug}/physio/dashboard`, request.url))
           }
-          return NextResponse.redirect(new URL('/physio/dashboard', request.url))
+          // Physio with no slug — shouldn't happen post Phase 8.
+          return NextResponse.redirect(new URL('/', request.url))
         }
       }
       // Allow authenticated users to access / - the page will show appropriate content

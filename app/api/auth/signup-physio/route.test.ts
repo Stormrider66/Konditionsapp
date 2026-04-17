@@ -95,6 +95,18 @@ describe('signup-physio route', () => {
       subscription: {
         create: vi.fn().mockResolvedValue({ id: 'sub-1' }),
       },
+      businessMember: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({ id: 'bm-1' }),
+      },
+      business: {
+        findUnique: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({
+          id: 'biz-1',
+          slug: 'physio-examples-praktik',
+          name: 'Physio Examples praktik',
+        }),
+      },
     }
 
     mockPrisma.$transaction.mockImplementation(async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx))
@@ -131,6 +143,12 @@ describe('signup-physio route', () => {
     expect(body.data).toEqual({
       id: 'auth-physio-1',
       role: 'PHYSIO',
+      business: {
+        id: 'biz-1',
+        slug: 'physio-examples-praktik',
+        name: 'Physio Examples praktik',
+        created: true,
+      },
     })
   })
 
