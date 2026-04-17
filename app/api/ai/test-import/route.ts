@@ -63,7 +63,11 @@ Testtyp: ${testType}
 ${sportContext}
 
 FÄLTNAMN (matchar formuläret exakt):
-- stages[]: durationMinutes, durationSeconds, heartRate (slag/min), lactate (mmol/L), vo2 (ml/kg/min, valfritt)
+- stages[]: durationMinutes + durationSeconds är ADDITIVA komponenter av total
+  stegduration (totalSeconds = durationMinutes*60 + durationSeconds). Ett 4-minuters
+  steg = {durationMinutes: 4, durationSeconds: 0}. ALDRIG {durationMinutes: 4,
+  durationSeconds: 240} — det blir 8 min totalt och dubbelräknar tiden.
+  heartRate (slag/min), lactate (mmol/L), vo2 (ml/kg/min, valfritt)
   + speed (km/h) för löpning, power (watt) för cykling, pace (min/km) för skidåkning
   + cadence (rpm) för cykling, incline för löpning (valfritt)
   + METABOL DATA (om tillgänglig från spirometri/Oxycon/Cosmed/Jaeger/Vyntus):
@@ -122,19 +126,24 @@ HUR DU SAMMANFOGAR:
 2. Använd BILD 1 som auktoritativ källa för: heartRate, lactate, speed/power/pace,
    incline, durationMinutes, durationSeconds. Dessa kommer från protokollet
    och får INTE skrivas över av spirometridata även om värdena verkar olika.
-3. Identifiera stegens sluttider från BILD 1 (t.ex. "8 min, 12 min, 16 min,
+3. SPIROMETRI ÄR AUKTORITATIV FÖR vo2, rer, ve, vco2, respiratoryRate, fatPercent,
+   choPercent — även om protokollet också har handskrivna VO2-värden i sidkolumnen.
+   De handskrivna protokoll-VO2 är uppskattningar; spirometriskärmen är den riktiga
+   mätningen. Du SKA läsa av spirometribilderna även när protokollet har VO2 ifyllt.
+   Hoppa aldrig över spirometri-extraktion bara för att protokollet "redan har" VO2.
+4. Identifiera stegens sluttider från BILD 1 (t.ex. "8 min, 12 min, 16 min,
    20 min, 25 min" kan stå som handskrivna tidsmarkeringar vid sidan av tabellen).
-4. I BILD 2${imageCount > 2 ? '/3' : ''}: hitta tidsfönstret som matchar varje stegs SLUTTID.
+5. I BILD 2${imageCount > 2 ? '/3' : ''}: hitta tidsfönstret som matchar varje stegs SLUTTID.
    Ta STEADY-STATE-värdet (de sista 30–60 sekunderna av steget) för:
    vo2, rer, ve, vco2, respiratoryRate, fatPercent, choPercent.
-5. SIFFROR: läs av exakt det som står. Om VO2 visar "27" eller "27.4" → använd
+6. SIFFROR: läs av exakt det som står. Om VO2 visar "27" eller "27.4" → använd
    det talet. Använd ALDRIG vetenskaplig notation som "2.7e-7". Om en mätare
    visar L/min så konvertera till ml/kg/min med vikt från BILD 1; men fyll
    hellre inget än att gissa enheten.
-6. Om ett stegs tidsfönster saknas i metaboldata — lämna BARA de metabola
+7. Om ett stegs tidsfönster saknas i metaboldata — lämna BARA de metabola
    fälten tomma. Behåll alltid stage-objektet med protokolldata.
-7. Sätt sourceDescription = "Protokoll + spirometri (${imageCount} bilder)".
-8. Varna SPECIFIKT om varför metaboldata saknas. Exempel:
+8. Sätt sourceDescription = "Protokoll + spirometri (${imageCount} bilder)".
+9. Varna SPECIFIKT om varför metaboldata saknas. Exempel:
    - "Spirometribilden är otydlig/blank på höger sida — kolumnerna RER och VE
      kunde inte läsas av."
    - "Bild 2 visar bara grafer, ingen numerisk tabell — ingen metaboldata extraherad."
