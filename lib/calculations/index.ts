@@ -224,7 +224,6 @@ export * from './zones'
 export * from './economy'
 export * from './vo2max'
 export * from './cycling'
-export * from './save-dmax'
 export * from './race-predictions'
 // Export vdot.ts functions except calculateVDOT (already exported from race-predictions)
 export {
