@@ -44,7 +44,11 @@ function getMaxSize(category: 'image' | 'document' | 'audio'): number {
   return category === 'image' ? MAX_IMAGE_SIZE : MAX_AUDIO_SIZE
 }
 
-function buildPrompt(testType: string, category: 'image' | 'document' | 'audio'): string {
+function buildPrompt(
+  testType: string,
+  category: 'image' | 'document' | 'audio',
+  imageCount = 1
+): string {
   const sportContext =
     testType === 'RUNNING'
       ? 'Löptest: extrahera speed (km/h) per steg. Incline (lutning) om det finns.'
@@ -82,6 +86,30 @@ REGLER:
 9. Om du hittar eftermätningar (post-test/recovery-laktat), inkludera dem i postTestMeasurements`
 
   if (category === 'image') {
+    if (imageCount > 1) {
+      return `${commonSuffix}
+
+FLERA BILDER (${imageCount} st) — SAMMANFOGA:
+Bilderna kommer i ordning. BILD 1 är ALLTID testprotokollet (handskriven/utskriven
+tabell med steg, puls, laktat, hastighet/effekt, tid). Bild 2${imageCount > 2 ? ' och 3' : ''} är
+spirometri/metaboldata från metabol mätvagn (Cosmed, Cortex, Vyntus, Oxycon etc.).
+
+HUR DU SAMMANFOGAR:
+1. Använd BILD 1 som källa för stages[] — antal steg, puls, laktat, hastighet/effekt/lutning/tid.
+2. Identifiera stegens sluttider från BILD 1 (t.ex. "8 min, 12 min, 16 min, 20 min, 25 min"
+   kan stå som handskrivna tidsmarkeringar vid sidan av tabellen).
+3. I BILD 2${imageCount > 2 ? '/3' : ''}: hitta tidsfönstret som matchar varje stegs SLUTTID.
+   Ta STEADY-STATE-värdet (de sista 30–60 sekunderna av steget) för:
+   vo2, rer, ve, vco2, respiratoryRate, fatPercent, choPercent.
+4. Om ett stegs tidsfönster saknas i metaboldata — lämna de metabola fälten tomma (undefined).
+   Hitta INTE på värden.
+5. Sätt sourceDescription = "Protokoll + spirometri (${imageCount} bilder)".
+6. Varna om tidsjustering mellan bilderna är osäker
+   (t.ex. "kunde inte matcha steg 5 mot metaboldata").
+- Om handskrivet: var extra noga med siffror som kan förväxlas (1/7, 5/6, 3/8).
+- Varna om någon bild är suddig, bländad, eller delvis avskuren.`
+    }
+
     return `${commonSuffix}
 
 BILDSPECIFIKT:
@@ -126,13 +154,17 @@ export async function POST(request: NextRequest) {
     })
     if (rateLimited) return rateLimited
 
-    // Parse FormData
+    // Parse FormData — accept either a single 'file' (legacy) or multiple 'files'
     const formData = await request.formData()
-    const file = formData.get('file') as File | null
+    const multiFiles = formData.getAll('files').filter((v): v is File => v instanceof File)
+    const singleFile = formData.get('file')
+    const files: File[] = multiFiles.length > 0
+      ? multiFiles
+      : singleFile instanceof File ? [singleFile] : []
     const testType = formData.get('testType') as string | null
     const clientId = formData.get('clientId') as string | null
 
-    if (!file) {
+    if (files.length === 0) {
       return NextResponse.json(
         { error: 'Ingen fil uppladdad' },
         { status: 400 }
@@ -146,18 +178,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate file type
-    const category = getMediaCategory(file.type)
-    if (!category) {
+    // All files must share a category (all images, or one doc, or one audio).
+    // Multi-file is only meaningful for images (protocol + spirometri).
+    const categories = files.map((f) => getMediaCategory(f.type))
+    if (categories.some((c) => c === null)) {
       return NextResponse.json(
         { error: 'Filtypen stöds inte. Använd bild (JPEG/PNG/WebP/HEIC), dokument (PDF/CSV), eller ljud (WebM/MP4/WAV/OGG).' },
         { status: 400 }
       )
     }
+    const category = categories[0]!
+    if (categories.some((c) => c !== category)) {
+      return NextResponse.json(
+        { error: 'Blanda inte olika filtyper i samma import (alla bilder, eller ett dokument, eller ett ljud).' },
+        { status: 400 }
+      )
+    }
+    if (files.length > 1 && category !== 'image') {
+      return NextResponse.json(
+        { error: 'Endast bilder kan laddas upp flera åt gången.' },
+        { status: 400 }
+      )
+    }
+    if (files.length > 3) {
+      return NextResponse.json(
+        { error: 'Max 3 bilder per import.' },
+        { status: 400 }
+      )
+    }
 
-    // Validate file size
+    // Validate each file's size against its category's limit
     const maxSize = getMaxSize(category)
-    if (file.size > maxSize) {
+    const oversized = files.find((f) => f.size > maxSize)
+    if (oversized) {
       return NextResponse.json(
         { error: `Filen får inte vara större än ${maxSize / (1024 * 1024)}MB.` },
         { status: 400 }
@@ -189,13 +242,24 @@ export async function POST(request: NextRequest) {
 
     // Initialize Gemini
     const google = createGoogleGenerativeAI({ apiKey: googleKey })
-    const prompt = buildPrompt(testType, category)
+    const prompt = buildPrompt(testType, category, files.length)
 
     let result
+    const file = files[0]
 
     if (category === 'image') {
-      const arrayBuffer = await file.arrayBuffer()
-      const base64 = Buffer.from(arrayBuffer).toString('base64')
+      // Encode every image and send as separate image parts in one request
+      // so Gemini can cross-reference them (protocol times ↔ metabolic rows).
+      const imageParts = await Promise.all(
+        files.map(async (f) => {
+          const buf = await f.arrayBuffer()
+          const b64 = Buffer.from(buf).toString('base64')
+          return {
+            type: 'image' as const,
+            image: `data:${f.type};base64,${b64}`,
+          }
+        })
+      )
 
       result = await generateObject({
         model: google(GEMINI_MODELS.FLASH),
@@ -204,10 +268,7 @@ export async function POST(request: NextRequest) {
           {
             role: 'user',
             content: [
-              {
-                type: 'image',
-                image: `data:${file.type};base64,${base64}`,
-              },
+              ...imageParts,
               { type: 'text', text: prompt },
             ],
           },

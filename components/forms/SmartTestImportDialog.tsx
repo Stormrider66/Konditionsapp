@@ -95,70 +95,6 @@ export function SmartTestImportDialog({
     })
   }, [])
 
-  const processSingleFile = useCallback(
-    async (file: File): Promise<TestImportResult | null> => {
-      const processedFile = await resizeImageIfNeeded(file)
-
-      const formData = new FormData()
-      formData.append('file', processedFile)
-      formData.append('testType', testType)
-      if (clientId) formData.append('clientId', clientId)
-
-      const response = await fetch('/api/ai/test-import', {
-        method: 'POST',
-        body: formData,
-      })
-
-      let data
-      try {
-        data = await response.json()
-      } catch {
-        throw new Error(response.status === 413
-          ? 'Filen är för stor. Försök med en mindre bild.'
-          : `Serverfel (${response.status}). Försök igen.`)
-      }
-
-      if (!response.ok) throw new Error(data.error || 'Kunde inte bearbeta filen')
-      if (data.success && data.result) return data.result as TestImportResult
-      throw new Error(data.error || 'Ingen data kunde extraheras')
-    },
-    [testType, clientId, resizeImageIfNeeded]
-  )
-
-  const mergeResults = useCallback((base: TestImportResult, extra: TestImportResult): TestImportResult => {
-    // Merge extra stages into base by matching speed/power/pace (within ±0.5)
-    const merged = { ...base }
-    merged.stages = base.stages.map(baseStage => {
-      const intensity = baseStage.speed ?? baseStage.power ?? baseStage.pace ?? 0
-      // Find matching stage in extra by closest intensity
-      const match = extra.stages.reduce((best, s) => {
-        const extraIntensity = s.speed ?? s.power ?? s.pace ?? 0
-        const bestIntensity = best ? (best.speed ?? best.power ?? best.pace ?? 0) : Infinity
-        return Math.abs(extraIntensity - intensity) < Math.abs(bestIntensity - intensity) ? s : best
-      }, null as typeof extra.stages[0] | null)
-
-      if (!match) return baseStage
-      const matchIntensity = match.speed ?? match.power ?? match.pace ?? 0
-      if (Math.abs(matchIntensity - intensity) > 1.5) return baseStage // Too far apart
-
-      // Merge: base fields take priority, fill in missing metabolic data from extra
-      return {
-        ...baseStage,
-        rer: baseStage.rer ?? match.rer,
-        ve: baseStage.ve ?? match.ve,
-        vco2: baseStage.vco2 ?? match.vco2,
-        fatPercent: baseStage.fatPercent ?? match.fatPercent,
-        choPercent: baseStage.choPercent ?? match.choPercent,
-        respiratoryRate: baseStage.respiratoryRate ?? match.respiratoryRate,
-        vo2: baseStage.vo2 ?? match.vo2,
-      }
-    })
-    merged.sourceDescription = `${base.sourceDescription} + ${extra.sourceDescription}`
-    merged.confidence = Math.min(base.confidence, extra.confidence)
-    merged.warnings = [...base.warnings, ...extra.warnings]
-    return merged
-  }, [])
-
   const processFiles = useCallback(
     async (files: File[]) => {
       setIsProcessing(true)
@@ -166,35 +102,45 @@ export function SmartTestImportDialog({
       setResult(null)
 
       try {
-        if (files.length === 1) {
-          // Single file — straightforward
-          const importResult = await processSingleFile(files[0])
-          if (importResult) setResult(importResult)
+        // For images: tighten resize when multiple are uploaded so 3 photos fit
+        // comfortably under the request body limit.
+        const isMultiImage = files.length > 1 && files.every((f) => f.type.startsWith('image/'))
+        const maxDim = isMultiImage ? 1600 : 2048
+        const quality = isMultiImage ? 0.8 : 0.85
+        const processed = await Promise.all(
+          files.map((f) => resizeImageIfNeeded(f, maxDim, quality))
+        )
+
+        const formData = new FormData()
+        if (processed.length === 1) {
+          formData.append('file', processed[0])
         } else {
-          // Multiple files — process each separately and merge
-          // This avoids multi-image timeout issues
-          let mergedResult: TestImportResult | null = null
+          for (const f of processed) formData.append('files', f)
+        }
+        formData.append('testType', testType)
+        if (clientId) formData.append('clientId', clientId)
 
-          for (let i = 0; i < files.length; i++) {
-            setError(null)
-            const importResult = await processSingleFile(files[i])
-            if (!importResult) continue
+        const response = await fetch('/api/ai/test-import', {
+          method: 'POST',
+          body: formData,
+        })
 
-            if (!mergedResult) {
-              // First result with most stages becomes the base
-              mergedResult = importResult
-            } else {
-              // Merge subsequent results into base
-              if (importResult.stages.length > mergedResult.stages.length) {
-                mergedResult = mergeResults(importResult, mergedResult)
-              } else {
-                mergedResult = mergeResults(mergedResult, importResult)
-              }
-            }
-          }
+        let data
+        try {
+          data = await response.json()
+        } catch {
+          throw new Error(
+            response.status === 413
+              ? 'Bilderna är för stora. Försök med färre eller mindre bilder.'
+              : `Serverfel (${response.status}). Försök igen.`
+          )
+        }
 
-          if (mergedResult) setResult(mergedResult)
-          else setError('Kunde inte extrahera data från bilderna')
+        if (!response.ok) throw new Error(data.error || 'Kunde inte bearbeta filerna')
+        if (data.success && data.result) {
+          setResult(data.result as TestImportResult)
+        } else {
+          throw new Error(data.error || 'Ingen data kunde extraheras')
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Kunde inte ansluta till servern.')
@@ -202,7 +148,7 @@ export function SmartTestImportDialog({
         setIsProcessing(false)
       }
     },
-    [processSingleFile, mergeResults]
+    [testType, clientId, resizeImageIfNeeded]
   )
 
   const handleImageSelect = useCallback(
