@@ -263,8 +263,14 @@ export async function POST(request: NextRequest) {
         })
       )
 
+      // Single-photo OCR works fine on Flash. Multi-photo requires
+      // cross-referencing handwritten protocol times against metabolic
+      // printouts — Pro is markedly more reliable at that and avoids
+      // the schema-repair retry loop that breaks Flash on 3 images.
+      const imageModel = files.length > 1 ? GEMINI_MODELS.PRO : GEMINI_MODELS.FLASH
+
       result = await generateObject({
-        model: google(GEMINI_MODELS.FLASH),
+        model: google(imageModel),
         schema: TestImportResultSchema,
         messages: [
           {
