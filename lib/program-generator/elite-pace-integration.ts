@@ -10,7 +10,6 @@ import {
   selectOptimalPaces
 } from '@/lib/training-engine/calculations/pace-selector'
 import { type ZonePaces } from './zone-calculator'
-import { prisma } from '@/lib/prisma'
 
 /**
  * Enhanced zone paces with all training systems
@@ -87,6 +86,7 @@ export async function fetchElitePaces(clientId: string): Promise<EliteZonePaces 
  * Use this in server-side code like program generators
  */
 export async function fetchElitePacesServer(clientId: string): Promise<EliteZonePaces | null> {
+  const { prisma } = await import('@/lib/prisma')
   try {
     // Get client data
     const client = await prisma.client.findUnique({
