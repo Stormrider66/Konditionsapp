@@ -142,7 +142,11 @@ HUR DU SAMMANFOGAR:
    hellre inget än att gissa enheten.
 7. Om ett stegs tidsfönster saknas i metaboldata — lämna BARA de metabola
    fälten tomma. Behåll alltid stage-objektet med protokolldata.
-8. Sätt sourceDescription = "Protokoll + spirometri (${imageCount} bilder)".
+8. Sätt sourceDescription = "Protokoll + spirometri (${imageCount} bilder). Lästa
+   spirometri-kolumner: <lista>." Lista exakt vilka kolumner du kunde identifiera
+   och läsa av i spirometribilderna, t.ex. "V'O2/kg, V'CO2, RER, V'E, BF" eller
+   "endast V'O2/kg och V'CO2 (RER och V'E var oläsbara)". Detta hjälper användaren
+   förstå varför vissa metabola fält är tomma.
 9. Varna SPECIFIKT om varför metaboldata saknas. Exempel:
    - "Spirometribilden är otydlig/blank på höger sida — kolumnerna RER och VE
      kunde inte läsas av."
@@ -309,10 +313,11 @@ export async function POST(request: NextRequest) {
       )
 
       // Single-photo OCR works fine on Flash. Multi-photo requires
-      // cross-referencing handwritten protocol times against metabolic
-      // printouts — Pro is markedly more reliable at that and avoids
-      // the schema-repair retry loop that breaks Flash on 3 images.
-      const imageModel = files.length > 1 ? GEMINI_MODELS.PRO : GEMINI_MODELS.FLASH
+      // cross-referencing handwritten protocol times against dense
+      // Jaeger/Vyntus tables (~30 columns of small numbers). 3.1 Pro
+      // Preview reads those tighter than 2.5 Pro and avoids the
+      // schema-repair retry loop that breaks Flash on 3 images.
+      const imageModel = files.length > 1 ? GEMINI_MODELS.PRO_PREVIEW : GEMINI_MODELS.FLASH
 
       result = await generateObject({
         model: google(imageModel),
@@ -393,14 +398,31 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    if (process.env.NODE_ENV !== 'production') {
-      logger.debug('Test import result', {
-        category,
-        confidence: result.object.confidence,
-        stageCount: result.object.stages.length,
-        equipment: result.object.detectedEquipment,
-      })
+    // Log extraction summary in prod too — helps debug "metabolic data
+    // came back empty" without needing the user to share screenshots.
+    const stages = result.object.stages
+    const metabolicCounts = {
+      vo2: stages.filter((s) => s.vo2 != null).length,
+      rer: stages.filter((s) => s.rer != null).length,
+      ve: stages.filter((s) => s.ve != null).length,
+      vco2: stages.filter((s) => s.vco2 != null).length,
+      respiratoryRate: stages.filter((s) => s.respiratoryRate != null).length,
+      fatPercent: stages.filter((s) => s.fatPercent != null).length,
+      choPercent: stages.filter((s) => s.choPercent != null).length,
     }
+    logger.info('Test import result', {
+      category,
+      fileCount: files.length,
+      model: category === 'image' && files.length > 1
+        ? GEMINI_MODELS.PRO_PREVIEW
+        : GEMINI_MODELS.FLASH,
+      confidence: result.object.confidence,
+      stageCount: stages.length,
+      equipment: result.object.detectedEquipment,
+      metabolicCounts,
+      sourceDescription: result.object.sourceDescription,
+      warnings: result.object.warnings,
+    })
 
     return NextResponse.json({
       success: true,
