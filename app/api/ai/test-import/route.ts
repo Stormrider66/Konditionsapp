@@ -227,7 +227,9 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const athleteDenied = await requireFeatureAccess(clientId, 'lactate_ocr')
+      const athleteDenied = await requireFeatureAccess(clientId, 'lactate_ocr', {
+        callerUserId: user.id,
+      })
       if (athleteDenied) return athleteDenied
     }
 

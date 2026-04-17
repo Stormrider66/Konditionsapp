@@ -31,6 +31,8 @@ const FEATURE_LABELS: Record<string, string> = {
 
 /**
  * Check athlete subscription for a feature. Returns a 403 NextResponse if denied, null if allowed.
+ * Pass `callerUserId` when the caller is a coach/admin acting on the athlete — platform
+ * admins bypass the gate.
  *
  * Usage:
  *   const denied = await requireFeatureAccess(clientId, 'advanced_intelligence')
@@ -39,8 +41,12 @@ const FEATURE_LABELS: Record<string, string> = {
 export async function requireFeatureAccess(
   clientId: string,
   feature: AthleteFeature,
-  options?: { featureLabel?: string }
+  options?: { featureLabel?: string; callerUserId?: string }
 ): Promise<NextResponse | null> {
+  if (options?.callerUserId && (await isPlatformAdmin(options.callerUserId))) {
+    return null
+  }
+
   const result = await checkAthleteFeatureAccess(clientId, feature)
 
   if (result.allowed) return null
@@ -66,8 +72,25 @@ export async function requireFeatureAccess(
 }
 
 /**
+ * Check whether a user is a platform admin. Admins bypass all subscription gates.
+ *
+ * Matches the convention in lib/auth/require-role.ts: a user is treated as an
+ * admin if their role is ADMIN, or if they have any non-null adminRole
+ * (SUPER_ADMIN / ADMIN / SUPPORT).
+ */
+export async function isPlatformAdmin(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, adminRole: true },
+  })
+  if (!user) return false
+  return user.role === 'ADMIN' || user.adminRole !== null
+}
+
+/**
  * Check coach subscription for a coach-only feature. Returns a 403 NextResponse if denied, null if allowed.
  * Trial coaches are allowed access (matching existing behavior).
+ * Platform admins (role=ADMIN or adminRole set) bypass all gates.
  *
  * Usage:
  *   const denied = await requireCoachFeatureAccess(userId, 'program_generation')
@@ -78,6 +101,9 @@ export async function requireCoachFeatureAccess(
   feature: CoachFeature,
   options?: { featureLabel?: string }
 ): Promise<NextResponse | null> {
+  // Platform admins bypass subscription enforcement entirely.
+  if (await isPlatformAdmin(userId)) return null
+
   const subscription = await prisma.subscription.findUnique({
     where: { userId },
   })
