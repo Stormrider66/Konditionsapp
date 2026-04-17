@@ -102,13 +102,10 @@ export function SmartTestImportDialog({
       setResult(null)
 
       try {
-        // For images: tighten resize when multiple are uploaded so 3 photos fit
-        // comfortably under the request body limit.
-        const isMultiImage = files.length > 1 && files.every((f) => f.type.startsWith('image/'))
-        const maxDim = isMultiImage ? 1600 : 2048
-        const quality = isMultiImage ? 0.8 : 0.85
+        // Keep small text on Cosmed/Jaeger printouts legible — 2048px/0.85
+        // fits 3 photos under the body limit (~700KB-1MB each after resize).
         const processed = await Promise.all(
-          files.map((f) => resizeImageIfNeeded(f, maxDim, quality))
+          files.map((f) => resizeImageIfNeeded(f, 2048, 0.85))
         )
 
         const formData = new FormData()

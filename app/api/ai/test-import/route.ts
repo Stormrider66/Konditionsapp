@@ -66,10 +66,16 @@ FÄLTNAMN (matchar formuläret exakt):
 - stages[]: durationMinutes, durationSeconds, heartRate (slag/min), lactate (mmol/L), vo2 (ml/kg/min, valfritt)
   + speed (km/h) för löpning, power (watt) för cykling, pace (min/km) för skidåkning
   + cadence (rpm) för cykling, incline för löpning (valfritt)
-  + METABOL DATA (om tillgänglig från spirometri/Oxycon/Cosmed):
-    rer (Respiratory Exchange Ratio, t.ex. 0.85), ve (minutventilation L/min),
-    vco2 (koldioxidproduktion ml/min), fatPercent (fettförbränning %),
-    choPercent (kolhydratförbränning %), respiratoryRate (andningsfrekvens, andetag/min)
+  + METABOL DATA (om tillgänglig från spirometri/Oxycon/Cosmed/Jaeger/Vyntus):
+    Mappa varje fält från det som faktiskt syns i bilden — vanliga kolumnrubriker:
+    * rer  ← RER, RQ, R (Respiratory Exchange Ratio, decimaltal ~0.7–1.3)
+    * ve   ← VE, VE BTPS, V'E, MV, Minute Ventilation (L/min)
+    * vco2 ← VCO2, V'CO2, VCO₂ (ml/min — INTE ml/kg/min)
+    * fatPercent ← %Fat, %FAT, Fat%, Fettförbränning %, Substrate Fat %
+    * choPercent ← %CHO, %Carb, CHO%, Kolhydrat %, Substrate CHO %
+    * respiratoryRate ← BF, Bf, RR, RF, BR, Andningsfrekvens (andetag/min)
+    KRITISKT: Lämna ett fält tomt (undefined) om det inte syns i bilden.
+    Hitta INTE på värden, gissa INTE, använd INTE exempel- eller default-värden.
 - restingLactate: vilolaktat i mmol/L (före testet)
 - testDate: datum i YYYY-MM-DD format
 - postTestMeasurements[]: timeMinutes, timeSeconds, lactate — eftermätningar post-max
