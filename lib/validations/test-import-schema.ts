@@ -15,19 +15,21 @@ export const TestImportResultSchema = z.object({
       durationSeconds: z.number(),
       heartRate: z.number().min(40).max(250),
       lactate: z.number().min(0).max(30),
-      vo2: z.number().optional(),
+      vo2: z.number().min(5).max(100).optional(),
       speed: z.number().optional(),
       power: z.number().optional(),
       cadence: z.number().optional(),
       pace: z.number().optional(),
       incline: z.number().optional(),
-      // Metabol data (spirometri)
-      rer: z.number().optional(),
-      ve: z.number().optional(),
-      vco2: z.number().optional(),
-      fatPercent: z.number().optional(),
-      choPercent: z.number().optional(),
-      respiratoryRate: z.number().optional(),
+      // Metabol data (spirometri) — physiological ranges so Gemini's
+      // misreads (scientific notation, unit confusion) fail validation
+      // and the SDK retries instead of writing junk to the form.
+      rer: z.number().min(0.6).max(1.3).optional(),
+      ve: z.number().min(5).max(250).optional(),
+      vco2: z.number().min(100).max(6000).optional(),
+      fatPercent: z.number().min(0).max(100).optional(),
+      choPercent: z.number().min(0).max(100).optional(),
+      respiratoryRate: z.number().min(5).max(80).optional(),
     })
   ),
   postTestMeasurements: z

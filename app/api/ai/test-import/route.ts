@@ -67,15 +67,12 @@ FÄLTNAMN (matchar formuläret exakt):
   + speed (km/h) för löpning, power (watt) för cykling, pace (min/km) för skidåkning
   + cadence (rpm) för cykling, incline för löpning (valfritt)
   + METABOL DATA (om tillgänglig från spirometri/Oxycon/Cosmed/Jaeger/Vyntus):
-    Mappa varje fält från det som faktiskt syns i bilden — vanliga kolumnrubriker:
-    * rer  ← RER, RQ, R (Respiratory Exchange Ratio, decimaltal ~0.7–1.3)
-    * ve   ← VE, VE BTPS, V'E, MV, Minute Ventilation (L/min)
-    * vco2 ← VCO2, V'CO2, VCO₂ (ml/min — INTE ml/kg/min)
-    * fatPercent ← %Fat, %FAT, Fat%, Fettförbränning %, Substrate Fat %
-    * choPercent ← %CHO, %Carb, CHO%, Kolhydrat %, Substrate CHO %
-    * respiratoryRate ← BF, Bf, RR, RF, BR, Andningsfrekvens (andetag/min)
-    KRITISKT: Lämna ett fält tomt (undefined) om det inte syns i bilden.
-    Hitta INTE på värden, gissa INTE, använd INTE exempel- eller default-värden.
+    rer (Respiratory Exchange Ratio, decimaltal mellan 0.70 och 1.30 — kolumn
+      kan heta RER / RQ / R), ve (minutventilation L/min — kolumn VE / V'E /
+      VE BTPS / MV), vco2 (koldioxidproduktion ml/min — kolumn VCO2 / V'CO2),
+      fatPercent (fettförbränning % — kolumn %Fat / Fat% / Fettförbränning),
+      choPercent (kolhydratförbränning % — kolumn %CHO / CHO% / Kolhydrat),
+      respiratoryRate (andningsfrekvens andetag/min — kolumn BF / Bf / RR / RF).
 - restingLactate: vilolaktat i mmol/L (före testet)
 - testDate: datum i YYYY-MM-DD format
 - postTestMeasurements[]: timeMinutes, timeSeconds, lactate — eftermätningar post-max
@@ -101,16 +98,26 @@ tabell med steg, puls, laktat, hastighet/effekt, tid). Bild 2${imageCount > 2 ? 
 spirometri/metaboldata från metabol mätvagn (Cosmed, Cortex, Vyntus, Oxycon etc.).
 
 HUR DU SAMMANFOGAR:
-1. Använd BILD 1 som källa för stages[] — antal steg, puls, laktat, hastighet/effekt/lutning/tid.
-2. Identifiera stegens sluttider från BILD 1 (t.ex. "8 min, 12 min, 16 min, 20 min, 25 min"
-   kan stå som handskrivna tidsmarkeringar vid sidan av tabellen).
-3. I BILD 2${imageCount > 2 ? '/3' : ''}: hitta tidsfönstret som matchar varje stegs SLUTTID.
+1. KRITISKT: stages[] måste innehålla EXAKT lika många steg som finns i BILD 1.
+   Räkna stegen (raderna) i BILD 1 först — om det finns 8 rader i tabellen ska
+   stages[] ha 8 element. Hoppa ALDRIG över ett steg bara för att metaboldata
+   saknas eller verkar avvikande.
+2. Använd BILD 1 som auktoritativ källa för: heartRate, lactate, speed/power/pace,
+   incline, durationMinutes, durationSeconds. Dessa kommer från protokollet
+   och får INTE skrivas över av spirometridata även om värdena verkar olika.
+3. Identifiera stegens sluttider från BILD 1 (t.ex. "8 min, 12 min, 16 min,
+   20 min, 25 min" kan stå som handskrivna tidsmarkeringar vid sidan av tabellen).
+4. I BILD 2${imageCount > 2 ? '/3' : ''}: hitta tidsfönstret som matchar varje stegs SLUTTID.
    Ta STEADY-STATE-värdet (de sista 30–60 sekunderna av steget) för:
    vo2, rer, ve, vco2, respiratoryRate, fatPercent, choPercent.
-4. Om ett stegs tidsfönster saknas i metaboldata — lämna de metabola fälten tomma (undefined).
-   Hitta INTE på värden.
-5. Sätt sourceDescription = "Protokoll + spirometri (${imageCount} bilder)".
-6. Varna om tidsjustering mellan bilderna är osäker
+5. SIFFROR: läs av exakt det som står. Om VO2 visar "27" eller "27.4" → använd
+   det talet. Använd ALDRIG vetenskaplig notation som "2.7e-7". Om en mätare
+   visar L/min så konvertera till ml/kg/min med vikt från BILD 1; men fyll
+   hellre inget än att gissa enheten.
+6. Om ett stegs tidsfönster saknas i metaboldata — lämna BARA de metabola
+   fälten tomma. Behåll alltid stage-objektet med protokolldata.
+7. Sätt sourceDescription = "Protokoll + spirometri (${imageCount} bilder)".
+8. Varna om tidsjustering mellan bilderna är osäker
    (t.ex. "kunde inte matcha steg 5 mot metaboldata").
 - Om handskrivet: var extra noga med siffror som kan förväxlas (1/7, 5/6, 3/8).
 - Varna om någon bild är suddig, bländad, eller delvis avskuren.`
