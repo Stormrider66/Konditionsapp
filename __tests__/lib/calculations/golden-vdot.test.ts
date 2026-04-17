@@ -92,11 +92,15 @@ describe('VDOT golden snapshots', () => {
   })
 
   it('validateRacePerformance flags outliers', () => {
-    // Sub-3 marathon is ~VDOT 67 — a claimed pairing of
-    // (marathon, 2:00:00) should yield a confidence or flag indicating
-    // the performance is unusually fast.
-    const result = validateRacePerformance(60, 'Marathon', '2:00:00')
+    // A claimed pairing of (marathon, 2:00:00) against a stated
+    // VDOT of 60 should deviate far from the expected time and
+    // produce a warning.
+    const MARATHON_M = 42195
+    const TWO_HOURS_SEC = 7200
+    const result = validateRacePerformance(60, MARATHON_M, TWO_HOURS_SEC)
     expect(result).toBeDefined()
+    expect(Math.abs(result.deviation)).toBeGreaterThan(10)
+    expect(result.warning).toBeDefined()
   })
 
   it('generateVDOTEntry builds a full row with race-time + pace fields', () => {
