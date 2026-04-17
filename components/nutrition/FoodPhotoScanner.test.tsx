@@ -63,6 +63,16 @@ describe('FoodPhotoScanner', () => {
       }),
     })
 
+    // compressImageForRefine() pipes the file through
+    // FileReader → <Image> → canvas.toDataURL(). The FileReader mock
+    // below returns 'data:image/png;base64,ZmFrZQ=='; mock toDataURL to
+    // return the same base64 payload but tagged as image/jpeg (the
+    // compression output type the component expects).
+    Object.defineProperty(HTMLCanvasElement.prototype, 'toDataURL', {
+      writable: true,
+      value: vi.fn(() => 'data:image/jpeg;base64,ZmFrZQ=='),
+    })
+
     class MockFileReader {
       result: string | ArrayBuffer | null = null
       onload: ((event: ProgressEvent<FileReader>) => void) | null = null

@@ -16,13 +16,24 @@ export default defineConfig({
     ],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov'],
+      reporter: ['text', 'lcov', 'json-summary'],
       reportsDirectory: './coverage',
+      // Coverage targets the modules we actually unit-test (lib + app/api
+      // handlers). React components and page files are covered by
+      // Playwright end-to-end tests instead.
+      include: ['lib/**/*.{ts,tsx}', 'app/api/**/*.ts'],
       exclude: [
         'node_modules/',
         '.next/',
         'coverage/',
-        '**/*.d.ts'
+        '**/*.d.ts',
+        '**/__tests__/**',
+        '**/*.{test,spec}.{ts,tsx}',
+        'lib/**/types.ts',
+        'remotion/**',
+        'scripts/**',
+        'tests/e2e/**',
+        'load-tests/**'
       ]
     }
   },
