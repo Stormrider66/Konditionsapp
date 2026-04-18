@@ -378,7 +378,7 @@ export function ExerciseLogSheet({
                 <Button
                   className="h-12 flex-[2]"
                   onClick={handleLog}
-                  disabled={isSaving || weight <= 0 || reps <= 0}
+                  disabled={isSaving || reps <= 0}
                 >
                   {isSaving ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
