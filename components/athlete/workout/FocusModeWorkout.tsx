@@ -580,8 +580,8 @@ export function FocusModeWorkout({
                 {/* Video/Instructions button */}
                 {(currentExercise.videoUrl || currentExercise.instructions) && (
                   <Button
-                    variant="outline"
-                    className="w-full"
+                    variant="secondary"
+                    className="w-full text-foreground"
                     onClick={() => setShowInstructions(true)}
                   >
                     <Info className="h-4 w-4 mr-2" />
@@ -688,7 +688,8 @@ export function FocusModeWorkout({
       {!showRestTimer && (
         <footer className="flex items-center justify-between p-4 border-t bg-background/95 backdrop-blur">
           <Button
-            variant="outline"
+            variant="secondary"
+            className="text-foreground"
             onClick={goToPrevious}
             disabled={currentIndex === 0}
           >
@@ -696,7 +697,8 @@ export function FocusModeWorkout({
             Föregående
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
+            className="text-foreground"
             onClick={goToNext}
             disabled={currentIndex >= data.exercises.length - 1}
           >
@@ -777,7 +779,8 @@ export function FocusModeWorkout({
 
           <DialogFooter>
             <Button
-              variant="outline"
+              variant="secondary"
+              className="text-foreground"
               onClick={() => setShowCompleteDialog(false)}
             >
               Fortsätt träna

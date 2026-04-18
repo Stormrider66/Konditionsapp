@@ -12,11 +12,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
 import {
   Loader2,
@@ -51,6 +46,8 @@ export interface SetLogData {
   peakVelocity?: number
   meanPower?: number
   peakPower?: number
+  meanTime?: number
+  peakTime?: number
 }
 
 export function SetLoggingForm({
@@ -76,11 +73,13 @@ export function SetLoggingForm({
 
   const [weight, setWeight] = useState(defaultWeight)
   const [repsCompleted, setRepsCompleted] = useState(defaultReps)
-  const [rpe, setRpe] = useState<number | undefined>(undefined)
+  const [rpe, setRpe] = useState<number>(6)
+  const [rpeTouched, setRpeTouched] = useState(false)
   const [showVBT, setShowVBT] = useState(false)
   const [meanVelocity, setMeanVelocity] = useState<string>('')
   const [peakVelocity, setPeakVelocity] = useState<string>('')
   const [meanPower, setMeanPower] = useState<string>('')
+  const [peakPower, setPeakPower] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
 
@@ -110,10 +109,11 @@ export function SetLoggingForm({
         repsTarget: typeof targetReps === 'number' ? targetReps : defaultReps,
       }
 
-      if (rpe !== undefined) data.rpe = rpe
+      if (rpeTouched) data.rpe = rpe
       if (meanVelocity) data.meanVelocity = parseFloat(meanVelocity)
       if (peakVelocity) data.peakVelocity = parseFloat(peakVelocity)
       if (meanPower) data.meanPower = parseFloat(meanPower)
+      if (peakPower) data.peakPower = parseFloat(peakPower)
 
       await onSubmit(data)
       setIsSuccess(true)
@@ -141,9 +141,9 @@ export function SetLoggingForm({
         {/* Weight */}
         <div className="flex items-center">
           <Button
-            variant="ghost"
+            variant="secondary"
             size="icon"
-            className="h-8 w-8"
+            className="h-9 w-9 text-foreground"
             onClick={() => adjustWeight(-2.5)}
             disabled={disabled}
           >
@@ -151,17 +151,19 @@ export function SetLoggingForm({
           </Button>
           <Input
             type="number"
-            value={weight}
+            value={weight === 0 ? '' : weight}
+            placeholder="0"
             onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
-            className="w-16 h-8 text-center"
+            onFocus={(e) => e.currentTarget.select()}
+            className="w-16 h-9 text-center font-semibold text-foreground bg-muted/40"
             inputMode="decimal"
             disabled={disabled}
           />
           <span className="text-xs text-muted-foreground ml-1">kg</span>
           <Button
-            variant="ghost"
+            variant="secondary"
             size="icon"
-            className="h-8 w-8"
+            className="h-9 w-9 text-foreground"
             onClick={() => adjustWeight(2.5)}
             disabled={disabled}
           >
@@ -172,9 +174,9 @@ export function SetLoggingForm({
         {/* Reps */}
         <div className="flex items-center">
           <Button
-            variant="ghost"
+            variant="secondary"
             size="icon"
-            className="h-8 w-8"
+            className="h-9 w-9 text-foreground"
             onClick={() => adjustReps(-1)}
             disabled={disabled}
           >
@@ -182,17 +184,19 @@ export function SetLoggingForm({
           </Button>
           <Input
             type="number"
-            value={repsCompleted}
+            value={repsCompleted === 0 ? '' : repsCompleted}
+            placeholder="0"
             onChange={(e) => setRepsCompleted(parseInt(e.target.value) || 0)}
-            className="w-12 h-8 text-center"
+            onFocus={(e) => e.currentTarget.select()}
+            className="w-12 h-9 text-center font-semibold text-foreground bg-muted/40"
             inputMode="numeric"
             disabled={disabled}
           />
           <span className="text-xs text-muted-foreground ml-1">reps</span>
           <Button
-            variant="ghost"
+            variant="secondary"
             size="icon"
-            className="h-8 w-8"
+            className="h-9 w-9 text-foreground"
             onClick={() => adjustReps(1)}
             disabled={disabled}
           >
@@ -204,7 +208,7 @@ export function SetLoggingForm({
         <Button
           size="sm"
           onClick={handleSubmit}
-          disabled={isSubmitting || disabled}
+          disabled={isSubmitting || disabled || repsCompleted <= 0}
           className="ml-auto"
         >
           {isSubmitting ? (
@@ -232,67 +236,49 @@ export function SetLoggingForm({
 
       {/* Weight Input */}
       <div className="space-y-2">
-        <Label className="text-sm">Belastning (kg)</Label>
+        <Label className="text-sm font-medium text-foreground">Belastning (kg)</Label>
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
+            variant="secondary"
             size="icon"
-            className="h-12 w-12"
+            className="h-14 w-14 text-foreground"
             onClick={() => adjustWeight(-2.5)}
             disabled={disabled}
           >
-            <Minus className="h-4 w-4" />
+            <Minus className="h-5 w-5" />
           </Button>
           <Input
             type="number"
-            value={weight}
+            value={weight === 0 ? '' : weight}
+            placeholder="0"
             onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
-            className="h-12 text-xl text-center font-medium"
+            onFocus={(e) => e.currentTarget.select()}
+            className="h-14 bg-muted/40 text-center text-2xl font-bold text-foreground"
             inputMode="decimal"
             step="0.5"
             disabled={disabled}
           />
           <Button
-            variant="outline"
+            variant="secondary"
             size="icon"
-            className="h-12 w-12"
+            className="h-14 w-14 text-foreground"
             onClick={() => adjustWeight(2.5)}
             disabled={disabled}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-5 w-5" />
           </Button>
         </div>
         <div className="flex justify-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => adjustWeight(-5)}
-            disabled={disabled}
-          >
+          <Button variant="ghost" size="sm" onClick={() => adjustWeight(-5)} disabled={disabled}>
             -5
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => adjustWeight(-1)}
-            disabled={disabled}
-          >
+          <Button variant="ghost" size="sm" onClick={() => adjustWeight(-1)} disabled={disabled}>
             -1
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => adjustWeight(1)}
-            disabled={disabled}
-          >
+          <Button variant="ghost" size="sm" onClick={() => adjustWeight(1)} disabled={disabled}>
             +1
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => adjustWeight(5)}
-            disabled={disabled}
-          >
+          <Button variant="ghost" size="sm" onClick={() => adjustWeight(5)} disabled={disabled}>
             +5
           </Button>
         </div>
@@ -300,7 +286,7 @@ export function SetLoggingForm({
 
       {/* Reps Input */}
       <div className="space-y-2">
-        <Label className="text-sm">
+        <Label className="text-sm font-medium text-foreground">
           Repetitioner
           {targetReps && (
             <span className="text-muted-foreground ml-1">
@@ -310,30 +296,32 @@ export function SetLoggingForm({
         </Label>
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
+            variant="secondary"
             size="icon"
-            className="h-12 w-12"
+            className="h-14 w-14 text-foreground"
             onClick={() => adjustReps(-1)}
             disabled={disabled}
           >
-            <Minus className="h-4 w-4" />
+            <Minus className="h-5 w-5" />
           </Button>
           <Input
             type="number"
-            value={repsCompleted}
+            value={repsCompleted === 0 ? '' : repsCompleted}
+            placeholder="0"
             onChange={(e) => setRepsCompleted(parseInt(e.target.value) || 0)}
-            className="h-12 text-xl text-center font-medium"
+            onFocus={(e) => e.currentTarget.select()}
+            className="h-14 bg-muted/40 text-center text-2xl font-bold text-foreground"
             inputMode="numeric"
             disabled={disabled}
           />
           <Button
-            variant="outline"
+            variant="secondary"
             size="icon"
-            className="h-12 w-12"
+            className="h-14 w-14 text-foreground"
             onClick={() => adjustReps(1)}
             disabled={disabled}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-5 w-5" />
           </Button>
         </div>
       </div>
@@ -341,16 +329,23 @@ export function SetLoggingForm({
       {/* RPE Slider */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm">RPE (svårighetsgrad) <InfoTooltip conceptKey="rpe" /></Label>
-          {rpe !== undefined && (
-            <Badge className={`${getRPEColor(rpe)} text-white`}>
-              {rpe}
-            </Badge>
-          )}
+          <Label className="text-sm font-medium text-foreground">RPE (svårighetsgrad) <InfoTooltip conceptKey="rpe" /></Label>
+          <Badge
+            className={
+              rpeTouched
+                ? `${getRPEColor(rpe)} text-white min-w-[34px] justify-center`
+                : 'bg-muted text-muted-foreground min-w-[34px] justify-center'
+            }
+          >
+            {rpeTouched ? rpe : '—'}
+          </Badge>
         </div>
         <Slider
-          value={rpe !== undefined ? [rpe] : []}
-          onValueChange={(value) => setRpe(value[0])}
+          value={[rpe]}
+          onValueChange={(value) => {
+            setRpe(value[0])
+            setRpeTouched(true)
+          }}
           min={1}
           max={10}
           step={0.5}
@@ -363,69 +358,106 @@ export function SetLoggingForm({
         </div>
       </div>
 
-      {/* VBT Fields (Collapsible) */}
-      <Collapsible open={showVBT} onOpenChange={setShowVBT}>
-        <CollapsibleTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full text-muted-foreground"
-          >
-            <Gauge className="h-4 w-4 mr-2" />
-            VBT-data
-            <ChevronDown
-              className={`h-4 w-4 ml-auto transition-transform ${
-                showVBT ? 'rotate-180' : ''
-              }`}
-            />
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-3 pt-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Medelhastighet (m/s)</Label>
-              <Input
-                type="number"
-                value={meanVelocity}
-                onChange={(e) => setMeanVelocity(e.target.value)}
-                placeholder="0.65"
-                step="0.01"
-                inputMode="decimal"
-                disabled={disabled}
-              />
+      {/* VBT Fields — separate Medel / Topp inputs per metric */}
+      <div className="rounded-lg border border-border bg-muted/30">
+        <button
+          type="button"
+          onClick={() => setShowVBT((v) => !v)}
+          className="flex w-full items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground"
+        >
+          <Gauge className="h-4 w-4 text-muted-foreground" />
+          Hastighet / kraft
+          <ChevronDown
+            className={`ml-auto h-4 w-4 text-muted-foreground transition-transform ${
+              showVBT ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+        {showVBT && (
+          <div className="space-y-4 border-t border-border px-3 pb-3 pt-3">
+            <div className="space-y-1.5">
+              <div className="flex items-baseline justify-between">
+                <Label className="text-sm font-medium text-foreground">Hastighet</Label>
+                <span className="text-xs text-muted-foreground">m/s</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Medel
+                  </span>
+                  <Input
+                    type="number"
+                    value={meanVelocity}
+                    onChange={(e) => setMeanVelocity(e.target.value)}
+                    placeholder="0.65"
+                    step="0.01"
+                    inputMode="decimal"
+                    disabled={disabled}
+                    className="h-10 bg-muted/40 text-center font-semibold text-foreground"
+                  />
+                </div>
+                <div>
+                  <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Topp
+                  </span>
+                  <Input
+                    type="number"
+                    value={peakVelocity}
+                    onChange={(e) => setPeakVelocity(e.target.value)}
+                    placeholder="0.85"
+                    step="0.01"
+                    inputMode="decimal"
+                    disabled={disabled}
+                    className="h-10 bg-muted/40 text-center font-semibold text-foreground"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Topphastighet (m/s)</Label>
-              <Input
-                type="number"
-                value={peakVelocity}
-                onChange={(e) => setPeakVelocity(e.target.value)}
-                placeholder="0.85"
-                step="0.01"
-                inputMode="decimal"
-                disabled={disabled}
-              />
+            <div className="space-y-1.5">
+              <div className="flex items-baseline justify-between">
+                <Label className="text-sm font-medium text-foreground">Effekt</Label>
+                <span className="text-xs text-muted-foreground">W</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Medel
+                  </span>
+                  <Input
+                    type="number"
+                    value={meanPower}
+                    onChange={(e) => setMeanPower(e.target.value)}
+                    placeholder="450"
+                    inputMode="numeric"
+                    disabled={disabled}
+                    className="h-10 bg-muted/40 text-center font-semibold text-foreground"
+                  />
+                </div>
+                <div>
+                  <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Topp
+                  </span>
+                  <Input
+                    type="number"
+                    value={peakPower}
+                    onChange={(e) => setPeakPower(e.target.value)}
+                    placeholder="520"
+                    inputMode="numeric"
+                    disabled={disabled}
+                    className="h-10 bg-muted/40 text-center font-semibold text-foreground"
+                  />
+                </div>
+              </div>
             </div>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Medeleffekt (W)</Label>
-            <Input
-              type="number"
-              value={meanPower}
-              onChange={(e) => setMeanPower(e.target.value)}
-              placeholder="450"
-              inputMode="numeric"
-              disabled={disabled}
-            />
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+        )}
+      </div>
 
       {/* Submit Button */}
       <Button
         className="w-full h-12"
         onClick={handleSubmit}
-        disabled={isSubmitting || disabled || weight <= 0}
+        disabled={isSubmitting || disabled || repsCompleted <= 0}
       >
         {isSubmitting ? (
           <>
