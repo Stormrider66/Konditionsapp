@@ -172,16 +172,13 @@ export function ExerciseLogSheet({
       >
         <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col overflow-hidden">
           <div className="relative border-b">
-            <div className="relative h-40 w-full overflow-hidden bg-gradient-to-br from-primary/20 via-primary/5 to-background">
+            <div className="relative h-56 w-full overflow-hidden bg-gradient-to-br from-primary/25 via-primary/10 to-background">
               {heroImage ? (
-                <>
-                  <img
-                    src={heroImage}
-                    alt={exercise.nameSv || exercise.name}
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-                </>
+                <img
+                  src={heroImage}
+                  alt={exercise.nameSv || exercise.name}
+                  className="h-full w-full object-contain"
+                />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
                   <Dumbbell className="h-20 w-20 text-primary/30" strokeWidth={1.25} />
@@ -251,7 +248,7 @@ export function ExerciseLogSheet({
             ) : (
               <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label className="text-sm">Belastning</Label>
+                  <Label className="text-sm font-medium text-foreground">Belastning</Label>
                   <NumberStepper
                     value={weight}
                     onChange={setWeight}
@@ -276,7 +273,7 @@ export function ExerciseLogSheet({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm">
+                  <Label className="text-sm font-medium text-foreground">
                     Repetitioner{' '}
                     <span className="text-muted-foreground">(mål: {targetRepsText})</span>
                   </Label>
@@ -285,7 +282,7 @@ export function ExerciseLogSheet({
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm">RPE</Label>
+                    <Label className="text-sm font-medium text-foreground">RPE</Label>
                     <Badge
                       className={cn(
                         'min-w-[34px] justify-center text-white',
@@ -478,11 +475,21 @@ function NumberStepper({
       <div className="relative flex-1">
         <Input
           type="number"
-          value={value}
+          value={value === 0 ? '' : value}
+          placeholder="0"
           inputMode={decimals ? 'decimal' : 'numeric'}
           step={decimals ? '0.5' : '1'}
-          className="h-14 bg-muted/40 text-center text-2xl font-bold text-foreground"
-          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+          className="h-14 bg-muted/40 text-center text-2xl font-bold text-foreground placeholder:text-muted-foreground/50"
+          onFocus={(e) => e.currentTarget.select()}
+          onChange={(e) => {
+            const raw = e.target.value
+            if (raw === '') {
+              onChange(0)
+              return
+            }
+            const parsed = parseFloat(raw)
+            onChange(Number.isNaN(parsed) ? 0 : parsed)
+          }}
         />
         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
           {unit}
