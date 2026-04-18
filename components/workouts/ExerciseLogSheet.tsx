@@ -174,11 +174,17 @@ export function ExerciseLogSheet({
         <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto">
             {heroImage ? (
-              <div className="w-full bg-gradient-to-br from-primary/25 via-primary/10 to-background">
+              <div className="relative w-full overflow-hidden bg-background">
+                <img
+                  src={heroImage}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl"
+                />
                 <img
                   src={heroImage}
                   alt={exercise.nameSv || exercise.name}
-                  className="mx-auto block h-auto max-h-[60vh] w-full object-contain"
+                  className="relative mx-auto block h-auto max-h-[60vh] w-full object-contain"
                 />
               </div>
             ) : (
