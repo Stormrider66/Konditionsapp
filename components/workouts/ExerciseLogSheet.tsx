@@ -362,7 +362,11 @@ export function ExerciseLogSheet({
 
           <div className="border-t bg-background/95 px-4 py-3 sm:px-6">
             <div className="flex items-center gap-2">
-              <Button variant="outline" className="h-12 flex-1" onClick={handleDone}>
+              <Button
+                variant="secondary"
+                className="h-12 flex-1 text-foreground"
+                onClick={handleDone}
+              >
                 {allSetsDone ? 'Klar' : 'Stäng'}
               </Button>
               {!allSetsDone && !restActiveForThis && (
@@ -465,12 +469,12 @@ function NumberStepper({
     <div className="flex items-center gap-2">
       <Button
         type="button"
-        variant="outline"
+        variant="secondary"
         size="icon"
-        className="h-12 w-12"
+        className="h-14 w-14 text-foreground"
         onClick={() => onChange(Math.max(0, value - step))}
       >
-        <Minus className="h-4 w-4" />
+        <Minus className="h-5 w-5" />
       </Button>
       <div className="relative flex-1">
         <Input
@@ -497,12 +501,12 @@ function NumberStepper({
       </div>
       <Button
         type="button"
-        variant="outline"
+        variant="secondary"
         size="icon"
-        className="h-12 w-12"
+        className="h-14 w-14 text-foreground"
         onClick={() => onChange(value + step)}
       >
-        <Plus className="h-4 w-4" />
+        <Plus className="h-5 w-5" />
       </Button>
     </div>
   )
