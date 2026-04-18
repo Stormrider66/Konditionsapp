@@ -6,7 +6,7 @@
  */
 
 import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 import type { ParsedProgram } from '@/lib/ai/program-parser';
 
 export interface ProgramPDFOptions {

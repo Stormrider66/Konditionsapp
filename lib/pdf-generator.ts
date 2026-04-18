@@ -1,6 +1,6 @@
 // lib/pdf-generator.ts
 import { jsPDF } from 'jspdf'
-import html2canvas from 'html2canvas'
+import html2canvas from 'html2canvas-pro'
 import { ReportData } from '@/types'
 import { format } from 'date-fns'
 
