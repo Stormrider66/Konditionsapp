@@ -478,8 +478,6 @@ model SetLog {
   peakVelocity Float? // m/s
   meanPower    Float? // watts
   peakPower    Float? // watts
-  meanTime     Float? // seconds (mean rep time)
-  peakTime     Float? // seconds (best rep time)
 
   // Timing
   restTaken Int? // seconds of rest taken after this set

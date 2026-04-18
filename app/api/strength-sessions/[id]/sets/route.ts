@@ -50,11 +50,12 @@ export async function POST(
       peakVelocity,
       meanPower,
       peakPower,
-      meanTime,
-      peakTime,
       restTaken,
       notes,
     } = body
+    // Note: meanTime / peakTime are accepted from the client but not
+    // persisted yet — the SetLog.meanTime/peakTime columns require a
+    // migration to be applied before they can be written.
 
     // Validate required fields
     if (!exerciseId || typeof setNumber !== 'number' || typeof weight !== 'number' || typeof repsCompleted !== 'number') {
@@ -106,8 +107,6 @@ export async function POST(
         peakVelocity: peakVelocity ?? null,
         meanPower: meanPower ?? null,
         peakPower: peakPower ?? null,
-        meanTime: meanTime ?? null,
-        peakTime: peakTime ?? null,
         restTaken: restTaken ?? null,
         estimated1RM,
         velocityZone,
