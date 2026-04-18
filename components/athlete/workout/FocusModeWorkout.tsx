@@ -118,30 +118,30 @@ interface FocusModeWorkoutProps {
 const SECTION_CONFIG = {
   WARMUP: {
     label: 'Uppvärmning',
-    color: 'bg-yellow-500',
-    textColor: 'text-yellow-600',
-    bgColor: 'bg-yellow-50',
+    color: 'bg-amber-500',
+    textColor: 'text-amber-500',
+    bgColor: 'bg-amber-500/10',
     icon: Flame,
   },
   MAIN: {
     label: 'Huvudpass',
-    color: 'bg-blue-500',
-    textColor: 'text-blue-600',
-    bgColor: 'bg-blue-50',
+    color: 'bg-primary',
+    textColor: 'text-primary',
+    bgColor: 'bg-primary/10',
     icon: Dumbbell,
   },
   CORE: {
     label: 'Core',
     color: 'bg-purple-500',
-    textColor: 'text-purple-600',
-    bgColor: 'bg-purple-50',
+    textColor: 'text-purple-500',
+    bgColor: 'bg-purple-500/10',
     icon: Target,
   },
   COOLDOWN: {
     label: 'Nedvarvning',
-    color: 'bg-green-500',
-    textColor: 'text-green-600',
-    bgColor: 'bg-green-50',
+    color: 'bg-emerald-500',
+    textColor: 'text-emerald-500',
+    bgColor: 'bg-emerald-500/10',
     icon: Timer,
   },
 }
@@ -466,7 +466,7 @@ export function FocusModeWorkout({
               className={`w-2 h-2 rounded-full transition-all ${isCurrent
                 ? 'w-4 bg-primary'
                 : isComplete
-                  ? 'bg-green-500'
+                  ? 'bg-emerald-500'
                   : 'bg-muted-foreground/30'
                 }`}
             />
@@ -603,7 +603,7 @@ export function FocusModeWorkout({
                       <div
                         key={setNum}
                         className={`p-3 rounded-lg border text-center ${isCompleted
-                          ? 'bg-green-50 border-green-300'
+                          ? 'bg-emerald-500/10 border-emerald-500/40'
                           : isCurrent
                             ? 'bg-primary/10 border-primary'
                             : 'bg-muted/30'
@@ -611,7 +611,7 @@ export function FocusModeWorkout({
                       >
                         <p className="text-sm font-medium">Set {setNum}</p>
                         {isCompleted ? (
-                          <div className="text-xs text-green-600">
+                          <div className="text-xs text-emerald-600 dark:text-emerald-400">
                             <CheckCircle2 className="h-4 w-4 mx-auto" />
                             {log.weight}kg × {log.repsCompleted}
                           </div>
@@ -646,10 +646,10 @@ export function FocusModeWorkout({
 
                 {/* Exercise complete message */}
                 {isExerciseComplete && (
-                  <Card className="bg-green-50 border-green-300">
+                  <Card className="bg-emerald-500/10 border-emerald-500/40">
                     <CardContent className="pt-6 text-center">
-                      <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-2" />
-                      <p className="font-medium text-green-800">
+                      <CheckCircle2 className="h-12 w-12 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
+                      <p className="font-medium text-emerald-700 dark:text-emerald-300">
                         Övning klar!
                       </p>
                       {currentIndex < data.exercises.length - 1 ? (

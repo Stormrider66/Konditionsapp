@@ -14,11 +14,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import {
   Play,
   Clock,
   Dumbbell,
@@ -28,10 +23,8 @@ import {
   Timer,
   Calendar,
   ChevronRight,
-  Loader2,
 } from 'lucide-react'
-import { FocusModeWorkout } from './FocusModeWorkout'
-import { WorkoutStartScreen } from './WorkoutStartScreen'
+import { StrengthWorkoutPreview } from '@/components/workouts/StrengthWorkoutPreview'
 
 interface StrengthSessionCardProps {
   assignment: {
@@ -102,8 +95,7 @@ export function StrengthSessionCard({
   assignment,
   onComplete,
 }: StrengthSessionCardProps) {
-  const [showStartScreen, setShowStartScreen] = useState(false)
-  const [showFocusMode, setShowFocusMode] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   const { session, progress, status } = assignment
   const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING
@@ -128,17 +120,9 @@ export function StrengthSessionCard({
         day: 'numeric',
       })
 
-  // Handle close/complete
   const handleClose = () => {
-    setShowStartScreen(false)
-    setShowFocusMode(false)
+    setShowPreview(false)
     if (onComplete) onComplete()
-  }
-
-  // Start workout (from start screen)
-  const handleStartWorkout = () => {
-    setShowStartScreen(false)
-    setShowFocusMode(true)
   }
 
   return (
@@ -269,10 +253,10 @@ export function StrengthSessionCard({
               <Button
                 className="flex-1"
                 size="lg"
-                onClick={() => setShowStartScreen(true)}
+                onClick={() => setShowPreview(true)}
               >
                 <Play className="h-5 w-5 mr-2" />
-                {progressPercent > 0 ? 'Fortsätt pass' : 'Starta pass'}
+                {progressPercent > 0 ? 'Fortsätt pass' : 'Öppna pass'}
                 <ChevronRight className="h-4 w-4 ml-auto" />
               </Button>
               <HeadlessVoiceCoachLauncher assignmentId={assignment.id} workoutType="strength" />
@@ -283,7 +267,7 @@ export function StrengthSessionCard({
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => setShowStartScreen(true)}
+              onClick={() => setShowPreview(true)}
             >
               Visa detaljer
               <ChevronRight className="h-4 w-4 ml-2" />
@@ -292,20 +276,11 @@ export function StrengthSessionCard({
         </CardContent>
       </Card>
 
-      {/* Workout Start Screen */}
-      {showStartScreen && (
-        <WorkoutStartScreen
-          assignmentId={assignment.id}
-          onStart={handleStartWorkout}
-          onBack={() => setShowStartScreen(false)}
-        />
-      )}
-
-      {/* Focus Mode */}
-      {showFocusMode && (
-        <FocusModeWorkout
+      {showPreview && (
+        <StrengthWorkoutPreview
           assignmentId={assignment.id}
           onClose={handleClose}
+          onCompleted={onComplete}
         />
       )}
     </>

@@ -50,6 +50,8 @@ export async function POST(
       peakVelocity,
       meanPower,
       peakPower,
+      meanTime,
+      peakTime,
       restTaken,
       notes,
     } = body
@@ -104,6 +106,8 @@ export async function POST(
         peakVelocity: peakVelocity ?? null,
         meanPower: meanPower ?? null,
         peakPower: peakPower ?? null,
+        meanTime: meanTime ?? null,
+        peakTime: peakTime ?? null,
         restTaken: restTaken ?? null,
         estimated1RM,
         velocityZone,
