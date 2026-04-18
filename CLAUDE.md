@@ -159,3 +159,14 @@ All outbound email is paused until launch. Set `EMAILS_PAUSED=true` in env to su
 - Lactate curve validation not enforced (users can input decreasing values)
 - Economy calculations skip stages without VO2 data
 - PDF export may timeout on slow connections for large reports
+
+## Future Work / Watchpoints
+
+Post-`v2.0.0`. Not urgent, worth checking periodically:
+
+- **Supabase logs**: grep for `custom_access_token_hook failed:` — silent errors push users onto the slow DB-lookup fallback.
+- **Stripe webhook**: dry-run a few events through the new idempotency path before peak billing cycles.
+- **Lint warnings**: 3461 baseline. Rising fast = lost signal discipline.
+- **MediaPipe**: unmaintained, no declared React peer. Plan a 1–2 day migration to `@mediapipe/tasks-vision` before the next React major bump.
+- **`videos` storage bucket**: never verified post-launch. When video-analysis gets real usage, confirm its RLS policies match `video-analysis` (private + 100 MB limit).
+- **PoseAnalyzer.tsx (1422 LOC) + ConfigurationForm.tsx (1073 LOC)**: still above the 500-LOC target. Decompose further only when actively editing.
