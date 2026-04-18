@@ -9,7 +9,7 @@
     "garmin-webhook:start": "NODE_ENV=production tsx --tsconfig tsconfig.scripts.json apps/garmin-webhook/server.ts",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=6144 next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "cross-env NODE_OPTIONS=--max-old-space-size=8192 eslint . --ext .ts,.tsx",
     "typecheck": "cross-env NODE_OPTIONS=--max-old-space-size=6144 tsc --noEmit -p tsconfig.json",
     "prepare": "husky",
     "prisma:generate": "prisma generate",
@@ -122,6 +122,8 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^10.0.1",
     "@mermaid-js/mermaid-cli": "^11.12.0",
     "@playwright/test": "^1.56.1",
     "@sentry/nextjs": "^10.49.0",
@@ -143,13 +145,13 @@
     "playwright": "^1.56.1",
     "postcss": "^8.5.6",
     "prisma": "6.17.1",
-    "prisma-erd-generator": "^2.3.0",
     "storybook": "^10.3.5",
     "tailwindcss": "^3.4.18",
     "tailwindcss-animate": "^1.0.7",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.21.0",
+    "typescript-eslint": "^8.58.2",
     "vitest": "^4.0.9"
   },
   "prisma": {

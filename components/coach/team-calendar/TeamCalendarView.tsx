@@ -83,11 +83,16 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
   const weekEnd = new Date(weekDates[6])
   weekEnd.setHours(23, 59, 59, 999)
 
+  // Stabilize the ISO strings outside the dep array — react-hooks v6
+  // requires deps to be simple expressions (no method calls).
+  const weekStartIso = weekStart.toISOString()
+  const weekEndIso = weekEnd.toISOString()
+
   const fetchEvents = useCallback(async () => {
     try {
       const params = new URLSearchParams({
-        from: weekStart.toISOString(),
-        to: weekEnd.toISOString(),
+        from: weekStartIso,
+        to: weekEndIso,
       })
       const res = await fetch(`/api/coach/teams/${teamId}/events?${params}`)
       if (res.ok) {
@@ -99,7 +104,7 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
     } finally {
       setLoading(false)
     }
-  }, [teamId, weekStart.toISOString(), weekEnd.toISOString()])
+  }, [teamId, weekStartIso, weekEndIso])
 
   useEffect(() => {
     fetchEvents()
