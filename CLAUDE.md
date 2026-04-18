@@ -126,6 +126,9 @@ Route protection in `middleware.ts` (includes custom domain white-label support,
 ```env
 # Core
 NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY / DATABASE_URL
+# Auth
+USE_JWT_CLAIMS=true         # Middleware reads claims from Supabase custom_access_token_hook; unset/false falls back to DB lookup
+INTERNAL_DISPATCH_SECRET    # Shared secret for /api/agent-tools/dispatch webhook fan-out
 # Services
 RESEND_API_KEY / STRIPE_SECRET_KEY / NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY / STRIPE_WEBHOOK_SECRET
 # Integrations
@@ -135,6 +138,17 @@ NEXT_PUBLIC_SENTRY_DSN / UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN / YOU
 ```
 
 Note: AI provider API keys are managed per-user (encrypted in DB), not via env vars.
+
+## Supabase Auth Hook (JWT Claims)
+
+A Postgres function `public.custom_access_token_hook` enriches every Supabase access token with `app_metadata.{dbUserId, role, adminRole, primarySlug, memberBusinessSlugs, selfAthleteClientId}` so `proxy.ts` can authorize requests without hitting the DB on every hop.
+
+- SQL lives in `prisma/migrations/20260418_custom_access_token_hook/migration.sql`.
+- Registered in **Supabase Dashboard → Authentication → Hooks → Customize Access Token (JWT) Claims** (Postgres / schema `public` / function `custom_access_token_hook`). Setup walkthrough: `docs/deployment/supabase-auth-hook.md`.
+- Gated by Vercel env var **`USE_JWT_CLAIMS=true`** (production + preview). If this flag is unset or `false`, middleware falls back to the legacy DB lookup — safe emergency rollback without touching the dashboard.
+- If you disable the hook in the dashboard, also set `USE_JWT_CLAIMS=false` in Vercel so middleware stops expecting claims that aren't there.
+- Schema drift: if you change `User`, `Business`, or `BusinessMember` columns the function reads, update the migration + re-apply, otherwise claims will silently be `null`.
+- Watch Supabase logs for `custom_access_token_hook failed:` entries — the function has a try/catch that returns original claims on error so sign-in never blocks, but silent failures push users onto the slow DB-lookup path.
 
 ## Email Kill Switch
 
