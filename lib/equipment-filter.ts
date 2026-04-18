@@ -1,8 +1,10 @@
 // lib/equipment-filter.ts
-// Shared equipment filtering utilities for workout builders
-// Modeled after lib/agility-studio/equipment-filter.ts
-
-import { prisma } from '@/lib/prisma'
+// Shared equipment filtering utilities for workout builders.
+//
+// NOTE: This module is imported by client components (e.g. SessionBuilder).
+// The Prisma-using server helpers below load `@/lib/prisma` lazily via
+// `await import()` so Webpack does not pull PrismaClient into the browser
+// bundle. See memory: "Prisma-in-browser leaks via barrel re-exports".
 
 // ============================================
 // EQUIPMENT NAME MAPPING
@@ -47,6 +49,7 @@ export const EQUIPMENT_NAME_MAP: Record<string, string[]> = {
  * Get equipment list for a location
  */
 export async function getLocationEquipmentList(locationId: string) {
+  const { prisma } = await import('@/lib/prisma')
   const locationEquipment = await prisma.locationEquipment.findMany({
     where: {
       locationId,
@@ -72,6 +75,7 @@ export async function getLocationEquipmentList(locationId: string) {
  * Get exercises that can be done at a location based on its equipment
  */
 export async function getAvailableExercisesForLocation(locationId: string) {
+  const { prisma } = await import('@/lib/prisma')
   const equipment = await getLocationEquipmentList(locationId)
   const equipmentNames = equipment.map((e) => e.name.toLowerCase())
 
@@ -90,6 +94,7 @@ export async function getAvailableExercisesForLocation(locationId: string) {
  * Get hybrid movements that can be done at a location
  */
 export async function getAvailableMovementsForLocation(locationId: string) {
+  const { prisma } = await import('@/lib/prisma')
   const equipment = await getLocationEquipmentList(locationId)
   const equipmentTypes = new Set(
     equipment.flatMap((e) => e.enablesExercises)
