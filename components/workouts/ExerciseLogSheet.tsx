@@ -13,7 +13,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Check,
   ChevronDown,
@@ -39,8 +38,6 @@ interface ExerciseLogSheetProps {
   onLogSet: (payload: LoggedSetPayload) => Promise<PreviewSetLog>
 }
 
-type MetricMode = 'avg' | 'top'
-
 function parseTargetReps(reps: number | string): number {
   if (typeof reps === 'number') return reps
   const match = reps.match(/(\d+)/)
@@ -60,12 +57,12 @@ export function ExerciseLogSheet({
   const [rpe, setRpe] = useState<number>(6)
   const [rpeTouched, setRpeTouched] = useState(false)
   const [showMetrics, setShowMetrics] = useState(false)
-  const [velocityMode, setVelocityMode] = useState<MetricMode>('avg')
-  const [powerMode, setPowerMode] = useState<MetricMode>('avg')
-  const [velocityValue, setVelocityValue] = useState('')
-  const [powerValue, setPowerValue] = useState('')
-  const [timeValue, setTimeValue] = useState('')
-  const [timeMode, setTimeMode] = useState<MetricMode>('avg')
+  const [meanVelocityValue, setMeanVelocityValue] = useState('')
+  const [peakVelocityValue, setPeakVelocityValue] = useState('')
+  const [meanPowerValue, setMeanPowerValue] = useState('')
+  const [peakPowerValue, setPeakPowerValue] = useState('')
+  const [meanTimeValue, setMeanTimeValue] = useState('')
+  const [peakTimeValue, setPeakTimeValue] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
 
@@ -77,9 +74,12 @@ export function ExerciseLogSheet({
     setRpe(6)
     setRpeTouched(false)
     setShowMetrics(false)
-    setVelocityValue('')
-    setPowerValue('')
-    setTimeValue('')
+    setMeanVelocityValue('')
+    setPeakVelocityValue('')
+    setMeanPowerValue('')
+    setPeakPowerValue('')
+    setMeanTimeValue('')
+    setPeakTimeValue('')
   }, [exercise])
 
   const nextSetNumber = localLogs.length + 1
@@ -108,29 +108,33 @@ export function ExerciseLogSheet({
         repsTarget: parseTargetReps(exercise.repsTarget),
       }
       if (rpeTouched) payload.rpe = rpe
-      const velocity = parseFloat(velocityValue)
-      if (!Number.isNaN(velocity) && velocity > 0) {
-        if (velocityMode === 'avg') payload.meanVelocity = velocity
-        else payload.peakVelocity = velocity
+      const assignMetric = (
+        raw: string,
+        field: keyof Pick<
+          LoggedSetPayload,
+          'meanVelocity' | 'peakVelocity' | 'meanPower' | 'peakPower' | 'meanTime' | 'peakTime'
+        >,
+      ) => {
+        const parsed = parseFloat(raw)
+        if (!Number.isNaN(parsed) && parsed > 0) payload[field] = parsed
       }
-      const power = parseFloat(powerValue)
-      if (!Number.isNaN(power) && power > 0) {
-        if (powerMode === 'avg') payload.meanPower = power
-        else payload.peakPower = power
-      }
-      const time = parseFloat(timeValue)
-      if (!Number.isNaN(time) && time > 0) {
-        if (timeMode === 'avg') payload.meanTime = time
-        else payload.peakTime = time
-      }
+      assignMetric(meanVelocityValue, 'meanVelocity')
+      assignMetric(peakVelocityValue, 'peakVelocity')
+      assignMetric(meanPowerValue, 'meanPower')
+      assignMetric(peakPowerValue, 'peakPower')
+      assignMetric(meanTimeValue, 'meanTime')
+      assignMetric(peakTimeValue, 'peakTime')
       const saved = await onLogSet(payload)
       setLocalLogs((prev) => [...prev, saved])
       setJustSaved(true)
       setTimeout(() => setJustSaved(false), 1500)
       // Reset metric fields for next set; keep weight/reps as prefill.
-      setVelocityValue('')
-      setPowerValue('')
-      setTimeValue('')
+      setMeanVelocityValue('')
+      setPeakVelocityValue('')
+      setMeanPowerValue('')
+      setPeakPowerValue('')
+      setMeanTimeValue('')
+      setPeakTimeValue('')
       // Auto-start rest timer for this exercise unless this was the final set.
       if (nextSetNumber < exercise.sets && exercise.restSeconds > 0) {
         restTimer.start({
@@ -329,34 +333,34 @@ export function ExerciseLogSheet({
                     />
                   </button>
                   {showMetrics && (
-                    <div className="space-y-3 border-t border-border px-3 pb-3 pt-3">
-                    <MetricRow
-                      label="Hastighet"
-                      unit="m/s"
-                      value={velocityValue}
-                      onChange={setVelocityValue}
-                      mode={velocityMode}
-                      onModeChange={setVelocityMode}
-                      placeholder="0.75"
-                    />
-                    <MetricRow
-                      label="Effekt"
-                      unit="W"
-                      value={powerValue}
-                      onChange={setPowerValue}
-                      mode={powerMode}
-                      onModeChange={setPowerMode}
-                      placeholder="450"
-                    />
-                    <MetricRow
-                      label="Tid"
-                      unit="s"
-                      value={timeValue}
-                      onChange={setTimeValue}
-                      mode={timeMode}
-                      onModeChange={setTimeMode}
-                      placeholder="1.8"
-                    />
+                    <div className="space-y-4 border-t border-border px-3 pb-3 pt-3">
+                      <MetricRow
+                        label="Hastighet"
+                        unit="m/s"
+                        meanValue={meanVelocityValue}
+                        onMeanChange={setMeanVelocityValue}
+                        peakValue={peakVelocityValue}
+                        onPeakChange={setPeakVelocityValue}
+                        placeholder="0.75"
+                      />
+                      <MetricRow
+                        label="Effekt"
+                        unit="W"
+                        meanValue={meanPowerValue}
+                        onMeanChange={setMeanPowerValue}
+                        peakValue={peakPowerValue}
+                        onPeakChange={setPeakPowerValue}
+                        placeholder="450"
+                      />
+                      <MetricRow
+                        label="Tid"
+                        unit="s"
+                        meanValue={meanTimeValue}
+                        onMeanChange={setMeanTimeValue}
+                        peakValue={peakTimeValue}
+                        onPeakChange={setPeakTimeValue}
+                        placeholder="1.8"
+                      />
                     </div>
                   )}
                 </div>
@@ -520,44 +524,56 @@ function NumberStepper({
 function MetricRow({
   label,
   unit,
-  value,
-  onChange,
-  mode,
-  onModeChange,
+  meanValue,
+  onMeanChange,
+  peakValue,
+  onPeakChange,
   placeholder,
 }: {
   label: string
   unit: string
-  value: string
-  onChange: (v: string) => void
-  mode: MetricMode
-  onModeChange: (m: MetricMode) => void
+  meanValue: string
+  onMeanChange: (v: string) => void
+  peakValue: string
+  onPeakChange: (v: string) => void
   placeholder?: string
 }) {
   return (
-    <div className="grid grid-cols-[1fr_auto_auto] items-end gap-2">
-      <div>
-        <Label className="text-xs text-muted-foreground">{label}</Label>
-        <Input
-          type="number"
-          inputMode="decimal"
-          step="0.01"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="h-10 bg-muted/40 font-medium text-foreground"
-        />
+    <div className="space-y-1.5">
+      <div className="flex items-baseline justify-between">
+        <Label className="text-sm font-medium text-foreground">{label}</Label>
+        <span className="text-xs text-muted-foreground">{unit}</span>
       </div>
-      <Select value={mode} onValueChange={(v) => onModeChange(v as MetricMode)}>
-        <SelectTrigger className="h-9 w-[90px]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="avg">Medel</SelectItem>
-          <SelectItem value="top">Topp</SelectItem>
-        </SelectContent>
-      </Select>
-      <span className="pb-2 text-xs text-muted-foreground">{unit}</span>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Medel
+          </span>
+          <Input
+            type="number"
+            inputMode="decimal"
+            step="0.01"
+            value={meanValue}
+            onChange={(e) => onMeanChange(e.target.value)}
+            placeholder={placeholder}
+            className="h-10 bg-muted/40 text-center font-semibold text-foreground"
+          />
+        </div>
+        <div>
+          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Topp
+          </span>
+          <Input
+            type="number"
+            inputMode="decimal"
+            step="0.01"
+            value={peakValue}
+            onChange={(e) => onPeakChange(e.target.value)}
+            placeholder={placeholder}
+            className="h-10 bg-muted/40 text-center font-semibold text-foreground"
+          />
+        </div>
+      </div>
     </div>
   )
 }
