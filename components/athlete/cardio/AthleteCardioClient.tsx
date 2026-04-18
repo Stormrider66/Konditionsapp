@@ -22,8 +22,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { CardioSessionCard } from './CardioSessionCard'
-import { CardioFocusModeWorkout } from './CardioFocusModeWorkout'
-import { CardioWorkoutStartScreen } from './CardioWorkoutStartScreen'
+import { CardioWorkoutPreview } from '@/components/workouts/CardioWorkoutPreview'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS'
 
@@ -324,38 +323,20 @@ export function AthleteCardioClient({
     return result
   }
 
-  // Render focus mode screens
-  if (showStartScreen && selectedAssignment) {
-    const segmentsByType = computeSegmentsByType(selectedAssignment.session.segments)
+  // Unified cardio preview + focus-mode launcher
+  if (selectedAssignment && (showStartScreen || showFocusMode)) {
     return (
-      <CardioWorkoutStartScreen
-        sessionName={selectedAssignment.session.name}
-        description={selectedAssignment.session.description}
-        sport={selectedAssignment.session.sport}
-        segments={selectedAssignment.session.segments}
-        segmentsByType={segmentsByType}
-        totalDuration={selectedAssignment.session.totalDuration}
-        totalDistance={selectedAssignment.session.totalDistance}
-        onStart={handleConfirmStart}
-        onCancel={() => {
-          setShowStartScreen(false)
-          setSelectedAssignment(null)
-        }}
-      />
-    )
-  }
-
-  if (showFocusMode && selectedAssignment && focusModeData) {
-    return (
-      <CardioFocusModeWorkout
+      <CardioWorkoutPreview
         assignmentId={selectedAssignment.id}
-        sessionName={selectedAssignment.session.name}
-        sessionDescription={selectedAssignment.session.description}
-        sport={selectedAssignment.session.sport}
-        segments={focusModeData.segments}
-        onClose={handleCloseFocusMode}
-        onComplete={handleFocusModeComplete}
-        onSegmentComplete={handleSegmentComplete}
+        onClose={() => {
+          setShowStartScreen(false)
+          setShowFocusMode(false)
+          setSelectedAssignment(null)
+          setFocusModeData(null)
+        }}
+        onCompleted={() => {
+          fetchAssignments()
+        }}
       />
     )
   }

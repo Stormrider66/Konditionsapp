@@ -4,7 +4,7 @@
 import { Suspense } from 'react'
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { AgilityWorkoutExecution } from '@/components/athlete/AgilityWorkoutExecution'
+import { AgilityWorkoutPreview } from '@/components/workouts/AgilityWorkoutPreview'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
@@ -64,7 +64,7 @@ export default async function BusinessAthleteWorkoutExecutionPage({ params }: Pa
   return (
     <div className="min-h-screen bg-background">
       <Suspense fallback={<WorkoutExecutionSkeleton />}>
-        <AgilityWorkoutExecution
+        <AgilityWorkoutPreview
           workout={data.workout}
           clientId={clientId}
           assignmentId={data.assignmentId}
