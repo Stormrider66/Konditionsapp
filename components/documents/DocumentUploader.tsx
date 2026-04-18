@@ -25,6 +25,90 @@ import {
   AlertCircle,
 } from 'lucide-react'
 
+type UploadFileType = 'PDF' | 'EXCEL' | 'TEXT' | 'MARKDOWN' | 'VIDEO'
+
+interface UploadArgs {
+  file: File
+  fileType: UploadFileType
+  name: string
+  description?: string
+  textContent?: string
+}
+
+async function uploadDocument(
+  args: UploadArgs
+): Promise<{ success?: boolean; document?: { id: string } }> {
+  const { file, fileType, name, description, textContent } = args
+
+  if (fileType === 'TEXT' || fileType === 'MARKDOWN') {
+    const content = textContent ?? (await file.text())
+    const res = await fetch('/api/documents/upload', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        action: 'upload-text',
+        name,
+        description,
+        fileType,
+        mimeType: file.type || 'text/plain',
+        content,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data?.error || 'Upload failed')
+    return data
+  }
+
+  if (fileType !== 'PDF' && fileType !== 'EXCEL') {
+    throw new Error('Unsupported file type for upload')
+  }
+
+  const mimeType = file.type || (fileType === 'PDF' ? 'application/pdf' : 'application/octet-stream')
+
+  // Step 1: ask the server for a presigned upload URL.
+  const urlRes = await fetch('/api/documents/upload', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      action: 'get-upload-url',
+      fileName: file.name,
+      fileType,
+      fileSize: file.size,
+      mimeType,
+    }),
+  })
+  const urlData = await urlRes.json()
+  if (!urlRes.ok) throw new Error(urlData?.error || 'Failed to get upload URL')
+
+  // Step 2: upload the file directly to Supabase Storage.
+  const putRes = await fetch(urlData.signedUrl, {
+    method: 'PUT',
+    headers: { 'content-type': urlData.contentType || mimeType },
+    body: file,
+  })
+  if (!putRes.ok) {
+    throw new Error('Upload to storage failed')
+  }
+
+  // Step 3: tell the server the upload landed; it writes the DB row.
+  const confirmRes = await fetch('/api/documents/upload', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      action: 'confirm-upload',
+      uploadPath: urlData.path,
+      name,
+      description,
+      fileType,
+      mimeType,
+      fileSize: file.size,
+    }),
+  })
+  const confirmData = await confirmRes.json()
+  if (!confirmRes.ok) throw new Error(confirmData?.error || 'Upload confirmation failed')
+  return confirmData
+}
+
 interface DocumentUploaderProps {
   onClose: () => void
   onUploadComplete: () => void
@@ -143,35 +227,19 @@ export function DocumentUploader({
     setUploadStatus('uploading')
 
     try {
-      // Use FormData for all file types - the API handles storage appropriately
-      const formData = new FormData()
-      formData.append('file', selectedFile)
-      formData.append('name', name.trim())
-      if (description.trim()) {
-        formData.append('description', description.trim())
-      }
-
-      // Upload via the new upload endpoint
-      const response = await fetch('/api/documents/upload', {
-        method: 'POST',
-        body: formData,
+      // Two flows, picked by file type:
+      //
+      // - TEXT / MARKDOWN: tiny, stored inline. One JSON round-trip.
+      // - PDF / EXCEL: large, uploaded directly to Supabase Storage via
+      //   a presigned URL so the file never passes through the Vercel
+      //   Function body. Three steps: get URL → PUT to storage → confirm.
+      const data = await uploadDocument({
+        file: selectedFile,
+        fileType: fileTypeInfo.type,
+        name: name.trim(),
+        description: description.trim() || undefined,
+        textContent: textContent ?? undefined,
       })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        // Check for storage bucket not found error
-        if (data.setupInstructions) {
-          toast({
-            title: data.error || 'Uppladdning misslyckades',
-            description: data.details || 'Se konsolen för detaljer.',
-            variant: 'destructive',
-          })
-          console.error('Storage setup instructions:', data.setupInstructions)
-          throw new Error(data.error)
-        }
-        throw new Error(data.error || 'Failed to upload document')
-      }
 
       // Auto-process if OpenAI key is available and autoProcess is enabled
       if (hasOpenAIKey && autoProcess && data.document?.id) {

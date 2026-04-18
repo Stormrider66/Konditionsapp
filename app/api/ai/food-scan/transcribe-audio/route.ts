@@ -21,7 +21,9 @@ import {
 import { logger } from '@/lib/logger'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 
+export const runtime = 'nodejs'
 export const maxDuration = 30
+export const dynamic = 'force-dynamic'
 
 const MAX_AUDIO_SIZE = 5 * 1024 * 1024 // 5MB
 

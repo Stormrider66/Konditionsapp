@@ -12,6 +12,13 @@ import { prisma } from '@/lib/prisma'
 import { uploadToSupabaseStorage } from '@/lib/storage/supabase-storage-server'
 import { logger } from '@/lib/logger'
 
+// Upload routes must run on Node.js (Edge can't stream large multipart
+// bodies) and need a longer timeout than the Vercel default for slower
+// mobile connections.
+export const runtime = 'nodejs'
+export const maxDuration = 60
+export const dynamic = 'force-dynamic'
+
 // File size limits
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_AUDIO_SIZE = 15 * 1024 * 1024 // 15MB (Gemini limit)

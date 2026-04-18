@@ -21,6 +21,7 @@ import {
   exerciseSimilarity,
 } from '@/lib/integrations/vbt';
 
+export const runtime = 'nodejs';
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 

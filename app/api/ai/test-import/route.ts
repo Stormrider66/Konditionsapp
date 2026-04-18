@@ -11,7 +11,9 @@
  * Returns structured data matching TestDataForm fields for pre-fill.
  */
 
+export const runtime = 'nodejs'
 export const maxDuration = 300
+export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { generateObject } from 'ai'

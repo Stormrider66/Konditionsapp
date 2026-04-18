@@ -19,7 +19,9 @@ import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 
+export const runtime = 'nodejs'
 export const maxDuration = 30
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {

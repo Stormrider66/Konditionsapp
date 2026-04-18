@@ -15,7 +15,11 @@ const nextConfig: NextConfig = {
   ],
   experimental: {
     serverActions: {
-      bodySizeLimit: '100mb',
+      // Tight by default. No Server Action in this codebase accepts a
+      // File/FormData today; file uploads go through dedicated API
+      // routes that validate size themselves. Bump this if a Server
+      // Action ever needs a larger body.
+      bodySizeLimit: '5mb',
     },
   },
   images: {

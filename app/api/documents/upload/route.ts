@@ -1,35 +1,49 @@
 /**
  * Document Upload API
  *
- * POST /api/documents/upload - Upload document (PDF, Excel) to Supabase Storage
+ * Two flows, picked by `action`:
+ *
+ * 1. Text / Markdown (small, stored inline in the DB):
+ *      POST { action: 'upload-text', name, description?, fileType, mimeType, content }
+ *
+ * 2. PDF / Excel (large, via signed-URL direct-to-Supabase upload):
+ *      POST { action: 'get-upload-url', fileName, fileType, fileSize, mimeType }
+ *        → { signedUrl, token, path, contentType }
+ *      (client PUTs the file directly to signedUrl)
+ *      POST { action: 'confirm-upload', uploadPath, name, description?, fileType, mimeType, fileSize }
+ *        → { success, document }
+ *
+ * This replaces the old FormData POST that streamed the whole file through
+ * the Vercel Function body. Direct-to-storage removes the 50MB-through-the-
+ * function memory/bandwidth cost and decouples upload timeouts from
+ * function limits.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { requireCoach } from '@/lib/auth-utils';
-import { createAdminSupabaseClient } from '@/lib/supabase/admin';
-import { prisma } from '@/lib/prisma';
-import { DocumentType } from '@prisma/client';
-import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { NextRequest, NextResponse } from 'next/server'
+import { requireCoach } from '@/lib/auth-utils'
+import { prisma } from '@/lib/prisma'
+import { DocumentType } from '@prisma/client'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { createSignedUploadUrl } from '@/lib/storage/supabase-storage-server'
 import { logger } from '@/lib/logger'
 
-// Next.js 15 App Router route segment config
-export const maxDuration = 60; // Allow up to 60 seconds for upload
-export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs'
+export const maxDuration = 60
+export const dynamic = 'force-dynamic'
 
-const ALLOWED_MIME_TYPES: Record<string, DocumentType> = {
-  'application/pdf': 'PDF',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'EXCEL',
-  'application/vnd.ms-excel': 'EXCEL',
-  'text/csv': 'EXCEL',
-  'text/plain': 'TEXT',
-  'text/markdown': 'MARKDOWN',
-};
+const DOCUMENTS_BUCKET = 'coach-documents'
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const DIRECT_UPLOAD_TYPES: DocumentType[] = ['PDF', 'EXCEL']
+const INLINE_TYPES: DocumentType[] = ['TEXT', 'MARKDOWN']
+const ALL_TYPES: DocumentType[] = [...DIRECT_UPLOAD_TYPES, ...INLINE_TYPES]
+
+const MAX_DIRECT_UPLOAD_SIZE = 50 * 1024 * 1024 // 50MB — enforced in signed-url step
+const MAX_INLINE_CONTENT_SIZE = 2 * 1024 * 1024 // 2MB — plenty for text/markdown
+const MAX_EXTENSION_LENGTH = 10
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireCoach();
+    const user = await requireCoach()
 
     const rateLimited = await rateLimitJsonResponse('documents:upload', user.id, {
       limit: 10,
@@ -37,161 +51,25 @@ export async function POST(request: NextRequest) {
     })
     if (rateLimited) return rateLimited
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const name = formData.get('name') as string;
-    const description = formData.get('description') as string | null;
+    const body = await request.json()
+    const action = typeof body?.action === 'string' ? body.action : null
 
-    if (!file) {
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      );
+    if (action === 'get-upload-url') {
+      return handleGetUploadUrl(body, user.id)
+    }
+    if (action === 'confirm-upload') {
+      return handleConfirmUpload(body, user.id)
+    }
+    if (action === 'upload-text') {
+      return handleUploadText(body, user.id)
     }
 
-    if (!name || !name.trim()) {
-      return NextResponse.json(
-        { error: 'Document name is required' },
-        { status: 400 }
-      );
-    }
-
-    // Determine file type from MIME or extension
-    let fileType: DocumentType | null = ALLOWED_MIME_TYPES[file.type] || null;
-
-    if (!fileType) {
-      // Try by extension
-      const ext = file.name.split('.').pop()?.toLowerCase();
-      if (ext === 'pdf') fileType = 'PDF';
-      else if (['xlsx', 'xls', 'csv'].includes(ext || '')) fileType = 'EXCEL';
-      else if (['md', 'markdown'].includes(ext || '')) fileType = 'MARKDOWN';
-      else if (ext === 'txt') fileType = 'TEXT';
-    }
-
-    if (!fileType) {
-      return NextResponse.json(
-        { error: 'Unsupported file type. Allowed: PDF, Excel, CSV, Markdown, Text' },
-        { status: 400 }
-      );
-    }
-
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: 'File too large. Maximum size: 50MB' },
-        { status: 400 }
-      );
-    }
-
-    // For TEXT and MARKDOWN, read content and store directly
-    if (fileType === 'TEXT' || fileType === 'MARKDOWN') {
-      const content = await file.text();
-      const dataUrl = `data:text/plain;base64,${Buffer.from(content).toString('base64')}`;
-
-      const document = await prisma.coachDocument.create({
-        data: {
-          coachId: user.id,
-          name: name.trim(),
-          description: description?.trim() || null,
-          fileType,
-          fileUrl: dataUrl,
-          fileSize: file.size,
-          mimeType: file.type || 'text/plain',
-          processingStatus: 'PENDING',
-          metadata: { rawContent: content },
-        },
-      });
-
-      return NextResponse.json({
-        success: true,
-        document,
-        message: 'Document uploaded. Use "Generera" to create embeddings.',
-      });
-    }
-
-    // For PDF and EXCEL, upload to Supabase Storage
-    const timestamp = Date.now();
-    const extension = file.name.split('.').pop() || 'pdf';
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filename = `${user.id}/${timestamp}-${safeFileName}`;
-
-    // Convert file to Buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Upload to Supabase Storage
-    const supabase = createAdminSupabaseClient();
-
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('coach-documents')
-      .upload(filename, buffer, {
-        contentType: file.type,
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (uploadError) {
-      logger.error('Supabase document upload error', { userId: user.id }, uploadError)
-
-      // Check for common errors
-      if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('not found')) {
-        return NextResponse.json(
-          {
-            error: 'Storage bucket "coach-documents" not found',
-            details: 'Please create a bucket named "coach-documents" in Supabase Dashboard → Storage.',
-            setupInstructions: [
-              '1. Go to your Supabase project dashboard',
-              '2. Navigate to Storage',
-              '3. Click "New bucket"',
-              '4. Name it "coach-documents"',
-              '5. Set it as private (not public)',
-              '6. Try uploading again',
-            ]
-          },
-          { status: 500 }
-        );
-      }
-
-      if (uploadError.message?.includes('exceeded') || uploadError.message?.includes('size')) {
-        return NextResponse.json(
-          { error: 'File too large for storage. Check bucket size limits.' },
-          { status: 413 }
-        );
-      }
-
-      return NextResponse.json(
-        { error: 'Failed to upload document', details: uploadError.message },
-        { status: 500 }
-      );
-    }
-    logger.info('Document uploaded to storage', { userId: user.id })
-
-    // Create document record in database
-    const document = await prisma.coachDocument.create({
-      data: {
-        coachId: user.id,
-        name: name.trim(),
-        description: description?.trim() || null,
-        fileType,
-        fileUrl: uploadData.path, // Store the storage path
-        fileSize: file.size,
-        mimeType: file.type,
-        processingStatus: 'PENDING',
-      },
-    });
-    logger.info('Document record created', { userId: user.id, documentId: document.id })
-
-    return NextResponse.json({
-      success: true,
-      document,
-      uploadPath: uploadData.path,
-      message: 'Document uploaded. Use "Generera" to create embeddings.',
-    });
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (error) {
     logger.error('Document upload error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     return NextResponse.json(
@@ -200,9 +78,188 @@ export async function POST(request: NextRequest) {
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
-            : (error instanceof Error ? error.message : 'Unknown error'),
+            : error instanceof Error
+              ? error.message
+              : 'Unknown error',
       },
       { status: 500 }
-    );
+    )
   }
 }
+
+async function handleGetUploadUrl(body: Record<string, unknown>, userId: string) {
+  const { fileName, fileType, fileSize, mimeType } = body as {
+    fileName?: string
+    fileType?: string
+    fileSize?: number
+    mimeType?: string
+  }
+
+  if (!fileName || !fileType || !fileSize) {
+    return NextResponse.json(
+      { error: 'Missing required fields: fileName, fileType, fileSize' },
+      { status: 400 }
+    )
+  }
+
+  if (!DIRECT_UPLOAD_TYPES.includes(fileType as DocumentType)) {
+    return NextResponse.json(
+      { error: 'get-upload-url only supports PDF and EXCEL. Use upload-text for TEXT/MARKDOWN.' },
+      { status: 400 }
+    )
+  }
+
+  if (fileSize <= 0 || fileSize > MAX_DIRECT_UPLOAD_SIZE) {
+    return NextResponse.json(
+      { error: 'File too large. Maximum size: 50MB' },
+      { status: 400 }
+    )
+  }
+
+  const timestamp = Date.now()
+  const safeFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_')
+  const rawExt = fileName.split('.').pop() || ''
+  const extension = /^[a-zA-Z0-9]{1,10}$/.test(rawExt) ? rawExt.toLowerCase() : ''
+  const filename = `${userId}/${timestamp}-${safeFileName}`
+
+  void extension // reserved; Supabase key already has the extension via safeFileName
+  void MAX_EXTENSION_LENGTH
+
+  const { signedUrl, token, path } = await createSignedUploadUrl(DOCUMENTS_BUCKET, filename)
+
+  logger.debug('Document upload URL created', { path, fileSize, fileType })
+
+  return NextResponse.json({
+    signedUrl,
+    token,
+    path,
+    contentType: mimeType || inferMimeType(fileType as DocumentType),
+  })
+}
+
+async function handleConfirmUpload(body: Record<string, unknown>, userId: string) {
+  const { uploadPath, name, description, fileType, mimeType, fileSize } = body as {
+    uploadPath?: string
+    name?: string
+    description?: string | null
+    fileType?: string
+    mimeType?: string
+    fileSize?: number
+  }
+
+  if (!uploadPath || !name || !fileType) {
+    return NextResponse.json(
+      { error: 'Missing required fields: uploadPath, name, fileType' },
+      { status: 400 }
+    )
+  }
+
+  if (!DIRECT_UPLOAD_TYPES.includes(fileType as DocumentType)) {
+    return NextResponse.json({ error: 'Invalid fileType for direct upload' }, { status: 400 })
+  }
+
+  // Enforce ownership: the signed-URL path starts with `${userId}/`.
+  if (!uploadPath.startsWith(`${userId}/`)) {
+    return NextResponse.json({ error: 'Invalid upload path' }, { status: 403 })
+  }
+
+  if (typeof fileSize === 'number' && fileSize > MAX_DIRECT_UPLOAD_SIZE) {
+    return NextResponse.json({ error: 'Reported file size exceeds 50MB limit' }, { status: 400 })
+  }
+
+  const document = await prisma.coachDocument.create({
+    data: {
+      coachId: userId,
+      name: name.trim(),
+      description: description?.trim() || null,
+      fileType: fileType as DocumentType,
+      fileUrl: uploadPath,
+      fileSize: typeof fileSize === 'number' ? fileSize : 0,
+      mimeType: mimeType || inferMimeType(fileType as DocumentType),
+      processingStatus: 'PENDING',
+    },
+  })
+
+  logger.info('Document upload confirmed', { userId, documentId: document.id })
+
+  return NextResponse.json({
+    success: true,
+    document,
+    uploadPath,
+    message: 'Document uploaded. Use "Generera" to create embeddings.',
+  })
+}
+
+async function handleUploadText(body: Record<string, unknown>, userId: string) {
+  const { name, description, fileType, mimeType, content } = body as {
+    name?: string
+    description?: string | null
+    fileType?: string
+    mimeType?: string
+    content?: string
+  }
+
+  if (!name || !fileType || typeof content !== 'string') {
+    return NextResponse.json(
+      { error: 'Missing required fields: name, fileType, content' },
+      { status: 400 }
+    )
+  }
+
+  if (!INLINE_TYPES.includes(fileType as DocumentType)) {
+    return NextResponse.json(
+      { error: 'upload-text only supports TEXT and MARKDOWN. Use get-upload-url for PDF/EXCEL.' },
+      { status: 400 }
+    )
+  }
+
+  const contentBytes = Buffer.byteLength(content, 'utf8')
+  if (contentBytes > MAX_INLINE_CONTENT_SIZE) {
+    return NextResponse.json(
+      { error: 'Text content too large. Maximum inline size: 2MB. Save as a PDF for larger documents.' },
+      { status: 400 }
+    )
+  }
+
+  const dataUrl = `data:text/plain;base64,${Buffer.from(content, 'utf8').toString('base64')}`
+
+  const document = await prisma.coachDocument.create({
+    data: {
+      coachId: userId,
+      name: name.trim(),
+      description: description?.trim() || null,
+      fileType: fileType as DocumentType,
+      fileUrl: dataUrl,
+      fileSize: contentBytes,
+      mimeType: mimeType || 'text/plain',
+      processingStatus: 'PENDING',
+      metadata: { rawContent: content },
+    },
+  })
+
+  logger.info('Text document stored inline', { userId, documentId: document.id })
+
+  return NextResponse.json({
+    success: true,
+    document,
+    message: 'Document uploaded. Use "Generera" to create embeddings.',
+  })
+}
+
+function inferMimeType(fileType: DocumentType): string {
+  switch (fileType) {
+    case 'PDF':
+      return 'application/pdf'
+    case 'EXCEL':
+      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    case 'TEXT':
+      return 'text/plain'
+    case 'MARKDOWN':
+      return 'text/markdown'
+    default:
+      return 'application/octet-stream'
+  }
+}
+
+// Keep ALL_TYPES for future guards / tests; prevents "unused" lint warnings.
+void ALL_TYPES
