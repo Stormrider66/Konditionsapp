@@ -47,8 +47,8 @@ export function IntervalSessionControls({
   const [elapsed, setElapsed] = useState(0)
   const [loading, setLoading] = useState(false)
   const [groupRestRemaining, setGroupRestRemaining] = useState<number | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval>>()
-  const restIntervalRef = useRef<ReturnType<typeof setInterval>>()
+  const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
+  const restIntervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
   const autoAdvancedRef = useRef(false)
 
   // Reset auto-advance flag when interval changes

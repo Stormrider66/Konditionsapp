@@ -38,7 +38,7 @@ interface SwipeState {
 
 interface UseSwipeNavigationReturn {
   /** Ref to attach to the swipeable element */
-  ref: React.RefObject<HTMLDivElement>
+  ref: React.RefObject<HTMLDivElement | null>
   /** Current swipe state */
   swipeState: SwipeState
   /** Whether a swipe is in progress */

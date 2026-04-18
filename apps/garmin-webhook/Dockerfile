@@ -14,4 +14,4 @@ ENV PORT=8080
 
 EXPOSE 8080
 
-CMD ["node", "apps/garmin-webhook/bootstrap.js"]
+CMD ["npm", "run", "garmin-webhook:start"]

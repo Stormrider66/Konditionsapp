@@ -2,8 +2,8 @@
 /**
  * k6 runner that loads load-tests/.env.k6 and passes vars to k6.
  *
- * Usage: node load-tests/k6/run.js <script>
- * Example: node load-tests/k6/run.js smoke
+ * Usage: node load-tests/k6/run.cjs <script>
+ * Example: node load-tests/k6/run.cjs smoke
  */
 
 const { execSync } = require('child_process');
@@ -12,7 +12,7 @@ const path = require('path');
 
 const scriptName = process.argv[2];
 if (!scriptName) {
-  console.error('Usage: node load-tests/k6/run.js <smoke|baseline|stress|prod-shape>');
+  console.error('Usage: node load-tests/k6/run.cjs <smoke|baseline|stress|prod-shape>');
   process.exit(1);
 }
 
@@ -24,7 +24,7 @@ if (!fs.existsSync(scriptPath)) {
 
 const envFile = path.join(__dirname, '..', '.env.k6');
 if (!fs.existsSync(envFile)) {
-  console.error('Missing load-tests/.env.k6 — run: node scripts/grab-auth-cookie.js');
+  console.error('Missing load-tests/.env.k6 — run: node scripts/grab-auth-cookie.cjs');
   process.exit(1);
 }
 

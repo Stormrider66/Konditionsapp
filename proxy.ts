@@ -1,4 +1,4 @@
-// middleware.ts
+// proxy.ts (Next 16 rename of middleware.ts)
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { readJwtClaims, type AppClaims } from '@/lib/auth/jwt-claims'
@@ -393,7 +393,7 @@ async function getSupabaseUserCached(
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const perfT0 = Date.now()
   const pathname = request.nextUrl.pathname
 
