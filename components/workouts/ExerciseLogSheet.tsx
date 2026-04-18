@@ -15,11 +15,6 @@ import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import {
   Check,
   ChevronDown,
   Dumbbell,
@@ -62,7 +57,8 @@ export function ExerciseLogSheet({
   const [localLogs, setLocalLogs] = useState<PreviewSetLog[]>([])
   const [weight, setWeight] = useState(0)
   const [reps, setReps] = useState(0)
-  const [rpe, setRpe] = useState<number | undefined>(undefined)
+  const [rpe, setRpe] = useState<number>(6)
+  const [rpeTouched, setRpeTouched] = useState(false)
   const [showMetrics, setShowMetrics] = useState(false)
   const [velocityMode, setVelocityMode] = useState<MetricMode>('avg')
   const [powerMode, setPowerMode] = useState<MetricMode>('avg')
@@ -78,7 +74,8 @@ export function ExerciseLogSheet({
     setLocalLogs(exercise.setLogs)
     setWeight(exercise.weight ?? exercise.setLogs.at(-1)?.weight ?? 0)
     setReps(parseTargetReps(exercise.repsTarget))
-    setRpe(undefined)
+    setRpe(6)
+    setRpeTouched(false)
     setShowMetrics(false)
     setVelocityValue('')
     setPowerValue('')
@@ -110,7 +107,7 @@ export function ExerciseLogSheet({
         repsCompleted: reps,
         repsTarget: parseTargetReps(exercise.repsTarget),
       }
-      if (rpe !== undefined) payload.rpe = rpe
+      if (rpeTouched) payload.rpe = rpe
       const velocity = parseFloat(velocityValue)
       if (!Number.isNaN(velocity) && velocity > 0) {
         if (velocityMode === 'avg') payload.meanVelocity = velocity
@@ -168,24 +165,25 @@ export function ExerciseLogSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="flex h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl p-0 sm:max-w-none"
+        className="flex h-[95vh] w-full flex-col overflow-hidden rounded-t-2xl p-0 sm:max-w-none"
       >
         <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col overflow-hidden">
-          <div className="relative border-b">
-            <div className="relative h-56 w-full overflow-hidden bg-gradient-to-br from-primary/25 via-primary/10 to-background">
-              {heroImage ? (
+          <div className="flex-1 overflow-y-auto">
+            {heroImage ? (
+              <div className="w-full bg-gradient-to-br from-primary/25 via-primary/10 to-background">
                 <img
                   src={heroImage}
                   alt={exercise.nameSv || exercise.name}
-                  className="h-full w-full object-contain"
+                  className="mx-auto block h-auto max-h-[60vh] w-full object-contain"
                 />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <Dumbbell className="h-20 w-20 text-primary/30" strokeWidth={1.25} />
-                </div>
-              )}
-            </div>
-            <SheetHeader className="px-4 pb-4 pt-3 text-left sm:px-6">
+              </div>
+            ) : (
+              <div className="flex h-48 w-full items-center justify-center bg-gradient-to-br from-primary/25 via-primary/10 to-background">
+                <Dumbbell className="h-20 w-20 text-primary/30" strokeWidth={1.25} />
+              </div>
+            )}
+
+            <SheetHeader className="border-b px-4 pb-4 pt-3 text-left sm:px-6">
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
                   Set {Math.min(nextSetNumber, exercise.sets)} av {exercise.sets}
@@ -210,9 +208,8 @@ export function ExerciseLogSheet({
                 </p>
               )}
             </SheetHeader>
-          </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+            <div className="px-4 py-4 sm:px-6">
             {localLogs.length > 0 && (
               <div className="mb-4 space-y-1">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -286,7 +283,7 @@ export function ExerciseLogSheet({
                     <Badge
                       className={cn(
                         'min-w-[34px] justify-center text-white',
-                        rpe === undefined
+                        !rpeTouched
                           ? 'bg-muted text-muted-foreground'
                           : rpe <= 5
                             ? 'bg-emerald-500'
@@ -297,12 +294,15 @@ export function ExerciseLogSheet({
                                 : 'bg-red-500',
                       )}
                     >
-                      {rpe ?? '—'}
+                      {rpeTouched ? rpe : '—'}
                     </Badge>
                   </div>
                   <Slider
-                    value={rpe !== undefined ? [rpe] : []}
-                    onValueChange={(v) => setRpe(v[0])}
+                    value={[rpe]}
+                    onValueChange={(v) => {
+                      setRpe(v[0])
+                      setRpeTouched(true)
+                    }}
                     min={1}
                     max={10}
                     step={0.5}
@@ -313,20 +313,23 @@ export function ExerciseLogSheet({
                   </div>
                 </div>
 
-                <Collapsible open={showMetrics} onOpenChange={setShowMetrics}>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="w-full">
-                      <Gauge className="mr-2 h-4 w-4" />
-                      Hastighet / kraft / tid
-                      <ChevronDown
-                        className={cn(
-                          'ml-auto h-4 w-4 transition-transform',
-                          showMetrics && 'rotate-180',
-                        )}
-                      />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-3 pt-3">
+                <div className="rounded-lg border border-border bg-muted/30">
+                  <button
+                    type="button"
+                    onClick={() => setShowMetrics((v) => !v)}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground"
+                  >
+                    <Gauge className="h-4 w-4 text-muted-foreground" />
+                    Hastighet / kraft / tid
+                    <ChevronDown
+                      className={cn(
+                        'ml-auto h-4 w-4 text-muted-foreground transition-transform',
+                        showMetrics && 'rotate-180',
+                      )}
+                    />
+                  </button>
+                  {showMetrics && (
+                    <div className="space-y-3 border-t border-border px-3 pb-3 pt-3">
                     <MetricRow
                       label="Hastighet"
                       unit="m/s"
@@ -354,10 +357,12 @@ export function ExerciseLogSheet({
                       onModeChange={setTimeMode}
                       placeholder="1.8"
                     />
-                  </CollapsibleContent>
-                </Collapsible>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
+            </div>
           </div>
 
           <div className="border-t bg-background/95 px-4 py-3 sm:px-6">
