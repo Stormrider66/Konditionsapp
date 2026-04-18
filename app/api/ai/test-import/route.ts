@@ -314,10 +314,10 @@ export async function POST(request: NextRequest) {
 
       // Single-photo OCR works fine on Flash. Multi-photo requires
       // cross-referencing handwritten protocol times against dense
-      // Jaeger/Vyntus tables (~30 columns of small numbers). 3.1 Pro
-      // Preview reads those tighter than 2.5 Pro and avoids the
-      // schema-repair retry loop that breaks Flash on 3 images.
-      const imageModel = files.length > 1 ? GEMINI_MODELS.PRO_PREVIEW : GEMINI_MODELS.FLASH
+      // Jaeger/Vyntus tables — 2.5 Pro handles this reliably (verified
+      // at 9-stage extraction). 3.1 Pro Preview returned 500 on the
+      // user's API key, so stick with the GA Pro for multi-image.
+      const imageModel = files.length > 1 ? GEMINI_MODELS.PRO : GEMINI_MODELS.FLASH
 
       result = await generateObject({
         model: google(imageModel),
@@ -414,7 +414,7 @@ export async function POST(request: NextRequest) {
       category,
       fileCount: files.length,
       model: category === 'image' && files.length > 1
-        ? GEMINI_MODELS.PRO_PREVIEW
+        ? GEMINI_MODELS.PRO
         : GEMINI_MODELS.FLASH,
       confidence: result.object.confidence,
       stageCount: stages.length,
