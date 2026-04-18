@@ -596,9 +596,9 @@ export function FloatingAIChat({
   function getProviderBadge() {
     if (!modelConfig) return null
     const colors = {
-      ANTHROPIC: 'bg-orange-100 text-orange-800',
-      GOOGLE: 'bg-blue-100 text-blue-800',
-      OPENAI: 'bg-green-100 text-green-800',
+      ANTHROPIC: 'bg-orange-500/20 text-orange-600 dark:text-orange-400',
+      GOOGLE: 'bg-blue-500/20 text-blue-600 dark:text-blue-400',
+      OPENAI: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
     }
     const names = {
       ANTHROPIC: 'Claude',
@@ -778,7 +778,7 @@ export function FloatingAIChat({
           className={cn(
             'w-full px-3 py-2 border-b text-xs flex items-center justify-between gap-2 transition-colors',
             isContextEnabled
-              ? 'bg-green-50 text-green-700 hover:bg-green-100'
+              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20'
               : 'bg-muted/50 text-muted-foreground hover:bg-muted'
           )}
         >
@@ -789,8 +789,8 @@ export function FloatingAIChat({
           <div className={cn(
             'flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium',
             isContextEnabled
-              ? 'bg-green-200 text-green-800'
-              : 'bg-gray-200 text-gray-600'
+              ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+              : 'bg-muted text-muted-foreground'
           )}>
             {isContextEnabled ? (
               <>
@@ -806,7 +806,7 @@ export function FloatingAIChat({
 
       {/* GDPR: Warning when athlete hasn't consented */}
       {athleteId && athleteConsentStatus === 'none' && (
-        <div className="px-3 py-2 border-b bg-amber-50 text-amber-800 text-xs flex items-center gap-2">
+        <div className="px-3 py-2 border-b bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
           <span>Atletens samtycke saknas — AI-chatten kan inte använda atletdata</span>
         </div>
@@ -830,7 +830,7 @@ export function FloatingAIChat({
               {pageContext?.type === 'video-analysis' && hasContext && isContextEnabled && (
                 <>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={() => setInput('Förklara de viktigaste problemen i analysen')}
                     className="text-xs"
@@ -838,7 +838,7 @@ export function FloatingAIChat({
                     Förklara problem
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={() => setInput('Ge mig specifika övningar för att förbättra tekniken')}
                     className="text-xs"
@@ -846,7 +846,7 @@ export function FloatingAIChat({
                     Förbättringsövningar
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={() => setInput('Sammanfatta analysen i enkla termer för atleten')}
                     className="text-xs"
@@ -858,7 +858,7 @@ export function FloatingAIChat({
               {!pageContext && athleteName && (
                 <>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={() => setInput(`Analysera ${athleteName}s träningshistorik`)}
                     className="text-xs"
@@ -866,7 +866,7 @@ export function FloatingAIChat({
                     Analysera träning
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={() => setInput(`Skapa ett träningsprogram för ${athleteName}`)}
                     className="text-xs"
@@ -878,7 +878,7 @@ export function FloatingAIChat({
               {!pageContext && !athleteName && (
                 <>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={() => setInput('Hur skapar jag ett effektivt 10K-program?')}
                     className="text-xs"
@@ -886,7 +886,7 @@ export function FloatingAIChat({
                     10K-program
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={() => setInput('Förklara tröskelträning och zoner')}
                     className="text-xs"
@@ -947,15 +947,15 @@ export function FloatingAIChat({
 
       {/* Program detected banner */}
       {detectedProgram?.program && (
-        <div className="px-3 py-2 border-t bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20">
+        <div className="px-3 py-2 border-t bg-primary/10 border-primary/20">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+              <Sparkles className="h-4 w-4 text-primary shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs font-bold text-blue-800 dark:text-blue-300 truncate">
+                <p className="text-xs font-bold text-foreground truncate">
                   {detectedProgram.program.name}
                 </p>
-                <p className="text-[10px] text-blue-600 dark:text-blue-400">
+                <p className="text-[10px] text-muted-foreground">
                   {detectedProgram.program.totalWeeks} veckor
                   {!athleteId && ' — Välj en atlet för att spara'}
                 </p>
