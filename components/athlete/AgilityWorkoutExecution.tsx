@@ -245,7 +245,7 @@ export function AgilityWorkoutExecution({
               {formatTime(restSeconds)}
             </p>
             <div className="flex justify-center gap-2">
-              <Button variant="outline" onClick={handleSkipRest}>
+              <Button variant="secondary" className="text-foreground" onClick={handleSkipRest}>
                 <SkipForward className="h-4 w-4 mr-2" />
                 Skip Rest
               </Button>
@@ -320,8 +320,9 @@ export function AgilityWorkoutExecution({
                   )}
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="lg"
+                  className="text-foreground"
                   onClick={() => setElapsedSeconds(0)}
                 >
                   <RotateCcw className="h-5 w-5" />
@@ -351,7 +352,12 @@ export function AgilityWorkoutExecution({
 
             {/* Athlete Notes */}
             <div>
-              <Label htmlFor="drill-notes">Your Notes (optional)</Label>
+              <Label
+                htmlFor="drill-notes"
+                className="text-sm font-medium text-foreground"
+              >
+                Your Notes (optional)
+              </Label>
               <Textarea
                 id="drill-notes"
                 placeholder="How did this drill feel?"
@@ -367,7 +373,8 @@ export function AgilityWorkoutExecution({
       {/* Navigation */}
       <div className="flex justify-between">
         <Button
-          variant="outline"
+          variant="secondary"
+          className="text-foreground"
           onClick={handlePreviousDrill}
           disabled={currentDrillIndex === 0}
         >
@@ -405,8 +412,10 @@ export function AgilityWorkoutExecution({
             {/* RPE Slider */}
             <div className="space-y-2">
               <div className="flex justify-between">
-                <Label>Rate of Perceived Effort (RPE)</Label>
-                <span className="font-bold text-lg">{perceivedEffort}/10</span>
+                <Label className="text-sm font-medium text-foreground">
+                  Rate of Perceived Effort (RPE)
+                </Label>
+                <span className="font-bold text-lg text-foreground">{perceivedEffort}/10</span>
               </div>
               <Slider
                 value={[perceivedEffort]}
@@ -424,7 +433,12 @@ export function AgilityWorkoutExecution({
 
             {/* Notes */}
             <div className="space-y-2">
-              <Label htmlFor="workout-notes">Workout Notes (optional)</Label>
+              <Label
+                htmlFor="workout-notes"
+                className="text-sm font-medium text-foreground"
+              >
+                Workout Notes (optional)
+              </Label>
               <Textarea
                 id="workout-notes"
                 placeholder="How did this workout feel overall? Any issues?"
@@ -434,7 +448,11 @@ export function AgilityWorkoutExecution({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCompleteDialog(false)}>
+            <Button
+              variant="secondary"
+              className="text-foreground"
+              onClick={() => setShowCompleteDialog(false)}
+            >
               Cancel
             </Button>
             <Button onClick={handleSubmitWorkout} disabled={isSubmitting}>

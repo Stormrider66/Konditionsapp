@@ -158,7 +158,7 @@ export function SegmentLoggingForm({
         {/* Actual values form */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="duration" className="text-sm flex items-center gap-1">
+            <Label htmlFor="duration" className="text-sm font-medium text-foreground flex items-center gap-1">
               <Clock className="h-3 w-3" /> Tid (min)
             </Label>
             <Input
@@ -168,12 +168,13 @@ export function SegmentLoggingForm({
               placeholder={timerDuration ? String(Math.round(timerDuration / 60)) : '-'}
               value={actualDuration}
               onChange={(e) => setActualDuration(e.target.value)}
-              className="h-12"
+              onFocus={(e) => e.currentTarget.select()}
+              className="h-12 bg-muted/40 text-lg font-semibold text-foreground"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="distance" className="text-sm flex items-center gap-1">
+            <Label htmlFor="distance" className="text-sm font-medium text-foreground flex items-center gap-1">
               <Route className="h-3 w-3" /> Distans (km)
             </Label>
             <Input
@@ -184,12 +185,13 @@ export function SegmentLoggingForm({
               placeholder="-"
               value={actualDistance}
               onChange={(e) => setActualDistance(e.target.value)}
-              className="h-12"
+              onFocus={(e) => e.currentTarget.select()}
+              className="h-12 bg-muted/40 text-lg font-semibold text-foreground"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="avgHR" className="text-sm flex items-center gap-1">
+            <Label htmlFor="avgHR" className="text-sm font-medium text-foreground flex items-center gap-1">
               <Heart className="h-3 w-3" /> Snitt puls
             </Label>
             <Input
@@ -199,12 +201,13 @@ export function SegmentLoggingForm({
               placeholder="-"
               value={actualAvgHR}
               onChange={(e) => setActualAvgHR(e.target.value)}
-              className="h-12"
+              onFocus={(e) => e.currentTarget.select()}
+              className="h-12 bg-muted/40 text-lg font-semibold text-foreground"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="maxHR" className="text-sm flex items-center gap-1">
+            <Label htmlFor="maxHR" className="text-sm font-medium text-foreground flex items-center gap-1">
               <Heart className="h-3 w-3" /> Max puls
             </Label>
             <Input
@@ -214,14 +217,15 @@ export function SegmentLoggingForm({
               placeholder="-"
               value={actualMaxHR}
               onChange={(e) => setActualMaxHR(e.target.value)}
-              className="h-12"
+              onFocus={(e) => e.currentTarget.select()}
+              className="h-12 bg-muted/40 text-lg font-semibold text-foreground"
             />
           </div>
         </div>
 
         {/* Notes */}
         <div className="space-y-2">
-          <Label htmlFor="notes" className="text-sm">
+          <Label htmlFor="notes" className="text-sm font-medium text-foreground">
             Anteckningar (valfritt)
           </Label>
           <Textarea
@@ -236,8 +240,8 @@ export function SegmentLoggingForm({
         {/* Actions */}
         <div className="flex gap-3 pt-2">
           <Button
-            variant="outline"
-            className="flex-1 h-12"
+            variant="secondary"
+            className="flex-1 h-12 text-foreground"
             onClick={onSkip}
           >
             <SkipForward className="h-4 w-4 mr-2" />

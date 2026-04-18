@@ -478,11 +478,11 @@ export function CardioFocusModeWorkout({
       {/* Footer navigation */}
       <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-between sticky bottom-0 z-10">
         <Button
-          variant="outline"
+          variant="secondary"
           size="icon"
           onClick={goToPrevious}
           disabled={currentIndex === 0}
-          className="border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10"
+          className="text-foreground"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
@@ -504,11 +504,11 @@ export function CardioFocusModeWorkout({
         </div>
 
         <Button
-          variant="outline"
+          variant="secondary"
           size="icon"
           onClick={goToNext}
           disabled={currentIndex >= segments.length - 1}
-          className="border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10"
+          className="text-foreground"
         >
           <ChevronRight className="h-5 w-5" />
         </Button>
