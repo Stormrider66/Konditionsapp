@@ -123,6 +123,10 @@ export function WorkoutPreview({
   const intensityLabel = workout.intensity ? INTENSITY_LABEL[workout.intensity] : null
   const resumeLabel = progress.completedSets > 0 ? 'Fortsätt pass' : 'Starta pass'
 
+  const heroImage =
+    exercises.find((e) => e.section === 'MAIN' && e.imageUrls?.[0])?.imageUrls?.[0] ??
+    exercises.find((e) => e.imageUrls?.[0])?.imageUrls?.[0]
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background text-foreground">
       <Header
@@ -135,6 +139,7 @@ export function WorkoutPreview({
         intensityLabel={intensityLabel}
         onClose={onClose}
         audioSlot={audioSlot}
+        heroImage={heroImage}
       />
 
       <div className="flex-1 overflow-y-auto pb-28">
@@ -253,6 +258,7 @@ function Header({
   intensityLabel,
   onClose,
   audioSlot,
+  heroImage,
 }: {
   workoutName: string
   kindLabel: string
@@ -263,10 +269,26 @@ function Header({
   intensityLabel: string | null
   onClose?: () => void
   audioSlot?: ReactNode
+  heroImage?: string
 }) {
   return (
-    <header className="sticky top-0 z-10 border-b border-border/60 bg-background/95 backdrop-blur">
-      <div className="mx-auto w-full max-w-3xl px-4 py-3 sm:px-6">
+    <header className="relative sticky top-0 z-10 overflow-hidden border-b border-border/60 bg-background/95 backdrop-blur">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        {heroImage && (
+          <img
+            src={heroImage}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover opacity-20 blur-md"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/70 to-background/95" />
+        <Dumbbell
+          className="absolute -right-4 -top-6 h-40 w-40 text-primary/10"
+          strokeWidth={1}
+        />
+      </div>
+      <div className="relative mx-auto w-full max-w-3xl px-4 py-3 sm:px-6">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="mb-1.5 flex flex-wrap items-center gap-1.5">

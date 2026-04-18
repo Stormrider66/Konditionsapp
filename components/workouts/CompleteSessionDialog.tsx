@@ -116,7 +116,7 @@ export function CompleteSessionDialog({
               min={1}
               value={duration}
               onChange={(e) => setDuration(parseInt(e.target.value, 10) || 0)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-10 w-full rounded-md border border-input bg-muted/40 px-3 py-2 text-sm font-medium text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 

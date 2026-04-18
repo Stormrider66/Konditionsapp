@@ -22,6 +22,7 @@ import {
 import {
   Check,
   ChevronDown,
+  Dumbbell,
   Gauge,
   Loader2,
   Minus,
@@ -161,6 +162,8 @@ export function ExerciseLogSheet({
     )
   }
 
+  const heroImage = exercise.imageUrls?.[0]
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -168,29 +171,49 @@ export function ExerciseLogSheet({
         className="flex h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl p-0 sm:max-w-none"
       >
         <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col overflow-hidden">
-          <SheetHeader className="border-b px-4 py-4 text-left sm:px-6">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
-                Set {Math.min(nextSetNumber, exercise.sets)} av {exercise.sets}
-              </Badge>
-              {exercise.tempo && (
-                <Badge variant="outline" className="text-[10px]">
-                  Tempo {exercise.tempo}
-                </Badge>
+          <div className="relative border-b">
+            <div className="relative h-40 w-full overflow-hidden bg-gradient-to-br from-primary/20 via-primary/5 to-background">
+              {heroImage ? (
+                <>
+                  <img
+                    src={heroImage}
+                    alt={exercise.nameSv || exercise.name}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+                </>
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <Dumbbell className="h-20 w-20 text-primary/30" strokeWidth={1.25} />
+                </div>
               )}
             </div>
-            <SheetTitle className="text-xl">{exercise.nameSv || exercise.name}</SheetTitle>
-            <SheetDescription>
-              Mål: {exercise.sets} × {targetRepsText}
-              {exercise.weight ? ` · ${exercise.weight} kg` : ''} · vila{' '}
-              {exercise.restSeconds}s
-            </SheetDescription>
-            {exercise.notes && (
-              <p className="rounded-md bg-muted px-2.5 py-1.5 text-xs text-muted-foreground">
-                {exercise.notes}
-              </p>
-            )}
-          </SheetHeader>
+            <SheetHeader className="px-4 pb-4 pt-3 text-left sm:px-6">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                  Set {Math.min(nextSetNumber, exercise.sets)} av {exercise.sets}
+                </Badge>
+                {exercise.tempo && (
+                  <Badge variant="outline" className="text-[10px]">
+                    Tempo {exercise.tempo}
+                  </Badge>
+                )}
+              </div>
+              <SheetTitle className="text-xl">
+                {exercise.nameSv || exercise.name}
+              </SheetTitle>
+              <SheetDescription>
+                Mål: {exercise.sets} × {targetRepsText}
+                {exercise.weight ? ` · ${exercise.weight} kg` : ''} · vila{' '}
+                {exercise.restSeconds}s
+              </SheetDescription>
+              {exercise.notes && (
+                <p className="rounded-md bg-muted px-2.5 py-1.5 text-xs text-muted-foreground">
+                  {exercise.notes}
+                </p>
+              )}
+            </SheetHeader>
+          </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
             {localLogs.length > 0 && (
@@ -458,10 +481,10 @@ function NumberStepper({
           value={value}
           inputMode={decimals ? 'decimal' : 'numeric'}
           step={decimals ? '0.5' : '1'}
-          className="h-12 text-center text-xl font-semibold"
+          className="h-14 bg-muted/40 text-center text-2xl font-bold text-foreground"
           onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
         />
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
           {unit}
         </span>
       </div>
@@ -506,7 +529,7 @@ function MetricRow({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="h-9"
+          className="h-10 bg-muted/40 font-medium text-foreground"
         />
       </div>
       <Select value={mode} onValueChange={(v) => onModeChange(v as MetricMode)}>
