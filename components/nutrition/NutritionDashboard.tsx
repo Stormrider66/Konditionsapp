@@ -47,6 +47,14 @@ interface DailyAggregate {
   mealCount: number
 }
 
+interface DailyTargetRow {
+  date: string
+  caloriesKcal: number
+  proteinG: number
+  carbsG: number
+  fatG: number
+}
+
 interface NutritionGoal {
   goalType: 'WEIGHT_LOSS' | 'WEIGHT_GAIN' | 'MAINTAIN' | 'BODY_RECOMP'
   targetWeightKg?: number | null
@@ -61,6 +69,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
   const basePath = useBasePath()
   const [guidance, setGuidance] = useState<DailyNutritionGuidance | null>(null)
   const [dailyHistory, setDailyHistory] = useState<DailyAggregate[]>([])
+  const [dailyTargets, setDailyTargets] = useState<DailyTargetRow[]>([])
   const [nutritionGoal, setNutritionGoal] = useState<NutritionGoal | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -75,10 +84,11 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
       const startDate = fourteenDaysAgo.toISOString().split('T')[0]
       const endDate = today.toISOString().split('T')[0]
 
-      const [guidanceRes, mealsRes, goalsRes] = await Promise.all([
+      const [guidanceRes, mealsRes, goalsRes, targetsRes] = await Promise.all([
         fetch('/api/nutrition/guidance'),
         fetch(`/api/meals?startDate=${startDate}&endDate=${endDate}`),
         fetch('/api/nutrition/goals'),
+        fetch(`/api/nutrition/daily-targets?startDate=${startDate}&endDate=${endDate}`),
       ])
 
       if (!guidanceRes.ok) {
@@ -95,6 +105,11 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
       if (goalsRes.ok) {
         const goalsData = await goalsRes.json()
         setNutritionGoal(goalsData.goal ?? null)
+      }
+
+      if (targetsRes.ok) {
+        const targetsData = await targetsRes.json()
+        setDailyTargets(targetsData.targets ?? [])
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ett fel uppstod')
@@ -257,6 +272,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
           <NutritionTrendChart
             dailyData={dailyHistory}
             goals={macroGoals}
+            dailyTargets={dailyTargets}
             variant="glass"
           />
         )}

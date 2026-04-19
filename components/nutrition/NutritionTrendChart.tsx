@@ -4,6 +4,7 @@ import { useState } from 'react'
 import {
   ComposedChart,
   Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -24,6 +25,14 @@ interface DailyData {
   fatGrams: number
 }
 
+interface DailyTarget {
+  date: string
+  caloriesKcal: number
+  proteinG: number
+  carbsG: number
+  fatG: number
+}
+
 interface NutritionTrendChartProps {
   dailyData: DailyData[]
   goals: {
@@ -32,16 +41,19 @@ interface NutritionTrendChartProps {
     carbsGrams: number
     fatGrams: number
   }
+  /** Per-day targets that scale with each day's workout load. Falls back to `goals` when absent. */
+  dailyTargets?: DailyTarget[]
   variant?: 'default' | 'glass'
 }
 
 type MetricKey = 'calories' | 'proteinGrams' | 'carbsGrams' | 'fatGrams'
+type TargetKey = 'caloriesKcal' | 'proteinG' | 'carbsG' | 'fatG'
 
-const TABS: { key: MetricKey; label: string; color: string; unit: string; goalKey: MetricKey }[] = [
-  { key: 'calories', label: 'Kalorier', color: '#f97316', unit: 'kcal', goalKey: 'calories' },
-  { key: 'proteinGrams', label: 'Protein', color: '#3b82f6', unit: 'g', goalKey: 'proteinGrams' },
-  { key: 'carbsGrams', label: 'Kolhydrater', color: '#f59e0b', unit: 'g', goalKey: 'carbsGrams' },
-  { key: 'fatGrams', label: 'Fett', color: '#10b981', unit: 'g', goalKey: 'fatGrams' },
+const TABS: { key: MetricKey; label: string; color: string; unit: string; goalKey: MetricKey; targetKey: TargetKey }[] = [
+  { key: 'calories', label: 'Kalorier', color: '#f97316', unit: 'kcal', goalKey: 'calories', targetKey: 'caloriesKcal' },
+  { key: 'proteinGrams', label: 'Protein', color: '#3b82f6', unit: 'g', goalKey: 'proteinGrams', targetKey: 'proteinG' },
+  { key: 'carbsGrams', label: 'Kolhydrater', color: '#f59e0b', unit: 'g', goalKey: 'carbsGrams', targetKey: 'carbsG' },
+  { key: 'fatGrams', label: 'Fett', color: '#10b981', unit: 'g', goalKey: 'fatGrams', targetKey: 'fatG' },
 ]
 
 function formatDateLabel(dateStr: string): string {
@@ -51,17 +63,29 @@ function formatDateLabel(dateStr: string): string {
   return `${day} ${months[d.getMonth()]}`
 }
 
-export function NutritionTrendChart({ dailyData, goals, variant = 'default' }: NutritionTrendChartProps) {
+export function NutritionTrendChart({ dailyData, goals, dailyTargets, variant = 'default' }: NutritionTrendChartProps) {
   const [selectedTab, setSelectedTab] = useState<MetricKey>('calories')
   const isGlass = variant === 'glass'
 
   const activeTab = TABS.find(t => t.key === selectedTab)!
   const goalValue = goals[activeTab.goalKey]
 
-  const chartData = dailyData.map(d => ({
-    date: formatDateLabel(d.date),
-    value: d[selectedTab],
-  }))
+  const targetByDate = new Map<string, DailyTarget>()
+  for (const t of dailyTargets ?? []) targetByDate.set(t.date, t)
+
+  const chartData = dailyData.map(d => {
+    const dayTarget = targetByDate.get(d.date)
+    return {
+      date: formatDateLabel(d.date),
+      value: d[selectedTab],
+      target: dayTarget ? dayTarget[activeTab.targetKey] : goalValue,
+    }
+  })
+
+  const hasPerDayTargets = (dailyTargets?.length ?? 0) > 0
+  const avgTarget = hasPerDayTargets
+    ? Math.round(chartData.reduce((s, d) => s + d.target, 0) / chartData.length)
+    : goalValue
 
   const Wrapper = isGlass ? GlassCard : Card
   const Header = isGlass ? GlassCardHeader : CardHeader
@@ -135,20 +159,25 @@ export function NutritionTrendChart({ dailyData, goals, variant = 'default' }: N
                   borderRadius: '8px',
                   color: isGlass ? '#e2e8f0' : '#0f172a',
                 }}
-                formatter={(value: number) => [`${Math.round(value)} ${activeTab.unit}`, activeTab.label]}
-              />
-              <ReferenceLine
-                y={goalValue}
-                stroke={activeTab.color}
-                strokeDasharray="5 5"
-                strokeOpacity={0.7}
-                label={{
-                  value: `Mål: ${goalValue}`,
-                  position: 'right',
-                  fill: isGlass ? '#94a3b8' : '#64748b',
-                  fontSize: 10,
+                formatter={(value: number, name: string) => {
+                  const label = name === 'target' ? 'Mål' : activeTab.label
+                  return [`${Math.round(value)} ${activeTab.unit}`, label]
                 }}
               />
+              {!hasPerDayTargets && (
+                <ReferenceLine
+                  y={goalValue}
+                  stroke={activeTab.color}
+                  strokeDasharray="5 5"
+                  strokeOpacity={0.7}
+                  label={{
+                    value: `Mål: ${goalValue}`,
+                    position: 'right',
+                    fill: isGlass ? '#94a3b8' : '#64748b',
+                    fontSize: 10,
+                  }}
+                />
+              )}
               <Bar
                 dataKey="value"
                 fill={activeTab.color}
@@ -156,6 +185,19 @@ export function NutritionTrendChart({ dailyData, goals, variant = 'default' }: N
                 radius={[4, 4, 0, 0]}
                 maxBarSize={40}
               />
+              {hasPerDayTargets && (
+                <Line
+                  type="monotone"
+                  dataKey="target"
+                  stroke={activeTab.color}
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  strokeOpacity={0.9}
+                  dot={{ r: 2, fill: activeTab.color }}
+                  activeDot={{ r: 4 }}
+                  isAnimationActive={false}
+                />
+              )}
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -167,7 +209,7 @@ export function NutritionTrendChart({ dailyData, goals, variant = 'default' }: N
               Snitt: {Math.round(chartData.reduce((s, d) => s + d.value, 0) / chartData.length)} {activeTab.unit}/dag
             </span>
             <span>
-              Mål: {goalValue} {activeTab.unit}/dag
+              {hasPerDayTargets ? `Snittmål: ${avgTarget}` : `Mål: ${goalValue}`} {activeTab.unit}/dag
             </span>
           </div>
         )}

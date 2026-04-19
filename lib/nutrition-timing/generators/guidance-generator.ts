@@ -175,7 +175,7 @@ function workoutMacroSplit(workout: WorkoutContext): { carbs: number; protein: n
   return { carbs: 0.60, protein: 0.20, fat: 0.20 }
 }
 
-function calculateDailyTargets(
+export function calculateDailyTargets(
   weightKg: number,
   workouts: WorkoutContext[],
   goalType?: string,

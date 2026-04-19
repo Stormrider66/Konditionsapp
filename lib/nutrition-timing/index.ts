@@ -123,4 +123,4 @@ export {
   generateDuringWorkoutTip,
 } from './generators/tip-generator'
 
-export { generateDailyGuidance } from './generators/guidance-generator'
+export { generateDailyGuidance, calculateDailyTargets } from './generators/guidance-generator'
