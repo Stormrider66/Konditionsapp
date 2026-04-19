@@ -5,7 +5,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { PlusIcon } from 'lucide-react'
+import { PlusIcon, Upload } from 'lucide-react'
 import { ProgramsList } from '@/components/programs/ProgramsList'
 
 interface BusinessCoachProgramsPageProps {
@@ -76,12 +76,25 @@ export default async function BusinessCoachProgramsPage({ params }: BusinessCoac
             Hantera och skapa träningsprogram för dina atleter
           </p>
         </div>
-        <Link href={`${basePath}/coach/programs/new`} className="shrink-0">
-          <Button size="lg" disabled={!canCreateMore} className="w-full sm:w-auto">
-            <PlusIcon className="mr-2 h-5 w-5" />
-            Skapa nytt program
-          </Button>
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+          <Link href={`${basePath}/coach/programs/import`}>
+            <Button
+              size="lg"
+              variant="outline"
+              disabled={!canCreateMore}
+              className="w-full sm:w-auto"
+            >
+              <Upload className="mr-2 h-5 w-5" />
+              Importera program
+            </Button>
+          </Link>
+          <Link href={`${basePath}/coach/programs/new`}>
+            <Button size="lg" disabled={!canCreateMore} className="w-full sm:w-auto">
+              <PlusIcon className="mr-2 h-5 w-5" />
+              Skapa nytt program
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {!canCreateMore && (
