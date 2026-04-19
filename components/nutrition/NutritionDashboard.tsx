@@ -11,7 +11,7 @@
 
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -70,15 +70,32 @@ interface NutritionDashboardProps {
 const HISTORY_DAYS = 14
 
 function toISODate(d: Date): string {
-  return d.toISOString().split('T')[0]
+  // Use local date components so the date string matches what the athlete sees
+  // on their device, not the server's UTC day (avoids off-by-one near midnight).
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
   const basePath = useBasePath()
-  const todayStr = useMemo(() => toISODate(new Date()), [])
-  const oldestStr = useMemo(() => toISODate(subDays(new Date(), HISTORY_DAYS - 1)), [])
 
-  const [selectedDate, setSelectedDate] = useState<string>(todayStr)
+  // Compute "today" lazily and only on the client — avoids SSR/client hydration
+  // mismatch (React error #418) when the two clocks disagree on the date.
+  const [dates, setDates] = useState<{ todayStr: string; oldestStr: string } | null>(null)
+  useEffect(() => {
+    const now = new Date()
+    setDates({ todayStr: toISODate(now), oldestStr: toISODate(subDays(now, HISTORY_DAYS - 1)) })
+  }, [])
+  const todayStr = dates?.todayStr ?? ''
+  const oldestStr = dates?.oldestStr ?? ''
+
+  const [selectedDate, setSelectedDate] = useState<string>('')
+  useEffect(() => {
+    if (dates && !selectedDate) setSelectedDate(dates.todayStr)
+  }, [dates, selectedDate])
+
   const [guidance, setGuidance] = useState<DailyNutritionGuidance | null>(null)
   const [dailyHistory, setDailyHistory] = useState<DailyAggregate[]>([])
   const [dailyTargets, setDailyTargets] = useState<DailyTargetRow[]>([])
@@ -86,7 +103,12 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Guard against stale guidance responses: when the user clicks chevrons
+  // rapidly, in-flight requests for older dates must not overwrite a newer one.
+  const guidanceRequestIdRef = useRef(0)
+
   const fetchRangeData = useCallback(async () => {
+    if (!oldestStr || !todayStr) return
     const [mealsRes, goalsRes, targetsRes] = await Promise.all([
       fetch(`/api/meals?startDate=${oldestStr}&endDate=${todayStr}`),
       fetch('/api/nutrition/goals'),
@@ -108,14 +130,18 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
   }, [oldestStr, todayStr])
 
   const fetchGuidance = useCallback(async (date: string) => {
+    if (!date || !todayStr) return
+    const reqId = ++guidanceRequestIdRef.current
     const qs = date === todayStr ? '' : `?date=${date}`
     const res = await fetch(`/api/nutrition/guidance${qs}`)
     if (!res.ok) throw new Error('Kunde inte hämta kostråd')
     const data = await res.json()
-    setGuidance(data.guidance)
+    // Drop this response if a newer request has been dispatched in the meantime.
+    if (reqId === guidanceRequestIdRef.current) setGuidance(data.guidance)
   }, [todayStr])
 
   const fetchAll = useCallback(async () => {
+    if (!selectedDate || !todayStr) return
     setIsLoading(true)
     setError(null)
     try {
@@ -125,19 +151,20 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
     } finally {
       setIsLoading(false)
     }
-  }, [fetchGuidance, fetchRangeData, selectedDate])
+  }, [fetchGuidance, fetchRangeData, selectedDate, todayStr])
 
   useEffect(() => {
-    fetchAll()
+    if (selectedDate && todayStr) fetchAll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId])
+  }, [clientId, selectedDate && todayStr ? 'ready' : 'pending'])
 
   // Refetch guidance when the selected date changes (range data stays the same).
   useEffect(() => {
+    if (!selectedDate || !todayStr) return
     fetchGuidance(selectedDate).catch((err) => {
       setError(err instanceof Error ? err.message : 'Ett fel uppstod')
     })
-  }, [selectedDate, fetchGuidance])
+  }, [selectedDate, todayStr, fetchGuidance])
 
   // Re-fetch when a meal or workout changes — bumps today's macro targets.
   useEffect(() => {
@@ -150,12 +177,23 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
     }
   }, [fetchAll])
 
-  const canGoBack = selectedDate > oldestStr
-  const canGoForward = selectedDate < todayStr
-  const isToday = selectedDate === todayStr
+  const canGoBack = Boolean(selectedDate) && Boolean(oldestStr) && selectedDate > oldestStr
+  const canGoForward = Boolean(selectedDate) && Boolean(todayStr) && selectedDate < todayStr
+  const isToday = Boolean(selectedDate) && selectedDate === todayStr
 
-  const goPrev = () => { if (canGoBack) setSelectedDate(toISODate(subDays(parseISO(selectedDate), 1))) }
-  const goNext = () => { if (canGoForward) setSelectedDate(toISODate(addDaysFn(parseISO(selectedDate), 1))) }
+  const goPrev = useCallback(() => {
+    setSelectedDate((prev) => {
+      if (!prev || !oldestStr || prev <= oldestStr) return prev
+      return toISODate(subDays(parseISO(prev), 1))
+    })
+  }, [oldestStr])
+
+  const goNext = useCallback(() => {
+    setSelectedDate((prev) => {
+      if (!prev || !todayStr || prev >= todayStr) return prev
+      return toISODate(addDaysFn(parseISO(prev), 1))
+    })
+  }, [todayStr])
 
   if (isLoading) {
     return <NutritionDashboardSkeleton variant="glass" />

@@ -204,17 +204,27 @@ export async function GET(request: NextRequest) {
     }
 
     // Completed workouts (WorkoutLog + Strava + Garmin) — per-day dedup.
+    // Wrap each day so a single bad day doesn't 500 the whole range.
     const completedByDay = await Promise.all(
       days.map(async (day) => {
         const dayStart = startOfDay(day)
         const dayEnd = endOfDay(day)
-        const contexts = await getCompletedWorkoutContextsForDay({
-          clientId: client.id,
-          athleteUserId,
-          dayStart,
-          dayEnd,
-        })
-        return { key: keyOf(dayStart), contexts }
+        try {
+          const contexts = await getCompletedWorkoutContextsForDay({
+            clientId: client.id,
+            athleteUserId,
+            dayStart,
+            dayEnd,
+          })
+          return { key: keyOf(dayStart), contexts }
+        } catch (err) {
+          logger.warn('daily-targets: completed lookup failed for day', {
+            clientId: client.id,
+            day: dayStart.toISOString(),
+            error: err instanceof Error ? err.message : String(err),
+          })
+          return { key: keyOf(dayStart), contexts: [] as WorkoutContext[] }
+        }
       })
     )
     const completedMap: Record<string, WorkoutContext[]> = {}
@@ -247,7 +257,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ targets })
   } catch (error) {
-    logger.error('daily-targets route failed', { error: error instanceof Error ? error.message : error })
+    logger.error('daily-targets route failed', {}, error as Error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
