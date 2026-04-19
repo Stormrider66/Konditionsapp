@@ -121,7 +121,7 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
           const analyzeRes = await fetch('/api/ai/food-scan/analyze-text', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ description: text }),
+            body: JSON.stringify({ description: text, clientHour: new Date().getHours() }),
           })
           if (analyzeRes.ok) {
             const analyzeData = await analyzeRes.json()
@@ -172,6 +172,7 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
           date: new Date().toISOString().split('T')[0],
           mealType,
           description: transcribedText.trim(),
+          mergeRecent: true,
           ...(macros.calories != null ? {
             calories: macros.calories,
             proteinGrams: macros.proteinGrams,

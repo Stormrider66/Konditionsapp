@@ -48,7 +48,24 @@ const createMealSchema = z.object({
     complexCarbsGrams: z.number().nonnegative().optional(),
     isCompleteProtein: z.boolean().optional(),
   })).optional(),
+  // When true, merge into a meal of the same (date, mealType) created in the
+  // last MERGE_WINDOW_MINUTES instead of creating a separate entry. Used by
+  // quick-capture flows (photo, voice) so multiple submissions for the same
+  // meal don't show up as separate history entries.
+  mergeRecent: z.boolean().optional(),
 })
+
+const MERGE_WINDOW_MINUTES = 30
+
+function sumNullable(a: number | null | undefined, b: number | null | undefined): number | null {
+  if (a == null && b == null) return null
+  return (a ?? 0) + (b ?? 0)
+}
+
+function sumNullableInt(a: number | null | undefined, b: number | null | undefined): number | null {
+  const result = sumNullable(a, b)
+  return result == null ? null : Math.round(result)
+}
 
 // GET /api/meals - Get meals for a date range
 export async function GET(request: NextRequest) {
@@ -187,7 +204,81 @@ export async function POST(request: NextRequest) {
     // Auto-detect high protein
     const isHighProtein = data.isHighProtein ?? (data.proteinGrams && data.proteinGrams >= 20)
 
+    // Look up a mergeable recent meal when the client opts in. Same client,
+    // same date, same mealType, created within the merge window.
+    const mergeTarget = data.mergeRecent
+      ? await prisma.mealLog.findFirst({
+          where: {
+            clientId,
+            date: mealDate,
+            mealType: data.mealType,
+            createdAt: { gte: new Date(Date.now() - MERGE_WINDOW_MINUTES * 60 * 1000) },
+          },
+          include: { items: { select: { id: true } } },
+          orderBy: { createdAt: 'desc' },
+        })
+      : null
+    let merged = false
+
     const meal = await prisma.$transaction(async (tx) => {
+      if (mergeTarget) {
+        const existingItemCount = mergeTarget.items.length
+        const updated = await tx.mealLog.update({
+          where: { id: mergeTarget.id },
+          data: {
+            description: mergeTarget.description && data.description && mergeTarget.description !== data.description
+              ? `${mergeTarget.description}; ${data.description}`
+              : data.description || mergeTarget.description,
+            calories: sumNullable(mergeTarget.calories, data.calories),
+            proteinGrams: sumNullable(mergeTarget.proteinGrams, data.proteinGrams),
+            carbsGrams: sumNullable(mergeTarget.carbsGrams, data.carbsGrams),
+            fatGrams: sumNullable(mergeTarget.fatGrams, data.fatGrams),
+            fiberGrams: sumNullable(mergeTarget.fiberGrams, data.fiberGrams),
+            saturatedFatGrams: sumNullable(mergeTarget.saturatedFatGrams, data.saturatedFatGrams),
+            monounsaturatedFatGrams: sumNullable(mergeTarget.monounsaturatedFatGrams, data.monounsaturatedFatGrams),
+            polyunsaturatedFatGrams: sumNullable(mergeTarget.polyunsaturatedFatGrams, data.polyunsaturatedFatGrams),
+            sugarGrams: sumNullable(mergeTarget.sugarGrams, data.sugarGrams),
+            complexCarbsGrams: sumNullable(mergeTarget.complexCarbsGrams, data.complexCarbsGrams),
+            waterMl: sumNullableInt(mergeTarget.waterMl, data.waterMl),
+            isHighProtein: mergeTarget.isHighProtein || isHighProtein || false,
+            isPreWorkout: mergeTarget.isPreWorkout || data.isPreWorkout || false,
+            isPostWorkout: mergeTarget.isPostWorkout || data.isPostWorkout || false,
+            photoUrl: data.photoUrl ?? mergeTarget.photoUrl,
+            notes: mergeTarget.notes && data.notes
+              ? `${mergeTarget.notes}\n${data.notes}`
+              : (data.notes ?? mergeTarget.notes),
+          },
+        })
+
+        if (data.items?.length) {
+          await tx.mealFoodItem.createMany({
+            data: data.items.map((item, i) => ({
+              mealLogId: updated.id,
+              name: item.name,
+              normalizedName: item.name.toLowerCase().trim(),
+              category: item.category,
+              estimatedGrams: item.estimatedGrams,
+              portionDescription: item.portionDescription,
+              calories: item.calories,
+              proteinGrams: item.proteinGrams,
+              carbsGrams: item.carbsGrams,
+              fatGrams: item.fatGrams,
+              fiberGrams: item.fiberGrams ?? 0,
+              saturatedFatGrams: item.saturatedFatGrams,
+              monounsaturatedFatGrams: item.monounsaturatedFatGrams,
+              polyunsaturatedFatGrams: item.polyunsaturatedFatGrams,
+              sugarGrams: item.sugarGrams,
+              complexCarbsGrams: item.complexCarbsGrams,
+              isCompleteProtein: item.isCompleteProtein,
+              sortOrder: existingItemCount + i,
+            })),
+          })
+        }
+
+        merged = true
+        return updated
+      }
+
       const created = await tx.mealLog.create({
         data: {
           clientId,
@@ -248,9 +339,10 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         data: meal,
-        message: 'Meal logged successfully',
+        merged,
+        message: merged ? 'Meal merged into recent entry' : 'Meal logged successfully',
       },
-      { status: 201 }
+      { status: merged ? 200 : 201 }
     )
   } catch (error) {
     logger.error('Error creating meal log', {}, error)

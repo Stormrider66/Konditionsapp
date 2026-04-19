@@ -219,7 +219,7 @@ export function QuickMealLog({
       const res = await fetch('/api/ai/food-scan/analyze-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: formData.description }),
+        body: JSON.stringify({ description: formData.description, clientHour: new Date().getHours() }),
       })
 
       if (!res.ok) {

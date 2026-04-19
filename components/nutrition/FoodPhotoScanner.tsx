@@ -410,6 +410,7 @@ export function FoodPhotoScanner({
     try {
       const formData = new FormData()
       formData.append('image', imageFile)
+      formData.append('clientHour', String(new Date().getHours()))
 
       const response = await fetch('/api/ai/food-scan', {
         method: 'POST',
@@ -493,6 +494,7 @@ export function FoodPhotoScanner({
             complexCarbsGrams: Math.round((totals.complexCarbsGrams ?? 0) * 10) / 10,
           } : {}),
           notes: notes || undefined,
+          mergeRecent: true,
           items: items.map((item) => ({
             name: item.name,
             category: item.category,

@@ -25,6 +25,7 @@ export const maxDuration = 120
 
 const requestSchema = z.object({
   description: z.string().min(1, 'Beskrivning krävs'),
+  clientHour: z.number().int().min(0).max(23).optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { description } = validation.data
+    const { description, clientHour } = validation.data
 
     // Resolve Google API key
     const keyContext = await resolveAthleteGoogleKeyContext({
@@ -97,13 +98,15 @@ export async function POST(request: NextRequest) {
 
 "${description}"
 
-INSTRUKTIONER:
+${clientHour != null ? `KONTEXT: Användaren loggar måltiden kl ${String(clientHour).padStart(2, '0')}:00 (lokal tid). Använd tiden som primär signal för måltidstyp: före 10 = BREAKFAST, 10–11 = MORNING_SNACK, 11–14 = LUNCH, 14–16 = AFTERNOON_SNACK, 17–20 = DINNER, efter 20 = EVENING_SNACK. Avvik endast om beskrivningen uppenbart tillhör en annan kategori.
+
+` : ''}INSTRUKTIONER:
 1. Identifiera varje separat matvara/ingrediens i beskrivningen
 2. Uppskatta portionsstorlek i gram och beskriv portionen på svenska (t.ex. "1 skiva", "2 dl", "1 portion")
 3. Beräkna kalorier och makros (protein, kolhydrater, fett, fiber) per matvara
 4. Summera totala kalorier och makros för hela måltiden
 5. Ge en kort svensk beskrivning av måltiden
-6. Föreslå vilken måltidstyp det troligtvis är
+6. Föreslå vilken måltidstyp det troligtvis är${clientHour != null ? ' — följ tidsregeln ovan' : ''}
 7. Sätt confidence baserat på hur detaljerad beskrivningen är
 
 VIKTIGT:

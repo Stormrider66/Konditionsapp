@@ -45,6 +45,11 @@ export async function POST(request: NextRequest) {
     // Parse FormData
     const formData = await request.formData()
     const imageFile = formData.get('image') as File | null
+    const clientHourRaw = formData.get('clientHour')
+    const parsedHour = clientHourRaw != null ? parseInt(String(clientHourRaw), 10) : NaN
+    const clientHour = Number.isFinite(parsedHour) && parsedHour >= 0 && parsedHour <= 23
+      ? parsedHour
+      : null
 
     if (!imageFile) {
       return NextResponse.json(
@@ -136,13 +141,15 @@ export async function POST(request: NextRequest) {
               type: 'text',
               text: `Du är en expert på näringslära och matidentifiering. Analysera denna bild av en måltid och uppskatta kalorier och makronäringsämnen.
 
-INSTRUKTIONER:
+${clientHour != null ? `KONTEXT: Användaren loggar måltiden kl ${String(clientHour).padStart(2, '0')}:00 (lokal tid). Använd tiden som primär signal för måltidstyp: före 10 = BREAKFAST, 10–11 = MORNING_SNACK, 11–14 = LUNCH, 14–16 = AFTERNOON_SNACK, 17–20 = DINNER, efter 20 = EVENING_SNACK. Avvik endast om maten uppenbart tillhör en annan kategori (t.ex. tydlig frukostgröt kl 15 → AFTERNOON_SNACK, inte BREAKFAST).
+
+` : ''}INSTRUKTIONER:
 1. Identifiera varje separat matvara/ingrediens i bilden
 2. Uppskatta portionsstorlek i gram och beskriv portionen på svenska (t.ex. "1 skiva", "2 dl", "1 portion")
 3. Beräkna kalorier och makros (protein, kolhydrater, fett, fiber) per matvara
 4. Summera totala kalorier och makros för hela måltiden
 5. Ge en kort svensk beskrivning av måltiden
-6. Föreslå vilken måltidstyp det troligtvis är (frukost, lunch, middag, mellanmål etc.)
+6. Föreslå vilken måltidstyp det troligtvis är (frukost, lunch, middag, mellanmål etc.)${clientHour != null ? ' — följ tidsregeln ovan' : ''}
 7. Ange din konfidensgrad (0-1) baserat på bildens tydlighet och hur väl du kan identifiera maten
 
 VIKTIGT:
