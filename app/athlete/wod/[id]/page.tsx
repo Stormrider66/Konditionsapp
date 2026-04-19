@@ -33,6 +33,7 @@ import { ExerciseImage } from '@/components/themed/ExerciseImage'
 import { WODCompletionModal } from '@/components/athlete/wod/WODCompletionModal'
 import { cn } from '@/lib/utils'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { emitWorkoutLogged } from '@/lib/events/workout-events'
 import type { WODWorkout, WODSection, WODExercise, WODSectionType } from '@/types/wod'
 
 interface PageProps {
@@ -198,6 +199,7 @@ export default function WODExecutionPage({ params }: PageProps) {
           status: isComplete ? 'COMPLETED' : 'ABANDONED',
         }),
       })
+      emitWorkoutLogged()
     }
     router.push(`${basePath}/athlete/dashboard`)
   }
@@ -231,6 +233,7 @@ export default function WODExecutionPage({ params }: PageProps) {
             exerciseLogs,
           }),
         })
+        emitWorkoutLogged()
       } catch (err) {
         console.error('Failed to save WOD completion:', err)
       }

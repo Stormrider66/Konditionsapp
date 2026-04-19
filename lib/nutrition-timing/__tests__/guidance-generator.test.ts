@@ -39,23 +39,41 @@ function createWorkout(overrides: Partial<WorkoutContext> = {}): WorkoutContext 
 }
 
 describe('generateDailyGuidance', () => {
-  it('keeps base calorie targets for planned workouts that are not completed', () => {
+  it('raises macro targets for planned workouts (so athletes can plan meals ahead)', () => {
+    const restGuidance = generateDailyGuidance(createInput([]))
     const plannedGuidance = generateDailyGuidance(createInput([createWorkout()]))
-    const completedGuidance = generateDailyGuidance(
-      createInput([
-        createWorkout({
-          status: 'COMPLETED',
-          scheduledTime: new Date('2026-03-17T07:30:00.000Z'),
-        }),
-      ])
-    )
 
-    expect(plannedGuidance.targets.caloriesKcal).toBeLessThan(completedGuidance.targets.caloriesKcal)
+    expect(plannedGuidance.targets.caloriesKcal).toBeGreaterThan(restGuidance.targets.caloriesKcal)
+    expect(plannedGuidance.targets.carbsG).toBeGreaterThan(restGuidance.targets.carbsG)
+    expect(plannedGuidance.targets.workoutAdjustmentKcal).toBeGreaterThan(0)
     expect(plannedGuidance.preWorkoutGuidance).toHaveLength(1)
     expect(plannedGuidance.postWorkoutGuidance).toHaveLength(0)
   })
 
-  it('raises calorie targets only for completed workouts and shows post-workout guidance', () => {
+  it('exposes baseline and adjustment breakdown on the targets object', () => {
+    const guidance = generateDailyGuidance(createInput([createWorkout()]))
+    const t = guidance.targets
+
+    expect(t.baselineKcal).toBeGreaterThan(0)
+    expect(t.baselineCarbsG + t.workoutAdjustmentCarbsG).toBeGreaterThanOrEqual(t.carbsG - 5) // rounding tolerance
+    expect(t.baselineProteinG).toBeGreaterThan(0)
+    expect(t.workoutAdjustmentFatG).toBeGreaterThanOrEqual(0)
+  })
+
+  it('distributes strength-workout adjustment toward protein more than endurance', () => {
+    const strengthGuidance = generateDailyGuidance(
+      createInput([createWorkout({ type: 'STRENGTH', intensity: 'MODERATE', duration: 60 })])
+    )
+    const enduranceGuidance = generateDailyGuidance(
+      createInput([createWorkout({ type: 'RUNNING', intensity: 'MODERATE', duration: 60 })])
+    )
+
+    expect(strengthGuidance.targets.workoutAdjustmentProteinG).toBeGreaterThan(
+      enduranceGuidance.targets.workoutAdjustmentProteinG
+    )
+  })
+
+  it('shows post-workout guidance only once the workout is completed', () => {
     const guidance = generateDailyGuidance(
       createInput([
         createWorkout({

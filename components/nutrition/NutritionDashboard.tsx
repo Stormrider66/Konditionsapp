@@ -107,11 +107,15 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
     fetchAllData()
   }, [clientId])
 
-  // Re-fetch when a meal is logged from other components (e.g. QuickActionsGrid)
+  // Re-fetch when a meal or workout changes — bumps today's macro targets.
   useEffect(() => {
     const handler = () => fetchAllData()
     window.addEventListener('meal-logged', handler)
-    return () => window.removeEventListener('meal-logged', handler)
+    window.addEventListener('workout-logged', handler)
+    return () => {
+      window.removeEventListener('meal-logged', handler)
+      window.removeEventListener('workout-logged', handler)
+    }
   }, [clientId])
 
   if (isLoading) {

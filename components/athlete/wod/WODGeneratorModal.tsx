@@ -49,6 +49,7 @@ import type { ModelIntent } from '@/types/ai-models'
 import { INTENT_TIER_LABELS } from '@/types/ai-models'
 import { cn } from '@/lib/utils'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { emitWorkoutLogged } from '@/lib/events/workout-events'
 
 interface WODGeneratorModalProps {
   open: boolean
@@ -371,6 +372,7 @@ export function WODGeneratorModal({
       }
 
       const data: WODResponse = await response.json()
+      emitWorkoutLogged()
       onWODGenerated(data)
       handleOpenChange(false)
     } catch (err) {

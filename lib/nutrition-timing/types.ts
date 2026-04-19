@@ -195,6 +195,15 @@ export interface DailyMacroTargets {
   carbsG: number
   fatG: number
   hydrationMl: number
+  // Breakdown so the UI can show "baseline + workout bonus"
+  baselineKcal: number
+  baselineProteinG: number
+  baselineCarbsG: number
+  baselineFatG: number
+  workoutAdjustmentKcal: number
+  workoutAdjustmentProteinG: number
+  workoutAdjustmentCarbsG: number
+  workoutAdjustmentFatG: number
 }
 
 export interface DailyNutritionGuidance {

@@ -29,6 +29,7 @@ import {
   REST_DAY_TARGETS,
   PRE_WORKOUT_TIMING,
   POST_WORKOUT_TIMING,
+  CALORIES_PER_HOUR_BY_INTENSITY,
   calculateDailyCarbs,
   calculatePreWorkoutCarbs,
   calculatePostWorkoutNutrition,
@@ -66,7 +67,8 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
 
   const weightKg = client.weightKg
   const completedTodaysWorkouts = todaysWorkouts.filter((workout) => workout.status === 'COMPLETED')
-  // Calorie targets should only reflect completed work — not scheduled workouts
+  // Targets reflect *expected* energy need for the day — planned + completed workouts.
+  // Cancel a workout → target comes back down on next fetch.
   const isRestDay = todaysWorkouts.length === 0
   const isDoubleDay = todaysWorkouts.length >= 2
   const goalType = goal?.goalType
@@ -77,8 +79,7 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
   // Calculate daily targets
   const targets = calculateDailyTargets(
     weightKg,
-    completedTodaysWorkouts,
-    completedTodaysWorkouts.length === 0,
+    todaysWorkouts,
     goalType,
     bodyComposition?.bmrKcal
   )
@@ -146,31 +147,82 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
 // TARGET CALCULATORS
 // ==========================================
 
+/**
+ * Estimate the kcal burn for one workout.
+ * Prefers an externally provided estimate (ad-hoc imports), else
+ * derives from intensity × duration, scaled by body weight (75kg reference).
+ */
+function estimateWorkoutKcal(workout: WorkoutContext, weightKg: number): number {
+  if (workout.estimatedCaloriesKcal && workout.estimatedCaloriesKcal > 0) {
+    return workout.estimatedCaloriesKcal
+  }
+  const durationMinutes = workout.duration || 60
+  const kcalPerHour = CALORIES_PER_HOUR_BY_INTENSITY[workout.intensity] ?? 450
+  return Math.round(kcalPerHour * (durationMinutes / 60) * (weightKg / 75))
+}
+
+/**
+ * Kcal-to-macro split for a workout's adjustment (ratios must sum to 1.0).
+ * Strength leans toward protein (repair); long endurance leans toward carbs (glycogen).
+ */
+function workoutMacroSplit(workout: WorkoutContext): { carbs: number; protein: number; fat: number } {
+  const durationMinutes = workout.duration || 60
+  const isStrength = workout.type === 'STRENGTH'
+  const isLongEndurance = !isStrength && durationMinutes >= 90
+
+  if (isStrength) return { carbs: 0.50, protein: 0.30, fat: 0.20 }
+  if (isLongEndurance) return { carbs: 0.70, protein: 0.15, fat: 0.15 }
+  return { carbs: 0.60, protein: 0.20, fat: 0.20 }
+}
+
 function calculateDailyTargets(
   weightKg: number,
   workouts: WorkoutContext[],
-  isRestDay: boolean,
   goalType?: string,
   bmrKcal?: number
 ): DailyMacroTargets {
-  // Base calculations
-  let carbsG: number
-  let proteinG: number
-  let fatG: number
-  let caloriesKcal: number
+  // 1. Baseline (rest-day) targets — always the starting point.
+  const carbTarget = REST_DAY_TARGETS.carbsPerKg
+  const proteinTarget = REST_DAY_TARGETS.proteinPerKg
+  const fatTarget = REST_DAY_TARGETS.fatPerKg
 
-  if (isRestDay) {
-    // Rest day targets
-    const carbTarget = REST_DAY_TARGETS.carbsPerKg
-    const proteinTarget = REST_DAY_TARGETS.proteinPerKg
-    const fatTarget = REST_DAY_TARGETS.fatPerKg
+  let baselineCarbsG = weightKg * ((carbTarget.min + carbTarget.max) / 2)
+  let baselineProteinG = weightKg * ((proteinTarget.min + proteinTarget.max) / 2)
+  let baselineFatG = weightKg * ((fatTarget.min + fatTarget.max) / 2)
 
-    carbsG = Math.round(weightKg * ((carbTarget.min + carbTarget.max) / 2))
-    proteinG = Math.round(weightKg * ((proteinTarget.min + proteinTarget.max) / 2))
-    fatG = Math.round(weightKg * ((fatTarget.min + fatTarget.max) / 2))
-  } else {
-    // Training day targets
-    // Find the highest intensity workout to determine base carb needs
+  // Goal-based adjustment applies to baseline only; workout-driven needs are
+  // defended (deficit on rest, maintenance-or-above on training).
+  if (goalType === 'WEIGHT_LOSS') {
+    baselineCarbsG *= 0.85
+    baselineFatG *= 0.85
+  } else if (goalType === 'WEIGHT_GAIN') {
+    baselineCarbsG *= 1.10
+    baselineFatG *= 1.10
+  } else if (goalType === 'BODY_RECOMP') {
+    baselineProteinG *= 1.15
+    baselineFatG *= 0.90
+  }
+
+  const baselineKcalRaw = baselineCarbsG * 4 + baselineProteinG * 4 + baselineFatG * 9
+
+  // 2. Workout adjustment — each workout contributes a kcal bonus, split across macros.
+  let adjCarbsG = 0
+  let adjProteinG = 0
+  let adjFatG = 0
+  let adjKcal = 0
+
+  for (const workout of workouts) {
+    const workoutKcal = estimateWorkoutKcal(workout, weightKg)
+    const split = workoutMacroSplit(workout)
+    adjKcal += workoutKcal
+    adjCarbsG += (workoutKcal * split.carbs) / 4
+    adjProteinG += (workoutKcal * split.protein) / 4
+    adjFatG += (workoutKcal * split.fat) / 9
+  }
+
+  // Carb floor on training days: ensure athletes hit the IOC minimum for their load.
+  // Use the existing load-category logic as a sanity floor.
+  if (workouts.length > 0) {
     const highestIntensityWorkout = workouts.reduce((prev, curr) => {
       const intensityOrder: Record<WorkoutIntensity, number> = {
         RECOVERY: 0,
@@ -182,49 +234,31 @@ function calculateDailyTargets(
       }
       return intensityOrder[curr.intensity] > intensityOrder[prev.intensity] ? curr : prev
     }, workouts[0])
-
     const totalDuration = workouts.reduce((sum, w) => sum + (w.duration || 60), 0)
-    const isDoubleDay = workouts.length >= 2
-
-    const { carbsG: dailyCarbs } = calculateDailyCarbs(
+    const { carbsG: loadCarbFloor } = calculateDailyCarbs(
       weightKg,
       highestIntensityWorkout.intensity,
       totalDuration,
-      isDoubleDay
+      workouts.length >= 2
     )
-
-    carbsG = dailyCarbs
-
-    // Protein: 1.4-1.8 g/kg for endurance athletes
-    proteinG = Math.round(weightKg * 1.6)
-
-    // Fat: 0.8-1.0 g/kg
-    fatG = Math.round(weightKg * 0.9)
+    const totalCarbs = baselineCarbsG + adjCarbsG
+    if (totalCarbs < loadCarbFloor) {
+      adjCarbsG = loadCarbFloor - baselineCarbsG
+    }
   }
 
-  // Calculate calories from macros
-  // Carbs: 4 kcal/g, Protein: 4 kcal/g, Fat: 9 kcal/g
-  caloriesKcal = carbsG * 4 + proteinG * 4 + fatG * 9
+  // 3. Combine.
+  let carbsG = Math.round(baselineCarbsG + adjCarbsG)
+  const proteinG = Math.round(baselineProteinG + adjProteinG)
+  const fatG = Math.round(baselineFatG + adjFatG)
+  let caloriesKcal = carbsG * 4 + proteinG * 4 + fatG * 9
 
-  // Adjust for goals
-  if (goalType === 'WEIGHT_LOSS') {
-    caloriesKcal = Math.round(caloriesKcal * 0.85) // 15% deficit
-    fatG = Math.round(fatG * 0.85)
-  } else if (goalType === 'WEIGHT_GAIN') {
-    caloriesKcal = Math.round(caloriesKcal * 1.1) // 10% surplus
-    carbsG = Math.round(carbsG * 1.1)
-  } else if (goalType === 'BODY_RECOMP') {
-    proteinG = Math.round(proteinG * 1.15) // 15% more protein
-    fatG = Math.round(fatG * 0.90) // slight fat reduction
-  }
-
-  // TDEE sanity cap: if BMR is available, estimate TDEE and cap macro-derived
-  // calories at TDEE + 10% to catch extreme cases from IOC ranges
+  // 4. TDEE sanity cap (unchanged in spirit): for extreme cases, clip carbs first.
+  const isRestDay = workouts.length === 0
   if (bmrKcal) {
     const estimatedTDEE = Math.round(bmrKcal * (isRestDay ? 1.2 : 1.55))
-    const maxCalories = Math.round(estimatedTDEE * 1.1)
+    const maxCalories = Math.round(estimatedTDEE * 1.25) // allow 25% over for hard days
     if (caloriesKcal > maxCalories) {
-      // Reduce carbs proportionally (never below 3g/kg)
       const excessKcal = caloriesKcal - maxCalories
       const carbReductionG = Math.floor(excessKcal / 4)
       const minCarbsG = Math.round(weightKg * 3)
@@ -233,7 +267,7 @@ function calculateDailyTargets(
     }
   }
 
-  // Hydration: 28ml per kg drinking water + extra for training
+  // 5. Hydration: rest-day baseline + 500ml per hour of training.
   const baseHydration = weightKg * 28
   const trainingHydration = workouts.reduce((sum, w) => sum + ((w.duration || 60) / 60) * 500, 0)
   const hydrationMl = Math.round(baseHydration + trainingHydration)
@@ -244,6 +278,14 @@ function calculateDailyTargets(
     carbsG,
     fatG,
     hydrationMl,
+    baselineKcal: Math.round(baselineKcalRaw),
+    baselineProteinG: Math.round(baselineProteinG),
+    baselineCarbsG: Math.round(baselineCarbsG),
+    baselineFatG: Math.round(baselineFatG),
+    workoutAdjustmentKcal: Math.round(adjKcal),
+    workoutAdjustmentProteinG: Math.round(adjProteinG),
+    workoutAdjustmentCarbsG: Math.round(adjCarbsG),
+    workoutAdjustmentFatG: Math.round(adjFatG),
   }
 }
 

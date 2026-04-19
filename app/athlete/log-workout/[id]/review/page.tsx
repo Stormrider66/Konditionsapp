@@ -16,6 +16,7 @@ import { ProcessingStatus } from '@/components/athlete/adhoc/ProcessingStatus'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { toast } from 'sonner'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { emitWorkoutLogged } from '@/lib/events/workout-events'
 
 interface ReviewPageProps {
   params: Promise<{ id: string }>
@@ -89,6 +90,7 @@ export default function ReviewPage({ params }: ReviewPageProps) {
       }
 
       toast.success('Passet har sparats!')
+      emitWorkoutLogged()
       router.push(`${basePath}/athlete/dashboard`)
     } catch (error) {
       console.error('Error confirming workout:', error)

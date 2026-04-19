@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { Loader2 } from 'lucide-react'
+import { emitWorkoutLogged } from '@/lib/events/workout-events'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -154,6 +155,7 @@ export function QuickWorkoutDialog({
         description: `${name} har lagts till i kalendern`,
       })
 
+      emitWorkoutLogged()
       onCreated()
       onOpenChange(false)
     } catch (error) {

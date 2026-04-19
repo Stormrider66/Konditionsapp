@@ -41,6 +41,7 @@ import { ExerciseHeader } from '@/components/themed/ExerciseHeader'
 import { Player } from '@remotion/player'
 import { ExerciseAnimation } from '@/remotion/exercises/ExerciseAnimation'
 import { useToast } from '@/hooks/use-toast'
+import { emitWorkoutLogged } from '@/lib/events/workout-events'
 
 interface FocusModeExercise {
   id: string
@@ -298,6 +299,7 @@ export function WorkoutFocusMode({
         description: 'Bra jobbat!',
       })
 
+      emitWorkoutLogged()
       setShowCompleteDialog(false)
       onComplete()
     } catch (err) {
