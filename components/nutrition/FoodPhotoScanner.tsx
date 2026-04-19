@@ -691,28 +691,57 @@ export function FoodPhotoScanner({
         }
       }
 
-      let response = await fetch('/api/ai/food-scan/refine', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          originalAnalysis,
-          refinementText: refinementText.trim(),
-          imageBase64,
-          imageMimeType,
-        }),
-      })
+      // Wrap fetch so we can retry without the image on *either* a network
+      // error (TypeError: "Failed to fetch" on flaky mobile connections) or a
+      // non-ok response. The first attempt uses a 90s timeout; the text-only
+      // retry gets a fresh timeout.
+      const postRefine = async (includeImage: boolean): Promise<Response> => {
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 90000)
+        try {
+          return await fetch('/api/ai/food-scan/refine', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              originalAnalysis,
+              refinementText: refinementText.trim(),
+              ...(includeImage && imageBase64
+                ? { imageBase64, imageMimeType }
+                : {}),
+            }),
+            signal: controller.signal,
+          })
+        } finally {
+          clearTimeout(timer)
+        }
+      }
 
-      // If the request failed and we included an image, retry without the
-      // image — the payload may have been too large or timed out.
-      if (!response.ok && imageBase64) {
-        response = await fetch('/api/ai/food-scan/refine', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            originalAnalysis,
-            refinementText: refinementText.trim(),
-          }),
-        })
+      let response: Response | null = null
+      let networkError: unknown = null
+      try {
+        response = await postRefine(Boolean(imageBase64))
+      } catch (err) {
+        networkError = err
+      }
+
+      // Retry without the image on network failure or non-ok response when
+      // the first attempt carried an image.
+      if (imageBase64 && (networkError || !response?.ok)) {
+        try {
+          response = await postRefine(false)
+          networkError = null
+        } catch (err) {
+          networkError = err
+        }
+      }
+
+      if (networkError || !response) {
+        const isAbort = networkError instanceof DOMException && networkError.name === 'AbortError'
+        throw new Error(
+          isAbort
+            ? 'Uppdateringen tog för lång tid. Kontrollera din anslutning och försök igen.'
+            : 'Kunde inte nå servern. Kontrollera din anslutning och försök igen.'
+        )
       }
 
       if (!response.ok) {

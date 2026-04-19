@@ -273,16 +273,14 @@ async function excelToText(buf: Buffer): Promise<string> {
 }
 
 async function pdfToText(buf: Buffer, filename: string): Promise<string> {
-  // pdf-parse's package entry runs a debug-mode probe when `require.main`
-  // points at itself, which can crash on cold starts looking for a test PDF.
-  // The internal lib file skips that side-effect; types aren't shipped for it.
-  // @ts-expect-error — no types for the internal entrypoint
-  const mod = await import('pdf-parse/lib/pdf-parse.js')
-  const pdfParse = (mod.default ?? mod) as (
-    b: Buffer
-  ) => Promise<{ text: string }>
-  const res = await pdfParse(buf)
-  return `PDF FILE: ${filename}\n\n${res.text}`
+  const { PDFParse } = await import('pdf-parse')
+  const parser = new PDFParse({ data: buf })
+  try {
+    const res = await parser.getText()
+    return `PDF FILE: ${filename}\n\n${res.text}`
+  } finally {
+    await parser.destroy().catch(() => {})
+  }
 }
 
 // ─── Prompt ──────────────────────────────────────────────────────────────────
