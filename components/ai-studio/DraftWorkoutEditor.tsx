@@ -40,9 +40,12 @@ import {
   Trash2,
   GripVertical,
   Save,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ParsedWorkout, ParsedWorkoutSegment } from '@/lib/ai/program-parser'
+import { ExercisePicker } from '@/components/ai-studio/ExercisePicker'
 import {
   CoachDecisionModal,
   useCoachDecision,
@@ -83,14 +86,30 @@ const intensityLevels = [
   { value: 'race_pace', label: 'Tävlingstempo', color: 'bg-purple-100 text-purple-800' },
 ]
 
-// Segment types for endurance
+// Segment types (used for both endurance and strength — "exercise" is the strength-style marker)
 const segmentTypes = [
   { value: 'warmup', label: 'Uppvärmning' },
   { value: 'work', label: 'Arbete' },
   { value: 'interval', label: 'Intervall' },
+  { value: 'exercise', label: 'Övning (styrka)' },
   { value: 'recovery', label: 'Återhämtning' },
+  { value: 'rest', label: 'Vila' },
   { value: 'cooldown', label: 'Nedvarvning' },
 ]
+
+// Section grouping (for strength workouts)
+const sectionOptions = [
+  { value: 'WARMUP', label: 'Uppvärmning' },
+  { value: 'MAIN', label: 'Huvuddel' },
+  { value: 'CORE', label: 'Bål' },
+  { value: 'COOLDOWN', label: 'Nedvarvning' },
+]
+
+const STRENGTH_WORKOUT_TYPES = ['STRENGTH', 'CORE', 'PLYOMETRIC', 'REHAB', 'HYROX']
+
+function isStrengthSegmentType(t?: string) {
+  return t === 'exercise'
+}
 
 // Zone options (zone is numeric 1-5)
 const zoneOptions = [
@@ -136,6 +155,7 @@ export function DraftWorkoutEditor({
   const [distance, setDistance] = useState(workout.distance || '')
   const [description, setDescription] = useState(workout.description || '')
   const [segments, setSegments] = useState<ParsedWorkoutSegment[]>(workout.segments || [])
+  const [expandedSegments, setExpandedSegments] = useState<Set<number>>(new Set())
 
   // Data Moat: Store original AI workout for comparison
   const originalWorkoutRef = useRef<ParsedWorkout | null>(null)
@@ -163,23 +183,35 @@ export function DraftWorkoutEditor({
     }
   }, [workout, isAIGenerated])
 
-  // Check if this is an endurance workout (has segments)
-  const isEndurance = ['RUNNING', 'CYCLING', 'SWIMMING', 'CROSS_TRAINING'].includes(type)
+  // Strength-style workouts default new segments to the exercise type
+  const isStrengthWorkout = STRENGTH_WORKOUT_TYPES.includes(type)
 
-  // Calculate total duration from segments if available
-  const calculatedDuration = segments.length > 0
-    ? segments.reduce((total, seg) => total + (seg.duration || 0), 0)
-    : duration
+  // Calculate total duration from segments if any segment carries a duration.
+  // Strength segments typically don't have durations (sets/reps instead), so we
+  // let the user set the workout duration manually in that case.
+  const segmentDurationTotal = segments.reduce((total, seg) => total + (seg.duration || 0), 0)
+  const useSegmentDuration = segments.length > 0 && segmentDurationTotal > 0
+  const calculatedDuration = useSegmentDuration ? segmentDurationTotal : duration
 
   // Add new segment
   const handleAddSegment = () => {
-    const newSegment: ParsedWorkoutSegment = {
-      order: segments.length,
-      type: 'work',
-      duration: 10,
-      zone: 2,
-      description: '',
-    }
+    const newSegment: ParsedWorkoutSegment = isStrengthWorkout
+      ? {
+          order: segments.length,
+          type: 'exercise',
+          sets: 3,
+          repsCount: '8-10',
+          rest: 90,
+          section: 'MAIN',
+          description: '',
+        }
+      : {
+          order: segments.length,
+          type: 'work',
+          duration: 10,
+          zone: 2,
+          description: '',
+        }
     setSegments([...segments, newSegment])
   }
 
@@ -378,11 +410,11 @@ export function DraftWorkoutEditor({
                 <Input
                   id="duration"
                   type="number"
-                  value={segments.length > 0 ? calculatedDuration : duration}
+                  value={useSegmentDuration ? calculatedDuration : duration}
                   onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
-                  disabled={segments.length > 0}
+                  disabled={useSegmentDuration}
                 />
-                {segments.length > 0 && (
+                {useSegmentDuration && (
                   <p className="text-xs text-muted-foreground">
                     Beräknat från segment
                   </p>
@@ -414,87 +446,248 @@ export function DraftWorkoutEditor({
             </div>
           </div>
 
-          {/* Segments (for endurance workouts) */}
-          {isEndurance && (
-            <>
-              <Separator />
+          {/* Segments */}
+          <Separator />
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">Segment</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Dela upp passet i olika delar
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddSegment}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Lägg till
-                  </Button>
-                </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium">Segment</h4>
+                <p className="text-sm text-muted-foreground">
+                  {isStrengthWorkout
+                    ? 'Varje segment är en övning med set, reps och vikt'
+                    : 'Dela upp passet i uppvärmning, arbete och nedvarvning'}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddSegment}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Lägg till
+              </Button>
+            </div>
 
-                {segments.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground border rounded-lg border-dashed">
-                    <p>Inga segment tillagda</p>
-                    <p className="text-xs mt-1">
-                      Klicka &quot;Lägg till&quot; för att strukturera passet
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {segments.map((segment, index) => (
-                      <Card key={index} className="relative">
-                        <CardContent className="p-3">
-                          <div className="flex items-start gap-2">
-                            {/* Drag handle placeholder */}
-                            <div className="mt-2 text-muted-foreground cursor-grab">
-                              <GripVertical className="h-4 w-4" />
+            {segments.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground border rounded-lg border-dashed">
+                <p>Inga segment tillagda</p>
+                <p className="text-xs mt-1">
+                  Klicka &quot;Lägg till&quot; för att strukturera passet
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {segments.map((segment, index) => {
+                  const isStrength = isStrengthSegmentType(segment.type)
+                  const expanded = expandedSegments.has(index)
+
+                  return (
+                    <Card key={index} className="relative">
+                      <CardContent className="p-3 space-y-2">
+                        {/* Header: drag handle + type select + reorder + remove */}
+                        <div className="flex items-center gap-2">
+                          <div className="text-muted-foreground cursor-grab shrink-0">
+                            <GripVertical className="h-4 w-4" />
+                          </div>
+                          <Select
+                            value={segment.type || 'work'}
+                            onValueChange={(v) => handleUpdateSegment(index, 'type', v)}
+                          >
+                            <SelectTrigger className="h-9 w-[160px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {segmentTypes.map((st) => (
+                                <SelectItem key={st.value} value={st.value}>
+                                  {st.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <div className="flex-1" />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleMoveSegment(index, 'up')}
+                            disabled={index === 0}
+                            title="Flytta upp"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleMoveSegment(index, 'down')}
+                            disabled={index === segments.length - 1}
+                            title="Flytta ner"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleRemoveSegment(index)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+
+                        {/* Core fields — differ for strength vs endurance */}
+                        {isStrength ? (
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-12 gap-2 items-center">
+                              <div className="col-span-6">
+                                <ExercisePicker
+                                  value={segment.exerciseId}
+                                  valueName={segment.exerciseName}
+                                  onChange={(id, name) => {
+                                    const updated = [...segments]
+                                    updated[index] = {
+                                      ...updated[index],
+                                      exerciseId: id ?? undefined,
+                                      exerciseName: name ?? undefined,
+                                    }
+                                    setSegments(updated)
+                                  }}
+                                />
+                              </div>
+                              <div className="col-span-2">
+                                <Input
+                                  type="number"
+                                  value={segment.sets ?? ''}
+                                  onChange={(e) =>
+                                    handleUpdateSegment(
+                                      index,
+                                      'sets',
+                                      e.target.value === '' ? 0 : parseInt(e.target.value) || 0
+                                    )
+                                  }
+                                  className="h-9"
+                                  placeholder="Set"
+                                />
+                              </div>
+                              <div className="col-span-2">
+                                <Input
+                                  value={segment.repsCount || ''}
+                                  onChange={(e) => handleUpdateSegment(index, 'repsCount', e.target.value)}
+                                  className="h-9"
+                                  placeholder="Reps (t.ex. 8-10)"
+                                />
+                              </div>
+                              <div className="col-span-2">
+                                <Input
+                                  value={segment.weight || ''}
+                                  onChange={(e) => handleUpdateSegment(index, 'weight', e.target.value)}
+                                  className="h-9"
+                                  placeholder="Vikt (kg)"
+                                />
+                              </div>
                             </div>
-
-                            <div className="flex-1 grid grid-cols-4 gap-2">
-                              {/* Type */}
-                              <Select
-                                value={segment.type || 'work'}
-                                onValueChange={(v) => handleUpdateSegment(index, 'type', v)}
-                              >
-                                <SelectTrigger className="h-9">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {segmentTypes.map((st) => (
-                                    <SelectItem key={st.value} value={st.value}>
-                                      {st.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-
-                              {/* Duration */}
+                            <div className="grid grid-cols-12 gap-2 items-center">
+                              <div className="col-span-3">
+                                <div className="relative">
+                                  <Input
+                                    type="number"
+                                    value={segment.rest ?? ''}
+                                    onChange={(e) =>
+                                      handleUpdateSegment(
+                                        index,
+                                        'rest',
+                                        e.target.value === '' ? 0 : parseInt(e.target.value) || 0
+                                      )
+                                    }
+                                    className="h-9 pr-10"
+                                    placeholder="Vila"
+                                  />
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                                    s
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="col-span-3">
+                                <Select
+                                  value={segment.section || 'MAIN'}
+                                  onValueChange={(v) => handleUpdateSegment(index, 'section', v)}
+                                >
+                                  <SelectTrigger className="h-9">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {sectionOptions.map((s) => (
+                                      <SelectItem key={s.value} value={s.value}>
+                                        {s.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="col-span-6">
+                                <Input
+                                  value={segment.description || ''}
+                                  onChange={(e) => handleUpdateSegment(index, 'description', e.target.value)}
+                                  className="h-9"
+                                  placeholder="Beskrivning / coach notes"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-12 gap-2 items-center">
+                            <div className="col-span-2">
                               <div className="relative">
                                 <Input
                                   type="number"
-                                  value={segment.duration || ''}
-                                  onChange={(e) => handleUpdateSegment(index, 'duration', parseInt(e.target.value) || 0)}
-                                  className="h-9 pr-10"
-                                  placeholder="Min"
+                                  value={segment.duration ?? ''}
+                                  onChange={(e) =>
+                                    handleUpdateSegment(
+                                      index,
+                                      'duration',
+                                      e.target.value === '' ? 0 : parseInt(e.target.value) || 0
+                                    )
+                                  }
+                                  className="h-9 pr-8"
+                                  placeholder="Tid"
                                 />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                                   min
                                 </span>
                               </div>
-
-                              {/* Zone */}
+                            </div>
+                            <div className="col-span-2">
+                              <div className="relative">
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  value={segment.distance ?? ''}
+                                  onChange={(e) => {
+                                    const v = e.target.value === '' ? undefined : parseFloat(e.target.value)
+                                    const updated = [...segments]
+                                    updated[index] = { ...updated[index], distance: v }
+                                    setSegments(updated)
+                                  }}
+                                  className="h-9 pr-8"
+                                  placeholder="Dist"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                                  km
+                                </span>
+                              </div>
+                            </div>
+                            <div className="col-span-2">
                               <Select
-                                value={String(segment.zone || 2)}
+                                value={segment.zone ? String(segment.zone) : ''}
                                 onValueChange={(v) => handleUpdateSegment(index, 'zone', parseInt(v))}
                               >
                                 <SelectTrigger className="h-9">
-                                  <SelectValue />
+                                  <SelectValue placeholder="Zon" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {zoneOptions.map((zo) => (
@@ -504,44 +697,181 @@ export function DraftWorkoutEditor({
                                   ))}
                                 </SelectContent>
                               </Select>
-
-                              {/* Description */}
+                            </div>
+                            <div className="col-span-3">
                               <Input
-                                value={segment.description || ''}
-                                onChange={(e) => handleUpdateSegment(index, 'description', e.target.value)}
+                                value={segment.pace || ''}
+                                onChange={(e) => handleUpdateSegment(index, 'pace', e.target.value)}
                                 className="h-9"
-                                placeholder="Beskrivning"
+                                placeholder="Pace (5:00/km)"
                               />
                             </div>
-
-                            {/* Remove button */}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-9 w-9"
-                              onClick={() => handleRemoveSegment(index)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
+                            <div className="col-span-3">
+                              <Input
+                                value={segment.heartRate || ''}
+                                onChange={(e) => handleUpdateSegment(index, 'heartRate', e.target.value)}
+                                className="h-9"
+                                placeholder="HR (140-150)"
+                              />
+                            </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+                        )}
 
-                {segments.length > 0 && (
-                  <div className="flex justify-end">
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Totalt: {calculatedDuration} min
-                    </Badge>
-                  </div>
-                )}
+                        {/* Advanced toggle + block */}
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = new Set(expandedSegments)
+                              if (next.has(index)) next.delete(index)
+                              else next.add(index)
+                              setExpandedSegments(next)
+                            }}
+                            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                          >
+                            {expanded ? (
+                              <ChevronUp className="h-3 w-3" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3" />
+                            )}
+                            {expanded ? 'Dölj fler fält' : 'Visa fler fält'}
+                          </button>
+                          {expanded && (
+                            <div className="mt-2 grid grid-cols-12 gap-2">
+                              {isStrength ? (
+                                <>
+                                  <div className="col-span-4">
+                                    <Label className="text-xs">Tempo (e.g. 3-1-1)</Label>
+                                    <Input
+                                      value={segment.tempo || ''}
+                                      onChange={(e) => handleUpdateSegment(index, 'tempo', e.target.value)}
+                                      className="h-9 mt-1"
+                                      placeholder="Tempo"
+                                    />
+                                  </div>
+                                  <div className="col-span-4">
+                                    <Label className="text-xs">Tid (min)</Label>
+                                    <Input
+                                      type="number"
+                                      value={segment.duration ?? ''}
+                                      onChange={(e) =>
+                                        handleUpdateSegment(
+                                          index,
+                                          'duration',
+                                          e.target.value === '' ? 0 : parseInt(e.target.value) || 0
+                                        )
+                                      }
+                                      className="h-9 mt-1"
+                                      placeholder="Minuter"
+                                    />
+                                  </div>
+                                  <div className="col-span-4">
+                                    <Label className="text-xs">Reps (interval count)</Label>
+                                    <Input
+                                      type="number"
+                                      value={segment.reps ?? ''}
+                                      onChange={(e) =>
+                                        handleUpdateSegment(
+                                          index,
+                                          'reps',
+                                          e.target.value === '' ? 0 : parseInt(e.target.value) || 0
+                                        )
+                                      }
+                                      className="h-9 mt-1"
+                                      placeholder="Antal"
+                                    />
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="col-span-3">
+                                    <Label className="text-xs">Reps (intervaller)</Label>
+                                    <Input
+                                      type="number"
+                                      value={segment.reps ?? ''}
+                                      onChange={(e) =>
+                                        handleUpdateSegment(
+                                          index,
+                                          'reps',
+                                          e.target.value === '' ? 0 : parseInt(e.target.value) || 0
+                                        )
+                                      }
+                                      className="h-9 mt-1"
+                                      placeholder="Antal"
+                                    />
+                                  </div>
+                                  <div className="col-span-3">
+                                    <Label className="text-xs">Power (watt)</Label>
+                                    <Input
+                                      type="number"
+                                      value={segment.power ?? ''}
+                                      onChange={(e) =>
+                                        handleUpdateSegment(
+                                          index,
+                                          'power',
+                                          e.target.value === '' ? 0 : parseInt(e.target.value) || 0
+                                        )
+                                      }
+                                      className="h-9 mt-1"
+                                      placeholder="W"
+                                    />
+                                  </div>
+                                  <div className="col-span-3">
+                                    <Label className="text-xs">Vila (s)</Label>
+                                    <Input
+                                      type="number"
+                                      value={segment.rest ?? ''}
+                                      onChange={(e) =>
+                                        handleUpdateSegment(
+                                          index,
+                                          'rest',
+                                          e.target.value === '' ? 0 : parseInt(e.target.value) || 0
+                                        )
+                                      }
+                                      className="h-9 mt-1"
+                                      placeholder="Sekunder"
+                                    />
+                                  </div>
+                                  <div className="col-span-3">
+                                    <Label className="text-xs">Beskrivning</Label>
+                                    <Input
+                                      value={segment.description || ''}
+                                      onChange={(e) => handleUpdateSegment(index, 'description', e.target.value)}
+                                      className="h-9 mt-1"
+                                      placeholder="Notes"
+                                    />
+                                  </div>
+                                </>
+                              )}
+                              <div className="col-span-12">
+                                <Label className="text-xs">Anteckningar</Label>
+                                <Textarea
+                                  value={segment.notes || ''}
+                                  onChange={(e) => handleUpdateSegment(index, 'notes', e.target.value)}
+                                  rows={2}
+                                  className="mt-1"
+                                  placeholder="Valfria anteckningar för passet..."
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
               </div>
-            </>
-          )}
+            )}
+
+            {useSegmentDuration && (
+              <div className="flex justify-end">
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Totalt: {calculatedDuration} min
+                </Badge>
+              </div>
+            )}
+          </div>
         </div>
 
         <DialogFooter>

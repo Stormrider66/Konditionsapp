@@ -6,7 +6,11 @@
  * - PUT /api/programs/:id/edit - Edit program metadata
  * - PUT /api/programs/:id/edit?type=day - Edit training day
  * - POST /api/programs/:id/edit?type=workout - Add workout to day
+ * - POST /api/programs/:id/edit?type=week - Add or duplicate a week (append at end)
+ * - POST /api/programs/:id/edit?type=day-add - Add or duplicate a day within a week
  * - DELETE /api/programs/:id/edit?type=workout - Remove workout
+ * - DELETE /api/programs/:id/edit?type=week&weekId=... - Remove week (renumbers rest)
+ * - DELETE /api/programs/:id/edit?type=day&dayId=... - Remove day (renumbers rest)
  * - PUT /api/programs/:id/edit?type=reorder - Reorder workouts
  * - PUT /api/programs/:id/edit?type=segments - Edit workout exercises
  */
@@ -93,6 +97,12 @@ export async function POST(
     if (addType === 'workout') {
       return await addWorkout(programId, body)
     }
+    if (addType === 'week') {
+      return await addWeek(programId, body)
+    }
+    if (addType === 'day-add') {
+      return await addDay(programId, body)
+    }
 
     return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 })
   } catch (error: unknown) {
@@ -124,15 +134,32 @@ export async function DELETE(
     }
 
     const searchParams = request.nextUrl.searchParams
-    const workoutId = searchParams.get('workoutId')
+    const deleteType = searchParams.get('type') // 'workout' (default), 'week', 'day'
 
+    if (deleteType === 'week') {
+      const weekId = searchParams.get('weekId')
+      if (!weekId) {
+        return NextResponse.json({ error: 'weekId required' }, { status: 400 })
+      }
+      return await removeWeek(programId, weekId)
+    }
+
+    if (deleteType === 'day') {
+      const dayId = searchParams.get('dayId')
+      if (!dayId) {
+        return NextResponse.json({ error: 'dayId required' }, { status: 400 })
+      }
+      return await removeDay(programId, dayId)
+    }
+
+    const workoutId = searchParams.get('workoutId')
     if (!workoutId) {
       return NextResponse.json({ error: 'workoutId required' }, { status: 400 })
     }
 
     return await removeWorkout(programId, workoutId)
   } catch (error: unknown) {
-    logger.error('Error removing workout', {}, error)
+    logger.error('Error removing from program', {}, error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -232,10 +259,18 @@ async function addWorkout(programId: string, body: any) {
               duration: seg.duration,
               distance: seg.distance,
               pace: seg.pace,
+              zone: seg.zone,
               heartRate: seg.heartRate,
-              sets: seg.sets,
+              power: seg.power,
               reps: seg.reps,
               exerciseId: seg.exerciseId,
+              sets: seg.sets,
+              repsCount: seg.repsCount,
+              weight: seg.weight,
+              tempo: seg.tempo,
+              rest: seg.rest,
+              section: seg.section,
+              description: seg.description,
               notes: seg.notes,
             })),
           }
@@ -385,10 +420,18 @@ async function editSegments(programId: string, body: any) {
       duration: seg.duration,
       distance: seg.distance,
       pace: seg.pace,
+      zone: seg.zone,
       heartRate: seg.heartRate,
-      sets: seg.sets,
+      power: seg.power,
       reps: seg.reps,
       exerciseId: seg.exerciseId,
+      sets: seg.sets,
+      repsCount: seg.repsCount,
+      weight: seg.weight,
+      tempo: seg.tempo,
+      rest: seg.rest,
+      section: seg.section,
+      description: seg.description,
       notes: seg.notes,
     })),
   })
@@ -409,4 +452,279 @@ async function editSegments(programId: string, body: any) {
   })
 
   return NextResponse.json(updated, { status: 200 })
+}
+
+/**
+ * Add a new week (optionally duplicated from an existing week) to the end of a program.
+ * Body: { copyFromWeekId?: string, phase?: string, focus?: string }
+ */
+async function addWeek(programId: string, body: any) {
+  const { copyFromWeekId, phase, focus } = body || {}
+
+  const program = await prisma.trainingProgram.findUnique({
+    where: { id: programId },
+    include: {
+      weeks: { orderBy: { weekNumber: 'desc' }, take: 1 },
+    },
+  })
+  if (!program) {
+    return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+  }
+
+  const lastWeek = program.weeks[0]
+  const nextWeekNumber = (lastWeek?.weekNumber ?? 0) + 1
+  const weekStart = lastWeek
+    ? new Date(lastWeek.endDate.getTime() + 24 * 60 * 60 * 1000)
+    : program.startDate
+  const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000)
+
+  // Duplicate from source week (deep copy days, workouts, segments)
+  if (copyFromWeekId) {
+    const source = await prisma.trainingWeek.findFirst({
+      where: { id: copyFromWeekId, programId },
+      include: {
+        days: {
+          include: {
+            workouts: {
+              include: { segments: true },
+            },
+          },
+        },
+      },
+    })
+    if (!source) {
+      return NextResponse.json({ error: 'Source week not found' }, { status: 404 })
+    }
+
+    const created = await prisma.trainingWeek.create({
+      data: {
+        programId,
+        weekNumber: nextWeekNumber,
+        startDate: weekStart,
+        endDate: weekEnd,
+        phase: source.phase,
+        focus: focus ?? source.focus,
+        weeklyVolume: source.weeklyVolume,
+        notes: source.notes,
+        days: {
+          create: source.days.map((day) => ({
+            dayNumber: day.dayNumber,
+            date: new Date(weekStart.getTime() + (day.dayNumber - 1) * 24 * 60 * 60 * 1000),
+            notes: day.notes,
+            workouts: {
+              create: day.workouts.map((w) => ({
+                type: w.type,
+                name: w.name,
+                description: w.description,
+                status: 'PLANNED',
+                intensity: w.intensity,
+                duration: w.duration,
+                distance: w.distance,
+                instructions: w.instructions,
+                coachNotes: w.coachNotes,
+                order: w.order,
+                isCustom: w.isCustom,
+                segments: {
+                  create: w.segments.map((s) => ({
+                    order: s.order,
+                    type: s.type,
+                    duration: s.duration,
+                    distance: s.distance,
+                    pace: s.pace,
+                    zone: s.zone,
+                    heartRate: s.heartRate,
+                    power: s.power,
+                    reps: s.reps,
+                    exerciseId: s.exerciseId,
+                    sets: s.sets,
+                    repsCount: s.repsCount,
+                    weight: s.weight,
+                    tempo: s.tempo,
+                    rest: s.rest,
+                    section: s.section,
+                    description: s.description,
+                    notes: s.notes,
+                  })),
+                },
+              })),
+            },
+          })),
+        },
+      },
+      include: { days: { include: { workouts: { include: { segments: true } } } } },
+    })
+    return NextResponse.json(created, { status: 201 })
+  }
+
+  // Blank week (7 empty days)
+  const created = await prisma.trainingWeek.create({
+    data: {
+      programId,
+      weekNumber: nextWeekNumber,
+      startDate: weekStart,
+      endDate: weekEnd,
+      phase: (phase as any) ?? lastWeek?.phase ?? 'BASE',
+      focus: focus ?? null,
+      days: {
+        create: Array.from({ length: 7 }).map((_, i) => ({
+          dayNumber: i + 1,
+          date: new Date(weekStart.getTime() + i * 24 * 60 * 60 * 1000),
+        })),
+      },
+    },
+    include: { days: true },
+  })
+  return NextResponse.json(created, { status: 201 })
+}
+
+/**
+ * Remove a week and renumber remaining weeks.
+ * Cascade deletes days → workouts → segments via Prisma onDelete: Cascade.
+ */
+async function removeWeek(programId: string, weekId: string) {
+  const week = await prisma.trainingWeek.findFirst({
+    where: { id: weekId, programId },
+    select: { id: true, weekNumber: true },
+  })
+  if (!week) {
+    return NextResponse.json({ error: 'Week not found' }, { status: 404 })
+  }
+
+  const laterWeeks = await prisma.trainingWeek.findMany({
+    where: { programId, weekNumber: { gt: week.weekNumber } },
+    select: { id: true, weekNumber: true },
+    orderBy: { weekNumber: 'asc' },
+  })
+
+  // Sequential ops: delete target, then renumber from lowest (the freshly-vacated slot) up.
+  await prisma.$transaction([
+    prisma.trainingWeek.delete({ where: { id: week.id } }),
+    ...laterWeeks.map((w) =>
+      prisma.trainingWeek.update({
+        where: { id: w.id },
+        data: { weekNumber: w.weekNumber - 1 },
+      })
+    ),
+  ])
+
+  return NextResponse.json({ message: 'Week removed' }, { status: 200 })
+}
+
+/**
+ * Add a day to a week (blank or duplicated from another day). Appends at next dayNumber.
+ * Body: { weekId: string, copyFromDayId?: string, dayNumber?: number }
+ */
+async function addDay(programId: string, body: any) {
+  const { weekId, copyFromDayId } = body || {}
+  if (!weekId) {
+    return NextResponse.json({ error: 'weekId required' }, { status: 400 })
+  }
+
+  const week = await prisma.trainingWeek.findFirst({
+    where: { id: weekId, programId },
+    include: { days: { orderBy: { dayNumber: 'desc' }, take: 1 } },
+  })
+  if (!week) {
+    return NextResponse.json({ error: 'Week not found' }, { status: 404 })
+  }
+
+  const nextDayNumber = (week.days[0]?.dayNumber ?? 0) + 1
+  if (nextDayNumber > 7) {
+    return NextResponse.json({ error: 'Week already has 7 days' }, { status: 400 })
+  }
+  const date = new Date(week.startDate.getTime() + (nextDayNumber - 1) * 24 * 60 * 60 * 1000)
+
+  if (copyFromDayId) {
+    const source = await prisma.trainingDay.findFirst({
+      where: { id: copyFromDayId, weekId },
+      include: { workouts: { include: { segments: true } } },
+    })
+    if (!source) {
+      return NextResponse.json({ error: 'Source day not found' }, { status: 404 })
+    }
+
+    const created = await prisma.trainingDay.create({
+      data: {
+        weekId,
+        dayNumber: nextDayNumber,
+        date,
+        notes: source.notes,
+        workouts: {
+          create: source.workouts.map((w) => ({
+            type: w.type,
+            name: w.name,
+            description: w.description,
+            status: 'PLANNED',
+            intensity: w.intensity,
+            duration: w.duration,
+            distance: w.distance,
+            instructions: w.instructions,
+            coachNotes: w.coachNotes,
+            order: w.order,
+            isCustom: w.isCustom,
+            segments: {
+              create: w.segments.map((s) => ({
+                order: s.order,
+                type: s.type,
+                duration: s.duration,
+                distance: s.distance,
+                pace: s.pace,
+                zone: s.zone,
+                heartRate: s.heartRate,
+                power: s.power,
+                reps: s.reps,
+                exerciseId: s.exerciseId,
+                sets: s.sets,
+                repsCount: s.repsCount,
+                weight: s.weight,
+                tempo: s.tempo,
+                rest: s.rest,
+                section: s.section,
+                description: s.description,
+                notes: s.notes,
+              })),
+            },
+          })),
+        },
+      },
+      include: { workouts: { include: { segments: true } } },
+    })
+    return NextResponse.json(created, { status: 201 })
+  }
+
+  const created = await prisma.trainingDay.create({
+    data: { weekId, dayNumber: nextDayNumber, date },
+  })
+  return NextResponse.json(created, { status: 201 })
+}
+
+/**
+ * Remove a day from a week and renumber remaining days.
+ */
+async function removeDay(programId: string, dayId: string) {
+  const day = await prisma.trainingDay.findFirst({
+    where: { id: dayId, week: { programId } },
+    select: { id: true, dayNumber: true, weekId: true },
+  })
+  if (!day) {
+    return NextResponse.json({ error: 'Day not found' }, { status: 404 })
+  }
+
+  const laterDays = await prisma.trainingDay.findMany({
+    where: { weekId: day.weekId, dayNumber: { gt: day.dayNumber } },
+    select: { id: true, dayNumber: true },
+    orderBy: { dayNumber: 'asc' },
+  })
+
+  await prisma.$transaction([
+    prisma.trainingDay.delete({ where: { id: day.id } }),
+    ...laterDays.map((d) =>
+      prisma.trainingDay.update({
+        where: { id: d.id },
+        data: { dayNumber: d.dayNumber - 1 },
+      })
+    ),
+  ])
+
+  return NextResponse.json({ message: 'Day removed' }, { status: 200 })
 }

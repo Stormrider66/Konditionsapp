@@ -55,6 +55,9 @@ import {
   Check,
   Plus,
   Wand2,
+  MoreVertical,
+  Copy,
+  Trash2,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { parseAIProgram, extractProgramMetadata, type ParsedProgram, type ParsedPhase, type ParsedWorkout } from '@/lib/ai/program-parser'
@@ -268,6 +271,91 @@ export function EnhancedProgramPreview({
       dayName,
       phaseName,
     })
+  }, [])
+
+  // Handler for removing a workout from a day (clears the cell)
+  const removeWorkoutFromDay = useCallback((phaseIndex: number, dayName: string) => {
+    setDraft(prev => {
+      const newPhases = [...prev.phases]
+      const phase = { ...newPhases[phaseIndex] }
+      if (phase.weeklyTemplate) {
+        const nextTemplate = { ...phase.weeklyTemplate }
+        delete nextTemplate[dayName as keyof typeof nextTemplate]
+        phase.weeklyTemplate = nextTemplate
+      }
+      newPhases[phaseIndex] = phase
+      return { ...prev, phases: newPhases }
+    })
+    setIsDirty(true)
+  }, [])
+
+  // Compute the week-count of a phase from its "weeks" string (e.g. "1-4" → 4, "5" → 1)
+  const phaseWeekCount = (weeks: string): number => {
+    const parts = weeks.split('-').map((n) => parseInt(n.trim(), 10)).filter((n) => !Number.isNaN(n))
+    if (parts.length === 0) return 1
+    if (parts.length === 1) return 1
+    return Math.max(1, parts[1] - parts[0] + 1)
+  }
+
+  // Add a new blank phase at the end (4 weeks by default)
+  const addPhase = useCallback(() => {
+    setDraft(prev => {
+      const currentTotal = prev.totalWeeks || prev.phases.reduce((n, p) => n + phaseWeekCount(p.weeks), 0)
+      const start = currentTotal + 1
+      const end = currentTotal + 4
+      const newPhase: ParsedPhase = {
+        name: `Ny fas ${prev.phases.length + 1}`,
+        weeks: `${start}-${end}`,
+        focus: '',
+        weeklyTemplate: {},
+      }
+      return {
+        ...prev,
+        phases: [...prev.phases, newPhase],
+        totalWeeks: end,
+      }
+    })
+    setIsDirty(true)
+  }, [])
+
+  // Duplicate a phase, appending the copy at the end with shifted week range
+  const duplicatePhase = useCallback((phaseIndex: number) => {
+    setDraft(prev => {
+      const source = prev.phases[phaseIndex]
+      if (!source) return prev
+      const count = phaseWeekCount(source.weeks)
+      const currentTotal = prev.totalWeeks || prev.phases.reduce((n, p) => n + phaseWeekCount(p.weeks), 0)
+      const start = currentTotal + 1
+      const end = currentTotal + count
+      const copy: ParsedPhase = {
+        ...source,
+        name: `${source.name} (kopia)`,
+        weeks: count === 1 ? `${start}` : `${start}-${end}`,
+        weeklyTemplate: source.weeklyTemplate ? { ...source.weeklyTemplate } : {},
+      }
+      return {
+        ...prev,
+        phases: [...prev.phases, copy],
+        totalWeeks: end,
+      }
+    })
+    setIsDirty(true)
+  }, [])
+
+  // Remove a phase and shrink totalWeeks
+  const removePhase = useCallback((phaseIndex: number) => {
+    setDraft(prev => {
+      const removed = prev.phases[phaseIndex]
+      if (!removed) return prev
+      const count = phaseWeekCount(removed.weeks)
+      const nextPhases = prev.phases.filter((_, i) => i !== phaseIndex)
+      return {
+        ...prev,
+        phases: nextPhases,
+        totalWeeks: Math.max(0, prev.totalWeeks - count),
+      }
+    })
+    setIsDirty(true)
   }, [])
 
   // Handler for adding a new workout to a day
@@ -550,7 +638,7 @@ export function EnhancedProgramPreview({
     return (
       <div
         className={cn(
-          "p-2 rounded border text-xs cursor-pointer hover:shadow-md transition-shadow group",
+          "relative p-2 rounded border text-xs cursor-pointer hover:shadow-md transition-shadow group",
           colorClass
         )}
         onClick={() => openWorkoutEditor(workoutData, phaseIndex, dayName, phaseName)}
@@ -573,6 +661,17 @@ export function EnhancedProgramPreview({
             {workoutData.intensity}
           </Badge>
         )}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            removeWorkoutFromDay(phaseIndex, dayName)
+          }}
+          className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-full bg-red-500 text-white h-4 w-4 flex items-center justify-center hover:bg-red-600"
+          title="Ta bort pass"
+        >
+          <X className="h-2.5 w-2.5" />
+        </button>
       </div>
     )
   }
@@ -633,6 +732,16 @@ export function EnhancedProgramPreview({
             </CollapsibleContent>
           </Collapsible>
         ))}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={addPhase}
+          className="w-full border-dashed"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Lägg till fas (4 veckor)
+        </Button>
       </div>
     )
   }
@@ -646,28 +755,59 @@ export function EnhancedProgramPreview({
           open={expandedPhases.includes(phase.name)}
           onOpenChange={() => togglePhase(phase.name)}
         >
-          <CollapsibleTrigger asChild>
-            <button className="w-full flex items-center justify-between p-3 bg-white rounded-lg border hover:bg-muted/50 transition">
-              <div className="flex items-center gap-3">
-                {expandedPhases.includes(phase.name) ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-                <div className="text-left">
-                  <div className="font-medium">{phase.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    Vecka {phase.weeks} - {phase.focus}
+          <div className="flex items-stretch gap-1">
+            <CollapsibleTrigger asChild>
+              <button className="flex-1 flex items-center justify-between p-3 bg-white rounded-lg border hover:bg-muted/50 transition">
+                <div className="flex items-center gap-3">
+                  {expandedPhases.includes(phase.name) ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                  <div className="text-left">
+                    <div className="font-medium">{phase.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Vecka {phase.weeks} - {phase.focus}
+                    </div>
                   </div>
                 </div>
-              </div>
-              {phase.keyWorkouts && phase.keyWorkouts.length > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  {phase.keyWorkouts.length} nyckelpass
-                </Badge>
-              )}
-            </button>
-          </CollapsibleTrigger>
+                {phase.keyWorkouts && phase.keyWorkouts.length > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    {phase.keyWorkouts.length} nyckelpass
+                  </Badge>
+                )}
+              </button>
+            </CollapsibleTrigger>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0 bg-white"
+                  title="Fasåtgärder"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => duplicatePhase(index)}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Duplicera fas
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-red-600 focus:text-red-700"
+                  onClick={() => {
+                    if (confirm(`Ta bort fasen "${phase.name}"?`)) {
+                      removePhase(index)
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Ta bort fas
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <CollapsibleContent>
             <div className="mt-2 ml-7 p-3 bg-white rounded-lg border space-y-3">
               {/* Weekly Template */}
@@ -711,7 +851,31 @@ export function EnhancedProgramPreview({
                               {isEditable && (
                                 <Pencil className="h-3 w-3 absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity text-blue-600" />
                               )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  removeWorkoutFromDay(index, dayNames[dayIndex])
+                                }}
+                                className="absolute -top-1 -left-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-full bg-red-500 text-white h-4 w-4 flex items-center justify-center hover:bg-red-600"
+                                title="Ta bort pass"
+                              >
+                                <X className="h-2.5 w-2.5" />
+                              </button>
                             </div>
+                          )}
+                          {!workout && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setAddWorkoutTarget({ phaseIndex: index, dayName: dayNames[dayIndex] })
+                              }}
+                              className="mt-1 w-full flex items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition py-1"
+                              title="Lägg till pass"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </button>
                           )}
                         </div>
                       )
@@ -752,6 +916,16 @@ export function EnhancedProgramPreview({
           </CollapsibleContent>
         </Collapsible>
       ))}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={addPhase}
+        className="w-full border-dashed"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Lägg till fas
+      </Button>
     </div>
   )
 

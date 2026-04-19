@@ -20,11 +20,13 @@ const WorkoutSegmentSchema = z.object({
   reps: z.number().optional(), // repetitions for intervals
   // Strength/exercise specific
   exerciseId: z.string().optional(),
+  exerciseName: z.string().optional(), // UI hint only — not persisted; resolved from exerciseId on save
   sets: z.number().optional(),
   repsCount: z.string().optional(), // "10" or "10-12" or "AMRAP"
   weight: z.string().optional(), // "80kg" or "BW" or "50% 1RM"
   tempo: z.string().optional(), // "3-1-1"
   rest: z.number().optional(), // seconds between sets
+  section: z.enum(['WARMUP', 'MAIN', 'CORE', 'COOLDOWN']).optional(),
   description: z.string().optional(),
   notes: z.string().optional(),
 });
