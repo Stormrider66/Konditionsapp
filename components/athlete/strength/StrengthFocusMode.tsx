@@ -371,12 +371,12 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
 
           {/* Rest timer */}
           {isResting && (
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 text-center">
-              <Timer className="h-5 w-5 mx-auto text-blue-500 mb-1" />
-              <p className="text-3xl font-mono font-bold text-blue-700">
+            <div className="rounded-lg bg-primary/10 border border-primary/30 p-4 text-center">
+              <Timer className="h-5 w-5 mx-auto text-primary mb-1" />
+              <p className="text-3xl font-mono font-bold text-foreground">
                 {Math.floor(restTimeLeft / 60)}:{String(restTimeLeft % 60).padStart(2, '0')}
               </p>
-              <p className="text-xs text-blue-500 mt-1">Vila</p>
+              <p className="text-xs text-muted-foreground mt-1">Vila</p>
               <Button variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => setIsResting(false)}>
                 Hoppa över vila
               </Button>
@@ -391,33 +391,35 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground">Vikt (kg)</label>
+                  <label className="text-xs font-medium text-foreground">Vikt (kg)</label>
                   <Input
                     type="number"
                     value={logWeight}
                     onChange={(e) => setLogWeight(e.target.value)}
+                    onFocus={(e) => e.currentTarget.select()}
                     placeholder="0"
-                    className="text-center text-lg font-mono"
+                    className="h-12 bg-muted/40 text-center text-xl font-bold text-foreground"
                     inputMode="decimal"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Reps</label>
+                  <label className="text-xs font-medium text-foreground">Reps</label>
                   <Input
                     type="number"
                     value={logReps}
                     onChange={(e) => setLogReps(e.target.value)}
+                    onFocus={(e) => e.currentTarget.select()}
                     placeholder="0"
-                    className="text-center text-lg font-mono"
+                    className="h-12 bg-muted/40 text-center text-xl font-bold text-foreground"
                     inputMode="numeric"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs text-muted-foreground">RPE (valfritt): {logRpe || '—'}</label>
+                <label className="text-xs font-medium text-foreground">RPE (valfritt): {logRpe || '—'}</label>
                 <Slider
-                  value={logRpe ? [logRpe] : [7]}
+                  value={[logRpe ?? 6]}
                   onValueChange={(v) => setLogRpe(v[0])}
                   min={1}
                   max={10}
@@ -425,7 +427,12 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
                 />
               </div>
 
-              <Button className="w-full" size="lg" onClick={handleLogSet} disabled={isLoggingSet}>
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleLogSet}
+                disabled={isLoggingSet || !logReps || parseInt(logReps) <= 0}
+              >
                 {isLoggingSet ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
