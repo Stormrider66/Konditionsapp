@@ -11,7 +11,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -25,9 +25,11 @@ import {
   Sparkles,
   Camera,
   TrendingUp,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import Link from 'next/link'
-import { format } from 'date-fns'
+import { format, parseISO, subDays, addDays as addDaysFn } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { NutritionTargets, NutritionTargetsSkeleton } from './NutritionTargets'
@@ -65,8 +67,18 @@ interface NutritionDashboardProps {
   clientId: string
 }
 
+const HISTORY_DAYS = 14
+
+function toISODate(d: Date): string {
+  return d.toISOString().split('T')[0]
+}
+
 export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
   const basePath = useBasePath()
+  const todayStr = useMemo(() => toISODate(new Date()), [])
+  const oldestStr = useMemo(() => toISODate(subDays(new Date(), HISTORY_DAYS - 1)), [])
+
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr)
   const [guidance, setGuidance] = useState<DailyNutritionGuidance | null>(null)
   const [dailyHistory, setDailyHistory] = useState<DailyAggregate[]>([])
   const [dailyTargets, setDailyTargets] = useState<DailyTargetRow[]>([])
@@ -74,64 +86,76 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchAllData = async () => {
+  const fetchRangeData = useCallback(async () => {
+    const [mealsRes, goalsRes, targetsRes] = await Promise.all([
+      fetch(`/api/meals?startDate=${oldestStr}&endDate=${todayStr}`),
+      fetch('/api/nutrition/goals'),
+      fetch(`/api/nutrition/daily-targets?startDate=${oldestStr}&endDate=${todayStr}`),
+    ])
+
+    if (mealsRes.ok) {
+      const mealsData = await mealsRes.json()
+      setDailyHistory(mealsData.data?.dailyAggregates ?? [])
+    }
+    if (goalsRes.ok) {
+      const goalsData = await goalsRes.json()
+      setNutritionGoal(goalsData.goal ?? null)
+    }
+    if (targetsRes.ok) {
+      const targetsData = await targetsRes.json()
+      setDailyTargets(targetsData.targets ?? [])
+    }
+  }, [oldestStr, todayStr])
+
+  const fetchGuidance = useCallback(async (date: string) => {
+    const qs = date === todayStr ? '' : `?date=${date}`
+    const res = await fetch(`/api/nutrition/guidance${qs}`)
+    if (!res.ok) throw new Error('Kunde inte hämta kostråd')
+    const data = await res.json()
+    setGuidance(data.guidance)
+  }, [todayStr])
+
+  const fetchAll = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
-      const today = new Date()
-      const fourteenDaysAgo = new Date(today)
-      fourteenDaysAgo.setDate(today.getDate() - 13)
-      const startDate = fourteenDaysAgo.toISOString().split('T')[0]
-      const endDate = today.toISOString().split('T')[0]
-
-      const [guidanceRes, mealsRes, goalsRes, targetsRes] = await Promise.all([
-        fetch('/api/nutrition/guidance'),
-        fetch(`/api/meals?startDate=${startDate}&endDate=${endDate}`),
-        fetch('/api/nutrition/goals'),
-        fetch(`/api/nutrition/daily-targets?startDate=${startDate}&endDate=${endDate}`),
-      ])
-
-      if (!guidanceRes.ok) {
-        throw new Error('Kunde inte hämta kostråd')
-      }
-      const guidanceData = await guidanceRes.json()
-      setGuidance(guidanceData.guidance)
-
-      if (mealsRes.ok) {
-        const mealsData = await mealsRes.json()
-        setDailyHistory(mealsData.data?.dailyAggregates ?? [])
-      }
-
-      if (goalsRes.ok) {
-        const goalsData = await goalsRes.json()
-        setNutritionGoal(goalsData.goal ?? null)
-      }
-
-      if (targetsRes.ok) {
-        const targetsData = await targetsRes.json()
-        setDailyTargets(targetsData.targets ?? [])
-      }
+      await Promise.all([fetchGuidance(selectedDate), fetchRangeData()])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ett fel uppstod')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [fetchGuidance, fetchRangeData, selectedDate])
 
   useEffect(() => {
-    fetchAllData()
+    fetchAll()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId])
+
+  // Refetch guidance when the selected date changes (range data stays the same).
+  useEffect(() => {
+    fetchGuidance(selectedDate).catch((err) => {
+      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+    })
+  }, [selectedDate, fetchGuidance])
 
   // Re-fetch when a meal or workout changes — bumps today's macro targets.
   useEffect(() => {
-    const handler = () => fetchAllData()
+    const handler = () => fetchAll()
     window.addEventListener('meal-logged', handler)
     window.addEventListener('workout-logged', handler)
     return () => {
       window.removeEventListener('meal-logged', handler)
       window.removeEventListener('workout-logged', handler)
     }
-  }, [clientId])
+  }, [fetchAll])
+
+  const canGoBack = selectedDate > oldestStr
+  const canGoForward = selectedDate < todayStr
+  const isToday = selectedDate === todayStr
+
+  const goPrev = () => { if (canGoBack) setSelectedDate(toISODate(subDays(parseISO(selectedDate), 1))) }
+  const goNext = () => { if (canGoForward) setSelectedDate(toISODate(addDaysFn(parseISO(selectedDate), 1))) }
 
   if (isLoading) {
     return <NutritionDashboardSkeleton variant="glass" />
@@ -144,7 +168,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
           <div className="flex flex-col items-center justify-center text-center space-y-3">
             <AlertCircle className="h-10 w-10 text-red-400" />
             <p className="text-red-200">{error}</p>
-            <Button variant="outline" onClick={fetchAllData} className="gap-2 border-red-500/30 hover:bg-red-500/20 text-red-200">
+            <Button variant="outline" onClick={fetchAll} className="gap-2 border-red-500/30 hover:bg-red-500/20 text-red-200">
               <RefreshCw className="h-4 w-4" />
               Försök igen
             </Button>
@@ -176,16 +200,15 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
     )
   }
 
-  const formattedDate = format(new Date(guidance.date), 'EEEE d MMMM', { locale: sv })
+  const formattedDate = format(parseISO(selectedDate), 'EEEE d MMMM', { locale: sv })
 
-  // Derive today's consumed totals from dailyHistory
-  const todayStr = new Date().toISOString().split('T')[0]
-  const todayData = dailyHistory.find(d => d.date === todayStr)
-  const todayConsumed = todayData
-    ? { calories: todayData.calories, proteinGrams: todayData.proteinGrams, carbsGrams: todayData.carbsGrams, fatGrams: todayData.fatGrams }
+  // Consumed intake for the selected day (may be empty on past days with no logs)
+  const selectedData = dailyHistory.find(d => d.date === selectedDate)
+  const selectedConsumed = selectedData
+    ? { calories: selectedData.calories, proteinGrams: selectedData.proteinGrams, carbsGrams: selectedData.carbsGrams, fatGrams: selectedData.fatGrams }
     : undefined
 
-  // Macro goals from guidance targets
+  // Macro goals from guidance targets (already anchored on selectedDate server-side)
   const macroGoals = {
     calories: guidance.targets.caloriesKcal,
     proteinGrams: guidance.targets.proteinG,
@@ -207,8 +230,36 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
           <Utensils className="h-5 w-5 text-cyan-500 dark:text-cyan-400" />
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white transition-colors">Kost & Näring</h2>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-500 dark:text-slate-400 capitalize transition-colors">{formattedDate}</span>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={goPrev}
+            disabled={!canGoBack}
+            className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-30 transition-all"
+            title="Föregående dag"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <button
+            type="button"
+            onClick={() => setSelectedDate(todayStr)}
+            disabled={isToday}
+            className="text-sm text-slate-500 dark:text-slate-400 capitalize transition-colors min-w-[110px] text-center hover:text-slate-900 dark:hover:text-white disabled:hover:text-slate-500 dark:disabled:hover:text-slate-400"
+            title={isToday ? formattedDate : 'Hoppa till idag'}
+          >
+            {formattedDate}
+          </button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={goNext}
+            disabled={!canGoForward}
+            className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-30 transition-all"
+            title="Nästa dag"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
           <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all" title="Koststatistik">
             <Link href={`${basePath}/athlete/nutrition`}>
               <TrendingUp className="h-4 w-4" />
@@ -222,7 +273,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={fetchAllData}
+            onClick={fetchAll}
             className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
             title="Uppdatera"
           >
@@ -236,8 +287,8 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
         </div>
       </div>
 
-      {/* Double day or race week alert */}
-      {guidance.isDoubleDay && (
+      {/* Double day or race week alert — only on today (copy references "idag"). */}
+      {isToday && guidance.isDoubleDay && (
         <Alert className="bg-amber-100 dark:bg-amber-950/40 border-amber-200 dark:border-amber-500/30">
           <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-500" />
           <AlertDescription className="text-amber-800 dark:text-amber-200">
@@ -247,7 +298,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
         </Alert>
       )}
 
-      {guidance.isRaceWeek && (
+      {isToday && guidance.isRaceWeek && (
         <Alert className="bg-purple-100 dark:bg-purple-950/40 border-purple-200 dark:border-purple-500/30">
           <Calendar className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           <AlertDescription className="text-purple-800 dark:text-purple-200">
@@ -262,7 +313,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
         {/* Targets with consumed progress */}
         <NutritionTargets
           targets={guidance.targets}
-          consumed={todayConsumed}
+          consumed={selectedConsumed}
           isRestDay={guidance.isRestDay}
           variant="glass"
         />
@@ -299,8 +350,8 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
           </div>
         )}
 
-        {/* Meal structure if available */}
-        {guidance.mealSuggestions && (
+        {/* Meal structure — only relevant for today (references pre/post-workout timing). */}
+        {isToday && guidance.mealSuggestions && (
           <GlassCard>
             <GlassCardHeader className="pb-2">
               <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400 transition-colors">Måltidsstruktur</GlassCardTitle>
@@ -330,16 +381,16 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
           </GlassCard>
         )}
 
-        {/* Workout-specific guidance */}
+        {/* Workout-specific guidance — pre/during cards only make sense on today. */}
         {guidance.todaysWorkouts.length > 0 ? (
           guidance.todaysWorkouts.map((workout, index) => (
             <WorkoutNutritionCard
               key={workout.id}
               workout={workout}
-              preWorkout={guidance.preWorkoutGuidance?.[index]}
-              duringWorkout={guidance.duringWorkoutGuidance?.find(
+              preWorkout={isToday ? guidance.preWorkoutGuidance?.[index] : undefined}
+              duringWorkout={isToday ? guidance.duringWorkoutGuidance?.find(
                 (g) => g.timingLabel?.includes(workout.name)
-              )}
+              ) : undefined}
               postWorkout={guidance.postWorkoutGuidance?.[index]}
               variant="glass"
             />
@@ -353,16 +404,17 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
                 </div>
                 <p className="font-medium text-slate-900 dark:text-white transition-colors">Vilodag</p>
                 <p className="text-sm text-slate-600 dark:text-slate-400 transition-colors">
-                  Inga träningspass schemalagda idag.
-                  Perfekt dag för fiberrik mat och mikronäringsämnen!
+                  {isToday
+                    ? 'Inga träningspass schemalagda idag. Perfekt dag för fiberrik mat och mikronäringsämnen!'
+                    : 'Inga registrerade pass denna dag.'}
                 </p>
               </div>
             </GlassCardContent>
           </GlassCard>
         )}
 
-        {/* Tomorrow preview if any workouts */}
-        {guidance.tomorrowsWorkouts.length > 0 && (
+        {/* Tomorrow preview only on today — "imorgon" is a date-relative label. */}
+        {isToday && guidance.tomorrowsWorkouts.length > 0 && (
           <GlassCard>
             <GlassCardHeader className="pb-2">
               <GlassCardTitle className="text-sm text-slate-600 dark:text-slate-400 flex items-center gap-2 transition-colors">
@@ -391,8 +443,8 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
           </GlassCard>
         )}
 
-        {/* Tips */}
-        {guidance.tips && guidance.tips.length > 0 && (
+        {/* Tips — contain "idag/imorgon" references; only show on today. */}
+        {isToday && guidance.tips && guidance.tips.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 transition-colors">Tips för idag</h3>
             {guidance.tips.slice(0, 3).map((tip, index) => (

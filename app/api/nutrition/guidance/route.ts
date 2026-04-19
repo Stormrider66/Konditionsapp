@@ -7,10 +7,10 @@
  * based on the athlete's training schedule, preferences, and goals.
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
-import { startOfDay, endOfDay, addDays } from 'date-fns'
+import { startOfDay, endOfDay, addDays, parseISO, isValid } from 'date-fns'
 import { logger } from '@/lib/logger'
 import { generateDailyGuidance } from '@/lib/nutrition-timing'
 import type { WorkoutContext, GuidanceGeneratorInput } from '@/lib/nutrition-timing'
@@ -21,9 +21,11 @@ import { getCompletedWorkoutContextsForDay } from '@/lib/nutrition-timing/comple
 
 /**
  * GET /api/nutrition/guidance
- * Get comprehensive daily nutrition guidance for the athlete dashboard
+ * Get comprehensive daily nutrition guidance for the athlete dashboard.
+ * Accepts an optional `?date=YYYY-MM-DD` to anchor the guidance on a past
+ * day (falls back to the current day when absent).
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const resolved = await resolveAthleteClientId()
 
@@ -32,6 +34,13 @@ export async function GET() {
     }
 
     const { clientId } = resolved
+
+    const { searchParams } = new URL(request.url)
+    const dateParam = searchParams.get('date')
+    const anchor = dateParam ? parseISO(dateParam) : new Date()
+    if (dateParam && !isValid(anchor)) {
+      return NextResponse.json({ error: 'Invalid date' }, { status: 400 })
+    }
 
     // Get client with all related data
     const client = await prisma.client.findUnique({
@@ -54,9 +63,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
     }
 
-    const now = new Date()
-    const todayStart = startOfDay(now)
-    const todayEnd = endOfDay(now)
+    // `now` drives time-of-day logic in the generator (e.g. pre-workout
+    // countdown). For historical dates we pin it to noon of the selected
+    // day so meal cards don't read as "due in 8 hours" on Saturday night.
+    const now = dateParam ? new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate(), 12, 0, 0) : new Date()
+    const todayStart = startOfDay(anchor)
+    const todayEnd = endOfDay(anchor)
     const tomorrowStart = addDays(todayStart, 1)
     const tomorrowEnd = addDays(todayEnd, 1)
 
