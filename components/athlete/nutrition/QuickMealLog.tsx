@@ -332,7 +332,7 @@ export function QuickMealLog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[500px] max-h-[90vh] overflow-y-auto overflow-x-hidden">
+      <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-[500px] sm:w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>{isEditMode ? 'Redigera måltid' : 'Logga måltid'}</DialogTitle>
           <DialogDescription>
@@ -351,7 +351,7 @@ export function QuickMealLog({
           {/* Meal Type Selection */}
           <div className="space-y-2">
             <Label className="dark:text-slate-200">Måltidstyp</Label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {(Object.entries(MEAL_TYPE_CONFIG) as [MealType, typeof MEAL_TYPE_CONFIG[MealType]][]).map(
                 ([type, config]) => {
                   const Icon = config.icon
@@ -361,13 +361,13 @@ export function QuickMealLog({
                       key={type}
                       onClick={() => setFormData(prev => ({ ...prev, mealType: type }))}
                       className={cn(
-                        "flex flex-col items-center gap-1 p-2 rounded-lg border transition-all text-xs",
+                        "flex flex-col items-center gap-1 p-2 rounded-lg border transition-all text-xs min-w-0 w-full",
                         isSelected
                           ? "border-primary bg-primary/5 dark:bg-primary/15"
                           : "border-border dark:border-slate-600 hover:border-primary/50"
                       )}
                     >
-                      <div className={cn("p-1.5 rounded-full text-white", config.color)}>
+                      <div className={cn("p-1.5 rounded-full text-white shrink-0", config.color)}>
                         <Icon className="h-3 w-3" />
                       </div>
                       <span className="font-medium truncate w-full text-center dark:text-slate-200">
@@ -398,14 +398,14 @@ export function QuickMealLog({
               }}
             >
               <Repeat className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="truncate">Samma som igår: <span className="font-medium">{yesterdayMeal.description}</span></span>
+              <span className="truncate min-w-0 flex-1 text-left">Samma som igår: <span className="font-medium">{yesterdayMeal.description}</span></span>
             </Button>
           )}
 
           {/* Quick Meals */}
           <div className="space-y-2">
             <Label className="text-sm text-muted-foreground">{quickMealsLabel}</Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {quickMeals.slice(0, 6).map((meal) => (
                 <Button
                   key={meal.description}
@@ -413,11 +413,11 @@ export function QuickMealLog({
                   size="sm"
                   onClick={() => handleQuickMealSelect(meal)}
                   className={cn(
-                    "text-xs truncate max-w-full dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700",
+                    "text-xs justify-start min-w-0 w-full dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700",
                     formData.description === meal.description && "border-primary bg-primary/5 dark:bg-primary/15 dark:text-white"
                   )}
                 >
-                  {meal.description.length > 30 ? meal.description.slice(0, 30) + '…' : meal.description}
+                  <span className="truncate block w-full text-left">{meal.description}</span>
                 </Button>
               ))}
             </div>
