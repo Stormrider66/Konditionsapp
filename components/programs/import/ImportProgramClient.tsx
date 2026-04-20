@@ -12,7 +12,7 @@
  * photos come in a later phase (Gemini 3.1 Pro vision).
  */
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Card,
@@ -48,6 +48,11 @@ import { useToast } from '@/hooks/use-toast'
 import { EnhancedProgramPreview } from '@/components/ai-studio/EnhancedProgramPreview'
 import { PublishProgramDialog } from '@/components/ai-studio/PublishProgramDialog'
 import type { ModelIntent } from '@/types/ai-models'
+import {
+  applyExerciseMappings,
+  extractExerciseNames,
+  type ExerciseMappings,
+} from '@/lib/ai/program-exercise-resolver'
 
 interface ClientOption {
   id: string
@@ -66,6 +71,21 @@ type ParseResponse = {
   warnings: string[]
   modelUsed: string
   inputKind: 'text' | 'excel' | 'csv' | 'pdf'
+}
+
+interface Candidate {
+  id: string
+  name: string
+  category?: string | null
+  biomechanicalPillar?: string | null
+  equipment?: string | null
+  score: number
+}
+
+interface Resolution {
+  name: string
+  bestMatch: Candidate | null
+  candidates: Candidate[]
 }
 
 const ACCEPTED_FILE_EXTENSIONS = '.xlsx,.xls,.csv,.pdf,.txt,.md'
@@ -102,12 +122,45 @@ export function ImportProgramClient({ clients, basePath }: ImportProgramClientPr
   const [parseResult, setParseResult] = useState<ParseResponse | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
 
+  // Exercise mapping state (Phase 2). `mappings[name] = exerciseId`. Includes
+  // both auto-assigned high-confidence matches and user-picked ones. Applied
+  // to the aiOutput only at publish time to avoid churning the preview's
+  // internal draft state.
+  const [resolving, setResolving] = useState(false)
+  const [resolutions, setResolutions] = useState<Resolution[]>([])
+  const [mappings, setMappings] = useState<ExerciseMappings>({})
+
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('')
   const [publishOpen, setPublishOpen] = useState(false)
 
   const dropRef = useRef<HTMLDivElement>(null)
 
   const selectedAthlete = clients.find((c) => c.id === selectedAthleteId)
+
+  // Derived: resolutions whose name still isn't mapped to an ID.
+  const needsMapping = useMemo(
+    () => resolutions.filter((r) => !mappings[r.name]),
+    [resolutions, mappings]
+  )
+  const totalExercises = resolutions.length
+  const mappedCount = totalExercises - needsMapping.length
+
+  // Final aiOutput used for publish — source of truth stays `parseResult.aiOutput`,
+  // mappings are layered in only at publish time so the preview stays stable.
+  const publishOutput = useMemo(() => {
+    if (!parseResult) return ''
+    if (Object.keys(mappings).length === 0) return parseResult.aiOutput
+    return applyExerciseMappings(parseResult.aiOutput, mappings)
+  }, [parseResult, mappings])
+
+  const setMapping = (name: string, id: string | null) => {
+    setMappings((prev) => {
+      const next = { ...prev }
+      if (id == null) delete next[name]
+      else next[name] = id
+      return next
+    })
+  }
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -146,6 +199,10 @@ export function ImportProgramClient({ clients, basePath }: ImportProgramClientPr
       }
 
       setParseResult(data as ParseResponse)
+      // Kick off exercise resolution in the background — auto-map high
+      // confidence matches so the coach only sees what actually needs a
+      // decision.
+      void resolveExercises((data as ParseResponse).aiOutput)
       if ((data as ParseResponse).warnings.length > 0) {
         toast({
           title: 'Importen är klar — läs varningarna',
@@ -170,11 +227,46 @@ export function ImportProgramClient({ clients, basePath }: ImportProgramClientPr
     }
   }
 
+  const resolveExercises = async (aiOutput: string) => {
+    const names = extractExerciseNames(aiOutput)
+    if (names.length === 0) {
+      setResolutions([])
+      setMappings({})
+      return
+    }
+    setResolving(true)
+    try {
+      const res = await fetch('/api/programs/resolve-exercises', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ names }),
+      })
+      if (!res.ok) throw new Error('Resolver request failed')
+      const data = (await res.json()) as { resolutions: Resolution[] }
+      setResolutions(data.resolutions ?? [])
+      // Auto-assign every bestMatch. The coach can override any of these in
+      // the panel below if they disagree.
+      const auto: ExerciseMappings = {}
+      for (const r of data.resolutions ?? []) {
+        if (r.bestMatch) auto[r.name] = r.bestMatch.id
+      }
+      setMappings(auto)
+    } catch {
+      // Non-fatal — exercises just stay as free text until the coach maps
+      // them or edits in the preview. Keep UX moving.
+      setResolutions([])
+    } finally {
+      setResolving(false)
+    }
+  }
+
   const handleReset = () => {
     setParseResult(null)
     setParseError(null)
     setPastedText('')
     setFile(null)
+    setResolutions([])
+    setMappings({})
   }
 
   const handlePublishClick = () => {
@@ -404,40 +496,90 @@ export function ImportProgramClient({ clients, basePath }: ImportProgramClientPr
                 }}
               />
             </div>
-            <Card className="h-fit">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Tilldela atlet</CardTitle>
-                <CardDescription className="text-xs">
-                  Välj vem programmet ska publiceras till.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Select
-                  value={selectedAthleteId}
-                  onValueChange={setSelectedAthleteId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Välj atlet…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.length === 0 ? (
-                      <div className="px-2 py-1 text-sm text-muted-foreground">
-                        Inga atleter funna
-                      </div>
-                    ) : (
-                      clients.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Använd &quot;Publicera&quot;-knappen i editorn när du är klar.
-                </p>
-              </CardContent>
-            </Card>
+            <div className="space-y-4">
+              <Card className="h-fit">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Tilldela atlet</CardTitle>
+                  <CardDescription className="text-xs">
+                    Välj vem programmet ska publiceras till.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Select
+                    value={selectedAthleteId}
+                    onValueChange={setSelectedAthleteId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Välj atlet…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.length === 0 ? (
+                        <div className="px-2 py-1 text-sm text-muted-foreground">
+                          Inga atleter funna
+                        </div>
+                      ) : (
+                        clients.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Använd &quot;Publicera&quot;-knappen i editorn när du är klar.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {(resolving || totalExercises > 0) && (
+                <Card className="h-fit">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span>Övningskoppling</span>
+                      {!resolving && (
+                        <Badge
+                          variant={needsMapping.length === 0 ? 'outline' : 'secondary'}
+                          className={
+                            needsMapping.length === 0
+                              ? 'text-green-700 border-green-300'
+                              : ''
+                          }
+                        >
+                          {mappedCount}/{totalExercises} mappade
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      {resolving
+                        ? 'Söker matchningar i övningsbiblioteket…'
+                        : needsMapping.length === 0
+                        ? 'Alla övningar kopplade till biblioteket.'
+                        : 'Välj rätt övning för att länka styrkepass till progressionsdata.'}
+                    </CardDescription>
+                  </CardHeader>
+                  {!resolving && needsMapping.length > 0 && (
+                    <CardContent className="space-y-3 max-h-[520px] overflow-y-auto">
+                      {needsMapping.map((r) => (
+                        <NeedsMappingRow
+                          key={r.name}
+                          resolution={r}
+                          onPick={(id) => setMapping(r.name, id)}
+                          onSkip={() => {
+                            // Record an explicit skip by mapping to empty sentinel;
+                            // here we just leave it unmapped. Skip button hides it
+                            // from the visible list by flagging it locally.
+                            setResolutions((prev) =>
+                              prev.filter((x) => x.name !== r.name)
+                            )
+                          }}
+                        />
+                      ))}
+                    </CardContent>
+                  )}
+                </Card>
+              )}
+            </div>
           </div>
 
           {selectedAthlete && (
@@ -447,7 +589,7 @@ export function ImportProgramClient({ clients, basePath }: ImportProgramClientPr
               programName={extractProgramName(parseResult.aiOutput)}
               athleteId={selectedAthlete.id}
               athleteName={selectedAthlete.name}
-              aiOutput={parseResult.aiOutput}
+              aiOutput={publishOutput}
               onSuccess={(programId) => {
                 toast({
                   title: 'Programmet publicerades',
@@ -471,4 +613,89 @@ export function ImportProgramClient({ clients, basePath }: ImportProgramClientPr
 function extractProgramName(output: string): string {
   const m = output.match(/"name"\s*:\s*"([^"\\]{1,120})"/)
   return m?.[1] ?? 'Importerat program'
+}
+
+/**
+ * One row of the "needs mapping" panel — shows the source exercise name and
+ * the top candidate picks with their confidence scores.
+ */
+function NeedsMappingRow({
+  resolution,
+  onPick,
+  onSkip,
+}: {
+  resolution: Resolution
+  onPick: (exerciseId: string) => void
+  onSkip: () => void
+}) {
+  const top = resolution.candidates.slice(0, 3)
+  return (
+    <div className="border rounded-lg p-2 space-y-1.5 bg-white dark:bg-slate-900">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="font-medium text-sm truncate" title={resolution.name}>
+            {resolution.name}
+          </div>
+          <div className="text-[10px] text-muted-foreground">
+            Från importen
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs text-muted-foreground"
+          onClick={onSkip}
+          title="Hoppa över — låt den stanna som fritext"
+        >
+          Hoppa över
+        </Button>
+      </div>
+      {top.length === 0 ? (
+        <div className="text-xs text-muted-foreground italic py-1">
+          Inga rimliga träffar hittades. Skapa övningen manuellt efter publicering.
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {top.map((c) => {
+            const pct = Math.round(c.score * 100)
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onPick(c.id)}
+                className="w-full text-left px-2 py-1.5 rounded border border-transparent hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm truncate">{c.name}</span>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'text-[10px] shrink-0',
+                      pct >= 85 && 'text-green-700 border-green-300',
+                      pct >= 60 && pct < 85 && 'text-amber-700 border-amber-300',
+                      pct < 60 && 'text-muted-foreground'
+                    )}
+                  >
+                    {pct}%
+                  </Badge>
+                </div>
+                <div className="flex gap-1 mt-0.5">
+                  {c.biomechanicalPillar && (
+                    <span className="text-[10px] text-muted-foreground">
+                      {c.biomechanicalPillar}
+                    </span>
+                  )}
+                  {c.equipment && (
+                    <span className="text-[10px] text-muted-foreground">
+                      · {c.equipment}
+                    </span>
+                  )}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
 }

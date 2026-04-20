@@ -355,7 +355,8 @@ You will receive a training program in one of these forms: plain text, a CSV dum
 Rules:
 - Output ONLY the JSON object, no prose before or after, no code fences.
 - Every phase must list at least one day in weeklyTemplate, even if the input only describes a representative week.
-- If the input mentions exercises you do not recognize, keep the human-readable name in "name" and omit "exerciseId" — we will map it later.
+- ALWAYS populate "exerciseName" on segments of type "exercise" with the clearest human-readable name from the source (e.g. "Back Squat", "Knäböj", "Bench Press"). NEVER invent an "exerciseId" — leave that field out entirely; we map names to IDs in a separate step.
+- Strip rep/set/weight clutter from "exerciseName": prefer "Back Squat" over "Back Squat 3x8 @ 80kg" (the counts belong in sets/repsCount/weight).
 - Split intervals into segments: "5×1km @ 3:40 with 90s rest" becomes a warmup + 5 work + 4 rest + cooldown segments (or a single work segment with reps=5 if the detail is not in the source).
 - Preserve the source program's language in "name", "description", "focus" etc. — do NOT translate to English.
 - If the source is ambiguous, make reasonable assumptions and list them in the top-level "notes" field.
