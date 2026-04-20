@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { clientSchema, type ClientFormData } from '@/lib/validations/schemas'
@@ -25,8 +25,10 @@ import { Loader2 } from 'lucide-react'
 export default function BusinessNewClientPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const businessSlug = params.businessSlug as string
   const basePath = `/${businessSlug}/coach/clients`
+  const prefilledTeamId = searchParams.get('teamId') ?? undefined
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -66,10 +68,12 @@ export default function BusinessNewClientPage() {
     resolver: zodResolver(clientSchema),
     defaultValues: {
       gender: 'MALE',
+      teamId: prefilledTeamId,
     },
   })
 
   const gender = watch('gender')
+  const selectedTeamId = watch('teamId')
 
   const onSubmit = async (data: ClientFormData) => {
     try {
@@ -297,6 +301,7 @@ export default function BusinessNewClientPage() {
             <div className="space-y-2">
               <Label htmlFor="teamId" className="dark:text-slate-200">Lag/Klubb</Label>
               <Select
+                value={selectedTeamId ?? 'none'}
                 onValueChange={(value) => setValue('teamId', value === 'none' ? undefined : value)}
               >
                 <SelectTrigger id="teamId" disabled={teamsLoading} className="dark:bg-slate-800 dark:border-white/10">
@@ -311,6 +316,39 @@ export default function BusinessNewClientPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Tröjnummer & Position */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="jerseyNumber" className="dark:text-slate-200">Tröjnummer</Label>
+                <Input
+                  id="jerseyNumber"
+                  type="number"
+                  min={0}
+                  max={999}
+                  {...register('jerseyNumber', { valueAsNumber: true })}
+                  placeholder="t.ex. 17"
+                  className="dark:bg-slate-800 dark:border-white/10"
+                />
+                {errors.jerseyNumber && (
+                  <p className="text-sm text-red-600">{errors.jerseyNumber.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="position" className="dark:text-slate-200">Position</Label>
+                <Input
+                  id="position"
+                  type="text"
+                  {...register('position')}
+                  placeholder="t.ex. Center, Back, Målvakt"
+                  className="dark:bg-slate-800 dark:border-white/10"
+                />
+                {errors.position && (
+                  <p className="text-sm text-red-600">{errors.position.message}</p>
+                )}
+              </div>
             </div>
 
             {/* Anteckningar */}

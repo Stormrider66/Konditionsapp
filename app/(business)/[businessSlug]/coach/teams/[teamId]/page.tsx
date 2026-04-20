@@ -29,6 +29,8 @@ import {
 } from 'lucide-react'
 import { TeamDashboardClient } from '@/app/coach/teams/[teamId]/TeamDashboardClient'
 import { TeamLeaderboard } from '@/components/coach/leaderboards'
+import { AddPlayersDialog } from '@/components/coach/teams/AddPlayersDialog'
+import { TeamRosterTable } from '@/components/coach/teams/TeamRosterTable'
 
 interface TeamPageProps {
   params: Promise<{
@@ -76,6 +78,9 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           id: true,
           name: true,
           email: true,
+          jerseyNumber: true,
+          position: true,
+          photoUrl: true,
         },
       },
       organization: {
@@ -319,7 +324,15 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           </div>
         </div>
 
-        <TeamDashboardClient teamId={teamId} teamName={team.name} />
+        <div className="flex items-center gap-2">
+          <AddPlayersDialog
+            teamId={teamId}
+            teamName={team.name}
+            basePath={`/${businessSlug}/coach`}
+            importPath={`/${businessSlug}/coach/teams/${teamId}/import`}
+          />
+          <TeamDashboardClient teamId={teamId} teamName={team.name} />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4 mb-8">
@@ -349,6 +362,23 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
               <Progress value={overallCompletionRate} className="w-16 h-2" />
             </CardTitle>
           </CardHeader>
+        </Card>
+      </div>
+
+      <div className="mb-8">
+        <Card className="dark:bg-slate-900/50 dark:border-white/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 dark:text-white">
+              <Users className="h-5 w-5" />
+              Spelare ({team.members.length})
+            </CardTitle>
+            <CardDescription>
+              Klicka på tröjnummer eller position för att redigera. Importera större listor via Excel/text/PDF.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TeamRosterTable teamId={teamId} members={team.members} />
+          </CardContent>
         </Card>
       </div>
 

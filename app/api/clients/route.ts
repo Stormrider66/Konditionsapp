@@ -179,6 +179,9 @@ export async function POST(request: NextRequest) {
           weight: data.weight,
           notes: data.notes || null,
           teamId: data.teamId && data.teamId !== '' ? data.teamId : null,
+          jerseyNumber: data.jerseyNumber ?? null,
+          position: data.position ? data.position : null,
+          photoUrl: data.photoUrl ? data.photoUrl : null,
         },
       })
 

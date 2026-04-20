@@ -438,6 +438,11 @@ model Client {
   weight    Float // kg
   notes     String?
 
+  // Roster metadata — populated when client belongs to a team
+  jerseyNumber Int?    // shirt/jersey number (1-999)
+  position     String? // sport-specific free-text (e.g. "Center", "Back", "Goalie", "Wing")
+  photoUrl     String? // public URL of headshot stored in Supabase Storage
+
   // AI-specific instructions for this athlete (injected into AI system prompt)
   // Use for chronic conditions, special considerations, coaching style preferences
   // Example: "Chronic GI condition — adapt nutrition/recovery, be discreet"

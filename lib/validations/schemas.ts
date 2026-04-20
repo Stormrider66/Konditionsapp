@@ -26,6 +26,16 @@ export const clientSchema = z.object({
   weight: z.number().min(30, 'Vikt måste vara minst 30 kg').max(300),
   notes: z.string().optional(),
   teamId: z.string().optional().or(z.literal('')),
+  jerseyNumber: z
+    .union([z.number(), z.nan(), z.undefined()])
+    .transform((v): number | undefined =>
+      typeof v === 'number' && !isNaN(v) ? v : undefined
+    )
+    .refine((v) => v === undefined || (Number.isInteger(v) && v >= 0 && v <= 999), {
+      message: 'Tröjnummer måste vara mellan 0 och 999',
+    }),
+  position: z.string().max(40).optional().or(z.literal('')),
+  photoUrl: z.string().url().max(2048).optional().or(z.literal('')),
 })
 
 // Test-stage validering (form version with separate minutes/seconds)
