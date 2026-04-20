@@ -3,12 +3,17 @@
 /**
  * Full editable roster table for a team.
  *
- * - Inline edit of jersey + position (click, type, blur saves)
+ * - Inline edit of jersey + position (focus → type → blur saves)
  * - Remove button per row (detaches from team — does NOT delete the client)
  * - Sorts by jersey then name
+ *
+ * Prop-driven: `members` is the source of truth. After any mutation we
+ * call router.refresh() so the RSC parent re-renders and cells see the
+ * authoritative values. Local state is limited to a per-cell edit buffer
+ * (active only while focused) plus savingId/removingId indicators.
  */
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Table,
@@ -20,7 +25,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Trash2, Loader2 } from 'lucide-react'
+import { Camera, Loader2, Trash2, User2, X } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 export interface TeamRosterMember {
@@ -37,10 +42,9 @@ interface TeamRosterTableProps {
   members: TeamRosterMember[]
 }
 
-export function TeamRosterTable({ teamId, members: initialMembers }: TeamRosterTableProps) {
+export function TeamRosterTable({ teamId, members }: TeamRosterTableProps) {
   const router = useRouter()
   const { toast } = useToast()
-  const [members, setMembers] = useState(initialMembers)
   const [removingId, setRemovingId] = useState<string | null>(null)
   const [savingId, setSavingId] = useState<string | null>(null)
 
@@ -61,11 +65,6 @@ export function TeamRosterTable({ teamId, members: initialMembers }: TeamRosterT
     value: string
   ) => {
     setSavingId(clientId)
-    const current = members.find((m) => m.id === clientId)
-    if (!current) {
-      setSavingId(null)
-      return
-    }
 
     let payload: Record<string, unknown>
     if (field === 'jerseyNumber') {
@@ -80,7 +79,7 @@ export function TeamRosterTable({ teamId, members: initialMembers }: TeamRosterT
         payload = { jerseyNumber: n }
       }
     } else {
-      payload = { position: value }
+      payload = { position: value === '' ? null : value }
     }
 
     try {
@@ -91,17 +90,7 @@ export function TeamRosterTable({ teamId, members: initialMembers }: TeamRosterT
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Sparning misslyckades')
-      setMembers((prev) =>
-        prev.map((m) =>
-          m.id === clientId
-            ? {
-                ...m,
-                jerseyNumber: data.client.jerseyNumber ?? null,
-                position: data.client.position ?? null,
-              }
-            : m
-        )
-      )
+      router.refresh()
     } catch (e) {
       toast({
         title: 'Kunde inte spara',
@@ -124,7 +113,6 @@ export function TeamRosterTable({ teamId, members: initialMembers }: TeamRosterT
         const data = await res.json().catch(() => ({}))
         throw new Error(data?.error || 'Kunde inte ta bort')
       }
-      setMembers((prev) => prev.filter((m) => m.id !== clientId))
       toast({ title: `${name} borttagen från laget` })
       router.refresh()
     } catch (e) {
@@ -150,6 +138,7 @@ export function TeamRosterTable({ teamId, members: initialMembers }: TeamRosterT
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead className="w-14"></TableHead>
           <TableHead className="w-20">#</TableHead>
           <TableHead>Namn</TableHead>
           <TableHead className="w-40">Position</TableHead>
@@ -160,6 +149,14 @@ export function TeamRosterTable({ teamId, members: initialMembers }: TeamRosterT
       <TableBody>
         {sorted.map((m) => (
           <TableRow key={m.id}>
+            <TableCell>
+              <PlayerAvatarCell
+                teamId={teamId}
+                clientId={m.id}
+                name={m.name}
+                photoUrl={m.photoUrl}
+              />
+            </TableCell>
             <TableCell>
               <RosterNumberCell
                 value={m.jerseyNumber}
@@ -201,6 +198,124 @@ export function TeamRosterTable({ teamId, members: initialMembers }: TeamRosterT
   )
 }
 
+function PlayerAvatarCell({
+  teamId,
+  clientId,
+  name,
+  photoUrl,
+}: {
+  teamId: string
+  clientId: string
+  name: string
+  photoUrl: string | null
+}) {
+  const router = useRouter()
+  const { toast } = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+
+  const upload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Ogiltigt format', description: 'Välj en bild (JPG/PNG/WebP/HEIC)', variant: 'destructive' })
+      return
+    }
+    setUploading(true)
+    try {
+      const form = new FormData()
+      form.append('photo', file)
+      const res = await fetch(
+        `/api/coach/teams/${teamId}/members/${clientId}/photo`,
+        { method: 'POST', body: form }
+      )
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'Uppladdning misslyckades')
+      router.refresh()
+    } catch (e) {
+      toast({
+        title: 'Fel',
+        description: e instanceof Error ? e.message : 'Okänt fel',
+        variant: 'destructive',
+      })
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const remove = async () => {
+    if (!confirm(`Ta bort foto för ${name}?`)) return
+    setUploading(true)
+    try {
+      const res = await fetch(
+        `/api/coach/teams/${teamId}/members/${clientId}/photo`,
+        { method: 'DELETE' }
+      )
+      if (!res.ok) throw new Error('Kunde inte ta bort')
+      router.refresh()
+    } catch (e) {
+      toast({
+        title: 'Fel',
+        description: e instanceof Error ? e.message : 'Okänt fel',
+        variant: 'destructive',
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div className="relative group">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          if (f) upload(f)
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+        className="h-10 w-10 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-800 flex items-center justify-center hover:ring-2 hover:ring-blue-500 focus:ring-2 focus:ring-blue-500 transition"
+        aria-label={`Ladda upp foto för ${name}`}
+      >
+        {uploading ? (
+          <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+        ) : photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photoUrl} alt={name} className="h-full w-full object-cover" />
+        ) : (
+          <User2 className="h-5 w-5 text-slate-400" />
+        )}
+        {!uploading && !photoUrl && (
+          <span className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition">
+            <Camera className="h-4 w-4 text-white" />
+          </span>
+        )}
+      </button>
+      {photoUrl && !uploading && (
+        <button
+          type="button"
+          onClick={remove}
+          aria-label={`Ta bort foto för ${name}`}
+          className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-slate-700 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Controlled input that tracks the parent's `value` prop whenever the cell
+ * is NOT actively being edited, and uses a local `buffer` only while focused.
+ * This way server-driven re-renders (router.refresh after bulk import, etc.)
+ * update what's shown without fighting user typing.
+ */
 function RosterNumberCell({
   value,
   onSave,
@@ -210,19 +325,22 @@ function RosterNumberCell({
   onSave: (v: string) => void
   saving: boolean
 }) {
-  const [local, setLocal] = useState<string>(value == null ? '' : String(value))
+  const [buffer, setBuffer] = useState<string | null>(null)
+  const propDisplay = value == null ? '' : String(value)
+  const display = buffer ?? propDisplay
   return (
     <Input
       type="number"
       min={0}
       max={999}
-      value={local}
+      value={display}
       disabled={saving}
-      onChange={(e) => setLocal(e.target.value)}
+      onFocus={() => setBuffer(propDisplay)}
+      onChange={(e) => setBuffer(e.target.value)}
       onBlur={() => {
-        const next = local.trim()
-        const current = value == null ? '' : String(value)
-        if (next !== current) onSave(next)
+        const next = (buffer ?? '').trim()
+        if (next !== propDisplay) onSave(next)
+        setBuffer(null)
       }}
       className="h-8 w-16 text-center"
     />
@@ -240,17 +358,20 @@ function RosterTextCell({
   onSave: (v: string) => void
   saving: boolean
 }) {
-  const [local, setLocal] = useState<string>(value ?? '')
+  const [buffer, setBuffer] = useState<string | null>(null)
+  const propDisplay = value ?? ''
+  const display = buffer ?? propDisplay
   return (
     <Input
-      value={local}
+      value={display}
       placeholder={placeholder}
       disabled={saving}
-      onChange={(e) => setLocal(e.target.value)}
+      onFocus={() => setBuffer(propDisplay)}
+      onChange={(e) => setBuffer(e.target.value)}
       onBlur={() => {
-        const next = local.trim()
-        const current = value ?? ''
-        if (next !== current) onSave(next)
+        const next = (buffer ?? '').trim()
+        if (next !== propDisplay) onSave(next)
+        setBuffer(null)
       }}
       className="h-8"
     />

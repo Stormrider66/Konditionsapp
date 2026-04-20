@@ -26,7 +26,7 @@ import { prisma } from '@/lib/prisma'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
-import { resolveModel, type ModelIntent, isModelIntent } from '@/types/ai-models'
+import { resolveModel, resolveVisionModel, type ModelIntent, isModelIntent } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
 import { generateText } from 'ai'
 
@@ -34,18 +34,28 @@ export const runtime = 'nodejs'
 export const maxDuration = 300
 
 const MAX_FILE_BYTES = 15 * 1024 * 1024
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 const MAX_TEXT_CHARS = 200_000
+
+const VALID_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
 }
 
-type NormalizedInput = {
-  kind: 'text' | 'excel' | 'csv' | 'pdf'
-  body: string
-  filename?: string
-  truncated: boolean
-}
+type NormalizedInput =
+  | {
+      kind: 'text' | 'excel' | 'csv' | 'pdf'
+      body: string
+      filename?: string
+      truncated: boolean
+    }
+  | {
+      kind: 'image'
+      image: { dataUri: string; mimeType: string }
+      filename?: string
+      truncated: false
+    }
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
@@ -86,11 +96,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
       if (isModelIntent(body?.intent)) intentOverride = body.intent
     }
 
-    if (file && file.size > MAX_FILE_BYTES) {
-      return NextResponse.json(
-        { error: `File too large. Max ${MAX_FILE_BYTES / (1024 * 1024)} MB.` },
-        { status: 413 }
-      )
+    const isImage = file ? isLikelyImage(file) : false
+
+    if (file) {
+      const cap = isImage ? MAX_IMAGE_BYTES : MAX_FILE_BYTES
+      if (file.size > cap) {
+        return NextResponse.json(
+          { error: `File too large. Max ${cap / (1024 * 1024)} MB.` },
+          { status: 413 }
+        )
+      }
     }
 
     let normalized: NormalizedInput | null = null
@@ -112,7 +127,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
       )
     }
 
-    if (!normalized || normalized.body.trim().length === 0) {
+    if (!normalized) {
+      return NextResponse.json(
+        { error: 'Provide either pasted text or a file to import' },
+        { status: 400 }
+      )
+    }
+    if (normalized.kind !== 'image' && normalized.body.trim().length === 0) {
       return NextResponse.json(
         { error: 'Provide either pasted text or a file to import' },
         { status: 400 }
@@ -120,31 +141,56 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     const keys = await getResolvedAiKeys(user.id)
-    const resolved = resolveModel(keys, intentOverride ?? 'balanced')
+    const intent = intentOverride ?? 'balanced'
+    const resolved =
+      normalized.kind === 'image'
+        ? resolveVisionModel(keys, intent)
+        : resolveModel(keys, intent)
+
     if (!resolved) {
       return NextResponse.json(
         {
           error:
-            'No AI provider configured. Add an API key in settings to use the roster importer.',
+            normalized.kind === 'image'
+              ? 'Ingen bildkapabel AI-modell är konfigurerad. Lägg till en Google, Anthropic eller OpenAI API-nyckel i inställningarna.'
+              : 'No AI provider configured. Add an API key in settings to use the roster importer.',
         },
         { status: 400 }
       )
     }
 
     const model = createModelInstance(resolved)
-    const prompt = buildPrompt(normalized, team.sportType ?? null)
 
-    const { text: aiOutput } = await generateText({
-      model,
-      system: SYSTEM_PROMPT,
-      prompt,
-      temperature: 0.1,
-    })
+    const { text: aiOutput } =
+      normalized.kind === 'image'
+        ? await generateText({
+            model,
+            system: SYSTEM_PROMPT,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'image', image: normalized.image.dataUri },
+                  {
+                    type: 'text',
+                    text: buildImagePromptText(team.sportType ?? null, normalized.filename),
+                  },
+                ],
+              },
+            ],
+            temperature: 0.1,
+          })
+        : await generateText({
+            model,
+            system: SYSTEM_PROMPT,
+            prompt: buildTextPrompt(normalized, team.sportType ?? null),
+            temperature: 0.1,
+          })
 
     const parsedRows = safeParseRoster(aiOutput)
 
     const warnings: string[] = []
-    if (normalized.truncated) {
+    if (normalized.kind !== 'image' && normalized.truncated) {
       warnings.push('Input was truncated before sending to the model; review the result carefully.')
     }
     if (!parsedRows.ok) {
@@ -173,10 +219,24 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
 // ─── Pre-processing (same pattern as program importer) ──────────────────────
 
+function isLikelyImage(file: File): boolean {
+  const type = (file.type || '').toLowerCase()
+  if (VALID_IMAGE_TYPES.includes(type)) return true
+  const name = (file.name || '').toLowerCase()
+  return /\.(jpe?g|png|webp|heic|heif)$/.test(name)
+}
+
 async function normalizeFile(file: File): Promise<NormalizedInput> {
   const name = file.name || 'upload'
   const lower = name.toLowerCase()
   const type = file.type || ''
+
+  if (isLikelyImage(file)) {
+    const buf = Buffer.from(await file.arrayBuffer())
+    const mimeType = VALID_IMAGE_TYPES.includes(type) ? type : inferImageMime(lower)
+    const dataUri = `data:${mimeType};base64,${buf.toString('base64')}`
+    return { kind: 'image', image: { dataUri, mimeType }, filename: name, truncated: false }
+  }
 
   if (
     lower.endsWith('.xlsx') ||
@@ -209,11 +269,21 @@ async function normalizeFile(file: File): Promise<NormalizedInput> {
   })
 }
 
-function maybeTruncate(n: Omit<NormalizedInput, 'truncated'>): NormalizedInput {
+function inferImageMime(lowerName: string): string {
+  if (lowerName.endsWith('.png')) return 'image/png'
+  if (lowerName.endsWith('.webp')) return 'image/webp'
+  if (lowerName.endsWith('.heic')) return 'image/heic'
+  if (lowerName.endsWith('.heif')) return 'image/heif'
+  return 'image/jpeg'
+}
+
+type TextNormalized = Extract<NormalizedInput, { kind: 'text' | 'excel' | 'csv' | 'pdf' }>
+
+function maybeTruncate(n: Omit<TextNormalized, 'truncated'>): TextNormalized {
   if (n.body.length > MAX_TEXT_CHARS) {
-    return { ...n, body: n.body.slice(0, MAX_TEXT_CHARS), truncated: true }
+    return { ...n, body: n.body.slice(0, MAX_TEXT_CHARS), truncated: true } as TextNormalized
   }
-  return { ...n, truncated: false }
+  return { ...n, truncated: false } as TextNormalized
 }
 
 async function excelToText(buf: Buffer): Promise<string> {
@@ -300,7 +370,7 @@ Rules:
 - "name" is required on every row. If a row has only a number or placeholder, skip it.
 - If the source is empty or unrecognizable, output {"rows": []}.`
 
-function buildPrompt(input: NormalizedInput, sportType: string | null): string {
+function buildTextPrompt(input: TextNormalized, sportType: string | null): string {
   const sportHint = sportType
     ? `\nContext: this is a ${sportType} team. Use position vocabulary typical for that sport.`
     : ''
@@ -309,6 +379,18 @@ function buildPrompt(input: NormalizedInput, sportType: string | null): string {
     ? '\n\nNOTE: Input was truncated at 200k chars. Use what is available.'
     : ''
   return `${header}${truncWarning}\n\nInput:\n"""\n${input.body}\n"""\n\nExtract the roster JSON now.`
+}
+
+function buildImagePromptText(sportType: string | null, filename?: string): string {
+  const sportHint = sportType
+    ? `\nContext: this is a ${sportType} team. Use position vocabulary typical for that sport.`
+    : ''
+  const fileHint = filename ? ` (${filename})` : ''
+  return `The attached image${fileHint} shows a team roster — printed roster sheet, whiteboard, screenshot, or phone photo.${sportHint}
+
+Read every player line carefully, including handwritten notes. Ignore coaches, managers, team totals, and section headers like "Offense" / "Defense" unless they're player-specific position markers.
+
+Extract the roster JSON now.`
 }
 
 // ─── Output validation ──────────────────────────────────────────────────────

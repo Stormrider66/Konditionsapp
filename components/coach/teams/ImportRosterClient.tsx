@@ -12,7 +12,7 @@
  * see a familiar flow whether they're importing a program or a roster.
  */
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Card,
@@ -47,6 +47,7 @@ import {
   FileSpreadsheet,
   FileText,
   FileUp,
+  ImageIcon,
   Loader2,
   Sparkles,
   Trash2,
@@ -75,7 +76,7 @@ type ParseResponse = {
   rows: RosterRow[]
   warnings: string[]
   modelUsed: string
-  inputKind: 'text' | 'excel' | 'csv' | 'pdf'
+  inputKind: 'text' | 'excel' | 'csv' | 'pdf' | 'image'
 }
 
 interface Props {
@@ -84,12 +85,20 @@ interface Props {
   teamPath: string
 }
 
-const ACCEPTED_FILE_EXTENSIONS = '.xlsx,.xls,.csv,.pdf,.txt,.md'
+const ACCEPTED_FILE_EXTENSIONS =
+  '.xlsx,.xls,.csv,.pdf,.txt,.md,.jpg,.jpeg,.png,.webp,.heic,.heif'
+
+const IMAGE_REGEX = /\.(jpe?g|png|webp|heic|heif)$/i
+
+function isImageFile(file: File): boolean {
+  if (file.type.startsWith('image/')) return true
+  return IMAGE_REGEX.test(file.name)
+}
 
 const INTENT_OPTIONS: { value: ModelIntent; label: string; hint: string }[] = [
   { value: 'fast', label: 'Snabb (billigast)', hint: 'Räcker för tydliga Excel-listor.' },
-  { value: 'balanced', label: 'Balanserad (rekommenderas)', hint: 'Bäst kostnad/kvalitet för rörig text och PDF.' },
-  { value: 'powerful', label: 'Kraftfull (bäst kvalitet)', hint: 'För röriga scan-PDF:er eller blandade källor.' },
+  { value: 'balanced', label: 'Balanserad (rekommenderas)', hint: 'Bäst kostnad/kvalitet för text, PDF och foton.' },
+  { value: 'powerful', label: 'Kraftfull (bäst kvalitet)', hint: 'För röriga scan-PDF:er, handskriven whiteboard eller svårlästa foton.' },
 ]
 
 export function ImportRosterClient({ teamId, teamName, teamPath }: Props) {
@@ -99,8 +108,42 @@ export function ImportRosterClient({ teamId, teamName, teamPath }: Props) {
   const [tab, setTab] = useState<'paste' | 'upload'>('paste')
   const [pastedText, setPastedText] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [filePreview, setFilePreview] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [intent, setIntent] = useState<ModelIntent>('balanced')
+
+  // Generate object URL preview when an image file is selected
+  useEffect(() => {
+    if (file && isImageFile(file)) {
+      const url = URL.createObjectURL(file)
+      setFilePreview(url)
+      return () => URL.revokeObjectURL(url)
+    }
+    setFilePreview(null)
+  }, [file])
+
+  // Paste-from-clipboard: if the user pastes an image anywhere on the page
+  // while the upload tab is active, grab it as the file.
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      if (tab !== 'upload') return
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (const item of Array.from(items)) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          const blob = item.getAsFile()
+          if (blob) {
+            const named = new File([blob], `inklistrad-${Date.now()}.png`, { type: blob.type })
+            setFile(named)
+            e.preventDefault()
+            return
+          }
+        }
+      }
+    }
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  }, [tab])
 
   const [parsing, setParsing] = useState(false)
   const [parseResult, setParseResult] = useState<ParseResponse | null>(null)
@@ -274,24 +317,31 @@ export function ImportRosterClient({ teamId, teamName, teamPath }: Props) {
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={handleDrop}
                   className={cn(
-                    'border-2 border-dashed rounded-lg p-8 text-center transition-colors',
+                    'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
                     isDragging
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10'
                       : 'border-slate-300 dark:border-slate-700'
                   )}
                 >
                   {file ? (
-                    <div className="flex items-center justify-between gap-2 text-left">
+                    <div className="flex items-center justify-between gap-3 text-left">
                       <div className="flex items-center gap-3 min-w-0">
-                        {/\.(xlsx|xls|csv)$/i.test(file.name) ? (
-                          <FileSpreadsheet className="h-8 w-8 text-green-600 shrink-0" />
+                        {filePreview ? (
+                          <img
+                            src={filePreview}
+                            alt="Förhandsgranskning"
+                            className="h-20 w-20 object-cover rounded border border-slate-200 dark:border-slate-700 shrink-0"
+                          />
+                        ) : /\.(xlsx|xls|csv)$/i.test(file.name) ? (
+                          <FileSpreadsheet className="h-10 w-10 text-green-600 shrink-0" />
                         ) : (
-                          <FileText className="h-8 w-8 text-red-500 shrink-0" />
+                          <FileText className="h-10 w-10 text-red-500 shrink-0" />
                         )}
                         <div className="min-w-0">
                           <div className="font-medium truncate">{file.name}</div>
                           <div className="text-xs text-muted-foreground">
                             {(file.size / 1024).toFixed(1)} KB
+                            {isImageFile(file) && ' · bild'}
                           </div>
                         </div>
                       </div>
@@ -301,12 +351,18 @@ export function ImportRosterClient({ teamId, teamName, teamPath }: Props) {
                     </div>
                   ) : (
                     <>
-                      <Upload className="h-10 w-10 mx-auto text-slate-400 mb-2" />
+                      <div className="flex items-center justify-center gap-4 text-slate-400 mb-2">
+                        <Upload className="h-9 w-9" />
+                        <ImageIcon className="h-9 w-9" />
+                      </div>
                       <p className="text-sm font-medium mb-1">
-                        Släpp en fil här, eller klicka för att välja
+                        Släpp en fil eller bild här, eller klicka för att välja
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Stödda format: Excel (.xlsx, .xls), CSV, PDF, text (.txt, .md)
+                        Excel, CSV, PDF, text — eller foto/screenshot (.jpg, .png, .webp, .heic)
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Tips: klistra in (⌘/Ctrl + V) en skärmdump direkt på sidan.
                       </p>
                       <input
                         type="file"

@@ -37,8 +37,9 @@ export default async function ImportRosterPage({ params }: PageProps) {
 
       <h1 className="text-3xl font-bold mb-2 dark:text-white">Importera spelare</h1>
       <p className="text-muted-foreground mb-8">
-        Klistra in ett roster eller ladda upp en Excel-, CSV-, PDF- eller textfil. AI tolkar
-        innehållet och låter dig granska innan spelarna läggs till i {team.name}.
+        Klistra in ett roster, ladda upp en Excel/CSV/PDF/text-fil, eller fota av en
+        utskriven laguppställning eller whiteboard. AI tolkar innehållet och låter dig
+        granska innan spelarna läggs till i {team.name}.
       </p>
 
       <ImportRosterClient

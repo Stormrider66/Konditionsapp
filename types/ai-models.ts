@@ -332,6 +332,7 @@ export interface ResolvedModel {
   modelId: string
   apiKey: string
   displayName: string
+  supportsVision: boolean
 }
 
 export interface AvailableKeys {
@@ -346,29 +347,36 @@ export interface ConfiguredProviders {
   hasOpenai: boolean
 }
 
+interface TierEntry {
+  modelId: string
+  displayName: string
+  /** Whether this model can accept images as input via the AI SDK multimodal content parts. */
+  supportsVision: boolean
+}
+
 /**
  * Equivalent models across providers, grouped by intent tier.
  * Priority order: Google → Anthropic → OpenAI (cheapest-first for equal quality).
  */
 export const MODEL_TIERS: Record<ModelIntent, {
-  google:    { modelId: string; displayName: string }
-  anthropic: { modelId: string; displayName: string }
-  openai:    { modelId: string; displayName: string }
+  google:    TierEntry
+  anthropic: TierEntry
+  openai:    TierEntry
 }> = {
   fast: {
-    google:    { modelId: 'gemini-3.1-flash-lite-preview', displayName: 'Gemini 3.1 Flash Lite' },
-    anthropic: { modelId: 'claude-haiku-4-5',    displayName: 'Claude Haiku 4.5' },
-    openai:    { modelId: 'gpt-5.3-instant',              displayName: 'GPT-5.3 Instant' },
+    google:    { modelId: 'gemini-3.1-flash-lite-preview', displayName: 'Gemini 3.1 Flash Lite', supportsVision: true },
+    anthropic: { modelId: 'claude-haiku-4-5',              displayName: 'Claude Haiku 4.5',     supportsVision: true },
+    openai:    { modelId: 'gpt-5.3-instant',               displayName: 'GPT-5.3 Instant',      supportsVision: true },
   },
   balanced: {
-    google:    { modelId: 'gemini-3-flash-preview',     displayName: 'Gemini 3 Flash' },
-    anthropic: { modelId: 'claude-sonnet-4-6',          displayName: 'Claude Sonnet 4.6' },
-    openai:    { modelId: 'gpt-5-mini',                 displayName: 'GPT-5 Mini' },
+    google:    { modelId: 'gemini-3-flash-preview',     displayName: 'Gemini 3 Flash',    supportsVision: true },
+    anthropic: { modelId: 'claude-sonnet-4-6',          displayName: 'Claude Sonnet 4.6', supportsVision: true },
+    openai:    { modelId: 'gpt-5-mini',                 displayName: 'GPT-5 Mini',        supportsVision: true },
   },
   powerful: {
-    google:    { modelId: 'gemini-3.1-pro-preview',     displayName: 'Gemini 3.1 Pro' },
-    anthropic: { modelId: 'claude-opus-4-6',            displayName: 'Claude Opus 4.6' },
-    openai:    { modelId: 'gpt-5.4',                    displayName: 'GPT-5.4' },
+    google:    { modelId: 'gemini-3.1-pro-preview',     displayName: 'Gemini 3.1 Pro',    supportsVision: true },
+    anthropic: { modelId: 'claude-opus-4-6',            displayName: 'Claude Opus 4.6',   supportsVision: true },
+    openai:    { modelId: 'gpt-5.4',                    displayName: 'GPT-5.4',           supportsVision: true },
   },
 }
 
@@ -383,15 +391,37 @@ export function resolveModel(
   const tier = MODEL_TIERS[intent]
 
   if (keys.googleKey) {
-    return { provider: 'google', modelId: tier.google.modelId, apiKey: keys.googleKey, displayName: tier.google.displayName }
+    return { provider: 'google', modelId: tier.google.modelId, apiKey: keys.googleKey, displayName: tier.google.displayName, supportsVision: tier.google.supportsVision }
   }
   if (keys.anthropicKey) {
-    return { provider: 'anthropic', modelId: tier.anthropic.modelId, apiKey: keys.anthropicKey, displayName: tier.anthropic.displayName }
+    return { provider: 'anthropic', modelId: tier.anthropic.modelId, apiKey: keys.anthropicKey, displayName: tier.anthropic.displayName, supportsVision: tier.anthropic.supportsVision }
   }
   if (keys.openaiKey) {
-    return { provider: 'openai', modelId: tier.openai.modelId, apiKey: keys.openaiKey, displayName: tier.openai.displayName }
+    return { provider: 'openai', modelId: tier.openai.modelId, apiKey: keys.openaiKey, displayName: tier.openai.displayName, supportsVision: tier.openai.supportsVision }
   }
 
+  return null
+}
+
+/**
+ * Resolve a vision-capable model for the intent. Upgrades through the tiers
+ * (fast → balanced → powerful) if the chosen tier's model doesn't support
+ * images. Returns null if no configured provider has any vision model at all.
+ */
+export function resolveVisionModel(
+  keys: AvailableKeys,
+  intent: ModelIntent = 'balanced'
+): ResolvedModel | null {
+  const order: ModelIntent[] = intent === 'fast'
+    ? ['fast', 'balanced', 'powerful']
+    : intent === 'balanced'
+      ? ['balanced', 'powerful', 'fast']
+      : ['powerful', 'balanced', 'fast']
+
+  for (const tier of order) {
+    const resolved = resolveModel(keys, tier)
+    if (resolved?.supportsVision) return resolved
+  }
   return null
 }
 
