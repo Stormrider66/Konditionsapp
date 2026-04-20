@@ -38,6 +38,7 @@ import {
   FileSpreadsheet,
   FileText,
   FileUp,
+  ImageIcon,
   Loader2,
   Sparkles,
   Upload,
@@ -88,7 +89,15 @@ interface Resolution {
   candidates: Candidate[]
 }
 
-const ACCEPTED_FILE_EXTENSIONS = '.xlsx,.xls,.csv,.pdf,.txt,.md'
+const ACCEPTED_FILE_EXTENSIONS =
+  '.xlsx,.xls,.csv,.pdf,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.heic,.heif,image/*'
+
+const IMAGE_EXTENSION_RE = /\.(png|jpe?g|webp|gif|heic|heif)$/i
+
+function isImageFile(f: File | null): boolean {
+  if (!f) return false
+  return f.type.startsWith('image/') || IMAGE_EXTENSION_RE.test(f.name)
+}
 
 const INTENT_OPTIONS: { value: ModelIntent; label: string; hint: string }[] = [
   {
@@ -136,6 +145,17 @@ export function ImportProgramClient({ clients, basePath }: ImportProgramClientPr
   const dropRef = useRef<HTMLDivElement>(null)
 
   const selectedAthlete = clients.find((c) => c.id === selectedAthleteId)
+
+  // Image preview URL (cleaned up when the file changes or component unmounts).
+  const imagePreviewUrl = useMemo(() => {
+    if (!isImageFile(file)) return null
+    return URL.createObjectURL(file as File)
+  }, [file])
+
+  // Images always route to a vision-capable model server-side regardless of
+  // this UI control. Keep the selector visible for non-image inputs so the
+  // coach can still choose between cost tiers.
+  const fileIsImage = isImageFile(file)
 
   // Derived: resolutions whose name still isn't mapped to an ID.
   const needsMapping = useMemo(
@@ -337,7 +357,16 @@ export function ImportProgramClient({ clients, basePath }: ImportProgramClientPr
                   {file ? (
                     <div className="flex items-center justify-between gap-2 text-left">
                       <div className="flex items-center gap-3 min-w-0">
-                        {/\.(xlsx|xls|csv)$/i.test(file.name) ? (
+                        {fileIsImage && imagePreviewUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={imagePreviewUrl}
+                            alt={file.name}
+                            className="h-16 w-16 object-cover rounded border shrink-0"
+                          />
+                        ) : fileIsImage ? (
+                          <ImageIcon className="h-8 w-8 text-purple-500 shrink-0" />
+                        ) : /\.(xlsx|xls|csv)$/i.test(file.name) ? (
                           <FileSpreadsheet className="h-8 w-8 text-green-600 shrink-0" />
                         ) : (
                           <FileText className="h-8 w-8 text-red-500 shrink-0" />
@@ -346,6 +375,14 @@ export function ImportProgramClient({ clients, basePath }: ImportProgramClientPr
                           <div className="font-medium truncate">{file.name}</div>
                           <div className="text-xs text-muted-foreground">
                             {(file.size / 1024).toFixed(1)} KB
+                            {fileIsImage && (
+                              <>
+                                {' · '}
+                                <span className="text-purple-600">
+                                  Bild → vision-läge (Gemini 3.1 Pro)
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -365,7 +402,7 @@ export function ImportProgramClient({ clients, basePath }: ImportProgramClientPr
                         Släpp en fil här, eller klicka för att välja
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Stödda format: Excel (.xlsx, .xls), CSV, PDF, text (.txt, .md)
+                        Excel · CSV · PDF · text · bild (skärmdump, foto, handskrivet)
                       </p>
                       <input
                         type="file"

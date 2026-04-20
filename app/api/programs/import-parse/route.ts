@@ -36,13 +36,35 @@ const MAX_FILE_BYTES = 15 * 1024 * 1024 // 15 MB upper bound
 const MAX_TEXT_CHARS = 200_000 // guard against absurd paste sizes
 
 type NormalizedInput = {
-  kind: 'text' | 'excel' | 'csv' | 'pdf'
+  kind: 'text' | 'excel' | 'csv' | 'pdf' | 'image'
   /** Human-readable representation that will be embedded in the model prompt */
   body: string
+  /** Image bytes when kind==='image' (sent multimodally to a vision model). */
+  imageBuffer?: Buffer
+  imageMimeType?: string
   /** Original filename, if any */
   filename?: string
   /** Truncation flag so the caller can surface a warning */
   truncated: boolean
+}
+
+const VISION_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/webp',
+  'image/gif',
+  'image/heic',
+  'image/heif',
+])
+
+class EmptyPdfError extends Error {
+  constructor(filename: string) {
+    super(
+      `Could not read text from "${filename}" — the PDF looks like a scan with no text layer. Export the pages as images (PNG/JPG) and upload those instead.`
+    )
+    this.name = 'EmptyPdfError'
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -108,17 +130,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!normalized || normalized.body.trim().length === 0) {
+    if (!normalized) {
       return NextResponse.json(
         { error: 'Provide either pasted text or a file to import' },
         { status: 400 }
       )
     }
+    // Images don't carry a text body — everything else must, though, or the
+    // model has nothing to extract from.
+    if (normalized.kind !== 'image' && normalized.body.trim().length === 0) {
+      return NextResponse.json(
+        { error: 'The input is empty — paste some text or upload a file with content' },
+        { status: 400 }
+      )
+    }
 
     const keys = await getResolvedAiKeys(user.id)
-    // Intent: 'balanced' = Gemini 3 Flash / Sonnet / GPT-5 mini.
-    // Caller can bump to 'powerful' for complex programs.
-    const resolved = resolveModel(keys, intentOverride ?? 'balanced')
+    // Images always need a vision-capable model. All three providers' "powerful"
+    // tier (Gemini 3.1 Pro / Opus 4.6 / GPT-5.4) support vision, so bumping
+    // intent to 'powerful' is the right behavior regardless of caller override.
+    const intent =
+      normalized.kind === 'image' ? 'powerful' : intentOverride ?? 'balanced'
+    const resolved = resolveModel(keys, intent)
     if (!resolved) {
       return NextResponse.json(
         {
@@ -132,12 +165,32 @@ export async function POST(request: NextRequest) {
     const model = createModelInstance(resolved)
     const prompt = buildPrompt(normalized)
 
-    const { text: aiOutput } = await generateText({
-      model,
-      system: SYSTEM_PROMPT,
-      prompt,
-      temperature: 0.1,
-    })
+    const { text: aiOutput } =
+      normalized.kind === 'image' && normalized.imageBuffer
+        ? await generateText({
+            model,
+            system: SYSTEM_PROMPT,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: prompt },
+                  {
+                    type: 'image',
+                    image: normalized.imageBuffer,
+                    mediaType: normalized.imageMimeType || 'image/png',
+                  },
+                ],
+              },
+            ],
+            temperature: 0.1,
+          })
+        : await generateText({
+            model,
+            system: SYSTEM_PROMPT,
+            prompt,
+            temperature: 0.1,
+          })
 
     // Validate the result is actually parseable so we don't hand the editor
     // something it will choke on. We don't block on validation failure — the
@@ -182,6 +235,23 @@ async function normalizeFile(file: File): Promise<NormalizedInput> {
   const lower = name.toLowerCase()
   const type = file.type || ''
 
+  // Images — routed to a vision-capable model rather than parsed server-side.
+  // We cover screenshots, photos of whiteboards, handwritten notes, etc.
+  if (
+    VISION_MIME_TYPES.has(type) ||
+    /\.(png|jpe?g|webp|gif|heic|heif)$/i.test(lower)
+  ) {
+    const buf = Buffer.from(await file.arrayBuffer())
+    return {
+      kind: 'image',
+      body: `IMAGE: ${name}`,
+      imageBuffer: buf,
+      imageMimeType: type || guessImageMimeFromName(lower),
+      filename: name,
+      truncated: false,
+    }
+  }
+
   // Excel
   if (
     lower.endsWith('.xlsx') ||
@@ -205,6 +275,13 @@ async function normalizeFile(file: File): Promise<NormalizedInput> {
   if (lower.endsWith('.pdf') || type === 'application/pdf') {
     const buf = Buffer.from(await file.arrayBuffer())
     const body = await pdfToText(buf, name)
+    // Scanned PDFs come back with essentially no text. pdf-parse gives us
+    // whitespace at best. Fail fast with a helpful hint rather than sending
+    // an empty prompt to the model and getting a confused response back.
+    const textLength = body.replace(/\bPDF FILE:[^\n]+\n\n/, '').trim().length
+    if (textLength < 40) {
+      throw new EmptyPdfError(name)
+    }
     return maybeTruncate({ kind: 'pdf', body, filename: name })
   }
 
@@ -224,6 +301,14 @@ function maybeTruncate(
     return { ...n, body: n.body.slice(0, MAX_TEXT_CHARS), truncated: true }
   }
   return { ...n, truncated: false }
+}
+
+function guessImageMimeFromName(lower: string): string {
+  if (lower.endsWith('.png')) return 'image/png'
+  if (lower.endsWith('.webp')) return 'image/webp'
+  if (lower.endsWith('.gif')) return 'image/gif'
+  if (lower.endsWith('.heic') || lower.endsWith('.heif')) return 'image/heic'
+  return 'image/jpeg'
 }
 
 async function excelToText(buf: Buffer): Promise<string> {
@@ -367,5 +452,17 @@ function buildPrompt(input: NormalizedInput): string {
   const truncWarning = input.truncated
     ? '\n\nNOTE: Input was truncated at 200k chars. Use what is available.'
     : ''
+
+  if (input.kind === 'image') {
+    return (
+      `${header}\n\nThe user has uploaded an image of a training program (screenshot, ` +
+      `photo of a whiteboard, page from a PDF, or handwritten notes). Read the ` +
+      `image carefully, including any handwriting, tables, abbreviations, and ` +
+      `non-English/Swedish text. If the image is low quality or partially ` +
+      `unreadable, use what you can and list the uncertain parts in the ` +
+      `top-level "notes" field.\n\nExtract the program JSON now.`
+    )
+  }
+
   return `${header}${truncWarning}\n\nInput:\n"""\n${input.body}\n"""\n\nExtract the program JSON now.`
 }
