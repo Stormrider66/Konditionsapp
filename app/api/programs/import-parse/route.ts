@@ -213,11 +213,20 @@ export async function POST(request: NextRequest) {
     }
 
     const keys = await getResolvedAiKeys(aiKeyOwnerId)
-    // Images always need a vision-capable model. All three providers' "powerful"
-    // tier (Gemini 3.1 Pro / Opus 4.6 / GPT-5.4) support vision, so bumping
-    // intent to 'powerful' is the right behavior regardless of caller override.
-    const intent =
-      normalized.kind === 'image' ? 'powerful' : intentOverride ?? 'balanced'
+    // Model routing:
+    //   - Images always route to a vision-capable model (all three providers'
+    //     'powerful' tier supports vision).
+    //   - Rich text inputs (> 30k chars of post-normalization body) auto-
+    //     bump to 'powerful' unless the caller explicitly asked for 'fast'.
+    //     Gemini Flash will happily truncate mid-JSON on 30+ exercise
+    //     programs; Pro/Opus/GPT-5.4 handle the load reliably.
+    //   - Otherwise honour the caller's choice, defaulting to 'balanced'.
+    const intent: ModelIntent =
+      normalized.kind === 'image'
+        ? 'powerful'
+        : normalized.body.length > 30_000 && intentOverride !== 'fast'
+          ? 'powerful'
+          : intentOverride ?? 'balanced'
     const resolved = resolveModel(keys, intent)
     if (!resolved) {
       return NextResponse.json(
@@ -487,6 +496,16 @@ async function excelToText(buf: Buffer): Promise<string> {
     sheet.eachRow({ includeEmpty: false }, (row) => {
       const cells: string[] = []
       row.eachCell({ includeEmpty: true }, (cell) => {
+        // Merged cells: only emit the value on the master (top-left) cell.
+        // exceljs's "Merge" value type marks non-master cells, which would
+        // otherwise duplicate the same value N times and inflate prompt size.
+        if (
+          cell.type === ExcelJS.ValueType.Merge ||
+          (cell.isMerged && cell.master && cell.master !== cell)
+        ) {
+          cells.push('')
+          return
+        }
         const v = cell.value
         if (v == null) {
           cells.push('')
@@ -506,9 +525,9 @@ async function excelToText(buf: Buffer): Promise<string> {
           cells.push(String(v))
         }
       })
-      rows.push(cells)
+      // Drop wholly empty rows so the model doesn't see trailing whitespace.
+      if (cells.some((c) => c.length > 0)) rows.push(cells)
     })
-    // Render as markdown-ish table so the model sees structure clearly
     if (rows.length > 0) {
       const width = Math.max(...rows.map((r) => r.length))
       for (const r of rows) {
@@ -542,7 +561,7 @@ You will receive a training program in one of these forms: plain text, a CSV dum
   "name": string,                         // the program name; invent a concise one if missing
   "description": string,                  // short summary (1-2 sentences)
   "totalWeeks": number,                   // total training weeks
-  "methodology"?: string,                 // e.g. "polarized", "80/20", "Canova" — optional
+  "methodology"?: string,                 // e.g. "polarized", "80/20", "Canova", "linear progression (2-for-2)"
   "weeklySchedule"?: {
     "sessionsPerWeek": number,
     "restDays"?: number[]                 // 0=Monday, 6=Sunday
@@ -558,9 +577,9 @@ You will receive a training program in one of these forms: plain text, a CSV dum
           |
           {
             "type": "RUNNING"|"CYCLING"|"SWIMMING"|"STRENGTH"|"CROSS_TRAINING"|"HYROX"|"SKIING"|"CORE"|"PLYOMETRIC"|"RECOVERY"|"ALTERNATIVE"|"OTHER",
-            "name"?: string,
-            "duration"?: number,          // total minutes
-            "distance"?: number,          // total km
+            "name"?: string,               // session label, e.g. "Pass A - Knäböj fokus"
+            "duration"?: number,           // total minutes
+            "distance"?: number,           // total km
             "zone"?: number|string,
             "description": string,
             "intensity"?: "recovery"|"easy"|"moderate"|"threshold"|"interval"|"max"|"hard"|"race_pace",
@@ -570,17 +589,21 @@ You will receive a training program in one of these forms: plain text, a CSV dum
                 "type": "warmup"|"work"|"interval"|"cooldown"|"rest"|"exercise",
                 "duration"?: number,
                 "distance"?: number,
-                "pace"?: string,          // "5:00/km"
-                "zone"?: number,          // 1-5
+                "pace"?: string,           // "5:00/km"
+                "zone"?: number,           // 1-5
                 "heartRate"?: string,
                 "power"?: number,
                 "reps"?: number,
-                "exerciseId"?: string,
+                "exerciseName"?: string,   // clean human name, e.g. "Knäböj (bar)" — NOT "Knäböj 5x5 @ 60kg"
                 "sets"?: number,
-                "repsCount"?: string,     // "10" or "10-12" or "AMRAP"
-                "weight"?: string,
-                "tempo"?: string,
-                "rest"?: number,          // seconds
+                "repsCount"?: string,      // "5" or "10-12" or "AMRAP" or "30 s"
+                "weight"?: string,         // single-value weight when no per-week variation
+                "weightByWeek"?: { "1": "60 kg", "2": "65 kg", ... },  // per-week load progression
+                "rpe"?: number | string,   // "7" or "7-8" or "RPE 7 (3 RIR)"
+                "rir"?: number | string,   // reps-in-reserve target if source specifies one
+                "muscleGroup"?: string,    // "Quadriceps/Glutes", "Rygg", "Bröst"
+                "tempo"?: string,          // "3-1-X" eccentric-pause-concentric
+                "rest"?: number,           // seconds between sets
                 "section"?: "WARMUP"|"MAIN"|"CORE"|"COOLDOWN",
                 "description"?: string,
                 "notes"?: string
@@ -595,21 +618,45 @@ You will receive a training program in one of these forms: plain text, a CSV dum
       },
       "volumeGuidance"?: string,
       "keyWorkouts"?: string[],
+      "progressionRule"?: string,          // e.g. "2-for-2: add load when 2 extra reps clear"
       "notes"?: string
     }
   ],
   "notes"?: string
 }
 
-Rules:
+Extraction rules — read carefully, these are where most imports fail:
+
+COVERAGE
 - Output ONLY the JSON object, no prose before or after, no code fences.
-- Every phase must list at least one day in weeklyTemplate, even if the input only describes a representative week.
-- ALWAYS populate "exerciseName" on segments of type "exercise" with the clearest human-readable name from the source (e.g. "Back Squat", "Knäböj", "Bench Press"). NEVER invent an "exerciseId" — leave that field out entirely; we map names to IDs in a separate step.
-- Strip rep/set/weight clutter from "exerciseName": prefer "Back Squat" over "Back Squat 3x8 @ 80kg" (the counts belong in sets/repsCount/weight).
-- Split intervals into segments: "5×1km @ 3:40 with 90s rest" becomes a warmup + 5 work + 4 rest + cooldown segments (or a single work segment with reps=5 if the detail is not in the source).
-- Preserve the source program's language in "name", "description", "focus" etc. — do NOT translate to English.
-- If the source is ambiguous, make reasonable assumptions and list them in the top-level "notes" field.
-- Do not invent weeks or sessions that are not implied by the source.`
+- Capture EVERY session the source describes. If the source spells out Monday + Wednesday + Friday across 2 weeks, you must emit all 6 sessions — not a "representative" one.
+- Capture EVERY exercise in EVERY session. Never summarize with "... and other exercises" or stop partway through.
+- Preserve the source's language in "name", "description", "focus", "notes" etc. Do NOT translate to English.
+- Do not invent weeks or sessions that are not implied by the source.
+
+PER-WEEK VARIATION — two common patterns, handle both:
+- If every week runs the same template but with different loads (e.g. Excel with "V1 Belastning" and "V2 Belastning" columns for the same exercise), emit ONE phase covering all those weeks and use segment.weightByWeek = { "1": "60 kg", "2": "65 kg", ... }.
+- If weeks run STRUCTURALLY different templates (e.g. V1 = A-B-A schedule, V2 = B-A-B schedule), emit a SEPARATE phase for each week. Phase.weeks = "1" for week 1, "2" for week 2, etc. Each phase gets its own weeklyTemplate reflecting that week's actual session layout.
+
+EXERCISE NAMES & STRENGTH DATA
+- On segments where type == "exercise" ALWAYS populate exerciseName. Use the cleanest human-readable form — "Back Squat", "Knäböj (bar)", "Bench Press". Strip rep/set/weight clutter: prefer "Back Squat" over "Back Squat 3x8 @ 80 kg".
+- NEVER invent an exerciseId — leave that field out entirely; we map names to IDs in a separate step.
+- Populate rpe, rir, tempo, muscleGroup, rest whenever the source mentions them. These fields are where rich programs live or die.
+- Use repsCount for ambiguous rep schemes ("10-12", "AMRAP", "30 s", "max") and reps only when the source gives a single integer.
+
+WARMUPS
+- If the source has a warmup protocol (e.g. "5 min cardio + dynamic mobility + ramp-up"), emit it as warmup-type segments at the START of each affected session.
+
+INTERVALS
+- Split structured intervals: "5×1km @ 3:40 with 90s rest" = warmup + 5 work + 4 rest + cooldown segments, OR a single work segment with reps=5 if the source lacks that detail.
+
+METHODOLOGY
+- If the source describes a named progression rule ("2-for-2", "double progression", "linear periodization"), capture it in phase.progressionRule AND in program.methodology when it applies globally.
+- If the source has a large volume landmark table, RPE/RIR reference, or monitoring decision tree, summarize the key takeaways into phase.notes or program.notes rather than dropping them — coaches come back looking for that context.
+
+AMBIGUITY
+- If the source is unclear on a field, omit the field rather than guessing. Note the uncertainty in the nearest notes field.
+- If a field clearly applies but the source hasn't said explicitly (e.g. "bench press" with no equipment), still emit exerciseName — downstream mapping will resolve it.`
 
 function buildPrompt(input: NormalizedInput): string {
   const header = `Source type: ${input.kind}${input.filename ? ` (${input.filename})` : ''}`

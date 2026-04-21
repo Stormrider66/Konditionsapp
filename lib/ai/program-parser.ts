@@ -24,6 +24,19 @@ const WorkoutSegmentSchema = z.object({
   sets: z.number().optional(),
   repsCount: z.string().optional(), // "10" or "10-12" or "AMRAP"
   weight: z.string().optional(), // "80kg" or "BW" or "50% 1RM"
+  // Per-week weight progression. Keys are week numbers ("1", "2", …) so a
+  // single segment can carry the whole progression when the source spells
+  // it out (e.g. Excel with "V1: 60 kg" and "V2: 65 kg" columns).
+  weightByWeek: z.record(z.string(), z.string()).optional(),
+  // RPE (Rate of Perceived Exertion). Accept number, range, or phrase so we
+  // can round-trip "RPE 7", "RPE 7-8", "Hård men stabil" without losing info.
+  rpe: z.union([z.number(), z.string()]).optional(),
+  // RIR (Reps in Reserve). Same flexibility as rpe.
+  rir: z.union([z.number(), z.string()]).optional(),
+  // Target muscle group as labelled by the source ("Quadriceps/Glutes",
+  // "Rygg", etc). Informational — progression/effectiveness tracking is
+  // driven by Exercise.biomechanicalPillar once exerciseId resolves.
+  muscleGroup: z.string().optional(),
   tempo: z.string().optional(), // "3-1-1"
   rest: z.number().optional(), // seconds between sets
   section: z.enum(['WARMUP', 'MAIN', 'CORE', 'COOLDOWN']).optional(),
@@ -92,6 +105,9 @@ const PhaseSchema = z.object({
   weeklyTemplate: z.record(z.string(), DayTemplateSchema).optional(),
   volumeGuidance: z.string().optional(),
   keyWorkouts: z.array(z.string()).optional(),
+  // Free-form description of the progression rule this phase follows
+  // (e.g. "2-for-2 linear progression", "double progression 8-12 reps").
+  progressionRule: z.string().optional(),
   notes: z.string().optional()
 });
 
@@ -694,8 +710,9 @@ function generateWeeksFromPhases(
     const weekEndDate = new Date(weekStartDate);
     weekEndDate.setDate(weekEndDate.getDate() + 6);
 
-    // Generate days for this week
-    const daysData = generateDaysFromTemplate(template, weekStartDate);
+    // Generate days for this week — passing weekNumber lets segments pull
+    // the right entry from weightByWeek when present.
+    const daysData = generateDaysFromTemplate(template, weekStartDate, weekNum);
 
     weeks.push({
       weekNumber: weekNum,
@@ -726,6 +743,24 @@ function findPhaseForWeek(phases: ParsedPhase[], weekNumber: number): ParsedPhas
   return phases[phases.length - 1]; // Default to last phase
 }
 
+/**
+ * The parser schema captures rpe / rir / muscleGroup as first-class fields,
+ * but the current WorkoutSegment DB table doesn't have columns for them
+ * (planned follow-up). Until the columns land, we prepend them to the
+ * segment's notes so coaches see "RPE 7 · RIR 2 · Quads/Glutes — original
+ * notes…" in the workout view instead of losing the data entirely.
+ */
+function mergeNotes(seg: ParsedWorkoutSegment): string | undefined {
+  const tags: string[] = []
+  if (seg.rpe != null && seg.rpe !== '') tags.push(`RPE ${seg.rpe}`)
+  if (seg.rir != null && seg.rir !== '') tags.push(`RIR ${seg.rir}`)
+  if (seg.muscleGroup) tags.push(seg.muscleGroup)
+  const tagLine = tags.length > 0 ? tags.join(' · ') : ''
+  const source = seg.notes?.trim() ?? ''
+  if (tagLine && source) return `${tagLine} — ${source}`
+  return tagLine || source || undefined
+}
+
 // Detailed segment type for database
 interface DbSegment {
   order: number;
@@ -747,29 +782,42 @@ interface DbSegment {
 }
 
 /**
- * Convert AI segments to database-ready format
+ * Convert AI segments to database-ready format.
+ *
+ * When the parsed segment carries a weightByWeek map (e.g. "V1: 60 kg,
+ * V2: 65 kg"), we resolve the right value for the current week so each
+ * materialized week lands with the correct load without the coach having
+ * to re-enter it manually.
  */
-function convertSegmentsToDbFormat(workout: ParsedWorkout): DbSegment[] {
+function convertSegmentsToDbFormat(
+  workout: ParsedWorkout,
+  weekNumber?: number
+): DbSegment[] {
   // If workout has detailed segments, use them directly
   if (workout.segments && workout.segments.length > 0) {
-    return workout.segments.map((seg) => ({
-      order: seg.order,
-      type: seg.type,
-      duration: seg.duration,
-      distance: seg.distance,
-      pace: seg.pace,
-      zone: seg.zone,
-      heartRate: seg.heartRate,
-      power: seg.power,
-      reps: seg.reps,
-      sets: seg.sets,
-      repsCount: seg.repsCount,
-      weight: seg.weight,
-      tempo: seg.tempo,
-      rest: seg.rest,
-      description: seg.description,
-      notes: seg.notes,
-    }));
+    return workout.segments.map((seg) => {
+      const weekKey = weekNumber != null ? String(weekNumber) : undefined
+      const weightForWeek =
+        weekKey && seg.weightByWeek ? seg.weightByWeek[weekKey] : undefined
+      return {
+        order: seg.order,
+        type: seg.type,
+        duration: seg.duration,
+        distance: seg.distance,
+        pace: seg.pace,
+        zone: seg.zone,
+        heartRate: seg.heartRate,
+        power: seg.power,
+        reps: seg.reps,
+        sets: seg.sets,
+        repsCount: seg.repsCount,
+        weight: weightForWeek ?? seg.weight,
+        tempo: seg.tempo,
+        rest: seg.rest,
+        description: seg.description,
+        notes: mergeNotes(seg),
+      }
+    });
   }
 
   // Convert legacy intervals to segments
@@ -877,7 +925,8 @@ function convertSegmentsToDbFormat(workout: ParsedWorkout): DbSegment[] {
  */
 function generateDaysFromTemplate(
   template?: Record<string, z.infer<typeof DayTemplateSchema>>,
-  weekStartDate?: Date
+  weekStartDate?: Date,
+  weekNumber?: number
 ): Array<{
   dayNumber: number;
   date: Date;
@@ -926,7 +975,7 @@ function generateDaysFromTemplate(
       });
     } else {
       const workout = dayTemplate as ParsedWorkout;
-      const segments = convertSegmentsToDbFormat(workout);
+      const segments = convertSegmentsToDbFormat(workout, weekNumber);
 
       days.push({
         dayNumber: i + 1, // 1-7 instead of 0-6

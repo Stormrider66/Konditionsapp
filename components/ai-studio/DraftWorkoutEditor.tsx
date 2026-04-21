@@ -819,16 +819,57 @@ export function DraftWorkoutEditor({
                             <div className="mt-2 grid grid-cols-12 gap-2">
                               {isStrength ? (
                                 <>
-                                  <div className="col-span-4">
-                                    <Label className="text-xs">Tempo (e.g. 3-1-1)</Label>
+                                  <div className="col-span-3">
+                                    <Label className="text-xs">RPE</Label>
+                                    <Input
+                                      value={
+                                        segment.rpe == null
+                                          ? ''
+                                          : String(segment.rpe)
+                                      }
+                                      onChange={(e) =>
+                                        handleUpdateSegment(index, 'rpe', e.target.value)
+                                      }
+                                      className="h-9 mt-1"
+                                      placeholder="7 eller 7-8"
+                                    />
+                                  </div>
+                                  <div className="col-span-3">
+                                    <Label className="text-xs">RIR</Label>
+                                    <Input
+                                      value={
+                                        segment.rir == null
+                                          ? ''
+                                          : String(segment.rir)
+                                      }
+                                      onChange={(e) =>
+                                        handleUpdateSegment(index, 'rir', e.target.value)
+                                      }
+                                      className="h-9 mt-1"
+                                      placeholder="2"
+                                    />
+                                  </div>
+                                  <div className="col-span-3">
+                                    <Label className="text-xs">Tempo</Label>
                                     <Input
                                       value={segment.tempo || ''}
                                       onChange={(e) => handleUpdateSegment(index, 'tempo', e.target.value)}
                                       className="h-9 mt-1"
-                                      placeholder="Tempo"
+                                      placeholder="3-1-X"
                                     />
                                   </div>
-                                  <div className="col-span-4">
+                                  <div className="col-span-3">
+                                    <Label className="text-xs">Muskelgrupp</Label>
+                                    <Input
+                                      value={segment.muscleGroup || ''}
+                                      onChange={(e) =>
+                                        handleUpdateSegment(index, 'muscleGroup', e.target.value)
+                                      }
+                                      className="h-9 mt-1"
+                                      placeholder="Quads, Rygg…"
+                                    />
+                                  </div>
+                                  <div className="col-span-6">
                                     <Label className="text-xs">Tid (min)</Label>
                                     <Input
                                       type="number"
@@ -844,7 +885,7 @@ export function DraftWorkoutEditor({
                                       placeholder="Minuter"
                                     />
                                   </div>
-                                  <div className="col-span-4">
+                                  <div className="col-span-6">
                                     <Label className="text-xs">Reps (interval count)</Label>
                                     <Input
                                       type="number"
@@ -860,6 +901,33 @@ export function DraftWorkoutEditor({
                                       placeholder="Antal"
                                     />
                                   </div>
+                                  {segment.weightByWeek &&
+                                    Object.keys(segment.weightByWeek).length > 0 && (
+                                      <div className="col-span-12">
+                                        <Label className="text-xs">
+                                          Belastning per vecka
+                                        </Label>
+                                        <div className="mt-1 flex flex-wrap gap-2 rounded border bg-muted/30 p-2">
+                                          {Object.entries(segment.weightByWeek)
+                                            .sort(
+                                              ([a], [b]) =>
+                                                parseInt(a, 10) - parseInt(b, 10)
+                                            )
+                                            .map(([wk, val]) => (
+                                              <Badge
+                                                key={wk}
+                                                variant="outline"
+                                                className="text-[10px]"
+                                              >
+                                                V{wk}: {val}
+                                              </Badge>
+                                            ))}
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground mt-1">
+                                          Varje vecka får sin egen belastning när programmet sparas.
+                                        </p>
+                                      </div>
+                                    )}
                                 </>
                               ) : (
                                 <>
