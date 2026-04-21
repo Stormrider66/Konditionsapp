@@ -85,12 +85,23 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
       callerUserId = resolved.user.id
-      // AI keys for athletes live on their coach record.
+      // AI keys for athletes live on their coach record. Direct athletes
+      // (no coach) can't use the importer — fail loudly rather than silently
+      // falling back to the athlete's own (empty) key set.
       const client = await prisma.client.findUnique({
         where: { id: resolved.clientId },
         select: { userId: true },
       })
-      aiKeyOwnerId = client?.userId ?? resolved.user.id
+      if (!client?.userId || client.userId === resolved.user.id) {
+        return NextResponse.json(
+          {
+            error:
+              'The program importer requires a coach account with AI keys. Ask your coach to enable it, or contact support if you believe this is an error.',
+          },
+          { status: 400 }
+        )
+      }
+      aiKeyOwnerId = client.userId
     }
 
     const limited = await rateLimitJsonResponse('programs:import-parse', callerUserId, {
@@ -268,7 +279,9 @@ async function normalizeFile(file: File): Promise<NormalizedInput> {
       kind: 'image',
       body: `IMAGE: ${name}`,
       imageBuffer: buf,
-      imageMimeType: type || guessImageMimeFromName(lower),
+      // Extension wins over browser-provided type: iOS/macOS sometimes labels
+      // HEIC uploads as image/jpeg which would silently break the vision call.
+      imageMimeType: resolveImageMimeType(lower, type),
       filename: name,
       truncated: false,
     }
@@ -331,6 +344,24 @@ function guessImageMimeFromName(lower: string): string {
   if (lower.endsWith('.gif')) return 'image/gif'
   if (lower.endsWith('.heic') || lower.endsWith('.heif')) return 'image/heic'
   return 'image/jpeg'
+}
+
+/**
+ * Pick the right mime type for an image upload, preferring file-extension
+ * truth over browser-provided `type`. iPhone/macOS browsers sometimes label
+ * HEIC uploads as image/jpeg and other mislabels happen too; the extension
+ * is authoritative when it disagrees with the header.
+ */
+function resolveImageMimeType(lower: string, browserType: string): string {
+  const byName = guessImageMimeFromName(lower)
+  if (!browserType) return byName
+  // HEIC/HEIF mislabelled as JPEG is the common case.
+  if ((byName === 'image/heic' || byName === 'image/heif') && browserType !== byName) {
+    return byName
+  }
+  // WebP mislabelled as JPEG is less common but has been seen on Safari.
+  if (byName === 'image/webp' && browserType === 'image/jpeg') return byName
+  return browserType
 }
 
 async function excelToText(buf: Buffer): Promise<string> {

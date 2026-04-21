@@ -120,15 +120,20 @@ export async function POST(request: NextRequest) {
       : { coachId: null }
     const aliasRows = await prisma.exerciseNameAlias.findMany({
       where: aliasWhere,
-      select: { alias: true, exerciseId: true, coachId: true },
+      select: { alias: true, exerciseId: true, coachId: true, createdAt: true },
+    })
+    // Precedence: system-wide first so coach-scoped overwrites; within the
+    // same scope, older first so the most-recent write wins. Sorting in
+    // memory keeps the intent explicit regardless of Postgres NULL ordering
+    // quirks between providers.
+    aliasRows.sort((a, b) => {
+      if (a.coachId === null && b.coachId !== null) return -1
+      if (a.coachId !== null && b.coachId === null) return 1
+      return a.createdAt.getTime() - b.createdAt.getTime()
     })
     const aliasMap = new Map<string, string>()
     for (const r of aliasRows) {
-      const key = r.alias.toLowerCase()
-      // Coach-scoped overrides null on conflict.
-      if (!aliasMap.has(key) || r.coachId !== null) {
-        aliasMap.set(key, r.exerciseId)
-      }
+      aliasMap.set(r.alias.toLowerCase(), r.exerciseId)
     }
     const aliasHits = new Map<string, string>()
     for (const name of uniqueNames) {

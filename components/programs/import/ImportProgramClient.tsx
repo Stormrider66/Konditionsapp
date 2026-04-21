@@ -168,6 +168,11 @@ export function ImportProgramClient({
     selfOnly && clients.length === 1 ? clients[0].id : ''
   )
   const [publishOpen, setPublishOpen] = useState(false)
+  // Frozen snapshot of the program JSON captured the moment Publish was clicked.
+  // We build it from (a) the edited draft the preview hands back on publish and
+  // (b) the current exercise mappings — so preview edits can't drift from what
+  // actually gets saved to the database.
+  const [publishContent, setPublishContent] = useState<string>('')
 
   const dropRef = useRef<HTMLDivElement>(null)
 
@@ -192,13 +197,10 @@ export function ImportProgramClient({
   const totalExercises = resolutions.length
   const mappedCount = totalExercises - needsMapping.length
 
-  // Final aiOutput used for publish — source of truth stays `parseResult.aiOutput`,
-  // mappings are layered in only at publish time so the preview stays stable.
-  const publishOutput = useMemo(() => {
-    if (!parseResult) return ''
-    if (Object.keys(mappings).length === 0) return parseResult.aiOutput
-    return applyExerciseMappings(parseResult.aiOutput, mappings)
-  }, [parseResult, mappings])
+  // `publishContent` is computed at click-time inside handlePublishClick so
+  // the preview's edited draft flows through. The useMemo variant we had
+  // before only layered mappings on `parseResult.aiOutput`, which silently
+  // lost any edits the coach made in EnhancedProgramPreview.
 
   const setMapping = (name: string, id: string | null) => {
     setMappings((prev) => {
@@ -310,8 +312,14 @@ export function ImportProgramClient({
       setMappings(auto)
     } catch {
       // Non-fatal — exercises just stay as free text until the coach maps
-      // them or edits in the preview. Keep UX moving.
+      // them or edits in the preview. Surface a gentle toast so the coach
+      // knows why the mapping panel is empty.
       setResolutions([])
+      toast({
+        title: 'Kunde inte matcha övningar',
+        description:
+          'Övningskopplingen är inte tillgänglig just nu. Du kan fortfarande publicera — övningarna stannar som fritext och kan mappas senare.',
+      })
     } finally {
       setResolving(false)
     }
@@ -326,7 +334,7 @@ export function ImportProgramClient({
     setMappings({})
   }
 
-  const handlePublishClick = () => {
+  const handlePublishClick = (currentDraftJson: string) => {
     if (!selectedAthleteId) {
       toast({
         title: 'Välj en atlet',
@@ -335,6 +343,13 @@ export function ImportProgramClient({
       })
       return
     }
+    // The preview hands back the live draft (including any inline edits).
+    // Layer exercise mappings on top so learned / picked IDs persist to DB.
+    const mapped =
+      Object.keys(mappings).length === 0
+        ? currentDraftJson
+        : applyExerciseMappings(currentDraftJson, mappings)
+    setPublishContent(mapped)
     setPublishOpen(true)
   }
 
@@ -670,14 +685,14 @@ export function ImportProgramClient({
             </div>
           </div>
 
-          {selectedAthlete && (
+          {selectedAthlete && publishContent && (
             <PublishProgramDialog
               open={publishOpen}
               onOpenChange={setPublishOpen}
-              programName={extractProgramName(parseResult.aiOutput)}
+              programName={extractProgramName(publishContent)}
               athleteId={selectedAthlete.id}
               athleteName={selectedAthlete.name}
-              aiOutput={publishOutput}
+              aiOutput={publishContent}
               onSuccess={(programId) => {
                 toast({
                   title: 'Programmet publicerades',

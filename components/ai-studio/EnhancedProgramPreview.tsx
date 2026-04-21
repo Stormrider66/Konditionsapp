@@ -73,7 +73,13 @@ interface EnhancedProgramPreviewProps {
   coachName?: string | null
   conversationId?: string | null
   onProgramSaved?: (programId: string) => void
-  onPublish?: () => void
+  /**
+   * Called when the coach clicks "Publicera". Receives the current draft
+   * serialized as JSON so callers can pipe edits-in-place straight into
+   * whatever publish / save endpoint they own, without having to plumb
+   * back through the parent's original `content` string.
+   */
+  onPublish?: (currentDraftJson: string) => void
   onFixFormat?: () => void
   isFixingFormat?: boolean
 }
@@ -1084,7 +1090,13 @@ export function EnhancedProgramPreview({
                   Spara utkast
                 </Button>
                 <Button
-                  onClick={onPublish}
+                  onClick={() => {
+                    if (!onPublish) return
+                    // Serialize the live draft (user edits included) so the
+                    // caller's save path sees the current state, not the
+                    // original AI output this component was hydrated with.
+                    onPublish(JSON.stringify(draft))
+                  }}
                   disabled={!athleteId || isIncomplete}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
