@@ -179,6 +179,11 @@ These two edge cases affect product scope but are narrow enough to hold for a se
    - **Why it matters:** determines whether features like weekly-TSS summaries, ACWR zone, readiness category can be sent to external AI for narrative generation, or whether the full chain stays self-hosted.
    - **Current working assumption:** any Garmin-in-lineage output is treated as Garmin-derived (safest stance) until Marc draws a clearer line.
 
+5. **Hybrid architecture — per-user routing.** Is it acceptable to run a dual-track AI architecture where non-Garmin-connected users continue to use external AI providers (Anthropic / Google / OpenAI via BYOK) with their own data, while users who have ever been connected to Garmin Connect are routed exclusively through self-hosted inference for any flow touching their data? The rule would prohibit Garmin data from reaching external AI, not running external AI at all.
+   - **Why it matters:** determines whether non-Garmin users retain the full frontier-model experience, or whether the entire platform must be moved to self-hosted. Huge product and cost implication.
+   - **Current working assumption:** per-user routing is acceptable because the rule targets *where Garmin data goes*, not *where external AI runs*. Routing signal = "athlete has ever had Garmin data ingested" (sticky flag; does not reset on disconnect since historical data persists in our DB).
+   - **Edge case to state clearly in the question:** when a coach views a team or aggregates data across multiple athletes, if any one of those athletes has Garmin history the whole request is routed self-hosted. We over-route to be safe rather than under-route.
+
 ---
 
 ## Part 6 — Execution order (once Marc confirms)
@@ -200,3 +205,103 @@ These two edge cases affect product scope but are narrow enough to hold for a se
 - Webhook source: `apps/garmin-webhook/`, `lib/integrations/garmin/webhook-service.ts`
 - Ingest source: `lib/integrations/garmin/client.ts`, `lib/integrations/garmin/sync.ts`
 - AI surface: `lib/ai/`, `app/api/ai/`
+
+---
+
+## Appendix A — Cost model (100 athletes)
+
+All numbers are order-of-magnitude estimates for infrastructure planning. Refine after real usage data lands.
+
+### Assumptions per active athlete per month
+
+| Feature | Calls/mo | Avg input tokens | Avg output tokens |
+|---|---|---|---|
+| WOD generation | 15 | 3,000 | 2,000 |
+| Athlete chat | 20 turns | 4,000 | 1,000 |
+| Morning briefing | 20 | 2,000 | 500 |
+| Nutrition plan | 3 | 2,000 | 3,000 |
+| Performance analysis | 3 (amortized) | 8,000 | 2,000 |
+| Program generation | 0.3 (amortized, 12-wk plans) | ~50,000 | ~40,000 |
+| Voice coaching | 4 sessions × 30 min | — | — |
+
+**Aggregate: ~500k–1M tokens/month per active athlete for text AI, plus ~120 min/month of real-time audio.** Midpoint used below: 750k tokens/athlete/month.
+
+### Scenario 1 — 100 athletes, all non-Garmin (external providers, BYOK)
+
+Trainomics routes all inference through user-supplied Anthropic / Google / OpenAI API keys via the existing `ModelIntent` system (`fast` / `balanced` / `powerful`).
+
+Typical distribution: 60% fast / 30% balanced / 10% powerful.
+
+| Tier | Model examples | Blended $/M tokens | Usage (100 athletes) | Cost |
+|---|---|---|---|---|
+| Fast | Haiku 4.5, Gemini Flash, GPT-5.3 Instant | ~$0.40 avg | 45M tokens | $18 |
+| Balanced | Sonnet 4.6, Gemini Pro, GPT-5 Mini | ~$6 avg | 22.5M tokens | $135 |
+| Powerful | Opus 4.6, GPT-5.4 | ~$30 avg | 7.5M tokens | $225 |
+| Voice (Gemini Live) | Gemini 3.1 Flash Live | audio tokens | 200 hours | ~$345 |
+| **Total text + voice** | | | | **~$720/mo** |
+
+- **Per athlete: ~$7/mo**
+- **Trainomics' direct cost: $0** (BYOK — users pay their own provider bills)
+- **User's perceived cost:** typically bundled into their own Anthropic/Google/OpenAI account — a few USD each
+
+### Scenario 2 — 100 athletes, all Garmin-connected (self-hosted)
+
+All AI for these users must run on self-hosted OSS models. Cloud Run GPU, scale-to-zero.
+
+**Text inference (Gemma 3/4 27B on NVIDIA L4):**
+- Throughput: ~60 tokens/sec on L4 with Q4 quantization
+- Volume: 75M tokens/mo across 100 athletes
+- Active GPU time: 75M ÷ 60/sec ÷ 3600 = **~350 GPU-hours/month**
+
+Wait — that's a lot. Let me recheck. 75M tokens at 60 tok/s = 1.25M seconds = 347 hours. Yes, ~350 hours/month.
+
+- L4 pricing: ~$0.45/GPU-hour on Cloud Run
+- **Text cost: 350 × $0.45 = ~$158/mo**
+- Plus CPU/memory surcharge (~$0.10/hr): ~$35/mo
+- **Subtotal text: ~$193/mo for 100 athletes = $1.93/athlete/mo**
+
+This is higher than my first quick estimate — at 100 active athletes you're using the GPU a meaningful fraction of the day. If usage concentrates at certain hours (morning briefings, WOD generation sessions) you'll also need concurrency, potentially multiple GPU instances briefly.
+
+**Voice coaching options for Garmin users:**
+
+| Option | Trainomics cost/mo | Notes |
+|---|---|---|
+| (a) Strip HR from Gemini Live, keep external | $0 (user BYOK) | Garmin user loses HR feedback in voice; otherwise identical |
+| (b) Self-hosted voice pipeline (Whisper + Gemma + TTS) | ~$80–150/mo | 2-4x latency of Gemini Live; UX noticeably slower |
+| (c) Disable voice coaching for Garmin users | $0 | Worst UX but simplest |
+
+**Recommended: option (a).** Strip the HR stream when athlete is Garmin-connected, keep Gemini Live for the voice itself (no Garmin data in the payload). Users retain low-latency voice, lose only real-time HR feedback.
+
+**Total Scenario 2 direct cost to Trainomics: ~$193/mo for 100 Garmin athletes = ~$1.93/athlete/mo.**
+
+### Scenario 3 — Realistic hybrid (the actual plan)
+
+Assume X% of 100 athletes are Garmin-connected. Non-Garmin users are BYOK (Trainomics cost = $0); Garmin users go self-hosted (Trainomics cost scales with X).
+
+| Garmin % | Garmin athletes | Self-hosted GPU cost to Trainomics | Non-Garmin BYOK cost (user-paid) |
+|---|---|---|---|
+| 0% | 0 | $0 | 100 × $7 = $700 user-paid |
+| 10% | 10 | ~$20/mo | 90 × $7 = $630 user-paid |
+| 25% | 25 | ~$50/mo | 75 × $7 = $525 user-paid |
+| 50% | 50 | ~$100/mo | 50 × $7 = $350 user-paid |
+| 100% | 100 | ~$193/mo | $0 |
+
+### Scenario 4 — If Marc rejects hybrid (all self-hosted)
+
+Worst case: everything runs on Cloud Run GPU regardless of user's Garmin status.
+
+- 100 athletes × ~$1.93/athlete/mo = **~$193/mo direct cost**
+- Users no longer need external API keys — BYOK becomes optional/nice-to-have
+- Loss of frontier-model quality for all 28 feature categories, not just Garmin users
+
+### One-time costs
+
+- **Self-hosted inference service build-out:** ~1 week of engineering (Cloud Run GPU setup, Dockerfile with Gemma weights, HTTP API, health checks)
+- **Routing boundary + sticky flag migration:** ~1 week (add `hasGarminHistory` field, wrapper around AI client, context-builder integration)
+- **Voice coaching rework (if option a chosen):** ~2–3 days (device-brand detection, HR-stream gate)
+- **Quality validation against real prompts:** ~1 week (sample prompts, A/B comparison, manual review)
+- **Container registry storage for Gemma 27B image:** ~$0.50/mo (≈15 GB image)
+
+### Headline takeaway
+
+At 100 athletes, even 100% Garmin adoption costs Trainomics less than **$200/mo** in direct inference costs. The hybrid architecture keeps non-Garmin users on frontier models with zero marginal Trainomics cost. The cost constraint is not why you'd avoid this rework — the reason to think twice is engineering time and the quality delta for complex tasks (program generation), not infrastructure cost.
