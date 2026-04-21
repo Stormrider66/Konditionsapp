@@ -517,16 +517,58 @@ async function excelToText(buf: Buffer): Promise<string> {
   const wb = new ExcelJS.Workbook()
   await wb.xlsx.load(buf as unknown as ArrayBuffer)
 
-  const out: string[] = []
+  /**
+   * Flatten any cell value into a single-line string. Multi-line cell
+   * content (common in "overview" sheets that stuff a whole session into
+   * one cell) otherwise breaks the markdown-table structure the AI sees —
+   * newlines inside the cell would be interpreted as new rows and the `|`
+   * separators downstream get misaligned. Replace with " · " so the content
+   * survives as one logical row.
+   */
+  const toCell = (v: unknown): string => {
+    let raw: string
+    if (v == null) raw = ''
+    else if (typeof v === 'object' && 'richText' in (v as object)) {
+      raw = (v as { richText: { text: string }[] }).richText
+        .map((r) => r.text)
+        .join('')
+    } else if (typeof v === 'object' && 'result' in (v as object)) {
+      const r = (v as { result: unknown }).result
+      raw = r == null ? '' : String(r)
+    } else if (v instanceof Date) {
+      raw = v.toISOString().slice(0, 10)
+    } else {
+      raw = String(v)
+    }
+    return raw
+      .replace(/\r\n|\r|\n/g, ' · ')
+      .replace(/\s+/g, ' ')
+      .replace(/\|/g, '\\|')
+      .trim()
+  }
+
+  // Collect sheets with a "looks like a detail table" score so we can render
+  // the authoritative per-exercise sheets first. The AI weights earlier
+  // content more heavily under token pressure.
+  interface RenderedSheet {
+    name: string
+    rows: string[][]
+    score: number // higher = more likely the per-exercise detail table
+  }
+  const rendered: RenderedSheet[] = []
+
+  const DETAIL_HEADERS = [
+    'övning', 'ovning', 'exercise',
+    'set x reps', 'sets x reps', 'sets', 'reps',
+    'rpe', 'rir', 'belastning', 'weight', 'vila', 'rest', 'tempo',
+    'muskelgrupp', 'muscle group',
+  ]
+
   wb.eachSheet((sheet) => {
-    out.push(`# Sheet: ${sheet.name}`)
     const rows: string[][] = []
     sheet.eachRow({ includeEmpty: false }, (row) => {
       const cells: string[] = []
       row.eachCell({ includeEmpty: true }, (cell) => {
-        // Merged cells: only emit the value on the master (top-left) cell.
-        // exceljs's "Merge" value type marks non-master cells, which would
-        // otherwise duplicate the same value N times and inflate prompt size.
         if (
           cell.type === ExcelJS.ValueType.Merge ||
           (cell.isMerged && cell.master && cell.master !== cell)
@@ -534,37 +576,40 @@ async function excelToText(buf: Buffer): Promise<string> {
           cells.push('')
           return
         }
-        const v = cell.value
-        if (v == null) {
-          cells.push('')
-        } else if (typeof v === 'object' && 'richText' in v) {
-          cells.push(
-            (v as { richText: { text: string }[] }).richText
-              .map((r) => r.text)
-              .join('')
-          )
-        } else if (typeof v === 'object' && 'result' in v) {
-          // formula result
-          const r = (v as { result: unknown }).result
-          cells.push(r == null ? '' : String(r))
-        } else if (v instanceof Date) {
-          cells.push(v.toISOString().slice(0, 10))
-        } else {
-          cells.push(String(v))
-        }
+        cells.push(toCell(cell.value))
       })
-      // Drop wholly empty rows so the model doesn't see trailing whitespace.
       if (cells.some((c) => c.length > 0)) rows.push(cells)
     })
+
+    // Score: count how many known detail-table header tokens appear in the
+    // first 6 rows of the sheet.
+    const header = rows
+      .slice(0, 6)
+      .flat()
+      .map((c) => c.toLowerCase())
+    const score = DETAIL_HEADERS.reduce(
+      (n, kw) => (header.some((c) => c.includes(kw)) ? n + 1 : n),
+      0
+    )
+    rendered.push({ name: sheet.name, rows, score })
+  })
+
+  // Highest-scoring sheets first; stable otherwise so order within a score
+  // tier matches workbook order.
+  rendered.sort((a, b) => b.score - a.score)
+
+  const out: string[] = []
+  for (const { name, rows, score } of rendered) {
+    out.push(`# Sheet: ${name}${score >= 3 ? ' (detail table — AUTHORITATIVE)' : ''}`)
     if (rows.length > 0) {
       const width = Math.max(...rows.map((r) => r.length))
       for (const r of rows) {
         while (r.length < width) r.push('')
-        out.push('| ' + r.map((c) => c.replace(/\|/g, '\\|')).join(' | ') + ' |')
+        out.push('| ' + r.join(' | ') + ' |')
       }
     }
     out.push('')
-  })
+  }
   return out.join('\n')
 }
 
