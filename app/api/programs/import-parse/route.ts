@@ -20,8 +20,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import { requireCoach, resolveAthleteClientId } from '@/lib/auth-utils'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
+import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { resolveModel, type ModelIntent, isModelIntent } from '@/types/ai-models'
@@ -69,9 +70,30 @@ class EmptyPdfError extends Error {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireCoach()
+    // Dual-auth: coaches import for their athletes, athletes import for
+    // themselves. Athletes borrow their coach's AI keys, same pattern as
+    // other athlete-facing AI features in the app.
+    let callerUserId: string
+    let aiKeyOwnerId: string
+    try {
+      const coach = await requireCoach()
+      callerUserId = coach.id
+      aiKeyOwnerId = coach.id
+    } catch {
+      const resolved = await resolveAthleteClientId()
+      if (!resolved) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      callerUserId = resolved.user.id
+      // AI keys for athletes live on their coach record.
+      const client = await prisma.client.findUnique({
+        where: { id: resolved.clientId },
+        select: { userId: true },
+      })
+      aiKeyOwnerId = client?.userId ?? resolved.user.id
+    }
 
-    const limited = await rateLimitJsonResponse('programs:import-parse', user.id, {
+    const limited = await rateLimitJsonResponse('programs:import-parse', callerUserId, {
       limit: 20,
       windowSeconds: 60,
     })
@@ -145,7 +167,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const keys = await getResolvedAiKeys(user.id)
+    const keys = await getResolvedAiKeys(aiKeyOwnerId)
     // Images always need a vision-capable model. All three providers' "powerful"
     // tier (Gemini 3.1 Pro / Opus 4.6 / GPT-5.4) support vision, so bumping
     // intent to 'powerful' is the right behavior regardless of caller override.

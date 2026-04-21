@@ -5,7 +5,8 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Clock, ArrowRight, CheckCircle2, Play } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Calendar, Clock, ArrowRight, CheckCircle2, Play, Upload } from 'lucide-react'
 import { format, differenceInWeeks, isWithinInterval } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import {
@@ -179,12 +180,22 @@ export default async function BusinessAthleteProgramsPage({ params }: BusinessPr
   return (
     <div className="min-h-screen pb-20 pt-10 px-4 max-w-4xl mx-auto">
       <div className="mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
-        <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none mb-4 transition-colors">
-          Mina <span className="text-blue-600 dark:text-blue-500 italic">Program</span>
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400 font-medium text-sm max-w-md transition-colors">
-          Alla dina träningsprogram samlade på ett ställe. Följ din utveckling och se kommande utmaningar.
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none mb-4 transition-colors">
+              Mina <span className="text-blue-600 dark:text-blue-500 italic">Program</span>
+            </h1>
+            <p className="text-slate-600 dark:text-slate-400 font-medium text-sm max-w-md transition-colors">
+              Alla dina träningsprogram samlade på ett ställe. Följ din utveckling och se kommande utmaningar.
+            </p>
+          </div>
+          <Link href={`${basePath}/athlete/programs/import`} className="shrink-0">
+            <Button size="lg" variant="outline" className="w-full sm:w-auto">
+              <Upload className="mr-2 h-5 w-5" />
+              Importera program
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {programs.length === 0 ? (

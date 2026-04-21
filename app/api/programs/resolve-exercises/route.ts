@@ -22,6 +22,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 
@@ -97,10 +98,29 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Access scope: same as the main exercise list endpoint.
-    const accessWhere: Prisma.ExerciseWhereInput = hasCoachAccess
-      ? { OR: [{ isPublic: true }, { coachId: user.id }] }
-      : { OR: [{ isPublic: true }] }
+    // Access scope mirrors the main /api/exercises endpoint: coaches and
+    // admins see public + their own, athletes see public + their coach's.
+    let accessWhere: Prisma.ExerciseWhereInput
+    if (user.role === 'ADMIN') {
+      accessWhere = {}
+    } else if (hasCoachAccess) {
+      accessWhere = { OR: [{ isPublic: true }, { coachId: user.id }] }
+    } else if (user.role === 'ATHLETE') {
+      const resolved = await resolveAthleteClientId()
+      let coachId: string | undefined
+      if (resolved) {
+        const client = await prisma.client.findUnique({
+          where: { id: resolved.clientId },
+          select: { userId: true },
+        })
+        coachId = client?.userId ?? undefined
+      }
+      accessWhere = coachId
+        ? { OR: [{ isPublic: true }, { coachId }] }
+        : { OR: [{ isPublic: true }] }
+    } else {
+      accessWhere = { OR: [{ isPublic: true }] }
+    }
 
     const orClauses: Prisma.ExerciseWhereInput[] = []
     for (const t of tokens) {

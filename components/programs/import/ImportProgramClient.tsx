@@ -63,6 +63,18 @@ interface ClientOption {
 interface ImportProgramClientProps {
   clients: ClientOption[]
   basePath: string
+  /**
+   * When true, auto-selects the single client in the list and hides the
+   * "Tilldela atlet" card. Used by the athlete-side importer where the
+   * only valid target is the athlete themselves.
+   */
+  selfOnly?: boolean
+  /**
+   * Route fragment that follows basePath when redirecting to a saved
+   * program. Defaults to "/programs/:id" for coaches; athletes pass
+   * the athlete-flavored path.
+   */
+  programDetailPath?: (basePath: string, programId: string) => string
 }
 
 type ParseResponse = {
@@ -117,7 +129,12 @@ const INTENT_OPTIONS: { value: ModelIntent; label: string; hint: string }[] = [
   },
 ]
 
-export function ImportProgramClient({ clients, basePath }: ImportProgramClientProps) {
+export function ImportProgramClient({
+  clients,
+  basePath,
+  selfOnly = false,
+  programDetailPath,
+}: ImportProgramClientProps) {
   const { toast } = useToast()
   const router = useRouter()
 
@@ -126,6 +143,14 @@ export function ImportProgramClient({ clients, basePath }: ImportProgramClientPr
   const [file, setFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [intent, setIntent] = useState<ModelIntent>('balanced')
+
+  const resolveProgramPath = useCallback(
+    (programId: string) => {
+      if (programDetailPath) return programDetailPath(basePath, programId)
+      return `${basePath}/programs/${programId}`
+    },
+    [basePath, programDetailPath]
+  )
 
   const [parsing, setParsing] = useState(false)
   const [parseResult, setParseResult] = useState<ParseResponse | null>(null)
@@ -139,7 +164,9 @@ export function ImportProgramClient({ clients, basePath }: ImportProgramClientPr
   const [resolutions, setResolutions] = useState<Resolution[]>([])
   const [mappings, setMappings] = useState<ExerciseMappings>({})
 
-  const [selectedAthleteId, setSelectedAthleteId] = useState<string>('')
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>(
+    selfOnly && clients.length === 1 ? clients[0].id : ''
+  )
   const [publishOpen, setPublishOpen] = useState(false)
 
   const dropRef = useRef<HTMLDivElement>(null)
@@ -529,45 +556,59 @@ export function ImportProgramClient({ clients, basePath }: ImportProgramClientPr
                 athleteName={selectedAthlete?.name || null}
                 onPublish={handlePublishClick}
                 onProgramSaved={(programId) => {
-                  router.push(`${basePath}/programs/${programId}`)
+                  router.push(resolveProgramPath(programId))
                 }}
               />
             </div>
             <div className="space-y-4">
-              <Card className="h-fit">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Tilldela atlet</CardTitle>
-                  <CardDescription className="text-xs">
-                    Välj vem programmet ska publiceras till.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Select
-                    value={selectedAthleteId}
-                    onValueChange={setSelectedAthleteId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Välj atlet…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.length === 0 ? (
-                        <div className="px-2 py-1 text-sm text-muted-foreground">
-                          Inga atleter funna
-                        </div>
-                      ) : (
-                        clients.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Använd &quot;Publicera&quot;-knappen i editorn när du är klar.
-                  </p>
-                </CardContent>
-              </Card>
+              {!selfOnly && (
+                <Card className="h-fit">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Tilldela atlet</CardTitle>
+                    <CardDescription className="text-xs">
+                      Välj vem programmet ska publiceras till.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Select
+                      value={selectedAthleteId}
+                      onValueChange={setSelectedAthleteId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Välj atlet…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.length === 0 ? (
+                          <div className="px-2 py-1 text-sm text-muted-foreground">
+                            Inga atleter funna
+                          </div>
+                        ) : (
+                          clients.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Använd &quot;Publicera&quot;-knappen i editorn när du är klar.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+              {selfOnly && (
+                <Card className="h-fit border-blue-200 bg-blue-50/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Ditt program</CardTitle>
+                    <CardDescription className="text-xs">
+                      När du publicerar landar programmet i din kalender och
+                      ersätter inte pågående program — du kan alltid gå tillbaka
+                      och ändra.
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              )}
 
               {(resolving || totalExercises > 0) && (
                 <Card className="h-fit">
@@ -632,7 +673,7 @@ export function ImportProgramClient({ clients, basePath }: ImportProgramClientPr
                   title: 'Programmet publicerades',
                   description: 'Öppnar programvyn…',
                 })
-                router.push(`${basePath}/programs/${programId}`)
+                router.push(resolveProgramPath(programId))
               }}
             />
           )}
