@@ -1,0 +1,331 @@
+/**
+ * Exercise Name Resolver — shared service
+ *
+ * Given a batch of human-readable exercise names, return top-k candidates from
+ * a scoped Exercise pool with a confidence score. Used by both
+ * /api/programs/resolve-exercises (standalone) and /api/programs/import-parse
+ * (one-shot pipeline).
+ *
+ * Responsibilities:
+ *   1. Short-circuit via coach-scoped or system-wide alias hits (score=1).
+ *   2. Fetch a candidate Exercise pool in a single query, filtered to what
+ *      the caller can see (accessWhere) and restricted to names that still
+ *      need fuzzy matching after the alias pass.
+ *   3. Score per-name in memory with a tiered heuristic: exact > prefix /
+ *      suffix > all-tokens-present > majority-tokens > single-token overlap.
+ */
+
+import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
+
+const MAX_NAMES_PER_REQUEST = 200
+const AUTO_ASSIGN_THRESHOLD = 0.95
+const POOL_CAP = 500
+
+export interface ResolveHints {
+  categoryHint?: string
+  pillarHint?: string
+}
+
+export interface Candidate {
+  id: string
+  name: string
+  nameSv?: string | null
+  nameEn?: string | null
+  category?: string | null
+  biomechanicalPillar?: string | null
+  equipment?: string | null
+  score: number
+}
+
+export interface Resolution {
+  name: string
+  bestMatch: Candidate | null
+  candidates: Candidate[]
+}
+
+export interface ResolveExercisesInput {
+  names: string[]
+  /** Which coach's aliases contribute. null = only system-wide aliases. */
+  aliasOwnerId: string | null
+  /** Prisma where clause scoping the candidate Exercise pool. */
+  accessWhere: Prisma.ExerciseWhereInput
+  hints?: ResolveHints
+}
+
+/** Run the resolver against a precomputed access scope and alias owner. */
+export async function resolveExercises(
+  input: ResolveExercisesInput
+): Promise<{ resolutions: Resolution[] }> {
+  const { aliasOwnerId, accessWhere, hints } = input
+
+  const uniqueNames = Array.from(
+    new Set(
+      (input.names ?? [])
+        .map((n) => (typeof n === 'string' ? n.trim() : ''))
+        .filter((n) => n.length > 0)
+    )
+  ).slice(0, MAX_NAMES_PER_REQUEST)
+
+  if (uniqueNames.length === 0) {
+    return { resolutions: [] }
+  }
+
+  // ─── Alias short-circuit ──────────────────────────────────────────────
+  const aliasWhere: Prisma.ExerciseNameAliasWhereInput = aliasOwnerId
+    ? { OR: [{ coachId: aliasOwnerId }, { coachId: null }] }
+    : { coachId: null }
+
+  const aliasRows = await prisma.exerciseNameAlias.findMany({
+    where: aliasWhere,
+    select: { alias: true, exerciseId: true, coachId: true, createdAt: true },
+  })
+  // Precedence: system-wide first so coach-scoped overwrites; within the same
+  // scope, older first so the most-recent write wins.
+  aliasRows.sort((a, b) => {
+    if (a.coachId === null && b.coachId !== null) return -1
+    if (a.coachId !== null && b.coachId === null) return 1
+    return a.createdAt.getTime() - b.createdAt.getTime()
+  })
+  const aliasMap = new Map<string, string>()
+  for (const r of aliasRows) {
+    aliasMap.set(r.alias.toLowerCase(), r.exerciseId)
+  }
+
+  const aliasHits = new Map<string, string>()
+  for (const name of uniqueNames) {
+    const hit = aliasMap.get(name.toLowerCase())
+    if (hit) aliasHits.set(name, hit)
+  }
+
+  // Fetch full Exercise rows for alias-hit IDs so we can render rich
+  // Candidate shapes. Single round-trip.
+  const aliasExerciseIds = Array.from(new Set(aliasHits.values()))
+  const aliasExerciseRows = aliasExerciseIds.length
+    ? await prisma.exercise.findMany({
+        where: { id: { in: aliasExerciseIds } },
+        select: {
+          id: true,
+          name: true,
+          nameSv: true,
+          nameEn: true,
+          category: true,
+          biomechanicalPillar: true,
+          equipment: true,
+        },
+      })
+    : []
+  const aliasExerciseById = new Map(aliasExerciseRows.map((e) => [e.id, e]))
+
+  const namesForFuzzy = uniqueNames.filter((n) => !aliasHits.has(n))
+
+  // ─── Fuzzy candidate pool ─────────────────────────────────────────────
+  const fuzzyTokenSet = new Set<string>()
+  for (const n of namesForFuzzy) {
+    for (const t of tokenize(n)) fuzzyTokenSet.add(t)
+  }
+  const orClauses: Prisma.ExerciseWhereInput[] = []
+  for (const t of fuzzyTokenSet) {
+    orClauses.push({ name: { contains: t, mode: 'insensitive' } })
+    orClauses.push({ nameSv: { contains: t, mode: 'insensitive' } })
+    orClauses.push({ nameEn: { contains: t, mode: 'insensitive' } })
+  }
+
+  const pool = orClauses.length
+    ? await prisma.exercise.findMany({
+        where: { AND: [accessWhere, { OR: orClauses }] },
+        select: {
+          id: true,
+          name: true,
+          nameSv: true,
+          nameEn: true,
+          category: true,
+          biomechanicalPillar: true,
+          equipment: true,
+        },
+        take: POOL_CAP,
+      })
+    : []
+
+  const resolutions: Resolution[] = uniqueNames.map((name) => {
+    const aliased = aliasHits.get(name)
+    if (aliased) {
+      const ex = aliasExerciseById.get(aliased)
+      if (ex) {
+        const c: Candidate = {
+          id: ex.id,
+          name: ex.name,
+          nameSv: ex.nameSv,
+          nameEn: ex.nameEn,
+          category: ex.category,
+          biomechanicalPillar: ex.biomechanicalPillar,
+          equipment: ex.equipment,
+          score: 1,
+        }
+        return { name, bestMatch: c, candidates: [c] }
+      }
+    }
+
+    const scored = pool
+      .map<Candidate>((ex) => {
+        const base = bestNameScore(name, ex)
+        let score = base
+        if (hints?.categoryHint && ex.category && hints.categoryHint === ex.category) {
+          score += 0.02
+        }
+        if (
+          hints?.pillarHint &&
+          ex.biomechanicalPillar &&
+          hints.pillarHint === ex.biomechanicalPillar
+        ) {
+          score += 0.02
+        }
+        return {
+          id: ex.id,
+          name: ex.name,
+          nameSv: ex.nameSv,
+          nameEn: ex.nameEn,
+          category: ex.category,
+          biomechanicalPillar: ex.biomechanicalPillar,
+          equipment: ex.equipment,
+          score: Math.min(1, score),
+        }
+      })
+      .filter((c) => c.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+
+    const bestMatch =
+      scored[0] && scored[0].score >= AUTO_ASSIGN_THRESHOLD ? scored[0] : null
+    return { name, bestMatch, candidates: scored }
+  })
+
+  return { resolutions }
+}
+
+// ─── Scoring helpers ────────────────────────────────────────────────────────
+
+const STOP_WORDS = new Set([
+  'reps',
+  'rep',
+  'set',
+  'sets',
+  'min',
+  'sek',
+  'sec',
+  'kg',
+  'lbs',
+  'st',
+  'av',
+  'för',
+  'per',
+  'with',
+  'and',
+  'the',
+  'at',
+])
+
+function tokenize(s: string): string[] {
+  return s
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter(
+      (t) =>
+        t.length >= 2 &&
+        !/^\d+x?\d*$/.test(t) &&
+        !STOP_WORDS.has(t)
+    )
+}
+
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function bestNameScore(
+  query: string,
+  exercise: { name: string; nameSv?: string | null; nameEn?: string | null }
+): number {
+  const candidates = [exercise.name, exercise.nameSv, exercise.nameEn].filter(
+    (v): v is string => typeof v === 'string' && v.length > 0
+  )
+  let best = 0
+  for (const c of candidates) {
+    const s = pairScore(query, c)
+    if (s > best) best = s
+  }
+  return best
+}
+
+function pairScore(query: string, candidate: string): number {
+  const q = normalize(query)
+  const c = normalize(candidate)
+  if (!q || !c) return 0
+
+  if (q === c) return 1
+  if (c.startsWith(q) || c.endsWith(q) || q.startsWith(c) || q.endsWith(c)) {
+    const ratio = Math.min(q.length, c.length) / Math.max(q.length, c.length)
+    return 0.8 + 0.15 * ratio
+  }
+
+  const qTokens = tokenize(query)
+  const cTokens = new Set(tokenize(candidate))
+  if (qTokens.length === 0 || cTokens.size === 0) return 0
+
+  const present = qTokens.filter((t) => cTokens.has(t))
+  const coverage = present.length / qTokens.length
+  const inverse = present.length / cTokens.size
+
+  if (coverage === 1) return 0.75 + 0.1 * inverse
+  if (coverage >= 0.6) return 0.55 + 0.15 * coverage
+  if (coverage > 0 && present.some((t) => t.length >= 4)) return 0.4 * coverage + 0.1
+  return 0
+}
+
+// ─── Access-scope helpers ───────────────────────────────────────────────────
+
+/**
+ * Derive both the Exercise-pool access scope and the alias-owner id from the
+ * three user contexts we care about: admin, coach, athlete. Returns the same
+ * shape regardless of role so callers can share the resolver service.
+ */
+export async function deriveExerciseResolverScope(params: {
+  userId: string
+  userRole: string
+  hasCoachAccess: boolean
+  athleteClientId?: string | null
+}): Promise<{
+  accessWhere: Prisma.ExerciseWhereInput
+  aliasOwnerId: string | null
+}> {
+  const { userId, userRole, hasCoachAccess, athleteClientId } = params
+
+  if (userRole === 'ADMIN') {
+    return { accessWhere: {}, aliasOwnerId: userId }
+  }
+  if (hasCoachAccess) {
+    return {
+      accessWhere: { OR: [{ isPublic: true }, { coachId: userId }] },
+      aliasOwnerId: userId,
+    }
+  }
+  if (userRole === 'ATHLETE' && athleteClientId) {
+    const client = await prisma.client.findUnique({
+      where: { id: athleteClientId },
+      select: { userId: true },
+    })
+    const coachId = client?.userId ?? undefined
+    return {
+      accessWhere: coachId
+        ? { OR: [{ isPublic: true }, { coachId }] }
+        : { OR: [{ isPublic: true }] },
+      aliasOwnerId: coachId ?? null,
+    }
+  }
+  return { accessWhere: { OR: [{ isPublic: true }] }, aliasOwnerId: null }
+}

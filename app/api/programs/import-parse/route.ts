@@ -28,13 +28,44 @@ import { logger } from '@/lib/logger'
 import { resolveModel, type ModelIntent, isModelIntent } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
 import { generateText } from 'ai'
+import { createHash } from 'node:crypto'
 import { parseAIProgram } from '@/lib/ai/program-parser'
+import { extractExerciseNames } from '@/lib/ai/program-exercise-resolver'
+import {
+  resolveExercises,
+  type Resolution,
+} from '@/lib/ai/exercise-resolver'
+import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
 
 const MAX_FILE_BYTES = 15 * 1024 * 1024 // 15 MB upper bound
 const MAX_TEXT_CHARS = 200_000 // guard against absurd paste sizes
+
+// Parse responses are expensive (AI round-trip + optional vision). Cache by
+// a hash of the exact input so re-uploading the same Excel or pasting the
+// same text twice is free. Shared via Upstash when configured, falls back
+// to an in-process LRU. 1h TTL — long enough to cover an iteration cycle,
+// short enough that coaches tweaking the source file get fresh runs.
+const PARSE_CACHE_TTL_MS = 60 * 60 * 1000
+const parseCache = createDistributedJsonCache<{
+  aiOutput: string
+  modelDisplayName: string
+}>('programs:import-parse:v1')
+
+function computeCacheKey(
+  body: string,
+  imageBuffer: Buffer | undefined,
+  intent: string,
+  modelId: string
+): string {
+  const h = createHash('sha256')
+  h.update(intent).update('|').update(modelId).update('|')
+  if (imageBuffer) h.update(imageBuffer)
+  else h.update(body)
+  return h.digest('hex')
+}
 
 type NormalizedInput = {
   kind: 'text' | 'excel' | 'csv' | 'pdf' | 'image'
@@ -198,32 +229,54 @@ export async function POST(request: NextRequest) {
     const model = createModelInstance(resolved)
     const prompt = buildPrompt(normalized)
 
-    const { text: aiOutput } =
-      normalized.kind === 'image' && normalized.imageBuffer
-        ? await generateText({
-            model,
-            system: SYSTEM_PROMPT,
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: prompt },
-                  {
-                    type: 'image',
-                    image: normalized.imageBuffer,
-                    mediaType: normalized.imageMimeType || 'image/png',
-                  },
-                ],
-              },
-            ],
-            temperature: 0.1,
-          })
-        : await generateText({
-            model,
-            system: SYSTEM_PROMPT,
-            prompt,
-            temperature: 0.1,
-          })
+    // Cache lookup — identical input + model returns the prior parse.
+    const cacheKey = computeCacheKey(
+      normalized.body,
+      normalized.imageBuffer,
+      intent,
+      resolved.modelId
+    )
+    let aiOutput: string
+    let cacheHit = false
+    const cached = await parseCache.get(cacheKey)
+    if (cached) {
+      aiOutput = cached.payload.aiOutput
+      cacheHit = true
+    } else {
+      const result =
+        normalized.kind === 'image' && normalized.imageBuffer
+          ? await generateText({
+              model,
+              system: SYSTEM_PROMPT,
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'text', text: prompt },
+                    {
+                      type: 'image',
+                      image: normalized.imageBuffer,
+                      mediaType: normalized.imageMimeType || 'image/png',
+                    },
+                  ],
+                },
+              ],
+              temperature: 0.1,
+            })
+          : await generateText({
+              model,
+              system: SYSTEM_PROMPT,
+              prompt,
+              temperature: 0.1,
+            })
+      aiOutput = result.text
+      const expiresAt = Date.now() + PARSE_CACHE_TTL_MS
+      await parseCache.set(cacheKey, {
+        expiresAt,
+        staleUntil: expiresAt,
+        payload: { aiOutput, modelDisplayName: resolved.displayName },
+      })
+    }
 
     // Validate the result is actually parseable so we don't hand the editor
     // something it will choke on. We don't block on validation failure — the
@@ -242,6 +295,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // One-shot: resolve exercises server-side too so the client gets both
+    // the parsed program and the mapping candidates in a single round-trip.
+    // Resolver failure is non-fatal — we still ship the parse.
+    let resolutions: Resolution[] = []
+    try {
+      const names = extractExerciseNames(aiOutput)
+      if (names.length > 0) {
+        const res = await resolveExercises({
+          names,
+          aliasOwnerId: aiKeyOwnerId,
+          accessWhere: {
+            OR: [{ isPublic: true }, { coachId: aiKeyOwnerId }],
+          },
+        })
+        resolutions = res.resolutions
+      }
+    } catch (e) {
+      logger.error('Exercise resolver failed during import-parse', {}, e)
+      warnings.push(
+        'Exercise auto-matching was unavailable; you can map exercises manually in the review panel.'
+      )
+    }
+
     return NextResponse.json({
       success: true,
       aiOutput,
@@ -249,6 +325,8 @@ export async function POST(request: NextRequest) {
       warnings,
       modelUsed: resolved.displayName,
       inputKind: normalized.kind,
+      resolutions,
+      cached: cacheHit,
     })
   } catch (error: unknown) {
     logger.error('Program import-parse failed', {}, error)

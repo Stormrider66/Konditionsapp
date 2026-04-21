@@ -83,7 +83,12 @@ type ParseResponse = {
   parsedOk: boolean
   warnings: string[]
   modelUsed: string
-  inputKind: 'text' | 'excel' | 'csv' | 'pdf'
+  inputKind: 'text' | 'excel' | 'csv' | 'pdf' | 'image'
+  /**
+   * Exercise resolutions computed server-side in the same call. Present when
+   * the parse produced at least one strength segment with an exerciseName.
+   */
+  resolutions?: Resolution[]
 }
 
 interface Candidate {
@@ -155,6 +160,7 @@ export function ImportProgramClient({
   const [parsing, setParsing] = useState(false)
   const [parseResult, setParseResult] = useState<ParseResponse | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
+  const [fixingFormat, setFixingFormat] = useState(false)
 
   // Exercise mapping state (Phase 2). `mappings[name] = exerciseId`. Includes
   // both auto-assigned high-confidence matches and user-picked ones. Applied
@@ -163,6 +169,14 @@ export function ImportProgramClient({
   const [resolving, setResolving] = useState(false)
   const [resolutions, setResolutions] = useState<Resolution[]>([])
   const [mappings, setMappings] = useState<ExerciseMappings>({})
+  // Names the coach explicitly skipped — persisted across re-scans this session
+  // so they don't pop back into the mapping panel every time a new segment is
+  // added in the preview editor.
+  const [skippedNames, setSkippedNames] = useState<Set<string>>(new Set())
+  // Latest draft from EnhancedProgramPreview. Updated continuously so the
+  // re-scan button can resolve exercises against in-place edits, not just the
+  // original AI output.
+  const [latestDraftJson, setLatestDraftJson] = useState<string>('')
 
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>(
     selfOnly && clients.length === 1 ? clients[0].id : ''
@@ -189,13 +203,15 @@ export function ImportProgramClient({
   // coach can still choose between cost tiers.
   const fileIsImage = isImageFile(file)
 
-  // Derived: resolutions whose name still isn't mapped to an ID.
+  // Derived: resolutions whose name still isn't mapped to an ID and hasn't
+  // been explicitly skipped by the coach.
   const needsMapping = useMemo(
-    () => resolutions.filter((r) => !mappings[r.name]),
-    [resolutions, mappings]
+    () => resolutions.filter((r) => !mappings[r.name] && !skippedNames.has(r.name)),
+    [resolutions, mappings, skippedNames]
   )
   const totalExercises = resolutions.length
-  const mappedCount = totalExercises - needsMapping.length
+  const mappedCount = resolutions.filter((r) => !!mappings[r.name]).length
+  const skippedCount = resolutions.filter((r) => skippedNames.has(r.name)).length
 
   // `publishContent` is computed at click-time inside handlePublishClick so
   // the preview's edited draft flows through. The useMemo variant we had
@@ -257,20 +273,20 @@ export function ImportProgramClient({
         throw new Error(data?.error || 'Kunde inte tolka programmet')
       }
 
-      setParseResult(data as ParseResponse)
-      // Kick off exercise resolution in the background — auto-map high
-      // confidence matches so the coach only sees what actually needs a
-      // decision.
-      void resolveExercises((data as ParseResponse).aiOutput)
-      if ((data as ParseResponse).warnings.length > 0) {
+      const typedData = data as ParseResponse
+      setParseResult(typedData)
+      // Resolutions come back in the same payload now — apply them right away
+      // so auto-maps land without a second round-trip.
+      applyResolutions(typedData.resolutions ?? [])
+      if (typedData.warnings.length > 0) {
         toast({
           title: 'Importen är klar — läs varningarna',
-          description: (data as ParseResponse).warnings[0],
+          description: typedData.warnings[0],
         })
       } else {
         toast({
           title: 'Program importerat',
-          description: `Modell: ${(data as ParseResponse).modelUsed}. Granska i editorn nedan.`,
+          description: `Modell: ${typedData.modelUsed}. Granska i editorn nedan.`,
         })
       }
     } catch (e) {
@@ -286,8 +302,23 @@ export function ImportProgramClient({
     }
   }
 
-  const resolveExercises = async (aiOutput: string) => {
-    const names = extractExerciseNames(aiOutput)
+  /** Merge a resolution batch into local state — auto-map high confidence. */
+  const applyResolutions = (next: Resolution[]) => {
+    setResolutions(next)
+    const auto: ExerciseMappings = {}
+    for (const r of next) {
+      if (r.bestMatch) auto[r.name] = r.bestMatch.id
+    }
+    setMappings(auto)
+  }
+
+  /**
+   * Re-run exercise resolution against the current program (used by the
+   * "Scanna igen" button after the coach has edited the preview to add new
+   * strength segments). Hits the standalone resolver endpoint.
+   */
+  const rescanExercises = async (sourceJson: string) => {
+    const names = extractExerciseNames(sourceJson)
     if (names.length === 0) {
       setResolutions([])
       setMappings({})
@@ -302,18 +333,8 @@ export function ImportProgramClient({
       })
       if (!res.ok) throw new Error('Resolver request failed')
       const data = (await res.json()) as { resolutions: Resolution[] }
-      setResolutions(data.resolutions ?? [])
-      // Auto-assign every bestMatch. The coach can override any of these in
-      // the panel below if they disagree.
-      const auto: ExerciseMappings = {}
-      for (const r of data.resolutions ?? []) {
-        if (r.bestMatch) auto[r.name] = r.bestMatch.id
-      }
-      setMappings(auto)
+      applyResolutions(data.resolutions ?? [])
     } catch {
-      // Non-fatal — exercises just stay as free text until the coach maps
-      // them or edits in the preview. Surface a gentle toast so the coach
-      // knows why the mapping panel is empty.
       setResolutions([])
       toast({
         title: 'Kunde inte matcha övningar',
@@ -325,6 +346,57 @@ export function ImportProgramClient({
     }
   }
 
+  /**
+   * "Fixa format" recovery. Re-runs parse at the 'powerful' intent tier to
+   * get a vision-capable, higher-reasoning model to try again. Reuses the
+   * original input (pastedText or file) still held in state.
+   */
+  const handleFixFormat = async () => {
+    if (!hasInput) return
+    setFixingFormat(true)
+    setParseError(null)
+    try {
+      let response: Response
+      if (tab === 'upload' && file) {
+        const form = new FormData()
+        form.append('file', file)
+        form.append('intent', 'powerful')
+        response = await fetch('/api/programs/import-parse', {
+          method: 'POST',
+          body: form,
+        })
+      } else {
+        response = await fetch('/api/programs/import-parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: pastedText, intent: 'powerful' }),
+        })
+      }
+      const data = await response.json()
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || 'Kunde inte tolka programmet')
+      }
+      const typedData = data as ParseResponse
+      setParseResult(typedData)
+      applyResolutions(typedData.resolutions ?? [])
+      setSkippedNames(new Set())
+      toast({
+        title: 'Tolkning uppdaterad',
+        description: `Kör igen med ${typedData.modelUsed}.`,
+      })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Okänt fel'
+      setParseError(msg)
+      toast({
+        title: 'Omkörningen misslyckades',
+        description: msg,
+        variant: 'destructive',
+      })
+    } finally {
+      setFixingFormat(false)
+    }
+  }
+
   const handleReset = () => {
     setParseResult(null)
     setParseError(null)
@@ -332,6 +404,8 @@ export function ImportProgramClient({
     setFile(null)
     setResolutions([])
     setMappings({})
+    setSkippedNames(new Set())
+    setLatestDraftJson('')
   }
 
   const handlePublishClick = (currentDraftJson: string) => {
@@ -580,6 +654,9 @@ export function ImportProgramClient({
                 athleteId={selectedAthleteId || null}
                 athleteName={selectedAthlete?.name || null}
                 onPublish={handlePublishClick}
+                onDraftChange={setLatestDraftJson}
+                onFixFormat={handleFixFormat}
+                isFixingFormat={fixingFormat}
                 onProgramSaved={(programId) => {
                   router.push(resolveProgramPath(programId))
                 }}
@@ -650,6 +727,7 @@ export function ImportProgramClient({
                           }
                         >
                           {mappedCount}/{totalExercises} mappade
+                          {skippedCount > 0 && ` · ${skippedCount} hoppade över`}
                         </Badge>
                       )}
                     </CardTitle>
@@ -657,11 +735,13 @@ export function ImportProgramClient({
                       {resolving
                         ? 'Söker matchningar i övningsbiblioteket…'
                         : needsMapping.length === 0
-                        ? 'Alla övningar kopplade till biblioteket.'
+                        ? skippedCount > 0
+                          ? 'Alla kvarvarande övningar kopplade.'
+                          : 'Alla övningar kopplade till biblioteket.'
                         : 'Välj rätt övning för att länka styrkepass till progressionsdata.'}
                     </CardDescription>
                   </CardHeader>
-                  {!resolving && needsMapping.length > 0 && (
+                  {!resolving && (
                     <CardContent className="space-y-3 max-h-[520px] overflow-y-auto">
                       {needsMapping.map((r) => (
                         <NeedsMappingRow
@@ -669,15 +749,31 @@ export function ImportProgramClient({
                           resolution={r}
                           onPick={(id) => setMapping(r.name, id)}
                           onSkip={() => {
-                            // Record an explicit skip by mapping to empty sentinel;
-                            // here we just leave it unmapped. Skip button hides it
-                            // from the visible list by flagging it locally.
-                            setResolutions((prev) =>
-                              prev.filter((x) => x.name !== r.name)
-                            )
+                            setSkippedNames((prev) => {
+                              const next = new Set(prev)
+                              next.add(r.name)
+                              return next
+                            })
                           }}
                         />
                       ))}
+                      <div className="pt-1 flex items-center justify-between gap-2 border-t">
+                        <p className="text-[11px] text-muted-foreground">
+                          Lade du till nya övningar i editorn? Sök igen för att
+                          matcha dem mot biblioteket.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            rescanExercises(latestDraftJson || parseResult.aiOutput)
+                          }
+                          disabled={resolving}
+                        >
+                          Scanna igen
+                        </Button>
+                      </div>
                     </CardContent>
                   )}
                 </Card>

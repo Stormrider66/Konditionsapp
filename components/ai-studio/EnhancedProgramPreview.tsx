@@ -80,6 +80,13 @@ interface EnhancedProgramPreviewProps {
    * back through the parent's original `content` string.
    */
   onPublish?: (currentDraftJson: string) => void
+  /**
+   * Fires whenever the local draft changes (user edits a workout, adds a
+   * phase, etc.). Useful for parents that need to run downstream side
+   * effects against the live draft — e.g. re-running exercise resolution
+   * after a new segment is added.
+   */
+  onDraftChange?: (currentDraftJson: string) => void
   onFixFormat?: () => void
   isFixingFormat?: boolean
 }
@@ -143,6 +150,7 @@ export function EnhancedProgramPreview({
   conversationId,
   onProgramSaved,
   onPublish,
+  onDraftChange,
   onFixFormat,
   isFixingFormat,
 }: EnhancedProgramPreviewProps) {
@@ -215,6 +223,16 @@ export function EnhancedProgramPreview({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content])
+
+  // Broadcast draft changes so parents can react (e.g. re-run exercise
+  // resolution when a new strength segment is added in-place). Fires on
+  // every draft mutation, which is cheap — the parent's handler just stores
+  // a string.
+  useEffect(() => {
+    if (!onDraftChange) return
+    onDraftChange(JSON.stringify(draft))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft])
 
   const updateDraft = useCallback((updates: Partial<DraftProgram>) => {
     setDraft(prev => ({ ...prev, ...updates }))
