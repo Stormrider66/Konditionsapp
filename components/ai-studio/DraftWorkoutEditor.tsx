@@ -43,6 +43,23 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { cn } from '@/lib/utils'
 import type { ParsedWorkout, ParsedWorkoutSegment } from '@/lib/ai/program-parser'
 import { ExercisePicker } from '@/components/ai-studio/ExercisePicker'
@@ -111,6 +128,48 @@ function isStrengthSegmentType(t?: string) {
   return t === 'exercise'
 }
 
+/**
+ * Generate an opaque id for a draft segment. Used as the dnd-kit sort key so
+ * reorders preserve focus / expansion state without tying the id to array
+ * index or mutable content.
+ */
+function makeSegmentKey(): string {
+  return `seg-${Math.random().toString(36).slice(2, 10)}`
+}
+
+/**
+ * Thin sortable wrapper for a draft segment. Uses a render prop so we can
+ * apply the drag handle listeners only to the GripVertical icon while the
+ * rest of the card (inputs, selects) stays fully interactive.
+ */
+function SortableSegment({
+  id,
+  children,
+}: {
+  id: string
+  children: (args: {
+    handleProps: {
+      onPointerDown?: React.PointerEventHandler
+      onKeyDown?: React.KeyboardEventHandler
+    }
+    isDragging: boolean
+  }) => React.ReactNode
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id })
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.9 : undefined,
+  }
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      {children({ handleProps: listeners ?? {}, isDragging })}
+    </div>
+  )
+}
+
 // Zone options (zone is numeric 1-5)
 const zoneOptions = [
   { value: 1, label: 'Zon 1 - Återhämtning' },
@@ -157,6 +216,17 @@ export function DraftWorkoutEditor({
   const [segments, setSegments] = useState<ParsedWorkoutSegment[]>(workout.segments || [])
   const [expandedSegments, setExpandedSegments] = useState<Set<number>>(new Set())
 
+  // Stable keys for the dnd-kit SortableContext. Parallel to `segments`; we
+  // never derive these from index or content so reorders don't lose focus.
+  const [segmentKeys, setSegmentKeys] = useState<string[]>(() =>
+    (workout.segments || []).map(() => makeSegmentKey())
+  )
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
   // Data Moat: Store original AI workout for comparison
   const originalWorkoutRef = useRef<ParsedWorkout | null>(null)
   const {
@@ -176,6 +246,7 @@ export function DraftWorkoutEditor({
     setDistance(workout.distance || '')
     setDescription(workout.description || '')
     setSegments(workout.segments || [])
+    setSegmentKeys((workout.segments || []).map(() => makeSegmentKey()))
 
     // Data Moat: Store the original AI-generated workout for comparison
     if (isAIGenerated && !originalWorkoutRef.current) {
@@ -213,6 +284,7 @@ export function DraftWorkoutEditor({
           description: '',
         }
     setSegments([...segments, newSegment])
+    setSegmentKeys([...segmentKeys, makeSegmentKey()])
   }
 
   // Update segment
@@ -225,22 +297,29 @@ export function DraftWorkoutEditor({
   // Remove segment
   const handleRemoveSegment = (index: number) => {
     setSegments(segments.filter((_, i) => i !== index))
+    setSegmentKeys(segmentKeys.filter((_, i) => i !== index))
+    setExpandedSegments((prev) => {
+      const next = new Set<number>()
+      prev.forEach((i) => {
+        if (i < index) next.add(i)
+        else if (i > index) next.add(i - 1)
+      })
+      return next
+    })
   }
 
-  // Move segment up/down
-  const handleMoveSegment = (index: number, direction: 'up' | 'down') => {
-    if (
-      (direction === 'up' && index === 0) ||
-      (direction === 'down' && index === segments.length - 1)
-    ) {
-      return
-    }
-
-    const newIndex = direction === 'up' ? index - 1 : index + 1
-    const updated = [...segments]
-    const [removed] = updated.splice(index, 1)
-    updated.splice(newIndex, 0, removed)
-    setSegments(updated)
+  // Drag reorder handler (dnd-kit)
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const from = segmentKeys.indexOf(String(active.id))
+    const to = segmentKeys.indexOf(String(over.id))
+    if (from === -1 || to === -1) return
+    setSegments((prev) => arrayMove(prev, from, to))
+    setSegmentKeys((prev) => arrayMove(prev, from, to))
+    // Collapse expanded-state remap on reorder — cheaper than translating
+    // indices precisely. Users rarely drag while a row is expanded.
+    setExpandedSegments(new Set())
   }
 
   // Data Moat: Check if workout was modified from AI suggestion
@@ -478,67 +557,67 @@ export function DraftWorkoutEditor({
                 </p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {segments.map((segment, index) => {
-                  const isStrength = isStrengthSegmentType(segment.type)
-                  const expanded = expandedSegments.has(index)
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={segmentKeys}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-2">
+                    {segments.map((segment, index) => {
+                      const isStrength = isStrengthSegmentType(segment.type)
+                      const expanded = expandedSegments.has(index)
+                      const segKey = segmentKeys[index]
 
-                  return (
-                    <Card key={index} className="relative">
-                      <CardContent className="p-3 space-y-2">
-                        {/* Header: drag handle + type select + reorder + remove */}
-                        <div className="flex items-center gap-2">
-                          <div className="text-muted-foreground cursor-grab shrink-0">
-                            <GripVertical className="h-4 w-4" />
-                          </div>
-                          <Select
-                            value={segment.type || 'work'}
-                            onValueChange={(v) => handleUpdateSegment(index, 'type', v)}
-                          >
-                            <SelectTrigger className="h-9 w-[160px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {segmentTypes.map((st) => (
-                                <SelectItem key={st.value} value={st.value}>
-                                  {st.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <div className="flex-1" />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleMoveSegment(index, 'up')}
-                            disabled={index === 0}
-                            title="Flytta upp"
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleMoveSegment(index, 'down')}
-                            disabled={index === segments.length - 1}
-                            title="Flytta ner"
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleRemoveSegment(index)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
+                      return (
+                        <SortableSegment key={segKey} id={segKey}>
+                          {({ handleProps, isDragging }) => (
+                            <Card
+                              className={cn(
+                                'relative',
+                                isDragging && 'shadow-xl ring-2 ring-blue-400'
+                              )}
+                            >
+                              <CardContent className="p-3 space-y-2">
+                                {/* Header: drag handle + type select + remove */}
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    className="text-muted-foreground cursor-grab active:cursor-grabbing shrink-0 p-1 -m-1 touch-none"
+                                    aria-label="Dra för att sortera"
+                                    {...handleProps}
+                                  >
+                                    <GripVertical className="h-4 w-4" />
+                                  </button>
+                                  <Select
+                                    value={segment.type || 'work'}
+                                    onValueChange={(v) => handleUpdateSegment(index, 'type', v)}
+                                  >
+                                    <SelectTrigger className="h-9 w-[160px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {segmentTypes.map((st) => (
+                                        <SelectItem key={st.value} value={st.value}>
+                                          {st.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <div className="flex-1" />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => handleRemoveSegment(index)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </div>
 
                         {/* Core fields — differ for strength vs endurance */}
                         {isStrength ? (
@@ -855,12 +934,16 @@ export function DraftWorkoutEditor({
                               </div>
                             </div>
                           )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                        </SortableSegment>
+                      )
+                    })}
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
 
             {useSegmentDuration && (
