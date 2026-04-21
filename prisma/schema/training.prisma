@@ -389,6 +389,34 @@ model Exercise {
 }
 
 /**
+ * Per-attempt telemetry for the program importer. One row per POST to
+ * /api/programs/import-parse, written post-response so a failed log write
+ * can't fail the user-facing call. Used to tune prompts + observe failure
+ * modes across real usage.
+ */
+model ImportAttempt {
+  id              String   @id @default(uuid())
+  userId          String? // user who initiated (coach or athlete)
+  coachId         String? // coach whose AI keys + alias pool were used
+  athleteClientId String? // set for athlete self-imports
+  inputKind       String // text | csv | excel | pdf | image
+  modelUsed       String
+  intent          String? // balanced | powerful | fast
+  parsedOk        Boolean
+  warningCount    Int      @default(0)
+  resolutionCount Int      @default(0)
+  autoMappedCount Int      @default(0)
+  cached          Boolean  @default(false)
+  inputHash       String? // sha256 of the normalized input — correlates retries
+  errorMessage    String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([coachId])
+  @@index([createdAt])
+}
+
+/**
  * Learned name aliases for the program importer.
  *
  * When a coach picks the right exercise for a parsed program, we record the

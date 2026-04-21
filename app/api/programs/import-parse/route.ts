@@ -23,6 +23,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach, resolveAthleteClientId } from '@/lib/auth-utils'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { resolveModel, type ModelIntent, isModelIntent } from '@/types/ai-models'
@@ -106,6 +107,7 @@ export async function POST(request: NextRequest) {
     // other athlete-facing AI features in the app.
     let callerUserId: string
     let aiKeyOwnerId: string
+    let athleteClientId: string | null = null
     try {
       const coach = await requireCoach()
       callerUserId = coach.id
@@ -116,6 +118,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
       callerUserId = resolved.user.id
+      athleteClientId = resolved.clientId
       // AI keys for athletes live on their coach record. Direct athletes
       // (no coach) can't use the importer — fail loudly rather than silently
       // falling back to the athlete's own (empty) key set.
@@ -318,6 +321,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Telemetry: one row per attempt, fire-and-forget. A failed log write
+    // can't fail the user-facing response.
+    const autoMappedCount = resolutions.filter((r) => !!r.bestMatch).length
+    recordImportAttempt({
+      userId: callerUserId,
+      coachId: aiKeyOwnerId,
+      athleteClientId,
+      inputKind: normalized.kind,
+      modelUsed: resolved.displayName,
+      intent,
+      parsedOk: parsed.success,
+      warningCount: warnings.length,
+      resolutionCount: resolutions.length,
+      autoMappedCount,
+      cached: cacheHit,
+      inputHash: cacheKey,
+    })
+
     return NextResponse.json({
       success: true,
       aiOutput,
@@ -337,6 +358,18 @@ export async function POST(request: NextRequest) {
       { status: msg.startsWith('Forbidden') ? 403 : 500 }
     )
   }
+}
+
+/**
+ * Write an ImportAttempt row without blocking the response. Logs but
+ * swallows any error — telemetry is never critical path.
+ */
+function recordImportAttempt(data: Prisma.ImportAttemptUncheckedCreateInput) {
+  void prisma.importAttempt
+    .create({ data })
+    .catch((e) => {
+      logger.warn('Failed to record ImportAttempt', {}, e)
+    })
 }
 
 // ─── Pre-processing ──────────────────────────────────────────────────────────
