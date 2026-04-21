@@ -216,15 +216,25 @@ export async function POST(request: NextRequest) {
     // Model routing:
     //   - Images always route to a vision-capable model (all three providers'
     //     'powerful' tier supports vision).
-    //   - Rich text inputs (> 30k chars of post-normalization body) auto-
-    //     bump to 'powerful' unless the caller explicitly asked for 'fast'.
-    //     Gemini Flash will happily truncate mid-JSON on 30+ exercise
-    //     programs; Pro/Opus/GPT-5.4 handle the load reliably.
+    //   - Rich inputs auto-bump to 'powerful' unless the caller explicitly
+    //     asked for 'fast'. Signals:
+    //       * body > 12k chars (a meaty program, even after Excel dedup)
+    //       * excel / pdf kind (multi-sheet or multi-page sources that
+    //         benefit from longer-context, more-careful models)
+    //       * density heuristic: > 80 pipe-table rows (strong sign of a
+    //         structured per-exercise table)
+    //     Gemini Flash truncates output on 30+ exercise programs; Pro /
+    //     Opus / GPT-5.4 hold the load reliably.
     //   - Otherwise honour the caller's choice, defaulting to 'balanced'.
+    const looksRich =
+      normalized.body.length > 12_000 ||
+      normalized.kind === 'excel' ||
+      normalized.kind === 'pdf' ||
+      (normalized.body.match(/\n\| /g)?.length ?? 0) > 80
     const intent: ModelIntent =
       normalized.kind === 'image'
         ? 'powerful'
-        : normalized.body.length > 30_000 && intentOverride !== 'fast'
+        : looksRich && intentOverride !== 'fast'
           ? 'powerful'
           : intentOverride ?? 'balanced'
     const resolved = resolveModel(keys, intent)
@@ -250,11 +260,17 @@ export async function POST(request: NextRequest) {
     )
     let aiOutput: string
     let cacheHit = false
+    const warningsFromGen: string[] = []
     const cached = await parseCache.get(cacheKey)
     if (cached) {
       aiOutput = cached.payload.aiOutput
       cacheHit = true
     } else {
+      // The AI SDK defaults are conservative (often 4096) and a rich program
+      // JSON is well past that. Set the budget high enough that a 2-week,
+      // 30-exercise strength program can't get truncated mid-JSON. Actual
+      // provider caps clamp this if we overshoot.
+      const MAX_OUTPUT_TOKENS = 32_000
       const result =
         normalized.kind === 'image' && normalized.imageBuffer
           ? await generateText({
@@ -274,20 +290,32 @@ export async function POST(request: NextRequest) {
                 },
               ],
               temperature: 0.1,
+              maxOutputTokens: MAX_OUTPUT_TOKENS,
             })
           : await generateText({
               model,
               system: SYSTEM_PROMPT,
               prompt,
               temperature: 0.1,
+              maxOutputTokens: MAX_OUTPUT_TOKENS,
             })
       aiOutput = result.text
-      const expiresAt = Date.now() + PARSE_CACHE_TTL_MS
-      await parseCache.set(cacheKey, {
-        expiresAt,
-        staleUntil: expiresAt,
-        payload: { aiOutput, modelDisplayName: resolved.displayName },
-      })
+      // Surface a loud warning if the model ran out of output budget — the
+      // JSON is likely truncated mid-segment and the preview will recover
+      // only partially. Don't cache truncated responses; we want the next
+      // attempt to retry fresh (possibly at a higher tier).
+      if (result.finishReason === 'length') {
+        warningsFromGen.push(
+          'The model ran out of output tokens and truncated the program mid-way. Try "Fixa format" to re-run at a higher tier, or split the source into smaller chunks.'
+        )
+      } else {
+        const expiresAt = Date.now() + PARSE_CACHE_TTL_MS
+        await parseCache.set(cacheKey, {
+          expiresAt,
+          staleUntil: expiresAt,
+          payload: { aiOutput, modelDisplayName: resolved.displayName },
+        })
+      }
     }
 
     // Validate the result is actually parseable so we don't hand the editor
@@ -295,7 +323,7 @@ export async function POST(request: NextRequest) {
     // editor has a "Fixa format" recovery path — but we do surface warnings.
     const parsed = parseAIProgram(aiOutput)
 
-    const warnings: string[] = []
+    const warnings: string[] = [...warningsFromGen]
     if (normalized.truncated) {
       warnings.push(
         'Input was truncated before sending to the model; review the result carefully.'
@@ -656,7 +684,51 @@ METHODOLOGY
 
 AMBIGUITY
 - If the source is unclear on a field, omit the field rather than guessing. Note the uncertainty in the nearest notes field.
-- If a field clearly applies but the source hasn't said explicitly (e.g. "bench press" with no equipment), still emit exerciseName — downstream mapping will resolve it.`
+- If a field clearly applies but the source hasn't said explicitly (e.g. "bench press" with no equipment), still emit exerciseName — downstream mapping will resolve it.
+
+MULTI-SHEET / MULTI-SECTION SOURCES
+- When an Excel has both an OVERVIEW sheet (high-level week calendar, cells like "Pass A\\n5x5 Knäböj @ RPE 7") and a DETAIL sheet (header row "Övning | Set x Reps | RPE | Vila | V1 Belastning | V2 Belastning | Muskelgrupp | Tempo"), the DETAIL sheet is the authoritative source. Extract exercises row-by-row from that table. Use the overview only to know which day runs which session.
+- Column mapping for a typical Swedish strength detail table:
+  Övning           → segments[].exerciseName (strip "(bar)", "(hantel)" clutter, keep the core name)
+  Set x Reps       → segments[].sets + segments[].repsCount (e.g. "5 x 5" → sets:5, repsCount:"5")
+  RPE / RIR        → segments[].rpe (preserve range strings like "7-8")
+  Vila             → segments[].rest in seconds
+  V1 Belastning    → segments[].weightByWeek["1"]
+  V2 Belastning    → segments[].weightByWeek["2"]
+  Muskelgrupp      → segments[].muscleGroup
+  Tempo            → segments[].tempo
+
+WORKED EXAMPLE — do exactly this shape when you see this shape of input
+
+Input row:
+  | Knäböj (bar) | 5 x 5 | RPE 7 (3 RIR) | 3 min | 60 kg | 65 kg | Quadriceps/Glutes | 3-0-X |
+
+Correct JSON segment:
+{
+  "order": 1,
+  "type": "exercise",
+  "section": "MAIN",
+  "exerciseName": "Knäböj",
+  "sets": 5,
+  "repsCount": "5",
+  "rpe": "7",
+  "rir": 3,
+  "rest": 180,
+  "weightByWeek": { "1": "60 kg", "2": "65 kg" },
+  "muscleGroup": "Quadriceps/Glutes",
+  "tempo": "3-0-X"
+}
+
+Notes on that example:
+- "Knäböj (bar)" → "Knäböj" (equipment parenthetical stripped; the library knows about bars)
+- "3 min" rest → 180 seconds (convert minutes to seconds for the rest field)
+- "RPE 7 (3 RIR)" splits: rpe:"7", rir:3
+- Values belong in their dedicated fields, NEVER in description. RPE text like "Hård men stabil" goes in rpe, not description.
+
+FIELD DISCIPLINE — the rule that breaks the most imports:
+- DO NOT put RPE, RIR, muscle-group, set/rep counts, or weights in description or notes when the dedicated field is available. The preview renders dedicated fields as structured data; anything dumped in description stays as opaque free text.
+- description is for coach prose that doesn't fit a structured field ("focus on depth", "slow eccentric").
+- If a cell literally reads "Kroppsvikt" or "BW", that's still a weight — set weight:"Kroppsvikt" (or both V1/V2 entries in weightByWeek).`
 
 function buildPrompt(input: NormalizedInput): string {
   const header = `Source type: ${input.kind}${input.filename ? ` (${input.filename})` : ''}`

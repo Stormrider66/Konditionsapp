@@ -761,6 +761,26 @@ function mergeNotes(seg: ParsedWorkoutSegment): string | undefined {
   return tagLine || source || undefined
 }
 
+/**
+ * When a segment carries exerciseName but we failed to resolve it to a real
+ * Exercise row (no alias match, fuzzy score below auto-assign threshold,
+ * user skipped the mapping panel), the DB write would drop the name —
+ * exerciseId stays null and WorkoutSegment has no name column. Prepend it
+ * to the description so the workout view still shows something useful.
+ */
+function mergeDescription(seg: ParsedWorkoutSegment): string | undefined {
+  const source = seg.description?.trim() ?? ''
+  // If we have a real Exercise FK the workout view renders the Exercise's
+  // name and we don't need to duplicate it in the description.
+  if (seg.exerciseId) return source || undefined
+  const name = seg.exerciseName?.trim()
+  if (!name) return source || undefined
+  if (source && source.toLowerCase().includes(name.toLowerCase())) {
+    return source
+  }
+  return source ? `${name} — ${source}` : name
+}
+
 // Detailed segment type for database
 interface DbSegment {
   order: number;
@@ -814,7 +834,7 @@ function convertSegmentsToDbFormat(
         weight: weightForWeek ?? seg.weight,
         tempo: seg.tempo,
         rest: seg.rest,
-        description: seg.description,
+        description: mergeDescription(seg),
         notes: mergeNotes(seg),
       }
     });
