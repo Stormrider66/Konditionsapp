@@ -167,6 +167,18 @@ A dedicated anchor-linked section must explicitly state: Garmin data is never se
 
 Reply pending as of 2026-04-21.
 
+### Queued for follow-up (after Marc confirms architecture)
+
+These two edge cases affect product scope but are narrow enough to hold for a second email so they don't derail the current reply.
+
+3. **BLE-direct HR connection.** If a user connects a Garmin HR strap directly via standard Bluetooth Heart Rate Service (outside Garmin Connect OAuth — i.e., no API call, no Garmin cloud involvement), does the resulting HR stream fall under the Developer Program data rules? Or is BLE-direct data outside the program's scope?
+   - **Why it matters:** determines whether voice coaching (Gemini Live) can pass through HR from a Garmin strap when the athlete isn't OAuth-connected. Current working assumption: BLE-only users are treated as non-Garmin for compliance; OAuth-connected users are treated as Garmin regardless of how HR is streaming.
+   - **Attribution is still required** per Brand Guidelines regardless of the compliance answer.
+
+4. **Derived / aggregated metrics that blend Garmin data with manual or other sources.** For a scalar like weekly training load computed from Garmin activities + Strava + manually logged workouts, at what point (if ever) is the output no longer considered "Garmin data" under this rule? Is it based on reversibility (can the Garmin-specific contribution be recovered from the aggregate?), or is any Garmin-in-lineage output always restricted?
+   - **Why it matters:** determines whether features like weekly-TSS summaries, ACWR zone, readiness category can be sent to external AI for narrative generation, or whether the full chain stays self-hosted.
+   - **Current working assumption:** any Garmin-in-lineage output is treated as Garmin-derived (safest stance) until Marc draws a clearer line.
+
 ---
 
 ## Part 6 — Execution order (once Marc confirms)
