@@ -383,6 +383,33 @@ model Exercise {
 
   favorites       ExerciseFavorite[]
   hiddenByUsers   HiddenExercise[]
+
+  // Program importer: learned name → exercise mappings (Phase 5a)
+  nameAliases     ExerciseNameAlias[]
+}
+
+/**
+ * Learned name aliases for the program importer.
+ *
+ * When a coach picks the right exercise for a parsed program, we record the
+ * source name → exerciseId mapping so the next import of that name auto-
+ * resolves. Scoped to coachId (null = global/system alias available to all
+ * coaches); all of a coach's athletes share the coach's alias pool.
+ */
+model ExerciseNameAlias {
+  id         String   @id @default(uuid())
+  coachId    String? // null = system-wide alias, else coach-scoped
+  alias      String // the raw name as it appeared in the imported program
+  exerciseId String // which Exercise it maps to
+  createdBy  String? // user who confirmed the mapping (denormalized, not an FK)
+  createdAt  DateTime @default(now())
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([coachId, alias])
+  @@index([alias])
+  @@index([coachId])
+  @@index([exerciseId])
 }
 
 model ExerciseFavorite {

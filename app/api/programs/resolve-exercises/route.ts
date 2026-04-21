@@ -80,31 +80,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ resolutions: [] })
     }
 
-    // Collect every meaningful token across all query names. We use these to
-    // fetch a candidate pool in one query; the scoring pass is in-memory.
-    const tokenSet = new Set<string>()
-    for (const n of uniqueNames) {
-      for (const t of tokenize(n)) tokenSet.add(t)
-    }
-    const tokens = Array.from(tokenSet)
-
-    if (tokens.length === 0) {
-      return NextResponse.json({
-        resolutions: uniqueNames.map((n) => ({
-          name: n,
-          bestMatch: null,
-          candidates: [],
-        })),
-      })
-    }
-
     // Access scope mirrors the main /api/exercises endpoint: coaches and
     // admins see public + their own, athletes see public + their coach's.
+    // Also determine the "alias owner" — the coach whose learned aliases apply
+    // to this request. Athletes ride on their coach's alias pool so decisions
+    // their coach made earlier carry through.
     let accessWhere: Prisma.ExerciseWhereInput
+    let aliasOwnerId: string | null = null
     if (user.role === 'ADMIN') {
       accessWhere = {}
+      aliasOwnerId = user.id
     } else if (hasCoachAccess) {
       accessWhere = { OR: [{ isPublic: true }, { coachId: user.id }] }
+      aliasOwnerId = user.id
     } else if (user.role === 'ATHLETE') {
       const resolved = await resolveAthleteClientId()
       let coachId: string | undefined
@@ -118,34 +106,110 @@ export async function POST(request: NextRequest) {
       accessWhere = coachId
         ? { OR: [{ isPublic: true }, { coachId }] }
         : { OR: [{ isPublic: true }] }
+      aliasOwnerId = coachId ?? null
     } else {
       accessWhere = { OR: [{ isPublic: true }] }
     }
 
+    // ─── Alias short-circuit ──────────────────────────────────────────────
+    // Prefer a confirmed mapping over any fuzzy match. Coach-scoped aliases
+    // beat system-wide aliases for the same name; within that scope first
+    // write wins (deterministic since the pool is small).
+    const aliasWhere: Prisma.ExerciseNameAliasWhereInput = aliasOwnerId
+      ? { OR: [{ coachId: aliasOwnerId }, { coachId: null }] }
+      : { coachId: null }
+    const aliasRows = await prisma.exerciseNameAlias.findMany({
+      where: aliasWhere,
+      select: { alias: true, exerciseId: true, coachId: true },
+    })
+    const aliasMap = new Map<string, string>()
+    for (const r of aliasRows) {
+      const key = r.alias.toLowerCase()
+      // Coach-scoped overrides null on conflict.
+      if (!aliasMap.has(key) || r.coachId !== null) {
+        aliasMap.set(key, r.exerciseId)
+      }
+    }
+    const aliasHits = new Map<string, string>()
+    for (const name of uniqueNames) {
+      const hit = aliasMap.get(name.toLowerCase())
+      if (hit) aliasHits.set(name, hit)
+    }
+
+    // Fetch full Exercise rows for alias-hit IDs so we can render rich
+    // Candidate shapes. Uses a single round-trip.
+    const aliasExerciseIds = Array.from(new Set(aliasHits.values()))
+    const aliasExerciseRows = aliasExerciseIds.length
+      ? await prisma.exercise.findMany({
+          where: { id: { in: aliasExerciseIds } },
+          select: {
+            id: true,
+            name: true,
+            nameSv: true,
+            nameEn: true,
+            category: true,
+            biomechanicalPillar: true,
+            equipment: true,
+          },
+        })
+      : []
+    const aliasExerciseById = new Map(aliasExerciseRows.map((e) => [e.id, e]))
+
+    // Names that got an alias hit skip the fuzzy pass entirely.
+    const namesForFuzzy = uniqueNames.filter((n) => !aliasHits.has(n))
+
+    // Rebuild token pool restricted to names that still need fuzzy matching.
+    // Names resolved via alias don't contribute tokens — keeps the candidate
+    // query tight.
+    const fuzzyTokenSet = new Set<string>()
+    for (const n of namesForFuzzy) {
+      for (const t of tokenize(n)) fuzzyTokenSet.add(t)
+    }
     const orClauses: Prisma.ExerciseWhereInput[] = []
-    for (const t of tokens) {
+    for (const t of fuzzyTokenSet) {
       orClauses.push({ name: { contains: t, mode: 'insensitive' } })
       orClauses.push({ nameSv: { contains: t, mode: 'insensitive' } })
       orClauses.push({ nameEn: { contains: t, mode: 'insensitive' } })
     }
 
-    const pool = await prisma.exercise.findMany({
-      where: { AND: [accessWhere, { OR: orClauses }] },
-      select: {
-        id: true,
-        name: true,
-        nameSv: true,
-        nameEn: true,
-        category: true,
-        biomechanicalPillar: true,
-        equipment: true,
-      },
-      // Hard cap on pool size to protect memory. 500 candidates is plenty —
-      // our seeded library is ~500 rows.
-      take: 500,
-    })
+    const pool = orClauses.length
+      ? await prisma.exercise.findMany({
+          where: { AND: [accessWhere, { OR: orClauses }] },
+          select: {
+            id: true,
+            name: true,
+            nameSv: true,
+            nameEn: true,
+            category: true,
+            biomechanicalPillar: true,
+            equipment: true,
+          },
+          // Hard cap on pool size to protect memory. 500 candidates is plenty —
+          // our seeded library is ~500 rows.
+          take: 500,
+        })
+      : []
 
     const resolutions: Resolution[] = uniqueNames.map((name) => {
+      // Alias short-circuit: confirmed mapping returns score=1 with no
+      // alternatives. The UI treats bestMatch.score=1 as auto-assigned.
+      const aliased = aliasHits.get(name)
+      if (aliased) {
+        const ex = aliasExerciseById.get(aliased)
+        if (ex) {
+          const c: Candidate = {
+            id: ex.id,
+            name: ex.name,
+            nameSv: ex.nameSv,
+            nameEn: ex.nameEn,
+            category: ex.category,
+            biomechanicalPillar: ex.biomechanicalPillar,
+            equipment: ex.equipment,
+            score: 1,
+          }
+          return { name, bestMatch: c, candidates: [c] }
+        }
+      }
       const scored = pool
         .map<Candidate>((ex) => {
           const best = bestNameScore(name, ex)

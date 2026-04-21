@@ -207,6 +207,16 @@ export function ImportProgramClient({
       else next[name] = id
       return next
     })
+    // Persist the mapping so future imports of the same name on this coach's
+    // library auto-resolve. Fire-and-forget: a failure shouldn't block the
+    // user — they can always re-map manually again.
+    if (id) {
+      void fetch('/api/programs/save-exercise-alias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alias: name, exerciseId: id }),
+      }).catch(() => {})
+    }
   }
 
   const handleDrop = useCallback((e: React.DragEvent) => {
