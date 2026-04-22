@@ -245,6 +245,12 @@ export function FoodPhotoScanner({
   const previewUrlRef = useRef<string | null>(null)
   const selectionRequestIdRef = useRef(0)
 
+  // Correction-capture refs: snapshot the API's first response so we can diff
+  // against whatever the user ultimately saves, even through refinements.
+  const initialAiItemsRef = useRef<unknown[] | null>(null)
+  const initialAiConfidenceRef = useRef<number | null>(null)
+  const refinedRef = useRef(false)
+
   const revokePreviewUrl = useCallback(() => {
     if (previewUrlRef.current?.startsWith('blob:')) {
       URL.revokeObjectURL(previewUrlRef.current)
@@ -453,6 +459,13 @@ export function FoodPhotoScanner({
       setEnhancedMode(data.enhancedMode ?? false)
       setMemoryUsed(Boolean(data.memoryUsed))
       setPortionSnapCount(Array.isArray(data.portionSnaps) ? data.portionSnaps.length : 0)
+
+      // Snapshot the AI's first response so we can capture corrections on save.
+      initialAiItemsRef.current = result.items.map((i) => ({ ...i }))
+      initialAiConfidenceRef.current =
+        typeof result.confidence === 'number' ? result.confidence : null
+      refinedRef.current = false
+
       setItems(result.items.map(createEditableFoodItem))
       setMealDescription(result.mealDescription)
       setConfidence(result.confidence)
@@ -529,6 +542,40 @@ export function FoodPhotoScanner({
       }
 
       const data = await response.json()
+
+      // Fire-and-forget: capture any delta between the AI's first response
+      // and the user's saved meal so later phases can learn from it. Failure
+      // must not block the happy path — meal is already persisted.
+      const aiItemsSnapshot = initialAiItemsRef.current
+      const savedMealId: string | null =
+        typeof data?.data?.id === 'string' ? data.data.id : null
+      if (aiItemsSnapshot && aiItemsSnapshot.length > 0) {
+        const finalItemsPayload = items.map((item) => ({
+          name: item.name,
+          category: item.category,
+          estimatedGrams: item.estimatedGrams,
+          portionDescription: item.portionDescription,
+          calories: item.calories,
+          proteinGrams: item.proteinGrams,
+          carbsGrams: item.carbsGrams,
+          fatGrams: item.fatGrams,
+          fiberGrams: item.fiberGrams,
+        }))
+        void fetch('/api/nutrition/food-scan/corrections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mealLogId: savedMealId,
+            aiItems: aiItemsSnapshot,
+            finalItems: finalItemsPayload,
+            aiConfidence: initialAiConfidenceRef.current,
+            wentThroughRefine: refinedRef.current,
+          }),
+        }).catch(() => {
+          // Correction capture is best-effort. Swallow errors silently.
+        })
+      }
+
       onMealSaved?.(data.data)
 
       if (redirectPathOnSave) {
@@ -560,6 +607,9 @@ export function FoodPhotoScanner({
     setMemoryUsed(false)
     setPortionSnapCount(0)
     setExpandedItems(new Set())
+    initialAiItemsRef.current = null
+    initialAiConfidenceRef.current = null
+    refinedRef.current = false
     setRefinementText('')
     setIsRefining(false)
     setIsRecording(false)
@@ -773,6 +823,7 @@ export function FoodPhotoScanner({
       setConfidence(result.confidence)
       setNotes(result.notes?.join('\n') ?? '')
       setRefinementText('')
+      refinedRef.current = true
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kunde inte uppdatera analysen')
     } finally {

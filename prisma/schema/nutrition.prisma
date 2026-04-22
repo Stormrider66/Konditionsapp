@@ -142,6 +142,30 @@ model MealLog {
   @@index([date])
 }
 
+/// Captures the delta between what the food-scan AI first produced and what the
+/// athlete actually saved. Used to weight "corrections" higher than passive logs
+/// when building personalized food memory (Phase 4 fingerprint cron).
+model FoodScanCorrection {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  mealLogId String? // null if the scan was refined/edited but never saved as a meal
+
+  aiItemsJson    Json // items array the API returned (after second pass + portion calibration)
+  finalItemsJson Json // items array the user actually saved
+
+  correctionType String // 'NAME' | 'GRAMS' | 'ADDED_ITEM' | 'REMOVED_ITEM' | 'MULTIPLE'
+
+  aiConfidence      Float? // confidence the AI reported on its final analysis
+  wentThroughRefine Boolean @default(false) // true if the user used the refine flow before saving
+
+  createdAt DateTime @default(now())
+
+  @@index([clientId, createdAt])
+  @@index([correctionType])
+}
+
 /// Individual food item within a meal (from AI analysis)
 model MealFoodItem {
   id        String  @id @default(cuid())

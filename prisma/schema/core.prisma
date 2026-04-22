@@ -514,8 +514,9 @@ model Client {
   timingGateResults         TimingGateResult[]
 
   // Nutrition Timing System relations
-  dietaryPreferences DietaryPreferences?
-  nutritionGoal      NutritionGoal?
+  dietaryPreferences  DietaryPreferences?
+  nutritionGoal       NutritionGoal?
+  foodScanCorrections FoodScanCorrection[]
 
   // Athlete Subscription & Integrations
   athleteSubscription AthleteSubscription?
