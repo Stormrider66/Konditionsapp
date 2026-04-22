@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { buildCorrectionHints } from './build-correction-hints'
 
 const WEEKDAY_LABEL_SV = ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag'] as const
 
@@ -29,6 +30,8 @@ export interface MemoryContextResult {
     mealsConsidered: number
     frequentFoods: number
     frequentMeals: number
+    correctionsConsidered: number
+    correctionHintsIncluded: boolean
   }
 }
 
@@ -45,29 +48,55 @@ export async function buildFoodMemoryContext(
   const since = new Date()
   since.setDate(since.getDate() - lookbackDays)
 
-  const meals = await prisma.mealLog.findMany({
-    where: { clientId, date: { gte: since } },
-    select: {
-      date: true,
-      mealType: true,
-      description: true,
-      items: {
-        select: {
-          normalizedName: true,
-          name: true,
-          estimatedGrams: true,
-          portionDescription: true,
+  // Fetch meals and recent corrections in parallel — corrections are a
+  // separate signal that can fire even if passive-log history is thin.
+  const [meals, corrections] = await Promise.all([
+    prisma.mealLog.findMany({
+      where: { clientId, date: { gte: since } },
+      select: {
+        date: true,
+        mealType: true,
+        description: true,
+        items: {
+          select: {
+            normalizedName: true,
+            name: true,
+            estimatedGrams: true,
+            portionDescription: true,
+          },
         },
       },
-    },
-    orderBy: { date: 'desc' },
-    take: 400,
-  })
+      orderBy: { date: 'desc' },
+      take: 400,
+    }),
+    prisma.foodScanCorrection.findMany({
+      where: { clientId, createdAt: { gte: since } },
+      select: {
+        aiItemsJson: true,
+        finalItemsJson: true,
+        correctionType: true,
+        wentThroughRefine: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    }),
+  ])
 
-  if (meals.length < 10) {
+  const correctionHints = buildCorrectionHints(corrections)
+
+  // If we have neither enough meals nor any correction hints, bail early —
+  // no useful context to inject.
+  if (meals.length < 10 && !correctionHints) {
     return {
       text: '',
-      stats: { mealsConsidered: meals.length, frequentFoods: 0, frequentMeals: 0 },
+      stats: {
+        mealsConsidered: meals.length,
+        frequentFoods: 0,
+        frequentMeals: 0,
+        correctionsConsidered: corrections.length,
+        correctionHintsIncluded: false,
+      },
     }
   }
 
@@ -150,14 +179,29 @@ export async function buildFoodMemoryContext(
     if (strongSignals.length >= 5) break
   }
 
-  if (frequentFoods.length === 0 && frequentMeals.length === 0 && strongSignals.length === 0) {
+  if (
+    frequentFoods.length === 0 &&
+    frequentMeals.length === 0 &&
+    strongSignals.length === 0 &&
+    !correctionHints
+  ) {
     return {
       text: '',
-      stats: { mealsConsidered: meals.length, frequentFoods: 0, frequentMeals: 0 },
+      stats: {
+        mealsConsidered: meals.length,
+        frequentFoods: 0,
+        frequentMeals: 0,
+        correctionsConsidered: corrections.length,
+        correctionHintsIncluded: false,
+      },
     }
   }
 
   const lines: string[] = []
+  if (correctionHints) {
+    lines.push(correctionHints)
+    lines.push('')
+  }
   lines.push('ANVÄNDARENS MATHISTORIK (de senaste ' + lookbackDays + ' dagarna — ledtråd, inte facit):')
 
   if (frequentFoods.length > 0) {
@@ -195,6 +239,8 @@ export async function buildFoodMemoryContext(
       mealsConsidered: meals.length,
       frequentFoods: frequentFoods.length,
       frequentMeals: frequentMeals.length,
+      correctionsConsidered: corrections.length,
+      correctionHintsIncluded: Boolean(correctionHints),
     },
   }
 }

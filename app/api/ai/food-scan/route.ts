@@ -229,6 +229,8 @@ export async function POST(request: NextRequest) {
     let passes: 1 | 2 = 1
     let memoryUsed = false
     let memoryMealsConsidered = 0
+    let memoryCorrectionsConsidered = 0
+    let memoryCorrectionHintsIncluded = false
 
     let inputTokens = firstPass.usage?.inputTokens ?? 0
     let outputTokens = firstPass.usage?.outputTokens ?? 0
@@ -243,6 +245,8 @@ export async function POST(request: NextRequest) {
     if (shouldRetryWithMemory) {
       const memory = await buildFoodMemoryContext({ clientId })
       memoryMealsConsidered = memory.stats.mealsConsidered
+      memoryCorrectionsConsidered = memory.stats.correctionsConsidered
+      memoryCorrectionHintsIncluded = memory.stats.correctionHintsIncluded
 
       if (memory.text) {
         const secondPrompt = buildPrompt({
@@ -335,6 +339,8 @@ export async function POST(request: NextRequest) {
         passes,
         memoryUsed,
         memoryMealsConsidered,
+        memoryCorrectionsConsidered,
+        memoryCorrectionHintsIncluded,
         portionSnapCount: portionSnaps.length,
       })
     }
@@ -346,6 +352,8 @@ export async function POST(request: NextRequest) {
       memoryUsed,
       passes,
       memoryMealsConsidered,
+      memoryCorrectionsConsidered,
+      memoryCorrectionHintsIncluded,
       portionSnaps,
       generatedAt: new Date().toISOString(),
     })
