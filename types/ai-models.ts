@@ -381,14 +381,33 @@ export const MODEL_TIERS: Record<ModelIntent, {
 }
 
 /**
- * Resolve the best available model for a given intent (server-side, with actual API keys).
+ * Resolve the best available model for a given intent (server-side, with
+ * actual API keys).
+ *
+ * `preferredProvider` overrides the default Google→Anthropic→OpenAI priority.
+ * When set and a matching key exists we pick that provider's model; if the
+ * preferred provider has no key we fall back to the normal priority order
+ * rather than refusing the request. Useful for callers that want "prefer
+ * Claude for this task" without failing if the key is missing.
+ *
  * Returns null if no keys are available at all.
  */
 export function resolveModel(
   keys: AvailableKeys,
-  intent: ModelIntent = 'balanced'
+  intent: ModelIntent = 'balanced',
+  preferredProvider?: AIProvider
 ): ResolvedModel | null {
   const tier = MODEL_TIERS[intent]
+
+  if (preferredProvider === 'anthropic' && keys.anthropicKey) {
+    return { provider: 'anthropic', modelId: tier.anthropic.modelId, apiKey: keys.anthropicKey, displayName: tier.anthropic.displayName, supportsVision: tier.anthropic.supportsVision }
+  }
+  if (preferredProvider === 'google' && keys.googleKey) {
+    return { provider: 'google', modelId: tier.google.modelId, apiKey: keys.googleKey, displayName: tier.google.displayName, supportsVision: tier.google.supportsVision }
+  }
+  if (preferredProvider === 'openai' && keys.openaiKey) {
+    return { provider: 'openai', modelId: tier.openai.modelId, apiKey: keys.openaiKey, displayName: tier.openai.displayName, supportsVision: tier.openai.supportsVision }
+  }
 
   if (keys.googleKey) {
     return { provider: 'google', modelId: tier.google.modelId, apiKey: keys.googleKey, displayName: tier.google.displayName, supportsVision: tier.google.supportsVision }

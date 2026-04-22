@@ -26,7 +26,12 @@ import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
-import { resolveModel, type ModelIntent, isModelIntent } from '@/types/ai-models'
+import {
+  resolveModel,
+  type ModelIntent,
+  type AIProvider,
+  isModelIntent,
+} from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
 import { generateText } from 'ai'
 import { createHash } from 'node:crypto'
@@ -149,6 +154,7 @@ export async function POST(request: NextRequest) {
     let pastedText = ''
     let file: File | null = null
     let intentOverride: ModelIntent | undefined
+    let providerOverride: AIProvider | undefined
 
     if (contentType.includes('multipart/form-data')) {
       const form = await request.formData()
@@ -162,10 +168,21 @@ export async function POST(request: NextRequest) {
       if (typeof intent === 'string' && isModelIntent(intent)) {
         intentOverride = intent
       }
+      const provider = form.get('provider')
+      if (provider === 'anthropic' || provider === 'google' || provider === 'openai') {
+        providerOverride = provider
+      }
     } else {
       const body = await request.json().catch(() => ({}))
       if (typeof body?.text === 'string') pastedText = body.text
       if (isModelIntent(body?.intent)) intentOverride = body.intent
+      if (
+        body?.provider === 'anthropic' ||
+        body?.provider === 'google' ||
+        body?.provider === 'openai'
+      ) {
+        providerOverride = body.provider
+      }
     }
 
     if (file && file.size > MAX_FILE_BYTES) {
@@ -237,7 +254,7 @@ export async function POST(request: NextRequest) {
         : looksRich && intentOverride !== 'fast'
           ? 'powerful'
           : intentOverride ?? 'balanced'
-    const resolved = resolveModel(keys, intent)
+    const resolved = resolveModel(keys, intent, providerOverride)
     if (!resolved) {
       return NextResponse.json(
         {
@@ -251,12 +268,14 @@ export async function POST(request: NextRequest) {
     const model = createModelInstance(resolved)
     const prompt = buildPrompt(normalized)
 
-    // Cache lookup — identical input + model returns the prior parse.
+    // Cache lookup — identical input + model + provider returns the prior
+    // parse. Include provider so a "prefer Claude" retry gets its own slot
+    // rather than reading a cached Gemini response.
     const cacheKey = computeCacheKey(
       normalized.body,
       normalized.imageBuffer,
       intent,
-      resolved.modelId
+      `${resolved.provider}:${resolved.modelId}`
     )
     let aiOutput: string
     let cacheHit = false

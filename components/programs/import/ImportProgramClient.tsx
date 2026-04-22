@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import {
   AlertCircle,
   FileSpreadsheet,
@@ -148,6 +149,11 @@ export function ImportProgramClient({
   const [file, setFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [intent, setIntent] = useState<ModelIntent>('balanced')
+  // Opt-in: force the call to Anthropic regardless of which keys are
+  // configured. Gemini occasionally emits placeholder exerciseNames on
+  // text-heavy strength programs; Claude tends to be more literal when
+  // copying source data verbatim.
+  const [preferClaude, setPreferClaude] = useState(false)
 
   const resolveProgramPath = useCallback(
     (programId: string) => {
@@ -256,6 +262,7 @@ export function ImportProgramClient({
         const form = new FormData()
         form.append('file', file)
         form.append('intent', intent)
+        if (preferClaude) form.append('provider', 'anthropic')
         response = await fetch('/api/programs/import-parse', {
           method: 'POST',
           body: form,
@@ -264,7 +271,11 @@ export function ImportProgramClient({
         response = await fetch('/api/programs/import-parse', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: pastedText, intent }),
+          body: JSON.stringify({
+            text: pastedText,
+            intent,
+            ...(preferClaude && { provider: 'anthropic' }),
+          }),
         })
       }
 
@@ -361,6 +372,7 @@ export function ImportProgramClient({
         const form = new FormData()
         form.append('file', file)
         form.append('intent', 'powerful')
+        if (preferClaude) form.append('provider', 'anthropic')
         response = await fetch('/api/programs/import-parse', {
           method: 'POST',
           body: form,
@@ -369,7 +381,11 @@ export function ImportProgramClient({
         response = await fetch('/api/programs/import-parse', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: pastedText, intent: 'powerful' }),
+          body: JSON.stringify({
+            text: pastedText,
+            intent: 'powerful',
+            ...(preferClaude && { provider: 'anthropic' }),
+          }),
         })
       }
       const data = await response.json()
@@ -579,6 +595,20 @@ export function ImportProgramClient({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="flex items-center gap-3 rounded-lg border px-3 py-2 bg-muted/30">
+                <Switch
+                  id="prefer-claude"
+                  checked={preferClaude}
+                  onCheckedChange={setPreferClaude}
+                />
+                <label htmlFor="prefer-claude" className="text-xs cursor-pointer select-none">
+                  <div className="font-medium">Prioritera Claude</div>
+                  <div className="text-muted-foreground">
+                    Mer ordagrann på textprogram — kräver Anthropic-nyckel
+                  </div>
+                </label>
               </div>
 
               <div className="flex-1" />
