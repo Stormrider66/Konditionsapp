@@ -292,34 +292,62 @@ function DayCard({ day, date, clientId }: DayCardProps) {
 
               {workout.segments && workout.segments.length > 0 && (
                 <div className="text-xs space-y-1">
-                  {(isExpanded ? workout.segments : workout.segments.slice(0, 3)).map((segment) => (
-                    <div key={segment.id} className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="secondary" className="text-xs">
-                        {segment.exercise?.nameSv || formatSegmentType(segment.type)}
-                      </Badge>
-                      <span className="text-slate-600 dark:text-slate-300">
-                        {segment.description}
-                        {segment.duration && ` (${segment.duration} min)`}
-                        {segment.distance && ` ${segment.distance} km`}
-                        {segment.pace && ` @ ${segment.pace}`}
-                      </span>
-                      {segment.zone && (
-                        <Badge variant="outline" className="text-xs border-blue-400 text-blue-700">
-                          Zon {segment.zone}
+                  {(isExpanded ? workout.segments : workout.segments.slice(0, 3)).map((segment) => {
+                    // Build the "sets × reps" summary from whatever is
+                    // present — we used to require both fields which hid
+                    // the whole thing when only one survived extraction.
+                    const setsReps =
+                      segment.sets && segment.repsCount
+                        ? `${segment.sets} × ${segment.repsCount}`
+                        : segment.sets
+                          ? `${segment.sets} set`
+                          : segment.repsCount
+                            ? `${segment.repsCount} reps`
+                            : null
+                    return (
+                      <div key={segment.id} className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="secondary" className="text-xs">
+                          {segment.exercise?.nameSv || formatSegmentType(segment.type)}
                         </Badge>
-                      )}
-                      {segment.heartRate && (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          ❤️ {segment.heartRate}
+                        <span className="text-slate-600 dark:text-slate-300">
+                          {segment.description}
+                          {segment.duration && ` (${segment.duration} min)`}
+                          {segment.distance && ` ${segment.distance} km`}
+                          {segment.pace && ` @ ${segment.pace}`}
                         </span>
-                      )}
-                      {segment.sets && segment.repsCount && (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          {segment.sets} × {segment.repsCount} reps
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                        {segment.zone && (
+                          <Badge variant="outline" className="text-xs border-blue-400 text-blue-700">
+                            Zon {segment.zone}
+                          </Badge>
+                        )}
+                        {segment.heartRate && (
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            ❤️ {segment.heartRate}
+                          </span>
+                        )}
+                        {setsReps && (
+                          <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
+                            {setsReps}
+                          </span>
+                        )}
+                        {segment.weight && (
+                          <Badge variant="outline" className="text-xs border-amber-400 text-amber-700">
+                            {segment.weight}
+                          </Badge>
+                        )}
+                        {segment.rest != null && segment.rest > 0 && (
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            Vila {segment.rest >= 60 ? `${Math.round(segment.rest / 60)} min` : `${segment.rest}s`}
+                          </span>
+                        )}
+                        {segment.tempo && (
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            Tempo {segment.tempo}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
                   {!isExpanded && workout.segments.length > 3 && (
                     <p className="text-slate-500 dark:text-slate-400">
                       +{workout.segments.length - 3} fler segment
