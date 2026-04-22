@@ -222,6 +222,7 @@ export function FoodPhotoScanner({
   const [confidence, setConfidence] = useState(0)
   const [enhancedMode, setEnhancedMode] = useState(false)
   const [memoryUsed, setMemoryUsed] = useState(false)
+  const [portionSnapCount, setPortionSnapCount] = useState(0)
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
 
   // Refinement state
@@ -451,6 +452,7 @@ export function FoodPhotoScanner({
       // Populate review state
       setEnhancedMode(data.enhancedMode ?? false)
       setMemoryUsed(Boolean(data.memoryUsed))
+      setPortionSnapCount(Array.isArray(data.portionSnaps) ? data.portionSnaps.length : 0)
       setItems(result.items.map(createEditableFoodItem))
       setMealDescription(result.mealDescription)
       setConfidence(result.confidence)
@@ -556,6 +558,7 @@ export function FoodPhotoScanner({
     setConfidence(0)
     setEnhancedMode(false)
     setMemoryUsed(false)
+    setPortionSnapCount(0)
     setExpandedItems(new Set())
     setRefinementText('')
     setIsRefining(false)
@@ -1364,6 +1367,18 @@ export function FoodPhotoScanner({
               )}
             </GlassCardContent>
           </GlassCard>
+
+          {/* Portion calibration indicator */}
+          {portionSnapCount > 0 && (
+            <p
+              className="text-[11px] text-violet-300/80 text-center"
+              title="Gemini och din tidigare mathistorik vägdes samman för att ge mer realistiska portionsstorlekar."
+            >
+              {portionSnapCount === 1
+                ? '1 portionsstorlek justerad efter din historik'
+                : `${portionSnapCount} portionsstorlekar justerade efter din historik`}
+            </p>
+          )}
 
           {/* Notes */}
           <div className="space-y-1">

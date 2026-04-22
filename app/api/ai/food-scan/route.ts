@@ -19,6 +19,12 @@ import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 import { buildFoodMemoryContext } from '@/lib/nutrition/build-memory-context'
+import {
+  calibratePortions,
+  fetchPortionStats,
+  recomputeTotals,
+  type PortionSnap,
+} from '@/lib/nutrition/portion-calibration'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -273,6 +279,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Portion calibration — snap Gemini's gram estimates toward the user's
+    // typical portion when the user has ≥3 historical logs for an item and
+    // Gemini is outside the ±40% trust band. Runs regardless of which pass
+    // produced the result; gated only on memoryEnabled.
+    let portionSnaps: PortionSnap[] = []
+    if (memoryEnabled && finalResult.success && finalResult.items.length > 0) {
+      const normalizedNames = finalResult.items.map((i) => i.name.toLowerCase().trim())
+      const stats = await fetchPortionStats(clientId, normalizedNames)
+      if (stats.size > 0) {
+        const { items: calibratedItems, snaps } = calibratePortions(finalResult.items, stats)
+        if (snaps.length > 0) {
+          finalResult = {
+            ...finalResult,
+            items: calibratedItems,
+            totals: { ...finalResult.totals, ...recomputeTotals(calibratedItems) },
+          }
+          portionSnaps = snaps
+        }
+      }
+    }
+
     // Log cost (fire-and-forget; do not block the response on logging failure)
     const estimatedCost = estimateFoodScanCost(modelName, inputTokens, outputTokens)
     prisma.aIUsageLog
@@ -299,6 +326,7 @@ export async function POST(request: NextRequest) {
         passes,
         memoryUsed,
         memoryMealsConsidered,
+        portionSnapCount: portionSnaps.length,
       })
     }
 
@@ -309,6 +337,7 @@ export async function POST(request: NextRequest) {
       memoryUsed,
       passes,
       memoryMealsConsidered,
+      portionSnaps,
       generatedAt: new Date().toISOString(),
     })
   } catch (error) {
