@@ -100,7 +100,7 @@ Route protection in `middleware.ts` (includes custom domain white-label support,
 ## AI System
 
 **Providers (BYOK - encrypted user API keys):**
-- Anthropic: Haiku 4.5, Sonnet 4.6, Opus 4.6
+- Anthropic: Haiku 4.5, Sonnet 4.6, Opus 4.7
 - Google: Gemini 3.1 Flash Lite, Gemini 3 Flash, Gemini 3.1 Pro
 - OpenAI: GPT-5.3 Instant, GPT-5 Mini, GPT-5.4
 
@@ -170,3 +170,5 @@ Post-`v2.0.0`. Not urgent, worth checking periodically:
 - **MediaPipe**: unmaintained, no declared React peer. Plan a 1–2 day migration to `@mediapipe/tasks-vision` before the next React major bump.
 - **`videos` storage bucket**: never verified post-launch. When video-analysis gets real usage, confirm its RLS policies match `video-analysis` (private + 100 MB limit).
 - **PoseAnalyzer.tsx (1422 LOC) + ConfigurationForm.tsx (1073 LOC)**: still above the 500-LOC target. Decompose further only when actively editing.
+
+- **Food-scanner memory (Phases 1–3 shipped, Phase 4 paused 2026-04-22)**: history-as-prompt-context, portion calibration, and correction capture are live. Phase 4 (nightly fingerprint cron + pgvector few-shot) is *deliberately on hold* until `FoodScanCorrection` has enough rows to justify it. Before resuming, check: (a) correction row count + type distribution (`SELECT "correctionType", COUNT(*) FROM "FoodScanCorrection" GROUP BY 1`), (b) `food_scan_memory` vs `food_scan` ratio in `AIUsageLog` (how often the Phase 1 second pass fires), (c) user feedback on the "Personaliserad" badge. Resume target: ~2 weeks post-launch, sooner if corrections accumulate fast.
