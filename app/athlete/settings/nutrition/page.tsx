@@ -66,6 +66,7 @@ export default async function NutritionSettingsPage() {
         preferWholeGrain: preferences.preferWholeGrain,
         preferSwedishFoods: preferences.preferSwedishFoods,
         enhancedMacroAnalysis: preferences.enhancedMacroAnalysis,
+        memoryEnabled: preferences.memoryEnabled,
       }
     : null
 

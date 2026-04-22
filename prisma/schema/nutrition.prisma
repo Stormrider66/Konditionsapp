@@ -24,6 +24,10 @@ model DietaryPreferences {
   preferSwedishFoods Boolean @default(true) // Prioritize Swedish food suggestions
   enhancedMacroAnalysis Boolean @default(false)
 
+  // Food-scan personalized memory
+  memoryEnabled         Boolean   @default(true)
+  memoryLastExtractedAt DateTime?
+
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

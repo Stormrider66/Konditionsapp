@@ -24,6 +24,7 @@ const preferencesSchema = z.object({
   preferWholeGrain: z.boolean().optional(),
   preferSwedishFoods: z.boolean().optional(),
   enhancedMacroAnalysis: z.boolean().optional(),
+  memoryEnabled: z.boolean().optional(),
 })
 
 /**
@@ -100,6 +101,7 @@ export async function PUT(request: NextRequest) {
         preferWholeGrain: validated.preferWholeGrain ?? true,
         preferSwedishFoods: validated.preferSwedishFoods ?? true,
         enhancedMacroAnalysis: validated.enhancedMacroAnalysis ?? false,
+        memoryEnabled: validated.memoryEnabled ?? true,
       },
       create: {
         clientId: athleteAccount.clientId,
@@ -111,6 +113,7 @@ export async function PUT(request: NextRequest) {
         preferWholeGrain: validated.preferWholeGrain ?? true,
         preferSwedishFoods: validated.preferSwedishFoods ?? true,
         enhancedMacroAnalysis: validated.enhancedMacroAnalysis ?? false,
+        memoryEnabled: validated.memoryEnabled ?? true,
       },
     })
 

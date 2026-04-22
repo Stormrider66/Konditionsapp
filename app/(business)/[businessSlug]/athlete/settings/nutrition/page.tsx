@@ -74,6 +74,7 @@ export default async function BusinessNutritionSettingsPage({ params }: Business
         preferWholeGrain: preferences.preferWholeGrain,
         preferSwedishFoods: preferences.preferSwedishFoods,
         enhancedMacroAnalysis: preferences.enhancedMacroAnalysis,
+        memoryEnabled: preferences.memoryEnabled,
       }
     : null
 

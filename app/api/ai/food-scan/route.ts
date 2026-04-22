@@ -12,16 +12,83 @@ import { generateObject } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
+import { GEMINI_MODELS, GEMINI_PRICING } from '@/lib/ai/gemini-config'
 import { FoodPhotoAnalysisSchema } from '@/lib/validations/gemini-schemas'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
+import { buildFoodMemoryContext } from '@/lib/nutrition/build-memory-context'
 
 export const runtime = 'nodejs'
-export const maxDuration = 30
+export const maxDuration = 60
 export const dynamic = 'force-dynamic'
+
+const MEMORY_CONFIDENCE_THRESHOLD = 0.75
+
+const WEEKDAY_LABEL_SV = [
+  'söndag',
+  'måndag',
+  'tisdag',
+  'onsdag',
+  'torsdag',
+  'fredag',
+  'lördag',
+] as const
+
+function buildPrompt({
+  clientHour,
+  clientDayOfWeek,
+  enhancedMode,
+  memoryContext,
+}: {
+  clientHour: number | null
+  clientDayOfWeek: number | null
+  enhancedMode: boolean
+  memoryContext: string | null
+}) {
+  const timeLine =
+    clientHour != null
+      ? `KONTEXT: Användaren loggar måltiden kl ${String(clientHour).padStart(2, '0')}:00${
+          clientDayOfWeek != null ? ` (${WEEKDAY_LABEL_SV[clientDayOfWeek]})` : ''
+        } (lokal tid). Använd tiden som primär signal för måltidstyp: före 10 = BREAKFAST, 10–11 = MORNING_SNACK, 11–14 = LUNCH, 14–16 = AFTERNOON_SNACK, 17–20 = DINNER, efter 20 = EVENING_SNACK. Avvik endast om maten uppenbart tillhör en annan kategori (t.ex. tydlig frukostgröt kl 15 → AFTERNOON_SNACK, inte BREAKFAST).\n\n`
+      : ''
+
+  const memoryBlock = memoryContext ? `${memoryContext}\n\n` : ''
+
+  const enhancedBlock = enhancedMode
+    ? `\n\nUTÖKAD ANALYS (detaljerade makrosubkategorier):\n8. Fettfördelning per matvara: mättade, enkelomättade, fleromättade fettsyror (gram)\n9. Kolhydratfördelning per matvara: socker och komplexa kolhydrater (stärkelse) i gram\n10. Proteinkvalitet: ange om matvaran är en komplett proteinkälla (alla essentiella aminosyror)\n11. Summera fett- och kolhydratsubkategorier i totals`
+    : ''
+
+  return `Du är en expert på näringslära och matidentifiering. Analysera denna bild av en måltid och uppskatta kalorier och makronäringsämnen.
+
+${timeLine}${memoryBlock}INSTRUKTIONER:
+1. Identifiera varje separat matvara/ingrediens i bilden
+2. Uppskatta portionsstorlek i gram och beskriv portionen på svenska (t.ex. "1 skiva", "2 dl", "1 portion")
+3. Beräkna kalorier och makros (protein, kolhydrater, fett, fiber) per matvara
+4. Summera totala kalorier och makros för hela måltiden
+5. Ge en kort svensk beskrivning av måltiden
+6. Föreslå vilken måltidstyp det troligtvis är (frukost, lunch, middag, mellanmål etc.)${clientHour != null ? ' — följ tidsregeln ovan' : ''}
+7. Ange din konfidensgrad (0-1) baserat på bildens tydlighet och hur väl du kan identifiera maten
+
+VIKTIGT:
+- Om bilden inte visar mat, sätt success till false
+- Var realistisk med portionsstorlekar — svenskar äter normala portioner
+- Räkna med vanliga svenska livsmedel och tillagningsmetoder
+- Om du ser förpackningar med näringsinformation, använd den informationen
+- Ange eventuella osäkerheter i notes-fältet${enhancedBlock}`
+}
+
+function estimateFoodScanCost(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+): number {
+  const pricing = GEMINI_PRICING[model]
+  if (!pricing) return 0
+  // GEMINI_PRICING is per 1K tokens
+  return (inputTokens / 1000) * pricing.input + (outputTokens / 1000) * pricing.output
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,6 +116,12 @@ export async function POST(request: NextRequest) {
     const parsedHour = clientHourRaw != null ? parseInt(String(clientHourRaw), 10) : NaN
     const clientHour = Number.isFinite(parsedHour) && parsedHour >= 0 && parsedHour <= 23
       ? parsedHour
+      : null
+
+    const clientDayRaw = formData.get('clientDayOfWeek')
+    const parsedDay = clientDayRaw != null ? parseInt(String(clientDayRaw), 10) : NaN
+    const clientDayOfWeek = Number.isFinite(parsedDay) && parsedDay >= 0 && parsedDay <= 6
+      ? parsedDay
       : null
 
     if (!imageFile) {
@@ -102,12 +175,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check enhanced macro analysis preference
+    // Load dietary preferences (memory + enhanced-mode toggles)
     const prefs = await prisma.dietaryPreferences.findUnique({
       where: { clientId },
-      select: { enhancedMacroAnalysis: true },
+      select: { enhancedMacroAnalysis: true, memoryEnabled: true },
     })
     const enhancedMode = prefs?.enhancedMacroAnalysis ?? false
+    const memoryEnabled = prefs?.memoryEnabled ?? true
 
     // Convert file to base64
     const arrayBuffer = await imageFile.arrayBuffer()
@@ -120,68 +194,121 @@ export async function POST(request: NextRequest) {
       ? 'image/jpeg' // Best-effort: HEIC bytes may still work as Gemini does internal conversion
       : normalizedType
 
-    // Initialize Gemini
-    const google = createGoogleGenerativeAI({
-      apiKey: googleKey,
+    const google = createGoogleGenerativeAI({ apiKey: googleKey })
+    const modelName = GEMINI_MODELS.FLASH
+
+    // First pass — stateless, no memory context
+    const firstPrompt = buildPrompt({
+      clientHour,
+      clientDayOfWeek,
+      enhancedMode,
+      memoryContext: null,
     })
 
-    // Call Gemini Flash with structured output
-    const result = await generateObject({
-      model: google(GEMINI_MODELS.FLASH),
+    const firstPass = await generateObject({
+      model: google(modelName),
       schema: FoodPhotoAnalysisSchema,
       messages: [
         {
           role: 'user',
           content: [
-            {
-              type: 'image',
-              image: `data:${mimeForGemini};base64,${base64}`,
-            },
-            {
-              type: 'text',
-              text: `Du är en expert på näringslära och matidentifiering. Analysera denna bild av en måltid och uppskatta kalorier och makronäringsämnen.
-
-${clientHour != null ? `KONTEXT: Användaren loggar måltiden kl ${String(clientHour).padStart(2, '0')}:00 (lokal tid). Använd tiden som primär signal för måltidstyp: före 10 = BREAKFAST, 10–11 = MORNING_SNACK, 11–14 = LUNCH, 14–16 = AFTERNOON_SNACK, 17–20 = DINNER, efter 20 = EVENING_SNACK. Avvik endast om maten uppenbart tillhör en annan kategori (t.ex. tydlig frukostgröt kl 15 → AFTERNOON_SNACK, inte BREAKFAST).
-
-` : ''}INSTRUKTIONER:
-1. Identifiera varje separat matvara/ingrediens i bilden
-2. Uppskatta portionsstorlek i gram och beskriv portionen på svenska (t.ex. "1 skiva", "2 dl", "1 portion")
-3. Beräkna kalorier och makros (protein, kolhydrater, fett, fiber) per matvara
-4. Summera totala kalorier och makros för hela måltiden
-5. Ge en kort svensk beskrivning av måltiden
-6. Föreslå vilken måltidstyp det troligtvis är (frukost, lunch, middag, mellanmål etc.)${clientHour != null ? ' — följ tidsregeln ovan' : ''}
-7. Ange din konfidensgrad (0-1) baserat på bildens tydlighet och hur väl du kan identifiera maten
-
-VIKTIGT:
-- Om bilden inte visar mat, sätt success till false
-- Var realistisk med portionsstorlekar — svenskar äter normala portioner
-- Räkna med vanliga svenska livsmedel och tillagningsmetoder
-- Om du ser förpackningar med näringsinformation, använd den informationen
-- Ange eventuella osäkerheter i notes-fältet${enhancedMode ? `
-
-UTÖKAD ANALYS (detaljerade makrosubkategorier):
-8. Fettfördelning per matvara: mättade, enkelomättade, fleromättade fettsyror (gram)
-9. Kolhydratfördelning per matvara: socker och komplexa kolhydrater (stärkelse) i gram
-10. Proteinkvalitet: ange om matvaran är en komplett proteinkälla (alla essentiella aminosyror)
-11. Summera fett- och kolhydratsubkategorier i totals` : ''}`,
-            },
+            { type: 'image', image: `data:${mimeForGemini};base64,${base64}` },
+            { type: 'text', text: firstPrompt },
           ],
         },
       ],
     })
 
+    let finalResult = firstPass.object
+    let passes: 1 | 2 = 1
+    let memoryUsed = false
+    let memoryMealsConsidered = 0
+
+    let inputTokens = firstPass.usage?.inputTokens ?? 0
+    let outputTokens = firstPass.usage?.outputTokens ?? 0
+
+    // Second pass — only when first-pass confidence is low and memory is on
+    const shouldRetryWithMemory =
+      memoryEnabled &&
+      finalResult.success &&
+      typeof finalResult.confidence === 'number' &&
+      finalResult.confidence < MEMORY_CONFIDENCE_THRESHOLD
+
+    if (shouldRetryWithMemory) {
+      const memory = await buildFoodMemoryContext({ clientId })
+      memoryMealsConsidered = memory.stats.mealsConsidered
+
+      if (memory.text) {
+        const secondPrompt = buildPrompt({
+          clientHour,
+          clientDayOfWeek,
+          enhancedMode,
+          memoryContext: memory.text,
+        })
+
+        const secondPass = await generateObject({
+          model: google(modelName),
+          schema: FoodPhotoAnalysisSchema,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'image', image: `data:${mimeForGemini};base64,${base64}` },
+                { type: 'text', text: secondPrompt },
+              ],
+            },
+          ],
+        })
+
+        // Keep the second pass only if it returns a successful analysis. Otherwise
+        // fall back to pass 1 so we never regress on a confident-enough result.
+        if (secondPass.object.success) {
+          finalResult = secondPass.object
+          passes = 2
+          memoryUsed = true
+        }
+
+        inputTokens += secondPass.usage?.inputTokens ?? 0
+        outputTokens += secondPass.usage?.outputTokens ?? 0
+      }
+    }
+
+    // Log cost (fire-and-forget; do not block the response on logging failure)
+    const estimatedCost = estimateFoodScanCost(modelName, inputTokens, outputTokens)
+    prisma.aIUsageLog
+      .create({
+        data: {
+          userId: user.id,
+          category: memoryUsed ? 'food_scan_memory' : 'food_scan',
+          provider: 'GOOGLE',
+          model: modelName,
+          inputTokens,
+          outputTokens,
+          estimatedCost,
+        },
+      })
+      .catch((err) => {
+        logger.error('Failed to log food-scan usage', {}, err as Error)
+      })
+
     if (process.env.NODE_ENV !== 'production') {
       logger.debug('Food scan result', {
-        success: result.object.success,
-        itemCount: result.object.items.length,
-        confidence: result.object.confidence,
+        success: finalResult.success,
+        itemCount: finalResult.items.length,
+        confidence: finalResult.confidence,
+        passes,
+        memoryUsed,
+        memoryMealsConsidered,
       })
     }
 
     return NextResponse.json({
       success: true,
-      result: result.object,
+      result: finalResult,
       enhancedMode,
+      memoryUsed,
+      passes,
+      memoryMealsConsidered,
       generatedAt: new Date().toISOString(),
     })
   } catch (error) {

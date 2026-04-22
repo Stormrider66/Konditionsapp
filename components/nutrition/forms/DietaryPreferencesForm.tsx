@@ -48,6 +48,7 @@ const preferencesSchema = z.object({
   preferWholeGrain: z.boolean().optional(),
   preferSwedishFoods: z.boolean().optional(),
   enhancedMacroAnalysis: z.boolean().optional(),
+  memoryEnabled: z.boolean().optional(),
 })
 
 type PreferencesFormData = z.infer<typeof preferencesSchema>
@@ -103,6 +104,7 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
       preferWholeGrain: initialData?.preferWholeGrain ?? true,
       preferSwedishFoods: initialData?.preferSwedishFoods ?? true,
       enhancedMacroAnalysis: initialData?.enhancedMacroAnalysis ?? false,
+      memoryEnabled: initialData?.memoryEnabled ?? true,
     },
   })
 
@@ -382,6 +384,24 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
                     <FormLabel className="text-sm">Detaljerad makroanalys</FormLabel>
                     <FormDescription className="text-xs">
                       AI-analysen inkluderar fetttyper (mättat, omättat), sockerinnehåll och proteinkvalitet. Kan ta 1–2 sekunder extra.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="memoryEnabled"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-sm">Matminne för bildskanner</FormLabel>
+                    <FormDescription className="text-xs">
+                      Låt Gemini lära sig vad du brukar äta för att förbättra träffsäkerheten i bildanalysen. Används bara vid osäkra bilder.
                     </FormDescription>
                   </div>
                   <FormControl>

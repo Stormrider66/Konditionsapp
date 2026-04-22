@@ -221,6 +221,7 @@ export function FoodPhotoScanner({
   const [notes, setNotes] = useState('')
   const [confidence, setConfidence] = useState(0)
   const [enhancedMode, setEnhancedMode] = useState(false)
+  const [memoryUsed, setMemoryUsed] = useState(false)
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
 
   // Refinement state
@@ -410,7 +411,9 @@ export function FoodPhotoScanner({
     try {
       const formData = new FormData()
       formData.append('image', imageFile)
-      formData.append('clientHour', String(new Date().getHours()))
+      const now = new Date()
+      formData.append('clientHour', String(now.getHours()))
+      formData.append('clientDayOfWeek', String(now.getDay()))
 
       const response = await fetch('/api/ai/food-scan', {
         method: 'POST',
@@ -447,6 +450,7 @@ export function FoodPhotoScanner({
 
       // Populate review state
       setEnhancedMode(data.enhancedMode ?? false)
+      setMemoryUsed(Boolean(data.memoryUsed))
       setItems(result.items.map(createEditableFoodItem))
       setMealDescription(result.mealDescription)
       setConfidence(result.confidence)
@@ -551,6 +555,7 @@ export function FoodPhotoScanner({
     setNotes('')
     setConfidence(0)
     setEnhancedMode(false)
+    setMemoryUsed(false)
     setExpandedItems(new Set())
     setRefinementText('')
     setIsRefining(false)
@@ -1052,7 +1057,7 @@ export function FoodPhotoScanner({
           )}
 
           {/* Confidence indicator */}
-          {(confidence > 0 || enhancedMode) && (
+          {(confidence > 0 || enhancedMode || memoryUsed) && (
             <div className="flex flex-wrap items-center gap-2 text-xs">
               {confidence > 0 && (
                 <>
@@ -1061,6 +1066,14 @@ export function FoodPhotoScanner({
                 Konfidensgrad: {Math.round(confidence * 100)}%
               </span>
                 </>
+              )}
+              {memoryUsed && (
+                <span
+                  className="rounded-full border border-violet-400/30 bg-violet-400/10 px-2 py-0.5 text-violet-300"
+                  title="Analysen använde din mathistorik för att förbättra träffsäkerheten"
+                >
+                  Personaliserad
+                </span>
               )}
               {enhancedMode && (
                 <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-0.5 text-cyan-300">
