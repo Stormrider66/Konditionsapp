@@ -14,7 +14,10 @@ import { Prisma } from '@prisma/client'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { classifyCorrection, type DiffableItem } from '@/lib/nutrition/classify-correction'
+
+const MAX_ITEMS_PER_SIDE = 50
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -28,8 +31,8 @@ const itemSchema = z
 
 const bodySchema = z.object({
   mealLogId: z.string().optional().nullable(),
-  aiItems: z.array(itemSchema).min(1),
-  finalItems: z.array(itemSchema).min(1),
+  aiItems: z.array(itemSchema).min(1).max(MAX_ITEMS_PER_SIDE),
+  finalItems: z.array(itemSchema).min(1).max(MAX_ITEMS_PER_SIDE),
   aiConfidence: z.number().min(0).max(1).optional().nullable(),
   wentThroughRefine: z.boolean().optional(),
 })
@@ -40,7 +43,15 @@ export async function POST(request: NextRequest) {
     if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+
+    // Match the rate-limit shape used by /api/ai/food-scan — cheaper endpoint
+    // so a slightly higher ceiling is fine.
+    const rateLimited = await rateLimitJsonResponse('nutrition:corrections', user.id, {
+      limit: 30,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const json = await request.json()
     const body = bodySchema.parse(json)

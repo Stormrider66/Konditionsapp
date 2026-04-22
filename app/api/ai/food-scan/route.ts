@@ -252,30 +252,39 @@ export async function POST(request: NextRequest) {
           memoryContext: memory.text,
         })
 
-        const secondPass = await generateObject({
-          model: google(modelName),
-          schema: FoodPhotoAnalysisSchema,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'image', image: `data:${mimeForGemini};base64,${base64}` },
-                { type: 'text', text: secondPrompt },
-              ],
-            },
-          ],
-        })
+        // Isolated try/catch: a pass-2 failure (Gemini 5xx, rate limit, schema
+        // validation, network flake) must not discard the pass-1 result we
+        // already have. We degrade silently to pass 1.
+        try {
+          const secondPass = await generateObject({
+            model: google(modelName),
+            schema: FoodPhotoAnalysisSchema,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'image', image: `data:${mimeForGemini};base64,${base64}` },
+                  { type: 'text', text: secondPrompt },
+                ],
+              },
+            ],
+          })
 
-        // Keep the second pass only if it returns a successful analysis. Otherwise
-        // fall back to pass 1 so we never regress on a confident-enough result.
-        if (secondPass.object.success) {
-          finalResult = secondPass.object
-          passes = 2
-          memoryUsed = true
+          // Keep the second pass only if it returns a successful analysis. Otherwise
+          // fall back to pass 1 so we never regress on a confident-enough result.
+          if (secondPass.object.success) {
+            finalResult = secondPass.object
+            passes = 2
+            memoryUsed = true
+          }
+
+          inputTokens += secondPass.usage?.inputTokens ?? 0
+          outputTokens += secondPass.usage?.outputTokens ?? 0
+        } catch (err) {
+          logger.warn('Food scan pass 2 failed; falling back to pass 1', {
+            error: err instanceof Error ? err.message : String(err),
+          })
         }
-
-        inputTokens += secondPass.usage?.inputTokens ?? 0
-        outputTokens += secondPass.usage?.outputTokens ?? 0
       }
     }
 
