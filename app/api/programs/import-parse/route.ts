@@ -53,7 +53,7 @@ const PARSE_CACHE_TTL_MS = 60 * 60 * 1000
 const parseCache = createDistributedJsonCache<{
   aiOutput: string
   modelDisplayName: string
-}>('programs:import-parse:v1')
+}>('programs:import-parse:v2') // bump when SYSTEM_PROMPT meaningfully changes
 
 function computeCacheKey(
   body: string,
@@ -335,6 +335,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Strip generic placeholder names ("Övning 1", "Exercise 2") that the
+    // model sometimes emits when it skips reading the source detail table
+    // properly. We'd rather show no name (forcing manual map) than a fake
+    // one that pollutes the alias table downstream.
+    const cleaned = stripPlaceholderExerciseNames(aiOutput)
+    if (cleaned.placeholdersStripped > 0) {
+      aiOutput = cleaned.aiOutput
+      warnings.push(
+        `Modellen returnerade ${cleaned.placeholdersStripped} platshållarnamn (t.ex. "Övning 1") istället för de riktiga namnen — kör "Fixa format" för att försöka igen, eller mappa manuellt i panelen.`
+      )
+    }
+
     // One-shot: resolve exercises server-side too so the client gets both
     // the parsed program and the mapping candidates in a single round-trip.
     // Resolver failure is non-fatal — we still ship the parse.
@@ -484,6 +496,64 @@ function maybeTruncate(
     return { ...n, body: n.body.slice(0, MAX_TEXT_CHARS), truncated: true }
   }
   return { ...n, truncated: false }
+}
+
+/**
+ * Detect generic placeholder exerciseName patterns the AI sometimes emits
+ * when it skips reading the source's per-exercise table — "Övning 1",
+ * "Exercise 2", "Set 3", "Movement A". Replace them with undefined so
+ * (a) the workout view doesn't render fake names, (b) the resolver
+ * doesn't run fuzzy matches against junk, and (c) we don't write fake
+ * aliases when the coach picks a candidate.
+ */
+const PLACEHOLDER_NAME_RE =
+  /^\s*(övning|ovning|exercise|set|movement|rörelse|rorelse)\s*[#-]?\s*[0-9]+\s*$|^\s*(övning|ovning|exercise|movement|rörelse|rorelse)\s+[A-Z]\s*$/i
+
+function isPlaceholderName(name: string | undefined | null): boolean {
+  if (!name) return false
+  return PLACEHOLDER_NAME_RE.test(name.trim())
+}
+
+function stripPlaceholderExerciseNames(aiOutput: string): {
+  aiOutput: string
+  placeholdersStripped: number
+} {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(aiOutput)
+  } catch {
+    return { aiOutput, placeholdersStripped: 0 }
+  }
+  if (!parsed || typeof parsed !== 'object' || !('phases' in parsed)) {
+    return { aiOutput, placeholdersStripped: 0 }
+  }
+
+  let stripped = 0
+  const program = parsed as {
+    phases?: Array<{
+      weeklyTemplate?: Record<
+        string,
+        {
+          type: string
+          segments?: Array<{ exerciseName?: string }>
+        }
+      >
+    }>
+  }
+  for (const phase of program.phases ?? []) {
+    if (!phase.weeklyTemplate) continue
+    for (const day of Object.values(phase.weeklyTemplate)) {
+      if (!day || day.type === 'REST' || !day.segments) continue
+      for (const seg of day.segments) {
+        if (isPlaceholderName(seg.exerciseName)) {
+          delete seg.exerciseName
+          stripped++
+        }
+      }
+    }
+  }
+  if (stripped === 0) return { aiOutput, placeholdersStripped: 0 }
+  return { aiOutput: JSON.stringify(parsed), placeholdersStripped: stripped }
 }
 
 function guessImageMimeFromName(lower: string): string {
@@ -773,7 +843,18 @@ Notes on that example:
 FIELD DISCIPLINE — the rule that breaks the most imports:
 - DO NOT put RPE, RIR, muscle-group, set/rep counts, or weights in description or notes when the dedicated field is available. The preview renders dedicated fields as structured data; anything dumped in description stays as opaque free text.
 - description is for coach prose that doesn't fit a structured field ("focus on depth", "slow eccentric").
-- If a cell literally reads "Kroppsvikt" or "BW", that's still a weight — set weight:"Kroppsvikt" (or both V1/V2 entries in weightByWeek).`
+- If a cell literally reads "Kroppsvikt" or "BW", that's still a weight — set weight:"Kroppsvikt" (or both V1/V2 entries in weightByWeek).
+
+ANTI-PATTERN — NEVER do this, this is the failure mode that breaks the import:
+{
+  "exerciseName": "Övning 1",      // WRONG — generic placeholder
+  "exerciseName": "Övning 2",      // WRONG — generic placeholder
+  "exerciseName": "Exercise 1",    // WRONG — generic placeholder
+  "exerciseName": "Movement A",    // WRONG — generic placeholder
+  ...
+}
+
+The first column of any "Övning | Set x Reps | …" detail table IS the name field. Read it character-by-character and copy it VERBATIM (only stripping equipment parentheticals like "(bar)" or "(hantel)"). If the source row reads "Knäböj (bar)" you emit exerciseName:"Knäböj". If the source reads "Bänkpress (bar)" you emit exerciseName:"Bänkpress". If the source reads "Stående hantelrodd" you emit exerciseName:"Stående hantelrodd". Never invent, never number, never summarize. If you can't read a name from the source, omit the segment entirely — a missing row is better than a fake row.`
 
 function buildPrompt(input: NormalizedInput): string {
   const header = `Source type: ${input.kind}${input.filename ? ` (${input.filename})` : ''}`
