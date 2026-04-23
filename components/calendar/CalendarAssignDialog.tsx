@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 import { sv } from 'date-fns/locale'
@@ -17,6 +17,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
+import {
+  RepeatWeeklyFields,
+  computeWeeklyDates,
+  DEFAULT_OCCURRENCES,
+} from '@/components/coach/scheduling/RepeatWeeklyFields'
 
 interface CalendarAssignDialogProps {
   open: boolean
@@ -47,6 +52,16 @@ export function CalendarAssignDialog({
   const [endTime, setEndTime] = useState('')
   const [locationName, setLocationName] = useState('')
   const [assigning, setAssigning] = useState(false)
+  const [repeatEnabled, setRepeatEnabled] = useState(false)
+  const [occurrences, setOccurrences] = useState(DEFAULT_OCCURRENCES)
+
+  const baseDate = useMemo(() => {
+    try {
+      return parseISO(date)
+    } catch {
+      return null
+    }
+  }, [date])
 
   // Fetch athlete name for display
   useEffect(() => {
@@ -85,56 +100,91 @@ export function CalendarAssignDialog({
   const handleAssign = async () => {
     setAssigning(true)
     try {
-      let url: string
-      let body: Record<string, unknown>
+      const targetDates = repeatEnabled && baseDate
+        ? computeWeeklyDates(baseDate, occurrences)
+        : baseDate
+          ? [baseDate]
+          : []
 
-      const commonFields = {
-        athleteIds: [clientId],
-        assignedDate: date,
-        ...(startTime && { startTime }),
-        ...(endTime && { endTime }),
-        ...(locationName && { locationName }),
-        ...(startTime && { createCalendarEvent: true }),
+      if (targetDates.length === 0) {
+        toast.error('Kunde inte tilldela', { description: 'Ogiltigt datum.' })
+        return
       }
 
-      switch (sessionType) {
-        case 'strength':
-          url = `/api/strength-sessions/${sessionId}/assign`
-          body = commonFields
-          break
-        case 'cardio':
-          url = `/api/cardio-sessions/${sessionId}/assign`
-          body = commonFields
-          break
-        case 'hybrid':
-          url = '/api/hybrid-assignments'
-          body = { ...commonFields, workoutId: sessionId }
-          break
-        case 'agility':
-          url = `/api/agility-workouts/${sessionId}/assign`
-          body = commonFields
-          break
-      }
+      const results = await Promise.all(
+        targetDates.map(async (d) => {
+          const dateStr = format(d, 'yyyy-MM-dd')
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
+          const commonFields = {
+            athleteIds: [clientId],
+            assignedDate: dateStr,
+            ...(startTime && { startTime }),
+            ...(endTime && { endTime }),
+            ...(locationName && { locationName }),
+            ...(startTime && { createCalendarEvent: true }),
+          }
 
-      if (response.ok) {
-        toast.success('Pass tilldelat!', {
-          description: `Tilldelat till ${athleteName} den ${formattedDate}.`,
+          let url: string
+          let body: Record<string, unknown>
+
+          switch (sessionType) {
+            case 'strength':
+              url = `/api/strength-sessions/${sessionId}/assign`
+              body = commonFields
+              break
+            case 'cardio':
+              url = `/api/cardio-sessions/${sessionId}/assign`
+              body = commonFields
+              break
+            case 'hybrid':
+              url = '/api/hybrid-assignments'
+              body = { ...commonFields, workoutId: sessionId }
+              break
+            case 'agility':
+              url = `/api/agility-workouts/${sessionId}/assign`
+              body = commonFields
+              break
+          }
+
+          try {
+            const r = await fetch(url!, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body!),
+            })
+            return r.ok
+          } catch {
+            return false
+          }
         })
-        onOpenChange(false)
-        onAssigned?.()
-        redirectToCalendar()
+      )
+
+      const successCount = results.filter(Boolean).length
+      const total = targetDates.length
+
+      if (successCount === 0) {
+        toast.error('Kunde inte tilldela', { description: 'Ett fel uppstod.' })
+        return
+      }
+
+      if (successCount < total) {
+        toast.warning(`${successCount} av ${total} pass tilldelade`, {
+          description: `${total - successCount} pass misslyckades.`,
+        })
       } else {
-        const data = await response.json().catch(() => ({}))
-        toast.error('Kunde inte tilldela', {
-          description: data.error || 'Ett fel uppstod.',
-        })
+        toast.success(
+          total === 1 ? 'Pass tilldelat!' : `${total} pass tilldelade!`,
+          {
+            description: total === 1
+              ? `Tilldelat till ${athleteName} den ${formattedDate}.`
+              : `Tilldelat till ${athleteName} med start ${formattedDate}.`,
+          }
+        )
       }
+
+      onOpenChange(false)
+      onAssigned?.()
+      redirectToCalendar()
     } catch (error) {
       console.error('Failed to assign:', error)
       toast.error('Kunde inte tilldela', {
@@ -153,7 +203,7 @@ export function CalendarAssignDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Tilldela pass</DialogTitle>
           <DialogDescription>
@@ -162,7 +212,7 @@ export function CalendarAssignDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 overflow-y-auto min-h-0">
           {/* Read-only info */}
           <div className="flex items-center gap-3 text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
             <User className="h-4 w-4 shrink-0" />
@@ -214,6 +264,15 @@ export function CalendarAssignDialog({
               placeholder="t.ex. Gymmet, Utomhus..."
             />
           </div>
+
+          {/* Repeat weekly */}
+          <RepeatWeeklyFields
+            enabled={repeatEnabled}
+            onEnabledChange={setRepeatEnabled}
+            occurrences={occurrences}
+            onOccurrencesChange={setOccurrences}
+            baseDate={baseDate}
+          />
         </div>
 
         <DialogFooter className="flex gap-2 sm:gap-0">
@@ -226,6 +285,8 @@ export function CalendarAssignDialog({
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Tilldelar...
               </>
+            ) : repeatEnabled ? (
+              `Tilldela ${occurrences} pass`
             ) : (
               'Tilldela'
             )}
