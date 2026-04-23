@@ -12,6 +12,7 @@ enum WorkoutType {
   PLYOMETRIC
   CORE
   RECOVERY
+  WARMUP
   CYCLING
   SKIING
   SWIMMING

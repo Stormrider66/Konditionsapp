@@ -440,11 +440,11 @@ export function CustomExerciseCreator({
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="WARMUP">Warm-up</SelectItem>
                       <SelectItem value="STRENGTH">Strength</SelectItem>
                       <SelectItem value="PLYOMETRIC">Plyometric</SelectItem>
                       <SelectItem value="CORE">Core</SelectItem>
-                      <SelectItem value="MOBILITY">Mobility</SelectItem>
-                      <SelectItem value="CONDITIONING">Conditioning</SelectItem>
+                      <SelectItem value="RECOVERY">Recovery / Mobility</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.category && (

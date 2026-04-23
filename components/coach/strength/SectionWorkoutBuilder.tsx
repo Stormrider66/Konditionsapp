@@ -226,6 +226,18 @@ export function SectionWorkoutBuilder({
   const [targetSection, setTargetSection] = useState<SectionType>('MAIN')
   const [showExerciseCreator, setShowExerciseCreator] = useState(false)
 
+  // Sync category filter to match the target section. Coach can override the
+  // filter afterwards; next target-section change will realign it again.
+  useEffect(() => {
+    const sectionToCategory: Record<SectionType, string> = {
+      WARMUP: 'WARMUP',
+      MAIN: 'ALL',
+      CORE: 'CORE',
+      COOLDOWN: 'RECOVERY',
+    }
+    setCategoryFilter(sectionToCategory[targetSection])
+  }, [targetSection])
+
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null)
   const [activeSectionType, setActiveSectionType] = useState<SectionType | null>(null)
@@ -888,6 +900,7 @@ export function SectionWorkoutBuilder({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">Alla kategorier</SelectItem>
+                  <SelectItem value="WARMUP">Uppvärmning</SelectItem>
                   <SelectItem value="STRENGTH">Styrka</SelectItem>
                   <SelectItem value="PLYOMETRIC">Plyometri</SelectItem>
                   <SelectItem value="CORE">Core</SelectItem>
