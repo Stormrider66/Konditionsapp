@@ -76,10 +76,30 @@ export async function resolveExercises(
     ? { OR: [{ coachId: aliasOwnerId }, { coachId: null }] }
     : { coachId: null }
 
-  const aliasRows = await prisma.exerciseNameAlias.findMany({
-    where: aliasWhere,
-    select: { alias: true, exerciseId: true, coachId: true, createdAt: true },
-  })
+  // Tolerate a missing ExerciseNameAlias table: if the migration hasn't been
+  // applied on this environment yet, skip the alias pass and fall through to
+  // fuzzy matching rather than taking the whole resolver down with us.
+  let aliasRows: Array<{
+    alias: string
+    exerciseId: string
+    coachId: string | null
+    createdAt: Date
+  }> = []
+  try {
+    aliasRows = await prisma.exerciseNameAlias.findMany({
+      where: aliasWhere,
+      select: { alias: true, exerciseId: true, coachId: true, createdAt: true },
+    })
+  } catch (e) {
+    if (isMissingTableError(e)) {
+      console.warn(
+        '[exercise-resolver] ExerciseNameAlias table missing — skipping alias pass. ' +
+          'Apply the migration with: export $(grep -E "^(DATABASE_URL|DIRECT_DATABASE_URL)=" .env.local | xargs) && npx prisma migrate deploy'
+      )
+    } else {
+      throw e
+    }
+  }
   // Precedence: system-wide first so coach-scoped overwrites; within the same
   // scope, older first so the most-recent write wins.
   aliasRows.sort((a, b) => {
@@ -201,6 +221,22 @@ export async function resolveExercises(
   })
 
   return { resolutions }
+}
+
+/**
+ * Recognize the Prisma / Postgres "relation does not exist" error we get
+ * when a migration hasn't been applied yet. Structural check — the error
+ * shape from Prisma changes between versions, so we sniff the code + text.
+ */
+function isMissingTableError(e: unknown): boolean {
+  if (!e || typeof e !== 'object') return false
+  const err = e as { code?: string; message?: string; meta?: { code?: string } }
+  if (err.code === 'P2021' || err.meta?.code === 'P2021') return true // Prisma: table does not exist
+  if (err.code === '42P01') return true // Postgres: undefined table
+  if (typeof err.message === 'string' && /does not exist|relation .* does not exist/i.test(err.message)) {
+    return true
+  }
+  return false
 }
 
 // ─── Scoring helpers ────────────────────────────────────────────────────────

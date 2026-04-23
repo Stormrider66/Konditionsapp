@@ -289,7 +289,14 @@ export async function POST(request: NextRequest) {
       // JSON is well past that. Set the budget high enough that a 2-week,
       // 30-exercise strength program can't get truncated mid-JSON. Actual
       // provider caps clamp this if we overshoot.
-      const MAX_OUTPUT_TOKENS = 32_000
+      //
+      // Claude Opus 4.7 runs extended thinking by default and those tokens
+      // come out of the same max_tokens budget. Give it a much bigger cap so
+      // a few thousand thinking tokens + a full program JSON both fit.
+      const MAX_OUTPUT_TOKENS =
+        resolved.provider === 'anthropic' && resolved.modelId === 'claude-opus-4-7'
+          ? 96_000
+          : 32_000
       // Some newer reasoning models (Claude Opus 4.7, future thinking-mode
       // models) reject the temperature parameter outright. generationTuning
       // strips it for those and passes through for everything else.
@@ -323,6 +330,15 @@ export async function POST(request: NextRequest) {
               maxOutputTokens: MAX_OUTPUT_TOKENS,
             })
       aiOutput = result.text
+      // Diagnostic trace: log a short excerpt so we can see how the model
+      // shaped its output (or didn't). Truncated to keep log lines sane.
+      logger.info('import-parse model output excerpt', {
+        provider: resolved.provider,
+        modelId: resolved.modelId,
+        finishReason: result.finishReason,
+        outputLength: aiOutput.length,
+        excerpt: aiOutput.slice(0, 800),
+      })
       // Surface a loud warning if the model ran out of output budget — the
       // JSON is likely truncated mid-segment and the preview will recover
       // only partially. Don't cache truncated responses; we want the next
@@ -388,9 +404,14 @@ export async function POST(request: NextRequest) {
       }
     } catch (e) {
       logger.error('Exercise resolver failed during import-parse', {}, e)
-      warnings.push(
-        'Exercise auto-matching was unavailable; you can map exercises manually in the review panel.'
-      )
+      // Distinguish migration-drift failures so the ops path is clear. Most
+      // other failures mean transient DB trouble and a generic message is
+      // right.
+      const msg =
+        e instanceof Error && /does not exist|P2021|42P01/i.test(e.message)
+          ? 'Övningsbiblioteket är inte initialiserat på den här miljön — kör senaste Prisma-migrationerna (npx prisma migrate deploy) innan du försöker igen. Du kan fortfarande publicera programmet utan att länka övningar.'
+          : 'Exercise auto-matching was unavailable; you can map exercises manually in the review panel.'
+      warnings.push(msg)
     }
 
     // Telemetry: one row per attempt, fire-and-forget. A failed log write
