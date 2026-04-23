@@ -375,9 +375,38 @@ export const MODEL_TIERS: Record<ModelIntent, {
   },
   powerful: {
     google:    { modelId: 'gemini-3.1-pro-preview',     displayName: 'Gemini 3.1 Pro',    supportsVision: true },
-    anthropic: { modelId: 'claude-opus-4-7',            displayName: 'Claude Opus 4.7',   supportsVision: true },
+    // Intentionally pinned to 4.6 (not 4.7). Opus 4.7's always-on extended
+    // thinking drops temperature support and burns output tokens on thinking,
+    // which hurts deterministic extraction flows (importer, roster parser).
+    // Reasoning-heavy flows that actually benefit from 4.7 should route via
+    // a task-specific override (see EXTRACTION_TIERS / future TASK_TIERS).
+    anthropic: { modelId: 'claude-opus-4-6',            displayName: 'Claude Opus 4.6',   supportsVision: true },
     openai:    { modelId: 'gpt-5.4',                    displayName: 'GPT-5.4',           supportsVision: true },
   },
+}
+
+/**
+ * Task-specific tier override for structured extraction workflows
+ * (program importer, roster parser, anything that reads a source doc and
+ * emits a predictable JSON shape).
+ *
+ * For extraction we deliberately prefer the BALANCED tier's models even
+ * when the caller asked for 'powerful'. Reasons:
+ *   - Sonnet 4.6 / Gemini 3 Flash / GPT-5 Mini all support `temperature`,
+ *     which we set to 0.1 for run-to-run consistency.
+ *   - They don't spend output tokens on extended thinking (Opus 4.7's
+ *     failure mode on our Excel imports: thinking ate the budget and the
+ *     JSON truncated past exercise names).
+ *   - They're cheaper and faster, and extraction doesn't benefit from
+ *     "think harder" the way open-ended reasoning does.
+ *
+ * Vision still works: Sonnet 4.6 / Flash / Mini all have supportsVision=true.
+ */
+export const EXTRACTION_TIERS: typeof MODEL_TIERS = {
+  fast: MODEL_TIERS.fast,
+  balanced: MODEL_TIERS.balanced,
+  // 'powerful' collapses to the balanced tier for extraction tasks.
+  powerful: MODEL_TIERS.balanced,
 }
 
 /**
@@ -397,7 +426,35 @@ export function resolveModel(
   intent: ModelIntent = 'balanced',
   preferredProvider?: AIProvider
 ): ResolvedModel | null {
-  const tier = MODEL_TIERS[intent]
+  return resolveFromTiers(MODEL_TIERS, keys, intent, preferredProvider)
+}
+
+/**
+ * Task-aware variant of resolveModel for structured extraction. Same
+ * semantics as resolveModel but uses EXTRACTION_TIERS — callers that route
+ * through here get the deterministic, temperature-supporting models for
+ * Anthropic (Sonnet 4.6) even when they asked for 'powerful'.
+ *
+ * Use this for: program importer, team-roster import, document RAG
+ * extraction. Do NOT use for: coaching advice, reasoning-heavy planning,
+ * creative output — those should stay on resolveModel so they keep the
+ * top-tier reasoning models.
+ */
+export function resolveExtractionModel(
+  keys: AvailableKeys,
+  intent: ModelIntent = 'balanced',
+  preferredProvider?: AIProvider
+): ResolvedModel | null {
+  return resolveFromTiers(EXTRACTION_TIERS, keys, intent, preferredProvider)
+}
+
+function resolveFromTiers(
+  tiers: typeof MODEL_TIERS,
+  keys: AvailableKeys,
+  intent: ModelIntent,
+  preferredProvider?: AIProvider
+): ResolvedModel | null {
+  const tier = tiers[intent]
 
   if (preferredProvider === 'anthropic' && keys.anthropicKey) {
     return { provider: 'anthropic', modelId: tier.anthropic.modelId, apiKey: keys.anthropicKey, displayName: tier.anthropic.displayName, supportsVision: tier.anthropic.supportsVision }

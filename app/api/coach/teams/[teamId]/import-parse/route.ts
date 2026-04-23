@@ -26,7 +26,7 @@ import { prisma } from '@/lib/prisma'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
-import { resolveModel, resolveVisionModel, type ModelIntent, isModelIntent } from '@/types/ai-models'
+import { resolveExtractionModel, resolveVisionModel, type ModelIntent, isModelIntent } from '@/types/ai-models'
 import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
 import { generateText } from 'ai'
 
@@ -142,10 +142,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const keys = await getResolvedAiKeys(user.id)
     const intent = intentOverride ?? 'balanced'
+    // Roster parsing is structured extraction — use the extraction tier so
+    // 'powerful' collapses to Sonnet 4.6 (not Opus 4.7) for text paths.
+    // Vision stays on the regular vision resolver since we need the bigger
+    // multimodal models to read photos/scans reliably.
     const resolved =
       normalized.kind === 'image'
         ? resolveVisionModel(keys, intent)
-        : resolveModel(keys, intent)
+        : resolveExtractionModel(keys, intent)
 
     if (!resolved) {
       return NextResponse.json(

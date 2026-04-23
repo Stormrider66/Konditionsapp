@@ -27,7 +27,7 @@ import type { Prisma } from '@prisma/client'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import {
-  resolveModel,
+  resolveExtractionModel,
   type ModelIntent,
   type AIProvider,
   isModelIntent,
@@ -254,7 +254,10 @@ export async function POST(request: NextRequest) {
         : looksRich && intentOverride !== 'fast'
           ? 'powerful'
           : intentOverride ?? 'balanced'
-    const resolved = resolveModel(keys, intent, providerOverride)
+    // Importer is a structured-extraction task — route through the
+    // extraction-optimized tier so 'powerful' lands on Sonnet 4.6 rather
+    // than Opus 4.7. See EXTRACTION_TIERS for why.
+    const resolved = resolveExtractionModel(keys, intent, providerOverride)
     if (!resolved) {
       return NextResponse.json(
         {
