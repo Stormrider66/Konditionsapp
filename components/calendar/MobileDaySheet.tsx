@@ -10,6 +10,7 @@
 import { useRef, useCallback, useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { toast } from 'sonner'
 import {
   X,
   Plus,
@@ -151,10 +152,19 @@ export function MobileDaySheet({
       })
 
       if (response.ok) {
+        toast.success('Händelse borttagen')
         onEventDeleted()
+        return
       }
+      const data = await response.json().catch(() => ({}))
+      toast.error('Kunde inte ta bort', {
+        description: data.error || `HTTP ${response.status}`,
+      })
     } catch (error) {
       console.error('Delete error:', error)
+      toast.error('Kunde inte ta bort', {
+        description: 'Nätverksfel — försök igen.',
+      })
     } finally {
       setIsDeleting(false)
     }

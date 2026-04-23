@@ -46,6 +46,7 @@ import {
   INTENSITY_COLORS,
 } from '../types'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 import { formatDistanceValue, formatDurationMinutes, formatWorkoutTypeLabel, formatIntensityLabel, formatFieldTestType, formatAdHocInputType, formatAdHocTypeLabel, formatRaceDistanceLabel } from './formatters'
 
 export interface WODItemProps {
@@ -273,10 +274,19 @@ export function CalendarEventItem({
         method: 'DELETE',
       })
       if (response.ok) {
+        toast.success('Händelse borttagen')
         onDeleted()
+        return
       }
+      const data = await response.json().catch(() => ({}))
+      toast.error('Kunde inte ta bort', {
+        description: data.error || `HTTP ${response.status}`,
+      })
     } catch (error) {
       console.error('Failed to delete event:', error)
+      toast.error('Kunde inte ta bort', {
+        description: 'Nätverksfel — försök igen.',
+      })
     } finally {
       setIsDeleting(false)
     }
