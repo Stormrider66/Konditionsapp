@@ -128,7 +128,7 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number }> =
     input: 0.003, // $3.00 per 1M input tokens
     output: 0.015, // $15.00 per 1M output tokens
   },
-  'claude-opus-4-6': {
+  'claude-opus-4-7': {
     input: 0.005, // $5.00 per 1M input tokens
     output: 0.025, // $25.00 per 1M output tokens
   },

@@ -28,11 +28,11 @@ export type AgentSessionStatus = 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'ERROR'
  */
 export const AGENT_MODEL_INTENT: Record<AgentType, ModelIntent> = {
   COACHING: 'balanced',           // Sonnet 4.6 — high volume, good reasoning
-  PROGRAM_GENERATION: 'powerful', // Opus 4.6 — complex multi-phase generation
+  PROGRAM_GENERATION: 'powerful', // Opus 4.7 — complex multi-phase generation
   COACH_DASHBOARD: 'balanced',    // Sonnet 4.6 — synthesis and queries
   NUTRITION: 'fast',              // Haiku 4.5 — frequent simple nudges
   PHYSIO: 'balanced',             // Sonnet 4.6 — clinical reasoning matters
-  RESEARCH: 'powerful',           // Opus 4.6 — deep multi-source synthesis
+  RESEARCH: 'powerful',           // Opus 4.7 — deep multi-source synthesis
   LEARNING: 'balanced',           // Sonnet 4.6 — batch pattern analysis
 }
 

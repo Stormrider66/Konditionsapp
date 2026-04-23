@@ -133,9 +133,9 @@ export const AI_MODELS: AIModelConfig[] = [
   },
   {
     id: 'claude-opus',
-    name: 'Claude Opus 4.6',
+    name: 'Claude Opus 4.7',
     provider: 'anthropic',
-    modelId: 'claude-opus-4-6',
+    modelId: 'claude-opus-4-7',
     description: 'Anthropics mest kraftfulla. 128K output för långa program.',
     costTier: 'high',
     capabilities: {
@@ -375,7 +375,7 @@ export const MODEL_TIERS: Record<ModelIntent, {
   },
   powerful: {
     google:    { modelId: 'gemini-3.1-pro-preview',     displayName: 'Gemini 3.1 Pro',    supportsVision: true },
-    anthropic: { modelId: 'claude-opus-4-6',            displayName: 'Claude Opus 4.6',   supportsVision: true },
+    anthropic: { modelId: 'claude-opus-4-7',            displayName: 'Claude Opus 4.7',   supportsVision: true },
     openai:    { modelId: 'gpt-5.4',                    displayName: 'GPT-5.4',           supportsVision: true },
   },
 }

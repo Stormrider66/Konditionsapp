@@ -402,7 +402,7 @@ export function estimateCost(
     'o3-deep-research': { input: 10.0, output: 40.0 },
 
     // Anthropic
-    'claude-opus-4-6': { input: 5.0, output: 25.0 },
+    'claude-opus-4-7': { input: 5.0, output: 25.0 },
     'claude-sonnet-4-6': { input: 3.0, output: 15.0 },
     'claude-haiku-4-5': { input: 0.25, output: 1.25 },
   }

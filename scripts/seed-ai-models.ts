@@ -26,8 +26,8 @@ const AI_MODELS = [
   },
   {
     provider: 'ANTHROPIC' as const,
-    modelId: 'claude-opus-4-6',
-    displayName: 'Claude Opus 4.6',
+    modelId: 'claude-opus-4-7',
+    displayName: 'Claude Opus 4.7',
     description: 'Mest kapabel modell, bäst för komplexa uppgifter',
     capabilities: ['text', 'code', 'vision', 'reasoning'],
     maxTokens: 200000,
