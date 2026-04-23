@@ -79,7 +79,7 @@ export function CalendarAssignDialog({
 
   const redirectToCalendar = () => {
     const prefix = businessSlug ? `/${businessSlug}` : ''
-    router.push(`${prefix}/coach/clients/${clientId}/calendar`)
+    router.push(`${prefix}/coach/athletes/${clientId}/calendar`)
   }
 
   const handleAssign = async () => {
