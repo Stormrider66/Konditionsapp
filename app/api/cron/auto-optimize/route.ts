@@ -16,7 +16,7 @@ import { evaluateProgram } from '@/lib/auto-optimize/program-evaluator'
 import { parseAIProgram } from '@/lib/ai/program-parser'
 import { generateProgramPrompt } from '@/lib/ai/program-prompts'
 import { generateText } from 'ai'
-import { createModelInstance } from '@/lib/ai/create-model'
+import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
 import { getResolvedAiKeys, getPlatformAiKeyOwnerId } from '@/lib/user-api-keys'
 import { resolveModel } from '@/types/ai-models'
 import { TEST_SCENARIOS } from '@/lib/auto-optimize/test-scenarios'
@@ -149,7 +149,7 @@ async function evaluateActiveVariant(
         model: createModelInstance(model),
         prompt,
         maxOutputTokens: 16000,
-        temperature: 0.7,
+        ...generationTuning(model.modelId, { temperature: 0.7 }),
       })
 
       const parseResult = parseAIProgram(result.text)

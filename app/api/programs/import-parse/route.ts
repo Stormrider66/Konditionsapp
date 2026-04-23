@@ -32,7 +32,7 @@ import {
   type AIProvider,
   isModelIntent,
 } from '@/types/ai-models'
-import { createModelInstance } from '@/lib/ai/create-model'
+import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
 import { generateText } from 'ai'
 import { createHash } from 'node:crypto'
 import { parseAIProgram } from '@/lib/ai/program-parser'
@@ -290,6 +290,10 @@ export async function POST(request: NextRequest) {
       // 30-exercise strength program can't get truncated mid-JSON. Actual
       // provider caps clamp this if we overshoot.
       const MAX_OUTPUT_TOKENS = 32_000
+      // Some newer reasoning models (Claude Opus 4.7, future thinking-mode
+      // models) reject the temperature parameter outright. generationTuning
+      // strips it for those and passes through for everything else.
+      const tempField = generationTuning(resolved.modelId, { temperature: 0.1 })
       const result =
         normalized.kind === 'image' && normalized.imageBuffer
           ? await generateText({
@@ -308,14 +312,14 @@ export async function POST(request: NextRequest) {
                   ],
                 },
               ],
-              temperature: 0.1,
+              ...tempField,
               maxOutputTokens: MAX_OUTPUT_TOKENS,
             })
           : await generateText({
               model,
               system: SYSTEM_PROMPT,
               prompt,
-              temperature: 0.1,
+              ...tempField,
               maxOutputTokens: MAX_OUTPUT_TOKENS,
             })
       aiOutput = result.text

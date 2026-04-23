@@ -27,7 +27,7 @@ import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { resolveModel, resolveVisionModel, type ModelIntent, isModelIntent } from '@/types/ai-models'
-import { createModelInstance } from '@/lib/ai/create-model'
+import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
 import { generateText } from 'ai'
 
 export const runtime = 'nodejs'
@@ -178,13 +178,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
                 ],
               },
             ],
-            temperature: 0.1,
+            ...generationTuning(resolved.modelId, { temperature: 0.1 }),
           })
         : await generateText({
             model,
             system: SYSTEM_PROMPT,
             prompt: buildTextPrompt(normalized, team.sportType ?? null),
-            temperature: 0.1,
+            ...generationTuning(resolved.modelId, { temperature: 0.1 }),
           })
 
     const parsedRows = safeParseRoster(aiOutput)

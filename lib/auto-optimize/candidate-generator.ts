@@ -6,7 +6,7 @@
  */
 
 import { generateText } from 'ai'
-import { createModelInstance } from '@/lib/ai/create-model'
+import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
 import { getResolvedAiKeys, getPlatformAiKeyOwnerId } from '@/lib/user-api-keys'
 import { resolveModel } from '@/types/ai-models'
 import { createVariant } from './prompt-variants'
@@ -66,7 +66,7 @@ export async function generateCandidate(
     model: createModelInstance(model),
     prompt: metaPrompt,
     maxOutputTokens: 8000,
-    temperature: 0.4,
+    ...generationTuning(model.modelId, { temperature: 0.4 }),
   })
 
   // Extract the revised prompt from AI response

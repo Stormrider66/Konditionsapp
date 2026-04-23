@@ -10,7 +10,7 @@ import { Prisma } from '@prisma/client'
 import { generateText } from 'ai'
 import { parseAIProgram } from '@/lib/ai/program-parser'
 import { generateProgramPrompt } from '@/lib/ai/program-prompts'
-import { createModelInstance } from '@/lib/ai/create-model'
+import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { getPlatformAiKeyOwnerId } from '@/lib/user-api-keys'
 import { resolveModel, type ResolvedModel } from '@/types/ai-models'
@@ -156,7 +156,7 @@ async function generateAndEvaluate(
       model: createModelInstance(model),
       prompt,
       maxOutputTokens: 16000,
-      temperature: 0.7,
+      ...generationTuning(model.modelId, { temperature: 0.7 }),
     })
 
     const parseResult = parseAIProgram(result.text)
