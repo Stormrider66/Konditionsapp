@@ -133,7 +133,11 @@ const scalingLabels: Record<string, { label: string; color: string }> = {
   FOUNDATIONS: { label: 'Foundations', color: 'bg-blue-500' },
 };
 
-export function HybridStudioClient() {
+interface HybridStudioClientProps {
+  businessId?: string;
+}
+
+export function HybridStudioClient({ businessId }: HybridStudioClientProps = {}) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [workouts, setWorkouts] = useState<HybridWorkout[]>([]);
@@ -569,6 +573,7 @@ export function HybridStudioClient() {
           clientId={calendarClientId}
           date={calendarDate}
           businessSlug={businessSlug}
+          businessId={businessId}
         />
       )}
     </div>

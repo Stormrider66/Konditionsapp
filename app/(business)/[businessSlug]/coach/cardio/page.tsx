@@ -23,7 +23,7 @@ export default async function BusinessCardioPage({ params }: PageProps) {
 
   return (
     <Suspense fallback={<div className="p-4">Loading...</div>}>
-      <CardioDashboard />
+      <CardioDashboard businessId={membership.businessId} />
     </Suspense>
   )
 }

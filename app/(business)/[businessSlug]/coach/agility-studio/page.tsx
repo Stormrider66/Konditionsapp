@@ -94,6 +94,7 @@ export default async function AgilityStudioPage({ params }: PageProps) {
           initialWorkouts={initialData.workouts as any}
           initialAthletes={initialData.athletes}
           initialTimingSessions={initialData.timingSessions as any}
+          businessId={membership.businessId}
         />
       </Suspense>
     </div>

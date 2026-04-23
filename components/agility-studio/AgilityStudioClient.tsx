@@ -42,6 +42,7 @@ interface AgilityStudioClientProps {
   initialWorkouts: AgilityWorkout[]
   initialAthletes: Athlete[]
   initialTimingSessions: (TimingGateSession & { _count: { results: number } })[]
+  businessId?: string
 }
 
 export default function AgilityStudioClient({
@@ -49,7 +50,8 @@ export default function AgilityStudioClient({
   initialDrills,
   initialWorkouts,
   initialAthletes,
-  initialTimingSessions
+  initialTimingSessions,
+  businessId,
 }: AgilityStudioClientProps) {
   const t = useTranslations('agilityStudio')
   const searchParams = useSearchParams()
@@ -232,6 +234,7 @@ export default function AgilityStudioClient({
           clientId={calendarClientId}
           date={calendarDate}
           businessSlug={businessSlug}
+          businessId={businessId}
         />
       )}
     </div>

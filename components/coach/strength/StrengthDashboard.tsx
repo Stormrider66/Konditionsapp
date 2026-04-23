@@ -642,6 +642,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
           clientId={calendarClientId}
           date={calendarDate}
           businessSlug={businessSlug}
+          businessId={businessId}
         />
       )}
 

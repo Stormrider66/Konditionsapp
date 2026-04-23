@@ -31,7 +31,7 @@ export default async function BusinessHybridStudioPage({ params }: PageProps) {
   return (
     <div className="container mx-auto py-6 px-4">
       <Suspense fallback={<HybridStudioSkeleton />}>
-        <HybridStudioClient />
+        <HybridStudioClient businessId={membership.businessId} />
       </Suspense>
     </div>
   )

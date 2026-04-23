@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { Loader2, Calendar, Clock, MapPin, User } from 'lucide-react'
+import { Loader2, Calendar, Clock, MapPin, User, UserCircle } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -16,12 +16,25 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { toast } from 'sonner'
 import {
   RepeatWeeklyFields,
   computeWeeklyDates,
   DEFAULT_OCCURRENCES,
 } from '@/components/coach/scheduling/RepeatWeeklyFields'
+
+interface CoachOption {
+  id: string
+  name: string
+  email?: string
+}
 
 interface CalendarAssignDialogProps {
   open: boolean
@@ -31,6 +44,7 @@ interface CalendarAssignDialogProps {
   clientId: string
   date: string // YYYY-MM-DD
   businessSlug?: string
+  businessId?: string
   onAssigned?: () => void
   onSkip?: () => void
 }
@@ -43,6 +57,7 @@ export function CalendarAssignDialog({
   clientId,
   date,
   businessSlug,
+  businessId,
   onAssigned,
   onSkip,
 }: CalendarAssignDialogProps) {
@@ -54,6 +69,8 @@ export function CalendarAssignDialog({
   const [assigning, setAssigning] = useState(false)
   const [repeatEnabled, setRepeatEnabled] = useState(false)
   const [occurrences, setOccurrences] = useState(DEFAULT_OCCURRENCES)
+  const [coaches, setCoaches] = useState<CoachOption[]>([])
+  const [selectedCoach, setSelectedCoach] = useState<string>('')
 
   const baseDate = useMemo(() => {
     try {
@@ -83,6 +100,51 @@ export function CalendarAssignDialog({
     fetchClient()
     return () => { cancelled = true }
   }, [open, clientId])
+
+  // Fetch coach list (for "Ansvarig coach" selector). Defaults to current user.
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+
+    async function fetchCoaches() {
+      try {
+        if (businessId) {
+          const res = await fetch(`/api/business/${businessId}/coaches`)
+          if (!res.ok) return
+          const data = await res.json()
+          const list: CoachOption[] = (data.coaches || []).map((c: CoachOption) => ({
+            id: c.id,
+            name: c.name,
+            email: c.email,
+          }))
+          if (cancelled) return
+          setCoaches(list)
+          // Default to current user if present in the list
+          const meRes = await fetch('/api/users/me')
+          if (meRes.ok) {
+            const me = await meRes.json()
+            const meId = me?.data?.id || me?.id
+            if (!cancelled && meId && list.some((c) => c.id === meId)) {
+              setSelectedCoach(meId)
+            }
+          }
+        } else {
+          const res = await fetch('/api/users/me')
+          if (!res.ok) return
+          const data = await res.json()
+          const me = data?.data || data
+          if (!cancelled && me?.id) {
+            setCoaches([{ id: me.id, name: me.name || 'Jag', email: me.email }])
+            setSelectedCoach(me.id)
+          }
+        }
+      } catch {
+        /* non-critical */
+      }
+    }
+    fetchCoaches()
+    return () => { cancelled = true }
+  }, [open, businessId])
 
   const formattedDate = (() => {
     try {
@@ -122,6 +184,7 @@ export function CalendarAssignDialog({
             ...(endTime && { endTime }),
             ...(locationName && { locationName }),
             ...(startTime && { createCalendarEvent: true }),
+            ...(selectedCoach && { responsibleCoachId: selectedCoach }),
           }
 
           let url: string
@@ -264,6 +327,32 @@ export function CalendarAssignDialog({
               placeholder="t.ex. Gymmet, Utomhus..."
             />
           </div>
+
+          {/* Optional: Responsible coach */}
+          {coaches.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="coach" className="flex items-center gap-1.5">
+                <UserCircle className="h-3.5 w-3.5" />
+                Ansvarig coach
+              </Label>
+              <Select
+                value={selectedCoach || 'none'}
+                onValueChange={(v) => setSelectedCoach(v === 'none' ? '' : v)}
+              >
+                <SelectTrigger id="coach">
+                  <SelectValue placeholder="Välj coach..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Ingen vald</SelectItem>
+                  {coaches.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Repeat weekly */}
           <RepeatWeeklyFields

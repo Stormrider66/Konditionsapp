@@ -12,7 +12,11 @@ import { AutoCardioDialog } from './AutoCardioDialog'
 import type { CardioSessionData } from '@/types'
 import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog'
 
-export function CardioDashboard() {
+interface CardioDashboardProps {
+  businessId?: string
+}
+
+export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const [activeTab, setActiveTab] = React.useState('builder')
@@ -151,6 +155,7 @@ export function CardioDashboard() {
           clientId={calendarClientId}
           date={calendarDate}
           businessSlug={businessSlug}
+          businessId={businessId}
         />
       )}
     </div>
