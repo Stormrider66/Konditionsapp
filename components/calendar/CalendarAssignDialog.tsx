@@ -156,9 +156,11 @@ export function CalendarAssignDialog({
     }
   })()
 
-  const redirectToCalendar = () => {
+  const redirectToCalendar = (focusDate?: string) => {
     const prefix = businessSlug ? `/${businessSlug}` : ''
-    router.push(`${prefix}/coach/athletes/${clientId}/calendar`)
+    const targetDate = focusDate || date
+    const query = targetDate ? `?date=${targetDate}` : ''
+    router.push(`${prefix}/coach/athletes/${clientId}/calendar${query}`)
   }
 
   const handleAssign = async () => {

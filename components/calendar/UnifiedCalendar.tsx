@@ -14,6 +14,7 @@
  */
 
 import { useState, useCallback, useRef, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameDay } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import useSWR from 'swr'
@@ -80,8 +81,24 @@ interface UnifiedCalendarProps {
 export function UnifiedCalendar({ clientId, clientName, isCoachView = false, variant = 'default', businessSlug }: UnifiedCalendarProps) {
   const { toast } = useToast()
   const isGlass = variant === 'glass'
-  const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+
+  // Deep-link support: `?date=YYYY-MM-DD` opens the calendar on that month
+  // with that day selected. Only read on first mount.
+  const searchParams = useSearchParams()
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const d = searchParams?.get('date')
+    if (d) {
+      const parsed = new Date(d)
+      if (!isNaN(parsed.getTime())) return parsed
+    }
+    return new Date()
+  })
+  const [selectedDate, setSelectedDate] = useState<Date | null>(() => {
+    const d = searchParams?.get('date')
+    if (!d) return null
+    const parsed = new Date(d)
+    return isNaN(parsed.getTime()) ? null : parsed
+  })
   const [selectedItem, setSelectedItem] = useState<UnifiedCalendarItem | null>(null)
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<UnifiedCalendarItem | null>(null)
