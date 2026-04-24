@@ -1484,6 +1484,15 @@ export interface HybridMovementData {
 // STRENGTH SESSION TYPES
 // ============================================
 
+export interface StrengthSessionFollowUp {
+  exerciseId: string
+  exerciseName: string
+  reps: number | string
+  weight?: number
+  restBeforeSeconds?: number
+  notes?: string
+}
+
 export interface StrengthSessionExercise {
   exerciseId: string
   exerciseName: string
@@ -1492,6 +1501,7 @@ export interface StrengthSessionExercise {
   weight?: number
   restSeconds?: number
   notes?: string
+  followUps?: StrengthSessionFollowUp[]
 }
 
 export interface StrengthSessionSectionExercise {

@@ -50,6 +50,19 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
   GripVertical,
   Plus,
   Trash2,
@@ -65,12 +78,24 @@ import {
   Sparkles,
   Star,
   TrendingUp,
+  MessageSquare,
+  Link2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CustomExerciseCreator } from '@/components/coach/exercise-library/CustomExerciseCreator'
 
 // Types
 type SectionType = 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
+
+interface FollowUp {
+  id: string
+  exerciseId: string
+  name: string
+  reps: string
+  weight: string
+  restBefore: number
+  notes?: string
+}
 
 interface Exercise {
   id: string
@@ -82,7 +107,10 @@ interface Exercise {
   rest: number
   notes?: string
   tempo?: string
+  followUps?: FollowUp[]
 }
+
+const MAX_FOLLOW_UPS = 2
 
 interface SectionConfig {
   type: SectionType
@@ -154,6 +182,14 @@ interface SectionWorkoutBuilderProps {
       weight?: number
       restSeconds?: number
       notes?: string
+      followUps?: Array<{
+        exerciseId: string
+        exerciseName: string
+        reps: number | string
+        weight?: number
+        restBeforeSeconds?: number
+        notes?: string
+      }>
     }>
     warmupData?: {
       notes?: string
@@ -264,6 +300,15 @@ export function SectionWorkoutBuilder({
         weight: e.weight ? String(e.weight) : '',
         rest: e.restSeconds || 90,
         notes: e.notes,
+        followUps: e.followUps?.map((f) => ({
+          id: crypto.randomUUID(),
+          exerciseId: f.exerciseId,
+          name: f.exerciseName,
+          reps: String(f.reps),
+          weight: f.weight ? String(f.weight) : '',
+          restBefore: f.restBeforeSeconds ?? 0,
+          notes: f.notes,
+        })),
       }))
 
       // Load warmup
@@ -499,6 +544,82 @@ export function SectionWorkoutBuilder({
     }))
   }
 
+  // Attach a follow-up exercise (for supersets / French-contrast pairs).
+  // Main section only. Max 2 follow-ups per primary exercise.
+  const addFollowUp = (
+    section: SectionType,
+    exerciseId: string,
+    followExerciseId: string
+  ) => {
+    const template = availableExercises.find((e) => e.id === followExerciseId)
+    if (!template) return
+
+    setSections((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        exercises: prev[section].exercises.map((e) => {
+          if (e.id !== exerciseId) return e
+          const existing = e.followUps ?? []
+          if (existing.length >= MAX_FOLLOW_UPS) return e
+          const newFollowUp: FollowUp = {
+            id: crypto.randomUUID(),
+            exerciseId: template.id,
+            name: template.name,
+            reps: '5',
+            weight: '',
+            // First follow-up defaults to 0s (classic superset). Second
+            // defaults to ~15s, matching typical French-contrast spacing.
+            restBefore: existing.length === 0 ? 0 : 15,
+          }
+          return { ...e, followUps: [...existing, newFollowUp] }
+        }),
+      },
+    }))
+  }
+
+  const updateFollowUp = (
+    section: SectionType,
+    exerciseId: string,
+    followUpId: string,
+    field: keyof FollowUp,
+    value: any
+  ) => {
+    setSections((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        exercises: prev[section].exercises.map((e) => {
+          if (e.id !== exerciseId) return e
+          return {
+            ...e,
+            followUps: (e.followUps ?? []).map((f) =>
+              f.id === followUpId ? { ...f, [field]: value } : f
+            ),
+          }
+        }),
+      },
+    }))
+  }
+
+  const removeFollowUp = (
+    section: SectionType,
+    exerciseId: string,
+    followUpId: string
+  ) => {
+    setSections((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        exercises: prev[section].exercises.map((e) =>
+          e.id === exerciseId
+            ? { ...e, followUps: (e.followUps ?? []).filter((f) => f.id !== followUpId) }
+            : e
+        ),
+      },
+    }))
+  }
+
   // Drag handlers
   const handleDragStart = (event: DragStartEvent) => {
     const id = event.active.id as string
@@ -574,6 +695,16 @@ export function SectionWorkoutBuilder({
         restSeconds: e.rest,
         notes: e.notes,
         tempo: e.tempo,
+        followUps: e.followUps && e.followUps.length > 0
+          ? e.followUps.map((f) => ({
+              exerciseId: f.exerciseId,
+              exerciseName: f.name,
+              reps: parseInt(f.reps) || f.reps,
+              weight: f.weight ? parseFloat(f.weight) : undefined,
+              restBeforeSeconds: f.restBefore,
+              notes: f.notes,
+            }))
+          : undefined,
       }))
 
       // Build warmup data
@@ -825,9 +956,19 @@ export function SectionWorkoutBuilder({
                                 key={exercise.id}
                                 exercise={exercise}
                                 sectionType={type}
+                                availableExercises={availableExercises}
                                 onRemove={() => removeExercise(type, exercise.id)}
                                 onUpdate={(field, value) =>
                                   updateExercise(type, exercise.id, field, value)
+                                }
+                                onAddFollowUp={(followExerciseId) =>
+                                  addFollowUp(type, exercise.id, followExerciseId)
+                                }
+                                onUpdateFollowUp={(followUpId, field, value) =>
+                                  updateFollowUp(type, exercise.id, followUpId, field, value)
+                                }
+                                onRemoveFollowUp={(followUpId) =>
+                                  removeFollowUp(type, exercise.id, followUpId)
                                 }
                               />
                             ))}
@@ -849,8 +990,12 @@ export function SectionWorkoutBuilder({
                     sections[activeSectionType].exercises.find((e) => e.id === activeId)!
                   }
                   sectionType={activeSectionType}
+                  availableExercises={availableExercises}
                   onRemove={() => {}}
                   onUpdate={() => {}}
+                  onAddFollowUp={() => {}}
+                  onUpdateFollowUp={() => {}}
+                  onRemoveFollowUp={() => {}}
                   isOverlay
                 />
               </div>
@@ -1067,14 +1212,22 @@ export function SectionWorkoutBuilder({
 function SortableExerciseItem({
   exercise,
   sectionType,
+  availableExercises,
   onRemove,
   onUpdate,
+  onAddFollowUp,
+  onUpdateFollowUp,
+  onRemoveFollowUp,
   isOverlay = false,
 }: {
   exercise: Exercise
   sectionType: SectionType
+  availableExercises: Array<{ id: string; name: string; muscleGroup?: string; category?: string }>
   onRemove: () => void
   onUpdate: (field: keyof Exercise, value: any) => void
+  onAddFollowUp: (followExerciseId: string) => void
+  onUpdateFollowUp: (followUpId: string, field: keyof FollowUp, value: any) => void
+  onRemoveFollowUp: (followUpId: string) => void
   isOverlay?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
@@ -1087,6 +1240,13 @@ function SortableExerciseItem({
   }
 
   const isCooldown = sectionType === 'COOLDOWN'
+  const isMain = sectionType === 'MAIN'
+
+  const [notesOpen, setNotesOpen] = useState(Boolean(exercise.notes))
+  const [followUpPickerOpen, setFollowUpPickerOpen] = useState(false)
+
+  const followUps = exercise.followUps ?? []
+  const canAddFollowUp = isMain && followUps.length < MAX_FOLLOW_UPS
 
   return (
     <div
@@ -1107,14 +1267,27 @@ function SortableExerciseItem({
       <div className="flex-1 space-y-2">
         <div className="flex justify-between items-center">
           <span className="font-medium text-sm">{exercise.name}</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRemove}
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setNotesOpen((v) => !v)}
+              className={`h-6 w-6 p-0 ${
+                exercise.notes ? 'text-primary' : 'text-muted-foreground'
+              } hover:text-foreground`}
+              title="Kommentar"
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRemove}
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-4 gap-2">
@@ -1159,7 +1332,171 @@ function SortableExerciseItem({
             />
           </div>
         </div>
+
+        {notesOpen && (
+          <Textarea
+            value={exercise.notes ?? ''}
+            onChange={(e) => onUpdate('notes', e.target.value)}
+            placeholder="Kommentar till övningen (valfritt)"
+            rows={2}
+            className="text-sm"
+          />
+        )}
+
+        {isMain && (followUps.length > 0 || canAddFollowUp) && (
+          <div className="pl-4 border-l-2 border-dashed border-muted-foreground/30 space-y-2 mt-2">
+            {followUps.map((fu, idx) => (
+              <FollowUpRow
+                key={fu.id}
+                followUp={fu}
+                index={idx}
+                onUpdate={(field, value) => onUpdateFollowUp(fu.id, field, value)}
+                onRemove={() => onRemoveFollowUp(fu.id)}
+              />
+            ))}
+
+            {canAddFollowUp && (
+              <Popover open={followUpPickerOpen} onOpenChange={setFollowUpPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <Link2 className="h-3 w-3 mr-1" />
+                    {followUps.length === 0
+                      ? 'Lägg till följdövning (superset / kontrast)'
+                      : 'Lägg till till'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[320px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Sök övning..." className="h-9" />
+                    <CommandList>
+                      <CommandEmpty>Inga övningar hittades</CommandEmpty>
+                      <CommandGroup>
+                        {availableExercises.map((ex) => (
+                          <CommandItem
+                            key={ex.id}
+                            value={`${ex.name} ${ex.muscleGroup ?? ''} ${ex.category ?? ''}`}
+                            onSelect={() => {
+                              onAddFollowUp(ex.id)
+                              setFollowUpPickerOpen(false)
+                            }}
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-sm">{ex.name}</span>
+                              {(ex.muscleGroup || ex.category) && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  {ex.muscleGroup || ex.category}
+                                </span>
+                              )}
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
+        )}
       </div>
+    </div>
+  )
+}
+
+// Row for a follow-up exercise (superset / French-contrast pair member).
+// Runs once per set of the primary exercise; `restBefore` is the pause
+// between the previous exercise in the pair and this one.
+function FollowUpRow({
+  followUp,
+  index,
+  onUpdate,
+  onRemove,
+}: {
+  followUp: FollowUp
+  index: number
+  onUpdate: (field: keyof FollowUp, value: any) => void
+  onRemove: () => void
+}) {
+  const [notesOpen, setNotesOpen] = useState(Boolean(followUp.notes))
+
+  return (
+    <div className="bg-muted/30 rounded-md p-2 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Badge variant="outline" className="text-[10px] shrink-0">
+            Följd {index + 1}
+          </Badge>
+          <span className="font-medium text-sm truncate">{followUp.name}</span>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setNotesOpen((v) => !v)}
+            className={`h-6 w-6 p-0 ${
+              followUp.notes ? 'text-primary' : 'text-muted-foreground'
+            } hover:text-foreground`}
+            title="Kommentar"
+          >
+            <MessageSquare className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRemove}
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <Label className="text-xs text-muted-foreground">Reps</Label>
+          <Input
+            value={followUp.reps}
+            onChange={(e) => onUpdate('reps', e.target.value)}
+            className="h-7 text-sm"
+            placeholder="5"
+          />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Vikt</Label>
+          <Input
+            value={followUp.weight}
+            onChange={(e) => onUpdate('weight', e.target.value)}
+            className="h-7 text-sm"
+            placeholder="kg / kroppsvikt"
+          />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Paus innan (s)</Label>
+          <Input
+            type="number"
+            value={followUp.restBefore}
+            onChange={(e) =>
+              onUpdate('restBefore', parseInt(e.target.value) || 0)
+            }
+            className="h-7 text-sm"
+            placeholder="0 = superset, 15–30 = kontrast"
+          />
+        </div>
+      </div>
+
+      {notesOpen && (
+        <Textarea
+          value={followUp.notes ?? ''}
+          onChange={(e) => onUpdate('notes', e.target.value)}
+          placeholder="Kommentar (valfritt)"
+          rows={2}
+          className="text-sm"
+        />
+      )}
     </div>
   )
 }
