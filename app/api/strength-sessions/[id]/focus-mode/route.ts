@@ -3,6 +3,15 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 
+interface SessionFollowUp {
+  exerciseId: string
+  exerciseName: string
+  reps: number | string
+  weight?: number
+  restBeforeSeconds?: number
+  notes?: string
+}
+
 interface SessionExercise {
   exerciseId: string
   exerciseName: string
@@ -12,12 +21,41 @@ interface SessionExercise {
   restSeconds?: number
   notes?: string
   tempo?: string
+  followUps?: SessionFollowUp[]
 }
 
 interface SectionData {
   notes?: string
   duration?: number
   exercises?: SessionExercise[]
+}
+
+interface SetLogSummary {
+  id: string
+  setNumber: number
+  weight: number
+  repsCompleted: number
+  rpe?: number
+  meanVelocity?: number
+  peakVelocity?: number
+  estimated1RM?: number
+  velocityZone?: string
+  completedAt: Date
+}
+
+interface FocusModeFollowUp {
+  exerciseId: string
+  name: string
+  nameSv?: string
+  videoUrl?: string
+  instructions?: string
+  imageUrls?: string[]
+  repsTarget: number | string
+  weight?: number
+  restBeforeSeconds: number
+  notes?: string
+  completedSets: number
+  setLogs: SetLogSummary[]
 }
 
 interface FocusModeExercise {
@@ -38,18 +76,11 @@ interface FocusModeExercise {
   orderIndex: number
   // Completion tracking
   completedSets: number
-  setLogs: {
-    id: string
-    setNumber: number
-    weight: number
-    repsCompleted: number
-    rpe?: number
-    meanVelocity?: number
-    peakVelocity?: number
-    estimated1RM?: number
-    velocityZone?: string
-    completedAt: Date
-  }[]
+  setLogs: SetLogSummary[]
+  // Superset / French-contrast pair members. Each runs once per set of
+  // the primary exercise; `restBeforeSeconds` is the pause before this
+  // follow-up starts (0 = classic superset, ~15–30s = contrast/PAP).
+  followUps?: FocusModeFollowUp[]
 }
 
 /**
@@ -108,12 +139,17 @@ export async function GET(
     const coreData = session.coreData as unknown as SectionData | null
     const cooldownData = session.cooldownData as unknown as SectionData | null
 
-    // Collect all unique exercise IDs to fetch details
+    // Collect all unique exercise IDs to fetch details — including
+    // follow-up exercises attached to main-section primaries.
     const allExerciseIds = new Set<string>()
-    mainExercises.forEach((ex) => allExerciseIds.add(ex.exerciseId))
-    warmupData?.exercises?.forEach((ex) => allExerciseIds.add(ex.exerciseId))
-    coreData?.exercises?.forEach((ex) => allExerciseIds.add(ex.exerciseId))
-    cooldownData?.exercises?.forEach((ex) => allExerciseIds.add(ex.exerciseId))
+    const collectIds = (ex: SessionExercise) => {
+      allExerciseIds.add(ex.exerciseId)
+      ex.followUps?.forEach((f) => allExerciseIds.add(f.exerciseId))
+    }
+    mainExercises.forEach(collectIds)
+    warmupData?.exercises?.forEach(collectIds)
+    coreData?.exercises?.forEach(collectIds)
+    cooldownData?.exercises?.forEach(collectIds)
 
     // Fetch exercise details from database
     const exerciseDetails = await prisma.exercise.findMany({
@@ -171,6 +207,34 @@ export async function GET(
           ? (Array.isArray(details.imageUrls) ? details.imageUrls : []) as string[]
           : undefined
 
+        // Build follow-ups (supersets / French-contrast pairs). Each
+        // follow-up has its own exerciseId so set logs are keyed
+        // independently in the SetLog table — one set per primary round.
+        const followUps: FocusModeFollowUp[] | undefined =
+          ex.followUps && ex.followUps.length > 0
+            ? ex.followUps.map((f) => {
+                const fDetails = exerciseMap.get(f.exerciseId)
+                const fLogs = setLogsByExercise[f.exerciseId] || []
+                const fImageUrls = fDetails?.imageUrls
+                  ? ((Array.isArray(fDetails.imageUrls) ? fDetails.imageUrls : []) as string[])
+                  : undefined
+                return {
+                  exerciseId: f.exerciseId,
+                  name: fDetails?.name || f.exerciseName,
+                  nameSv: fDetails?.nameSv ?? undefined,
+                  videoUrl: fDetails?.videoUrl ?? undefined,
+                  instructions: fDetails?.instructions ?? undefined,
+                  imageUrls: fImageUrls,
+                  repsTarget: f.reps,
+                  weight: f.weight,
+                  restBeforeSeconds: f.restBeforeSeconds ?? 0,
+                  notes: f.notes,
+                  completedSets: fLogs.length,
+                  setLogs: fLogs,
+                }
+              })
+            : undefined
+
         focusModeExercises.push({
           id: `${section}-${ex.exerciseId}-${orderIndex}`,
           exerciseId: ex.exerciseId,
@@ -189,6 +253,7 @@ export async function GET(
           orderIndex,
           completedSets: logs.length,
           setLogs: logs,
+          followUps,
         })
         orderIndex++
       })
@@ -200,21 +265,26 @@ export async function GET(
     addExercisesFromSection(coreData?.exercises, 'CORE', 45)
     addExercisesFromSection(cooldownData?.exercises, 'COOLDOWN', 30)
 
-    // Calculate progress
+    // Calculate progress. A block = primary + follow-ups. Each follow-up
+    // runs once per primary set, so a block targets sets * (1 + followUps.length).
     const totalExercises = focusModeExercises.length
-    const totalSetsTarget = focusModeExercises.reduce((sum, ex) => sum + ex.sets, 0)
+    const totalSetsTarget = focusModeExercises.reduce(
+      (sum, ex) => sum + ex.sets * (1 + (ex.followUps?.length ?? 0)),
+      0
+    )
     const completedSets = assignment.setLogs.length
 
-    // Find current exercise (first with incomplete sets)
-    let currentExerciseIndex = 0
+    // Find current exercise (first block where primary or any follow-up
+    // still has incomplete rounds).
+    const isBlockIncomplete = (ex: FocusModeExercise) => {
+      if (ex.completedSets < ex.sets) return true
+      return (ex.followUps ?? []).some((f) => f.completedSets < ex.sets)
+    }
+    let currentExerciseIndex = focusModeExercises.length // default: all complete
     for (let i = 0; i < focusModeExercises.length; i++) {
-      if (focusModeExercises[i].completedSets < focusModeExercises[i].sets) {
+      if (isBlockIncomplete(focusModeExercises[i])) {
         currentExerciseIndex = i
         break
-      }
-      // If all sets complete, move to next
-      if (i === focusModeExercises.length - 1 && focusModeExercises[i].completedSets >= focusModeExercises[i].sets) {
-        currentExerciseIndex = focusModeExercises.length // All complete
       }
     }
 

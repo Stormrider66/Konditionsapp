@@ -8,7 +8,7 @@
  * includes rest timer, and tracks completion progress.
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -25,8 +25,32 @@ import {
   Sparkles,
   Loader2,
   SkipForward,
+  Link2,
 } from 'lucide-react'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
+
+interface SetLogSummary {
+  id: string
+  setNumber: number
+  weight: number
+  repsCompleted: number
+  rpe?: number
+  estimated1RM?: number
+}
+
+interface FocusModeFollowUp {
+  exerciseId: string
+  name: string
+  nameSv?: string
+  imageUrls?: string[]
+  instructions?: string
+  repsTarget: number | string
+  weight?: number
+  restBeforeSeconds: number
+  notes?: string
+  completedSets: number
+  setLogs: SetLogSummary[]
+}
 
 interface FocusModeExercise {
   id: string
@@ -44,14 +68,91 @@ interface FocusModeExercise {
   section: 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
   orderIndex: number
   completedSets: number
-  setLogs: Array<{
-    id: string
-    setNumber: number
-    weight: number
-    repsCompleted: number
-    rpe?: number
-    estimated1RM?: number
-  }>
+  setLogs: SetLogSummary[]
+  followUps?: FocusModeFollowUp[]
+}
+
+/**
+ * Active entity in a block: either the primary exercise (stage 0) or
+ * a follow-up at stage 1..N. Collapsed to a common shape so the UI /
+ * logging code can treat both uniformly.
+ */
+interface ActiveStage {
+  stage: number // 0 = primary, 1..N = followUps[stage-1]
+  exerciseId: string
+  name: string
+  nameSv?: string
+  imageUrls?: string[]
+  instructions?: string
+  repsTarget: number | string
+  weight?: number
+  notes?: string
+  completedSets: number
+  setLogs: SetLogSummary[]
+  // Total rounds is always driven by the primary's `sets` — follow-ups
+  // run once per primary round.
+  totalRounds: number
+  // Pause before this stage starts (0 for primary, configurable for follow-ups).
+  restBeforeSeconds: number
+}
+
+/**
+ * Resume logic. A round is complete when primary and every follow-up
+ * each have one more log for that round. If primary is ahead of a
+ * follow-up, we're mid-round and the next stage to execute is whichever
+ * follow-up is behind. If everyone's tied, the next stage is primary
+ * (start of a new round).
+ */
+function computeCurrentStage(ex: FocusModeExercise | undefined): number {
+  if (!ex) return 0
+  const primaryDone = ex.completedSets
+  const followUps = ex.followUps ?? []
+  for (let i = 0; i < followUps.length; i++) {
+    if (followUps[i].completedSets < primaryDone) return i + 1
+  }
+  return 0
+}
+
+function buildActiveStage(
+  ex: FocusModeExercise | undefined,
+  stage: number
+): ActiveStage | null {
+  if (!ex) return null
+  const followUps = ex.followUps ?? []
+  if (stage === 0) {
+    return {
+      stage: 0,
+      exerciseId: ex.exerciseId,
+      name: ex.name,
+      nameSv: ex.nameSv,
+      imageUrls: ex.imageUrls,
+      instructions: ex.instructions,
+      repsTarget: ex.repsTarget,
+      weight: ex.weight,
+      notes: ex.notes,
+      completedSets: ex.completedSets,
+      setLogs: ex.setLogs,
+      totalRounds: ex.sets,
+      restBeforeSeconds: 0,
+    }
+  }
+  const f = followUps[stage - 1]
+  if (!f) return null
+  return {
+    stage,
+    exerciseId: f.exerciseId,
+    name: f.name,
+    nameSv: f.nameSv,
+    imageUrls: f.imageUrls,
+    instructions: f.instructions,
+    repsTarget: f.repsTarget,
+    weight: f.weight,
+    notes: f.notes,
+    completedSets: f.completedSets,
+    setLogs: f.setLogs,
+    totalRounds: ex.sets,
+    restBeforeSeconds: f.restBeforeSeconds,
+  }
 }
 
 interface StrengthFocusModeProps {
@@ -87,9 +188,12 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
   const [logRpe, setLogRpe] = useState<number | null>(null)
   const [isLoggingSet, setIsLoggingSet] = useState(false)
 
-  // Rest timer
+  // Rest timer. `restReason` drives the label — 'round' = full rest
+  // between rounds of a block, 'stage' = short pause between primary
+  // and follow-up (classic superset → 0s, contrast/PAP → 15–30s).
   const [restTimeLeft, setRestTimeLeft] = useState(0)
   const [isResting, setIsResting] = useState(false)
+  const [restReason, setRestReason] = useState<'round' | 'stage'>('round')
 
   // Completion
   const [showComplete, setShowComplete] = useState(false)
@@ -111,15 +215,6 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
           percentComplete: data.data.progress.percentComplete,
         })
         setWorkoutName(data.data.workout.name)
-
-        // Pre-fill weight from exercise data or last logged set
-        const current = data.data.exercises[data.data.progress.currentExerciseIndex]
-        if (current) {
-          const lastLog = current.setLogs[current.setLogs.length - 1]
-          setLogWeight(lastLog ? String(lastLog.weight) : current.weight ? String(current.weight) : '')
-          const target = typeof current.repsTarget === 'number' ? current.repsTarget : parseInt(String(current.repsTarget)) || 0
-          setLogReps(lastLog ? String(lastLog.repsCompleted) : String(target))
-        }
       }
     } catch {
       // Error handled silently
@@ -147,52 +242,97 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
 
   const currentExercise = exercises[currentIndex]
 
-  // Pre-fill when changing exercise
+  // Derive the active stage from server truth. Re-computes on every
+  // fetchData refresh, so resume after reload / crash is automatic.
+  const currentStage = useMemo(
+    () => computeCurrentStage(currentExercise),
+    [currentExercise]
+  )
+  const activeStage = useMemo(
+    () => buildActiveStage(currentExercise, currentStage),
+    [currentExercise, currentStage]
+  )
+  const followUpsCount = currentExercise?.followUps?.length ?? 0
+
+  // Pre-fill when the active stage changes (new exercise, or moving
+  // between stages of a block).
   useEffect(() => {
-    if (!currentExercise) return
-    const lastLog = currentExercise.setLogs[currentExercise.setLogs.length - 1]
-    setLogWeight(lastLog ? String(lastLog.weight) : currentExercise.weight ? String(currentExercise.weight) : '')
-    const target = typeof currentExercise.repsTarget === 'number' ? currentExercise.repsTarget : parseInt(String(currentExercise.repsTarget)) || 0
+    if (!activeStage) return
+    const lastLog = activeStage.setLogs[activeStage.setLogs.length - 1]
+    setLogWeight(lastLog ? String(lastLog.weight) : activeStage.weight ? String(activeStage.weight) : '')
+    const target = typeof activeStage.repsTarget === 'number'
+      ? activeStage.repsTarget
+      : parseInt(String(activeStage.repsTarget)) || 0
     setLogReps(lastLog ? String(lastLog.repsCompleted) : String(target))
     setLogRpe(null)
-  }, [currentIndex, currentExercise])
+  }, [activeStage?.exerciseId, activeStage?.completedSets]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Log a set
+  // Log a set. For a block with follow-ups, post against the current
+  // stage's exerciseId. Then decide the next step: contrast pause →
+  // next stage, main rest → next round, or advance to next block.
   const handleLogSet = async () => {
-    if (!currentExercise || isLoggingSet) return
+    if (!currentExercise || !activeStage || isLoggingSet) return
     setIsLoggingSet(true)
+
+    // Snapshot the stage state before the network call — React state
+    // won't update inside this handler, and we need these values to
+    // decide the post-log transition.
+    const stageAtLog = activeStage.stage
+    const roundJustLogged = activeStage.completedSets + 1
+    const isLastStage = stageAtLog >= followUpsCount
+    const isLastRound = roundJustLogged >= currentExercise.sets
+    const repsTargetNum = typeof activeStage.repsTarget === 'number'
+      ? activeStage.repsTarget
+      : parseInt(String(activeStage.repsTarget)) || 0
 
     try {
       const res = await fetch(`/api/strength-sessions/${assignmentId}/sets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          exerciseId: currentExercise.exerciseId,
-          setNumber: currentExercise.completedSets + 1,
+          exerciseId: activeStage.exerciseId,
+          setNumber: roundJustLogged,
           weight: parseFloat(logWeight) || 0,
           repsCompleted: parseInt(logReps) || 0,
-          repsTarget: typeof currentExercise.repsTarget === 'number' ? currentExercise.repsTarget : parseInt(String(currentExercise.repsTarget)) || 0,
+          repsTarget: repsTargetNum,
           rpe: logRpe,
         }),
       })
 
       if (res.ok) {
-        // Start rest timer
-        if (currentExercise.restSeconds > 0) {
-          setRestTimeLeft(currentExercise.restSeconds)
-          setIsResting(true)
-        }
-
-        // Refresh data to get updated progress
-        await fetchData()
-
-        // Check if all sets for this exercise are done
-        if (currentExercise.completedSets + 1 >= currentExercise.sets) {
-          // Auto-advance to next exercise after rest (or immediately if no rest)
-          if (currentExercise.restSeconds <= 0 && currentIndex < exercises.length - 1) {
+        if (!isLastStage) {
+          // Another stage in this block comes next. Show a "contrast
+          // pause" timer only if the upcoming follow-up asks for one.
+          const nextFollowUp = currentExercise.followUps![stageAtLog]
+          const pause = nextFollowUp?.restBeforeSeconds ?? 0
+          if (pause > 0) {
+            setRestReason('stage')
+            setRestTimeLeft(pause)
+            setIsResting(true)
+          }
+          // currentStage is derived — it'll re-point to the next stage
+          // once fetchData() below updates completedSets counts.
+        } else if (!isLastRound) {
+          // Last stage of this round done — main rest before the next
+          // round restarts at the primary.
+          if (currentExercise.restSeconds > 0) {
+            setRestReason('round')
+            setRestTimeLeft(currentExercise.restSeconds)
+            setIsResting(true)
+          }
+        } else {
+          // Block done. Auto-advance unless the primary wants a final
+          // rest before handing off to the next exercise.
+          if (currentExercise.restSeconds > 0) {
+            setRestReason('round')
+            setRestTimeLeft(currentExercise.restSeconds)
+            setIsResting(true)
+          } else if (currentIndex < exercises.length - 1) {
             setCurrentIndex(currentIndex + 1)
           }
         }
+
+        await fetchData()
       }
     } catch {
       // Error
@@ -282,7 +422,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
     )
   }
 
-  if (!currentExercise) {
+  if (!currentExercise || !activeStage) {
     return (
       <div className="fixed inset-0 z-50 bg-background flex items-center justify-center p-6">
         <div className="text-center">
@@ -295,7 +435,21 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
 
   const SectionIcon = SECTION_ICONS[currentExercise.section] || Dumbbell
   const sectionColor = SECTION_COLORS[currentExercise.section] || 'text-gray-500'
-  const setsRemaining = currentExercise.sets - currentExercise.completedSets
+  const setsRemaining = activeStage.totalRounds - activeStage.completedSets
+  const hasBlock = followUpsCount > 0
+  const currentRound = activeStage.completedSets + 1
+  const restLabel = restReason === 'stage' ? 'Paus innan nästa övning' : 'Vila'
+
+  // Build stage chips: primary → follow-up 1 → follow-up 2
+  const blockStages = hasBlock
+    ? [
+        { name: currentExercise.nameSv || currentExercise.name, isPrimary: true },
+        ...(currentExercise.followUps ?? []).map((f) => ({
+          name: f.nameSv || f.name,
+          isPrimary: false,
+        })),
+      ]
+    : []
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
@@ -322,12 +476,12 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
 
       {/* Main content - scrollable */}
       <div className="flex-1 overflow-y-auto">
-        {/* Exercise image */}
-        {currentExercise.imageUrls && currentExercise.imageUrls.length > 0 ? (
+        {/* Exercise image — uses the ACTIVE stage's media */}
+        {activeStage.imageUrls && activeStage.imageUrls.length > 0 ? (
           <div className="aspect-[4/3] bg-black/90 max-h-[250px]">
             <ExerciseImage
-              imageUrls={currentExercise.imageUrls}
-              exerciseId={currentExercise.exerciseId}
+              imageUrls={activeStage.imageUrls}
+              exerciseId={activeStage.exerciseId}
               size="lg"
               showCarousel={true}
               enableLightbox={false}
@@ -339,44 +493,81 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
         <div className="p-4 space-y-4">
           {/* Exercise name & info */}
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <Badge variant="outline" className="text-xs">
                 {currentIndex + 1}/{exercises.length}
               </Badge>
               <Badge variant="outline" className={`text-xs ${sectionColor}`}>
                 {currentExercise.section}
               </Badge>
+              {hasBlock && (
+                <Badge variant="secondary" className="text-xs">
+                  <Link2 className="h-3 w-3 mr-1" />
+                  {activeStage.stage === 0
+                    ? 'Huvudövning'
+                    : `Följd ${activeStage.stage}`}
+                </Badge>
+              )}
+              {hasBlock && (
+                <Badge variant="outline" className="text-xs">
+                  Runda {currentRound} / {activeStage.totalRounds}
+                </Badge>
+              )}
             </div>
-            <h1 className="text-xl font-bold">{currentExercise.nameSv || currentExercise.name}</h1>
-            {currentExercise.notes && (
-              <p className="text-sm text-muted-foreground mt-1">{currentExercise.notes}</p>
+            <h1 className="text-xl font-bold">{activeStage.nameSv || activeStage.name}</h1>
+            {activeStage.notes && (
+              <p className="text-sm text-muted-foreground mt-1">{activeStage.notes}</p>
             )}
           </div>
+
+          {/* Block stage indicator (superset / contrast pair) */}
+          {hasBlock && (
+            <div className="flex items-center gap-1 flex-wrap">
+              {blockStages.map((s, i) => (
+                <div key={i} className="flex items-center gap-1">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] border ${
+                      i === activeStage.stage
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/40 text-muted-foreground border-transparent'
+                    }`}
+                  >
+                    {s.name}
+                  </span>
+                  {i < blockStages.length - 1 && (
+                    <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Target */}
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="rounded-lg bg-muted/50 p-3">
-              <p className="text-xs text-muted-foreground">Set</p>
-              <p className="text-lg font-bold">{currentExercise.completedSets}/{currentExercise.sets}</p>
+              <p className="text-xs text-muted-foreground">{hasBlock ? 'Runda' : 'Set'}</p>
+              <p className="text-lg font-bold">
+                {activeStage.completedSets}/{activeStage.totalRounds}
+              </p>
             </div>
             <div className="rounded-lg bg-muted/50 p-3">
               <p className="text-xs text-muted-foreground">Reps</p>
-              <p className="text-lg font-bold">{currentExercise.repsTarget}</p>
+              <p className="text-lg font-bold">{activeStage.repsTarget}</p>
             </div>
             <div className="rounded-lg bg-muted/50 p-3">
               <p className="text-xs text-muted-foreground">Vikt</p>
-              <p className="text-lg font-bold">{currentExercise.weight ? `${currentExercise.weight}kg` : '—'}</p>
+              <p className="text-lg font-bold">{activeStage.weight ? `${activeStage.weight}kg` : '—'}</p>
             </div>
           </div>
 
-          {/* Rest timer */}
+          {/* Rest / contrast-pause timer */}
           {isResting && (
             <div className="rounded-lg bg-primary/10 border border-primary/30 p-4 text-center">
               <Timer className="h-5 w-5 mx-auto text-primary mb-1" />
               <p className="text-3xl font-mono font-bold text-foreground">
                 {Math.floor(restTimeLeft / 60)}:{String(restTimeLeft % 60).padStart(2, '0')}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">Vila</p>
+              <p className="text-xs text-muted-foreground mt-1">{restLabel}</p>
               <Button variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => setIsResting(false)}>
                 Hoppa över vila
               </Button>
@@ -387,7 +578,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
           {setsRemaining > 0 && !isResting && (
             <div className="space-y-3 rounded-lg border p-4">
               <p className="text-sm font-medium">
-                Logga set {currentExercise.completedSets + 1} av {currentExercise.sets}
+                Logga {hasBlock ? 'runda' : 'set'} {currentRound} av {activeStage.totalRounds}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -443,11 +634,11 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
             </div>
           )}
 
-          {/* Previous sets for this exercise */}
-          {currentExercise.setLogs.length > 0 && (
+          {/* Previous sets for the active stage */}
+          {activeStage.setLogs.length > 0 && (
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground font-medium">Loggade set:</p>
-              {currentExercise.setLogs.map((log) => (
+              {activeStage.setLogs.map((log) => (
                 <div key={log.id} className="flex justify-between text-sm bg-muted/30 rounded px-3 py-1.5">
                   <span>Set {log.setNumber}</span>
                   <span className="font-mono">{log.weight}kg × {log.repsCompleted}{log.rpe ? ` @RPE ${log.rpe}` : ''}</span>
@@ -458,10 +649,10 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
           )}
 
           {/* Instructions */}
-          {currentExercise.instructions && (
+          {activeStage.instructions && (
             <div className="text-sm text-muted-foreground border-t pt-3">
               <p className="font-medium text-foreground mb-1">Instruktioner</p>
-              <p className="whitespace-pre-line">{currentExercise.instructions}</p>
+              <p className="whitespace-pre-line">{activeStage.instructions}</p>
             </div>
           )}
         </div>
