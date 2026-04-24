@@ -228,8 +228,9 @@ export async function POST(request: NextRequest) {
       )
     );
 
-    // Create calendar events if startTime is provided and createCalendarEvent is true
-    if (startTime && createCalendarEvent) {
+    // Create calendar events so the assignment shows up on the coach/athlete calendar.
+    // When startTime is absent, create an all-day event on the assigned date.
+    if (createCalendarEvent) {
       const assignedDateObj = new Date(assignedDate);
       for (const assignment of assignments) {
         // Get athlete info for calendar event
@@ -248,7 +249,8 @@ export async function POST(request: NextRequest) {
               type: 'SCHEDULED_WORKOUT',
               startDate: assignedDateObj,
               endDate: assignedDateObj,
-              startTime: startTime,
+              allDay: !startTime,
+              startTime: startTime || undefined,
               endTime: endTime || undefined,
               createdById: user.id,
             },

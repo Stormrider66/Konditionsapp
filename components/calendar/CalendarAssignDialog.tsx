@@ -90,7 +90,9 @@ export function CalendarAssignDialog({
         const res = await fetch(`/api/clients/${clientId}`)
         if (res.ok && !cancelled) {
           const data = await res.json()
-          setAthleteName(data.name || 'Atlet')
+          // /api/clients/[id] returns { success: true, data: { ...client } }
+          const name = data?.data?.name ?? data?.name
+          setAthleteName(name || 'Atlet')
         }
       } catch {
         // Fallback name
@@ -183,7 +185,7 @@ export function CalendarAssignDialog({
             ...(startTime && { startTime }),
             ...(endTime && { endTime }),
             ...(locationName && { locationName }),
-            ...(startTime && { createCalendarEvent: true }),
+            createCalendarEvent: true,
             ...(selectedCoach && { responsibleCoachId: selectedCoach }),
           }
 
@@ -268,7 +270,9 @@ export function CalendarAssignDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Tilldela pass</DialogTitle>
+          <DialogTitle>
+            Tilldela pass{athleteName ? ` till ${athleteName}` : ''}
+          </DialogTitle>
           <DialogDescription>
             Tilldela till <strong>{athleteName || '...'}</strong> den{' '}
             <strong>{formattedDate}</strong>

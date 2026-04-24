@@ -325,7 +325,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         // Create calendar event if scheduling is enabled
         let calendarEventId: string | undefined;
 
-        if (hasScheduling && createCalendarEvent) {
+        if (createCalendarEvent) {
           const locationDisplay = locationName || (locationId ? 'Scheduled location' : undefined);
 
           const calendarEvent = await prisma.calendarEvent.create({
@@ -339,7 +339,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
               status: 'SCHEDULED',
               startDate: date,
               endDate: date,
-              allDay: false,
+              allDay: !hasScheduling,
               startTime,
               endTime,
               trainingImpact: 'NORMAL',
