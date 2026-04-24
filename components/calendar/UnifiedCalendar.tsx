@@ -13,7 +13,7 @@
  * - FAB for quick actions
  */
 
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameDay } from 'date-fns'
 import { sv } from 'date-fns/locale'
@@ -83,22 +83,21 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
   const isGlass = variant === 'glass'
 
   // Deep-link support: `?date=YYYY-MM-DD` opens the calendar on that month
-  // with that day selected. Only read on first mount.
+  // with that day selected. Sync from search params once per URL change, and
+  // only when the user hasn't already navigated away manually.
   const searchParams = useSearchParams()
-  const [currentMonth, setCurrentMonth] = useState(() => {
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const appliedDateParamRef = useRef<string | null>(null)
+  useEffect(() => {
     const d = searchParams?.get('date')
-    if (d) {
-      const parsed = new Date(d)
-      if (!isNaN(parsed.getTime())) return parsed
-    }
-    return new Date()
-  })
-  const [selectedDate, setSelectedDate] = useState<Date | null>(() => {
-    const d = searchParams?.get('date')
-    if (!d) return null
+    if (!d || appliedDateParamRef.current === d) return
     const parsed = new Date(d)
-    return isNaN(parsed.getTime()) ? null : parsed
-  })
+    if (isNaN(parsed.getTime())) return
+    appliedDateParamRef.current = d
+    setCurrentMonth(parsed)
+    setSelectedDate(parsed)
+  }, [searchParams])
   const [selectedItem, setSelectedItem] = useState<UnifiedCalendarItem | null>(null)
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<UnifiedCalendarItem | null>(null)
