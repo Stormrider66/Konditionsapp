@@ -158,11 +158,32 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    await prisma.strengthSession.delete({
-      where: { id },
+    // Collect calendar-event ids from any assignments so we can clean them up
+    // too — StrengthSessionAssignment cascades on session delete, but its FK
+    // to CalendarEvent doesn't, so the events would otherwise orphan on the
+    // athlete's calendar.
+    const assignments = await prisma.strengthSessionAssignment.findMany({
+      where: { sessionId: id },
+      select: { calendarEventId: true },
+    });
+    const calendarEventIds = assignments
+      .map((a) => a.calendarEventId)
+      .filter((v): v is string => !!v);
+
+    await prisma.$transaction(async (tx) => {
+      if (calendarEventIds.length > 0) {
+        await tx.calendarEvent.deleteMany({
+          where: { id: { in: calendarEventIds } },
+        });
+      }
+      await tx.strengthSession.delete({ where: { id } });
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      removedAssignments: assignments.length,
+      removedCalendarEvents: calendarEventIds.length,
+    });
   } catch (error) {
     logError('Error deleting strength session:', error);
     return NextResponse.json(

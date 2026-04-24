@@ -666,7 +666,14 @@ export function StrengthSessionLibrary({
             <AlertDialogTitle>Ta bort pass?</AlertDialogTitle>
             <AlertDialogDescription>
               Är du säker på att du vill ta bort &quot;{deleteSession?.name}&quot;?
-              Detta kan inte ångras.
+              {(deleteSession?._count?.assignments ?? 0) > 0 && (
+                <>
+                  {' '}
+                  Det här tar även bort {deleteSession?._count?.assignments}{' '}
+                  schemalagda pass från atletens kalender.
+                </>
+              )}
+              {' '}Detta kan inte ångras.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -252,11 +252,31 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    await prisma.hybridWorkout.delete({
-      where: { id },
+    // Clean up calendar events linked to assignments — HybridWorkoutAssignment
+    // cascades on workout delete, but its calendarEventId FK doesn't reverse
+    // cascade, so the events would orphan on athletes' calendars otherwise.
+    const assignments = await prisma.hybridWorkoutAssignment.findMany({
+      where: { workoutId: id },
+      select: { calendarEventId: true },
+    });
+    const calendarEventIds = assignments
+      .map((a) => a.calendarEventId)
+      .filter((v): v is string => !!v);
+
+    await prisma.$transaction(async (tx) => {
+      if (calendarEventIds.length > 0) {
+        await tx.calendarEvent.deleteMany({
+          where: { id: { in: calendarEventIds } },
+        });
+      }
+      await tx.hybridWorkout.delete({ where: { id } });
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      removedAssignments: assignments.length,
+      removedCalendarEvents: calendarEventIds.length,
+    });
   } catch (error) {
     logError('Error deleting hybrid workout:', error);
     return NextResponse.json(
