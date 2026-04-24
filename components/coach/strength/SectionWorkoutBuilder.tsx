@@ -435,6 +435,36 @@ export function SectionWorkoutBuilder({
     loadMostUsed()
   }, [])
 
+  // Toggle favorite on/off. Optimistic — flip the Set immediately so the
+  // UI reacts instantly, roll back if the POST fails.
+  const toggleFavorite = async (exerciseId: string) => {
+    const wasFavorite = favoriteIds.has(exerciseId)
+    setFavoriteIds((prev) => {
+      const next = new Set(prev)
+      if (wasFavorite) next.delete(exerciseId)
+      else next.add(exerciseId)
+      return next
+    })
+
+    try {
+      const res = await fetch('/api/exercises/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exerciseId }),
+      })
+      if (!res.ok) throw new Error('toggle failed')
+    } catch {
+      // Revert on failure
+      setFavoriteIds((prev) => {
+        const next = new Set(prev)
+        if (wasFavorite) next.add(exerciseId)
+        else next.delete(exerciseId)
+        return next
+      })
+      toast.error('Kunde inte ändra favorit')
+    }
+  }
+
   // Filter exercises
   const filteredExercises = (() => {
     let list = availableExercises
@@ -1102,24 +1132,50 @@ export function SectionWorkoutBuilder({
             </div>
 
             <div className="scrollbar-visible space-y-1 max-h-[500px] overflow-y-auto overscroll-contain pr-1">
-              {filteredExercises.map((ex) => (
-                <Button
-                  key={ex.id}
-                  variant="outline"
-                  className="w-full justify-start text-left h-auto py-2"
-                  onClick={() => addExercise(ex.id, targetSection)}
-                >
-                  <div className="flex flex-col w-full overflow-hidden">
-                    <div className="flex items-center">
-                      <Plus className="mr-2 h-3 w-3 shrink-0" />
-                      <span className="truncate font-medium text-sm">{ex.name}</span>
+              {filteredExercises.map((ex) => {
+                const isFavorite = favoriteIds.has(ex.id)
+                return (
+                  <div
+                    key={ex.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => addExercise(ex.id, targetSection)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        addExercise(ex.id, targetSection)
+                      }
+                    }}
+                    className="flex items-center gap-1 w-full rounded-md border border-input bg-background py-2 pl-3 pr-1 text-left cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+                      <div className="flex items-center">
+                        <Plus className="mr-2 h-3 w-3 shrink-0" />
+                        <span className="truncate font-medium text-sm">{ex.name}</span>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground ml-5 truncate">
+                        {ex.muscleGroup || ex.category}
+                      </div>
                     </div>
-                    <div className="text-[10px] text-muted-foreground ml-5 truncate">
-                      {ex.muscleGroup || ex.category}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleFavorite(ex.id)
+                      }}
+                      aria-label={isFavorite ? 'Ta bort favorit' : 'Markera som favorit'}
+                      title={isFavorite ? 'Ta bort favorit' : 'Markera som favorit'}
+                      className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-yellow-500 hover:bg-muted/50 transition-colors shrink-0"
+                    >
+                      <Star
+                        className={`h-4 w-4 ${
+                          isFavorite ? 'fill-yellow-400 text-yellow-400' : ''
+                        }`}
+                      />
+                    </button>
                   </div>
-                </Button>
-              ))}
+                )
+              })}
               {filteredExercises.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Inga övningar hittades
