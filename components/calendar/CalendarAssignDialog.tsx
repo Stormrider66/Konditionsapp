@@ -160,7 +160,16 @@ export function CalendarAssignDialog({
     const prefix = businessSlug ? `/${businessSlug}` : ''
     const targetDate = focusDate || date
     const query = targetDate ? `?date=${targetDate}` : ''
-    router.push(`${prefix}/coach/athletes/${clientId}/calendar${query}`)
+    const url = `${prefix}/coach/athletes/${clientId}/calendar${query}`
+    // Hard navigation: a soft `router.push` sometimes doesn't surface the new
+    // `?date=` param to the target page's client hooks in time for the month
+    // state to pick it up. A full page load is simpler and more reliable here,
+    // and the coach is done with this flow anyway.
+    if (typeof window !== 'undefined') {
+      window.location.href = url
+    } else {
+      router.push(url)
+    }
   }
 
   const handleAssign = async () => {

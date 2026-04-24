@@ -83,14 +83,17 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
   const isGlass = variant === 'glass'
 
   // Deep-link support: `?date=YYYY-MM-DD` opens the calendar on that month
-  // with that day selected. Sync from search params once per URL change, and
-  // only when the user hasn't already navigated away manually.
+  // with that day selected. Read from window.location as the source of truth
+  // (useSearchParams can lag behind during client navigation) and apply once
+  // per distinct date string so the coach's later month nav isn't clobbered.
   const searchParams = useSearchParams()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const appliedDateParamRef = useRef<string | null>(null)
   useEffect(() => {
-    const d = searchParams?.get('date')
+    if (typeof window === 'undefined') return
+    const urlParams = new URLSearchParams(window.location.search)
+    const d = urlParams.get('date') ?? searchParams?.get('date') ?? null
     if (!d || appliedDateParamRef.current === d) return
     const parsed = new Date(d)
     if (isNaN(parsed.getTime())) return
