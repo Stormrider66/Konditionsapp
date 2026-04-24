@@ -72,18 +72,23 @@ export async function GET() {
         if (businessKeys?.openaiKeyValid) validProviders.push('OPENAI');
       }
 
-      if (validProviders.length > 0) {
-        // Find a default model for an available provider
-        effectiveModel = await prisma.aIModel.findFirst({
-          where: {
-            provider: { in: validProviders },
-            isActive: true,
-          },
+      // Query providers in priority order (Google → Anthropic → OpenAI),
+      // matching resolveModel() in types/ai-models.ts. A single findFirst
+      // with `provider: { in: [...] }` falls back to displayName ASC, which
+      // puts "Claude …" before "Gemini …" and silently overrides the
+      // intended Google-first priority.
+      for (const provider of validProviders) {
+        const candidate = await prisma.aIModel.findFirst({
+          where: { provider, isActive: true },
           orderBy: [
             { isDefault: 'desc' },
             { displayName: 'asc' },
           ],
         });
+        if (candidate) {
+          effectiveModel = candidate;
+          break;
+        }
       }
     }
 

@@ -114,23 +114,29 @@ export async function getUserAIConfig(): Promise<UserAIConfig | null> {
   let effectiveModel = userKeys?.defaultModel ?? null
 
   if (!effectiveModel && hasApiKeys) {
-    // Determine which providers have valid keys (prioritize Google)
-    const validProviders: string[] = []
-    if (googleValid) validProviders.push('GOOGLE')
-    if (anthropicValid) validProviders.push('ANTHROPIC')
-    if (openaiValid) validProviders.push('OPENAI')
+    // Priority order mirrors resolveModel()/resolveModelForClient() in
+    // types/ai-models.ts: Google → Anthropic → OpenAI. A single findFirst
+    // with `provider: { in: [...] }` does NOT honor this order — it falls
+    // back to displayName ASC, which puts "Claude …" before "Gemini …"
+    // and silently routes every new coach to Anthropic. Query in order
+    // and take the first hit instead.
+    const providerPriority: Array<'GOOGLE' | 'ANTHROPIC' | 'OPENAI'> = []
+    if (googleValid) providerPriority.push('GOOGLE')
+    if (anthropicValid) providerPriority.push('ANTHROPIC')
+    if (openaiValid) providerPriority.push('OPENAI')
 
-    if (validProviders.length > 0) {
-      effectiveModel = await prisma.aIModel.findFirst({
-        where: {
-          provider: { in: validProviders as any },
-          isActive: true,
-        },
+    for (const provider of providerPriority) {
+      const candidate = await prisma.aIModel.findFirst({
+        where: { provider: provider as any, isActive: true },
         orderBy: [
           { isDefault: 'desc' },
           { displayName: 'asc' },
         ],
       })
+      if (candidate) {
+        effectiveModel = candidate
+        break
+      }
     }
   }
 
