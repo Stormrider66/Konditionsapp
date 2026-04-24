@@ -956,7 +956,7 @@ export function SectionWorkoutBuilder({
               </Button>
             </div>
 
-            <div className="space-y-1 max-h-[350px] overflow-y-auto pr-1">
+            <div className="scrollbar-visible space-y-1 max-h-[500px] overflow-y-auto overscroll-contain pr-1">
               {filteredExercises.map((ex) => (
                 <Button
                   key={ex.id}
