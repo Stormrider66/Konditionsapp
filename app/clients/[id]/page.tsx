@@ -23,7 +23,9 @@ import { usePageContextOptional } from '@/components/ai-studio/PageContextProvid
 import type { PageContext } from '@/components/ai-studio/FloatingAIChat'
 import { ClientDetailTabs } from '@/components/client/ClientDetailTabs'
 import { UnifiedCalendar } from '@/components/calendar'
-import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, Calendar, ExternalLink, Loader2, UserPlus } from 'lucide-react'
+import { StrengthPRTable } from '@/components/coach/strength/StrengthPRTable'
+import { ProgressionDashboard } from '@/components/coach/progression/ProgressionDashboard'
+import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, Calendar, ExternalLink, Loader2, UserPlus, ClipboardList } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import {
@@ -550,53 +552,54 @@ export default function ClientDetailPage() {
     </div>
   )
 
-  // Logs Tab Content
-  const logsContent = (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h2 className="text-xl font-semibold">Träningsloggar</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Följ upp atletens träning och ge feedback
-          </p>
-        </div>
-        <Link href={`/coach/athletes/${id}/logs`}>
-          <Button size="sm">
-            <ExternalLink className="w-4 h-4 mr-2" />
-            Öppna fullständig vy
-          </Button>
-        </Link>
-      </div>
-      {(client as any).athleteAccount ? (
-        <div className="text-center py-12 text-gray-500">
-          <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p className="mb-4">Visa alla träningsloggar och ge feedback till atleten</p>
+  // Analysis Tab Content (replaces the old Logs tab — see business-scoped
+  // page.tsx for the rationale).
+  const analysisContent = (client as any).athleteAccount ? (
+    <div className="space-y-6">
+      <StrengthPRTable clientId={id} clientName={client.name} />
+
+      <ProgressionDashboard clientId={id} clientName={client.name} />
+
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-blue-500" />
+              Träningsloggar
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Hela loggvyn — feedback, kommentarer per pass, filtrering på datum.
+            </p>
+          </div>
           <Link href={`/coach/athletes/${id}/logs`}>
-            <Button variant="outline">
-              Öppna loggöversikt
+            <Button size="sm" variant="outline">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Öppna loggvyn
             </Button>
           </Link>
         </div>
-      ) : (
-        <div className="text-center py-12 text-gray-500">
-          <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p className="mb-2">Denna klient har inget atletkonto</p>
-          <p className="text-sm mb-4">Skapa ett atletkonto så att klienten kan logga in och logga träningspass</p>
-          <CreateAthleteAccountDialog
-            clientId={id}
-            clientName={client.name}
-            clientEmail={client.email}
-            hasExistingAccount={false}
-            onAccountCreated={fetchClient}
-            trigger={
-              <Button>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Skapa atletkonto
-              </Button>
-            }
-          />
-        </div>
-      )}
+      </div>
+    </div>
+  ) : (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="text-center py-12 text-gray-500">
+        <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p className="mb-2">Denna klient har inget atletkonto</p>
+        <p className="text-sm mb-4">Skapa ett atletkonto så att klienten kan logga in, logga träningspass och få analys.</p>
+        <CreateAthleteAccountDialog
+          clientId={id}
+          clientName={client.name}
+          clientEmail={client.email}
+          hasExistingAccount={false}
+          onAccountCreated={fetchClient}
+          trigger={
+            <Button>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Skapa atletkonto
+            </Button>
+          }
+        />
+      </div>
     </div>
   )
 
@@ -1044,7 +1047,7 @@ export default function ClientDetailPage() {
             content={{
               overview: overviewContent,
               calendar: calendarContent,
-              logs: logsContent,
+              analysis: analysisContent,
               programs: programsContent,
               tests: testsContent,
             }}

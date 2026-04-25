@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import type { Client, Test, TestType, TrainingZone } from '@/types'
+import type { Client, Team, Test, TestType, TrainingZone } from '@/types'
 import { ProgressionChart } from '@/components/charts/ProgressionChart'
 import { SportSpecificAthleteView } from '@/components/coach/sport-views'
 import { VisualReportCard } from '@/components/visual-reports/VisualReportCard'
@@ -23,7 +23,9 @@ import { usePageContextOptional } from '@/components/ai-studio/PageContextProvid
 import type { PageContext } from '@/components/ai-studio/FloatingAIChat'
 import { ClientDetailTabs } from '@/components/client/ClientDetailTabs'
 import { UnifiedCalendar } from '@/components/calendar'
-import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, Calendar, ExternalLink, Loader2, UserPlus } from 'lucide-react'
+import { StrengthPRTable } from '@/components/coach/strength/StrengthPRTable'
+import { ProgressionDashboard } from '@/components/coach/progression/ProgressionDashboard'
+import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, Calendar, ExternalLink, Loader2, UserPlus, ClipboardList } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import {
@@ -49,6 +51,30 @@ import { useToast } from '@/hooks/use-toast'
 
 interface ClientWithTests extends Client {
   tests?: Test[]
+  athleteAccount?: unknown
+  team?: Team | null
+}
+
+interface ProgramSummary {
+  id: string
+  name: string
+  goalType: string
+  startDate: string | Date
+  endDate: string | Date
+  _count?: {
+    weeks?: number
+  }
+}
+
+interface SportProfileSummary {
+  id: string
+  primarySport: string
+  secondarySports: string[]
+  [key: string]: unknown
+}
+
+interface ThresholdSummary {
+  heartRate?: number | null
 }
 
 type SortField = 'date' | 'type' | 'vo2max' | 'status'
@@ -63,9 +89,9 @@ export default function BusinessClientDetailPage() {
   const [client, setClient] = useState<ClientWithTests | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [programs, setPrograms] = useState<any[]>([])
+  const [programs, setPrograms] = useState<ProgramSummary[]>([])
   const [programsLoading, setProgramsLoading] = useState(true)
-  const [sportProfile, setSportProfile] = useState<any>(null)
+  const [sportProfile, setSportProfile] = useState<SportProfileSummary | null>(null)
   const [sportProfileLoading, setSportProfileLoading] = useState(true)
 
   const [sortField, setSortField] = useState<SortField>('date')
@@ -77,6 +103,7 @@ export default function BusinessClientDetailPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [testToDelete, setTestToDelete] = useState<Test | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const clientTests = client?.tests
 
   const { toast } = useToast()
   const pageContextApi = usePageContextOptional()
@@ -174,9 +201,13 @@ export default function BusinessClientDetailPage() {
   }, [id])
 
   useEffect(() => {
-    fetchClient()
-    fetchPrograms()
-    fetchSportProfile()
+    const timeoutId = window.setTimeout(() => {
+      void fetchClient()
+      void fetchPrograms()
+      void fetchSportProfile()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [fetchClient, fetchPrograms, fetchSportProfile])
 
   const calculateAge = (birthDate: Date) => {
@@ -196,9 +227,9 @@ export default function BusinessClientDetailPage() {
   }
 
   const sortedAndFilteredTests = useMemo(() => {
-    if (!client?.tests) return []
+    if (!clientTests) return []
 
-    let filtered = [...client.tests]
+    let filtered = [...clientTests]
 
     if (filterTestType !== 'ALL') {
       filtered = filtered.filter((test) => test.testType === filterTestType)
@@ -235,7 +266,7 @@ export default function BusinessClientDetailPage() {
     })
 
     return filtered
-  }, [client?.tests, filterTestType, searchTerm, sortField, sortDirection])
+  }, [clientTests, filterTestType, searchTerm, sortField, sortDirection])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -358,7 +389,7 @@ export default function BusinessClientDetailPage() {
               clientId={id}
               clientName={client.name}
               clientEmail={client.email}
-              hasExistingAccount={!!(client as any).athleteAccount}
+              hasExistingAccount={!!client.athleteAccount}
               onAccountCreated={fetchClient}
             />
             <Link href={`${basePath}/clients/${id}/profile`}>
@@ -422,10 +453,10 @@ export default function BusinessClientDetailPage() {
               <p className="text-base sm:text-lg font-medium dark:text-slate-200">{client.phone}</p>
             </div>
           )}
-          {(client as any).team && (
+          {client.team && (
             <div>
               <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Lag/Klubb</p>
-              <p className="text-base sm:text-lg font-medium dark:text-slate-200">{(client as any).team.name}</p>
+              <p className="text-base sm:text-lg font-medium dark:text-slate-200">{client.team.name}</p>
             </div>
           )}
         </div>
@@ -508,52 +539,61 @@ export default function BusinessClientDetailPage() {
     </div>
   )
 
-  const logsContent = (
-    <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-        <div>
-          <h2 className="text-lg sm:text-xl font-semibold dark:text-white">Träningsloggar</h2>
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400 mt-1">
-            Följ upp atletens träning och ge feedback
-          </p>
-        </div>
-        <Link href={`${basePath}/athletes/${id}/logs`}>
-          <Button size="sm" className="w-full sm:w-auto">
-            <ExternalLink className="w-4 h-4 mr-2" />
-            Öppna fullständig vy
-          </Button>
-        </Link>
-      </div>
-      {(client as any).athleteAccount ? (
-        <div className="text-center py-12 text-gray-500 dark:text-slate-400">
-          <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p className="mb-4">Visa alla träningsloggar och ge feedback till atleten</p>
+  // Composed analysis tab. v1: PRs (the surface that drives % of 1RM
+  // session prescriptions) + strength progression dashboard + a quick
+  // jump card that preserves the old "Loggar" tab's value as a link
+  // out to the full logs view.
+  //
+  // Composed top-down so the most actionable bits (PRs you can edit
+  // here, then progression trends) are above the fold on mobile.
+  const analysisContent = client.athleteAccount ? (
+    <div className="space-y-4 sm:space-y-6">
+      <StrengthPRTable clientId={id} clientName={client.name} />
+
+      <ProgressionDashboard clientId={id} clientName={client.name} />
+
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1">
+            <h3 className="font-semibold text-sm flex items-center gap-2 dark:text-white">
+              <ClipboardList className="h-4 w-4 text-blue-500" />
+              Träningsloggar
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Hela loggvyn — feedback, kommentarer per pass, filtrering på datum.
+            </p>
+          </div>
           <Link href={`${basePath}/athletes/${id}/logs`}>
-            <Button variant="outline">
-              Öppna loggöversikt
+            <Button size="sm" variant="outline" className="w-full sm:w-auto">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Öppna loggvyn
             </Button>
           </Link>
         </div>
-      ) : (
-        <div className="text-center py-12 text-gray-500 dark:text-slate-400">
-          <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p className="mb-2">Denna klient har inget atletkonto</p>
-          <p className="text-sm mb-4">Skapa ett atletkonto så att klienten kan logga in och logga träningspass</p>
-          <CreateAthleteAccountDialog
-            clientId={id}
-            clientName={client.name}
-            clientEmail={client.email}
-            hasExistingAccount={false}
-            onAccountCreated={fetchClient}
-            trigger={
-              <Button>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Skapa atletkonto
-              </Button>
-            }
-          />
-        </div>
-      )}
+      </div>
+    </div>
+  ) : (
+    <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+      <div className="text-center py-12 text-gray-500 dark:text-slate-400">
+        <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p className="mb-2">Denna klient har inget atletkonto</p>
+        <p className="text-sm mb-4">
+          Skapa ett atletkonto så att klienten kan logga in, logga träningspass och få analys.
+        </p>
+        <CreateAthleteAccountDialog
+          clientId={id}
+          clientName={client.name}
+          clientEmail={client.email}
+          hasExistingAccount={false}
+          onAccountCreated={fetchClient}
+          trigger={
+            <Button>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Skapa atletkonto
+            </Button>
+          }
+        />
+      </div>
     </div>
   )
 
@@ -583,7 +623,7 @@ export default function BusinessClientDetailPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {programs.map((program: any) => (
+          {programs.map((program) => (
             <Link key={program.id} href={`${basePath}/programs/${program.id}`}>
               <div className="border dark:border-white/10 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition cursor-pointer">
                 <div className="flex justify-between items-start">
@@ -799,8 +839,8 @@ export default function BusinessClientDetailPage() {
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-white/10">
                     {sortedAndFilteredTests.map((test, index) => {
-                      const aerobicThreshold = test.aerobicThreshold as any
-                      const anaerobicThreshold = test.anaerobicThreshold as any
+                      const aerobicThreshold = test.aerobicThreshold as ThresholdSummary | null
+                      const anaerobicThreshold = test.anaerobicThreshold as ThresholdSummary | null
 
                       const isExpanded = expandedTestId === test.id
                       const trainingZones = test.trainingZones as TrainingZone[] | null
@@ -993,7 +1033,7 @@ export default function BusinessClientDetailPage() {
           content={{
             overview: overviewContent,
             calendar: calendarContent,
-            logs: logsContent,
+            analysis: analysisContent,
             programs: programsContent,
             tests: testsContent,
           }}

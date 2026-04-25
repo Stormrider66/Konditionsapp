@@ -2,17 +2,19 @@
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { LayoutGrid, Calendar, ClipboardList, Folder, TestTube } from 'lucide-react'
+import { LayoutGrid, Calendar, BarChart3, Folder, TestTube } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export type ClientDetailTab = 'overview' | 'calendar' | 'logs' | 'programs' | 'tests'
+// `analysis` replaces the old `logs` tab. Old `?tab=logs` URLs are
+// soft-redirected to analysis below so deep links don't break.
+export type ClientDetailTab = 'overview' | 'calendar' | 'analysis' | 'programs' | 'tests'
 
 interface ClientDetailTabsProps {
   clientId: string
   content: {
     overview: React.ReactNode
     calendar: React.ReactNode
-    logs: React.ReactNode
+    analysis: React.ReactNode
     programs: React.ReactNode
     tests: React.ReactNode
   }
@@ -22,7 +24,7 @@ interface ClientDetailTabsProps {
 const TAB_CONFIG: { value: ClientDetailTab; label: string; icon: React.ElementType }[] = [
   { value: 'overview', label: 'Översikt', icon: LayoutGrid },
   { value: 'calendar', label: 'Kalender', icon: Calendar },
-  { value: 'logs', label: 'Loggar', icon: ClipboardList },
+  { value: 'analysis', label: 'Analys', icon: BarChart3 },
   { value: 'programs', label: 'Program', icon: Folder },
   { value: 'tests', label: 'Tester', icon: TestTube },
 ]
@@ -32,8 +34,12 @@ export function ClientDetailTabs({ clientId, content, defaultTab = 'overview' }:
   const searchParams = useSearchParams()
   const pathname = usePathname()
 
-  // Get active tab from URL or use default
-  const activeTab = (searchParams.get('tab') as ClientDetailTab) || defaultTab
+  // Get active tab from URL or use default. Soft-migrate the deprecated
+  // `logs` value (replaced by `analysis`) so old deep links land on the
+  // new tab rather than triggering a default-fallback to overview.
+  const rawTab = searchParams.get('tab')
+  const activeTab: ClientDetailTab =
+    rawTab === 'logs' ? 'analysis' : ((rawTab as ClientDetailTab) || defaultTab)
 
   const handleTabChange = (value: string) => {
     const tab = value as ClientDetailTab
@@ -82,8 +88,8 @@ export function ClientDetailTabs({ clientId, content, defaultTab = 'overview' }:
         {content.calendar}
       </TabsContent>
 
-      <TabsContent value="logs" className="mt-0">
-        {content.logs}
+      <TabsContent value="analysis" className="mt-0">
+        {content.analysis}
       </TabsContent>
 
       <TabsContent value="programs" className="mt-0">
