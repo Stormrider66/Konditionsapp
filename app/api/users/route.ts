@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
 import { sendWelcomeEmail } from '@/lib/email'
+import { sendEmailAfter } from '@/lib/email/after'
 import { Gender } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
@@ -107,18 +108,10 @@ export async function POST(request: NextRequest) {
       return created
     })
 
-    // Send welcome email to new users
-    try {
-      await sendWelcomeEmail(
-        supabaseUser.email,
-        name,
-        'sv' // Default to Swedish
-      )
-      logger.info('Welcome email sent', { userId: result.id, email: supabaseUser.email })
-    } catch (emailError) {
-      // Don't fail the signup if email fails
-      logger.error('Failed to send welcome email', { userId: result.id }, emailError)
-    }
+    sendEmailAfter(
+      () => sendWelcomeEmail(supabaseUser.email!, name, 'sv'),
+      { route: 'users', emailKind: 'welcome' },
+    )
 
     return NextResponse.json({ success: true, data: result }, { status: 201 })
   } catch (error) {

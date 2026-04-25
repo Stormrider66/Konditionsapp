@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { sendReferralRewardEmail } from '@/lib/email'
+import { sendEmailAfter } from '@/lib/email/after'
 import { z } from 'zod'
 
 const applySchema = z.object({
@@ -226,24 +227,23 @@ export async function PUT(request: NextRequest) {
       },
     })
 
-    // Send email notification to referrer
+    // Send email notification to referrer (after response — non-critical)
     const referrer = referral.referralCode.user
     if (referrer.email) {
       const referredName = user.name || user.email.split('@')[0]
-      try {
-        await sendReferralRewardEmail(
-          referrer.email,
-          referrer.name || referrer.email.split('@')[0],
+      const referrerEmail = referrer.email
+      const referrerName = referrer.name || referrer.email.split('@')[0]
+      sendEmailAfter(
+        () => sendReferralRewardEmail(
+          referrerEmail,
+          referrerName,
           referredName,
           'FREE_MONTH',
           1,
-          'sv' // Default to Swedish, could be determined from user preferences
-        )
-        logger.info('Referral reward email sent', { referrerId: referrer.id, referredEmail: user.email })
-      } catch (emailError) {
-        // Don't fail the whole request if email fails
-        logger.error('Failed to send referral reward email', { referrerId: referrer.id }, emailError)
-      }
+          'sv',
+        ),
+        { route: 'referrals/apply', emailKind: 'referral_reward' },
+      )
     }
 
     return NextResponse.json({

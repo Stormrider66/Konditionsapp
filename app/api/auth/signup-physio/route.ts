@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
 import { sendWelcomeEmail } from '@/lib/email'
+import { sendEmailAfter } from '@/lib/email/after'
 import {
   createSelfAthleteProfileTx,
   getCoachTrialSubscriptionData,
@@ -172,11 +173,10 @@ export async function POST(request: NextRequest) {
       return { user, personalBusiness }
     })
 
-    try {
-      await sendWelcomeEmail(supabaseEmail, name, 'sv')
-    } catch (emailError) {
-      logger.error('Failed to send physio welcome email', { userId: result.user.id }, emailError)
-    }
+    sendEmailAfter(
+      () => sendWelcomeEmail(supabaseEmail, name, 'sv'),
+      { route: 'auth/signup-physio', emailKind: 'welcome' },
+    )
 
     return NextResponse.json(
       {
