@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, Plus, ChevronDown, ChevronRight, Trophy, Info, Pencil, Trash2 } from 'lucide-react'
+import { Loader2, Plus, ChevronDown, ChevronRight, Trophy, Info, Pencil, Trash2, Upload } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -45,6 +45,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { StrengthPRForm } from './StrengthPRForm'
+import { ClientBulkPRImportDialog } from './ClientBulkPRImportDialog'
 
 interface OneRepMaxEntry {
   id: string
@@ -99,6 +100,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [formOpen, setFormOpen] = useState(false)
+  const [bulkOpen, setBulkOpen] = useState(false)
 
   // Edit / delete state. Source is editable so coaches can confirm an
   // auto-detected ESTIMATED → TESTED after they actually verified it,
@@ -203,10 +205,16 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
             1RM per övning. Används för att räkna ut vikt när pass har % av 1RM.
           </p>
         </div>
-        <Button size="sm" onClick={() => setFormOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" />
-          Lägg till PR
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setBulkOpen(true)}>
+            <Upload className="h-4 w-4 mr-1" />
+            Importera flera
+          </Button>
+          <Button size="sm" onClick={() => setFormOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Lägg till PR
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -439,6 +447,17 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ClientBulkPRImportDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        clientId={clientId}
+        clientName={clientName}
+        onImported={() => {
+          setBulkOpen(false)
+          fetchPRs()
+        }}
+      />
 
       <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
         <AlertDialogContent>

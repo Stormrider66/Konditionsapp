@@ -22,7 +22,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireCoach } from '@/lib/auth-utils'
+import { requireCoach, canAccessClient } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 
 interface BulkPREntry {
@@ -44,14 +44,21 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach()
     const body = await request.json()
-    const { teamId, entries } = body as {
+    const { teamId, clientId, entries } = body as {
       teamId?: string
+      clientId?: string
       entries?: BulkPREntry[]
     }
 
-    if (!teamId || !Array.isArray(entries) || entries.length === 0) {
+    if (!Array.isArray(entries) || entries.length === 0) {
       return NextResponse.json(
-        { error: 'teamId and non-empty entries[] are required' },
+        { error: 'Non-empty entries[] is required' },
+        { status: 400 }
+      )
+    }
+    if (!teamId && !clientId) {
+      return NextResponse.json(
+        { error: 'Either teamId or clientId is required' },
         { status: 400 }
       )
     }
@@ -63,29 +70,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify team ownership and pull the roster + exercise IDs we'll
-    // need to validate against. Two parallel queries keep this fast.
-    const [team, exercises] = await Promise.all([
-      prisma.team.findFirst({
+    // Build the set of acceptable clientIds based on the scope:
+    //   - teamId: every roster member (entries must have clientId in the team)
+    //   - clientId: just that one client (entries' clientId must match it)
+    // Then validate exercises exist in parallel.
+    let memberIdSet: Set<string>
+    if (teamId) {
+      const team = await prisma.team.findFirst({
         where: { id: teamId, userId: user.id },
-        select: {
-          id: true,
-          members: { select: { id: true } },
-        },
-      }),
-      prisma.exercise.findMany({
-        where: {
-          id: { in: Array.from(new Set(entries.map((e) => e.exerciseId))) },
-        },
-        select: { id: true },
-      }),
-    ])
-
-    if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+        select: { id: true, members: { select: { id: true } } },
+      })
+      if (!team) {
+        return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      }
+      memberIdSet = new Set(team.members.map((m) => m.id))
+    } else {
+      const hasAccess = await canAccessClient(user.id, clientId!)
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+      memberIdSet = new Set([clientId!])
     }
 
-    const memberIdSet = new Set(team.members.map((m) => m.id))
+    const exercises = await prisma.exercise.findMany({
+      where: {
+        id: { in: Array.from(new Set(entries.map((e) => e.exerciseId))) },
+      },
+      select: { id: true },
+    })
     const exerciseIdSet = new Set(exercises.map((e) => e.id))
 
     const errors: BulkPRError[] = []
@@ -101,7 +113,10 @@ export async function POST(request: NextRequest) {
 
     entries.forEach((entry, index) => {
       if (!entry.clientId || !memberIdSet.has(entry.clientId)) {
-        errors.push({ index, message: 'Atleten finns inte i laget' })
+        errors.push({
+          index,
+          message: teamId ? 'Atleten finns inte i laget' : 'Fel klient-id',
+        })
         return
       }
       if (!entry.exerciseId || !exerciseIdSet.has(entry.exerciseId)) {
