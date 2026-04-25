@@ -141,20 +141,46 @@ export async function POST(request: NextRequest) {
       })
     })
 
+    // Upsert per row so a re-paste of a corrected sheet UPDATES the
+    // existing PR for that (client, exercise, date) instead of failing
+    // on the UNIQUE constraint. Coach intent on a same-day re-paste
+    // is "use the new value", not "error out".
+    //
+    // Tracks created vs updated separately so the response can tell
+    // the coach how much was new vs how much was a correction.
     let created = 0
-    if (validRows.length > 0) {
-      // createMany is fine here — no per-row return value needed and
-      // none of the columns require a per-row computed value.
-      const result = await prisma.oneRepMaxHistory.createMany({
-        data: validRows,
-        skipDuplicates: false,
+    let updated = 0
+    for (const row of validRows) {
+      const upsertResult = await prisma.oneRepMaxHistory.upsert({
+        where: {
+          clientId_exerciseId_date: {
+            clientId: row.clientId,
+            exerciseId: row.exerciseId,
+            date: row.date,
+          },
+        },
+        update: {
+          oneRepMax: row.oneRepMax,
+          source: row.source,
+          notes: row.notes,
+          bodyWeight: row.bodyWeight,
+          unit: row.unit,
+        },
+        create: row,
+        select: { createdAt: true },
       })
-      created = result.count
+      // Heuristic: if createdAt is within the last second the row is
+      // newly created; otherwise it was updated. Cheaper than a
+      // pre-check-then-write or a transaction.
+      const ageMs = Date.now() - upsertResult.createdAt.getTime()
+      if (ageMs < 1000) created++
+      else updated++
     }
 
     return NextResponse.json({
       success: true,
       created,
+      updated,
       attempted: entries.length,
       errors,
     })

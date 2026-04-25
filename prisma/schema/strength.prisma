@@ -95,6 +95,11 @@ model OneRepMaxHistory {
 
   createdAt DateTime @default(now())
 
+  // Prevent duplicate PR rows from accidental re-paste of a test sheet
+  // or manual entry on top of an import. Coach who legitimately wants
+  // to log two attempts on the same day (e.g. AM/PM) needs different
+  // dates — a current limitation worth flagging if it bites.
+  @@unique([clientId, exerciseId, date])
   @@index([clientId, exerciseId, date])
   @@index([clientId, date])
 }

@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { estimate1RMWithConfidence } from '@/lib/training-engine/progression/rm-estimation'
+import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 export async function POST(req: NextRequest) {
@@ -41,6 +42,22 @@ export async function POST(req: NextRequest) {
         { error: 'Missing required fields: clientId, exerciseId, sets, reps, load' },
         { status: 400 }
       )
+    }
+
+    // Resolve the authenticated supabase user → app User row, then
+    // gate against canAccessClient. Without this check, any signed-in
+    // athlete could POST a PR against another athlete's clientId by
+    // hand-crafting the request body.
+    const dbUser = await prisma.user.findUnique({
+      where: { email: user.email ?? '' },
+      select: { id: true },
+    })
+    if (!dbUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+    const allowed = await canAccessClient(dbUser.id, clientId)
+    if (!allowed) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Verify exercise exists

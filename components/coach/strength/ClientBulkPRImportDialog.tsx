@@ -221,8 +221,9 @@ export function ClientBulkPRImportDialog({
       }
       const body = await res.json()
       const skipped = effectiveRows.length - validRows.length
+      const updatedSuffix = body.updated > 0 ? ` · ${body.updated} uppdaterade` : ''
       setResultMsg(
-        `Sparade ${body.created} PR${body.created === 1 ? '' : 's'}${skipped > 0 ? ` · ${skipped} rad${skipped === 1 ? '' : 'er'} hoppades över` : ''}`
+        `Sparade ${body.created} ny${body.created === 1 ? '' : 'a'} PR${updatedSuffix}${skipped > 0 ? ` · ${skipped} rad${skipped === 1 ? '' : 'er'} hoppades över` : ''}`
       )
       setPaste('')
       onImported?.()

@@ -242,7 +242,8 @@ export function TeamTestManualEntryDialog({
         throw new Error(body?.error ?? `HTTP ${res.status}`)
       }
       const body = await res.json()
-      setResultMsg(`Sparade ${body.created} PRs.`)
+      const updatedSuffix = body.updated > 0 ? ` · ${body.updated} uppdaterade` : ''
+      setResultMsg(`Sparade ${body.created} nya PRs${updatedSuffix}.`)
       setValues({})
       onSaved?.()
     } catch (e) {

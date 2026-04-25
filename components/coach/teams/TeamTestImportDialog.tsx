@@ -277,7 +277,8 @@ export function TeamTestImportDialog({
         throw new Error(body?.error ?? `HTTP ${res.status}`)
       }
       const body = await res.json()
-      setResultMsg(`Sparade ${body.created} PRs från testpasset.`)
+      const updatedSuffix = body.updated > 0 ? ` · ${body.updated} uppdaterade befintliga` : ''
+      setResultMsg(`Sparade ${body.created} nya PRs${updatedSuffix} från testpasset.`)
       setPaste('')
       onImported?.()
     } catch (e) {

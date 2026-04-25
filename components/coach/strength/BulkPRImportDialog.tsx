@@ -261,8 +261,9 @@ export function BulkPRImportDialog({
       }
       const body = await res.json()
       const skipped = rows.length - validRows.length
+      const updatedSuffix = body.updated > 0 ? ` · ${body.updated} uppdaterade` : ''
       setResultMsg(
-        `Sparade ${body.created} PRs${skipped > 0 ? ` · ${skipped} rad${skipped === 1 ? '' : 'er'} hoppades över` : ''}`
+        `Sparade ${body.created} nya PRs${updatedSuffix}${skipped > 0 ? ` · ${skipped} rad${skipped === 1 ? '' : 'er'} hoppades över` : ''}`
       )
       setPaste('')
       onImported?.()
