@@ -16,10 +16,11 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Zap, Dumbbell, Timer, BarChart3 } from 'lucide-react'
+import { Plus, Search, Zap, Dumbbell, Timer, BarChart3, FileUp } from 'lucide-react'
+import { toast } from 'sonner'
 import { DrillLibrary } from './DrillLibrary'
 import { WorkoutList } from './WorkoutList'
-import { AgilityWorkoutBuilder } from './AgilityWorkoutBuilder'
+import { AgilityWorkoutBuilder, type ImportedDrillSeed } from './AgilityWorkoutBuilder'
 import { TimingGateImport } from './TimingGateImport'
 import type {
   AgilityDrill,
@@ -28,6 +29,8 @@ import type {
   TimingGateSession
 } from '@/types'
 import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog'
+import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutDialog'
+import { toAgilityWorkoutBundle } from '@/components/workouts/import/converters'
 
 interface Athlete {
   id: string
@@ -62,6 +65,11 @@ export default function AgilityStudioClient({
   const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(
     searchParams.get('fromCalendar') === 'true'
   )
+  const [showImporter, setShowImporter] = useState(false)
+  const [importedWorkoutSeed, setImportedWorkoutSeed] = useState<{
+    initialWorkout: Partial<AgilityWorkout>
+    initialDrills: ImportedDrillSeed[]
+  } | null>(null)
   const [drills, setDrills] = useState(initialDrills)
   const [workouts, setWorkouts] = useState(initialWorkouts)
   const [timingSessions, setTimingSessions] = useState(initialTimingSessions)
@@ -120,10 +128,16 @@ export default function AgilityStudioClient({
             {t('description')}
           </p>
         </div>
-        <Button onClick={() => setShowWorkoutBuilder(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          {t('createWorkout')}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowImporter(true)}>
+            <FileUp className="h-4 w-4 mr-2" />
+            Importera pass
+          </Button>
+          <Button onClick={() => setShowWorkoutBuilder(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t('createWorkout')}
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -217,10 +231,57 @@ export default function AgilityStudioClient({
       {showWorkoutBuilder && (
         <AgilityWorkoutBuilder
           drills={drills}
-          onSave={handleWorkoutCreated}
-          onClose={() => setShowWorkoutBuilder(false)}
+          initialWorkout={importedWorkoutSeed?.initialWorkout}
+          initialDrills={importedWorkoutSeed?.initialDrills}
+          // When the importer prefills drills, jump past the format/audience
+          // steps — the wizard otherwise discards the seeded drills if the
+          // coach doesn't navigate forward.
+          initialStep={importedWorkoutSeed?.initialDrills?.length ? 4 : 1}
+          onSave={(w) => {
+            handleWorkoutCreated(w)
+            setImportedWorkoutSeed(null)
+          }}
+          onClose={() => {
+            setShowWorkoutBuilder(false)
+            setImportedWorkoutSeed(null)
+          }}
         />
       )}
+
+      <ImportWorkoutDialog
+        workoutType="AGILITY"
+        open={showImporter}
+        onOpenChange={setShowImporter}
+        onImported={({ workout, mappings }) => {
+          if (workout.workoutType !== 'AGILITY') return
+          const bundle = toAgilityWorkoutBundle(workout, mappings)
+          // Drills without a library match can't be saved — the API requires
+          // a real drillId. Drop them and tell the coach how many were lost
+          // so they can pick replacements manually.
+          const seedable = bundle.initialDrills.filter((d): d is typeof d & { drillId: string } => !!d.drillId)
+          const dropped = bundle.initialDrills.length - seedable.length
+          setImportedWorkoutSeed({
+            initialWorkout: bundle.initialWorkout,
+            initialDrills: seedable.map((d) => ({
+              drillId: d.drillId,
+              sectionType: d.sectionType,
+              sets: d.sets,
+              reps: d.reps,
+              duration: d.duration,
+              restSeconds: d.restSeconds,
+              notes: d.notes,
+            })),
+          })
+          setShowWorkoutBuilder(true)
+          if (dropped > 0) {
+            toast.warning(
+              `${dropped} drill${dropped === 1 ? '' : 's'} matchades inte i biblioteket — lägg till dem manuellt i steg 3.`
+            )
+          } else {
+            toast.success('Pass importerat — granska och spara i byggaren')
+          }
+        }}
+      />
 
       {/* Calendar Assignment Dialog */}
       {calendarAssignSessionId && calendarClientId && calendarDate && (

@@ -44,7 +44,9 @@ import {
   Trash2,
   Edit,
   MoreVertical,
+  FileUp,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,6 +69,8 @@ import { WorkoutAssignmentDialog } from './WorkoutAssignmentDialog';
 import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog';
 import type { HybridWorkoutWithSections, HybridSectionData } from '@/types';
 import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog';
+import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutDialog';
+import { toHybridBuilderInitialData } from '@/components/workouts/import/converters';
 
 interface HybridMovement {
   id: string;
@@ -148,6 +152,10 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
   const [isCreateOpen, setIsCreateOpen] = useState(
     searchParams.get('fromCalendar') === 'true'
   );
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importedInitialData, setImportedInitialData] = useState<
+    Parameters<typeof HybridWorkoutBuilder>[0]['initialData'] | null
+  >(null);
   const [activeTab, setActiveTab] = useState('all');
   const [selectedWorkout, setSelectedWorkout] = useState<HybridWorkout | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -299,34 +307,54 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
             Skapa och hantera CrossFit, HYROX och funktionella pass
           </p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Nytt Pass
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Skapa Nytt Hybrid Pass</DialogTitle>
-              <DialogDescription>
-                Välj format och lägg till rörelser för att skapa ditt pass.
-              </DialogDescription>
-            </DialogHeader>
-            <HybridWorkoutBuilder
-              onSave={(workoutId) => {
-                if (fromCalendar && calendarClientId && calendarDate && workoutId) {
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+            <FileUp className="mr-2 h-4 w-4" />
+            Importera pass
+          </Button>
+          <Dialog
+            open={isCreateOpen}
+            onOpenChange={(next) => {
+              setIsCreateOpen(next);
+              if (!next) setImportedInitialData(null);
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Nytt Pass
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {importedInitialData ? 'Granska importerat pass' : 'Skapa Nytt Hybrid Pass'}
+                </DialogTitle>
+                <DialogDescription>
+                  Välj format och lägg till rörelser för att skapa ditt pass.
+                </DialogDescription>
+              </DialogHeader>
+              <HybridWorkoutBuilder
+                initialData={importedInitialData ?? undefined}
+                onSave={(workoutId) => {
+                  if (fromCalendar && calendarClientId && calendarDate && workoutId) {
+                    setIsCreateOpen(false);
+                    setImportedInitialData(null);
+                    setCalendarAssignSessionId(workoutId);
+                  } else {
+                    setIsCreateOpen(false);
+                    setImportedInitialData(null);
+                    fetchWorkouts();
+                  }
+                }}
+                onCancel={() => {
                   setIsCreateOpen(false);
-                  setCalendarAssignSessionId(workoutId);
-                } else {
-                  setIsCreateOpen(false);
-                  fetchWorkouts();
-                }
-              }}
-              onCancel={() => setIsCreateOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+                  setImportedInitialData(null);
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Filters */}
@@ -560,6 +588,40 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImportWorkoutDialog
+        workoutType="HYBRID"
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        onImported={({ workout, mappings, resolutions }) => {
+          if (workout.workoutType !== 'HYBRID') return;
+          // Build a name → display-name map from resolutions so the builder
+          // shows real exercise names where the resolver matched. Falls back
+          // to the imported text for unmapped movements.
+          const nameLookup: Record<string, string> = {};
+          for (const r of resolutions) {
+            const id = mappings[r.name];
+            if (id) {
+              const cand = r.candidates.find((c) => c.id === id);
+              if (cand) nameLookup[r.name] = cand.name;
+            }
+          }
+          setImportedInitialData(toHybridBuilderInitialData(workout, mappings, nameLookup));
+          setIsCreateOpen(true);
+          // Movements without a library match get a synthetic exerciseId
+          // ("MISSING:<name>") so the coach can see the name in the builder
+          // — but the API will reject those at save. Warn so they know
+          // they need to swap each unmatched movement before saving.
+          const unmatched = workout.movements.filter((m) => !mappings[m.exerciseName]).length;
+          if (unmatched > 0) {
+            toast.warning(
+              `${unmatched} rörelse${unmatched === 1 ? '' : 'r'} matchades inte i biblioteket — välj rätt övning för var och en innan du sparar.`
+            );
+          } else {
+            toast.success('Pass importerat — granska och spara i byggaren');
+          }
+        }}
+      />
 
       {/* Calendar Assignment Dialog */}
       {calendarAssignSessionId && calendarClientId && calendarDate && (

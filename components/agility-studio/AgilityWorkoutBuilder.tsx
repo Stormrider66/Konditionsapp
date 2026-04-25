@@ -44,7 +44,15 @@ import type {
 
 interface AgilityWorkoutBuilderProps {
   drills: AgilityDrill[]
-  initialWorkout?: AgilityWorkout
+  initialWorkout?: Partial<AgilityWorkout>
+  /**
+   * Pre-selected drills, e.g. from the workout importer. Items whose
+   * `drillId` doesn't exist in the `drills` prop are silently skipped —
+   * the coach picks a substitute manually in step 3.
+   */
+  initialDrills?: ImportedDrillSeed[]
+  /** Step (1-4) to open the wizard at. Defaults to 1 for fresh sessions. */
+  initialStep?: 1 | 2 | 3 | 4
   onSave: (workout: AgilityWorkout) => void
   onClose: () => void
 }
@@ -53,6 +61,16 @@ interface SelectedDrill {
   drill: AgilityDrill
   order: number
   sectionType: 'WARMUP' | 'MAIN' | 'COOLDOWN'
+  sets?: number
+  reps?: number
+  duration?: number
+  restSeconds?: number
+  notes?: string
+}
+
+export interface ImportedDrillSeed {
+  drillId: string
+  sectionType?: 'WARMUP' | 'MAIN' | 'COOLDOWN'
   sets?: number
   reps?: number
   duration?: number
@@ -93,11 +111,13 @@ const sportOptions: { value: SportType; label: string }[] = [
 export function AgilityWorkoutBuilder({
   drills,
   initialWorkout,
+  initialDrills,
+  initialStep = 1,
   onSave,
   onClose
 }: AgilityWorkoutBuilderProps) {
   const t = useTranslations('agilityStudio')
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState<number>(initialStep)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Step 1: Format
@@ -119,8 +139,29 @@ export function AgilityWorkoutBuilder({
     initialWorkout?.restBetweenDrills || 30
   )
 
-  // Step 3: Drills
-  const [selectedDrills, setSelectedDrills] = useState<SelectedDrill[]>([])
+  // Step 3: Drills — seeded from initialDrills (importer flow) when present.
+  // Items whose drillId isn't in the drill library are dropped silently;
+  // the coach can pick replacements manually in step 3.
+  const [selectedDrills, setSelectedDrills] = useState<SelectedDrill[]>(() => {
+    if (!initialDrills?.length) return []
+    const byId = new Map(drills.map((d) => [d.id, d]))
+    const seeded: SelectedDrill[] = []
+    for (const seed of initialDrills) {
+      const drill = byId.get(seed.drillId)
+      if (!drill) continue
+      seeded.push({
+        drill,
+        order: seeded.length,
+        sectionType: seed.sectionType ?? 'MAIN',
+        sets: seed.sets,
+        reps: seed.reps,
+        duration: seed.duration,
+        restSeconds: seed.restSeconds,
+        notes: seed.notes,
+      })
+    }
+    return seeded
+  })
   const [drillSearchQuery, setDrillSearchQuery] = useState('')
 
   // Step 4: Review

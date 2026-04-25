@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from 'react'
 import { useSearchParams, usePathname } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Library, Plus, Timer, Sparkles, BookOpen } from 'lucide-react'
+import { Library, Plus, Timer, Sparkles, BookOpen, FileUp } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { CardioSessionBuilder } from './CardioSessionBuilder'
 import { CardioSessionLibrary } from './CardioSessionLibrary'
@@ -11,6 +12,8 @@ import { CardioTemplateLibrary } from './CardioTemplateLibrary'
 import { AutoCardioDialog } from './AutoCardioDialog'
 import type { CardioSessionData } from '@/types'
 import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog'
+import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutDialog'
+import { toCardioSessionData } from '@/components/workouts/import/converters'
 
 interface CardioDashboardProps {
   businessId?: string
@@ -22,6 +25,7 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
   const [activeTab, setActiveTab] = React.useState('builder')
   const [editSession, setEditSession] = React.useState<CardioSessionData | null>(null)
   const [showAutoGenerate, setShowAutoGenerate] = React.useState(false)
+  const [showImporter, setShowImporter] = React.useState(false)
 
   // Calendar assignment flow
   const fromCalendar = searchParams.get('fromCalendar') === 'true'
@@ -46,6 +50,10 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
+          <Button variant="outline" onClick={() => setShowImporter(true)} size="sm" className="sm:size-default">
+            <FileUp className="mr-2 h-4 w-4" />
+            Importera pass
+          </Button>
           <Button variant="outline" onClick={() => setShowAutoGenerate(true)} size="sm" className="sm:size-default">
             <Sparkles className="mr-2 h-4 w-4" />
             Auto-Generera
@@ -140,6 +148,18 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
           } as CardioSessionData)
           setActiveTab('builder')
           setShowAutoGenerate(false)
+        }}
+      />
+
+      <ImportWorkoutDialog
+        workoutType="CARDIO"
+        open={showImporter}
+        onOpenChange={setShowImporter}
+        onImported={({ workout }) => {
+          if (workout.workoutType !== 'CARDIO') return
+          setEditSession(toCardioSessionData(workout))
+          setActiveTab('builder')
+          toast.success('Pass importerat — granska och spara i byggaren')
         }}
       />
 
