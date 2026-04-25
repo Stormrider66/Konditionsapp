@@ -477,6 +477,24 @@ export default async function TeamDashboardPage({ params }: TeamPageProps) {
       <div className="mt-8">
         <TeamLeaderboard teamId={teamId} />
       </div>
+
+      {/* Note for coaches who hit the legacy URL: the new test +
+          analysis flows only exist on the business-scoped page tree.
+          Sub-routes /coach/teams/[id]/analysis|tests|multivariate
+          aren't implemented under the legacy app/coach branch, so
+          we surface a hint instead of dead links. */}
+      <div className="mt-8">
+        <Card className="bg-muted/30">
+          <CardHeader>
+            <CardTitle className="text-base">Lagets analys, Tester och Multivariat analys</CardTitle>
+            <CardDescription>
+              Tillgängliga via lagsidan inom ett företag (business-scoped). Öppna laget
+              via lagvalet i menyn för att komma åt PR-import, ACWR-zoner och
+              multivariat analys.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
     </div>
   )
 }
