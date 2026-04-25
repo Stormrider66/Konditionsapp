@@ -336,6 +336,32 @@ export function TeamTestImportDialog({
             </div>
           </div>
 
+          {parsed.warnings.length > 0 && (
+            <div className="rounded-md bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-2 text-xs text-orange-800 dark:text-orange-200 space-y-1">
+              <div className="flex items-center gap-1.5 font-medium">
+                <AlertCircle className="h-3.5 w-3.5" />
+                Cellantal stämmer inte i {parsed.warnings.length} rad
+                {parsed.warnings.length === 1 ? '' : 'er'}
+              </div>
+              <ul className="list-disc list-inside opacity-90">
+                {parsed.warnings.slice(0, 5).map((w, i) => (
+                  <li key={i}>
+                    <span className="font-medium">{w.rawName}</span> – {w.actual} celler i
+                    raden, förväntade {w.expected}.{' '}
+                    {w.kind === 'missing_cells'
+                      ? 'Saknade celler tolkas som tomma.'
+                      : 'Extra celler ignoreras.'}
+                  </li>
+                ))}
+                {parsed.warnings.length > 5 && (
+                  <li className="opacity-70">
+                    …och {parsed.warnings.length - 5} till.
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
+
           {parsed.headers.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

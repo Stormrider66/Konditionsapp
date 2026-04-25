@@ -10,6 +10,7 @@ describe('parseWideFormat', () => {
         names: [],
         bodyWeightDetected: false,
         cells: [],
+        warnings: [],
       })
     })
 
@@ -20,6 +21,7 @@ describe('parseWideFormat', () => {
         names: [],
         bodyWeightDetected: false,
         cells: [],
+        warnings: [],
       })
     })
 
@@ -30,6 +32,7 @@ describe('parseWideFormat', () => {
         names: [],
         bodyWeightDetected: false,
         cells: [],
+        warnings: [],
       })
     })
 
@@ -40,6 +43,7 @@ describe('parseWideFormat', () => {
         names: [],
         bodyWeightDetected: false,
         cells: [],
+        warnings: [],
       })
     })
   })
@@ -373,6 +377,63 @@ describe('parseWideFormat', () => {
     it('trims whitespace around annotations', () => {
       const result = parseWideFormat('Namn\tBenböj\nOscar\t180   Hex   ')
       expect(result.cells[0]).toMatchObject({ value: 180, note: 'Hex' })
+    })
+  })
+
+  describe('row column-count warnings', () => {
+    it('flags a row with fewer cells than the header', () => {
+      const paste =
+        'Namn\tBenböj\tBänkpress\tChins\n' +
+        'Oscar\t180\t100\t25\n' +
+        'Edward\t160\t90' // missing Chins cell
+      const result = parseWideFormat(paste)
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]).toMatchObject({
+        rowIndex: 1,
+        rawName: 'Edward',
+        kind: 'missing_cells',
+        expected: 3,
+        actual: 2,
+      })
+    })
+
+    it('flags a row with extra cells than the header', () => {
+      const paste =
+        'Namn\tBenböj\tBänkpress\n' +
+        'Oscar\t180\t100\t25' // extra cell
+      const result = parseWideFormat(paste)
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]).toMatchObject({
+        rowIndex: 0,
+        rawName: 'Oscar',
+        kind: 'extra_cells',
+        expected: 2,
+        actual: 3,
+      })
+    })
+
+    it('counts the bodyweight column toward the expected cell count', () => {
+      const paste =
+        'Namn\tBenböj\tVikt\n' +
+        'Oscar\t180\t82.4\n' +
+        'Edward\t160' // missing Vikt
+      const result = parseWideFormat(paste)
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]).toMatchObject({
+        rawName: 'Edward',
+        kind: 'missing_cells',
+        expected: 2,
+        actual: 1,
+      })
+    })
+
+    it('emits no warnings when every row matches the header width', () => {
+      const paste =
+        'Namn\tBenböj\tBänkpress\n' +
+        'Oscar\t180\t100\n' +
+        'Edward\t160\t90'
+      const result = parseWideFormat(paste)
+      expect(result.warnings).toEqual([])
     })
   })
 

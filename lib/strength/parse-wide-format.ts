@@ -41,6 +41,18 @@ export interface ParsedCell {
   bodyWeight: number | null
 }
 
+export interface ParseWarning {
+  /** Index into `names` (data rows). */
+  rowIndex: number
+  /** Athlete name on the row. */
+  rawName: string
+  /** Why we're warning. */
+  kind: 'missing_cells' | 'extra_cells'
+  /** Cell counts so the UI can spell it out for the coach. */
+  expected: number
+  actual: number
+}
+
 export interface ParsedWideFormat {
   /** Header labels for data columns (excludes the leading name column and any bodyweight column). */
   headers: string[]
@@ -50,6 +62,8 @@ export interface ParsedWideFormat {
   bodyWeightDetected: boolean
   /** Flat list of parsed value cells. */
   cells: ParsedCell[]
+  /** Per-row issues a coach might want to see in the preview. */
+  warnings: ParseWarning[]
 }
 
 const BODYWEIGHT_HEADER_PATTERN = /^(vikt|bodyweight|kroppsvikt|bw)$/i
@@ -89,7 +103,7 @@ export function parseWideFormat(paste: string): ParsedWideFormat {
     .filter((l) => l.trim().length > 0)
 
   if (lines.length < 2) {
-    return { headers: [], names: [], bodyWeightDetected: false, cells: [] }
+    return { headers: [], names: [], bodyWeightDetected: false, cells: [], warnings: [] }
   }
 
   // Header: first cell is the name column label (can be anything —
@@ -108,6 +122,13 @@ export function parseWideFormat(paste: string): ParsedWideFormat {
 
   const names: string[] = []
   const cells: ParsedCell[] = []
+  const warnings: ParseWarning[] = []
+  // The parser slices off the bodyweight column before iterating data
+  // cells, so the "expected count" the coach typed is headers + 1 if a
+  // bodyweight column existed. Comparing against the raw paste shape
+  // catches "row has too few cells" / "stray tab added an extra cell"
+  // — both silently drop data without this guard.
+  const expectedDataCellCount = headers.length + (bodyWeightColIdx >= 0 ? 1 : 0)
 
   for (let r = 1; r < lines.length; r++) {
     const cellsRaw = splitRow(lines[r])
@@ -116,6 +137,16 @@ export function parseWideFormat(paste: string): ParsedWideFormat {
     const dataCellsRaw = cellsRaw.slice(1)
     const rowIndex = names.length
     names.push(name)
+
+    if (dataCellsRaw.length !== expectedDataCellCount) {
+      warnings.push({
+        rowIndex,
+        rawName: name,
+        kind: dataCellsRaw.length < expectedDataCellCount ? 'missing_cells' : 'extra_cells',
+        expected: expectedDataCellCount,
+        actual: dataCellsRaw.length,
+      })
+    }
 
     // Bodyweight is per-row metadata, not a PR cell.
     let bodyWeight: number | null = null
@@ -152,5 +183,6 @@ export function parseWideFormat(paste: string): ParsedWideFormat {
     names,
     bodyWeightDetected: bodyWeightColIdx >= 0,
     cells,
+    warnings,
   }
 }
