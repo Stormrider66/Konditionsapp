@@ -23,6 +23,7 @@ const STRENGTH_FATIGUE_TTL_MS = 60 * 1000
 const DAILY_METRICS_RECOMPUTE_SKIP_TTL_MS = 2 * 60 * 1000
 const DAILY_METRICS_JOB_STALE_LOCK_MS = 5 * 60 * 1000
 const DAILY_METRICS_JOB_RETRY_BASE_MS = 30 * 1000
+const MAX_INMEMORY_CACHE_ENTRIES = 5000
 
 const strengthFatigueCache = new Map<string, { expiresAt: number; value: SyncedStrengthFatigue }>()
 const dailyMetricsAssessmentInFlight = new Map<string, Promise<void>>()
@@ -35,6 +36,25 @@ const dailyMetricsProcessedSignatureCache = new Map<
     readinessLevel: string | null
   }
 >()
+
+// Bounded eviction helper: when a Map exceeds MAX_INMEMORY_CACHE_ENTRIES, first
+// drop entries the caller marks stale, then fall back to dropping oldest-insertion
+// entries until under the cap. Pattern mirrors lib/rate-limit-redis.ts so we
+// don't leak a setInterval handle in a serverless environment.
+function pruneIfOversized<K, V>(map: Map<K, V>, isStale: (value: V) => boolean) {
+  if (map.size <= MAX_INMEMORY_CACHE_ENTRIES) return
+  for (const [k, v] of map) {
+    if (isStale(v)) map.delete(k)
+  }
+  if (map.size > MAX_INMEMORY_CACHE_ENTRIES) {
+    const overflow = map.size - MAX_INMEMORY_CACHE_ENTRIES
+    let dropped = 0
+    for (const k of map.keys()) {
+      map.delete(k)
+      if (++dropped >= overflow) break
+    }
+  }
+}
 
 export interface DailyMetricsSideEffectsInput {
   clientId: string
@@ -243,6 +263,10 @@ export async function processDailyMetricsPostWriteJobPayload(
       }
     } else {
       computed = await recomputeDailyMetricsAssessments({ clientId, date })
+      pruneIfOversized(
+        dailyMetricsProcessedSignatureCache,
+        (v) => now - v.processedAt > DAILY_METRICS_RECOMPUTE_SKIP_TTL_MS,
+      )
       dailyMetricsProcessedSignatureCache.set(key, {
         signature,
         processedAt: now,
@@ -474,8 +498,10 @@ async function recomputeDailyMetricsAssessments(input: RecomputeDailyMetricsAsse
   if (readinessScore !== null) {
     try {
       const syncedStrengthFatigue = await calculateSyncedStrengthFatigue(clientId, prisma)
+      const cacheNow = Date.now()
+      pruneIfOversized(strengthFatigueCache, (v) => v.expiresAt < cacheNow)
       strengthFatigueCache.set(clientId, {
-        expiresAt: Date.now() + STRENGTH_FATIGUE_TTL_MS,
+        expiresAt: cacheNow + STRENGTH_FATIGUE_TTL_MS,
         value: syncedStrengthFatigue,
       })
     } catch (error) {

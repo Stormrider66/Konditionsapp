@@ -6,6 +6,7 @@ import { checkRateLimitRedis, isRedisConfigured } from '@/lib/rate-limit-redis'
 
 // In-memory rate limit store (fallback when Redis is not configured)
 const rateLimitStore = new Map<string, { minute: number; day: number; minuteReset: number; dayReset: number }>()
+const MAX_RATE_LIMIT_ENTRIES = 5000
 
 export interface ApiKeyContext {
   apiKeyId: string
@@ -208,6 +209,22 @@ function checkInMemoryRateLimit(
   let entry = rateLimitStore.get(keyId)
 
   if (!entry) {
+    // Prune before insert: drop entries whose day window has fully expired,
+    // then fall back to oldest-insertion eviction if still over cap.
+    if (rateLimitStore.size >= MAX_RATE_LIMIT_ENTRIES) {
+      for (const [k, v] of rateLimitStore) {
+        if (v.dayReset < now) rateLimitStore.delete(k)
+      }
+      if (rateLimitStore.size >= MAX_RATE_LIMIT_ENTRIES) {
+        const overflow = rateLimitStore.size - MAX_RATE_LIMIT_ENTRIES + 1
+        let dropped = 0
+        for (const k of rateLimitStore.keys()) {
+          rateLimitStore.delete(k)
+          if (++dropped >= overflow) break
+        }
+      }
+    }
+
     entry = {
       minute: 0,
       day: 0,
