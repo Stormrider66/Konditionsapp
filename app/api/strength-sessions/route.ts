@@ -69,6 +69,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     logger.error('Error fetching strength sessions', {}, error);
     return NextResponse.json(
       { error: 'Failed to fetch strength sessions' },
@@ -146,6 +149,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(session, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     logger.error('Error creating strength session', {}, error);
     return NextResponse.json(
       { error: 'Failed to create strength session' },

@@ -56,6 +56,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json(session);
   } catch (error) {
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     logError('Error fetching strength session:', error);
     return NextResponse.json(
       { error: 'Failed to fetch strength session' },
@@ -135,6 +138,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json(session);
   } catch (error) {
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     logError('Error updating strength session:', error);
     return NextResponse.json(
       { error: 'Failed to update strength session' },
@@ -190,6 +196,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       removedCalendarEvents: calendarEventIds.length,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     logError('Error deleting strength session:', error);
     return NextResponse.json(
       { error: 'Failed to delete strength session' },

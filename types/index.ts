@@ -1493,6 +1493,10 @@ export interface StrengthSessionFollowUp {
   notes?: string
 }
 
+export type StrengthExerciseKind = 'strength' | 'cardio'
+
+export type StrengthIntensity = 'EASY' | 'MODERATE' | 'HARD' | 'INTERVAL'
+
 export interface StrengthSessionExercise {
   exerciseId: string
   exerciseName: string
@@ -1502,6 +1506,15 @@ export interface StrengthSessionExercise {
   restSeconds?: number
   notes?: string
   followUps?: StrengthSessionFollowUp[]
+  /**
+   * Discriminator. `'cardio'` swaps the runner / builder UI to use
+   * duration / distance / intensity instead of sets × reps × weight.
+   * Defaults to `'strength'` when undefined.
+   */
+  kind?: StrengthExerciseKind
+  durationSeconds?: number
+  distanceMeters?: number
+  intensity?: StrengthIntensity | string
 }
 
 export interface StrengthSessionSectionExercise {

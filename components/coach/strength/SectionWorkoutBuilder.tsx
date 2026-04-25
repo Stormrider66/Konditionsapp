@@ -80,6 +80,7 @@ import {
   TrendingUp,
   MessageSquare,
   Link2,
+  Heart,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CustomExerciseCreator } from '@/components/coach/exercise-library/CustomExerciseCreator'
@@ -97,6 +98,9 @@ interface FollowUp {
   notes?: string
 }
 
+type ExerciseKind = 'strength' | 'cardio'
+type CardioIntensity = 'EASY' | 'MODERATE' | 'HARD' | 'INTERVAL'
+
 interface Exercise {
   id: string
   exerciseId: string
@@ -108,9 +112,53 @@ interface Exercise {
   notes?: string
   tempo?: string
   followUps?: FollowUp[]
+  // Cardio fields — only meaningful when kind === 'cardio'
+  kind: ExerciseKind
+  durationSec?: number
+  distanceKm?: string // string so empty input doesn't coerce to 0
+  intensity?: CardioIntensity
 }
 
 const MAX_FOLLOW_UPS = 2
+
+// Categories from the WorkoutType enum that imply duration-based work.
+const CARDIO_CATEGORIES = new Set([
+  'RUNNING',
+  'CYCLING',
+  'SKIING',
+  'SWIMMING',
+  'TRIATHLON',
+])
+
+// Erg / treadmill name patterns. Catches custom or system exercises that
+// the coach added without setting category=RUNNING etc — e.g. "Concept2
+// Row", "SkiErg", "Assault Bike", "BikeErg", "Löpband".
+const CARDIO_NAME_PATTERN = /\b(rodd|row(er|ing)?|skierg|ski.?erg|ergbike|bike.?erg|wattbike|assault|concept.?2|tr(ead)?mill|löpband|löpning|cykl(a|ing)?|paddl)/i
+
+interface LibraryExercise {
+  id: string
+  name: string
+  category?: string
+  pillar?: string
+  muscleGroup?: string
+  equipmentTypes?: string[]
+  iconCategory?: string
+}
+
+function detectExerciseKind(template: LibraryExercise): ExerciseKind {
+  if (template.category && CARDIO_CATEGORIES.has(template.category)) return 'cardio'
+  if (template.equipmentTypes?.includes('CARDIO_MACHINE')) return 'cardio'
+  if (template.iconCategory === 'cardio') return 'cardio'
+  if (CARDIO_NAME_PATTERN.test(template.name)) return 'cardio'
+  return 'strength'
+}
+
+const INTENSITY_LABELS: Record<CardioIntensity, string> = {
+  EASY: 'Lätt',
+  MODERATE: 'Måttligt',
+  HARD: 'Hårt',
+  INTERVAL: 'Intervall',
+}
 
 interface SectionConfig {
   type: SectionType
@@ -182,6 +230,10 @@ interface SectionWorkoutBuilderProps {
       weight?: number
       restSeconds?: number
       notes?: string
+      kind?: ExerciseKind
+      durationSeconds?: number
+      distanceMeters?: number
+      intensity?: string
       followUps?: Array<{
         exerciseId: string
         exerciseName: string
@@ -200,6 +252,10 @@ interface SectionWorkoutBuilderProps {
         sets: number
         reps: number | string
         notes?: string
+        kind?: ExerciseKind
+        durationSeconds?: number
+        distanceMeters?: number
+        intensity?: string
       }>
     }
     coreData?: {
@@ -212,6 +268,10 @@ interface SectionWorkoutBuilderProps {
         reps: number | string
         restSeconds?: number
         notes?: string
+        kind?: ExerciseKind
+        durationSeconds?: number
+        distanceMeters?: number
+        intensity?: string
       }>
     }
     cooldownData?: {
@@ -290,6 +350,20 @@ export function SectionWorkoutBuilder({
       )?.[0]
       setPhase(phaseKey || 'Base')
 
+      // Cardio fields are saved as `kind: 'cardio'` + duration/distance/intensity.
+      // Older sessions without `kind` default to 'strength'.
+      const hydrateCardio = (e: {
+        kind?: ExerciseKind
+        durationSeconds?: number
+        distanceMeters?: number
+        intensity?: string
+      }): Pick<Exercise, 'kind' | 'durationSec' | 'distanceKm' | 'intensity'> => ({
+        kind: e.kind === 'cardio' ? 'cardio' : 'strength',
+        durationSec: e.durationSeconds,
+        distanceKm: e.distanceMeters != null ? String(e.distanceMeters / 1000) : undefined,
+        intensity: e.intensity as CardioIntensity | undefined,
+      })
+
       // Load main exercises
       const mainExercises = initialData.exercises.map((e) => ({
         id: crypto.randomUUID(),
@@ -300,6 +374,7 @@ export function SectionWorkoutBuilder({
         weight: e.weight ? String(e.weight) : '',
         rest: e.restSeconds || 90,
         notes: e.notes,
+        ...hydrateCardio(e),
         followUps: e.followUps?.map((f) => ({
           id: crypto.randomUUID(),
           exerciseId: f.exerciseId,
@@ -321,6 +396,7 @@ export function SectionWorkoutBuilder({
         weight: '',
         rest: 30,
         notes: e.notes,
+        ...hydrateCardio(e),
       })) || []
 
       // Load core
@@ -333,6 +409,7 @@ export function SectionWorkoutBuilder({
         weight: '',
         rest: e.restSeconds || 45,
         notes: e.notes,
+        ...hydrateCardio(e),
       })) || []
 
       // Load cooldown
@@ -345,6 +422,7 @@ export function SectionWorkoutBuilder({
         weight: '',
         rest: 30,
         notes: e.notes,
+        kind: 'strength' as ExerciseKind,
       })) || []
 
       setSections({
@@ -399,6 +477,8 @@ export function SectionWorkoutBuilder({
             category: e.category,
             pillar: e.biomechanicalPillar,
             muscleGroup: e.muscleGroup,
+            equipmentTypes: e.equipmentTypes,
+            iconCategory: e.iconCategory,
           }))
         )
       }
@@ -526,15 +606,33 @@ export function SectionWorkoutBuilder({
     if (!template) return
 
     const sectionConfig = SECTION_DEFAULTS[section]
-    const newExercise: Exercise = {
-      id: crypto.randomUUID(),
-      exerciseId: template.id,
-      name: template.name,
-      sets: section === 'COOLDOWN' ? 1 : 3,
-      reps: section === 'COOLDOWN' ? '30s' : '10',
-      weight: '',
-      rest: sectionConfig.defaultRest,
-    }
+    // Auto-detect: running, cycling, erg machines etc. start in cardio
+    // mode. Coach can flip via the kind toggle on the row.
+    const detectedKind = detectExerciseKind(template)
+    const newExercise: Exercise = detectedKind === 'cardio'
+      ? {
+          id: crypto.randomUUID(),
+          exerciseId: template.id,
+          name: template.name,
+          sets: 1,
+          reps: '',
+          weight: '',
+          rest: sectionConfig.defaultRest,
+          kind: 'cardio',
+          // Sensible warmup default: 5 min easy. Coach edits as needed.
+          durationSec: section === 'WARMUP' ? 300 : 600,
+          intensity: section === 'WARMUP' ? 'EASY' : 'MODERATE',
+        }
+      : {
+          id: crypto.randomUUID(),
+          exerciseId: template.id,
+          name: template.name,
+          sets: section === 'COOLDOWN' ? 1 : 3,
+          reps: section === 'COOLDOWN' ? '30s' : '10',
+          weight: '',
+          rest: sectionConfig.defaultRest,
+          kind: 'strength',
+        }
 
     setSections((prev) => ({
       ...prev,
@@ -726,6 +824,21 @@ export function SectionWorkoutBuilder({
 
     setSaving(true)
     try {
+      // Cardio fields are only emitted when the row is in cardio mode.
+      // For strength rows we leave them undefined so the JSON stays lean.
+      const cardioPayload = (e: Exercise) =>
+        e.kind === 'cardio'
+          ? {
+              kind: 'cardio' as const,
+              durationSeconds: e.durationSec,
+              distanceMeters:
+                e.distanceKm && e.distanceKm.trim() !== ''
+                  ? Math.round(parseFloat(e.distanceKm) * 1000)
+                  : undefined,
+              intensity: e.intensity,
+            }
+          : {}
+
       // Build exercise data for main section
       const mainExercises = sections.MAIN.exercises.map((e) => ({
         exerciseId: e.exerciseId,
@@ -736,6 +849,7 @@ export function SectionWorkoutBuilder({
         restSeconds: e.rest,
         notes: e.notes,
         tempo: e.tempo,
+        ...cardioPayload(e),
         followUps: e.followUps && e.followUps.length > 0
           ? e.followUps.map((f) => ({
               exerciseId: f.exerciseId,
@@ -759,6 +873,7 @@ export function SectionWorkoutBuilder({
               sets: e.sets,
               reps: parseInt(e.reps) || e.reps,
               notes: e.notes,
+              ...cardioPayload(e),
             })),
           }
         : undefined
@@ -775,6 +890,7 @@ export function SectionWorkoutBuilder({
               reps: parseInt(e.reps) || e.reps,
               restSeconds: e.rest,
               notes: e.notes,
+              ...cardioPayload(e),
             })),
           }
         : undefined
@@ -1308,12 +1424,37 @@ function SortableExerciseItem({
 
   const isCooldown = sectionType === 'COOLDOWN'
   const isMain = sectionType === 'MAIN'
+  const isCardio = exercise.kind === 'cardio'
 
   const [notesOpen, setNotesOpen] = useState(Boolean(exercise.notes))
   const [followUpPickerOpen, setFollowUpPickerOpen] = useState(false)
 
   const followUps = exercise.followUps ?? []
-  const canAddFollowUp = isMain && followUps.length < MAX_FOLLOW_UPS
+  // Cardio exercises don't currently support follow-ups (no clear use
+  // case — you'd just chain a second cardio block).
+  const canAddFollowUp = isMain && !isCardio && followUps.length < MAX_FOLLOW_UPS
+
+  const toggleKind = () => {
+    if (isCardio) {
+      // Going back to strength — restore sensible defaults if reps/weight
+      // were never filled in.
+      onUpdate('kind', 'strength')
+      if (!exercise.reps) onUpdate('reps', '10')
+    } else {
+      onUpdate('kind', 'cardio')
+      // Pre-seed cardio defaults if they're missing
+      if (exercise.durationSec == null) onUpdate('durationSec', 600)
+      if (!exercise.intensity) onUpdate('intensity', 'MODERATE')
+    }
+  }
+
+  // Render duration as mm:ss for cleaner editing.
+  const durationMinutes = exercise.durationSec
+    ? Math.floor(exercise.durationSec / 60)
+    : 0
+  const durationRemainderSec = exercise.durationSec
+    ? exercise.durationSec % 60
+    : 0
 
   return (
     <div
@@ -1333,8 +1474,27 @@ function SortableExerciseItem({
 
       <div className="flex-1 space-y-2">
         <div className="flex justify-between items-center">
-          <span className="font-medium text-sm">{exercise.name}</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-medium text-sm truncate">{exercise.name}</span>
+            {isCardio && (
+              <Badge variant="secondary" className="text-[10px] shrink-0">
+                <Heart className="h-3 w-3 mr-1" />
+                Kondition
+              </Badge>
+            )}
+          </div>
           <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleKind}
+              className={`h-6 w-6 p-0 ${
+                isCardio ? 'text-rose-500' : 'text-muted-foreground'
+              } hover:text-foreground`}
+              title={isCardio ? 'Växla till styrka' : 'Växla till kondition (tid/distans)'}
+            >
+              {isCardio ? <Heart className="h-4 w-4" /> : <Dumbbell className="h-4 w-4" />}
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -1357,48 +1517,112 @@ function SortableExerciseItem({
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2">
-          <div>
-            <Label className="text-xs text-muted-foreground">Set</Label>
-            <Input
-              type="number"
-              value={exercise.sets}
-              onChange={(e) => onUpdate('sets', parseInt(e.target.value) || 1)}
-              className="h-7 text-sm"
-            />
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">
-              {isCooldown ? 'Tid' : 'Reps'}
-            </Label>
-            <Input
-              value={exercise.reps}
-              onChange={(e) => onUpdate('reps', e.target.value)}
-              className="h-7 text-sm"
-              placeholder={isCooldown ? '30s' : '10'}
-            />
-          </div>
-          {!isCooldown && (
+        {isCardio ? (
+          <div className="grid grid-cols-4 gap-2">
+            <div className="col-span-2">
+              <Label className="text-xs text-muted-foreground">Tid (mm:ss)</Label>
+              <div className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  min={0}
+                  value={durationMinutes}
+                  onChange={(e) => {
+                    const m = Math.max(0, parseInt(e.target.value) || 0)
+                    onUpdate('durationSec', m * 60 + durationRemainderSec)
+                  }}
+                  className="h-7 text-sm"
+                  placeholder="min"
+                />
+                <span className="text-muted-foreground text-sm">:</span>
+                <Input
+                  type="number"
+                  min={0}
+                  max={59}
+                  value={durationRemainderSec}
+                  onChange={(e) => {
+                    const s = Math.max(0, Math.min(59, parseInt(e.target.value) || 0))
+                    onUpdate('durationSec', durationMinutes * 60 + s)
+                  }}
+                  className="h-7 text-sm"
+                  placeholder="sek"
+                />
+              </div>
+            </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Vikt</Label>
+              <Label className="text-xs text-muted-foreground">Distans (km)</Label>
               <Input
-                value={exercise.weight}
-                onChange={(e) => onUpdate('weight', e.target.value)}
+                type="number"
+                step="0.1"
+                min={0}
+                value={exercise.distanceKm ?? ''}
+                onChange={(e) => onUpdate('distanceKm', e.target.value)}
                 className="h-7 text-sm"
-                placeholder="kg"
+                placeholder="—"
               />
             </div>
-          )}
-          <div>
-            <Label className="text-xs text-muted-foreground">Vila (s)</Label>
-            <Input
-              type="number"
-              value={exercise.rest}
-              onChange={(e) => onUpdate('rest', parseInt(e.target.value) || 0)}
-              className="h-7 text-sm"
-            />
+            <div>
+              <Label className="text-xs text-muted-foreground">Intensitet</Label>
+              <Select
+                value={exercise.intensity ?? 'MODERATE'}
+                onValueChange={(v) => onUpdate('intensity', v as CardioIntensity)}
+              >
+                <SelectTrigger className="h-7 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(INTENSITY_LABELS) as CardioIntensity[]).map((key) => (
+                    <SelectItem key={key} value={key}>
+                      {INTENSITY_LABELS[key]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-2">
+            <div>
+              <Label className="text-xs text-muted-foreground">Set</Label>
+              <Input
+                type="number"
+                value={exercise.sets}
+                onChange={(e) => onUpdate('sets', parseInt(e.target.value) || 1)}
+                className="h-7 text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">
+                {isCooldown ? 'Tid' : 'Reps'}
+              </Label>
+              <Input
+                value={exercise.reps}
+                onChange={(e) => onUpdate('reps', e.target.value)}
+                className="h-7 text-sm"
+                placeholder={isCooldown ? '30s' : '10'}
+              />
+            </div>
+            {!isCooldown && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Vikt</Label>
+                <Input
+                  value={exercise.weight}
+                  onChange={(e) => onUpdate('weight', e.target.value)}
+                  className="h-7 text-sm"
+                  placeholder="kg"
+                />
+              </div>
+            )}
+            <div>
+              <Label className="text-xs text-muted-foreground">Vila (s)</Label>
+              <Input
+                type="number"
+                value={exercise.rest}
+                onChange={(e) => onUpdate('rest', parseInt(e.target.value) || 0)}
+                className="h-7 text-sm"
+              />
+            </div>
+          </div>
+        )}
 
         {notesOpen && (
           <Textarea

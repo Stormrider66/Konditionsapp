@@ -37,10 +37,25 @@ import {
   Clock,
   Dumbbell,
   Activity,
+  Heart,
 } from 'lucide-react';
 import type { StrengthSessionData, StrengthSessionExercise, SessionAssignment } from '@/types';
 import { SessionExportButton } from '@/components/exports/SessionExportButton';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
+
+const CARDIO_INTENSITY_LABELS: Record<string, string> = {
+  EASY: 'Lätt',
+  MODERATE: 'Måttligt',
+  HARD: 'Hårt',
+  INTERVAL: 'Intervall',
+};
+
+function formatDurationSeconds(s: number): string {
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return r === 0 ? `${m} min` : `${m}:${String(r).padStart(2, '0')} min`;
+}
 
 interface StrengthSessionDetailSheetProps {
   session: StrengthSessionData | null;
@@ -245,24 +260,50 @@ export function StrengthSessionDetailSheet({
           <CardContent className="px-4 pb-4">
             {exercises.length > 0 ? (
               <ul className="space-y-3">
-                {exercises.map((exercise: StrengthSessionExercise, i: number) => (
+                {exercises.map((exercise: StrengthSessionExercise, i: number) => {
+                  const isCardio = exercise.kind === 'cardio';
+                  return (
                   <li key={i} className="flex items-start gap-3 text-sm">
                     <span className="w-5 flex-shrink-0 font-medium" style={{ color: theme.colors.textMuted }}>
                       {i + 1}.
                     </span>
                     <div className="flex-1">
-                      <div className="font-medium" style={{ color: theme.colors.textPrimary }}>{exercise.exerciseName}</div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="font-medium" style={{ color: theme.colors.textPrimary }}>{exercise.exerciseName}</div>
+                        {isCardio && (
+                          <Badge variant="secondary" className="text-[10px] py-0">
+                            <Heart className="h-3 w-3 mr-1" />
+                            Kondition
+                          </Badge>
+                        )}
+                      </div>
                       <div style={{ color: theme.colors.textMuted }}>
-                        {exercise.sets}×{exercise.reps}
-                        {exercise.weight && ` @ ${exercise.weight}kg`}
-                        {exercise.restSeconds && ` (${exercise.restSeconds}s vila)`}
+                        {isCardio ? (
+                          <>
+                            {exercise.durationSeconds
+                              ? formatDurationSeconds(exercise.durationSeconds)
+                              : '—'}
+                            {exercise.distanceMeters
+                              ? ` · ${(exercise.distanceMeters / 1000).toFixed(2)} km`
+                              : ''}
+                            {exercise.intensity
+                              ? ` · ${CARDIO_INTENSITY_LABELS[exercise.intensity] ?? exercise.intensity}`
+                              : ''}
+                          </>
+                        ) : (
+                          <>
+                            {exercise.sets}×{exercise.reps}
+                            {exercise.weight && ` @ ${exercise.weight}kg`}
+                            {exercise.restSeconds && ` (${exercise.restSeconds}s vila)`}
+                          </>
+                        )}
                       </div>
                       {exercise.notes && (
                         <div className="text-xs italic mt-1" style={{ color: theme.colors.textMuted }}>
                           {exercise.notes}
                         </div>
                       )}
-                      {exercise.followUps && exercise.followUps.length > 0 && (
+                      {Array.isArray(exercise.followUps) && exercise.followUps.length > 0 && (
                         <ul
                           className="mt-2 space-y-1.5 pl-3 border-l-2 border-dashed"
                           style={{ borderColor: theme.colors.accent }}
@@ -295,7 +336,8 @@ export function StrengthSessionDetailSheet({
                       )}
                     </div>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             ) : (
               <p className="text-sm" style={{ color: theme.colors.textMuted }}>Inga övningar tillagda</p>
