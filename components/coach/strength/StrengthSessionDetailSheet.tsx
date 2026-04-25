@@ -290,6 +290,21 @@ export function StrengthSessionDetailSheet({
                               ? ` · ${CARDIO_INTENSITY_LABELS[exercise.intensity] ?? exercise.intensity}`
                               : ''}
                           </>
+                        ) : exercise.setRows && exercise.setRows.length > 0 ? (
+                          <>
+                            <div className="text-xs">
+                              {exercise.setRows.map((r, k) => (
+                                <span key={k}>
+                                  {k > 0 && ', '}
+                                  Set {k + 1}: {r.reps}
+                                  {r.weight ? ` @ ${r.weight}kg` : ''}
+                                </span>
+                              ))}
+                            </div>
+                            {exercise.restSeconds && (
+                              <span>{exercise.restSeconds}s vila</span>
+                            )}
+                          </>
                         ) : (
                           <>
                             {exercise.sets}×{exercise.reps}

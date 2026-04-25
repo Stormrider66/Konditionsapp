@@ -81,6 +81,7 @@ import {
   MessageSquare,
   Link2,
   Heart,
+  Layers,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CustomExerciseCreator } from '@/components/coach/exercise-library/CustomExerciseCreator'
@@ -101,6 +102,11 @@ interface FollowUp {
 type ExerciseKind = 'strength' | 'cardio'
 type CardioIntensity = 'EASY' | 'MODERATE' | 'HARD' | 'INTERVAL'
 
+interface SetRow {
+  reps: string
+  weight: string
+}
+
 interface Exercise {
   id: string
   exerciseId: string
@@ -117,6 +123,9 @@ interface Exercise {
   durationSec?: number
   distanceKm?: string // string so empty input doesn't coerce to 0
   intensity?: CardioIntensity
+  // Per-set overrides for pyramid / varied loading. When undefined,
+  // every set uses the flat `reps` / `weight`.
+  setRows?: SetRow[]
 }
 
 const MAX_FOLLOW_UPS = 2
@@ -234,6 +243,7 @@ interface SectionWorkoutBuilderProps {
       durationSeconds?: number
       distanceMeters?: number
       intensity?: string
+      setRows?: Array<{ reps: number | string; weight?: number }>
       followUps?: Array<{
         exerciseId: string
         exerciseName: string
@@ -375,6 +385,10 @@ export function SectionWorkoutBuilder({
         rest: e.restSeconds || 90,
         notes: e.notes,
         ...hydrateCardio(e),
+        setRows: e.setRows?.map((r) => ({
+          reps: String(r.reps),
+          weight: r.weight != null ? String(r.weight) : '',
+        })),
         followUps: e.followUps?.map((f) => ({
           id: crypto.randomUUID(),
           exerciseId: f.exerciseId,
@@ -850,6 +864,12 @@ export function SectionWorkoutBuilder({
         notes: e.notes,
         tempo: e.tempo,
         ...cardioPayload(e),
+        setRows: e.setRows && e.setRows.length > 0
+          ? e.setRows.map((r) => ({
+              reps: parseInt(r.reps) || r.reps,
+              weight: r.weight ? parseFloat(r.weight) : undefined,
+            }))
+          : undefined,
         followUps: e.followUps && e.followUps.length > 0
           ? e.followUps.map((f) => ({
               exerciseId: f.exerciseId,
@@ -1425,6 +1445,7 @@ function SortableExerciseItem({
   const isCooldown = sectionType === 'COOLDOWN'
   const isMain = sectionType === 'MAIN'
   const isCardio = exercise.kind === 'cardio'
+  const hasSetRows = !isCardio && (exercise.setRows?.length ?? 0) > 0
 
   const [notesOpen, setNotesOpen] = useState(Boolean(exercise.notes))
   const [followUpPickerOpen, setFollowUpPickerOpen] = useState(false)
@@ -1445,7 +1466,48 @@ function SortableExerciseItem({
       // Pre-seed cardio defaults if they're missing
       if (exercise.durationSec == null) onUpdate('durationSec', 600)
       if (!exercise.intensity) onUpdate('intensity', 'MODERATE')
+      // Drop pyramid rows — they don't apply to cardio.
+      if (hasSetRows) onUpdate('setRows', undefined)
     }
+  }
+
+  // Toggle per-set varied loading. When turning on, expand the flat
+  // reps/weight into N rows (one per set) seeded with current values.
+  // When turning off, drop setRows so the runner falls back to the flat
+  // values.
+  const togglePyramid = () => {
+    if (hasSetRows) {
+      onUpdate('setRows', undefined)
+    } else {
+      const seedRow: SetRow = { reps: exercise.reps, weight: exercise.weight }
+      const rows = Array.from({ length: Math.max(1, exercise.sets) }, () => ({
+        ...seedRow,
+      }))
+      onUpdate('setRows', rows)
+    }
+  }
+
+  // Keep setRows length in sync with the sets count when pyramid mode is on.
+  // Bumping sets up duplicates the last row; bumping down trims the tail.
+  const handleSetsChange = (value: string) => {
+    const next = parseInt(value) || 1
+    onUpdate('sets', next)
+    if (hasSetRows) {
+      const current = exercise.setRows ?? []
+      if (next > current.length) {
+        const last = current[current.length - 1] ?? { reps: exercise.reps, weight: exercise.weight }
+        const additions = Array.from({ length: next - current.length }, () => ({ ...last }))
+        onUpdate('setRows', [...current, ...additions])
+      } else if (next < current.length) {
+        onUpdate('setRows', current.slice(0, next))
+      }
+    }
+  }
+
+  const updateSetRow = (idx: number, field: keyof SetRow, value: string) => {
+    const current = exercise.setRows ?? []
+    const next = current.map((r, i) => (i === idx ? { ...r, [field]: value } : r))
+    onUpdate('setRows', next)
   }
 
   // Render duration as mm:ss for cleaner editing.
@@ -1495,6 +1557,19 @@ function SortableExerciseItem({
             >
               {isCardio ? <Heart className="h-4 w-4" /> : <Dumbbell className="h-4 w-4" />}
             </Button>
+            {!isCardio && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={togglePyramid}
+                className={`h-6 w-6 p-0 ${
+                  hasSetRows ? 'text-primary' : 'text-muted-foreground'
+                } hover:text-foreground`}
+                title={hasSetRows ? 'Använd samma reps/vikt för alla set' : 'Variera reps/vikt per set (pyramid)'}
+              >
+                <Layers className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -1579,6 +1654,52 @@ function SortableExerciseItem({
               </Select>
             </div>
           </div>
+        ) : hasSetRows ? (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Set</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={exercise.sets}
+                  onChange={(e) => handleSetsChange(e.target.value)}
+                  className="h-7 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Vila (s)</Label>
+                <Input
+                  type="number"
+                  value={exercise.rest}
+                  onChange={(e) => onUpdate('rest', parseInt(e.target.value) || 0)}
+                  className="h-7 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-md border bg-muted/20 divide-y">
+              {(exercise.setRows ?? []).map((row, idx) => (
+                <div key={idx} className="grid grid-cols-[2.5rem_1fr_1fr] items-center gap-2 px-2 py-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Set {idx + 1}
+                  </span>
+                  <Input
+                    value={row.reps}
+                    onChange={(e) => updateSetRow(idx, 'reps', e.target.value)}
+                    className="h-7 text-sm"
+                    placeholder="reps"
+                  />
+                  <Input
+                    value={row.weight}
+                    onChange={(e) => updateSetRow(idx, 'weight', e.target.value)}
+                    className="h-7 text-sm"
+                    placeholder="kg"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-4 gap-2">
             <div>
@@ -1586,7 +1707,7 @@ function SortableExerciseItem({
               <Input
                 type="number"
                 value={exercise.sets}
-                onChange={(e) => onUpdate('sets', parseInt(e.target.value) || 1)}
+                onChange={(e) => handleSetsChange(e.target.value)}
                 className="h-7 text-sm"
               />
             </div>

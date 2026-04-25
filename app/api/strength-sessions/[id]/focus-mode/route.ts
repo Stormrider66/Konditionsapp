@@ -12,6 +12,11 @@ interface SessionFollowUp {
   notes?: string
 }
 
+interface SessionSetRow {
+  reps: number | string
+  weight?: number
+}
+
 interface SessionExercise {
   exerciseId: string
   exerciseName: string
@@ -22,6 +27,7 @@ interface SessionExercise {
   notes?: string
   tempo?: string
   followUps?: SessionFollowUp[]
+  setRows?: SessionSetRow[]
 }
 
 interface SectionData {
@@ -58,6 +64,11 @@ interface FocusModeFollowUp {
   setLogs: SetLogSummary[]
 }
 
+interface FocusModeSetRow {
+  reps: number | string
+  weight?: number
+}
+
 interface FocusModeExercise {
   id: string
   exerciseId: string
@@ -81,6 +92,10 @@ interface FocusModeExercise {
   // the primary exercise; `restBeforeSeconds` is the pause before this
   // follow-up starts (0 = classic superset, ~15–30s = contrast/PAP).
   followUps?: FocusModeFollowUp[]
+  // Per-set prescriptions (pyramid loading). When present, the runner
+  // uses setRows[setNumber-1] for the prescribed reps/weight per round
+  // instead of the flat `repsTarget`/`weight`.
+  setRows?: FocusModeSetRow[]
 }
 
 /**
@@ -254,6 +269,7 @@ export async function GET(
           completedSets: logs.length,
           setLogs: logs,
           followUps,
+          setRows: ex.setRows && ex.setRows.length > 0 ? ex.setRows : undefined,
         })
         orderIndex++
       })

@@ -1497,6 +1497,17 @@ export type StrengthExerciseKind = 'strength' | 'cardio'
 
 export type StrengthIntensity = 'EASY' | 'MODERATE' | 'HARD' | 'INTERVAL'
 
+/**
+ * Per-set override. When `setRows` is present on an exercise, the
+ * runner uses `setRows[setNumber-1]` for the current round's prescribed
+ * reps/weight instead of the flat `reps`/`weight` fields. Used for
+ * pyramid loading and other varied-load schemes.
+ */
+export interface StrengthSetRow {
+  reps: number | string
+  weight?: number
+}
+
 export interface StrengthSessionExercise {
   exerciseId: string
   exerciseName: string
@@ -1515,6 +1526,11 @@ export interface StrengthSessionExercise {
   durationSeconds?: number
   distanceMeters?: number
   intensity?: StrengthIntensity | string
+  /**
+   * Per-set prescriptions. When present, length should equal `sets`.
+   * Each entry overrides the flat `reps`/`weight` for that set.
+   */
+  setRows?: StrengthSetRow[]
 }
 
 export interface StrengthSessionSectionExercise {

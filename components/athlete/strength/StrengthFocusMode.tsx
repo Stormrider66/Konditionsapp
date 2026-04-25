@@ -52,6 +52,11 @@ interface FocusModeFollowUp {
   setLogs: SetLogSummary[]
 }
 
+interface FocusModeSetRow {
+  reps: number | string
+  weight?: number
+}
+
 interface FocusModeExercise {
   id: string
   exerciseId: string
@@ -70,6 +75,7 @@ interface FocusModeExercise {
   completedSets: number
   setLogs: SetLogSummary[]
   followUps?: FocusModeFollowUp[]
+  setRows?: FocusModeSetRow[]
 }
 
 /**
@@ -120,6 +126,12 @@ function buildActiveStage(
   if (!ex) return null
   const followUps = ex.followUps ?? []
   if (stage === 0) {
+    // Pyramid loading: when setRows is present, the upcoming set's
+    // prescription comes from setRows[completedSets] (the row for the
+    // round we're about to log). Falls back to the flat values when
+    // we've outrun the row count, which shouldn't happen if the builder
+    // keeps setRows in sync with `sets`.
+    const row = ex.setRows?.[ex.completedSets]
     return {
       stage: 0,
       exerciseId: ex.exerciseId,
@@ -127,8 +139,8 @@ function buildActiveStage(
       nameSv: ex.nameSv,
       imageUrls: ex.imageUrls,
       instructions: ex.instructions,
-      repsTarget: ex.repsTarget,
-      weight: ex.weight,
+      repsTarget: row?.reps ?? ex.repsTarget,
+      weight: row?.weight ?? ex.weight,
       notes: ex.notes,
       completedSets: ex.completedSets,
       setLogs: ex.setLogs,
@@ -255,17 +267,30 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
   const followUpsCount = currentExercise?.followUps?.length ?? 0
 
   // Pre-fill when the active stage changes (new exercise, or moving
-  // between stages of a block).
+  // between stages of a block). For pyramid loading (setRows present)
+  // the prescription differs per set, so we always pre-fill with the
+  // upcoming set's prescribed values rather than echoing the last log
+  // — otherwise the athlete would have to manually overwrite the prior
+  // set's heavier/lighter load every time.
+  const isPyramidPrimary =
+    currentExercise?.setRows != null &&
+    currentExercise.setRows.length > 0 &&
+    activeStage?.stage === 0
   useEffect(() => {
     if (!activeStage) return
     const lastLog = activeStage.setLogs[activeStage.setLogs.length - 1]
-    setLogWeight(lastLog ? String(lastLog.weight) : activeStage.weight ? String(activeStage.weight) : '')
     const target = typeof activeStage.repsTarget === 'number'
       ? activeStage.repsTarget
       : parseInt(String(activeStage.repsTarget)) || 0
-    setLogReps(lastLog ? String(lastLog.repsCompleted) : String(target))
+    if (isPyramidPrimary) {
+      setLogWeight(activeStage.weight != null ? String(activeStage.weight) : '')
+      setLogReps(String(target))
+    } else {
+      setLogWeight(lastLog ? String(lastLog.weight) : activeStage.weight ? String(activeStage.weight) : '')
+      setLogReps(lastLog ? String(lastLog.repsCompleted) : String(target))
+    }
     setLogRpe(null)
-  }, [activeStage?.exerciseId, activeStage?.completedSets]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeStage?.exerciseId, activeStage?.completedSets, isPyramidPrimary]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Log a set. For a block with follow-ups, post against the current
   // stage's exerciseId. Then decide the next step: contrast pause →
