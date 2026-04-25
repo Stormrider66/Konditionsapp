@@ -1124,8 +1124,12 @@ model KnowledgeSkill {
   // Which system documents belong to this skill
   documentIds String[] // CoachDocument IDs where isSystem=true
 
-  // Embedding of description stored via raw SQL (pgvector)
-  // embedding vector(1536)
+  // Embedding of description stored via raw SQL (pgvector).
+  // Legacy 1536-dim embedding (OpenAI ada-002) was managed outside Prisma.
+  // `embedding_v2` is the current 768-dim Gemini/OpenAI-3-small column —
+  // declared as Unsupported so `prisma migrate diff` knows it exists and
+  // doesn't try to drop it. Read/write happens via raw SQL elsewhere.
+  embedding_v2 Unsupported("vector(768)")?
 
   maxChunks Int @default(3) // Max chunks to retrieve for this skill
 
