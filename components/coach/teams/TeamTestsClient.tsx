@@ -31,9 +31,39 @@ import {
   Users,
   Activity,
   ExternalLink,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import { TeamTestImportDialog } from './TeamTestImportDialog'
-import { PR_UNIT_LABELS, isPrUnit, type PrUnit } from '@/lib/strength/units'
+import { TeamTestManualEntryDialog } from './TeamTestManualEntryDialog'
+import { PR_UNIT_LABELS, isPrUnit, type PrUnit, PR_UNITS } from '@/lib/strength/units'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface PRRow {
   id: string
@@ -81,7 +111,65 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
+  const [manualOpen, setManualOpen] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  // Edit/delete state for individual PRs in a session. Editing uses
+  // the same PATCH endpoint as the per-client PR table — value, unit,
+  // source. Re-categorising the exercise still goes through delete +
+  // re-add since changing exerciseId rewrites the row's identity.
+  const [editing, setEditing] = useState<
+    | {
+        id: string
+        athleteName: string
+        exerciseName: string
+        oneRepMax: string
+        unit: string
+        source: string
+      }
+    | null
+  >(null)
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleSaveEdit = async () => {
+    if (!editing) return
+    const value = parseFloat(editing.oneRepMax.replace(',', '.'))
+    if (!Number.isFinite(value) || value <= 0) return
+    setIsSavingEdit(true)
+    try {
+      const res = await fetch(`/api/strength-pr/${editing.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          oneRepMax: value,
+          unit: editing.unit,
+          source: editing.source,
+        }),
+      })
+      if (res.ok) {
+        setEditing(null)
+        await fetchSessions()
+      }
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingId) return
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/strength-pr/${deletingId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setDeletingId(null)
+        await fetchSessions()
+      }
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   const fetchSessions = useCallback(async () => {
     setIsLoading(true)
@@ -119,10 +207,16 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
             ? 'Inga testpass registrerade ännu.'
             : `${sessions.length} testpass · ${sessions.reduce((s, r) => s + r.totalPRs, 0)} loggade PRs`}
         </div>
-        <Button size="sm" onClick={() => setImportOpen(true)}>
-          <Upload className="h-4 w-4 mr-1.5" />
-          Importera testresultat
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>
+            <Pencil className="h-4 w-4 mr-1.5" />
+            Manuell inmatning
+          </Button>
+          <Button size="sm" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-1.5" />
+            Importera testresultat
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -236,13 +330,47 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                                   </Badge>
                                 </td>
                                 <td className="px-3 py-1.5 text-right">
-                                  <Link
-                                    href={`${basePath}/clients/${r.clientId}?tab=analysis`}
-                                  >
-                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                      <ExternalLink className="h-3 w-3" />
+                                  <div className="flex items-center justify-end gap-0.5">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                                      onClick={() =>
+                                        setEditing({
+                                          id: r.id,
+                                          athleteName: r.athleteName,
+                                          exerciseName: r.exerciseName,
+                                          oneRepMax: String(r.oneRepMax),
+                                          unit: isPrUnit(r.unit) ? r.unit : 'KG',
+                                          source: r.source,
+                                        })
+                                      }
+                                      title="Redigera"
+                                    >
+                                      <Pencil className="h-3 w-3" />
                                     </Button>
-                                  </Link>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                      onClick={() => setDeletingId(r.id)}
+                                      title="Ta bort"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                    <Link
+                                      href={`${basePath}/clients/${r.clientId}?tab=analysis`}
+                                    >
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                                        title="Öppna atletvy"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                      </Button>
+                                    </Link>
+                                  </div>
                                 </td>
                               </tr>
                             )
@@ -279,6 +407,119 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
           fetchSessions()
         }}
       />
+
+      <TeamTestManualEntryDialog
+        open={manualOpen}
+        onOpenChange={setManualOpen}
+        teamId={teamId}
+        teamName={teamName}
+        onSaved={() => {
+          setManualOpen(false)
+          fetchSessions()
+        }}
+      />
+
+      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Redigera PR</DialogTitle>
+            <DialogDescription>
+              {editing?.athleteName} – {editing?.exerciseName}
+            </DialogDescription>
+          </DialogHeader>
+          {editing && (
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-[1fr_120px] gap-2">
+                <div>
+                  <Label htmlFor="session-edit-value">Värde</Label>
+                  <Input
+                    id="session-edit-value"
+                    type="number"
+                    step="0.5"
+                    min={0}
+                    value={editing.oneRepMax}
+                    onChange={(e) =>
+                      setEditing({ ...editing, oneRepMax: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="session-edit-unit">Enhet</Label>
+                  <Select
+                    value={editing.unit}
+                    onValueChange={(v) => setEditing({ ...editing, unit: v })}
+                  >
+                    <SelectTrigger id="session-edit-unit">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PR_UNITS.map((u) => (
+                        <SelectItem key={u} value={u}>
+                          {PR_UNIT_LABELS[u]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="session-edit-source">Källa</Label>
+                <Select
+                  value={editing.source}
+                  onValueChange={(v) => setEditing({ ...editing, source: v })}
+                >
+                  <SelectTrigger id="session-edit-source">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TESTED">Testat</SelectItem>
+                    <SelectItem value="CALCULATED">Beräknat</SelectItem>
+                    <SelectItem value="ESTIMATED">Auto-uppskattat</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditing(null)}
+              disabled={isSavingEdit}
+            >
+              Avbryt
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={isSavingEdit}>
+              {isSavingEdit && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Spara
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={!!deletingId}
+        onOpenChange={(open) => !open && setDeletingId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ta bort PR?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Detta tar permanent bort PR-loggen från detta testpass. Andra rader
+              i passet och tidigare PR-historik påverkas inte.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Avbryt</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isDeleting ? 'Tar bort…' : 'Ta bort'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
