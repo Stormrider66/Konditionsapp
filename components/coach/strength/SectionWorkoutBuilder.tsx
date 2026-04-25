@@ -82,6 +82,7 @@ import {
   Link2,
   Heart,
   Layers,
+  Percent,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CustomExerciseCreator } from '@/components/coach/exercise-library/CustomExerciseCreator'
@@ -89,12 +90,15 @@ import { CustomExerciseCreator } from '@/components/coach/exercise-library/Custo
 // Types
 type SectionType = 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
 
+type WeightUnit = 'kg' | 'percent'
+
 interface FollowUp {
   id: string
   exerciseId: string
   name: string
   reps: string
   weight: string
+  weightUnit?: WeightUnit
   restBefore: number
   notes?: string
 }
@@ -114,6 +118,7 @@ interface Exercise {
   sets: number
   reps: string
   weight: string
+  weightUnit?: WeightUnit
   rest: number
   notes?: string
   tempo?: string
@@ -237,6 +242,7 @@ interface SectionWorkoutBuilderProps {
       sets: number
       reps: number | string
       weight?: number
+      weightUnit?: WeightUnit
       restSeconds?: number
       notes?: string
       kind?: ExerciseKind
@@ -249,6 +255,7 @@ interface SectionWorkoutBuilderProps {
         exerciseName: string
         reps: number | string
         weight?: number
+        weightUnit?: WeightUnit
         restBeforeSeconds?: number
         notes?: string
       }>
@@ -382,6 +389,7 @@ export function SectionWorkoutBuilder({
         sets: e.sets,
         reps: String(e.reps),
         weight: e.weight ? String(e.weight) : '',
+        weightUnit: e.weightUnit ?? 'kg',
         rest: e.restSeconds || 90,
         notes: e.notes,
         ...hydrateCardio(e),
@@ -395,6 +403,7 @@ export function SectionWorkoutBuilder({
           name: f.exerciseName,
           reps: String(f.reps),
           weight: f.weight ? String(f.weight) : '',
+          weightUnit: f.weightUnit ?? 'kg',
           restBefore: f.restBeforeSeconds ?? 0,
           notes: f.notes,
         })),
@@ -853,13 +862,16 @@ export function SectionWorkoutBuilder({
             }
           : {}
 
-      // Build exercise data for main section
+      // Build exercise data for main section. weightUnit is only emitted
+      // when it's 'percent' — strength rows default to kg so omitting it
+      // keeps the JSON lean and back-compat with older sessions.
       const mainExercises = sections.MAIN.exercises.map((e) => ({
         exerciseId: e.exerciseId,
         exerciseName: e.name,
         sets: e.sets,
         reps: parseInt(e.reps) || 0,
         weight: e.weight ? parseFloat(e.weight) : undefined,
+        weightUnit: e.weightUnit === 'percent' ? 'percent' : undefined,
         restSeconds: e.rest,
         notes: e.notes,
         tempo: e.tempo,
@@ -876,6 +888,7 @@ export function SectionWorkoutBuilder({
               exerciseName: f.name,
               reps: parseInt(f.reps) || f.reps,
               weight: f.weight ? parseFloat(f.weight) : undefined,
+              weightUnit: f.weightUnit === 'percent' ? 'percent' : undefined,
               restBeforeSeconds: f.restBefore,
               notes: f.notes,
             }))
@@ -1446,6 +1459,13 @@ function SortableExerciseItem({
   const isMain = sectionType === 'MAIN'
   const isCardio = exercise.kind === 'cardio'
   const hasSetRows = !isCardio && (exercise.setRows?.length ?? 0) > 0
+  const isPercent = exercise.weightUnit === 'percent'
+
+  const togglePercent = () => {
+    onUpdate('weightUnit', isPercent ? 'kg' : 'percent')
+  }
+  const weightLabel = isPercent ? 'Vikt (% av 1RM)' : 'Vikt'
+  const weightPlaceholder = isPercent ? '%' : 'kg'
 
   const [notesOpen, setNotesOpen] = useState(Boolean(exercise.notes))
   const [followUpPickerOpen, setFollowUpPickerOpen] = useState(false)
@@ -1557,6 +1577,19 @@ function SortableExerciseItem({
             >
               {isCardio ? <Heart className="h-4 w-4" /> : <Dumbbell className="h-4 w-4" />}
             </Button>
+            {!isCardio && !isCooldown && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={togglePercent}
+                className={`h-6 w-6 p-0 ${
+                  isPercent ? 'text-primary' : 'text-muted-foreground'
+                } hover:text-foreground`}
+                title={isPercent ? 'Använd kg' : 'Använd % av 1RM (per atlet)'}
+              >
+                <Percent className="h-4 w-4" />
+              </Button>
+            )}
             {!isCardio && (
               <Button
                 variant="ghost"
@@ -1678,6 +1711,11 @@ function SortableExerciseItem({
               </div>
             </div>
 
+            {isPercent && (
+              <p className="text-[11px] text-muted-foreground -mt-1">
+                Vikt anges som % av 1RM. Varje atlet får sin egen vikt baserat på sitt PR.
+              </p>
+            )}
             <div className="rounded-md border bg-muted/20 divide-y">
               {(exercise.setRows ?? []).map((row, idx) => (
                 <div key={idx} className="grid grid-cols-[2.5rem_1fr_1fr] items-center gap-2 px-2 py-1.5">
@@ -1694,7 +1732,7 @@ function SortableExerciseItem({
                     value={row.weight}
                     onChange={(e) => updateSetRow(idx, 'weight', e.target.value)}
                     className="h-7 text-sm"
-                    placeholder="kg"
+                    placeholder={weightPlaceholder}
                   />
                 </div>
               ))}
@@ -1724,12 +1762,12 @@ function SortableExerciseItem({
             </div>
             {!isCooldown && (
               <div>
-                <Label className="text-xs text-muted-foreground">Vikt</Label>
+                <Label className="text-xs text-muted-foreground">{weightLabel}</Label>
                 <Input
                   value={exercise.weight}
                   onChange={(e) => onUpdate('weight', e.target.value)}
                   className="h-7 text-sm"
-                  placeholder="kg"
+                  placeholder={weightPlaceholder}
                 />
               </div>
             )}
@@ -1834,6 +1872,7 @@ function FollowUpRow({
   onRemove: () => void
 }) {
   const [notesOpen, setNotesOpen] = useState(Boolean(followUp.notes))
+  const isPercent = followUp.weightUnit === 'percent'
 
   return (
     <div className="bg-muted/30 rounded-md p-2 space-y-2">
@@ -1845,6 +1884,17 @@ function FollowUpRow({
           <span className="font-medium text-sm truncate">{followUp.name}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onUpdate('weightUnit', isPercent ? 'kg' : 'percent')}
+            className={`h-6 w-6 p-0 ${
+              isPercent ? 'text-primary' : 'text-muted-foreground'
+            } hover:text-foreground`}
+            title={isPercent ? 'Använd kg' : 'Använd % av 1RM (per atlet)'}
+          >
+            <Percent className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -1878,12 +1928,14 @@ function FollowUpRow({
           />
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">Vikt</Label>
+          <Label className="text-xs text-muted-foreground">
+            {isPercent ? 'Vikt (% av 1RM)' : 'Vikt'}
+          </Label>
           <Input
             value={followUp.weight}
             onChange={(e) => onUpdate('weight', e.target.value)}
             className="h-7 text-sm"
-            placeholder="kg / kroppsvikt"
+            placeholder={isPercent ? '%' : 'kg / kroppsvikt'}
           />
         </div>
         <div>

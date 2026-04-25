@@ -262,6 +262,7 @@ export function StrengthSessionDetailSheet({
               <ul className="space-y-3">
                 {exercises.map((exercise: StrengthSessionExercise, i: number) => {
                   const isCardio = exercise.kind === 'cardio';
+                  const weightSuffix = exercise.weightUnit === 'percent' ? '%' : 'kg';
                   return (
                   <li key={i} className="flex items-start gap-3 text-sm">
                     <span className="w-5 flex-shrink-0 font-medium" style={{ color: theme.colors.textMuted }}>
@@ -297,7 +298,7 @@ export function StrengthSessionDetailSheet({
                                 <span key={k}>
                                   {k > 0 && ', '}
                                   Set {k + 1}: {r.reps}
-                                  {r.weight ? ` @ ${r.weight}kg` : ''}
+                                  {r.weight ? ` @ ${r.weight}${weightSuffix}` : ''}
                                 </span>
                               ))}
                             </div>
@@ -308,7 +309,7 @@ export function StrengthSessionDetailSheet({
                         ) : (
                           <>
                             {exercise.sets}×{exercise.reps}
-                            {exercise.weight && ` @ ${exercise.weight}kg`}
+                            {exercise.weight && ` @ ${exercise.weight}${weightSuffix}`}
                             {exercise.restSeconds && ` (${exercise.restSeconds}s vila)`}
                           </>
                         )}
@@ -335,7 +336,9 @@ export function StrengthSessionDetailSheet({
                               </div>
                               <div style={{ color: theme.colors.textMuted }}>
                                 {exercise.sets}×{fu.reps}
-                                {fu.weight ? ` @ ${fu.weight}kg` : ''}
+                                {fu.weight
+                                  ? ` @ ${fu.weight}${fu.weightUnit === 'percent' ? '%' : 'kg'}`
+                                  : ''}
                                 {fu.restBeforeSeconds
                                   ? ` (${fu.restBeforeSeconds}s paus innan)`
                                   : ' (superset)'}

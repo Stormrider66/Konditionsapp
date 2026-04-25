@@ -1484,11 +1484,21 @@ export interface HybridMovementData {
 // STRENGTH SESSION TYPES
 // ============================================
 
+/**
+ * How to interpret the `weight` value(s) on an exercise / follow-up /
+ * set row.
+ *   - 'kg' (default): absolute kilograms.
+ *   - 'percent': percent of the assigned athlete's 1RM for the
+ *     exerciseId. The runner resolves to kg per athlete at run time.
+ */
+export type StrengthWeightUnit = 'kg' | 'percent'
+
 export interface StrengthSessionFollowUp {
   exerciseId: string
   exerciseName: string
   reps: number | string
   weight?: number
+  weightUnit?: StrengthWeightUnit
   restBeforeSeconds?: number
   notes?: string
 }
@@ -1502,6 +1512,8 @@ export type StrengthIntensity = 'EASY' | 'MODERATE' | 'HARD' | 'INTERVAL'
  * runner uses `setRows[setNumber-1]` for the current round's prescribed
  * reps/weight instead of the flat `reps`/`weight` fields. Used for
  * pyramid loading and other varied-load schemes.
+ *
+ * `weight` is interpreted by the parent exercise's `weightUnit`.
  */
 export interface StrengthSetRow {
   reps: number | string
@@ -1514,6 +1526,7 @@ export interface StrengthSessionExercise {
   sets: number
   reps: number
   weight?: number
+  weightUnit?: StrengthWeightUnit
   restSeconds?: number
   notes?: string
   followUps?: StrengthSessionFollowUp[]

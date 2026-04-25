@@ -46,6 +46,8 @@ interface FocusModeFollowUp {
   instructions?: string
   repsTarget: number | string
   weight?: number
+  weightPercent?: number
+  oneRepMax?: number
   restBeforeSeconds: number
   notes?: string
   completedSets: number
@@ -55,6 +57,7 @@ interface FocusModeFollowUp {
 interface FocusModeSetRow {
   reps: number | string
   weight?: number
+  weightPercent?: number
 }
 
 interface FocusModeExercise {
@@ -67,6 +70,8 @@ interface FocusModeExercise {
   sets: number
   repsTarget: number | string
   weight?: number
+  weightPercent?: number
+  oneRepMax?: number
   tempo?: string
   restSeconds: number
   notes?: string
@@ -92,6 +97,10 @@ interface ActiveStage {
   instructions?: string
   repsTarget: number | string
   weight?: number
+  /** Coach's prescribed % of 1RM (when load was prescribed as %). */
+  weightPercent?: number
+  /** Athlete's 1RM the kg was resolved from (only when relevant). */
+  oneRepMax?: number
   notes?: string
   completedSets: number
   setLogs: SetLogSummary[]
@@ -141,6 +150,10 @@ function buildActiveStage(
       instructions: ex.instructions,
       repsTarget: row?.reps ?? ex.repsTarget,
       weight: row?.weight ?? ex.weight,
+      // For pyramid the percent comes from the row; for uniform from ex.
+      // oneRepMax is the same across rows (one PR per exercise).
+      weightPercent: row?.weightPercent ?? ex.weightPercent,
+      oneRepMax: ex.oneRepMax,
       notes: ex.notes,
       completedSets: ex.completedSets,
       setLogs: ex.setLogs,
@@ -159,6 +172,8 @@ function buildActiveStage(
     instructions: f.instructions,
     repsTarget: f.repsTarget,
     weight: f.weight,
+    weightPercent: f.weightPercent,
+    oneRepMax: f.oneRepMax,
     notes: f.notes,
     completedSets: f.completedSets,
     setLogs: f.setLogs,
@@ -267,22 +282,25 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
   const followUpsCount = currentExercise?.followUps?.length ?? 0
 
   // Pre-fill when the active stage changes (new exercise, or moving
-  // between stages of a block). For pyramid loading (setRows present)
-  // the prescription differs per set, so we always pre-fill with the
-  // upcoming set's prescribed values rather than echoing the last log
-  // — otherwise the athlete would have to manually overwrite the prior
-  // set's heavier/lighter load every time.
+  // between stages of a block). For pyramid loading (per-set
+  // prescription differs) and for percent-based loading (each set's
+  // resolved kg is the right number to show) we always pre-fill with
+  // the prescription rather than echoing the last log — otherwise the
+  // athlete would have to manually overwrite the wrong load every
+  // round.
   const isPyramidPrimary =
     currentExercise?.setRows != null &&
     currentExercise.setRows.length > 0 &&
     activeStage?.stage === 0
+  const isPercentBased = activeStage?.weightPercent != null
+  const preferPrescription = isPyramidPrimary || isPercentBased
   useEffect(() => {
     if (!activeStage) return
     const lastLog = activeStage.setLogs[activeStage.setLogs.length - 1]
     const target = typeof activeStage.repsTarget === 'number'
       ? activeStage.repsTarget
       : parseInt(String(activeStage.repsTarget)) || 0
-    if (isPyramidPrimary) {
+    if (preferPrescription) {
       setLogWeight(activeStage.weight != null ? String(activeStage.weight) : '')
       setLogReps(String(target))
     } else {
@@ -290,7 +308,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
       setLogReps(lastLog ? String(lastLog.repsCompleted) : String(target))
     }
     setLogRpe(null)
-  }, [activeStage?.exerciseId, activeStage?.completedSets, isPyramidPrimary]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeStage?.exerciseId, activeStage?.completedSets, preferPrescription]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Log a set. For a block with follow-ups, post against the current
   // stage's exerciseId. Then decide the next step: contrast pause →
@@ -581,7 +599,23 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
             </div>
             <div className="rounded-lg bg-muted/50 p-3">
               <p className="text-xs text-muted-foreground">Vikt</p>
-              <p className="text-lg font-bold">{activeStage.weight ? `${activeStage.weight}kg` : '—'}</p>
+              <p className="text-lg font-bold">
+                {activeStage.weight != null
+                  ? `${activeStage.weight}kg`
+                  : activeStage.weightPercent != null
+                    ? `${activeStage.weightPercent}%`
+                    : '—'}
+              </p>
+              {activeStage.weightPercent != null && activeStage.oneRepMax != null && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {activeStage.weightPercent}% av {activeStage.oneRepMax}kg
+                </p>
+              )}
+              {activeStage.weightPercent != null && activeStage.oneRepMax == null && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Saknar 1RM
+                </p>
+              )}
             </div>
           </div>
 

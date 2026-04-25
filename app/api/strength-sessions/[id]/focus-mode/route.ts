@@ -3,11 +3,14 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 
+type WeightUnit = 'kg' | 'percent'
+
 interface SessionFollowUp {
   exerciseId: string
   exerciseName: string
   reps: number | string
   weight?: number
+  weightUnit?: WeightUnit
   restBeforeSeconds?: number
   notes?: string
 }
@@ -23,6 +26,7 @@ interface SessionExercise {
   sets: number
   reps: number | string
   weight?: number
+  weightUnit?: WeightUnit
   restSeconds?: number
   notes?: string
   tempo?: string
@@ -57,7 +61,16 @@ interface FocusModeFollowUp {
   instructions?: string
   imageUrls?: string[]
   repsTarget: number | string
+  /**
+   * Resolved kg for this athlete. When the coach prescribed `%` and
+   * the athlete has a recorded 1RM, this is the computed kg
+   * (max × percent / 100). When the coach prescribed `%` but the
+   * athlete has no 1RM yet, this is undefined and the runner shows
+   * the % only.
+   */
   weight?: number
+  weightPercent?: number
+  oneRepMax?: number
   restBeforeSeconds: number
   notes?: string
   completedSets: number
@@ -67,6 +80,7 @@ interface FocusModeFollowUp {
 interface FocusModeSetRow {
   reps: number | string
   weight?: number
+  weightPercent?: number
 }
 
 interface FocusModeExercise {
@@ -80,6 +94,10 @@ interface FocusModeExercise {
   sets: number
   repsTarget: number | string
   weight?: number
+  /** Coach-prescribed % of 1RM (only when weightUnit was 'percent'). */
+  weightPercent?: number
+  /** Athlete's most recent 1RM for this exercise (only when relevant). */
+  oneRepMax?: number
   tempo?: string
   restSeconds: number
   notes?: string
@@ -181,6 +199,57 @@ export async function GET(
 
     const exerciseMap = new Map(exerciseDetails.map((ex) => [ex.id, ex]))
 
+    // Build the athlete's most-recent 1RM per exercise. Only the
+    // exerciseIds that actually use percent-based prescriptions in
+    // this session need a lookup, but a single bounded query over all
+    // session exerciseIds is cheaper than picking through the JSON.
+    // findMany ordered by date desc + first-write-wins gives the
+    // latest PR per exercise.
+    const oneRepMaxRows = await prisma.oneRepMaxHistory.findMany({
+      where: {
+        clientId,
+        exerciseId: { in: Array.from(allExerciseIds) },
+      },
+      orderBy: { date: 'desc' },
+      select: { exerciseId: true, oneRepMax: true },
+    })
+    const oneRepMaxByExercise = new Map<string, number>()
+    for (const row of oneRepMaxRows) {
+      if (!oneRepMaxByExercise.has(row.exerciseId)) {
+        oneRepMaxByExercise.set(row.exerciseId, row.oneRepMax)
+      }
+    }
+
+    /**
+     * Resolve a coach-prescribed weight value into kg + percent metadata
+     * for the runner. Centralised so primary, follow-ups, and pyramid
+     * setRows all share the same logic.
+     *
+     * - kg-mode: weight stays as kg, weightPercent stays undefined.
+     * - percent-mode WITH a recorded 1RM: weight = max * percent / 100,
+     *   weightPercent + oneRepMax both included so the runner can
+     *   display "65 kg · 80% av 1RM 81 kg".
+     * - percent-mode WITHOUT a recorded 1RM: weight is undefined,
+     *   weightPercent is included so the runner can show the % only
+     *   and the athlete enters their actual load manually.
+     */
+    const resolveWeight = (
+      exerciseId: string,
+      rawWeight: number | undefined,
+      unit: WeightUnit | undefined
+    ): { weight?: number; weightPercent?: number; oneRepMax?: number } => {
+      if (unit !== 'percent' || rawWeight == null) {
+        return { weight: rawWeight }
+      }
+      const max = oneRepMaxByExercise.get(exerciseId)
+      if (max == null) {
+        return { weightPercent: rawWeight }
+      }
+      // Round to nearest 0.5 kg — matches typical plate increments.
+      const resolved = Math.round((max * rawWeight) / 100 / 0.5) * 0.5
+      return { weight: resolved, weightPercent: rawWeight, oneRepMax: max }
+    }
+
     // Group set logs by exercise
     const setLogsByExercise = assignment.setLogs.reduce((acc, log) => {
       if (!acc[log.exerciseId]) {
@@ -233,6 +302,7 @@ export async function GET(
                 const fImageUrls = fDetails?.imageUrls
                   ? ((Array.isArray(fDetails.imageUrls) ? fDetails.imageUrls : []) as string[])
                   : undefined
+                const fResolved = resolveWeight(f.exerciseId, f.weight, f.weightUnit)
                 return {
                   exerciseId: f.exerciseId,
                   name: fDetails?.name || f.exerciseName,
@@ -241,11 +311,29 @@ export async function GET(
                   instructions: fDetails?.instructions ?? undefined,
                   imageUrls: fImageUrls,
                   repsTarget: f.reps,
-                  weight: f.weight,
+                  weight: fResolved.weight,
+                  weightPercent: fResolved.weightPercent,
+                  oneRepMax: fResolved.oneRepMax,
                   restBeforeSeconds: f.restBeforeSeconds ?? 0,
                   notes: f.notes,
                   completedSets: fLogs.length,
                   setLogs: fLogs,
+                }
+              })
+            : undefined
+
+        const primaryResolved = resolveWeight(ex.exerciseId, ex.weight, ex.weightUnit)
+
+        // Pyramid rows inherit the parent exercise's weightUnit. Resolve
+        // each row's weight independently so the runner gets per-set kg.
+        const setRows: FocusModeSetRow[] | undefined =
+          ex.setRows && ex.setRows.length > 0
+            ? ex.setRows.map((r) => {
+                const rResolved = resolveWeight(ex.exerciseId, r.weight, ex.weightUnit)
+                return {
+                  reps: r.reps,
+                  weight: rResolved.weight,
+                  weightPercent: rResolved.weightPercent,
                 }
               })
             : undefined
@@ -260,7 +348,9 @@ export async function GET(
           imageUrls,
           sets: ex.sets,
           repsTarget: ex.reps,
-          weight: ex.weight,
+          weight: primaryResolved.weight,
+          weightPercent: primaryResolved.weightPercent,
+          oneRepMax: primaryResolved.oneRepMax,
           tempo: ex.tempo,
           restSeconds: ex.restSeconds ?? defaultRest,
           notes: ex.notes,
@@ -269,7 +359,7 @@ export async function GET(
           completedSets: logs.length,
           setLogs: logs,
           followUps,
-          setRows: ex.setRows && ex.setRows.length > 0 ? ex.setRows : undefined,
+          setRows,
         })
         orderIndex++
       })
