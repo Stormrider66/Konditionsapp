@@ -24,7 +24,8 @@ import {
     ClipboardList,
     Sparkles,
     Library,
-    HeartHandshake
+    HeartHandshake,
+    Trophy
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -100,6 +101,7 @@ export function BusinessAthleteHeader({
             icon: Activity,
             items: [
                 { href: `${basePath}/athlete/history`, label: 'Historik', icon: TrendingUp },
+                { href: `${basePath}/athlete/prs`, label: 'Mina PR', icon: Trophy },
                 { href: `${basePath}/athlete/programs`, label: 'Program', icon: ClipboardList },
                 { href: `${basePath}/athlete/wod/history`, label: 'AI-Pass', icon: Sparkles },
                 { href: `${basePath}/athlete/training-library`, label: 'Träningsbibliotek', icon: Library },

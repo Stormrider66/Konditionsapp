@@ -22,7 +22,8 @@ import {
     MessageSquare,
     ClipboardList,
     Sparkles,
-    Library
+    Library,
+    Trophy
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -109,6 +110,7 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
             icon: Activity,
             items: [
                 { href: '/athlete/history', label: 'Historik', icon: TrendingUp },
+                { href: '/athlete/prs', label: 'Mina PR', icon: Trophy },
                 { href: '/athlete/programs', label: 'Program', icon: ClipboardList },
                 { href: '/athlete/wod/history', label: 'AI-Pass', icon: Sparkles },
                 { href: '/athlete/training-library', label: 'Träningsbibliotek', icon: Library },
