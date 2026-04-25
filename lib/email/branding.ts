@@ -5,7 +5,11 @@ import 'server-only'
 
 import { resolveBusinessBrandingById } from '@/lib/branding/resolve-branding'
 import { PLATFORM_NAME } from '@/lib/branding/types'
-import { DEFAULT_EMAIL_BRANDING, PLATFORM_REPLY_TO } from './email-branding-types'
+import {
+  DEFAULT_EMAIL_BRANDING,
+  PLATFORM_REPLY_TO,
+  PLATFORM_SENDING_DOMAIN,
+} from './email-branding-types'
 import type { EmailBranding } from './email-branding-types'
 
 // Re-export types and utilities for convenience
@@ -34,9 +38,18 @@ export async function resolveEmailBranding(
       ? branding.emailSenderName
       : PLATFORM_NAME
 
+    // Sending domain switches to the business's verified custom domain only when
+    // both WHITE_LABEL is active (gated upstream) and Resend has reported the
+    // domain verified. Anything else falls back to the shared trainomics.app.
+    const sendingDomain =
+      branding.customEmailVerified && branding.customEmailDomain
+        ? branding.customEmailDomain
+        : PLATFORM_SENDING_DOMAIN
+
     return {
       platformName,
       senderName,
+      fromAddress: `${senderName} <noreply@${sendingDomain}>`,
       replyTo: branding.replyToEmail || PLATFORM_REPLY_TO,
       logoUrl: branding.logoUrl,
       primaryColor: branding.primaryColor || DEFAULT_EMAIL_BRANDING.primaryColor,

@@ -30,6 +30,8 @@ export const resolveBusinessBranding = cache(
         replyToEmail: true,
         customDomain: true,
         domainVerified: true,
+        customEmailDomain: true,
+        customEmailVerified: true,
         emailSenderName: true,
         pageTitle: true,
         hidePlatformBranding: true,
@@ -65,6 +67,8 @@ export const resolveBusinessBranding = cache(
       // Tier 2: WHITE_LABEL gated
       customDomain: features.hasWhiteLabel ? business.customDomain : null,
       domainVerified: features.hasWhiteLabel ? business.domainVerified : false,
+      customEmailDomain: features.hasWhiteLabel ? business.customEmailDomain : null,
+      customEmailVerified: features.hasWhiteLabel ? business.customEmailVerified : false,
       emailSenderName: features.hasWhiteLabel ? business.emailSenderName : null,
       pageTitle: features.hasWhiteLabel ? business.pageTitle : null,
       hidePlatformBranding: features.hasWhiteLabel ? business.hidePlatformBranding : false,

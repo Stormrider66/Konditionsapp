@@ -709,7 +709,7 @@ async function sendCoachNotification(
               </div>
             `
           await resend.emails.send({
-            from: `${emailBranding.senderName} <noreply@trainomics.app>`,
+            from: emailBranding.fromAddress,
             replyTo: emailBranding.replyTo,
             to: coachUser.email,
             subject: `[${urgencyText}] ${notification.title}`,

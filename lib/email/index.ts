@@ -15,12 +15,10 @@ import {
   getReferralInviteEmailTemplate,
 } from './templates';
 import type { EmailBranding } from './email-branding-types';
-import { PLATFORM_REPLY_TO } from './email-branding-types';
+import { PLATFORM_REPLY_TO, DEFAULT_EMAIL_BRANDING } from './email-branding-types';
 import { PLATFORM_NAME } from '@/lib/branding/types';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-
-const DEFAULT_FROM_EMAIL = `${PLATFORM_NAME} <noreply@trainomics.app>`;
 
 /** Strip HTML tags and decode common entities to produce a plain-text fallback */
 function htmlToPlainText(html: string): string {
@@ -65,10 +63,10 @@ async function sendEmailInternal(
       return { success: false, error: 'Email service not configured' };
     }
 
-    // Use custom sender name if white-label branding provides one
-    const fromEmail = branding?.senderName && branding.senderName !== PLATFORM_NAME
-      ? `${branding.senderName} <noreply@trainomics.app>`
-      : DEFAULT_FROM_EMAIL;
+    // From: header is fully resolved by `resolveEmailBranding` — when a business
+    // has a verified Resend domain it's `<senderName> <noreply@<their domain>>`,
+    // otherwise it's the shared trainomics.app sender.
+    const fromEmail = branding?.fromAddress || DEFAULT_EMAIL_BRANDING.fromAddress;
 
     if (!resend) {
       logger.warn('Resend client unavailable, email not sent', { to, subject });

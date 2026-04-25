@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 import { CustomDomainSection } from '@/components/coach/admin/CustomDomainSection'
+import { CustomEmailDomainSection } from '@/components/coach/admin/CustomEmailDomainSection'
 
 const CURATED_FONTS = [
   { value: 'Inter', label: 'Inter' },
@@ -492,6 +493,9 @@ export function BusinessBrandingTab() {
                 }}
                 onChange={fetchBranding}
               />
+
+              {/* Custom Email Sending Domain (Resend) — manages its own state */}
+              <CustomEmailDomainSection />
             </div>
           ) : (
             <LockedSection

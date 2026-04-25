@@ -293,9 +293,8 @@ export async function POST(request: NextRequest) {
             </div>
           `
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
-        const fromHeader = `${emailBranding.senderName} <noreply@trainomics.app>`
         await resend.emails.send({
-          from: fromHeader,
+          from: emailBranding.fromAddress,
           replyTo: emailBranding.replyTo,
           to: email,
           subject: 'Välkommen till Konditionstest - Ditt atletkonto är skapat',

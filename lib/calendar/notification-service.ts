@@ -183,8 +183,13 @@ async function sendNotificationEmail(
 
   try {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
+    // Calendar notifications use a `notifications@` mailbox on the sending
+    // domain (custom or shared) — pull the host out of the resolved fromAddress
+    // and rebuild it with notifications@ instead of noreply@.
+    const fromHostMatch = branding.fromAddress.match(/<[^@]+@([^>]+)>/)
+    const sendingDomain = fromHostMatch?.[1] || 'trainomics.app'
     await resend.emails.send({
-      from: `${branding.senderName} <notifications@trainomics.app>`,
+      from: `${branding.senderName} <notifications@${sendingDomain}>`,
       replyTo: branding.replyTo,
       to: recipient.email,
       subject,

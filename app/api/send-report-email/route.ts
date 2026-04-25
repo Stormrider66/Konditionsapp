@@ -6,7 +6,6 @@ import { escapeHtml, sanitizeForEmail } from '@/lib/sanitize'
 import { getRequestIp, rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
-import { PLATFORM_NAME } from '@/lib/branding/types'
 import { resolveEmailBranding } from '@/lib/email/branding'
 import { emailLayout } from '@/lib/email/email-branding-types'
 
@@ -145,10 +144,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const senderName = emailBranding.senderName || PLATFORM_NAME
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
     const { data, error } = await resend.emails.send({
-      from: `${senderName} <noreply@trainomics.app>`,
+      from: emailBranding.fromAddress,
       replyTo: emailBranding.replyTo,
       to: [to],
       subject: emailSubject,

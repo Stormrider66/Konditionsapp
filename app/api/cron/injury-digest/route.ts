@@ -667,7 +667,7 @@ async function processCoachDigest(coach: {
     const emailBranding = await resolveEmailBranding(membership?.businessId ?? null)
 
     await resend.emails.send({
-      from: process.env.EMAIL_FROM || `${emailBranding.senderName} <noreply@trainomics.app>`,
+      from: process.env.EMAIL_FROM || emailBranding.fromAddress,
       replyTo: emailBranding.replyTo,
       to: coach.email,
       subject,

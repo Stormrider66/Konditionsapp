@@ -32,6 +32,9 @@ export interface BusinessBranding {
   // Tier 2: WHITE_LABEL
   customDomain: string | null
   domainVerified: boolean
+  /** Verified custom sending domain (Tier 2). Sender flips to noreply@<this> when set. */
+  customEmailDomain: string | null
+  customEmailVerified: boolean
   emailSenderName: string | null
   pageTitle: string | null
   hidePlatformBranding: boolean
@@ -51,6 +54,8 @@ export const DEFAULT_BRANDING: Omit<BusinessBranding, 'businessName' | 'business
   replyToEmail: null,
   customDomain: null,
   domainVerified: false,
+  customEmailDomain: null,
+  customEmailVerified: false,
   emailSenderName: null,
   pageTitle: null,
   hidePlatformBranding: false,
