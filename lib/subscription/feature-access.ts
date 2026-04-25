@@ -1,9 +1,11 @@
 // lib/subscription/feature-access.ts
 // Centralized feature access checking for subscription enforcement
 
-import type { AthleteSubscription } from '@prisma/client'
+import type { AthleteSubscription, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+
+type DbClient = Prisma.TransactionClient | typeof prisma
 
 export type AthleteFeature =
   | 'ai_chat'
@@ -563,12 +565,17 @@ export async function createDefaultAthleteSubscription(
 /**
  * Create trial subscription for new coach
  * Called when a coach signs up
+ *
+ * Pass `tx` when calling from inside a `prisma.$transaction` block so that
+ * subscription creation participates in the same transaction (atomic with
+ * the user + business writes that precede it).
  */
 export async function createCoachTrialSubscription(
   userId: string,
-  trialDays: number = 14
+  trialDays: number = 14,
+  tx: DbClient = prisma
 ): Promise<void> {
-  await prisma.subscription.create({
+  await tx.subscription.create({
     data: {
       userId,
       tier: 'FREE',

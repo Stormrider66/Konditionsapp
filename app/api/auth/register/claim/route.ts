@@ -115,8 +115,8 @@ export async function POST(request: NextRequest) {
         data: { status: 'COMPLETED' },
       })
 
-      // Create coach trial subscription
-      await createCoachTrialSubscription(user.id)
+      // Create coach trial subscription (must use tx so it rolls back with the rest)
+      await createCoachTrialSubscription(user.id, 14, tx)
     })
 
     return NextResponse.json({
