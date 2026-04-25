@@ -32,8 +32,10 @@ import {
   TrendingDown,
   Minus,
   HelpCircle,
+  Upload,
 } from 'lucide-react'
 import { StrengthPRFeed } from '@/components/coach/dashboard/StrengthPRFeed'
+import { BulkPRImportDialog } from '@/components/coach/strength/BulkPRImportDialog'
 
 type AcwrZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL' | 'UNKNOWN'
 
@@ -97,6 +99,11 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
   const [data, setData] = useState<TeamAnalysisData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [bulkOpen, setBulkOpen] = useState(false)
+  // Bumped after a successful bulk import so the page refetches and
+  // newly-imported PRs immediately surface in the per-member table +
+  // recent feed.
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -118,7 +125,7 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
     return () => {
       cancelled = true
     }
-  }, [teamId])
+  }, [teamId, refreshKey])
 
   if (isLoading) {
     return (
@@ -151,8 +158,31 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
   // Order zone tiles by severity so the most actionable info is leftmost.
   const zoneOrder: AcwrZone[] = ['OPTIMAL', 'CAUTION', 'DANGER', 'CRITICAL', 'DETRAINING', 'UNKNOWN']
 
+  const missingPRCount = members.filter((m) => m.totalPRs === 0).length
+
   return (
     <div className="space-y-6">
+      {/* Action bar: bulk PR import is the team-coach's onboarding lever
+          for the % of 1RM workflow. Calling out missingPRCount keeps it
+          discoverable when the roster is half-populated. */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="text-sm text-muted-foreground">
+          {missingPRCount > 0 ? (
+            <>
+              <span className="text-orange-600 font-medium">{missingPRCount}</span> atlet
+              {missingPRCount === 1 ? '' : 'er'} saknar 1RM —
+              {' '}<span className="text-foreground">% av 1RM-pass</span> kräver registrerade PR.
+            </>
+          ) : (
+            <>Alla atleter har minst en registrerad 1RM.</>
+          )}
+        </div>
+        <Button size="sm" onClick={() => setBulkOpen(true)}>
+          <Upload className="h-4 w-4 mr-1.5" />
+          Importera PRs
+        </Button>
+      </div>
+
       {/* ACWR zone tiles */}
       <div>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-2">
@@ -310,6 +340,14 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
 
       {/* Recent PRs feed */}
       <StrengthPRFeed recentPRs={recentPRs} />
+
+      <BulkPRImportDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        teamId={teamId}
+        teamName={data.teamName}
+        onImported={() => setRefreshKey((k) => k + 1)}
+      />
     </div>
   )
 }
