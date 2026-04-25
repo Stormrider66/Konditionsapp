@@ -66,7 +66,7 @@ export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult
 
   if (provider === 'OPENAI' && effectiveKeys.openaiKey) {
     const openai = createOpenAI({ apiKey: effectiveKeys.openaiKey })
-    return { ok: true, aiModel: openai(model || 'gpt-5.4') }
+    return { ok: true, aiModel: openai(model || 'gpt-5.5') }
   }
 
   // No key for the requested provider — try any available.

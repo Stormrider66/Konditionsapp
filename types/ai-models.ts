@@ -188,10 +188,10 @@ export const AI_MODELS: AIModelConfig[] = [
     },
   },
   {
-    id: 'gpt-5.4',
-    name: 'GPT-5.4',
+    id: 'gpt-5.5',
+    name: 'GPT-5.5',
     provider: 'openai',
-    modelId: 'gpt-5.4',
+    modelId: 'gpt-5.5',
     description: 'OpenAIs flaggskepp. 128K output - bäst för långa program!',
     costTier: 'high',
     capabilities: {
@@ -381,7 +381,7 @@ export const MODEL_TIERS: Record<ModelIntent, {
     // Reasoning-heavy flows that actually benefit from 4.7 should route via
     // a task-specific override (see EXTRACTION_TIERS / future TASK_TIERS).
     anthropic: { modelId: 'claude-opus-4-6',            displayName: 'Claude Opus 4.6',   supportsVision: true },
-    openai:    { modelId: 'gpt-5.4',                    displayName: 'GPT-5.4',           supportsVision: true },
+    openai:    { modelId: 'gpt-5.5',                    displayName: 'GPT-5.5',           supportsVision: true },
   },
 }
 
@@ -572,7 +572,7 @@ export function legacyModelIdToIntent(id: string): ModelIntent {
   // Also match the short IDs used in the AI_MODELS array
   const fastIds = ['gemini-3.1-flash-lite', 'claude-haiku', 'gpt-5.3-instant']
   const balancedIds = ['gemini-3-flash', 'claude-sonnet', 'gpt-5-mini']
-  const powerfulIds = ['gemini-3-pro', 'claude-opus', 'gpt-5.4']
+  const powerfulIds = ['gemini-3-pro', 'claude-opus', 'gpt-5.5']
 
   if (fastIds.includes(id)) return 'fast'
   if (balancedIds.includes(id)) return 'balanced'

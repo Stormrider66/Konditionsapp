@@ -122,8 +122,8 @@ const AI_MODELS = [
   },
   {
     provider: 'OPENAI' as const,
-    modelId: 'gpt-5.4',
-    displayName: 'GPT-5.4',
+    modelId: 'gpt-5.5',
+    displayName: 'GPT-5.5',
     description: 'OpenAIs flaggskeppsmodell med 128K output - bäst för långa program',
     capabilities: ['text', 'code', 'vision', 'reasoning'],
     maxTokens: 400000,

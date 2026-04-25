@@ -137,11 +137,11 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number }> =
     output: 0.005, // $5.00 per 1M output tokens
   },
   // OpenAI GPT models
-  'gpt-5.4-thinking': {
+  'gpt-5.5-thinking': {
     input: 0.010, // $10.00 per 1M input tokens
     output: 0.030, // $30.00 per 1M output tokens
   },
-  'gpt-5.4': {
+  'gpt-5.5': {
     input: 0.005, // $5.00 per 1M input tokens
     output: 0.015, // $15.00 per 1M output tokens
   },
