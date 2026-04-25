@@ -51,6 +51,7 @@ interface BrandingData {
   domainVerified: boolean
   domainVerifiedAt: string | null
   domainTxtRecord: string | null
+  replyToEmail: string | null
   emailSenderName: string | null
   pageTitle: string | null
   hidePlatformBranding: boolean
@@ -98,6 +99,7 @@ export function BusinessBrandingTab() {
     backgroundColor: '',
     fontFamily: '',
     faviconUrl: '',
+    replyToEmail: '',
     emailSenderName: '',
     pageTitle: '',
     hidePlatformBranding: false,
@@ -120,6 +122,7 @@ export function BusinessBrandingTab() {
         backgroundColor: result.data.backgroundColor || '',
         fontFamily: result.data.fontFamily || '',
         faviconUrl: result.data.faviconUrl || '',
+        replyToEmail: result.data.replyToEmail || '',
         emailSenderName: result.data.emailSenderName || '',
         pageTitle: result.data.pageTitle || '',
         hidePlatformBranding: result.data.hidePlatformBranding || false,
@@ -144,6 +147,7 @@ export function BusinessBrandingTab() {
       const body: Record<string, unknown> = {
         logoUrl: form.logoUrl || null,
         primaryColor: form.primaryColor || null,
+        replyToEmail: form.replyToEmail.trim() || null,
       }
 
       // Include custom branding fields if feature is enabled
@@ -288,6 +292,23 @@ export function BusinessBrandingTab() {
               </div>
             </div>
           )}
+
+          {/* Reply-to email (Tier 0 — every business can route replies) */}
+          <div className="space-y-2 pt-2">
+            <Label htmlFor="replyToEmail">Reply-to e-postadress</Label>
+            <Input
+              id="replyToEmail"
+              type="email"
+              value={form.replyToEmail}
+              onChange={(e) => setForm((prev) => ({ ...prev, replyToEmail: e.target.value }))}
+              placeholder="info@dingym.se"
+            />
+            <p className="text-xs text-muted-foreground">
+              Vart svar på dina utskick hamnar. Lämnas tomt → svar går till {' '}
+              <code>support@trainomics.app</code>. Avsändaren är fortfarande{' '}
+              <code>noreply@trainomics.app</code>.
+            </p>
+          </div>
         </CardContent>
       </Card>
 

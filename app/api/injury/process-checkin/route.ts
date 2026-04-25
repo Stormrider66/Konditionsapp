@@ -29,6 +29,7 @@ import {
   formatPatternNotification,
   type PatternDetectionResult,
 } from '@/lib/injury-detection/pattern-detector'
+import { resolveEmailBranding } from '@/lib/email/branding'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
@@ -672,10 +673,22 @@ async function sendCoachNotification(
       try {
         const coachUser = await prisma.user.findUnique({
           where: { id: coachUserId },
-          select: { email: true, name: true },
+          select: {
+            email: true,
+            name: true,
+            businessMemberships: {
+              where: { isActive: true },
+              select: { businessId: true },
+              orderBy: { createdAt: 'asc' },
+              take: 1,
+            },
+          },
         })
 
         if (coachUser?.email) {
+          const emailBranding = await resolveEmailBranding(
+            coachUser.businessMemberships[0]?.businessId ?? null,
+          )
           const urgencyColor = notification.urgency === 'CRITICAL' ? '#dc2626' : '#f59e0b'
           const urgencyText = notification.urgency === 'CRITICAL' ? 'KRITISKT' : 'HÖG PRIORITET'
 
@@ -696,8 +709,8 @@ async function sendCoachNotification(
               </div>
             `
           await resend.emails.send({
-            from: 'Trainomics <noreply@trainomics.app>',
-            replyTo: 'support@trainomics.app',
+            from: `${emailBranding.senderName} <noreply@trainomics.app>`,
+            replyTo: emailBranding.replyTo,
             to: coachUser.email,
             subject: `[${urgencyText}] ${notification.title}`,
             html: injuryHtml,

@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
     const { data, error } = await resend.emails.send({
       from: `${senderName} <noreply@trainomics.app>`,
-      replyTo: 'support@trainomics.app',
+      replyTo: emailBranding.replyTo,
       to: [to],
       subject: emailSubject,
       html: emailBody,

@@ -27,6 +27,7 @@ export const resolveBusinessBranding = cache(
         backgroundColor: true,
         fontFamily: true,
         faviconUrl: true,
+        replyToEmail: true,
         customDomain: true,
         domainVerified: true,
         emailSenderName: true,
@@ -52,6 +53,9 @@ export const resolveBusinessBranding = cache(
       logoUrl: business.logoUrl,
       primaryColor: business.primaryColor || DEFAULT_BRANDING.primaryColor,
       faviconUrl: features.hasCustomBranding ? business.faviconUrl : null,
+
+      // Tier 0: every business can opt in
+      replyToEmail: business.replyToEmail,
 
       // Tier 1: CUSTOM_BRANDING gated
       secondaryColor: features.hasCustomBranding ? business.secondaryColor : null,

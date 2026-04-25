@@ -8,6 +8,7 @@ import { logger } from '@/lib/logger'
 import { Resend } from 'resend'
 import { escapeHtml, sanitizeAttribute, sanitizeUrl } from '@/lib/sanitize'
 import { getAthleteSubscriptionDataForTier, type AthleteTier } from '@/lib/athlete-account-utils'
+import { resolveEmailBranding } from '@/lib/email/branding'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
@@ -265,6 +266,7 @@ export async function POST(request: NextRequest) {
     // Send welcome email with temporary password
     if (resend && process.env.EMAILS_PAUSED !== 'true') {
       try {
+        const emailBranding = await resolveEmailBranding(client.businessId ?? null)
         const safeClientName = escapeHtml(client.name)
         const safeEmail = escapeHtml(email)
         const safePassword = escapeHtml(password)
@@ -291,9 +293,10 @@ export async function POST(request: NextRequest) {
             </div>
           `
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
+        const fromHeader = `${emailBranding.senderName} <noreply@trainomics.app>`
         await resend.emails.send({
-          from: 'Trainomics <noreply@trainomics.app>',
-          replyTo: 'support@trainomics.app',
+          from: fromHeader,
+          replyTo: emailBranding.replyTo,
           to: email,
           subject: 'Välkommen till Konditionstest - Ditt atletkonto är skapat',
           html: welcomeHtml,

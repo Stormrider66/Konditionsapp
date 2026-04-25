@@ -13,6 +13,7 @@ const updateBrandingSchema = z.object({
   // Tier 0: always available
   logoUrl: z.string().url().optional().nullable(),
   primaryColor: z.string().regex(hexColorRegex).optional().nullable(),
+  replyToEmail: z.string().email().max(254).optional().nullable(),
 
   // Tier 1: CUSTOM_BRANDING
   secondaryColor: z.string().regex(hexColorRegex).optional().nullable(),
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
           backgroundColor: true,
           fontFamily: true,
           faviconUrl: true,
+          replyToEmail: true,
           customDomain: true,
           domainVerified: true,
           domainVerifiedAt: true,
@@ -94,6 +96,7 @@ export async function PUT(request: NextRequest) {
     // Tier 0: always allowed
     if (validatedData.logoUrl !== undefined) updateData.logoUrl = validatedData.logoUrl
     if (validatedData.primaryColor !== undefined) updateData.primaryColor = validatedData.primaryColor
+    if (validatedData.replyToEmail !== undefined) updateData.replyToEmail = validatedData.replyToEmail
 
     // Tier 1: require CUSTOM_BRANDING
     if (validatedData.secondaryColor !== undefined) {
@@ -182,6 +185,7 @@ export async function PUT(request: NextRequest) {
         backgroundColor: true,
         fontFamily: true,
         faviconUrl: true,
+        replyToEmail: true,
         emailSenderName: true,
         pageTitle: true,
         hidePlatformBranding: true,

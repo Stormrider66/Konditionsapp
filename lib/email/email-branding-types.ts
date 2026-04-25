@@ -8,6 +8,8 @@ export interface EmailBranding {
   platformName: string
   /** Custom "from" display name for emails (e.g. "MyGym") */
   senderName: string
+  /** Reply-to address — replies route here instead of platform support. Always populated (falls back to platform support). */
+  replyTo: string
   /** Logo URL for email header */
   logoUrl: string | null
   /** Primary color for buttons/gradients */
@@ -22,10 +24,14 @@ export interface EmailBranding {
   showPoweredBy: boolean
 }
 
+/** Platform-default reply-to. Used when a business hasn't set their own. */
+export const PLATFORM_REPLY_TO = 'support@trainomics.app'
+
 /** Default platform branding */
 export const DEFAULT_EMAIL_BRANDING: EmailBranding = {
   platformName: PLATFORM_NAME,
   senderName: PLATFORM_NAME,
+  replyTo: PLATFORM_REPLY_TO,
   logoUrl: null,
   primaryColor: '#667eea',
   gradientStart: '#667eea',

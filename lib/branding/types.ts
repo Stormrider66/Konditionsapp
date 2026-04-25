@@ -26,6 +26,9 @@ export interface BusinessBranding {
   backgroundColor: string | null
   fontFamily: CuratedFont | null
 
+  // Email reply-to (Tier 0: every business can route replies)
+  replyToEmail: string | null
+
   // Tier 2: WHITE_LABEL
   customDomain: string | null
   domainVerified: boolean
@@ -45,6 +48,7 @@ export const DEFAULT_BRANDING: Omit<BusinessBranding, 'businessName' | 'business
   secondaryColor: null,
   backgroundColor: null,
   fontFamily: null,
+  replyToEmail: null,
   customDomain: null,
   domainVerified: false,
   emailSenderName: null,

@@ -15,12 +15,12 @@ import {
   getReferralInviteEmailTemplate,
 } from './templates';
 import type { EmailBranding } from './email-branding-types';
+import { PLATFORM_REPLY_TO } from './email-branding-types';
 import { PLATFORM_NAME } from '@/lib/branding/types';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const DEFAULT_FROM_EMAIL = `${PLATFORM_NAME} <noreply@trainomics.app>`;
-const DEFAULT_REPLY_TO = 'support@trainomics.app';
 
 /** Strip HTML tags and decode common entities to produce a plain-text fallback */
 function htmlToPlainText(html: string): string {
@@ -79,7 +79,7 @@ async function sendEmailInternal(
 
     const { data, error } = await resend.emails.send({
       from: fromEmail,
-      replyTo: DEFAULT_REPLY_TO,
+      replyTo: branding?.replyTo || PLATFORM_REPLY_TO,
       to: [to],
       subject,
       html,

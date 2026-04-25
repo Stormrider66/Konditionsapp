@@ -12,6 +12,7 @@ import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { logger } from '@/lib/logger'
 import { PLATFORM_NAME } from '@/lib/branding/types'
+import { resolveEmailBranding } from '@/lib/email/branding'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
@@ -67,7 +68,10 @@ export async function sendCalendarNotification(data: CalendarNotificationData): 
     // Get client and associated users
     const client = await prisma.client.findUnique({
       where: { id: data.clientId },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        businessId: true,
         user: {
           select: { id: true, email: true, name: true },
         },
@@ -85,6 +89,9 @@ export async function sendCalendarNotification(data: CalendarNotificationData): 
       console.error('Client not found for notification:', data.clientId)
       return
     }
+
+    // Resolve branding once per notification — recipients all share the client's business.
+    const emailBranding = await resolveEmailBranding(client.businessId)
 
     // Build recipient list (exclude the person who made the change)
     const recipients: NotificationRecipient[] = []
@@ -122,7 +129,7 @@ export async function sendCalendarNotification(data: CalendarNotificationData): 
 
     // Send emails
     for (const recipient of recipients) {
-      await sendNotificationEmail(recipient, client.name, data)
+      await sendNotificationEmail(recipient, client.name, data, emailBranding)
     }
   } catch (error) {
     console.error('Error sending calendar notification:', error)
@@ -166,7 +173,8 @@ function shouldSendEmail(data: CalendarNotificationData): boolean {
 async function sendNotificationEmail(
   recipient: NotificationRecipient,
   clientName: string,
-  data: CalendarNotificationData
+  data: CalendarNotificationData,
+  branding: Awaited<ReturnType<typeof resolveEmailBranding>>,
 ): Promise<void> {
   if (!resend) return
 
@@ -176,8 +184,8 @@ async function sendNotificationEmail(
   try {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
     await resend.emails.send({
-      from: `${PLATFORM_NAME} <notifications@trainomics.app>`,
-      replyTo: 'support@trainomics.app',
+      from: `${branding.senderName} <notifications@trainomics.app>`,
+      replyTo: branding.replyTo,
       to: recipient.email,
       subject,
       html,

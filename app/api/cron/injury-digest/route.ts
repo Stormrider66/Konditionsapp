@@ -20,6 +20,7 @@ import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
 import { logger } from '@/lib/logger'
 import { sanitizeForEmail } from '@/lib/sanitize'
+import { resolveEmailBranding } from '@/lib/email/branding'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
@@ -656,9 +657,18 @@ async function processCoachDigest(coach: {
       : '✅ Daglig rapport - Inga åtgärder krävs'
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
+
+    // Resolve per-business branding so reply-to lands in the coach's own inbox.
+    const membership = await prisma.businessMember.findFirst({
+      where: { userId: coach.id, isActive: true },
+      select: { businessId: true },
+      orderBy: { createdAt: 'asc' },
+    })
+    const emailBranding = await resolveEmailBranding(membership?.businessId ?? null)
+
     await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'Trainomics <noreply@trainomics.app>',
-      replyTo: 'support@trainomics.app',
+      from: process.env.EMAIL_FROM || `${emailBranding.senderName} <noreply@trainomics.app>`,
+      replyTo: emailBranding.replyTo,
       to: coach.email,
       subject,
       html: emailHTML,

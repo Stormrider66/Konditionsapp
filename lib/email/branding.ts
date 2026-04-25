@@ -5,7 +5,7 @@ import 'server-only'
 
 import { resolveBusinessBrandingById } from '@/lib/branding/resolve-branding'
 import { PLATFORM_NAME } from '@/lib/branding/types'
-import { DEFAULT_EMAIL_BRANDING } from './email-branding-types'
+import { DEFAULT_EMAIL_BRANDING, PLATFORM_REPLY_TO } from './email-branding-types'
 import type { EmailBranding } from './email-branding-types'
 
 // Re-export types and utilities for convenience
@@ -37,6 +37,7 @@ export async function resolveEmailBranding(
     return {
       platformName,
       senderName,
+      replyTo: branding.replyToEmail || PLATFORM_REPLY_TO,
       logoUrl: branding.logoUrl,
       primaryColor: branding.primaryColor || DEFAULT_EMAIL_BRANDING.primaryColor,
       gradientStart: branding.primaryColor || DEFAULT_EMAIL_BRANDING.gradientStart,

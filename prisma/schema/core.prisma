@@ -696,6 +696,9 @@ model Business {
   fontFamily      String?  // From curated list (Inter, DM Sans, Roboto, Poppins, Lato, Nunito)
   faviconUrl      String?  // 32x32 PNG/ICO URL
 
+  // Email reply-to (Tier 0: every business can route replies to a real human inbox)
+  replyToEmail String?
+
   // Branding (Tier 2: WHITE_LABEL feature)
   customDomain         String?   @unique
   domainVerified       Boolean   @default(false)
