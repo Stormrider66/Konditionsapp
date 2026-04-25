@@ -16,14 +16,27 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Plus, ChevronDown, ChevronRight, Trophy, Info } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Loader2, Plus, ChevronDown, ChevronRight, Trophy, Info, Pencil, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { StrengthPRForm } from './StrengthPRForm'
 
 interface OneRepMaxEntry {
@@ -79,6 +92,61 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [formOpen, setFormOpen] = useState(false)
+
+  // Edit / delete state. Editing only the value + date for now — that's
+  // what coaches mistype most. Full re-categorisation goes through the
+  // delete + add flow.
+  const [editing, setEditing] = useState<
+    | { id: string; exerciseName: string; oneRepMax: string; date: string }
+    | null
+  >(null)
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleSaveEdit = async () => {
+    if (!editing) return
+    const value = parseFloat(editing.oneRepMax)
+    if (!value || value <= 0) {
+      setError('Vikten måste vara större än 0')
+      return
+    }
+    setIsSavingEdit(true)
+    try {
+      const res = await fetch(`/api/strength-pr/${editing.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          oneRepMax: value,
+          date: editing.date,
+        }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setEditing(null)
+      await fetchPRs()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Kunde inte spara ändring')
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingId) return
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/strength-pr/${deletingId}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setDeletingId(null)
+      await fetchPRs()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Kunde inte ta bort PR')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   const fetchPRs = useCallback(async () => {
     setIsLoading(true)
@@ -185,7 +253,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                   </div>
                 </button>
 
-                {isOpen && g.history.length > 1 && (
+                {isOpen && (
                   <div className="bg-muted/20 px-3 py-2 space-y-1">
                     <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">
                       Historik
@@ -195,7 +263,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                       const delta = prev ? h.oneRepMax - prev.oneRepMax : null
                       const meta = SOURCE_LABELS[h.source] ?? { label: h.source, variant: 'outline' as const }
                       return (
-                        <div key={h.id} className="flex items-center gap-2 text-xs">
+                        <div key={h.id} className="flex items-center gap-2 text-xs group">
                           <span className="w-24 text-muted-foreground tabular-nums">
                             {formatDate(h.date)}
                           </span>
@@ -203,7 +271,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                             {meta.label}
                           </Badge>
                           <span className="font-mono ml-auto">{h.oneRepMax} kg</span>
-                          {delta != null && delta !== 0 && (
+                          {delta != null && delta !== 0 ? (
                             <span
                               className={`text-[10px] tabular-nums w-10 text-right ${
                                 delta > 0 ? 'text-green-600' : 'text-red-600'
@@ -212,8 +280,36 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                               {delta > 0 ? '+' : ''}
                               {delta}
                             </span>
+                          ) : (
+                            <span className="w-10" />
                           )}
-                          {delta == null && <span className="w-10" />}
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                              onClick={() =>
+                                setEditing({
+                                  id: h.id,
+                                  exerciseName: displayName,
+                                  oneRepMax: String(h.oneRepMax),
+                                  date: h.date.slice(0, 10),
+                                })
+                              }
+                              title="Redigera"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                              onClick={() => setDeletingId(h.id)}
+                              title="Ta bort"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                       )
                     })}
@@ -255,6 +351,82 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
           />
         </DialogContent>
       </Dialog>
+
+      {/* Inline edit — typo / date corrections only. Re-categorising
+          (changing the exercise or source) is rare and goes through
+          delete + add. */}
+      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Redigera PR</DialogTitle>
+            <DialogDescription>
+              {editing?.exerciseName} – ändra vikt eller datum.
+            </DialogDescription>
+          </DialogHeader>
+          {editing && (
+            <div className="space-y-4 py-2">
+              <div>
+                <Label htmlFor="edit-pr-weight">Vikt (kg)</Label>
+                <Input
+                  id="edit-pr-weight"
+                  type="number"
+                  step="0.5"
+                  min={0}
+                  value={editing.oneRepMax}
+                  onChange={(e) =>
+                    setEditing({ ...editing, oneRepMax: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-pr-date">Datum</Label>
+                <Input
+                  id="edit-pr-date"
+                  type="date"
+                  value={editing.date}
+                  onChange={(e) => setEditing({ ...editing, date: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditing(null)}
+              disabled={isSavingEdit}
+            >
+              Avbryt
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={isSavingEdit}>
+              {isSavingEdit && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Spara
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ta bort PR?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Detta tar permanent bort PR-loggen. Andra mätningar för samma övning
+              påverkas inte. Aktiva pass med "% av 1RM" använder nästa nyaste PR
+              för övningen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Avbryt</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isDeleting ? 'Tar bort…' : 'Ta bort'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
