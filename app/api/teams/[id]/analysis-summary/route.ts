@@ -44,6 +44,16 @@ interface RecentPR {
   source: string
 }
 
+interface PendingPR {
+  id: string
+  clientId: string
+  clientName: string
+  exerciseId: string
+  exerciseName: string
+  oneRepMax: number
+  date: string
+}
+
 const RECENT_DAYS = 30
 const STALE_ACTIVITY_DAYS = 5
 
@@ -116,12 +126,14 @@ export async function GET(
         select: { clientId: true, date: true },
       }),
       // All PRs for the roster ordered newest first — we use these
-      // both for per-member counts and for the recent-PRs feed.
+      // for per-member counts, the recent-PRs feed, AND the pending
+      // (auto-detected ESTIMATED) feed that surfaces unconfirmed PRs
+      // for the coach to verify.
       prisma.oneRepMaxHistory.findMany({
         where: { clientId: { in: memberIds } },
         orderBy: { date: 'desc' },
         include: {
-          exercise: { select: { name: true, nameSv: true } },
+          exercise: { select: { id: true, name: true, nameSv: true } },
         },
       }),
     ])
@@ -236,6 +248,28 @@ export async function GET(
       })
     }
 
+    // Pending feed: ESTIMATED entries that are still the *current*
+    // max for their (client, exercise) pair. First-write-wins per pair
+    // since the rows are ordered desc. Older estimates that have since
+    // been beaten by a TESTED entry don't need attention anymore.
+    const pendingPRs: PendingPR[] = []
+    const seenPair = new Set<string>()
+    for (const pr of oneRepMaxRows) {
+      const pairKey = `${pr.clientId}:${pr.exerciseId}`
+      if (seenPair.has(pairKey)) continue
+      seenPair.add(pairKey)
+      if (pr.source !== 'ESTIMATED') continue
+      pendingPRs.push({
+        id: pr.id,
+        clientId: pr.clientId,
+        clientName: memberNameById.get(pr.clientId) ?? '',
+        exerciseId: pr.exerciseId,
+        exerciseName: pr.exercise.nameSv || pr.exercise.name,
+        oneRepMax: pr.oneRepMax,
+        date: pr.date.toISOString(),
+      })
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -248,6 +282,7 @@ export async function GET(
           needsAttention,
         },
         recentPRs,
+        pendingPRs,
       },
     })
   } catch (error) {

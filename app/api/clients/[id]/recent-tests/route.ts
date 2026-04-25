@@ -1,0 +1,129 @@
+/**
+ * Recent Sport Tests API
+ *
+ * GET /api/clients/[id]/recent-tests
+ *
+ * Returns the 5 most recent test entries across every test source the
+ * app currently supports — physiological Test rows, hockey physical
+ * tests, and custom test protocols. Powers the Analys tab's "Senaste
+ * tester" card so the coach gets a peek at sport-specific PRs without
+ * having to flip to the Tests tab.
+ *
+ * The full Tests tab still owns drill-down + entry; this endpoint is
+ * read-only summary.
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { canAccessClient } from '@/lib/auth-utils'
+
+interface RecentTestEntry {
+  id: string
+  date: string
+  /** Discriminator for which model this row came from. */
+  kind: 'TEST' | 'HOCKEY_PHYSICAL' | 'CUSTOM'
+  /** Human label — testType for Test, protocol name for CustomTestResult, etc. */
+  label: string
+  /** One-line summary value (e.g. "VO2max 58.2 ml/kg/min"), nullable. */
+  summary: string | null
+}
+
+const LIMIT = 5
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await requireAuth()
+    const { id: clientId } = await params
+
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    // Pull from the three test sources in parallel. Each grabs a few
+    // more than LIMIT so we have headroom after merging + sorting.
+    const [tests, hockey, custom] = await Promise.all([
+      prisma.test.findMany({
+        where: { clientId, status: { not: 'DRAFT' } },
+        orderBy: { testDate: 'desc' },
+        take: LIMIT * 2,
+        select: {
+          id: true,
+          testDate: true,
+          testType: true,
+          vo2max: true,
+          maxHR: true,
+        },
+      }),
+      prisma.hockeyPhysicalTest.findMany({
+        where: { clientId },
+        orderBy: { testDate: 'desc' },
+        take: LIMIT * 2,
+        select: { id: true, testDate: true },
+      }),
+      prisma.customTestResult.findMany({
+        where: { clientId },
+        orderBy: { testDate: 'desc' },
+        take: LIMIT * 2,
+        include: {
+          protocol: { select: { name: true } },
+        },
+      }),
+    ])
+
+    const entries: RecentTestEntry[] = []
+
+    for (const t of tests) {
+      // Format the most useful single number per test type into a
+      // one-line summary the card can show inline.
+      let summary: string | null = null
+      if (t.vo2max != null) summary = `VO₂max ${t.vo2max.toFixed(1)} ml/kg/min`
+      else if (t.maxHR != null) summary = `MaxHR ${t.maxHR} bpm`
+      entries.push({
+        id: t.id,
+        date: t.testDate.toISOString(),
+        kind: 'TEST',
+        label: t.testType,
+        summary,
+      })
+    }
+
+    for (const h of hockey) {
+      entries.push({
+        id: h.id,
+        date: h.testDate.toISOString(),
+        kind: 'HOCKEY_PHYSICAL',
+        label: 'Hockey fysprov',
+        summary: null,
+      })
+    }
+
+    for (const c of custom) {
+      entries.push({
+        id: c.id,
+        date: c.testDate.toISOString(),
+        kind: 'CUSTOM',
+        label: c.protocol.name,
+        summary: null,
+      })
+    }
+
+    // Newest first, then trim.
+    entries.sort((a, b) => (a.date < b.date ? 1 : -1))
+    return NextResponse.json({
+      success: true,
+      data: entries.slice(0, LIMIT),
+      counts: {
+        test: tests.length,
+        hockey: hockey.length,
+        custom: custom.length,
+      },
+    })
+  } catch (error: unknown) {
+    return handleApiError(error)
+  }
+}

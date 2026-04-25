@@ -174,6 +174,10 @@ const INTENSITY_LABELS: Record<CardioIntensity, string> = {
   INTERVAL: 'Intervall',
 }
 
+// Common Prilepin / Westside zone landmarks. Saves typing the same
+// numbers every workout.
+const PERCENT_PRESETS = [60, 70, 75, 80, 85, 90, 100] as const
+
 interface SectionConfig {
   type: SectionType
   label: string
@@ -1780,6 +1784,27 @@ function SortableExerciseItem({
                 className="h-7 text-sm"
               />
             </div>
+            {isPercent && !isCooldown && (
+              <div className="col-span-4 flex flex-wrap gap-1">
+                {PERCENT_PRESETS.map((pct) => {
+                  const active = String(pct) === exercise.weight
+                  return (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => onUpdate('weight', String(pct))}
+                      className={`text-[11px] px-2 py-0.5 rounded-md border transition-colors ${
+                        active
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/40 hover:bg-muted text-muted-foreground border-transparent'
+                      }`}
+                    >
+                      {pct}%
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 

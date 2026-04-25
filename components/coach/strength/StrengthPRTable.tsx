@@ -18,6 +18,13 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Loader2, Plus, ChevronDown, ChevronRight, Trophy, Info, Pencil, Trash2 } from 'lucide-react'
 import {
   Dialog,
@@ -93,11 +100,18 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [formOpen, setFormOpen] = useState(false)
 
-  // Edit / delete state. Editing only the value + date for now — that's
-  // what coaches mistype most. Full re-categorisation goes through the
-  // delete + add flow.
+  // Edit / delete state. Source is editable so coaches can confirm an
+  // auto-detected ESTIMATED → TESTED after they actually verified it,
+  // which is what makes the runner-side PR feed actionable. Exercise
+  // re-assignment still goes through delete + add.
   const [editing, setEditing] = useState<
-    | { id: string; exerciseName: string; oneRepMax: string; date: string }
+    | {
+        id: string
+        exerciseName: string
+        oneRepMax: string
+        date: string
+        source: string
+      }
     | null
   >(null)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
@@ -119,6 +133,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
         body: JSON.stringify({
           oneRepMax: value,
           date: editing.date,
+          source: editing.source,
         }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -294,6 +309,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                                   exerciseName: displayName,
                                   oneRepMax: String(h.oneRepMax),
                                   date: h.date.slice(0, 10),
+                                  source: h.source,
                                 })
                               }
                               title="Redigera"
@@ -386,6 +402,25 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                   value={editing.date}
                   onChange={(e) => setEditing({ ...editing, date: e.target.value })}
                 />
+              </div>
+              <div>
+                <Label htmlFor="edit-pr-source">Källa</Label>
+                <Select
+                  value={editing.source}
+                  onValueChange={(v) => setEditing({ ...editing, source: v })}
+                >
+                  <SelectTrigger id="edit-pr-source">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TESTED">Testat (faktiskt 1RM-test)</SelectItem>
+                    <SelectItem value="CALCULATED">Beräknat (verifierad formel)</SelectItem>
+                    <SelectItem value="ESTIMATED">Uppskattat (auto från set)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Bekräfta auto-uppskattningar genom att flytta dem till "Testat" när du verifierat dem.
+                </p>
               </div>
             </div>
           )}

@@ -36,6 +36,7 @@ import {
 } from 'lucide-react'
 import { StrengthPRFeed } from '@/components/coach/dashboard/StrengthPRFeed'
 import { BulkPRImportDialog } from '@/components/coach/strength/BulkPRImportDialog'
+import { PendingPRFeed } from '@/components/coach/strength/PendingPRFeed'
 
 type AcwrZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL' | 'UNKNOWN'
 
@@ -65,6 +66,16 @@ interface RecentPR {
   source: string
 }
 
+interface PendingPR {
+  id: string
+  clientId: string
+  clientName: string
+  exerciseId: string
+  exerciseName: string
+  oneRepMax: number
+  date: string
+}
+
 interface TeamAnalysisData {
   teamId: string
   teamName: string
@@ -75,6 +86,7 @@ interface TeamAnalysisData {
     needsAttention: NeedsAttentionEntry[]
   }
   recentPRs: RecentPR[]
+  pendingPRs: PendingPR[]
 }
 
 interface TeamAnalysisClientProps {
@@ -154,7 +166,7 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
     )
   }
 
-  const { aggregates, members, recentPRs } = data
+  const { aggregates, members, recentPRs, pendingPRs } = data
   // Order zone tiles by severity so the most actionable info is leftmost.
   const zoneOrder: AcwrZone[] = ['OPTIMAL', 'CAUTION', 'DANGER', 'CRITICAL', 'DETRAINING', 'UNKNOWN']
 
@@ -337,6 +349,17 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
           </div>
         </CardContent>
       </Card>
+
+      {/* Pending auto-detected PRs — only render when there's actually
+          something for the coach to act on, otherwise the empty state
+          would just clutter the page. */}
+      {pendingPRs.length > 0 && (
+        <PendingPRFeed
+          items={pendingPRs}
+          basePath={basePath}
+          onChanged={() => setRefreshKey((k) => k + 1)}
+        />
+      )}
 
       {/* Recent PRs feed */}
       <StrengthPRFeed recentPRs={recentPRs} />

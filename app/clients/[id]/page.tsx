@@ -24,8 +24,10 @@ import type { PageContext } from '@/components/ai-studio/FloatingAIChat'
 import { ClientDetailTabs } from '@/components/client/ClientDetailTabs'
 import { UnifiedCalendar } from '@/components/calendar'
 import { StrengthPRTable } from '@/components/coach/strength/StrengthPRTable'
+import { PendingPRFeedSingle } from '@/components/coach/strength/PendingPRFeed'
 import { ProgressionDashboard } from '@/components/coach/progression/ProgressionDashboard'
 import { ClientLoadSummary } from '@/components/coach/clients/ClientLoadSummary'
+import { RecentTestsCard } from '@/components/coach/clients/RecentTestsCard'
 import { ReadinessDashboard } from '@/components/athlete/ReadinessDashboard'
 import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, Calendar, ExternalLink, Loader2, UserPlus, ClipboardList } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
@@ -563,7 +565,11 @@ export default function ClientDetailPage() {
         <ReadinessDashboard clientId={id} />
       </div>
 
+      <PendingPRFeedSingle clientId={id} />
+
       <StrengthPRTable clientId={id} clientName={client.name} />
+
+      <RecentTestsCard clientId={id} testsHref={`/clients/${id}?tab=tests`} />
 
       <ProgressionDashboard clientId={id} clientName={client.name} />
 
