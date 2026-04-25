@@ -27,6 +27,7 @@ import type {
   AgilityWorkout,
   AgilityWorkoutFormat,
 } from '@/types'
+import type { HybridWorkoutBuilderInitialData } from '@/components/hybrid-studio/HybridWorkoutBuilder'
 
 type AgilitySectionType = 'WARMUP' | 'MAIN' | 'COOLDOWN'
 
@@ -70,24 +71,46 @@ function normalizeStrengthPhase(raw: string | undefined): string {
   return PHASE_LABEL_TO_ENUM[key] ?? 'MAXIMUM_STRENGTH'
 }
 
-/** Coerce a "reps" field that may be string or number into a number. */
-function repsToNumber(reps: number | string | undefined): number {
-  if (typeof reps === 'number') return reps
+/**
+ * Coerce a "reps" field that may be string or number into a number.
+ * Returns the original string too, so the caller can decide whether to
+ * preserve it elsewhere (e.g. notes) when coercion lost information.
+ */
+function coerceReps(reps: number | string | undefined): {
+  value: number
+  /** Original string when coercion was lossy ("AMRAP", "30s", "8-12"); null otherwise. */
+  preservedRaw: string | null
+} {
+  if (typeof reps === 'number') return { value: reps, preservedRaw: null }
   if (typeof reps === 'string') {
-    const n = parseInt(reps, 10)
-    if (!isNaN(n)) return n
+    const trimmed = reps.trim()
+    const n = parseInt(trimmed, 10)
+    if (!isNaN(n) && /^\d+$/.test(trimmed)) {
+      // Pure integer — no information lost.
+      return { value: n, preservedRaw: null }
+    }
+    if (!isNaN(n)) {
+      // Parsed but not pure ("8-12" → 8, "30s" → 30): keep original around.
+      return { value: n, preservedRaw: trimmed }
+    }
+    // Not numeric at all ("AMRAP", "max"): default the count, keep raw.
+    return { value: 10, preservedRaw: trimmed }
   }
-  return 10
+  return { value: 10, preservedRaw: null }
 }
 
 /**
- * Strength importer rich-text fields (RPE, tempo, weightLabel) don't have
- * dedicated columns on StrengthSessionExercise — stash them at the start
- * of `notes` so the data survives into the builder. Coach can then move
- * what they want into proper fields.
+ * Strength importer rich-text fields (RPE, tempo, weightLabel, non-numeric
+ * reps) don't have dedicated columns on StrengthSessionExercise — stash
+ * them at the start of `notes` so the data survives into the builder.
+ * Coach can move what they want into proper fields after import.
  */
-function buildStrengthNotes(e: ParsedStrengthWorkout['exercises'][number]): string | undefined {
+function buildStrengthNotes(
+  e: ParsedStrengthWorkout['exercises'][number],
+  preservedReps: string | null = null
+): string | undefined {
   const tags: string[] = []
+  if (preservedReps) tags.push(`Reps ${preservedReps}`)
   if (e.rpe != null && e.rpe !== '') tags.push(`RPE ${e.rpe}`)
   if (e.tempo) tags.push(`Tempo ${e.tempo}`)
   if (e.weightLabel) tags.push(e.weightLabel)
@@ -102,14 +125,15 @@ function toMainExercise(
   mappings: Record<string, string>
 ): StrengthSessionExercise {
   const exerciseId = e.exerciseName ? mappings[e.exerciseName] ?? '' : ''
+  const reps = coerceReps(e.reps)
   return {
     exerciseId,
     exerciseName: e.exerciseName ?? '',
     sets: e.sets ?? 3,
-    reps: repsToNumber(e.reps),
+    reps: reps.value,
     weight: e.weight,
     restSeconds: e.restSeconds,
-    notes: buildStrengthNotes(e),
+    notes: buildStrengthNotes(e, reps.preservedRaw),
   }
 }
 
@@ -118,7 +142,8 @@ function toSectionExercise(
   mappings: Record<string, string>
 ): StrengthSessionSectionExercise {
   const exerciseId = e.exerciseName ? mappings[e.exerciseName] ?? '' : ''
-  // Section reps accept string ("30s") so we don't force a number here.
+  // Section reps accept string ("30s") natively, so prefer the original
+  // value verbatim and skip the lossy coercion.
   const reps: number | string = e.reps ?? (e.sets ? 10 : '')
   return {
     exerciseId,
@@ -166,16 +191,39 @@ export function toCardioSessionData(
   parsed: ParsedCardioWorkout
 ): CardioSessionData {
   // CardioSessionBuilder treats `id: ''` as "new session" and converts
-  // duration/distance from seconds/meters → minutes/km internally.
-  const segments: CardioSegment[] = parsed.segments.map((s) => ({
-    id: generateId(),
-    type: s.type,
-    duration: s.duration,
-    distance: s.distance,
-    pace: s.pace,
-    zone: s.zone,
-    notes: s.notes,
-  }))
+  // duration/distance from seconds/meters → minutes/km internally. The
+  // builder also accepts REPEAT_GROUP segments at runtime even though
+  // CardioSessionData['segments']: CardioSegment[] only types the flat
+  // shape — that's a known type-vs-runtime mismatch in the builder, so
+  // we cast through unknown here.
+  const segments = parsed.segments.map((s) => {
+    if (s.type === 'REPEAT_GROUP') {
+      return {
+        id: generateId(),
+        type: 'REPEAT_GROUP' as const,
+        repeats: s.repeats,
+        restBetweenRounds: s.restBetweenRounds,
+        steps: s.steps.map((step) => ({
+          id: generateId(),
+          type: step.type,
+          duration: step.duration,
+          distance: step.distance,
+          pace: step.pace,
+          zone: step.zone,
+          notes: step.notes,
+        })),
+      }
+    }
+    return {
+      id: generateId(),
+      type: s.type,
+      duration: s.duration,
+      distance: s.distance,
+      pace: s.pace,
+      zone: s.zone,
+      notes: s.notes,
+    }
+  }) as unknown as CardioSegment[]
   return {
     id: '',
     name: parsed.name,
@@ -195,53 +243,20 @@ export function toCardioSessionData(
 // ─── Hybrid ─────────────────────────────────────────────────────────────────
 
 /**
- * Shape consumed by HybridWorkoutBuilder.initialData. The builder needs
- * each movement to carry a real `Exercise` object (id + name + equipment)
- * so it can render the rep-scheme UI without an extra fetch. We only have
- * a name + a candidate id from the resolver, so we fabricate a minimal
- * Exercise stub. Unmapped movements use a synthetic `MISSING:<name>` id —
- * the builder's exercise-picker will surface them as "needs picking"
- * rather than silently dropping them.
+ * Builds `HybridWorkoutBuilderInitialData` (the type the builder exports
+ * for its `initialData` prop). The builder needs each movement to carry a
+ * real `Exercise` object (id + name + equipment) so it can render the
+ * rep-scheme UI without an extra fetch. We only have a name + a candidate
+ * id from the resolver, so we fabricate a minimal Exercise stub. Unmapped
+ * movements use a synthetic `MISSING:<name>` id — the builder's
+ * exercise-picker surfaces them as "needs picking" rather than silently
+ * dropping them.
  */
-type HybridBuilderInitialData = {
-  id?: string
-  name: string
-  description?: string
-  format: string
-  timeCap?: number
-  workTime?: number
-  restTime?: number
-  totalRounds?: number
-  totalMinutes?: number
-  repScheme?: string
-  scalingLevel?: string
-  movements?: Array<{
-    id: string
-    exerciseId: string
-    exercise: {
-      id: string
-      name: string
-      nameSv?: string
-      standardAbbreviation?: string
-      equipmentTypes: string[]
-    }
-    order: number
-    reps?: number
-    calories?: number
-    distance?: number
-    duration?: number
-    weightMale?: number
-    weightFemale?: number
-    notes?: string
-  }>
-  tags?: string[]
-}
-
 export function toHybridBuilderInitialData(
   parsed: ParsedHybridWorkout,
   mappings: Record<string, string>,
   candidateLookup: Record<string, string> = {} // name → display name from resolver, optional
-): HybridBuilderInitialData {
+): HybridWorkoutBuilderInitialData {
   return {
     name: parsed.name,
     description: parsed.description,

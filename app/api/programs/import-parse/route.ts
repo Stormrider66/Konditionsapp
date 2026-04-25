@@ -42,12 +42,15 @@ import {
   type Resolution,
 } from '@/lib/ai/exercise-resolver'
 import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
+import {
+  normalizeFile,
+  normalizeText,
+  MAX_FILE_BYTES,
+  type NormalizedInput,
+} from '@/lib/ai/file-normalize'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
-
-const MAX_FILE_BYTES = 15 * 1024 * 1024 // 15 MB upper bound
-const MAX_TEXT_CHARS = 200_000 // guard against absurd paste sizes
 
 // Parse responses are expensive (AI round-trip + optional vision). Cache by
 // a hash of the exact input so re-uploading the same Excel or pasting the
@@ -71,38 +74,6 @@ function computeCacheKey(
   if (imageBuffer) h.update(imageBuffer)
   else h.update(body)
   return h.digest('hex')
-}
-
-type NormalizedInput = {
-  kind: 'text' | 'excel' | 'csv' | 'pdf' | 'image'
-  /** Human-readable representation that will be embedded in the model prompt */
-  body: string
-  /** Image bytes when kind==='image' (sent multimodally to a vision model). */
-  imageBuffer?: Buffer
-  imageMimeType?: string
-  /** Original filename, if any */
-  filename?: string
-  /** Truncation flag so the caller can surface a warning */
-  truncated: boolean
-}
-
-const VISION_MIME_TYPES = new Set([
-  'image/png',
-  'image/jpeg',
-  'image/jpg',
-  'image/webp',
-  'image/gif',
-  'image/heic',
-  'image/heif',
-])
-
-class EmptyPdfError extends Error {
-  constructor(filename: string) {
-    super(
-      `Could not read text from "${filename}" — the PDF looks like a scan with no text layer. Export the pages as images (PNG/JPG) and upload those instead.`
-    )
-    this.name = 'EmptyPdfError'
-  }
 }
 
 export async function POST(request: NextRequest) {
@@ -197,11 +168,7 @@ export async function POST(request: NextRequest) {
       if (file) {
         normalized = await normalizeFile(file)
       } else if (pastedText.trim().length > 0) {
-        normalized = {
-          kind: 'text',
-          body: pastedText.slice(0, MAX_TEXT_CHARS),
-          truncated: pastedText.length > MAX_TEXT_CHARS,
-        }
+        normalized = normalizeText(pastedText)
       }
     } catch (e) {
       logger.error('Failed to pre-process import input', {}, e)
@@ -468,83 +435,6 @@ function recordImportAttempt(data: Prisma.ImportAttemptUncheckedCreateInput) {
     })
 }
 
-// ─── Pre-processing ──────────────────────────────────────────────────────────
-
-async function normalizeFile(file: File): Promise<NormalizedInput> {
-  const name = file.name || 'upload'
-  const lower = name.toLowerCase()
-  const type = file.type || ''
-
-  // Images — routed to a vision-capable model rather than parsed server-side.
-  // We cover screenshots, photos of whiteboards, handwritten notes, etc.
-  if (
-    VISION_MIME_TYPES.has(type) ||
-    /\.(png|jpe?g|webp|gif|heic|heif)$/i.test(lower)
-  ) {
-    const buf = Buffer.from(await file.arrayBuffer())
-    return {
-      kind: 'image',
-      body: `IMAGE: ${name}`,
-      imageBuffer: buf,
-      // Extension wins over browser-provided type: iOS/macOS sometimes labels
-      // HEIC uploads as image/jpeg which would silently break the vision call.
-      imageMimeType: resolveImageMimeType(lower, type),
-      filename: name,
-      truncated: false,
-    }
-  }
-
-  // Excel
-  if (
-    lower.endsWith('.xlsx') ||
-    lower.endsWith('.xls') ||
-    type.includes('spreadsheetml') ||
-    type === 'application/vnd.ms-excel'
-  ) {
-    const buf = Buffer.from(await file.arrayBuffer())
-    const body = await excelToText(buf)
-    return maybeTruncate({ kind: 'excel', body, filename: name })
-  }
-
-  // CSV
-  if (lower.endsWith('.csv') || type === 'text/csv') {
-    const raw = await file.text()
-    const body = `CSV FILE: ${name}\n\n${raw}`
-    return maybeTruncate({ kind: 'csv', body, filename: name })
-  }
-
-  // PDF
-  if (lower.endsWith('.pdf') || type === 'application/pdf') {
-    const buf = Buffer.from(await file.arrayBuffer())
-    const body = await pdfToText(buf, name)
-    // Scanned PDFs come back with essentially no text. pdf-parse gives us
-    // whitespace at best. Fail fast with a helpful hint rather than sending
-    // an empty prompt to the model and getting a confused response back.
-    const textLength = body.replace(/\bPDF FILE:[^\n]+\n\n/, '').trim().length
-    if (textLength < 40) {
-      throw new EmptyPdfError(name)
-    }
-    return maybeTruncate({ kind: 'pdf', body, filename: name })
-  }
-
-  // Plain text fallback (txt, md, unknown)
-  const raw = await file.text()
-  return maybeTruncate({
-    kind: 'text',
-    body: `TEXT FILE: ${name}\n\n${raw}`,
-    filename: name,
-  })
-}
-
-function maybeTruncate(
-  n: Omit<NormalizedInput, 'truncated'>
-): NormalizedInput {
-  if (n.body.length > MAX_TEXT_CHARS) {
-    return { ...n, body: n.body.slice(0, MAX_TEXT_CHARS), truncated: true }
-  }
-  return { ...n, truncated: false }
-}
-
 /**
  * Detect generic placeholder exerciseName patterns the AI sometimes emits
  * when it skips reading the source's per-exercise table — "Övning 1",
@@ -601,144 +491,6 @@ function stripPlaceholderExerciseNames(aiOutput: string): {
   }
   if (stripped === 0) return { aiOutput, placeholdersStripped: 0 }
   return { aiOutput: JSON.stringify(parsed), placeholdersStripped: stripped }
-}
-
-function guessImageMimeFromName(lower: string): string {
-  if (lower.endsWith('.png')) return 'image/png'
-  if (lower.endsWith('.webp')) return 'image/webp'
-  if (lower.endsWith('.gif')) return 'image/gif'
-  if (lower.endsWith('.heic') || lower.endsWith('.heif')) return 'image/heic'
-  return 'image/jpeg'
-}
-
-/**
- * Pick the right mime type for an image upload, preferring file-extension
- * truth over browser-provided `type`. iPhone/macOS browsers sometimes label
- * HEIC uploads as image/jpeg and other mislabels happen too; the extension
- * is authoritative when it disagrees with the header.
- */
-function resolveImageMimeType(lower: string, browserType: string): string {
-  const byName = guessImageMimeFromName(lower)
-  if (!browserType) return byName
-  // HEIC/HEIF mislabelled as JPEG is the common case.
-  if ((byName === 'image/heic' || byName === 'image/heif') && browserType !== byName) {
-    return byName
-  }
-  // WebP mislabelled as JPEG is less common but has been seen on Safari.
-  if (byName === 'image/webp' && browserType === 'image/jpeg') return byName
-  return browserType
-}
-
-async function excelToText(buf: Buffer): Promise<string> {
-  const ExcelJS = (await import('exceljs')).default
-  const wb = new ExcelJS.Workbook()
-  await wb.xlsx.load(buf as unknown as ArrayBuffer)
-
-  /**
-   * Flatten any cell value into a single-line string. Multi-line cell
-   * content (common in "overview" sheets that stuff a whole session into
-   * one cell) otherwise breaks the markdown-table structure the AI sees —
-   * newlines inside the cell would be interpreted as new rows and the `|`
-   * separators downstream get misaligned. Replace with " · " so the content
-   * survives as one logical row.
-   */
-  const toCell = (v: unknown): string => {
-    let raw: string
-    if (v == null) raw = ''
-    else if (typeof v === 'object' && 'richText' in (v as object)) {
-      raw = (v as { richText: { text: string }[] }).richText
-        .map((r) => r.text)
-        .join('')
-    } else if (typeof v === 'object' && 'result' in (v as object)) {
-      const r = (v as { result: unknown }).result
-      raw = r == null ? '' : String(r)
-    } else if (v instanceof Date) {
-      raw = v.toISOString().slice(0, 10)
-    } else {
-      raw = String(v)
-    }
-    return raw
-      .replace(/\r\n|\r|\n/g, ' · ')
-      .replace(/\s+/g, ' ')
-      .replace(/\|/g, '\\|')
-      .trim()
-  }
-
-  // Collect sheets with a "looks like a detail table" score so we can render
-  // the authoritative per-exercise sheets first. The AI weights earlier
-  // content more heavily under token pressure.
-  interface RenderedSheet {
-    name: string
-    rows: string[][]
-    score: number // higher = more likely the per-exercise detail table
-  }
-  const rendered: RenderedSheet[] = []
-
-  const DETAIL_HEADERS = [
-    'övning', 'ovning', 'exercise',
-    'set x reps', 'sets x reps', 'sets', 'reps',
-    'rpe', 'rir', 'belastning', 'weight', 'vila', 'rest', 'tempo',
-    'muskelgrupp', 'muscle group',
-  ]
-
-  wb.eachSheet((sheet) => {
-    const rows: string[][] = []
-    sheet.eachRow({ includeEmpty: false }, (row) => {
-      const cells: string[] = []
-      row.eachCell({ includeEmpty: true }, (cell) => {
-        if (
-          cell.type === ExcelJS.ValueType.Merge ||
-          (cell.isMerged && cell.master && cell.master !== cell)
-        ) {
-          cells.push('')
-          return
-        }
-        cells.push(toCell(cell.value))
-      })
-      if (cells.some((c) => c.length > 0)) rows.push(cells)
-    })
-
-    // Score: count how many known detail-table header tokens appear in the
-    // first 6 rows of the sheet.
-    const header = rows
-      .slice(0, 6)
-      .flat()
-      .map((c) => c.toLowerCase())
-    const score = DETAIL_HEADERS.reduce(
-      (n, kw) => (header.some((c) => c.includes(kw)) ? n + 1 : n),
-      0
-    )
-    rendered.push({ name: sheet.name, rows, score })
-  })
-
-  // Highest-scoring sheets first; stable otherwise so order within a score
-  // tier matches workbook order.
-  rendered.sort((a, b) => b.score - a.score)
-
-  const out: string[] = []
-  for (const { name, rows, score } of rendered) {
-    out.push(`# Sheet: ${name}${score >= 3 ? ' (detail table — AUTHORITATIVE)' : ''}`)
-    if (rows.length > 0) {
-      const width = Math.max(...rows.map((r) => r.length))
-      for (const r of rows) {
-        while (r.length < width) r.push('')
-        out.push('| ' + r.join(' | ') + ' |')
-      }
-    }
-    out.push('')
-  }
-  return out.join('\n')
-}
-
-async function pdfToText(buf: Buffer, filename: string): Promise<string> {
-  const { PDFParse } = await import('pdf-parse')
-  const parser = new PDFParse({ data: buf })
-  try {
-    const res = await parser.getText()
-    return `PDF FILE: ${filename}\n\n${res.text}`
-  } finally {
-    await parser.destroy().catch(() => {})
-  }
 }
 
 // ─── Prompt ──────────────────────────────────────────────────────────────────

@@ -20,7 +20,7 @@
  * (agility). Cardio doesn't need matching.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -180,6 +180,7 @@ export function ImportWorkoutDialog({
   const [parsing, setParsing] = useState(false)
   const [parseResult, setParseResult] = useState<ParseResponse | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
+  const [fixingFormat, setFixingFormat] = useState(false)
 
   const [mappings, setMappings] = useState<Record<string, string>>({})
   const [skipped, setSkipped] = useState<Set<string>>(new Set())
@@ -191,6 +192,12 @@ export function ImportWorkoutDialog({
     if (!fileIsImage || !file) return null
     return URL.createObjectURL(file)
   }, [file, fileIsImage])
+  // Revoke the previous blob URL whenever the preview source changes or
+  // the dialog unmounts — `URL.createObjectURL` leaks otherwise.
+  useEffect(() => {
+    if (!imagePreviewUrl) return
+    return () => URL.revokeObjectURL(imagePreviewUrl)
+  }, [imagePreviewUrl])
 
   const hasInput = tab === 'upload' ? !!file : pastedText.trim().length > 0
 
@@ -217,53 +224,87 @@ export function ImportWorkoutDialog({
     if (f) setFile(f)
   }, [])
 
+  /**
+   * Run a parse against the API. Intent override lets the "Fixa format"
+   * retry force-bump to 'powerful' without changing the dialog's intent
+   * selector (which still reflects the coach's chosen tier).
+   */
+  const runParse = async (intentOverride?: ModelIntent) => {
+    const effectiveIntent = intentOverride ?? intent
+    let response: Response
+    if (tab === 'upload' && file) {
+      const form = new FormData()
+      form.append('file', file)
+      form.append('workoutType', workoutType)
+      form.append('intent', effectiveIntent)
+      if (preferClaude) form.append('provider', 'anthropic')
+      response = await fetch('/api/workouts/import-parse', {
+        method: 'POST',
+        body: form,
+      })
+    } else {
+      response = await fetch('/api/workouts/import-parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workoutType,
+          text: pastedText,
+          intent: effectiveIntent,
+          ...(preferClaude && { provider: 'anthropic' }),
+        }),
+      })
+    }
+    const data = await response.json()
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.error || 'Kunde inte tolka passet')
+    }
+    return data as ParseResponse
+  }
+
+  const applyParseResult = (typed: ParseResponse) => {
+    setParseResult(typed)
+    const auto: Record<string, string> = {}
+    for (const r of typed.resolutions ?? []) {
+      if (r.bestMatch) auto[r.name] = r.bestMatch.id
+    }
+    setMappings(auto)
+    setSkipped(new Set())
+  }
+
   const handleParse = async () => {
     setParsing(true)
     setParseError(null)
     setParseResult(null)
     try {
-      let response: Response
-      if (tab === 'upload' && file) {
-        const form = new FormData()
-        form.append('file', file)
-        form.append('workoutType', workoutType)
-        form.append('intent', intent)
-        if (preferClaude) form.append('provider', 'anthropic')
-        response = await fetch('/api/workouts/import-parse', {
-          method: 'POST',
-          body: form,
-        })
-      } else {
-        response = await fetch('/api/workouts/import-parse', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            workoutType,
-            text: pastedText,
-            intent,
-            ...(preferClaude && { provider: 'anthropic' }),
-          }),
-        })
-      }
-      const data = await response.json()
-      if (!response.ok || !data?.success) {
-        throw new Error(data?.error || 'Kunde inte tolka passet')
-      }
-      const typed = data as ParseResponse
-      setParseResult(typed)
-      // Auto-map high-confidence resolutions.
-      const auto: Record<string, string> = {}
-      for (const r of typed.resolutions ?? []) {
-        if (r.bestMatch) auto[r.name] = r.bestMatch.id
-      }
-      setMappings(auto)
-      setSkipped(new Set())
+      applyParseResult(await runParse())
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Okänt fel'
       setParseError(msg)
       toast.error('Import misslyckades', { description: msg })
     } finally {
       setParsing(false)
+    }
+  }
+
+  /**
+   * "Fixa format" recovery — re-run the parse at the 'powerful' tier.
+   * Useful when the balanced/fast tier produced warnings or schema
+   * validation failures. Reuses the original input held in state.
+   */
+  const handleFixFormat = async () => {
+    if (fixingFormat) return
+    setFixingFormat(true)
+    try {
+      const next = await runParse('powerful')
+      applyParseResult(next)
+      toast.success('Tolkning uppdaterad', {
+        description: `Kör igen med ${next.modelUsed}.`,
+      })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Okänt fel'
+      toast.error('Omkörningen misslyckades', { description: msg })
+    } finally {
+      setFixingFormat(false)
     }
   }
 
@@ -274,6 +315,18 @@ export function ImportWorkoutDialog({
       else next[name] = id
       return next
     })
+    // Persist exercise-name aliases so future imports of the same name
+    // auto-resolve. Only fires for STRENGTH + HYBRID, both of which use
+    // the Exercise pool (and thus the existing ExerciseNameAlias table).
+    // AGILITY drills don't have an alias table — would need a parallel
+    // schema change to support; out of scope for now.
+    if (id && (workoutType === 'STRENGTH' || workoutType === 'HYBRID')) {
+      void fetch('/api/programs/save-exercise-alias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alias: name, exerciseId: id }),
+      }).catch(() => {})
+    }
   }
 
   const handleConfirm = () => {
@@ -516,14 +569,38 @@ export function ImportWorkoutDialog({
               )}
             </Card>
 
-            {parseResult.warnings.length > 0 && (
+            {(parseResult.warnings.length > 0 || !parseResult.parsedOk) && (
               <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded">
                 <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
-                <ul className="text-sm text-amber-800 space-y-0.5">
-                  {parseResult.warnings.map((w, i) => (
-                    <li key={i}>{w}</li>
-                  ))}
-                </ul>
+                <div className="flex-1 space-y-2">
+                  <ul className="text-sm text-amber-800 space-y-0.5">
+                    {parseResult.warnings.map((w, i) => (
+                      <li key={i}>{w}</li>
+                    ))}
+                    {!parseResult.parsedOk && parseResult.warnings.length === 0 && (
+                      <li>Schemavalideringen misslyckades — innehållet kanske inte fyller byggaren korrekt.</li>
+                    )}
+                  </ul>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleFixFormat}
+                    disabled={fixingFormat}
+                    className="bg-white"
+                  >
+                    {fixingFormat ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        Försöker igen…
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Fixa format med kraftfullare modell
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -623,15 +700,34 @@ function WorkoutSummary({ workout }: { workout: ParsedWorkoutImport }) {
             {workout.totalDuration ? ` · ${Math.round(workout.totalDuration / 60)} min` : ''}
             {workout.totalDistance ? ` · ${(workout.totalDistance / 1000).toFixed(1)} km` : ''}
           </div>
-          {workout.segments.slice(0, 5).map((s, i) => (
-            <div key={i}>
-              {s.type}
-              {s.duration ? ` — ${Math.round(s.duration / 60)} min` : ''}
-              {s.distance ? ` — ${s.distance >= 1000 ? `${(s.distance / 1000).toFixed(1)} km` : `${s.distance} m`}` : ''}
-              {s.pace ? ` @ ${s.pace}` : ''}
-              {s.zone ? ` · zon ${s.zone}` : ''}
-            </div>
-          ))}
+          {workout.segments.slice(0, 5).map((s, i) => {
+            if (s.type === 'REPEAT_GROUP') {
+              const stepSummary = s.steps
+                .map((st) =>
+                  st.distance
+                    ? `${st.distance >= 1000 ? `${(st.distance / 1000).toFixed(1)}km` : `${st.distance}m`} ${st.type.toLowerCase()}`
+                    : st.duration
+                      ? `${Math.round(st.duration / 60)}min ${st.type.toLowerCase()}`
+                      : st.type.toLowerCase()
+                )
+                .join(' + ')
+              return (
+                <div key={i}>
+                  {s.repeats}× ({stepSummary})
+                  {s.restBetweenRounds ? `, ${s.restBetweenRounds}s mellan varv` : ''}
+                </div>
+              )
+            }
+            return (
+              <div key={i}>
+                {s.type}
+                {s.duration ? ` — ${Math.round(s.duration / 60)} min` : ''}
+                {s.distance ? ` — ${s.distance >= 1000 ? `${(s.distance / 1000).toFixed(1)} km` : `${s.distance} m`}` : ''}
+                {s.pace ? ` @ ${s.pace}` : ''}
+                {s.zone ? ` · zon ${s.zone}` : ''}
+              </div>
+            )
+          })}
           {workout.segments.length > 5 && (
             <div className="text-muted-foreground">… +{workout.segments.length - 5} till</div>
           )}

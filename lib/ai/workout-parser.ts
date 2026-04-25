@@ -80,7 +80,7 @@ export type ParsedStrengthWorkout = z.infer<typeof StrengthWorkoutImportSchema>
 
 // ─── Cardio ─────────────────────────────────────────────────────────────────
 
-const CARDIO_SEGMENT_TYPES = [
+const CARDIO_FLAT_TYPES = [
   'WARMUP',
   'COOLDOWN',
   'INTERVAL',
@@ -90,8 +90,10 @@ const CARDIO_SEGMENT_TYPES = [
   'DRILLS',
 ] as const
 
-const CardioSegmentSchema = z.object({
-  type: z.enum(CARDIO_SEGMENT_TYPES),
+const CARDIO_REPEAT_STEP_TYPES = ['INTERVAL', 'RECOVERY', 'REST', 'STEADY'] as const
+
+const CardioFlatSegmentSchema = z.object({
+  type: z.enum(CARDIO_FLAT_TYPES),
   // Seconds + meters to match CardioSessionData. The builder divides by
   // 60 / 1000 when it loads initialData, so we emit raw SI here.
   duration: z.number().int().nonnegative().optional(),
@@ -100,6 +102,42 @@ const CardioSegmentSchema = z.object({
   zone: z.number().int().min(1).max(5).optional(),
   notes: z.string().optional(),
 })
+
+const CardioRepeatStepSchema = z.object({
+  type: z.enum(CARDIO_REPEAT_STEP_TYPES),
+  duration: z.number().int().nonnegative().optional(),
+  distance: z.number().nonnegative().optional(),
+  pace: z.string().optional(),
+  zone: z.number().int().min(1).max(5).optional(),
+  notes: z.string().optional(),
+})
+
+const CardioRepeatGroupSchema = z.object({
+  type: z.literal('REPEAT_GROUP'),
+  repeats: z.number().int().positive(),
+  /** Seconds of rest between rounds of the group (not between steps). */
+  restBetweenRounds: z.number().int().nonnegative().optional(),
+  steps: z.array(CardioRepeatStepSchema).min(1),
+})
+
+/**
+ * A cardio segment is either a flat block (WARMUP, STEADY, etc.) or a
+ * REPEAT_GROUP wrapping a sub-sequence that runs N times. Cleaner than
+ * flattening "5×1km" into 5 INTERVAL + 4 RECOVERY rows the coach can't
+ * easily edit as a unit. The cardio builder already handles both shapes
+ * at runtime even though `CardioSessionData['segments']` only types the
+ * flat one.
+ */
+const CardioSegmentSchema = z.discriminatedUnion('type', [
+  CardioFlatSegmentSchema.extend({ type: z.literal('WARMUP') }),
+  CardioFlatSegmentSchema.extend({ type: z.literal('COOLDOWN') }),
+  CardioFlatSegmentSchema.extend({ type: z.literal('INTERVAL') }),
+  CardioFlatSegmentSchema.extend({ type: z.literal('STEADY') }),
+  CardioFlatSegmentSchema.extend({ type: z.literal('RECOVERY') }),
+  CardioFlatSegmentSchema.extend({ type: z.literal('HILL') }),
+  CardioFlatSegmentSchema.extend({ type: z.literal('DRILLS') }),
+  CardioRepeatGroupSchema,
+])
 
 export const CardioWorkoutImportSchema = z.object({
   workoutType: z.literal('CARDIO'),
@@ -115,6 +153,8 @@ export const CardioWorkoutImportSchema = z.object({
   notes: z.string().optional(),
 })
 export type ParsedCardioWorkout = z.infer<typeof CardioWorkoutImportSchema>
+export type ParsedCardioSegment = z.infer<typeof CardioSegmentSchema>
+export type ParsedCardioRepeatStep = z.infer<typeof CardioRepeatStepSchema>
 
 // ─── Hybrid ─────────────────────────────────────────────────────────────────
 
@@ -421,6 +461,7 @@ Output JSON matching:
   "description"?: string,
   "sport": "RUNNING" | "CYCLING" | "SWIMMING" | "SKIING" | "ROWING" | string,
   "segments": [
+    // Flat segment — for one-shot blocks like warmup, cooldown, a single steady run:
     {
       "type": "WARMUP" | "STEADY" | "INTERVAL" | "RECOVERY" | "HILL" | "DRILLS" | "COOLDOWN",
       "duration"?: number,    // SECONDS
@@ -428,6 +469,25 @@ Output JSON matching:
       "pace"?: string,        // "5:30/km", "1:45/100m"
       "zone"?: number,        // 1-5
       "notes"?: string
+    }
+    // OR a repeat group — for "Nx interval" patterns. Wraps a sub-sequence
+    // that runs N times. Use this whenever the source describes Nx of
+    // anything (5×1km, 8×400m, 6×3min) — it's far easier for the coach to
+    // edit the prescription as a unit afterward.
+    {
+      "type": "REPEAT_GROUP",
+      "repeats": number,             // N
+      "restBetweenRounds"?: number,  // SECONDS — only when source explicitly calls out rest BETWEEN whole rounds (not per-step)
+      "steps": [                     // The body of one round
+        {
+          "type": "INTERVAL" | "RECOVERY" | "REST" | "STEADY",
+          "duration"?: number,        // seconds
+          "distance"?: number,        // meters
+          "pace"?: string,
+          "zone"?: number,
+          "notes"?: string
+        }
+      ]
     }
   ],
   "totalDuration"?: number,   // seconds
@@ -442,8 +502,12 @@ UNITS — VERY IMPORTANT
 - duration is in SECONDS (not minutes). "10 min uppvärmning" → duration:600.
 - distance is in METERS (not km). "5 km" → distance:5000. "400 m" → distance:400.
 
-INTERVALS
-- A "5×1km @ 3:40 with 90s rest" set expands to 1 WARMUP + 5 INTERVAL + 4 RECOVERY (or RECOVERY between INTERVALs) + 1 COOLDOWN segments. Better: emit ONE INTERVAL segment with distance:1000 + pace:"3:40/km" and ONE RECOVERY with duration:90, then have the user repeat it. Either is fine — prefer the explicit form when source spells it out.
+INTERVALS — PREFER REPEAT_GROUP
+- "5×1km @ 3:40 with 90s rest jog" → ONE REPEAT_GROUP with repeats:5 and steps:[{type:"INTERVAL",distance:1000,pace:"3:40/km",zone:4},{type:"RECOVERY",duration:90,zone:1}].
+- "8×400m fast / 200m easy" → REPEAT_GROUP repeats:8, steps:[{INTERVAL,distance:400,...},{RECOVERY,distance:200,...}].
+- "6×3 min @ tempo, 90s vila" → REPEAT_GROUP repeats:6, steps:[{INTERVAL,duration:180,zone:4},{RECOVERY,duration:90,zone:1}].
+- Wrap warmup/cooldown around the group as separate flat segments.
+- Only emit individual flat INTERVAL/RECOVERY segments when the source describes a non-uniform sequence ("3min @ tempo, 90s easy, 1min @ max, 60s easy") that doesn't repeat cleanly.
 
 ZONES
 - If source uses HR zones 1–5, copy the number into zone.

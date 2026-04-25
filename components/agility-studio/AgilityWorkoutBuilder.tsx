@@ -3,7 +3,7 @@
 // components/agility-studio/AgilityWorkoutBuilder.tsx
 // Multi-step workout builder dialog
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   Dialog,
@@ -139,11 +139,15 @@ export function AgilityWorkoutBuilder({
     initialWorkout?.restBetweenDrills || 30
   )
 
-  // Step 3: Drills — seeded from initialDrills (importer flow) when present.
-  // Items whose drillId isn't in the drill library are dropped silently;
-  // the coach can pick replacements manually in step 3.
-  const [selectedDrills, setSelectedDrills] = useState<SelectedDrill[]>(() => {
-    if (!initialDrills?.length) return []
+  // Step 3: Drills. The seeding effect below populates `selectedDrills`
+  // whenever `initialDrills` (or the underlying drill library) changes —
+  // covers both first mount and the case where the parent keeps the
+  // builder mounted across imports. Items whose drillId isn't in the
+  // drill library are dropped silently; the coach picks replacements
+  // manually in step 3.
+  const [selectedDrills, setSelectedDrills] = useState<SelectedDrill[]>([])
+  useEffect(() => {
+    if (!initialDrills?.length) return
     const byId = new Map(drills.map((d) => [d.id, d]))
     const seeded: SelectedDrill[] = []
     for (const seed of initialDrills) {
@@ -160,8 +164,8 @@ export function AgilityWorkoutBuilder({
         notes: seed.notes,
       })
     }
-    return seeded
-  })
+    setSelectedDrills(seeded)
+  }, [initialDrills, drills])
   const [drillSearchQuery, setDrillSearchQuery] = useState('')
 
   // Step 4: Review

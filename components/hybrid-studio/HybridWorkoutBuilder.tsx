@@ -93,28 +93,35 @@ interface WorkoutMovement {
   notes?: string;
 }
 
+/**
+ * Shape consumed by `initialData`. Exported so consumers (notably the
+ * workout importer's converter) can produce it without redeclaring the
+ * shape locally and silently drifting.
+ */
+export interface HybridWorkoutBuilderInitialData {
+  id?: string;
+  name: string;
+  description?: string;
+  format: string;
+  timeCap?: number;
+  workTime?: number;
+  restTime?: number;
+  totalRounds?: number;
+  totalMinutes?: number;
+  repScheme?: string;
+  scalingLevel?: string;
+  movements?: WorkoutMovement[];
+  tags?: string[];
+  // Section data
+  warmupData?: HybridSectionData;
+  strengthData?: HybridSectionData;
+  cooldownData?: HybridSectionData;
+}
+
 interface HybridWorkoutBuilderProps {
   onSave: (workoutId?: string) => void;
   onCancel: () => void;
-  initialData?: {
-    id?: string;
-    name: string;
-    description?: string;
-    format: string;
-    timeCap?: number;
-    workTime?: number;
-    restTime?: number;
-    totalRounds?: number;
-    totalMinutes?: number;
-    repScheme?: string;
-    scalingLevel?: string;
-    movements?: WorkoutMovement[];
-    tags?: string[];
-    // Section data
-    warmupData?: HybridSectionData;
-    strengthData?: HybridSectionData;
-    cooldownData?: HybridSectionData;
-  };
+  initialData?: HybridWorkoutBuilderInitialData;
 }
 
 const formatOptions = [

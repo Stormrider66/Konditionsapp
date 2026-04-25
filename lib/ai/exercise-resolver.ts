@@ -17,6 +17,10 @@
 
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import {
+  scoreNameAgainstRow,
+  tokenize,
+} from '@/lib/ai/library-name-match'
 
 const MAX_NAMES_PER_REQUEST = 200
 const AUTO_ASSIGN_THRESHOLD = 0.95
@@ -188,7 +192,7 @@ export async function resolveExercises(
 
     const scored = pool
       .map<Candidate>((ex) => {
-        const base = bestNameScore(name, ex)
+        const base = scoreNameAgainstRow(name, ex)
         let score = base
         if (hints?.categoryHint && ex.category && hints.categoryHint === ex.category) {
           score += 0.02
@@ -237,90 +241,6 @@ function isMissingTableError(e: unknown): boolean {
     return true
   }
   return false
-}
-
-// ─── Scoring helpers ────────────────────────────────────────────────────────
-
-const STOP_WORDS = new Set([
-  'reps',
-  'rep',
-  'set',
-  'sets',
-  'min',
-  'sek',
-  'sec',
-  'kg',
-  'lbs',
-  'st',
-  'av',
-  'för',
-  'per',
-  'with',
-  'and',
-  'the',
-  'at',
-])
-
-function tokenize(s: string): string[] {
-  return s
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
-    .split(/\s+/)
-    .map((t) => t.trim())
-    .filter(
-      (t) =>
-        t.length >= 2 &&
-        !/^\d+x?\d*$/.test(t) &&
-        !STOP_WORDS.has(t)
-    )
-}
-
-function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-function bestNameScore(
-  query: string,
-  exercise: { name: string; nameSv?: string | null; nameEn?: string | null }
-): number {
-  const candidates = [exercise.name, exercise.nameSv, exercise.nameEn].filter(
-    (v): v is string => typeof v === 'string' && v.length > 0
-  )
-  let best = 0
-  for (const c of candidates) {
-    const s = pairScore(query, c)
-    if (s > best) best = s
-  }
-  return best
-}
-
-function pairScore(query: string, candidate: string): number {
-  const q = normalize(query)
-  const c = normalize(candidate)
-  if (!q || !c) return 0
-
-  if (q === c) return 1
-  if (c.startsWith(q) || c.endsWith(q) || q.startsWith(c) || q.endsWith(c)) {
-    const ratio = Math.min(q.length, c.length) / Math.max(q.length, c.length)
-    return 0.8 + 0.15 * ratio
-  }
-
-  const qTokens = tokenize(query)
-  const cTokens = new Set(tokenize(candidate))
-  if (qTokens.length === 0 || cTokens.size === 0) return 0
-
-  const present = qTokens.filter((t) => cTokens.has(t))
-  const coverage = present.length / qTokens.length
-  const inverse = present.length / cTokens.size
-
-  if (coverage === 1) return 0.75 + 0.1 * inverse
-  if (coverage >= 0.6) return 0.55 + 0.15 * coverage
-  if (coverage > 0 && present.some((t) => t.length >= 4)) return 0.4 * coverage + 0.1
-  return 0
 }
 
 // ─── Access-scope helpers ───────────────────────────────────────────────────
