@@ -119,7 +119,7 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
         </Select>
 
         {canAccessSimca && selectedTeam !== 'all' && (
-          <a href={`${businessSlug ? `/${businessSlug}` : ''}/coach/teams/${selectedTeam}/analysis`}>
+          <a href={`${businessSlug ? `/${businessSlug}` : ''}/coach/teams/${selectedTeam}/multivariate`}>
             <Button variant="outline" size="sm">
               <FlaskConical className="h-3.5 w-3.5 mr-1.5" />
               SIMCA-analys

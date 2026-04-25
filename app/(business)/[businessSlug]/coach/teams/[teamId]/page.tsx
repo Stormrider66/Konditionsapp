@@ -495,7 +495,21 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         <TeamLeaderboard teamId={teamId} />
       </div>
 
-      <div className="mt-8">
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <Card className="dark:bg-slate-900/50 dark:border-white/10">
+          <CardHeader>
+            <CardTitle className="dark:text-white">Lagets analys</CardTitle>
+            <CardDescription>
+              Belastning, aktivitet och PRs per atlet — vem behöver uppmärksamhet idag?
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href={`/${businessSlug}/coach/teams/${teamId}/analysis`}>
+              <Button>Öppna lagets analys</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardHeader>
             <CardTitle className="dark:text-white">Multivariat analys</CardTitle>
@@ -504,8 +518,8 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href={`/${businessSlug}/coach/teams/${teamId}/analysis`}>
-              <Button>Öppna analys</Button>
+            <Link href={`/${businessSlug}/coach/teams/${teamId}/multivariate`}>
+              <Button variant="outline">Öppna multivariat analys</Button>
             </Link>
           </CardContent>
         </Card>
