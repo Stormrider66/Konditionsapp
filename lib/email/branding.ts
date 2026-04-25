@@ -51,7 +51,13 @@ export async function resolveEmailBranding(
       senderName,
       fromAddress: `${senderName} <noreply@${sendingDomain}>`,
       sendingDomain,
-      replyTo: branding.replyToEmail || PLATFORM_REPLY_TO,
+      // Only honor the business's reply-to once it's verified — until the
+      // customer clicks the confirmation link we keep routing replies to
+      // platform support so a typo can't dead-letter them.
+      replyTo:
+        branding.replyToEmail && branding.replyToEmailVerified
+          ? branding.replyToEmail
+          : PLATFORM_REPLY_TO,
       logoUrl: branding.logoUrl,
       primaryColor: branding.primaryColor || DEFAULT_EMAIL_BRANDING.primaryColor,
       gradientStart: branding.primaryColor || DEFAULT_EMAIL_BRANDING.gradientStart,

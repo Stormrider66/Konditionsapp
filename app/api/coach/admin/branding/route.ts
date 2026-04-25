@@ -5,6 +5,8 @@ import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-
 import { handleApiError } from '@/lib/api-error'
 import { getBrandingFeatures } from '@/lib/branding/feature-gate'
 import { CURATED_FONTS } from '@/lib/branding/types'
+import { sendReplyToVerificationEmail } from '@/lib/email/reply-to-verification'
+import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
 const hexColorRegex = /^#[0-9A-Fa-f]{6}$/
@@ -59,6 +61,7 @@ export async function GET(request: NextRequest) {
           domainVerified: true,
           domainVerifiedAt: true,
           domainTxtRecord: true,
+          replyToEmailVerified: true,
           emailSenderName: true,
           pageTitle: true,
           hidePlatformBranding: true,
@@ -104,7 +107,8 @@ export async function PUT(request: NextRequest) {
     // Tier 0: always allowed
     if (validatedData.logoUrl !== undefined) updateData.logoUrl = validatedData.logoUrl
     if (validatedData.primaryColor !== undefined) updateData.primaryColor = validatedData.primaryColor
-    if (validatedData.replyToEmail !== undefined) updateData.replyToEmail = validatedData.replyToEmail
+    // replyToEmail is handled out-of-band below — it triggers a click-to-verify
+    // email when changed, and is only honored by the resolver once verified.
 
     // Tier 1: require CUSTOM_BRANDING
     if (validatedData.secondaryColor !== undefined) {
@@ -173,7 +177,45 @@ export async function PUT(request: NextRequest) {
       updateData.hidePlatformBranding = validatedData.hidePlatformBranding
     }
 
-    if (Object.keys(updateData).length === 0) {
+    // Out-of-band: replyToEmail. Three cases:
+    //   (a) absent in body → no change
+    //   (b) null/empty → clear address + verification state
+    //   (c) changed → store + reset verified=false, send confirmation email
+    let replyToVerificationSent = false
+    if (validatedData.replyToEmail !== undefined) {
+      const next = validatedData.replyToEmail?.trim().toLowerCase() || null
+      const current = await prisma.business.findUnique({
+        where: { id: businessId },
+        select: { replyToEmail: true, name: true },
+      })
+
+      if (!next) {
+        await prisma.business.update({
+          where: { id: businessId },
+          data: {
+            replyToEmail: null,
+            replyToEmailVerified: false,
+            replyToEmailVerifyToken: null,
+            replyToEmailVerifyExpires: null,
+          },
+        })
+      } else if (next !== current?.replyToEmail) {
+        const result = await sendReplyToVerificationEmail({
+          businessId,
+          newReplyToEmail: next,
+          businessName: current?.name || '',
+        })
+        if (!result.success) {
+          logger.warn('reply-to verification email failed to send', {
+            businessId,
+            error: result.error,
+          })
+        }
+        replyToVerificationSent = result.success
+      }
+    }
+
+    if (Object.keys(updateData).length === 0 && validatedData.replyToEmail === undefined) {
       return NextResponse.json(
         { success: false, error: 'No fields to update' },
         { status: 400 }
@@ -194,6 +236,7 @@ export async function PUT(request: NextRequest) {
         fontFamily: true,
         faviconUrl: true,
         replyToEmail: true,
+        replyToEmailVerified: true,
         emailSenderName: true,
         pageTitle: true,
         hidePlatformBranding: true,
@@ -204,6 +247,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: business,
+      replyToVerificationSent,
     })
   } catch (error) {
     return handleApiError(error, 'PUT /api/coach/admin/branding')

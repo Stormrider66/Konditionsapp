@@ -54,6 +54,7 @@ interface BrandingData {
   domainVerifiedAt: string | null
   domainTxtRecord: string | null
   replyToEmail: string | null
+  replyToEmailVerified: boolean
   emailSenderName: string | null
   pageTitle: string | null
   hidePlatformBranding: boolean
@@ -182,8 +183,12 @@ export function BusinessBrandingTab() {
         throw new Error(result.error || 'Failed to save branding')
       }
 
-      setSuccessMessage('Branding saved successfully')
-      setTimeout(() => setSuccessMessage(null), 3000)
+      setSuccessMessage(
+        result.replyToVerificationSent
+          ? 'Sparat. En bekräftelselänk har skickats till svar-adressen — klicka på den för att aktivera.'
+          : 'Branding saved successfully',
+      )
+      setTimeout(() => setSuccessMessage(null), 6000)
       fetchBranding()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save branding')
@@ -297,7 +302,14 @@ export function BusinessBrandingTab() {
 
           {/* Reply-to email (Tier 0 — every business can route replies) */}
           <div className="space-y-2 pt-2">
-            <Label htmlFor="replyToEmail">Reply-to e-postadress</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="replyToEmail">Reply-to e-postadress</Label>
+              {data?.replyToEmail && (
+                <Badge variant={data.replyToEmailVerified ? 'default' : 'secondary'} className="text-xs">
+                  {data.replyToEmailVerified ? 'Verifierad' : 'Väntar på bekräftelse'}
+                </Badge>
+              )}
+            </div>
             <Input
               id="replyToEmail"
               type="email"
@@ -306,7 +318,9 @@ export function BusinessBrandingTab() {
               placeholder="info@dingym.se"
             />
             <p className="text-xs text-muted-foreground">
-              Vart svar på dina utskick hamnar. Lämnas tomt → svar går till {' '}
+              Vart svar på dina utskick hamnar. När du sparar en ny adress mejlar vi en{' '}
+              bekräftelselänk dit — utskick fortsätter gå till{' '}
+              <code>support@trainomics.app</code> tills du klickat. Lämnas tomt → svar går till{' '}
               <code>support@trainomics.app</code>. Avsändaren är fortfarande{' '}
               <code>noreply@trainomics.app</code>.
             </p>

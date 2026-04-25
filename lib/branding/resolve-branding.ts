@@ -28,6 +28,7 @@ export const resolveBusinessBranding = cache(
         fontFamily: true,
         faviconUrl: true,
         replyToEmail: true,
+        replyToEmailVerified: true,
         customDomain: true,
         domainVerified: true,
         customEmailDomain: true,
@@ -56,8 +57,12 @@ export const resolveBusinessBranding = cache(
       primaryColor: business.primaryColor || DEFAULT_BRANDING.primaryColor,
       faviconUrl: features.hasCustomBranding ? business.faviconUrl : null,
 
-      // Tier 0: every business can opt in
+      // Tier 0: every business can opt in. The resolver only exposes the
+      // address once it's been verified — `lib/email/branding.ts` then uses
+      // platform support as the fallback. Stops a typo from black-holing
+      // replies before the customer has confirmed they own the inbox.
       replyToEmail: business.replyToEmail,
+      replyToEmailVerified: business.replyToEmailVerified,
 
       // Tier 1: CUSTOM_BRANDING gated
       secondaryColor: features.hasCustomBranding ? business.secondaryColor : null,

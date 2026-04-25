@@ -121,11 +121,23 @@ If outbound mail starts bouncing post-publish:
    the underlying SPF/DKIM mismatch. **Don't delete the record** — `none` is
    monitor-mode, the right escape hatch.
 
-## 6. Per-business sending domains (future, item #5)
+## 6. Per-business sending domains (item #5 — built; gated on trainomics.app DMARC)
 
-Once trainomics.app is solid, the next step is letting each business send from
-their own domain (e.g. `coach@mygym.com`) — that requires Resend's domain API
-(`resend.domains.create`), per-business DNS verification UI, and switching the
-From: address based on `business.customEmailDomain`. Do not start this work
-until trainomics.app is fully authenticated and DMARC reports are clean —
-otherwise you'll be debugging two layers of deliverability at once.
+Code path is wired (`/api/coach/admin/branding/custom-email-domain`,
+`CustomEmailDomainSection` UI, `branding.fromAddress` switching). Two extra
+pieces of operational setup are required before flipping it on for any
+tenant:
+
+1. **`RESEND_WEBHOOK_SECRET` env var** on Vercel. In the Resend dashboard
+   → Webhooks → add endpoint `https://trainomics.app/api/webhooks/resend`
+   with `domain.created`, `domain.updated`, `domain.deleted` subscribed.
+   Copy the signing secret. Without this set, `customEmailVerified` only
+   updates when a coach clicks *Uppdatera status* — no automatic re-sync
+   if the customer later breaks their DKIM at the registrar.
+
+2. **trainomics.app DMARC clean for two weeks** (above) before enabling
+   `WHITE_LABEL` for any pilot tenant. Two unauthenticated layers at once
+   makes DMARC reports unreadable.
+
+See `docs/deployment/white-label-rollout.md` for the customer-facing flow
+and rollback paths.

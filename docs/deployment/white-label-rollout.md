@@ -121,9 +121,17 @@ records.
 for GDPR purposes. If a customer ever asks for a different region, make it a
 per-business field; until then this is the right default.
 
+**Webhook auto-resync** (`/api/webhooks/resend`): Resend posts `domain.*`
+events to us; the handler verifies the svix signature and flips
+`customEmailVerified` automatically when status changes — including when a
+customer breaks their DKIM at the registrar (Resend re-marks the domain
+unverified → we flip our flag → sends fall back to `noreply@trainomics.app`
+without anyone noticing it changed). Requires `RESEND_WEBHOOK_SECRET` env
+var; see the email-deliverability doc.
+
 **Rollback**:
 - Customer-side mistake → *Ta bort* in the UI (calls DELETE → removes from Resend, clears DB). Sends fall back to `noreply@trainomics.app` immediately.
-- DKIM stops verifying mid-flight → Resend will quietly fail the next send with `invalid_from_address`. Coach sees a warning, mail goes nowhere. Recovery: customer republishes DKIM CNAMEs, click *Uppdatera status*.
+- DKIM stops verifying mid-flight → the webhook flips `customEmailVerified` to false on the next Resend status push, and sends silently fall back. Coach sees a "Väntar på DNS" badge in the Branding tab the next time they look. Recovery: customer republishes DKIM CNAMEs, click *Uppdatera status* (or wait for the next webhook ping).
 - Resend account-level outage → all custom-domain tenants degrade. Toggle a kill switch (TODO: env var like `DISABLE_CUSTOM_SENDING_DOMAIN=true` that forces `customEmailVerified=false` in `resolveEmailBranding`) — not built yet, add when the first pilot goes live.
 
 ## Backlog
