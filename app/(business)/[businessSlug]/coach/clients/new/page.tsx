@@ -34,10 +34,6 @@ export default function BusinessNewClientPage() {
   const [error, setError] = useState<string | null>(null)
   const [teams, setTeams] = useState<any[]>([])
   const [teamsLoading, setTeamsLoading] = useState(true)
-  const [athleteCredentials, setAthleteCredentials] = useState<{
-    email: string
-    temporaryPassword: string
-  } | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -93,24 +89,15 @@ export default function BusinessNewClientPage() {
       const result = await response.json()
 
       if (result.success) {
-        if (result.athleteCredentials) {
-          setAthleteCredentials(result.athleteCredentials)
-          toast({
-            title: 'Klient och atlet-konto skapat!',
-            description: `${data.name} har lagts till. Atlet-lösenord är: ${result.athleteCredentials.temporaryPassword}`,
-            duration: 10000,
-          })
-        } else {
-          toast({
-            title: 'Klient skapad!',
-            description: `${data.name} har lagts till i klientregistret.`,
-          })
-        }
-
-        if (result.athleteCredentials) {
-          await new Promise((resolve) => setTimeout(resolve, 5000))
-        }
-
+        // Credentials are emailed directly — API returns a boolean only.
+        toast({
+          title: result.athleteAccountCreated
+            ? 'Klient och atlet-konto skapat!'
+            : 'Klient skapad!',
+          description: result.athleteAccountCreated
+            ? `${data.name} har lagts till. Inloggningsuppgifter har skickats till ${data.email}.`
+            : `${data.name} har lagts till i klientregistret.`,
+        })
         router.push(`${basePath}/${result.data.id}`)
       } else {
         setError(result.error || 'Failed to create client')
@@ -135,39 +122,6 @@ export default function BusinessNewClientPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 lg:py-12">
-      {/* Athlete Credentials Alert */}
-      {athleteCredentials && (
-        <Card className="mb-6 bg-green-50 border-green-300 dark:bg-green-900/20 dark:border-green-800">
-          <CardHeader>
-            <CardTitle className="text-green-800 dark:text-green-300 flex items-center gap-2">
-              Atlet-konto skapat automatiskt!
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert className="bg-white dark:bg-slate-900 border-green-200 dark:border-green-800">
-              <AlertDescription>
-                <p className="mb-3 font-semibold dark:text-slate-200">Logga in med dessa uppgifter:</p>
-                <div className="space-y-2 font-mono text-sm bg-gray-50 dark:bg-slate-800 p-3 rounded">
-                  <div>
-                    <span className="text-muted-foreground">E-post:</span>{' '}
-                    <span className="font-bold dark:text-slate-200">{athleteCredentials.email}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Lösenord:</span>{' '}
-                    <span className="font-bold text-green-600 dark:text-green-400">
-                      {athleteCredentials.temporaryPassword}
-                    </span>
-                  </div>
-                </div>
-              </AlertDescription>
-            </Alert>
-            <p className="text-sm text-orange-600 dark:text-orange-400">
-              Spara dessa uppgifter! De visas bara en gång.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       <Card className="dark:bg-slate-900/50 dark:border-white/10">
         <CardHeader>
           <CardTitle className="dark:text-white">Ny Klient</CardTitle>
@@ -413,7 +367,7 @@ export default function BusinessNewClientPage() {
             <strong>Info:</strong> Alla fält markerade med <span className="text-red-500">*</span> är obligatoriska.
           </p>
           <p className="text-sm text-blue-800 dark:text-blue-300">
-            <strong>Automatiskt atlet-konto:</strong> Om du anger en e-postadress skapas ett atlet-konto automatiskt med inloggningsuppgifter som visas efter att klienten skapats.
+            <strong>Automatiskt atlet-konto:</strong> Om du anger en e-postadress skapas ett atlet-konto automatiskt och inloggningsuppgifter mejlas direkt till atleten.
           </p>
         </CardContent>
       </Card>

@@ -43,6 +43,7 @@ const rowSchema = z.object({
   position: z.string().max(40).optional().or(z.literal('')).transform((v) => (v ? v : undefined)),
   notes: z.string().optional(),
   createAthleteAccount: z.boolean().optional(),
+  athleteTier: z.enum(['FREE', 'STANDARD', 'PRO', 'ELITE']).optional(),
 })
 
 const bodySchema = z.object({
@@ -149,7 +150,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
         let athleteAccountCreated = false
         if (created.email && row.createAthleteAccount !== false) {
-          const athleteResult = await createAthleteAccountForClient(created.id, user.id)
+          const athleteResult = await createAthleteAccountForClient(created.id, user.id, {
+            tier: row.athleteTier,
+          })
           athleteAccountCreated = athleteResult.success
           if (!athleteResult.success) {
             logger.warn('bulk: athlete account creation failed', {

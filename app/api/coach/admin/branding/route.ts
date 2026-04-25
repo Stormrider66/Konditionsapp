@@ -22,7 +22,15 @@ const updateBrandingSchema = z.object({
   faviconUrl: z.string().url().optional().nullable(),
 
   // Tier 2: WHITE_LABEL
-  emailSenderName: z.string().min(1).max(100).optional().nullable(),
+  // Block RFC 5322 separators (<, >, @, CR, LF) so the resolved
+  // From: header (`${senderName} <noreply@…>`) can't be injected through.
+  emailSenderName: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[^<>@\r\n]+$/, 'Avsändarnamn får inte innehålla < > @ eller radbrytningar')
+    .optional()
+    .nullable(),
   pageTitle: z.string().min(1).max(100).optional().nullable(),
   hidePlatformBranding: z.boolean().optional(),
 })

@@ -14,6 +14,12 @@ export interface EmailBranding {
    * `MyGym <noreply@trainomics.app>`. Always pass this through to Resend.
    */
   fromAddress: string
+  /**
+   * The verified sending domain (no local part). Same source of truth as
+   * `fromAddress`'s host — exposed separately so callers that need a different
+   * mailbox (e.g. `notifications@`) can build their own From: without parsing.
+   */
+  sendingDomain: string
   /** Reply-to address — replies route here instead of platform support. Always populated (falls back to platform support). */
   replyTo: string
   /** Logo URL for email header */
@@ -41,6 +47,7 @@ export const DEFAULT_EMAIL_BRANDING: EmailBranding = {
   platformName: PLATFORM_NAME,
   senderName: PLATFORM_NAME,
   fromAddress: `${PLATFORM_NAME} <noreply@${PLATFORM_SENDING_DOMAIN}>`,
+  sendingDomain: PLATFORM_SENDING_DOMAIN,
   replyTo: PLATFORM_REPLY_TO,
   logoUrl: null,
   primaryColor: '#667eea',

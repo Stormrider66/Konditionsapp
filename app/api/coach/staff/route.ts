@@ -12,6 +12,7 @@ import { inviteUserToBusiness } from '@/lib/invite-utils'
 import {
   getStaffPermissions,
   ROLE_LABELS,
+  roleLabelFor,
   isRoleInvitableFor,
   invitableRolesFor,
 } from '@/lib/permissions/assistant-coach'
@@ -81,7 +82,7 @@ export async function GET() {
       name: m.user.name,
       email: m.user.email,
       role: m.role,
-      roleLabel: ROLE_LABELS[m.role] || m.role,
+      roleLabel: roleLabelFor(m.role, businessType),
       teams: assignmentsByUserId.get(m.userId) ?? [],
       invitedAt: m.invitedAt.toISOString(),
       acceptedAt: m.acceptedAt?.toISOString() ?? null,
@@ -126,7 +127,7 @@ export async function POST(req: NextRequest) {
     if (!isRoleInvitableFor(parsed.data.role, membership.business.type)) {
       return NextResponse.json(
         {
-          error: `Rollen "${ROLE_LABELS[parsed.data.role] ?? parsed.data.role}" är inte tillgänglig för denna typ av verksamhet`,
+          error: `Rollen "${roleLabelFor(parsed.data.role, membership.business.type)}" är inte tillgänglig för denna typ av verksamhet`,
         },
         { status: 400 },
       )
@@ -167,7 +168,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       userId: result.userId,
-      roleLabel: ROLE_LABELS[parsed.data.role],
+      roleLabel: roleLabelFor(parsed.data.role, membership.business.type),
     }, { status: 201 })
   } catch (error) {
     return handleApiError(error)

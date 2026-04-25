@@ -50,6 +50,7 @@ export async function resolveEmailBranding(
       platformName,
       senderName,
       fromAddress: `${senderName} <noreply@${sendingDomain}>`,
+      sendingDomain,
       replyTo: branding.replyToEmail || PLATFORM_REPLY_TO,
       logoUrl: branding.logoUrl,
       primaryColor: branding.primaryColor || DEFAULT_EMAIL_BRANDING.primaryColor,

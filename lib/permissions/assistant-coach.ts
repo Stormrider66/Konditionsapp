@@ -30,6 +30,22 @@ export const ROLE_LABELS: Record<string, string> = {
   MEMBER: 'Medlem',
 }
 
+/**
+ * Role label that respects business type. The DB role `ADMIN` means
+ * "business administrator" everywhere — but we surface it as "Sportchef"
+ * only for sport clubs. Gyms and independent coaches get the neutral
+ * "Administratör" so they never see club-specific framing.
+ */
+export function roleLabelFor(
+  role: StaffRole | string,
+  businessType: BusinessType | string | null | undefined,
+): string {
+  if (role === 'ADMIN' && businessType !== 'CLUB') {
+    return 'Administratör'
+  }
+  return ROLE_LABELS[role] || role
+}
+
 export interface InvitableRole {
   value: StaffRole
   label: string

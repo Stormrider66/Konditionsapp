@@ -36,6 +36,11 @@ const ROLE_LABELS: Record<string, string> = {
   MEMBER: 'Medlem',
 }
 
+function labelFor(role: string, businessType: string): string {
+  if (role === 'ADMIN' && businessType !== 'CLUB') return 'Administratör'
+  return ROLE_LABELS[role] || role
+}
+
 export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
   const pathname = usePathname()
   const [businesses, setBusinesses] = useState<BusinessEntry[]>([])
@@ -66,7 +71,7 @@ export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
   const current = businesses.find((b) => b.slug === currentSlug)
   // Fallback: if slug doesn't match any business (stale URL), use first business
   const displayBiz = current || businesses[0]
-  const currentRole = ROLE_LABELS[displayBiz.role] || displayBiz.role
+  const currentRole = labelFor(displayBiz.role, displayBiz.type)
 
   // When switching orgs, preserve the sub-path if possible
   const getOrgHref = (slug: string) => {
@@ -103,7 +108,7 @@ export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
         </DropdownMenuLabel>
         {businesses.map((biz) => {
           const isActive = biz.slug === currentSlug
-          const roleLabel = ROLE_LABELS[biz.role] || biz.role
+          const roleLabel = labelFor(biz.role, biz.type)
           return (
             <DropdownMenuItem
               key={biz.businessId}
