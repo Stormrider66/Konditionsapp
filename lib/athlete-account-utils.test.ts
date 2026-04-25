@@ -26,6 +26,10 @@ const mockTx = vi.hoisted(() => ({
     findUnique: vi.fn(),
     update: vi.fn(),
   },
+  businessMember: {
+    findUnique: vi.fn(),
+    create: vi.fn(),
+  },
 }))
 
 const mockPrisma = vi.hoisted(() => ({
@@ -110,6 +114,8 @@ describe('createAthleteAccountForClient', () => {
     mockTx.sportProfile.findUnique.mockResolvedValue(null)
     mockTx.subscription.findUnique.mockResolvedValue({ userId: 'coach-1' })
     mockTx.subscription.update.mockResolvedValue({})
+    mockTx.businessMember.findUnique.mockResolvedValue(null)
+    mockTx.businessMember.create.mockResolvedValue({})
   })
 
   it('creates athlete subscription, preferences, and sport profile for coach-created accounts', async () => {
@@ -150,6 +156,56 @@ describe('createAthleteAccountForClient', () => {
         onboardingCompleted: false,
         onboardingStep: 0,
       },
+    })
+  })
+
+  it('does NOT create a BusinessMember when the parent client has no businessId', async () => {
+    // Default mock has no businessId on the client → independent coach path.
+    await createAthleteAccountForClient('client-1', 'coach-1')
+    expect(mockTx.businessMember.create).not.toHaveBeenCalled()
+  })
+
+  it('auto-adds the new athlete user as a BusinessMember when client.businessId is set', async () => {
+    mockPrisma.client.findUnique.mockResolvedValueOnce({
+      id: 'client-1',
+      name: 'Athlete Example',
+      email: 'athlete@example.com',
+      businessId: 'biz-1',
+    })
+
+    await createAthleteAccountForClient('client-1', 'coach-1')
+
+    expect(mockTx.businessMember.findUnique).toHaveBeenCalledWith({
+      where: {
+        businessId_userId: {
+          businessId: 'biz-1',
+          userId: 'athlete-user-1',
+        },
+      },
+      select: { id: true },
+    })
+    expect(mockTx.businessMember.create).toHaveBeenCalledWith({
+      data: {
+        businessId: 'biz-1',
+        userId: 'athlete-user-1',
+        role: 'MEMBER',
+        isActive: true,
+        acceptedAt: expect.any(Date),
+      },
+    })
+  })
+
+  it('honors a coach-supplied tier override (FREE) instead of defaulting to STANDARD/trial', async () => {
+    await createAthleteAccountForClient('client-1', 'coach-1', { tier: 'FREE' })
+
+    expect(mockTx.athleteSubscription.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tier: 'FREE',
+        status: 'ACTIVE',
+        trialEndsAt: null,
+        workoutLoggingEnabled: false,
+        dailyCheckInEnabled: false,
+      }),
     })
   })
 })
