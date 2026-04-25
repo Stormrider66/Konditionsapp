@@ -9,7 +9,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { inviteUserToBusiness } from '@/lib/invite-utils'
-import { getStaffPermissions, ROLE_LABELS } from '@/lib/permissions/assistant-coach'
+import {
+  getStaffPermissions,
+  ROLE_LABELS,
+  isRoleInvitableFor,
+  invitableRolesFor,
+} from '@/lib/permissions/assistant-coach'
 import { handleApiError } from '@/lib/api/utils'
 import { z } from 'zod'
 
@@ -31,13 +36,14 @@ export async function GET() {
 
     const membership = await prisma.businessMember.findFirst({
       where: { userId: user.id, isActive: true },
-      select: { businessId: true },
+      select: { businessId: true, business: { select: { type: true } } },
     })
 
     if (!membership) {
-      return NextResponse.json({ staff: [] })
+      return NextResponse.json({ staff: [], businessType: null, invitableRoles: [] })
     }
 
+    const businessType = membership.business.type
     const members = await prisma.businessMember.findMany({
       where: {
         businessId: membership.businessId,
@@ -81,7 +87,11 @@ export async function GET() {
       acceptedAt: m.acceptedAt?.toISOString() ?? null,
     }))
 
-    return NextResponse.json({ staff: staffWithTeams })
+    return NextResponse.json({
+      staff: staffWithTeams,
+      businessType,
+      invitableRoles: invitableRolesFor(businessType),
+    })
   } catch (error) {
     return handleApiError(error)
   }
@@ -98,7 +108,7 @@ export async function POST(req: NextRequest) {
 
     const membership = await prisma.businessMember.findFirst({
       where: { userId: user.id, isActive: true },
-      select: { businessId: true },
+      select: { businessId: true, business: { select: { type: true } } },
     })
 
     if (!membership) {
@@ -110,6 +120,16 @@ export async function POST(req: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json({ error: 'Ogiltig indata', details: parsed.error.flatten() }, { status: 400 })
+    }
+
+    // Reject roles that aren't valid for this business type (e.g. Sportchef on a GYM).
+    if (!isRoleInvitableFor(parsed.data.role, membership.business.type)) {
+      return NextResponse.json(
+        {
+          error: `Rollen "${ROLE_LABELS[parsed.data.role] ?? parsed.data.role}" är inte tillgänglig för denna typ av verksamhet`,
+        },
+        { status: 400 },
+      )
     }
 
     // Invite user to business with the specified role

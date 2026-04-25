@@ -34,7 +34,7 @@ export default async function StaffPage({ params }: PageProps) {
         </p>
       </div>
 
-      <StaffManagement teams={teams} />
+      <StaffManagement teams={teams} businessType={membership.business.type} />
     </div>
   )
 }

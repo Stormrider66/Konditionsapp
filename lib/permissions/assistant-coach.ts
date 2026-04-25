@@ -17,6 +17,9 @@ import { prisma } from '@/lib/prisma'
 
 export type StaffRole = 'OWNER' | 'ADMIN' | 'COACH' | 'PHYSICAL_TRAINER' | 'ASSISTANT_COACH' | 'PHYSIO' | 'MEMBER'
 
+/** Mirrors prisma BusinessType enum. Kept as a string union to avoid importing @prisma/client into client components. */
+export type BusinessType = 'INDEPENDENT_COACH' | 'GYM' | 'CLUB'
+
 export const ROLE_LABELS: Record<string, string> = {
   OWNER: 'Ägare',
   ADMIN: 'Sportchef',
@@ -27,13 +30,44 @@ export const ROLE_LABELS: Record<string, string> = {
   MEMBER: 'Medlem',
 }
 
-export const INVITABLE_ROLES: { value: StaffRole; label: string; description: string }[] = [
-  { value: 'COACH', label: 'Huvudtränare', description: 'Full tillgång till coaching, program och AI' },
-  { value: 'PHYSICAL_TRAINER', label: 'Fystränare', description: 'Träningsprogram, tester, intervaller för tilldelade lag' },
-  { value: 'ASSISTANT_COACH', label: 'Assisterande tränare', description: 'Köra tester och intervaller, visa resultat' },
-  { value: 'PHYSIO', label: 'Fysioterapeut', description: 'Skadehantering och rehabilitering' },
-  { value: 'ADMIN', label: 'Sportchef', description: 'Personalhantering, full översikt, kalender' },
-]
+export interface InvitableRole {
+  value: StaffRole
+  label: string
+  description: string
+}
+
+const ROLE_DEFINITIONS: Record<Exclude<StaffRole, 'OWNER' | 'MEMBER'>, InvitableRole> = {
+  COACH: { value: 'COACH', label: 'Huvudtränare', description: 'Full tillgång till coaching, program och AI' },
+  PHYSICAL_TRAINER: { value: 'PHYSICAL_TRAINER', label: 'Fystränare', description: 'Träningsprogram, tester, intervaller för tilldelade lag' },
+  ASSISTANT_COACH: { value: 'ASSISTANT_COACH', label: 'Assisterande tränare', description: 'Köra tester och intervaller, visa resultat' },
+  PHYSIO: { value: 'PHYSIO', label: 'Fysioterapeut', description: 'Skadehantering och rehabilitering' },
+  ADMIN: { value: 'ADMIN', label: 'Sportchef', description: 'Personalhantering, full översikt, kalender' },
+}
+
+/**
+ * Roles that can be invited per business type.
+ * - CLUB: full team-staff lineup (head coach, physical trainer, assistant coach, physio, sport director)
+ * - GYM: gym/studio crew — head coach, physical trainer, physio (no club-specific roles)
+ * - INDEPENDENT_COACH: solo PT — minimal collaborator surface (lead coach + physio)
+ */
+const ROLES_BY_BUSINESS_TYPE: Record<BusinessType, StaffRole[]> = {
+  CLUB: ['COACH', 'PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO', 'ADMIN'],
+  GYM: ['COACH', 'PHYSICAL_TRAINER', 'PHYSIO'],
+  INDEPENDENT_COACH: ['COACH', 'PHYSIO'],
+}
+
+export function invitableRolesFor(businessType: BusinessType | string | null | undefined): InvitableRole[] {
+  const type = (businessType ?? 'CLUB') as BusinessType
+  const allowed = ROLES_BY_BUSINESS_TYPE[type] ?? ROLES_BY_BUSINESS_TYPE.CLUB
+  return allowed.map((r) => ROLE_DEFINITIONS[r as keyof typeof ROLE_DEFINITIONS]).filter(Boolean)
+}
+
+export function isRoleInvitableFor(role: StaffRole, businessType: BusinessType | string | null | undefined): boolean {
+  return invitableRolesFor(businessType).some((r) => r.value === role)
+}
+
+/** @deprecated Prefer `invitableRolesFor(businessType)`. Kept for backwards compat — returns the CLUB lineup. */
+export const INVITABLE_ROLES: InvitableRole[] = invitableRolesFor('CLUB')
 
 export interface StaffPermissions {
   role: StaffRole

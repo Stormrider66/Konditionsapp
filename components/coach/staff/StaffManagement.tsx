@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select'
 import { UserPlus, Users, Shield, Dumbbell, Heart, Clipboard, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { invitableRolesFor, type BusinessType } from '@/lib/permissions/assistant-coach'
 
 interface Team {
   id: string
@@ -58,24 +59,18 @@ const ROLE_COLORS: Record<string, string> = {
   PHYSIO: 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400',
 }
 
-const INVITABLE_ROLES = [
-  { value: 'COACH', label: 'Huvudtränare', description: 'Full tillgång till coaching, program och AI' },
-  { value: 'PHYSICAL_TRAINER', label: 'Fystränare', description: 'Träningsprogram, tester, intervaller för tilldelade lag' },
-  { value: 'ASSISTANT_COACH', label: 'Assisterande tränare', description: 'Köra tester och intervaller, visa resultat' },
-  { value: 'PHYSIO', label: 'Fysioterapeut', description: 'Skadehantering och rehabilitering' },
-  { value: 'ADMIN', label: 'Sportchef', description: 'Personalhantering, full översikt, kalender' },
-]
-
 const TEAM_SCOPED_ROLES = ['PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO']
 
 interface StaffManagementProps {
   teams: Team[]
+  businessType: BusinessType | string
 }
 
-export function StaffManagement({ teams }: StaffManagementProps) {
+export function StaffManagement({ teams, businessType }: StaffManagementProps) {
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [loading, setLoading] = useState(true)
   const [inviteOpen, setInviteOpen] = useState(false)
+  const invitableRoles = invitableRolesFor(businessType)
 
   // Invite form
   const [invName, setInvName] = useState('')
@@ -200,7 +195,7 @@ export function StaffManagement({ teams }: StaffManagementProps) {
                     <SelectValue placeholder="Välj roll..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {INVITABLE_ROLES.map((r) => (
+                    {invitableRoles.map((r) => (
                       <SelectItem key={r.value} value={r.value}>
                         <div>
                           <span className="font-medium">{r.label}</span>
