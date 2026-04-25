@@ -25,6 +25,8 @@ import { ClientDetailTabs } from '@/components/client/ClientDetailTabs'
 import { UnifiedCalendar } from '@/components/calendar'
 import { StrengthPRTable } from '@/components/coach/strength/StrengthPRTable'
 import { ProgressionDashboard } from '@/components/coach/progression/ProgressionDashboard'
+import { ClientLoadSummary } from '@/components/coach/clients/ClientLoadSummary'
+import { ReadinessDashboard } from '@/components/athlete/ReadinessDashboard'
 import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, Calendar, ExternalLink, Loader2, UserPlus, ClipboardList } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
@@ -556,6 +558,11 @@ export default function ClientDetailPage() {
   // page.tsx for the rationale).
   const analysisContent = (client as any).athleteAccount ? (
     <div className="space-y-6">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ClientLoadSummary clientId={id} />
+        <ReadinessDashboard clientId={id} />
+      </div>
+
       <StrengthPRTable clientId={id} clientName={client.name} />
 
       <ProgressionDashboard clientId={id} clientName={client.name} />

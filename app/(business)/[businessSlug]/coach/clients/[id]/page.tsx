@@ -25,6 +25,8 @@ import { ClientDetailTabs } from '@/components/client/ClientDetailTabs'
 import { UnifiedCalendar } from '@/components/calendar'
 import { StrengthPRTable } from '@/components/coach/strength/StrengthPRTable'
 import { ProgressionDashboard } from '@/components/coach/progression/ProgressionDashboard'
+import { ClientLoadSummary } from '@/components/coach/clients/ClientLoadSummary'
+import { ReadinessDashboard } from '@/components/athlete/ReadinessDashboard'
 import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, Calendar, ExternalLink, Loader2, UserPlus, ClipboardList } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
@@ -539,15 +541,17 @@ export default function BusinessClientDetailPage() {
     </div>
   )
 
-  // Composed analysis tab. v1: PRs (the surface that drives % of 1RM
-  // session prescriptions) + strength progression dashboard + a quick
-  // jump card that preserves the old "Loggar" tab's value as a link
-  // out to the full logs view.
-  //
-  // Composed top-down so the most actionable bits (PRs you can edit
-  // here, then progression trends) are above the fold on mobile.
+  // Composed analysis tab. Top-down ordering matches "what does the
+  // coach decide today?" → snapshot first (load + readiness), then
+  // PRs (drives % of 1RM resolution), then long-running progression
+  // trends, then a quick-jump to the full logs view.
   const analysisContent = client.athleteAccount ? (
     <div className="space-y-4 sm:space-y-6">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ClientLoadSummary clientId={id} />
+        <ReadinessDashboard clientId={id} />
+      </div>
+
       <StrengthPRTable clientId={id} clientName={client.name} />
 
       <ProgressionDashboard clientId={id} clientName={client.name} />
