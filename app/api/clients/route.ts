@@ -203,7 +203,9 @@ export async function POST(request: NextRequest) {
     // Automatically create athlete account if client has an email
     let athleteAccountCreated = false
     if (client.email) {
-      const athleteResult = await createAthleteAccountForClient(client.id, dbUser.id)
+      const athleteResult = await createAthleteAccountForClient(client.id, dbUser.id, {
+        tier: data.athleteTier,
+      })
 
       if (athleteResult.success) {
         athleteAccountCreated = true

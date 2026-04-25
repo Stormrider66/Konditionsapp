@@ -2,9 +2,12 @@
 import { prisma } from '@/lib/prisma'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
+import { ATHLETE_TIER_FEATURES } from '@/lib/subscription/feature-access'
 import type { AthleteAccount, Client, User } from '@prisma/client'
 
 const COACH_CREATED_ATHLETE_TRIAL_DAYS = 14
+
+export type AthleteTier = 'FREE' | 'STANDARD' | 'PRO' | 'ELITE'
 
 export interface CreateAthleteAccountResult {
   success: boolean
@@ -27,19 +30,35 @@ export function generateTemporaryPassword(): string {
   return password
 }
 
-function getCoachCreatedAthleteSubscriptionData() {
+/**
+ * Build AthleteSubscription column values for a given tier.
+ * STANDARD with no explicit trialDays falls back to a 14-day trial
+ * (default for coach-created athletes — preserves existing onboarding UX).
+ */
+export function getAthleteSubscriptionDataForTier(
+  tier: AthleteTier,
+  options?: { trialDays?: number; businessId?: string },
+) {
+  const features = ATHLETE_TIER_FEATURES[tier]
+
+  // Default trial only applies to STANDARD when caller didn't specify
+  const trialDays =
+    options?.trialDays ?? (tier === 'STANDARD' ? COACH_CREATED_ATHLETE_TRIAL_DAYS : 0)
+
   return {
-    tier: 'STANDARD' as const,
-    status: 'TRIAL' as const,
-    paymentSource: 'DIRECT' as const,
-    trialEndsAt: new Date(Date.now() + COACH_CREATED_ATHLETE_TRIAL_DAYS * 24 * 60 * 60 * 1000),
-    aiChatEnabled: true,
-    aiChatMessagesLimit: 50,
-    videoAnalysisEnabled: false,
-    garminEnabled: true,
-    stravaEnabled: true,
-    workoutLoggingEnabled: true,
-    dailyCheckInEnabled: true,
+    tier,
+    status: trialDays > 0 ? ('TRIAL' as const) : ('ACTIVE' as const),
+    paymentSource: options?.businessId ? ('BUSINESS' as const) : ('DIRECT' as const),
+    businessId: options?.businessId ?? null,
+    trialEndsAt:
+      trialDays > 0 ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000) : null,
+    aiChatEnabled: features.ai_chat.enabled,
+    aiChatMessagesLimit: features.ai_chat.limit,
+    videoAnalysisEnabled: features.video_analysis.enabled,
+    garminEnabled: features.garmin.enabled,
+    stravaEnabled: features.strava.enabled,
+    workoutLoggingEnabled: tier !== 'FREE',
+    dailyCheckInEnabled: tier !== 'FREE',
   }
 }
 
@@ -57,6 +76,10 @@ export async function createAthleteAccountForClient(
       push?: boolean
       workoutReminders?: boolean
     }
+    /** Subscription tier to assign. Defaults to STANDARD (with 14-day trial) for backwards compat. */
+    tier?: AthleteTier
+    /** Override trial length in days. Pass 0 to skip the trial entirely (e.g. PRO/ELITE comp accounts). */
+    trialDays?: number
   }
 ): Promise<CreateAthleteAccountResult> {
   try {
@@ -162,9 +185,38 @@ export async function createAthleteAccountForClient(
           await tx.athleteSubscription.create({
             data: {
               clientId,
-              ...getCoachCreatedAthleteSubscriptionData(),
+              ...getAthleteSubscriptionDataForTier(options?.tier ?? 'STANDARD', {
+                trialDays: options?.trialDays,
+                businessId: client.businessId ?? undefined,
+              }),
             },
           })
+        }
+
+        // Auto-add the new athlete User to the parent Client's Business
+        // so they appear in the business member list and inherit business-scoped access.
+        if (client.businessId) {
+          const existingMembership = await tx.businessMember.findUnique({
+            where: {
+              businessId_userId: {
+                businessId: client.businessId,
+                userId: athleteUser.id,
+              },
+            },
+            select: { id: true },
+          })
+
+          if (!existingMembership) {
+            await tx.businessMember.create({
+              data: {
+                businessId: client.businessId,
+                userId: athleteUser.id,
+                role: 'MEMBER',
+                isActive: true,
+                acceptedAt: new Date(),
+              },
+            })
+          }
         }
 
         const existingPreferences = await tx.agentPreferences.findUnique({

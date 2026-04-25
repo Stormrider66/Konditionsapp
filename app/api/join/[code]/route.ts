@@ -10,6 +10,9 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { getAthleteSubscriptionDataForTier, type AthleteTier } from '@/lib/athlete-account-utils'
+
+const VALID_ATHLETE_TIERS: readonly AthleteTier[] = ['FREE', 'STANDARD', 'PRO', 'ELITE']
 
 interface RouteContext {
   params: Promise<{ code: string }>
@@ -82,8 +85,16 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Inbjudan är full' }, { status: 410 })
     }
 
-    const meta = invite.metadata as { teamId?: string; teamName?: string } | null
+    const meta = invite.metadata as
+      | { teamId?: string; teamName?: string; athleteTier?: string; trialDays?: number }
+      | null
     const teamId = meta?.teamId
+    const inviteTier: AthleteTier =
+      meta?.athleteTier && (VALID_ATHLETE_TIERS as readonly string[]).includes(meta.athleteTier)
+        ? (meta.athleteTier as AthleteTier)
+        : 'FREE'
+    const inviteTrialDays =
+      typeof meta?.trialDays === 'number' && meta.trialDays >= 0 ? meta.trialDays : undefined
 
     // Get team to find the coach (userId)
     let coachUserId: string | null = null
@@ -151,11 +162,14 @@ export async function POST(req: NextRequest, context: RouteContext) {
         },
       })
 
-      // Create free athlete subscription
+      // Create athlete subscription at the tier the inviter selected (default FREE).
       await tx.athleteSubscription.create({
         data: {
           clientId: client.id,
-          tier: 'FREE',
+          ...getAthleteSubscriptionDataForTier(inviteTier, {
+            trialDays: inviteTrialDays,
+            businessId: invite.businessId ?? undefined,
+          }),
         },
       })
 

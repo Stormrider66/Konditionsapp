@@ -36,6 +36,7 @@ export const clientSchema = z.object({
     }),
   position: z.string().max(40).optional().or(z.literal('')),
   photoUrl: z.string().url().max(2048).optional().or(z.literal('')),
+  athleteTier: z.enum(['FREE', 'STANDARD', 'PRO', 'ELITE']).optional(),
 })
 
 // Test-stage validering (form version with separate minutes/seconds)

@@ -7,24 +7,13 @@ import { CreateAthleteAccountDTO } from '@/types'
 import { logger } from '@/lib/logger'
 import { Resend } from 'resend'
 import { escapeHtml, sanitizeAttribute, sanitizeUrl } from '@/lib/sanitize'
+import { getAthleteSubscriptionDataForTier, type AthleteTier } from '@/lib/athlete-account-utils'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-const COACH_CREATED_ATHLETE_TRIAL_DAYS = 14
 
-function getCoachCreatedAthleteSubscriptionData() {
-  return {
-    tier: 'STANDARD' as const,
-    status: 'TRIAL' as const,
-    paymentSource: 'DIRECT' as const,
-    trialEndsAt: new Date(Date.now() + COACH_CREATED_ATHLETE_TRIAL_DAYS * 24 * 60 * 60 * 1000),
-    aiChatEnabled: true,
-    aiChatMessagesLimit: 50,
-    videoAnalysisEnabled: false,
-    garminEnabled: true,
-    stravaEnabled: true,
-    workoutLoggingEnabled: true,
-    dailyCheckInEnabled: true,
-  }
+const VALID_ATHLETE_TIERS: readonly AthleteTier[] = ['FREE', 'STANDARD', 'PRO', 'ELITE']
+function isValidAthleteTier(value: unknown): value is AthleteTier {
+  return typeof value === 'string' && (VALID_ATHLETE_TIERS as readonly string[]).includes(value)
 }
 
 /**
@@ -54,7 +43,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const body: CreateAthleteAccountDTO = await request.json()
+    const body: CreateAthleteAccountDTO & { tier?: string; trialDays?: number } = await request.json()
     const { clientId, email, temporaryPassword, notificationPrefs } = body
 
     // Validate required fields
@@ -64,6 +53,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    const tier: AthleteTier = isValidAthleteTier(body.tier) ? body.tier : 'STANDARD'
+    const trialDays = typeof body.trialDays === 'number' ? body.trialDays : undefined
 
     // Check if coach has access to this client
     const hasAccess = await canAccessClient(coach.id, clientId)
@@ -175,9 +167,37 @@ export async function POST(request: NextRequest) {
           await tx.athleteSubscription.create({
             data: {
               clientId,
-              ...getCoachCreatedAthleteSubscriptionData(),
+              ...getAthleteSubscriptionDataForTier(tier, {
+                trialDays,
+                businessId: client.businessId ?? undefined,
+              }),
             },
           })
+        }
+
+        // Auto-add the new athlete User to the parent Client's Business
+        if (client.businessId) {
+          const existingMembership = await tx.businessMember.findUnique({
+            where: {
+              businessId_userId: {
+                businessId: client.businessId,
+                userId: athleteUser.id,
+              },
+            },
+            select: { id: true },
+          })
+
+          if (!existingMembership) {
+            await tx.businessMember.create({
+              data: {
+                businessId: client.businessId,
+                userId: athleteUser.id,
+                role: 'MEMBER',
+                isActive: true,
+                acceptedAt: new Date(),
+              },
+            })
+          }
         }
 
         const existingPreferences = await tx.agentPreferences.findUnique({

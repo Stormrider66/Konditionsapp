@@ -69,11 +69,13 @@ export default function BusinessNewClientPage() {
     defaultValues: {
       gender: 'MALE',
       teamId: prefilledTeamId,
+      athleteTier: 'FREE',
     },
   })
 
   const gender = watch('gender')
   const selectedTeamId = watch('teamId')
+  const athleteTier = watch('athleteTier') ?? 'FREE'
 
   const onSubmit = async (data: ClientFormData) => {
     try {
@@ -349,6 +351,32 @@ export default function BusinessNewClientPage() {
                   <p className="text-sm text-red-600">{errors.position.message}</p>
                 )}
               </div>
+            </div>
+
+            {/* Prenumerationsnivå (only relevant when an email is provided — drives auto-created athlete account) */}
+            <div className="space-y-2">
+              <Label htmlFor="athleteTier" className="dark:text-slate-200">
+                Prenumerationsnivå för atlet
+              </Label>
+              <Select
+                value={athleteTier}
+                onValueChange={(value) =>
+                  setValue('athleteTier', value as 'FREE' | 'STANDARD' | 'PRO' | 'ELITE')
+                }
+              >
+                <SelectTrigger id="athleteTier" className="dark:bg-slate-800 dark:border-white/10">
+                  <SelectValue placeholder="Välj nivå" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="FREE">Free — endast rapportvy, ingen AI</SelectItem>
+                  <SelectItem value="STANDARD">Standard — AI-chat (50/mån), Strava/Garmin (14 dgr trial)</SelectItem>
+                  <SelectItem value="PRO">Pro — full AI, videoanalys, allt</SelectItem>
+                  <SelectItem value="ELITE">Elite — Pro + tilldelad coach</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Sätts på det automatiskt skapade atletkontot. Endast aktivt om e-post anges.
+              </p>
             </div>
 
             {/* Anteckningar */}
