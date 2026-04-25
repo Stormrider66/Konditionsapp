@@ -495,7 +495,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         <TeamLeaderboard teamId={teamId} />
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
+      <div className="mt-8 grid gap-4 md:grid-cols-3">
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardHeader>
             <CardTitle className="dark:text-white">Lagets analys</CardTitle>
@@ -506,6 +506,20 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           <CardContent>
             <Link href={`/${businessSlug}/coach/teams/${teamId}/analysis`}>
               <Button>Öppna lagets analys</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="dark:bg-slate-900/50 dark:border-white/10">
+          <CardHeader>
+            <CardTitle className="dark:text-white">Tester</CardTitle>
+            <CardDescription>
+              Logga ett testpass från en handskriven tabell — rader = atleter, kolumner = övningar.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href={`/${businessSlug}/coach/teams/${teamId}/tests`}>
+              <Button variant="outline">Öppna tester</Button>
             </Link>
           </CardContent>
         </Card>
