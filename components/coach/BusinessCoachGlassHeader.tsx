@@ -1,8 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext'
 import {
     LayoutDashboard,
     Users,
@@ -62,14 +64,21 @@ interface BusinessCoachGlassHeaderProps {
 export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGlassHeaderProps) {
     const pathname = usePathname()
     const router = useRouter()
+    const branding = useBusinessBrandingOptional()
     const [isOpen, setIsOpen] = useState(false)
     const [businessRole, setBusinessRole] = useState<BusinessMemberRole | null>(null)
-    const [businessName, setBusinessName] = useState<string | null>(null)
+    const [businessName, setBusinessName] = useState<string | null>(branding?.businessName ?? null)
     const [platformAdminRole, setPlatformAdminRole] = useState<string | null>(null)
     const [dashboardMode, setDashboardMode] = useState<'PT' | 'TEAM' | 'GYM'>('PT')
     const [isAssistantCoach, setIsAssistantCoach] = useState(false)
     const [staffRole, setStaffRole] = useState<string>('COACH')
     const displayName = user?.email || 'Coach'
+
+    // Prefer the branding context (populated server-side at layout level) — falls back to fetched name.
+    const resolvedName = branding?.businessName || businessName
+    const logoUrl = branding?.logoUrl ?? null
+    const primaryColor = branding?.primaryColor ?? null
+    const secondaryColor = branding?.secondaryColor ?? null
 
     // Base path for all business-scoped routes
     const basePath = `/${businessSlug}`
@@ -308,11 +317,36 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                 {/* Logo Area */}
                 <div className="flex items-center gap-4">
                     <Link href={`${basePath}/coach/dashboard`} className="flex items-center gap-2 group">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.5)] group-hover:shadow-[0_0_20px_rgba(59,130,246,0.8)] transition-all">
-                            {businessName ? businessName.charAt(0).toUpperCase() : 'C'}
-                        </div>
+                        {logoUrl ? (
+                            <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/5 ring-1 ring-white/10 flex items-center justify-center transition-all group-hover:ring-white/30">
+                                <Image
+                                    src={logoUrl}
+                                    alt={resolvedName || 'Logo'}
+                                    width={32}
+                                    height={32}
+                                    className="h-8 w-8 object-contain"
+                                    unoptimized
+                                />
+                            </div>
+                        ) : primaryColor ? (
+                            <div
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold transition-all"
+                                style={{
+                                    background: secondaryColor
+                                        ? `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+                                        : primaryColor,
+                                    boxShadow: `0 0 15px ${primaryColor}80`,
+                                }}
+                            >
+                                {resolvedName ? resolvedName.charAt(0).toUpperCase() : 'C'}
+                            </div>
+                        ) : (
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.5)] group-hover:shadow-[0_0_20px_rgba(59,130,246,0.8)] transition-all">
+                                {resolvedName ? resolvedName.charAt(0).toUpperCase() : 'C'}
+                            </div>
+                        )}
                         <span className="font-bold text-lg tracking-tight text-white hidden sm:inline">
-                            {businessName || 'Coach Portal'}
+                            {resolvedName || 'Coach Portal'}
                         </span>
                     </Link>
                 </div>
@@ -489,7 +523,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                             <SheetTitle className="sr-only">Navigation menu</SheetTitle>
                             <div className="flex flex-col gap-6 mt-8">
                                 <div className="flex items-center justify-between px-4">
-                                    <span className="font-bold text-lg">{businessName || 'Menu'}</span>
+                                    <span className="font-bold text-lg">{resolvedName || 'Menu'}</span>
                                     <div className="flex gap-1">
                                         <LanguageSwitcher showLabel={false} variant="ghost" />
                                         <NotificationBell />

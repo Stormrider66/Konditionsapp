@@ -27,6 +27,7 @@ import {
   Type,
 } from 'lucide-react'
 import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
+import { CustomDomainSection } from '@/components/coach/admin/CustomDomainSection'
 
 const CURATED_FONTS = [
   { value: 'Inter', label: 'Inter' },
@@ -483,33 +484,14 @@ export function BusinessBrandingTab() {
               </div>
 
               {/* Custom Domain Section */}
-              {data.customDomain ? (
-                <div className="rounded-lg border p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-sm">Custom Domain</p>
-                      <p className="text-sm text-muted-foreground">{data.customDomain}</p>
-                    </div>
-                    <Badge variant={data.domainVerified ? 'default' : 'secondary'}>
-                      {data.domainVerified ? 'Verified' : 'Pending'}
-                    </Badge>
-                  </div>
-                  {!data.domainVerified && data.domainTxtRecord && (
-                    <div className="mt-2 p-3 bg-muted rounded text-xs space-y-1">
-                      <p className="font-medium">DNS Records Required:</p>
-                      <p>CNAME: {data.customDomain} &rarr; cname.trainomics.app</p>
-                      <p>TXT: _trainomics-verify.{data.customDomain} &rarr; {data.domainTxtRecord}</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="rounded-lg border border-dashed p-4 text-center">
-                  <Globe className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Custom domain can be configured in domain settings
-                  </p>
-                </div>
-              )}
+              <CustomDomainSection
+                data={{
+                  customDomain: data.customDomain,
+                  domainVerified: data.domainVerified,
+                  domainTxtRecord: data.domainTxtRecord,
+                }}
+                onChange={fetchBranding}
+              />
             </div>
           ) : (
             <LockedSection
