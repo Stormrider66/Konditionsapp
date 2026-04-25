@@ -26,6 +26,7 @@ import {
   Loader2,
   SkipForward,
   Link2,
+  Trophy,
 } from 'lucide-react'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
 
@@ -227,6 +228,21 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
   const [sessionRpe, setSessionRpe] = useState(7)
   const [isCompleting, setIsCompleting] = useState(false)
 
+  // PR suggestion. Set after a logged set's estimated 1RM beats the
+  // athlete's stored max for the active stage's exercise. Banner asks
+  // them to save the new PR with one tap so the % of 1RM workflow stays
+  // current passively.
+  const [prSuggestion, setPrSuggestion] = useState<
+    | {
+        exerciseId: string
+        exerciseName: string
+        oneRepMax: number
+        previousMax: number | null
+      }
+    | null
+  >(null)
+  const [isSavingPR, setIsSavingPR] = useState(false)
+
   // Load workout data
   const fetchData = useCallback(async () => {
     try {
@@ -328,6 +344,13 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
       ? activeStage.repsTarget
       : parseInt(String(activeStage.repsTarget)) || 0
 
+    // Snapshot the active stage's stored 1RM + exerciseName before the
+    // network call so the PR comparison below is consistent with the
+    // pre-log state — the post-log fetchData() will overwrite it.
+    const stageOneRepMax = activeStage.oneRepMax ?? null
+    const stageExerciseName = activeStage.nameSv || activeStage.name
+    const stageExerciseId = activeStage.exerciseId
+
     try {
       const res = await fetch(`/api/strength-sessions/${assignmentId}/sets`, {
         method: 'POST',
@@ -343,6 +366,32 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
       })
 
       if (res.ok) {
+        // /sets returns the freshly-computed estimated1RM (Epley). If
+        // it beats the stored max — or is the first PR ever — surface
+        // a banner so the athlete can save with one tap. We only fire
+        // the banner once per genuine PR, and skip beyond a sane upper
+        // bound (5x current) to filter typos like a missed decimal.
+        try {
+          const body = await res.clone().json()
+          const estimated = body?.data?.estimated1RM as number | undefined
+          if (
+            estimated != null &&
+            estimated > 0 &&
+            (stageOneRepMax == null ||
+              (estimated > stageOneRepMax && estimated < stageOneRepMax * 5))
+          ) {
+            setPrSuggestion({
+              exerciseId: stageExerciseId,
+              exerciseName: stageExerciseName,
+              oneRepMax: Math.round(estimated * 10) / 10,
+              previousMax: stageOneRepMax,
+            })
+          }
+        } catch {
+          // Non-JSON response or missing field — silently skip. The set
+          // log itself succeeded; we just won't prompt this round.
+        }
+
         if (!isLastStage) {
           // Another stage in this block comes next. Show a "contrast
           // pause" timer only if the upcoming follow-up asks for one.
@@ -381,6 +430,34 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
       // Error
     } finally {
       setIsLoggingSet(false)
+    }
+  }
+
+  // Save the auto-detected PR. Server re-checks the comparison so a
+  // stale client can't downgrade an already-newer stored max.
+  const handleSavePR = async () => {
+    if (!prSuggestion || isSavingPR) return
+    setIsSavingPR(true)
+    try {
+      const res = await fetch(`/api/strength-pr/from-set`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assignmentId,
+          exerciseId: prSuggestion.exerciseId,
+          oneRepMax: prSuggestion.oneRepMax,
+        }),
+      })
+      if (res.ok) {
+        setPrSuggestion(null)
+        // Refetch so subsequent set logs compare against the new PR
+        // and don't re-prompt for the same threshold.
+        await fetchData()
+      }
+    } catch {
+      // Silent — banner stays visible so the athlete can retry.
+    } finally {
+      setIsSavingPR(false)
     }
   }
 
@@ -618,6 +695,56 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
               )}
             </div>
           </div>
+
+          {/* Auto-PR banner. Shows for the active stage's exercise after
+              a logged set whose estimated 1RM beat the stored max.
+              Single tap saves a new OneRepMaxHistory entry; the next
+              fetch will pick up the updated stored max so this won't
+              re-fire for the same threshold. */}
+          {prSuggestion && (
+            <div className="rounded-lg border border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-100">
+                    {prSuggestion.previousMax == null
+                      ? 'Första PR-uppskattningen!'
+                      : 'Ny PR-uppskattning!'}
+                  </p>
+                  <p className="text-xs text-yellow-800 dark:text-yellow-200 mt-0.5">
+                    {prSuggestion.exerciseName}: {prSuggestion.oneRepMax} kg
+                    {prSuggestion.previousMax != null && (
+                      <>
+                        {' '}
+                        <span className="opacity-70">
+                          (var {prSuggestion.previousMax} kg, +
+                          {(prSuggestion.oneRepMax - prSuggestion.previousMax).toFixed(1)} kg)
+                        </span>
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleSavePR} disabled={isSavingPR} className="flex-1">
+                  {isSavingPR ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  Spara som PR
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setPrSuggestion(null)}
+                  disabled={isSavingPR}
+                >
+                  Avfärda
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Rest / contrast-pause timer */}
           {isResting && (

@@ -313,7 +313,10 @@ export async function GET(
                   repsTarget: f.reps,
                   weight: fResolved.weight,
                   weightPercent: fResolved.weightPercent,
-                  oneRepMax: fResolved.oneRepMax,
+                  // Always expose the latest 1RM (when known) regardless of
+                  // whether the prescription was kg or %, so the runner can
+                  // detect new-PR estimates after every logged set.
+                  oneRepMax: oneRepMaxByExercise.get(f.exerciseId),
                   restBeforeSeconds: f.restBeforeSeconds ?? 0,
                   notes: f.notes,
                   completedSets: fLogs.length,
@@ -323,6 +326,7 @@ export async function GET(
             : undefined
 
         const primaryResolved = resolveWeight(ex.exerciseId, ex.weight, ex.weightUnit)
+        const primaryOneRepMax = oneRepMaxByExercise.get(ex.exerciseId)
 
         // Pyramid rows inherit the parent exercise's weightUnit. Resolve
         // each row's weight independently so the runner gets per-set kg.
@@ -350,7 +354,10 @@ export async function GET(
           repsTarget: ex.reps,
           weight: primaryResolved.weight,
           weightPercent: primaryResolved.weightPercent,
-          oneRepMax: primaryResolved.oneRepMax,
+          // Same rationale as the follow-up case above: expose 1RM even
+          // when the prescription was kg, so the runner can spot new
+          // PRs computed from any logged set.
+          oneRepMax: primaryOneRepMax,
           tempo: ex.tempo,
           restSeconds: ex.restSeconds ?? defaultRest,
           notes: ex.notes,
