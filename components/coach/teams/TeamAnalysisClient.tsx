@@ -64,6 +64,7 @@ interface RecentPR {
   previousMax: number | null
   date: string
   source: string
+  unit: string
 }
 
 interface PendingPR {
@@ -74,6 +75,7 @@ interface PendingPR {
   exerciseName: string
   oneRepMax: number
   date: string
+  unit: string
 }
 
 interface TeamAnalysisData {

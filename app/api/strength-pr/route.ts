@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
       load,
       rpe,
       notes,
+      unit,
     } = body
 
     // Validate required fields
@@ -90,6 +91,7 @@ export async function POST(req: NextRequest) {
           date: date ? new Date(date) : new Date(),
           oneRepMax: rmEstimation.estimated1RM,
           source: 'ESTIMATED',
+          unit: typeof unit === 'string' ? unit : 'KG',
           notes: `${sets}x${reps} @ ${load}kg (${rmEstimation.method})`,
         },
       })

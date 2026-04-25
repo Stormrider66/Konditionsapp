@@ -39,7 +39,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     const body = await request.json()
-    const { oneRepMax, date, notes, source, bodyWeight } = body
+    const { oneRepMax, date, notes, source, bodyWeight, unit } = body
 
     // Only patch fields explicitly present in the body so partial
     // updates don't accidentally null other columns.
@@ -49,6 +49,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (notes !== undefined) data.notes = notes
     if (typeof source === 'string') data.source = source
     if (bodyWeight !== undefined) data.bodyWeight = bodyWeight
+    if (typeof unit === 'string') data.unit = unit
 
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: 'No editable fields supplied' }, { status: 400 })

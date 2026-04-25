@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Search } from 'lucide-react'
+import { PR_UNITS, PR_UNIT_LABELS, PR_UNIT_DESCRIPTIONS, type PrUnit } from '@/lib/strength/units'
 
 interface Exercise {
   id: string
@@ -38,6 +39,7 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
   const [reps, setReps] = useState('1')
   const [load, setLoad] = useState('')
   const [rpe, setRpe] = useState('')
+  const [unit, setUnit] = useState<PrUnit>('KG')
 
   // Calculated 1RM preview
   const [estimated1RM, setEstimated1RM] = useState<number | null>(null)
@@ -105,6 +107,7 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
           reps: parseInt(reps),
           load: parseFloat(load),
           rpe: rpe ? parseInt(rpe) : undefined,
+          unit,
         }),
       })
 
@@ -246,18 +249,48 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="load">Belastning (kg) *</Label>
+          <Label htmlFor="load">
+            Belastning ({PR_UNIT_LABELS[unit]}) *
+          </Label>
           <Input
             id="load"
             type="number"
             step="0.5"
             min="0"
-            placeholder="100"
+            placeholder={unit === 'KG' ? '100' : ''}
             value={load}
             onChange={(e) => setLoad(e.target.value)}
             required
           />
         </div>
+      </div>
+
+      {/* Unit picker. Defaults to KG so existing strength workflows
+          stay untouched. Non-KG units track sport-specific PRs (box
+          jump cm, sprint seconds, etc.) — those entries don't feed
+          into the runner's % av 1RM resolution. */}
+      <div className="space-y-2">
+        <Label htmlFor="pr-unit">Enhet</Label>
+        <Select value={unit} onValueChange={(v) => setUnit(v as PrUnit)}>
+          <SelectTrigger id="pr-unit">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PR_UNITS.map((u) => (
+              <SelectItem key={u} value={u}>
+                <span className="font-mono mr-2">{PR_UNIT_LABELS[u]}</span>
+                <span className="text-muted-foreground text-xs">
+                  {PR_UNIT_DESCRIPTIONS[u]}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {unit !== 'KG' && (
+          <p className="text-[11px] text-muted-foreground">
+            Icke-KG värden används inte för "% av 1RM"-beräkning i pass.
+          </p>
+        )}
       </div>
 
       {/* RPE (optional) */}
@@ -277,8 +310,8 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
         </Select>
       </div>
 
-      {/* 1RM Preview */}
-      {estimated1RM && (
+      {/* 1RM Preview — only meaningful in KG (Epley assumes weight). */}
+      {estimated1RM && unit === 'KG' && (
         <div className="p-3 bg-blue-50 rounded-lg">
           <p className="text-sm text-blue-800">
             Estimerad 1RM: <strong>{estimated1RM} kg</strong>

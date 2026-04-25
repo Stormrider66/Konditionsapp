@@ -42,6 +42,7 @@ interface RecentPR {
   previousMax: number | null
   date: string
   source: string
+  unit: string
 }
 
 interface PendingPR {
@@ -52,6 +53,7 @@ interface PendingPR {
   exerciseName: string
   oneRepMax: number
   date: string
+  unit: string
 }
 
 const RECENT_DAYS = 30
@@ -245,6 +247,7 @@ export async function GET(
         previousMax: previous?.oneRepMax ?? null,
         date: pr.date.toISOString(),
         source: pr.source,
+        unit: pr.unit,
       })
     }
 
@@ -267,6 +270,7 @@ export async function GET(
         exerciseName: pr.exercise.nameSv || pr.exercise.name,
         oneRepMax: pr.oneRepMax,
         date: pr.date.toISOString(),
+        unit: pr.unit,
       })
     }
 

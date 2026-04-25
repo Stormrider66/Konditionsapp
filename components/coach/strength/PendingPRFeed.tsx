@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Trophy, Check, X, Sparkles } from 'lucide-react'
+import { PR_UNIT_LABELS, isPrUnit, type PrUnit } from '@/lib/strength/units'
 
 interface PendingPR {
   id: string
@@ -31,6 +32,7 @@ interface PendingPR {
   exerciseName: string
   oneRepMax: number
   date: string
+  unit?: string
   /** Optional client metadata when the feed is rendered roster-wide. */
   clientId?: string
   clientName?: string
@@ -124,7 +126,10 @@ export function PendingPRFeed({
                   <div className="text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">{p.exerciseName}</span>
                     {' · '}
-                    <span className="tabular-nums">{p.oneRepMax} kg</span>
+                    <span className="tabular-nums">
+                      {p.oneRepMax}{' '}
+                      {PR_UNIT_LABELS[(isPrUnit(p.unit) ? p.unit : 'KG') as PrUnit]}
+                    </span>
                     {' · '}
                     {formatDate(p.date)}
                   </div>

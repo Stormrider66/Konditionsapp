@@ -33,6 +33,7 @@ interface BulkPREntry {
   source?: 'TESTED' | 'CALCULATED' | 'ESTIMATED'
   notes?: string
   bodyWeight?: number
+  unit?: string
 }
 
 interface BulkPRError {
@@ -109,6 +110,7 @@ export async function POST(request: NextRequest) {
       source: string
       notes: string | null
       bodyWeight: number | null
+      unit: string
     }> = []
 
     entries.forEach((entry, index) => {
@@ -135,6 +137,7 @@ export async function POST(request: NextRequest) {
         source: entry.source ?? 'TESTED',
         notes: entry.notes ?? null,
         bodyWeight: entry.bodyWeight ?? null,
+        unit: typeof entry.unit === 'string' ? entry.unit : 'KG',
       })
     })
 

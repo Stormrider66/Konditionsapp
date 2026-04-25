@@ -199,16 +199,17 @@ export async function GET(
 
     const exerciseMap = new Map(exerciseDetails.map((ex) => [ex.id, ex]))
 
-    // Build the athlete's most-recent 1RM per exercise. Only the
-    // exerciseIds that actually use percent-based prescriptions in
-    // this session need a lookup, but a single bounded query over all
-    // session exerciseIds is cheaper than picking through the JSON.
-    // findMany ordered by date desc + first-write-wins gives the
-    // latest PR per exercise.
+    // Build the athlete's most-recent KG 1RM per exercise. We filter
+    // by unit at the query so non-KG entries (box jump cm, sprint
+    // seconds, etc.) can't accidentally feed into the % weight
+    // resolver or the auto-PR comparison — the math only makes sense
+    // for kilograms. findMany ordered by date desc + first-write-wins
+    // gives the latest KG PR per exercise.
     const oneRepMaxRows = await prisma.oneRepMaxHistory.findMany({
       where: {
         clientId,
         exerciseId: { in: Array.from(allExerciseIds) },
+        unit: 'KG',
       },
       orderBy: { date: 'desc' },
       select: { exerciseId: true, oneRepMax: true },

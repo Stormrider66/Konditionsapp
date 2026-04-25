@@ -109,12 +109,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Re-check stored max server-side. The runner makes the call after
-    // a client-side comparison, but we don't trust it — a stale client
-    // could otherwise downgrade a real PR if the user hammered "Spara"
+    // Re-check stored max server-side, KG-scoped (auto-PRs only make
+    // sense in kilograms). The runner makes the call after a client-
+    // side comparison, but we don't trust it — a stale client could
+    // otherwise downgrade a real PR if the user hammered "Spara"
     // multiple times with old state.
     const latest = await prisma.oneRepMaxHistory.findFirst({
-      where: { clientId, exerciseId },
+      where: { clientId, exerciseId, unit: 'KG' },
       orderBy: { date: 'desc' },
       select: { oneRepMax: true },
     })
@@ -136,6 +137,9 @@ export async function POST(request: NextRequest) {
         date: new Date(),
         oneRepMax,
         source: 'ESTIMATED',
+        // Always KG — the value here came from Epley applied to a
+        // weighted set, which only makes sense in kilograms.
+        unit: 'KG',
         bodyWeight: bodyWeight ?? null,
         notes: 'Auto-detekterad från loggat set',
       },

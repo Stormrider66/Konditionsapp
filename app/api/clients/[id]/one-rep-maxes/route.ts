@@ -20,6 +20,7 @@ interface OneRepMaxEntry {
   date: Date
   oneRepMax: number
   source: string
+  unit: string
   bodyWeight: number | null
   notes: string | null
 }
@@ -70,6 +71,7 @@ export async function GET(
         date: row.date,
         oneRepMax: row.oneRepMax,
         source: row.source,
+        unit: row.unit,
         bodyWeight: row.bodyWeight,
         notes: row.notes,
       }

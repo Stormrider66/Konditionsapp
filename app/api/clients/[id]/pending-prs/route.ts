@@ -51,6 +51,7 @@ export async function GET(
       exerciseId: string
       exerciseName: string
       oneRepMax: number
+      unit: string
       date: string
       notes: string | null
     }> = []
@@ -66,6 +67,7 @@ export async function GET(
         exerciseId: row.exerciseId,
         exerciseName: row.exercise.nameSv || row.exercise.name,
         oneRepMax: row.oneRepMax,
+        unit: row.unit,
         date: row.date.toISOString(),
         notes: row.notes,
       })

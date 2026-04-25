@@ -46,12 +46,14 @@ import {
 } from '@/components/ui/alert-dialog'
 import { StrengthPRForm } from './StrengthPRForm'
 import { ClientBulkPRImportDialog } from './ClientBulkPRImportDialog'
+import { PR_UNITS, PR_UNIT_LABELS, isPrUnit, type PrUnit } from '@/lib/strength/units'
 
 interface OneRepMaxEntry {
   id: string
   date: string
   oneRepMax: number
   source: string
+  unit: string
   bodyWeight: number | null
   notes: string | null
 }
@@ -113,6 +115,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
         oneRepMax: string
         date: string
         source: string
+        unit: string
       }
     | null
   >(null)
@@ -136,6 +139,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
           oneRepMax: value,
           date: editing.date,
           source: editing.source,
+          unit: editing.unit,
         }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -272,7 +276,12 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-lg font-bold tabular-nums">{g.current.oneRepMax} kg</div>
+                    <div className="text-lg font-bold tabular-nums">
+                      {g.current.oneRepMax}{' '}
+                      <span className="text-sm font-normal text-muted-foreground">
+                        {PR_UNIT_LABELS[(isPrUnit(g.current.unit) ? g.current.unit : 'KG') as PrUnit]}
+                      </span>
+                    </div>
                   </div>
                 </button>
 
@@ -293,7 +302,10 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                           <Badge variant={meta.variant} className="text-[10px] py-0 shrink-0">
                             {meta.label}
                           </Badge>
-                          <span className="font-mono ml-auto">{h.oneRepMax} kg</span>
+                          <span className="font-mono ml-auto">
+                            {h.oneRepMax}{' '}
+                            {PR_UNIT_LABELS[(isPrUnit(h.unit) ? h.unit : 'KG') as PrUnit]}
+                          </span>
                           {delta != null && delta !== 0 ? (
                             <span
                               className={`text-[10px] tabular-nums w-10 text-right ${
@@ -318,6 +330,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                                   oneRepMax: String(h.oneRepMax),
                                   date: h.date.slice(0, 10),
                                   source: h.source,
+                                  unit: isPrUnit(h.unit) ? h.unit : 'KG',
                                 })
                               }
                               title="Redigera"
@@ -389,18 +402,38 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
           </DialogHeader>
           {editing && (
             <div className="space-y-4 py-2">
-              <div>
-                <Label htmlFor="edit-pr-weight">Vikt (kg)</Label>
-                <Input
-                  id="edit-pr-weight"
-                  type="number"
-                  step="0.5"
-                  min={0}
-                  value={editing.oneRepMax}
-                  onChange={(e) =>
-                    setEditing({ ...editing, oneRepMax: e.target.value })
-                  }
-                />
+              <div className="grid grid-cols-[1fr_120px] gap-2">
+                <div>
+                  <Label htmlFor="edit-pr-weight">Värde</Label>
+                  <Input
+                    id="edit-pr-weight"
+                    type="number"
+                    step="0.5"
+                    min={0}
+                    value={editing.oneRepMax}
+                    onChange={(e) =>
+                      setEditing({ ...editing, oneRepMax: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-pr-unit">Enhet</Label>
+                  <Select
+                    value={editing.unit}
+                    onValueChange={(v) => setEditing({ ...editing, unit: v })}
+                  >
+                    <SelectTrigger id="edit-pr-unit">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PR_UNITS.map((u) => (
+                        <SelectItem key={u} value={u}>
+                          {PR_UNIT_LABELS[u]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div>
                 <Label htmlFor="edit-pr-date">Datum</Label>

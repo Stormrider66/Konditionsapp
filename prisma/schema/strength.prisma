@@ -75,8 +75,14 @@ model OneRepMaxHistory {
   exerciseId String
   date       DateTime
 
-  oneRepMax Float // Actual tested or estimated 1RM
+  oneRepMax Float // Actual tested/estimated max value (interpreted via `unit`)
   source    String // "TESTED", "ESTIMATED", "CALCULATED"
+  // Unit the value is in. Defaults to KG so existing strength rows
+  // are correct without a backfill. Non-KG units (CM, M, S, W, COUNT,
+  // KMH) let the table track sport-specific PRs (box jump height,
+  // broad jump, sprint times, peak power, etc.) alongside 1RM lifts.
+  // % of 1RM resolution in the runner only fires for KG entries.
+  unit      String         @default("KG")
 
   // Context
   bodyWeight    Float? // kg at time of test
