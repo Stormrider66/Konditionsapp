@@ -104,10 +104,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate totals from exercises
+    // Calculate totals from exercises. A follow-up runs once per primary
+    // set, so each follow-up adds `primary.sets` extra rounds to totalSets.
     const exerciseList = exercises || [];
     const totalExercises = exerciseList.length;
-    const totalSets = exerciseList.reduce((sum: number, e: { sets?: number }) => sum + (e.sets || 0), 0);
+    const totalSets = exerciseList.reduce(
+      (sum: number, e: { sets?: number; followUps?: unknown[] }) =>
+        sum + (e.sets || 0) * (1 + (e.followUps?.length || 0)),
+      0
+    );
     const volumeLoad = exerciseList.reduce(
       (sum: number, e: { sets?: number; reps?: number; weight?: number }) =>
         sum + (e.sets || 0) * (e.reps || 0) * (e.weight || 0),

@@ -692,9 +692,20 @@ export function SectionWorkoutBuilder({
     .filter((s) => s.enabled)
     .reduce((sum, s) => sum + s.exercises.length, 0)
 
+  // Each follow-up runs once per primary set, so a primary with N sets
+  // and K follow-ups contributes N * (1 + K) total rounds. Mirrors the
+  // calculation in /api/strength-sessions [POST/PUT] so the in-builder
+  // summary matches what gets saved.
   const totalSets = Object.values(sections)
     .filter((s) => s.enabled)
-    .reduce((sum, s) => sum + s.exercises.reduce((acc, e) => acc + e.sets, 0), 0)
+    .reduce(
+      (sum, s) =>
+        sum + s.exercises.reduce(
+          (acc, e) => acc + e.sets * (1 + (e.followUps?.length ?? 0)),
+          0
+        ),
+      0
+    )
 
   const estimatedDuration = Object.values(sections)
     .filter((s) => s.enabled)

@@ -262,6 +262,37 @@ export function StrengthSessionDetailSheet({
                           {exercise.notes}
                         </div>
                       )}
+                      {exercise.followUps && exercise.followUps.length > 0 && (
+                        <ul
+                          className="mt-2 space-y-1.5 pl-3 border-l-2 border-dashed"
+                          style={{ borderColor: theme.colors.accent }}
+                        >
+                          {exercise.followUps.map((fu, j) => (
+                            <li key={j} className="text-xs">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <Badge variant="outline" className="text-[10px] py-0">
+                                  Följd {j + 1}
+                                </Badge>
+                                <span className="font-medium" style={{ color: theme.colors.textPrimary }}>
+                                  {fu.exerciseName}
+                                </span>
+                              </div>
+                              <div style={{ color: theme.colors.textMuted }}>
+                                {exercise.sets}×{fu.reps}
+                                {fu.weight ? ` @ ${fu.weight}kg` : ''}
+                                {fu.restBeforeSeconds
+                                  ? ` (${fu.restBeforeSeconds}s paus innan)`
+                                  : ' (superset)'}
+                              </div>
+                              {fu.notes && (
+                                <div className="italic mt-0.5" style={{ color: theme.colors.textMuted }}>
+                                  {fu.notes}
+                                </div>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   </li>
                 ))}
