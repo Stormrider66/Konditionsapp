@@ -8,13 +8,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Camera, Mic, FileText, ChevronRight } from 'lucide-react'
+import { Camera, Mic, FileText, ListTree, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+export type MealInputMethod = 'photo' | 'voice' | 'quick' | 'ingredients'
 
 interface MealInputMethodSelectorProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSelectMethod: (method: 'photo' | 'voice' | 'quick') => void
+  onSelectMethod: (method: MealInputMethod) => void
 }
 
 const MEAL_METHODS = [
@@ -24,6 +26,13 @@ const MEAL_METHODS = [
     description: 'Ta en bild på din mat',
     icon: <Camera className="h-6 w-6" />,
     color: 'bg-green-500/10 text-green-500 border-green-500/20',
+  },
+  {
+    id: 'ingredients' as const,
+    label: 'Ingredienser',
+    description: 'Bygg från livsmedelsdatabasen',
+    icon: <ListTree className="h-6 w-6" />,
+    color: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
   },
   {
     id: 'voice' as const,
@@ -46,7 +55,7 @@ export function MealInputMethodSelector({
   onOpenChange,
   onSelectMethod,
 }: MealInputMethodSelectorProps) {
-  const handleSelect = (method: 'photo' | 'voice' | 'quick') => {
+  const handleSelect = (method: MealInputMethod) => {
     onOpenChange(false)
     onSelectMethod(method)
   }

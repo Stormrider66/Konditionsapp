@@ -20,7 +20,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
+import {
+  IngredientBuilder,
+  type IngredientRow,
+  ingredientRowsFromItems,
+  ingredientRowsToApiItems,
+  sumIngredientMacros,
+} from './IngredientBuilder'
 import {
   Sunrise,
   Sun,
@@ -59,7 +67,10 @@ interface QuickMealLogProps {
   date?: Date
   defaultMealType?: MealType
   editMeal?: EditMealData | null
+  defaultTab?: MealLogTab
 }
+
+type MealLogTab = 'text' | 'ingredients'
 
 export interface MealLogData {
   date: string
@@ -104,12 +115,15 @@ export function QuickMealLog({
   date = new Date(),
   defaultMealType,
   editMeal,
+  defaultTab = 'text',
 }: QuickMealLogProps) {
   const isEditMode = !!editMeal
   const [isLoading, setIsLoading] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showMacros, setShowMacros] = useState(false)
+  const [tab, setTab] = useState<MealLogTab>(defaultTab)
+  const [ingredients, setIngredients] = useState<IngredientRow[]>([])
   const [enhancedFields, setEnhancedFields] = useState<{
     saturatedFatGrams?: number
     monounsaturatedFatGrams?: number
@@ -131,7 +145,9 @@ export function QuickMealLog({
     notes: '',
   })
 
-  // Pre-fill form when editing
+  // Pre-fill form when editing. Also fetch the meal's per-ingredient
+  // breakdown so the user can edit the same meal as a list of ingredients
+  // rather than as free text + flat macros.
   useEffect(() => {
     if (editMeal && open) {
       setFormData({
@@ -149,6 +165,32 @@ export function QuickMealLog({
       if (editMeal.calories || editMeal.proteinGrams || editMeal.carbsGrams || editMeal.fatGrams) {
         setShowMacros(true)
       }
+
+      // Hydrate ingredient rows from the meal's persisted items so re-opening
+      // a meal logged via the ingredient builder lands back on the same list.
+      const ctrl = new AbortController()
+      fetch(`/api/meals/${editMeal.id}`, { signal: ctrl.signal })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((payload) => {
+          const items = payload?.data?.items as
+            | Array<{
+                foodId: string | null
+                name: string
+                estimatedGrams: number
+                calories: number
+                proteinGrams: number
+                carbsGrams: number
+                fatGrams: number
+                fiberGrams: number
+              }>
+            | undefined
+          if (items && items.length > 0) {
+            setIngredients(ingredientRowsFromItems(items.map((it) => ({ ...it, foodId: it.foodId ?? undefined }))))
+            setTab('ingredients')
+          }
+        })
+        .catch(() => {})
+      return () => ctrl.abort()
     }
   }, [editMeal, open])
 
@@ -257,7 +299,19 @@ export function QuickMealLog({
   }
 
   const handleSubmit = async () => {
-    if (!formData.description.trim()) return
+    // When the user is on the ingredients tab, derive description + macros from
+    // the ingredient list so they don't have to type a description manually.
+    const usingIngredients = tab === 'ingredients' && ingredients.some(
+      (r) => r.name.trim().length > 0 && r.grams > 0
+    )
+    const derivedDescription = usingIngredients
+      ? ingredients
+          .filter((r) => r.name.trim().length > 0)
+          .map((r) => r.name.trim())
+          .join(', ')
+      : formData.description
+
+    if (!derivedDescription.trim()) return
 
     setIsLoading(true)
     setError(null)
@@ -266,16 +320,26 @@ export function QuickMealLog({
         date: date.toISOString().split('T')[0],
         mealType: formData.mealType,
         time: formData.time || undefined,
-        description: formData.description,
+        description: derivedDescription,
         isPreWorkout: formData.isPreWorkout,
         isPostWorkout: formData.isPostWorkout,
         notes: formData.notes || undefined,
       }
 
-      if (formData.calories) data.calories = parseInt(formData.calories)
-      if (formData.proteinGrams) data.proteinGrams = parseFloat(formData.proteinGrams)
-      if (formData.carbsGrams) data.carbsGrams = parseFloat(formData.carbsGrams)
-      if (formData.fatGrams) data.fatGrams = parseFloat(formData.fatGrams)
+      if (usingIngredients) {
+        const totals = sumIngredientMacros(ingredients)
+        data.calories = Math.round(totals.calories)
+        data.proteinGrams = Math.round(totals.proteinGrams * 10) / 10
+        data.carbsGrams = Math.round(totals.carbsGrams * 10) / 10
+        data.fatGrams = Math.round(totals.fatGrams * 10) / 10
+        data.fiberGrams = Math.round(totals.fiberGrams * 10) / 10
+        data.items = ingredientRowsToApiItems(ingredients)
+      } else {
+        if (formData.calories) data.calories = parseInt(formData.calories)
+        if (formData.proteinGrams) data.proteinGrams = parseFloat(formData.proteinGrams)
+        if (formData.carbsGrams) data.carbsGrams = parseFloat(formData.carbsGrams)
+        if (formData.fatGrams) data.fatGrams = parseFloat(formData.fatGrams)
+      }
 
       // Include enhanced fields if available
       if (enhancedFields.saturatedFatGrams != null) {
@@ -327,6 +391,8 @@ export function QuickMealLog({
     setEnhancedFields({})
     setYesterdayMeal(null)
     setError(null)
+    setTab(defaultTab)
+    setIngredients([])
     onClose()
   }
 
@@ -380,6 +446,14 @@ export function QuickMealLog({
             </div>
           </div>
 
+          {/* Tabs: free-text description vs structured ingredient list */}
+          <Tabs value={tab} onValueChange={(v) => setTab(v as MealLogTab)}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="text">Beskrivning</TabsTrigger>
+              <TabsTrigger value="ingredients">Ingredienser</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="text" className="space-y-4">
           {/* Same as yesterday */}
           {yesterdayMeal && !formData.description && (
             <Button
@@ -531,6 +605,15 @@ export function QuickMealLog({
               </div>
             </div>
           )}
+            </TabsContent>
+
+            <TabsContent value="ingredients" className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Sök bland 2 500+ livsmedel från Livsmedelsverket. Beskrivning och makron räknas automatiskt.
+              </p>
+              <IngredientBuilder value={ingredients} onChange={setIngredients} />
+            </TabsContent>
+          </Tabs>
 
           {/* Workout flags */}
           <div className="flex gap-4">
@@ -561,7 +644,12 @@ export function QuickMealLog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!formData.description.trim() || isLoading}
+            disabled={
+              isLoading ||
+              (tab === 'ingredients'
+                ? !ingredients.some((r) => r.name.trim().length > 0 && r.grams > 0)
+                : !formData.description.trim())
+            }
           >
             {isLoading ? 'Sparar...' : isEditMode ? 'Spara ändringar' : 'Logga måltid'}
           </Button>

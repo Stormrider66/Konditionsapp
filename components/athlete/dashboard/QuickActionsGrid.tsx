@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Plus, Utensils, Zap, Video } from 'lucide-react'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { InputMethodSelector } from '@/components/athlete/adhoc/InputMethodSelector'
-import { MealInputMethodSelector } from '@/components/athlete/nutrition/MealInputMethodSelector'
+import { MealInputMethodSelector, type MealInputMethod } from '@/components/athlete/nutrition/MealInputMethodSelector'
 import { VoiceMealCapture } from '@/components/athlete/nutrition/VoiceMealCapture'
 import { QuickMealLog } from '@/components/athlete/nutrition/QuickMealLog'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -25,8 +25,9 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
   const [mealSelectorOpen, setMealSelectorOpen] = useState(false)
   const [voiceMealOpen, setVoiceMealOpen] = useState(false)
   const [quickMealOpen, setQuickMealOpen] = useState(false)
+  const [quickMealTab, setQuickMealTab] = useState<'text' | 'ingredients'>('text')
 
-  const handleMealMethod = (method: 'photo' | 'voice' | 'quick') => {
+  const handleMealMethod = (method: MealInputMethod) => {
     if (method === 'photo') {
       // Use a full navigation here because dialog teardown on mobile browsers can swallow
       // Next router pushes from this callback. The dedicated scan page avoids the old modal issue.
@@ -37,8 +38,12 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
     // Let the selector dialog fully close before opening the next surface.
     // This avoids stacked Radix dialog state races on mobile camera return.
     window.setTimeout(() => {
-      if (method === 'voice') setVoiceMealOpen(true)
-      else setQuickMealOpen(true)
+      if (method === 'voice') {
+        setVoiceMealOpen(true)
+      } else {
+        setQuickMealTab(method === 'ingredients' ? 'ingredients' : 'text')
+        setQuickMealOpen(true)
+      }
     }, 0)
   }
 
@@ -117,6 +122,7 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
           setQuickMealOpen(false)
           window.dispatchEvent(new Event('meal-logged'))
         }}
+        defaultTab={quickMealTab}
       />
     </>
   )

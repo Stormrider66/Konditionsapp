@@ -32,6 +32,7 @@ const createMealSchema = z.object({
   photoUrl: z.string().url().optional(),
   notes: z.string().optional(),
   items: z.array(z.object({
+    foodId: z.string().optional(),
     name: z.string(),
     category: z.string().optional(),
     estimatedGrams: z.number().nonnegative(),
@@ -56,6 +57,24 @@ const createMealSchema = z.object({
 })
 
 const MERGE_WINDOW_MINUTES = 30
+
+type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
+
+// Bump popularity once per distinct foodId in the saved items list so the
+// food typeahead surfaces frequently-picked items first.
+async function bumpFoodPopularity(
+  tx: TxClient,
+  items: ReadonlyArray<{ foodId?: string }>
+): Promise<void> {
+  const ids = Array.from(
+    new Set(items.map((it) => it.foodId).filter((id): id is string => !!id))
+  )
+  if (ids.length === 0) return
+  await tx.food.updateMany({
+    where: { id: { in: ids } },
+    data: { popularity: { increment: 1 } },
+  })
+}
 
 function sumNullable(a: number | null | undefined, b: number | null | undefined): number | null {
   if (a == null && b == null) return null
@@ -254,6 +273,7 @@ export async function POST(request: NextRequest) {
           await tx.mealFoodItem.createMany({
             data: data.items.map((item, i) => ({
               mealLogId: updated.id,
+              foodId: item.foodId,
               name: item.name,
               normalizedName: item.name.toLowerCase().trim(),
               category: item.category,
@@ -273,6 +293,7 @@ export async function POST(request: NextRequest) {
               sortOrder: existingItemCount + i,
             })),
           })
+          await bumpFoodPopularity(tx, data.items)
         }
 
         merged = true
@@ -311,6 +332,7 @@ export async function POST(request: NextRequest) {
         await tx.mealFoodItem.createMany({
           data: data.items.map((item, i) => ({
             mealLogId: created.id,
+            foodId: item.foodId,
             name: item.name,
             normalizedName: item.name.toLowerCase().trim(),
             category: item.category,
@@ -330,6 +352,7 @@ export async function POST(request: NextRequest) {
             sortOrder: i,
           })),
         })
+        await bumpFoodPopularity(tx, data.items)
       }
 
       return created
