@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Plus, Trash2, Loader2 } from 'lucide-react'
+import { Camera, Plus, Trash2, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface IngredientRow {
@@ -47,6 +46,12 @@ interface IngredientBuilderProps {
   onChange: (next: IngredientRow[]) => void
 }
 
+interface RecipeScanIngredient {
+  name: string
+  grams: number
+  food: FoodOption | null
+}
+
 export function ingredientMacros(row: IngredientRow): IngredientTotals {
   const factor = row.grams / 100
   return {
@@ -76,9 +81,7 @@ export function sumIngredientMacros(rows: IngredientRow[]): IngredientTotals {
 
 function makeRow(): IngredientRow {
   return {
-    rowId: typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `row-${Math.random().toString(36).slice(2)}`,
+    rowId: makeRowId(),
     name: '',
     grams: 100,
   }
@@ -93,12 +96,62 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
   useEffect(ensureRow, [])
 
   const totals = sumIngredientMacros(value)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [scanning, setScanning] = useState(false)
+  const [scanError, setScanError] = useState<string | null>(null)
 
   const updateRow = (rowId: string, patch: Partial<IngredientRow>) => {
     onChange(value.map((r) => (r.rowId === rowId ? { ...r, ...patch } : r)))
   }
   const removeRow = (rowId: string) => {
     onChange(value.filter((r) => r.rowId !== rowId))
+  }
+
+  const handleRecipeFile = async (file: File) => {
+    setScanError(null)
+    setScanning(true)
+    try {
+      const fd = new FormData()
+      fd.append('image', file)
+      const res = await fetch('/api/ai/food-scan/recipe', { method: 'POST', body: fd })
+      const payload = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(payload?.error || 'Kunde inte tolka receptet')
+      }
+      const ingredients = (payload?.ingredients ?? []) as RecipeScanIngredient[]
+      if (ingredients.length === 0) {
+        setScanError('Inga ingredienser hittades i bilden.')
+        return
+      }
+      // Replace any empty seed rows; append to filled rows.
+      const existing = value.filter((r) => r.name.trim().length > 0 || r.grams > 0)
+      const newRows: IngredientRow[] = ingredients.map((ing) =>
+        ing.food
+          ? {
+              rowId: makeRowId(),
+              foodId: ing.food.id,
+              name: ing.food.nameSv,
+              grams: ing.grams,
+              caloriesPer100g: ing.food.caloriesPer100g,
+              proteinPer100g: ing.food.proteinPer100g,
+              carbsPer100g: ing.food.carbsPer100g,
+              fatPer100g: ing.food.fatPer100g,
+              fiberPer100g: ing.food.fiberPer100g ?? undefined,
+            }
+          : {
+              rowId: makeRowId(),
+              name: ing.name,
+              grams: ing.grams,
+            }
+      )
+      onChange([...existing, ...newRows])
+    } catch (err) {
+      setScanError(err instanceof Error ? err.message : 'Kunde inte tolka receptet')
+    } finally {
+      setScanning(false)
+      // Reset the input so picking the same file twice still triggers onChange.
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   return (
@@ -114,16 +167,46 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
         ))}
       </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="w-full gap-2 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
-        onClick={() => onChange([...value, makeRow()])}
-      >
-        <Plus className="h-4 w-4" />
-        Lägg till ingrediens
-      </Button>
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-2 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+          onClick={() => onChange([...value, makeRow()])}
+        >
+          <Plus className="h-4 w-4" />
+          Lägg till
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-2 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={scanning}
+        >
+          {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+          {scanning ? 'Läser receptet…' : 'Skanna recept'}
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) void handleRecipeFile(file)
+          }}
+        />
+      </div>
+
+      {scanError && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-500">
+          {scanError}
+        </div>
+      )}
 
       <div className="rounded-lg border border-border dark:border-slate-700 p-3 grid grid-cols-4 gap-2 text-center text-xs">
         <Total label="kcal" value={Math.round(totals.calories)} />
@@ -133,6 +216,12 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
       </div>
     </div>
   )
+}
+
+function makeRowId(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `row-${Math.random().toString(36).slice(2)}`
 }
 
 function Total({ label, value }: { label: string; value: number | string }) {
@@ -344,9 +433,7 @@ export function ingredientRowsFromItems(items: ItemFromMeal[]): IngredientRow[] 
   return items.map((it) => {
     const factor = it.estimatedGrams > 0 ? 100 / it.estimatedGrams : 0
     return {
-      rowId: typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? crypto.randomUUID()
-        : `row-${Math.random().toString(36).slice(2)}`,
+      rowId: makeRowId(),
       foodId: it.foodId ?? undefined,
       name: it.name,
       grams: it.estimatedGrams,
