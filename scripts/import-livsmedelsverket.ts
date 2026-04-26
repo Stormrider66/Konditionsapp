@@ -8,11 +8,10 @@
  * Idempotent: upserts on (source, externalId), so re-running picks up new
  * foods or updated nutrient values without duplicating rows.
  *
- * Data source: the public Livsmedelsverket dataportal REST API. If the API
- * is unreachable or the schema changes, set LIVSMEDELSVERKET_LOCAL_JSON to a
- * path containing the same shape as `FoodRecord[]` and the script will read
- * that instead — useful for offline runs or when working from the official
- * Excel/CSV download.
+ * Data source: the public Livsmedelsverket dataportal REST API (Swagger:
+ * https://dataportal.livsmedelsverket.se/livsmedel/swagger/index.html).
+ * If the API is unreachable or you want to import from a downloaded file,
+ * set LIVSMEDELSVERKET_LOCAL_JSON=path.json (FoodRecord[] shape).
  */
 
 import { PrismaClient } from '@prisma/client'
@@ -21,6 +20,7 @@ import { readFile } from 'node:fs/promises'
 const prisma = new PrismaClient()
 
 const API_BASE = 'https://dataportal.livsmedelsverket.se/livsmedel/api/v1'
+const LIST_LIMIT = 3000   // ~2400 foods total — one page is enough
 const CONCURRENCY = 8
 
 interface FoodRecord {
@@ -39,18 +39,17 @@ interface FoodRecord {
   sugarPer100g?: number
 }
 
-// Livsmedelsverket nutrient codes — confirmed against their public API docs.
-// If the API changes the codes, update this map; the rest of the script is generic.
+// Match nutrients by EuroFIR code (stable across API versions). For energy,
+// disambiguate kJ vs kcal via the `enhet` field — both rows share `ENERC`.
 const NUTRIENT_CODES = {
-  energiKcal: 'Ener',         // kcal per 100 g
-  protein: 'Prot',
-  fat: 'Fett',
-  carbs: 'Kolh',
-  fiber: 'Fibe',
-  saturatedFat: 'MFAS',
-  monounsaturatedFat: 'MFAM',
-  polyunsaturatedFat: 'MFAP',
-  sugar: 'Mono',              // mono- + disaccharider as a sugar proxy
+  protein: 'PROT',
+  fat: 'FAT',
+  carbs: 'CHO',
+  fiber: 'FIBT',
+  saturatedFat: 'FASAT',
+  monounsaturatedFat: 'FAMS',
+  polyunsaturatedFat: 'FAPU',
+  sugar: 'SUGAR',
 } as const
 
 interface ApiFoodListItem {
@@ -59,9 +58,17 @@ interface ApiFoodListItem {
   livsmedelsTyp?: string
 }
 
-interface ApiNutrientValue {
+interface ApiFoodList {
+  livsmedel: ApiFoodListItem[]
+  _meta?: { totalCount?: number }
+}
+
+interface ApiNutrient {
+  namn: string
+  euroFIRkod: string
   forkortning: string
   varde: number
+  enhet: string
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -99,48 +106,67 @@ async function* mapWithConcurrency<I, O>(
   }
 }
 
+function pickByEuroFIR(nutrients: ApiNutrient[], code: string): number | undefined {
+  const hit = nutrients.find((n) => n.euroFIRkod === code)
+  return hit?.varde
+}
+
+function pickEnergyKcal(nutrients: ApiNutrient[]): number | undefined {
+  const hit = nutrients.find(
+    (n) => n.euroFIRkod === 'ENERC' && (n.enhet || '').toLowerCase() === 'kcal'
+  )
+  return hit?.varde
+}
+
 async function fetchFromApi(): Promise<FoodRecord[]> {
   console.log('Fetching food list from Livsmedelsverket dataportal…')
-  const list = await fetchJson<ApiFoodListItem[]>(`${API_BASE}/livsmedel/sprak/sv`)
-  console.log(`  → ${list.length} foods. Fetching nutrient values…`)
+  const list = await fetchJson<ApiFoodList>(
+    `${API_BASE}/livsmedel?offset=0&limit=${LIST_LIMIT}&sprak=1`
+  )
+  const foods = list.livsmedel ?? []
+  console.log(`  → ${foods.length} foods. Fetching nutrient values (concurrency ${CONCURRENCY})…`)
 
   const records: FoodRecord[] = []
   let done = 0
-  for await (const record of mapWithConcurrency(list, CONCURRENCY, async (food) => {
-    const nutrients = await fetchJson<ApiNutrientValue[]>(
-      `${API_BASE}/livsmedel/${food.nummer}/naringsvarden/sprak/sv`
-    ).catch(() => [] as ApiNutrientValue[])
-    const get = (code: string) =>
-      nutrients.find((n) => n.forkortning === code)?.varde
-    const energy = get(NUTRIENT_CODES.energiKcal)
-    const protein = get(NUTRIENT_CODES.protein)
-    const carbs = get(NUTRIENT_CODES.carbs)
-    const fat = get(NUTRIENT_CODES.fat)
+  let skipped = 0
+  for await (const record of mapWithConcurrency(foods, CONCURRENCY, async (food) => {
+    const nutrients = await fetchJson<ApiNutrient[]>(
+      `${API_BASE}/livsmedel/${food.nummer}/naringsvarden?sprak=1`
+    ).catch((err) => {
+      console.warn(`  warn: ${food.nummer} ${food.namn} — ${err.message}`)
+      return [] as ApiNutrient[]
+    })
+
+    const energy = pickEnergyKcal(nutrients)
+    const protein = pickByEuroFIR(nutrients, NUTRIENT_CODES.protein)
+    const carbs = pickByEuroFIR(nutrients, NUTRIENT_CODES.carbs)
+    const fat = pickByEuroFIR(nutrients, NUTRIENT_CODES.fat)
     if (energy == null || protein == null || carbs == null || fat == null) {
       return null
     }
+
     return {
       externalId: String(food.nummer),
       nameSv: food.namn,
-      category: food.livsmedelsTyp,
       caloriesPer100g: energy,
       proteinPer100g: protein,
       carbsPer100g: carbs,
       fatPer100g: fat,
-      fiberPer100g: get(NUTRIENT_CODES.fiber),
-      saturatedFatPer100g: get(NUTRIENT_CODES.saturatedFat),
-      monounsaturatedFatPer100g: get(NUTRIENT_CODES.monounsaturatedFat),
-      polyunsaturatedFatPer100g: get(NUTRIENT_CODES.polyunsaturatedFat),
-      sugarPer100g: get(NUTRIENT_CODES.sugar),
+      fiberPer100g: pickByEuroFIR(nutrients, NUTRIENT_CODES.fiber),
+      saturatedFatPer100g: pickByEuroFIR(nutrients, NUTRIENT_CODES.saturatedFat),
+      monounsaturatedFatPer100g: pickByEuroFIR(nutrients, NUTRIENT_CODES.monounsaturatedFat),
+      polyunsaturatedFatPer100g: pickByEuroFIR(nutrients, NUTRIENT_CODES.polyunsaturatedFat),
+      sugarPer100g: pickByEuroFIR(nutrients, NUTRIENT_CODES.sugar),
     } satisfies FoodRecord
   })) {
     done++
     if (record) records.push(record)
+    else skipped++
     if (done % 200 === 0) {
-      process.stdout.write(`  fetched ${done}/${list.length}\r`)
+      process.stdout.write(`  fetched ${done}/${foods.length}\r`)
     }
   }
-  console.log(`  fetched ${done}/${list.length} (kept ${records.length} with full macros)`)
+  console.log(`  fetched ${done}/${foods.length} (kept ${records.length}, skipped ${skipped} without full macros)`)
   return records
 }
 
