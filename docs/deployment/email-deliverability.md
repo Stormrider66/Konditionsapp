@@ -20,55 +20,67 @@ the records are published nothing else changes in the codebase.
 
 1. Log in to https://resend.com/domains
 2. Click **Add Domain** → enter `trainomics.app`
-3. Resend generates one SPF TXT and three DKIM CNAME records — **copy the values
-   it shows you, do not invent them**. The CNAME hostnames look like
-   `resend._domainkey.trainomics.app`, `resend2._domainkey...`, etc., and the
-   targets look like `<random>.dkim.amazonses.com`. They're unique to our
-   account; never copy them from another tenant's docs.
+3. Resend generates the records to add — **copy the exact values shown,
+   do not invent them**. Resend's modern setup (confirmed against our
+   account on 2026-04-26) gives you:
+   - One **DKIM** TXT record at `resend._domainkey` containing a long `p=MIG...`
+     public key.
+   - Two **SPF** records on the `send` subdomain — an MX (priority 10) pointing
+     at `feedback-smtp.<region>.amazonses.com` and a TXT
+     `v=spf1 include:amazonses.com ~all`.
+   - **No additional CNAMEs** (older Resend docs may show 3× DKIM CNAMEs to
+     `<hash>.dkim.amazonses.com` — that's the legacy pattern; the current
+     account uses the single-TXT DKIM above).
 
 Keep the Resend tab open — you'll click **Verify** here once DNS has propagated.
 
 ## 2. Publish the DNS records
 
-These go in whatever registrar/DNS provider hosts `trainomics.app` (Vercel
-DNS, Cloudflare, Loopia, etc.). All values come from Resend in step 1 except
-the DMARC TXT, which we author ourselves.
+These go in whatever registrar/DNS provider hosts `trainomics.app` (Cloudflare,
+Vercel DNS, Loopia, etc.). All Resend-generated records come from step 1 — the
+DMARC TXT we author ourselves.
 
-| Type  | Host (name)                        | Value                                                                                      | TTL  |
-|-------|------------------------------------|--------------------------------------------------------------------------------------------|------|
-| TXT   | `@` (or `trainomics.app`)          | `v=spf1 include:amazonses.com ~all`                                                        | 3600 |
-| CNAME | `resend._domainkey`                | (paste from Resend)                                                                        | 3600 |
-| CNAME | `resend2._domainkey`               | (paste from Resend)                                                                        | 3600 |
-| CNAME | `resend3._domainkey`               | (paste from Resend)                                                                        | 3600 |
-| TXT   | `_dmarc`                           | `v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@trainomics.app; pct=100; adkim=s; aspf=s` | 3600 |
+| Type  | Host (name)                        | Value                                                                  | TTL  |
+|-------|------------------------------------|------------------------------------------------------------------------|------|
+| TXT   | `resend._domainkey`                | (paste from Resend — long `p=MIG...` public key)                       | Auto |
+| MX    | `send` (priority 10)               | (paste from Resend — `feedback-smtp.<region>.amazonses.com`)           | Auto |
+| TXT   | `send`                             | `v=spf1 include:amazonses.com ~all`                                    | Auto |
+| TXT   | `_dmarc`                           | `v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@trainomics.app; pct=100` | Auto |
 
 Notes:
 
-- **SPF** uses `~all` (soft-fail). Keep it `~all` until DMARC is on `quarantine`
-  for a couple of weeks and the reports look clean — only then consider `-all`.
-- **DKIM**: copy the three CNAMEs from Resend verbatim. If your DNS provider
-  appends the apex automatically, paste only the prefix (`resend._domainkey`).
-  If it doesn't, paste the full hostname.
-- **DMARC**: start with `p=none` if you want a one-week dry run with reports
-  before any mail gets quarantined. Otherwise `p=quarantine` is fine — we
-  control all senders. Don't jump straight to `p=reject` until reports confirm
-  no false positives.
-- **DMARC mailbox**: create `dmarc-reports@trainomics.app` in Resend (or
-  forward to a real inbox). Don't aim DMARC reports at a black hole — the
-  weekly XML aggregates are how you spot misconfiguration and spoofing.
+- **Cloudflare proxy**: leave all of these on **DNS only** (gray cloud), not
+  proxied. Orange-cloud proxying breaks DKIM and rewrites MX targets.
+- **SPF on `send.` subdomain (not the apex)**: this is intentional. Resend uses
+  `send.trainomics.app` as the envelope sender (`Return-Path`) while the
+  visible `From: noreply@trainomics.app` stays on the apex. SPF authenticates
+  the envelope; DKIM signs with `d=trainomics.app` so DKIM aligns with the
+  visible From:. DMARC passes via DKIM alignment.
+- **DMARC alignment must be relaxed** (which is the default). Don't add
+  `aspf=s` — strict SPF alignment would fail because `send.trainomics.app`
+  ≠ `trainomics.app` exact match. `adkim=s` would technically pass since
+  DKIM signs with the apex, but there's no upside to forcing it; relaxed is
+  the lower-risk default. The DMARC record above uses the safe defaults.
+- **DMARC `p=quarantine`** is the recommended starting point — Resend has
+  already verified SPF + DKIM, so quarantine should never trigger for us.
+  Use `p=none` for a one-week dry run if you want to be cautious. Don't
+  jump straight to `p=reject` until reports confirm no false positives.
+- **DMARC mailbox**: create `dmarc-reports@trainomics.app` (forward to a real
+  inbox is fine). Reports come weekly as XML — that's how you spot
+  misconfiguration and spoofing. Don't black-hole this address.
 
 ## 3. Verify
 
 After DNS has propagated (5–60 min depending on TTL):
 
 ```bash
-# SPF
-dig +short TXT trainomics.app | grep spf1
+# SPF (envelope) — note the host is `send.`, not the apex
+dig +short TXT send.trainomics.app | grep spf1
 # expect: "v=spf1 include:amazonses.com ~all"
 
-# DKIM (one example — repeat for resend2, resend3)
-dig +short CNAME resend._domainkey.trainomics.app
-# expect: <hash>.dkim.amazonses.com.
+# DKIM
+dig +short TXT resend._domainkey.trainomics.app
+# expect: a long string starting with "p=MIG..."
 
 # DMARC
 dig +short TXT _dmarc.trainomics.app
