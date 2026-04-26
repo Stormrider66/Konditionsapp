@@ -27,6 +27,8 @@ function getStripeClient(): Stripe {
     }
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2025-12-15.clover',
+      maxNetworkRetries: 2,
+      timeout: 20_000,
     });
   }
   return _stripe;

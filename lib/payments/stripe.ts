@@ -25,6 +25,14 @@ function getStripeClient(): Stripe {
     }
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2025-12-15.clover',
+      // Auto-retry transient network errors. The SDK auto-generates an
+      // idempotency key for each retry so duplicate writes (customers,
+      // subscriptions, refunds) are not created on the Stripe side.
+      maxNetworkRetries: 2,
+      // Default timeout is 80s — too long for user-facing checkout flows.
+      // Cap at 20s so a stuck Stripe call surfaces the breaker / fallback
+      // path instead of pinning a Fluid Compute instance.
+      timeout: 20_000,
     });
   }
   return _stripe;
