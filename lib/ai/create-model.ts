@@ -8,19 +8,29 @@ import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
 import type { ResolvedModel } from '@/types/ai-models'
+import { wrapAiFetch } from './fetch'
 
 export function createModelInstance(resolved: ResolvedModel) {
   switch (resolved.provider) {
     case 'anthropic': {
-      const anthropic = createAnthropic({ apiKey: resolved.apiKey })
+      const anthropic = createAnthropic({
+        apiKey: resolved.apiKey,
+        fetch: wrapAiFetch('anthropic'),
+      })
       return anthropic(resolved.modelId)
     }
     case 'google': {
-      const google = createGoogleGenerativeAI({ apiKey: resolved.apiKey })
+      const google = createGoogleGenerativeAI({
+        apiKey: resolved.apiKey,
+        fetch: wrapAiFetch('google'),
+      })
       return google(resolved.modelId)
     }
     case 'openai': {
-      const openai = createOpenAI({ apiKey: resolved.apiKey })
+      const openai = createOpenAI({
+        apiKey: resolved.apiKey,
+        fetch: wrapAiFetch('openai'),
+      })
       return openai(resolved.modelId)
     }
     default:

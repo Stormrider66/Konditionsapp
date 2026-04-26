@@ -3,6 +3,8 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
 import { resolveModel, isModelIntent } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
+import { isProviderHealthy } from '@/lib/ai/circuit-breaker'
+import { wrapAiFetch } from '@/lib/ai/fetch'
 import { logger } from '@/lib/logger'
 
 type EffectiveKeys = {
@@ -37,8 +39,16 @@ export type ResolveAiModelResult =
 export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult {
   const { provider, model, effectiveKeys, intent, isAthleteChat, deepThinkEnabled } = input
 
+  // Drop keys for providers whose circuit breaker is open so resolveModel /
+  // explicit-provider matches naturally fall through to a healthy provider.
+  const healthyKeys: EffectiveKeys = {
+    anthropicKey: isProviderHealthy('anthropic') ? effectiveKeys.anthropicKey : null,
+    googleKey: isProviderHealthy('google') ? effectiveKeys.googleKey : null,
+    openaiKey: isProviderHealthy('openai') ? effectiveKeys.openaiKey : null,
+  }
+
   if (intent && isModelIntent(intent) && isAthleteChat) {
-    const resolved = resolveModel(effectiveKeys, intent)
+    const resolved = resolveModel(healthyKeys, intent)
     if (resolved) {
       logger.info('Athlete intent-based model resolved', {
         intent,
@@ -50,13 +60,19 @@ export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult
     return { ok: false, errorMessage: 'Ingen AI API-nyckel konfigurerad.' }
   }
 
-  if (provider === 'ANTHROPIC' && effectiveKeys.anthropicKey) {
-    const anthropic = createAnthropic({ apiKey: effectiveKeys.anthropicKey })
+  if (provider === 'ANTHROPIC' && healthyKeys.anthropicKey) {
+    const anthropic = createAnthropic({
+      apiKey: healthyKeys.anthropicKey,
+      fetch: wrapAiFetch('anthropic'),
+    })
     return { ok: true, aiModel: anthropic(model || 'claude-sonnet-4-6') }
   }
 
-  if (provider === 'GOOGLE' && effectiveKeys.googleKey) {
-    const google = createGoogleGenerativeAI({ apiKey: effectiveKeys.googleKey })
+  if (provider === 'GOOGLE' && healthyKeys.googleKey) {
+    const google = createGoogleGenerativeAI({
+      apiKey: healthyKeys.googleKey,
+      fetch: wrapAiFetch('google'),
+    })
     const geminiModel = model || 'gemini-3-flash-preview'
     if (deepThinkEnabled) {
       logger.info('Using Gemini Deep Think mode', { model: geminiModel })
@@ -64,13 +80,16 @@ export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult
     return { ok: true, aiModel: google(geminiModel) }
   }
 
-  if (provider === 'OPENAI' && effectiveKeys.openaiKey) {
-    const openai = createOpenAI({ apiKey: effectiveKeys.openaiKey })
+  if (provider === 'OPENAI' && healthyKeys.openaiKey) {
+    const openai = createOpenAI({
+      apiKey: healthyKeys.openaiKey,
+      fetch: wrapAiFetch('openai'),
+    })
     return { ok: true, aiModel: openai(model || 'gpt-5.5') }
   }
 
-  // No key for the requested provider — try any available.
-  const fallback = resolveModel(effectiveKeys, 'balanced')
+  // No healthy key for the requested provider — try any healthy provider.
+  const fallback = resolveModel(healthyKeys, 'balanced')
   if (fallback) {
     logger.info('Falling back to available provider', {
       requestedProvider: provider,
@@ -83,7 +102,7 @@ export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult
   return {
     ok: false,
     errorMessage:
-      'Ingen AI API-nyckel konfigurerad. Konfigurera minst en API-nyckel i inställningarna.',
+      'AI-tjänsten är tillfälligt otillgänglig. Försök igen om en stund.',
   }
 }
 
