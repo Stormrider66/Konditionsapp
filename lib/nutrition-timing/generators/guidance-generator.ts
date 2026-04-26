@@ -209,12 +209,10 @@ export function calculateDailyTargets(
   let adjCarbsG = 0
   let adjProteinG = 0
   let adjFatG = 0
-  let adjKcal = 0
 
   for (const workout of workouts) {
     const workoutKcal = estimateWorkoutKcal(workout, weightKg)
     const split = workoutMacroSplit(workout)
-    adjKcal += workoutKcal
     adjCarbsG += (workoutKcal * split.carbs) / 4
     adjProteinG += (workoutKcal * split.protein) / 4
     adjFatG += (workoutKcal * split.fat) / 9
@@ -264,8 +262,15 @@ export function calculateDailyTargets(
       const minCarbsG = Math.round(weightKg * 3)
       carbsG = Math.max(carbsG - carbReductionG, minCarbsG)
       caloriesKcal = carbsG * 4 + proteinG * 4 + fatG * 9
+      adjCarbsG = carbsG - baselineCarbsG
     }
   }
+
+  // Recompute workout adjustment kcal AFTER the carb floor + TDEE cap so that
+  // baselineKcal + workoutAdjustmentKcal === caloriesKcal. Otherwise the UI
+  // shows the raw burn estimate while the total reflects the bumped macros,
+  // and the two lines stop adding up. (Bug surfaced on a double-training day.)
+  const adjKcalReconciled = caloriesKcal - Math.round(baselineKcalRaw)
 
   // 5. Hydration: rest-day baseline + 500ml per hour of training.
   const baseHydration = weightKg * 28
@@ -282,7 +287,7 @@ export function calculateDailyTargets(
     baselineProteinG: Math.round(baselineProteinG),
     baselineCarbsG: Math.round(baselineCarbsG),
     baselineFatG: Math.round(baselineFatG),
-    workoutAdjustmentKcal: Math.round(adjKcal),
+    workoutAdjustmentKcal: Math.max(0, adjKcalReconciled),
     workoutAdjustmentProteinG: Math.round(adjProteinG),
     workoutAdjustmentCarbsG: Math.round(adjCarbsG),
     workoutAdjustmentFatG: Math.round(adjFatG),
