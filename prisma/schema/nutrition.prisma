@@ -19,9 +19,9 @@ model DietaryPreferences {
   dislikedFoods Json? // ["oatmeal", "fish", "beans"]
 
   // Preferences
-  preferLowFODMAP    Boolean @default(false)
-  preferWholeGrain   Boolean @default(true)
-  preferSwedishFoods Boolean @default(true) // Prioritize Swedish food suggestions
+  preferLowFODMAP       Boolean @default(false)
+  preferWholeGrain      Boolean @default(true)
+  preferSwedishFoods    Boolean @default(true) // Prioritize Swedish food suggestions
   enhancedMacroAnalysis Boolean @default(false)
 
   // Food-scan personalized memory
@@ -166,15 +166,27 @@ model FoodScanCorrection {
   @@index([correctionType])
 }
 
-/// Individual food item within a meal (from AI analysis)
+/// Individual food item within a meal.
+///
+/// Populated by two flows:
+/// 1. AI photo/voice analysis (foodId null, name from AI)
+/// 2. Manual ingredient builder (foodId set when user picked a Food from
+///    Livsmedelsverket; macro fields are computed from Food per-100g × grams).
+///
+/// Edit-meal hydration loads these items back into the ingredient builder.
 model MealFoodItem {
   id        String  @id @default(cuid())
   mealLogId String
   mealLog   MealLog @relation(fields: [mealLogId], references: [id], onDelete: Cascade)
 
+  // Reference Food row when the item was picked from the food database.
+  // Null when the user typed a free-text ingredient or AI invented the name.
+  foodId String?
+  food   Food?   @relation(fields: [foodId], references: [id], onDelete: SetNull)
+
   // Food identity
-  name           String  // "Kyckling" — Swedish name from AI
-  normalizedName String  // Lowercase, trimmed — for aggregation queries
+  name           String // "Kyckling" — Swedish name from AI or Food.nameSv
+  normalizedName String // Lowercase, trimmed — for aggregation queries
   category       String? // PROTEIN | CARB | FAT | VEGETABLE | FRUIT | DAIRY | GRAIN | BEVERAGE | OTHER
 
   // Portion
@@ -202,4 +214,48 @@ model MealFoodItem {
 
   @@index([mealLogId])
   @@index([normalizedName])
+  @@index([foodId])
+}
+
+/// Reference food database — primarily Livsmedelsverket (Swedish food agency),
+/// but `source` is left open for future imports (Open Food Facts, custom user
+/// foods, etc.). All nutrient fields are per 100g; the meal-side code
+/// multiplies by grams when building MealFoodItem rows.
+model Food {
+  id String @id @default(cuid())
+
+  // External identity (e.g. Livsmedelsverket nummer). Allows idempotent re-imports.
+  source     String // LIVSMEDELSVERKET | OPENFOODFACTS | CUSTOM
+  externalId String? // Source-specific ID (Livsmedelsverket: livsmedelsnummer)
+
+  // Names
+  nameSv     String
+  nameEn     String?
+  searchName String // Lowercase nameSv — indexed for ILIKE typeahead
+
+  category String? // PROTEIN | CARB | FAT | VEGETABLE | FRUIT | DAIRY | GRAIN | BEVERAGE | OTHER
+
+  // Nutrient values per 100 g
+  caloriesPer100g Float
+  proteinPer100g  Float
+  carbsPer100g    Float
+  fatPer100g      Float
+  fiberPer100g    Float?
+
+  saturatedFatPer100g       Float?
+  monounsaturatedFatPer100g Float?
+  polyunsaturatedFatPer100g Float?
+  sugarPer100g              Float?
+
+  // Surface ranking. Bumped by the search API when an item is picked.
+  popularity Int @default(0)
+
+  items MealFoodItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([source, externalId])
+  @@index([searchName])
+  @@index([popularity])
 }
