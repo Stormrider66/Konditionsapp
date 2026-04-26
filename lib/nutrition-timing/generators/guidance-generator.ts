@@ -18,6 +18,7 @@ import type {
   WorkoutContext,
   DailyNutritionGuidance,
   DailyMacroTargets,
+  LifestyleActivity,
   NutritionGuidance,
   NutritionTip,
   GuidanceGeneratorInput,
@@ -81,7 +82,8 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
     weightKg,
     todaysWorkouts,
     goalType,
-    bodyComposition?.bmrKcal
+    bodyComposition?.bmrKcal,
+    sportProfile?.lifestyleActivity
   )
 
   // Generate workout-specific guidance
@@ -175,11 +177,26 @@ function workoutMacroSplit(workout: WorkoutContext): { carbs: number; protein: n
   return { carbs: 0.60, protein: 0.20, fat: 0.20 }
 }
 
+/**
+ * NEAT (non-exercise activity thermogenesis) multipliers, applied to the
+ * energy macros (carbs + fat) of the baseline. Protein stays per-kg of body
+ * weight — it's a structural target, not energy. Workout kcal are added on
+ * top, so these factors deliberately EXCLUDE training (lower than the
+ * standard Harris-Benedict PAL values of 1.2 / 1.375 / 1.55 / 1.725).
+ */
+export const NEAT_FACTORS: Record<LifestyleActivity, number> = {
+  SEDENTARY: 1.00,         // desk job, mostly sitting (~3-5k steps) — DEFAULT
+  LIGHTLY_ACTIVE: 1.10,    // walks/stands during breaks (~5-8k steps)
+  MODERATELY_ACTIVE: 1.20, // on feet most of the day (~8-12k steps)
+  VERY_ACTIVE: 1.30,       // physical labor (~12k+ steps)
+}
+
 export function calculateDailyTargets(
   weightKg: number,
   workouts: WorkoutContext[],
   goalType?: string,
-  bmrKcal?: number
+  bmrKcal?: number,
+  lifestyleActivity: LifestyleActivity = 'SEDENTARY'
 ): DailyMacroTargets {
   // 1. Baseline (rest-day) targets — always the starting point.
   const carbTarget = REST_DAY_TARGETS.carbsPerKg
@@ -204,6 +221,22 @@ export function calculateDailyTargets(
   }
 
   const baselineKcalRaw = baselineCarbsG * 4 + baselineProteinG * 4 + baselineFatG * 9
+
+  // 1b. NEAT / lifestyle adjustment — multiplies energy macros (carbs + fat)
+  // on top of the baseline. Protein is a structural target and stays per-kg
+  // of body weight. SEDENTARY = factor 1.0 = zero adjustment, so existing
+  // users see no change until they pick something else.
+  const neatFactor = NEAT_FACTORS[lifestyleActivity] ?? 1.0
+  const lifestyleCarbsG = baselineCarbsG * (neatFactor - 1)
+  const lifestyleFatG = baselineFatG * (neatFactor - 1)
+  const lifestyleProteinG = 0
+  const lifestyleKcalRaw = lifestyleCarbsG * 4 + lifestyleProteinG * 4 + lifestyleFatG * 9
+
+  // Effective baseline for floor / cap math = baseline + lifestyle (NEAT).
+  // Workout adjustments and the carb floor sit on top of this combined value.
+  const effectiveBaselineCarbsG = baselineCarbsG + lifestyleCarbsG
+  const effectiveBaselineProteinG = baselineProteinG + lifestyleProteinG
+  const effectiveBaselineFatG = baselineFatG + lifestyleFatG
 
   // 2. Workout adjustment — each workout contributes a kcal bonus, split across macros.
   let adjCarbsG = 0
@@ -239,22 +272,24 @@ export function calculateDailyTargets(
       totalDuration,
       workouts.length >= 2
     )
-    const totalCarbs = baselineCarbsG + adjCarbsG
+    const totalCarbs = effectiveBaselineCarbsG + adjCarbsG
     if (totalCarbs < loadCarbFloor) {
-      adjCarbsG = loadCarbFloor - baselineCarbsG
+      adjCarbsG = loadCarbFloor - effectiveBaselineCarbsG
     }
   }
 
   // 3. Combine.
-  let carbsG = Math.round(baselineCarbsG + adjCarbsG)
-  const proteinG = Math.round(baselineProteinG + adjProteinG)
-  const fatG = Math.round(baselineFatG + adjFatG)
+  let carbsG = Math.round(effectiveBaselineCarbsG + adjCarbsG)
+  const proteinG = Math.round(effectiveBaselineProteinG + adjProteinG)
+  const fatG = Math.round(effectiveBaselineFatG + adjFatG)
   let caloriesKcal = carbsG * 4 + proteinG * 4 + fatG * 9
 
   // 4. TDEE sanity cap (unchanged in spirit): for extreme cases, clip carbs first.
+  // Scale the rest/active multipliers by neatFactor so users with active jobs
+  // don't get clipped by a sedentary-default cap.
   const isRestDay = workouts.length === 0
   if (bmrKcal) {
-    const estimatedTDEE = Math.round(bmrKcal * (isRestDay ? 1.2 : 1.55))
+    const estimatedTDEE = Math.round(bmrKcal * neatFactor * (isRestDay ? 1.2 : 1.55))
     const maxCalories = Math.round(estimatedTDEE * 1.25) // allow 25% over for hard days
     if (caloriesKcal > maxCalories) {
       const excessKcal = caloriesKcal - maxCalories
@@ -262,15 +297,15 @@ export function calculateDailyTargets(
       const minCarbsG = Math.round(weightKg * 3)
       carbsG = Math.max(carbsG - carbReductionG, minCarbsG)
       caloriesKcal = carbsG * 4 + proteinG * 4 + fatG * 9
-      adjCarbsG = carbsG - baselineCarbsG
+      adjCarbsG = carbsG - effectiveBaselineCarbsG
     }
   }
 
-  // Recompute workout adjustment kcal AFTER the carb floor + TDEE cap so that
-  // baselineKcal + workoutAdjustmentKcal === caloriesKcal. Otherwise the UI
-  // shows the raw burn estimate while the total reflects the bumped macros,
-  // and the two lines stop adding up. (Bug surfaced on a double-training day.)
-  const adjKcalReconciled = caloriesKcal - Math.round(baselineKcalRaw)
+  // Reconcile workout adjustment AFTER carb floor + TDEE cap so the displayed
+  // breakdown sums to the total: baseline + lifestyle + workout === total.
+  // The carb floor / TDEE cap absorb their effect into the workout line
+  // (it's the line that scales with training load).
+  const adjKcalReconciled = caloriesKcal - Math.round(baselineKcalRaw) - Math.round(lifestyleKcalRaw)
 
   // 5. Hydration: rest-day baseline + 500ml per hour of training.
   const baseHydration = weightKg * 28
@@ -287,6 +322,11 @@ export function calculateDailyTargets(
     baselineProteinG: Math.round(baselineProteinG),
     baselineCarbsG: Math.round(baselineCarbsG),
     baselineFatG: Math.round(baselineFatG),
+    lifestyleAdjustmentKcal: Math.round(lifestyleKcalRaw),
+    lifestyleAdjustmentProteinG: Math.round(lifestyleProteinG),
+    lifestyleAdjustmentCarbsG: Math.round(lifestyleCarbsG),
+    lifestyleAdjustmentFatG: Math.round(lifestyleFatG),
+    lifestyleActivity,
     workoutAdjustmentKcal: Math.max(0, adjKcalReconciled),
     workoutAdjustmentProteinG: Math.round(adjProteinG),
     workoutAdjustmentCarbsG: Math.round(adjCarbsG),

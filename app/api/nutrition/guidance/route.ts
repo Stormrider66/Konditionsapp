@@ -317,6 +317,7 @@ export async function GET(request: NextRequest) {
         ? {
             primarySport: client.sportProfile.primarySport,
             secondarySports: client.sportProfile.secondarySports || [],
+            lifestyleActivity: client.sportProfile.lifestyleActivity,
           }
         : null,
       todaysWorkouts: allTodaysWorkouts,

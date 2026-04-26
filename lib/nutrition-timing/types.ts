@@ -189,17 +189,33 @@ export interface NutritionTip {
 // DAILY GUIDANCE TYPES
 // ==========================================
 
+/**
+ * Lifestyle / NEAT (non-exercise activity thermogenesis) level. Mirrors the
+ * Prisma enum so the nutrition module stays decoupled from @prisma/client.
+ */
+export type LifestyleActivity =
+  | 'SEDENTARY'
+  | 'LIGHTLY_ACTIVE'
+  | 'MODERATELY_ACTIVE'
+  | 'VERY_ACTIVE'
+
 export interface DailyMacroTargets {
   caloriesKcal: number
   proteinG: number
   carbsG: number
   fatG: number
   hydrationMl: number
-  // Breakdown so the UI can show "baseline + workout bonus"
+  // Breakdown so the UI can show "baseline + lifestyle + workout"
   baselineKcal: number
   baselineProteinG: number
   baselineCarbsG: number
   baselineFatG: number
+  // NEAT / lifestyle adjustment on top of baseline (zero when SEDENTARY)
+  lifestyleAdjustmentKcal: number
+  lifestyleAdjustmentProteinG: number
+  lifestyleAdjustmentCarbsG: number
+  lifestyleAdjustmentFatG: number
+  lifestyleActivity: LifestyleActivity
   workoutAdjustmentKcal: number
   workoutAdjustmentProteinG: number
   workoutAdjustmentCarbsG: number
@@ -307,6 +323,7 @@ export interface GuidanceGeneratorInput {
   sportProfile?: {
     primarySport?: string
     secondarySports?: string[]
+    lifestyleActivity?: LifestyleActivity
   } | null
   todaysWorkouts: WorkoutContext[]
   tomorrowsWorkouts: WorkoutContext[]

@@ -226,11 +226,21 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
             {targets.caloriesKcal.toLocaleString('sv-SE')}
             <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-orange-700 dark:text-orange-300' : ''}`}>kcal</span>
           </p>
-          {targets.workoutAdjustmentKcal > 0 && (
+          {(targets.workoutAdjustmentKcal > 0 || targets.lifestyleAdjustmentKcal > 0) && (
             <p className={`text-xs mt-0.5 ${isGlass ? 'text-orange-700 dark:text-orange-300' : 'text-orange-700'}`}>
               Basbehov {targets.baselineKcal.toLocaleString('sv-SE')} kcal
-              <span className="mx-1">+</span>
-              <span className="font-medium">{targets.workoutAdjustmentKcal.toLocaleString('sv-SE')} kcal från träning</span>
+              {targets.lifestyleAdjustmentKcal > 0 && (
+                <>
+                  <span className="mx-1">+</span>
+                  <span className="font-medium">{targets.lifestyleAdjustmentKcal.toLocaleString('sv-SE')} kcal från livsstil</span>
+                </>
+              )}
+              {targets.workoutAdjustmentKcal > 0 && (
+                <>
+                  <span className="mx-1">+</span>
+                  <span className="font-medium">{targets.workoutAdjustmentKcal.toLocaleString('sv-SE')} kcal från träning</span>
+                </>
+              )}
             </p>
           )}
           {consumed && (

@@ -87,4 +87,63 @@ describe('generateDailyGuidance', () => {
     expect(guidance.preWorkoutGuidance).toHaveLength(0)
     expect(guidance.postWorkoutGuidance).toHaveLength(1)
   })
+
+  describe('breakdown invariant: baseline + lifestyle + workout = total', () => {
+    it('holds on a rest day (sedentary)', () => {
+      const t = generateDailyGuidance(createInput([])).targets
+      expect(t.baselineKcal + t.lifestyleAdjustmentKcal + t.workoutAdjustmentKcal).toBe(t.caloriesKcal)
+    })
+
+    it('holds on a hard double-training day where the carb floor kicks in', () => {
+      const t = generateDailyGuidance(
+        createInput([
+          createWorkout({ id: 'w-1', intensity: 'INTERVAL', duration: 90 }),
+          createWorkout({ id: 'w-2', intensity: 'THRESHOLD', duration: 60 }),
+        ])
+      ).targets
+      expect(t.baselineKcal + t.lifestyleAdjustmentKcal + t.workoutAdjustmentKcal).toBe(t.caloriesKcal)
+    })
+
+    it('holds on a very-active lifestyle with training', () => {
+      const input = createInput([createWorkout()])
+      input.sportProfile = { lifestyleActivity: 'VERY_ACTIVE' }
+      const t = generateDailyGuidance(input).targets
+      expect(t.baselineKcal + t.lifestyleAdjustmentKcal + t.workoutAdjustmentKcal).toBe(t.caloriesKcal)
+    })
+  })
+
+  describe('lifestyle / NEAT adjustment', () => {
+    it('SEDENTARY default produces no lifestyle bump (regression guard)', () => {
+      const t = generateDailyGuidance(createInput([])).targets
+      expect(t.lifestyleActivity).toBe('SEDENTARY')
+      expect(t.lifestyleAdjustmentKcal).toBe(0)
+      expect(t.lifestyleAdjustmentCarbsG).toBe(0)
+      expect(t.lifestyleAdjustmentFatG).toBe(0)
+      expect(t.lifestyleAdjustmentProteinG).toBe(0)
+    })
+
+    it('VERY_ACTIVE bumps energy macros (carbs + fat) but not protein', () => {
+      const sedentary = generateDailyGuidance(createInput([])).targets
+      const veryActiveInput = createInput([])
+      veryActiveInput.sportProfile = { lifestyleActivity: 'VERY_ACTIVE' }
+      const veryActive = generateDailyGuidance(veryActiveInput).targets
+
+      expect(veryActive.lifestyleActivity).toBe('VERY_ACTIVE')
+      expect(veryActive.lifestyleAdjustmentKcal).toBeGreaterThan(0)
+      expect(veryActive.carbsG).toBeGreaterThan(sedentary.carbsG)
+      expect(veryActive.fatG).toBeGreaterThan(sedentary.fatG)
+      expect(veryActive.proteinG).toBe(sedentary.proteinG) // protein is structural, not energy
+    })
+
+    it('lifestyle factor scales with activity level', () => {
+      const inputs = (['SEDENTARY', 'LIGHTLY_ACTIVE', 'MODERATELY_ACTIVE', 'VERY_ACTIVE'] as const).map((level) => {
+        const i = createInput([])
+        i.sportProfile = { lifestyleActivity: level }
+        return generateDailyGuidance(i).targets.caloriesKcal
+      })
+      expect(inputs[0]).toBeLessThan(inputs[1])
+      expect(inputs[1]).toBeLessThan(inputs[2])
+      expect(inputs[2]).toBeLessThan(inputs[3])
+    })
+  })
 })

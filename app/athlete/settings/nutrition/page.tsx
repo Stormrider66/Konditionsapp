@@ -15,6 +15,7 @@ import { ArrowLeft, Utensils, Target } from 'lucide-react'
 import Link from 'next/link'
 import { DietaryPreferencesForm } from '@/components/nutrition/forms/DietaryPreferencesForm'
 import { NutritionGoalForm } from '@/components/nutrition/forms/NutritionGoalForm'
+import { LifestyleActivitySelector } from '@/components/nutrition/forms/LifestyleActivitySelector'
 
 export default async function NutritionSettingsPage() {
   const supabase = await createClient()
@@ -36,6 +37,7 @@ export default async function NutritionSettingsPage() {
         include: {
           dietaryPreferences: true,
           nutritionGoal: true,
+          sportProfile: { select: { lifestyleActivity: true } },
         },
       },
     },
@@ -128,7 +130,11 @@ export default async function NutritionSettingsPage() {
           <DietaryPreferencesForm initialData={preferencesData} />
         </TabsContent>
 
-        <TabsContent value="goals" className="mt-6">
+        <TabsContent value="goals" className="mt-6 space-y-6">
+          <LifestyleActivitySelector
+            clientId={client.id}
+            initialValue={client.sportProfile?.lifestyleActivity ?? 'SEDENTARY'}
+          />
           <NutritionGoalForm
             initialData={goalData}
             currentWeightKg={client.weight || undefined}

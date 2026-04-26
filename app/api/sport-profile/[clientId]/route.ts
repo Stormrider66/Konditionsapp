@@ -349,14 +349,20 @@ const intensityTargetsSchema = z.object({
   label: z.string().optional(),
 })
 
-// PATCH schema for partial updates (like intensity targets)
+// PATCH schema for partial updates. Each field is independent — clients send
+// only the slice they want to change.
 const patchSportProfileSchema = z.object({
-  sport: z.nativeEnum(SportType),
-  intensityTargets: intensityTargetsSchema,
-})
+  sport: z.nativeEnum(SportType).optional(),
+  intensityTargets: intensityTargetsSchema.optional(),
+  lifestyleActivity: z.enum(['SEDENTARY', 'LIGHTLY_ACTIVE', 'MODERATELY_ACTIVE', 'VERY_ACTIVE']).optional(),
+}).refine(
+  (val) => val.intensityTargets !== undefined || val.lifestyleActivity !== undefined,
+  { message: 'Provide intensityTargets or lifestyleActivity to update' }
+)
 
 // PATCH /api/sport-profile/[clientId] - Partial update for specific sport settings
-// Used for updating intensity targets within a sport's settings JSON
+// Used for updating intensity targets (per-sport JSON) and the lifestyle/NEAT
+// activity level (top-level enum on the SportProfile).
 export async function PATCH(
   request: NextRequest,
   { params }: RouteParams
@@ -389,17 +395,22 @@ export async function PATCH(
       )
     }
 
-    const { sport, intensityTargets } = validation.data
+    const { sport, intensityTargets, lifestyleActivity } = validation.data
 
-    // Validate that percentages sum to 100
-    if (!validateTargets(intensityTargets)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Intensity percentages must sum to 100',
-        },
-        { status: 400 }
-      )
+    // Intensity targets: percentages must sum to 100 and a sport must be specified
+    if (intensityTargets) {
+      if (!sport) {
+        return NextResponse.json(
+          { success: false, error: 'sport is required when updating intensityTargets' },
+          { status: 400 }
+        )
+      }
+      if (!validateTargets(intensityTargets)) {
+        return NextResponse.json(
+          { success: false, error: 'Intensity percentages must sum to 100' },
+          { status: 400 }
+        )
+      }
     }
 
     const hasAccess = await canAccessClient(user.id, clientId)
@@ -422,46 +433,46 @@ export async function PATCH(
       )
     }
 
-    // Map sport type to settings field name
-    const settingsFieldMap: Record<SportType, keyof typeof existingProfile> = {
-      RUNNING: 'runningSettings',
-      CYCLING: 'cyclingSettings',
-      SKIING: 'skiingSettings',
-      SWIMMING: 'swimmingSettings',
-      TRIATHLON: 'triathlonSettings',
-      HYROX: 'hyroxSettings',
-      GENERAL_FITNESS: 'generalFitnessSettings',
-      FUNCTIONAL_FITNESS: 'functionalFitnessSettings',
-      STRENGTH: 'generalFitnessSettings', // Use general fitness for strength
-      TEAM_FOOTBALL: 'footballSettings',
-      TEAM_ICE_HOCKEY: 'hockeySettings',
-      TEAM_HANDBALL: 'handballSettings',
-      TEAM_FLOORBALL: 'floorballSettings',
-      TEAM_BASKETBALL: 'basketballSettings',
-      TEAM_VOLLEYBALL: 'volleyballSettings',
-      TENNIS: 'tennisSettings',
-      PADEL: 'padelSettings',
-      NUTRITION: 'generalFitnessSettings', // Fallback — nutrition users have no sport-specific settings
+    const updateData: Record<string, unknown> = {}
+
+    if (intensityTargets && sport) {
+      // Map sport type to settings field name
+      const settingsFieldMap: Record<SportType, keyof typeof existingProfile> = {
+        RUNNING: 'runningSettings',
+        CYCLING: 'cyclingSettings',
+        SKIING: 'skiingSettings',
+        SWIMMING: 'swimmingSettings',
+        TRIATHLON: 'triathlonSettings',
+        HYROX: 'hyroxSettings',
+        GENERAL_FITNESS: 'generalFitnessSettings',
+        FUNCTIONAL_FITNESS: 'functionalFitnessSettings',
+        STRENGTH: 'generalFitnessSettings', // Use general fitness for strength
+        TEAM_FOOTBALL: 'footballSettings',
+        TEAM_ICE_HOCKEY: 'hockeySettings',
+        TEAM_HANDBALL: 'handballSettings',
+        TEAM_FLOORBALL: 'floorballSettings',
+        TEAM_BASKETBALL: 'basketballSettings',
+        TEAM_VOLLEYBALL: 'volleyballSettings',
+        TENNIS: 'tennisSettings',
+        PADEL: 'padelSettings',
+        NUTRITION: 'generalFitnessSettings', // Fallback — nutrition users have no sport-specific settings
+      }
+
+      const settingsField = settingsFieldMap[sport]
+      if (!settingsField) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid sport type' },
+          { status: 400 }
+        )
+      }
+
+      // Merge with current sport settings JSON
+      const currentSettings = (existingProfile[settingsField] as Record<string, unknown>) || {}
+      updateData[settingsField] = { ...currentSettings, intensityTargets }
     }
 
-    const settingsField = settingsFieldMap[sport]
-    if (!settingsField) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid sport type' },
-        { status: 400 }
-      )
-    }
-
-    // Get current settings for this sport (if any) and merge with intensity targets
-    const currentSettings = (existingProfile[settingsField] as Record<string, unknown>) || {}
-    const updatedSettings = {
-      ...currentSettings,
-      intensityTargets,
-    }
-
-    // Update the specific settings field
-    const updateData: Record<string, unknown> = {
-      [settingsField]: updatedSettings,
+    if (lifestyleActivity) {
+      updateData.lifestyleActivity = lifestyleActivity
     }
 
     const sportProfile = await prisma.sportProfile.update({
@@ -469,21 +480,21 @@ export async function PATCH(
       data: updateData,
     })
 
-    logger.info('Updated intensity targets', {
+    logger.info('Updated sport profile', {
       clientId,
-      sport,
-      intensityTargets,
+      ...(intensityTargets ? { sport, intensityTargets } : {}),
+      ...(lifestyleActivity ? { lifestyleActivity } : {}),
     })
 
     return NextResponse.json({
       success: true,
       data: sportProfile,
-      message: 'Intensity targets updated successfully',
+      message: 'Sport profile updated successfully',
     })
   } catch (error) {
-    logger.error('Error updating intensity targets', {}, error)
+    logger.error('Error updating sport profile', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to update intensity targets' },
+      { success: false, error: 'Failed to update sport profile' },
       { status: 500 }
     )
   }

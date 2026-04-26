@@ -117,6 +117,17 @@ enum DevelopmentStage {
   ELITE // Professional/elite level athletes
 }
 
+/// Lifestyle / NEAT (non-exercise activity thermogenesis) level. Applied as a
+/// multiplier on the nutrition baseline so daily kcal targets reflect the
+/// athlete's job and everyday movement on top of structured training.
+/// Workout kcal are added separately — these factors EXCLUDE training.
+enum LifestyleActivity {
+  SEDENTARY // Desk job, mostly sitting (~3-5k steps) — DEFAULT
+  LIGHTLY_ACTIVE // Mostly sitting but walks/stands during breaks (~5-8k steps)
+  MODERATELY_ACTIVE // On feet most of the day (~8-12k steps)
+  VERY_ACTIVE // Physical labor — warehouse, nursing, construction (~12k+ steps)
+}
+
 enum ServiceType {
   LACTATE_TESTING
   VO2MAX_TESTING
@@ -1410,6 +1421,11 @@ model SportProfile {
 
   // AI preferences
   preferredAIModelId String? // Preferred AI model for WOD and assistant (e.g., 'gemini-3-flash')
+
+  // Lifestyle / NEAT activity level — applied to nutrition baseline before
+  // workout kcal are added. Defaults to SEDENTARY so behavior matches the
+  // pre-feature calculation until the athlete or coach picks something else.
+  lifestyleActivity LifestyleActivity @default(SEDENTARY)
 
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
