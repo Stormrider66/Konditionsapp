@@ -22,27 +22,34 @@ interface MealInputMethodSelectorProps {
 // "Skriv" lands in QuickMealLog which has its own Beskrivning/Ingredienser
 // tabs, so we don't show a separate "Ingredienser" entry — that just routes
 // to the same dialog and confuses the user.
+//
+// Dark-mode tones bump to /20 background + 400 foreground/border so the
+// icons stay readable on the slate dialog background; the cyan one in
+// particular vanished at /10 + 500.
 const MEAL_METHODS = [
   {
     id: 'photo' as const,
     label: 'Foto',
     description: 'Ta en bild på din mat',
     icon: <Camera className="h-6 w-6" />,
-    color: 'bg-green-500/10 text-green-500 border-green-500/20',
+    color:
+      'bg-green-500/10 text-green-500 border-green-500/20 dark:bg-green-500/20 dark:text-green-400 dark:border-green-400/40',
   },
   {
     id: 'voice' as const,
     label: 'Röst',
     description: 'Beskriv vad du ätit',
     icon: <Mic className="h-6 w-6" />,
-    color: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+    color:
+      'bg-purple-500/10 text-purple-500 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-400 dark:border-purple-400/40',
   },
   {
     id: 'quick' as const,
     label: 'Skriv',
     description: 'Snabblogga eller bygg från ingredienser',
     icon: <FileText className="h-6 w-6" />,
-    color: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
+    color:
+      'bg-cyan-500/10 text-cyan-500 border-cyan-500/20 dark:bg-cyan-400/25 dark:text-cyan-300 dark:border-cyan-400/40',
   },
 ]
 
