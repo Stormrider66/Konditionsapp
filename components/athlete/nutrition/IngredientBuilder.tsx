@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Camera, Plus, Trash2, Loader2 } from 'lucide-react'
+import { Camera, Plus, Sparkles, Trash2, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface IngredientRow {
@@ -244,6 +244,8 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
   const [results, setResults] = useState<FoodOption[]>([])
   const [open, setOpen] = useState(false)
   const [searching, setSearching] = useState(false)
+  const [estimating, setEstimating] = useState(false)
+  const [estimateError, setEstimateError] = useState<string | null>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
   // Debounced search against /api/foods. <2 chars returns nothing per the route.
@@ -304,7 +306,46 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
     })
   }
 
+  const handleEstimate = async () => {
+    const trimmed = row.name.trim()
+    if (!trimmed || row.grams <= 0) return
+    setEstimateError(null)
+    setEstimating(true)
+    try {
+      const res = await fetch('/api/ai/food-scan/analyze-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: `${row.grams} g ${trimmed}` }),
+      })
+      const payload = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(payload?.error || 'Kunde inte uppskatta')
+      }
+      const totals = payload?.result?.totals as
+        | { calories?: number; proteinGrams?: number; carbsGrams?: number; fatGrams?: number; fiberGrams?: number }
+        | undefined
+      if (!totals || totals.calories == null) {
+        throw new Error('Inget resultat')
+      }
+      const factor = 100 / row.grams
+      // Cache per-100g so live grams editing keeps recomputing macros.
+      onChange({
+        caloriesPer100g: (totals.calories ?? 0) * factor,
+        proteinPer100g: (totals.proteinGrams ?? 0) * factor,
+        carbsPer100g: (totals.carbsGrams ?? 0) * factor,
+        fatPer100g: (totals.fatGrams ?? 0) * factor,
+        fiberPer100g: totals.fiberGrams != null ? totals.fiberGrams * factor : undefined,
+      })
+    } catch (err) {
+      setEstimateError(err instanceof Error ? err.message : 'AI-uppskattning misslyckades')
+    } finally {
+      setEstimating(false)
+    }
+  }
+
   const macros = ingredientMacros(row)
+  const isFreeText = !row.foodId && row.name.trim().length > 0
+  const hasMacros = (row.caloriesPer100g ?? 0) > 0
 
   return (
     <div className="rounded-lg border border-border dark:border-slate-700 p-2 space-y-2">
@@ -381,18 +422,39 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
         </Button>
       </div>
 
-      {row.foodId && (
+      {hasMacros && (
         <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 px-1">
           <span>{Math.round(macros.calories)} kcal</span>
           <span>P {macros.proteinGrams.toFixed(1)} g</span>
           <span>K {macros.carbsGrams.toFixed(1)} g</span>
           <span>F {macros.fatGrams.toFixed(1)} g</span>
+          {isFreeText && <span className="italic">(AI-uppskattning)</span>}
         </div>
       )}
-      {!row.foodId && row.name.trim().length > 0 && (
-        <div className="text-xs text-amber-600 dark:text-amber-400 px-1">
-          Välj från listan för att räkna makronäringsämnen automatiskt.
+      {isFreeText && !hasMacros && (
+        <div className="flex items-center justify-between gap-2 px-1">
+          <span className="text-xs text-amber-600 dark:text-amber-400">
+            Välj från listan eller låt AI uppskatta.
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 text-xs"
+            onClick={handleEstimate}
+            disabled={estimating || row.grams <= 0}
+          >
+            {estimating ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Sparkles className="h-3 w-3" />
+            )}
+            {estimating ? 'Uppskattar…' : 'Uppskatta med AI'}
+          </Button>
         </div>
+      )}
+      {estimateError && (
+        <div className="text-xs text-red-500 px-1">{estimateError}</div>
       )}
     </div>
   )
