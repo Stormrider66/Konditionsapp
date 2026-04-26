@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label'
 import { AIContextButton } from '@/components/ai-studio/AIContextButton'
 import { ChangeSportDialog } from '@/components/athlete/ChangeSportDialog'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
-import { calculateAge, getSportDisplayName } from '@/lib/athlete-profile/data-fetcher'
+import { calculateAge, getSportDisplayName } from '@/lib/athlete-profile/utils'
 import { SportType } from '@prisma/client'
 
 interface ProfileHeroSectionProps {

@@ -700,33 +700,4 @@ export async function fetchAthleteProfileData(clientId: string): Promise<Athlete
   }
 }
 
-/**
- * Calculate age from birth date
- */
-export function calculateAge(birthDate: Date): number {
-  const today = new Date()
-  const birth = new Date(birthDate)
-  let age = today.getFullYear() - birth.getFullYear()
-  const monthDiff = today.getMonth() - birth.getMonth()
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-    age--
-  }
-  return age
-}
-
-/**
- * Get sport display name in Swedish
- */
-export function getSportDisplayName(sport: string): string {
-  const sportNames: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    SWIMMING: 'Simning',
-    TRIATHLON: 'Triathlon',
-    HYROX: 'HYROX',
-    SKIING: 'Längdskidåkning',
-    GENERAL_FITNESS: 'Allmän fitness',
-    STRENGTH: 'Styrketräning',
-  }
-  return sportNames[sport] || sport
-}
+export { calculateAge, getSportDisplayName } from './utils'
