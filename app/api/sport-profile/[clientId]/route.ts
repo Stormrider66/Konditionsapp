@@ -345,7 +345,7 @@ const intensityTargetsSchema = z.object({
   easyPercent: z.number().min(0).max(100),
   moderatePercent: z.number().min(0).max(100),
   hardPercent: z.number().min(0).max(100),
-  methodology: z.enum(['POLARIZED', 'THRESHOLD_FOCUSED', 'PYRAMIDAL', 'BALANCED', 'CUSTOM']).optional(),
+  methodology: z.enum(['POLARIZED', 'THRESHOLD_FOCUSED', 'PYRAMIDAL', 'BALANCED', 'HIGH_INTENSITY', 'CUSTOM']).optional(),
   label: z.string().optional(),
 })
 
