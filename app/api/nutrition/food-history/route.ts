@@ -13,6 +13,48 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
+/**
+ * Compress a free-text meal description into a short, reusable label.
+ *
+ * Why: top-meals previously surfaced raw descriptions like
+ * "Tre små hemgjorda havre- och bananbröd med leverpastej och färska grönsaker",
+ * which are too specific to ever match again — and never cluster with
+ * near-duplicates ("2 bananbröd (banan, havregryn)..."). The short label
+ * drops portion noise and trailing accompaniments so suggestions become
+ * clusterable and re-pickable.
+ */
+function shortenMealDescription(desc: string): string {
+  if (!desc) return desc
+  let s = desc.trim()
+  // Drop parenthetical asides like "(ingredienser banan och havregryn)"
+  s = s.replace(/\s*\([^)]*\)/g, '')
+  // Strip "en tallrik med", "en portion av", etc.
+  s = s.replace(
+    /^(en|ett|tre|två|fyra|fem|sex|några|några små|stor|liten|stora|små)\s+(tallrik|skål|portion|kopp|glas|bit|bitar)\s+(med|av)\s+/i,
+    ''
+  )
+  // Strip a leading numeric count (e.g. "2 ", "3 små ")
+  s = s.replace(/^\d+\s+(små|stora|stor|liten)?\s*/i, '')
+  // Strip a leading number-word count (e.g. "Tre små ")
+  s = s.replace(/^(en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio)\s+(små|stora|stor|liten)?\s*/i, '')
+  // Cut at the first " med " — keep the main dish, drop accompaniments
+  const lower = s.toLowerCase()
+  const medIdx = lower.indexOf(' med ')
+  if (medIdx > 5) s = s.slice(0, medIdx)
+  // Cut at the first comma
+  const commaIdx = s.indexOf(',')
+  if (commaIdx > 5) s = s.slice(0, commaIdx)
+  s = s.trim().replace(/\s+/g, ' ')
+  // Clamp to ~32 chars on a word boundary
+  if (s.length > 32) {
+    const cut = s.slice(0, 32)
+    const lastSpace = cut.lastIndexOf(' ')
+    s = (lastSpace > 16 ? cut.slice(0, lastSpace) : cut) + '…'
+  }
+  if (!s) return desc.trim().slice(0, 32)
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
 function getDateFromRange(range: string): Date {
   const now = new Date()
   switch (range) {
@@ -160,7 +202,39 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      const topMeals = Array.from(mealMap.values())
+      // Re-aggregate by short label so near-duplicate descriptions cluster
+      // and the surfaced label is short enough to be reusable.
+      const shortMap = new Map<string, {
+        description: string
+        count: number
+        totalCalories: number
+        totalProtein: number
+        totalCarbs: number
+        totalFat: number
+      }>()
+      for (const m of mealMap.values()) {
+        const label = shortenMealDescription(m.description)
+        const key = label.toLowerCase()
+        const existing = shortMap.get(key)
+        if (existing) {
+          existing.count += m.count
+          existing.totalCalories += m.totalCalories
+          existing.totalProtein += m.totalProtein
+          existing.totalCarbs += m.totalCarbs
+          existing.totalFat += m.totalFat
+        } else {
+          shortMap.set(key, {
+            description: label,
+            count: m.count,
+            totalCalories: m.totalCalories,
+            totalProtein: m.totalProtein,
+            totalCarbs: m.totalCarbs,
+            totalFat: m.totalFat,
+          })
+        }
+      }
+
+      const topMeals = Array.from(shortMap.values())
         .sort((a, b) => b.count - a.count)
         .slice(0, 8)
         .map(m => ({
