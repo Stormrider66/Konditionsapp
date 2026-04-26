@@ -88,13 +88,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Resolve email branding from coach's primary business
+    // Resolve email branding from coach's primary business. Pass the coach
+    // as senderUserId so reports go from `coach@business.com` (when on a
+    // verified custom domain) instead of the generic noreply mailbox.
     const membership = await prisma.businessMember.findFirst({
       where: { userId: user.id, isActive: true },
       select: { businessId: true },
       orderBy: { createdAt: 'asc' },
     })
-    const emailBranding = await resolveEmailBranding(membership?.businessId ?? null)
+    const emailBranding = await resolveEmailBranding(membership?.businessId ?? null, {
+      senderUserId: user.id,
+    })
 
     // Sanitize all user inputs for XSS protection
     const safeClientName = escapeHtml(clientName)

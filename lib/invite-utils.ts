@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
 import { sendCoachInviteEmail } from '@/lib/email'
+import { resolveEmailBranding } from '@/lib/email/branding'
 import { buildRecoveryCallbackUrl } from '@/lib/url-utils'
 
 type BusinessMemberRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'COACH'
@@ -31,11 +32,16 @@ export async function inviteUserToBusiness({
   name,
   businessId,
   role,
+  invitedByUserId,
 }: {
   email: string
   name: string
   businessId: string
   role: BusinessMemberRole
+  /** The User who's issuing this invite. When their email is on the
+   *  business's verified custom sending domain, the invite mail goes from
+   *  their own address (e.g. henrik@thomsons.se) instead of noreply@. */
+  invitedByUserId?: string
 }): Promise<InviteUserResult> {
   try {
     // Verify business exists
@@ -153,8 +159,18 @@ export async function inviteUserToBusiness({
     const setPasswordUrl =
       buildRecoveryCallbackUrl(linkData, appUrl) || `${appUrl}/forgot-password`
 
-    // Always send invite email
-    const emailResult = await sendCoachInviteEmail(email, name, business.name, setPasswordUrl).catch((emailErr) => {
+    // Always send invite email — branded with the business's logo/colors
+    // and routed via the inviter's own address when on a verified domain.
+    const emailBranding = await resolveEmailBranding(businessId, {
+      senderUserId: invitedByUserId,
+    })
+    const emailResult = await sendCoachInviteEmail(
+      email,
+      name,
+      business.name,
+      setPasswordUrl,
+      emailBranding,
+    ).catch((emailErr) => {
       logger.error('Invite: failed to send invite email', { email }, emailErr)
       return { success: false, error: 'Email send failed' }
     })

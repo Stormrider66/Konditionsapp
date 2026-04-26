@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach, requireBusinessMembership } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { sendGenericEmail } from '@/lib/email';
+import { resolveEmailBranding } from '@/lib/email/branding';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
 import crypto from 'crypto'
@@ -118,11 +119,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         },
       })
 
-      // Send invitation email
+      // Send invitation email — branded with the business's logo/colors and
+      // routed via the inviter's address when on a verified custom domain.
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
       const acceptLink = `${appUrl}/signup?invitation=${invitationCode}`
 
       try {
+        const emailBranding = await resolveEmailBranding(id, { senderUserId: user.id })
+        const buttonColor = emailBranding.primaryColor
         await sendGenericEmail({
           to: email,
           subject: `Inbjudan till ${business?.name || 'ett team'}`,
@@ -131,7 +135,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               <h2>Du har blivit inbjuden!</h2>
               <p>Du har blivit inbjuden att gå med i <strong>${business?.name || 'ett team'}</strong> som ${role === 'ADMIN' ? 'administratör' : 'medlem'}.</p>
               <p>
-                <a href="${acceptLink}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                <a href="${acceptLink}" style="display: inline-block; background-color: ${buttonColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
                   Acceptera inbjudan
                 </a>
               </p>
@@ -140,6 +144,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               </p>
             </div>
           `,
+          branding: emailBranding,
         })
       } catch (emailError) {
         logError('Failed to send invitation email:', emailError)

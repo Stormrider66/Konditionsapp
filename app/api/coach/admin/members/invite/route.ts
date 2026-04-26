@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
       name: validatedData.name,
       businessId,
       role: validatedData.role,
+      invitedByUserId: admin.id,
     })
 
     if (!result.success) {

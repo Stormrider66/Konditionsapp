@@ -266,7 +266,12 @@ export async function POST(request: NextRequest) {
     // Send welcome email with temporary password
     if (resend && process.env.EMAILS_PAUSED !== 'true') {
       try {
-        const emailBranding = await resolveEmailBranding(client.businessId ?? null)
+        // Coach is the implicit sender of the athlete-welcome mail. When their
+        // email is on the business's verified custom domain, the From: header
+        // becomes their personal address.
+        const emailBranding = await resolveEmailBranding(client.businessId ?? null, {
+          senderUserId: coach.id,
+        })
         const safeClientName = escapeHtml(client.name)
         const safeEmail = escapeHtml(email)
         const safePassword = escapeHtml(password)

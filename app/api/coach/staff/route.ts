@@ -139,6 +139,7 @@ export async function POST(req: NextRequest) {
       name: parsed.data.name,
       businessId: membership.businessId,
       role: parsed.data.role as any,
+      invitedByUserId: user.id,
     })
 
     if (!result.success) {
