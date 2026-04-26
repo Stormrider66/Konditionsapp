@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,7 @@ import {
   Dumbbell,
   UtensilsCrossed,
   AlertCircle,
+  ArrowLeft,
   Sparkles,
   Loader2,
   Repeat,
@@ -193,6 +194,31 @@ export function QuickMealLog({
       return () => ctrl.abort()
     }
   }, [editMeal, open])
+
+  // Hook the phone OS back button so it closes the dialog instead of
+  // navigating off the page. We push a marker history entry when the dialog
+  // opens; popstate (back press) closes the dialog without further history
+  // work. If the user closes via the X / Tillbaka / save flow, the cleanup
+  // pops our entry so the page's history isn't polluted.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+  useEffect(() => {
+    if (!open) return
+    if (typeof window === 'undefined') return
+    let ownsEntry = true
+    window.history.pushState({ __mealDialog: true }, '')
+    const onPop = () => {
+      ownsEntry = false
+      onCloseRef.current()
+    }
+    window.addEventListener('popstate', onPop)
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      if (ownsEntry && window.history.state?.__mealDialog) {
+        window.history.back()
+      }
+    }
+  }, [open])
 
   // Personalized quick meals
   const [personalMeals, setPersonalMeals] = useState<typeof QUICK_MEALS | null>(null)
@@ -400,10 +426,24 @@ export function QuickMealLog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-[500px] sm:w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Redigera måltid' : 'Logga måltid'}</DialogTitle>
-          <DialogDescription>
-            {date.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </DialogDescription>
+          <div className="flex items-start gap-2">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="flex-shrink-0 -ml-2 -mt-1 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent dark:hover:bg-slate-700 transition-colors"
+              aria-label="Tillbaka"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="dark:text-slate-100 text-left">
+                {isEditMode ? 'Redigera måltid' : 'Logga måltid'}
+              </DialogTitle>
+              <DialogDescription className="dark:text-slate-400 text-left">
+                {date.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="space-y-4 py-4">

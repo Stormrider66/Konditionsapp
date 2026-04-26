@@ -348,9 +348,9 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
   const hasMacros = (row.caloriesPer100g ?? 0) > 0
 
   return (
-    <div className="rounded-lg border border-border dark:border-slate-700 p-2 space-y-2">
+    <div ref={wrapperRef} className="rounded-lg border border-border dark:border-slate-700 p-2 space-y-2">
       <div className="flex gap-2 items-start">
-        <div ref={wrapperRef} className="relative flex-1 min-w-0">
+        <div className="relative flex-1 min-w-0">
           <Input
             value={query}
             placeholder="Sök livsmedel…"
@@ -373,24 +373,6 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
           />
           {searching && (
             <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-          )}
-          {open && results.length > 0 && (
-            <div className="absolute z-50 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-md border border-border dark:border-slate-700 bg-popover dark:bg-slate-800 shadow-lg">
-              {results.map((food) => (
-                <button
-                  key={food.id}
-                  type="button"
-                  onClick={() => pick(food)}
-                  className="block w-full text-left px-3 py-2 text-sm hover:bg-accent dark:hover:bg-slate-700"
-                >
-                  <div className="truncate dark:text-slate-100">{food.nameSv}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {Math.round(food.caloriesPer100g)} kcal · P {food.proteinPer100g.toFixed(1)} · K{' '}
-                    {food.carbsPer100g.toFixed(1)} · F {food.fatPer100g.toFixed(1)} per 100 g
-                  </div>
-                </button>
-              ))}
-            </div>
           )}
         </div>
 
@@ -421,6 +403,27 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
           <Trash2 className="h-4 w-4 text-muted-foreground" />
         </Button>
       </div>
+
+      {/* Results render inline (not as a floating popover) so they scroll
+          naturally with the dialog body on mobile — no nested-scroll fight. */}
+      {open && results.length > 0 && (
+        <div className="rounded-md border border-border dark:border-slate-700 bg-popover dark:bg-slate-800 max-h-72 overflow-y-auto overscroll-contain">
+          {results.map((food) => (
+            <button
+              key={food.id}
+              type="button"
+              onClick={() => pick(food)}
+              className="block w-full text-left px-3 py-2 text-sm hover:bg-accent dark:hover:bg-slate-700 border-b border-border/50 dark:border-slate-700/60 last:border-b-0"
+            >
+              <div className="truncate dark:text-slate-100">{food.nameSv}</div>
+              <div className="text-xs text-muted-foreground">
+                {Math.round(food.caloriesPer100g)} kcal · P {food.proteinPer100g.toFixed(1)} · K{' '}
+                {food.carbsPer100g.toFixed(1)} · F {food.fatPer100g.toFixed(1)} per 100 g
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {hasMacros && (
         <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 px-1">

@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Camera, Mic, FileText, ListTree, ChevronRight } from 'lucide-react'
+import { Camera, Mic, FileText, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type MealInputMethod = 'photo' | 'voice' | 'quick' | 'ingredients'
@@ -19,6 +19,9 @@ interface MealInputMethodSelectorProps {
   onSelectMethod: (method: MealInputMethod) => void
 }
 
+// "Skriv" lands in QuickMealLog which has its own Beskrivning/Ingredienser
+// tabs, so we don't show a separate "Ingredienser" entry — that just routes
+// to the same dialog and confuses the user.
 const MEAL_METHODS = [
   {
     id: 'photo' as const,
@@ -26,13 +29,6 @@ const MEAL_METHODS = [
     description: 'Ta en bild på din mat',
     icon: <Camera className="h-6 w-6" />,
     color: 'bg-green-500/10 text-green-500 border-green-500/20',
-  },
-  {
-    id: 'ingredients' as const,
-    label: 'Ingredienser',
-    description: 'Bygg från livsmedelsdatabasen',
-    icon: <ListTree className="h-6 w-6" />,
-    color: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
   },
   {
     id: 'voice' as const,
@@ -44,7 +40,7 @@ const MEAL_METHODS = [
   {
     id: 'quick' as const,
     label: 'Skriv',
-    description: 'Snabblogga en måltid',
+    description: 'Snabblogga eller bygg från ingredienser',
     icon: <FileText className="h-6 w-6" />,
     color: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
   },
@@ -64,8 +60,8 @@ export function MealInputMethodSelector({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" onCloseAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>Logga mat</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="dark:text-slate-100">Logga mat</DialogTitle>
+          <DialogDescription className="dark:text-slate-400">
             Välj hur du vill registrera din måltid
           </DialogDescription>
         </DialogHeader>
@@ -75,22 +71,22 @@ export function MealInputMethodSelector({
             <Button
               key={method.id}
               variant="outline"
-              className="h-auto p-4 justify-start gap-4 border-2 transition-all hover:border-primary/50 hover:bg-accent"
+              className="h-auto p-4 justify-start gap-4 border-2 transition-all hover:border-primary/50 hover:bg-accent dark:border-slate-700"
               onClick={() => handleSelect(method.id)}
             >
               <div
                 className={cn(
-                  'flex h-12 w-12 items-center justify-center rounded-lg border',
+                  'flex h-12 w-12 items-center justify-center rounded-lg border shrink-0',
                   method.color
                 )}
               >
                 {method.icon}
               </div>
-              <div className="flex-1 text-left">
-                <div className="font-semibold">{method.label}</div>
-                <div className="text-sm text-muted-foreground">{method.description}</div>
+              <div className="flex-1 text-left min-w-0">
+                <div className="font-semibold text-foreground dark:text-slate-100">{method.label}</div>
+                <div className="text-sm text-muted-foreground dark:text-slate-400 truncate">{method.description}</div>
               </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
             </Button>
           ))}
         </div>
