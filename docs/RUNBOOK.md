@@ -189,6 +189,24 @@ If the pager-signal points at a specific scenario below, jump there.
 
 ---
 
+## 9. Performance regression after a deploy
+
+**Signal:** Sentry latency increase on a hot path. User reports "the dashboard is slow." Vercel observability shows p95 climbing on `business-stats`, `team-dashboard`, `calendar-unified`, `daily-metrics`, or `ai/chat`.
+
+**First response:**
+1. Check the most recent deploy. Was it touching one of those routes? Roll back via the Vercel dashboard if so — see scenario 7.
+2. If the regression is gradual (not from a single deploy), it's almost always a missing index or a `Prisma include` that grew over time. Compare to the most recent baseline in `docs/load-test-results/`.
+3. Run the baseline procedure (`docs/load-test-results/README.md`) against the current preview to confirm; you need numbers, not vibes, to act.
+
+**Mitigation:**
+- If we have a recent baseline that *passed* and the current deploy *fails*, roll back is the right call even if you don't yet know the cause.
+- If no recent baseline exists, the rollback is a hypothesis — at least re-run baseline once you've rolled back, so you have a reference point.
+
+**Escalation:**
+- Sustained regression across multiple deploys means the Postgres instance is undersized for the current data shape. Either move heavy reads behind a cache (`lib/runtime-cache`) or upgrade the Supabase compute add-on.
+
+---
+
 ## General principles
 
 - **Webhook handlers are idempotent.** Stripe, Garmin, Strava, Resend — all of them retry. Our handlers dedupe. Don't disable a webhook to "stop the noise"; let the provider retry.
