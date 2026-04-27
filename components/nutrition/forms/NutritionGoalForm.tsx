@@ -92,13 +92,13 @@ const MACRO_PROFILES = [
   { value: 'STRENGTH', label: 'Styrka', description: 'Optimerat för styrketräning' },
 ]
 
-const ACTIVITY_LEVELS = [
-  { value: 'SEDENTARY', label: 'Stillasittande', description: 'Kontorsarbete, lite rörelse' },
-  { value: 'LIGHTLY_ACTIVE', label: 'Lätt aktiv', description: '1-2 träningspass/vecka' },
-  { value: 'ACTIVE', label: 'Aktiv', description: '3-4 träningspass/vecka' },
-  { value: 'VERY_ACTIVE', label: 'Mycket aktiv', description: '5-6 träningspass/vecka' },
-  { value: 'ATHLETE', label: 'Idrottare', description: 'Daglig träning, ibland dubbelpass' },
-]
+// NOTE: the previous "Aktivitetsnivå" picker (SEDENTARY → ATHLETE) was
+// removed from this form because it overlapped visually with the new
+// "Livsstil & vardagsaktivitet" selector that drives the daily dashboard
+// targets. The DB column NutritionGoal.activityLevel still exists (read by
+// the AI nutrition plan generator); existing values are preserved. New
+// athletes get the schema default until we migrate that path to read
+// SportProfile.lifestyleActivity.
 
 interface NutritionGoalFormProps {
   initialData?: GoalFormData | null
@@ -351,45 +351,6 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
                           <div className="flex flex-col">
                             <span>{profile.label}</span>
                             <span className="text-xs text-slate-500">{profile.description}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Activity Level */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Aktivitetsnivå</CardTitle>
-            <CardDescription>Hur aktiv är du i vardagen och träning?</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FormField
-              control={form.control}
-              name="activityLevel"
-              render={({ field }) => (
-                <FormItem>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value || undefined}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Välj aktivitetsnivå" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {ACTIVITY_LEVELS.map((level) => (
-                        <SelectItem key={level.value} value={level.value}>
-                          <div className="flex flex-col">
-                            <span>{level.label}</span>
-                            <span className="text-xs text-slate-500">{level.description}</span>
                           </div>
                         </SelectItem>
                       ))}
