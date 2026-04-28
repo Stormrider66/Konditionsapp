@@ -412,7 +412,7 @@ export default function WODExecutionPage({ params }: PageProps) {
       <div className="flex-1 overflow-y-auto p-4">
         {/* Exercise image */}
         {currentExercise?.imageUrls && currentExercise.imageUrls.length > 0 && (
-          <div className="relative aspect-video rounded-xl overflow-hidden mb-4 bg-muted">
+          <div className="relative mx-auto aspect-square w-full max-w-sm rounded-xl overflow-hidden mb-4 bg-muted">
             <ExerciseImage
               imageUrls={currentExercise.imageUrls}
               alt={currentExercise.nameSv || currentExercise.name}

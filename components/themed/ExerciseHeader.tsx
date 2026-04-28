@@ -7,7 +7,7 @@
  * - Dark gradient background
  * - Orange/red glow effect on text
  * - Displays Swedish name (primary) + English name (secondary)
- * - Matches the 9:16 vertical image width
+ * - Matches the exercise image width
  */
 
 import { cn } from '@/lib/utils';
@@ -67,7 +67,7 @@ export function ExerciseHeader({
         'relative overflow-hidden rounded-t-lg',
         className
       )}
-      style={{ width }}
+      style={{ width, maxWidth: '100%' }}
     >
       {/* Background with gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#1a1a2e] via-[#16213e] to-[#0f0f23]" />

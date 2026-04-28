@@ -6,7 +6,7 @@
  * Displays exercise images with the following features:
  * - Carousel/swipe for multiple images (mobile-friendly)
  * - Fallback to ExerciseIcon if no images available
- * - Size variants optimized for 9:16 vertical aspect ratio
+ * - Size variants optimized for mobile exercise demonstrations
  * - Lazy loading via Next.js Image
  * - Optional full-screen lightbox
  */
@@ -18,16 +18,24 @@ import { ExerciseIcon } from './ExerciseIcon';
 import { getExerciseImagePublicUrl, isHttpUrl } from '@/lib/storage/supabase-storage';
 import { cn } from '@/lib/utils';
 
-// Size variants for 9:16 aspect ratio (vertical, mobile-first)
+// Size variants match the current 1024x1024 exercise image library.
 const SIZE_VARIANTS = {
-  sm: { width: 90, height: 160 },
-  md: { width: 180, height: 320 },
-  lg: { width: 270, height: 480 },
-  xl: { width: 360, height: 640 },
-  full: { width: 832, height: 1472 }, // Full resolution
+  sm: { width: 90, height: 90 },
+  md: { width: 180, height: 180 },
+  lg: { width: 270, height: 270 },
+  xl: { width: 360, height: 360 },
+  full: { width: 832, height: 832 },
 } as const;
 
 type SizeVariant = keyof typeof SIZE_VARIANTS;
+type AspectRatioVariant = 'square' | 'portrait' | 'landscape';
+type ImageFit = 'contain' | 'cover';
+
+const ASPECT_RATIO_VALUES: Record<AspectRatioVariant, string> = {
+  square: '1 / 1',
+  portrait: '9 / 16',
+  landscape: '4 / 3',
+};
 
 interface ExerciseImageProps {
   /** Array of storage paths for images */
@@ -38,6 +46,10 @@ interface ExerciseImageProps {
   iconCategory?: string | null;
   /** Size variant */
   size?: SizeVariant;
+  /** Image frame shape */
+  aspectRatio?: AspectRatioVariant;
+  /** Whether to show the full movement or crop to fill the frame */
+  fit?: ImageFit;
   /** Enable carousel for multiple images */
   showCarousel?: boolean;
   /** Enable full-screen lightbox on tap */
@@ -55,6 +67,8 @@ export function ExerciseImage({
   exerciseId,
   iconCategory,
   size = 'lg',
+  aspectRatio = 'square',
+  fit = 'contain',
   showCarousel = true,
   enableLightbox = true,
   className = '',
@@ -162,6 +176,13 @@ export function ExerciseImage({
   }, [isLightboxOpen, closeLightbox, goToNext, goToPrevious]);
 
   const dimensions = SIZE_VARIANTS[size];
+  const frameAspectRatio = ASPECT_RATIO_VALUES[aspectRatio];
+  const imageClassName = fit === 'cover' ? 'object-cover' : 'object-contain';
+  const frameStyle = shouldFillContainer ? undefined : {
+    width: dimensions.width,
+    maxWidth: '100%',
+    aspectRatio: frameAspectRatio,
+  };
 
   // Fallback to ExerciseIcon if no images
   if (!hasImages) {
@@ -171,11 +192,7 @@ export function ExerciseImage({
           'flex items-center justify-center bg-muted/30 rounded-lg',
           className
         )}
-        style={shouldFillContainer ? undefined : {
-          width: dimensions.width,
-          height: dimensions.height,
-          aspectRatio: '9/16'
-        }}
+        style={frameStyle}
       >
         <ExerciseIcon
           iconCategory={iconCategory}
@@ -197,11 +214,7 @@ export function ExerciseImage({
           enableLightbox && 'cursor-pointer',
           className
         )}
-        style={shouldFillContainer ? undefined : {
-          width: dimensions.width,
-          height: dimensions.height,
-          aspectRatio: '9/16'
-        }}
+        style={frameStyle}
         onClick={openLightbox}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
@@ -213,7 +226,7 @@ export function ExerciseImage({
           alt={`${alt} ${currentIndex + 1}`}
           fill
           sizes={`${dimensions.width}px`}
-          className="object-cover"
+          className={imageClassName}
           priority={priority}
         />
 
@@ -281,8 +294,8 @@ export function ExerciseImage({
 
           {/* Lightbox Image */}
           <div
-            className="relative max-w-[90vw] max-h-[90vh]"
-            style={{ aspectRatio: '9/16' }}
+            className="relative w-[min(90vw,832px)] max-h-[90vh]"
+            style={{ aspectRatio: frameAspectRatio }}
             onClick={(e) => e.stopPropagation()}
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
@@ -293,7 +306,7 @@ export function ExerciseImage({
               alt={`${alt} ${currentIndex + 1}`}
               width={SIZE_VARIANTS.full.width}
               height={SIZE_VARIANTS.full.height}
-              className="object-contain max-h-[90vh] w-auto"
+              className="h-full w-full object-contain"
               priority
             />
           </div>

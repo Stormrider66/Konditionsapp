@@ -512,15 +512,15 @@ export function FocusModeWorkout({
                     />
                     {/* Exercise Image or Remotion Animation */}
                     {currentExercise.imageUrls.length > 1 ? (
-                      <div className="w-full aspect-[9/16] bg-black rounded-lg overflow-hidden relative">
+                      <div className="w-full max-w-sm aspect-square bg-black rounded-lg overflow-hidden relative">
                         <div className="absolute inset-0">
                           <Player
                             component={ExerciseAnimation}
                             inputProps={{ imageUrls: currentExercise.imageUrls }}
                             durationInFrames={300}
                             fps={30}
-                            compositionWidth={1080}
-                            compositionHeight={1920}
+                            compositionWidth={1024}
+                            compositionHeight={1024}
                             style={{
                               width: '100%',
                               height: '100%',
