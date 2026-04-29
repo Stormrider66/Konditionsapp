@@ -7,9 +7,15 @@
  * Usage (from a cron route):
  *   import { runOperatorAgent } from '@/lib/operator-agents'
  *   await runOperatorAgent('SUPPORT', { triggeredBy: 'cron' })
+ *
+ * Provider: Google Gemini via Vercel AI SDK. Tool definitions are kept in
+ * Anthropic JSON-schema shape so the 12 agent files don't have to change;
+ * the runner converts them to AI SDK tools at the boundary.
  */
 
-import Anthropic from '@anthropic-ai/sdk'
+import type Anthropic from '@anthropic-ai/sdk'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { generateText, jsonSchema, stepCountIs, tool, type ToolSet } from 'ai'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { MODEL_TIERS, type ModelIntent } from '@/types/ai-models'
@@ -20,14 +26,11 @@ import { OPERATOR_MODEL_INTENT } from './types'
 // AGENT PROMPT & TOOL REGISTRY
 // ============================================================================
 
-/**
- * Each operator agent has a system prompt + handler.
- * The handler receives a ready-made Anthropic client and returns a result.
- */
 export interface OperatorAgentDefinition {
   agentType: OperatorAgentType
   systemPrompt: string
-  /** Tools this agent has access to (JSON schemas for the Anthropic API) */
+  /** Tools this agent has access to. Kept in Anthropic JSON-schema shape; the
+   *  runner translates these into AI SDK tools at call time. */
   tools: Anthropic.Tool[]
   /** Handler that runs the agent loop and returns a result */
   run: (ctx: OperatorAgentContext) => Promise<OperatorAgentRunResult>
@@ -37,12 +40,10 @@ export interface OperatorAgentContext {
   agentType: OperatorAgentType
   runId: string
   triggeredBy: string
-  client: Anthropic
   model: string
   modelIntent: ModelIntent
 }
 
-// Registry populated by individual agent modules
 const AGENT_REGISTRY = new Map<OperatorAgentType, OperatorAgentDefinition>()
 
 export function registerOperatorAgent(definition: OperatorAgentDefinition): void {
@@ -61,10 +62,6 @@ export interface RunOperatorAgentOptions {
   triggeredBy?: 'cron' | 'manual' | 'event'
 }
 
-/**
- * Run an operator agent. Handles registration lookup, API key resolution,
- * logging to OperatorAgentRun, and error capture.
- */
 export async function runOperatorAgent(
   agentType: OperatorAgentType,
   options: RunOperatorAgentOptions = {}
@@ -72,9 +69,6 @@ export async function runOperatorAgent(
   const triggeredBy = options.triggeredBy || 'cron'
   const startedAt = new Date()
 
-  // Create run record — if this fails (e.g. table doesn't exist yet),
-  // return a failure result instead of throwing so the caller can
-  // handle it gracefully.
   let run: { id: string } | null = null
   try {
     run = await prisma.operatorAgentRun.create({
@@ -102,37 +96,29 @@ export async function runOperatorAgent(
   }
 
   try {
-    // Look up agent definition
     const definition = AGENT_REGISTRY.get(agentType)
     if (!definition) {
       throw new Error(`Operator agent not registered: ${agentType}`)
     }
 
-    // Resolve API key — operator agents always use env var (not user keys)
-    const apiKey = process.env.ANTHROPIC_API_KEY
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
     if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY not configured')
+      throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not configured')
     }
 
-    // Resolve model
     const modelIntent = OPERATOR_MODEL_INTENT[agentType]
-    const modelId = MODEL_TIERS[modelIntent].anthropic.modelId
-    const client = new Anthropic({ apiKey })
+    const modelId = MODEL_TIERS[modelIntent].google.modelId
 
     logger.info(`[operator-agents] Starting ${agentType}`, { runId: run.id, model: modelId })
 
-    // Run the agent
     const result = await definition.run({
       agentType,
       runId: run.id,
       triggeredBy,
-      client,
       model: modelId,
       modelIntent,
     })
 
-    // Update run with results (best-effort — don't fail the whole
-    // agent run if the update fails)
     const completedAt = new Date()
     try {
       await prisma.operatorAgentRun.update({
@@ -165,7 +151,6 @@ export async function runOperatorAgent(
       cost: result.costUsd,
     })
 
-    // Post to Slack if there's something worth reporting (non-blocking)
     import('@/lib/slack/agent-alerts').then(({ postAgentResultToSlack }) =>
       postAgentResultToSlack(result)
     ).catch(() => { /* Slack not configured or import failed — silent */ })
@@ -202,7 +187,6 @@ export async function runOperatorAgent(
       errorMessage,
     }
 
-    // Post failures to Slack so the founder knows
     import('@/lib/slack/agent-alerts').then(({ postAgentResultToSlack }) =>
       postAgentResultToSlack(failureResult)
     ).catch(() => {})
@@ -217,26 +201,21 @@ export async function runOperatorAgent(
 
 /**
  * Estimate cost based on model and token usage.
- *
- * Reads pricing from types/ai-models.ts AI_MODELS config as the single
- * source of truth. Falls back to Sonnet pricing if the model isn't found
- * (shouldn't happen in practice).
+ * Reads pricing from types/ai-models.ts AI_MODELS as single source of truth.
  */
 export function estimateOperatorCost(
   model: string,
   inputTokens: number,
   outputTokens: number
 ): number {
-  // Lazy-loaded to avoid circular dependency at module init time
   const { AI_MODELS } = require('@/types/ai-models') as typeof import('@/types/ai-models')
 
-  // Match by Anthropic modelId (e.g. "claude-sonnet-4-6")
   const modelConfig = AI_MODELS.find(m => m.modelId === model)
 
   if (!modelConfig) {
-    // Fallback to Sonnet pricing — conservative middle ground
-    const fallback = AI_MODELS.find(m => m.modelId === 'claude-sonnet-4-6')
-    if (!fallback) return 0 // Should never happen
+    // Fallback to Gemini Flash Lite pricing — current default operator tier
+    const fallback = AI_MODELS.find(m => m.modelId === 'gemini-3.1-flash-lite-preview')
+    if (!fallback) return 0
     return (
       (inputTokens * fallback.pricing.input + outputTokens * fallback.pricing.output) / 1_000_000
     )
@@ -248,34 +227,30 @@ export function estimateOperatorCost(
 }
 
 /**
- * Call Anthropic with exponential backoff for transient errors.
- *
- * Retries on: 529 (overloaded), 429 (rate limit), 5xx, and network errors.
- * Does NOT retry: 4xx errors other than 429 (those are real bugs).
+ * Run generateText with exponential backoff for transient errors.
+ * Retries on: 429 (rate limit), 5xx, and network errors.
  */
-async function createMessageWithRetry(
-  client: Anthropic,
-  params: Anthropic.MessageCreateParamsNonStreaming,
+async function generateWithRetry(
+  params: Parameters<typeof generateText>[0],
   maxAttempts: number = 4
-): Promise<Anthropic.Message> {
+): Promise<Awaited<ReturnType<typeof generateText>>> {
   let lastError: unknown
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      return await client.messages.create(params)
+      return await generateText(params)
     } catch (error) {
       lastError = error
-      const status = (error as { status?: number })?.status
+      const status = (error as { statusCode?: number; status?: number })?.statusCode
+        ?? (error as { statusCode?: number; status?: number })?.status
       const isRetryable =
-        status === 529 ||
         status === 429 ||
         (typeof status === 'number' && status >= 500) ||
-        status === undefined // network error
+        status === undefined
 
       if (!isRetryable || attempt === maxAttempts) throw error
 
-      // Exponential backoff with jitter: 1s, 2s, 4s, 8s (+ up to 500ms jitter)
       const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 8000) + Math.floor(Math.random() * 500)
-      logger.warn('[operator-agents] Anthropic API transient error, retrying', {
+      logger.warn('[operator-agents] Gemini API transient error, retrying', {
         status,
         attempt,
         maxAttempts,
@@ -288,8 +263,9 @@ async function createMessageWithRetry(
 }
 
 /**
- * Run a simple tool-calling loop for an operator agent.
- * Mirrors the managed-agents pattern but simpler (no persistent sessions).
+ * Run a tool-calling loop for an operator agent using the Vercel AI SDK.
+ * Translates Anthropic-shape tool defs into AI SDK tools, attaches the
+ * provided executor, and lets the SDK drive the multi-step loop.
  */
 export async function runAgentLoop(
   ctx: OperatorAgentContext,
@@ -303,74 +279,47 @@ export async function runAgentLoop(
   tokensUsed: number
   costUsd: number
 }> {
-  const toolsUsed: string[] = []
-  let totalInputTokens = 0
-  let totalOutputTokens = 0
-  let messages: Anthropic.MessageParam[] = [{ role: 'user', content: initialPrompt }]
-
-  for (let i = 0; i < maxIterations; i++) {
-    const response = await createMessageWithRetry(ctx.client, {
-      model: ctx.model,
-      max_tokens: 4096,
-      system: definition.systemPrompt,
-      tools: definition.tools,
-      messages,
-    })
-
-    totalInputTokens += response.usage.input_tokens
-    totalOutputTokens += response.usage.output_tokens
-
-    if (response.stop_reason === 'end_turn') {
-      const text = response.content
-        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-        .map(b => b.text)
-        .join('\n')
-
-      return {
-        finalResponse: text,
-        toolsUsed,
-        tokensUsed: totalInputTokens + totalOutputTokens,
-        costUsd: estimateOperatorCost(ctx.model, totalInputTokens, totalOutputTokens),
-      }
-    }
-
-    if (response.stop_reason === 'tool_use') {
-      const toolUseBlocks = response.content.filter(
-        (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use'
-      )
-
-      messages.push({ role: 'assistant', content: response.content })
-
-      const toolResults: Anthropic.ToolResultBlockParam[] = []
-      for (const toolUse of toolUseBlocks) {
-        toolsUsed.push(toolUse.name)
-        const input = toolUse.input as Record<string, unknown>
-
-        try {
-          const result = await toolExecutor(toolUse.name, input)
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: toolUse.id,
-            content: JSON.stringify(result),
-          })
-        } catch (error) {
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: toolUse.id,
-            content: JSON.stringify({ success: false, error: String(error) }),
-            is_error: true,
-          })
-        }
-      }
-
-      messages.push({ role: 'user', content: toolResults })
-    }
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not configured')
   }
+  const google = createGoogleGenerativeAI({ apiKey })
+
+  const toolsUsed: string[] = []
+
+  const aiTools: ToolSet = Object.fromEntries(
+    definition.tools.map(t => [
+      t.name,
+      tool({
+        description: t.description,
+        inputSchema: jsonSchema(t.input_schema as object),
+        execute: async (input: unknown) => {
+          toolsUsed.push(t.name)
+          try {
+            return await toolExecutor(t.name, (input ?? {}) as Record<string, unknown>)
+          } catch (error) {
+            return { success: false, error: error instanceof Error ? error.message : String(error) }
+          }
+        },
+      }),
+    ])
+  )
+
+  const result = await generateWithRetry({
+    model: google(ctx.model),
+    system: definition.systemPrompt,
+    prompt: initialPrompt,
+    tools: aiTools,
+    stopWhen: stepCountIs(maxIterations),
+  })
+
+  const inputTokens = result.usage?.inputTokens ?? 0
+  const outputTokens = result.usage?.outputTokens ?? 0
 
   return {
-    finalResponse: 'Max iterations reached without completion.',
+    finalResponse: result.text || 'Max iterations reached without a final response.',
     toolsUsed,
-    tokensUsed: totalInputTokens + totalOutputTokens,
-    costUsd: estimateOperatorCost(ctx.model, totalInputTokens, totalOutputTokens),
+    tokensUsed: inputTokens + outputTokens,
+    costUsd: estimateOperatorCost(ctx.model, inputTokens, outputTokens),
   }
 }

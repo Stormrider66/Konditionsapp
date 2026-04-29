@@ -29,21 +29,25 @@ export type OperatorAgentType =
 
 /**
  * Default model intent per operator agent.
- * Cost-optimized mix: Haiku for lookups/math, Sonnet for reasoning, Opus for deep research.
+ *
+ * All operator agents currently run on the 'fast' tier (Gemini 3.1 Flash Lite
+ * via @/types/ai-models MODEL_TIERS) to keep beta-stage operating cost in the
+ * single dollars per month. Raise individual agents to 'balanced' or 'powerful'
+ * if quality regresses — the runner reads this map at every invocation.
  */
 export const OPERATOR_MODEL_INTENT: Record<OperatorAgentType, ModelIntent> = {
-  SUPPORT: 'balanced',              // Sonnet — empathetic triage
-  CHURN_PREDICTOR: 'balanced',      // Sonnet — pattern recognition
-  FEATURE_CURATOR: 'fast',          // Haiku — categorization
-  PLATFORM_HEALTH: 'fast',          // Haiku — alert routing
-  COST_GUARDIAN: 'balanced',        // Sonnet — cost distribution + margin reasoning + optimization recommendations
-  FOUNDERS_BRIEF: 'balanced',       // Sonnet — synthesis
-  ONBOARDING_ACTIVATION: 'fast',    // Haiku — rule-based nudges
-  BUSINESS_INTELLIGENCE: 'balanced',// Sonnet — trend analysis
-  MARKETING_CONTENT: 'balanced',    // Sonnet — quality content
-  DATA_QUALITY: 'fast',             // Haiku — pattern detection
-  COMPLIANCE_SECURITY: 'balanced',  // Sonnet — legal nuance
-  COMPETITOR_INTEL: 'powerful',     // Opus — deep synthesis
+  SUPPORT: 'fast',
+  CHURN_PREDICTOR: 'fast',
+  FEATURE_CURATOR: 'fast',
+  PLATFORM_HEALTH: 'fast',
+  COST_GUARDIAN: 'fast',
+  FOUNDERS_BRIEF: 'fast',
+  ONBOARDING_ACTIVATION: 'fast',
+  BUSINESS_INTELLIGENCE: 'fast',
+  MARKETING_CONTENT: 'fast',
+  DATA_QUALITY: 'fast',
+  COMPLIANCE_SECURITY: 'fast',
+  COMPETITOR_INTEL: 'fast',
 }
 
 // ============================================================================
