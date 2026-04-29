@@ -17,6 +17,7 @@ import {
   Timer,
   Users,
   MessageSquare,
+  UserPlus,
 } from 'lucide-react'
 import { VoiceWorkoutButton } from '@/components/coach/voice-workout'
 import type { DashboardMode } from '@/lib/coach/dashboard-mode'
@@ -35,6 +36,12 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount }: Coac
           <GlassCardTitle className="text-base">Snabblänkar</GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent className="grid grid-cols-2 gap-2">
+          <Link href={`${basePath}/coach/clients/new`} className="block">
+            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200/60 dark:border-emerald-800/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition text-center">
+              <UserPlus className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-xs text-emerald-700 dark:text-emerald-300">Ny atlet</span>
+            </div>
+          </Link>
           <Link href={`${basePath}/coach/interval-sessions`} className="block">
             <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
               <Timer className="h-5 w-5 text-teal-500" />
@@ -85,6 +92,12 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount }: Coac
           <GlassCardTitle className="text-base">Snabblänkar</GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent className="grid grid-cols-2 gap-2">
+          <Link href={`${basePath}/coach/clients/new`} className="block">
+            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200/60 dark:border-emerald-800/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition text-center">
+              <UserPlus className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-xs text-emerald-700 dark:text-emerald-300">Ny medlem</span>
+            </div>
+          </Link>
           <Link href={`${basePath}/coach/strength`} className="block">
             <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
               <Dumbbell className="h-5 w-5 text-orange-500" />
@@ -133,6 +146,12 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount }: Coac
         <GlassCardTitle className="text-base">Snabblänkar</GlassCardTitle>
       </GlassCardHeader>
       <GlassCardContent className="grid grid-cols-2 gap-2">
+        <Link href={`${basePath}/coach/clients/new`} className="block">
+          <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200/60 dark:border-emerald-800/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition text-center">
+            <UserPlus className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-xs text-emerald-700 dark:text-emerald-300">Ny klient</span>
+          </div>
+        </Link>
         <VoiceWorkoutButton variant="card" basePath={basePath} />
         <Link href={`${basePath}/coach/test`} className="block">
           <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">

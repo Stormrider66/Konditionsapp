@@ -3,11 +3,11 @@
  * Business-scoped Coach Subscription Page
  */
 
-import { redirect, notFound } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
-import { CoachSubscriptionClient } from '@/app/coach/subscription/CoachSubscriptionClient'
+import { CoachSubscriptionClient } from '@/components/coach/subscription/CoachSubscriptionClient'
 
 interface PageProps {
   params: Promise<{
@@ -36,8 +36,13 @@ export default async function BusinessCoachSubscriptionPage({ params }: PageProp
     },
   })
 
-  if (!dbUser || dbUser.role !== 'COACH') {
-    redirect('/login')
+  // requireCoach + validateBusinessMembership above already enforce that
+  // this user has coach-platform access for this business — admins legitimately
+  // get through both, so don't second-guess the role here. Without this
+  // relaxation, a User.role='ADMIN' user (e.g. platform admin viewing a
+  // tenant) hits redirect('/login') and effectively gets bounced out.
+  if (!dbUser) {
+    notFound()
   }
 
   return (

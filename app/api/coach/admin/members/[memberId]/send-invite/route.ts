@@ -4,6 +4,7 @@ import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-
 import { handleApiError } from '@/lib/api-error'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { sendCoachInviteEmail } from '@/lib/email'
+import { resolveEmailBranding } from '@/lib/email/branding'
 import { logger } from '@/lib/logger'
 import { buildRecoveryCallbackUrl } from '@/lib/url-utils'
 
@@ -97,12 +98,19 @@ export async function POST(
     const setPasswordUrl =
       buildRecoveryCallbackUrl(linkData, appUrl) || `${appUrl}/forgot-password`
 
-    // Send the invite email
+    // Resend the invite — branded with the business's logo/colors and using
+    // the resending admin's display name + Reply-To. Without this the email
+    // leaks Trainomics platform branding even though the original (sent via
+    // /api/coach/staff or inviteUserToBusiness) was business-branded.
+    const emailBranding = await resolveEmailBranding(businessId, {
+      senderUserId: admin.id,
+    })
     const emailResult = await sendCoachInviteEmail(
       user.email,
       user.name || user.email,
       businessName,
-      setPasswordUrl
+      setPasswordUrl,
+      emailBranding,
     ).catch((emailErr) => {
       logger.error('Send invite: failed to send email', { email: user.email }, emailErr)
       return { success: false, error: 'Email send failed' }
