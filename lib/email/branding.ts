@@ -17,6 +17,21 @@ import type { EmailBranding } from './email-branding-types'
 export { DEFAULT_EMAIL_BRANDING, emailLayout, emailButton } from './email-branding-types'
 export type { EmailBranding } from './email-branding-types'
 
+/**
+ * Strip RFC 5322 special characters from a free-form display name so it can
+ * safely sit inside an `address-list` like `Display <noreply@domain>`. Falls
+ * back to null when the name was empty/whitespace/all-special — the caller
+ * should then use the business sender name instead.
+ */
+function sanitizeDisplayName(name: string | null | undefined): string | null {
+  if (!name) return null
+  // Drop the four characters that would break the From: header parser.
+  // `@` is technically allowed inside a quoted display name but most clients
+  // render the result confusingly, so strip it too.
+  const cleaned = name.replace(/[<>@\r\n]/g, '').trim()
+  return cleaned.length > 0 ? cleaned : null
+}
+
 export interface ResolveEmailBrandingOptions {
   /**
    * The user actually triggering this send (e.g. the coach who clicked
@@ -71,29 +86,52 @@ export async function resolveEmailBranding(
         ? branding.replyToEmail
         : PLATFORM_REPLY_TO
 
-    // Per-user sender override: when a specific user is sending (e.g. a coach
-    // inviting an athlete) and that user's email is on the business's verified
-    // sending domain, send as them and route replies back to them. Lets every
-    // staff member at e.g. Star by Thomson send from their own
-    // `name@thomsons.se` address without a per-user setting.
-    if (
-      options?.senderUserId &&
-      branding.customEmailVerified &&
-      branding.customEmailDomain
-    ) {
+    // Per-user sender resolution. Two layered decisions:
+    //
+    //   1. Reply-To override (always allowed when the user has an email).
+    //      Reply-To is just an instruction to the recipient's mail client —
+    //      it doesn't need DKIM signing. So even on path A (no verified
+    //      sending domain) we route replies straight to the staff member
+    //      instead of platform support.
+    //
+    //   2. From: address override (gated on a verified custom domain).
+    //      Putting `staff@thomsons.se` in the From: header without a DKIM
+    //      signature for thomsons.se would fail DMARC alignment and land
+    //      everywhere as spam — so this only kicks in once Resend confirms
+    //      the domain.
+    //
+    // Path A also gets a more personal display name: "Henrik – Star by
+    // Thomson" instead of just "Star by Thomson". Recipient instantly sees
+    // both who sent it and the business context, which reduces "is this
+    // spam?" friction without compromising deliverability.
+    if (options?.senderUserId) {
       const sender = await prisma.user.findUnique({
         where: { id: options.senderUserId },
         select: { email: true, name: true },
       })
 
-      if (
-        sender?.email &&
-        sender.email.toLowerCase().endsWith(`@${branding.customEmailDomain.toLowerCase()}`)
-      ) {
-        const senderDisplay = sender.name?.trim() || senderName
-        senderName = senderDisplay
-        fromAddress = `${senderDisplay} <${sender.email}>`
+      if (sender?.email) {
+        // Always: replies go to the staff member directly.
         replyTo = sender.email
+
+        const senderHumanName = sanitizeDisplayName(sender.name)
+        const onVerifiedDomain =
+          branding.customEmailVerified &&
+          branding.customEmailDomain &&
+          sender.email.toLowerCase().endsWith(`@${branding.customEmailDomain.toLowerCase()}`)
+
+        if (onVerifiedDomain) {
+          // Path B: send as the staff member's own address.
+          const display = senderHumanName || senderName
+          senderName = display
+          fromAddress = `${display} <${sender.email}>`
+        } else if (senderHumanName) {
+          // Path A: keep the noreply mailbox but make the display name
+          // person + business so recipients see who sent it.
+          const display = `${senderHumanName} – ${senderName}`
+          senderName = display
+          fromAddress = `${display} <noreply@${sendingDomain}>`
+        }
       }
     }
 

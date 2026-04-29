@@ -63,7 +63,11 @@ describe('resolveEmailBranding — per-user sender override', () => {
     expect(branding.senderName).toBe('Henrik Lundholm')
   })
 
-  it('keeps the noreply fallback when the sender uses a different email domain', async () => {
+  it('uses person + business display name and routes Reply-To to the user, even when the sender is on a different email domain (path A)', async () => {
+    // The custom email domain is verified for thomsons.se, but Henrik's
+    // personal Trainomics account uses gmail.com. We can't put gmail in
+    // the From: header (DMARC), but we can still personalise the display
+    // name and route replies to him.
     mockUserFindUnique.mockResolvedValue({
       email: 'henrik@gmail.com',
       name: 'Henrik Lundholm',
@@ -71,26 +75,72 @@ describe('resolveEmailBranding — per-user sender override', () => {
 
     const branding = await resolveEmailBranding('biz-1', { senderUserId: 'user-henrik' })
 
-    expect(branding.fromAddress).toBe('Star by Thomson <noreply@thomsons.se>')
-    expect(branding.replyTo).toBe('support@trainomics.app')
+    expect(branding.fromAddress).toBe('Henrik Lundholm – Star by Thomson <noreply@thomsons.se>')
+    expect(branding.replyTo).toBe('henrik@gmail.com')
   })
 
-  it('skips the override entirely when the custom domain is not yet verified', async () => {
+  it('still routes Reply-To to the user when the custom domain is not verified yet (path A in pure form)', async () => {
+    // No verified sending domain → mail goes from noreply@trainomics.app,
+    // but the display name and Reply-To still personalise to the staff
+    // member so recipients know it's from Henrik at Star by Thomson.
     mockResolveBranding.mockResolvedValue({
       ...mockBusiness,
       customEmailVerified: false,
     })
     mockUserFindUnique.mockResolvedValue({
-      email: 'henrik@thomsons.se',
+      email: 'starhenrik@thomsons.se',
       name: 'Henrik Lundholm',
     })
 
     const branding = await resolveEmailBranding('biz-1', { senderUserId: 'user-henrik' })
 
     // Falls back to platform sending domain — Resend hasn't verified theirs yet.
+    expect(branding.fromAddress).toBe('Henrik Lundholm – Star by Thomson <noreply@trainomics.app>')
+    // Reply-To still goes to the staff member — Reply-To doesn't need DKIM.
+    expect(branding.replyTo).toBe('starhenrik@thomsons.se')
+  })
+
+  it('omits the personal name when sender has no name (and falls back to business sender)', async () => {
+    mockResolveBranding.mockResolvedValue({
+      ...mockBusiness,
+      customEmailVerified: false,
+    })
+    mockUserFindUnique.mockResolvedValue({
+      email: 'noname@thomsons.se',
+      name: null,
+    })
+
+    const branding = await resolveEmailBranding('biz-1', { senderUserId: 'user-noname' })
+
     expect(branding.fromAddress).toBe('Star by Thomson <noreply@trainomics.app>')
-    // And user lookup should never run because the override is gated on verified.
-    expect(mockUserFindUnique).not.toHaveBeenCalled()
+    expect(branding.replyTo).toBe('noname@thomsons.se')
+  })
+
+  it('strips RFC 5322 header-breaking specials from a malformed user name', async () => {
+    mockResolveBranding.mockResolvedValue({
+      ...mockBusiness,
+      customEmailVerified: false,
+    })
+    mockUserFindUnique.mockResolvedValue({
+      email: 'sneaky@thomsons.se',
+      name: 'Henrik <evil@attacker.com>\r\nBcc: leak@example.com',
+    })
+
+    const branding = await resolveEmailBranding('biz-1', { senderUserId: 'sneaky' })
+
+    // The four characters that would let an attacker break out of the
+    // display-name slot and inject a forged From: or Bcc: header MUST be
+    // stripped: < > \r \n. We also strip @ to avoid the recipient seeing
+    // a confusing fake email-looking string inside the display name.
+    const headerInjectionChars = ['<', '>', '@', '\r', '\n']
+    for (const ch of headerInjectionChars) {
+      // The display-name portion of the header (everything before the final
+      // `<...>` containing the actual sender) must not contain these.
+      const displayPart = branding.fromAddress.replace(/<[^>]*>$/, '')
+      expect(displayPart).not.toContain(ch)
+    }
+    // The actual sender mailbox is still the platform default.
+    expect(branding.fromAddress).toContain('<noreply@trainomics.app>')
   })
 
   it('matches the email domain case-insensitively', async () => {
@@ -115,5 +165,7 @@ describe('resolveEmailBranding — per-user sender override', () => {
 
     // No personal name available — display name reverts to the business label.
     expect(branding.fromAddress).toBe('Star by Thomson <henrik@thomsons.se>')
+    // Reply-To still goes to the verified mailbox.
+    expect(branding.replyTo).toBe('henrik@thomsons.se')
   })
 })
