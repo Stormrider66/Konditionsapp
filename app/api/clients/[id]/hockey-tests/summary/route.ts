@@ -13,6 +13,30 @@ import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 
+interface HockeySummary {
+  id: string
+  testDate: string
+  sourceType: string
+  notes: string | null
+  metrics: Record<string, number | null>
+}
+
+interface HockeyTrend {
+  key: string
+  delta: number
+  percentChange: number | null
+  direction: 'up' | 'down'
+  isImprovement: boolean
+}
+
+interface HockeyFlag {
+  key: string
+  severity: 'info' | 'warning'
+  label: string
+}
+
+const LOWER_IS_BETTER = new Set(['sprint10m', 'sprint20mFly', 'sprint30mFly', 'agilityBest', 'enduranceFatigueDrop'])
+
 function numberFromJson(value: unknown, key: string): number | null {
   if (!value || typeof value !== 'object') return null
   const raw = (value as Record<string, unknown>)[key]
@@ -41,7 +65,7 @@ function fatigueDrop(value: unknown): number | null {
   return round(((worst - first) / first) * 100, 1)
 }
 
-function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number]) {
+function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number]): HockeySummary {
   const beepScore = test.beepTestLevel
     ? test.beepTestLevel + ((test.beepTestShuttle ?? 0) / 10)
     : null
@@ -69,6 +93,87 @@ function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number]) {
       enduranceFatigueDrop: fatigueDrop(test.endurance7x40),
     },
   }
+}
+
+function buildTrends(latest: HockeySummary | null, previous: HockeySummary | null): HockeyTrend[] {
+  if (!latest || !previous) return []
+
+  return Object.entries(latest.metrics)
+    .map(([key, current]) => {
+      const oldValue = previous.metrics[key]
+      if (current == null || oldValue == null || current === oldValue) return null
+
+      const delta = round(current - oldValue, 2)
+      if (delta == null) return null
+
+      const percentChange = oldValue !== 0
+        ? round((delta / oldValue) * 100, 1)
+        : null
+      const direction = delta > 0 ? 'up' : 'down'
+      const lowerIsBetter = LOWER_IS_BETTER.has(key)
+
+      return {
+        key,
+        delta,
+        percentChange,
+        direction,
+        isImprovement: lowerIsBetter ? delta < 0 : delta > 0,
+      }
+    })
+    .filter((trend): trend is HockeyTrend => trend != null)
+}
+
+function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): HockeyFlag[] {
+  if (!latest) return []
+  const flags: HockeyFlag[] = []
+
+  const trendByKey = new Map(trends.map((trend) => [trend.key, trend]))
+  const powerTrend = trendByKey.get('muscleLabWkg')
+  const sprintTrend = trendByKey.get('sprint10m')
+  const agilityTrend = trendByKey.get('agilityBest')
+  const fatigueDrop = latest.metrics.enduranceFatigueDrop
+
+  if (powerTrend && !powerTrend.isImprovement && Math.abs(powerTrend.percentChange ?? 0) >= 3) {
+    flags.push({
+      key: 'muscleLabWkg',
+      severity: 'warning',
+      label: `MuscleLab power ned ${Math.abs(powerTrend.percentChange ?? 0).toFixed(1)}% sedan föregående test`,
+    })
+  }
+
+  if (sprintTrend && !sprintTrend.isImprovement && Math.abs(sprintTrend.delta) >= 0.05) {
+    flags.push({
+      key: 'sprint10m',
+      severity: 'warning',
+      label: `10m sprint långsammare med ${Math.abs(sprintTrend.delta).toFixed(2)} s`,
+    })
+  }
+
+  if (agilityTrend && !agilityTrend.isImprovement && Math.abs(agilityTrend.delta) >= 0.1) {
+    flags.push({
+      key: 'agilityBest',
+      severity: 'warning',
+      label: `5-10-5 långsammare med ${Math.abs(agilityTrend.delta).toFixed(2)} s`,
+    })
+  }
+
+  if (fatigueDrop != null && fatigueDrop >= 8) {
+    flags.push({
+      key: 'enduranceFatigueDrop',
+      severity: 'warning',
+      label: `7x40 drop ${fatigueDrop.toFixed(1)}%, följ återhämtning och sprintuthållighet`,
+    })
+  }
+
+  if (flags.length === 0 && trends.some((trend) => trend.isImprovement)) {
+    flags.push({
+      key: 'progress',
+      severity: 'info',
+      label: 'Positiv testtrend jämfört med föregående hockeytest',
+    })
+  }
+
+  return flags.slice(0, 4)
 }
 
 async function loadTests(clientId: string) {
@@ -118,11 +223,17 @@ export async function GET(
 
     const tests = await loadTests(clientId)
     const history = tests.map(toSummary)
+    const latest = history[0] ?? null
+    const previous = history[1] ?? null
+    const trends = buildTrends(latest, previous)
 
     return NextResponse.json({
       success: true,
       data: {
-        latest: history[0] ?? null,
+        latest,
+        previous,
+        trends,
+        flags: buildFlags(latest, trends),
         history,
         count: history.length,
       },

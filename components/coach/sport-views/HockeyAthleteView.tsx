@@ -13,6 +13,8 @@ import {
   Users,
   Calendar,
   Activity,
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import type { HockeySettings } from '@/components/onboarding/HockeyOnboarding'
@@ -32,8 +34,25 @@ interface HockeyTestSummary {
   metrics: Record<string, number | null>
 }
 
+interface HockeyTrend {
+  key: string
+  delta: number
+  percentChange: number | null
+  direction: 'up' | 'down'
+  isImprovement: boolean
+}
+
+interface HockeyFlag {
+  key: string
+  severity: 'info' | 'warning'
+  label: string
+}
+
 interface HockeySummaryResponse {
   latest: HockeyTestSummary | null
+  previous: HockeyTestSummary | null
+  trends: HockeyTrend[]
+  flags: HockeyFlag[]
   history: HockeyTestSummary[]
   count: number
 }
@@ -148,6 +167,11 @@ function formatMetric(value: number | null | undefined, unit: string, decimals: 
   return `${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
+function formatDelta(delta: number, unit: string, decimals: number): string {
+  const sign = delta > 0 ? '+' : ''
+  return `${sign}${delta.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
+}
+
 export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthleteViewProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
@@ -197,6 +221,7 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
   const avgShiftLength = hockeySettings.averageIceTimeMinutes && hockeySettings.shiftsPerGame
     ? Math.round((hockeySettings.averageIceTimeMinutes * 60) / hockeySettings.shiftsPerGame)
     : null
+  const trendByKey = new Map(summary?.trends.map((trend) => [trend.key, trend]) ?? [])
 
   return (
     <div className="space-y-4">
@@ -285,21 +310,49 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
                 </Badge>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {PHYSICAL_METRICS.map((metric) => (
-                  <div
-                    key={metric.key}
-                    className="rounded-lg border p-3"
-                    style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}
-                  >
-                    <div className="text-[10px] uppercase tracking-wide" style={{ color: theme.colors.textMuted }}>
-                      {metric.label}
+                {PHYSICAL_METRICS.map((metric) => {
+                  const trend = trendByKey.get(metric.key)
+                  const TrendIcon = trend?.direction === 'up' ? ArrowUp : ArrowDown
+
+                  return (
+                    <div
+                      key={metric.key}
+                      className="rounded-lg border p-3"
+                      style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}
+                    >
+                      <div className="text-[10px] uppercase tracking-wide" style={{ color: theme.colors.textMuted }}>
+                        {metric.label}
+                      </div>
+                      <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
+                        {formatMetric(summary.latest?.metrics[metric.key], metric.unit, metric.decimals)}
+                      </div>
+                      {trend && (
+                        <div className={trend.isImprovement ? 'mt-1 flex items-center gap-1 text-[11px] text-emerald-600' : 'mt-1 flex items-center gap-1 text-[11px] text-amber-600'}>
+                          <TrendIcon className="h-3 w-3" />
+                          <span>{formatDelta(trend.delta, metric.unit, metric.decimals)}</span>
+                          {trend.percentChange != null && <span>({formatDelta(trend.percentChange, '%', 1)})</span>}
+                        </div>
+                      )}
                     </div>
-                    <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
-                      {formatMetric(summary.latest?.metrics[metric.key], metric.unit, metric.decimals)}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
+              {summary.flags.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>Coachflaggor</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {summary.flags.map((flag) => (
+                      <Badge
+                        key={`${flag.key}-${flag.label}`}
+                        variant={flag.severity === 'warning' ? 'destructive' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {flag.label}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
               {summary.history.length > 1 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>Senaste historik</h4>
