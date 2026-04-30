@@ -48,6 +48,9 @@ interface HockeyMetric {
   lowerIsBetter?: boolean
 }
 
+type HockeyMetricValues = Record<string, number | null>
+type HockeyMetricRanks = Record<string, { rank: number; percentile: number } | null>
+
 const DEFAULT_DAYS = 365
 
 const HOCKEY_METRICS: HockeyMetric[] = [
@@ -79,6 +82,11 @@ function round(value: number | null, decimals = 1): number | null {
   if (value == null || !Number.isFinite(value)) return null
   const factor = Math.pow(10, decimals)
   return Math.round(value * factor) / factor
+}
+
+function percentileFromRank(rank: number, coverage: number): number {
+  if (coverage <= 1) return 100
+  return Math.round(((coverage - rank) / (coverage - 1)) * 100)
 }
 
 export async function GET(
@@ -203,7 +211,7 @@ export async function GET(
       const beepScore = latest?.beepTestLevel
         ? latest.beepTestLevel + ((latest.beepTestShuttle ?? 0) / 10)
         : null
-      const metrics = {
+      const metrics: HockeyMetricValues = {
         muscleLabWkg: round(numberFromJson(latest?.muscleLabMaxima, 'maxAveragePowerPerBodyMass'), 1),
         backSquat1RM: latest?.backSquat1RM ?? null,
         powerClean1RM: latest?.powerClean1RM ?? null,
@@ -221,6 +229,7 @@ export async function GET(
         name: member.name,
         latestTestDate: latest?.testDate.toISOString().slice(0, 10) ?? null,
         metrics,
+        ranks: {} as HockeyMetricRanks,
       }
     })
 
@@ -229,7 +238,7 @@ export async function GET(
         .map((athlete) => ({
           athleteId: athlete.id,
           athleteName: athlete.name,
-          value: athlete.metrics[metric.key as keyof typeof athlete.metrics],
+          value: athlete.metrics[metric.key],
         }))
         .filter((row): row is { athleteId: string; athleteName: string; value: number } => row.value != null)
         .sort((a, b) => metric.lowerIsBetter ? a.value - b.value : b.value - a.value)
@@ -238,6 +247,16 @@ export async function GET(
       const avg = numericValues.length > 0
         ? round(numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length, metric.lowerIsBetter ? 2 : 1)
         : null
+
+      values.forEach((row, index) => {
+        const athlete = hockeyAthletes.find((candidate) => candidate.id === row.athleteId)
+        if (athlete) {
+          athlete.ranks[metric.key] = {
+            rank: index + 1,
+            percentile: percentileFromRank(index + 1, values.length),
+          }
+        }
+      })
 
       return {
         ...metric,

@@ -99,6 +99,7 @@ interface HockeyAthleteRow {
   name: string
   latestTestDate: string | null
   metrics: Record<string, number | null>
+  ranks: Record<string, { rank: number; percentile: number } | null>
 }
 
 interface HockeyLeader {
@@ -142,6 +143,12 @@ function formatMetricValue(value: number | null | undefined, unit: string): stri
   if (value == null) return '–'
   const decimals = unit === 's' ? 2 : unit === 'W/kg' || unit === 'nivå' ? 1 : 0
   return `${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
+}
+
+function getRankVariant(percentile: number): 'default' | 'secondary' | 'outline' {
+  if (percentile >= 80) return 'default'
+  if (percentile >= 50) return 'secondary'
+  return 'outline'
 }
 
 export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientProps) {
@@ -253,7 +260,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                   Hockey testmatris
                 </CardTitle>
                 <CardDescription>
-                  Senaste hockeysession per spelare med lagets nyckelvärden.
+                  Senaste hockeysession per spelare med lagets nyckelvärden, rank och percentil.
                 </CardDescription>
               </div>
               <Badge variant="secondary">
@@ -298,7 +305,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                     {hockey.athletes.map((athlete) => (
                       <tr key={athlete.id} className="border-b last:border-0">
                         <td className="sticky left-0 z-10 bg-background px-3 py-2 font-medium">
-                          <Link href={`${basePath}/clients/${athlete.id}?tab=analysis`} className="hover:underline">
+                          <Link href={`${basePath}/clients/${athlete.id}/profile?tab=hockey`} className="hover:underline">
                             {athlete.name}
                           </Link>
                         </td>
@@ -307,7 +314,15 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                         </td>
                         {hockey.metrics.map((metric) => (
                           <td key={metric.key} className="px-3 py-2 text-right font-mono whitespace-nowrap">
-                            {formatMetricValue(athlete.metrics[metric.key], metric.unit)}
+                            <div>{formatMetricValue(athlete.metrics[metric.key], metric.unit)}</div>
+                            {athlete.ranks[metric.key] && (
+                              <Badge
+                                variant={getRankVariant(athlete.ranks[metric.key]?.percentile ?? 0)}
+                                className="mt-1 h-4 px-1.5 text-[9px] font-normal"
+                              >
+                                #{athlete.ranks[metric.key]?.rank} · P{athlete.ranks[metric.key]?.percentile}
+                              </Badge>
+                            )}
                           </td>
                         ))}
                       </tr>
