@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Download, FileSpreadsheet, Loader2, RefreshCw, Settings2, Trash2 } from 'lucide-react'
+import { Download, FileSpreadsheet, GitCompareArrows, Loader2, RefreshCw, Settings2, Trash2 } from 'lucide-react'
 import { ScorePlot } from './ScorePlot'
 import { LoadingPlot } from './LoadingPlot'
 import { ScreePlot } from './ScreePlot'
@@ -160,6 +160,61 @@ interface SimcaImportArtifact {
   columnCount: number
 }
 
+interface SimcaComparisonResult {
+  baseline: {
+    id: string
+    fileName: string
+    createdAt: string
+    athletesDetected: number
+    vipDetected: number
+  }
+  current: {
+    id: string
+    fileName: string
+    createdAt: string
+    athletesDetected: number
+    vipDetected: number
+  }
+  summary: {
+    matchedAthletes: number
+    matchedVipVariables: number
+    newOutlierCount: number
+    resolvedOutlierCount: number
+    newTopVipCount: number
+    resolvedTopVipCount: number
+  }
+  athleteMovement: {
+    athleteName: string
+    baselinePc1: number | null
+    baselinePc2: number | null
+    currentPc1: number | null
+    currentPc2: number | null
+    pc1Delta: number | null
+    pc2Delta: number | null
+    distance: number | null
+    baselineOutlier: boolean
+    currentOutlier: boolean
+  }[]
+  newOutliers: string[]
+  resolvedOutliers: string[]
+  vipChanges: {
+    variableName: string
+    baselineVip: number
+    currentVip: number
+    vipDelta: number
+    baselineCoefficient: number | null
+    currentCoefficient: number | null
+  }[]
+  newTopVip: string[]
+  resolvedTopVip: string[]
+}
+
+function formatSigned(value: number | null, digits = 2): string {
+  if (value === null) return 'n/a'
+  const sign = value > 0 ? '+' : ''
+  return `${sign}${value.toFixed(digits)}`
+}
+
 export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initialPLSModel }: MVAAnalysisClientProps) {
   // Mode toggle
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode>(initialModel ? 'PCA' : initialPLSModel ? 'PLS' : 'PCA')
@@ -189,6 +244,10 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
   const [simcaImports, setSimcaImports] = useState<SimcaImportArtifact[]>([])
   const [simcaImportsLoading, setSimcaImportsLoading] = useState(false)
   const [deletingSimcaImportId, setDeletingSimcaImportId] = useState<string | null>(null)
+  const [simcaBaselineId, setSimcaBaselineId] = useState<string>('')
+  const [simcaCurrentId, setSimcaCurrentId] = useState<string>('')
+  const [simcaComparing, setSimcaComparing] = useState(false)
+  const [simcaComparison, setSimcaComparison] = useState<SimcaComparisonResult | null>(null)
   const simcaFileInputRef = useRef<HTMLInputElement | null>(null)
 
   const fetchVariables = useCallback(async () => {
@@ -282,7 +341,12 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
       const res = await fetch(`/api/teams/${teamId}/mva/simca-import`)
       const json = await res.json()
       if (json.success) {
-        setSimcaImports(json.data)
+        const imports = json.data as SimcaImportArtifact[]
+        setSimcaImports(imports)
+        if (imports.length >= 2) {
+          setSimcaCurrentId((currentId) => currentId || imports[0].id)
+          setSimcaBaselineId((baselineId) => baselineId || imports[1].id)
+        }
       }
     } catch {
       // Keep the workflow card usable even if artifact history fails.
@@ -344,13 +408,47 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
         return
       }
       setSimcaImportMessage(`Borttagen: ${item.fileName}`)
+      setSimcaComparison(null)
+      if (simcaBaselineId === item.id) setSimcaBaselineId('')
+      if (simcaCurrentId === item.id) setSimcaCurrentId('')
       await fetchSimcaImports()
     } catch {
       setSimcaImportError('Nätverksfel vid borttagning av SIMCA-import')
     } finally {
       setDeletingSimcaImportId(null)
     }
-  }, [fetchSimcaImports, teamId])
+  }, [fetchSimcaImports, simcaBaselineId, simcaCurrentId, teamId])
+
+  const compareSimcaImports = useCallback(async () => {
+    if (!simcaBaselineId || !simcaCurrentId || simcaBaselineId === simcaCurrentId) {
+      setSimcaImportError('Välj två olika SIMCA-importer att jämföra')
+      return
+    }
+
+    setSimcaComparing(true)
+    setSimcaImportMessage(null)
+    setSimcaImportError(null)
+    try {
+      const query = new URLSearchParams({
+        baselineId: simcaBaselineId,
+        currentId: simcaCurrentId,
+      })
+      const res = await fetch(`/api/teams/${teamId}/mva/simca-import/compare?${query.toString()}`)
+      const json = await res.json()
+      if (!json.success) {
+        setSimcaComparison(null)
+        setSimcaImportError(json.error ?? 'Kunde inte jämföra SIMCA-importer')
+        return
+      }
+      setSimcaComparison(json.data)
+      setSimcaImportMessage('SIMCA-jämförelse uppdaterad')
+    } catch {
+      setSimcaComparison(null)
+      setSimcaImportError('Nätverksfel vid SIMCA-jämförelse')
+    } finally {
+      setSimcaComparing(false)
+    }
+  }, [simcaBaselineId, simcaCurrentId, teamId])
 
   const isHockeyTeam = (fetchedSportType ?? teamSportType) === 'TEAM_ICE_HOCKEY'
   const simcaWorkflow = isHockeyTeam ? (
@@ -448,6 +546,133 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+      {simcaImports.length >= 2 && (
+        <div className="border-t px-6 py-3 dark:border-white/10">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="grid flex-1 gap-3 md:grid-cols-2">
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Baslinje</p>
+                <Select value={simcaBaselineId} onValueChange={setSimcaBaselineId}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Välj tidigare import" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {simcaImports.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.fileName} · {new Date(item.createdAt).toLocaleDateString('sv-SE')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Aktuell</p>
+                <Select value={simcaCurrentId} onValueChange={setSimcaCurrentId}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Välj nyare import" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {simcaImports.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.fileName} · {new Date(item.createdAt).toLocaleDateString('sv-SE')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={simcaComparing || !simcaBaselineId || !simcaCurrentId || simcaBaselineId === simcaCurrentId}
+              onClick={() => void compareSimcaImports()}
+            >
+              {simcaComparing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <GitCompareArrows className="mr-2 h-4 w-4" />
+              )}
+              Jämför importer
+            </Button>
+          </div>
+
+          {simcaComparison && (
+            <div className="mt-4 space-y-3 rounded-md border p-3 text-xs dark:border-white/10">
+              <div className="grid gap-2 md:grid-cols-3">
+                <div>
+                  <p className="font-medium dark:text-white">{simcaComparison.summary.matchedAthletes}</p>
+                  <p className="text-muted-foreground">matchade spelare</p>
+                </div>
+                <div>
+                  <p className="font-medium dark:text-white">
+                    {simcaComparison.summary.newOutlierCount} nya · {simcaComparison.summary.resolvedOutlierCount} lösta
+                  </p>
+                  <p className="text-muted-foreground">outlier-flaggor</p>
+                </div>
+                <div>
+                  <p className="font-medium dark:text-white">{simcaComparison.summary.matchedVipVariables}</p>
+                  <p className="text-muted-foreground">matchade VIP-variabler</p>
+                </div>
+              </div>
+
+              {(simcaComparison.newOutliers.length > 0 || simcaComparison.resolvedOutliers.length > 0) && (
+                <div className="grid gap-2 md:grid-cols-2">
+                  {simcaComparison.newOutliers.length > 0 && (
+                    <div>
+                      <p className="font-medium text-red-600 dark:text-red-400">Nya outliers</p>
+                      <p className="text-muted-foreground">{simcaComparison.newOutliers.slice(0, 6).join(', ')}</p>
+                    </div>
+                  )}
+                  {simcaComparison.resolvedOutliers.length > 0 && (
+                    <div>
+                      <p className="font-medium text-emerald-600">Lösta outliers</p>
+                      <p className="text-muted-foreground">{simcaComparison.resolvedOutliers.slice(0, 6).join(', ')}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {simcaComparison.athleteMovement.length > 0 && (
+                <div>
+                  <p className="mb-2 font-medium dark:text-white">Störst förflyttning i score plot</p>
+                  <div className="grid gap-1 md:grid-cols-2">
+                    {simcaComparison.athleteMovement.slice(0, 6).map((item) => (
+                      <div key={item.athleteName} className="flex items-center justify-between gap-3 rounded border px-2 py-1 dark:border-white/10">
+                        <span className="truncate">{item.athleteName}</span>
+                        <span className="shrink-0 text-muted-foreground">
+                          PC1 {formatSigned(item.pc1Delta)} · PC2 {formatSigned(item.pc2Delta)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {simcaComparison.vipChanges.length > 0 && (
+                <div>
+                  <p className="mb-2 font-medium dark:text-white">Störst VIP-förändring</p>
+                  <div className="grid gap-1 md:grid-cols-2">
+                    {simcaComparison.vipChanges.slice(0, 6).map((item) => (
+                      <div key={item.variableName} className="flex items-center justify-between gap-3 rounded border px-2 py-1 dark:border-white/10">
+                        <span className="truncate">{item.variableName}</span>
+                        <span className="shrink-0 text-muted-foreground">
+                          {item.baselineVip.toFixed(2)} → {item.currentVip.toFixed(2)} ({formatSigned(item.vipDelta)})
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {simcaComparison.athleteMovement.length === 0 && simcaComparison.vipChanges.length === 0 && (
+                <p className="text-muted-foreground">
+                  Importerna kunde läsas, men inga gemensamma spelare eller VIP-variabler hittades med kända SIMCA-kolumnnamn.
+                </p>
+              )}
             </div>
           )}
         </div>
