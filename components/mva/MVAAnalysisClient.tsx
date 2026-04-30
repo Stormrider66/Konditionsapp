@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Download, FileSpreadsheet, Loader2, RefreshCw, Settings2 } from 'lucide-react'
+import { Download, FileSpreadsheet, Loader2, RefreshCw, Settings2, Trash2 } from 'lucide-react'
 import { ScorePlot } from './ScorePlot'
 import { LoadingPlot } from './LoadingPlot'
 import { ScreePlot } from './ScreePlot'
@@ -188,6 +188,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
   const [simcaImportError, setSimcaImportError] = useState<string | null>(null)
   const [simcaImports, setSimcaImports] = useState<SimcaImportArtifact[]>([])
   const [simcaImportsLoading, setSimcaImportsLoading] = useState(false)
+  const [deletingSimcaImportId, setDeletingSimcaImportId] = useState<string | null>(null)
   const simcaFileInputRef = useRef<HTMLInputElement | null>(null)
 
   const fetchVariables = useCallback(async () => {
@@ -326,6 +327,31 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
     }
   }, [fetchSimcaImports, teamId])
 
+  const deleteSimcaImport = useCallback(async (item: SimcaImportArtifact) => {
+    const confirmed = window.confirm(`Ta bort SIMCA-importen "${item.fileName}"?`)
+    if (!confirmed) return
+
+    setDeletingSimcaImportId(item.id)
+    setSimcaImportMessage(null)
+    setSimcaImportError(null)
+    try {
+      const res = await fetch(`/api/teams/${teamId}/mva/simca-import/${item.id}`, {
+        method: 'DELETE',
+      })
+      const json = await res.json()
+      if (!json.success) {
+        setSimcaImportError(json.error ?? 'Kunde inte ta bort SIMCA-import')
+        return
+      }
+      setSimcaImportMessage(`Borttagen: ${item.fileName}`)
+      await fetchSimcaImports()
+    } catch {
+      setSimcaImportError('Nätverksfel vid borttagning av SIMCA-import')
+    } finally {
+      setDeletingSimcaImportId(null)
+    }
+  }, [fetchSimcaImports, teamId])
+
   const isHockeyTeam = (fetchedSportType ?? teamSportType) === 'TEAM_ICE_HOCKEY'
   const simcaWorkflow = isHockeyTeam ? (
     <Card className="mb-6 dark:bg-slate-900/50 dark:border-white/10">
@@ -398,6 +424,20 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                           Fil
                         </Button>
                       </a>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-[10px] text-red-600 hover:text-red-700"
+                        disabled={deletingSimcaImportId === item.id}
+                        onClick={() => void deleteSimcaImport(item)}
+                      >
+                        {deletingSimcaImportId === item.id ? (
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="mr-1 h-3 w-3" />
+                        )}
+                        Ta bort
+                      </Button>
                     </div>
                   </div>
                   <div className="mt-1 text-muted-foreground">
