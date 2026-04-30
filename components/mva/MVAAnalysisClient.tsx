@@ -390,7 +390,15 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                 <div key={item.id} className="rounded-md border px-3 py-2 text-xs dark:border-white/10">
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate font-medium dark:text-white">{item.fileName}</span>
-                    <span className="uppercase text-muted-foreground">{item.format}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="uppercase text-muted-foreground">{item.format}</span>
+                      <a href={`/api/teams/${teamId}/mva/simca-import/${item.id}`}>
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]">
+                          <Download className="mr-1 h-3 w-3" />
+                          Fil
+                        </Button>
+                      </a>
+                    </div>
                   </div>
                   <div className="mt-1 text-muted-foreground">
                     {new Date(item.createdAt).toLocaleDateString('sv-SE')}
