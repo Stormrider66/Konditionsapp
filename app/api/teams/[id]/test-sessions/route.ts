@@ -41,7 +41,45 @@ interface TestSession {
   rows: PRRow[]
 }
 
+interface HockeyMetric {
+  key: string
+  label: string
+  unit: string
+  lowerIsBetter?: boolean
+}
+
 const DEFAULT_DAYS = 365
+
+const HOCKEY_METRICS: HockeyMetric[] = [
+  { key: 'muscleLabWkg', label: 'MuscleLab AP/BW', unit: 'W/kg' },
+  { key: 'backSquat1RM', label: 'Knäböj', unit: 'kg' },
+  { key: 'powerClean1RM', label: 'Power clean', unit: 'kg' },
+  { key: 'benchPress1RM', label: 'Bänkpress', unit: 'kg' },
+  { key: 'gripMax', label: 'Grepp max', unit: 'kg' },
+  { key: 'standingLongJump', label: 'Längdhopp', unit: 'cm' },
+  { key: 'threeJumpBest', label: '3-steg bäst', unit: 'cm' },
+  { key: 'beepScore', label: 'Beep', unit: 'nivå' },
+  { key: 'sprint10m', label: '10m is', unit: 's', lowerIsBetter: true },
+  { key: 'agilityBest', label: '5-10-5 bäst', unit: 's', lowerIsBetter: true },
+]
+
+function numberFromJson(value: unknown, key: string): number | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = (value as Record<string, unknown>)[key]
+  return typeof raw === 'number' && Number.isFinite(raw) ? raw : null
+}
+
+function bestOf(values: Array<number | null | undefined>, lowerIsBetter = false): number | null {
+  const valid = values.filter((value): value is number => value != null && Number.isFinite(value))
+  if (valid.length === 0) return null
+  return lowerIsBetter ? Math.min(...valid) : Math.max(...valid)
+}
+
+function round(value: number | null, decimals = 1): number | null {
+  if (value == null || !Number.isFinite(value)) return null
+  const factor = Math.pow(10, decimals)
+  return Math.round(value * factor) / factor
+}
 
 export async function GET(
   request: NextRequest,
@@ -82,7 +120,42 @@ export async function GET(
       },
     })
 
-    const memberNameById = new Map(team.members.map((m) => [m.id, m.name]))
+    const hockeyTests = await prisma.hockeyPhysicalTest.findMany({
+      where: {
+        clientId: { in: memberIds },
+        testDate: { gte: since },
+      },
+      orderBy: { testDate: 'desc' },
+      select: {
+        id: true,
+        clientId: true,
+        testDate: true,
+        sprint10m: true,
+        agility505Left: true,
+        agility505Right: true,
+        gripStrengthLeft: true,
+        gripStrengthRight: true,
+        standingLongJump: true,
+        threeJumpLeft: true,
+        threeJumpRight: true,
+        beepTestLevel: true,
+        beepTestShuttle: true,
+        backSquat1RM: true,
+        powerClean1RM: true,
+        benchPress1RM: true,
+        muscleLabMaxima: true,
+      },
+    })
+
+    const memberNameById = new Map<string, string>(
+      team.members.map((m) => [m.id, typeof m.name === 'string' ? m.name : ''])
+    )
+    const latestHockeyByAthlete = new Map<string, (typeof hockeyTests)[number]>()
+    for (const test of hockeyTests) {
+      if (!latestHockeyByAthlete.has(test.clientId)) {
+        latestHockeyByAthlete.set(test.clientId, test)
+      }
+    }
 
     // Group by calendar date (YYYY-MM-DD). The PR table doesn't store
     // sessions explicitly so we synthesise them — coaches who paste
@@ -125,12 +198,67 @@ export async function GET(
       })
       .sort((a, b) => (a.date < b.date ? 1 : -1))
 
+    const hockeyAthletes = team.members.map((member) => {
+      const latest = latestHockeyByAthlete.get(member.id)
+      const beepScore = latest?.beepTestLevel
+        ? latest.beepTestLevel + ((latest.beepTestShuttle ?? 0) / 10)
+        : null
+      const metrics = {
+        muscleLabWkg: round(numberFromJson(latest?.muscleLabMaxima, 'maxAveragePowerPerBodyMass'), 1),
+        backSquat1RM: latest?.backSquat1RM ?? null,
+        powerClean1RM: latest?.powerClean1RM ?? null,
+        benchPress1RM: latest?.benchPress1RM ?? null,
+        gripMax: bestOf([latest?.gripStrengthLeft, latest?.gripStrengthRight]),
+        standingLongJump: latest?.standingLongJump ?? null,
+        threeJumpBest: bestOf([latest?.threeJumpLeft, latest?.threeJumpRight]),
+        beepScore: round(beepScore, 1),
+        sprint10m: latest?.sprint10m ?? null,
+        agilityBest: bestOf([latest?.agility505Left, latest?.agility505Right], true),
+      }
+
+      return {
+        id: member.id,
+        name: member.name,
+        latestTestDate: latest?.testDate.toISOString().slice(0, 10) ?? null,
+        metrics,
+      }
+    })
+
+    const hockeyLeaders = HOCKEY_METRICS.map((metric) => {
+      const values = hockeyAthletes
+        .map((athlete) => ({
+          athleteId: athlete.id,
+          athleteName: athlete.name,
+          value: athlete.metrics[metric.key as keyof typeof athlete.metrics],
+        }))
+        .filter((row): row is { athleteId: string; athleteName: string; value: number } => row.value != null)
+        .sort((a, b) => metric.lowerIsBetter ? a.value - b.value : b.value - a.value)
+
+      const numericValues = values.map((row) => row.value)
+      const avg = numericValues.length > 0
+        ? round(numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length, metric.lowerIsBetter ? 2 : 1)
+        : null
+
+      return {
+        ...metric,
+        coverage: values.length,
+        average: avg,
+        leader: values[0] ?? null,
+      }
+    })
+
     return NextResponse.json({
       success: true,
       data: {
         teamId: team.id,
         teamName: team.name,
         sessions,
+        hockey: {
+          metrics: HOCKEY_METRICS,
+          athletes: hockeyAthletes,
+          leaders: hockeyLeaders,
+          testCount: hockeyTests.length,
+        },
       },
     })
   } catch (error) {

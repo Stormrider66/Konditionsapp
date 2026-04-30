@@ -33,6 +33,8 @@ import {
   ExternalLink,
   Pencil,
   Trash2,
+  Shield,
+  Trophy,
 } from 'lucide-react'
 import { TeamTestImportDialog } from './TeamTestImportDialog'
 import { TeamTestManualEntryDialog } from './TeamTestManualEntryDialog'
@@ -85,6 +87,36 @@ interface TestSession {
   rows: PRRow[]
 }
 
+interface HockeyMetric {
+  key: string
+  label: string
+  unit: string
+  lowerIsBetter?: boolean
+}
+
+interface HockeyAthleteRow {
+  id: string
+  name: string
+  latestTestDate: string | null
+  metrics: Record<string, number | null>
+}
+
+interface HockeyLeader {
+  key: string
+  label: string
+  unit: string
+  coverage: number
+  average: number | null
+  leader: { athleteId: string; athleteName: string; value: number } | null
+}
+
+interface HockeyTeamSummary {
+  metrics: HockeyMetric[]
+  athletes: HockeyAthleteRow[]
+  leaders: HockeyLeader[]
+  testCount: number
+}
+
 interface TeamTestsClientProps {
   teamId: string
   teamName: string
@@ -106,8 +138,15 @@ function formatDate(iso: string): string {
   })
 }
 
+function formatMetricValue(value: number | null | undefined, unit: string): string {
+  if (value == null) return '–'
+  const decimals = unit === 's' ? 2 : unit === 'W/kg' || unit === 'nivå' ? 1 : 0
+  return `${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
+}
+
 export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientProps) {
   const [sessions, setSessions] = useState<TestSession[]>([])
+  const [hockey, setHockey] = useState<HockeyTeamSummary | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
@@ -178,7 +217,10 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
       const res = await fetch(`/api/teams/${teamId}/test-sessions`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const body = await res.json()
-      if (body.success) setSessions(body.data.sessions)
+      if (body.success) {
+        setSessions(body.data.sessions)
+        setHockey(body.data.hockey ?? null)
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Kunde inte hämta testdata')
     } finally {
@@ -187,7 +229,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   }, [teamId])
 
   useEffect(() => {
-    fetchSessions()
+    void fetchSessions()
   }, [fetchSessions])
 
   const toggleExpand = (date: string) => {
@@ -201,6 +243,102 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
 
   return (
     <div className="space-y-6">
+      {hockey && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-cyan-500" />
+                  Hockey testmatris
+                </CardTitle>
+                <CardDescription>
+                  Senaste hockeysession per spelare med lagets nyckelvärden.
+                </CardDescription>
+              </div>
+              <Badge variant="secondary">
+                {hockey.testCount} hockeytester
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              {hockey.leaders
+                .filter((leader) => leader.leader)
+                .slice(0, 4)
+                .map((leader) => (
+                  <div key={leader.key} className="rounded-md border bg-muted/20 px-3 py-2">
+                    <p className="text-[10px] uppercase text-muted-foreground">{leader.label}</p>
+                    <p className="text-sm font-semibold truncate">{leader.leader?.athleteName}</p>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {formatMetricValue(leader.leader?.value, leader.unit)}
+                      {leader.average != null && ` · snitt ${formatMetricValue(leader.average, leader.unit)}`}
+                    </p>
+                  </div>
+                ))}
+            </div>
+
+            {hockey.athletes.some((athlete) => athlete.latestTestDate) ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b text-muted-foreground">
+                      <th className="sticky left-0 z-10 bg-background px-3 py-2 text-left font-medium min-w-40">
+                        Spelare
+                      </th>
+                      <th className="px-3 py-2 text-left font-medium whitespace-nowrap">Senast</th>
+                      {hockey.metrics.map((metric) => (
+                        <th key={metric.key} className="px-3 py-2 text-right font-medium whitespace-nowrap">
+                          {metric.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {hockey.athletes.map((athlete) => (
+                      <tr key={athlete.id} className="border-b last:border-0">
+                        <td className="sticky left-0 z-10 bg-background px-3 py-2 font-medium">
+                          <Link href={`${basePath}/clients/${athlete.id}?tab=analysis`} className="hover:underline">
+                            {athlete.name}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                          {athlete.latestTestDate ? new Date(athlete.latestTestDate).toLocaleDateString('sv-SE') : '–'}
+                        </td>
+                        {hockey.metrics.map((metric) => (
+                          <td key={metric.key} className="px-3 py-2 text-right font-mono whitespace-nowrap">
+                            {formatMetricValue(athlete.metrics[metric.key], metric.unit)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="rounded-md border border-dashed py-8 text-center text-sm text-muted-foreground">
+                Inga hockeysessioner registrerade ännu. Logga tester från hockeysidan för att fylla matrisen.
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              <Link href={`${basePath}/hockey-tests`}>
+                <Button variant="outline" size="sm">
+                  <Shield className="h-4 w-4 mr-1.5" />
+                  Logga hockeytest
+                </Button>
+              </Link>
+              <Link href={`${basePath}/teams/${teamId}/multivariate`}>
+                <Button variant="outline" size="sm">
+                  <Trophy className="h-4 w-4 mr-1.5" />
+                  Öppna MVA
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="text-sm text-muted-foreground">
           {sessions.length === 0
@@ -232,7 +370,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
             <p className="text-sm">Inga testpass registrerade för {teamName}.</p>
             <p className="text-xs">
               Klistra in en testtabell från en träning för att börja bygga PR-historik —
-              värdena används direkt för att lösa upp "% av 1RM"-pass per atlet.
+              värdena används direkt för att lösa upp &quot;% av 1RM&quot;-pass per atlet.
             </p>
             <Button size="sm" className="mt-2" onClick={() => setImportOpen(true)}>
               <Upload className="h-4 w-4 mr-1.5" />
@@ -391,7 +529,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
           <CardTitle className="text-sm">Hur testdata används</CardTitle>
           <CardDescription className="text-xs">
             Varje rad ovan är en PR i atletens registrerade 1RM-historik. Pass byggda
-            med "% av 1RM" löser sig per atlet baserat på senaste KG-värde — kör
+            med &quot;% av 1RM&quot; löser sig per atlet baserat på senaste KG-värde — kör
             tester regelbundet så pass alltid räknas mot aktuell styrka.
           </CardDescription>
         </CardHeader>
@@ -404,7 +542,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
         teamName={teamName}
         onImported={() => {
           setImportOpen(false)
-          fetchSessions()
+          void fetchSessions()
         }}
       />
 
@@ -415,7 +553,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
         teamName={teamName}
         onSaved={() => {
           setManualOpen(false)
-          fetchSessions()
+          void fetchSessions()
         }}
       />
 
