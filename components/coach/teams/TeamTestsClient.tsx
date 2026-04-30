@@ -35,6 +35,7 @@ import {
   Trash2,
   Shield,
   Trophy,
+  Download,
 } from 'lucide-react'
 import { TeamTestImportDialog } from './TeamTestImportDialog'
 import { TeamTestManualEntryDialog } from './TeamTestManualEntryDialog'
@@ -248,6 +249,8 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     })
   }
 
+  const hockeyExportHref = `/api/teams/${teamId}/hockey-tests/export`
+
   return (
     <div className="space-y-6">
       {hockey && (
@@ -337,6 +340,12 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
             )}
 
             <div className="flex flex-wrap gap-2">
+              <a href={hockeyExportHref}>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-1.5" />
+                  Exportera SIMCA CSV
+                </Button>
+              </a>
               <Link href={`${basePath}/hockey-tests`}>
                 <Button variant="outline" size="sm">
                   <Shield className="h-4 w-4 mr-1.5" />
