@@ -37,6 +37,8 @@ import {
   Trophy,
   Download,
   TrendingUp,
+  AlertTriangle,
+  Target,
 } from 'lucide-react'
 import { TeamTestImportDialog } from './TeamTestImportDialog'
 import { TeamTestManualEntryDialog } from './TeamTestManualEntryDialog'
@@ -161,6 +163,15 @@ interface HockeyTeamSummary {
   testCount: number
 }
 
+interface HockeyActionItem {
+  id: string
+  title: string
+  description: string
+  athletes: Array<{ id: string; name: string }>
+  severity: 'priority' | 'watch' | 'info'
+  href?: string
+}
+
 interface TeamTestsClientProps {
   teamId: string
   teamName: string
@@ -207,6 +218,114 @@ function getBenchmarkLabel(band: HockeyBenchmarkBand): string {
     default:
       return 'Lagspann'
   }
+}
+
+function metricFocus(metricKey: string): { title: string; description: string } {
+  if (['sprint5m', 'sprint10m', 'sprint20m', 'sprint30m', 'sprint20mFly', 'sprint30mFly', 'agilityBest'].includes(metricKey)) {
+    return {
+      title: 'Acceleration och riktningsförändring',
+      description: 'Planera korta isaccelerationer, 5-10-5-teknik och full återhämtning mellan kvalitetsreps.',
+    }
+  }
+  if (['muscleLabWkg', 'standingLongJump', 'threeJumpBest'].includes(metricKey)) {
+    return {
+      title: 'Explosiv underkroppskraft',
+      description: 'Lägg in power-block med hopp, loaded jump squat och kontrastpar där hastigheten styr belastningen.',
+    }
+  }
+  if (['backSquat1RM', 'powerClean1RM', 'benchPress1RM', 'pullUp1RM', 'gripMax'].includes(metricKey)) {
+    return {
+      title: 'Maxstyrka och robusthet',
+      description: 'Prioritera baslyft, grepp/överkropp och progressiv styrka utan att störa match- eller istäthet.',
+    }
+  }
+  if (['beepScore', 'endurance7x40Best', 'endurance7x40Drop'].includes(metricKey)) {
+    return {
+      title: 'Repeated shift conditioning',
+      description: 'Använd upprepade 30-45 sek arbetsblock, låg falloff och kontrollerad återhämtning mellan serier.',
+    }
+  }
+  return {
+    title: 'Fysisk kapacitet',
+    description: 'Följ upp med riktad träning och nytt test när blocket är avslutat.',
+  }
+}
+
+function buildHockeyActionItems(hockey: HockeyTeamSummary, basePath: string): HockeyActionItem[] {
+  const actions: HockeyActionItem[] = []
+  const missingAthletes = hockey.athletes.filter((athlete) => !athlete.latestTestDate)
+
+  if (missingAthletes.length > 0) {
+    actions.push({
+      id: 'missing-tests',
+      title: 'Komplettera testtäckning',
+      description: `${missingAthletes.length} spelare saknar hockeytest i matrisen. Kör minsta batteriet: sprint, hopp, styrka och en konditionsmarkör.`,
+      athletes: missingAthletes.slice(0, 6).map((athlete) => ({ id: athlete.id, name: athlete.name })),
+      severity: 'info',
+      href: `${basePath}/hockey-tests`,
+    })
+  }
+
+  const byFocus = new Map<string, {
+    title: string
+    description: string
+    priority: number
+    watch: number
+    athleteMap: Map<string, { id: string; name: string }>
+  }>()
+
+  hockey.athletes.forEach((athlete) => {
+    hockey.metrics.forEach((metric) => {
+      const benchmark = athlete.benchmarks[metric.key]
+      if (!benchmark || !['priority', 'watch'].includes(benchmark.band)) return
+      const focus = metricFocus(metric.key)
+      const current = byFocus.get(focus.title) ?? {
+        ...focus,
+        priority: 0,
+        watch: 0,
+        athleteMap: new Map<string, { id: string; name: string }>(),
+      }
+      if (benchmark.band === 'priority') current.priority += 1
+      else current.watch += 1
+      current.athleteMap.set(athlete.id, { id: athlete.id, name: athlete.name })
+      byFocus.set(focus.title, current)
+    })
+  })
+
+  Array.from(byFocus.entries())
+    .sort(([, a], [, b]) => (b.priority - a.priority) || (b.watch - a.watch))
+    .slice(0, 4)
+    .forEach(([key, group]) => {
+      actions.push({
+        id: `focus-${key}`,
+        title: group.title,
+        description: `${group.priority} prioritet och ${group.watch} följ upp-markeringar. ${group.description}`,
+        athletes: Array.from(group.athleteMap.values()).slice(0, 6),
+        severity: group.priority > 0 ? 'priority' : 'watch',
+      })
+    })
+
+  const declining = hockey.history.flatMap((metric) =>
+    metric.athletes
+      .filter((athlete) => athlete.delta != null && athlete.delta < 0)
+      .map((athlete) => ({ metric, athlete, drop: athlete.delta as number }))
+  )
+    .sort((a, b) => a.drop - b.drop)
+    .slice(0, 6)
+
+  if (declining.length > 0) {
+    const athletes = new Map<string, { id: string; name: string }>()
+    declining.forEach((row) => athletes.set(row.athlete.id, { id: row.athlete.id, name: row.athlete.name }))
+    actions.push({
+      id: 'declining',
+      title: 'Följ upp negativ trend',
+      description: `${declining.length} mätvärden har försämrats jämfört med föregående test. Kontrollera belastning, återhämtning och testkontext innan nästa block.`,
+      athletes: Array.from(athletes.values()).slice(0, 6),
+      severity: 'watch',
+    })
+  }
+
+  return actions.slice(0, 6)
 }
 
 export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientProps) {
@@ -336,6 +455,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     .filter((athlete) => athlete.latest != null)
     .sort((a, b) => (b.delta ?? -Infinity) - (a.delta ?? -Infinity))
     .slice(0, 8) ?? []
+  const hockeyActionItems = hockey ? buildHockeyActionItems(hockey, basePath) : []
 
   return (
     <div className="space-y-6">
@@ -373,6 +493,62 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                   </div>
                 ))}
             </div>
+
+            {hockeyActionItems.length > 0 && (
+              <div className="rounded-md border bg-muted/10 p-3 space-y-3">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <p className="text-sm font-semibold flex items-center gap-2">
+                      <Target className="h-4 w-4 text-amber-500" />
+                      Coach action plan
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Automatiskt sammanfattat från positionpercentiler, z-score och testhistorik.
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">
+                    {hockeyActionItems.length} åtgärder
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                  {hockeyActionItems.map((item) => (
+                    <div key={item.id} className="rounded-md border bg-background px-3 py-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold flex items-center gap-1.5">
+                            {item.severity === 'priority' && <AlertTriangle className="h-3.5 w-3.5 text-red-500" />}
+                            {item.title}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
+                        </div>
+                        <Badge
+                          variant={item.severity === 'priority' ? 'destructive' : item.severity === 'watch' ? 'secondary' : 'outline'}
+                          className="shrink-0 text-[10px]"
+                        >
+                          {item.severity === 'priority' ? 'Prioritet' : item.severity === 'watch' ? 'Följ upp' : 'Info'}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {item.athletes.map((athlete) => (
+                          <Link key={athlete.id} href={`${basePath}/clients/${athlete.id}/profile?tab=hockey`}>
+                            <Badge variant="outline" className="text-[10px] hover:bg-muted">
+                              {athlete.name}
+                            </Badge>
+                          </Link>
+                        ))}
+                        {item.href && (
+                          <Link href={item.href}>
+                            <Badge variant="secondary" className="text-[10px] hover:bg-muted">
+                              Öppna
+                            </Badge>
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center justify-between gap-3 flex-wrap rounded-md border bg-muted/10 px-3 py-2">
               <div>
