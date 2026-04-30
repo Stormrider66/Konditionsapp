@@ -22,6 +22,7 @@ import { requireCoach, hasReachedAthleteLimit } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
 import { createAthleteAccountForClient } from '@/lib/athlete-account-utils'
+import { getPrimaryBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
 import { z } from 'zod'
 
 interface RouteContext {
@@ -66,10 +67,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const user = await requireCoach()
     const { teamId } = await context.params
 
-    const team = await prisma.team.findFirst({
-      where: { id: teamId, userId: user.id },
-      select: { id: true, name: true },
-    })
+    const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
     if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 })
 
     const raw = await req.json().catch(() => null)
@@ -82,10 +80,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     }
     const { rows } = parsed.data
 
-    const membership = await prisma.businessMember.findFirst({
-      where: { userId: user.id, isActive: true },
-      select: { businessId: true },
-    })
+    const membership = await getPrimaryBusinessMembership(user.id)
 
     const results: RosterRowResult[] = []
 
@@ -93,7 +88,13 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const emailsInBatch = rows.map((r) => r.email).filter((e): e is string => !!e)
     const existingEmailClients = emailsInBatch.length
       ? await prisma.client.findMany({
-          where: { userId: user.id, email: { in: emailsInBatch } },
+          where: {
+            email: { in: emailsInBatch },
+            OR: [
+              { userId: team.userId },
+              ...(membership?.businessId ? [{ businessId: membership.businessId }] : []),
+            ],
+          },
           select: { email: true },
         })
       : []
@@ -122,7 +123,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
         const created = await prisma.client.create({
           data: {
-            userId: user.id,
+            userId: team.userId,
             businessId: membership?.businessId ?? null,
             teamId,
             name: row.name,

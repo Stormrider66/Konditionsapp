@@ -2,6 +2,7 @@
 import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
+import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -27,7 +28,7 @@ import {
   CheckCircle2,
   Clock,
 } from 'lucide-react'
-import { TeamDashboardClient } from '@/app/coach/teams/[teamId]/TeamDashboardClient'
+import { TeamDashboardClient } from '@/components/coach/teams/TeamDashboardClient'
 import { TeamLeaderboard } from '@/components/coach/leaderboards'
 import { AddPlayersDialog } from '@/components/coach/teams/AddPlayersDialog'
 import { TeamRosterTable } from '@/components/coach/teams/TeamRosterTable'
@@ -54,6 +55,28 @@ const sportTypeLabels: Record<string, string> = {
   STRENGTH: 'Styrka',
 }
 
+function PilotReadinessItem({
+  label,
+  ready,
+  detail,
+}: {
+  label: string
+  ready: boolean
+  detail: string
+}) {
+  return (
+    <div className="rounded-md border bg-background/70 p-3 dark:bg-slate-950/40 dark:border-white/10">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium dark:text-slate-100">{label}</p>
+        <Badge variant={ready ? 'default' : 'secondary'} className="text-[10px]">
+          {ready ? 'Redo' : 'Kvar'}
+        </Badge>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+    </div>
+  )
+}
+
 export default async function BusinessTeamDashboardPage({ params }: TeamPageProps) {
   const { businessSlug, teamId } = await params
   const user = await requireCoach()
@@ -66,11 +89,15 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
 
   const basePath = `/${businessSlug}/coach/teams`
 
-  // Verify team ownership
+  // Verify team access inside the business workspace
+  const accessibleTeam = await getAccessibleTeam(user.id, teamId, businessSlug)
+  if (!accessibleTeam) {
+    notFound()
+  }
+
   const team = await prisma.team.findFirst({
     where: {
       id: teamId,
-      userId: user.id,
     },
     include: {
       members: {
@@ -78,9 +105,13 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           id: true,
           name: true,
           email: true,
+          birthDate: true,
+          height: true,
+          weight: true,
           jerseyNumber: true,
           position: true,
           photoUrl: true,
+          athleteAccount: { select: { id: true } },
         },
       },
       organization: {
@@ -122,6 +153,10 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
       assignedDate: 'desc',
     },
     take: 10,
+  })
+
+  const hockeyTestCount = await prisma.hockeyPhysicalTest.count({
+    where: { teamId },
   })
 
   // Calculate completion stats for broadcasts
@@ -254,6 +289,19 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
       ? Math.round((totalWorkoutsCompleted / totalWorkoutsAssigned) * 100)
       : 0
 
+  const missingProfileCount = team.members.filter(
+    (member) =>
+      !member.email ||
+      !member.position ||
+      !member.birthDate ||
+      !member.height ||
+      !member.weight
+  ).length
+  const athleteAccountCount = team.members.filter((member) => member.athleteAccount).length
+  const rosterReady = team.members.length > 0 && missingProfileCount === 0
+  const athletePortalReady =
+    team.members.length > 0 && athleteAccountCount === team.members.length
+
   const getWorkoutTypeIcon = (type: string) => {
     switch (type) {
       case 'strength':
@@ -331,7 +379,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
             basePath={`/${businessSlug}/coach`}
             importPath={`/${businessSlug}/coach/teams/${teamId}/import`}
           />
-          <TeamDashboardClient teamId={teamId} teamName={team.name} />
+          <TeamDashboardClient teamId={teamId} basePath={`/${businessSlug}`} />
         </div>
       </div>
 
@@ -364,6 +412,42 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           </CardHeader>
         </Card>
       </div>
+
+      <Card className="mb-8 border-cyan-200/80 bg-cyan-50/60 dark:bg-cyan-950/20 dark:border-cyan-900/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 dark:text-white">
+            <CheckCircle2 className="h-5 w-5 text-cyan-600" />
+            Pilotberedskap
+          </CardTitle>
+          <CardDescription>
+            Snabb kontroll inför ett Skellefteå-liknande utvecklingspilot: roster, profiler, portal och testdata.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <PilotReadinessItem
+              label="Roster"
+              ready={team.members.length > 0}
+              detail={`${team.members.length} spelare`}
+            />
+            <PilotReadinessItem
+              label="Profiler"
+              ready={rosterReady}
+              detail={missingProfileCount === 0 ? 'Kompletta basfält' : `${missingProfileCount} behöver kompletteras`}
+            />
+            <PilotReadinessItem
+              label="Atletportal"
+              ready={athletePortalReady}
+              detail={`${athleteAccountCount}/${team.members.length} konton`}
+            />
+            <PilotReadinessItem
+              label="Testflöde"
+              ready={hockeyTestCount > 0}
+              detail={hockeyTestCount > 0 ? `${hockeyTestCount} hockeytester` : 'Kör första hockeytestet'}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="mb-8">
         <Card className="dark:bg-slate-900/50 dark:border-white/10">

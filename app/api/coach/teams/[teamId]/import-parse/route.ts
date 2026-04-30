@@ -22,10 +22,10 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
-import { prisma } from '@/lib/prisma'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { getWritableTeam } from '@/lib/coach/team-access'
 import { resolveExtractionModel, resolveVisionModel, type ModelIntent, isModelIntent } from '@/types/ai-models'
 import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
 import { generateText } from 'ai'
@@ -62,10 +62,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const user = await requireCoach()
     const { teamId } = await context.params
 
-    const team = await prisma.team.findFirst({
-      where: { id: teamId, userId: user.id },
-      select: { id: true, name: true, sportType: true },
-    })
+    const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
     }

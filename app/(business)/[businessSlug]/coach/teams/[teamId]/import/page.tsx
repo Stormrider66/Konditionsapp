@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
-import { prisma } from '@/lib/prisma'
+import { getWritableTeam } from '@/lib/coach/team-access'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { ImportRosterClient } from '@/components/coach/teams/ImportRosterClient'
@@ -18,10 +18,7 @@ export default async function ImportRosterPage({ params }: PageProps) {
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
 
-  const team = await prisma.team.findFirst({
-    where: { id: teamId, userId: user.id },
-    select: { id: true, name: true, sportType: true },
-  })
+  const team = await getWritableTeam(user.id, teamId, businessSlug, 'roster')
   if (!team) notFound()
 
   const teamPath = `/${businessSlug}/coach/teams/${teamId}`

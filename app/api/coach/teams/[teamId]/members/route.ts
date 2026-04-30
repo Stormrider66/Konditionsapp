@@ -12,6 +12,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
+import { getPrimaryBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
@@ -22,18 +23,27 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const user = await requireCoach()
     const { teamId } = await context.params
 
-    const team = await prisma.team.findFirst({
-      where: { id: teamId, userId: user.id },
-      select: { id: true },
-    })
+    const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
     if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 })
 
     const filter = req.nextUrl.searchParams.get('filter') ?? 'all'
+    const membership = await getPrimaryBusinessMembership(user.id)
 
     const where =
       filter === 'unassigned'
-        ? { userId: user.id, teamId: null }
-        : { userId: user.id }
+        ? {
+            teamId: null,
+            OR: [
+              { userId: team.userId },
+              ...(membership?.businessId ? [{ businessId: membership.businessId }] : []),
+            ],
+          }
+        : {
+            OR: [
+              { userId: team.userId },
+              ...(membership?.businessId ? [{ businessId: membership.businessId }] : []),
+            ],
+          }
 
     const clients = await prisma.client.findMany({
       where,
@@ -65,10 +75,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const user = await requireCoach()
     const { teamId } = await context.params
 
-    const team = await prisma.team.findFirst({
-      where: { id: teamId, userId: user.id },
-      select: { id: true },
-    })
+    const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
     if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 })
 
     const body = await req.json().catch(() => ({}))
@@ -81,9 +88,17 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'No valid client IDs' }, { status: 400 })
     }
 
-    // Only allow moving clients the coach owns
+    const membership = await getPrimaryBusinessMembership(user.id)
+
+    // Only allow moving clients from the same coach/business workspace.
     const owned = await prisma.client.findMany({
-      where: { id: { in: ids }, userId: user.id },
+      where: {
+        id: { in: ids },
+        OR: [
+          { userId: team.userId },
+          ...(membership?.businessId ? [{ businessId: membership.businessId }] : []),
+        ],
+      },
       select: { id: true },
     })
     const ownedIds = owned.map((c) => c.id)
@@ -91,11 +106,6 @@ export async function POST(req: NextRequest, context: RouteContext) {
     if (ownedIds.length === 0) {
       return NextResponse.json({ error: 'No clients found' }, { status: 404 })
     }
-
-    const membership = await prisma.businessMember.findFirst({
-      where: { userId: user.id, isActive: true },
-      select: { businessId: true },
-    })
 
     await prisma.client.updateMany({
       where: { id: { in: ownedIds } },

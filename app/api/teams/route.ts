@@ -1,9 +1,13 @@
 // app/api/teams/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
+import {
+  getAccessibleTeamWhere,
+  getBusinessTeamOwnerIds,
+} from '@/lib/coach/team-access'
 
 // Validation schema for team creation
 const createTeamSchema = z.object({
@@ -17,37 +21,14 @@ const createTeamSchema = z.object({
 })
 
 // GET /api/teams - Get all teams for the authenticated user
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Unauthorized',
-        },
-        { status: 401 }
-      )
-    }
-
-    // Get teams the user owns OR is assigned to as staff
-    const assignments = await prisma.teamCoachAssignment.findMany({
-      where: { userId: user.id },
-      select: { teamId: true },
-    })
-    const assignedTeamIds = assignments.map((a) => a.teamId)
+    const user = await requireCoach()
+    const scope = getRequestedBusinessScope(request)
+    const teamWhere = await getAccessibleTeamWhere(user.id, scope.businessSlug)
 
     const teams = await prisma.team.findMany({
-      where: {
-        OR: [
-          { userId: user.id },
-          ...(assignedTeamIds.length > 0 ? [{ id: { in: assignedTeamIds } }] : []),
-        ],
-      },
+      where: teamWhere,
       include: {
         members: true,
         organization: {
@@ -81,20 +62,9 @@ export async function GET() {
 // POST /api/teams - Create a new team
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Unauthorized',
-        },
-        { status: 401 }
-      )
-    }
+    const user = await requireCoach()
+    const scope = getRequestedBusinessScope(request)
+    const businessOwnerIds = await getBusinessTeamOwnerIds(user.id, scope.businessSlug)
 
     const body = await request.json()
 
@@ -118,7 +88,7 @@ export async function POST(request: NextRequest) {
       const org = await prisma.organization.findFirst({
         where: {
           id: data.organizationId,
-          userId: user.id,
+          userId: { in: businessOwnerIds.length ? businessOwnerIds : [user.id] },
         },
       })
       if (!org) {
@@ -160,6 +130,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
     logger.error('Error creating team', {}, error)
     return NextResponse.json(
       {

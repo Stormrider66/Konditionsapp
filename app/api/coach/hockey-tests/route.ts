@@ -9,6 +9,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { getStaffPermissions } from '@/lib/permissions/assistant-coach'
+import {
+  canAccessClientInTeam,
+  getPrimaryBusinessMembership,
+  getAccessibleTeamWhere,
+  getWritableTeam,
+} from '@/lib/coach/team-access'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 
@@ -56,14 +62,24 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const teamId = searchParams.get('teamId')
     const clientId = searchParams.get('clientId')
+    const accessibleTeamWhere = await getAccessibleTeamWhere(user.id)
+    const accessibleTeams = await prisma.team.findMany({
+      where: teamId ? { id: teamId, AND: [accessibleTeamWhere] } : accessibleTeamWhere,
+      select: { id: true },
+    })
+    const accessibleTeamIds = accessibleTeams.map((team) => team.id)
+    const allowedTeamIds = permissions.isTeamScoped
+      ? accessibleTeamIds.filter((id) => permissions.assignedTeamIds.includes(id))
+      : accessibleTeamIds
+
+    if ((teamId && allowedTeamIds.length === 0) || (!teamId && allowedTeamIds.length === 0)) {
+      return NextResponse.json({ tests: [] })
+    }
 
     const tests = await prisma.hockeyPhysicalTest.findMany({
       where: {
         ...(clientId ? { clientId } : {}),
-        ...(teamId ? { teamId } : {}),
-        ...(permissions.isTeamScoped
-          ? { teamId: { in: permissions.assignedTeamIds } }
-          : { coach: { id: user.id } }),
+        ...(teamId ? { teamId } : { teamId: { in: allowedTeamIds } }),
       },
       include: {
         client: { select: { id: true, name: true } },
@@ -90,6 +106,32 @@ export async function POST(req: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json({ error: 'Ogiltig indata', details: parsed.error.flatten() }, { status: 400 })
+    }
+
+    if (parsed.data.teamId) {
+      const team = await getWritableTeam(user.id, parsed.data.teamId, undefined, 'tests')
+      const canAccessClient = team
+        ? await canAccessClientInTeam(user.id, parsed.data.clientId, parsed.data.teamId)
+        : false
+
+      if (!team || !canAccessClient) {
+        return NextResponse.json({ error: 'Team or athlete not found' }, { status: 404 })
+      }
+    } else {
+      const membership = await getPrimaryBusinessMembership(user.id)
+      const client = await prisma.client.findFirst({
+        where: {
+          id: parsed.data.clientId,
+          OR: [
+            { userId: user.id },
+            ...(membership?.businessId ? [{ businessId: membership.businessId }] : []),
+          ],
+        },
+        select: { id: true },
+      })
+      if (!client) {
+        return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
+      }
     }
 
     const test = await prisma.hockeyPhysicalTest.create({

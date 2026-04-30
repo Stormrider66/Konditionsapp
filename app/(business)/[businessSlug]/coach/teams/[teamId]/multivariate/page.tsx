@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
-import { prisma } from '@/lib/prisma'
+import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { checkCoachSubscriptionStatus } from '@/lib/subscription/feature-access'
 import { loadLatestModel, loadLatestPLSModel } from '@/lib/mva/model-storage'
 import { MVAAnalysisClient } from '@/components/mva/MVAAnalysisClient'
@@ -27,11 +27,8 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
     notFound()
   }
 
-  // Verify team ownership
-  const team = await prisma.team.findFirst({
-    where: { id: teamId, userId: user.id },
-    select: { id: true, name: true, sportType: true },
-  })
+  // Verify team access inside the business workspace
+  const team = await getAccessibleTeam(user.id, teamId, businessSlug)
 
   if (!team) {
     notFound()

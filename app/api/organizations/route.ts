@@ -1,9 +1,10 @@
 // app/api/organizations/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
+import { getBusinessTeamOwnerIds } from '@/lib/coach/team-access'
 
 // Validation schema for organization creation
 const createOrganizationSchema = z.object({
@@ -16,26 +17,15 @@ const createOrganizationSchema = z.object({
 })
 
 // GET /api/organizations - Get all organizations for the authenticated user
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Unauthorized',
-        },
-        { status: 401 }
-      )
-    }
+    const user = await requireCoach()
+    const scope = getRequestedBusinessScope(request)
+    const ownerIds = await getBusinessTeamOwnerIds(user.id, scope.businessSlug)
 
     const organizations = await prisma.organization.findMany({
       where: {
-        userId: user.id,
+        userId: { in: ownerIds.length ? ownerIds : [user.id] },
       },
       include: {
         teams: {
@@ -68,20 +58,7 @@ export async function GET() {
 // POST /api/organizations - Create a new organization
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Unauthorized',
-        },
-        { status: 401 }
-      )
-    }
+    const user = await requireCoach()
 
     const body = await request.json()
 
@@ -125,6 +102,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
     logger.error('Error creating organization', {}, error)
     return NextResponse.json(
       {

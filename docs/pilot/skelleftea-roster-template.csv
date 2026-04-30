@@ -1,0 +1,4 @@
+jerseyNumber,name,position,email,phone,birthDate,gender,height,weight,notes
+1,Player One,Goalie,player.one@example.com,,2005-01-01,MALE,185,86,
+7,Player Two,Defense,player.two@example.com,,2004-01-01,MALE,183,84,
+19,Player Three,Center,player.three@example.com,,2003-01-01,MALE,180,82,

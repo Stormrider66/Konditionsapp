@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
-import { prisma } from '@/lib/prisma'
+import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Activity } from 'lucide-react'
@@ -24,10 +24,7 @@ export default async function TeamTestsPage({ params }: TestsPageProps) {
     notFound()
   }
 
-  const team = await prisma.team.findFirst({
-    where: { id: teamId, userId: user.id },
-    select: { id: true, name: true },
-  })
+  const team = await getAccessibleTeam(user.id, teamId, businessSlug)
 
   if (!team) {
     notFound()

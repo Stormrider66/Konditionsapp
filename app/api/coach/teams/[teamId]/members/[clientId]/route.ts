@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { canAccessClientInTeam, getWritableTeam } from '@/lib/coach/team-access'
 
 interface RouteContext {
   params: Promise<{ teamId: string; clientId: string }>
@@ -20,11 +21,11 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     const user = await requireCoach()
     const { teamId, clientId } = await context.params
 
-    const client = await prisma.client.findFirst({
-      where: { id: clientId, userId: user.id, teamId },
-      select: { id: true },
-    })
-    if (!client) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
+    const canAccessClient = team
+      ? await canAccessClientInTeam(user.id, clientId, teamId)
+      : false
+    if (!team || !canAccessClient) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const body = await req.json().catch(() => ({}))
     const data: { jerseyNumber?: number | null; position?: string | null; photoUrl?: string | null } = {}
@@ -79,11 +80,11 @@ export async function DELETE(_req: NextRequest, context: RouteContext) {
     const user = await requireCoach()
     const { teamId, clientId } = await context.params
 
-    const client = await prisma.client.findFirst({
-      where: { id: clientId, userId: user.id, teamId },
-      select: { id: true },
-    })
-    if (!client) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
+    const canAccessClient = team
+      ? await canAccessClientInTeam(user.id, clientId, teamId)
+      : false
+    if (!team || !canAccessClient) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     await prisma.client.update({
       where: { id: clientId },

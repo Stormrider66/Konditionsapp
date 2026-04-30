@@ -1,9 +1,10 @@
 // app/api/teams/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
+import { getAccessibleTeam, getBusinessTeamOwnerIds } from '@/lib/coach/team-access'
 
 type RouteParams = {
   params: Promise<{
@@ -28,26 +29,23 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await requireCoach()
+    const scope = getRequestedBusinessScope(request)
+    const { id } = await params
+    const accessibleTeam = await getAccessibleTeam(user.id, id, scope.businessSlug)
 
-    if (!user) {
+    if (!accessibleTeam) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: 'Team not found',
         },
-        { status: 401 }
+        { status: 404 }
       )
     }
 
-    const { id } = await params
     const team = await prisma.team.findUnique({
-      where: {
-        id,
-      },
+      where: { id },
       include: {
         members: true,
         organization: {
@@ -58,17 +56,6 @@ export async function GET(
         },
       },
     })
-
-    // Check if team belongs to user
-    if (!team || team.userId !== user.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Team not found',
-        },
-        { status: 404 }
-      )
-    }
 
     return NextResponse.json({
       success: true,
@@ -92,29 +79,12 @@ export async function PUT(
   { params }: RouteParams
 ) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Unauthorized',
-        },
-        { status: 401 }
-      )
-    }
-
+    const user = await requireCoach()
+    const scope = getRequestedBusinessScope(request)
     const { id } = await params
 
     // Check if team belongs to user
-    const existingTeam = await prisma.team.findUnique({
-      where: {
-        id,
-      },
-    })
+    const existingTeam = await getAccessibleTeam(user.id, id, scope.businessSlug)
 
     if (!existingTeam || existingTeam.userId !== user.id) {
       return NextResponse.json(
@@ -145,10 +115,11 @@ export async function PUT(
 
     // If organizationId is provided, verify it exists and belongs to user
     if (data.organizationId) {
+      const businessOwnerIds = await getBusinessTeamOwnerIds(user.id, scope.businessSlug)
       const org = await prisma.organization.findFirst({
         where: {
           id: data.organizationId,
-          userId: user.id,
+          userId: { in: businessOwnerIds.length ? businessOwnerIds : [user.id] },
         },
       })
       if (!org) {
@@ -206,29 +177,12 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Unauthorized',
-        },
-        { status: 401 }
-      )
-    }
-
+    const user = await requireCoach()
+    const scope = getRequestedBusinessScope(request)
     const { id } = await params
 
     // Check if team belongs to user
-    const existingTeam = await prisma.team.findUnique({
-      where: {
-        id,
-      },
-    })
+    const existingTeam = await getAccessibleTeam(user.id, id, scope.businessSlug)
 
     if (!existingTeam || existingTeam.userId !== user.id) {
       return NextResponse.json(
