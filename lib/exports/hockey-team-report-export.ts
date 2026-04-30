@@ -1,0 +1,374 @@
+import { jsPDF } from 'jspdf'
+
+type HockeyBenchmarkBand = 'top' | 'above' | 'team' | 'watch' | 'priority'
+
+interface HockeyMetric {
+  key: string
+  label: string
+  unit: string
+  lowerIsBetter?: boolean
+}
+
+interface HockeyAthleteRow {
+  id: string
+  name: string
+  position: { key: string; label: string }
+  latestTestDate: string | null
+  metrics: Record<string, number | null>
+  ranks: Record<string, { rank: number; percentile: number } | null>
+  benchmarks: Record<string, {
+    zScore: number | null
+    percentile: number | null
+    positionZScore: number | null
+    positionPercentile: number | null
+    positionRank: number | null
+    positionCoverage: number
+    band: HockeyBenchmarkBand
+  } | null>
+}
+
+interface HockeyLeader {
+  key: string
+  label: string
+  unit: string
+  coverage: number
+  average: number | null
+  leader: { athleteId: string; athleteName: string; value: number } | null
+}
+
+interface HockeyHistoryMetric extends HockeyMetric {
+  teamTrend: Array<{ date: string; average: number | null; count: number }>
+  athletes: Array<{
+    id: string
+    name: string
+    latestTestDate: string | null
+    previousTestDate: string | null
+    latest: number | null
+    previous: number | null
+    delta: number | null
+    percentChange: number | null
+    rank: { rank: number; percentile: number } | null
+  }>
+}
+
+export interface HockeyTeamReportData {
+  teamId: string
+  teamName: string
+  metrics: HockeyMetric[]
+  athletes: HockeyAthleteRow[]
+  leaders: HockeyLeader[]
+  history: HockeyHistoryMetric[]
+  positions: Array<{ key: string; label: string; athleteCount: number }>
+  testCount: number
+}
+
+const PAGE_WIDTH = 210
+const PAGE_HEIGHT = 297
+const MARGIN = 14
+const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2
+const CORE_METRICS = [
+  'muscleLabWkg',
+  'backSquat1RM',
+  'powerClean1RM',
+  'standingLongJump',
+  'threeJumpBest',
+  'sprint10m',
+  'agilityBest',
+  'beepScore',
+]
+
+function formatMetricValue(value: number | null | undefined, unit: string): string {
+  if (value == null || !Number.isFinite(value)) return '-'
+  const decimals = unit === 's' ? 2 : unit === 'W/kg' || unit === 'nivå' ? 1 : 0
+  return `${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
+}
+
+function filenamePart(value: string): string {
+  return value
+    .replace(/[åä]/gi, 'a')
+    .replace(/[ö]/gi, 'o')
+    .replace(/[^a-zA-Z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '_')
+    .substring(0, 42) || 'team'
+}
+
+function addPageIfNeeded(pdf: jsPDF, y: number, neededHeight: number): number {
+  if (y + neededHeight < PAGE_HEIGHT - 18) return y
+  pdf.addPage()
+  return 20
+}
+
+function sectionTitle(pdf: jsPDF, title: string, y: number): number {
+  y = addPageIfNeeded(pdf, y, 14)
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(12)
+  pdf.setTextColor(20, 20, 20)
+  pdf.text(title, MARGIN, y)
+  pdf.setDrawColor(225, 225, 225)
+  pdf.line(MARGIN, y + 2, PAGE_WIDTH - MARGIN, y + 2)
+  return y + 8
+}
+
+function summaryCards(pdf: jsPDF, cards: Array<[string, string, string?]>, y: number): number {
+  const columns = 4
+  const cellWidth = CONTENT_WIDTH / columns
+  const cellHeight = 19
+
+  for (let index = 0; index < cards.length; index += columns) {
+    y = addPageIfNeeded(pdf, y, cellHeight + 4)
+    cards.slice(index, index + columns).forEach(([label, value, helper], col) => {
+      const x = MARGIN + col * cellWidth
+      pdf.setFillColor(248, 250, 252)
+      pdf.setDrawColor(226, 232, 240)
+      pdf.roundedRect(x, y, cellWidth - 3, cellHeight, 2, 2, 'FD')
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(7)
+      pdf.setTextColor(105, 105, 105)
+      pdf.text(label, x + 3, y + 5)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(10)
+      pdf.setTextColor(30, 30, 30)
+      pdf.text(value, x + 3, y + 11)
+      if (helper) {
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(6.5)
+        pdf.setTextColor(120, 120, 120)
+        pdf.text(helper.substring(0, 24), x + 3, y + 16)
+      }
+    })
+    y += cellHeight + 3
+  }
+
+  return y + 2
+}
+
+function table(pdf: jsPDF, headers: string[], rows: string[][], y: number, options?: { fontSize?: number }): number {
+  if (rows.length === 0) return y
+  const fontSize = options?.fontSize ?? 7.5
+  const colWidth = CONTENT_WIDTH / headers.length
+  y = addPageIfNeeded(pdf, y, 13)
+
+  pdf.setFillColor(241, 245, 249)
+  pdf.rect(MARGIN, y - 4, CONTENT_WIDTH, 8, 'F')
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(fontSize)
+  pdf.setTextColor(45, 45, 45)
+  headers.forEach((header, index) => {
+    pdf.text(header, MARGIN + index * colWidth + 1.5, y)
+  })
+  y += 7
+
+  pdf.setFont('helvetica', 'normal')
+  rows.forEach((row) => {
+    y = addPageIfNeeded(pdf, y, 8)
+    row.forEach((value, index) => {
+      pdf.text(String(value).substring(0, 20), MARGIN + index * colWidth + 1.5, y)
+    })
+    pdf.setDrawColor(235, 235, 235)
+    pdf.line(MARGIN, y + 2, PAGE_WIDTH - MARGIN, y + 2)
+    y += 7
+  })
+
+  return y + 3
+}
+
+function metricByKey(data: HockeyTeamReportData, key: string): HockeyMetric | undefined {
+  return data.metrics.find((metric) => metric.key === key)
+}
+
+function bandPriority(band: HockeyBenchmarkBand): number {
+  if (band === 'priority') return 0
+  if (band === 'watch') return 1
+  if (band === 'team') return 2
+  if (band === 'above') return 3
+  return 4
+}
+
+function drawTrend(pdf: jsPDF, metric: HockeyHistoryMetric, y: number): number {
+  const series = metric.teamTrend.filter((point): point is { date: string; average: number; count: number } => point.average != null)
+  if (series.length < 2) return y
+  y = addPageIfNeeded(pdf, y, 50)
+
+  const x = MARGIN
+  const chartY = y + 8
+  const width = CONTENT_WIDTH
+  const height = 35
+  const values = series.map((point) => point.average)
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(9)
+  pdf.setTextColor(30, 30, 30)
+  pdf.text(`${metric.label} lagtrend`, x, y)
+  pdf.setDrawColor(226, 232, 240)
+  pdf.rect(x, chartY, width, height)
+  pdf.setDrawColor(8, 145, 178)
+  pdf.setLineWidth(0.8)
+
+  series.forEach((point, index) => {
+    if (index === 0) return
+    const previous = series[index - 1]
+    const px = x + ((index - 1) / (series.length - 1)) * width
+    const py = chartY + height - ((previous.average - min) / range) * height
+    const cx = x + (index / (series.length - 1)) * width
+    const cy = chartY + height - ((point.average - min) / range) * height
+    pdf.line(px, py, cx, cy)
+  })
+
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(7)
+  pdf.setTextColor(105, 105, 105)
+  pdf.text(`${series[0].date} till ${series[series.length - 1].date}`, x + 2, chartY + height + 5)
+  pdf.text(`${formatMetricValue(min, metric.unit)}-${formatMetricValue(max, metric.unit)}`, PAGE_WIDTH - MARGIN - 42, chartY + height + 5)
+
+  return chartY + height + 10
+}
+
+export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  let y = 20
+
+  pdf.setFillColor(15, 23, 42)
+  pdf.rect(0, 0, PAGE_WIDTH, 32, 'F')
+  pdf.setTextColor(255, 255, 255)
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(18)
+  pdf.text('Hockey team report', MARGIN, 16)
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(10)
+  pdf.text(`${data.teamName} · ${new Date().toLocaleDateString('sv-SE')}`, MARGIN, 24)
+  y = 42
+
+  const testedAthletes = data.athletes.filter((athlete) => athlete.latestTestDate).length
+  const priorityItems = data.athletes.flatMap((athlete) =>
+    data.metrics.map((metric) => {
+      const benchmark = athlete.benchmarks[metric.key]
+      if (!benchmark || !['priority', 'watch'].includes(benchmark.band)) return null
+      return {
+        athlete,
+        metric,
+        benchmark,
+        value: athlete.metrics[metric.key],
+      }
+    }).filter((item): item is {
+      athlete: HockeyAthleteRow
+      metric: HockeyMetric
+      benchmark: NonNullable<HockeyAthleteRow['benchmarks'][string]>
+      value: number | null
+    } => Boolean(item))
+  ).sort((a, b) => bandPriority(a.benchmark.band) - bandPriority(b.benchmark.band))
+
+  y = summaryCards(pdf, [
+    ['Athletes tested', `${testedAthletes}/${data.athletes.length}`],
+    ['Hockey tests', `${data.testCount}`],
+    ['Metrics tracked', `${data.metrics.length}`],
+    ['Watchlist', `${priorityItems.length}`, 'priority/watch flags'],
+  ], y)
+
+  y = sectionTitle(pdf, 'Leaders', y)
+  y = table(
+    pdf,
+    ['Metric', 'Leader', 'Value', 'Team avg'],
+    data.leaders
+      .filter((leader) => leader.leader)
+      .slice(0, 12)
+      .map((leader) => [
+        leader.label,
+        leader.leader?.athleteName ?? '-',
+        formatMetricValue(leader.leader?.value, leader.unit),
+        formatMetricValue(leader.average, leader.unit),
+      ]),
+    y,
+  )
+
+  y = sectionTitle(pdf, 'Position coverage', y)
+  y = summaryCards(
+    pdf,
+    data.positions.map((position) => [
+      position.label,
+      `${position.athleteCount}`,
+      position.key,
+    ]),
+    y,
+  )
+
+  if (priorityItems.length > 0) {
+    y = sectionTitle(pdf, 'Priority and follow-up', y)
+    y = table(
+      pdf,
+      ['Athlete', 'Metric', 'Value', 'Band', 'Pos rank'],
+      priorityItems.slice(0, 16).map((item) => [
+        item.athlete.name,
+        item.metric.label,
+        formatMetricValue(item.value, item.metric.unit),
+        item.benchmark.band === 'priority' ? 'Priority' : 'Follow up',
+        item.benchmark.positionRank && item.benchmark.positionCoverage > 1
+          ? `${item.benchmark.positionRank}/${item.benchmark.positionCoverage}`
+          : '-',
+      ]),
+      y,
+    )
+  }
+
+  const trendMetric = data.history.find((metric) => metric.key === 'muscleLabWkg' && metric.teamTrend.length > 1)
+    ?? data.history.find((metric) => metric.teamTrend.length > 1)
+  if (trendMetric) {
+    y = sectionTitle(pdf, 'Team trend', y)
+    y = drawTrend(pdf, trendMetric, y)
+  }
+
+  y = sectionTitle(pdf, 'Athlete matrix', y)
+  const coreMetrics = CORE_METRICS
+    .map((key) => metricByKey(data, key))
+    .filter((metric): metric is HockeyMetric => Boolean(metric))
+  y = table(
+    pdf,
+    ['Athlete', 'Pos', 'Date', ...coreMetrics.map((metric) => metric.label)],
+    data.athletes
+      .filter((athlete) => athlete.latestTestDate)
+      .sort((a, b) => a.name.localeCompare(b.name, 'sv'))
+      .map((athlete) => [
+        athlete.name,
+        athlete.position.key,
+        athlete.latestTestDate ?? '-',
+        ...coreMetrics.map((metric) => {
+          const rank = athlete.ranks[metric.key]
+          const value = formatMetricValue(athlete.metrics[metric.key], metric.unit)
+          return rank ? `${value} P${rank.percentile}` : value
+        }),
+      ]),
+    y,
+    { fontSize: 6.2 },
+  )
+
+  const pageCount = pdf.getNumberOfPages()
+  for (let page = 1; page <= pageCount; page += 1) {
+    pdf.setPage(page)
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(8)
+    pdf.setTextColor(140, 140, 140)
+    pdf.text(`Generated ${new Date().toLocaleString('sv-SE')}`, MARGIN, 286)
+    pdf.text(`Trainomics · ${page}/${pageCount}`, PAGE_WIDTH - MARGIN - 30, 286)
+  }
+
+  return pdf.output('blob')
+}
+
+export function generateHockeyTeamReportFilename(data: HockeyTeamReportData): string {
+  return `Hockey_team_report_${filenamePart(data.teamName)}_${new Date().toISOString().slice(0, 10)}.pdf`
+}
+
+export function downloadHockeyTeamReportPDF(data: HockeyTeamReportData): void {
+  const blob = generateHockeyTeamReportPDF(data)
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = generateHockeyTeamReportFilename(data)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}

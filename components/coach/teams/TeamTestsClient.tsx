@@ -77,6 +77,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { toast } from 'sonner'
 
 interface PRRow {
   id: string
@@ -218,6 +219,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   const [importOpen, setImportOpen] = useState(false)
   const [manualOpen, setManualOpen] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [isExportingTeamReport, setIsExportingTeamReport] = useState(false)
 
   // Edit/delete state for individual PRs in a session. Editing uses
   // the same PATCH endpoint as the per-client PR table — value, unit,
@@ -273,6 +275,24 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
       }
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  const handleExportTeamReport = async () => {
+    if (!hockey) return
+    setIsExportingTeamReport(true)
+    try {
+      const { downloadHockeyTeamReportPDF } = await import('@/lib/exports/hockey-team-report-export')
+      downloadHockeyTeamReportPDF({
+        teamId,
+        teamName,
+        ...hockey,
+      })
+      toast.success('Lagrapport exporterad')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Kunde inte exportera lagrapport')
+    } finally {
+      setIsExportingTeamReport(false)
     }
   }
 
@@ -574,6 +594,19 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
             )}
 
             <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isExportingTeamReport}
+                onClick={handleExportTeamReport}
+              >
+                {isExportingTeamReport ? (
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-1.5" />
+                )}
+                Exportera lagrapport PDF
+              </Button>
               <a href={hockeyExportHref}>
                 <Button variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-1.5" />
