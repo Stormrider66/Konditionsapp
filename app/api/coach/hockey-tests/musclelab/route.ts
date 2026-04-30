@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
-import { parseMuscleLabWorkbook } from '@/lib/hockey/musclelab'
+import { parseMuscleLabRawText, parseMuscleLabWorkbook } from '@/lib/hockey/musclelab'
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,12 +20,9 @@ export async function POST(req: NextRequest) {
       file.name.toLowerCase().endsWith('.xlsx') ||
       file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
-    if (!isWorkbook) {
-      return NextResponse.json({ error: 'Ladda upp en .xlsx-export från MuscleLab' }, { status: 400 })
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer())
-    const parsed = await parseMuscleLabWorkbook(buffer)
+    const parsed = isWorkbook
+      ? await parseMuscleLabWorkbook(Buffer.from(await file.arrayBuffer()))
+      : parseMuscleLabRawText(await file.text(), file.name)
 
     return NextResponse.json(parsed)
   } catch (error) {

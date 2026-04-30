@@ -69,7 +69,39 @@ interface HockeyTest {
     maxAveragePowerPerBodyMass?: number | null
     powerPlateauLoadsKg?: number[]
     displacementDropPercent?: number | null
+    rawDiagnostics?: {
+      traceCount: number
+      totalSamples: number
+      maxPeakVelocityMs: number | null
+      maxPeakForceN: number | null
+      maxPeakPowerW: number | null
+      flags: string[]
+    } | null
     flags?: string[]
+  } | null
+  muscleLabRaw: {
+    traces: Array<{
+      traceId: string
+      label: string
+      sampleCount: number
+      peakVelocityMs: number | null
+      peakForceN: number | null
+      peakPowerW: number | null
+      samples: Array<{
+        t: number
+        velocityMs?: number | null
+        forceN?: number | null
+        powerW?: number | null
+      }>
+    }>
+    diagnostics: {
+      traceCount: number
+      totalSamples: number
+      maxPeakVelocityMs: number | null
+      maxPeakForceN: number | null
+      maxPeakPowerW: number | null
+      flags: string[]
+    } | null
   } | null
 }
 
@@ -94,7 +126,8 @@ function TestValue({ label, value, unit, highlight }: { label: string; value: nu
 
 function MuscleLabChart({ test }: { test: HockeyTest }) {
   const rows = test.muscleLabJumps || []
-  if (rows.length === 0) return null
+  const rawTrace = test.muscleLabRaw?.traces?.[0]
+  if (rows.length === 0 && !rawTrace) return null
   const chartData = rows
     .filter((row) => row.externalLoadKg != null)
     .map((row) => ({
@@ -102,6 +135,11 @@ function MuscleLabChart({ test }: { test: HockeyTest }) {
       AP: row.averagePowerW,
       AV: row.averageVelocityMs,
     }))
+  const rawChartData = rawTrace?.samples.map((sample) => ({
+    t: sample.t,
+    power: sample.powerW,
+    velocity: sample.velocityMs,
+  })) ?? []
 
   return (
     <div className="space-y-2 rounded-md border bg-muted/20 p-3">
@@ -126,21 +164,51 @@ function MuscleLabChart({ test }: { test: HockeyTest }) {
             ROM -{test.muscleLabMaxima.displacementDropPercent}%
           </Badge>
         ) : null}
+        {test.muscleLabRaw?.diagnostics?.traceCount ? (
+          <Badge variant="outline" className="text-[10px]">
+            {test.muscleLabRaw.diagnostics.traceCount} råkurva
+          </Badge>
+        ) : null}
+        {test.muscleLabRaw?.diagnostics?.maxPeakPowerW ? (
+          <Badge variant="outline" className="text-[10px]">
+            pP {test.muscleLabRaw.diagnostics.maxPeakPowerW} W
+          </Badge>
+        ) : null}
       </div>
-      <div className="h-44">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 6, right: 12, left: 0, bottom: 6 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="load" tick={{ fontSize: 10 }} unit="kg" />
-            <YAxis yAxisId="left" tick={{ fontSize: 10 }} width={38} />
-            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={32} />
-            <Tooltip />
-            <Line yAxisId="left" type="monotone" dataKey="AP" name="AP W" stroke="#2563eb" strokeWidth={2} dot />
-            <Line yAxisId="right" type="monotone" dataKey="AV" name="AV m/s" stroke="#16a34a" strokeWidth={2} dot />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-      {test.muscleLabMaxima?.flags?.map((flag) => (
+      {chartData.length > 0 && (
+        <div className="h-44">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 6, right: 12, left: 0, bottom: 6 }}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis dataKey="load" tick={{ fontSize: 10 }} unit="kg" />
+              <YAxis yAxisId="left" tick={{ fontSize: 10 }} width={38} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={32} />
+              <Tooltip />
+              <Line yAxisId="left" type="monotone" dataKey="AP" name="AP W" stroke="#2563eb" strokeWidth={2} dot />
+              <Line yAxisId="right" type="monotone" dataKey="AV" name="AV m/s" stroke="#16a34a" strokeWidth={2} dot />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+      {rawTrace && rawChartData.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-[10px] uppercase text-muted-foreground">{rawTrace.label}</p>
+          <div className="h-44">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={rawChartData} margin={{ top: 6, right: 12, left: 0, bottom: 6 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="t" tick={{ fontSize: 10 }} unit="s" />
+                <YAxis yAxisId="left" tick={{ fontSize: 10 }} width={38} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={32} />
+                <Tooltip />
+                <Line yAxisId="left" type="monotone" dataKey="power" name="Power W" stroke="#2563eb" strokeWidth={2} dot={false} />
+                <Line yAxisId="right" type="monotone" dataKey="velocity" name="Velocity m/s" stroke="#16a34a" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+      {[...(test.muscleLabMaxima?.flags ?? []), ...(test.muscleLabRaw?.diagnostics?.flags ?? [])].map((flag) => (
         <p key={flag} className="text-[10px] text-amber-700 dark:text-amber-300">{flag}</p>
       ))}
     </div>
@@ -249,7 +317,7 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                     )}
 
                     {/* Power tests */}
-                    {(test.jumpSquatLadder || test.gripStrengthLeft || test.muscleLabJumps) && (
+                    {(test.jumpSquatLadder || test.gripStrengthLeft || test.muscleLabJumps || test.muscleLabRaw) && (
                       <div>
                         <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Zap className="h-3 w-3" /> Krafttester</p>
                         <MuscleLabChart test={test} />

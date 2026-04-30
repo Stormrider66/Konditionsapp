@@ -54,6 +54,7 @@ const createTestSchema = z.object({
   // MuscleLab summary import
   muscleLabJumps: z.array(z.record(z.unknown())).optional(),
   muscleLabMaxima: z.record(z.unknown()).optional(),
+  muscleLabRaw: z.record(z.unknown()).optional(),
   sourceType: z.enum(['MANUAL', 'MUSCLE_LAB_IMPORT']).default('MANUAL'),
 })
 
@@ -169,6 +170,7 @@ export async function POST(req: NextRequest) {
         pullUp1RM: parsed.data.pullUp1RM,
         muscleLabJumps: parsed.data.muscleLabJumps as Prisma.InputJsonValue | undefined,
         muscleLabMaxima: parsed.data.muscleLabMaxima as Prisma.InputJsonValue | undefined,
+        muscleLabRaw: parsed.data.muscleLabRaw as Prisma.InputJsonValue | undefined,
         sourceType: parsed.data.sourceType,
       },
     })

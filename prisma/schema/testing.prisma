@@ -1062,9 +1062,10 @@ model HockeyPhysicalTest {
   benchPress1RM Float?
   pullUp1RM     Float?
 
-  // Muscle Lab import: full jump rows + computed maxima for load-power/force curves
+  // Muscle Lab import: summary rows, computed maxima, and optional raw curve traces
   muscleLabJumps  Json?
   muscleLabMaxima Json?
+  muscleLabRaw    Json?
 
   // Source: MANUAL or MUSCLE_LAB_IMPORT
   sourceType  String @default("MANUAL")

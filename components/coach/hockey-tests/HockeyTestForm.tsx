@@ -66,7 +66,42 @@ interface MuscleLabMaxima {
   loadVelocitySlope?: number | null
   loadVelocityIntercept?: number | null
   loadVelocityR2?: number | null
+  rawDiagnostics?: MuscleLabRawDiagnostics | null
   flags?: string[]
+}
+
+interface MuscleLabRawSample {
+  t: number
+  positionCm?: number | null
+  velocityMs?: number | null
+  forceN?: number | null
+  powerW?: number | null
+}
+
+interface MuscleLabRawTrace {
+  traceId: string
+  label: string
+  sampleCount: number
+  durationS: number | null
+  peakVelocityMs: number | null
+  peakForceN: number | null
+  peakPowerW: number | null
+  timeToPeakVelocityS: number | null
+  samples: MuscleLabRawSample[]
+}
+
+interface MuscleLabRawDiagnostics {
+  traceCount: number
+  totalSamples: number
+  maxPeakVelocityMs: number | null
+  maxPeakForceN: number | null
+  maxPeakPowerW: number | null
+  flags: string[]
+}
+
+interface MuscleLabRawImport {
+  traces: MuscleLabRawTrace[]
+  diagnostics: MuscleLabRawDiagnostics | null
 }
 
 interface MuscleLabImport {
@@ -75,6 +110,8 @@ interface MuscleLabImport {
   rows?: MuscleLabRow[]
   maxima?: MuscleLabMaxima
   jumpSquatLadder?: Record<string, number>
+  rawTraces?: MuscleLabRawTrace[]
+  rawDiagnostics?: MuscleLabRawDiagnostics | null
 }
 
 function NumberInput({ label, value, onChange, unit, placeholder }: {
@@ -112,8 +149,8 @@ function MetricChip({ label, value, unit }: { label: string; value: string | num
   )
 }
 
-function MuscleLabPreview({ rows, maxima }: { rows: MuscleLabRow[]; maxima: MuscleLabMaxima | null }) {
-  if (rows.length === 0) return null
+function MuscleLabPreview({ rows, maxima, raw }: { rows: MuscleLabRow[]; maxima: MuscleLabMaxima | null; raw: MuscleLabRawImport | null }) {
+  if (rows.length === 0 && !raw?.traces.length) return null
 
   const chartData = rows
     .filter((row) => row.externalLoadKg != null)
@@ -124,6 +161,13 @@ function MuscleLabPreview({ rows, maxima }: { rows: MuscleLabRow[]; maxima: Musc
       AF: row.averageForceN,
       D: row.displacementCm,
     }))
+  const rawTrace = raw?.traces[0]
+  const rawChartData = rawTrace?.samples.map((sample) => ({
+    t: sample.t,
+    velocity: sample.velocityMs,
+    force: sample.forceN,
+    power: sample.powerW,
+  })) ?? []
 
   return (
     <div className="space-y-3 rounded-md border bg-muted/20 p-3">
@@ -137,25 +181,49 @@ function MuscleLabPreview({ rows, maxima }: { rows: MuscleLabRow[]; maxima: Musc
         />
         <MetricChip label="Max AF" value={maxima?.maxAverageForceN} unit="N" />
         <MetricChip label="ROM drop" value={maxima?.displacementDropPercent} unit="%" />
+        <MetricChip label="Raw traces" value={raw?.diagnostics?.traceCount} />
+        <MetricChip label="Raw peak P" value={raw?.diagnostics?.maxPeakPowerW} unit="W" />
+        <MetricChip label="Raw peak V" value={raw?.diagnostics?.maxPeakVelocityMs} unit="m/s" />
       </div>
 
-      <div className="h-56">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="load" tick={{ fontSize: 11 }} unit="kg" />
-            <YAxis yAxisId="left" tick={{ fontSize: 11 }} width={42} />
-            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} width={36} />
-            <Tooltip />
-            <Line yAxisId="left" type="monotone" dataKey="AP" name="AP W" stroke="#2563eb" strokeWidth={2} dot />
-            <Line yAxisId="right" type="monotone" dataKey="AV" name="AV m/s" stroke="#16a34a" strokeWidth={2} dot />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      {chartData.length > 0 && (
+        <div className="h-56">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis dataKey="load" tick={{ fontSize: 11 }} unit="kg" />
+              <YAxis yAxisId="left" tick={{ fontSize: 11 }} width={42} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} width={36} />
+              <Tooltip />
+              <Line yAxisId="left" type="monotone" dataKey="AP" name="AP W" stroke="#2563eb" strokeWidth={2} dot />
+              <Line yAxisId="right" type="monotone" dataKey="AV" name="AV m/s" stroke="#16a34a" strokeWidth={2} dot />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
-      {maxima?.flags?.length ? (
+      {rawTrace && rawChartData.length > 0 && (
         <div className="space-y-1">
-          {maxima.flags.map((flag) => (
+          <p className="text-[10px] font-medium uppercase text-muted-foreground">{rawTrace.label} råkurva</p>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={rawChartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="t" tick={{ fontSize: 11 }} unit="s" />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} width={42} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} width={36} />
+                <Tooltip />
+                <Line yAxisId="left" type="monotone" dataKey="power" name="Power W" stroke="#2563eb" strokeWidth={2} dot={false} />
+                <Line yAxisId="right" type="monotone" dataKey="velocity" name="Velocity m/s" stroke="#16a34a" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {[...(maxima?.flags ?? []), ...(raw?.diagnostics?.flags ?? [])].length ? (
+        <div className="space-y-1">
+          {[...(maxima?.flags ?? []), ...(raw?.diagnostics?.flags ?? [])].map((flag) => (
             <p key={flag} className="text-xs text-amber-700 dark:text-amber-300">{flag}</p>
           ))}
         </div>
@@ -289,6 +357,7 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
   const [gripRight, setGripRight] = useState('')
   const [muscleLabRows, setMuscleLabRows] = useState<MuscleLabRow[]>([])
   const [muscleLabMaxima, setMuscleLabMaxima] = useState<MuscleLabMaxima | null>(null)
+  const [muscleLabRaw, setMuscleLabRaw] = useState<MuscleLabRawImport | null>(null)
 
   // Jump values
   const [standingLong, setStandingLong] = useState('')
@@ -356,6 +425,10 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
       setMuscleLabMaxima(data.muscleLabMaxima as MuscleLabMaxima)
       setPowerOpen(true)
     }
+    if (data.muscleLabRaw && typeof data.muscleLabRaw === 'object') {
+      setMuscleLabRaw(data.muscleLabRaw as MuscleLabRawImport)
+      setPowerOpen(true)
+    }
     if (data.testDate) setTestDate(String(data.testDate))
     // Auto-select athlete by name if found
     if (data.athleteName) {
@@ -392,11 +465,17 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
     setScanning(true)
     try {
       let data: Record<string, unknown>
-      if (file.name.toLowerCase().endsWith('.xlsx')) {
+      if (/\.(xlsx|csv|txt|tsv)$/i.test(file.name)) {
         const formData = new FormData()
         formData.append('file', file)
         const res = await fetch('/api/coach/hockey-tests/musclelab', { method: 'POST', body: formData })
         if (!res.ok) {
+          if (!file.name.toLowerCase().endsWith('.xlsx')) {
+            data = parseMusclLabCSV(await file.text())
+            applyData(data)
+            toast.success('Muscle Lab-data importerad')
+            return
+          }
           const err = await res.json()
           throw new Error(err.error || 'MuscleLab-import misslyckades')
         }
@@ -407,6 +486,9 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
           jumpSquatLadder: parsed.jumpSquatLadder,
           muscleLabJumps: parsed.rows,
           muscleLabMaxima: parsed.maxima,
+          muscleLabRaw: parsed.rawTraces?.length
+            ? { traces: parsed.rawTraces, diagnostics: parsed.rawDiagnostics ?? parsed.maxima?.rawDiagnostics ?? null }
+            : undefined,
         }
       } else {
         const text = await file.text()
@@ -473,7 +555,8 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
           pullUp1RM: toNum(pullUp1RM),
           muscleLabJumps: muscleLabRows.length > 0 ? muscleLabRows : undefined,
           muscleLabMaxima: muscleLabMaxima || undefined,
-          sourceType: muscleLabRows.length > 0 ? 'MUSCLE_LAB_IMPORT' : 'MANUAL',
+          muscleLabRaw: muscleLabRaw || undefined,
+          sourceType: muscleLabRows.length > 0 || muscleLabRaw ? 'MUSCLE_LAB_IMPORT' : 'MANUAL',
         }),
       })
 
@@ -609,7 +692,7 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0 space-y-4">
-              <MuscleLabPreview rows={muscleLabRows} maxima={muscleLabMaxima} />
+              <MuscleLabPreview rows={muscleLabRows} maxima={muscleLabMaxima} raw={muscleLabRaw} />
               <div>
                 <Label className="text-xs mb-2 block">Loaded squat jump / power squat profil (AP Watt)</Label>
                 <div className="grid grid-cols-5 gap-2">

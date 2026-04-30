@@ -22,6 +22,37 @@ export interface MuscleLabSummaryRow {
   eccentricAverageVelocityMs: number | null
 }
 
+export interface MuscleLabRawSample {
+  t: number
+  positionCm?: number | null
+  velocityMs?: number | null
+  forceN?: number | null
+  powerW?: number | null
+}
+
+export interface MuscleLabRawTrace {
+  traceId: string
+  label: string
+  sourceSheet?: string | null
+  externalLoadKg?: number | null
+  sampleCount: number
+  durationS: number | null
+  peakVelocityMs: number | null
+  peakForceN: number | null
+  peakPowerW: number | null
+  timeToPeakVelocityS: number | null
+  samples: MuscleLabRawSample[]
+}
+
+export interface MuscleLabRawDiagnostics {
+  traceCount: number
+  totalSamples: number
+  maxPeakVelocityMs: number | null
+  maxPeakForceN: number | null
+  maxPeakPowerW: number | null
+  flags: string[]
+}
+
 export interface MuscleLabMaxima {
   protocolLabel: string
   athleteName: string | null
@@ -36,6 +67,7 @@ export interface MuscleLabMaxima {
   loadVelocitySlope: number | null
   loadVelocityIntercept: number | null
   loadVelocityR2: number | null
+  rawDiagnostics?: MuscleLabRawDiagnostics | null
   flags: string[]
 }
 
@@ -45,13 +77,18 @@ export interface ParsedMuscleLabSession {
   rows: MuscleLabSummaryRow[]
   maxima: MuscleLabMaxima
   jumpSquatLadder: Record<string, number>
+  rawTraces?: MuscleLabRawTrace[]
+  rawDiagnostics?: MuscleLabRawDiagnostics | null
 }
 
 const SERIAL_DATE_OFFSET = 25569
 const MS_PER_DAY = 86400 * 1000
 
 function cleanHeader(value: unknown): string {
-  return String(value ?? '').trim().toLowerCase()
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
 }
 
 function toNumber(value: unknown): number | null {
@@ -116,6 +153,150 @@ function getCell(row: unknown[], headers: Map<string, number>, names: string[]) 
   return null
 }
 
+function splitDelimitedLine(line: string): string[] {
+  const delimiter = line.includes('\t') ? '\t' : line.includes(';') ? ';' : ','
+  return line.split(delimiter).map((value) => value.trim())
+}
+
+function detectRawHeaders(headers: string[]) {
+  const findIndex = (patterns: RegExp[]) => headers.findIndex((header) => patterns.some((pattern) => pattern.test(header)))
+  const timeIndex = findIndex([/^t(\[s\])?$/, /^time/, /tid/])
+  const positionIndex = findIndex([/position/, /pos(\[| |$)/, /displacement/, /^d(\[cm\])?$/, /dist/])
+  const velocityIndex = findIndex([/velocity/, /^v(\[m\/s\])?$/, /hastighet/, /speed/])
+  const forceIndex = findIndex([/force/, /^f(\[n\])?$/, /kraft/])
+  const powerIndex = findIndex([/power/, /^p(\[w\])?$/, /effekt/])
+
+  if (timeIndex < 0 || (positionIndex < 0 && velocityIndex < 0 && forceIndex < 0 && powerIndex < 0)) {
+    return null
+  }
+
+  return { timeIndex, positionIndex, velocityIndex, forceIndex, powerIndex }
+}
+
+function buildRawTrace(label: string, samples: MuscleLabRawSample[], sourceSheet: string | null = null): MuscleLabRawTrace | null {
+  const cleanSamples = samples
+    .filter((sample) => Number.isFinite(sample.t))
+    .sort((a, b) => a.t - b.t)
+
+  if (cleanSamples.length < 20) return null
+
+  const peakVelocitySample = cleanSamples.reduce<MuscleLabRawSample | null>(
+    (best, sample) => sample.velocityMs != null && (!best || sample.velocityMs > (best.velocityMs ?? -Infinity)) ? sample : best,
+    null,
+  )
+  const peakForce = Math.max(...cleanSamples.map((sample) => sample.forceN ?? -Infinity))
+  const peakPower = Math.max(...cleanSamples.map((sample) => sample.powerW ?? -Infinity))
+  const duration = cleanSamples[cleanSamples.length - 1].t - cleanSamples[0].t
+
+  return {
+    traceId: label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'trace',
+    label,
+    sourceSheet,
+    sampleCount: cleanSamples.length,
+    durationS: round(duration, 3),
+    peakVelocityMs: round(peakVelocitySample?.velocityMs ?? null, 3),
+    peakForceN: Number.isFinite(peakForce) ? round(peakForce, 0) : null,
+    peakPowerW: Number.isFinite(peakPower) ? round(peakPower, 0) : null,
+    timeToPeakVelocityS: peakVelocitySample ? round(peakVelocitySample.t - cleanSamples[0].t, 3) : null,
+    samples: downsampleTrace(cleanSamples, 240),
+  }
+}
+
+function downsampleTrace(samples: MuscleLabRawSample[], maxSamples: number): MuscleLabRawSample[] {
+  if (samples.length <= maxSamples) return samples
+  const step = (samples.length - 1) / (maxSamples - 1)
+  return Array.from({ length: maxSamples }, (_, index) => samples[Math.round(index * step)])
+}
+
+function diagnosticsForRawTraces(rawTraces: MuscleLabRawTrace[]): MuscleLabRawDiagnostics | null {
+  if (rawTraces.length === 0) return null
+  const maxPeakVelocity = Math.max(...rawTraces.map((trace) => trace.peakVelocityMs ?? -Infinity))
+  const maxPeakForce = Math.max(...rawTraces.map((trace) => trace.peakForceN ?? -Infinity))
+  const maxPeakPower = Math.max(...rawTraces.map((trace) => trace.peakPowerW ?? -Infinity))
+  const flags: string[] = []
+
+  for (const trace of rawTraces) {
+    if (trace.peakVelocityMs != null && trace.timeToPeakVelocityS != null && trace.durationS && trace.timeToPeakVelocityS > trace.durationS * 0.75) {
+      flags.push(`${trace.label}: peak velocity kommer sent i rörelsen.`)
+    }
+    if (trace.peakPowerW != null && trace.peakPowerW <= 0) {
+      flags.push(`${trace.label}: ingen positiv powerpeak hittades.`)
+    }
+  }
+
+  return {
+    traceCount: rawTraces.length,
+    totalSamples: rawTraces.reduce((sum, trace) => sum + trace.sampleCount, 0),
+    maxPeakVelocityMs: Number.isFinite(maxPeakVelocity) ? round(maxPeakVelocity, 3) : null,
+    maxPeakForceN: Number.isFinite(maxPeakForce) ? round(maxPeakForce, 0) : null,
+    maxPeakPowerW: Number.isFinite(maxPeakPower) ? round(maxPeakPower, 0) : null,
+    flags,
+  }
+}
+
+function parseRawRows(rawRows: unknown[][], label: string, sourceSheet: string | null = null): MuscleLabRawTrace[] {
+  const traces: MuscleLabRawTrace[] = []
+  const headerIndex = rawRows.findIndex((row) => detectRawHeaders(row.map(cleanHeader)) != null)
+  if (headerIndex < 0) return traces
+
+  const headers = rawRows[headerIndex].map(cleanHeader)
+  const detected = detectRawHeaders(headers)
+  if (!detected) return traces
+
+  const samples: MuscleLabRawSample[] = []
+  for (const row of rawRows.slice(headerIndex + 1)) {
+    const t = toNumber(row[detected.timeIndex])
+    if (t == null) continue
+    samples.push({
+      t,
+      positionCm: detected.positionIndex >= 0 ? toNumber(row[detected.positionIndex]) : null,
+      velocityMs: detected.velocityIndex >= 0 ? toNumber(row[detected.velocityIndex]) : null,
+      forceN: detected.forceIndex >= 0 ? toNumber(row[detected.forceIndex]) : null,
+      powerW: detected.powerIndex >= 0 ? toNumber(row[detected.powerIndex]) : null,
+    })
+  }
+
+  const trace = buildRawTrace(label, samples, sourceSheet)
+  if (trace) traces.push(trace)
+  return traces
+}
+
+export function parseMuscleLabRawText(text: string, fileName = 'MuscleLab raw export'): ParsedMuscleLabSession {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0)
+  const rows = lines.map(splitDelimitedLine)
+  const rawTraces = parseRawRows(rows, fileName, fileName)
+  const rawDiagnostics = diagnosticsForRawTraces(rawTraces)
+  if (!rawDiagnostics) throw new Error('No MuscleLab raw trace columns found')
+
+  const maxima: MuscleLabMaxima = {
+    protocolLabel: 'MuscleLab raw curve export',
+    athleteName: null,
+    bodyWeightKg: null,
+    bestPowerLoadKg: null,
+    maxAveragePowerW: null,
+    maxAveragePowerPerBodyMass: null,
+    maxAverageForceN: null,
+    maxAverageVelocityMs: rawDiagnostics.maxPeakVelocityMs,
+    powerPlateauLoadsKg: [],
+    displacementDropPercent: null,
+    loadVelocitySlope: null,
+    loadVelocityIntercept: null,
+    loadVelocityR2: null,
+    rawDiagnostics,
+    flags: rawDiagnostics.flags,
+  }
+
+  return {
+    athleteName: null,
+    testDate: null,
+    rows: [],
+    maxima,
+    jumpSquatLadder: {},
+    rawTraces,
+    rawDiagnostics,
+  }
+}
+
 export async function parseMuscleLabWorkbook(buffer: Buffer): Promise<ParsedMuscleLabSession> {
   const workbook = new ExcelJS.Workbook()
   await (workbook.xlsx.load as (data: unknown) => Promise<ExcelJS.Workbook>)(buffer)
@@ -165,7 +346,16 @@ export async function parseMuscleLabWorkbook(buffer: Buffer): Promise<ParsedMusc
     }
   })
 
-  if (rows.length === 0) throw new Error('No MuscleLab summary rows found')
+  const rawTraces = workbook.worksheets.flatMap((worksheet) => {
+    const rawRows: unknown[][] = []
+    worksheet.eachRow((worksheetRow) => {
+      rawRows.push(worksheetRow.values as unknown[])
+    })
+    return parseRawRows(rawRows, worksheet.name, worksheet.name)
+  })
+  const rawDiagnostics = diagnosticsForRawTraces(rawTraces)
+
+  if (rows.length === 0 && rawTraces.length === 0) throw new Error('No MuscleLab summary rows or raw traces found')
 
   const validPowerRows = rows.filter((row) => row.externalLoadKg != null && row.averagePowerW != null)
   const bestPowerRow = validPowerRows.reduce<MuscleLabSummaryRow | null>(
@@ -221,7 +411,8 @@ export async function parseMuscleLabWorkbook(buffer: Buffer): Promise<ParsedMusc
     loadVelocitySlope: round(regression.slope, 4),
     loadVelocityIntercept: round(regression.intercept, 3),
     loadVelocityR2: round(regression.r2, 3),
-    flags,
+    rawDiagnostics,
+    flags: [...flags, ...(rawDiagnostics?.flags ?? [])],
   }
 
   const jumpSquatLadder = Object.fromEntries(
@@ -234,5 +425,7 @@ export async function parseMuscleLabWorkbook(buffer: Buffer): Promise<ParsedMusc
     rows,
     maxima,
     jumpSquatLadder,
+    rawTraces,
+    rawDiagnostics,
   }
 }
