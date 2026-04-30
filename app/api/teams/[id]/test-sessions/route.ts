@@ -59,13 +59,41 @@ const HOCKEY_METRICS: HockeyMetric[] = [
   { key: 'backSquat1RM', label: 'Knäböj', unit: 'kg' },
   { key: 'powerClean1RM', label: 'Power clean', unit: 'kg' },
   { key: 'benchPress1RM', label: 'Bänkpress', unit: 'kg' },
+  { key: 'pullUp1RM', label: 'Pull-up 1RM', unit: 'kg' },
   { key: 'gripMax', label: 'Grepp max', unit: 'kg' },
   { key: 'standingLongJump', label: 'Längdhopp', unit: 'cm' },
   { key: 'threeJumpBest', label: '3-steg bäst', unit: 'cm' },
   { key: 'beepScore', label: 'Beep', unit: 'nivå' },
   { key: 'sprint10m', label: '10m is', unit: 's', lowerIsBetter: true },
+  { key: 'sprint20mFly', label: '20m fly', unit: 's', lowerIsBetter: true },
+  { key: 'sprint30mFly', label: '30m fly', unit: 's', lowerIsBetter: true },
   { key: 'agilityBest', label: '5-10-5 bäst', unit: 's', lowerIsBetter: true },
+  { key: 'endurance7x40Best', label: '7x40 bäst', unit: 's', lowerIsBetter: true },
+  { key: 'endurance7x40Drop', label: '7x40 drop', unit: '%', lowerIsBetter: true },
 ]
+
+type HockeyTestForSummary = {
+  clientId: string
+  testDate: Date
+  sprint10m: number | null
+  sprint20mFly: number | null
+  sprint30mFly: number | null
+  agility505Left: number | null
+  agility505Right: number | null
+  endurance7x40: unknown
+  gripStrengthLeft: number | null
+  gripStrengthRight: number | null
+  standingLongJump: number | null
+  threeJumpLeft: number | null
+  threeJumpRight: number | null
+  beepTestLevel: number | null
+  beepTestShuttle: number | null
+  backSquat1RM: number | null
+  powerClean1RM: number | null
+  benchPress1RM: number | null
+  pullUp1RM: number | null
+  muscleLabMaxima: unknown
+}
 
 function numberFromJson(value: unknown, key: string): number | null {
   if (!value || typeof value !== 'object') return null
@@ -88,6 +116,54 @@ function round(value: number | null, decimals = 1): number | null {
 function percentileFromRank(rank: number, coverage: number): number {
   if (coverage <= 1) return 100
   return Math.round(((coverage - rank) / (coverage - 1)) * 100)
+}
+
+function metricValuesForTest(test: HockeyTestForSummary | undefined): HockeyMetricValues {
+  const beepScore = test?.beepTestLevel
+    ? test.beepTestLevel + ((test.beepTestShuttle ?? 0) / 10)
+    : null
+  const endurance = enduranceValues(test?.endurance7x40)
+
+  return {
+    muscleLabWkg: round(numberFromJson(test?.muscleLabMaxima, 'maxAveragePowerPerBodyMass'), 1),
+    backSquat1RM: test?.backSquat1RM ?? null,
+    powerClean1RM: test?.powerClean1RM ?? null,
+    benchPress1RM: test?.benchPress1RM ?? null,
+    pullUp1RM: test?.pullUp1RM ?? null,
+    gripMax: bestOf([test?.gripStrengthLeft, test?.gripStrengthRight]),
+    standingLongJump: test?.standingLongJump ?? null,
+    threeJumpBest: bestOf([test?.threeJumpLeft, test?.threeJumpRight]),
+    beepScore: round(beepScore, 1),
+    sprint10m: test?.sprint10m ?? null,
+    sprint20mFly: test?.sprint20mFly ?? null,
+    sprint30mFly: test?.sprint30mFly ?? null,
+    agilityBest: bestOf([test?.agility505Left, test?.agility505Right], true),
+    endurance7x40Best: endurance.length > 0 ? Math.min(...endurance) : null,
+    endurance7x40Drop: enduranceDropPercent(test?.endurance7x40),
+  }
+}
+
+function improvementDelta(
+  metric: HockeyMetric,
+  latest: number | null,
+  previous: number | null
+): number | null {
+  if (latest == null || previous == null) return null
+  return round(metric.lowerIsBetter ? previous - latest : latest - previous, metric.unit === 's' ? 2 : 1)
+}
+
+function enduranceValues(value: unknown): number[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is number => typeof item === 'number' && Number.isFinite(item))
+}
+
+function enduranceDropPercent(value: unknown): number | null {
+  const values = enduranceValues(value)
+  if (values.length < 2) return null
+  const best = Math.min(...values)
+  const last = values[values.length - 1]
+  if (!Number.isFinite(best) || best <= 0) return null
+  return round(((last - best) / best) * 100, 1)
 }
 
 export async function GET(
@@ -145,8 +221,11 @@ export async function GET(
         clientId: true,
         testDate: true,
         sprint10m: true,
+        sprint20mFly: true,
+        sprint30mFly: true,
         agility505Left: true,
         agility505Right: true,
+        endurance7x40: true,
         gripStrengthLeft: true,
         gripStrengthRight: true,
         standingLongJump: true,
@@ -157,6 +236,7 @@ export async function GET(
         backSquat1RM: true,
         powerClean1RM: true,
         benchPress1RM: true,
+        pullUp1RM: true,
         muscleLabMaxima: true,
       },
     })
@@ -214,21 +294,7 @@ export async function GET(
 
     const hockeyAthletes = team.members.map((member) => {
       const latest = latestHockeyByAthlete.get(member.id)
-      const beepScore = latest?.beepTestLevel
-        ? latest.beepTestLevel + ((latest.beepTestShuttle ?? 0) / 10)
-        : null
-      const metrics: HockeyMetricValues = {
-        muscleLabWkg: round(numberFromJson(latest?.muscleLabMaxima, 'maxAveragePowerPerBodyMass'), 1),
-        backSquat1RM: latest?.backSquat1RM ?? null,
-        powerClean1RM: latest?.powerClean1RM ?? null,
-        benchPress1RM: latest?.benchPress1RM ?? null,
-        gripMax: bestOf([latest?.gripStrengthLeft, latest?.gripStrengthRight]),
-        standingLongJump: latest?.standingLongJump ?? null,
-        threeJumpBest: bestOf([latest?.threeJumpLeft, latest?.threeJumpRight]),
-        beepScore: round(beepScore, 1),
-        sprint10m: latest?.sprint10m ?? null,
-        agilityBest: bestOf([latest?.agility505Left, latest?.agility505Right], true),
-      }
+      const metrics = metricValuesForTest(latest)
 
       return {
         id: member.id,
@@ -272,6 +338,71 @@ export async function GET(
       }
     })
 
+    const hockeyTestsByAthlete = new Map<string, typeof hockeyTests>()
+    for (const test of hockeyTests) {
+      const existing = hockeyTestsByAthlete.get(test.clientId) ?? []
+      existing.push(test)
+      hockeyTestsByAthlete.set(test.clientId, existing)
+    }
+
+    const hockeyHistory = HOCKEY_METRICS.map((metric) => {
+      const byDate = new Map<string, number[]>()
+      for (const test of hockeyTests) {
+        const value = metricValuesForTest(test)[metric.key]
+        if (value == null) continue
+        const dateKey = test.testDate.toISOString().slice(0, 10)
+        const values = byDate.get(dateKey) ?? []
+        values.push(value)
+        byDate.set(dateKey, values)
+      }
+
+      const teamTrend = Array.from(byDate.entries())
+        .map(([date, values]) => ({
+          date,
+          average: round(
+            values.reduce((sum, value) => sum + value, 0) / values.length,
+            metric.unit === 's' ? 2 : 1
+          ),
+          count: values.length,
+        }))
+        .sort((a, b) => (a.date > b.date ? 1 : -1))
+
+      const athletes = team.members.map((member) => {
+        const testsForAthlete = hockeyTestsByAthlete.get(member.id) ?? []
+        const values = testsForAthlete
+          .map((test) => ({
+            date: test.testDate.toISOString().slice(0, 10),
+            value: metricValuesForTest(test)[metric.key],
+          }))
+          .filter((row): row is { date: string; value: number } => row.value != null)
+
+        const latest = values[0] ?? null
+        const previous = values[1] ?? null
+        const delta = improvementDelta(metric, latest?.value ?? null, previous?.value ?? null)
+        const percentChange = delta != null && previous?.value
+          ? round((delta / previous.value) * 100, 1)
+          : null
+
+        return {
+          id: member.id,
+          name: member.name,
+          latestTestDate: latest?.date ?? null,
+          previousTestDate: previous?.date ?? null,
+          latest: latest?.value ?? null,
+          previous: previous?.value ?? null,
+          delta,
+          percentChange,
+          rank: hockeyAthletes.find((athlete) => athlete.id === member.id)?.ranks[metric.key] ?? null,
+        }
+      })
+
+      return {
+        ...metric,
+        teamTrend,
+        athletes,
+      }
+    })
+
     return NextResponse.json({
       success: true,
       data: {
@@ -282,6 +413,7 @@ export async function GET(
           metrics: HOCKEY_METRICS,
           athletes: hockeyAthletes,
           leaders: hockeyLeaders,
+          history: hockeyHistory,
           testCount: hockeyTests.length,
         },
       },

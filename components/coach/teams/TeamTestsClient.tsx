@@ -36,6 +36,7 @@ import {
   Shield,
   Trophy,
   Download,
+  TrendingUp,
 } from 'lucide-react'
 import { TeamTestImportDialog } from './TeamTestImportDialog'
 import { TeamTestManualEntryDialog } from './TeamTestManualEntryDialog'
@@ -67,6 +68,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 
 interface PRRow {
   id: string
@@ -112,10 +122,28 @@ interface HockeyLeader {
   leader: { athleteId: string; athleteName: string; value: number } | null
 }
 
+interface HockeyHistoryAthlete {
+  id: string
+  name: string
+  latestTestDate: string | null
+  previousTestDate: string | null
+  latest: number | null
+  previous: number | null
+  delta: number | null
+  percentChange: number | null
+  rank: { rank: number; percentile: number } | null
+}
+
+interface HockeyHistoryMetric extends HockeyMetric {
+  teamTrend: Array<{ date: string; average: number | null; count: number }>
+  athletes: HockeyHistoryAthlete[]
+}
+
 interface HockeyTeamSummary {
   metrics: HockeyMetric[]
   athletes: HockeyAthleteRow[]
   leaders: HockeyLeader[]
+  history: HockeyHistoryMetric[]
   testCount: number
 }
 
@@ -155,6 +183,7 @@ function getRankVariant(percentile: number): 'default' | 'secondary' | 'outline'
 export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientProps) {
   const [sessions, setSessions] = useState<TestSession[]>([])
   const [hockey, setHockey] = useState<HockeyTeamSummary | null>(null)
+  const [selectedHockeyMetric, setSelectedHockeyMetric] = useState('muscleLabWkg')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
@@ -250,6 +279,12 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   }
 
   const hockeyExportHref = `/api/teams/${teamId}/hockey-tests/export`
+  const selectedHistory = hockey?.history.find((metric) => metric.key === selectedHockeyMetric)
+    ?? hockey?.history.find((metric) => metric.teamTrend.length > 0)
+  const hockeyChangeRows = selectedHistory?.athletes
+    .filter((athlete) => athlete.latest != null)
+    .sort((a, b) => (b.delta ?? -Infinity) - (a.delta ?? -Infinity))
+    .slice(0, 8) ?? []
 
   return (
     <div className="space-y-6">
@@ -336,6 +371,124 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
             ) : (
               <div className="rounded-md border border-dashed py-8 text-center text-sm text-muted-foreground">
                 Inga hockeysessioner registrerade ännu. Logga tester från hockeysidan för att fylla matrisen.
+              </div>
+            )}
+
+            {selectedHistory && (
+              <div className="rounded-md border bg-muted/10 p-3 space-y-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <p className="text-sm font-semibold flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-emerald-500" />
+                      Historik och förändring
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Lagtrend och senaste förändring per spelare för vald hockeymetrik.
+                    </p>
+                  </div>
+                  <Select value={selectedHistory.key} onValueChange={setSelectedHockeyMetric}>
+                    <SelectTrigger className="h-8 w-[220px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {hockey.history.map((metric) => (
+                        <SelectItem key={metric.key} value={metric.key}>
+                          {metric.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedHistory.teamTrend.length > 1 ? (
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={selectedHistory.teamTrend} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fontSize: 10 }}
+                          tickFormatter={(value) => new Date(value).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' })}
+                        />
+                        <YAxis tick={{ fontSize: 10 }} width={42} />
+                        <Tooltip
+                          labelFormatter={(value) => new Date(String(value)).toLocaleDateString('sv-SE')}
+                          formatter={(value, _name, item) => [
+                            formatMetricValue(typeof value === 'number' ? value : null, selectedHistory.unit),
+                            `Lagsnitt (${(item.payload as { count?: number }).count ?? 0} spelare)`,
+                          ]}
+                        />
+                        <Line type="monotone" dataKey="average" name="Lagsnitt" stroke="#0891b2" strokeWidth={2} dot />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-dashed py-6 text-center text-xs text-muted-foreground">
+                    Minst två testdatum behövs för lagtrend.
+                  </div>
+                )}
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="px-2 py-1.5 text-left font-medium">Spelare</th>
+                        <th className="px-2 py-1.5 text-right font-medium">Senast</th>
+                        <th className="px-2 py-1.5 text-right font-medium">Föregående</th>
+                        <th className="px-2 py-1.5 text-right font-medium">Förändring</th>
+                        <th className="px-2 py-1.5 text-right font-medium">Rank</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hockeyChangeRows.map((athlete) => (
+                        <tr key={athlete.id} className="border-b last:border-0">
+                          <td className="px-2 py-1.5 font-medium">
+                            <Link href={`${basePath}/clients/${athlete.id}/profile?tab=hockey`} className="hover:underline">
+                              {athlete.name}
+                            </Link>
+                          </td>
+                          <td className="px-2 py-1.5 text-right font-mono">
+                            {formatMetricValue(athlete.latest, selectedHistory.unit)}
+                            {athlete.latestTestDate && (
+                              <div className="text-[10px] text-muted-foreground">
+                                {new Date(athlete.latestTestDate).toLocaleDateString('sv-SE')}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-2 py-1.5 text-right font-mono">
+                            {formatMetricValue(athlete.previous, selectedHistory.unit)}
+                            {athlete.previousTestDate && (
+                              <div className="text-[10px] text-muted-foreground">
+                                {new Date(athlete.previousTestDate).toLocaleDateString('sv-SE')}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-2 py-1.5 text-right font-mono">
+                            {athlete.delta == null ? (
+                              <span className="text-muted-foreground">–</span>
+                            ) : (
+                              <span className={athlete.delta >= 0 ? 'text-emerald-600' : 'text-red-600'}>
+                                {athlete.delta > 0 ? '+' : ''}{formatMetricValue(athlete.delta, selectedHistory.unit)}
+                                {athlete.percentChange != null && (
+                                  <span className="ml-1 text-[10px]">({athlete.percentChange > 0 ? '+' : ''}{athlete.percentChange}%)</span>
+                                )}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-2 py-1.5 text-right">
+                            {athlete.rank ? (
+                              <Badge variant={getRankVariant(athlete.rank.percentile)} className="h-5 px-1.5 text-[10px]">
+                                #{athlete.rank.rank} · P{athlete.rank.percentile}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">–</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
