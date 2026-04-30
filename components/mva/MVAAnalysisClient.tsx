@@ -3,9 +3,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Download, FileSpreadsheet, GitCompareArrows, Loader2, RefreshCw, Settings2, Trash2 } from 'lucide-react'
+import { Activity, AlertTriangle, Download, FileSpreadsheet, GitCompareArrows, Loader2, RefreshCw, Settings2, Target, Trash2, Users } from 'lucide-react'
 import { ScorePlot } from './ScorePlot'
 import { LoadingPlot } from './LoadingPlot'
 import { ScreePlot } from './ScreePlot'
@@ -213,6 +214,160 @@ function formatSigned(value: number | null, digits = 2): string {
   if (value === null) return 'n/a'
   const sign = value > 0 ? '+' : ''
   return `${sign}${value.toFixed(digits)}`
+}
+
+type ArchetypeId = 'explosive' | 'strength' | 'aerobic' | 'recovery' | 'balanced'
+
+interface MVAProfileInsight {
+  athlete: AthleteScore
+  archetype: ArchetypeId
+  label: string
+  description: string
+  magnitude: number
+  watch: boolean
+  topDrivers: string[]
+}
+
+const ARCHETYPE_LABELS: Record<ArchetypeId, string> = {
+  explosive: 'Explosiv powerprofil',
+  strength: 'Styrkedominant profil',
+  aerobic: 'Aerob/uthållig profil',
+  recovery: 'Belastnings- och återhämtningsprofil',
+  balanced: 'Balanserad profil',
+}
+
+const ARCHETYPE_DESCRIPTIONS: Record<ArchetypeId, string> = {
+  explosive: 'Drivs främst av sprint, hopp, agility eller MuscleLab-power.',
+  strength: 'Drivs främst av 1RM, greppstyrka eller annan maximal styrka.',
+  aerobic: 'Drivs främst av VO2, beep, upprepade sprintar eller uthållighetsmått.',
+  recovery: 'Drivs främst av readiness, sömn, HRV eller belastningsvariabler.',
+  balanced: 'Ingen enskild fysisk domän dominerar profilen.',
+}
+
+function contributorArchetype(contributor: { variableId: string; variableName: string }): ArchetypeId | null {
+  const text = `${contributor.variableId} ${contributor.variableName}`.toLowerCase()
+  if (/(musclelab|power|jump|sprint|agility|velocity|vbt|explosive)/.test(text)) return 'explosive'
+  if (/(squat|clean|bench|pull|grip|strength|1rm|force)/.test(text)) return 'strength'
+  if (/(vo2|beep|endurance|aerobic|7x40|repeat|fatigue|lactate)/.test(text)) return 'aerobic'
+  if (/(sleep|hrv|readiness|recovery|strain|load|fatigue|soreness|oura|garmin)/.test(text)) return 'recovery'
+  return null
+}
+
+function fallbackArchetype(scores: number[]): ArchetypeId {
+  const pc1 = scores[0] ?? 0
+  const pc2 = scores[1] ?? 0
+  if (Math.abs(pc1) < 0.35 && Math.abs(pc2) < 0.35) return 'balanced'
+  if (pc1 >= 0 && pc2 >= 0) return 'explosive'
+  if (pc1 >= 0 && pc2 < 0) return 'strength'
+  if (pc1 < 0 && pc2 >= 0) return 'aerobic'
+  return 'recovery'
+}
+
+function buildProfileInsights(athleteScores: AthleteScore[]): MVAProfileInsight[] {
+  return athleteScores
+    .map((athlete) => {
+      const topContributors = athlete.topContributors?.slice(0, 5) ?? []
+      const counts = new Map<ArchetypeId, number>()
+      for (const contributor of topContributors) {
+        const archetype = contributorArchetype(contributor)
+        if (archetype) counts.set(archetype, (counts.get(archetype) ?? 0) + Math.abs(contributor.contribution))
+      }
+
+      const archetype = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? fallbackArchetype(athlete.scores)
+      const magnitude = Math.sqrt(Math.pow(athlete.scores[0] ?? 0, 2) + Math.pow(athlete.scores[1] ?? 0, 2))
+
+      return {
+        athlete,
+        archetype,
+        label: ARCHETYPE_LABELS[archetype],
+        description: ARCHETYPE_DESCRIPTIONS[archetype],
+        magnitude,
+        watch: athlete.isOutlierT2 || athlete.isOutlierDModX,
+        topDrivers: topContributors.slice(0, 3).map((contributor) => contributor.variableName),
+      }
+    })
+    .sort((a, b) => b.magnitude - a.magnitude)
+}
+
+function MVAProfileInsights({ athleteScores }: { athleteScores: AthleteScore[] }) {
+  const insights = buildProfileInsights(athleteScores)
+  const archetypeCounts = insights.reduce<Record<ArchetypeId, number>>((acc, insight) => {
+    acc[insight.archetype] = (acc[insight.archetype] ?? 0) + 1
+    return acc
+  }, { explosive: 0, strength: 0, aerobic: 0, recovery: 0, balanced: 0 })
+  const watchList = insights.filter((insight) => insight.watch)
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-4">
+        <div className="rounded-lg border p-3 dark:border-white/10">
+          <div className="flex items-center gap-2 text-sm font-medium dark:text-white">
+            <Users className="h-4 w-4 text-cyan-500" />
+            Profiler
+          </div>
+          <p className="mt-1 text-2xl font-semibold dark:text-white">{insights.length}</p>
+          <p className="text-xs text-muted-foreground">spelare i PCA-kartan</p>
+        </div>
+        <div className="rounded-lg border p-3 dark:border-white/10">
+          <div className="flex items-center gap-2 text-sm font-medium dark:text-white">
+            <Activity className="h-4 w-4 text-emerald-500" />
+            Vanligaste typ
+          </div>
+          <p className="mt-1 text-sm font-semibold dark:text-white">
+            {ARCHETYPE_LABELS[[...Object.entries(archetypeCounts)].sort((a, b) => b[1] - a[1])[0]?.[0] as ArchetypeId] ?? 'Balanserad profil'}
+          </p>
+          <p className="text-xs text-muted-foreground">baserat på drivande variabler</p>
+        </div>
+        <div className="rounded-lg border p-3 dark:border-white/10">
+          <div className="flex items-center gap-2 text-sm font-medium dark:text-white">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            Följ upp
+          </div>
+          <p className="mt-1 text-2xl font-semibold dark:text-white">{watchList.length}</p>
+          <p className="text-xs text-muted-foreground">T² eller DModX outliers</p>
+        </div>
+        <div className="rounded-lg border p-3 dark:border-white/10">
+          <div className="flex items-center gap-2 text-sm font-medium dark:text-white">
+            <Target className="h-4 w-4 text-violet-500" />
+            Segment
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {(Object.keys(archetypeCounts) as ArchetypeId[]).filter((key) => archetypeCounts[key] > 0).map((key) => (
+              <Badge key={key} variant="outline" className="text-[10px]">
+                {ARCHETYPE_LABELS[key]} {archetypeCounts[key]}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        {insights.slice(0, 8).map((insight) => (
+          <div key={insight.athlete.clientId} className="rounded-lg border p-3 dark:border-white/10">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-medium dark:text-white">{insight.athlete.clientName}</p>
+                <p className="text-xs text-muted-foreground">{insight.description}</p>
+              </div>
+              <div className="flex shrink-0 gap-1">
+                <Badge variant="secondary" className="text-[10px]">{insight.label}</Badge>
+                {insight.watch && <Badge variant="destructive" className="text-[10px]">Outlier</Badge>}
+              </div>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {insight.topDrivers.length > 0 ? insight.topDrivers.map((driver) => (
+                <Badge key={driver} variant="outline" className="text-[10px]">
+                  {driver}
+                </Badge>
+              )) : (
+                <span className="text-xs text-muted-foreground">Drivande variabler visas efter ny PCA-beräkning.</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initialPLSModel }: MVAAnalysisClientProps) {
@@ -848,6 +1003,11 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
             </TabsList>
 
             <TabsContent value="scores" className="space-y-6">
+              <Card className="dark:bg-slate-900/50 dark:border-white/10">
+                <CardContent className="pt-6">
+                  <MVAProfileInsights athleteScores={displayData.athleteScores} />
+                </CardContent>
+              </Card>
               <Card className="dark:bg-slate-900/50 dark:border-white/10">
                 <CardContent className="pt-6">
                   <ScorePlot
