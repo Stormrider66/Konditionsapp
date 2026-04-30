@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -10,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Timer, Zap, ArrowUpDown, ChevronDown, ChevronUp, Dumbbell, Activity } from 'lucide-react'
+import { Timer, Zap, ArrowUpDown, ChevronDown, ChevronUp, Dumbbell, Activity, Download, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import {
@@ -220,6 +221,7 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
   const [loading, setLoading] = useState(true)
   const [teamFilter, setTeamFilter] = useState('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [exportingId, setExportingId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchTests = async () => {
@@ -240,6 +242,19 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
     }
     void fetchTests()
   }, [teamFilter])
+
+  const handleExportPDF = async (test: HockeyTest) => {
+    setExportingId(test.id)
+    try {
+      const { downloadHockeyTestReportPDF } = await import('@/lib/exports/hockey-test-report-export')
+      downloadHockeyTestReportPDF(test)
+      toast.success('PDF exporterad')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Kunde inte exportera PDF')
+    } finally {
+      setExportingId(null)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -281,6 +296,25 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                     {test.sprint5m && <Badge variant="outline" className="text-[10px]">{test.sprint5m.toFixed(2)}s 5m</Badge>}
                     {test.sprint10m && <Badge variant="outline" className="text-[10px]">{test.sprint10m.toFixed(2)}s 10m</Badge>}
                     {test.agility505Left && <Badge variant="outline" className="text-[10px]">{test.agility505Left.toFixed(2)}s agility</Badge>}
+                    {isExpanded && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1.5 px-2 text-xs"
+                        disabled={exportingId === test.id}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          void handleExportPDF(test)
+                        }}
+                      >
+                        {exportingId === test.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5" />
+                        )}
+                        PDF
+                      </Button>
+                    )}
                     {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </div>
                 </div>
