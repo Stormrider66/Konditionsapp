@@ -38,6 +38,24 @@ function getLatestTest(data: AthleteProfileData) {
   return tests.length > 0 ? tests[0] : null // already sorted desc by testDate
 }
 
+function getLatestHockeyTest(bundle: AthleteDataBundle) {
+  return bundle.hockeyTests && bundle.hockeyTests.length > 0 ? bundle.hockeyTests[0] : null
+}
+
+function getHockeyMaximaValue(bundle: AthleteDataBundle, key: string): number | null {
+  const latest = getLatestHockeyTest(bundle)
+  const maxima = latest?.muscleLabMaxima
+  if (!maxima || typeof maxima !== 'object') return null
+  const value = (maxima as Record<string, unknown>)[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function bestHockeySide(left: number | null | undefined, right: number | null | undefined, lowerIsBetter = false): number | null {
+  const values = [left, right].filter((value): value is number => value != null && Number.isFinite(value))
+  if (values.length === 0) return null
+  return lowerIsBetter ? Math.min(...values) : Math.max(...values)
+}
+
 /**
  * Helper: mean of recent daily metrics (last 30 days worth of data available)
  */
@@ -1003,6 +1021,84 @@ export const MVA_VARIABLE_REGISTRY: MVAVariable[] = [
     },
     sportRelevance: ['TEAM_FOOTBALL', 'TEAM_BASKETBALL', 'TEAM_VOLLEYBALL'],
   },
+  {
+    id: 'hockey_musclelab_power_wkg',
+    name: 'Hockey MuscleLab Power',
+    nameSv: 'Hockey MuscleLab effekt',
+    category: 'STRENGTH',
+    unit: 'W/kg',
+    extractor: (bundle) => getHockeyMaximaValue(bundle, 'maxAveragePowerPerBodyMass'),
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'hockey_musclelab_max_force',
+    name: 'Hockey MuscleLab Force',
+    nameSv: 'Hockey MuscleLab kraft',
+    category: 'STRENGTH',
+    unit: 'N',
+    extractor: (bundle) => getHockeyMaximaValue(bundle, 'maxAverageForceN'),
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'hockey_back_squat_1rm',
+    name: 'Back Squat 1RM',
+    nameSv: 'Knäböj 1RM',
+    category: 'STRENGTH',
+    unit: 'kg',
+    extractor: (bundle) => getLatestHockeyTest(bundle)?.backSquat1RM ?? null,
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'hockey_power_clean_1rm',
+    name: 'Power Clean 1RM',
+    nameSv: 'Power clean 1RM',
+    category: 'STRENGTH',
+    unit: 'kg',
+    extractor: (bundle) => getLatestHockeyTest(bundle)?.powerClean1RM ?? null,
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'hockey_bench_press_1rm',
+    name: 'Bench Press 1RM',
+    nameSv: 'Bänkpress 1RM',
+    category: 'STRENGTH',
+    unit: 'kg',
+    extractor: (bundle) => getLatestHockeyTest(bundle)?.benchPress1RM ?? null,
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'hockey_grip_strength_max',
+    name: 'Max Grip Strength',
+    nameSv: 'Max greppstyrka',
+    category: 'STRENGTH',
+    unit: 'kg',
+    extractor: (bundle) => {
+      const latest = getLatestHockeyTest(bundle)
+      return latest ? bestHockeySide(latest.gripStrengthLeft, latest.gripStrengthRight) : null
+    },
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'hockey_ice_sprint_10m',
+    name: 'Ice Sprint 10m',
+    nameSv: 'Issprint 10m',
+    category: 'PERFORMANCE',
+    unit: 's',
+    extractor: (bundle) => getLatestHockeyTest(bundle)?.sprint10m ?? null,
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'hockey_ice_agility_5_10_5',
+    name: 'Ice Agility 5-10-5',
+    nameSv: 'Isagility 5-10-5',
+    category: 'PERFORMANCE',
+    unit: 's',
+    extractor: (bundle) => {
+      const latest = getLatestHockeyTest(bundle)
+      return latest ? bestHockeySide(latest.agility505Left, latest.agility505Right, true) : null
+    },
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
 
   // ==================== ENDURANCE FIELD TESTS (new) ====================
   {
@@ -1026,6 +1122,19 @@ export const MVA_VARIABLE_REGISTRY: MVAVariable[] = [
       return getBestSportTest(bundle, 'ENDURANCE_FIELD', ['BEEP_TEST'], (t) => t.level ?? t.primaryResult)
     },
     sportRelevance: ['TEAM_FOOTBALL', 'TEAM_HANDBALL', 'TEAM_BASKETBALL'],
+  },
+  {
+    id: 'hockey_beep_test_level',
+    name: 'Hockey Beep Test Level',
+    nameSv: 'Hockey beep-test nivå',
+    category: 'PERFORMANCE',
+    unit: 'level',
+    extractor: (bundle) => {
+      const latest = getLatestHockeyTest(bundle)
+      if (!latest?.beepTestLevel) return null
+      return latest.beepTestLevel + ((latest.beepTestShuttle ?? 0) / 10)
+    },
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
   },
 
   // ==================== ERGOMETER (new) ====================

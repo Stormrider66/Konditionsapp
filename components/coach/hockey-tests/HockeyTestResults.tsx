@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -11,9 +10,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Timer, Zap, ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react'
+import { Timer, Zap, ArrowUpDown, ChevronDown, ChevronUp, Dumbbell, Activity } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 
 interface Team {
   id: string
@@ -40,6 +48,26 @@ interface HockeyTest {
   standingLongJump: number | null
   threeJumpLeft: number | null
   threeJumpRight: number | null
+  beepTestLevel: number | null
+  beepTestShuttle: number | null
+  backSquat1RM: number | null
+  powerClean1RM: number | null
+  benchPress1RM: number | null
+  pullUp1RM: number | null
+  muscleLabJumps: Array<{
+    externalLoadKg: number | null
+    averagePowerW: number | null
+    averageVelocityMs: number | null
+    averageForceN: number | null
+    displacementCm: number | null
+  }> | null
+  muscleLabMaxima: {
+    maxAveragePowerW?: number | null
+    maxAveragePowerPerBodyMass?: number | null
+    powerPlateauLoadsKg?: number[]
+    displacementDropPercent?: number | null
+    flags?: string[]
+  } | null
 }
 
 interface HockeyTestResultsProps {
@@ -61,6 +89,61 @@ function TestValue({ label, value, unit, highlight }: { label: string; value: nu
   )
 }
 
+function MuscleLabChart({ test }: { test: HockeyTest }) {
+  const rows = test.muscleLabJumps || []
+  if (rows.length === 0) return null
+  const chartData = rows
+    .filter((row) => row.externalLoadKg != null)
+    .map((row) => ({
+      load: row.externalLoadKg,
+      AP: row.averagePowerW,
+      AV: row.averageVelocityMs,
+    }))
+
+  return (
+    <div className="space-y-2 rounded-md border bg-muted/20 p-3">
+      <div className="flex flex-wrap gap-1.5">
+        {test.muscleLabMaxima?.maxAveragePowerW ? (
+          <Badge variant="secondary" className="text-[10px]">
+            AP {test.muscleLabMaxima.maxAveragePowerW} W
+          </Badge>
+        ) : null}
+        {test.muscleLabMaxima?.maxAveragePowerPerBodyMass ? (
+          <Badge variant="secondary" className="text-[10px]">
+            {test.muscleLabMaxima.maxAveragePowerPerBodyMass} W/kg
+          </Badge>
+        ) : null}
+        {test.muscleLabMaxima?.powerPlateauLoadsKg?.length ? (
+          <Badge variant="outline" className="text-[10px]">
+            Platå +{test.muscleLabMaxima.powerPlateauLoadsKg.join('/+')} kg
+          </Badge>
+        ) : null}
+        {test.muscleLabMaxima?.displacementDropPercent ? (
+          <Badge variant="outline" className="text-[10px]">
+            ROM -{test.muscleLabMaxima.displacementDropPercent}%
+          </Badge>
+        ) : null}
+      </div>
+      <div className="h-44">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData} margin={{ top: 6, right: 12, left: 0, bottom: 6 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <XAxis dataKey="load" tick={{ fontSize: 10 }} unit="kg" />
+            <YAxis yAxisId="left" tick={{ fontSize: 10 }} width={38} />
+            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={32} />
+            <Tooltip />
+            <Line yAxisId="left" type="monotone" dataKey="AP" name="AP W" stroke="#2563eb" strokeWidth={2} dot />
+            <Line yAxisId="right" type="monotone" dataKey="AV" name="AV m/s" stroke="#16a34a" strokeWidth={2} dot />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      {test.muscleLabMaxima?.flags?.map((flag) => (
+        <p key={flag} className="text-[10px] text-amber-700 dark:text-amber-300">{flag}</p>
+      ))}
+    </div>
+  )
+}
+
 export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
   const [tests, setTests] = useState<HockeyTest[]>([])
   const [loading, setLoading] = useState(true)
@@ -71,6 +154,7 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
     const fetchTests = async () => {
       const params = new URLSearchParams()
       if (teamFilter !== 'all') params.set('teamId', teamFilter)
+      setLoading(true)
       try {
         const res = await fetch(`/api/coach/hockey-tests?${params}`)
         if (res.ok) {
@@ -83,8 +167,7 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
         setLoading(false)
       }
     }
-    setLoading(true)
-    fetchTests()
+    void fetchTests()
   }, [teamFilter])
 
   return (
@@ -121,6 +204,9 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    {test.muscleLabMaxima?.maxAveragePowerPerBodyMass && (
+                      <Badge variant="outline" className="text-[10px]">{test.muscleLabMaxima.maxAveragePowerPerBodyMass} W/kg</Badge>
+                    )}
                     {test.sprint10m && <Badge variant="outline" className="text-[10px]">{test.sprint10m.toFixed(2)}s 10m</Badge>}
                     {test.agility505Left && <Badge variant="outline" className="text-[10px]">{test.agility505Left.toFixed(2)}s agility</Badge>}
                     {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -156,16 +242,17 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                     )}
 
                     {/* Power tests */}
-                    {(test.jumpSquatLadder || test.gripStrengthLeft) && (
+                    {(test.jumpSquatLadder || test.gripStrengthLeft || test.muscleLabJumps) && (
                       <div>
                         <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Zap className="h-3 w-3" /> Krafttester</p>
+                        <MuscleLabChart test={test} />
                         {test.jumpSquatLadder && (
                           <div className="mb-2">
-                            <p className="text-[10px] text-muted-foreground mb-1">Knäböjshopp:</p>
+                            <p className="text-[10px] text-muted-foreground mb-1">Loaded squat jump / power squat:</p>
                             <div className="flex gap-1.5 flex-wrap">
                               {Object.entries(test.jumpSquatLadder).map(([kg, w]) => (
                                 <span key={kg} className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
-                                  {kg}kg: {w}W
+                                  +{kg}kg: {w}W
                                 </span>
                               ))}
                             </div>
@@ -178,6 +265,19 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                       </div>
                     )}
 
+                    {/* Strength tests */}
+                    {(test.backSquat1RM || test.powerClean1RM || test.benchPress1RM || test.pullUp1RM) && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Dumbbell className="h-3 w-3" /> Maxstyrka</p>
+                        <div className="grid grid-cols-4 gap-2">
+                          <TestValue label="Knäböj" value={test.backSquat1RM} unit="kg" />
+                          <TestValue label="Power clean" value={test.powerClean1RM} unit="kg" />
+                          <TestValue label="Bänkpress" value={test.benchPress1RM} unit="kg" />
+                          <TestValue label="Pull-up 1RM" value={test.pullUp1RM} unit="kg" />
+                        </div>
+                      </div>
+                    )}
+
                     {/* Jump tests */}
                     {(test.standingLongJump || test.threeJumpLeft) && (
                       <div>
@@ -186,6 +286,17 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                           <TestValue label="Längdhopp" value={test.standingLongJump} unit="cm" />
                           <TestValue label="3-hopp V" value={test.threeJumpLeft} unit="cm" />
                           <TestValue label="3-hopp H" value={test.threeJumpRight} unit="cm" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Endurance tests */}
+                    {(test.beepTestLevel || endurance) && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Activity className="h-3 w-3" /> Uthållighet</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <TestValue label="Beep nivå" value={test.beepTestLevel} unit="" />
+                          <TestValue label="Beep shuttle" value={test.beepTestShuttle} unit="" />
                         </div>
                       </div>
                     )}

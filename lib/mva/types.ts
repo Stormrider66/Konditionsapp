@@ -121,6 +121,30 @@ export interface MovementScreenSummary {
   improvement: string | null  // IMPROVED, STABLE, DECLINED
 }
 
+export interface HockeyPhysicalTestSummary {
+  id: string
+  testDate: Date
+  agility505Left: number | null
+  agility505Right: number | null
+  sprint10m: number | null
+  sprint20mFly: number | null
+  sprint30mFly: number | null
+  endurance7x40: unknown | null
+  jumpSquatLadder: unknown | null
+  gripStrengthLeft: number | null
+  gripStrengthRight: number | null
+  standingLongJump: number | null
+  threeJumpLeft: number | null
+  threeJumpRight: number | null
+  beepTestLevel: number | null
+  beepTestShuttle: number | null
+  backSquat1RM: number | null
+  powerClean1RM: number | null
+  benchPress1RM: number | null
+  pullUp1RM: number | null
+  muscleLabMaxima: unknown | null
+}
+
 export interface AthleteDataBundle {
   clientId: string
   clientName: string
@@ -135,6 +159,7 @@ export interface AthleteDataBundle {
   ergometerTests?: ErgometerTestSummary[]
   timingGateResults?: TimingGateResultSummary[]
   movementScreens?: MovementScreenSummary[]
+  hockeyTests?: HockeyPhysicalTestSummary[]
 }
 
 export interface PreprocessingConfig {

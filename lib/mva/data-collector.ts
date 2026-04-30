@@ -45,6 +45,7 @@ export async function collectTeamData(teamId: string): Promise<AthleteDataBundle
         ergometerTests,
         timingGateResults,
         movementScreens,
+        hockeyTests,
       ] = await Promise.all([
           fetchAthleteProfileData(member.id),
           prisma.stravaActivity.findMany({
@@ -175,6 +176,34 @@ export async function collectTeamData(teamId: string): Promise<AthleteDataBundle
             orderBy: { screenDate: 'desc' },
             take: 5,
           }),
+          prisma.hockeyPhysicalTest.findMany({
+            where: { clientId: member.id, testDate: { gte: ninetyDaysAgo } },
+            select: {
+              id: true,
+              testDate: true,
+              agility505Left: true,
+              agility505Right: true,
+              sprint10m: true,
+              sprint20mFly: true,
+              sprint30mFly: true,
+              endurance7x40: true,
+              jumpSquatLadder: true,
+              gripStrengthLeft: true,
+              gripStrengthRight: true,
+              standingLongJump: true,
+              threeJumpLeft: true,
+              threeJumpRight: true,
+              beepTestLevel: true,
+              beepTestShuttle: true,
+              backSquat1RM: true,
+              powerClean1RM: true,
+              benchPress1RM: true,
+              pullUp1RM: true,
+              muscleLabMaxima: true,
+            },
+            orderBy: { testDate: 'desc' },
+            take: 10,
+          }),
         ])
 
       return {
@@ -193,6 +222,7 @@ export async function collectTeamData(teamId: string): Promise<AthleteDataBundle
           sessionDate: r.session.sessionDate,
         })),
         movementScreens,
+        hockeyTests,
       } satisfies AthleteDataBundle
     })
   )

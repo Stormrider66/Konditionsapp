@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,9 +14,18 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { ChevronDown, Timer, Zap, Dumbbell, ArrowUpDown, Save, Camera, Upload, Loader2 } from 'lucide-react'
+import { ChevronDown, Timer, Zap, Dumbbell, ArrowUpDown, Save, Camera, Upload, Loader2, Activity } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 
 interface Client {
   id: string
@@ -33,6 +42,39 @@ interface HockeyTestFormProps {
   clients: Client[]
   teams: Team[]
   onSaved?: () => void
+}
+
+interface MuscleLabRow {
+  externalLoadKg: number | null
+  bodyWeightKg: number | null
+  averagePowerW: number | null
+  averageForceN: number | null
+  displacementCm: number | null
+  averageVelocityMs: number | null
+  peakVelocityMs: number | null
+}
+
+interface MuscleLabMaxima {
+  protocolLabel?: string
+  maxAveragePowerW?: number | null
+  maxAveragePowerPerBodyMass?: number | null
+  bestPowerLoadKg?: number | null
+  maxAverageForceN?: number | null
+  maxAverageVelocityMs?: number | null
+  powerPlateauLoadsKg?: number[]
+  displacementDropPercent?: number | null
+  loadVelocitySlope?: number | null
+  loadVelocityIntercept?: number | null
+  loadVelocityR2?: number | null
+  flags?: string[]
+}
+
+interface MuscleLabImport {
+  athleteName?: string | null
+  testDate?: string | null
+  rows?: MuscleLabRow[]
+  maxima?: MuscleLabMaxima
+  jumpSquatLadder?: Record<string, number>
 }
 
 function NumberInput({ label, value, onChange, unit, placeholder }: {
@@ -53,6 +95,71 @@ function NumberInput({ label, value, onChange, unit, placeholder }: {
         />
         {unit && <span className="text-xs text-muted-foreground shrink-0 w-6">{unit}</span>}
       </div>
+    </div>
+  )
+}
+
+function MetricChip({ label, value, unit }: { label: string; value: string | number | null | undefined; unit?: string }) {
+  if (value == null || value === '') return null
+  return (
+    <div className="rounded-md border bg-background px-2.5 py-2">
+      <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
+      <p className="font-mono text-sm font-semibold">
+        {value}
+        {unit ? <span className="ml-1 text-[10px] font-normal text-muted-foreground">{unit}</span> : null}
+      </p>
+    </div>
+  )
+}
+
+function MuscleLabPreview({ rows, maxima }: { rows: MuscleLabRow[]; maxima: MuscleLabMaxima | null }) {
+  if (rows.length === 0) return null
+
+  const chartData = rows
+    .filter((row) => row.externalLoadKg != null)
+    .map((row) => ({
+      load: row.externalLoadKg,
+      AP: row.averagePowerW,
+      AV: row.averageVelocityMs,
+      AF: row.averageForceN,
+      D: row.displacementCm,
+    }))
+
+  return (
+    <div className="space-y-3 rounded-md border bg-muted/20 p-3">
+      <div className="flex flex-wrap gap-2">
+        <MetricChip label="Max AP" value={maxima?.maxAveragePowerW} unit="W" />
+        <MetricChip label="AP / kroppsvikt" value={maxima?.maxAveragePowerPerBodyMass} unit="W/kg" />
+        <MetricChip
+          label="Power-platå"
+          value={maxima?.powerPlateauLoadsKg?.length ? maxima.powerPlateauLoadsKg.map((load) => `+${load}`).join(', ') : null}
+          unit="kg"
+        />
+        <MetricChip label="Max AF" value={maxima?.maxAverageForceN} unit="N" />
+        <MetricChip label="ROM drop" value={maxima?.displacementDropPercent} unit="%" />
+      </div>
+
+      <div className="h-56">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <XAxis dataKey="load" tick={{ fontSize: 11 }} unit="kg" />
+            <YAxis yAxisId="left" tick={{ fontSize: 11 }} width={42} />
+            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} width={36} />
+            <Tooltip />
+            <Line yAxisId="left" type="monotone" dataKey="AP" name="AP W" stroke="#2563eb" strokeWidth={2} dot />
+            <Line yAxisId="right" type="monotone" dataKey="AV" name="AV m/s" stroke="#16a34a" strokeWidth={2} dot />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {maxima?.flags?.length ? (
+        <div className="space-y-1">
+          {maxima.flags.map((flag) => (
+            <p key={flag} className="text-xs text-amber-700 dark:text-amber-300">{flag}</p>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -160,6 +267,8 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
   const [iceOpen, setIceOpen] = useState(true)
   const [powerOpen, setPowerOpen] = useState(false)
   const [jumpOpen, setJumpOpen] = useState(false)
+  const [strengthOpen, setStrengthOpen] = useState(false)
+  const [enduranceOpen, setEnduranceOpen] = useState(false)
 
   // On-ice values
   const [agility505Left, setAgility505Left] = useState('')
@@ -175,11 +284,21 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
   const [singleLegRight, setSingleLegRight] = useState<Record<string, string>>({ '30': '', '35': '', '40': '', '45': '', '50': '', '55': '' })
   const [gripLeft, setGripLeft] = useState('')
   const [gripRight, setGripRight] = useState('')
+  const [muscleLabRows, setMuscleLabRows] = useState<MuscleLabRow[]>([])
+  const [muscleLabMaxima, setMuscleLabMaxima] = useState<MuscleLabMaxima | null>(null)
 
   // Jump values
   const [standingLong, setStandingLong] = useState('')
   const [threeJumpLeft, setThreeJumpLeft] = useState('')
   const [threeJumpRight, setThreeJumpRight] = useState('')
+
+  // Strength / endurance values
+  const [backSquat1RM, setBackSquat1RM] = useState('')
+  const [powerClean1RM, setPowerClean1RM] = useState('')
+  const [benchPress1RM, setBenchPress1RM] = useState('')
+  const [pullUp1RM, setPullUp1RM] = useState('')
+  const [beepLevel, setBeepLevel] = useState('')
+  const [beepShuttle, setBeepShuttle] = useState('')
 
   const selectedClient = clients.find((c) => c.id === clientId)
 
@@ -217,6 +336,20 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
     if (data.standingLongJump) { setStandingLong(String(data.standingLongJump)); setJumpOpen(true) }
     if (data.threeJumpLeft) { setThreeJumpLeft(String(data.threeJumpLeft)); setJumpOpen(true) }
     if (data.threeJumpRight) { setThreeJumpRight(String(data.threeJumpRight)); setJumpOpen(true) }
+    if (data.backSquat1RM) { setBackSquat1RM(String(data.backSquat1RM)); setStrengthOpen(true) }
+    if (data.powerClean1RM) { setPowerClean1RM(String(data.powerClean1RM)); setStrengthOpen(true) }
+    if (data.benchPress1RM) { setBenchPress1RM(String(data.benchPress1RM)); setStrengthOpen(true) }
+    if (data.pullUp1RM) { setPullUp1RM(String(data.pullUp1RM)); setStrengthOpen(true) }
+    if (data.beepTestLevel) { setBeepLevel(String(data.beepTestLevel)); setEnduranceOpen(true) }
+    if (data.beepTestShuttle) { setBeepShuttle(String(data.beepTestShuttle)); setEnduranceOpen(true) }
+    if (Array.isArray(data.muscleLabJumps)) {
+      setMuscleLabRows(data.muscleLabJumps as MuscleLabRow[])
+      setPowerOpen(true)
+    }
+    if (data.muscleLabMaxima && typeof data.muscleLabMaxima === 'object') {
+      setMuscleLabMaxima(data.muscleLabMaxima as MuscleLabMaxima)
+      setPowerOpen(true)
+    }
     if (data.testDate) setTestDate(String(data.testDate))
     // Auto-select athlete by name if found
     if (data.athleteName) {
@@ -248,16 +381,35 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
     }
   }
 
-  // CSV import handler (Muscle Lab)
-  const handleCSVImport = async (file: File) => {
+  // File import handler (Muscle Lab)
+  const handleMuscleLabImport = async (file: File) => {
     setScanning(true)
     try {
-      const text = await file.text()
-      const data = parseMusclLabCSV(text)
+      let data: Record<string, unknown>
+      if (file.name.toLowerCase().endsWith('.xlsx')) {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch('/api/coach/hockey-tests/musclelab', { method: 'POST', body: formData })
+        if (!res.ok) {
+          const err = await res.json()
+          throw new Error(err.error || 'MuscleLab-import misslyckades')
+        }
+        const parsed = await res.json() as MuscleLabImport
+        data = {
+          athleteName: parsed.athleteName,
+          testDate: parsed.testDate,
+          jumpSquatLadder: parsed.jumpSquatLadder,
+          muscleLabJumps: parsed.rows,
+          muscleLabMaxima: parsed.maxima,
+        }
+      } else {
+        const text = await file.text()
+        data = parseMusclLabCSV(text)
+      }
       applyData(data)
       toast.success('Muscle Lab-data importerad')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Kunde inte läsa CSV-filen')
+      toast.error(err instanceof Error ? err.message : 'Kunde inte läsa MuscleLab-filen')
     } finally {
       setScanning(false)
     }
@@ -304,6 +456,15 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
           standingLongJump: toNum(standingLong),
           threeJumpLeft: toNum(threeJumpLeft),
           threeJumpRight: toNum(threeJumpRight),
+          beepTestLevel: toNum(beepLevel),
+          beepTestShuttle: beepShuttle ? parseInt(beepShuttle, 10) : undefined,
+          backSquat1RM: toNum(backSquat1RM),
+          powerClean1RM: toNum(powerClean1RM),
+          benchPress1RM: toNum(benchPress1RM),
+          pullUp1RM: toNum(pullUp1RM),
+          muscleLabJumps: muscleLabRows.length > 0 ? muscleLabRows : undefined,
+          muscleLabMaxima: muscleLabMaxima || undefined,
+          sourceType: muscleLabRows.length > 0 ? 'MUSCLE_LAB_IMPORT' : 'MANUAL',
         }),
       })
 
@@ -328,9 +489,9 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-2">
             <input ref={scanInputRef} type="file" accept="image/*" capture="environment" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleScan(f); e.target.value = '' }} />
-            <input ref={csvInputRef} type="file" accept=".csv,.txt,.tsv" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCSVImport(f); e.target.value = '' }} />
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleScan(f); e.target.value = '' }} />
+            <input ref={csvInputRef} type="file" accept=".xlsx,.csv,.txt,.tsv" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleMuscleLabImport(f); e.target.value = '' }} />
             <Button variant="outline" className="flex-1" onClick={() => scanInputRef.current?.click()} disabled={scanning}>
               {scanning ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
               Skanna testprotokoll
@@ -341,7 +502,7 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
             </Button>
           </div>
           <p className="text-[10px] text-muted-foreground mt-2">
-            Fotografera ett testprotokoll eller importera CSV-export från Muscle Lab
+            Fotografera ett testprotokoll eller importera .xlsx/CSV-export från Muscle Lab
           </p>
         </CardContent>
       </Card>
@@ -436,12 +597,13 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0 space-y-4">
+              <MuscleLabPreview rows={muscleLabRows} maxima={muscleLabMaxima} />
               <div>
-                <Label className="text-xs mb-2 block">Knäböjshopp stege (Watt)</Label>
+                <Label className="text-xs mb-2 block">Loaded squat jump / power squat profil (AP Watt)</Label>
                 <div className="grid grid-cols-5 gap-2">
                   {Object.keys(jumpSquat).map((load) => (
                     <div key={load} className="space-y-0.5">
-                      <span className="text-[9px] text-muted-foreground text-center block">{load} kg</span>
+                      <span className="text-[9px] text-muted-foreground text-center block">+{load} kg</span>
                       <Input
                         type="number"
                         value={jumpSquat[load]}
@@ -488,9 +650,31 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <NumberInput label="Greppstyrka Vänster" value={gripLeft} onChange={setGripLeft} unit="kg" placeholder="55" />
-                <NumberInput label="Greppstyrka Höger" value={gripRight} onChange={setGripRight} unit="kg" placeholder="58" />
+                <NumberInput label="Max greppstyrka Vänster" value={gripLeft} onChange={setGripLeft} unit="kg" placeholder="55" />
+                <NumberInput label="Max greppstyrka Höger" value={gripRight} onChange={setGripRight} unit="kg" placeholder="58" />
               </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
+
+      {/* Strength Tests */}
+      <Card>
+        <Collapsible open={strengthOpen} onOpenChange={setStrengthOpen}>
+          <CollapsibleTrigger className="w-full px-4">
+            <SectionHeader icon={Dumbbell} title="Maxstyrka" open={strengthOpen} />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <NumberInput label="1RM knäböj full depth" value={backSquat1RM} onChange={setBackSquat1RM} unit="kg" placeholder="140" />
+                <NumberInput label="1RM power clean" value={powerClean1RM} onChange={setPowerClean1RM} unit="kg" placeholder="80" />
+                <NumberInput label="1RM bänkpress" value={benchPress1RM} onChange={setBenchPress1RM} unit="kg" placeholder="110" />
+                <NumberInput label="1RM pull-up extra vikt" value={pullUp1RM} onChange={setPullUp1RM} unit="kg" placeholder="40" />
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Knäböj 1RM sparas separat från MuscleLab power squat eftersom djup och mål skiljer sig.
+              </p>
             </CardContent>
           </CollapsibleContent>
         </Collapsible>
@@ -506,9 +690,29 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
             <CardContent className="pt-0 space-y-3">
               <NumberInput label="Stående längdhopp" value={standingLong} onChange={setStandingLong} unit="cm" placeholder="240" />
               <div className="grid grid-cols-2 gap-3">
-                <NumberInput label="3-hopp Vänster ben" value={threeJumpLeft} onChange={setThreeJumpLeft} unit="cm" placeholder="680" />
-                <NumberInput label="3-hopp Höger ben" value={threeJumpRight} onChange={setThreeJumpRight} unit="cm" placeholder="700" />
+                <NumberInput label="3-steg längdhopp Vänster ben" value={threeJumpLeft} onChange={setThreeJumpLeft} unit="cm" placeholder="680" />
+                <NumberInput label="3-steg längdhopp Höger ben" value={threeJumpRight} onChange={setThreeJumpRight} unit="cm" placeholder="700" />
               </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
+
+      {/* Endurance Tests */}
+      <Card>
+        <Collapsible open={enduranceOpen} onOpenChange={setEnduranceOpen}>
+          <CollapsibleTrigger className="w-full px-4">
+            <SectionHeader icon={Activity} title="Uthållighet" open={enduranceOpen} />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <NumberInput label="Beep test nivå" value={beepLevel} onChange={setBeepLevel} placeholder="13" />
+                <NumberInput label="Beep test shuttle" value={beepShuttle} onChange={setBeepShuttle} placeholder="6" />
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                VO2max hämtas från spelarens profil när sessionen summeras.
+              </p>
             </CardContent>
           </CollapsibleContent>
         </Collapsible>

@@ -1049,6 +1049,20 @@ model HockeyPhysicalTest {
   threeJumpLeft   Float?
   threeJumpRight  Float?
 
+  // Beep test / multi-stage fitness test
+  beepTestLevel   Float?
+  beepTestShuttle Int?
+
+  // Strength maxes (kg)
+  backSquat1RM  Float?
+  powerClean1RM Float?
+  benchPress1RM Float?
+  pullUp1RM     Float?
+
+  // Muscle Lab import: full jump rows + computed maxima for load-power/force curves
+  muscleLabJumps  Json?
+  muscleLabMaxima Json?
+
   // Source: MANUAL or MUSCLE_LAB_IMPORT
   sourceType  String @default("MANUAL")
 

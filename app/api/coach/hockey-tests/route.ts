@@ -10,6 +10,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { getStaffPermissions } from '@/lib/permissions/assistant-coach'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 
 const createTestSchema = z.object({
   clientId: z.string().uuid(),
@@ -33,6 +34,17 @@ const createTestSchema = z.object({
   standingLongJump: z.number().positive().optional(),
   threeJumpLeft: z.number().positive().optional(),
   threeJumpRight: z.number().positive().optional(),
+  // Endurance
+  beepTestLevel: z.number().positive().optional(),
+  beepTestShuttle: z.number().int().positive().optional(),
+  // Strength
+  backSquat1RM: z.number().positive().optional(),
+  powerClean1RM: z.number().positive().optional(),
+  benchPress1RM: z.number().positive().optional(),
+  pullUp1RM: z.number().positive().optional(),
+  // MuscleLab summary import
+  muscleLabJumps: z.array(z.record(z.unknown())).optional(),
+  muscleLabMaxima: z.record(z.unknown()).optional(),
   sourceType: z.enum(['MANUAL', 'MUSCLE_LAB_IMPORT']).default('MANUAL'),
 })
 
@@ -101,6 +113,14 @@ export async function POST(req: NextRequest) {
         standingLongJump: parsed.data.standingLongJump,
         threeJumpLeft: parsed.data.threeJumpLeft,
         threeJumpRight: parsed.data.threeJumpRight,
+        beepTestLevel: parsed.data.beepTestLevel,
+        beepTestShuttle: parsed.data.beepTestShuttle,
+        backSquat1RM: parsed.data.backSquat1RM,
+        powerClean1RM: parsed.data.powerClean1RM,
+        benchPress1RM: parsed.data.benchPress1RM,
+        pullUp1RM: parsed.data.pullUp1RM,
+        muscleLabJumps: parsed.data.muscleLabJumps as Prisma.InputJsonValue | undefined,
+        muscleLabMaxima: parsed.data.muscleLabMaxima as Prisma.InputJsonValue | undefined,
         sourceType: parsed.data.sourceType,
       },
     })
