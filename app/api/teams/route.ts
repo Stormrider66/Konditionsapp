@@ -3,9 +3,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
-import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
+import { requireCoach } from '@/lib/auth-utils'
 import {
   getAccessibleTeamWhere,
+  getBusinessSlugFromRequest,
   getBusinessTeamOwnerIds,
 } from '@/lib/coach/team-access'
 
@@ -24,8 +25,8 @@ const createTeamSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach()
-    const scope = getRequestedBusinessScope(request)
-    const teamWhere = await getAccessibleTeamWhere(user.id, scope.businessSlug)
+    const businessSlug = getBusinessSlugFromRequest(request)
+    const teamWhere = await getAccessibleTeamWhere(user.id, businessSlug)
 
     const teams = await prisma.team.findMany({
       where: teamWhere,
@@ -63,8 +64,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach()
-    const scope = getRequestedBusinessScope(request)
-    const businessOwnerIds = await getBusinessTeamOwnerIds(user.id, scope.businessSlug)
+    const businessSlug = getBusinessSlugFromRequest(request)
+    const businessOwnerIds = await getBusinessTeamOwnerIds(user.id, businessSlug)
 
     const body = await request.json()
 

@@ -177,7 +177,9 @@ export default function BusinessTeamsPage() {
   const fetchTeams = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/teams')
+      const response = await fetch('/api/teams', {
+        headers: { 'x-business-slug': businessSlug },
+      })
       const result = await response.json()
 
       if (result.success) {
@@ -199,7 +201,7 @@ export default function BusinessTeamsPage() {
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [businessSlug, toast])
 
   useEffect(() => {
     fetchTeams()
@@ -228,6 +230,7 @@ export default function BusinessTeamsPage() {
     try {
       const response = await fetch(`/api/teams/${teamToDelete.id}`, {
         method: 'DELETE',
+        headers: { 'x-business-slug': businessSlug },
       })
 
       const result = await response.json()
@@ -261,6 +264,7 @@ export default function BusinessTeamsPage() {
         <div>
           <TeamForm
             team={(editingTeam as Team) || undefined}
+            businessSlug={businessSlug}
             onSuccess={handleTeamSuccess}
             onCancel={() => {
               setShowForm(false)

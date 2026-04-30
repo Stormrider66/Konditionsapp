@@ -5,9 +5,33 @@ import { getStaffPermissions } from '@/lib/permissions/assistant-coach'
 const BUSINESS_WIDE_ROLES = ['OWNER', 'ADMIN', 'COACH'] as const
 const TEAM_SCOPED_ROLES = ['PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO'] as const
 
-export async function getPrimaryBusinessMembership(userId: string) {
+export function getBusinessSlugFromRequest(request: { headers: Headers }): string | undefined {
+  const explicit = request.headers.get('x-business-slug')?.trim()
+  if (explicit) return explicit
+
+  const referer = request.headers.get('referer') ?? request.headers.get('referrer')
+  if (!referer) return undefined
+
+  try {
+    const url = new URL(referer)
+    const [slug, roleSegment] = url.pathname.split('/').filter(Boolean)
+    if (slug && ['coach', 'athlete', 'physio'].includes(roleSegment ?? '')) {
+      return slug
+    }
+  } catch {
+    // Ignore malformed referrers; callers fall back to first active membership.
+  }
+
+  return undefined
+}
+
+export async function getPrimaryBusinessMembership(userId: string, businessSlug?: string) {
   return prisma.businessMember.findFirst({
-    where: { userId, isActive: true },
+    where: {
+      userId,
+      isActive: true,
+      ...(businessSlug ? { business: { slug: businessSlug } } : {}),
+    },
     select: {
       businessId: true,
       role: true,
@@ -121,7 +145,7 @@ export async function canAccessClientInTeam(
   const team = await getAccessibleTeam(userId, teamId, businessSlug)
   if (!team) return false
 
-  const membership = await getPrimaryBusinessMembership(userId)
+  const membership = await getPrimaryBusinessMembership(userId, businessSlug)
   const client = await prisma.client.findFirst({
     where: {
       id: clientId,

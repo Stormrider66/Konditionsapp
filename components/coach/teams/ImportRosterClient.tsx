@@ -152,6 +152,8 @@ export function ImportRosterClient({ teamId, teamName, teamPath }: Props) {
 
   const [submitting, setSubmitting] = useState(false)
   const [createAthleteAccounts, setCreateAthleteAccounts] = useState(true)
+  const businessSlug = teamPath.split('/').filter(Boolean)[0]
+  const businessHeaders = businessSlug ? { 'x-business-slug': businessSlug } : undefined
 
   const dropRef = useRef<HTMLDivElement>(null)
 
@@ -177,12 +179,16 @@ export function ImportRosterClient({ teamId, teamName, teamPath }: Props) {
         form.append('intent', intent)
         response = await fetch(`/api/coach/teams/${teamId}/import-parse`, {
           method: 'POST',
+          headers: businessHeaders,
           body: form,
         })
       } else {
         response = await fetch(`/api/coach/teams/${teamId}/import-parse`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(businessHeaders ?? {}),
+          },
           body: JSON.stringify({ text: pastedText, intent }),
         })
       }
@@ -243,7 +249,10 @@ export function ImportRosterClient({ teamId, teamName, teamPath }: Props) {
       }))
       const res = await fetch(`/api/coach/teams/${teamId}/members/bulk`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(businessHeaders ?? {}),
+        },
         body: JSON.stringify({ rows: payload }),
       })
       const data = await res.json()

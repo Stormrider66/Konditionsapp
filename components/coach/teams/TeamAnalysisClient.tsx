@@ -95,6 +95,7 @@ interface TeamAnalysisClientProps {
   teamId: string
   /** Base path for links into per-athlete pages, e.g. `/<businessSlug>/coach`. */
   basePath: string
+  businessSlug: string
 }
 
 const ZONE_META: Record<
@@ -109,7 +110,7 @@ const ZONE_META: Record<
   UNKNOWN: { label: 'Okänt', color: 'text-muted-foreground', icon: HelpCircle, bg: 'bg-muted/30' },
 }
 
-export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps) {
+export function TeamAnalysisClient({ teamId, basePath, businessSlug }: TeamAnalysisClientProps) {
   const [data, setData] = useState<TeamAnalysisData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -125,7 +126,9 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
       setIsLoading(true)
       setError(null)
       try {
-        const res = await fetch(`/api/teams/${teamId}/analysis-summary`)
+        const res = await fetch(`/api/teams/${teamId}/analysis-summary`, {
+          headers: { 'x-business-slug': businessSlug },
+        })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const body = await res.json()
         if (!cancelled && body.success) setData(body.data)
@@ -139,7 +142,7 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
     return () => {
       cancelled = true
     }
-  }, [teamId, refreshKey])
+  }, [businessSlug, teamId, refreshKey])
 
   if (isLoading) {
     return (

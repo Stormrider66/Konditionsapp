@@ -50,7 +50,7 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
         Vem behöver uppmärksamhet idag? Belastning, aktivitet och PRs per atlet.
       </p>
 
-      <TeamAnalysisClient teamId={teamId} basePath={basePath} />
+      <TeamAnalysisClient teamId={teamId} basePath={basePath} businessSlug={businessSlug} />
     </div>
   )
 }

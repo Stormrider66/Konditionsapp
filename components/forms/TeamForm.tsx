@@ -22,6 +22,7 @@ interface Organization {
 
 interface TeamFormProps {
   team?: Team
+  businessSlug?: string
   onSuccess?: (team: Team) => void
   onCancel?: () => void
 }
@@ -34,7 +35,7 @@ const sportTypeOptions = [
   { value: 'TEAM_FLOORBALL', label: 'Innebandy' },
 ]
 
-export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
+export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormProps) {
   const [name, setName] = useState(team?.name || '')
   const [description, setDescription] = useState(team?.description || '')
   const [organizationId, setOrganizationId] = useState<string>(
@@ -51,7 +52,9 @@ export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
   useEffect(() => {
     async function fetchOrganizations() {
       try {
-        const response = await fetch('/api/organizations')
+        const response = await fetch('/api/organizations', {
+          headers: businessSlug ? { 'x-business-slug': businessSlug } : undefined,
+        })
         const result = await response.json()
         if (result.success) {
           setOrganizations(result.data || [])
@@ -63,7 +66,7 @@ export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
       }
     }
     fetchOrganizations()
-  }, [])
+  }, [businessSlug])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,6 +90,7 @@ export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
         method,
         headers: {
           'Content-Type': 'application/json',
+          ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
         },
         body: JSON.stringify({
           name: name.trim(),

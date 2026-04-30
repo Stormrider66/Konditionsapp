@@ -1,9 +1,10 @@
 // app/api/organizations/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { requireCoach } from '@/lib/auth-utils'
+import { getBusinessSlugFromRequest, getBusinessTeamOwnerIds } from '@/lib/coach/team-access'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -22,24 +23,15 @@ const updateOrganizationSchema = z.object({
 // GET /api/organizations/[id] - Get a specific organization
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
+    const user = await requireCoach()
+    const businessSlug = getBusinessSlugFromRequest(request)
+    const ownerIds = await getBusinessTeamOwnerIds(user.id, businessSlug)
     const { id } = await context.params
 
     const organization = await prisma.organization.findFirst({
       where: {
         id,
-        userId: user.id,
+        userId: { in: ownerIds.length ? ownerIds : [user.id] },
       },
       include: {
         teams: {
@@ -62,6 +54,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
       data: organization,
     })
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
     logger.error('Error fetching organization', {}, error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch organization' },
@@ -73,18 +68,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
 // PUT /api/organizations/[id] - Update an organization
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
+    const user = await requireCoach()
+    const businessSlug = getBusinessSlugFromRequest(request)
+    const ownerIds = await getBusinessTeamOwnerIds(user.id, businessSlug)
     const { id } = await context.params
     const body = await request.json()
 
@@ -105,7 +91,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const existing = await prisma.organization.findFirst({
       where: {
         id,
-        userId: user.id,
+        userId: { in: ownerIds.length ? ownerIds : [user.id] },
       },
     })
 
@@ -140,6 +126,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       message: 'Organization updated successfully',
     })
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
     logger.error('Error updating organization', {}, error)
     return NextResponse.json(
       { success: false, error: 'Failed to update organization' },
@@ -151,25 +140,16 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 // DELETE /api/organizations/[id] - Delete an organization
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
+    const user = await requireCoach()
+    const businessSlug = getBusinessSlugFromRequest(request)
+    const ownerIds = await getBusinessTeamOwnerIds(user.id, businessSlug)
     const { id } = await context.params
 
     // Check ownership
     const existing = await prisma.organization.findFirst({
       where: {
         id,
-        userId: user.id,
+        userId: { in: ownerIds.length ? ownerIds : [user.id] },
       },
     })
 
@@ -190,6 +170,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       message: 'Organization deleted successfully',
     })
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
     logger.error('Error deleting organization', {}, error)
     return NextResponse.json(
       { success: false, error: 'Failed to delete organization' },

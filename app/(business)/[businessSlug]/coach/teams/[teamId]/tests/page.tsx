@@ -50,7 +50,12 @@ export default async function TeamTestsPage({ params }: TestsPageProps) {
         Importera testpass från en testtabell, eller granska tidigare loggade tester.
       </p>
 
-      <TeamTestsClient teamId={teamId} teamName={team.name} basePath={basePath} />
+      <TeamTestsClient
+        teamId={teamId}
+        teamName={team.name}
+        basePath={basePath}
+        businessSlug={businessSlug}
+      />
     </div>
   )
 }

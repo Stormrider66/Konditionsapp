@@ -10,7 +10,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { canAccessClientInTeam, getWritableTeam } from '@/lib/coach/team-access'
+import {
+  canAccessClientInTeam,
+  getBusinessSlugFromRequest,
+  getWritableTeam,
+} from '@/lib/coach/team-access'
 
 interface RouteContext {
   params: Promise<{ teamId: string; clientId: string }>
@@ -20,10 +24,11 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const { teamId, clientId } = await context.params
+    const businessSlug = getBusinessSlugFromRequest(req)
 
-    const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
+    const team = await getWritableTeam(user.id, teamId, businessSlug, 'roster')
     const canAccessClient = team
-      ? await canAccessClientInTeam(user.id, clientId, teamId)
+      ? await canAccessClientInTeam(user.id, clientId, teamId, businessSlug)
       : false
     if (!team || !canAccessClient) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -75,14 +80,15 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
   }
 }
 
-export async function DELETE(_req: NextRequest, context: RouteContext) {
+export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const { teamId, clientId } = await context.params
+    const businessSlug = getBusinessSlugFromRequest(req)
 
-    const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
+    const team = await getWritableTeam(user.id, teamId, businessSlug, 'roster')
     const canAccessClient = team
-      ? await canAccessClientInTeam(user.id, clientId, teamId)
+      ? await canAccessClientInTeam(user.id, clientId, teamId, businessSlug)
       : false
     if (!team || !canAccessClient) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 

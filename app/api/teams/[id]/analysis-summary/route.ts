@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
+import { getAccessibleTeam, getBusinessSlugFromRequest } from '@/lib/coach/team-access'
 
 type AcwrZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL' | 'UNKNOWN'
 
@@ -66,9 +67,15 @@ export async function GET(
   try {
     const user = await requireCoach()
     const { id: teamId } = await params
+    const businessSlug = getBusinessSlugFromRequest(request)
+
+    const accessibleTeam = await getAccessibleTeam(user.id, teamId, businessSlug)
+    if (!accessibleTeam) {
+      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+    }
 
     const team = await prisma.team.findFirst({
-      where: { id: teamId, userId: user.id },
+      where: { id: teamId },
       select: {
         id: true,
         name: true,

@@ -25,7 +25,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
-import { getWritableTeam } from '@/lib/coach/team-access'
+import { getBusinessSlugFromRequest, getWritableTeam } from '@/lib/coach/team-access'
 import { resolveExtractionModel, resolveVisionModel, type ModelIntent, isModelIntent } from '@/types/ai-models'
 import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
 import { generateText } from 'ai'
@@ -61,8 +61,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const { teamId } = await context.params
+    const businessSlug = getBusinessSlugFromRequest(request)
 
-    const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
+    const team = await getWritableTeam(user.id, teamId, businessSlug, 'roster')
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
     }

@@ -82,10 +82,11 @@ const sportTypeOptions = [
 ]
 
 interface OrganizationsClientProps {
-  basePath?: string
+  basePath: string
+  businessSlug: string
 }
 
-export default function OrganizationsClient({ basePath = '/coach' }: OrganizationsClientProps) {
+export default function OrganizationsClient({ basePath, businessSlug }: OrganizationsClientProps) {
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -103,7 +104,9 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
   const fetchOrganizations = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/organizations')
+      const response = await fetch('/api/organizations', {
+        headers: { 'x-business-slug': businessSlug },
+      })
       const result = await response.json()
 
       if (result.success) {
@@ -117,7 +120,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [businessSlug])
 
   useEffect(() => {
     fetchOrganizations()
@@ -160,7 +163,10 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
 
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-business-slug': businessSlug,
+        },
         body: JSON.stringify({
           name: name.trim(),
           description: description.trim() || undefined,
@@ -204,6 +210,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
     try {
       const response = await fetch(`/api/organizations/${orgToDelete.id}`, {
         method: 'DELETE',
+        headers: { 'x-business-slug': businessSlug },
       })
 
       const result = await response.json()

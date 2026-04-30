@@ -11,6 +11,7 @@ import { prisma } from '@/lib/prisma'
 import { getStaffPermissions } from '@/lib/permissions/assistant-coach'
 import {
   canAccessClientInTeam,
+  getBusinessSlugFromRequest,
   getPrimaryBusinessMembership,
   getAccessibleTeamWhere,
   getWritableTeam,
@@ -57,12 +58,13 @@ const createTestSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const user = await requireCoach()
-    const permissions = await getStaffPermissions(user.id)
+    const businessSlug = getBusinessSlugFromRequest(req)
+    const permissions = await getStaffPermissions(user.id, businessSlug)
 
     const { searchParams } = new URL(req.url)
     const teamId = searchParams.get('teamId')
     const clientId = searchParams.get('clientId')
-    const accessibleTeamWhere = await getAccessibleTeamWhere(user.id)
+    const accessibleTeamWhere = await getAccessibleTeamWhere(user.id, businessSlug)
     const accessibleTeams = await prisma.team.findMany({
       where: teamId ? { id: teamId, AND: [accessibleTeamWhere] } : accessibleTeamWhere,
       select: { id: true },
@@ -101,6 +103,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireCoach()
+    const businessSlug = getBusinessSlugFromRequest(req)
     const body = await req.json()
     const parsed = createTestSchema.safeParse(body)
 
@@ -109,16 +112,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (parsed.data.teamId) {
-      const team = await getWritableTeam(user.id, parsed.data.teamId, undefined, 'tests')
+      const team = await getWritableTeam(user.id, parsed.data.teamId, businessSlug, 'tests')
       const canAccessClient = team
-        ? await canAccessClientInTeam(user.id, parsed.data.clientId, parsed.data.teamId)
+        ? await canAccessClientInTeam(user.id, parsed.data.clientId, parsed.data.teamId, businessSlug)
         : false
 
       if (!team || !canAccessClient) {
         return NextResponse.json({ error: 'Team or athlete not found' }, { status: 404 })
       }
     } else {
-      const membership = await getPrimaryBusinessMembership(user.id)
+      const membership = await getPrimaryBusinessMembership(user.id, businessSlug)
       const client = await prisma.client.findFirst({
         where: {
           id: parsed.data.clientId,

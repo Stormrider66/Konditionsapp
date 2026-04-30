@@ -123,6 +123,7 @@ interface TeamTestsClientProps {
   teamId: string
   teamName: string
   basePath: string
+  businessSlug: string
 }
 
 const SOURCE_LABEL: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
@@ -152,7 +153,7 @@ function getRankVariant(percentile: number): 'default' | 'secondary' | 'outline'
   return 'outline'
 }
 
-export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientProps) {
+export function TeamTestsClient({ teamId, teamName, basePath, businessSlug }: TeamTestsClientProps) {
   const [sessions, setSessions] = useState<TestSession[]>([])
   const [hockey, setHockey] = useState<HockeyTeamSummary | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -222,7 +223,9 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     setIsLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/teams/${teamId}/test-sessions`)
+      const res = await fetch(`/api/teams/${teamId}/test-sessions`, {
+        headers: { 'x-business-slug': businessSlug },
+      })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const body = await res.json()
       if (body.success) {
@@ -234,7 +237,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     } finally {
       setIsLoading(false)
     }
-  }, [teamId])
+  }, [businessSlug, teamId])
 
   useEffect(() => {
     void fetchSessions()

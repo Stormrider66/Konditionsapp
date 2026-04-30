@@ -20,5 +20,5 @@ export default async function BusinessOrganizationsPage({ params }: PageProps) {
     notFound()
   }
 
-  return <OrganizationsClient basePath={`/${businessSlug}/coach`} />
+  return <OrganizationsClient basePath={`/${businessSlug}/coach`} businessSlug={businessSlug} />
 }

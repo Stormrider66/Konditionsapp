@@ -3,8 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
-import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
-import { getAccessibleTeam, getBusinessTeamOwnerIds } from '@/lib/coach/team-access'
+import { requireCoach } from '@/lib/auth-utils'
+import {
+  getAccessibleTeam,
+  getBusinessSlugFromRequest,
+  getBusinessTeamOwnerIds,
+} from '@/lib/coach/team-access'
 
 type RouteParams = {
   params: Promise<{
@@ -30,9 +34,9 @@ export async function GET(
 ) {
   try {
     const user = await requireCoach()
-    const scope = getRequestedBusinessScope(request)
+    const businessSlug = getBusinessSlugFromRequest(request)
     const { id } = await params
-    const accessibleTeam = await getAccessibleTeam(user.id, id, scope.businessSlug)
+    const accessibleTeam = await getAccessibleTeam(user.id, id, businessSlug)
 
     if (!accessibleTeam) {
       return NextResponse.json(
@@ -80,11 +84,11 @@ export async function PUT(
 ) {
   try {
     const user = await requireCoach()
-    const scope = getRequestedBusinessScope(request)
+    const businessSlug = getBusinessSlugFromRequest(request)
     const { id } = await params
 
     // Check if team belongs to user
-    const existingTeam = await getAccessibleTeam(user.id, id, scope.businessSlug)
+    const existingTeam = await getAccessibleTeam(user.id, id, businessSlug)
 
     if (!existingTeam || existingTeam.userId !== user.id) {
       return NextResponse.json(
@@ -115,7 +119,7 @@ export async function PUT(
 
     // If organizationId is provided, verify it exists and belongs to user
     if (data.organizationId) {
-      const businessOwnerIds = await getBusinessTeamOwnerIds(user.id, scope.businessSlug)
+      const businessOwnerIds = await getBusinessTeamOwnerIds(user.id, businessSlug)
       const org = await prisma.organization.findFirst({
         where: {
           id: data.organizationId,
@@ -178,11 +182,11 @@ export async function DELETE(
 ) {
   try {
     const user = await requireCoach()
-    const scope = getRequestedBusinessScope(request)
+    const businessSlug = getBusinessSlugFromRequest(request)
     const { id } = await params
 
     // Check if team belongs to user
-    const existingTeam = await getAccessibleTeam(user.id, id, scope.businessSlug)
+    const existingTeam = await getAccessibleTeam(user.id, id, businessSlug)
 
     if (!existingTeam || existingTeam.userId !== user.id) {
       return NextResponse.json(
