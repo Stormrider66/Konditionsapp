@@ -5,6 +5,7 @@ enum IntegrationType {
   STRAVA // Strava OAuth integration
   GARMIN // Garmin Health API integration
   CONCEPT2 // Concept2 Logbook integration
+  OURA // Oura Ring v2 OAuth integration
 }
 
 // ==================== INTEGRATIONS (Strava, Garmin) ====================
