@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -174,6 +174,10 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
   const [variables, setVariables] = useState<VariableInfo[]>([])
   const [variablesLoading, setVariablesLoading] = useState(false)
   const [fetchedSportType, setFetchedSportType] = useState<string | null>(teamSportType ?? null)
+  const [simcaImporting, setSimcaImporting] = useState(false)
+  const [simcaImportMessage, setSimcaImportMessage] = useState<string | null>(null)
+  const [simcaImportError, setSimcaImportError] = useState<string | null>(null)
+  const simcaFileInputRef = useRef<HTMLInputElement | null>(null)
 
   const fetchVariables = useCallback(async () => {
     setVariablesLoading(true)
@@ -260,6 +264,35 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
     }
   }, [teamId, yVariableId])
 
+  const importSimcaFile = useCallback(async (file: File) => {
+    setSimcaImporting(true)
+    setSimcaImportMessage(null)
+    setSimcaImportError(null)
+    try {
+      const content = await file.text()
+      const res = await fetch(`/api/teams/${teamId}/mva/simca-import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          content,
+        }),
+      })
+      const json = await res.json()
+      if (!json.success) {
+        setSimcaImportError(json.error ?? 'Kunde inte importera SIMCA-resultat')
+        return
+      }
+      const rows = json.data.rowCount ? `${json.data.rowCount} rader` : 'JSON'
+      const cols = json.data.columnCount ? `, ${json.data.columnCount} kolumner` : ''
+      setSimcaImportMessage(`Importerad: ${json.data.fileName} (${rows}${cols})`)
+    } catch {
+      setSimcaImportError('Nätverksfel vid SIMCA-import')
+    } finally {
+      setSimcaImporting(false)
+    }
+  }, [teamId])
+
   const isHockeyTeam = (fetchedSportType ?? teamSportType) === 'TEAM_ICE_HOCKEY'
   const simcaWorkflow = isHockeyTeam ? (
     <Card className="mb-6 dark:bg-slate-900/50 dark:border-white/10">
@@ -279,7 +312,37 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
             Exportera hockey CSV
           </Button>
         </a>
+        <input
+          ref={simcaFileInputRef}
+          type="file"
+          accept=".json,.csv,.tsv,.txt"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            event.target.value = ''
+            if (file) void importSimcaFile(file)
+          }}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={simcaImporting}
+          onClick={() => simcaFileInputRef.current?.click()}
+        >
+          {simcaImporting ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+          )}
+          Importera SIMCA
+        </Button>
       </CardContent>
+      {(simcaImportMessage || simcaImportError) && (
+        <div className="border-t px-6 py-2 text-xs dark:border-white/10">
+          {simcaImportMessage && <span className="text-emerald-600">{simcaImportMessage}</span>}
+          {simcaImportError && <span className="text-red-600 dark:text-red-400">{simcaImportError}</span>}
+        </div>
+      )}
     </Card>
   ) : null
 
