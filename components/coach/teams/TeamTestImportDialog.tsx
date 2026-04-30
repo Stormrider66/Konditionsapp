@@ -298,8 +298,8 @@ export function TeamTestImportDialog({
           </DialogTitle>
           <DialogDescription>
             Klistra in en testtabell. Första raden är rubriker (övningar). Varje
-            efterföljande rad är en atlet. Cellvärden som "180 Hex" sparas som
-            180 kg med "Hex" som notering. En "Vikt"-kolumn används som
+            efterföljande rad är en atlet. Cellvärden som &quot;180 Hex&quot; sparas som
+            180 kg med &quot;Hex&quot; som notering. En &quot;Vikt&quot;-kolumn används som
             kroppsvikt för alla rader.
           </DialogDescription>
         </DialogHeader>

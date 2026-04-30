@@ -97,7 +97,7 @@ export function PendingPRFeed({
           {items.length > 0 && <Badge variant="secondary">{items.length}</Badge>}
         </CardTitle>
         <CardDescription>
-          Auto-uppskattade PR från loggade set. Bekräfta för att flytta till "Testat".
+          Auto-uppskattade PR från loggade set. Bekräfta för att flytta till &quot;Testat&quot;.
         </CardDescription>
       </CardHeader>
       <CardContent>

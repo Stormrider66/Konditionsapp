@@ -27,6 +27,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://user:pass@localhost:5432/testdb
+          DIRECT_DATABASE_URL: postgresql://user:pass@localhost:5432/testdb
+
       - name: Run ESLint
         run: npm run lint
 
@@ -47,6 +53,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://user:pass@localhost:5432/testdb
+          DIRECT_DATABASE_URL: postgresql://user:pass@localhost:5432/testdb
 
       - name: Run Vitest suite
         run: npm run test
@@ -92,4 +104,3 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
-

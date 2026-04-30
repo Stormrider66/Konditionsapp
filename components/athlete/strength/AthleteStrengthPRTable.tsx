@@ -128,7 +128,7 @@ export function AthleteStrengthPRTable() {
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
           Aktuella 1RM per övning. Värdena används för att räkna ut vikt i pass där
-          coachen valt "% av 1RM".
+          coachen valt &quot;% av 1RM&quot;.
         </p>
       </div>
 

@@ -245,7 +245,7 @@ export function ClientBulkPRImportDialog({
           <DialogDescription>
             En rad per PR. Format:{' '}
             <code className="bg-muted px-1 rounded">övning, vikt[, datum]</code>. Datum
-            är valfritt (default: idag). Källa sätts som "Testat".
+            är valfritt (default: idag). Källa sätts som &quot;Testat&quot;.
           </DialogDescription>
         </DialogHeader>
 

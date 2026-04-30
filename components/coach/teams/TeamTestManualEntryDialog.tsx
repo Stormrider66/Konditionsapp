@@ -268,7 +268,7 @@ export function TeamTestManualEntryDialog({
           </DialogTitle>
           <DialogDescription>
             Välj övningar (kolumner) och atleter (rader), skriv in vikt per cell. Tom
-            cell hoppas över. Källa sätts som "Testat", enhet KG.
+            cell hoppas över. Källa sätts som &quot;Testat&quot;, enhet KG.
           </DialogDescription>
         </DialogHeader>
 

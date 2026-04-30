@@ -288,7 +288,7 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
         </Select>
         {unit !== 'KG' && (
           <p className="text-[11px] text-muted-foreground">
-            Icke-KG värden används inte för "% av 1RM"-beräkning i pass.
+            Icke-KG värden används inte för &quot;% av 1RM&quot;-beräkning i pass.
           </p>
         )}
       </div>

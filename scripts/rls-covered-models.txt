@@ -98,12 +98,15 @@ ErgometerZone
 Exercise
 ExerciseEffectiveness
 ExerciseFavorite
+ExerciseNameAlias
 ExerciseOutcomePattern
 ExternalCalendarConnection
 ExternalMatchSchedule
 FeatureRequest
 FieldTest
 FieldTestSchedule
+Food
+FoodScanCorrection
 FounderBrief
 GarminActivity
 GroupClass
@@ -124,6 +127,7 @@ HybridWorkoutLog
 HybridWorkoutResult
 HybridWorkoutVersion
 HyroxStationAnalysis
+ImportAttempt
 InjuryAssessment
 IntegrationToken
 IntervalLactate

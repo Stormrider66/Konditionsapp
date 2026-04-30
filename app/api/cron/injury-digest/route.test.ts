@@ -28,6 +28,9 @@ const mockPrisma = vi.hoisted(() => ({
   dailyCheckIn: {
     findMany: vi.fn(),
   },
+  businessMember: {
+    findFirst: vi.fn(),
+  },
 }))
 
 vi.mock('@/lib/prisma', () => ({
@@ -55,6 +58,13 @@ vi.mock('@/lib/sanitize', () => ({
   sanitizeForEmail: (value: string) => value,
 }))
 
+vi.mock('@/lib/email/branding', () => ({
+  resolveEmailBranding: vi.fn().mockResolvedValue({
+    fromAddress: 'Trainomics <noreply@trainomics.app>',
+    replyTo: 'support@trainomics.app',
+  }),
+}))
+
 import { GET } from '@/app/api/cron/injury-digest/route'
 
 describe('injury-digest cron route', () => {
@@ -73,6 +83,7 @@ describe('injury-digest cron route', () => {
     mockPrisma.injuryAssessment.findMany.mockResolvedValue([])
     mockPrisma.trainingLoad.findMany.mockResolvedValue([])
     mockPrisma.dailyCheckIn.findMany.mockResolvedValue([])
+    mockPrisma.businessMember.findFirst.mockResolvedValue(null)
     mockSendEmail.mockResolvedValue({ id: 'email-1' })
   })
 

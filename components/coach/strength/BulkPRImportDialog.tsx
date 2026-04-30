@@ -354,7 +354,7 @@ export function BulkPRImportDialog({
           </DialogTitle>
           <DialogDescription>
             Klistra in en rad per PR. Format: <code className="bg-muted px-1 rounded">namn, övning, vikt[, datum]</code>.
-            Datum är valfritt (default: idag). Källa sätts som "Testat".
+            Datum är valfritt (default: idag). Källa sätts som &quot;Testat&quot;.
           </DialogDescription>
         </DialogHeader>
 

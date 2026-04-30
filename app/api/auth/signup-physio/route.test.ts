@@ -45,6 +45,12 @@ vi.mock('@/lib/email', () => ({
   sendWelcomeEmail: mockSendWelcomeEmail,
 }))
 
+vi.mock('@/lib/email/after', () => ({
+  sendEmailAfter: vi.fn((task: () => Promise<unknown>) => {
+    void task()
+  }),
+}))
+
 vi.mock('@/lib/logger', () => ({
   logger: {
     error: vi.fn(),

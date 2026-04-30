@@ -362,7 +362,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
         <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
           <Info className="h-3 w-3 mt-0.5 shrink-0" />
           <span>
-            Varje PR används som referens när pass innehåller "% av 1RM". Logga ny PR efter
+            Varje PR används som referens när pass innehåller &quot;% av 1RM&quot;. Logga ny PR efter
             tester eller PR-set så att vikterna stämmer.
           </span>
         </div>
@@ -460,7 +460,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Bekräfta auto-uppskattningar genom att flytta dem till "Testat" när du verifierat dem.
+                  Bekräfta auto-uppskattningar genom att flytta dem till &quot;Testat&quot; när du verifierat dem.
                 </p>
               </div>
             </div>
@@ -498,7 +498,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
             <AlertDialogTitle>Ta bort PR?</AlertDialogTitle>
             <AlertDialogDescription>
               Detta tar permanent bort PR-loggen. Andra mätningar för samma övning
-              påverkas inte. Aktiva pass med "% av 1RM" använder nästa nyaste PR
+              påverkas inte. Aktiva pass med &quot;% av 1RM&quot; använder nästa nyaste PR
               för övningen.
             </AlertDialogDescription>
           </AlertDialogHeader>
