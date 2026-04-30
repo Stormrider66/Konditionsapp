@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, RefreshCw, Settings2 } from 'lucide-react'
+import { Download, FileSpreadsheet, Loader2, RefreshCw, Settings2 } from 'lucide-react'
 import { ScorePlot } from './ScorePlot'
 import { LoadingPlot } from './LoadingPlot'
 import { ScreePlot } from './ScreePlot'
@@ -197,7 +197,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
 
   useEffect(() => {
     if (currentPhase === 'selection' && variables.length === 0) {
-      fetchVariables()
+      void Promise.resolve().then(() => fetchVariables())
     }
   }, [currentPhase, variables.length, fetchVariables])
 
@@ -260,24 +260,50 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
     }
   }, [teamId, yVariableId])
 
+  const isHockeyTeam = (fetchedSportType ?? teamSportType) === 'TEAM_ICE_HOCKEY'
+  const simcaWorkflow = isHockeyTeam ? (
+    <Card className="mb-6 dark:bg-slate-900/50 dark:border-white/10">
+      <CardContent className="flex flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-start gap-3">
+          <FileSpreadsheet className="mt-0.5 h-5 w-5 text-cyan-500" />
+          <div>
+            <p className="text-sm font-medium dark:text-white">SIMCA round-trip</p>
+            <p className="text-xs text-muted-foreground">
+              Exportera hockeytester som bred CSV, analysera i SIMCA och använd PCA/PLS här för daglig uppföljning.
+            </p>
+          </div>
+        </div>
+        <a href={`/api/teams/${teamId}/hockey-tests/export`}>
+          <Button variant="outline" size="sm">
+            <Download className="mr-2 h-4 w-4" />
+            Exportera hockey CSV
+          </Button>
+        </a>
+      </CardContent>
+    </Card>
+  ) : null
+
   // ---- MODE TOGGLE ----
   const modeToggle = (
-    <div className="flex gap-2 mb-6">
-      <Button
-        variant={analysisMode === 'PCA' ? 'default' : 'outline'}
-        onClick={() => setAnalysisMode('PCA')}
-        size="sm"
-      >
-        PCA - Mönsteranalys
-      </Button>
-      <Button
-        variant={analysisMode === 'PLS' ? 'default' : 'outline'}
-        onClick={() => setAnalysisMode('PLS')}
-        size="sm"
-      >
-        PLS - Drivkraftsanalys
-      </Button>
-    </div>
+    <>
+      <div className="flex gap-2 mb-6">
+        <Button
+          variant={analysisMode === 'PCA' ? 'default' : 'outline'}
+          onClick={() => setAnalysisMode('PCA')}
+          size="sm"
+        >
+          PCA - Mönsteranalys
+        </Button>
+        <Button
+          variant={analysisMode === 'PLS' ? 'default' : 'outline'}
+          onClick={() => setAnalysisMode('PLS')}
+          size="sm"
+        >
+          PLS - Drivkraftsanalys
+        </Button>
+      </div>
+      {simcaWorkflow}
+    </>
   )
 
   // ---- PCA MODE ----
