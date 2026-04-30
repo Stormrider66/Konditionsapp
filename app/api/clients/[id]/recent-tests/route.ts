@@ -49,7 +49,10 @@ function formatHockeySummary(test: {
   powerClean1RM: number | null
   benchPress1RM: number | null
   standingLongJump: number | null
+  sprint5m: number | null
   sprint10m: number | null
+  sprint20m: number | null
+  sprint30m: number | null
   agility505Left: number | null
   agility505Right: number | null
   beepTestLevel: number | null
@@ -64,7 +67,9 @@ function formatHockeySummary(test: {
   if (test.powerClean1RM != null) parts.push(`PC ${test.powerClean1RM.toFixed(0)} kg`)
   if (test.benchPress1RM != null) parts.push(`Bänk ${test.benchPress1RM.toFixed(0)} kg`)
   if (test.standingLongJump != null) parts.push(`SLJ ${test.standingLongJump.toFixed(0)} cm`)
+  if (test.sprint5m != null) parts.push(`5m ${test.sprint5m.toFixed(2)} s`)
   if (test.sprint10m != null) parts.push(`10m ${test.sprint10m.toFixed(2)} s`)
+  if (test.sprint30m != null) parts.push(`30m ${test.sprint30m.toFixed(2)} s`)
   if (agilityBest != null) parts.push(`5-10-5 ${agilityBest.toFixed(2)} s`)
   if (test.beepTestLevel != null) {
     parts.push(`Beep ${test.beepTestLevel}${test.beepTestShuttle ? `.${test.beepTestShuttle}` : ''}`)
@@ -113,7 +118,10 @@ export async function GET(
           powerClean1RM: true,
           benchPress1RM: true,
           standingLongJump: true,
+          sprint5m: true,
           sprint10m: true,
+          sprint20m: true,
+          sprint30m: true,
           agility505Left: true,
           agility505Right: true,
           beepTestLevel: true,

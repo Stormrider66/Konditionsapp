@@ -36,7 +36,10 @@ interface HockeyTest {
   team: { id: string; name: string } | null
   agility505Left: number | null
   agility505Right: number | null
+  sprint5m: number | null
   sprint10m: number | null
+  sprint20m: number | null
+  sprint30m: number | null
   sprint20mFly: number | null
   sprint30mFly: number | null
   endurance7x40: number[] | null
@@ -207,6 +210,7 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                     {test.muscleLabMaxima?.maxAveragePowerPerBodyMass && (
                       <Badge variant="outline" className="text-[10px]">{test.muscleLabMaxima.maxAveragePowerPerBodyMass} W/kg</Badge>
                     )}
+                    {test.sprint5m && <Badge variant="outline" className="text-[10px]">{test.sprint5m.toFixed(2)}s 5m</Badge>}
                     {test.sprint10m && <Badge variant="outline" className="text-[10px]">{test.sprint10m.toFixed(2)}s 10m</Badge>}
                     {test.agility505Left && <Badge variant="outline" className="text-[10px]">{test.agility505Left.toFixed(2)}s agility</Badge>}
                     {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -216,13 +220,16 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                 {isExpanded && (
                   <div className="mt-4 pt-4 border-t space-y-4">
                     {/* Ice tests */}
-                    {(test.agility505Left || test.sprint10m || endurance) && (
+                    {(test.agility505Left || test.sprint5m || test.sprint10m || test.sprint20m || test.sprint30m || endurance) && (
                       <div>
                         <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Timer className="h-3 w-3" /> Istester</p>
-                        <div className="grid grid-cols-5 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
                           <TestValue label="Agility V" value={test.agility505Left} unit="s" />
                           <TestValue label="Agility H" value={test.agility505Right} unit="s" />
+                          <TestValue label="5m" value={test.sprint5m} unit="s" />
                           <TestValue label="10m" value={test.sprint10m} unit="s" />
+                          <TestValue label="20m" value={test.sprint20m} unit="s" />
+                          <TestValue label="30m" value={test.sprint30m} unit="s" />
                           <TestValue label="20m fly" value={test.sprint20mFly} unit="s" />
                           <TestValue label="30m fly" value={test.sprint30mFly} unit="s" />
                         </div>

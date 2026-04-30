@@ -126,7 +126,10 @@ export interface HockeyPhysicalTestSummary {
   testDate: Date
   agility505Left: number | null
   agility505Right: number | null
+  sprint5m: number | null
   sprint10m: number | null
+  sprint20m: number | null
+  sprint30m: number | null
   sprint20mFly: number | null
   sprint30mFly: number | null
   endurance7x40: unknown | null

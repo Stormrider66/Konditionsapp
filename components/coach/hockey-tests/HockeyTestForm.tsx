@@ -273,7 +273,10 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
   // On-ice values
   const [agility505Left, setAgility505Left] = useState('')
   const [agility505Right, setAgility505Right] = useState('')
+  const [sprint5m, setSprint5m] = useState('')
   const [sprint10m, setSprint10m] = useState('')
+  const [sprint20m, setSprint20m] = useState('')
+  const [sprint30m, setSprint30m] = useState('')
   const [sprint20mFly, setSprint20mFly] = useState('')
   const [sprint30mFly, setSprint30mFly] = useState('')
   const [endurance7x40, setEndurance7x40] = useState(['', '', '', '', '', '', ''])
@@ -306,7 +309,10 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
   const applyData = (data: Record<string, unknown>) => {
     if (data.agility505Left) setAgility505Left(String(data.agility505Left))
     if (data.agility505Right) setAgility505Right(String(data.agility505Right))
+    if (data.sprint5m) setSprint5m(String(data.sprint5m))
     if (data.sprint10m) setSprint10m(String(data.sprint10m))
+    if (data.sprint20m) setSprint20m(String(data.sprint20m))
+    if (data.sprint30m) setSprint30m(String(data.sprint30m))
     if (data.sprint20mFly) setSprint20mFly(String(data.sprint20mFly))
     if (data.sprint30mFly) setSprint30mFly(String(data.sprint30mFly))
     if (Array.isArray(data.endurance7x40)) {
@@ -444,7 +450,10 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
           notes: notes || undefined,
           agility505Left: toNum(agility505Left),
           agility505Right: toNum(agility505Right),
+          sprint5m: toNum(sprint5m),
           sprint10m: toNum(sprint10m),
+          sprint20m: toNum(sprint20m),
+          sprint30m: toNum(sprint30m),
           sprint20mFly: toNum(sprint20mFly),
           sprint30mFly: toNum(sprint30mFly),
           endurance7x40: enduranceArr.length > 0 ? enduranceArr : undefined,
@@ -556,8 +565,11 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
                 <NumberInput label="Agility 5-10-5 Vänster" value={agility505Left} onChange={setAgility505Left} unit="s" placeholder="6.50" />
                 <NumberInput label="Agility 5-10-5 Höger" value={agility505Right} onChange={setAgility505Right} unit="s" placeholder="6.40" />
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <NumberInput label="Sprint 5m" value={sprint5m} onChange={setSprint5m} unit="s" placeholder="1.10" />
                 <NumberInput label="Sprint 10m" value={sprint10m} onChange={setSprint10m} unit="s" placeholder="1.80" />
+                <NumberInput label="Sprint 20m" value={sprint20m} onChange={setSprint20m} unit="s" placeholder="3.10" />
+                <NumberInput label="Sprint 30m" value={sprint30m} onChange={setSprint30m} unit="s" placeholder="4.25" />
                 <NumberInput label="Sprint 20m (fly)" value={sprint20mFly} onChange={setSprint20mFly} unit="s" placeholder="2.50" />
                 <NumberInput label="Sprint 30m (fly)" value={sprint30mFly} onChange={setSprint30mFly} unit="s" placeholder="3.60" />
               </div>

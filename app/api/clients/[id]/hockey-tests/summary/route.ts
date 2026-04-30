@@ -35,7 +35,16 @@ interface HockeyFlag {
   label: string
 }
 
-const LOWER_IS_BETTER = new Set(['sprint10m', 'sprint20mFly', 'sprint30mFly', 'agilityBest', 'enduranceFatigueDrop'])
+const LOWER_IS_BETTER = new Set([
+  'sprint5m',
+  'sprint10m',
+  'sprint20m',
+  'sprint30m',
+  'sprint20mFly',
+  'sprint30mFly',
+  'agilityBest',
+  'enduranceFatigueDrop',
+])
 
 function numberFromJson(value: unknown, key: string): number | null {
   if (!value || typeof value !== 'object') return null
@@ -86,7 +95,10 @@ function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number]): HockeyS
       standingLongJump: test.standingLongJump,
       threeJumpBest: bestOf([test.threeJumpLeft, test.threeJumpRight]),
       beepScore: round(beepScore, 1),
+      sprint5m: test.sprint5m,
       sprint10m: test.sprint10m,
+      sprint20m: test.sprint20m,
+      sprint30m: test.sprint30m,
       sprint20mFly: test.sprint20mFly,
       sprint30mFly: test.sprint30mFly,
       agilityBest: bestOf([test.agility505Left, test.agility505Right], true),
@@ -188,7 +200,10 @@ async function loadTests(clientId: string) {
       notes: true,
       agility505Left: true,
       agility505Right: true,
+      sprint5m: true,
       sprint10m: true,
+      sprint20m: true,
+      sprint30m: true,
       sprint20mFly: true,
       sprint30mFly: true,
       endurance7x40: true,

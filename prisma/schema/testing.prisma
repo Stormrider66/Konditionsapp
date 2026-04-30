@@ -1022,7 +1022,10 @@ model HockeyPhysicalTest {
   agility505Right  Float?  // Right side
 
   // On-Ice Sprints (seconds)
+  sprint5m      Float?  // 5m standing start
   sprint10m     Float?  // 10m standing start
+  sprint20m     Float?  // 20m standing start
+  sprint30m     Float?  // 30m standing start
   sprint20mFly  Float?  // 20m flying start
   sprint30mFly  Float?  // 30m flying start
 

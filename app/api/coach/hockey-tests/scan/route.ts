@@ -31,7 +31,10 @@ Returnera ENBART giltig JSON med detta format (utelämna fält som inte finns i 
 {
   "agility505Left": 6.50,
   "agility505Right": 6.40,
+  "sprint5m": 1.10,
   "sprint10m": 1.82,
+  "sprint20m": 3.05,
+  "sprint30m": 4.20,
   "sprint20mFly": 2.51,
   "sprint30mFly": 3.65,
   "endurance7x40": [5.20, 5.30, 5.35, 5.40, 5.45, 5.50, 5.55],

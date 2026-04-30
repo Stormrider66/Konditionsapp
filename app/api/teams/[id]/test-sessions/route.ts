@@ -64,7 +64,10 @@ const HOCKEY_METRICS: HockeyMetric[] = [
   { key: 'standingLongJump', label: 'Längdhopp', unit: 'cm' },
   { key: 'threeJumpBest', label: '3-steg bäst', unit: 'cm' },
   { key: 'beepScore', label: 'Beep', unit: 'nivå' },
+  { key: 'sprint5m', label: '5m is', unit: 's', lowerIsBetter: true },
   { key: 'sprint10m', label: '10m is', unit: 's', lowerIsBetter: true },
+  { key: 'sprint20m', label: '20m is', unit: 's', lowerIsBetter: true },
+  { key: 'sprint30m', label: '30m is', unit: 's', lowerIsBetter: true },
   { key: 'sprint20mFly', label: '20m fly', unit: 's', lowerIsBetter: true },
   { key: 'sprint30mFly', label: '30m fly', unit: 's', lowerIsBetter: true },
   { key: 'agilityBest', label: '5-10-5 bäst', unit: 's', lowerIsBetter: true },
@@ -75,7 +78,10 @@ const HOCKEY_METRICS: HockeyMetric[] = [
 type HockeyTestForSummary = {
   clientId: string
   testDate: Date
+  sprint5m: number | null
   sprint10m: number | null
+  sprint20m: number | null
+  sprint30m: number | null
   sprint20mFly: number | null
   sprint30mFly: number | null
   agility505Left: number | null
@@ -134,7 +140,10 @@ function metricValuesForTest(test: HockeyTestForSummary | undefined): HockeyMetr
     standingLongJump: test?.standingLongJump ?? null,
     threeJumpBest: bestOf([test?.threeJumpLeft, test?.threeJumpRight]),
     beepScore: round(beepScore, 1),
+    sprint5m: test?.sprint5m ?? null,
     sprint10m: test?.sprint10m ?? null,
+    sprint20m: test?.sprint20m ?? null,
+    sprint30m: test?.sprint30m ?? null,
     sprint20mFly: test?.sprint20mFly ?? null,
     sprint30mFly: test?.sprint30mFly ?? null,
     agilityBest: bestOf([test?.agility505Left, test?.agility505Right], true),
@@ -220,7 +229,10 @@ export async function GET(
         id: true,
         clientId: true,
         testDate: true,
+        sprint5m: true,
         sprint10m: true,
+        sprint20m: true,
+        sprint30m: true,
         sprint20mFly: true,
         sprint30mFly: true,
         agility505Left: true,
