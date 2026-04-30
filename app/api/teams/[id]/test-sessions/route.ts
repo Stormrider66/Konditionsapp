@@ -51,6 +51,16 @@ interface HockeyMetric {
 
 type HockeyMetricValues = Record<string, number | null>
 type HockeyMetricRanks = Record<string, { rank: number; percentile: number } | null>
+type HockeyBenchmarkBand = 'top' | 'above' | 'team' | 'watch' | 'priority'
+type HockeyMetricBenchmarks = Record<string, {
+  zScore: number | null
+  percentile: number | null
+  positionZScore: number | null
+  positionPercentile: number | null
+  positionRank: number | null
+  positionCoverage: number
+  band: HockeyBenchmarkBand
+} | null>
 
 const DEFAULT_DAYS = 365
 
@@ -124,6 +134,52 @@ function percentileFromRank(rank: number, coverage: number): number {
   return Math.round(((coverage - rank) / (coverage - 1)) * 100)
 }
 
+function benchmarkBand(percentile: number | null): HockeyBenchmarkBand {
+  if (percentile == null) return 'team'
+  if (percentile >= 80) return 'top'
+  if (percentile >= 60) return 'above'
+  if (percentile >= 40) return 'team'
+  if (percentile >= 20) return 'watch'
+  return 'priority'
+}
+
+function normalizeHockeyPosition(position: string | null | undefined): { key: string; label: string } {
+  const raw = (position ?? '').trim().toLowerCase()
+  if (!raw) return { key: 'unknown', label: 'Position saknas' }
+  if (['g', 'goalie', 'goalkeeper', 'målvakt', 'malvakt'].some((needle) => raw.includes(needle))) {
+    return { key: 'G', label: 'Målvakt' }
+  }
+  if (['d', 'defense', 'defence', 'defender', 'back'].some((needle) => raw === needle || raw.includes(needle))) {
+    return { key: 'D', label: 'Back' }
+  }
+  if (['c', 'center', 'centre', 'centerforward'].some((needle) => raw === needle || raw.includes(needle))) {
+    return { key: 'C', label: 'Center' }
+  }
+  if (['w', 'wing', 'winger', 'forward', 'fwd', 'lw', 'rw'].some((needle) => raw === needle || raw.includes(needle))) {
+    return { key: 'W', label: 'Forward/ving' }
+  }
+  return { key: raw.toUpperCase().slice(0, 12), label: position ?? 'Övrig' }
+}
+
+function orientedMetricValue(value: number | null, metric: HockeyMetric): number | null {
+  if (value == null || !Number.isFinite(value)) return null
+  return metric.lowerIsBetter ? -value : value
+}
+
+function mean(values: number[]): number | null {
+  if (values.length === 0) return null
+  return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
+function standardDeviation(values: number[]): number | null {
+  if (values.length < 2) return null
+  const avg = mean(values)
+  if (avg == null) return null
+  const variance = values.reduce((sum, value) => sum + Math.pow(value - avg, 2), 0) / values.length
+  const sd = Math.sqrt(variance)
+  return sd > 0 ? sd : null
+}
+
 function metricValuesForTest(test: HockeyTestForSummary | undefined): HockeyMetricValues {
   const beepScore = test?.beepTestLevel
     ? test.beepTestLevel + ((test.beepTestShuttle ?? 0) / 10)
@@ -193,7 +249,7 @@ export async function GET(
       select: {
         id: true,
         name: true,
-        members: { select: { id: true, name: true } },
+        members: { select: { id: true, name: true, position: true } },
       },
     })
     if (!team) {
@@ -311,9 +367,11 @@ export async function GET(
       return {
         id: member.id,
         name: member.name,
+        position: normalizeHockeyPosition(member.position),
         latestTestDate: latest?.testDate.toISOString().slice(0, 10) ?? null,
         metrics,
         ranks: {} as HockeyMetricRanks,
+        benchmarks: {} as HockeyMetricBenchmarks,
       }
     })
 
@@ -342,6 +400,62 @@ export async function GET(
         }
       })
 
+      const orientedTeamValues = values
+        .map((row) => orientedMetricValue(row.value, metric))
+        .filter((value): value is number => value != null)
+      const teamMean = mean(orientedTeamValues)
+      const teamSd = standardDeviation(orientedTeamValues)
+      const valuesByPosition = new Map<string, typeof values>()
+      for (const row of values) {
+        const athlete = hockeyAthletes.find((candidate) => candidate.id === row.athleteId)
+        const key = athlete?.position.key ?? 'unknown'
+        const positionRows = valuesByPosition.get(key) ?? []
+        positionRows.push(row)
+        valuesByPosition.set(key, positionRows)
+      }
+
+      for (const athlete of hockeyAthletes) {
+        const value = athlete.metrics[metric.key]
+        const orientedValue = orientedMetricValue(value, metric)
+        const teamPercentile = athlete.ranks[metric.key]?.percentile ?? null
+        let positionZScore: number | null = null
+        let positionPercentile: number | null = null
+        let positionRank: number | null = null
+        let positionCoverage = 0
+
+        if (value != null) {
+          const positionRows = valuesByPosition.get(athlete.position.key) ?? []
+          positionCoverage = positionRows.length
+          const positionIndex = positionRows.findIndex((row) => row.athleteId === athlete.id)
+          if (positionIndex >= 0) {
+            positionRank = positionIndex + 1
+            positionPercentile = percentileFromRank(positionRank, positionRows.length)
+          }
+          const orientedPositionValues = positionRows
+            .map((row) => orientedMetricValue(row.value, metric))
+            .filter((candidate): candidate is number => candidate != null)
+          const positionMean = mean(orientedPositionValues)
+          const positionSd = standardDeviation(orientedPositionValues)
+          positionZScore = orientedValue != null && positionMean != null && positionSd != null
+            ? round((orientedValue - positionMean) / positionSd, 2)
+            : null
+        }
+
+        athlete.benchmarks[metric.key] = value == null
+          ? null
+          : {
+              zScore: orientedValue != null && teamMean != null && teamSd != null
+                ? round((orientedValue - teamMean) / teamSd, 2)
+                : null,
+              percentile: teamPercentile,
+              positionZScore,
+              positionPercentile,
+              positionRank,
+              positionCoverage,
+              band: benchmarkBand(positionPercentile ?? teamPercentile),
+            }
+      }
+
       return {
         ...metric,
         coverage: values.length,
@@ -349,6 +463,18 @@ export async function GET(
         leader: values[0] ?? null,
       }
     })
+
+    const hockeyPositions = Array.from(
+      hockeyAthletes.reduce((map, athlete) => {
+        const existing = map.get(athlete.position.key)
+        map.set(athlete.position.key, {
+          ...athlete.position,
+          athleteCount: (existing?.athleteCount ?? 0) + 1,
+        })
+        return map
+      }, new Map<string, { key: string; label: string; athleteCount: number }>())
+        .values()
+    ).sort((a, b) => a.label.localeCompare(b.label, 'sv'))
 
     const hockeyTestsByAthlete = new Map<string, typeof hockeyTests>()
     for (const test of hockeyTests) {
@@ -426,6 +552,7 @@ export async function GET(
           athletes: hockeyAthletes,
           leaders: hockeyLeaders,
           history: hockeyHistory,
+          positions: hockeyPositions,
           testCount: hockeyTests.length,
         },
       },

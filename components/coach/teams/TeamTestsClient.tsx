@@ -105,12 +105,24 @@ interface HockeyMetric {
   lowerIsBetter?: boolean
 }
 
+type HockeyBenchmarkBand = 'top' | 'above' | 'team' | 'watch' | 'priority'
+
 interface HockeyAthleteRow {
   id: string
   name: string
+  position: { key: string; label: string }
   latestTestDate: string | null
   metrics: Record<string, number | null>
   ranks: Record<string, { rank: number; percentile: number } | null>
+  benchmarks: Record<string, {
+    zScore: number | null
+    percentile: number | null
+    positionZScore: number | null
+    positionPercentile: number | null
+    positionRank: number | null
+    positionCoverage: number
+    band: HockeyBenchmarkBand
+  } | null>
 }
 
 interface HockeyLeader {
@@ -144,6 +156,7 @@ interface HockeyTeamSummary {
   athletes: HockeyAthleteRow[]
   leaders: HockeyLeader[]
   history: HockeyHistoryMetric[]
+  positions: Array<{ key: string; label: string; athleteCount: number }>
   testCount: number
 }
 
@@ -180,10 +193,26 @@ function getRankVariant(percentile: number): 'default' | 'secondary' | 'outline'
   return 'outline'
 }
 
+function getBenchmarkLabel(band: HockeyBenchmarkBand): string {
+  switch (band) {
+    case 'top':
+      return 'Topp 20%'
+    case 'above':
+      return 'Över snitt'
+    case 'watch':
+      return 'Följ upp'
+    case 'priority':
+      return 'Prioritet'
+    default:
+      return 'Lagspann'
+  }
+}
+
 export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientProps) {
   const [sessions, setSessions] = useState<TestSession[]>([])
   const [hockey, setHockey] = useState<HockeyTeamSummary | null>(null)
   const [selectedHockeyMetric, setSelectedHockeyMetric] = useState('muscleLabWkg')
+  const [selectedPosition, setSelectedPosition] = useState('all')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
@@ -279,6 +308,8 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   }
 
   const hockeyExportHref = `/api/teams/${teamId}/hockey-tests/export`
+  const hockeyAthletes = hockey?.athletes
+    .filter((athlete) => selectedPosition === 'all' || athlete.position.key === selectedPosition) ?? []
   const selectedHistory = hockey?.history.find((metric) => metric.key === selectedHockeyMetric)
     ?? hockey?.history.find((metric) => metric.teamTrend.length > 0)
   const hockeyChangeRows = selectedHistory?.athletes
@@ -323,7 +354,29 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                 ))}
             </div>
 
-            {hockey.athletes.some((athlete) => athlete.latestTestDate) ? (
+            <div className="flex items-center justify-between gap-3 flex-wrap rounded-md border bg-muted/10 px-3 py-2">
+              <div>
+                <p className="text-sm font-semibold">Normer och percentiler</p>
+                <p className="text-xs text-muted-foreground">
+                  Z-score räknas mot laget, percentil mot både lag och spelarens position.
+                </p>
+              </div>
+              <Select value={selectedPosition} onValueChange={setSelectedPosition}>
+                <SelectTrigger className="h-8 w-[190px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alla positioner</SelectItem>
+                  {hockey.positions.map((position) => (
+                    <SelectItem key={position.key} value={position.key}>
+                      {position.label} ({position.athleteCount})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {hockeyAthletes.some((athlete) => athlete.latestTestDate) ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
@@ -331,6 +384,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       <th className="sticky left-0 z-10 bg-background px-3 py-2 text-left font-medium min-w-40">
                         Spelare
                       </th>
+                      <th className="px-3 py-2 text-left font-medium whitespace-nowrap">Position</th>
                       <th className="px-3 py-2 text-left font-medium whitespace-nowrap">Senast</th>
                       {hockey.metrics.map((metric) => (
                         <th key={metric.key} className="px-3 py-2 text-right font-medium whitespace-nowrap">
@@ -340,7 +394,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                     </tr>
                   </thead>
                   <tbody>
-                    {hockey.athletes.map((athlete) => (
+                    {hockeyAthletes.map((athlete) => (
                       <tr key={athlete.id} className="border-b last:border-0">
                         <td className="sticky left-0 z-10 bg-background px-3 py-2 font-medium">
                           <Link href={`${basePath}/clients/${athlete.id}/profile?tab=hockey`} className="hover:underline">
@@ -348,10 +402,17 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                           </Link>
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                          {athlete.position.label}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
                           {athlete.latestTestDate ? new Date(athlete.latestTestDate).toLocaleDateString('sv-SE') : '–'}
                         </td>
                         {hockey.metrics.map((metric) => (
                           <td key={metric.key} className="px-3 py-2 text-right font-mono whitespace-nowrap">
+                            {(() => {
+                              const benchmark = athlete.benchmarks[metric.key]
+                              return (
+                                <>
                             <div>{formatMetricValue(athlete.metrics[metric.key], metric.unit)}</div>
                             {athlete.ranks[metric.key] && (
                               <Badge
@@ -361,6 +422,26 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                                 #{athlete.ranks[metric.key]?.rank} · P{athlete.ranks[metric.key]?.percentile}
                               </Badge>
                             )}
+                                  {benchmark && (
+                                    <div className="mt-1 flex justify-end gap-1">
+                                      <Badge variant={getRankVariant(benchmark.positionPercentile ?? benchmark.percentile ?? 0)} className="h-4 px-1.5 text-[9px] font-normal">
+                                        {getBenchmarkLabel(benchmark.band)}
+                                      </Badge>
+                                      {benchmark.positionRank && benchmark.positionCoverage > 1 && (
+                                        <Badge variant="outline" className="h-4 px-1.5 text-[9px] font-normal">
+                                          Pos #{benchmark.positionRank}/{benchmark.positionCoverage}
+                                        </Badge>
+                                      )}
+                                      {benchmark.zScore != null && (
+                                        <Badge variant="outline" className="h-4 px-1.5 text-[9px] font-normal">
+                                          z {benchmark.zScore > 0 ? '+' : ''}{benchmark.zScore.toFixed(2)}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  )}
+                                </>
+                              )
+                            })()}
                           </td>
                         ))}
                       </tr>
