@@ -1,8 +1,8 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
 import {
   Shield,
   Timer,
@@ -22,6 +22,20 @@ interface HockeyAthleteViewProps {
   clientId: string
   clientName: string
   settings?: Record<string, unknown>
+}
+
+interface HockeyTestSummary {
+  id: string
+  testDate: string
+  sourceType: string
+  notes: string | null
+  metrics: Record<string, number | null>
+}
+
+interface HockeySummaryResponse {
+  latest: HockeyTestSummary | null
+  history: HockeyTestSummary[]
+  count: number
 }
 
 const POSITION_LABELS: Record<string, string> = {
@@ -110,11 +124,54 @@ const PHASE_RECOMMENDATIONS: Record<string, { focus: string[]; avoid: string[] }
   },
 }
 
+const PHYSICAL_METRICS = [
+  { key: 'muscleLabWkg', label: 'MuscleLab', unit: 'W/kg', decimals: 1 },
+  { key: 'backSquat1RM', label: 'Knäböj', unit: 'kg', decimals: 0 },
+  { key: 'powerClean1RM', label: 'Power clean', unit: 'kg', decimals: 0 },
+  { key: 'standingLongJump', label: 'Längdhopp', unit: 'cm', decimals: 0 },
+  { key: 'sprint10m', label: '10m is', unit: 's', decimals: 2 },
+  { key: 'agilityBest', label: '5-10-5', unit: 's', decimals: 2 },
+  { key: 'beepScore', label: 'Beep', unit: '', decimals: 1 },
+  { key: 'enduranceFatigueDrop', label: '7x40 drop', unit: '%', decimals: 1 },
+] as const
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('sv-SE', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+function formatMetric(value: number | null | undefined, unit: string, decimals: number): string {
+  if (value == null) return '-'
+  return `${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
+}
+
 export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthleteViewProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+  const [summary, setSummary] = useState<HockeySummaryResponse | null>(null)
 
   const hockeySettings = settings as HockeySettings | undefined
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadSummary() {
+      const res = await fetch(`/api/clients/${clientId}/hockey-tests/summary`)
+      if (!res.ok) return
+      const body = await res.json()
+      if (!cancelled && body.success) {
+        setSummary(body.data)
+      }
+    }
+
+    void loadSummary()
+    return () => {
+      cancelled = true
+    }
+  }, [clientId])
 
   if (!hockeySettings) {
     return (
@@ -205,6 +262,68 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
               {PLAYSTYLE_LABELS[hockeySettings.playStyle]}
             </Badge>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
+            <Activity className="h-4 w-4 text-cyan-500" />
+            Fysprofil
+          </CardTitle>
+          <CardDescription style={{ color: theme.colors.textMuted }}>
+            Senaste hockeytest för {clientName}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {summary?.latest ? (
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <Badge variant="secondary">{formatDate(summary.latest.testDate)}</Badge>
+                <Badge variant="outline">
+                  {summary.latest.sourceType === 'MUSCLE_LAB_IMPORT' ? 'MuscleLab' : 'Manuell'}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {PHYSICAL_METRICS.map((metric) => (
+                  <div
+                    key={metric.key}
+                    className="rounded-lg border p-3"
+                    style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}
+                  >
+                    <div className="text-[10px] uppercase tracking-wide" style={{ color: theme.colors.textMuted }}>
+                      {metric.label}
+                    </div>
+                    <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
+                      {formatMetric(summary.latest?.metrics[metric.key], metric.unit, metric.decimals)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {summary.history.length > 1 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>Senaste historik</h4>
+                  <div className="divide-y rounded-lg border" style={{ borderColor: theme.colors.border }}>
+                    {summary.history.slice(0, 5).map((test) => (
+                      <div key={test.id} className="grid grid-cols-3 gap-2 px-3 py-2 text-xs">
+                        <span style={{ color: theme.colors.textMuted }}>{formatDate(test.testDate)}</span>
+                        <span style={{ color: theme.colors.textPrimary }}>
+                          {formatMetric(test.metrics.muscleLabWkg, 'W/kg', 1)}
+                        </span>
+                        <span style={{ color: theme.colors.textPrimary }}>
+                          10m {formatMetric(test.metrics.sprint10m, 's', 2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-sm" style={{ color: theme.colors.textMuted }}>
+              Inga hockeytester registrerade ännu. När tester loggas visas senaste värden, historik och nyckelflaggor här.
+            </p>
+          )}
         </CardContent>
       </Card>
 
