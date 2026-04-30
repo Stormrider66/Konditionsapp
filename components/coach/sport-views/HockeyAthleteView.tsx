@@ -15,6 +15,7 @@ import {
   Activity,
   ArrowDown,
   ArrowUp,
+  Medal,
 } from 'lucide-react'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import type { HockeySettings } from '@/components/onboarding/HockeyOnboarding'
@@ -42,6 +43,13 @@ interface HockeyTrend {
   isImprovement: boolean
 }
 
+interface HockeyBest {
+  key: string
+  value: number
+  testDate: string
+  testId: string
+}
+
 interface HockeyFlag {
   key: string
   severity: 'info' | 'warning'
@@ -51,6 +59,7 @@ interface HockeyFlag {
 interface HockeySummaryResponse {
   latest: HockeyTestSummary | null
   previous: HockeyTestSummary | null
+  bests: Record<string, HockeyBest | null>
   trends: HockeyTrend[]
   flags: HockeyFlag[]
   history: HockeyTestSummary[]
@@ -147,12 +156,47 @@ const PHYSICAL_METRICS = [
   { key: 'muscleLabWkg', label: 'MuscleLab', unit: 'W/kg', decimals: 1 },
   { key: 'backSquat1RM', label: 'Knäböj', unit: 'kg', decimals: 0 },
   { key: 'powerClean1RM', label: 'Power clean', unit: 'kg', decimals: 0 },
+  { key: 'benchPress1RM', label: 'Bänkpress', unit: 'kg', decimals: 0 },
+  { key: 'pullUp1RM', label: 'Pull-up 1RM', unit: 'kg', decimals: 0 },
+  { key: 'gripMax', label: 'Grepp max', unit: 'kg', decimals: 0 },
   { key: 'standingLongJump', label: 'Längdhopp', unit: 'cm', decimals: 0 },
+  { key: 'threeJumpBest', label: '3-steg', unit: 'cm', decimals: 0 },
+  { key: 'sprint5m', label: '5m is', unit: 's', decimals: 2 },
   { key: 'sprint10m', label: '10m is', unit: 's', decimals: 2 },
+  { key: 'sprint20m', label: '20m is', unit: 's', decimals: 2 },
+  { key: 'sprint30m', label: '30m is', unit: 's', decimals: 2 },
   { key: 'agilityBest', label: '5-10-5', unit: 's', decimals: 2 },
   { key: 'beepScore', label: 'Beep', unit: '', decimals: 1 },
   { key: 'enduranceFatigueDrop', label: '7x40 drop', unit: '%', decimals: 1 },
 ] as const
+
+const SNAPSHOT_METRICS = [
+  'muscleLabWkg',
+  'backSquat1RM',
+  'powerClean1RM',
+  'sprint10m',
+  'sprint30m',
+  'agilityBest',
+  'standingLongJump',
+  'enduranceFatigueDrop',
+] as const
+
+const BEST_METRICS = [
+  'muscleLabWkg',
+  'backSquat1RM',
+  'powerClean1RM',
+  'benchPress1RM',
+  'pullUp1RM',
+  'gripMax',
+  'standingLongJump',
+  'threeJumpBest',
+  'sprint5m',
+  'sprint10m',
+  'sprint30m',
+  'agilityBest',
+] as const
+
+const METRIC_BY_KEY = new Map(PHYSICAL_METRICS.map((metric) => [metric.key, metric]))
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('sv-SE', {
@@ -222,6 +266,12 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
     ? Math.round((hockeySettings.averageIceTimeMinutes * 60) / hockeySettings.shiftsPerGame)
     : null
   const trendByKey = new Map(summary?.trends.map((trend) => [trend.key, trend]) ?? [])
+  const snapshotMetrics = SNAPSHOT_METRICS
+    .map((key) => METRIC_BY_KEY.get(key))
+    .filter((metric): metric is (typeof PHYSICAL_METRICS)[number] => metric != null)
+  const bestMetrics = BEST_METRICS
+    .map((key) => METRIC_BY_KEY.get(key))
+    .filter((metric): metric is (typeof PHYSICAL_METRICS)[number] => metric != null)
 
   return (
     <div className="space-y-4">
@@ -310,9 +360,11 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
                 </Badge>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {PHYSICAL_METRICS.map((metric) => {
+                {snapshotMetrics.map((metric) => {
                   const trend = trendByKey.get(metric.key)
                   const TrendIcon = trend?.direction === 'up' ? ArrowUp : ArrowDown
+                  const best = summary.bests[metric.key]
+                  const isBest = best?.testId === summary.latest?.id
 
                   return (
                     <div
@@ -326,6 +378,11 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
                       <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                         {formatMetric(summary.latest?.metrics[metric.key], metric.unit, metric.decimals)}
                       </div>
+                      {isBest && (
+                        <Badge variant="secondary" className="mt-1 h-4 px-1.5 text-[9px]">
+                          Bästa
+                        </Badge>
+                      )}
                       {trend && (
                         <div className={trend.isImprovement ? 'mt-1 flex items-center gap-1 text-[11px] text-emerald-600' : 'mt-1 flex items-center gap-1 text-[11px] text-amber-600'}>
                           <TrendIcon className="h-3 w-3" />
@@ -337,6 +394,38 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
                   )
                 })}
               </div>
+              {Object.values(summary.bests).some(Boolean) && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium flex items-center gap-1.5" style={{ color: theme.colors.textPrimary }}>
+                    <Medal className="h-4 w-4 text-amber-500" />
+                    Bestnoteringar
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {bestMetrics.map((metric) => {
+                      const best = summary.bests[metric.key]
+                      if (!best) return null
+
+                      return (
+                        <div
+                          key={metric.key}
+                          className="rounded-lg border px-3 py-2"
+                          style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}
+                        >
+                          <div className="text-[10px] uppercase tracking-wide" style={{ color: theme.colors.textMuted }}>
+                            {metric.label}
+                          </div>
+                          <div className="font-mono text-sm font-semibold" style={{ color: theme.colors.textPrimary }}>
+                            {formatMetric(best.value, metric.unit, metric.decimals)}
+                          </div>
+                          <div className="text-[10px]" style={{ color: theme.colors.textMuted }}>
+                            {formatDate(best.testDate)}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
               {summary.flags.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>Coachflaggor</h4>
@@ -358,13 +447,16 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
                   <h4 className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>Senaste historik</h4>
                   <div className="divide-y rounded-lg border" style={{ borderColor: theme.colors.border }}>
                     {summary.history.slice(0, 5).map((test) => (
-                      <div key={test.id} className="grid grid-cols-3 gap-2 px-3 py-2 text-xs">
+                      <div key={test.id} className="grid grid-cols-4 gap-2 px-3 py-2 text-xs">
                         <span style={{ color: theme.colors.textMuted }}>{formatDate(test.testDate)}</span>
                         <span style={{ color: theme.colors.textPrimary }}>
                           {formatMetric(test.metrics.muscleLabWkg, 'W/kg', 1)}
                         </span>
                         <span style={{ color: theme.colors.textPrimary }}>
                           10m {formatMetric(test.metrics.sprint10m, 's', 2)}
+                        </span>
+                        <span style={{ color: theme.colors.textPrimary }}>
+                          30m {formatMetric(test.metrics.sprint30m, 's', 2)}
                         </span>
                       </div>
                     ))}

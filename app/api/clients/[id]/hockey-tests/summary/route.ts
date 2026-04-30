@@ -29,6 +29,13 @@ interface HockeyTrend {
   isImprovement: boolean
 }
 
+interface HockeyBest {
+  key: string
+  value: number
+  testDate: string
+  testId: string
+}
+
 interface HockeyFlag {
   key: string
   severity: 'info' | 'warning'
@@ -133,6 +140,30 @@ function buildTrends(latest: HockeySummary | null, previous: HockeySummary | nul
       }
     })
     .filter((trend): trend is HockeyTrend => trend != null)
+}
+
+function buildBests(history: HockeySummary[]): Record<string, HockeyBest | null> {
+  const metricKeys = new Set(history.flatMap((test) => Object.keys(test.metrics)))
+  const bests: Record<string, HockeyBest | null> = {}
+
+  for (const key of metricKeys) {
+    const lowerIsBetter = LOWER_IS_BETTER.has(key)
+    const candidates = history
+      .map((test) => ({ test, value: test.metrics[key] }))
+      .filter((row): row is { test: HockeySummary; value: number } => row.value != null)
+      .sort((a, b) => lowerIsBetter ? a.value - b.value : b.value - a.value)
+
+    bests[key] = candidates[0]
+      ? {
+          key,
+          value: candidates[0].value,
+          testDate: candidates[0].test.testDate,
+          testId: candidates[0].test.id,
+        }
+      : null
+  }
+
+  return bests
 }
 
 function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): HockeyFlag[] {
@@ -241,12 +272,14 @@ export async function GET(
     const latest = history[0] ?? null
     const previous = history[1] ?? null
     const trends = buildTrends(latest, previous)
+    const bests = buildBests(history)
 
     return NextResponse.json({
       success: true,
       data: {
         latest,
         previous,
+        bests,
         trends,
         flags: buildFlags(latest, trends),
         history,
