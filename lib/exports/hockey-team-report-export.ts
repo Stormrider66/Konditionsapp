@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import { buildHockeyActionItems, type HockeyActionItem } from '@/lib/hockey/team-action-plan'
 
 type HockeyBenchmarkBand = 'top' | 'above' | 'team' | 'watch' | 'priority'
 
@@ -227,6 +228,55 @@ function drawTrend(pdf: jsPDF, metric: HockeyHistoryMetric, y: number): number {
   return chartY + height + 10
 }
 
+function actionPlan(pdf: jsPDF, actions: HockeyActionItem[], y: number): number {
+  if (actions.length === 0) return y
+  const itemHeight = 24
+  y = addPageIfNeeded(pdf, y, 10 + actions.length * itemHeight)
+
+  actions.forEach((item) => {
+    y = addPageIfNeeded(pdf, y, itemHeight + 4)
+    const color: [number, number, number] = item.severity === 'priority'
+      ? [220, 38, 38]
+      : item.severity === 'watch'
+        ? [217, 119, 6]
+        : [37, 99, 235]
+
+    pdf.setFillColor(248, 250, 252)
+    pdf.setDrawColor(226, 232, 240)
+    pdf.roundedRect(MARGIN, y, CONTENT_WIDTH, itemHeight, 2, 2, 'FD')
+    pdf.setFillColor(...color)
+    pdf.roundedRect(MARGIN + 2, y + 3, 2, itemHeight - 6, 1, 1, 'F')
+
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(9)
+    pdf.setTextColor(30, 30, 30)
+    pdf.text(item.title, MARGIN + 7, y + 6)
+
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(7)
+    pdf.setTextColor(80, 80, 80)
+    const description = pdf.splitTextToSize(item.description, CONTENT_WIDTH - 48).slice(0, 2)
+    pdf.text(description, MARGIN + 7, y + 11)
+
+    pdf.setFontSize(6.5)
+    pdf.setTextColor(105, 105, 105)
+    const athleteNames = item.athletes.map((athlete) => athlete.name).join(', ')
+    if (athleteNames) {
+      pdf.text(pdf.splitTextToSize(athleteNames, CONTENT_WIDTH - 48).slice(0, 1), MARGIN + 7, y + 20)
+    }
+
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(7)
+    pdf.setTextColor(...color)
+    const label = item.severity === 'priority' ? 'Priority' : item.severity === 'watch' ? 'Follow up' : 'Info'
+    pdf.text(label, PAGE_WIDTH - MARGIN - 24, y + 6)
+
+    y += itemHeight + 3
+  })
+
+  return y + 2
+}
+
 export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   let y = 20
@@ -267,6 +317,12 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
     ['Metrics tracked', `${data.metrics.length}`],
     ['Watchlist', `${priorityItems.length}`, 'priority/watch flags'],
   ], y)
+
+  const actions = buildHockeyActionItems(data)
+  if (actions.length > 0) {
+    y = sectionTitle(pdf, 'Coach action plan', y)
+    y = actionPlan(pdf, actions, y)
+  }
 
   y = sectionTitle(pdf, 'Leaders', y)
   y = table(

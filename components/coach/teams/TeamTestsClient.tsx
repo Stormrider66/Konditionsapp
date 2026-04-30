@@ -80,6 +80,7 @@ import {
   YAxis,
 } from 'recharts'
 import { toast } from 'sonner'
+import { buildHockeyActionItems, type HockeyActionItem } from '@/lib/hockey/team-action-plan'
 
 interface PRRow {
   id: string
@@ -163,15 +164,6 @@ interface HockeyTeamSummary {
   testCount: number
 }
 
-interface HockeyActionItem {
-  id: string
-  title: string
-  description: string
-  athletes: Array<{ id: string; name: string }>
-  severity: 'priority' | 'watch' | 'info'
-  href?: string
-}
-
 interface TeamTestsClientProps {
   teamId: string
   teamName: string
@@ -218,114 +210,6 @@ function getBenchmarkLabel(band: HockeyBenchmarkBand): string {
     default:
       return 'Lagspann'
   }
-}
-
-function metricFocus(metricKey: string): { title: string; description: string } {
-  if (['sprint5m', 'sprint10m', 'sprint20m', 'sprint30m', 'sprint20mFly', 'sprint30mFly', 'agilityBest'].includes(metricKey)) {
-    return {
-      title: 'Acceleration och riktningsförändring',
-      description: 'Planera korta isaccelerationer, 5-10-5-teknik och full återhämtning mellan kvalitetsreps.',
-    }
-  }
-  if (['muscleLabWkg', 'standingLongJump', 'threeJumpBest'].includes(metricKey)) {
-    return {
-      title: 'Explosiv underkroppskraft',
-      description: 'Lägg in power-block med hopp, loaded jump squat och kontrastpar där hastigheten styr belastningen.',
-    }
-  }
-  if (['backSquat1RM', 'powerClean1RM', 'benchPress1RM', 'pullUp1RM', 'gripMax'].includes(metricKey)) {
-    return {
-      title: 'Maxstyrka och robusthet',
-      description: 'Prioritera baslyft, grepp/överkropp och progressiv styrka utan att störa match- eller istäthet.',
-    }
-  }
-  if (['beepScore', 'endurance7x40Best', 'endurance7x40Drop'].includes(metricKey)) {
-    return {
-      title: 'Repeated shift conditioning',
-      description: 'Använd upprepade 30-45 sek arbetsblock, låg falloff och kontrollerad återhämtning mellan serier.',
-    }
-  }
-  return {
-    title: 'Fysisk kapacitet',
-    description: 'Följ upp med riktad träning och nytt test när blocket är avslutat.',
-  }
-}
-
-function buildHockeyActionItems(hockey: HockeyTeamSummary, basePath: string): HockeyActionItem[] {
-  const actions: HockeyActionItem[] = []
-  const missingAthletes = hockey.athletes.filter((athlete) => !athlete.latestTestDate)
-
-  if (missingAthletes.length > 0) {
-    actions.push({
-      id: 'missing-tests',
-      title: 'Komplettera testtäckning',
-      description: `${missingAthletes.length} spelare saknar hockeytest i matrisen. Kör minsta batteriet: sprint, hopp, styrka och en konditionsmarkör.`,
-      athletes: missingAthletes.slice(0, 6).map((athlete) => ({ id: athlete.id, name: athlete.name })),
-      severity: 'info',
-      href: `${basePath}/hockey-tests`,
-    })
-  }
-
-  const byFocus = new Map<string, {
-    title: string
-    description: string
-    priority: number
-    watch: number
-    athleteMap: Map<string, { id: string; name: string }>
-  }>()
-
-  hockey.athletes.forEach((athlete) => {
-    hockey.metrics.forEach((metric) => {
-      const benchmark = athlete.benchmarks[metric.key]
-      if (!benchmark || !['priority', 'watch'].includes(benchmark.band)) return
-      const focus = metricFocus(metric.key)
-      const current = byFocus.get(focus.title) ?? {
-        ...focus,
-        priority: 0,
-        watch: 0,
-        athleteMap: new Map<string, { id: string; name: string }>(),
-      }
-      if (benchmark.band === 'priority') current.priority += 1
-      else current.watch += 1
-      current.athleteMap.set(athlete.id, { id: athlete.id, name: athlete.name })
-      byFocus.set(focus.title, current)
-    })
-  })
-
-  Array.from(byFocus.entries())
-    .sort(([, a], [, b]) => (b.priority - a.priority) || (b.watch - a.watch))
-    .slice(0, 4)
-    .forEach(([key, group]) => {
-      actions.push({
-        id: `focus-${key}`,
-        title: group.title,
-        description: `${group.priority} prioritet och ${group.watch} följ upp-markeringar. ${group.description}`,
-        athletes: Array.from(group.athleteMap.values()).slice(0, 6),
-        severity: group.priority > 0 ? 'priority' : 'watch',
-      })
-    })
-
-  const declining = hockey.history.flatMap((metric) =>
-    metric.athletes
-      .filter((athlete) => athlete.delta != null && athlete.delta < 0)
-      .map((athlete) => ({ metric, athlete, drop: athlete.delta as number }))
-  )
-    .sort((a, b) => a.drop - b.drop)
-    .slice(0, 6)
-
-  if (declining.length > 0) {
-    const athletes = new Map<string, { id: string; name: string }>()
-    declining.forEach((row) => athletes.set(row.athlete.id, { id: row.athlete.id, name: row.athlete.name }))
-    actions.push({
-      id: 'declining',
-      title: 'Följ upp negativ trend',
-      description: `${declining.length} mätvärden har försämrats jämfört med föregående test. Kontrollera belastning, återhämtning och testkontext innan nästa block.`,
-      athletes: Array.from(athletes.values()).slice(0, 6),
-      severity: 'watch',
-    })
-  }
-
-  return actions.slice(0, 6)
 }
 
 export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientProps) {
@@ -455,7 +339,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     .filter((athlete) => athlete.latest != null)
     .sort((a, b) => (b.delta ?? -Infinity) - (a.delta ?? -Infinity))
     .slice(0, 8) ?? []
-  const hockeyActionItems = hockey ? buildHockeyActionItems(hockey, basePath) : []
+  const hockeyActionItems: HockeyActionItem[] = hockey ? buildHockeyActionItems(hockey, { basePath }) : []
 
   return (
     <div className="space-y-6">
