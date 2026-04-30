@@ -100,3 +100,40 @@ export async function GET(
     )
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string; importId: string }> }
+) {
+  try {
+    const { id: teamId, importId } = await params
+    const auth = await authorizeTeam(teamId)
+    if (auth.error) return auth.error
+
+    const model = await prisma.mVAModel.findFirst({
+      where: {
+        id: importId,
+        teamId,
+        modelType: 'SIMCA_IMPORT',
+        status: 'IMPORTED',
+      },
+      select: { id: true },
+    })
+
+    if (!model) {
+      return NextResponse.json({ success: false, error: 'SIMCA-import hittades inte' }, { status: 404 })
+    }
+
+    await prisma.mVAModel.delete({
+      where: { id: model.id },
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('SIMCA import delete error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Serverfel vid borttagning av SIMCA-import' },
+      { status: 500 }
+    )
+  }
+}
