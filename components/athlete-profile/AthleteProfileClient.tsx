@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Activity, Trophy, Scale, Calendar, Heart, Gauge, Video, Target } from 'lucide-react'
+import { ArrowLeft, Activity, Trophy, Scale, Calendar, Heart, Gauge, Video, Target, Shield } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
@@ -17,6 +17,7 @@ import { InjuryHealthTab } from './tabs/InjuryHealthTab'
 import { ReadinessTab } from './tabs/ReadinessTab'
 import { TechniqueTab } from './tabs/TechniqueTab'
 import { GoalsPlanningTab } from './tabs/GoalsPlanningTab'
+import { HockeyAthleteView } from '@/components/coach/sport-views/HockeyAthleteView'
 import { cn } from '@/lib/utils'
 
 interface AthleteProfileClientProps {
@@ -38,11 +39,13 @@ const PROFILE_TABS = [
   { id: 'goals', label: 'Mål', icon: Target },
 ] as const
 
+const HOCKEY_SPORT = 'TEAM_ICE_HOCKEY'
+
 export function AthleteProfileClient({
   data,
   viewMode,
   initialTab,
-  currentUserId,
+  currentUserId: _currentUserId,
   basePath = '',
 }: AthleteProfileClientProps) {
   const router = useRouter()
@@ -51,6 +54,13 @@ export function AthleteProfileClient({
   const isAthlete = viewMode === 'athlete'
   const client = data.identity.client!
   const backLink = viewMode === 'coach' ? `${basePath}/coach/clients/${client.id}` : `${basePath}/athlete/dashboard`
+  const sportProfile = data.identity.sportProfile
+  const hasHockeyProfile = sportProfile
+    ? sportProfile.primarySport === HOCKEY_SPORT || sportProfile.secondarySports.includes(HOCKEY_SPORT)
+    : false
+  const visibleTabs = hasHockeyProfile
+    ? [...PROFILE_TABS, { id: 'hockey', label: 'Hockey', icon: Shield }]
+    : PROFILE_TABS
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -100,7 +110,7 @@ export function AthleteProfileClient({
                 "w-full justify-start overflow-x-auto flex-nowrap h-auto mb-8 p-1.5 rounded-2xl",
                 isAthlete ? "bg-white border-slate-200 dark:bg-white/5 dark:border-white/5 shadow-sm dark:shadow-none transition-colors" : "bg-white border"
               )}>
-                {PROFILE_TABS.map((tab) => {
+                {visibleTabs.map((tab) => {
                   const Icon = tab.icon
                   return (
                     <TabsTrigger
@@ -153,6 +163,16 @@ export function AthleteProfileClient({
                 <TabsContent value="goals" className="mt-0">
                   <GoalsPlanningTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} basePath={basePath} />
                 </TabsContent>
+
+                {hasHockeyProfile && (
+                  <TabsContent value="hockey" className="mt-0">
+                    <HockeyAthleteView
+                      clientId={client.id}
+                      clientName={client.name}
+                      settings={sportProfile?.hockeySettings ?? undefined}
+                    />
+                  </TabsContent>
+                )}
               </div>
             </Tabs>
           </div>

@@ -80,6 +80,7 @@ interface SportProfileData {
   triathlonSettings: Record<string, unknown> | null
   hyroxSettings: Record<string, unknown> | null
   skiingSettings: Record<string, unknown> | null
+  hockeySettings: Record<string, unknown> | null
   generalFitnessSettings: Record<string, unknown> | null
   equipment: Record<string, unknown> | null
   preferredSessionLength: number | null

@@ -31,6 +31,48 @@ interface RecentTestEntry {
 
 const LIMIT = 5
 
+function numberFromJson(value: unknown, key: string): number | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = (value as Record<string, unknown>)[key]
+  return typeof raw === 'number' && Number.isFinite(raw) ? raw : null
+}
+
+function bestOf(values: Array<number | null | undefined>, lowerIsBetter = false): number | null {
+  const valid = values.filter((value): value is number => value != null && Number.isFinite(value))
+  if (valid.length === 0) return null
+  return lowerIsBetter ? Math.min(...valid) : Math.max(...valid)
+}
+
+function formatHockeySummary(test: {
+  muscleLabMaxima: unknown
+  backSquat1RM: number | null
+  powerClean1RM: number | null
+  benchPress1RM: number | null
+  standingLongJump: number | null
+  sprint10m: number | null
+  agility505Left: number | null
+  agility505Right: number | null
+  beepTestLevel: number | null
+  beepTestShuttle: number | null
+}): string | null {
+  const parts: string[] = []
+  const muscleLabWkg = numberFromJson(test.muscleLabMaxima, 'maxAveragePowerPerBodyMass')
+  const agilityBest = bestOf([test.agility505Left, test.agility505Right], true)
+
+  if (muscleLabWkg != null) parts.push(`MuscleLab ${muscleLabWkg.toFixed(1)} W/kg`)
+  if (test.backSquat1RM != null) parts.push(`Knäböj ${test.backSquat1RM.toFixed(0)} kg`)
+  if (test.powerClean1RM != null) parts.push(`PC ${test.powerClean1RM.toFixed(0)} kg`)
+  if (test.benchPress1RM != null) parts.push(`Bänk ${test.benchPress1RM.toFixed(0)} kg`)
+  if (test.standingLongJump != null) parts.push(`SLJ ${test.standingLongJump.toFixed(0)} cm`)
+  if (test.sprint10m != null) parts.push(`10m ${test.sprint10m.toFixed(2)} s`)
+  if (agilityBest != null) parts.push(`5-10-5 ${agilityBest.toFixed(2)} s`)
+  if (test.beepTestLevel != null) {
+    parts.push(`Beep ${test.beepTestLevel}${test.beepTestShuttle ? `.${test.beepTestShuttle}` : ''}`)
+  }
+
+  return parts.length > 0 ? parts.slice(0, 3).join(' · ') : null
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -63,7 +105,20 @@ export async function GET(
         where: { clientId },
         orderBy: { testDate: 'desc' },
         take: LIMIT * 2,
-        select: { id: true, testDate: true },
+        select: {
+          id: true,
+          testDate: true,
+          muscleLabMaxima: true,
+          backSquat1RM: true,
+          powerClean1RM: true,
+          benchPress1RM: true,
+          standingLongJump: true,
+          sprint10m: true,
+          agility505Left: true,
+          agility505Right: true,
+          beepTestLevel: true,
+          beepTestShuttle: true,
+        },
       }),
       prisma.customTestResult.findMany({
         where: { clientId },
@@ -98,7 +153,7 @@ export async function GET(
         date: h.testDate.toISOString(),
         kind: 'HOCKEY_PHYSICAL',
         label: 'Hockey fysprov',
-        summary: null,
+        summary: formatHockeySummary(h),
       })
     }
 
