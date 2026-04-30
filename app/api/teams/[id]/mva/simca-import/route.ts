@@ -47,38 +47,102 @@ function tryParseJson(content: string): unknown | null {
   }
 }
 
+async function authorizeTeam(teamId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 }) }
+  }
+
+  const team = await prisma.team.findFirst({
+    where: { id: teamId, userId: user.id },
+    select: { id: true, sportType: true },
+  })
+
+  if (!team) {
+    return { error: NextResponse.json({ success: false, error: 'Team not found' }, { status: 404 }) }
+  }
+
+  const subscription = await prisma.subscription.findUnique({
+    where: { userId: user.id },
+  })
+
+  if (!subscription || !['PRO', 'ENTERPRISE'].includes(subscription.tier)) {
+    return {
+      error: NextResponse.json(
+        { success: false, error: 'PRO-prenumeration krävs för SIMCA-import' },
+        { status: 403 }
+      ),
+    }
+  }
+
+  return { user, team }
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: teamId } = await params
+    const auth = await authorizeTeam(teamId)
+    if (auth.error) return auth.error
+
+    const imports = await prisma.mVAModel.findMany({
+      where: {
+        teamId,
+        modelType: 'SIMCA_IMPORT',
+        status: 'IMPORTED',
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 8,
+      select: {
+        id: true,
+        createdAt: true,
+        config: true,
+        nObservations: true,
+        nXVariables: true,
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: imports.map((item) => {
+        const config = item.config as {
+          fileName?: string
+          format?: string
+          rowCount?: number
+          columnCount?: number
+        }
+
+        return {
+          id: item.id,
+          createdAt: item.createdAt.toISOString(),
+          fileName: config.fileName ?? 'simca-result',
+          format: config.format ?? 'unknown',
+          rowCount: config.rowCount ?? item.nObservations,
+          columnCount: config.columnCount ?? item.nXVariables,
+        }
+      }),
+    })
+  } catch (error) {
+    console.error('SIMCA imports list error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Serverfel vid hämtning av SIMCA-importer' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: teamId } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const team = await prisma.team.findFirst({
-      where: { id: teamId, userId: user.id },
-      select: { id: true, sportType: true },
-    })
-
-    if (!team) {
-      return NextResponse.json({ success: false, error: 'Team not found' }, { status: 404 })
-    }
-
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId: user.id },
-    })
-
-    if (!subscription || !['PRO', 'ENTERPRISE'].includes(subscription.tier)) {
-      return NextResponse.json(
-        { success: false, error: 'PRO-prenumeration krävs för SIMCA-import' },
-        { status: 403 }
-      )
-    }
+    const auth = await authorizeTeam(teamId)
+    if (auth.error) return auth.error
 
     const body = await request.json()
     const fileName = typeof body?.fileName === 'string' ? body.fileName.slice(0, 160) : 'simca-result'
@@ -99,12 +163,12 @@ export async function POST(
     const parsedJson = format === 'json' ? tryParseJson(content) : null
     const rowCount = format === 'json' ? 0 : countRows(content)
     const columnCount = format === 'json' ? 0 : countColumns(content)
-    const sport: SportType = team.sportType || 'GENERAL_FITNESS'
+    const sport: SportType = auth.team.sportType || 'GENERAL_FITNESS'
 
     const model = await prisma.mVAModel.create({
       data: {
         teamId,
-        coachId: user.id,
+        coachId: auth.user.id,
         sport,
         modelType: 'SIMCA_IMPORT',
         config: {

@@ -151,6 +151,15 @@ interface MVAAnalysisClientProps {
   initialPLSModel?: PLSModelData | null
 }
 
+interface SimcaImportArtifact {
+  id: string
+  createdAt: string
+  fileName: string
+  format: string
+  rowCount: number
+  columnCount: number
+}
+
 export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initialPLSModel }: MVAAnalysisClientProps) {
   // Mode toggle
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode>(initialModel ? 'PCA' : initialPLSModel ? 'PLS' : 'PCA')
@@ -177,6 +186,8 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
   const [simcaImporting, setSimcaImporting] = useState(false)
   const [simcaImportMessage, setSimcaImportMessage] = useState<string | null>(null)
   const [simcaImportError, setSimcaImportError] = useState<string | null>(null)
+  const [simcaImports, setSimcaImports] = useState<SimcaImportArtifact[]>([])
+  const [simcaImportsLoading, setSimcaImportsLoading] = useState(false)
   const simcaFileInputRef = useRef<HTMLInputElement | null>(null)
 
   const fetchVariables = useCallback(async () => {
@@ -264,6 +275,27 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
     }
   }, [teamId, yVariableId])
 
+  const fetchSimcaImports = useCallback(async () => {
+    setSimcaImportsLoading(true)
+    try {
+      const res = await fetch(`/api/teams/${teamId}/mva/simca-import`)
+      const json = await res.json()
+      if (json.success) {
+        setSimcaImports(json.data)
+      }
+    } catch {
+      // Keep the workflow card usable even if artifact history fails.
+    } finally {
+      setSimcaImportsLoading(false)
+    }
+  }, [teamId])
+
+  useEffect(() => {
+    if ((teamSportType === 'TEAM_ICE_HOCKEY' || fetchedSportType === 'TEAM_ICE_HOCKEY') && simcaImports.length === 0) {
+      void Promise.resolve().then(() => fetchSimcaImports())
+    }
+  }, [fetchedSportType, fetchSimcaImports, simcaImports.length, teamSportType])
+
   const importSimcaFile = useCallback(async (file: File) => {
     setSimcaImporting(true)
     setSimcaImportMessage(null)
@@ -286,12 +318,13 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
       const rows = json.data.rowCount ? `${json.data.rowCount} rader` : 'JSON'
       const cols = json.data.columnCount ? `, ${json.data.columnCount} kolumner` : ''
       setSimcaImportMessage(`Importerad: ${json.data.fileName} (${rows}${cols})`)
+      await fetchSimcaImports()
     } catch {
       setSimcaImportError('Nätverksfel vid SIMCA-import')
     } finally {
       setSimcaImporting(false)
     }
-  }, [teamId])
+  }, [fetchSimcaImports, teamId])
 
   const isHockeyTeam = (fetchedSportType ?? teamSportType) === 'TEAM_ICE_HOCKEY'
   const simcaWorkflow = isHockeyTeam ? (
@@ -341,6 +374,34 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
         <div className="border-t px-6 py-2 text-xs dark:border-white/10">
           {simcaImportMessage && <span className="text-emerald-600">{simcaImportMessage}</span>}
           {simcaImportError && <span className="text-red-600 dark:text-red-400">{simcaImportError}</span>}
+        </div>
+      )}
+      {(simcaImportsLoading || simcaImports.length > 0) && (
+        <div className="border-t px-6 py-3 dark:border-white/10">
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Senaste SIMCA-importer</p>
+          {simcaImportsLoading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Hämtar importer...
+            </div>
+          ) : (
+            <div className="grid gap-2 md:grid-cols-2">
+              {simcaImports.slice(0, 4).map((item) => (
+                <div key={item.id} className="rounded-md border px-3 py-2 text-xs dark:border-white/10">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate font-medium dark:text-white">{item.fileName}</span>
+                    <span className="uppercase text-muted-foreground">{item.format}</span>
+                  </div>
+                  <div className="mt-1 text-muted-foreground">
+                    {new Date(item.createdAt).toLocaleDateString('sv-SE')}
+                    {' · '}
+                    {item.rowCount > 0 ? `${item.rowCount} rader` : 'JSON'}
+                    {item.columnCount > 0 && ` · ${item.columnCount} kolumner`}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </Card>
