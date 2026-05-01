@@ -183,6 +183,10 @@ const PHYSICAL_METRICS = [
   { key: 'beepScore', label: 'Beep', unit: '', decimals: 1 },
   { key: 'endurance7x40Best', label: '7x40 bäst', unit: 's', decimals: 2 },
   { key: 'endurance7x40BestKmh', label: '7x40 fart', unit: 'km/h', decimals: 1 },
+  { key: 'endurance7x40Average', label: '7x40 snitt', unit: 's', decimals: 2 },
+  { key: 'endurance7x40AverageKmh', label: '7x40 snittfart', unit: 'km/h', decimals: 1 },
+  { key: 'endurance7x40Resistance', label: '7x40 resistance', unit: '%', decimals: 0 },
+  { key: 'endurance7x40DecrementPct', label: '7x40 decrement', unit: '%', decimals: 1 },
   { key: 'enduranceFatigueDrop', label: '7x40 drop', unit: '%', decimals: 1 },
 ] as const
 
@@ -192,6 +196,8 @@ const ICE_SPEED_METRICS = [
   'sprint20to30Kmh',
   'sprint0to30Kmh',
   'endurance7x40BestKmh',
+  'endurance7x40AverageKmh',
+  'endurance7x40Resistance',
 ] as const
 
 const SNAPSHOT_METRICS = [
@@ -202,6 +208,8 @@ const SNAPSHOT_METRICS = [
   'sprint30m',
   'agilityBest',
   'standingLongJump',
+  'endurance7x40AverageKmh',
+  'endurance7x40Resistance',
   'enduranceFatigueDrop',
 ] as const
 
@@ -224,6 +232,9 @@ const BEST_METRICS = [
   'agilityBest',
   'endurance7x40Best',
   'endurance7x40BestKmh',
+  'endurance7x40Average',
+  'endurance7x40AverageKmh',
+  'endurance7x40Resistance',
 ] as const
 
 const METRIC_BY_KEY: ReadonlyMap<string, (typeof PHYSICAL_METRICS)[number]> = new Map(
@@ -267,7 +278,7 @@ function metricFocus(metricKey: string): { title: string; description: string } 
       description: 'Bygg vidare med baslyft, drag/press och grepp utan att störa is- eller matchkvalitet.',
     }
   }
-  if (['beepScore', 'enduranceFatigueDrop'].includes(metricKey)) {
+  if (['beepScore', 'endurance7x40Average', 'endurance7x40AverageKmh', 'endurance7x40Resistance', 'endurance7x40DecrementPct', 'enduranceFatigueDrop'].includes(metricKey)) {
     return {
       title: 'Repeated shift conditioning',
       description: 'Använd upprepade 30-45 sek arbetsblock och kontrollera falloff mellan repetitioner.',

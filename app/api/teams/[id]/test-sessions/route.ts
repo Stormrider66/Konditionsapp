@@ -21,6 +21,7 @@ import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
+import { buildRepeatedSprintProfile, percentile, repeatedSprintScore, round as roundHockey } from '@/lib/hockey/ice-speed'
 
 interface PRRow {
   id: string
@@ -82,7 +83,11 @@ const HOCKEY_METRICS: HockeyMetric[] = [
   { key: 'sprint30mFly', label: '30m fly', unit: 's', lowerIsBetter: true },
   { key: 'agilityBest', label: '5-10-5 bäst', unit: 's', lowerIsBetter: true },
   { key: 'endurance7x40Best', label: '7x40 bäst', unit: 's', lowerIsBetter: true },
+  { key: 'endurance7x40Average', label: '7x40 snitt', unit: 's', lowerIsBetter: true },
+  { key: 'endurance7x40AverageKmh', label: '7x40 snittfart', unit: 'km/h' },
   { key: 'endurance7x40Drop', label: '7x40 drop', unit: '%', lowerIsBetter: true },
+  { key: 'endurance7x40Resistance', label: '7x40 resistance', unit: '%' },
+  { key: 'endurance7x40Score', label: 'RSA score', unit: 'pts' },
 ]
 
 type HockeyTestForSummary = {
@@ -185,6 +190,7 @@ function metricValuesForTest(test: HockeyTestForSummary | undefined): HockeyMetr
     ? test.beepTestLevel + ((test.beepTestShuttle ?? 0) / 10)
     : null
   const endurance = enduranceValues(test?.endurance7x40)
+  const repeatedSprint = buildRepeatedSprintProfile(endurance)
 
   return {
     muscleLabWkg: round(numberFromJson(test?.muscleLabMaxima, 'maxAveragePowerPerBodyMass'), 1),
@@ -203,8 +209,12 @@ function metricValuesForTest(test: HockeyTestForSummary | undefined): HockeyMetr
     sprint20mFly: test?.sprint20mFly ?? null,
     sprint30mFly: test?.sprint30mFly ?? null,
     agilityBest: bestOf([test?.agility505Left, test?.agility505Right], true),
-    endurance7x40Best: endurance.length > 0 ? Math.min(...endurance) : null,
-    endurance7x40Drop: enduranceDropPercent(test?.endurance7x40),
+    endurance7x40Best: repeatedSprint.bestTimeS,
+    endurance7x40Average: repeatedSprint.averageTimeS,
+    endurance7x40AverageKmh: repeatedSprint.averageSpeedKmh,
+    endurance7x40Drop: repeatedSprint.fatigueDropPct,
+    endurance7x40Resistance: repeatedSprint.fatigueResistancePct,
+    endurance7x40Score: null,
   }
 }
 
@@ -220,15 +230,6 @@ function improvementDelta(
 function enduranceValues(value: unknown): number[] {
   if (!Array.isArray(value)) return []
   return value.filter((item): item is number => typeof item === 'number' && Number.isFinite(item))
-}
-
-function enduranceDropPercent(value: unknown): number | null {
-  const values = enduranceValues(value)
-  if (values.length < 2) return null
-  const best = Math.min(...values)
-  const last = values[values.length - 1]
-  if (!Number.isFinite(best) || best <= 0) return null
-  return round(((last - best) / best) * 100, 1)
 }
 
 export async function GET(
@@ -375,6 +376,30 @@ export async function GET(
       }
     })
 
+    const repeatedSprintComponents = hockeyAthletes.map((athlete) => ({
+      athlete,
+      averageSpeed: athlete.metrics.endurance7x40AverageKmh,
+      bestSpeed: athlete.metrics.endurance7x40Best != null ? (40 / athlete.metrics.endurance7x40Best) * 3.6 : null,
+      resistance: athlete.metrics.endurance7x40Resistance,
+    }))
+    const averageSpeedValues = repeatedSprintComponents
+      .map((entry) => entry.averageSpeed)
+      .filter((value): value is number => value != null && Number.isFinite(value))
+    const bestSpeedValues = repeatedSprintComponents
+      .map((entry) => entry.bestSpeed)
+      .filter((value): value is number => value != null && Number.isFinite(value))
+    const resistanceValues = repeatedSprintComponents
+      .map((entry) => entry.resistance)
+      .filter((value): value is number => value != null && Number.isFinite(value))
+
+    for (const entry of repeatedSprintComponents) {
+      entry.athlete.metrics.endurance7x40Score = repeatedSprintScore({
+        averageSpeedPercentile: entry.averageSpeed == null ? null : percentile(entry.averageSpeed, averageSpeedValues),
+        bestSpeedPercentile: entry.bestSpeed == null ? null : percentile(entry.bestSpeed, bestSpeedValues),
+        fatigueResistancePercentile: entry.resistance == null ? null : percentile(entry.resistance, resistanceValues),
+      })
+    }
+
     const hockeyLeaders = HOCKEY_METRICS.map((metric) => {
       const values = hockeyAthletes
         .map((athlete) => ({
@@ -437,7 +462,7 @@ export async function GET(
           const positionMean = mean(orientedPositionValues)
           const positionSd = standardDeviation(orientedPositionValues)
           positionZScore = orientedValue != null && positionMean != null && positionSd != null
-            ? round((orientedValue - positionMean) / positionSd, 2)
+            ? roundHockey((orientedValue - positionMean) / positionSd, 2)
             : null
         }
 
@@ -445,7 +470,7 @@ export async function GET(
           ? null
           : {
               zScore: orientedValue != null && teamMean != null && teamSd != null
-                ? round((orientedValue - teamMean) / teamSd, 2)
+                ? roundHockey((orientedValue - teamMean) / teamSd, 2)
                 : null,
               percentile: teamPercentile,
               positionZScore,

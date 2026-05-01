@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logError } from '@/lib/logger-console'
+import { buildRepeatedSprintProfile, percentile, repeatedSprintScore } from '@/lib/hockey/ice-speed'
 
 const DEFAULT_DAYS = 365
 
@@ -63,8 +64,13 @@ const COLUMNS = [
   'endurance_7x40_best_kmh',
   'endurance_7x40_best_gap_m',
   'endurance_7x40_mean_s',
+  'endurance_7x40_mean_kmh',
   'endurance_7x40_worst_s',
+  'endurance_7x40_total_s',
   'endurance_7x40_drop_pct',
+  'endurance_7x40_resistance_pct',
+  'endurance_7x40_decrement_pct',
+  'endurance_7x40_rsa_score',
   'z_musclelab_ap_w_per_kg_bw',
   'z_back_squat_1rm_kg',
   'z_power_clean_1rm_kg',
@@ -83,6 +89,9 @@ const COLUMNS = [
   'z_sprint_20_30m_kmh',
   'z_sprint_0_30m_kmh',
   'z_endurance_7x40_best_kmh',
+  'z_endurance_7x40_mean_kmh',
+  'z_endurance_7x40_resistance_pct',
+  'z_endurance_7x40_rsa_score',
   'z_agility_505_best_s',
   'z_endurance_7x40_drop_pct',
 ] as const
@@ -106,6 +115,9 @@ const Z_SCORE_METRICS = [
   { source: 'sprint_20_30m_kmh', target: 'z_sprint_20_30m_kmh' },
   { source: 'sprint_0_30m_kmh', target: 'z_sprint_0_30m_kmh' },
   { source: 'endurance_7x40_best_kmh', target: 'z_endurance_7x40_best_kmh' },
+  { source: 'endurance_7x40_mean_kmh', target: 'z_endurance_7x40_mean_kmh' },
+  { source: 'endurance_7x40_resistance_pct', target: 'z_endurance_7x40_resistance_pct' },
+  { source: 'endurance_7x40_rsa_score', target: 'z_endurance_7x40_rsa_score' },
   { source: 'agility_505_best_s', target: 'z_agility_505_best_s', lowerIsBetter: true },
   { source: 'endurance_7x40_drop_pct', target: 'z_endurance_7x40_drop_pct', lowerIsBetter: true },
 ] as const
@@ -165,21 +177,18 @@ function standardDeviation(values: number[]): number | null {
 
 function enduranceSummary(value: unknown) {
   const times = numberArray(value)
-  if (times.length === 0) {
-    return { best: null, mean: null, worst: null, drop: null }
-  }
-
-  const best = Math.min(...times)
-  const worst = Math.max(...times)
-  const mean = times.reduce((sum, time) => sum + time, 0) / times.length
-  const first = times[0]
-  const drop = first > 0 ? ((worst - first) / first) * 100 : null
+  const repeatedSprint = buildRepeatedSprintProfile(times)
 
   return {
-    best: round(best),
-    mean: round(mean),
-    worst: round(worst),
-    drop: round(drop),
+    best: repeatedSprint.bestTimeS,
+    bestKmh: repeatedSprint.bestSpeedKmh,
+    mean: repeatedSprint.averageTimeS,
+    meanKmh: repeatedSprint.averageSpeedKmh,
+    worst: repeatedSprint.worstTimeS,
+    total: repeatedSprint.totalTimeS,
+    drop: repeatedSprint.fatigueDropPct,
+    resistance: repeatedSprint.fatigueResistancePct,
+    decrement: repeatedSprint.sprintDecrementPct,
   }
 }
 
@@ -322,10 +331,14 @@ export async function GET(
         agility_505_right_s: test.agility505Right,
         agility_505_best_s: bestOf([test.agility505Left, test.agility505Right], true),
         endurance_7x40_best_s: endurance.best,
-        endurance_7x40_best_kmh: speedKmh(40, endurance.best),
+        endurance_7x40_best_kmh: endurance.bestKmh,
         endurance_7x40_mean_s: endurance.mean,
+        endurance_7x40_mean_kmh: endurance.meanKmh,
         endurance_7x40_worst_s: endurance.worst,
+        endurance_7x40_total_s: endurance.total,
         endurance_7x40_drop_pct: endurance.drop,
+        endurance_7x40_resistance_pct: endurance.resistance,
+        endurance_7x40_decrement_pct: endurance.decrement,
       }
     })
 
@@ -355,6 +368,29 @@ export async function GET(
             ? distanceGap(definition.distanceM, leaderTime, athleteTime)
             : null
         }
+      }
+    }
+
+    for (const rowsForDate of byDate.values()) {
+      const averageSpeedValues = rowsForDate
+        .map((row) => row.endurance_7x40_mean_kmh)
+        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+      const bestSpeedValues = rowsForDate
+        .map((row) => row.endurance_7x40_best_kmh)
+        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+      const resistanceValues = rowsForDate
+        .map((row) => row.endurance_7x40_resistance_pct)
+        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+
+      for (const row of rowsForDate) {
+        const averageSpeed = row.endurance_7x40_mean_kmh
+        const bestSpeed = row.endurance_7x40_best_kmh
+        const resistance = row.endurance_7x40_resistance_pct
+        row.endurance_7x40_rsa_score = repeatedSprintScore({
+          averageSpeedPercentile: typeof averageSpeed === 'number' ? percentile(averageSpeed, averageSpeedValues) : null,
+          bestSpeedPercentile: typeof bestSpeed === 'number' ? percentile(bestSpeed, bestSpeedValues) : null,
+          fatigueResistancePercentile: typeof resistance === 'number' ? percentile(resistance, resistanceValues) : null,
+        })
       }
     }
 

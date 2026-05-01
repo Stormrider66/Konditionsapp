@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf'
-import { buildIceSpeedProfileRows } from '@/lib/hockey/ice-speed'
+import { buildIceSpeedProfileRows, buildRepeatedSprintProfile } from '@/lib/hockey/ice-speed'
 
 interface HockeyTestReportClient {
   id: string
@@ -122,23 +122,11 @@ function minMetric(values: Array<number | null | undefined>): number | null {
   return clean.length > 0 ? Math.min(...clean) : null
 }
 
-function meanMetric(values: number[]): number | null {
-  if (values.length === 0) return null
-  return values.reduce((sum, value) => sum + value, 0) / values.length
-}
-
 function percentDifference(left: number | null | undefined, right: number | null | undefined): number | null {
   if (left == null || right == null) return null
   const best = Math.max(left, right)
   if (best <= 0) return null
   return Math.abs(left - right) / best * 100
-}
-
-function enduranceDropPercent(values: number[] | null | undefined): number | null {
-  if (!values?.length) return null
-  const first = values[0]
-  const worst = Math.max(...values)
-  return first > 0 ? ((worst - first) / first) * 100 : null
 }
 
 function compactRows(rows: Array<MetricRow | null>): MetricRow[] {
@@ -317,9 +305,10 @@ export function generateHockeyTestReportPDF(test: HockeyTestReportData): Blob {
   y = metricGrid(pdf, topRows, y)
 
   const enduranceTimes = test.endurance7x40 ?? []
-  const enduranceBest = minMetric(enduranceTimes)
-  const enduranceMean = meanMetric(enduranceTimes)
-  const enduranceDrop = enduranceDropPercent(enduranceTimes)
+  const repeatedSprint = buildRepeatedSprintProfile(enduranceTimes)
+  const enduranceBest = repeatedSprint.bestTimeS
+  const enduranceMean = repeatedSprint.averageTimeS
+  const enduranceDrop = repeatedSprint.fatigueDropPct
   const gripAsymmetry = percentDifference(test.gripStrengthLeft, test.gripStrengthRight)
   const threeJumpBest = maxMetric([test.threeJumpLeft, test.threeJumpRight])
   const threeJumpAsymmetry = percentDifference(test.threeJumpLeft, test.threeJumpRight)
@@ -331,7 +320,10 @@ export function generateHockeyTestReportPDF(test: HockeyTestReportData): Blob {
     metric('Best 5-10-5', agilityBest, 's'),
     metric('7x40 best', enduranceBest, 's'),
     metric('7x40 average', enduranceMean, 's'),
+    metric('7x40 avg speed', repeatedSprint.averageSpeedKmh, 'km/h', 1),
     metric('7x40 drop', enduranceDrop, '%', 1),
+    metric('7x40 resistance', repeatedSprint.fatigueResistancePct, '%', 0),
+    metric('7x40 decrement', repeatedSprint.sprintDecrementPct, '%', 1),
     metric('Grip asymmetry', gripAsymmetry, '%', 1),
     metric('3-step best', threeJumpBest, 'cm', 0),
     metric('3-step asymmetry', threeJumpAsymmetry, '%', 1),
@@ -460,6 +452,8 @@ export function generateHockeyTestReportPDF(test: HockeyTestReportData): Blob {
     metric('20 m fly', test.sprint20mFly, 's'),
     metric('30 m fly', test.sprint30mFly, 's'),
     metric('7x40 best speed', iceSpeedRows.find((row) => row.key === 'endurance7x40Best')?.speedKmh, 'km/h', 1),
+    metric('7x40 avg speed', repeatedSprint.averageSpeedKmh, 'km/h', 1),
+    metric('7x40 resistance', repeatedSprint.fatigueResistancePct, '%', 0),
   ]), y)
   if (iceSpeedRows.length > 0) {
     y = table(

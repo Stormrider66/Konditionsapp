@@ -14,6 +14,7 @@ import {
 import { Timer, Zap, ArrowUpDown, ChevronDown, ChevronUp, Dumbbell, Activity, Download, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { buildRepeatedSprintProfile } from '@/lib/hockey/ice-speed'
 import {
   CartesianGrid,
   Line,
@@ -137,17 +138,8 @@ function percentDifference(left: number | null | undefined, right: number | null
   return Math.abs(left - right) / best * 100
 }
 
-function enduranceStats(values: number[] | null): { best: number | null; mean: number | null; drop: number | null } {
-  if (!values?.length) return { best: null, mean: null, drop: null }
-  const best = Math.min(...values)
-  const mean = values.reduce((sum, value) => sum + value, 0) / values.length
-  const first = values[0]
-  const worst = Math.max(...values)
-  return {
-    best,
-    mean,
-    drop: first > 0 ? ((worst - first) / first) * 100 : null,
-  }
+function enduranceStats(values: number[] | null) {
+  return buildRepeatedSprintProfile(values ?? [])
 }
 
 function MuscleLabChart({ test }: { test: HockeyTest }) {
@@ -325,9 +317,14 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                     {test.sprint5m && <Badge variant="outline" className="text-[10px]">{test.sprint5m.toFixed(2)}s 5m</Badge>}
                     {test.sprint10m && <Badge variant="outline" className="text-[10px]">{test.sprint10m.toFixed(2)}s 10m</Badge>}
                     {test.agility505Left && <Badge variant="outline" className="text-[10px]">{test.agility505Left.toFixed(2)}s agility</Badge>}
-                    {enduranceSummary.drop != null && (
-                      <Badge variant={enduranceSummary.drop >= 6 ? 'destructive' : 'secondary'} className="text-[10px]">
-                        7x40 drop {enduranceSummary.drop.toFixed(1)}%
+                    {enduranceSummary.fatigueDropPct != null && (
+                      <Badge variant={enduranceSummary.fatigueDropPct >= 6 ? 'destructive' : 'secondary'} className="text-[10px]">
+                        7x40 drop {enduranceSummary.fatigueDropPct.toFixed(1)}%
+                      </Badge>
+                    )}
+                    {enduranceSummary.averageSpeedKmh != null && (
+                      <Badge variant="outline" className="text-[10px]">
+                        RSA {enduranceSummary.averageSpeedKmh.toFixed(1)} km/h
                       </Badge>
                     )}
                     {isExpanded && (
@@ -373,9 +370,11 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                           <div className="mt-2">
                             <p className="text-[10px] text-muted-foreground mb-1">
                               7x40m:
-                              {enduranceSummary.best != null && ` bästa ${enduranceSummary.best.toFixed(2)}s`}
-                              {enduranceSummary.mean != null && ` · snitt ${enduranceSummary.mean.toFixed(2)}s`}
-                              {enduranceSummary.drop != null && ` · drop ${enduranceSummary.drop.toFixed(1)}%`}
+                              {enduranceSummary.bestTimeS != null && ` bästa ${enduranceSummary.bestTimeS.toFixed(2)}s`}
+                              {enduranceSummary.averageTimeS != null && ` · snitt ${enduranceSummary.averageTimeS.toFixed(2)}s`}
+                              {enduranceSummary.averageSpeedKmh != null && ` · ${enduranceSummary.averageSpeedKmh.toFixed(1)} km/h`}
+                              {enduranceSummary.fatigueDropPct != null && ` · drop ${enduranceSummary.fatigueDropPct.toFixed(1)}%`}
+                              {enduranceSummary.fatigueResistancePct != null && ` · resistance ${enduranceSummary.fatigueResistancePct.toFixed(0)}%`}
                             </p>
                             <div className="flex gap-1.5">
                               {endurance.map((t, i) => (

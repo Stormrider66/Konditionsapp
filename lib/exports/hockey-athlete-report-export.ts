@@ -241,27 +241,43 @@ function metricByKey(data: HockeyAthleteReportData, key: string): HockeyAthleteR
 function iceSpeedProfile(pdf: jsPDF, latest: HockeyTestSummary | null, y: number): number {
   if (!latest) return y
   const rows = buildIceSpeedProfileRows(latest.metrics)
-  if (rows.length === 0) return y
+  const hasRepeatedSprint = latest.metrics.endurance7x40AverageKmh != null
+    || latest.metrics.endurance7x40Resistance != null
+    || latest.metrics.endurance7x40DecrementPct != null
+  if (rows.length === 0 && !hasRepeatedSprint) return y
 
   y = sectionTitle(pdf, 'Ice speed profile', y)
-  y = table(
-    pdf,
-    ['Stint', 'Tid', 'Fart', 'Coach signal'],
-    rows.map((row) => [
-      row.label,
-      `${row.timeS.toFixed(2)} s`,
-      formatSpeed(row.speedKmh),
-      row.key === 'sprint0to10'
-        ? 'Acceleration'
-        : row.key === 'sprint0to30'
-          ? 'Total speed'
-          : row.key === 'endurance7x40Best'
-            ? 'Repeated sprint'
-            : 'Flying speed',
-    ]),
-    y,
-    { fontSize: 7 },
-  )
+  if (rows.length > 0) {
+    y = table(
+      pdf,
+      ['Stint', 'Tid', 'Fart', 'Coach signal'],
+      rows.map((row) => [
+        row.label,
+        `${row.timeS.toFixed(2)} s`,
+        formatSpeed(row.speedKmh),
+        row.key === 'sprint0to10'
+          ? 'Acceleration'
+          : row.key === 'sprint0to30'
+            ? 'Total speed'
+            : row.key === 'endurance7x40Best'
+              ? 'Repeated sprint'
+              : 'Flying speed',
+      ]),
+      y,
+      { fontSize: 7 },
+    )
+  }
+
+  if (hasRepeatedSprint) {
+    y = summaryCards(pdf, [
+      ['7x40 avg speed', formatMetricValue(latest.metrics.endurance7x40AverageKmh, 'km/h', 1), '50% of RSA score'],
+      ['7x40 best speed', formatMetricValue(latest.metrics.endurance7x40BestKmh, 'km/h', 1), '25% of RSA score'],
+      ['Fatigue resistance', formatMetricValue(latest.metrics.endurance7x40Resistance, '%', 0), '25% of RSA score'],
+      ['Sprint decrement', formatMetricValue(latest.metrics.endurance7x40DecrementPct, '%', 1), 'lower is better'],
+      ['First-last drop', formatMetricValue(latest.metrics.endurance7x40FirstToLastDropPct, '%', 1), 'trend across reps'],
+      ['Total 7x40', formatMetricValue(latest.metrics.endurance7x40Total, 's', 2), 'all reps combined'],
+    ], y)
+  }
 
   return y + 2
 }

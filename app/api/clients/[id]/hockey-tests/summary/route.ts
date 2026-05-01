@@ -12,7 +12,7 @@ import { NextResponse } from 'next/server'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { positiveSplit, speedKmh } from '@/lib/hockey/ice-speed'
+import { buildRepeatedSprintProfile, positiveSplit, speedKmh } from '@/lib/hockey/ice-speed'
 
 interface HockeySummary {
   id: string
@@ -74,16 +74,6 @@ function round(value: number | null, decimals = 1): number | null {
   return Math.round(value * factor) / factor
 }
 
-function fatigueDrop(value: unknown): number | null {
-  if (!Array.isArray(value) || value.length < 2) return null
-  const times = value.filter((entry): entry is number => typeof entry === 'number' && Number.isFinite(entry))
-  if (times.length < 2) return null
-  const first = times[0]
-  const worst = Math.max(...times)
-  if (first <= 0) return null
-  return round(((worst - first) / first) * 100, 1)
-}
-
 function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number]): HockeySummary {
   const beepScore = test.beepTestLevel
     ? test.beepTestLevel + ((test.beepTestShuttle ?? 0) / 10)
@@ -91,7 +81,8 @@ function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number]): HockeyS
   const enduranceValues = Array.isArray(test.endurance7x40)
     ? test.endurance7x40.filter((item): item is number => typeof item === 'number' && Number.isFinite(item))
     : []
-  const endurance7x40Best = enduranceValues.length > 0 ? Math.min(...enduranceValues) : null
+  const repeatedSprint = buildRepeatedSprintProfile(enduranceValues)
+  const endurance7x40Best = repeatedSprint.bestTimeS
   const sprint10to20Split = positiveSplit(test.sprint20m, test.sprint10m)
   const sprint20to30Split = positiveSplit(test.sprint30m, test.sprint20m)
 
@@ -126,7 +117,14 @@ function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number]): HockeyS
       agilityBest: bestOf([test.agility505Left, test.agility505Right], true),
       endurance7x40Best,
       endurance7x40BestKmh: speedKmh(40, endurance7x40Best),
-      enduranceFatigueDrop: fatigueDrop(test.endurance7x40),
+      endurance7x40Average: repeatedSprint.averageTimeS,
+      endurance7x40AverageKmh: repeatedSprint.averageSpeedKmh,
+      endurance7x40Total: repeatedSprint.totalTimeS,
+      endurance7x40FirstToLastDrop: repeatedSprint.firstToLastDropS,
+      endurance7x40FirstToLastDropPct: repeatedSprint.firstToLastDropPct,
+      endurance7x40Resistance: repeatedSprint.fatigueResistancePct,
+      endurance7x40DecrementPct: repeatedSprint.sprintDecrementPct,
+      enduranceFatigueDrop: repeatedSprint.fatigueDropPct,
     },
   }
 }

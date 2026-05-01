@@ -18,6 +18,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ChevronDown, Timer, Zap, Dumbbell, ArrowUpDown, Save, Camera, Upload, Loader2, Activity } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { buildRepeatedSprintProfile } from '@/lib/hockey/ice-speed'
 import {
   CartesianGrid,
   Line,
@@ -173,15 +174,9 @@ function percentDifference(left: number | null, right: number | null): number | 
   return Math.abs(left - right) / best * 100
 }
 
-function enduranceSummary(values: string[]): { best: number | null; mean: number | null; drop: number | null; count: number } {
+function enduranceSummary(values: string[]) {
   const parsed = values.map(parseNumber).filter((value): value is number => value != null)
-  if (parsed.length === 0) return { best: null, mean: null, drop: null, count: 0 }
-  const best = Math.min(...parsed)
-  const mean = parsed.reduce((sum, value) => sum + value, 0) / parsed.length
-  const first = parsed[0]
-  const worst = Math.max(...parsed)
-  const drop = first > 0 ? ((worst - first) / first) * 100 : null
-  return { best, mean, drop, count: parsed.length }
+  return buildRepeatedSprintProfile(parsed)
 }
 
 function DiagnosticChip({ label, value, tone }: { label: string; value: string; tone?: 'good' | 'watch' | 'info' }) {
@@ -752,8 +747,15 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
             {endurance.count > 0 && (
               <DiagnosticChip
                 label={`7x40 drop (${endurance.count}/7)`}
-                value={endurance.drop == null ? '-' : `${endurance.drop.toFixed(1)}%`}
-                tone={endurance.drop != null && endurance.drop >= 6 ? 'watch' : 'good'}
+                value={endurance.fatigueDropPct == null ? '-' : `${endurance.fatigueDropPct.toFixed(1)}%`}
+                tone={endurance.fatigueDropPct != null && endurance.fatigueDropPct >= 6 ? 'watch' : 'good'}
+              />
+            )}
+            {endurance.averageSpeedKmh != null && (
+              <DiagnosticChip
+                label="7x40 RSA profil"
+                value={`${endurance.averageSpeedKmh.toFixed(1)} km/h · ${endurance.fatigueResistancePct?.toFixed(0) ?? '-'}% resist`}
+                tone={endurance.fatigueDropPct != null && endurance.fatigueDropPct >= 10 ? 'watch' : 'info'}
               />
             )}
           </div>
@@ -802,6 +804,14 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
                     </div>
                   ))}
                 </div>
+                {endurance.count > 0 && (
+                  <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <MetricChip label="Snabbaste rep" value={endurance.bestTimeS?.toFixed(2)} unit="s" />
+                    <MetricChip label="Snittfart" value={endurance.averageSpeedKmh?.toFixed(1)} unit="km/h" />
+                    <MetricChip label="Drop" value={endurance.fatigueDropPct?.toFixed(1)} unit="%" />
+                    <MetricChip label="Resistance" value={endurance.fatigueResistancePct?.toFixed(0)} unit="%" />
+                  </div>
+                )}
               </div>
             </CardContent>
           </CollapsibleContent>

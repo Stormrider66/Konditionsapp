@@ -76,6 +76,8 @@ const CORE_METRICS = [
   'threeJumpBest',
   'sprint10m',
   'agilityBest',
+  'endurance7x40Score',
+  'endurance7x40AverageKmh',
   'beepScore',
 ]
 

@@ -22,6 +22,23 @@ export interface TeamIceSpeedProfileRow extends IceSpeedProfileRow {
   maxGapAthleteName: string | null
 }
 
+export interface RepeatedSprintProfile {
+  count: number
+  firstTimeS: number | null
+  lastTimeS: number | null
+  bestTimeS: number | null
+  worstTimeS: number | null
+  averageTimeS: number | null
+  totalTimeS: number | null
+  bestSpeedKmh: number | null
+  averageSpeedKmh: number | null
+  firstToLastDropS: number | null
+  firstToLastDropPct: number | null
+  fatigueDropPct: number | null
+  sprintDecrementPct: number | null
+  fatigueResistancePct: number | null
+}
+
 export const ICE_SPEED_DEFINITIONS: IceSpeedDefinition[] = [
   {
     key: 'sprint0to10',
@@ -93,6 +110,90 @@ export function median(values: number[]): number | null {
   return sorted.length % 2 === 0
     ? (sorted[middle - 1] + sorted[middle]) / 2
     : sorted[middle]
+}
+
+export function percentile(value: number, values: number[], higherIsBetter = true): number | null {
+  const clean = values.filter((entry) => Number.isFinite(entry)).sort((a, b) => a - b)
+  if (clean.length === 0) return null
+  if (clean.length === 1) return 100
+
+  const betterOrEqual = higherIsBetter
+    ? clean.filter((entry) => entry <= value).length
+    : clean.filter((entry) => entry >= value).length
+
+  return round(((betterOrEqual - 1) / (clean.length - 1)) * 100, 0)
+}
+
+export function repeatedSprintScore(options: {
+  averageSpeedPercentile: number | null | undefined
+  bestSpeedPercentile: number | null | undefined
+  fatigueResistancePercentile: number | null | undefined
+}): number | null {
+  const weighted = [
+    { value: options.averageSpeedPercentile, weight: 0.5 },
+    { value: options.bestSpeedPercentile, weight: 0.25 },
+    { value: options.fatigueResistancePercentile, weight: 0.25 },
+  ].filter((item): item is { value: number; weight: number } => item.value != null && Number.isFinite(item.value))
+
+  const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0)
+  if (totalWeight <= 0) return null
+
+  return round(weighted.reduce((sum, item) => sum + item.value * item.weight, 0) / totalWeight, 0)
+}
+
+export function buildRepeatedSprintProfile(
+  times: Array<number | null | undefined>,
+  distanceM = 40,
+): RepeatedSprintProfile {
+  const clean = times.filter((time): time is number => time != null && Number.isFinite(time) && time > 0)
+  if (clean.length === 0) {
+    return {
+      count: 0,
+      firstTimeS: null,
+      lastTimeS: null,
+      bestTimeS: null,
+      worstTimeS: null,
+      averageTimeS: null,
+      totalTimeS: null,
+      bestSpeedKmh: null,
+      averageSpeedKmh: null,
+      firstToLastDropS: null,
+      firstToLastDropPct: null,
+      fatigueDropPct: null,
+      sprintDecrementPct: null,
+      fatigueResistancePct: null,
+    }
+  }
+
+  const first = clean[0]
+  const last = clean[clean.length - 1]
+  const best = Math.min(...clean)
+  const worst = Math.max(...clean)
+  const total = clean.reduce((sum, time) => sum + time, 0)
+  const avgTime = total / clean.length
+  const avgSpeed = average(clean.map((time) => (distanceM / time) * 3.6))
+  const firstToLastDropS = last - first
+  const firstToLastDropPct = first > 0 ? (firstToLastDropS / first) * 100 : null
+  const fatigueDropPct = first > 0 ? ((worst - first) / first) * 100 : null
+  const sprintDecrementPct = best > 0 ? ((total / (best * clean.length)) - 1) * 100 : null
+  const resistance = fatigueDropPct == null ? null : Math.max(0, Math.min(100, 100 - fatigueDropPct))
+
+  return {
+    count: clean.length,
+    firstTimeS: round(first, 2),
+    lastTimeS: round(last, 2),
+    bestTimeS: round(best, 2),
+    worstTimeS: round(worst, 2),
+    averageTimeS: round(avgTime, 2),
+    totalTimeS: round(total, 2),
+    bestSpeedKmh: speedKmh(distanceM, best),
+    averageSpeedKmh: round(avgSpeed, 2),
+    firstToLastDropS: round(firstToLastDropS, 2),
+    firstToLastDropPct: round(firstToLastDropPct, 1),
+    fatigueDropPct: round(fatigueDropPct, 1),
+    sprintDecrementPct: round(sprintDecrementPct, 1),
+    fatigueResistancePct: round(resistance, 1),
+  }
 }
 
 export function buildIceSpeedProfileRows(
