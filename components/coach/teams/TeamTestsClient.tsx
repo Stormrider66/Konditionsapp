@@ -39,6 +39,7 @@ import {
   TrendingUp,
   AlertTriangle,
   Target,
+  Timer,
 } from 'lucide-react'
 import { TeamTestImportDialog } from './TeamTestImportDialog'
 import { TeamTestManualEntryDialog } from './TeamTestManualEntryDialog'
@@ -191,6 +192,132 @@ function formatMetricValue(value: number | null | undefined, unit: string): stri
   return `${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
+function formatSpeed(value: number | null | undefined): string {
+  return value == null ? '–' : `${value.toFixed(1)} km/h`
+}
+
+function formatDistance(value: number | null | undefined): string {
+  return value == null ? '–' : `${value.toFixed(1)} m`
+}
+
+function speedKmh(distanceM: number, timeS: number | null | undefined): number | null {
+  if (timeS == null || timeS <= 0) return null
+  return distanceM / timeS * 3.6
+}
+
+function average(values: number[]): number | null {
+  if (values.length === 0) return null
+  return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null
+  const sorted = [...values].sort((a, b) => a - b)
+  const middle = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle]
+}
+
+interface IceSpeedGapRow {
+  key: string
+  label: string
+  coverage: number
+  leader: { athleteName: string; timeS: number; speedKmh: number } | null
+  averageSpeedKmh: number | null
+  medianGapM: number | null
+  maxGap: { athleteName: string; gapM: number } | null
+}
+
+const ICE_SPEED_DEFINITIONS = [
+  {
+    key: 'sprint10m',
+    label: '0-10 m',
+    distanceM: 10,
+    time: (metrics: Record<string, number | null>) => metrics.sprint10m,
+  },
+  {
+    key: 'sprint10to20m',
+    label: '10-20 m flygande split',
+    distanceM: 10,
+    time: (metrics: Record<string, number | null>) => {
+      const ten = metrics.sprint10m
+      const twenty = metrics.sprint20m
+      return ten != null && twenty != null && twenty > ten ? twenty - ten : null
+    },
+  },
+  {
+    key: 'sprint20to30m',
+    label: '20-30 m flygande split',
+    distanceM: 10,
+    time: (metrics: Record<string, number | null>) => {
+      const twenty = metrics.sprint20m
+      const thirty = metrics.sprint30m
+      return twenty != null && thirty != null && thirty > twenty ? thirty - twenty : null
+    },
+  },
+  {
+    key: 'sprint30m',
+    label: '0-30 m',
+    distanceM: 30,
+    time: (metrics: Record<string, number | null>) => metrics.sprint30m,
+  },
+  {
+    key: 'endurance7x40Best',
+    label: '7x40 bästa rep',
+    distanceM: 40,
+    time: (metrics: Record<string, number | null>) => metrics.endurance7x40Best,
+  },
+] as const
+
+function buildIceSpeedGapRows(athletes: HockeyAthleteRow[]): IceSpeedGapRow[] {
+  return ICE_SPEED_DEFINITIONS.map((definition) => {
+    const entries = athletes
+      .map((athlete) => {
+        const timeS = definition.time(athlete.metrics)
+        const speed = speedKmh(definition.distanceM, timeS)
+        return timeS != null && speed != null
+          ? { athlete, timeS, speed }
+          : null
+      })
+      .filter((entry): entry is { athlete: HockeyAthleteRow; timeS: number; speed: number } => entry != null)
+      .sort((a, b) => a.timeS - b.timeS)
+
+    const leader = entries[0]
+    if (!leader) {
+      return {
+        key: definition.key,
+        label: definition.label,
+        coverage: 0,
+        leader: null,
+        averageSpeedKmh: null,
+        medianGapM: null,
+        maxGap: null,
+      }
+    }
+
+    const gaps = entries.map((entry) => ({
+      athleteName: entry.athlete.name,
+      gapM: definition.distanceM - (definition.distanceM * leader.timeS / entry.timeS),
+    }))
+    const maxGap = gaps.reduce((current, candidate) => candidate.gapM > current.gapM ? candidate : current, gaps[0])
+
+    return {
+      key: definition.key,
+      label: definition.label,
+      coverage: entries.length,
+      leader: {
+        athleteName: leader.athlete.name,
+        timeS: leader.timeS,
+        speedKmh: leader.speed,
+      },
+      averageSpeedKmh: average(entries.map((entry) => entry.speed)),
+      medianGapM: median(gaps.map((gap) => gap.gapM)),
+      maxGap,
+    }
+  }).filter((row) => row.coverage > 0)
+}
+
 function getRankVariant(percentile: number): 'default' | 'secondary' | 'outline' {
   if (percentile >= 80) return 'default'
   if (percentile >= 50) return 'secondary'
@@ -340,6 +467,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     .sort((a, b) => (b.delta ?? -Infinity) - (a.delta ?? -Infinity))
     .slice(0, 8) ?? []
   const hockeyActionItems: HockeyActionItem[] = hockey ? buildHockeyActionItems(hockey, { basePath }) : []
+  const iceSpeedGapRows = buildIceSpeedGapRows(hockeyAthletes)
 
   return (
     <div className="space-y-6">
@@ -532,6 +660,76 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
             ) : (
               <div className="rounded-md border border-dashed py-8 text-center text-sm text-muted-foreground">
                 Inga hockeysessioner registrerade ännu. Logga tester från hockeysidan för att fylla matrisen.
+              </div>
+            )}
+
+            {iceSpeedGapRows.length > 0 && (
+              <div className="rounded-md border bg-muted/10 p-3 space-y-3">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <p className="text-sm font-semibold flex items-center gap-2">
+                      <Timer className="h-4 w-4 text-sky-500" />
+                      Isfart och avståndsgap
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Fart räknas som distans/tid i km/h. Avståndsgap visar meter bakom snabbaste spelaren när snabbaste spelaren passerar målmarkeringen.
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">
+                    {selectedPosition === 'all' ? 'Alla positioner' : 'Positionsfilter aktivt'}
+                  </Badge>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="px-2 py-1.5 text-left font-medium">Stint</th>
+                        <th className="px-2 py-1.5 text-right font-medium">Snabbast</th>
+                        <th className="px-2 py-1.5 text-right font-medium">Lagfart</th>
+                        <th className="px-2 py-1.5 text-right font-medium">Median bakom</th>
+                        <th className="px-2 py-1.5 text-right font-medium">Störst gap</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {iceSpeedGapRows.map((row) => (
+                        <tr key={row.key} className="border-b last:border-0">
+                          <td className="px-2 py-1.5 font-medium">
+                            {row.label}
+                            <div className="text-[10px] text-muted-foreground">{row.coverage} spelare</div>
+                          </td>
+                          <td className="px-2 py-1.5 text-right font-mono">
+                            {row.leader ? (
+                              <>
+                                <div>{formatSpeed(row.leader.speedKmh)}</div>
+                                <div className="text-[10px] text-muted-foreground">
+                                  {row.leader.athleteName} · {row.leader.timeS.toFixed(2)} s
+                                </div>
+                              </>
+                            ) : (
+                              '–'
+                            )}
+                          </td>
+                          <td className="px-2 py-1.5 text-right font-mono">
+                            {formatSpeed(row.averageSpeedKmh)}
+                          </td>
+                          <td className="px-2 py-1.5 text-right font-mono">
+                            {formatDistance(row.medianGapM)}
+                          </td>
+                          <td className="px-2 py-1.5 text-right font-mono">
+                            {row.maxGap ? (
+                              <>
+                                <div>{formatDistance(row.maxGap.gapM)}</div>
+                                <div className="text-[10px] text-muted-foreground">{row.maxGap.athleteName}</div>
+                              </>
+                            ) : (
+                              '–'
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
