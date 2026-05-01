@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -145,6 +146,54 @@ function MetricChip({ label, value, unit }: { label: string; value: string | num
         {value}
         {unit ? <span className="ml-1 text-[10px] font-normal text-muted-foreground">{unit}</span> : null}
       </p>
+    </div>
+  )
+}
+
+function parseNumber(value: string): number | null {
+  if (!value) return null
+  const parsed = parseFloat(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function bestOf(values: Array<number | null>): number | null {
+  const valid = values.filter((value): value is number => value != null && Number.isFinite(value))
+  return valid.length > 0 ? Math.max(...valid) : null
+}
+
+function lowestOf(values: Array<number | null>): number | null {
+  const valid = values.filter((value): value is number => value != null && Number.isFinite(value))
+  return valid.length > 0 ? Math.min(...valid) : null
+}
+
+function percentDifference(left: number | null, right: number | null): number | null {
+  if (left == null || right == null) return null
+  const best = Math.max(left, right)
+  if (best <= 0) return null
+  return Math.abs(left - right) / best * 100
+}
+
+function enduranceSummary(values: string[]): { best: number | null; mean: number | null; drop: number | null; count: number } {
+  const parsed = values.map(parseNumber).filter((value): value is number => value != null)
+  if (parsed.length === 0) return { best: null, mean: null, drop: null, count: 0 }
+  const best = Math.min(...parsed)
+  const mean = parsed.reduce((sum, value) => sum + value, 0) / parsed.length
+  const first = parsed[0]
+  const worst = Math.max(...parsed)
+  const drop = first > 0 ? ((worst - first) / first) * 100 : null
+  return { best, mean, drop, count: parsed.length }
+}
+
+function DiagnosticChip({ label, value, tone }: { label: string; value: string; tone?: 'good' | 'watch' | 'info' }) {
+  return (
+    <div className={cn(
+      'rounded-md border px-2.5 py-2',
+      tone === 'good' && 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200',
+      tone === 'watch' && 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
+      (!tone || tone === 'info') && 'bg-muted/30',
+    )}>
+      <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
+      <p className="font-mono text-sm font-semibold">{value}</p>
     </div>
   )
 }
@@ -373,6 +422,23 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
   const [beepShuttle, setBeepShuttle] = useState('')
 
   const selectedClient = clients.find((c) => c.id === clientId)
+  const endurance = enduranceSummary(endurance7x40)
+  const gripAsymmetry = percentDifference(parseNumber(gripLeft), parseNumber(gripRight))
+  const threeJumpAsymmetry = percentDifference(parseNumber(threeJumpLeft), parseNumber(threeJumpRight))
+  const agilityBest = lowestOf([parseNumber(agility505Left), parseNumber(agility505Right)])
+  const sprintBest = lowestOf([parseNumber(sprint5m), parseNumber(sprint10m), parseNumber(sprint20m), parseNumber(sprint30m)])
+  const powerBest = bestOf([
+    muscleLabMaxima?.maxAveragePowerPerBodyMass ?? null,
+    ...Object.values(jumpSquat).map(parseNumber),
+  ])
+  const strengthCount = [backSquat1RM, powerClean1RM, benchPress1RM, pullUp1RM].filter(Boolean).length
+  const completedGroups = [
+    agilityBest != null || sprintBest != null,
+    muscleLabRows.length > 0 || muscleLabRaw != null || powerBest != null || gripAsymmetry != null,
+    parseNumber(standingLong) != null || parseNumber(threeJumpLeft) != null || parseNumber(threeJumpRight) != null,
+    strengthCount > 0,
+    parseNumber(beepLevel) != null || endurance.count > 0,
+  ].filter(Boolean).length
 
   // Apply scanned/imported data to form
   const applyData = (data: Record<string, unknown>) => {
@@ -632,6 +698,64 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
               <Label>Testdatum</Label>
               <Input type="date" value={testDate} onChange={(e) => setTestDate(e.target.value)} />
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-medium">Batteristatus</p>
+              <p className="text-xs text-muted-foreground">
+                Direkt feedback på nyckelvärden innan testet sparas.
+              </p>
+            </div>
+            <Badge variant={completedGroups >= 4 ? 'default' : 'secondary'}>
+              {completedGroups}/5 delar ifyllda
+            </Badge>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {agilityBest != null && (
+              <DiagnosticChip label="Bästa 5-10-5" value={`${agilityBest.toFixed(2)} s`} tone="info" />
+            )}
+            {sprintBest != null && (
+              <DiagnosticChip label="Bästa sprintsplit" value={`${sprintBest.toFixed(2)} s`} tone="info" />
+            )}
+            {powerBest != null && (
+              <DiagnosticChip
+                label={muscleLabMaxima?.maxAveragePowerPerBodyMass ? 'MuscleLab AP/BW' : 'Bästa power'}
+                value={muscleLabMaxima?.maxAveragePowerPerBodyMass ? `${powerBest.toFixed(1)} W/kg` : `${powerBest.toFixed(0)} W`}
+                tone="good"
+              />
+            )}
+            {strengthCount > 0 && (
+              <DiagnosticChip label="Maxstyrketester" value={`${strengthCount}/4`} tone={strengthCount >= 3 ? 'good' : 'info'} />
+            )}
+            {parseNumber(standingLong) != null && (
+              <DiagnosticChip label="Stående längdhopp" value={`${parseNumber(standingLong)?.toFixed(0)} cm`} tone="info" />
+            )}
+            {threeJumpAsymmetry != null && (
+              <DiagnosticChip
+                label="3-steg asymmetri"
+                value={`${threeJumpAsymmetry.toFixed(1)}%`}
+                tone={threeJumpAsymmetry >= 8 ? 'watch' : 'good'}
+              />
+            )}
+            {gripAsymmetry != null && (
+              <DiagnosticChip
+                label="Grepp asymmetri"
+                value={`${gripAsymmetry.toFixed(1)}%`}
+                tone={gripAsymmetry >= 10 ? 'watch' : 'good'}
+              />
+            )}
+            {endurance.count > 0 && (
+              <DiagnosticChip
+                label={`7x40 drop (${endurance.count}/7)`}
+                value={endurance.drop == null ? '-' : `${endurance.drop.toFixed(1)}%`}
+                tone={endurance.drop != null && endurance.drop >= 6 ? 'watch' : 'good'}
+              />
+            )}
           </div>
         </CardContent>
       </Card>

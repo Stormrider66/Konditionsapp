@@ -125,6 +125,31 @@ function TestValue({ label, value, unit, highlight }: { label: string; value: nu
   )
 }
 
+function bestOf(values: Array<number | null | undefined>): number | null {
+  const valid = values.filter((value): value is number => value != null && Number.isFinite(value))
+  return valid.length > 0 ? Math.max(...valid) : null
+}
+
+function percentDifference(left: number | null | undefined, right: number | null | undefined): number | null {
+  if (left == null || right == null) return null
+  const best = Math.max(left, right)
+  if (best <= 0) return null
+  return Math.abs(left - right) / best * 100
+}
+
+function enduranceStats(values: number[] | null): { best: number | null; mean: number | null; drop: number | null } {
+  if (!values?.length) return { best: null, mean: null, drop: null }
+  const best = Math.min(...values)
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length
+  const first = values[0]
+  const worst = Math.max(...values)
+  return {
+    best,
+    mean,
+    drop: first > 0 ? ((worst - first) / first) * 100 : null,
+  }
+}
+
 function MuscleLabChart({ test }: { test: HockeyTest }) {
   const rows = test.muscleLabJumps || []
   const rawTrace = test.muscleLabRaw?.traces?.[0]
@@ -278,6 +303,10 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
         tests.map((test) => {
           const isExpanded = expandedId === test.id
           const endurance = test.endurance7x40 as number[] | null
+          const enduranceSummary = enduranceStats(endurance)
+          const gripAsymmetry = percentDifference(test.gripStrengthLeft, test.gripStrengthRight)
+          const threeJumpAsymmetry = percentDifference(test.threeJumpLeft, test.threeJumpRight)
+          const bestThreeJump = bestOf([test.threeJumpLeft, test.threeJumpRight])
           return (
             <Card key={test.id} className="cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : test.id)}>
               <CardContent className="p-4">
@@ -296,6 +325,11 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                     {test.sprint5m && <Badge variant="outline" className="text-[10px]">{test.sprint5m.toFixed(2)}s 5m</Badge>}
                     {test.sprint10m && <Badge variant="outline" className="text-[10px]">{test.sprint10m.toFixed(2)}s 10m</Badge>}
                     {test.agility505Left && <Badge variant="outline" className="text-[10px]">{test.agility505Left.toFixed(2)}s agility</Badge>}
+                    {enduranceSummary.drop != null && (
+                      <Badge variant={enduranceSummary.drop >= 6 ? 'destructive' : 'secondary'} className="text-[10px]">
+                        7x40 drop {enduranceSummary.drop.toFixed(1)}%
+                      </Badge>
+                    )}
                     {isExpanded && (
                       <Button
                         variant="outline"
@@ -337,7 +371,12 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                         </div>
                         {endurance && endurance.length > 0 && (
                           <div className="mt-2">
-                            <p className="text-[10px] text-muted-foreground mb-1">7x40m:</p>
+                            <p className="text-[10px] text-muted-foreground mb-1">
+                              7x40m:
+                              {enduranceSummary.best != null && ` bästa ${enduranceSummary.best.toFixed(2)}s`}
+                              {enduranceSummary.mean != null && ` · snitt ${enduranceSummary.mean.toFixed(2)}s`}
+                              {enduranceSummary.drop != null && ` · drop ${enduranceSummary.drop.toFixed(1)}%`}
+                            </p>
                             <div className="flex gap-1.5">
                               {endurance.map((t, i) => (
                                 <span key={i} className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
@@ -371,6 +410,11 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                           <TestValue label="Grepp V" value={test.gripStrengthLeft} unit="kg" />
                           <TestValue label="Grepp H" value={test.gripStrengthRight} unit="kg" />
                         </div>
+                        {gripAsymmetry != null && (
+                          <p className={cn('mt-2 text-[10px]', gripAsymmetry >= 10 ? 'text-amber-700 dark:text-amber-300' : 'text-muted-foreground')}>
+                            Grepp asymmetri {gripAsymmetry.toFixed(1)}%
+                          </p>
+                        )}
                       </div>
                     )}
 
@@ -396,6 +440,12 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                           <TestValue label="3-hopp V" value={test.threeJumpLeft} unit="cm" />
                           <TestValue label="3-hopp H" value={test.threeJumpRight} unit="cm" />
                         </div>
+                        {(bestThreeJump != null || threeJumpAsymmetry != null) && (
+                          <p className={cn('mt-2 text-[10px]', threeJumpAsymmetry != null && threeJumpAsymmetry >= 8 ? 'text-amber-700 dark:text-amber-300' : 'text-muted-foreground')}>
+                            {bestThreeJump != null && `Bästa 3-steg ${bestThreeJump.toFixed(0)} cm`}
+                            {threeJumpAsymmetry != null && ` · asymmetri ${threeJumpAsymmetry.toFixed(1)}%`}
+                          </p>
+                        )}
                       </div>
                     )}
 
