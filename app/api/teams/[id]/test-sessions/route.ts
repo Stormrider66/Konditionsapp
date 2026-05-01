@@ -28,6 +28,7 @@ import {
   mergeHockeyNormReferences,
   type HockeyNormGap,
 } from '@/lib/hockey/norm-references'
+import { buildHockeyQualityFlags, type HockeyQualityFlag } from '@/lib/hockey/test-quality'
 
 interface PRRow {
   id: string
@@ -610,6 +611,21 @@ export async function GET(
         ranks: {} as HockeyMetricRanks,
         benchmarks: {} as HockeyMetricBenchmarks,
         normGaps: {} as HockeyNormGaps,
+        qualityFlags: latest
+          ? buildHockeyQualityFlags({
+              metrics: {
+                ...metrics,
+                gripStrengthLeft: latest.gripStrengthLeft,
+                gripStrengthRight: latest.gripStrengthRight,
+                threeJumpLeft: latest.threeJumpLeft,
+                threeJumpRight: latest.threeJumpRight,
+                agility505Left: latest.agility505Left,
+                agility505Right: latest.agility505Right,
+              },
+              endurance7x40: latest.endurance7x40,
+              muscleLabMaxima: latest.muscleLabMaxima,
+            })
+          : [] as HockeyQualityFlag[],
       }
     })
 

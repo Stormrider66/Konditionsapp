@@ -12,6 +12,12 @@ interface HockeyTestSummary {
   developmentLevel?: string
   teamName?: string | null
   metrics: Record<string, number | null>
+  qualityFlags?: Array<{
+    key: string
+    severity: 'info' | 'warning'
+    label: string
+    detail: string
+  }>
 }
 
 interface HockeyTrend {
@@ -441,9 +447,24 @@ export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): B
     )
   }
 
+  if ((data.latest?.qualityFlags ?? []).length > 0) {
+    y = sectionTitle(pdf, 'Test quality', y)
+    y = table(
+      pdf,
+      ['Signal', 'Severity', 'Detail'],
+      (data.latest?.qualityFlags ?? []).map((flag) => [
+        flag.label,
+        flag.severity === 'warning' ? 'Check' : 'Info',
+        flag.detail,
+      ]),
+      y,
+      { fontSize: 6.8 },
+    )
+  }
+
   if (data.history.length > 0) {
     y = sectionTitle(pdf, 'Recent history', y)
-    y = table(
+    table(
       pdf,
       ['Date', 'MuscleLab', '10m', '30m', '5-10-5'],
       data.history.slice(0, 8).map((test) => [

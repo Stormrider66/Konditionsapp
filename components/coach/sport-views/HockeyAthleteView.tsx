@@ -50,6 +50,12 @@ interface HockeyTestSummary {
   developmentLevel: string
   teamName: string | null
   metrics: Record<string, number | null>
+  qualityFlags: Array<{
+    key: string
+    severity: 'info' | 'warning'
+    label: string
+    detail: string
+  }>
 }
 
 interface HockeyTrend {
@@ -834,6 +840,37 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
                       >
                         {flag.label}
                       </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {summary.latest.qualityFlags.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium flex items-center gap-1.5" style={{ color: theme.colors.textPrimary }}>
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    Testkvalitet
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {summary.latest.qualityFlags.map((flag) => (
+                      <div
+                        key={`${flag.key}-${flag.label}`}
+                        className="rounded-lg border px-3 py-2"
+                        style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-xs font-semibold" style={{ color: theme.colors.textPrimary }}>
+                              {flag.label}
+                            </p>
+                            <p className="mt-1 text-[11px]" style={{ color: theme.colors.textMuted }}>
+                              {flag.detail}
+                            </p>
+                          </div>
+                          <Badge variant={flag.severity === 'warning' ? 'destructive' : 'secondary'} className="shrink-0 text-[10px]">
+                            {flag.severity === 'warning' ? 'Kontroll' : 'Info'}
+                          </Badge>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>

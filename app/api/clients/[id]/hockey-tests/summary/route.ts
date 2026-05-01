@@ -13,6 +13,7 @@ import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { buildRepeatedSprintProfile, positiveSplit, speedKmh } from '@/lib/hockey/ice-speed'
+import { buildHockeyQualityFlags, type HockeyQualityFlag } from '@/lib/hockey/test-quality'
 
 interface HockeySummary {
   id: string
@@ -24,6 +25,7 @@ interface HockeySummary {
   developmentLevel: string
   teamName: string | null
   metrics: Record<string, number | null>
+  qualityFlags: HockeyQualityFlag[]
 }
 
 interface HockeyTrend {
@@ -153,6 +155,48 @@ function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number], birthDat
   const sprint20to30Split = positiveSplit(test.sprint30m, test.sprint20m)
   const age = ageAtDate(birthDate, test.testDate)
 
+  const metrics = {
+    muscleLabWkg: round(numberFromJson(test.muscleLabMaxima, 'maxAveragePowerPerBodyMass'), 1),
+    muscleLabPower: round(numberFromJson(test.muscleLabMaxima, 'maxAveragePower'), 0),
+    backSquat1RM: test.backSquat1RM,
+    powerClean1RM: test.powerClean1RM,
+    benchPress1RM: test.benchPress1RM,
+    pullUp1RM: test.pullUp1RM,
+    gripStrengthLeft: test.gripStrengthLeft,
+    gripStrengthRight: test.gripStrengthRight,
+    gripMax: bestOf([test.gripStrengthLeft, test.gripStrengthRight]),
+    standingLongJump: test.standingLongJump,
+    threeJumpLeft: test.threeJumpLeft,
+    threeJumpRight: test.threeJumpRight,
+    threeJumpBest: bestOf([test.threeJumpLeft, test.threeJumpRight]),
+    beepScore: round(beepScore, 1),
+    sprint5m: test.sprint5m,
+    sprint10m: test.sprint10m,
+    sprint20m: test.sprint20m,
+    sprint30m: test.sprint30m,
+    sprint20mFly: test.sprint20mFly,
+    sprint30mFly: test.sprint30mFly,
+    sprint0to10Kmh: speedKmh(10, test.sprint10m),
+    sprint10to20Split,
+    sprint10to20Kmh: speedKmh(10, sprint10to20Split),
+    sprint20to30Split,
+    sprint20to30Kmh: speedKmh(10, sprint20to30Split),
+    sprint0to30Kmh: speedKmh(30, test.sprint30m),
+    agility505Left: test.agility505Left,
+    agility505Right: test.agility505Right,
+    agilityBest: bestOf([test.agility505Left, test.agility505Right], true),
+    endurance7x40Best,
+    endurance7x40BestKmh: speedKmh(40, endurance7x40Best),
+    endurance7x40Average: repeatedSprint.averageTimeS,
+    endurance7x40AverageKmh: repeatedSprint.averageSpeedKmh,
+    endurance7x40Total: repeatedSprint.totalTimeS,
+    endurance7x40FirstToLastDrop: repeatedSprint.firstToLastDropS,
+    endurance7x40FirstToLastDropPct: repeatedSprint.firstToLastDropPct,
+    endurance7x40Resistance: repeatedSprint.fatigueResistancePct,
+    endurance7x40DecrementPct: repeatedSprint.sprintDecrementPct,
+    enduranceFatigueDrop: repeatedSprint.fatigueDropPct,
+  }
+
   return {
     id: test.id,
     testDate: test.testDate.toISOString(),
@@ -162,41 +206,12 @@ function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number], birthDat
     ageAtTest: age,
     developmentLevel: developmentLevel(age, test.team?.name),
     teamName: test.team?.name ?? null,
-    metrics: {
-      muscleLabWkg: round(numberFromJson(test.muscleLabMaxima, 'maxAveragePowerPerBodyMass'), 1),
-      muscleLabPower: round(numberFromJson(test.muscleLabMaxima, 'maxAveragePower'), 0),
-      backSquat1RM: test.backSquat1RM,
-      powerClean1RM: test.powerClean1RM,
-      benchPress1RM: test.benchPress1RM,
-      pullUp1RM: test.pullUp1RM,
-      gripMax: bestOf([test.gripStrengthLeft, test.gripStrengthRight]),
-      standingLongJump: test.standingLongJump,
-      threeJumpBest: bestOf([test.threeJumpLeft, test.threeJumpRight]),
-      beepScore: round(beepScore, 1),
-      sprint5m: test.sprint5m,
-      sprint10m: test.sprint10m,
-      sprint20m: test.sprint20m,
-      sprint30m: test.sprint30m,
-      sprint20mFly: test.sprint20mFly,
-      sprint30mFly: test.sprint30mFly,
-      sprint0to10Kmh: speedKmh(10, test.sprint10m),
-      sprint10to20Split,
-      sprint10to20Kmh: speedKmh(10, sprint10to20Split),
-      sprint20to30Split,
-      sprint20to30Kmh: speedKmh(10, sprint20to30Split),
-      sprint0to30Kmh: speedKmh(30, test.sprint30m),
-      agilityBest: bestOf([test.agility505Left, test.agility505Right], true),
-      endurance7x40Best,
-      endurance7x40BestKmh: speedKmh(40, endurance7x40Best),
-      endurance7x40Average: repeatedSprint.averageTimeS,
-      endurance7x40AverageKmh: repeatedSprint.averageSpeedKmh,
-      endurance7x40Total: repeatedSprint.totalTimeS,
-      endurance7x40FirstToLastDrop: repeatedSprint.firstToLastDropS,
-      endurance7x40FirstToLastDropPct: repeatedSprint.firstToLastDropPct,
-      endurance7x40Resistance: repeatedSprint.fatigueResistancePct,
-      endurance7x40DecrementPct: repeatedSprint.sprintDecrementPct,
-      enduranceFatigueDrop: repeatedSprint.fatigueDropPct,
-    },
+    metrics,
+    qualityFlags: buildHockeyQualityFlags({
+      metrics,
+      endurance7x40: test.endurance7x40,
+      muscleLabMaxima: test.muscleLabMaxima,
+    }),
   }
 }
 

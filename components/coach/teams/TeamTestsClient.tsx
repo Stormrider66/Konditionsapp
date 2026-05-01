@@ -141,6 +141,12 @@ interface HockeyAthleteRow {
     gapToElite: number
     priorityThreshold: number | null
   } | null>
+  qualityFlags: Array<{
+    key: string
+    severity: 'info' | 'warning'
+    label: string
+    detail: string
+  }>
 }
 
 interface HockeyLeader {
@@ -1022,6 +1028,13 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                           <Link href={`${basePath}/clients/${athlete.id}/profile?tab=hockey`} className="hover:underline">
                             {athlete.name}
                           </Link>
+                          {athlete.qualityFlags.some((flag) => flag.severity === 'warning') && (
+                            <div className="mt-1">
+                              <Badge variant="destructive" className="h-4 px-1.5 text-[9px] font-normal">
+                                {athlete.qualityFlags.filter((flag) => flag.severity === 'warning').length} kvalitetsflaggor
+                              </Badge>
+                            </div>
+                          )}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
                           {athlete.position.label}

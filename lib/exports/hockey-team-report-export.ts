@@ -32,6 +32,12 @@ interface HockeyAthleteRow {
     gapToElite: number
     unit: string
   } | null>
+  qualityFlags: Array<{
+    key: string
+    severity: 'info' | 'warning'
+    label: string
+    detail: string
+  }>
 }
 
 interface HockeyLeader {
@@ -525,12 +531,19 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
       value: number | null
     } => Boolean(item))
   ).sort((a, b) => bandPriority(a.benchmark.band) - bandPriority(b.benchmark.band))
+  const qualityWarnings = data.athletes
+    .map((athlete) => ({
+      athlete,
+      warnings: athlete.qualityFlags.filter((flag) => flag.severity === 'warning'),
+    }))
+    .filter((entry) => entry.warnings.length > 0)
 
   y = summaryCards(pdf, [
     ['Athletes tested', `${testedAthletes}/${data.athletes.length}`],
     ['Hockey tests', `${data.testCount}`],
     ['Metrics tracked', `${data.metrics.length}`],
     ['Watchlist', `${priorityItems.length}`, 'priority/watch flags'],
+    ['Quality flags', `${qualityWarnings.length}`, 'athletes to verify'],
   ], y)
 
   const actions = buildHockeyActionItems(data)
@@ -585,6 +598,21 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
           : '-',
       ]),
       y,
+    )
+  }
+
+  if (qualityWarnings.length > 0) {
+    y = sectionTitle(pdf, 'Test quality checks', y)
+    y = table(
+      pdf,
+      ['Athlete', 'Flags', 'First signal'],
+      qualityWarnings.slice(0, 12).map((entry) => [
+        entry.athlete.name,
+        `${entry.warnings.length}`,
+        entry.warnings[0]?.label ?? '-',
+      ]),
+      y,
+      { fontSize: 7 },
     )
   }
 
