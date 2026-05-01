@@ -21,6 +21,10 @@ import {
   normalizeNormPosition,
   type HockeyNormGap,
 } from '@/lib/hockey/norm-references'
+import {
+  buildHockeyCoachInterpretations,
+  type HockeyCoachInterpretation,
+} from '@/lib/hockey/coach-interpretation'
 
 interface HockeySummary {
   id: string
@@ -583,6 +587,7 @@ export async function GET(
     const previous = history[1] ?? null
     const trends = buildTrends(latest, previous)
     const bests = buildBests(history)
+    const pathway = buildPathway(history, normalizeNormPosition(client?.position))
 
     return NextResponse.json({
       success: true,
@@ -593,7 +598,12 @@ export async function GET(
         trends,
         flags: buildFlags(latest, trends),
         history,
-        pathway: buildPathway(history, normalizeNormPosition(client?.position)),
+        pathway,
+        interpretations: buildHockeyCoachInterpretations({
+          latest,
+          trends,
+          readiness: pathway,
+        }) satisfies HockeyCoachInterpretation[],
         count: history.length,
       },
     })

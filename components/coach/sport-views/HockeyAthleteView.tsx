@@ -157,6 +157,14 @@ interface HockeySummaryResponse {
       } | null
     } | null
   }
+  interpretations: Array<{
+    id: string
+    tone: 'priority' | 'watch' | 'maintain' | 'quality' | 'positive'
+    title: string
+    summary: string
+    action: string
+    evidence: string[]
+  }>
   count: number
 }
 
@@ -458,6 +466,22 @@ function planToneClasses(tone: HockeyCoachPlanItem['tone']): string {
   return 'border-blue-500/30 bg-blue-500/10'
 }
 
+function interpretationToneClasses(tone: HockeySummaryResponse['interpretations'][number]['tone']): string {
+  if (tone === 'priority') return 'border-red-500/40 bg-red-500/10'
+  if (tone === 'quality') return 'border-amber-500/40 bg-amber-500/10'
+  if (tone === 'watch') return 'border-orange-500/40 bg-orange-500/10'
+  if (tone === 'positive') return 'border-emerald-500/40 bg-emerald-500/10'
+  return 'border-blue-500/30 bg-blue-500/10'
+}
+
+function interpretationBadge(tone: HockeySummaryResponse['interpretations'][number]['tone']): string {
+  if (tone === 'priority') return 'Prioritet'
+  if (tone === 'quality') return 'Kvalitet'
+  if (tone === 'watch') return 'Följ upp'
+  if (tone === 'positive') return 'Styrka'
+  return 'Behåll'
+}
+
 function pathwayChangeText(value: number | null | undefined, unit: string, decimals: number): string {
   if (value == null) return '-'
   const sign = value > 0 ? '+' : ''
@@ -569,6 +593,7 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
         bestMetricKeys: BEST_METRICS,
         coachPlan,
         pathway: summary?.pathway,
+        interpretations: summary?.interpretations ?? [],
       })
       toast.success('Spelarrapport exporterad')
     } catch (error) {
@@ -1020,6 +1045,57 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
               Inga hockeytester registrerade ännu. När tester loggas visas senaste värden, historik och nyckelflaggor här.
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
+            <Target className="h-4 w-4 text-amber-500" />
+            Coach decisions
+          </CardTitle>
+          <CardDescription style={{ color: theme.colors.textMuted }}>
+            Plain-language interpretation of readiness, trends and test quality.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {(summary?.interpretations ?? []).map((item) => (
+              <div
+                key={item.id}
+                className={`rounded-lg border px-3 py-2 ${interpretationToneClasses(item.tone)}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: theme.colors.textPrimary }}>
+                      {item.title}
+                    </p>
+                    <p className="mt-1 text-xs" style={{ color: theme.colors.textMuted }}>
+                      {item.summary}
+                    </p>
+                    <p className="mt-1 text-xs font-medium" style={{ color: theme.colors.textPrimary }}>
+                      {item.action}
+                    </p>
+                    {item.evidence.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {item.evidence.map((evidence) => (
+                          <Badge key={evidence} variant="outline" className="text-[10px]">
+                            {evidence}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <Badge
+                    variant={item.tone === 'priority' || item.tone === 'quality' ? 'destructive' : item.tone === 'positive' ? 'secondary' : 'outline'}
+                    className="shrink-0 text-[10px]"
+                  >
+                    {interpretationBadge(item.tone)}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 

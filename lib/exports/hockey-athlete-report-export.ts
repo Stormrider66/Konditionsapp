@@ -54,6 +54,15 @@ export interface HockeyAthleteReportPlanItem {
   tone: 'priority' | 'watch' | 'positive' | 'info'
 }
 
+export interface HockeyAthleteReportInterpretation {
+  id: string
+  tone: 'priority' | 'watch' | 'maintain' | 'quality' | 'positive'
+  title: string
+  summary: string
+  action: string
+  evidence: string[]
+}
+
 interface HockeyPathwaySeason {
   season: string
   level: string
@@ -112,6 +121,7 @@ export interface HockeyAthleteReportData {
   snapshotMetricKeys: readonly string[]
   bestMetricKeys: readonly string[]
   coachPlan: HockeyAthleteReportPlanItem[]
+  interpretations?: HockeyAthleteReportInterpretation[]
   pathway?: {
     seasons: HockeyPathwaySeason[]
     milestones: HockeyPathwayMilestone[]
@@ -294,6 +304,22 @@ function planItems(pdf: jsPDF, items: HockeyAthleteReportPlanItem[], y: number):
   return y + 2
 }
 
+function interpretationItems(pdf: jsPDF, items: HockeyAthleteReportInterpretation[], y: number): number {
+  if (items.length === 0) return y
+  y = sectionTitle(pdf, 'Coach decisions', y)
+  return table(
+    pdf,
+    ['Signal', 'Decision', 'Action'],
+    items.slice(0, 5).map((item) => [
+      item.tone,
+      item.title,
+      item.action,
+    ]),
+    y,
+    { fontSize: 6.8 },
+  )
+}
+
 function metricByKey(data: HockeyAthleteReportData, key: string): HockeyAthleteReportMetric | undefined {
   return data.metrics.find((metric) => metric.key === key)
 }
@@ -436,6 +462,8 @@ export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): B
     ['Experience', `${settings.yearsPlaying ?? '-'} years`],
     ['Shift profile', avgShiftLength ? `${avgShiftLength} sec/shift` : '-', `${settings.averageIceTimeMinutes ?? '-'} min · ${settings.shiftsPerGame ?? '-'} shifts`],
   ], y)
+
+  y = interpretationItems(pdf, data.interpretations ?? [], y)
 
   if (data.coachPlan.length > 0) {
     y = sectionTitle(pdf, 'Coach plan', y)
