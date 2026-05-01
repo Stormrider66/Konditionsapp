@@ -13,9 +13,14 @@ import { GEMINI_MODELS } from './gemini-config';
 
 /**
  * Create a Google GenAI client instance.
+ *
+ * `apiVersion: 'v1beta'` is pinned because we depend on preview models
+ * (gemini-3-flash-preview, gemini-3.1-pro-preview) that only exist on
+ * the v1beta channel. The @google/genai SDK default flips to v1 in
+ * its next major (Feb 2027); without this pin, those models will 404.
  */
 export function createGoogleGenAIClient(apiKey: string): GoogleGenAI {
-  return new GoogleGenAI({ apiKey });
+  return new GoogleGenAI({ apiKey, httpOptions: { apiVersion: 'v1beta' } });
 }
 
 /**
