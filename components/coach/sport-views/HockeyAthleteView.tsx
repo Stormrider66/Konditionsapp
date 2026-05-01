@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Shield,
   Timer,
@@ -16,10 +17,13 @@ import {
   ArrowDown,
   ArrowUp,
   Medal,
+  Download,
+  Loader2,
 } from 'lucide-react'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import type { HockeySettings } from '@/components/onboarding/HockeyOnboarding'
 import { SportTestHistory } from '@/components/tests/shared'
+import { toast } from 'sonner'
 
 interface HockeyAthleteViewProps {
   clientId: string
@@ -330,6 +334,7 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
   const [summary, setSummary] = useState<HockeySummaryResponse | null>(null)
+  const [isExportingAthleteReport, setIsExportingAthleteReport] = useState(false)
 
   const hockeySettings = settings as HockeySettings | undefined
 
@@ -383,6 +388,33 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
     .map((key) => METRIC_BY_KEY.get(key))
     .filter((metric): metric is (typeof PHYSICAL_METRICS)[number] => metric != null)
   const coachPlan = buildAthleteCoachPlan(summary, hockeySettings)
+
+  const handleExportAthleteReport = async () => {
+    setIsExportingAthleteReport(true)
+    try {
+      const { downloadHockeyAthleteReportPDF } = await import('@/lib/exports/hockey-athlete-report-export')
+      downloadHockeyAthleteReportPDF({
+        clientId,
+        clientName,
+        settings: hockeySettings,
+        latest: summary?.latest ?? null,
+        previous: summary?.previous ?? null,
+        bests: summary?.bests ?? {},
+        trends: summary?.trends ?? [],
+        flags: summary?.flags ?? [],
+        history: summary?.history ?? [],
+        metrics: PHYSICAL_METRICS.map((metric) => ({ ...metric })),
+        snapshotMetricKeys: SNAPSHOT_METRICS,
+        bestMetricKeys: BEST_METRICS,
+        coachPlan,
+      })
+      toast.success('Spelarrapport exporterad')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Kunde inte exportera spelarrapport')
+    } finally {
+      setIsExportingAthleteReport(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -448,6 +480,21 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
               {PLAYSTYLE_LABELS[hockeySettings.playStyle]}
             </Badge>
           </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isExportingAthleteReport}
+            onClick={handleExportAthleteReport}
+            className="w-full sm:w-auto"
+          >
+            {isExportingAthleteReport ? (
+              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-1.5" />
+            )}
+            Exportera spelarrapport PDF
+          </Button>
         </CardContent>
       </Card>
 
