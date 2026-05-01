@@ -66,6 +66,12 @@ interface HockeySummaryResponse {
   count: number
 }
 
+interface HockeyCoachPlanItem {
+  title: string
+  description: string
+  tone: 'priority' | 'watch' | 'positive' | 'info'
+}
+
 const POSITION_LABELS: Record<string, string> = {
   center: 'Center',
   wing: 'Forward (Wing)',
@@ -196,7 +202,9 @@ const BEST_METRICS = [
   'agilityBest',
 ] as const
 
-const METRIC_BY_KEY = new Map(PHYSICAL_METRICS.map((metric) => [metric.key, metric]))
+const METRIC_BY_KEY: ReadonlyMap<string, (typeof PHYSICAL_METRICS)[number]> = new Map(
+  PHYSICAL_METRICS.map((metric) => [metric.key, metric])
+)
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('sv-SE', {
@@ -214,6 +222,108 @@ function formatMetric(value: number | null | undefined, unit: string, decimals: 
 function formatDelta(delta: number, unit: string, decimals: number): string {
   const sign = delta > 0 ? '+' : ''
   return `${sign}${delta.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
+}
+
+function metricFocus(metricKey: string): { title: string; description: string } {
+  if (['sprint5m', 'sprint10m', 'sprint20m', 'sprint30m', 'agilityBest'].includes(metricKey)) {
+    return {
+      title: 'Acceleration och riktningsförändring',
+      description: 'Prioritera korta isaccelerationer, broms/omstart och 5-10-5-kvalitet med full återhämtning.',
+    }
+  }
+  if (['muscleLabWkg', 'standingLongJump', 'threeJumpBest'].includes(metricKey)) {
+    return {
+      title: 'Explosiv underkroppskraft',
+      description: 'Kör ett power-block med hopp, loaded squat jump och hastighetsstyrda kontrastpar.',
+    }
+  }
+  if (['backSquat1RM', 'powerClean1RM', 'benchPress1RM', 'pullUp1RM', 'gripMax'].includes(metricKey)) {
+    return {
+      title: 'Maxstyrka och robusthet',
+      description: 'Bygg vidare med baslyft, drag/press och grepp utan att störa is- eller matchkvalitet.',
+    }
+  }
+  if (['beepScore', 'enduranceFatigueDrop'].includes(metricKey)) {
+    return {
+      title: 'Repeated shift conditioning',
+      description: 'Använd upprepade 30-45 sek arbetsblock och kontrollera falloff mellan repetitioner.',
+    }
+  }
+  return {
+    title: 'Fysisk kapacitet',
+    description: 'Följ upp med riktad träning och nytt test efter nästa block.',
+  }
+}
+
+function buildAthleteCoachPlan(
+  summary: HockeySummaryResponse | null,
+  hockeySettings: HockeySettings,
+): HockeyCoachPlanItem[] {
+  const items: HockeyCoachPlanItem[] = []
+  if (!summary?.latest) {
+    return [{
+      title: 'Skapa baseline',
+      description: 'Logga första hockeybatteriet med sprint, hopp, styrka, kondition och MuscleLab om tillgängligt.',
+      tone: 'info',
+    }]
+  }
+
+  const warnings = summary.flags.filter((flag) => flag.severity === 'warning')
+  if (warnings.length > 0) {
+    items.push({
+      title: 'Kontrollera coachflaggor',
+      description: warnings.map((flag) => flag.label).join(' · '),
+      tone: 'priority',
+    })
+  }
+
+  const negativeTrends = summary.trends
+    .filter((trend) => !trend.isImprovement)
+    .sort((a, b) => Math.abs(b.percentChange ?? b.delta) - Math.abs(a.percentChange ?? a.delta))
+  const primaryNegative = negativeTrends[0]
+  if (primaryNegative) {
+    const metric = METRIC_BY_KEY.get(primaryNegative.key)
+    const focus = metricFocus(primaryNegative.key)
+    items.push({
+      title: focus.title,
+      description: `${metric?.label ?? 'Nyckelvärde'} har försämrats ${formatDelta(primaryNegative.delta, metric?.unit ?? '', metric?.decimals ?? 1)} sedan förra testet. ${focus.description}`,
+      tone: 'priority',
+    })
+  }
+
+  const bestNow = BEST_METRICS
+    .map((key) => {
+      const best = summary.bests[key]
+      const metric = METRIC_BY_KEY.get(key)
+      return best && metric && best.testId === summary.latest?.id
+        ? { best, metric }
+        : null
+    })
+    .filter((item): item is { best: HockeyBest; metric: NonNullable<ReturnType<typeof METRIC_BY_KEY.get>> } => item != null)
+  if (bestNow.length > 0) {
+    items.push({
+      title: 'Behåll styrkan i profilen',
+      description: `${bestNow.slice(0, 3).map((item) => item.metric.label).join(', ')} är ny bestnotering. Behåll dosen som gav resultat och öka bara en variabel i taget.`,
+      tone: 'positive',
+    })
+  }
+
+  const phase = PHASE_LABELS[hockeySettings.seasonPhase] ?? 'aktuell fas'
+  const retestWeeks = hockeySettings.seasonPhase === 'in_season' || hockeySettings.seasonPhase === 'playoffs' ? '4-6' : '3-4'
+  items.push({
+    title: `Nästa ${phase}-block`,
+    description: `Kör 2-4 veckor med huvudfokus ovan och gör kort retest om ${retestWeeks} veckor, eller tidigare om matchschema/återhämtning förändras tydligt.`,
+    tone: 'info',
+  })
+
+  return items.slice(0, 4)
+}
+
+function planToneClasses(tone: HockeyCoachPlanItem['tone']): string {
+  if (tone === 'priority') return 'border-red-500/40 bg-red-500/10'
+  if (tone === 'watch') return 'border-amber-500/40 bg-amber-500/10'
+  if (tone === 'positive') return 'border-emerald-500/40 bg-emerald-500/10'
+  return 'border-blue-500/30 bg-blue-500/10'
 }
 
 export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthleteViewProps) {
@@ -272,6 +382,7 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
   const bestMetrics = BEST_METRICS
     .map((key) => METRIC_BY_KEY.get(key))
     .filter((metric): metric is (typeof PHYSICAL_METRICS)[number] => metric != null)
+  const coachPlan = buildAthleteCoachPlan(summary, hockeySettings)
 
   return (
     <div className="space-y-4">
@@ -468,6 +579,52 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
             <p className="text-sm" style={{ color: theme.colors.textMuted }}>
               Inga hockeytester registrerade ännu. När tester loggas visas senaste värden, historik och nyckelflaggor här.
             </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
+            <Target className="h-4 w-4 text-amber-500" />
+            Coach plan
+          </CardTitle>
+          <CardDescription style={{ color: theme.colors.textMuted }}>
+            Nästa steg för {clientName} baserat på hockeyprofil och testtrend.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {coachPlan.map((item) => (
+              <div
+                key={`${item.tone}-${item.title}`}
+                className={`rounded-lg border px-3 py-2 ${planToneClasses(item.tone)}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: theme.colors.textPrimary }}>
+                      {item.title}
+                    </p>
+                    <p className="mt-1 text-xs" style={{ color: theme.colors.textMuted }}>
+                      {item.description}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={item.tone === 'priority' ? 'destructive' : item.tone === 'positive' ? 'secondary' : 'outline'}
+                    className="shrink-0 text-[10px]"
+                  >
+                    {item.tone === 'priority' ? 'Prioritet' : item.tone === 'positive' ? 'Styrka' : item.tone === 'watch' ? 'Följ upp' : 'Plan'}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+          {summary?.latest && (
+            <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: theme.colors.textMuted }}>
+              <Calendar className="h-3.5 w-3.5" />
+              <span>Senaste test {formatDate(summary.latest.testDate)}</span>
+              {summary.previous && <span>· jämförs mot {formatDate(summary.previous.testDate)}</span>}
+            </div>
           )}
         </CardContent>
       </Card>
