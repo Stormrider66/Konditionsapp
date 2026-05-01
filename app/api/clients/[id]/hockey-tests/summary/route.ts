@@ -19,6 +19,10 @@ interface HockeySummary {
   testDate: string
   sourceType: string
   notes: string | null
+  season: string
+  ageAtTest: number | null
+  developmentLevel: string
+  teamName: string | null
   metrics: Record<string, number | null>
 }
 
@@ -43,6 +47,27 @@ interface HockeyFlag {
   label: string
 }
 
+interface HockeyPathwaySeason {
+  season: string
+  level: string
+  testCount: number
+  firstDate: string
+  lastDate: string
+  ageRange: string | null
+  teamNames: string[]
+  startMetrics: Record<string, number | null>
+  endMetrics: Record<string, number | null>
+  changes: Record<string, number | null>
+}
+
+interface HockeyPathwayMilestone {
+  id: string
+  date: string
+  label: string
+  detail: string
+  tone: 'info' | 'positive'
+}
+
 const LOWER_IS_BETTER = new Set([
   'sprint5m',
   'sprint10m',
@@ -55,6 +80,15 @@ const LOWER_IS_BETTER = new Set([
   'agilityBest',
   'enduranceFatigueDrop',
 ])
+
+const PATHWAY_MILESTONE_LABELS: Record<string, string> = {
+  muscleLabWkg: 'power W/kg',
+  sprint10m: '10m ice sprint',
+  sprint30m: '30m ice sprint',
+  endurance7x40AverageKmh: '7x40 average speed',
+  backSquat1RM: 'back squat',
+  powerClean1RM: 'power clean',
+}
 
 function numberFromJson(value: unknown, key: string): number | null {
   if (!value || typeof value !== 'object') return null
@@ -74,7 +108,39 @@ function round(value: number | null, decimals = 1): number | null {
   return Math.round(value * factor) / factor
 }
 
-function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number]): HockeySummary {
+function seasonLabel(date: Date): string {
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1
+  const startYear = month >= 5 ? year : year - 1
+  return `${startYear}/${String(startYear + 1).slice(-2)}`
+}
+
+function ageAtDate(birthDate: Date | null | undefined, date: Date): number | null {
+  if (!birthDate) return null
+  const years = date.getFullYear() - birthDate.getFullYear()
+  const beforeBirthday = date.getMonth() < birthDate.getMonth()
+    || (date.getMonth() === birthDate.getMonth() && date.getDate() < birthDate.getDate())
+  return years - (beforeBirthday ? 1 : 0)
+}
+
+function developmentLevel(age: number | null, teamName?: string | null): string {
+  const normalizedTeam = (teamName ?? '').toLowerCase()
+  if (/(a-?team|a-lag|senior|herr|dam|shl|allsvenskan)/.test(normalizedTeam)) return 'A-team'
+  if (/j20|u20/.test(normalizedTeam)) return 'J20'
+  if (/j18|u18/.test(normalizedTeam)) return 'J18'
+  if (age == null) return 'Unknown'
+  if (age <= 17) return 'J18'
+  if (age <= 19) return 'J20'
+  return 'A-team'
+}
+
+function improvementDeltaValue(key: string, latest: number | null, previous: number | null): number | null {
+  if (latest == null || previous == null) return null
+  const lowerIsBetter = LOWER_IS_BETTER.has(key)
+  return round(lowerIsBetter ? previous - latest : latest - previous, 2)
+}
+
+function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number], birthDate: Date | null): HockeySummary {
   const beepScore = test.beepTestLevel
     ? test.beepTestLevel + ((test.beepTestShuttle ?? 0) / 10)
     : null
@@ -85,12 +151,17 @@ function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number]): HockeyS
   const endurance7x40Best = repeatedSprint.bestTimeS
   const sprint10to20Split = positiveSplit(test.sprint20m, test.sprint10m)
   const sprint20to30Split = positiveSplit(test.sprint30m, test.sprint20m)
+  const age = ageAtDate(birthDate, test.testDate)
 
   return {
     id: test.id,
     testDate: test.testDate.toISOString(),
     sourceType: test.sourceType,
     notes: test.notes,
+    season: seasonLabel(test.testDate),
+    ageAtTest: age,
+    developmentLevel: developmentLevel(age, test.team?.name),
+    teamName: test.team?.name ?? null,
     metrics: {
       muscleLabWkg: round(numberFromJson(test.muscleLabMaxima, 'maxAveragePowerPerBodyMass'), 1),
       muscleLabPower: round(numberFromJson(test.muscleLabMaxima, 'maxAveragePower'), 0),
@@ -126,6 +197,75 @@ function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number]): HockeyS
       endurance7x40DecrementPct: repeatedSprint.sprintDecrementPct,
       enduranceFatigueDrop: repeatedSprint.fatigueDropPct,
     },
+  }
+}
+
+function buildPathway(history: HockeySummary[]) {
+  const chronological = [...history].sort((a, b) => a.testDate.localeCompare(b.testDate))
+  const bySeason = new Map<string, HockeySummary[]>()
+  for (const test of chronological) {
+    bySeason.set(test.season, [...(bySeason.get(test.season) ?? []), test])
+  }
+
+  const seasons: HockeyPathwaySeason[] = Array.from(bySeason.entries()).map(([season, tests]) => {
+    const first = tests[0]
+    const last = tests[tests.length - 1]
+    const ages = tests.map((test) => test.ageAtTest).filter((age): age is number => age != null)
+    const teamNames = Array.from(new Set(tests.map((test) => test.teamName).filter((team): team is string => Boolean(team))))
+    const levels = tests.map((test) => test.developmentLevel).filter((level) => level !== 'Unknown')
+    const level = levels[levels.length - 1] ?? 'Unknown'
+    const metricKeys = new Set([...Object.keys(first.metrics), ...Object.keys(last.metrics)])
+    const changes: Record<string, number | null> = {}
+    for (const key of metricKeys) {
+      changes[key] = improvementDeltaValue(key, last.metrics[key], first.metrics[key])
+    }
+
+    const minAge = ages.length ? Math.min(...ages) : null
+    const maxAge = ages.length ? Math.max(...ages) : null
+
+    return {
+      season,
+      level,
+      testCount: tests.length,
+      firstDate: first.testDate,
+      lastDate: last.testDate,
+      ageRange: minAge == null || maxAge == null ? null : minAge === maxAge ? `${minAge}` : `${minAge}-${maxAge}`,
+      teamNames,
+      startMetrics: first.metrics,
+      endMetrics: last.metrics,
+      changes,
+    }
+  })
+
+  const milestones: HockeyPathwayMilestone[] = []
+  for (const season of seasons) {
+    const previous = seasons[seasons.indexOf(season) - 1]
+    if (!previous || previous.level !== season.level) {
+      milestones.push({
+        id: `level-${season.season}`,
+        date: season.firstDate,
+        label: season.level === 'Unknown' ? 'New season' : `Entered ${season.level}`,
+        detail: `${season.season}${season.teamNames.length ? ` · ${season.teamNames.join(', ')}` : ''}`,
+        tone: 'info',
+      })
+    }
+  }
+
+  for (const [key, best] of Object.entries(buildBests(history))) {
+    const label = PATHWAY_MILESTONE_LABELS[key]
+    if (!best || !label) continue
+    milestones.push({
+      id: `best-${key}`,
+      date: best.testDate,
+      label: `Best ${label}`,
+      detail: `${best.value}`,
+      tone: 'positive',
+    })
+  }
+
+  return {
+    seasons,
+    milestones: milestones.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10),
   }
 }
 
@@ -238,7 +378,7 @@ async function loadTests(clientId: string) {
   return prisma.hockeyPhysicalTest.findMany({
     where: { clientId },
     orderBy: { testDate: 'desc' },
-    take: 12,
+    take: 80,
     select: {
       id: true,
       testDate: true,
@@ -265,6 +405,7 @@ async function loadTests(clientId: string) {
       benchPress1RM: true,
       pullUp1RM: true,
       muscleLabMaxima: true,
+      team: { select: { name: true } },
     },
   })
 }
@@ -282,8 +423,14 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const tests = await loadTests(clientId)
-    const history = tests.map(toSummary)
+    const [tests, client] = await Promise.all([
+      loadTests(clientId),
+      prisma.client.findUnique({
+        where: { id: clientId },
+        select: { birthDate: true },
+      }),
+    ])
+    const history = tests.map((test) => toSummary(test, client?.birthDate ?? null))
     const latest = history[0] ?? null
     const previous = history[1] ?? null
     const trends = buildTrends(latest, previous)
@@ -298,6 +445,7 @@ export async function GET(
         trends,
         flags: buildFlags(latest, trends),
         history,
+        pathway: buildPathway(history),
         count: history.length,
       },
     })

@@ -20,6 +20,15 @@ import {
   Download,
   Loader2,
 } from 'lucide-react'
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import type { HockeySettings } from '@/components/onboarding/HockeyOnboarding'
 import { SportTestHistory } from '@/components/tests/shared'
@@ -36,6 +45,10 @@ interface HockeyTestSummary {
   testDate: string
   sourceType: string
   notes: string | null
+  season: string
+  ageAtTest: number | null
+  developmentLevel: string
+  teamName: string | null
   metrics: Record<string, number | null>
 }
 
@@ -67,6 +80,27 @@ interface HockeySummaryResponse {
   trends: HockeyTrend[]
   flags: HockeyFlag[]
   history: HockeyTestSummary[]
+  pathway: {
+    seasons: Array<{
+      season: string
+      level: string
+      testCount: number
+      firstDate: string
+      lastDate: string
+      ageRange: string | null
+      teamNames: string[]
+      startMetrics: Record<string, number | null>
+      endMetrics: Record<string, number | null>
+      changes: Record<string, number | null>
+    }>
+    milestones: Array<{
+      id: string
+      date: string
+      label: string
+      detail: string
+      tone: 'info' | 'positive'
+    }>
+  }
   count: number
 }
 
@@ -237,6 +271,13 @@ const BEST_METRICS = [
   'endurance7x40Resistance',
 ] as const
 
+const PATHWAY_METRICS = [
+  { key: 'muscleLabWkg', label: 'Power', unit: 'W/kg', decimals: 1, color: '#0891b2' },
+  { key: 'sprint10m', label: '10m ice', unit: 's', decimals: 2, color: '#dc2626' },
+  { key: 'endurance7x40AverageKmh', label: '7x40 avg speed', unit: 'km/h', decimals: 1, color: '#16a34a' },
+  { key: 'backSquat1RM', label: 'Back squat', unit: 'kg', decimals: 0, color: '#7c3aed' },
+] as const
+
 const METRIC_BY_KEY: ReadonlyMap<string, (typeof PHYSICAL_METRICS)[number]> = new Map(
   PHYSICAL_METRICS.map((metric) => [metric.key, metric])
 )
@@ -361,6 +402,12 @@ function planToneClasses(tone: HockeyCoachPlanItem['tone']): string {
   return 'border-blue-500/30 bg-blue-500/10'
 }
 
+function pathwayChangeText(value: number | null | undefined, unit: string, decimals: number): string {
+  if (value == null) return '-'
+  const sign = value > 0 ? '+' : ''
+  return `${sign}${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
+}
+
 export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthleteViewProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
@@ -422,6 +469,15 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
     .map((key) => METRIC_BY_KEY.get(key))
     .filter((metric): metric is (typeof PHYSICAL_METRICS)[number] => metric != null)
   const coachPlan = buildAthleteCoachPlan(summary, hockeySettings)
+  const pathway = summary?.pathway
+  const pathwayChartData: Array<Record<string, string | number | null>> = (pathway?.seasons ?? []).map((season) => ({
+    season: season.season,
+    level: season.level,
+    ...PATHWAY_METRICS.reduce<Record<string, number | null>>((acc, metric) => {
+      acc[metric.key] = season.endMetrics[metric.key] ?? null
+      return acc
+    }, {}),
+  }))
 
   const handleExportAthleteReport = async () => {
     setIsExportingAthleteReport(true)
@@ -441,6 +497,7 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
         snapshotMetricKeys: SNAPSHOT_METRICS,
         bestMetricKeys: BEST_METRICS,
         coachPlan,
+        pathway: summary?.pathway,
       })
       toast.success('Spelarrapport exporterad')
     } catch (error) {
@@ -531,6 +588,125 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
           </Button>
         </CardContent>
       </Card>
+
+      {pathway && pathway.seasons.length > 0 && (
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
+              Development pathway
+            </CardTitle>
+            <CardDescription style={{ color: theme.colors.textMuted }}>
+              Multi-year progression from junior levels toward A-team readiness.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {pathway.seasons.map((season) => (
+                <div
+                  key={season.season}
+                  className="rounded-lg border px-3 py-2"
+                  style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: theme.colors.textPrimary }}>{season.season}</p>
+                      <p className="text-xs" style={{ color: theme.colors.textMuted }}>
+                        {season.teamNames[0] ?? season.level}
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px]">{season.level}</Badge>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                    <span style={{ color: theme.colors.textMuted }}>Tests</span>
+                    <span className="text-right font-mono" style={{ color: theme.colors.textPrimary }}>{season.testCount}</span>
+                    <span style={{ color: theme.colors.textMuted }}>Age</span>
+                    <span className="text-right font-mono" style={{ color: theme.colors.textPrimary }}>{season.ageRange ?? '-'}</span>
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    {PATHWAY_METRICS.slice(0, 3).map((metric) => (
+                      <div key={metric.key} className="flex items-center justify-between gap-2 text-[11px]">
+                        <span style={{ color: theme.colors.textMuted }}>{metric.label}</span>
+                        <span className="font-mono" style={{ color: theme.colors.textPrimary }}>
+                          {pathwayChangeText(season.changes[metric.key], metric.unit, metric.decimals)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {PATHWAY_METRICS.map((metric) => {
+                const hasData = pathwayChartData.some((point) => typeof point[metric.key] === 'number')
+                if (!hasData) return null
+
+                return (
+                  <div
+                    key={metric.key}
+                    className="rounded-lg border p-3"
+                    style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>{metric.label}</p>
+                      <Badge variant="outline" className="text-[10px]">{metric.unit}</Badge>
+                    </div>
+                    <div className="h-36">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={pathwayChartData} margin={{ top: 6, right: 10, left: -12, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.35)" />
+                          <XAxis dataKey="season" tick={{ fontSize: 10 }} />
+                          <YAxis tick={{ fontSize: 10 }} width={42} />
+                          <Tooltip
+                            formatter={(value) => [
+                              typeof value === 'number'
+                                ? formatMetric(value, metric.unit, metric.decimals)
+                                : '-',
+                              metric.label,
+                            ]}
+                            labelFormatter={(label, payload) => {
+                              const level = payload?.[0]?.payload?.level
+                              return level ? `${label} · ${level}` : String(label)
+                            }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey={metric.key}
+                            stroke={metric.color}
+                            strokeWidth={2}
+                            dot={{ r: 3 }}
+                            connectNulls
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {pathway.milestones.length > 0 && (
+              <div className="rounded-lg border p-3" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+                <h4 className="text-sm font-medium mb-2" style={{ color: theme.colors.textPrimary }}>Milestones</h4>
+                <div className="space-y-2">
+                  {pathway.milestones.slice(0, 6).map((milestone) => (
+                    <div key={milestone.id} className="flex items-center justify-between gap-3 text-xs">
+                      <div>
+                        <p className="font-medium" style={{ color: theme.colors.textPrimary }}>{milestone.label}</p>
+                        <p style={{ color: theme.colors.textMuted }}>{milestone.detail}</p>
+                      </div>
+                      <Badge variant={milestone.tone === 'positive' ? 'secondary' : 'outline'} className="shrink-0 text-[10px]">
+                        {formatDate(milestone.date)}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-3">

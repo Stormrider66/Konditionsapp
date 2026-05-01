@@ -7,6 +7,10 @@ interface HockeyTestSummary {
   testDate: string
   sourceType: string
   notes: string | null
+  season?: string
+  ageAtTest?: number | null
+  developmentLevel?: string
+  teamName?: string | null
   metrics: Record<string, number | null>
 }
 
@@ -44,6 +48,27 @@ export interface HockeyAthleteReportPlanItem {
   tone: 'priority' | 'watch' | 'positive' | 'info'
 }
 
+interface HockeyPathwaySeason {
+  season: string
+  level: string
+  testCount: number
+  firstDate: string
+  lastDate: string
+  ageRange: string | null
+  teamNames: string[]
+  startMetrics: Record<string, number | null>
+  endMetrics: Record<string, number | null>
+  changes: Record<string, number | null>
+}
+
+interface HockeyPathwayMilestone {
+  id: string
+  date: string
+  label: string
+  detail: string
+  tone: 'info' | 'positive'
+}
+
 export interface HockeyAthleteReportData {
   clientId: string
   clientName: string
@@ -58,6 +83,10 @@ export interface HockeyAthleteReportData {
   snapshotMetricKeys: readonly string[]
   bestMetricKeys: readonly string[]
   coachPlan: HockeyAthleteReportPlanItem[]
+  pathway?: {
+    seasons: HockeyPathwaySeason[]
+    milestones: HockeyPathwayMilestone[]
+  }
 }
 
 const PAGE_WIDTH = 210
@@ -282,6 +311,50 @@ function iceSpeedProfile(pdf: jsPDF, latest: HockeyTestSummary | null, y: number
   return y + 2
 }
 
+function pathwayChange(value: number | null | undefined, unit: string, decimals: number): string {
+  if (value == null) return '-'
+  return `${value > 0 ? '+' : ''}${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
+}
+
+function developmentPathway(pdf: jsPDF, data: HockeyAthleteReportData, y: number): number {
+  const seasons = data.pathway?.seasons ?? []
+  if (seasons.length === 0) return y
+
+  y = sectionTitle(pdf, 'Development pathway', y)
+  y = table(
+    pdf,
+    ['Season', 'Level', 'Tests', 'Age', 'Power', '10m', '7x40 speed'],
+    seasons.slice(-8).map((season) => [
+      season.season,
+      season.level,
+      `${season.testCount}`,
+      season.ageRange ?? '-',
+      pathwayChange(season.changes.muscleLabWkg, 'W/kg', 1),
+      pathwayChange(season.changes.sprint10m, 's', 2),
+      pathwayChange(season.changes.endurance7x40AverageKmh, 'km/h', 1),
+    ]),
+    y,
+    { fontSize: 6.8 },
+  )
+
+  const milestones = data.pathway?.milestones ?? []
+  if (milestones.length > 0) {
+    y = table(
+      pdf,
+      ['Date', 'Milestone', 'Detail'],
+      milestones.slice(0, 6).map((milestone) => [
+        formatDate(milestone.date),
+        milestone.label,
+        milestone.detail,
+      ]),
+      y,
+      { fontSize: 7 },
+    )
+  }
+
+  return y + 2
+}
+
 export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): Blob {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   let y = 20
@@ -316,6 +389,8 @@ export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): B
     y = sectionTitle(pdf, 'Coach plan', y)
     y = planItems(pdf, data.coachPlan, y)
   }
+
+  y = developmentPathway(pdf, data, y)
 
   if (data.latest) {
     y = sectionTitle(pdf, 'Latest test snapshot', y)
