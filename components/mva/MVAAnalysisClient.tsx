@@ -159,6 +159,17 @@ interface SimcaImportArtifact {
   format: string
   rowCount: number
   columnCount: number
+  exportVersion?: string | null
+  exportPreset?: string | null
+  exportedAt?: string | null
+}
+
+interface SimcaExportPreset {
+  id: string
+  label: string
+  description: string
+  columnCount: number
+  columns: string[]
 }
 
 interface SimcaComparisonResult {
@@ -397,6 +408,8 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
   const [simcaImportMessage, setSimcaImportMessage] = useState<string | null>(null)
   const [simcaImportError, setSimcaImportError] = useState<string | null>(null)
   const [simcaImports, setSimcaImports] = useState<SimcaImportArtifact[]>([])
+  const [simcaExportPresets, setSimcaExportPresets] = useState<SimcaExportPreset[]>([])
+  const [simcaExportPresetId, setSimcaExportPresetId] = useState('full')
   const [simcaImportsLoading, setSimcaImportsLoading] = useState(false)
   const [deletingSimcaImportId, setDeletingSimcaImportId] = useState<string | null>(null)
   const [simcaBaselineId, setSimcaBaselineId] = useState<string>('')
@@ -510,11 +523,30 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
     }
   }, [teamId])
 
+  const fetchSimcaExportManifest = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/teams/${teamId}/hockey-tests/export?manifest=1`)
+      const json = await res.json()
+      if (json.success) {
+        setSimcaExportPresets(json.data.presets ?? [])
+        setSimcaExportPresetId((current) => current || json.data.defaultPreset || 'full')
+      }
+    } catch {
+      // Export still works with the default preset link.
+    }
+  }, [teamId])
+
   useEffect(() => {
     if ((teamSportType === 'TEAM_ICE_HOCKEY' || fetchedSportType === 'TEAM_ICE_HOCKEY') && simcaImports.length === 0) {
       void Promise.resolve().then(() => fetchSimcaImports())
     }
   }, [fetchedSportType, fetchSimcaImports, simcaImports.length, teamSportType])
+
+  useEffect(() => {
+    if ((teamSportType === 'TEAM_ICE_HOCKEY' || fetchedSportType === 'TEAM_ICE_HOCKEY') && simcaExportPresets.length === 0) {
+      void Promise.resolve().then(() => fetchSimcaExportManifest())
+    }
+  }, [fetchedSportType, fetchSimcaExportManifest, simcaExportPresets.length, teamSportType])
 
   const importSimcaFile = useCallback(async (file: File) => {
     setSimcaImporting(true)
@@ -606,22 +638,41 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
   }, [simcaBaselineId, simcaCurrentId, teamId])
 
   const isHockeyTeam = (fetchedSportType ?? teamSportType) === 'TEAM_ICE_HOCKEY'
+  const selectedSimcaExportPreset = simcaExportPresets.find((preset) => preset.id === simcaExportPresetId)
   const simcaWorkflow = isHockeyTeam ? (
     <Card className="mb-6 dark:bg-slate-900/50 dark:border-white/10">
-      <CardContent className="flex flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between">
+      <CardContent className="grid gap-4 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(220px,320px)_auto_auto] lg:items-center">
         <div className="flex items-start gap-3">
           <FileSpreadsheet className="mt-0.5 h-5 w-5 text-cyan-500" />
           <div>
             <p className="text-sm font-medium dark:text-white">SIMCA round-trip</p>
             <p className="text-xs text-muted-foreground">
-              Exportera hockeytester som bred CSV, analysera i SIMCA och använd PCA/PLS här för daglig uppföljning.
+              Exportera hockeytester som versionerad CSV, analysera i SIMCA och importera resultat för jämförelse.
             </p>
           </div>
         </div>
-        <a href={`/api/teams/${teamId}/hockey-tests/export`}>
+        <div>
+          <p className="mb-1 text-xs font-medium text-muted-foreground">Export preset</p>
+          <Select value={simcaExportPresetId} onValueChange={setSimcaExportPresetId}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="Välj export" />
+            </SelectTrigger>
+            <SelectContent>
+              {(simcaExportPresets.length > 0 ? simcaExportPresets : [{ id: 'full', label: 'Full hockey export', description: '', columnCount: 0, columns: [] }]).map((preset) => (
+                <SelectItem key={preset.id} value={preset.id}>
+                  {preset.label}{preset.columnCount ? ` · ${preset.columnCount} kol` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedSimcaExportPreset && (
+            <p className="mt-1 text-[11px] text-muted-foreground">{selectedSimcaExportPreset.description}</p>
+          )}
+        </div>
+        <a href={`/api/teams/${teamId}/hockey-tests/export?preset=${encodeURIComponent(simcaExportPresetId)}`}>
           <Button variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" />
-            Exportera hockey CSV
+            Exportera CSV
           </Button>
         </a>
         <input
@@ -698,7 +749,14 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                     {' · '}
                     {item.rowCount > 0 ? `${item.rowCount} rader` : 'JSON'}
                     {item.columnCount > 0 && ` · ${item.columnCount} kolumner`}
+                    {item.exportPreset && ` · ${item.exportPreset}`}
                   </div>
+                  {item.exportVersion && (
+                    <div className="mt-1 text-[10px] text-muted-foreground">
+                      {item.exportVersion}
+                      {item.exportedAt && ` · exporterad ${new Date(item.exportedAt).toLocaleDateString('sv-SE')}`}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -39,6 +39,20 @@ function countColumns(content: string): number {
   return firstLine.split(delimiter).length
 }
 
+function readDelimitedMetadata(content: string): { exportVersion?: string; exportPreset?: string; exportedAt?: string } {
+  const lines = content.split(/\r?\n/).filter((line) => line.trim())
+  if (lines.length < 2) return {}
+  const delimiter = lines[0].includes('\t') ? '\t' : lines[0].includes(';') ? ';' : ','
+  const headers = lines[0].split(delimiter).map((value) => value.trim().replace(/^"|"$/g, ''))
+  const values = lines[1].split(delimiter).map((value) => value.trim().replace(/^"|"$/g, ''))
+  const byHeader = new Map(headers.map((header, index) => [header, values[index]]))
+  return {
+    exportVersion: byHeader.get('simca_export_version') || undefined,
+    exportPreset: byHeader.get('simca_export_preset') || undefined,
+    exportedAt: byHeader.get('simca_export_generated_at') || undefined,
+  }
+}
+
 function tryParseJson(content: string): unknown | null {
   try {
     return JSON.parse(content)
@@ -114,6 +128,9 @@ export async function GET(
           format?: string
           rowCount?: number
           columnCount?: number
+          exportVersion?: string
+          exportPreset?: string
+          exportedAt?: string
         }
 
         return {
@@ -123,6 +140,9 @@ export async function GET(
           format: config.format ?? 'unknown',
           rowCount: config.rowCount ?? item.nObservations,
           columnCount: config.columnCount ?? item.nXVariables,
+          exportVersion: config.exportVersion ?? null,
+          exportPreset: config.exportPreset ?? null,
+          exportedAt: config.exportedAt ?? null,
         }
       }),
     })
@@ -163,6 +183,7 @@ export async function POST(
     const parsedJson = format === 'json' ? tryParseJson(content) : null
     const rowCount = format === 'json' ? 0 : countRows(content)
     const columnCount = format === 'json' ? 0 : countColumns(content)
+    const metadata = format === 'csv' ? readDelimitedMetadata(content) : {}
     const sport: SportType = auth.team.sportType || 'GENERAL_FITNESS'
 
     const model = await prisma.mVAModel.create({
@@ -177,6 +198,9 @@ export async function POST(
           format,
           rowCount,
           columnCount,
+          exportVersion: metadata.exportVersion ?? null,
+          exportPreset: metadata.exportPreset ?? null,
+          exportedAt: metadata.exportedAt ?? null,
           importedAt: new Date().toISOString(),
         } as Prisma.InputJsonValue,
         xVariables: [],

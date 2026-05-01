@@ -20,8 +20,12 @@ import {
 } from '@/lib/hockey/norm-references'
 
 const DEFAULT_DAYS = 365
+const SIMCA_EXPORT_VERSION = 'hockey-simca-v2'
 
 const COLUMNS = [
+  'simca_export_version',
+  'simca_export_generated_at',
+  'simca_export_preset',
   'team_id',
   'team_name',
   'athlete_id',
@@ -121,6 +125,168 @@ const COLUMNS = [
   'z_agility_505_best_s',
   'z_endurance_7x40_drop_pct',
 ] as const
+
+type SimcaExportColumn = typeof COLUMNS[number]
+type SimcaExportPresetId = 'full' | 'explosive_power' | 'on_ice_speed' | 'repeated_sprint' | 'strength' | 'target_gaps' | 'development_pathway'
+
+const BASE_SIMCA_COLUMNS = [
+  'simca_export_version',
+  'simca_export_generated_at',
+  'simca_export_preset',
+  'team_id',
+  'team_name',
+  'athlete_id',
+  'athlete_name',
+  'position',
+  'test_date',
+  'source_type',
+] as const satisfies readonly SimcaExportColumn[]
+
+const SIMCA_EXPORT_PRESETS: Record<SimcaExportPresetId, { label: string; description: string; columns: readonly SimcaExportColumn[] }> = {
+  full: {
+    label: 'Full hockey export',
+    description: 'All hockey metrics, z-scores, pathway variables and target gaps.',
+    columns: COLUMNS,
+  },
+  explosive_power: {
+    label: 'Explosive power',
+    description: 'MuscleLab, jumps, acceleration and agility for power profiling.',
+    columns: [
+      ...BASE_SIMCA_COLUMNS,
+      'athlete_age_at_test',
+      'pathway_level',
+      'musclelab_ap_w',
+      'musclelab_ap_w_per_kg_bw',
+      'musclelab_peak_velocity_m_s',
+      'standing_long_jump_cm',
+      'three_jump_best_cm',
+      'sprint_5m_s',
+      'sprint_10m_s',
+      'sprint_0_10m_kmh',
+      'agility_505_best_s',
+      'z_musclelab_ap_w_per_kg_bw',
+      'z_standing_long_jump_cm',
+      'z_three_jump_best_cm',
+      'z_sprint_5m_s',
+      'z_sprint_10m_s',
+      'z_agility_505_best_s',
+    ],
+  },
+  on_ice_speed: {
+    label: 'On-ice speed',
+    description: 'Sprint splits, stint speeds and distance gaps to the team leader.',
+    columns: [
+      ...BASE_SIMCA_COLUMNS,
+      'athlete_age_at_test',
+      'pathway_level',
+      'sprint_5m_s',
+      'sprint_10m_s',
+      'sprint_20m_s',
+      'sprint_30m_s',
+      'sprint_0_10m_kmh',
+      'sprint_10_20m_split_s',
+      'sprint_10_20m_kmh',
+      'sprint_20_30m_split_s',
+      'sprint_20_30m_kmh',
+      'sprint_0_30m_kmh',
+      'sprint_0_10m_gap_m',
+      'sprint_10_20m_gap_m',
+      'sprint_20_30m_gap_m',
+      'sprint_0_30m_gap_m',
+      'agility_505_best_s',
+      'z_sprint_0_10m_kmh',
+      'z_sprint_10_20m_kmh',
+      'z_sprint_20_30m_kmh',
+      'z_sprint_0_30m_kmh',
+    ],
+  },
+  repeated_sprint: {
+    label: 'Repeated sprint',
+    description: '7x40 best/mean speed, fatigue, resistance and RSA score.',
+    columns: [
+      ...BASE_SIMCA_COLUMNS,
+      'athlete_age_at_test',
+      'pathway_level',
+      'beep_score',
+      'endurance_7x40_best_s',
+      'endurance_7x40_best_kmh',
+      'endurance_7x40_best_gap_m',
+      'endurance_7x40_mean_s',
+      'endurance_7x40_mean_kmh',
+      'endurance_7x40_worst_s',
+      'endurance_7x40_total_s',
+      'endurance_7x40_drop_pct',
+      'endurance_7x40_resistance_pct',
+      'endurance_7x40_decrement_pct',
+      'endurance_7x40_rsa_score',
+      'z_beep_score',
+      'z_endurance_7x40_best_kmh',
+      'z_endurance_7x40_mean_kmh',
+      'z_endurance_7x40_resistance_pct',
+      'z_endurance_7x40_rsa_score',
+      'z_endurance_7x40_drop_pct',
+    ],
+  },
+  strength: {
+    label: 'Strength',
+    description: '1RM lifts, grip, pullups and relative squat strength.',
+    columns: [
+      ...BASE_SIMCA_COLUMNS,
+      'athlete_age_at_test',
+      'pathway_level',
+      'back_squat_1rm_kg',
+      'back_squat_1rm_x_bw',
+      'power_clean_1rm_kg',
+      'bench_press_1rm_kg',
+      'pullup_1rm_kg',
+      'grip_left_kg',
+      'grip_right_kg',
+      'grip_max_kg',
+      'z_back_squat_1rm_kg',
+      'z_power_clean_1rm_kg',
+      'z_bench_press_1rm_kg',
+      'z_pullup_1rm_kg',
+      'z_grip_max_kg',
+    ],
+  },
+  target_gaps: {
+    label: 'Target gaps',
+    description: 'Gaps to saved hockey norms for the current pathway level.',
+    columns: [
+      ...BASE_SIMCA_COLUMNS,
+      'athlete_age_at_test',
+      'pathway_level',
+      'gap_musclelab_wkg_to_target',
+      'gap_musclelab_wkg_to_elite',
+      'gap_sprint_10m_s_to_target',
+      'gap_sprint_10m_s_to_elite',
+      'gap_7x40_mean_kmh_to_target',
+      'gap_7x40_mean_kmh_to_elite',
+      'back_squat_1rm_x_bw',
+      'gap_back_squat_x_bw_to_target',
+      'gap_back_squat_x_bw_to_elite',
+    ],
+  },
+  development_pathway: {
+    label: 'Development pathway',
+    description: 'Season, level transition and progression-rate variables for J18 to A-team tracking.',
+    columns: [
+      ...BASE_SIMCA_COLUMNS,
+      'athlete_age_at_test',
+      'pathway_season',
+      'pathway_level',
+      'pathway_season_index',
+      'pathway_seasons_tested',
+      'pathway_tests_in_season',
+      'pathway_level_transition_count',
+      'pathway_positive_change_count',
+      'pathway_data_gap_count',
+      'pathway_power_wkg_slope_per_season',
+      'pathway_10m_improvement_s_per_season',
+      'pathway_7x40_kmh_slope_per_season',
+    ],
+  },
+}
 
 const Z_SCORE_METRICS = [
   { source: 'musclelab_ap_w_per_kg_bw', target: 'z_musclelab_ap_w_per_kg_bw' },
@@ -231,6 +397,11 @@ function csvRow(values: Array<string | number | null | undefined>): string {
   return values.map(csvEscape).join(',')
 }
 
+function exportPresetFromParam(value: string | null): SimcaExportPresetId {
+  if (value && value in SIMCA_EXPORT_PRESETS) return value as SimcaExportPresetId
+  return 'full'
+}
+
 function filenamePart(value: string): string {
   return value
     .toLowerCase()
@@ -295,6 +466,8 @@ export async function GET(
     const user = await requireCoach()
     const { id: teamId } = await params
     const daysParam = Number(request.nextUrl.searchParams.get('days') ?? DEFAULT_DAYS)
+    const presetId = exportPresetFromParam(request.nextUrl.searchParams.get('preset'))
+    const manifestOnly = request.nextUrl.searchParams.get('manifest') === '1'
     const days = Number.isFinite(daysParam) && daysParam > 0
       ? Math.min(Math.round(daysParam), 3650)
       : DEFAULT_DAYS
@@ -319,6 +492,23 @@ export async function GET(
 
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+    }
+
+    if (manifestOnly) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          version: SIMCA_EXPORT_VERSION,
+          defaultPreset: 'full',
+          presets: Object.entries(SIMCA_EXPORT_PRESETS).map(([id, preset]) => ({
+            id,
+            label: preset.label,
+            description: preset.description,
+            columnCount: preset.columns.length,
+            columns: preset.columns,
+          })),
+        },
+      })
     }
 
     const memberIds = team.members.map((member) => member.id)
@@ -432,6 +622,7 @@ export async function GET(
       })
     }
 
+    const exportGeneratedAt = new Date().toISOString()
     const rawRows: Array<Record<string, string | number | null>> = tests.map((test) => {
       const athlete = memberById.get(test.clientId)
       const endurance = enduranceSummary(test.endurance7x40)
@@ -464,6 +655,9 @@ export async function GET(
       )
 
       return {
+        simca_export_version: SIMCA_EXPORT_VERSION,
+        simca_export_generated_at: exportGeneratedAt,
+        simca_export_preset: presetId,
         team_id: team.id,
         team_name: team.name,
         athlete_id: test.clientId,
@@ -597,20 +791,22 @@ export async function GET(
     }
 
     const csv = [
-      csvRow([...COLUMNS]),
+      csvRow([...SIMCA_EXPORT_PRESETS[presetId].columns]),
       ...rawRows.map((row, index) => {
         const rowScores = zScores.get(index) ?? {}
-        return csvRow(COLUMNS.map((column) => row[column] ?? rowScores[column] ?? null))
+        return csvRow(SIMCA_EXPORT_PRESETS[presetId].columns.map((column) => row[column] ?? rowScores[column] ?? null))
       }),
     ].join('\n')
 
-    const filename = `simca-hockey-${filenamePart(team.name)}-${new Date().toISOString().slice(0, 10)}.csv`
+    const filename = `simca-hockey-${filenamePart(team.name)}-${presetId}-${new Date().toISOString().slice(0, 10)}.csv`
 
     return new NextResponse(csv, {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="${filename}"`,
         'Cache-Control': 'no-store',
+        'X-SIMCA-Export-Version': SIMCA_EXPORT_VERSION,
+        'X-SIMCA-Export-Preset': presetId,
       },
     })
   } catch (error) {

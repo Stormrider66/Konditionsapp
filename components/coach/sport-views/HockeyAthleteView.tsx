@@ -106,6 +106,56 @@ interface HockeySummaryResponse {
       detail: string
       tone: 'info' | 'positive'
     }>
+    readiness: Array<{
+      level: string
+      score: number | null
+      targetHits: number
+      targetCount: number
+      eliteHits: number
+      gaps: Array<{
+        metricKey: string
+        label: string
+        value: number | null
+        target: number
+        elite: number
+        gapToTarget: number
+        gapToElite: number
+        unit: string
+        lowerIsBetter: boolean
+        status: 'missing' | 'below-target' | 'target' | 'elite'
+      }>
+      primaryGap: {
+        metricKey: string
+        label: string
+        value: number | null
+        target: number
+        elite: number
+        gapToTarget: number
+        gapToElite: number
+        unit: string
+        lowerIsBetter: boolean
+        status: 'missing' | 'below-target' | 'target' | 'elite'
+      } | null
+    }>
+    nextLevel: {
+      level: string
+      score: number | null
+      targetHits: number
+      targetCount: number
+      eliteHits: number
+      primaryGap: {
+        metricKey: string
+        label: string
+        value: number | null
+        target: number
+        elite: number
+        gapToTarget: number
+        gapToElite: number
+        unit: string
+        lowerIsBetter: boolean
+        status: 'missing' | 'below-target' | 'target' | 'elite'
+      } | null
+    } | null
   }
   count: number
 }
@@ -414,6 +464,21 @@ function pathwayChangeText(value: number | null | undefined, unit: string, decim
   return `${sign}${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
+function readinessStatusClasses(status: 'missing' | 'below-target' | 'target' | 'elite'): string {
+  if (status === 'elite') return 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30'
+  if (status === 'target') return 'bg-blue-500/10 text-blue-700 border-blue-500/30'
+  if (status === 'below-target') return 'bg-amber-500/10 text-amber-700 border-amber-500/30'
+  return 'bg-slate-500/10 text-slate-600 border-slate-500/30'
+}
+
+function readinessGapText(gap: NonNullable<HockeySummaryResponse['pathway']['nextLevel']>['primaryGap']): string {
+  if (!gap) return 'All available targets reached'
+  if (gap.value == null) return `${gap.label}: missing data`
+  const amount = Math.abs(gap.gapToTarget)
+  const action = gap.lowerIsBetter ? 'reduce by' : 'increase by'
+  return `${gap.label}: ${action} ${amount.toFixed(gap.unit === 's' ? 2 : 1)} ${gap.unit} to target`
+}
+
 export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthleteViewProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
@@ -642,6 +707,59 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
                 </div>
               ))}
             </div>
+
+            {pathway.readiness.length > 0 && (
+              <div className="rounded-lg border p-3" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+                <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h4 className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>Next-level readiness</h4>
+                    <p className="text-xs" style={{ color: theme.colors.textMuted }}>
+                      Targets use body-mass W/kg and xBW strength for J18, J20 and A-team checkpoints.
+                    </p>
+                  </div>
+                  {pathway.nextLevel && (
+                    <Badge variant="outline" className="w-fit text-[10px]">
+                      Next: {pathway.nextLevel.level}
+                    </Badge>
+                  )}
+                </div>
+                <div className="grid gap-2 md:grid-cols-3">
+                  {pathway.readiness.map((level) => (
+                    <div key={level.level} className="rounded-md border px-3 py-2" style={{ borderColor: theme.colors.border }}>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold" style={{ color: theme.colors.textPrimary }}>{level.level}</p>
+                        <Badge variant={level.score != null && level.score >= 100 ? 'secondary' : 'outline'} className="text-[10px]">
+                          {level.score == null ? '-' : `${level.score}%`}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                        <div
+                          className="h-full bg-emerald-500"
+                          style={{ width: `${Math.min(level.score ?? 0, 100)}%` }}
+                        />
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-[11px]" style={{ color: theme.colors.textMuted }}>
+                        <span>{level.targetHits}/{level.targetCount} targets</span>
+                        <span>{level.eliteHits} elite</span>
+                      </div>
+                      <p className="mt-2 text-[11px]" style={{ color: theme.colors.textMuted }}>
+                        {readinessGapText(level.primaryGap)}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {level.gaps.map((gap) => (
+                          <span
+                            key={`${level.level}-${gap.metricKey}`}
+                            className={`rounded border px-1.5 py-0.5 text-[10px] ${readinessStatusClasses(gap.status)}`}
+                          >
+                            {gap.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {PATHWAY_METRICS.map((metric) => {
