@@ -129,6 +129,18 @@ interface HockeyAthleteRow {
     positionCoverage: number
     band: HockeyBenchmarkBand
   } | null>
+  normGaps: Record<string, {
+    level: string
+    position: string
+    metricKey: string
+    target: number
+    elite: number
+    unit: string
+    lowerIsBetter: boolean
+    gapToTarget: number
+    gapToElite: number
+    priorityThreshold: number | null
+  } | null>
 }
 
 interface HockeyLeader {
@@ -198,11 +210,13 @@ interface HockeyPathwaySummary {
 }
 
 interface HockeyNormReference {
+  id?: string
   level: string
   position: string
   metricKey: string
   target: number
   elite: number
+  priorityThreshold?: number | null
   unit: string
   lowerIsBetter?: boolean
 }
@@ -308,6 +322,16 @@ function formatPathwayChange(value: number | null | undefined, unit: string): st
   return `${value > 0 ? '+' : ''}${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
+function formatNormGap(value: number | null | undefined, unit: string): string {
+  if (value == null) return '–'
+  const decimals = unit === 's' ? 2 : ['W/kg', 'km/h', 'xBW'].includes(unit) ? 1 : 0
+  return `${value > 0 ? '+' : ''}${value.toFixed(decimals)} ${unit}`
+}
+
+function metricByKey(metrics: HockeyMetric[] | undefined, key: string): HockeyMetric | undefined {
+  return metrics?.find((metric) => metric.key === key)
+}
+
 export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientProps) {
   const [sessions, setSessions] = useState<TestSession[]>([])
   const [hockey, setHockey] = useState<HockeyTeamSummary | null>(null)
@@ -320,6 +344,8 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [isExportingTeamReport, setIsExportingTeamReport] = useState(false)
   const [selectedPathwayAthleteId, setSelectedPathwayAthleteId] = useState<string | null>(null)
+  const [normDrafts, setNormDrafts] = useState<HockeyNormReference[]>([])
+  const [isSavingNorms, setIsSavingNorms] = useState(false)
 
   // Edit/delete state for individual PRs in a session. Editing uses
   // the same PATCH endpoint as the per-client PR table — value, unit,
@@ -406,6 +432,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
       if (body.success) {
         setSessions(body.data.sessions)
         setHockey(body.data.hockey ?? null)
+        setNormDrafts(body.data.hockey?.normReferences ?? [])
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Kunde inte hämta testdata')
@@ -417,6 +444,55 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   useEffect(() => {
     void fetchSessions()
   }, [fetchSessions])
+
+  const updateNormDraft = (index: number, patch: Partial<HockeyNormReference>) => {
+    setNormDrafts((prev) => prev.map((norm, normIndex) => (
+      normIndex === index ? { ...norm, ...patch } : norm
+    )))
+  }
+
+  const addNormDraft = () => {
+    const metric = hockey?.metrics.find((candidate) => candidate.key === selectedHockeyMetric)
+      ?? hockey?.metrics[0]
+    setNormDrafts((prev) => [
+      ...prev,
+      {
+        level: 'J20',
+        position: 'All',
+        metricKey: metric?.key ?? 'muscleLabWkg',
+        target: 0,
+        elite: 0,
+        priorityThreshold: null,
+        unit: metric?.unit ?? '',
+        lowerIsBetter: metric?.lowerIsBetter === true,
+      },
+    ])
+  }
+
+  const removeNormDraft = (index: number) => {
+    setNormDrafts((prev) => prev.filter((_, normIndex) => normIndex !== index))
+  }
+
+  const saveNormDrafts = async () => {
+    setIsSavingNorms(true)
+    try {
+      const res = await fetch(`/api/teams/${teamId}/hockey-norms`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ norms: normDrafts }),
+      })
+      const body = await res.json().catch(() => null)
+      if (!res.ok || body?.success === false) {
+        throw new Error(body?.error ?? `HTTP ${res.status}`)
+      }
+      toast.success('Hockeynormer sparade')
+      await fetchSessions()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Kunde inte spara hockeynormer')
+    } finally {
+      setIsSavingNorms(false)
+    }
+  }
 
   const toggleExpand = (date: string) => {
     setExpanded((prev) => {
@@ -451,9 +527,9 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     ?? pathway?.promoted[0]
     ?? pathway?.athletes.find((athlete) => athlete.testCount > 0)
     ?? null
-  const pathwayNormRows = (hockey?.normReferences ?? [])
-    .filter((norm) => !selectedPathwayMetric || norm.metricKey === selectedPathwayMetric.key)
-    .slice(0, 6)
+  const visibleNormDrafts = normDrafts
+    .map((norm, index) => ({ norm, index }))
+    .filter(({ norm }) => !selectedPathwayMetric || norm.metricKey === selectedPathwayMetric.key)
 
   return (
     <div className="space-y-6">
@@ -764,40 +840,135 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                   </div>
 
                   <div className="rounded-md border bg-background p-3">
-                    <p className="text-xs font-medium mb-2">Configurable norm reference</p>
-                    {pathwayNormRows.length > 0 ? (
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-medium">Configurable norm reference</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Sparas per lag och används i target-gap, rapport och SIMCA-export.
+                        </p>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-[10px]" onClick={addNormDraft}>
+                          Lägg till
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-7 px-2 text-[10px]"
+                          onClick={saveNormDrafts}
+                          disabled={isSavingNorms}
+                        >
+                          {isSavingNorms && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+                          Spara
+                        </Button>
+                      </div>
+                    </div>
+                    {visibleNormDrafts.length > 0 ? (
                       <div className="overflow-x-auto">
                         <table className="w-full text-[11px]">
                           <thead>
                             <tr className="border-b text-muted-foreground">
                               <th className="py-1 text-left font-medium">Level</th>
+                              <th className="py-1 text-left font-medium">Pos</th>
                               <th className="py-1 text-left font-medium">Metric</th>
                               <th className="py-1 text-right font-medium">Target</th>
                               <th className="py-1 text-right font-medium">Elite</th>
+                              <th className="py-1 text-right font-medium">Unit</th>
+                              <th className="py-1 text-right font-medium"></th>
                             </tr>
                           </thead>
                           <tbody>
-                            {pathwayNormRows.map((norm) => {
-                              const metric = hockey.metrics.find((candidate) => candidate.key === norm.metricKey)
-                              return (
+                            {visibleNormDrafts.map(({ norm, index }) => (
                                 <tr key={`${norm.level}-${norm.position}-${norm.metricKey}`} className="border-b last:border-0">
-                                  <td className="py-1">{norm.level}</td>
-                                  <td className="py-1">{metric?.label ?? norm.metricKey}</td>
-                                  <td className="py-1 text-right font-mono">
-                                    {formatMetricValue(norm.target, norm.unit)}
+                                  <td className="py-1 pr-1">
+                                    <Select value={norm.level} onValueChange={(value) => updateNormDraft(index, { level: value })}>
+                                      <SelectTrigger className="h-7 w-[74px] text-[11px]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {['J18', 'J20', 'A-team'].map((level) => (
+                                          <SelectItem key={level} value={level}>{level}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   </td>
-                                  <td className="py-1 text-right font-mono">
-                                    {formatMetricValue(norm.elite, norm.unit)}
+                                  <td className="py-1 pr-1">
+                                    <Select value={norm.position} onValueChange={(value) => updateNormDraft(index, { position: value })}>
+                                      <SelectTrigger className="h-7 w-[74px] text-[11px]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="All">All</SelectItem>
+                                        {hockey.positions.map((position) => (
+                                          <SelectItem key={position.key} value={position.key}>{position.key}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </td>
+                                  <td className="py-1 pr-1">
+                                    <Select
+                                      value={norm.metricKey}
+                                      onValueChange={(value) => {
+                                        const nextMetric = metricByKey(hockey.metrics, value)
+                                        updateNormDraft(index, {
+                                          metricKey: value,
+                                          unit: nextMetric?.unit ?? norm.unit,
+                                          lowerIsBetter: nextMetric?.lowerIsBetter === true,
+                                        })
+                                      }}
+                                    >
+                                      <SelectTrigger className="h-7 w-[132px] text-[11px]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {hockey.metrics.map((candidate) => (
+                                          <SelectItem key={candidate.key} value={candidate.key}>{candidate.label}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </td>
+                                  <td className="py-1 pl-1 text-right">
+                                    <Input
+                                      value={Number.isFinite(norm.target) ? String(norm.target) : ''}
+                                      onChange={(event) => updateNormDraft(index, { target: Number(event.target.value.replace(',', '.')) })}
+                                      className="ml-auto h-7 w-20 text-right font-mono text-[11px]"
+                                      inputMode="decimal"
+                                    />
+                                  </td>
+                                  <td className="py-1 pl-1 text-right">
+                                    <Input
+                                      value={Number.isFinite(norm.elite) ? String(norm.elite) : ''}
+                                      onChange={(event) => updateNormDraft(index, { elite: Number(event.target.value.replace(',', '.')) })}
+                                      className="ml-auto h-7 w-20 text-right font-mono text-[11px]"
+                                      inputMode="decimal"
+                                    />
+                                  </td>
+                                  <td className="py-1 pl-1 text-right">
+                                    <Input
+                                      value={norm.unit}
+                                      onChange={(event) => updateNormDraft(index, { unit: event.target.value })}
+                                      className="ml-auto h-7 w-16 text-right font-mono text-[11px]"
+                                    />
+                                  </td>
+                                  <td className="py-1 pl-1 text-right">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => removeNormDraft(index)}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
                                   </td>
                                 </tr>
-                              )
-                            })}
+                            ))}
                           </tbody>
                         </table>
                       </div>
                     ) : (
                       <div className="rounded-md border border-dashed py-5 text-center text-xs text-muted-foreground">
-                        Normtabellen visas när vald metrik har nivåreferenser.
+                        Lägg till en normrad för vald pathway-metrik.
                       </div>
                     )}
                   </div>
@@ -862,6 +1033,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                           <td key={metric.key} className="px-3 py-2 text-right font-mono whitespace-nowrap">
                             {(() => {
                               const benchmark = athlete.benchmarks[metric.key]
+                              const normGap = athlete.normGaps[metric.key]
                               return (
                                 <>
                             <div>{formatMetricValue(athlete.metrics[metric.key], metric.unit)}</div>
@@ -888,6 +1060,16 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                                           z {benchmark.zScore > 0 ? '+' : ''}{benchmark.zScore.toFixed(2)}
                                         </Badge>
                                       )}
+                                    </div>
+                                  )}
+                                  {normGap && (
+                                    <div className="mt-1 flex justify-end">
+                                      <Badge
+                                        variant={normGap.gapToTarget >= 0 ? 'secondary' : 'outline'}
+                                        className="h-4 px-1.5 text-[9px] font-normal"
+                                      >
+                                        Target {formatNormGap(normGap.gapToTarget, normGap.unit)}
+                                      </Badge>
                                     </div>
                                   )}
                                 </>

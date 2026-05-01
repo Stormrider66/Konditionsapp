@@ -13,6 +13,11 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logError } from '@/lib/logger-console'
 import { buildRepeatedSprintProfile, percentile, repeatedSprintScore } from '@/lib/hockey/ice-speed'
+import {
+  buildHockeyNormGap,
+  findHockeyNormReference,
+  mergeHockeyNormReferences,
+} from '@/lib/hockey/norm-references'
 
 const DEFAULT_DAYS = 365
 
@@ -36,6 +41,15 @@ const COLUMNS = [
   'pathway_power_wkg_slope_per_season',
   'pathway_10m_improvement_s_per_season',
   'pathway_7x40_kmh_slope_per_season',
+  'gap_musclelab_wkg_to_target',
+  'gap_musclelab_wkg_to_elite',
+  'gap_sprint_10m_s_to_target',
+  'gap_sprint_10m_s_to_elite',
+  'gap_7x40_mean_kmh_to_target',
+  'gap_7x40_mean_kmh_to_elite',
+  'back_squat_1rm_x_bw',
+  'gap_back_squat_x_bw_to_target',
+  'gap_back_squat_x_bw_to_elite',
   'musclelab_ap_w',
   'musclelab_ap_w_per_kg_bw',
   'musclelab_peak_velocity_m_s',
@@ -295,6 +309,7 @@ export async function GET(
             id: true,
             name: true,
             birthDate: true,
+            weight: true,
             position: true,
             sportProfile: { select: { hockeySettings: true } },
           },
@@ -310,6 +325,16 @@ export async function GET(
     const memberById = new Map(team.members.map((member) => [member.id, member]))
     const since = new Date()
     since.setDate(since.getDate() - days)
+
+    const savedNormReferences = await prisma.hockeyNormReference.findMany({
+      where: { teamId, coachId: user.id },
+      orderBy: [
+        { level: 'asc' },
+        { metricKey: 'asc' },
+        { position: 'asc' },
+      ],
+    })
+    const hockeyNormReferences = mergeHockeyNormReferences(savedNormReferences)
 
     const tests = await prisma.hockeyPhysicalTest.findMany({
       where: {
@@ -416,6 +441,27 @@ export async function GET(
       const sprint10to20 = positiveSplit(test.sprint20m, test.sprint10m)
       const sprint20to30 = positiveSplit(test.sprint30m, test.sprint20m)
       const pathway = pathwayStats.get(`${test.clientId}:${test.testDate.toISOString()}`) ?? {}
+      const pathwayLevel = typeof pathway.pathway_level === 'string' ? pathway.pathway_level : null
+      const muscleLabWkg = round(numberFromJson(test.muscleLabMaxima, 'maxAveragePowerPerBodyMass'), 2)
+      const backSquatRelative = test.backSquat1RM && athlete?.weight
+        ? round(test.backSquat1RM / athlete.weight, 2)
+        : null
+      const muscleNormGap = buildHockeyNormGap(
+        muscleLabWkg,
+        findHockeyNormReference(hockeyNormReferences, pathwayLevel, athlete?.position, 'muscleLabWkg'),
+      )
+      const sprintNormGap = buildHockeyNormGap(
+        test.sprint10m,
+        findHockeyNormReference(hockeyNormReferences, pathwayLevel, athlete?.position, 'sprint10m'),
+      )
+      const enduranceNormGap = buildHockeyNormGap(
+        endurance.meanKmh,
+        findHockeyNormReference(hockeyNormReferences, pathwayLevel, athlete?.position, 'endurance7x40AverageKmh'),
+      )
+      const squatNormGap = buildHockeyNormGap(
+        backSquatRelative,
+        findHockeyNormReference(hockeyNormReferences, pathwayLevel, athlete?.position, 'backSquat1RM'),
+      )
 
       return {
         team_id: team.id,
@@ -426,8 +472,17 @@ export async function GET(
         test_date: test.testDate.toISOString().slice(0, 10),
         source_type: test.sourceType,
         ...pathway,
+        gap_musclelab_wkg_to_target: muscleNormGap?.gapToTarget ?? null,
+        gap_musclelab_wkg_to_elite: muscleNormGap?.gapToElite ?? null,
+        gap_sprint_10m_s_to_target: sprintNormGap?.gapToTarget ?? null,
+        gap_sprint_10m_s_to_elite: sprintNormGap?.gapToElite ?? null,
+        gap_7x40_mean_kmh_to_target: enduranceNormGap?.gapToTarget ?? null,
+        gap_7x40_mean_kmh_to_elite: enduranceNormGap?.gapToElite ?? null,
+        back_squat_1rm_x_bw: backSquatRelative,
+        gap_back_squat_x_bw_to_target: squatNormGap?.gapToTarget ?? null,
+        gap_back_squat_x_bw_to_elite: squatNormGap?.gapToElite ?? null,
         musclelab_ap_w: round(numberFromJson(test.muscleLabMaxima, 'maxAveragePower'), 0),
-        musclelab_ap_w_per_kg_bw: round(numberFromJson(test.muscleLabMaxima, 'maxAveragePowerPerBodyMass'), 2),
+        musclelab_ap_w_per_kg_bw: muscleLabWkg,
         musclelab_peak_velocity_m_s: round(numberFromJson(test.muscleLabMaxima, 'maxPeakVelocity'), 2),
         back_squat_1rm_kg: test.backSquat1RM,
         power_clean_1rm_kg: test.powerClean1RM,

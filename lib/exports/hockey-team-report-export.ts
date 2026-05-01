@@ -27,6 +27,11 @@ interface HockeyAthleteRow {
     positionCoverage: number
     band: HockeyBenchmarkBand
   } | null>
+  normGaps: Record<string, {
+    gapToTarget: number
+    gapToElite: number
+    unit: string
+  } | null>
 }
 
 interface HockeyLeader {
@@ -594,7 +599,7 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
   const coreMetrics = CORE_METRICS
     .map((key) => metricByKey(data, key))
     .filter((metric): metric is HockeyMetric => Boolean(metric))
-  y = table(
+  table(
     pdf,
     ['Athlete', 'Pos', 'Date', ...coreMetrics.map((metric) => metric.label)],
     data.athletes
@@ -606,8 +611,11 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
         athlete.latestTestDate ?? '-',
         ...coreMetrics.map((metric) => {
           const rank = athlete.ranks[metric.key]
+          const normGap = athlete.normGaps[metric.key]
           const value = formatMetricValue(athlete.metrics[metric.key], metric.unit)
-          return rank ? `${value} P${rank.percentile}` : value
+          const rankText = rank ? ` P${rank.percentile}` : ''
+          const targetText = normGap ? ` T${pathwayChange(normGap.gapToTarget, normGap.unit)}` : ''
+          return `${value}${rankText}${targetText}`
         }),
       ]),
     y,
