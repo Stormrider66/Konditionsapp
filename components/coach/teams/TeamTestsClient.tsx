@@ -82,6 +82,7 @@ import {
 } from 'recharts'
 import { toast } from 'sonner'
 import { buildHockeyActionItems, type HockeyActionItem } from '@/lib/hockey/team-action-plan'
+import { buildTeamIceSpeedProfileRows } from '@/lib/hockey/ice-speed'
 
 interface PRRow {
   id: string
@@ -200,25 +201,6 @@ function formatDistance(value: number | null | undefined): string {
   return value == null ? '–' : `${value.toFixed(1)} m`
 }
 
-function speedKmh(distanceM: number, timeS: number | null | undefined): number | null {
-  if (timeS == null || timeS <= 0) return null
-  return distanceM / timeS * 3.6
-}
-
-function average(values: number[]): number | null {
-  if (values.length === 0) return null
-  return values.reduce((sum, value) => sum + value, 0) / values.length
-}
-
-function median(values: number[]): number | null {
-  if (values.length === 0) return null
-  const sorted = [...values].sort((a, b) => a - b)
-  const middle = Math.floor(sorted.length / 2)
-  return sorted.length % 2 === 0
-    ? (sorted[middle - 1] + sorted[middle]) / 2
-    : sorted[middle]
-}
-
 interface IceSpeedGapRow {
   key: string
   label: string
@@ -229,93 +211,22 @@ interface IceSpeedGapRow {
   maxGap: { athleteName: string; gapM: number } | null
 }
 
-const ICE_SPEED_DEFINITIONS = [
-  {
-    key: 'sprint10m',
-    label: '0-10 m',
-    distanceM: 10,
-    time: (metrics: Record<string, number | null>) => metrics.sprint10m,
-  },
-  {
-    key: 'sprint10to20m',
-    label: '10-20 m flygande split',
-    distanceM: 10,
-    time: (metrics: Record<string, number | null>) => {
-      const ten = metrics.sprint10m
-      const twenty = metrics.sprint20m
-      return ten != null && twenty != null && twenty > ten ? twenty - ten : null
-    },
-  },
-  {
-    key: 'sprint20to30m',
-    label: '20-30 m flygande split',
-    distanceM: 10,
-    time: (metrics: Record<string, number | null>) => {
-      const twenty = metrics.sprint20m
-      const thirty = metrics.sprint30m
-      return twenty != null && thirty != null && thirty > twenty ? thirty - twenty : null
-    },
-  },
-  {
-    key: 'sprint30m',
-    label: '0-30 m',
-    distanceM: 30,
-    time: (metrics: Record<string, number | null>) => metrics.sprint30m,
-  },
-  {
-    key: 'endurance7x40Best',
-    label: '7x40 bästa rep',
-    distanceM: 40,
-    time: (metrics: Record<string, number | null>) => metrics.endurance7x40Best,
-  },
-] as const
-
 function buildIceSpeedGapRows(athletes: HockeyAthleteRow[]): IceSpeedGapRow[] {
-  return ICE_SPEED_DEFINITIONS.map((definition) => {
-    const entries = athletes
-      .map((athlete) => {
-        const timeS = definition.time(athlete.metrics)
-        const speed = speedKmh(definition.distanceM, timeS)
-        return timeS != null && speed != null
-          ? { athlete, timeS, speed }
-          : null
-      })
-      .filter((entry): entry is { athlete: HockeyAthleteRow; timeS: number; speed: number } => entry != null)
-      .sort((a, b) => a.timeS - b.timeS)
-
-    const leader = entries[0]
-    if (!leader) {
-      return {
-        key: definition.key,
-        label: definition.label,
-        coverage: 0,
-        leader: null,
-        averageSpeedKmh: null,
-        medianGapM: null,
-        maxGap: null,
-      }
-    }
-
-    const gaps = entries.map((entry) => ({
-      athleteName: entry.athlete.name,
-      gapM: definition.distanceM - (definition.distanceM * leader.timeS / entry.timeS),
-    }))
-    const maxGap = gaps.reduce((current, candidate) => candidate.gapM > current.gapM ? candidate : current, gaps[0])
-
-    return {
-      key: definition.key,
-      label: definition.label,
-      coverage: entries.length,
-      leader: {
-        athleteName: leader.athlete.name,
-        timeS: leader.timeS,
-        speedKmh: leader.speed,
-      },
-      averageSpeedKmh: average(entries.map((entry) => entry.speed)),
-      medianGapM: median(gaps.map((gap) => gap.gapM)),
-      maxGap,
-    }
-  }).filter((row) => row.coverage > 0)
+  return buildTeamIceSpeedProfileRows(athletes).map((row) => ({
+    key: row.key,
+    label: row.label,
+    coverage: row.coverage,
+    leader: {
+      athleteName: row.leaderName,
+      timeS: row.timeS,
+      speedKmh: row.speedKmh,
+    },
+    averageSpeedKmh: row.averageSpeedKmh,
+    medianGapM: row.medianGapM,
+    maxGap: row.maxGapM == null
+      ? null
+      : { athleteName: row.maxGapAthleteName ?? '-', gapM: row.maxGapM },
+  }))
 }
 
 function getRankVariant(percentile: number): 'default' | 'secondary' | 'outline' {

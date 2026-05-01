@@ -12,6 +12,7 @@ import { NextResponse } from 'next/server'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { positiveSplit, speedKmh } from '@/lib/hockey/ice-speed'
 
 interface HockeySummary {
   id: string
@@ -49,6 +50,8 @@ const LOWER_IS_BETTER = new Set([
   'sprint30m',
   'sprint20mFly',
   'sprint30mFly',
+  'sprint10to20Split',
+  'sprint20to30Split',
   'agilityBest',
   'enduranceFatigueDrop',
 ])
@@ -85,6 +88,12 @@ function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number]): HockeyS
   const beepScore = test.beepTestLevel
     ? test.beepTestLevel + ((test.beepTestShuttle ?? 0) / 10)
     : null
+  const enduranceValues = Array.isArray(test.endurance7x40)
+    ? test.endurance7x40.filter((item): item is number => typeof item === 'number' && Number.isFinite(item))
+    : []
+  const endurance7x40Best = enduranceValues.length > 0 ? Math.min(...enduranceValues) : null
+  const sprint10to20Split = positiveSplit(test.sprint20m, test.sprint10m)
+  const sprint20to30Split = positiveSplit(test.sprint30m, test.sprint20m)
 
   return {
     id: test.id,
@@ -108,7 +117,15 @@ function toSummary(test: Awaited<ReturnType<typeof loadTests>>[number]): HockeyS
       sprint30m: test.sprint30m,
       sprint20mFly: test.sprint20mFly,
       sprint30mFly: test.sprint30mFly,
+      sprint0to10Kmh: speedKmh(10, test.sprint10m),
+      sprint10to20Split,
+      sprint10to20Kmh: speedKmh(10, sprint10to20Split),
+      sprint20to30Split,
+      sprint20to30Kmh: speedKmh(10, sprint20to30Split),
+      sprint0to30Kmh: speedKmh(30, test.sprint30m),
       agilityBest: bestOf([test.agility505Left, test.agility505Right], true),
+      endurance7x40Best,
+      endurance7x40BestKmh: speedKmh(40, endurance7x40Best),
       enduranceFatigueDrop: fatigueDrop(test.endurance7x40),
     },
   }

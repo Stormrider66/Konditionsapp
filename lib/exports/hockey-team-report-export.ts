@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf'
 import { buildHockeyActionItems, type HockeyActionItem } from '@/lib/hockey/team-action-plan'
+import { buildTeamIceSpeedProfileRows } from '@/lib/hockey/ice-speed'
 
 type HockeyBenchmarkBand = 'top' | 'above' | 'team' | 'watch' | 'priority'
 
@@ -82,6 +83,14 @@ function formatMetricValue(value: number | null | undefined, unit: string): stri
   if (value == null || !Number.isFinite(value)) return '-'
   const decimals = unit === 's' ? 2 : unit === 'W/kg' || unit === 'nivå' ? 1 : 0
   return `${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
+}
+
+function formatSpeed(value: number | null | undefined): string {
+  return value == null || !Number.isFinite(value) ? '-' : `${value.toFixed(1)} km/h`
+}
+
+function formatDistance(value: number | null | undefined): string {
+  return value == null || !Number.isFinite(value) ? '-' : `${value.toFixed(1)} m`
 }
 
 function filenamePart(value: string): string {
@@ -277,6 +286,46 @@ function actionPlan(pdf: jsPDF, actions: HockeyActionItem[], y: number): number 
   return y + 2
 }
 
+function iceSpeedProfile(pdf: jsPDF, data: HockeyTeamReportData, y: number): number {
+  const rows = buildTeamIceSpeedProfileRows(
+    data.athletes.filter((athlete) => athlete.latestTestDate),
+  )
+  if (rows.length === 0) return y
+
+  y = sectionTitle(pdf, 'Ice speed profile', y)
+  y = table(
+    pdf,
+    ['Stint', 'Snabbast', 'Fart', 'Lagfart', 'Gap'],
+    rows.map((row) => [
+      `${row.label} (${row.coverage})`,
+      `${row.leaderName} ${row.timeS.toFixed(2)} s`,
+      formatSpeed(row.speedKmh),
+      formatSpeed(row.averageSpeedKmh),
+      `${formatDistance(row.medianGapM)} med · ${formatDistance(row.maxGapM)} max`,
+    ]),
+    y,
+    { fontSize: 6.8 },
+  )
+
+  const biggestGap = rows
+    .filter((row) => row.maxGapM != null)
+    .sort((a, b) => (b.maxGapM ?? 0) - (a.maxGapM ?? 0))[0]
+  if (biggestGap?.maxGapM != null && biggestGap.maxGapM > 0) {
+    y = addPageIfNeeded(pdf, y, 8)
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(8)
+    pdf.setTextColor(105, 105, 105)
+    pdf.text(
+      `Largest distance spread: ${biggestGap.label}, ${formatDistance(biggestGap.maxGapM)} behind leader (${biggestGap.maxGapAthleteName ?? '-'})`,
+      MARGIN,
+      y,
+    )
+    y += 6
+  }
+
+  return y + 2
+}
+
 export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   let y = 20
@@ -339,6 +388,8 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
       ]),
     y,
   )
+
+  y = iceSpeedProfile(pdf, data, y)
 
   y = sectionTitle(pdf, 'Position coverage', y)
   y = summaryCards(

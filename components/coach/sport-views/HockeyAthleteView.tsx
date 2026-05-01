@@ -175,9 +175,23 @@ const PHYSICAL_METRICS = [
   { key: 'sprint10m', label: '10m is', unit: 's', decimals: 2 },
   { key: 'sprint20m', label: '20m is', unit: 's', decimals: 2 },
   { key: 'sprint30m', label: '30m is', unit: 's', decimals: 2 },
+  { key: 'sprint0to10Kmh', label: '0-10 fart', unit: 'km/h', decimals: 1 },
+  { key: 'sprint10to20Kmh', label: '10-20 fart', unit: 'km/h', decimals: 1 },
+  { key: 'sprint20to30Kmh', label: '20-30 fart', unit: 'km/h', decimals: 1 },
+  { key: 'sprint0to30Kmh', label: '0-30 fart', unit: 'km/h', decimals: 1 },
   { key: 'agilityBest', label: '5-10-5', unit: 's', decimals: 2 },
   { key: 'beepScore', label: 'Beep', unit: '', decimals: 1 },
+  { key: 'endurance7x40Best', label: '7x40 bäst', unit: 's', decimals: 2 },
+  { key: 'endurance7x40BestKmh', label: '7x40 fart', unit: 'km/h', decimals: 1 },
   { key: 'enduranceFatigueDrop', label: '7x40 drop', unit: '%', decimals: 1 },
+] as const
+
+const ICE_SPEED_METRICS = [
+  'sprint0to10Kmh',
+  'sprint10to20Kmh',
+  'sprint20to30Kmh',
+  'sprint0to30Kmh',
+  'endurance7x40BestKmh',
 ] as const
 
 const SNAPSHOT_METRICS = [
@@ -203,7 +217,13 @@ const BEST_METRICS = [
   'sprint5m',
   'sprint10m',
   'sprint30m',
+  'sprint0to10Kmh',
+  'sprint10to20Kmh',
+  'sprint20to30Kmh',
+  'sprint0to30Kmh',
   'agilityBest',
+  'endurance7x40Best',
+  'endurance7x40BestKmh',
 ] as const
 
 const METRIC_BY_KEY: ReadonlyMap<string, (typeof PHYSICAL_METRICS)[number]> = new Map(
@@ -384,6 +404,9 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
   const snapshotMetrics = SNAPSHOT_METRICS
     .map((key) => METRIC_BY_KEY.get(key))
     .filter((metric): metric is (typeof PHYSICAL_METRICS)[number] => metric != null)
+  const iceSpeedMetrics = ICE_SPEED_METRICS
+    .map((key) => METRIC_BY_KEY.get(key))
+    .filter((metric): metric is (typeof PHYSICAL_METRICS)[number] => metric != null)
   const bestMetrics = BEST_METRICS
     .map((key) => METRIC_BY_KEY.get(key))
     .filter((metric): metric is (typeof PHYSICAL_METRICS)[number] => metric != null)
@@ -552,6 +575,34 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
                   )
                 })}
               </div>
+              {iceSpeedMetrics.some((metric) => summary.latest?.metrics[metric.key] != null) && (
+                <div className="rounded-lg border p-3" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <h4 className="text-sm font-medium flex items-center gap-1.5" style={{ color: theme.colors.textPrimary }}>
+                      <Timer className="h-4 w-4 text-sky-500" />
+                      Isfart
+                    </h4>
+                    <Badge variant="outline" className="text-[10px]">km/h</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    {iceSpeedMetrics.map((metric) => {
+                      const value = summary.latest?.metrics[metric.key]
+                      if (value == null) return null
+
+                      return (
+                        <div key={metric.key} className="rounded-md border px-2 py-1.5" style={{ borderColor: theme.colors.border }}>
+                          <div className="text-[10px] uppercase tracking-wide" style={{ color: theme.colors.textMuted }}>
+                            {metric.label}
+                          </div>
+                          <div className="font-mono text-sm font-semibold" style={{ color: theme.colors.textPrimary }}>
+                            {formatMetric(value, metric.unit, metric.decimals)}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
               {Object.values(summary.bests).some(Boolean) && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium flex items-center gap-1.5" style={{ color: theme.colors.textPrimary }}>

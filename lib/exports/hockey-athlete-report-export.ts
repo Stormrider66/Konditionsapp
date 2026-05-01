@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf'
 import type { HockeySettings } from '@/components/onboarding/HockeyOnboarding'
+import { buildIceSpeedProfileRows } from '@/lib/hockey/ice-speed'
 
 interface HockeyTestSummary {
   id: string
@@ -92,6 +93,10 @@ const PHASE_LABELS: Record<string, string> = {
 function formatMetricValue(value: number | null | undefined, unit: string, decimals: number): string {
   if (value == null || !Number.isFinite(value)) return '-'
   return `${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
+}
+
+function formatSpeed(value: number | null | undefined): string {
+  return value == null || !Number.isFinite(value) ? '-' : `${value.toFixed(1)} km/h`
 }
 
 function formatDelta(delta: number, unit: string, decimals: number): string {
@@ -233,6 +238,34 @@ function metricByKey(data: HockeyAthleteReportData, key: string): HockeyAthleteR
   return data.metrics.find((metric) => metric.key === key)
 }
 
+function iceSpeedProfile(pdf: jsPDF, latest: HockeyTestSummary | null, y: number): number {
+  if (!latest) return y
+  const rows = buildIceSpeedProfileRows(latest.metrics)
+  if (rows.length === 0) return y
+
+  y = sectionTitle(pdf, 'Ice speed profile', y)
+  y = table(
+    pdf,
+    ['Stint', 'Tid', 'Fart', 'Coach signal'],
+    rows.map((row) => [
+      row.label,
+      `${row.timeS.toFixed(2)} s`,
+      formatSpeed(row.speedKmh),
+      row.key === 'sprint0to10'
+        ? 'Acceleration'
+        : row.key === 'sprint0to30'
+          ? 'Total speed'
+          : row.key === 'endurance7x40Best'
+            ? 'Repeated sprint'
+            : 'Flying speed',
+    ]),
+    y,
+    { fontSize: 7 },
+  )
+
+  return y + 2
+}
+
 export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): Blob {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   let y = 20
@@ -289,6 +322,7 @@ export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): B
         }),
       y,
     )
+    y = iceSpeedProfile(pdf, data.latest, y)
   }
 
   const bestRows = data.bestMetricKeys

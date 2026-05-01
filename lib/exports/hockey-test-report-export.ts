@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import { buildIceSpeedProfileRows } from '@/lib/hockey/ice-speed'
 
 interface HockeyTestReportClient {
   id: string
@@ -105,6 +106,10 @@ function formatNumber(value: number | null | undefined, decimals = 2): string | 
 function metric(label: string, value: number | null | undefined, unit: string, decimals = 2): MetricRow | null {
   const formatted = formatNumber(value, decimals)
   return formatted ? [label, `${formatted}${unit ? ` ${unit}` : ''}`] : null
+}
+
+function formatSpeed(value: number | null | undefined): string {
+  return value == null || !Number.isFinite(value) ? '-' : `${value.toFixed(1)} km/h`
 }
 
 function maxMetric(values: Array<number | null | undefined>): number | null {
@@ -436,18 +441,45 @@ export function generateHockeyTestReportPDF(test: HockeyTestReportData): Blob {
   }
 
   y = sectionTitle(pdf, 'Ice tests', y)
+  const iceSpeedRows = buildIceSpeedProfileRows({
+    sprint10m: test.sprint10m,
+    sprint20m: test.sprint20m,
+    sprint30m: test.sprint30m,
+    endurance7x40Best: enduranceBest,
+  })
   y = metricGrid(pdf, compactRows([
     metric('Agility 5-10-5 left', test.agility505Left, 's'),
     metric('Agility 5-10-5 right', test.agility505Right, 's'),
     metric('5 m', test.sprint5m, 's'),
     metric('10 m', test.sprint10m, 's'),
+    metric('0-10 speed', iceSpeedRows.find((row) => row.key === 'sprint0to10')?.speedKmh, 'km/h', 1),
     metric('20 m', test.sprint20m, 's'),
+    metric('10-20 speed', iceSpeedRows.find((row) => row.key === 'sprint10to20')?.speedKmh, 'km/h', 1),
     metric('30 m', test.sprint30m, 's'),
+    metric('20-30 speed', iceSpeedRows.find((row) => row.key === 'sprint20to30')?.speedKmh, 'km/h', 1),
     metric('20 m fly', test.sprint20mFly, 's'),
     metric('30 m fly', test.sprint30mFly, 's'),
+    metric('7x40 best speed', iceSpeedRows.find((row) => row.key === 'endurance7x40Best')?.speedKmh, 'km/h', 1),
   ]), y)
+  if (iceSpeedRows.length > 0) {
+    y = table(
+      pdf,
+      ['Stint', 'Time', 'Speed'],
+      iceSpeedRows.map((row) => [row.label, `${row.timeS.toFixed(2)} s`, formatSpeed(row.speedKmh)]),
+      y,
+    )
+  }
   if (test.endurance7x40?.length) {
-    y = table(pdf, ['Rep', 'Time'], test.endurance7x40.map((time, index) => [`${index + 1}`, `${time.toFixed(2)} s`]), y)
+    y = table(
+      pdf,
+      ['Rep', 'Time', 'Speed'],
+      test.endurance7x40.map((time, index) => [
+        `${index + 1}`,
+        `${time.toFixed(2)} s`,
+        formatSpeed((40 / time) * 3.6),
+      ]),
+      y,
+    )
   }
 
   y = sectionTitle(pdf, 'Strength and jumps', y)
