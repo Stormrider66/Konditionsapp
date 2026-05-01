@@ -44,12 +44,24 @@ const COLUMNS = [
   'sprint_10m_s',
   'sprint_20m_s',
   'sprint_30m_s',
+  'sprint_0_10m_kmh',
+  'sprint_10_20m_split_s',
+  'sprint_10_20m_kmh',
+  'sprint_20_30m_split_s',
+  'sprint_20_30m_kmh',
+  'sprint_0_30m_kmh',
+  'sprint_0_10m_gap_m',
+  'sprint_10_20m_gap_m',
+  'sprint_20_30m_gap_m',
+  'sprint_0_30m_gap_m',
   'sprint_20m_fly_s',
   'sprint_30m_fly_s',
   'agility_505_left_s',
   'agility_505_right_s',
   'agility_505_best_s',
   'endurance_7x40_best_s',
+  'endurance_7x40_best_kmh',
+  'endurance_7x40_best_gap_m',
   'endurance_7x40_mean_s',
   'endurance_7x40_worst_s',
   'endurance_7x40_drop_pct',
@@ -66,6 +78,11 @@ const COLUMNS = [
   'z_sprint_10m_s',
   'z_sprint_20m_s',
   'z_sprint_30m_s',
+  'z_sprint_0_10m_kmh',
+  'z_sprint_10_20m_kmh',
+  'z_sprint_20_30m_kmh',
+  'z_sprint_0_30m_kmh',
+  'z_endurance_7x40_best_kmh',
   'z_agility_505_best_s',
   'z_endurance_7x40_drop_pct',
 ] as const
@@ -84,6 +101,11 @@ const Z_SCORE_METRICS = [
   { source: 'sprint_10m_s', target: 'z_sprint_10m_s', lowerIsBetter: true },
   { source: 'sprint_20m_s', target: 'z_sprint_20m_s', lowerIsBetter: true },
   { source: 'sprint_30m_s', target: 'z_sprint_30m_s', lowerIsBetter: true },
+  { source: 'sprint_0_10m_kmh', target: 'z_sprint_0_10m_kmh' },
+  { source: 'sprint_10_20m_kmh', target: 'z_sprint_10_20m_kmh' },
+  { source: 'sprint_20_30m_kmh', target: 'z_sprint_20_30m_kmh' },
+  { source: 'sprint_0_30m_kmh', target: 'z_sprint_0_30m_kmh' },
+  { source: 'endurance_7x40_best_kmh', target: 'z_endurance_7x40_best_kmh' },
   { source: 'agility_505_best_s', target: 'z_agility_505_best_s', lowerIsBetter: true },
   { source: 'endurance_7x40_drop_pct', target: 'z_endurance_7x40_drop_pct', lowerIsBetter: true },
 ] as const
@@ -114,6 +136,22 @@ function round(value: number | null, decimals = 2): number | null {
 function mean(values: number[]): number | null {
   if (values.length === 0) return null
   return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
+function speedKmh(distanceM: number, timeS: number | null | undefined): number | null {
+  if (timeS == null || timeS <= 0) return null
+  return round(distanceM / timeS * 3.6, 2)
+}
+
+function positiveSplit(later: number | null | undefined, earlier: number | null | undefined): number | null {
+  if (later == null || earlier == null || later <= earlier) return null
+  return round(later - earlier, 2)
+}
+
+function distanceGap(distanceM: number, leaderTimeS: number | null | undefined, athleteTimeS: number | null | undefined): number | null {
+  if (leaderTimeS == null || athleteTimeS == null || leaderTimeS <= 0 || athleteTimeS <= 0) return null
+  if (athleteTimeS <= leaderTimeS) return 0
+  return round(distanceM - (distanceM * leaderTimeS / athleteTimeS), 2)
 }
 
 function standardDeviation(values: number[]): number | null {
@@ -240,6 +278,8 @@ export async function GET(
       const beepScore = test.beepTestLevel
         ? test.beepTestLevel + ((test.beepTestShuttle ?? 0) / 10)
         : null
+      const sprint10to20 = positiveSplit(test.sprint20m, test.sprint10m)
+      const sprint20to30 = positiveSplit(test.sprint30m, test.sprint20m)
 
       return {
         team_id: team.id,
@@ -270,17 +310,53 @@ export async function GET(
         sprint_10m_s: test.sprint10m,
         sprint_20m_s: test.sprint20m,
         sprint_30m_s: test.sprint30m,
+        sprint_0_10m_kmh: speedKmh(10, test.sprint10m),
+        sprint_10_20m_split_s: sprint10to20,
+        sprint_10_20m_kmh: speedKmh(10, sprint10to20),
+        sprint_20_30m_split_s: sprint20to30,
+        sprint_20_30m_kmh: speedKmh(10, sprint20to30),
+        sprint_0_30m_kmh: speedKmh(30, test.sprint30m),
         sprint_20m_fly_s: test.sprint20mFly,
         sprint_30m_fly_s: test.sprint30mFly,
         agility_505_left_s: test.agility505Left,
         agility_505_right_s: test.agility505Right,
         agility_505_best_s: bestOf([test.agility505Left, test.agility505Right], true),
         endurance_7x40_best_s: endurance.best,
+        endurance_7x40_best_kmh: speedKmh(40, endurance.best),
         endurance_7x40_mean_s: endurance.mean,
         endurance_7x40_worst_s: endurance.worst,
         endurance_7x40_drop_pct: endurance.drop,
       }
     })
+
+    const byDate = new Map<string, Array<Record<string, string | number | null>>>()
+    for (const row of rawRows) {
+      const date = String(row.test_date)
+      byDate.set(date, [...(byDate.get(date) ?? []), row])
+    }
+
+    const gapDefinitions = [
+      { source: 'sprint_10m_s', target: 'sprint_0_10m_gap_m', distanceM: 10 },
+      { source: 'sprint_10_20m_split_s', target: 'sprint_10_20m_gap_m', distanceM: 10 },
+      { source: 'sprint_20_30m_split_s', target: 'sprint_20_30m_gap_m', distanceM: 10 },
+      { source: 'sprint_30m_s', target: 'sprint_0_30m_gap_m', distanceM: 30 },
+      { source: 'endurance_7x40_best_s', target: 'endurance_7x40_best_gap_m', distanceM: 40 },
+    ] as const
+
+    for (const rowsForDate of byDate.values()) {
+      for (const definition of gapDefinitions) {
+        const leaderTime = bestOf(
+          rowsForDate.map((row) => row[definition.source]).filter((value): value is number => typeof value === 'number'),
+          true,
+        )
+        for (const row of rowsForDate) {
+          const athleteTime = row[definition.source]
+          row[definition.target] = typeof athleteTime === 'number'
+            ? distanceGap(definition.distanceM, leaderTime, athleteTime)
+            : null
+        }
+      }
+    }
 
     const zScores = new Map<number, Record<string, number | null>>()
     for (const metric of Z_SCORE_METRICS) {
