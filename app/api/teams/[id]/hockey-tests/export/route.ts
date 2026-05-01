@@ -24,6 +24,18 @@ const COLUMNS = [
   'position',
   'test_date',
   'source_type',
+  'athlete_age_at_test',
+  'pathway_season',
+  'pathway_level',
+  'pathway_season_index',
+  'pathway_seasons_tested',
+  'pathway_tests_in_season',
+  'pathway_level_transition_count',
+  'pathway_positive_change_count',
+  'pathway_data_gap_count',
+  'pathway_power_wkg_slope_per_season',
+  'pathway_10m_improvement_s_per_season',
+  'pathway_7x40_kmh_slope_per_season',
   'musclelab_ap_w',
   'musclelab_ap_w_per_kg_bw',
   'musclelab_peak_velocity_m_s',
@@ -122,6 +134,8 @@ const Z_SCORE_METRICS = [
   { source: 'endurance_7x40_drop_pct', target: 'z_endurance_7x40_drop_pct', lowerIsBetter: true },
 ] as const
 
+const HOCKEY_LEVELS = ['J18', 'J20', 'A-team'] as const
+
 function numberFromJson(value: unknown, key: string): number | null {
   if (!value || typeof value !== 'object') return null
   const raw = (value as Record<string, unknown>)[key]
@@ -211,6 +225,54 @@ function filenamePart(value: string): string {
     .slice(0, 48) || 'team'
 }
 
+function seasonLabel(date: Date): string {
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1
+  const startYear = month >= 5 ? year : year - 1
+  return `${startYear}/${String(startYear + 1).slice(-2)}`
+}
+
+function ageAtDate(birthDate: Date | null | undefined, date: Date): number | null {
+  if (!birthDate) return null
+  const years = date.getFullYear() - birthDate.getFullYear()
+  const beforeBirthday = date.getMonth() < birthDate.getMonth()
+    || (date.getMonth() === birthDate.getMonth() && date.getDate() < birthDate.getDate())
+  return years - (beforeBirthday ? 1 : 0)
+}
+
+function stringFromJson(value: unknown, keys: string[]): string | null {
+  if (!value || typeof value !== 'object') return null
+  const record = value as Record<string, unknown>
+  for (const key of keys) {
+    const raw = record[key]
+    if (typeof raw === 'string' && raw.trim()) return raw.trim()
+  }
+  return null
+}
+
+function developmentLevel(age: number | null, teamName?: string | null, hockeySettings?: unknown): string {
+  const override = stringFromJson(hockeySettings, ['developmentLevel', 'pathwayLevel', 'level'])
+  if (override && HOCKEY_LEVELS.some((level) => override.toLowerCase().includes(level.toLowerCase()))) {
+    return HOCKEY_LEVELS.find((level) => override.toLowerCase().includes(level.toLowerCase())) ?? override
+  }
+
+  const settingsTeam = stringFromJson(hockeySettings, ['teamName', 'clubTeam', 'leagueLevel'])
+  const normalizedTeam = `${settingsTeam ?? ''} ${teamName ?? ''}`.toLowerCase()
+  if (/(a-?team|a-lag|senior|herr|dam|shl|allsvenskan|hockeyallsvenskan)/.test(normalizedTeam)) return 'A-team'
+  if (/j20|u20/.test(normalizedTeam)) return 'J20'
+  if (/j18|u18/.test(normalizedTeam)) return 'J18'
+
+  if (age == null) return 'Unknown'
+  if (age <= 17) return 'J18'
+  if (age <= 19) return 'J20'
+  return 'A-team'
+}
+
+function slope(first: number | null, current: number | null, seasonIndex: number, lowerIsBetter = false): number | null {
+  if (first == null || current == null || seasonIndex <= 0) return null
+  return round((lowerIsBetter ? first - current : current - first) / seasonIndex, 3)
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -232,7 +294,9 @@ export async function GET(
           select: {
             id: true,
             name: true,
+            birthDate: true,
             position: true,
+            sportProfile: { select: { hockeySettings: true } },
           },
         },
       },
@@ -281,6 +345,68 @@ export async function GET(
       },
     })
 
+    const testsByAthlete = new Map<string, typeof tests>()
+    for (const test of tests) {
+      const existing = testsByAthlete.get(test.clientId) ?? []
+      existing.push(test)
+      testsByAthlete.set(test.clientId, existing)
+    }
+
+    const pathwayStats = new Map<string, Record<string, string | number | null>>()
+    for (const [athleteId, athleteTests] of testsByAthlete.entries()) {
+      const athlete = memberById.get(athleteId)
+      const chronological = [...athleteTests].sort((a, b) => a.testDate.getTime() - b.testDate.getTime())
+      const seasons = Array.from(new Set(chronological.map((test) => seasonLabel(test.testDate))))
+      let previousLevel: string | null = null
+      let transitions = 0
+      let positiveChanges = 0
+
+      chronological.forEach((test, index) => {
+        const season = seasonLabel(test.testDate)
+        const seasonIndex = seasons.indexOf(season)
+        const age = ageAtDate(athlete?.birthDate, test.testDate)
+        const level = developmentLevel(age, team.name, athlete?.sportProfile?.hockeySettings)
+        if (previousLevel && previousLevel !== level) transitions += 1
+        previousLevel = level
+
+        const first = chronological[0]
+        const previous = chronological[index - 1]
+        const endurance = enduranceSummary(test.endurance7x40)
+        const firstEndurance = enduranceSummary(first.endurance7x40)
+        const previousEndurance = previous ? enduranceSummary(previous.endurance7x40) : null
+        const power = round(numberFromJson(test.muscleLabMaxima, 'maxAveragePowerPerBodyMass'), 2)
+        const firstPower = round(numberFromJson(first.muscleLabMaxima, 'maxAveragePowerPerBodyMass'), 2)
+        const previousPower = previous ? round(numberFromJson(previous.muscleLabMaxima, 'maxAveragePowerPerBodyMass'), 2) : null
+        if (previousPower != null && power != null && power > previousPower) positiveChanges += 1
+        if (previous?.sprint10m != null && test.sprint10m != null && test.sprint10m < previous.sprint10m) positiveChanges += 1
+        if (previousEndurance?.meanKmh != null && endurance.meanKmh != null && endurance.meanKmh > previousEndurance.meanKmh) positiveChanges += 1
+
+        const testsInSeason = chronological.filter((candidate) => seasonLabel(candidate.testDate) === season).length
+        const dataGapCount = [
+          power,
+          test.sprint10m,
+          endurance.meanKmh,
+          test.backSquat1RM,
+          test.powerClean1RM,
+        ].filter((value) => value == null).length
+
+        pathwayStats.set(`${athleteId}:${test.testDate.toISOString()}`, {
+          athlete_age_at_test: age,
+          pathway_season: season,
+          pathway_level: level,
+          pathway_season_index: seasonIndex,
+          pathway_seasons_tested: seasons.length,
+          pathway_tests_in_season: testsInSeason,
+          pathway_level_transition_count: transitions,
+          pathway_positive_change_count: positiveChanges,
+          pathway_data_gap_count: dataGapCount,
+          pathway_power_wkg_slope_per_season: slope(firstPower, power, seasonIndex),
+          pathway_10m_improvement_s_per_season: slope(first.sprint10m, test.sprint10m, seasonIndex, true),
+          pathway_7x40_kmh_slope_per_season: slope(firstEndurance.meanKmh, endurance.meanKmh, seasonIndex),
+        })
+      })
+    }
+
     const rawRows: Array<Record<string, string | number | null>> = tests.map((test) => {
       const athlete = memberById.get(test.clientId)
       const endurance = enduranceSummary(test.endurance7x40)
@@ -289,6 +415,7 @@ export async function GET(
         : null
       const sprint10to20 = positiveSplit(test.sprint20m, test.sprint10m)
       const sprint20to30 = positiveSplit(test.sprint30m, test.sprint20m)
+      const pathway = pathwayStats.get(`${test.clientId}:${test.testDate.toISOString()}`) ?? {}
 
       return {
         team_id: team.id,
@@ -298,6 +425,7 @@ export async function GET(
         position: athlete?.position ?? '',
         test_date: test.testDate.toISOString().slice(0, 10),
         source_type: test.sourceType,
+        ...pathway,
         musclelab_ap_w: round(numberFromJson(test.muscleLabMaxima, 'maxAveragePower'), 0),
         musclelab_ap_w_per_kg_bw: round(numberFromJson(test.muscleLabMaxima, 'maxAveragePowerPerBodyMass'), 2),
         musclelab_peak_velocity_m_s: round(numberFromJson(test.muscleLabMaxima, 'maxPeakVelocity'), 2),

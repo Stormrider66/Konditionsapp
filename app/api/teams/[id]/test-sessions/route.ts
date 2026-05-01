@@ -66,6 +66,8 @@ type HockeyMetricBenchmarks = Record<string, {
 const DEFAULT_DAYS = 365
 const HOCKEY_PATHWAY_YEARS = 5
 
+const HOCKEY_LEVELS = ['J18', 'J20', 'A-team'] as const
+
 const HOCKEY_METRICS: HockeyMetric[] = [
   { key: 'muscleLabWkg', label: 'MuscleLab AP/BW', unit: 'W/kg' },
   { key: 'backSquat1RM', label: 'Knäböj', unit: 'kg' },
@@ -99,6 +101,21 @@ const PATHWAY_METRIC_KEYS = [
   'powerClean1RM',
 ] as const
 
+const HOCKEY_NORM_REFERENCES = [
+  { level: 'J18', position: 'All', metricKey: 'muscleLabWkg', target: 22, elite: 27, unit: 'W/kg' },
+  { level: 'J20', position: 'All', metricKey: 'muscleLabWkg', target: 25, elite: 30, unit: 'W/kg' },
+  { level: 'A-team', position: 'All', metricKey: 'muscleLabWkg', target: 28, elite: 34, unit: 'W/kg' },
+  { level: 'J18', position: 'All', metricKey: 'sprint10m', target: 1.95, elite: 1.82, unit: 's', lowerIsBetter: true },
+  { level: 'J20', position: 'All', metricKey: 'sprint10m', target: 1.88, elite: 1.76, unit: 's', lowerIsBetter: true },
+  { level: 'A-team', position: 'All', metricKey: 'sprint10m', target: 1.82, elite: 1.70, unit: 's', lowerIsBetter: true },
+  { level: 'J18', position: 'All', metricKey: 'endurance7x40AverageKmh', target: 25.0, elite: 27.0, unit: 'km/h' },
+  { level: 'J20', position: 'All', metricKey: 'endurance7x40AverageKmh', target: 26.0, elite: 28.0, unit: 'km/h' },
+  { level: 'A-team', position: 'All', metricKey: 'endurance7x40AverageKmh', target: 27.0, elite: 29.0, unit: 'km/h' },
+  { level: 'J18', position: 'All', metricKey: 'backSquat1RM', target: 1.5, elite: 1.8, unit: 'xBW' },
+  { level: 'J20', position: 'All', metricKey: 'backSquat1RM', target: 1.7, elite: 2.0, unit: 'xBW' },
+  { level: 'A-team', position: 'All', metricKey: 'backSquat1RM', target: 1.9, elite: 2.2, unit: 'xBW' },
+] as const
+
 type HockeyTestForSummary = {
   clientId: string
   testDate: Date
@@ -130,6 +147,9 @@ type TeamMemberForPathway = {
   name: string
   birthDate: Date
   position: string | null
+  sportProfile: {
+    hockeySettings: unknown
+  } | null
 }
 
 type HockeyPathwayTest = HockeyTestForSummary & {
@@ -169,7 +189,28 @@ function ageAtDate(birthDate: Date | null | undefined, date: Date): number | nul
   return years - (beforeBirthday ? 1 : 0)
 }
 
-function developmentLevel(age: number | null): string {
+function stringFromJson(value: unknown, keys: string[]): string | null {
+  if (!value || typeof value !== 'object') return null
+  const record = value as Record<string, unknown>
+  for (const key of keys) {
+    const raw = record[key]
+    if (typeof raw === 'string' && raw.trim()) return raw.trim()
+  }
+  return null
+}
+
+function developmentLevel(age: number | null, teamName?: string | null, hockeySettings?: unknown): string {
+  const override = stringFromJson(hockeySettings, ['developmentLevel', 'pathwayLevel', 'level'])
+  if (override && HOCKEY_LEVELS.some((level) => override.toLowerCase().includes(level.toLowerCase()))) {
+    return HOCKEY_LEVELS.find((level) => override.toLowerCase().includes(level.toLowerCase())) ?? override
+  }
+
+  const settingsTeam = stringFromJson(hockeySettings, ['teamName', 'clubTeam', 'leagueLevel'])
+  const normalizedTeam = `${settingsTeam ?? ''} ${teamName ?? ''}`.toLowerCase()
+  if (/(a-?team|a-lag|senior|herr|dam|shl|allsvenskan|hockeyallsvenskan)/.test(normalizedTeam)) return 'A-team'
+  if (/j20|u20/.test(normalizedTeam)) return 'J20'
+  if (/j18|u18/.test(normalizedTeam)) return 'J18'
+
   if (age == null) return 'Unknown'
   if (age <= 17) return 'J18'
   if (age <= 19) return 'J20'
@@ -280,7 +321,7 @@ function averageMetric(rows: Array<Record<string, number | null>>, key: string, 
   return round(values.reduce((sum, value) => sum + value, 0) / values.length, unit === 's' ? 2 : 1)
 }
 
-function buildHockeyPathway(teamMembers: TeamMemberForPathway[], tests: HockeyPathwayTest[]) {
+function buildHockeyPathway(teamMembers: TeamMemberForPathway[], tests: HockeyPathwayTest[], teamName: string) {
   const testsByAthlete = new Map<string, HockeyPathwayTest[]>()
   for (const test of tests) {
     const existing = testsByAthlete.get(test.clientId) ?? []
@@ -316,7 +357,7 @@ function buildHockeyPathway(teamMembers: TeamMemberForPathway[], tests: HockeyPa
 
       return {
         season,
-        level: developmentLevel(maxAge),
+        level: developmentLevel(maxAge, teamName, member.sportProfile?.hockeySettings),
         testCount: seasonTests.length,
         firstDate: first.testDate.toISOString().slice(0, 10),
         lastDate: last.testDate.toISOString().slice(0, 10),
@@ -329,7 +370,8 @@ function buildHockeyPathway(teamMembers: TeamMemberForPathway[], tests: HockeyPa
     const latestTest = athleteTests[athleteTests.length - 1]
     const latestMetrics = latestTest ? metricValuesForTest(latestTest) : {}
     const latestAge = latestTest ? ageAtDate(member.birthDate, latestTest.testDate) : ageAtDate(member.birthDate, new Date())
-    const latestLevel = seasons[seasons.length - 1]?.level ?? developmentLevel(latestAge)
+    const latestLevel = seasons[seasons.length - 1]?.level
+      ?? developmentLevel(latestAge, teamName, member.sportProfile?.hockeySettings)
     const totalPositiveChanges = seasons.reduce((count, season) => (
       count + PATHWAY_METRIC_KEYS.filter((key) => (season.changes[key] ?? 0) > 0).length
     ), 0)
@@ -419,7 +461,15 @@ export async function GET(
       select: {
         id: true,
         name: true,
-        members: { select: { id: true, name: true, birthDate: true, position: true } },
+        members: {
+          select: {
+            id: true,
+            name: true,
+            birthDate: true,
+            position: true,
+            sportProfile: { select: { hockeySettings: true } },
+          },
+        },
       },
     })
     if (!team) {
@@ -749,7 +799,8 @@ export async function GET(
           leaders: hockeyLeaders,
           history: hockeyHistory,
           positions: hockeyPositions,
-          pathway: buildHockeyPathway(team.members, hockeyTests),
+          pathway: buildHockeyPathway(team.members, hockeyTests, team.name),
+          normReferences: HOCKEY_NORM_REFERENCES,
           testCount: hockeyTests.length,
         },
       },

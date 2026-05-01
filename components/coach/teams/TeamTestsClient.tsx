@@ -197,6 +197,16 @@ interface HockeyPathwaySummary {
   watch: HockeyPathwayAthlete[]
 }
 
+interface HockeyNormReference {
+  level: string
+  position: string
+  metricKey: string
+  target: number
+  elite: number
+  unit: string
+  lowerIsBetter?: boolean
+}
+
 interface HockeyTeamSummary {
   metrics: HockeyMetric[]
   athletes: HockeyAthleteRow[]
@@ -204,6 +214,7 @@ interface HockeyTeamSummary {
   history: HockeyHistoryMetric[]
   positions: Array<{ key: string; label: string; athleteCount: number }>
   pathway: HockeyPathwaySummary
+  normReferences: HockeyNormReference[]
   testCount: number
 }
 
@@ -308,6 +319,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   const [manualOpen, setManualOpen] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [isExportingTeamReport, setIsExportingTeamReport] = useState(false)
+  const [selectedPathwayAthleteId, setSelectedPathwayAthleteId] = useState<string | null>(null)
 
   // Edit/delete state for individual PRs in a session. Editing uses
   // the same PATCH endpoint as the per-client PR table — value, unit,
@@ -435,6 +447,13 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   })) ?? []
   const selectedPathwayMetric = pathway?.metrics.find((metric) => metric.key === selectedHockeyMetric)
     ?? pathway?.metrics[0]
+  const selectedPathwayAthlete = pathway?.athletes.find((athlete) => athlete.id === selectedPathwayAthleteId)
+    ?? pathway?.promoted[0]
+    ?? pathway?.athletes.find((athlete) => athlete.testCount > 0)
+    ?? null
+  const pathwayNormRows = (hockey?.normReferences ?? [])
+    .filter((norm) => !selectedPathwayMetric || norm.metricKey === selectedPathwayMetric.key)
+    .slice(0, 6)
 
   return (
     <div className="space-y-6">
@@ -631,17 +650,20 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                     {pathway.promoted.length > 0 ? (
                       <div className="space-y-2">
                         {pathway.promoted.map((athlete) => (
-                          <div key={athlete.id} className="flex items-center justify-between gap-2 text-xs">
+                          <button
+                            key={athlete.id}
+                            type="button"
+                            onClick={() => setSelectedPathwayAthleteId(athlete.id)}
+                            className="w-full flex items-center justify-between gap-2 rounded-md px-1 py-1 text-left text-xs hover:bg-muted"
+                          >
                             <div className="min-w-0">
-                              <Link href={`${basePath}/clients/${athlete.id}/profile?tab=hockey`} className="font-medium hover:underline">
-                                {athlete.name}
-                              </Link>
+                              <span className="font-medium">{athlete.name}</span>
                               <p className="text-[10px] text-muted-foreground truncate">
                                 {athlete.position ?? 'Position saknas'} · {athlete.seasonCount} säsonger · {athlete.testCount} tester
                               </p>
                             </div>
                             <Badge variant="secondary" className="text-[10px] shrink-0">{athlete.currentLevel}</Badge>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     ) : (
@@ -657,11 +679,14 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       {pathway.watch.map((athlete) => {
                         const latestSeason = athlete.seasons[athlete.seasons.length - 1]
                         return (
-                          <div key={athlete.id} className="flex items-center justify-between gap-2 text-xs">
+                          <button
+                            key={athlete.id}
+                            type="button"
+                            onClick={() => setSelectedPathwayAthleteId(athlete.id)}
+                            className="w-full flex items-center justify-between gap-2 rounded-md px-1 py-1 text-left text-xs hover:bg-muted"
+                          >
                             <div className="min-w-0">
-                              <Link href={`${basePath}/clients/${athlete.id}/profile?tab=hockey`} className="font-medium hover:underline">
-                                {athlete.name}
-                              </Link>
+                              <span className="font-medium">{athlete.name}</span>
                               <p className="text-[10px] text-muted-foreground truncate">
                                 {latestSeason?.season ?? 'Ingen säsong'} · {athlete.latestTestDate ?? 'saknar datum'}
                               </p>
@@ -676,10 +701,105 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                                 </p>
                               )}
                             </div>
-                          </div>
+                          </button>
                         )
                       })}
                     </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  <div className="rounded-md border bg-background p-3">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <p className="text-xs font-medium">Player pathway drill-down</p>
+                      {selectedPathwayAthlete && (
+                        <Link href={`${basePath}/clients/${selectedPathwayAthlete.id}/profile?tab=hockey`}>
+                          <Badge variant="outline" className="text-[10px] hover:bg-muted">Profil</Badge>
+                        </Link>
+                      )}
+                    </div>
+                    {selectedPathwayAthlete ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-semibold">{selectedPathwayAthlete.name}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {selectedPathwayAthlete.currentLevel} · {selectedPathwayAthlete.seasonCount} säsonger · {selectedPathwayAthlete.positiveChangeCount} positiva säsongsförändringar
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-[10px]">{selectedPathwayAthlete.currentLevel}</Badge>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[11px]">
+                            <thead>
+                              <tr className="border-b text-muted-foreground">
+                                <th className="py-1 text-left font-medium">Säsong</th>
+                                <th className="py-1 text-left font-medium">Nivå</th>
+                                <th className="py-1 text-right font-medium">Ålder</th>
+                                <th className="py-1 text-right font-medium">Förändring</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedPathwayAthlete.seasons.map((season) => (
+                                <tr key={season.season} className="border-b last:border-0">
+                                  <td className="py-1 font-medium">{season.season}</td>
+                                  <td className="py-1">{season.level}</td>
+                                  <td className="py-1 text-right font-mono">{season.ageRange ?? '–'}</td>
+                                  <td className="py-1 text-right font-mono">
+                                    {selectedPathwayMetric
+                                      ? formatPathwayChange(season.changes[selectedPathwayMetric.key], selectedPathwayMetric.unit)
+                                      : '–'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-md border border-dashed py-5 text-center text-xs text-muted-foreground">
+                        Välj en spelare från listorna ovan.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-md border bg-background p-3">
+                    <p className="text-xs font-medium mb-2">Configurable norm reference</p>
+                    {pathwayNormRows.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-[11px]">
+                          <thead>
+                            <tr className="border-b text-muted-foreground">
+                              <th className="py-1 text-left font-medium">Level</th>
+                              <th className="py-1 text-left font-medium">Metric</th>
+                              <th className="py-1 text-right font-medium">Target</th>
+                              <th className="py-1 text-right font-medium">Elite</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pathwayNormRows.map((norm) => {
+                              const metric = hockey.metrics.find((candidate) => candidate.key === norm.metricKey)
+                              return (
+                                <tr key={`${norm.level}-${norm.position}-${norm.metricKey}`} className="border-b last:border-0">
+                                  <td className="py-1">{norm.level}</td>
+                                  <td className="py-1">{metric?.label ?? norm.metricKey}</td>
+                                  <td className="py-1 text-right font-mono">
+                                    {formatMetricValue(norm.target, norm.unit)}
+                                  </td>
+                                  <td className="py-1 text-right font-mono">
+                                    {formatMetricValue(norm.elite, norm.unit)}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="rounded-md border border-dashed py-5 text-center text-xs text-muted-foreground">
+                        Normtabellen visas när vald metrik har nivåreferenser.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

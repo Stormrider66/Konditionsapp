@@ -53,6 +53,56 @@ interface HockeyHistoryMetric extends HockeyMetric {
   }>
 }
 
+interface HockeyPathwaySeason {
+  season: string
+  level: string
+  testCount: number
+  firstDate: string
+  lastDate: string
+  ageRange: string | null
+  metrics: Record<string, number | null>
+  changes: Record<string, number | null>
+}
+
+interface HockeyPathwayAthlete {
+  id: string
+  name: string
+  position: string | null
+  currentLevel: string
+  latestAge: number | null
+  latestTestDate: string | null
+  seasonCount: number
+  testCount: number
+  positiveChangeCount: number
+  watchCount: number
+  seasons: HockeyPathwaySeason[]
+}
+
+interface HockeyPathwaySummary {
+  metrics: HockeyMetric[]
+  seasonSummaries: Array<{
+    season: string
+    athleteCount: number
+    testCount: number
+    levelCounts: Record<string, number>
+    metrics: Record<string, number | null>
+  }>
+  athletes: HockeyPathwayAthlete[]
+  latestLevelCounts: Record<string, number>
+  promoted: HockeyPathwayAthlete[]
+  watch: HockeyPathwayAthlete[]
+}
+
+interface HockeyNormReference {
+  level: string
+  position: string
+  metricKey: string
+  target: number
+  elite: number
+  unit: string
+  lowerIsBetter?: boolean
+}
+
 export interface HockeyTeamReportData {
   teamId: string
   teamName: string
@@ -61,6 +111,8 @@ export interface HockeyTeamReportData {
   leaders: HockeyLeader[]
   history: HockeyHistoryMetric[]
   positions: Array<{ key: string; label: string; athleteCount: number }>
+  pathway: HockeyPathwaySummary
+  normReferences: HockeyNormReference[]
   testCount: number
 }
 
@@ -83,7 +135,7 @@ const CORE_METRICS = [
 
 function formatMetricValue(value: number | null | undefined, unit: string): string {
   if (value == null || !Number.isFinite(value)) return '-'
-  const decimals = unit === 's' ? 2 : unit === 'W/kg' || unit === 'nivå' ? 1 : 0
+  const decimals = unit === 's' ? 2 : ['W/kg', 'nivå', 'km/h', 'xBW'].includes(unit) ? 1 : 0
   return `${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
@@ -328,6 +380,113 @@ function iceSpeedProfile(pdf: jsPDF, data: HockeyTeamReportData, y: number): num
   return y + 2
 }
 
+function pathwayChange(value: number | null | undefined, unit: string): string {
+  if (value == null || !Number.isFinite(value)) return '-'
+  const decimals = unit === 's' ? 2 : ['W/kg', 'km/h'].includes(unit) ? 1 : 0
+  return `${value > 0 ? '+' : ''}${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
+}
+
+function developmentPathway(pdf: jsPDF, data: HockeyTeamReportData, y: number): number {
+  const pathway = data.pathway
+  if (!pathway || pathway.seasonSummaries.length === 0) return y
+
+  y = sectionTitle(pdf, 'Development pathway', y)
+  y = summaryCards(
+    pdf,
+    ['J18', 'J20', 'A-team', 'Unknown'].map((level) => [
+      level,
+      `${pathway.latestLevelCounts[level] ?? 0}`,
+      'current level',
+    ]),
+    y,
+  )
+
+  const pathwayMetric = pathway.metrics.find((metric) => metric.key === 'muscleLabWkg') ?? pathway.metrics[0]
+  if (pathwayMetric) {
+    y = table(
+      pdf,
+      ['Season', 'Players', 'Tests', pathwayMetric.label],
+      pathway.seasonSummaries.slice(-6).map((season) => [
+        season.season,
+        `${season.athleteCount}`,
+        `${season.testCount}`,
+        formatMetricValue(season.metrics[pathwayMetric.key], pathwayMetric.unit),
+      ]),
+      y,
+      { fontSize: 7 },
+    )
+  }
+
+  if (pathway.promoted.length > 0) {
+    y = table(
+      pdf,
+      ['Promoted player', 'Level', 'Seasons', 'Tests'],
+      pathway.promoted.slice(0, 8).map((athlete) => [
+        athlete.name,
+        athlete.currentLevel,
+        `${athlete.seasonCount}`,
+        `${athlete.testCount}`,
+      ]),
+      y,
+      { fontSize: 7 },
+    )
+  }
+
+  if (pathway.watch.length > 0) {
+    y = table(
+      pdf,
+      ['Data watchlist', 'Level', 'Last test', 'Gaps'],
+      pathway.watch.slice(0, 8).map((athlete) => [
+        athlete.name,
+        athlete.currentLevel,
+        athlete.latestTestDate ?? '-',
+        `${athlete.watchCount}`,
+      ]),
+      y,
+      { fontSize: 7 },
+    )
+  }
+
+  const norms = data.normReferences
+    .filter((norm) => norm.metricKey === 'muscleLabWkg' || norm.metricKey === 'sprint10m')
+    .slice(0, 8)
+  if (norms.length > 0) {
+    y = table(
+      pdf,
+      ['Norm', 'Metric', 'Target', 'Elite'],
+      norms.map((norm) => {
+        const metric = metricByKey(data, norm.metricKey)
+        return [
+          `${norm.level} ${norm.position}`,
+          metric?.label ?? norm.metricKey,
+          formatMetricValue(norm.target, norm.unit),
+          formatMetricValue(norm.elite, norm.unit),
+        ]
+      }),
+      y,
+      { fontSize: 6.8 },
+    )
+  }
+
+  const drillDown = pathway.promoted[0] ?? pathway.athletes.find((athlete) => athlete.testCount > 0)
+  if (drillDown && pathwayMetric) {
+    y = table(
+      pdf,
+      [`${drillDown.name}`, 'Level', 'Age', `Delta ${pathwayMetric.label}`],
+      drillDown.seasons.slice(-6).map((season) => [
+        season.season,
+        season.level,
+        season.ageRange ?? '-',
+        pathwayChange(season.changes[pathwayMetric.key], pathwayMetric.unit),
+      ]),
+      y,
+      { fontSize: 6.8 },
+    )
+  }
+
+  return y + 2
+}
+
 export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   let y = 20
@@ -374,6 +533,8 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
     y = sectionTitle(pdf, 'Coach action plan', y)
     y = actionPlan(pdf, actions, y)
   }
+
+  y = developmentPathway(pdf, data, y)
 
   y = sectionTitle(pdf, 'Leaders', y)
   y = table(
