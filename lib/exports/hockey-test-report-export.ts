@@ -112,6 +112,30 @@ function maxMetric(values: Array<number | null | undefined>): number | null {
   return clean.length > 0 ? Math.max(...clean) : null
 }
 
+function minMetric(values: Array<number | null | undefined>): number | null {
+  const clean = values.filter((value): value is number => value != null && Number.isFinite(value))
+  return clean.length > 0 ? Math.min(...clean) : null
+}
+
+function meanMetric(values: number[]): number | null {
+  if (values.length === 0) return null
+  return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
+function percentDifference(left: number | null | undefined, right: number | null | undefined): number | null {
+  if (left == null || right == null) return null
+  const best = Math.max(left, right)
+  if (best <= 0) return null
+  return Math.abs(left - right) / best * 100
+}
+
+function enduranceDropPercent(values: number[] | null | undefined): number | null {
+  if (!values?.length) return null
+  const first = values[0]
+  const worst = Math.max(...values)
+  return first > 0 ? ((worst - first) / first) * 100 : null
+}
+
 function compactRows(rows: Array<MetricRow | null>): MetricRow[] {
   return rows.filter((row): row is MetricRow => Boolean(row))
 }
@@ -286,6 +310,56 @@ export function generateHockeyTestReportPDF(test: HockeyTestReportData): Blob {
     metric('Standing long jump', test.standingLongJump, 'cm', 0),
   ])
   y = metricGrid(pdf, topRows, y)
+
+  const enduranceTimes = test.endurance7x40 ?? []
+  const enduranceBest = minMetric(enduranceTimes)
+  const enduranceMean = meanMetric(enduranceTimes)
+  const enduranceDrop = enduranceDropPercent(enduranceTimes)
+  const gripAsymmetry = percentDifference(test.gripStrengthLeft, test.gripStrengthRight)
+  const threeJumpBest = maxMetric([test.threeJumpLeft, test.threeJumpRight])
+  const threeJumpAsymmetry = percentDifference(test.threeJumpLeft, test.threeJumpRight)
+  const agilityBest = minMetric([test.agility505Left, test.agility505Right])
+  const beepScore = test.beepTestLevel != null
+    ? test.beepTestLevel + ((test.beepTestShuttle ?? 0) / 10)
+    : null
+  const diagnosticRows = compactRows([
+    metric('Best 5-10-5', agilityBest, 's'),
+    metric('7x40 best', enduranceBest, 's'),
+    metric('7x40 average', enduranceMean, 's'),
+    metric('7x40 drop', enduranceDrop, '%', 1),
+    metric('Grip asymmetry', gripAsymmetry, '%', 1),
+    metric('3-step best', threeJumpBest, 'cm', 0),
+    metric('3-step asymmetry', threeJumpAsymmetry, '%', 1),
+    metric('Beep score', beepScore, '', 1),
+  ])
+  if (diagnosticRows.length > 0) {
+    y = sectionTitle(pdf, 'Coach diagnostics', y)
+    y = metricGrid(pdf, diagnosticRows, y)
+
+    const diagnosticFlags = [
+      enduranceDrop != null && enduranceDrop >= 6
+        ? `7x40 fatigue drop ${enduranceDrop.toFixed(1)}% - follow repeated sprint recovery`
+        : null,
+      gripAsymmetry != null && gripAsymmetry >= 10
+        ? `Grip asymmetry ${gripAsymmetry.toFixed(1)}% - compare shoulder/hand load tolerance`
+        : null,
+      threeJumpAsymmetry != null && threeJumpAsymmetry >= 8
+        ? `3-step asymmetry ${threeJumpAsymmetry.toFixed(1)}% - check single-leg power and landing quality`
+        : null,
+    ].filter((flag): flag is string => flag != null)
+
+    if (diagnosticFlags.length > 0) {
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(8)
+      pdf.setTextColor(110, 70, 20)
+      diagnosticFlags.forEach((flag) => {
+        y = addPageIfNeeded(pdf, y, 6)
+        pdf.text(`- ${flag}`, MARGIN, y)
+        y += 5
+      })
+      y += 3
+    }
+  }
 
   y = sectionTitle(pdf, 'MuscleLab', y)
   const plateau = maxima?.powerPlateauLoadsKg?.length
