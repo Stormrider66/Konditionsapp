@@ -157,12 +157,53 @@ interface HockeyHistoryMetric extends HockeyMetric {
   athletes: HockeyHistoryAthlete[]
 }
 
+interface HockeyPathwaySeason {
+  season: string
+  level: string
+  testCount: number
+  firstDate: string
+  lastDate: string
+  ageRange: string | null
+  metrics: Record<string, number | null>
+  changes: Record<string, number | null>
+}
+
+interface HockeyPathwayAthlete {
+  id: string
+  name: string
+  position: string | null
+  currentLevel: string
+  latestAge: number | null
+  latestTestDate: string | null
+  seasonCount: number
+  testCount: number
+  positiveChangeCount: number
+  watchCount: number
+  seasons: HockeyPathwaySeason[]
+}
+
+interface HockeyPathwaySummary {
+  metrics: HockeyMetric[]
+  seasonSummaries: Array<{
+    season: string
+    athleteCount: number
+    testCount: number
+    levelCounts: Record<string, number>
+    metrics: Record<string, number | null>
+  }>
+  athletes: HockeyPathwayAthlete[]
+  latestLevelCounts: Record<string, number>
+  promoted: HockeyPathwayAthlete[]
+  watch: HockeyPathwayAthlete[]
+}
+
 interface HockeyTeamSummary {
   metrics: HockeyMetric[]
   athletes: HockeyAthleteRow[]
   leaders: HockeyLeader[]
   history: HockeyHistoryMetric[]
   positions: Array<{ key: string; label: string; athleteCount: number }>
+  pathway: HockeyPathwaySummary
   testCount: number
 }
 
@@ -189,7 +230,7 @@ function formatDate(iso: string): string {
 
 function formatMetricValue(value: number | null | undefined, unit: string): string {
   if (value == null) return '–'
-  const decimals = unit === 's' ? 2 : unit === 'W/kg' || unit === 'nivå' ? 1 : 0
+  const decimals = unit === 's' ? 2 : ['W/kg', 'nivå', 'km/h'].includes(unit) ? 1 : 0
   return `${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
@@ -248,6 +289,12 @@ function getBenchmarkLabel(band: HockeyBenchmarkBand): string {
     default:
       return 'Lagspann'
   }
+}
+
+function formatPathwayChange(value: number | null | undefined, unit: string): string {
+  if (value == null) return '–'
+  const decimals = unit === 's' ? 2 : ['W/kg', 'km/h'].includes(unit) ? 1 : 0
+  return `${value > 0 ? '+' : ''}${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
 export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientProps) {
@@ -379,6 +426,15 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     .slice(0, 8) ?? []
   const hockeyActionItems: HockeyActionItem[] = hockey ? buildHockeyActionItems(hockey, { basePath }) : []
   const iceSpeedGapRows = buildIceSpeedGapRows(hockeyAthletes)
+  const pathway = hockey?.pathway
+  const pathwayTrendData = pathway?.seasonSummaries.map((season) => ({
+    season: season.season,
+    athleteCount: season.athleteCount,
+    testCount: season.testCount,
+    ...season.metrics,
+  })) ?? []
+  const selectedPathwayMetric = pathway?.metrics.find((metric) => metric.key === selectedHockeyMetric)
+    ?? pathway?.metrics[0]
 
   return (
     <div className="space-y-6">
@@ -469,6 +525,162 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {pathway && pathway.seasonSummaries.length > 0 && (
+              <div className="rounded-md border bg-muted/10 p-3 space-y-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <p className="text-sm font-semibold flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-amber-500" />
+                      Development pathway
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Flerårig översikt för J18 → J20 → A-team: nivåfördelning, säsongssnitt och spelare att följa.
+                    </p>
+                  </div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {['J18', 'J20', 'A-team'].map((level) => (
+                      <Badge key={level} variant="outline" className="text-[10px]">
+                        {level}: {pathway.latestLevelCounts[level] ?? 0}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                  <div className="lg:col-span-2 rounded-md border bg-background p-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-medium">Säsongstrend</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Lagets snitt per säsong för vald pathway-metrik.
+                        </p>
+                      </div>
+                      {selectedPathwayMetric && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {selectedPathwayMetric.label}
+                        </Badge>
+                      )}
+                    </div>
+                    {selectedPathwayMetric && pathwayTrendData.length > 1 ? (
+                      <div className="h-44">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={pathwayTrendData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <XAxis dataKey="season" tick={{ fontSize: 10 }} />
+                            <YAxis tick={{ fontSize: 10 }} width={42} />
+                            <Tooltip
+                              formatter={(value) => [
+                                formatMetricValue(typeof value === 'number' ? value : null, selectedPathwayMetric.unit),
+                                selectedPathwayMetric.label,
+                              ]}
+                              labelFormatter={(value, payload) => {
+                                const point = payload?.[0]?.payload as { athleteCount?: number; testCount?: number } | undefined
+                                return `${value} · ${point?.athleteCount ?? 0} spelare · ${point?.testCount ?? 0} tester`
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey={selectedPathwayMetric.key}
+                              name={selectedPathwayMetric.label}
+                              stroke="#f59e0b"
+                              strokeWidth={2}
+                              dot
+                              connectNulls
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <div className="rounded-md border border-dashed py-8 text-center text-xs text-muted-foreground">
+                        Minst två säsonger med samma metrik behövs för pathway-trend.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-md border bg-background p-3 space-y-2">
+                    <p className="text-xs font-medium">Säsonger</p>
+                    <div className="space-y-2">
+                      {pathway.seasonSummaries.slice(-5).map((season) => (
+                        <div key={season.season} className="rounded-md border px-2 py-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-semibold">{season.season}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {season.athleteCount} spelare · {season.testCount} tester
+                            </span>
+                          </div>
+                          <div className="mt-1 flex gap-1 flex-wrap">
+                            {Object.entries(season.levelCounts).map(([level, count]) => (
+                              <Badge key={level} variant="outline" className="text-[9px] h-4 px-1">
+                                {level} {count}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  <div className="rounded-md border bg-background p-3">
+                    <p className="text-xs font-medium mb-2">Promoted pathway players</p>
+                    {pathway.promoted.length > 0 ? (
+                      <div className="space-y-2">
+                        {pathway.promoted.map((athlete) => (
+                          <div key={athlete.id} className="flex items-center justify-between gap-2 text-xs">
+                            <div className="min-w-0">
+                              <Link href={`${basePath}/clients/${athlete.id}/profile?tab=hockey`} className="font-medium hover:underline">
+                                {athlete.name}
+                              </Link>
+                              <p className="text-[10px] text-muted-foreground truncate">
+                                {athlete.position ?? 'Position saknas'} · {athlete.seasonCount} säsonger · {athlete.testCount} tester
+                              </p>
+                            </div>
+                            <Badge variant="secondary" className="text-[10px] shrink-0">{athlete.currentLevel}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-md border border-dashed py-5 text-center text-xs text-muted-foreground">
+                        Lägg in flera säsonger för att se spelare som rört sig mellan nivåer.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-md border bg-background p-3">
+                    <p className="text-xs font-medium mb-2">Data watchlist</p>
+                    <div className="space-y-2">
+                      {pathway.watch.map((athlete) => {
+                        const latestSeason = athlete.seasons[athlete.seasons.length - 1]
+                        return (
+                          <div key={athlete.id} className="flex items-center justify-between gap-2 text-xs">
+                            <div className="min-w-0">
+                              <Link href={`${basePath}/clients/${athlete.id}/profile?tab=hockey`} className="font-medium hover:underline">
+                                {athlete.name}
+                              </Link>
+                              <p className="text-[10px] text-muted-foreground truncate">
+                                {latestSeason?.season ?? 'Ingen säsong'} · {athlete.latestTestDate ?? 'saknar datum'}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <Badge variant={athlete.watchCount > 0 ? 'outline' : 'secondary'} className="text-[10px]">
+                                {athlete.watchCount} luckor
+                              </Badge>
+                              {latestSeason && selectedPathwayMetric && (
+                                <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                                  {formatPathwayChange(latestSeason.changes[selectedPathwayMetric.key], selectedPathwayMetric.unit)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

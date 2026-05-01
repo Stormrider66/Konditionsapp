@@ -64,6 +64,7 @@ type HockeyMetricBenchmarks = Record<string, {
 } | null>
 
 const DEFAULT_DAYS = 365
+const HOCKEY_PATHWAY_YEARS = 5
 
 const HOCKEY_METRICS: HockeyMetric[] = [
   { key: 'muscleLabWkg', label: 'MuscleLab AP/BW', unit: 'W/kg' },
@@ -89,6 +90,14 @@ const HOCKEY_METRICS: HockeyMetric[] = [
   { key: 'endurance7x40Resistance', label: '7x40 resistance', unit: '%' },
   { key: 'endurance7x40Score', label: 'RSA score', unit: 'pts' },
 ]
+
+const PATHWAY_METRIC_KEYS = [
+  'muscleLabWkg',
+  'sprint10m',
+  'endurance7x40AverageKmh',
+  'backSquat1RM',
+  'powerClean1RM',
+] as const
 
 type HockeyTestForSummary = {
   clientId: string
@@ -116,6 +125,17 @@ type HockeyTestForSummary = {
   muscleLabMaxima: unknown
 }
 
+type TeamMemberForPathway = {
+  id: string
+  name: string
+  birthDate: Date
+  position: string | null
+}
+
+type HockeyPathwayTest = HockeyTestForSummary & {
+  id: string
+}
+
 function numberFromJson(value: unknown, key: string): number | null {
   if (!value || typeof value !== 'object') return null
   const raw = (value as Record<string, unknown>)[key]
@@ -132,6 +152,28 @@ function round(value: number | null, decimals = 1): number | null {
   if (value == null || !Number.isFinite(value)) return null
   const factor = Math.pow(10, decimals)
   return Math.round(value * factor) / factor
+}
+
+function seasonLabel(date: Date): string {
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1
+  const startYear = month >= 5 ? year : year - 1
+  return `${startYear}/${String(startYear + 1).slice(-2)}`
+}
+
+function ageAtDate(birthDate: Date | null | undefined, date: Date): number | null {
+  if (!birthDate) return null
+  const years = date.getFullYear() - birthDate.getFullYear()
+  const beforeBirthday = date.getMonth() < birthDate.getMonth()
+    || (date.getMonth() === birthDate.getMonth() && date.getDate() < birthDate.getDate())
+  return years - (beforeBirthday ? 1 : 0)
+}
+
+function developmentLevel(age: number | null): string {
+  if (age == null) return 'Unknown'
+  if (age <= 17) return 'J18'
+  if (age <= 19) return 'J20'
+  return 'A-team'
 }
 
 function percentileFromRank(rank: number, coverage: number): number {
@@ -232,6 +274,133 @@ function enduranceValues(value: unknown): number[] {
   return value.filter((item): item is number => typeof item === 'number' && Number.isFinite(item))
 }
 
+function averageMetric(rows: Array<Record<string, number | null>>, key: string, unit = ''): number | null {
+  const values = rows.map((row) => row[key]).filter((value): value is number => value != null)
+  if (values.length === 0) return null
+  return round(values.reduce((sum, value) => sum + value, 0) / values.length, unit === 's' ? 2 : 1)
+}
+
+function buildHockeyPathway(teamMembers: TeamMemberForPathway[], tests: HockeyPathwayTest[]) {
+  const testsByAthlete = new Map<string, HockeyPathwayTest[]>()
+  for (const test of tests) {
+    const existing = testsByAthlete.get(test.clientId) ?? []
+    existing.push(test)
+    testsByAthlete.set(test.clientId, existing)
+  }
+
+  const athletes = teamMembers.map((member) => {
+    const athleteTests = (testsByAthlete.get(member.id) ?? [])
+      .sort((a, b) => a.testDate.getTime() - b.testDate.getTime())
+    const bySeason = new Map<string, HockeyPathwayTest[]>()
+    for (const test of athleteTests) {
+      const season = seasonLabel(test.testDate)
+      bySeason.set(season, [...(bySeason.get(season) ?? []), test])
+    }
+
+    const seasons = Array.from(bySeason.entries()).map(([season, seasonTests]) => {
+      const first = seasonTests[0]
+      const last = seasonTests[seasonTests.length - 1]
+      const ages = seasonTests
+        .map((test) => ageAtDate(member.birthDate, test.testDate))
+        .filter((age): age is number => age != null)
+      const startMetrics = metricValuesForTest(first)
+      const endMetrics = metricValuesForTest(last)
+      const changes = Object.fromEntries(
+        PATHWAY_METRIC_KEYS.map((key) => {
+          const metric = HOCKEY_METRICS.find((candidate) => candidate.key === key)
+          return [key, improvementDelta(metric ?? { key, label: key, unit: '' }, endMetrics[key], startMetrics[key])]
+        })
+      ) as HockeyMetricValues
+      const minAge = ages.length ? Math.min(...ages) : null
+      const maxAge = ages.length ? Math.max(...ages) : null
+
+      return {
+        season,
+        level: developmentLevel(maxAge),
+        testCount: seasonTests.length,
+        firstDate: first.testDate.toISOString().slice(0, 10),
+        lastDate: last.testDate.toISOString().slice(0, 10),
+        ageRange: minAge == null || maxAge == null ? null : minAge === maxAge ? `${minAge}` : `${minAge}-${maxAge}`,
+        metrics: endMetrics,
+        changes,
+      }
+    })
+
+    const latestTest = athleteTests[athleteTests.length - 1]
+    const latestMetrics = latestTest ? metricValuesForTest(latestTest) : {}
+    const latestAge = latestTest ? ageAtDate(member.birthDate, latestTest.testDate) : ageAtDate(member.birthDate, new Date())
+    const latestLevel = seasons[seasons.length - 1]?.level ?? developmentLevel(latestAge)
+    const totalPositiveChanges = seasons.reduce((count, season) => (
+      count + PATHWAY_METRIC_KEYS.filter((key) => (season.changes[key] ?? 0) > 0).length
+    ), 0)
+    const watchCount = ['muscleLabWkg', 'sprint10m', 'endurance7x40AverageKmh'].filter((key) => latestMetrics[key] == null).length
+
+    return {
+      id: member.id,
+      name: member.name,
+      position: member.position,
+      currentLevel: latestLevel,
+      latestAge,
+      latestTestDate: latestTest?.testDate.toISOString().slice(0, 10) ?? null,
+      seasonCount: seasons.length,
+      testCount: athleteTests.length,
+      positiveChangeCount: totalPositiveChanges,
+      watchCount,
+      seasons,
+    }
+  })
+
+  const seasonKeys = Array.from(new Set(athletes.flatMap((athlete) => athlete.seasons.map((season) => season.season)))).sort()
+  const seasonSummaries = seasonKeys.map((season) => {
+    const athleteSeasons = athletes.flatMap((athlete) => athlete.seasons
+      .filter((entry) => entry.season === season)
+      .map((entry) => ({ athleteId: athlete.id, level: entry.level, testCount: entry.testCount, metrics: entry.metrics })))
+    const levelCounts = athleteSeasons.reduce<Record<string, number>>((acc, entry) => {
+      acc[entry.level] = (acc[entry.level] ?? 0) + 1
+      return acc
+    }, {})
+    const metricRows = athleteSeasons.map((entry) => entry.metrics)
+
+    return {
+      season,
+      athleteCount: new Set(athleteSeasons.map((entry) => entry.athleteId)).size,
+      testCount: athleteSeasons.reduce((sum, entry) => sum + entry.testCount, 0),
+      levelCounts,
+      metrics: Object.fromEntries(
+        PATHWAY_METRIC_KEYS.map((key) => {
+          const metric = HOCKEY_METRICS.find((candidate) => candidate.key === key)
+          return [key, averageMetric(metricRows, key, metric?.unit)]
+        })
+      ),
+    }
+  })
+
+  const latestLevelCounts = athletes.reduce<Record<string, number>>((acc, athlete) => {
+    acc[athlete.currentLevel] = (acc[athlete.currentLevel] ?? 0) + 1
+    return acc
+  }, {})
+  const promoted = athletes
+    .filter((athlete) => {
+      const levels = athlete.seasons.map((season) => season.level).filter((level) => level !== 'Unknown')
+      return new Set(levels).size > 1
+    })
+    .sort((a, b) => b.seasonCount - a.seasonCount)
+    .slice(0, 6)
+  const watch = athletes
+    .filter((athlete) => athlete.testCount > 0)
+    .sort((a, b) => b.watchCount - a.watchCount || a.name.localeCompare(b.name, 'sv'))
+    .slice(0, 6)
+
+  return {
+    metrics: HOCKEY_METRICS.filter((metric) => PATHWAY_METRIC_KEYS.includes(metric.key as (typeof PATHWAY_METRIC_KEYS)[number])),
+    seasonSummaries,
+    athletes,
+    latestLevelCounts,
+    promoted,
+    watch,
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -250,7 +419,7 @@ export async function GET(
       select: {
         id: true,
         name: true,
-        members: { select: { id: true, name: true, position: true } },
+        members: { select: { id: true, name: true, birthDate: true, position: true } },
       },
     })
     if (!team) {
@@ -264,6 +433,8 @@ export async function GET(
 
     const since = new Date()
     since.setDate(since.getDate() - DEFAULT_DAYS)
+    const pathwaySince = new Date()
+    pathwaySince.setFullYear(pathwaySince.getFullYear() - HOCKEY_PATHWAY_YEARS)
 
     const rows = await prisma.oneRepMaxHistory.findMany({
       where: {
@@ -279,7 +450,7 @@ export async function GET(
     const hockeyTests = await prisma.hockeyPhysicalTest.findMany({
       where: {
         clientId: { in: memberIds },
-        testDate: { gte: since },
+        testDate: { gte: pathwaySince },
       },
       orderBy: { testDate: 'desc' },
       select: {
@@ -578,6 +749,7 @@ export async function GET(
           leaders: hockeyLeaders,
           history: hockeyHistory,
           positions: hockeyPositions,
+          pathway: buildHockeyPathway(team.members, hockeyTests),
           testCount: hockeyTests.length,
         },
       },
