@@ -24,6 +24,8 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
+import { withGoogleLogging } from '@/lib/ai/google'
+import { withAiContext } from '@/lib/ai/usage-logger'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
@@ -125,19 +127,23 @@ VIKTIGT:
 - Använd korrekta svenska termer — undvik engelska eller varumärken om generiska finns.
 - Var konservativ med portionsuppskattning — det är bättre att underskatta än överskatta.`
 
-    const result = await generateObject({
-      model: google(GEMINI_MODELS.FLASH),
-      schema: recipeSchema,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'image', image: `data:${mimeForGemini};base64,${base64}` },
-            { type: 'text', text: prompt },
+    const result = await withAiContext(
+      { userId: user.id, category: 'food_scan_recipe' },
+      () =>
+        generateObject({
+          model: withGoogleLogging(google(GEMINI_MODELS.FLASH)),
+          schema: recipeSchema,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'image', image: `data:${mimeForGemini};base64,${base64}` },
+                { type: 'text', text: prompt },
+              ],
+            },
           ],
-        },
-      ],
-    })
+        }),
+    )
 
     // Match each extracted ingredient against the Food table so the client
     // can drop the rows straight into the builder with foodId + macros set.

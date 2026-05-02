@@ -15,6 +15,7 @@ import { resolveModel } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { logAiUsage, withAiContext } from '@/lib/ai/usage-logger'
 
 interface SendMessageRequest {
   content: string
@@ -183,103 +184,133 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
     let outputTokens = 0
     const startTime = Date.now()
 
-    // Call AI based on provider
-    if (conversation.provider === 'ANTHROPIC' && decryptedKeys.anthropicKey) {
-      try {
-        const anthropic = new Anthropic({
-          apiKey: decryptedKeys.anthropicKey,
-        })
-
-        const response = await anthropic.messages.create({
-          model: conversation.modelUsed || 'claude-sonnet-4-6',
-          max_tokens: 4096,
-          system: systemPrompt,
-          messages: messageHistory,
-        })
-
-        assistantResponse =
-          response.content[0].type === 'text' ? response.content[0].text : ''
-        inputTokens = response.usage.input_tokens
-        outputTokens = response.usage.output_tokens
-      } catch (error) {
-      logger.error('Anthropic API error', {}, error)
-        throw new Error(
-          `AI API error: ${error instanceof Error ? error.message : 'Unknown error'}`
-        )
-      }
-    } else if (conversation.provider === 'GOOGLE' && decryptedKeys.googleKey) {
-      // Google/Gemini API call
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1/models/${conversation.modelUsed || 'gemini-3-flash-preview'}:generateContent?key=${decryptedKeys.googleKey}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              contents: [
-                {
-                  role: 'user',
-                  parts: [
-                    {
-                      text: `${systemPrompt}\n\n${messageHistory.map((m) => `${m.role === 'user' ? 'Användare' : 'Assistent'}: ${m.content}`).join('\n\n')}`,
-                    },
-                  ],
-                },
-              ],
-              generationConfig: {
-                maxOutputTokens: 4096,
-              },
-            }),
-          }
-        )
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error?.message || 'Gemini API error')
-        }
-
-        assistantResponse =
-          data.candidates?.[0]?.content?.parts?.[0]?.text || ''
-        inputTokens = data.usageMetadata?.promptTokenCount || 0
-        outputTokens = data.usageMetadata?.candidatesTokenCount || 0
-      } catch (error) {
-      logger.error('Google API error', {}, error)
-        throw new Error(
-          `AI API error: ${error instanceof Error ? error.message : 'Unknown error'}`
-        )
-      }
-    } else {
-      // Selected provider's key not available — try any available provider
-      const resolved = resolveModel(decryptedKeys, 'balanced')
-      if (!resolved) {
-        return NextResponse.json(
-          { error: 'Ingen AI API-nyckel konfigurerad. Konfigurera minst en API-nyckel i inställningarna.' },
-          { status: 400 }
-        )
-      }
-      try {
-        const response = await generateText({
-          model: createModelInstance(resolved),
-          system: systemPrompt,
-          messages: messageHistory.map(m => ({
-            role: m.role as 'user' | 'assistant',
-            content: String(m.content),
-          })),
-          maxOutputTokens: 4096,
-        })
-        assistantResponse = response.text
-        inputTokens = response.usage?.inputTokens ?? 0
-        outputTokens = response.usage?.outputTokens ?? 0
-      } catch (error) {
-        logger.error('AI fallback API error', { provider: resolved.provider }, error)
-        throw new Error(
-          `AI API error: ${error instanceof Error ? error.message : 'Unknown error'}`
-        )
-      }
+    // Resolve fallback once outside so the no-key 400 stays a clean early return.
+    const fallbackResolved =
+      conversation.provider === 'ANTHROPIC' && decryptedKeys.anthropicKey
+        ? null
+        : conversation.provider === 'GOOGLE' && decryptedKeys.googleKey
+        ? null
+        : resolveModel(decryptedKeys, 'balanced')
+    if (
+      conversation.provider !== 'ANTHROPIC' &&
+      conversation.provider !== 'GOOGLE' &&
+      !fallbackResolved
+    ) {
+      return NextResponse.json(
+        { error: 'Ingen AI API-nyckel konfigurerad. Konfigurera minst en API-nyckel i inställningarna.' },
+        { status: 400 }
+      )
     }
+
+    await withAiContext({ userId: user.id, category: 'chat', conversationId }, async () => {
+      // Call AI based on provider
+      if (conversation.provider === 'ANTHROPIC' && decryptedKeys.anthropicKey) {
+        try {
+          const anthropic = new Anthropic({
+            apiKey: decryptedKeys.anthropicKey,
+          })
+
+          const model = conversation.modelUsed || 'claude-sonnet-4-6'
+          const response = await anthropic.messages.create({
+            model,
+            max_tokens: 4096,
+            system: systemPrompt,
+            messages: messageHistory,
+          })
+
+          assistantResponse =
+            response.content[0].type === 'text' ? response.content[0].text : ''
+          inputTokens = response.usage.input_tokens
+          outputTokens = response.usage.output_tokens
+
+          logAiUsage({
+            provider: 'ANTHROPIC',
+            model,
+            inputTokens,
+            outputTokens,
+          })
+        } catch (error) {
+          logger.error('Anthropic API error', {}, error)
+          throw new Error(
+            `AI API error: ${error instanceof Error ? error.message : 'Unknown error'}`
+          )
+        }
+      } else if (conversation.provider === 'GOOGLE' && decryptedKeys.googleKey) {
+        // Google/Gemini API call
+        try {
+          const model = conversation.modelUsed || 'gemini-3-flash-preview'
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${decryptedKeys.googleKey}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    role: 'user',
+                    parts: [
+                      {
+                        text: `${systemPrompt}\n\n${messageHistory.map((m) => `${m.role === 'user' ? 'Användare' : 'Assistent'}: ${m.content}`).join('\n\n')}`,
+                      },
+                    ],
+                  },
+                ],
+                generationConfig: {
+                  maxOutputTokens: 4096,
+                },
+              }),
+            }
+          )
+
+          const data = await response.json()
+
+          if (!response.ok) {
+            throw new Error(data.error?.message || 'Gemini API error')
+          }
+
+          assistantResponse =
+            data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+          inputTokens = data.usageMetadata?.promptTokenCount || 0
+          outputTokens = data.usageMetadata?.candidatesTokenCount || 0
+
+          logAiUsage({
+            provider: 'GOOGLE',
+            model,
+            inputTokens,
+            outputTokens,
+          })
+        } catch (error) {
+          logger.error('Google API error', {}, error)
+          throw new Error(
+            `AI API error: ${error instanceof Error ? error.message : 'Unknown error'}`
+          )
+        }
+      } else if (fallbackResolved) {
+        try {
+          // createModelInstance is auto-instrumented via usageLoggingMiddleware,
+          // so the AIUsageLog row is written without an explicit logAiUsage call.
+          const response = await generateText({
+            model: createModelInstance(fallbackResolved),
+            system: systemPrompt,
+            messages: messageHistory.map(m => ({
+              role: m.role as 'user' | 'assistant',
+              content: String(m.content),
+            })),
+            maxOutputTokens: 4096,
+          })
+          assistantResponse = response.text
+          inputTokens = response.usage?.inputTokens ?? 0
+          outputTokens = response.usage?.outputTokens ?? 0
+        } catch (error) {
+          logger.error('AI fallback API error', { provider: fallbackResolved.provider }, error)
+          throw new Error(
+            `AI API error: ${error instanceof Error ? error.message : 'Unknown error'}`
+          )
+        }
+      }
+    })
 
     const latencyMs = Date.now() - startTime
 

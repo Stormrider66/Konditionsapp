@@ -4,6 +4,7 @@ import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
+import { logAiUsage } from '@/lib/ai/usage-logger'
 
 const EXERCISE_IMAGES_BUCKET = 'exercise-images'
 
@@ -98,6 +99,15 @@ export async function lookupOrGenerateExercise(
         config: {
           responseModalities: ['IMAGE'],
         },
+      })
+
+      logAiUsage({
+        provider: 'GOOGLE',
+        model,
+        inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+        outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+        userId: coachId,
+        category: 'image_generation_exercise',
       })
 
       const parts = response.candidates?.[0]?.content?.parts

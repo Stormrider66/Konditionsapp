@@ -12,6 +12,7 @@ import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
 import { PROGRAM_INFOGRAPHICS_BUCKET } from '@/lib/storage/supabase-storage'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
+import { logAiUsage } from '@/lib/ai/usage-logger'
 import type { ParsedProgram } from '@/lib/ai/program-parser'
 
 export const ALLOWED_IMAGE_MODELS = [
@@ -124,6 +125,15 @@ export async function generateProgramInfographic(
     logger.error('Gemini API call failed', { programId, model: selectedModel, error: msg }, geminiError)
     throw new Error(`GEMINI_ERROR: ${msg}`)
   }
+
+  logAiUsage({
+    provider: 'GOOGLE',
+    model: selectedModel,
+    inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+    outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+    userId: coachId,
+    category: 'image_generation_program',
+  })
 
   // Extract image from response
   const parts = response.candidates?.[0]?.content?.parts

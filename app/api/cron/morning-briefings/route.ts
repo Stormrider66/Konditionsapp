@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma'
 import { createMorningBriefing } from '@/lib/ai/briefing-generator'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { logger } from '@/lib/logger'
+import { withAiContext } from '@/lib/ai/usage-logger'
 
 export const maxDuration = 300
 
@@ -208,7 +209,10 @@ async function processAthleteBriefing(athlete: BriefingCandidate): Promise<Proce
       return 'skipped'
     }
 
-    const briefingId = await createMorningBriefing(athlete.clientId, apiKeys)
+    const briefingId = await withAiContext(
+      { userId: athlete.coachUserId, category: 'briefing' },
+      () => createMorningBriefing(athlete.clientId, apiKeys),
+    )
     return briefingId ? 'created' : 'error'
   } catch (error) {
     logger.error('Error processing athlete briefing', { clientId: athlete.clientId }, error)

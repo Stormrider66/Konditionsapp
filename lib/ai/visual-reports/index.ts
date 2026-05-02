@@ -19,6 +19,7 @@ import {
   gatherProgramData,
 } from './data-gatherers'
 import { logger } from '@/lib/logger'
+import { logAiUsage } from '@/lib/ai/usage-logger'
 import type { GenerateVisualReportOptions, VisualReportResult } from './types'
 
 export { ALLOWED_IMAGE_MODELS } from '@/lib/ai/program-infographic'
@@ -93,6 +94,15 @@ export async function generateVisualReport(
     config: {
       responseModalities: ['IMAGE', 'TEXT'],
     },
+  })
+
+  logAiUsage({
+    provider: 'GOOGLE',
+    model: selectedModel,
+    inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+    outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+    userId: coachId,
+    category: `visual_report_${reportType}`,
   })
 
   const parts = response.candidates?.[0]?.content?.parts

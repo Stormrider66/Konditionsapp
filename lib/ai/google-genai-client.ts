@@ -10,6 +10,20 @@
 
 import { GoogleGenAI } from '@google/genai';
 import { GEMINI_MODELS } from './gemini-config';
+import { logAiUsage } from './usage-logger';
+
+/**
+ * Optional logging metadata for direct `@google/genai` SDK calls.
+ *
+ * When omitted, the call is still attributed via AsyncLocalStorage
+ * (`withAiContext`); pass it explicitly to override or to attribute
+ * a one-off call from outside a `withAiContext` block.
+ */
+export interface AiCallMeta {
+  userId?: string | null;
+  category?: string;
+  conversationId?: string | null;
+}
 
 /**
  * Create a Google GenAI client instance.
@@ -76,7 +90,8 @@ export async function generateContent(
   client: GoogleGenAI,
   model: string,
   parts: ContentPart[],
-  config?: GenerateContentConfig
+  config?: GenerateContentConfig,
+  meta?: AiCallMeta,
 ): Promise<{ text: string; usage?: { inputTokens?: number; outputTokens?: number } }> {
   const response = await client.models.generateContent({
     model,
@@ -85,6 +100,18 @@ export async function generateContent(
       maxOutputTokens: config.maxOutputTokens,
       temperature: config.temperature,
     } : undefined,
+  });
+
+  const inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
+  const outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
+  logAiUsage({
+    provider: 'GOOGLE',
+    model,
+    inputTokens,
+    outputTokens,
+    userId: meta?.userId,
+    category: meta?.category,
+    conversationId: meta?.conversationId,
   });
 
   return {
@@ -113,7 +140,8 @@ export async function generateStructuredContent<T>(
   client: GoogleGenAI,
   model: string,
   parts: ContentPart[],
-  schema: object
+  schema: object,
+  meta?: AiCallMeta,
 ): Promise<{ object: T; text: string; usage?: { inputTokens?: number; outputTokens?: number } }> {
   const response = await client.models.generateContent({
     model,
@@ -122,6 +150,18 @@ export async function generateStructuredContent<T>(
       responseMimeType: 'application/json',
       responseSchema: schema,
     },
+  });
+
+  const inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
+  const outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
+  logAiUsage({
+    provider: 'GOOGLE',
+    model,
+    inputTokens,
+    outputTokens,
+    userId: meta?.userId,
+    category: meta?.category,
+    conversationId: meta?.conversationId,
   });
 
   const text = response.text || '{}';
@@ -526,6 +566,7 @@ export async function embedContent(
   model: string,
   text: string,
   config?: EmbedContentConfig,
+  meta?: AiCallMeta,
 ): Promise<{ values: number[] }> {
   const response = await client.models.embedContent({
     model,
@@ -536,6 +577,20 @@ export async function embedContent(
           taskType: config.taskType,
         }
       : undefined,
+  });
+
+  // Embedding endpoints don't always return usageMetadata; estimate from
+  // the input length when missing (rough: 1 token ≈ 4 chars).
+  const inputTokens =
+    (response as { usageMetadata?: { promptTokenCount?: number } }).usageMetadata
+      ?.promptTokenCount ?? Math.ceil(text.length / 4);
+  logAiUsage({
+    provider: 'GOOGLE',
+    model,
+    inputTokens,
+    outputTokens: 0,
+    userId: meta?.userId,
+    category: meta?.category ?? 'embedding',
   });
 
   const values = response.embeddings?.[0]?.values;
@@ -554,6 +609,7 @@ export async function batchEmbedContent(
   model: string,
   texts: string[],
   config?: EmbedContentConfig,
+  meta?: AiCallMeta,
 ): Promise<{ values: number[] }[]> {
   const concurrency = 10;
   const results: { values: number[] }[] = new Array(texts.length);
@@ -561,7 +617,7 @@ export async function batchEmbedContent(
   for (let i = 0; i < texts.length; i += concurrency) {
     const batch = texts.slice(i, i + concurrency);
     const promises = batch.map((text, j) =>
-      embedContent(client, model, text, config).then((r) => {
+      embedContent(client, model, text, config, meta).then((r) => {
         results[i + j] = r;
       }),
     );

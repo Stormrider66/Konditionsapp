@@ -19,6 +19,8 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
+import { withGoogleLogging } from '@/lib/ai/google'
+import { withAiContext } from '@/lib/ai/usage-logger'
 import { z } from 'zod'
 
 export const maxDuration = 120
@@ -88,10 +90,13 @@ export async function POST(request: NextRequest) {
 
     const google = createGoogleGenerativeAI({ apiKey: googleKey })
 
-    const result = await generateObject({
-      model: google(GEMINI_MODELS.FLASH),
-      schema: FoodPhotoAnalysisSchema,
-      messages: [
+    const result = await withAiContext(
+      { userId: user.id, category: 'food_scan_text' },
+      () =>
+        generateObject({
+          model: withGoogleLogging(google(GEMINI_MODELS.FLASH)),
+          schema: FoodPhotoAnalysisSchema,
+          messages: [
         {
           role: 'user',
           content: `Du är en expert på näringslära. Uppskatta kalorier och makronäringsämnen baserat på denna måltidsbeskrivning:
@@ -122,7 +127,8 @@ UTÖKAD ANALYS (detaljerade makrosubkategorier):
 11. Summera fett- och kolhydratsubkategorier i totals` : ''}`,
         },
       ],
-    })
+        }),
+    )
 
     return NextResponse.json({
       success: true,

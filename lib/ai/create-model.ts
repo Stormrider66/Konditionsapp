@@ -7,31 +7,40 @@
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
+import { wrapLanguageModel } from 'ai'
 import type { ResolvedModel } from '@/types/ai-models'
 import { wrapAiFetch } from './fetch'
+import { usageLoggingMiddleware, type AiProviderTag } from './usage-logger'
+
+const PROVIDER_TAG: Record<ResolvedModel['provider'], AiProviderTag> = {
+  anthropic: 'ANTHROPIC',
+  google: 'GOOGLE',
+  openai: 'OPENAI',
+}
 
 export function createModelInstance(resolved: ResolvedModel) {
+  const middleware = usageLoggingMiddleware(PROVIDER_TAG[resolved.provider])
   switch (resolved.provider) {
     case 'anthropic': {
       const anthropic = createAnthropic({
         apiKey: resolved.apiKey,
         fetch: wrapAiFetch('anthropic'),
       })
-      return anthropic(resolved.modelId)
+      return wrapLanguageModel({ model: anthropic(resolved.modelId), middleware })
     }
     case 'google': {
       const google = createGoogleGenerativeAI({
         apiKey: resolved.apiKey,
         fetch: wrapAiFetch('google'),
       })
-      return google(resolved.modelId)
+      return wrapLanguageModel({ model: google(resolved.modelId), middleware })
     }
     case 'openai': {
       const openai = createOpenAI({
         apiKey: resolved.apiKey,
         fetch: wrapAiFetch('openai'),
       })
-      return openai(resolved.modelId)
+      return wrapLanguageModel({ model: openai(resolved.modelId), middleware })
     }
     default:
       throw new Error(`Unsupported provider: ${resolved.provider}`)
