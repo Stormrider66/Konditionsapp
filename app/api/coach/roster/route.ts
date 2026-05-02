@@ -1,31 +1,41 @@
-import { NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import { NextRequest, NextResponse } from 'next/server'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { subDays } from 'date-fns'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach()
     const now = new Date()
+    const scope = getRequestedBusinessScope(request)
 
-    // Get first active business membership + role for scoping
+    // Get active business membership + role for scoping. Business-scoped pages
+    // pass x-business-slug so org switches do not fall back to the primary org.
     const membership = await prisma.businessMember.findFirst({
       where: {
         userId: user.id,
         isActive: true,
+        ...(scope.businessSlug
+          ? { business: { slug: scope.businessSlug, isActive: true } }
+          : {}),
       },
       select: { businessId: true, role: true },
+      orderBy: { createdAt: 'asc' },
     })
 
     const coachIds = membership
       ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
       : [user.id]
+    const clientWhere = {
+      userId: { in: coachIds },
+      ...(membership ? { businessId: membership.businessId } : {}),
+    }
 
     // Fetch all clients with related status data in parallel
     const [clients, latestMetrics, latestLoads, activeInjuries] = await Promise.all([
       prisma.client.findMany({
-        where: { userId: { in: coachIds } },
+        where: clientWhere,
         select: {
           id: true,
           name: true,
@@ -39,7 +49,7 @@ export async function GET() {
       }),
       prisma.dailyMetrics.findMany({
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           date: { gte: subDays(now, 2) },
         },
         select: {
@@ -52,7 +62,7 @@ export async function GET() {
       }),
       prisma.trainingLoad.findMany({
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           date: { gte: subDays(now, 7) },
         },
         select: {
@@ -66,7 +76,7 @@ export async function GET() {
       prisma.injuryAssessment.groupBy({
         by: ['clientId'],
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           status: { in: ['ACTIVE', 'MONITORING'] },
           resolved: false,
         },

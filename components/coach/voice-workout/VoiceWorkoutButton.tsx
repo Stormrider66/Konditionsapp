@@ -42,11 +42,15 @@ export function VoiceWorkoutButton({
 
   useEffect(() => { setMounted(true) }, [])
 
-  // Build coach path with optional business prefix
-  const coachPath = basePath ? `${basePath}/coach` : '/coach'
+  const coachPath = basePath ? `${basePath}/coach` : null
 
   const handleComplete = (result: { workoutId: string; workoutType: string }) => {
     setOpen(false)
+    if (!coachPath) {
+      router.refresh()
+      return
+    }
+
     // Navigate to the created workout
     switch (result.workoutType) {
       case 'STRENGTH':

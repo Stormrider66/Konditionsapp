@@ -9,6 +9,7 @@ import { requireCoach } from '@/lib/auth-utils';
 import { createCoachBillingPortalSession } from '@/lib/payments/coach-stripe';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
+import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +23,11 @@ export async function POST(request: NextRequest) {
 
     // Build return URL
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
-    const returnUrl = `${baseUrl}/coach/subscription`;
+    const businessSlug = await getUserPrimaryBusinessSlug(user.id)
+    const returnUrl = new URL(
+      businessSlug ? `/${businessSlug}/coach/subscription` : '/pricing',
+      baseUrl
+    ).toString()
 
     // Create billing portal session
     const portalUrl = await createCoachBillingPortalSession(user.id, returnUrl);

@@ -137,7 +137,7 @@ interface AIStudioClientProps {
   defaultModel: AIModel | null
   initialMode?: string
   initialClientId?: string
-  basePath?: string
+  basePath: string
 }
 
 export function AIStudioClient({
@@ -149,7 +149,7 @@ export function AIStudioClient({
   defaultModel,
   initialMode,
   initialClientId,
-  basePath = '/coach',
+  basePath,
 }: AIStudioClientProps) {
   const router = useRouter()
   const { toast } = useToast()

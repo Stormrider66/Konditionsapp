@@ -46,7 +46,7 @@ model TeamEvent {
   allDay    Boolean   @default(false)
 
   // Recurrence (iCal RRULE)
-  isRecurring        Boolean @default(false)
+  isRecurring        Boolean     @default(false)
   recurrenceRule     String? // e.g. "FREQ=WEEKLY;BYDAY=MO,WE,FR"
   recurrenceParentId String?
   recurrenceParent   TeamEvent?  @relation("TeamEventRecurrence", fields: [recurrenceParentId], references: [id], onDelete: SetNull)
@@ -327,14 +327,14 @@ model ExternalMatchSchedule {
 // ==================== MULTI-ORG CALENDAR PLANNING ====================
 enum CalendarVisibility {
   FULL_DETAILS // Members see full event details in cross-org view
-  BUSY_ONLY    // Members see time blocks only (no details)
-  HIDDEN       // Calendar hidden from cross-org views entirely
+  BUSY_ONLY // Members see time blocks only (no details)
+  HIDDEN // Calendar hidden from cross-org views entirely
 }
 
 enum CrossOrgCalendarMode {
-  PERSONAL   // My schedule across all orgs
-  ALL_TEAMS  // Full team calendars from all orgs
-  PLANNING   // Interactive planning mode with conflict detection
+  PERSONAL // My schedule across all orgs
+  ALL_TEAMS // Full team calendars from all orgs
+  PLANNING // Interactive planning mode with conflict detection
 }
 
 /// Per-user preferences for the unified cross-org calendar view
@@ -343,8 +343,8 @@ model UserCalendarPreference {
   userId String @unique
 
   defaultMode       CrossOrgCalendarMode @default(PERSONAL)
-  hiddenBusinessIds  Json                @default("[]")   // String[] of business IDs the user chose to hide
-  colorMapping       Json                @default("{}")   // { businessId: "#hex" } overrides (falls back to Business.primaryColor)
+  hiddenBusinessIds Json                 @default("[]") // String[] of business IDs the user chose to hide
+  colorMapping      Json                 @default("{}") // { businessId: "#hex" } overrides (falls back to Business.primaryColor)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

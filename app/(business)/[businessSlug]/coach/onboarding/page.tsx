@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
-import { CoachOnboardingClient } from '@/app/coach/onboarding/CoachOnboardingClient'
+import { CoachOnboardingClient } from '@/components/coach/onboarding/CoachOnboardingClient'
 
 interface PageProps {
   params: Promise<{

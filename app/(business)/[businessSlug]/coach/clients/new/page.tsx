@@ -38,11 +38,13 @@ export default function BusinessNewClientPage() {
 
   useEffect(() => {
     fetchTeams()
-  }, [])
+  }, [businessSlug])
 
   const fetchTeams = async () => {
     try {
-      const response = await fetch('/api/teams')
+      const response = await fetch('/api/teams', {
+        headers: { 'x-business-slug': businessSlug },
+      })
       const result = await response.json()
       if (result.success) {
         setTeams(result.data || [])
@@ -82,6 +84,7 @@ export default function BusinessNewClientPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-business-slug': businessSlug,
         },
         body: JSON.stringify(data),
       })

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { BasePathProvider } from '@/lib/contexts/BasePathContext'
-import AthleteDashboardTemplatesClient from '@/app/coach/settings/athlete-dashboards/AthleteDashboardTemplatesClient'
+import AthleteDashboardTemplatesClient from '@/components/coach/settings/athlete-dashboards/AthleteDashboardTemplatesClient'
 
 interface Props {
   params: Promise<{ businessSlug: string }>

@@ -20,10 +20,10 @@ import { PushToGarminButton } from '@/components/programs/PushToGarminButton'
 
 interface ProgramCalendarProps {
   program: ProgramWithWeeks
-  basePath?: string
+  basePath: string
 }
 
-export function ProgramCalendar({ program, basePath = '/coach' }: ProgramCalendarProps) {
+export function ProgramCalendar({ program, basePath }: ProgramCalendarProps) {
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set())
 
   const toggleWeek = (weekId: string) => {

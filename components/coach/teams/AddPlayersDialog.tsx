@@ -58,7 +58,7 @@ interface AddPlayersDialogProps {
 export function AddPlayersDialog({
   teamId,
   teamName,
-  basePath: _basePath,
+  basePath,
   importPath,
   trigger,
 }: AddPlayersDialogProps) {
@@ -82,12 +82,19 @@ export function AddPlayersDialog({
   const [newEmail, setNewEmail] = useState('')
   const [newGender, setNewGender] = useState<'MALE' | 'FEMALE'>('MALE')
   const [creating, setCreating] = useState(false)
+  const businessSlug = basePath.split('/').filter(Boolean)[0]
+  const businessHeaders = useMemo<Record<string, string>>(
+    () => (businessSlug ? { 'x-business-slug': businessSlug } : {}),
+    [businessSlug]
+  )
 
   useEffect(() => {
     if (!open) return
     let cancelled = false
     setLoadingClients(true)
-    fetch(`/api/coach/teams/${teamId}/members?filter=${filter}`)
+    fetch(`/api/coach/teams/${teamId}/members?filter=${filter}`, {
+      headers: businessHeaders,
+    })
       .then((r) => r.json())
       .then((d) => {
         if (!cancelled) setClients(Array.isArray(d.clients) ? d.clients : [])
@@ -101,7 +108,7 @@ export function AddPlayersDialog({
     return () => {
       cancelled = true
     }
-  }, [open, teamId, filter])
+  }, [open, teamId, filter, businessHeaders])
 
   const handleOpenChange = (next: boolean) => {
     if (next) setSelected(new Set())
@@ -134,7 +141,7 @@ export function AddPlayersDialog({
     try {
       const res = await fetch(`/api/coach/teams/${teamId}/members`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...businessHeaders },
         body: JSON.stringify({ clientIds: Array.from(selected) }),
       })
       const data = await res.json()
@@ -171,7 +178,7 @@ export function AddPlayersDialog({
 
       const res = await fetch(`/api/coach/teams/${teamId}/members/bulk`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...businessHeaders },
         body: JSON.stringify({ rows: [row] }),
       })
       const data = await res.json()

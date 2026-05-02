@@ -6,10 +6,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireCoach } from '@/lib/auth-utils';
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils';
 import { startOfDay, endOfDay, format, parseISO, isWithinInterval } from 'date-fns';
 import { logError } from '@/lib/logger-console';
 import { fetchAndParseICalUrl } from '@/lib/calendar/ical-parser';
+import { getCoachScopedIds } from '@/lib/coach/scoping';
 
 export interface TodaysAppointment {
   id: string;
@@ -32,6 +33,26 @@ export interface TodaysAppointment {
 export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const scope = getRequestedBusinessScope(request);
+
+    const membership = await prisma.businessMember.findFirst({
+      where: {
+        userId: user.id,
+        isActive: true,
+        ...(scope.businessSlug
+          ? { business: { slug: scope.businessSlug, isActive: true } }
+          : {}),
+      },
+      select: { businessId: true, role: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    const coachIds = membership
+      ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
+      : [user.id];
+    const athleteWhere = {
+      userId: { in: coachIds },
+      ...(membership ? { businessId: membership.businessId } : {}),
+    };
 
     // Support date parameter for viewing other days
     const { searchParams } = new URL(request.url);
@@ -50,9 +71,10 @@ export async function GET(request: NextRequest) {
             lte: dayEnd,
           },
           startTime: { not: null },
+          athlete: athleteWhere,
           OR: [
-            { session: { coachId: user.id } },
-            { responsibleCoachId: user.id },
+            { session: { coachId: { in: coachIds } } },
+            { responsibleCoachId: { in: coachIds } },
           ],
         },
         include: {
@@ -81,9 +103,10 @@ export async function GET(request: NextRequest) {
             lte: dayEnd,
           },
           startTime: { not: null },
+          athlete: athleteWhere,
           OR: [
-            { session: { coachId: user.id } },
-            { responsibleCoachId: user.id },
+            { session: { coachId: { in: coachIds } } },
+            { responsibleCoachId: { in: coachIds } },
           ],
         },
         include: {
@@ -112,9 +135,10 @@ export async function GET(request: NextRequest) {
             lte: dayEnd,
           },
           startTime: { not: null },
+          athlete: athleteWhere,
           OR: [
-            { workout: { coachId: user.id } },
-            { responsibleCoachId: user.id },
+            { workout: { coachId: { in: coachIds } } },
+            { responsibleCoachId: { in: coachIds } },
           ],
         },
         include: {
@@ -143,9 +167,10 @@ export async function GET(request: NextRequest) {
             lte: dayEnd,
           },
           startTime: { not: null },
+          athlete: athleteWhere,
           OR: [
-            { workout: { coachId: user.id } },
-            { responsibleCoachId: user.id },
+            { workout: { coachId: { in: coachIds } } },
+            { responsibleCoachId: { in: coachIds } },
           ],
         },
         include: {

@@ -1,23 +1,32 @@
 # Legacy Non-Business-Scoped Route Cleanup
 
-Forward-looking plan to delete the parallel non-business-scoped route tree for coach/PT/team/gym/physio surfaces. Deferred from the active hardening pass on 2026-04-25 because the codebase has more cross-tree dependency than first surveyed. Athletes are explicitly **out of scope** — `app/athlete/...` stays for solo (non-business-affiliated) athletes.
+Plan to delete the parallel non-business-scoped route tree for coach/PT/team/gym/physio surfaces. Athletes are explicitly **out of scope** — `app/athlete/...` stays for solo (non-business-affiliated) athletes.
 
-Source: post-implementation review on 2026-04-25 + Explore agent audit. Everything below is trigger-driven; until the trigger fires, the proxy.ts redirects keep users away from the dead pages and there's no user-visible problem.
+Source: post-implementation review on 2026-04-25 + Explore agent audit, updated after the 2026-04-25 ownership refactor.
 
 ## Current state (2026-04-25)
 
-Two parallel route trees exist for non-athlete surfaces:
+The coach-owned legacy non-business-scoped route tree has been deleted. The active non-athlete UI now lives under:
 
 - `app/(business)/[businessSlug]/coach|physio|...` — the modern business-scoped tree, where all real users land via `proxy.ts` middleware
-- `app/coach/...`, `app/physio/...`, `app/clients/...`, `app/teams/page.tsx` — legacy non-business-scoped tree
 
-`proxy.ts` (lines ~730-847) **already unconditionally redirects** `/coach/*` and `/physio/*` traffic to `/{primarySlug}/coach/*` / `/{primarySlug}/physio/*` for any authenticated user with a business affiliation. Coaches without a business slug are kicked to login or 404. So in practice **nobody lands on the legacy non-athlete pages today**.
+`proxy.ts` **redirects** authenticated coach/admin traffic from coach-owned legacy roots to business-scoped routes:
+
+- `/coach/*` → `/{primarySlug}/coach/*`
+- `/clients/*` → `/{primarySlug}/coach/clients/*`
+- `/teams/*` → `/{primarySlug}/coach/teams/*`
+- `/programs/*` → `/{primarySlug}/coach/programs/*`
+- `/tests/*` → `/{primarySlug}/coach/tests/*` (`/tests` lands on `/coach/test-overview`)
+- `/test/*` → `/{primarySlug}/coach/test/*`
+- `/physio/*` → `/{primarySlug}/physio/*`
+
+Coaches/physios without a business slug are sent to `/`. So in practice nobody should land on the legacy non-athlete pages today.
 
 `app/athlete/...` is the **intentional exception** — solo athletes (no `primarySlug`) fall through to it. Keep this branch alive forever.
 
-## Why this is deferred — the cross-tree import pattern
+## Phase 1 result — cross-tree import pattern removed
 
-The legacy tree is not just dead code waiting to be cut. The codebase's actual architecture is:
+Originally, the legacy tree was not just dead code waiting to be cut. The codebase's architecture was:
 
 > The implementations live under `app/coach/...`. The business-scoped pages are thin wrappers that re-export them.
 
@@ -28,20 +37,25 @@ Concrete example (one of 34):
 export { default } from '@/app/coach/tools/page'
 ```
 
-Deleting `app/coach/tools/page.tsx` would simultaneously break the business-scoped tools page that imports it. **Naive `rm -rf` is not safe.**
+Deleting `app/coach/tools/page.tsx` would simultaneously break the business-scoped tools page that imported it. **Naive `rm -rf` was not safe.**
 
-A 2026-04-25 grep of `from '@/app/(coach|clients|teams|physio)` across `app/(business)` and `components/` returned **34 unique imported paths** spanning settings, analytics, calendar, invitations, live-hr, onboarding, referrals, subscription, tools, tests, ergometer-tests, field-tests, cross-training, injuries, athletes/logs, business, messages, and the team dashboard client itself.
+A 2026-04-25 refactor moved those shared implementations out of `app/coach` / `app/clients` and into `components/coach/...` or `components/physio/...`. Current grep target:
 
-## Trigger — when to actually do this
+```bash
+rg "@/app/(coach|clients|teams|physio)|@/app/coach|@/app/clients|@/app/teams|@/app/physio" "app/(business)" components
+```
 
-Any of:
+Expected result: **no matches**.
 
-- A new feature lands that needs to live ONLY in business-scoped (with no legacy mirror) and the team-shaped re-export pattern starts feeling wrong against it
-- A code-quality push where the parallel structure makes a refactor 2× harder than it should be
-- Someone hits a 404 because they bookmarked an old `/coach/*` URL pre-middleware-redirect (low likelihood — middleware has been live for a while)
-- The legacy tree starts diverging from business-scoped (i.e. someone forgets to update both) and the divergence introduces a real bug
+`npm run audit:legacy-routes` now also fails if business-scoped code or shared components import legacy app route implementations.
 
-If none of these fire, the cleanup is pure code-cleanliness with no user-facing payoff. Deprioritize.
+## Trigger — why this was done
+
+The cleanup was picked up because:
+
+- Future coach/physio implementation work should only land in business-scoped routes.
+- Middleware already redirects authenticated coach/admin users away from the legacy roots.
+- Keeping dead route files made it too easy to add or land on non-business-scoped pages by accident.
 
 ## The work, when picked up
 
@@ -49,7 +63,24 @@ This is a **move-then-delete refactor**, not a delete. Order matters.
 
 ### Phase 1 — Move implementations out of the legacy tree
 
-For each of the 34 cross-tree files:
+Status: **completed on 2026-04-25**.
+
+What moved:
+
+- Pure client implementations moved into `components/coach/...` and `components/physio/...`.
+- Shared server/page implementations moved into component-owned route modules such as `components/coach/tests/TestDetailPage.tsx`, `components/coach/athletes/AthleteLogsPage.tsx`, and `components/coach/clients/AthleteProfilePage.tsx`.
+- Legacy route files are now wrappers around component-owned implementations where they still exist.
+- Business route files no longer import from `@/app/coach`, `@/app/clients`, `@/app/teams`, or `@/app/physio`.
+
+Verification:
+
+- `npm run audit:legacy-routes -- --json` → `totalLegacy: 79`, `totalPaired: 79`, `missing: []`, `forbiddenImports: []`
+- `npm run typecheck` passes
+- `git diff --check` passes
+
+Historical build caveat: earlier `npm run build` attempts on 2026-04-25 hit local build-runner issues. After Phase 2, the production build passed when rerun outside the sandbox.
+
+Original Phase 1 checklist:
 
 1. Identify the *implementation* — usually a default-exported component or a client component file (`*Client.tsx`).
 2. Move it to its natural home:
@@ -61,16 +92,25 @@ For each of the 34 cross-tree files:
 
 ### Phase 2 — Delete the legacy directories
 
-After Phase 1, every cross-tree import has been cut. The legacy tree should now have zero inbound references.
+Status: **completed on 2026-04-25**.
 
-Delete in order:
+After Phase 1, every cross-tree import had been cut. Phase 2 deleted:
 
-1. `app/coach/...` — by far the largest (62 page.tsx files audit said). Single big commit OR per-feature commits.
-2. `app/physio/...` — 8 files. One commit.
-3. `app/teams/page.tsx` — single file.
-4. `app/clients/...` — 6 files.
+- `app/coach/...`
+- `app/physio/...`
+- `app/teams/page.tsx`
+- `app/clients/...`
+- `app/programs/...`
+- `app/tests/...`
+- `app/test/...`
 
-After each deletion, hit the build + e2e tests.
+Verification after deletion:
+
+- `npm run audit:legacy-routes -- --json` → `totalLegacy: 0`, `totalPaired: 0`, `missing: []`, `forbiddenImports: []`
+- Business-scoped code and shared components still have no imports from legacy app route implementations.
+- `npm run typecheck` passes after regenerating route types with `npx next typegen` and clearing stale `.next/dev/types`.
+- `npm run build` passes when run outside the sandbox. The sandboxed build hit a Turbopack worker port restriction (`Operation not permitted`).
+- `git diff --check` passes.
 
 ### Phase 3 — Decide the fate of `proxy.ts` redirects
 
@@ -81,19 +121,23 @@ Two options:
 
 Recommend keeping them indefinitely as a courtesy.
 
-## What also needs updating (non-deletion fixes)
+## Follow-up fixes
 
-Found by grep but not part of the move:
+Status: **completed on 2026-04-25**.
 
-- `app/page.tsx` (homepage) — has 5 hardcoded `/coach/programs`, `/coach/ai-studio`, `/coach/video-analysis`, `/coach/monitoring`, `/coach/dashboard` links. Replace with login/signup or with a business-aware routing helper.
-- `components/coach/CoachGlassHeader.tsx` — legacy header with `/coach/*` links. Probably unreferenced after Phase 1 but worth checking.
-- `components/ai-studio/ContextPanel.tsx` — hardcoded `/coach/documents`.
-- `components/athlete-profile/...` — some tabs link to `/coach/...` paths.
-- `__tests__/api/tenant-boundary/subscription-gating.test.ts` — hardcoded `/coach/subscription` in error mock body.
-- `tests/e2e/navigation-and-auth.spec.ts` — currently tests "legacy redirect works"; rewrite to assert 404 OR assert business-scoped redirect.
-- `tests/e2e/coach-flows.spec.ts` — already uses `businessPath()` helper; verify after deletion.
+Closed follow-ups:
 
-Stripe, Strava, Garmin, Concept2 callbacks are clean (already use business-scoped redirects). Magic links / emails have no hardcoded coach URLs.
+- `app/page.tsx` quick actions now route through a business-aware coach helper instead of deleted top-level coach aliases.
+- Header/navigation fallbacks now avoid linking to deleted coach/physio pages when business context is missing.
+- AI Studio document links now use the business-scoped documents route, with `/login` as the missing-scope fallback.
+- Coach subscription upgrade, trial, Stripe checkout/portal, and notification URLs now resolve to `/{businessSlug}/coach/...` when a business slug is available, with public fallbacks instead of deleted legacy pages.
+- E2E helpers now log coaches/physios into business-scoped routes directly.
+- Subscription-gating mocks no longer use `/coach/subscription`.
+
+Verification:
+
+- Strict link/redirect grep found no direct `href`, `router.push`, `redirect`, or `window.location` calls to deleted top-level coach/physio/client/test pages.
+- `npx vitest run __tests__/api/tenant-boundary/subscription-gating.test.ts __tests__/lib/subscription/require-feature-access.test.ts` passes.
 
 ## What stays (not in scope)
 

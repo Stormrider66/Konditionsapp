@@ -10,9 +10,17 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, Link2, Unlink, Activity, RefreshCw, CheckCircle2, XCircle, Waves } from 'lucide-react'
+import { Loader2, Link2, Unlink, Activity, RefreshCw, CheckCircle2, XCircle, Waves, Moon } from 'lucide-react'
 import Image from 'next/image'
 import { IntegrationsHelpModal } from './IntegrationsHelpModal'
+
+type RecoverySourcePref = 'AUTO' | 'GARMIN' | 'OURA'
+
+interface RecoverySourceState {
+  preferred: RecoverySourcePref
+  resolved: 'GARMIN' | 'OURA' | null
+  connected: { GARMIN: boolean; OURA: boolean }
+}
 
 interface IntegrationStatus {
   connected: boolean
@@ -44,8 +52,11 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
   const [stravaStatus, setStravaStatus] = useState<IntegrationStatus | null>(null)
   const [garminStatus, setGarminStatus] = useState<IntegrationStatus | null>(null)
   const [concept2Status, setConcept2Status] = useState<IntegrationStatus | null>(null)
-  const [loading, setLoading] = useState({ strava: false, garmin: false, concept2: false })
-  const [syncing, setSyncing] = useState({ strava: false, garmin: false, concept2: false })
+  const [ouraStatus, setOuraStatus] = useState<IntegrationStatus | null>(null)
+  const [recoverySource, setRecoverySource] = useState<RecoverySourceState | null>(null)
+  const [loading, setLoading] = useState({ strava: false, garmin: false, concept2: false, oura: false })
+  const [syncing, setSyncing] = useState({ strava: false, garmin: false, concept2: false, oura: false })
+  const [savingPref, setSavingPref] = useState(false)
 
   const CardWrapper = isGlass ? GlassCard : Card;
 
@@ -83,12 +94,34 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
     }
   }, [clientId])
 
+  const fetchOuraStatus = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/integrations/oura?clientId=${clientId}`)
+      const data = await response.json()
+      setOuraStatus(data)
+    } catch (error) {
+      console.error('Failed to fetch Oura status:', error)
+    }
+  }, [clientId])
+
+  const fetchRecoverySource = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/integrations/recovery-source?clientId=${clientId}`)
+      const data = await response.json()
+      setRecoverySource(data)
+    } catch (error) {
+      console.error('Failed to fetch recovery source:', error)
+    }
+  }, [clientId])
+
   // Fetch integration status on mount
   useEffect(() => {
     fetchStravaStatus()
     fetchGarminStatus()
     fetchConcept2Status()
-  }, [fetchStravaStatus, fetchGarminStatus, fetchConcept2Status])
+    fetchOuraStatus()
+    fetchRecoverySource()
+  }, [fetchStravaStatus, fetchGarminStatus, fetchConcept2Status, fetchOuraStatus, fetchRecoverySource])
 
   const connectStrava = async () => {
     setLoading(prev => ({ ...prev, strava: true }))
@@ -225,6 +258,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
 
       if (response.ok) {
         setGarminStatus({ connected: false })
+        fetchRecoverySource()
         toast({
           title: 'Garmin bortkopplad',
           description: 'Din Garmin-anslutning har tagits bort',
@@ -378,6 +412,143 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
     }
   }
 
+  const connectOura = async () => {
+    setLoading(prev => ({ ...prev, oura: true }))
+    try {
+      const response = await fetch('/api/integrations/oura', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, businessSlug }),
+      })
+      const data = await response.json()
+
+      if (data.authUrl) {
+        window.location.href = data.authUrl
+      } else {
+        toast({
+          title: 'Fel',
+          description: data.error || 'Kunde inte ansluta till Oura',
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      toast({
+        title: 'Fel',
+        description: 'Kunde inte ansluta till Oura',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(prev => ({ ...prev, oura: false }))
+    }
+  }
+
+  const disconnectOura = async () => {
+    setLoading(prev => ({ ...prev, oura: true }))
+    try {
+      const response = await fetch(`/api/integrations/oura?clientId=${clientId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setOuraStatus({ connected: false })
+        fetchRecoverySource()
+        toast({
+          title: 'Oura bortkopplad',
+          description: 'Din Oura-anslutning har tagits bort. Historisk data bevaras.',
+        })
+      } else {
+        const data = await response.json()
+        toast({
+          title: 'Fel',
+          description: data.error || 'Kunde inte koppla bort Oura',
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      toast({
+        title: 'Fel',
+        description: 'Kunde inte koppla bort Oura',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(prev => ({ ...prev, oura: false }))
+    }
+  }
+
+  const syncOura = async () => {
+    setSyncing(prev => ({ ...prev, oura: true }))
+    try {
+      const response = await fetch('/api/integrations/oura/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, daysBack: 3 }),
+      })
+      const data = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: 'Synkronisering klar',
+          description: `${data.synced || 0} dagar uppdaterade`,
+        })
+        fetchOuraStatus()
+        fetchRecoverySource()
+      } else {
+        toast({
+          title: 'Fel',
+          description: data.error || 'Kunde inte synkronisera',
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      toast({
+        title: 'Fel',
+        description: 'Kunde inte synkronisera med Oura',
+        variant: 'destructive',
+      })
+    } finally {
+      setSyncing(prev => ({ ...prev, oura: false }))
+    }
+  }
+
+  const setRecoveryPreference = async (source: RecoverySourcePref) => {
+    setSavingPref(true)
+    try {
+      const response = await fetch('/api/integrations/recovery-source', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, source }),
+      })
+      const data = await response.json()
+
+      if (response.ok) {
+        setRecoverySource(prev =>
+          prev ? { ...prev, preferred: source, resolved: data.resolved } : prev,
+        )
+        toast({
+          title: 'Återhämtningskälla uppdaterad',
+          description:
+            source === 'AUTO'
+              ? 'Vi väljer automatiskt (Oura före Garmin)'
+              : `Använder ${source === 'OURA' ? 'Oura' : 'Garmin'} för HRV, vilopuls och sömn`,
+        })
+      } else {
+        toast({
+          title: 'Fel',
+          description: data.error || 'Kunde inte uppdatera',
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      toast({
+        title: 'Fel',
+        description: 'Kunde inte uppdatera återhämtningskälla',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingPref(false)
+    }
+  }
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Aldrig'
     return new Date(dateString).toLocaleDateString('sv-SE', {
@@ -404,6 +575,55 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Recovery source picker — appears only when Garmin AND Oura are both connected */}
+        {recoverySource?.connected.GARMIN && recoverySource?.connected.OURA && (
+          <div className={cn(
+            "rounded-xl p-4 transition-all duration-300",
+            isGlass ? "bg-white/[0.02] border border-white/5" : "border bg-slate-50"
+          )}>
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <h3 className={cn(
+                  "font-black uppercase italic tracking-tight text-sm",
+                  isGlass ? "text-white" : "text-slate-900"
+                )}>
+                  Återhämtningskälla
+                </h3>
+                <p className={cn(
+                  "text-xs mt-1",
+                  isGlass ? "text-slate-400" : "text-muted-foreground"
+                )}>
+                  Vilken enhet ska leverera HRV, vilopuls och sömn?
+                  {recoverySource.resolved && (
+                    <>{' '}
+                      <span className={cn("font-semibold", isGlass ? "text-emerald-400" : "text-emerald-600")}>
+                        Aktiv: {recoverySource.resolved === 'OURA' ? 'Oura' : 'Garmin'}
+                      </span>
+                    </>
+                  )}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {(['AUTO', 'GARMIN', 'OURA'] as const).map(opt => (
+                  <Button
+                    key={opt}
+                    size="sm"
+                    variant={recoverySource.preferred === opt ? 'default' : 'outline'}
+                    onClick={() => setRecoveryPreference(opt)}
+                    disabled={savingPref}
+                    className={cn(
+                      "h-8 text-[10px] font-black uppercase tracking-widest",
+                      isGlass && recoverySource.preferred !== opt && "border-white/10 text-white hover:bg-white/10",
+                    )}
+                  >
+                    {opt === 'AUTO' ? 'Auto' : opt === 'OURA' ? 'Oura' : 'Garmin'}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Strava */}
         <div className={cn(
           "rounded-xl p-4 transition-all duration-300",
@@ -729,6 +949,103 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                   <Link2 className="h-3.5 w-3.5 mr-2" />
                 )}
                 Anslut Concept2
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Oura */}
+        <div className={cn(
+          "rounded-xl p-4 transition-all duration-300",
+          isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "border"
+        )}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center",
+                isGlass ? "bg-violet-500/10 border border-violet-500/20" : "bg-violet-100"
+              )}>
+                <Moon className={cn("h-5 w-5", isGlass ? "text-violet-400" : "text-violet-600")} />
+              </div>
+              <div>
+                <h3 className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-slate-900")}>Oura Ring</h3>
+                <p className={cn("text-xs", isGlass ? "text-slate-500" : "text-muted-foreground")}>
+                  Synkronisera HRV, vilopuls, sömn och beredskap
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {ouraStatus?.connected ? (
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-500">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  Ansluten
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                  <span className="w-2 h-2 rounded-full bg-slate-700" />
+                  Frånkopplad
+                </div>
+              )}
+            </div>
+          </div>
+
+          {ouraStatus?.connected && (
+            <div className={cn(
+              "mt-3 pt-3 border-t text-[10px] font-black uppercase tracking-widest",
+              isGlass ? "border-white/5 text-slate-500" : "text-muted-foreground"
+            )}>
+              <p>Senaste synk: {formatDate(ouraStatus.lastSyncAt)}</p>
+            </div>
+          )}
+
+          <div className="mt-4 flex gap-2">
+            {ouraStatus?.connected ? (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={syncOura}
+                  disabled={syncing.oura}
+                  className={cn("h-8 text-[10px] font-black uppercase tracking-widest", isGlass ? "border-white/10 text-white hover:bg-white/10" : "")}
+                >
+                  {syncing.oura ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                  )}
+                  Synka nu
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={disconnectOura}
+                  disabled={loading.oura}
+                  className={cn("h-8 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 hover:bg-red-500/10")}
+                >
+                  {loading.oura ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                  ) : (
+                    <Unlink className="h-3.5 w-3.5 mr-2" />
+                  )}
+                  Koppla bort
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                onClick={connectOura}
+                disabled={loading.oura}
+                className={cn(
+                  "h-9 text-[11px] font-black uppercase tracking-widest",
+                  isGlass ? "bg-violet-600 hover:bg-violet-700 text-white border-0" : "bg-violet-600 hover:bg-violet-700"
+                )}
+              >
+                {loading.oura ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                ) : (
+                  <Link2 className="h-3.5 w-3.5 mr-2" />
+                )}
+                Anslut Oura Ring
               </Button>
             )}
           </div>

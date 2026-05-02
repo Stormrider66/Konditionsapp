@@ -2,9 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
 import { clientSchema, type ClientFormData } from '@/lib/validations/schemas'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser, getRequestedBusinessScope } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
+import { getBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 
 type RouteParams = {
   params: Promise<{
@@ -18,10 +20,7 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json(
@@ -34,8 +33,18 @@ export async function GET(
     }
 
     const { id } = await params
-    const client = await prisma.client.findUnique({
-      where: { id, userId: user.id },
+    const scope = getRequestedBusinessScope(request)
+    const membership = await getBusinessMembership(user.id, scope.businessSlug)
+    const coachIds = membership
+      ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
+      : [user.id]
+    const client = await prisma.client.findFirst({
+      where: {
+        id,
+        ...(membership
+          ? { userId: { in: coachIds }, businessId: membership.businessId }
+          : { userId: user.id }),
+      },
       include: {
         team: true,
         athleteAccount: {
@@ -94,10 +103,7 @@ export async function PUT(
   { params }: RouteParams
 ) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json(
@@ -110,6 +116,11 @@ export async function PUT(
     }
 
     const { id } = await params
+    const scope = getRequestedBusinessScope(request)
+    const membership = await getBusinessMembership(user.id, scope.businessSlug)
+    const coachIds = membership
+      ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
+      : [user.id]
     const body = await request.json()
 
     // Validate input
@@ -126,9 +137,21 @@ export async function PUT(
     }
 
     const data: ClientFormData = validation.data
+    let teamOwnerId: string | undefined
+    if (data.teamId) {
+      const team = await getWritableTeam(user.id, data.teamId, scope.businessSlug, 'roster')
+      if (!team) {
+        return NextResponse.json(
+          { success: false, error: 'Team not found or unauthorized' },
+          { status: 404 }
+        )
+      }
+      teamOwnerId = team.userId
+    }
 
     // Convert birthDate string to Date
     const updateData = {
+      ...(teamOwnerId ? { userId: teamOwnerId } : {}),
       name: data.name,
       email: data.email || undefined,
       phone: data.phone || undefined,
@@ -145,7 +168,13 @@ export async function PUT(
       where: { id },
     })
 
-    if (!existingClient || existingClient.userId !== user.id) {
+    const canAccessClient = existingClient && (
+      membership
+        ? existingClient.businessId === membership.businessId && coachIds.includes(existingClient.userId)
+        : existingClient.userId === user.id
+    )
+
+    if (!canAccessClient) {
       return NextResponse.json(
         {
           success: false,
@@ -163,7 +192,7 @@ export async function PUT(
       try {
         await connectTeamMemberToCoach(client.id, newTeamId, {
           assignedByUserId: user.id,
-          businessId: existingClient.businessId,
+          businessId: membership?.businessId ?? existingClient.businessId ?? undefined,
         })
       } catch (err) {
         logger.warn('Team auto-connection failed on update', { clientId: client.id, teamId: newTeamId, error: err })
@@ -193,10 +222,7 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json(
@@ -209,13 +235,24 @@ export async function DELETE(
     }
 
     const { id } = await params
+    const scope = getRequestedBusinessScope(request)
+    const membership = await getBusinessMembership(user.id, scope.businessSlug)
+    const coachIds = membership
+      ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
+      : [user.id]
 
     // Check ownership before deleting
     const existingClient = await prisma.client.findUnique({
       where: { id },
     })
 
-    if (!existingClient || existingClient.userId !== user.id) {
+    const canAccessClient = existingClient && (
+      membership
+        ? existingClient.businessId === membership.businessId && coachIds.includes(existingClient.userId)
+        : existingClient.userId === user.id
+    )
+
+    if (!canAccessClient) {
       return NextResponse.json(
         {
           success: false,

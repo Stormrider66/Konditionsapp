@@ -4,6 +4,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { canAccessProgram } from '@/lib/auth-utils'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
@@ -28,6 +29,7 @@ export default async function BusinessProgramPage({ params }: ProgramPageProps) 
   }
 
   const basePath = `/${businessSlug}/coach`
+  const coachIds = await getCoachScopedIds(user.id, membership.businessId, membership.role)
 
   // Check access
   const hasAccess = await canAccessProgram(user.id, id)
@@ -36,8 +38,14 @@ export default async function BusinessProgramPage({ params }: ProgramPageProps) 
   }
 
   // Fetch full program
-  const program = await prisma.trainingProgram.findUnique({
-    where: { id: id },
+  const program = await prisma.trainingProgram.findFirst({
+    where: {
+      id,
+      coachId: { in: coachIds },
+      client: {
+        businessId: membership.businessId,
+      },
+    },
     include: {
       client: {
         select: {

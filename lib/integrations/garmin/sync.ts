@@ -11,6 +11,7 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import { resolveRecoverySource } from '@/lib/integrations/recovery-source';
 import {
   getGarminDailySummaries,
   getGarminActivities,
@@ -104,6 +105,12 @@ export async function syncGarminData(
       return result;
     }
 
+    // Resolve recovery source once. When Garmin isn't the chosen source we still
+    // archive raw Garmin data into factorScores, but skip writing the canonical
+    // DailyMetrics fields (HRV/RHR/sleep/stress) so Oura's values aren't clobbered.
+    const recoverySource = await resolveRecoverySource(clientId);
+    const writeRecovery = recoverySource === 'GARMIN';
+
     // Calculate time range
     const endDate = new Date();
     const startDate = new Date();
@@ -114,7 +121,7 @@ export async function syncGarminData(
       try {
         const summaries = await getGarminDailySummaries(clientId, startDate, endDate);
         for (const summary of summaries) {
-          await syncDailySummary(clientId, summary);
+          await syncDailySummary(clientId, summary, writeRecovery);
           result.dailySummaries++;
         }
       } catch (error) {
@@ -145,7 +152,7 @@ export async function syncGarminData(
       try {
         const sleepData = await getGarminSleepData(clientId, startDate, endDate);
         for (const sleep of sleepData) {
-          await syncSleepData(clientId, sleep);
+          await syncSleepData(clientId, sleep, writeRecovery);
           result.sleepRecords++;
         }
       } catch (error) {
@@ -158,7 +165,7 @@ export async function syncGarminData(
       try {
         const hrvData = await getGarminHRVData(clientId, startDate, endDate);
         for (const hrv of hrvData) {
-          await syncHRVData(clientId, hrv);
+          await syncHRVData(clientId, hrv, writeRecovery);
           result.hrvRecords++;
         }
       } catch (error) {
@@ -182,8 +189,16 @@ export async function syncGarminData(
 /**
  * Sync daily summary to DailyMetrics
  * Maps Garmin data to existing DailyMetrics schema fields
+ *
+ * `writeRecovery` controls whether canonical recovery fields (restingHR, stress)
+ * are overwritten. When false (e.g. user prefers Oura) we still archive Garmin's
+ * full payload into factorScores.garminDaily for diagnostics.
  */
-async function syncDailySummary(clientId: string, summary: GarminDailySummary): Promise<void> {
+async function syncDailySummary(
+  clientId: string,
+  summary: GarminDailySummary,
+  writeRecovery: boolean,
+): Promise<void> {
   const date = new Date(summary.calendarDate);
   const existingMetrics = await prisma.dailyMetrics.findUnique({
     where: {
@@ -200,6 +215,27 @@ async function syncDailySummary(clientId: string, summary: GarminDailySummary): 
     ? Math.round(summary.averageStressLevel / 10)
     : null;
 
+  const recoveryFields = writeRecovery
+    ? {
+        restingHR: summary.restingHeartRateInBeatsPerMinute,
+        stress: stressLevel,
+      }
+    : {};
+
+  const garminDaily = {
+    steps: summary.steps,
+    activeMinutes: Math.round(summary.activeTimeInSeconds / 60),
+    calories: Math.round(summary.activeKilocalories + summary.bmrKilocalories),
+    distance: summary.distanceInMeters,
+    avgHR: summary.averageHeartRateInBeatsPerMinute,
+    maxHR: summary.maxHeartRateInBeatsPerMinute,
+    minHR: summary.minHeartRateInBeatsPerMinute,
+    moderateMinutes: Math.round(summary.moderateIntensityDurationInSeconds / 60),
+    vigorousMinutes: Math.round(summary.vigorousIntensityDurationInSeconds / 60),
+    floorsClimbed: summary.floorsClimbed,
+    syncedAt: new Date().toISOString(),
+  };
+
   await prisma.dailyMetrics.upsert({
     where: {
       clientId_date: {
@@ -208,51 +244,15 @@ async function syncDailySummary(clientId: string, summary: GarminDailySummary): 
       },
     },
     update: {
-      // Heart rate
-      restingHR: summary.restingHeartRateInBeatsPerMinute,
-
-      // Stress (mapped to 1-10 scale)
-      stress: stressLevel,
-
-      // Store full data in factorScores for detailed analysis
-      factorScores: {
-        ...factorScores,
-        garminDaily: {
-          steps: summary.steps,
-          activeMinutes: Math.round(summary.activeTimeInSeconds / 60),
-          calories: Math.round(summary.activeKilocalories + summary.bmrKilocalories),
-          distance: summary.distanceInMeters,
-          avgHR: summary.averageHeartRateInBeatsPerMinute,
-          maxHR: summary.maxHeartRateInBeatsPerMinute,
-          minHR: summary.minHeartRateInBeatsPerMinute,
-          moderateMinutes: Math.round(summary.moderateIntensityDurationInSeconds / 60),
-          vigorousMinutes: Math.round(summary.vigorousIntensityDurationInSeconds / 60),
-          floorsClimbed: summary.floorsClimbed,
-          syncedAt: new Date().toISOString(),
-        },
-      },
+      ...recoveryFields,
+      factorScores: { ...factorScores, garminDaily },
       updatedAt: new Date(),
     },
     create: {
       clientId,
       date,
-      restingHR: summary.restingHeartRateInBeatsPerMinute,
-      stress: stressLevel,
-      factorScores: {
-        garminDaily: {
-          steps: summary.steps,
-          activeMinutes: Math.round(summary.activeTimeInSeconds / 60),
-          calories: Math.round(summary.activeKilocalories + summary.bmrKilocalories),
-          distance: summary.distanceInMeters,
-          avgHR: summary.averageHeartRateInBeatsPerMinute,
-          maxHR: summary.maxHeartRateInBeatsPerMinute,
-          minHR: summary.minHeartRateInBeatsPerMinute,
-          moderateMinutes: Math.round(summary.moderateIntensityDurationInSeconds / 60),
-          vigorousMinutes: Math.round(summary.vigorousIntensityDurationInSeconds / 60),
-          floorsClimbed: summary.floorsClimbed,
-          syncedAt: new Date().toISOString(),
-        },
-      },
+      ...recoveryFields,
+      factorScores: { garminDaily },
     },
   });
 }
@@ -428,7 +428,11 @@ async function syncActivity(clientId: string, activity: GarminActivity): Promise
  * Sync sleep data to DailyMetrics
  * Uses sleepHours and sleepQuality (1-10 scale) fields
  */
-async function syncSleepData(clientId: string, sleep: GarminSleepData): Promise<void> {
+async function syncSleepData(
+  clientId: string,
+  sleep: GarminSleepData,
+  writeRecovery: boolean,
+): Promise<void> {
   const date = new Date(sleep.calendarDate);
 
   // Convert duration to hours
@@ -460,6 +464,8 @@ async function syncSleepData(clientId: string, sleep: GarminSleepData): Promise<
     syncedAt: new Date().toISOString(),
   };
 
+  const recoveryFields = writeRecovery ? { sleepHours, sleepQuality } : {};
+
   await prisma.dailyMetrics.upsert({
     where: {
       clientId_date: {
@@ -468,16 +474,14 @@ async function syncSleepData(clientId: string, sleep: GarminSleepData): Promise<
       },
     },
     update: {
-      sleepHours,
-      sleepQuality,
+      ...recoveryFields,
       factorScores: { ...factorScores, garminSleep: sleepData },
       updatedAt: new Date(),
     },
     create: {
       clientId,
       date,
-      sleepHours,
-      sleepQuality,
+      ...recoveryFields,
       factorScores: { garminSleep: sleepData },
     },
   });
@@ -487,7 +491,11 @@ async function syncSleepData(clientId: string, sleep: GarminSleepData): Promise<
  * Sync HRV data to DailyMetrics
  * Uses hrvRMSSD (primary HRV metric) and hrvStatus fields
  */
-async function syncHRVData(clientId: string, hrv: GarminHRVData): Promise<void> {
+async function syncHRVData(
+  clientId: string,
+  hrv: GarminHRVData,
+  writeRecovery: boolean,
+): Promise<void> {
   const date = new Date(hrv.calendarDate);
 
   // Get existing metrics to merge factorScores
@@ -511,6 +519,10 @@ async function syncHRVData(clientId: string, hrv: GarminHRVData): Promise<void> 
     syncedAt: new Date().toISOString(),
   };
 
+  const recoveryFields = writeRecovery
+    ? { hrvRMSSD: hrv.lastNightAvg, hrvStatus: hrv.status }
+    : {};
+
   await prisma.dailyMetrics.upsert({
     where: {
       clientId_date: {
@@ -519,17 +531,14 @@ async function syncHRVData(clientId: string, hrv: GarminHRVData): Promise<void> 
       },
     },
     update: {
-      // HRV metrics - use hrvRMSSD for the main value
-      hrvRMSSD: hrv.lastNightAvg,
-      hrvStatus: hrv.status,
+      ...recoveryFields,
       factorScores: { ...factorScores, garminHRV: hrvData },
       updatedAt: new Date(),
     },
     create: {
       clientId,
       date,
-      hrvRMSSD: hrv.lastNightAvg,
-      hrvStatus: hrv.status,
+      ...recoveryFields,
       factorScores: { garminHRV: hrvData },
     },
   });

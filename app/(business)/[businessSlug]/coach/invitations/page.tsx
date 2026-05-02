@@ -7,7 +7,7 @@ import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
-import { InvitationsClient } from '@/app/coach/invitations/InvitationsClient'
+import { InvitationsClient } from '@/components/coach/invitations/InvitationsClient'
 
 interface PageProps {
   params: Promise<{

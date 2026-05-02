@@ -77,7 +77,7 @@ model CardioSessionAssignment {
   calendarEventId String? // Link to created CalendarEvent
 
   // Garmin integration
-  garminWorkoutId String?   // ID returned by Garmin after push
+  garminWorkoutId String? // ID returned by Garmin after push
   garminPushedAt  DateTime? // Timestamp of last push
 
   // Status tracking

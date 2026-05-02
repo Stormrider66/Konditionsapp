@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { checkAthleteFeatureAccess, type AthleteFeature } from './feature-access'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 
 export type CoachFeature = 'program_generation' | 'advanced_intelligence' | 'nutrition_planning' | 'lactate_ocr' | 'smart_test_import'
 
@@ -27,6 +28,11 @@ const FEATURE_LABELS: Record<string, string> = {
   smart_test_import: 'Smart Testimport',
   strava: 'Strava-sync',
   garmin: 'Garmin-sync',
+}
+
+async function getCoachSubscriptionUpgradeUrl(userId: string): Promise<string> {
+  const slug = await getUserPrimaryBusinessSlug(userId)
+  return slug ? `/${slug}/coach/subscription` : '/pricing'
 }
 
 /**
@@ -111,11 +117,12 @@ export async function requireCoachFeatureAccess(
   // No subscription → deny
   if (!subscription) {
     const label = options?.featureLabel || FEATURE_LABELS[feature] || feature
+    const upgradeUrl = await getCoachSubscriptionUpgradeUrl(userId)
     logger.warn('Coach feature access denied', {
       code: 'NO_SUBSCRIPTION',
       feature,
       reason: `${label} kräver en prenumeration.`,
-      upgradeUrl: '/coach/subscription',
+      upgradeUrl,
       userId,
     })
     return NextResponse.json(
@@ -123,7 +130,7 @@ export async function requireCoachFeatureAccess(
         error: `${label} kräver en prenumeration.`,
         code: 'NO_SUBSCRIPTION' as const,
         feature,
-        upgradeUrl: '/coach/subscription',
+        upgradeUrl,
       },
       { status: 403 }
     )
@@ -135,11 +142,12 @@ export async function requireCoachFeatureAccess(
       return null // allowed
     }
     // Trial expired
+    const upgradeUrl = await getCoachSubscriptionUpgradeUrl(userId)
     logger.warn('Coach feature access denied', {
       code: 'TRIAL_EXPIRED',
       feature,
       reason: 'Din provperiod har löpt ut. Uppgradera för att fortsätta använda denna funktion.',
-      upgradeUrl: '/coach/subscription',
+      upgradeUrl,
       userId,
     })
     return NextResponse.json(
@@ -147,7 +155,7 @@ export async function requireCoachFeatureAccess(
         error: 'Din provperiod har löpt ut. Uppgradera för att fortsätta använda denna funktion.',
         code: 'TRIAL_EXPIRED' as const,
         feature,
-        upgradeUrl: '/coach/subscription',
+        upgradeUrl,
       },
       { status: 403 }
     )
@@ -155,11 +163,12 @@ export async function requireCoachFeatureAccess(
 
   // Expired / cancelled
   if (subscription.status === 'EXPIRED' || subscription.status === 'CANCELLED') {
+    const upgradeUrl = await getCoachSubscriptionUpgradeUrl(userId)
     logger.warn('Coach feature access denied', {
       code: 'SUBSCRIPTION_EXPIRED',
       feature,
       reason: 'Din prenumeration har löpt ut. Förnya för att fortsätta.',
-      upgradeUrl: '/coach/subscription',
+      upgradeUrl,
       userId,
     })
     return NextResponse.json(
@@ -167,7 +176,7 @@ export async function requireCoachFeatureAccess(
         error: 'Din prenumeration har löpt ut. Förnya för att fortsätta.',
         code: 'SUBSCRIPTION_EXPIRED' as const,
         feature,
-        upgradeUrl: '/coach/subscription',
+        upgradeUrl,
       },
       { status: 403 }
     )
@@ -177,11 +186,12 @@ export async function requireCoachFeatureAccess(
   const allowedTiers = COACH_FEATURE_TIERS[feature]
   if (!allowedTiers.has(subscription.tier)) {
     const label = options?.featureLabel || FEATURE_LABELS[feature] || feature
+    const upgradeUrl = await getCoachSubscriptionUpgradeUrl(userId)
     logger.warn('Coach feature access denied', {
       code: 'FEATURE_DISABLED',
       feature,
       reason: `${label} kräver en högre prenumerationsnivå.`,
-      upgradeUrl: '/coach/subscription',
+      upgradeUrl,
       userId,
     })
     return NextResponse.json(
@@ -189,7 +199,7 @@ export async function requireCoachFeatureAccess(
         error: `${label} kräver en högre prenumerationsnivå.`,
         code: 'FEATURE_DISABLED' as const,
         feature,
-        upgradeUrl: '/coach/subscription',
+        upgradeUrl,
       },
       { status: 403 }
     )

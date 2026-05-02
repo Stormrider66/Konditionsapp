@@ -81,11 +81,11 @@ export async function loginAsAthlete(page: Page) {
 }
 
 export async function loginAsCoach(page: Page) {
-  await loginToPath(page, TEST_ACCOUNTS.coach.email, TEST_ACCOUNTS.coach.password, '/coach/dashboard')
+  await loginToPath(page, TEST_ACCOUNTS.coach.email, TEST_ACCOUNTS.coach.password, businessPath('coach', '/dashboard'))
 }
 
 export async function loginAsPhysio(page: Page) {
-  await loginToPath(page, TEST_ACCOUNTS.physio.email, TEST_ACCOUNTS.physio.password, '/physio/dashboard')
+  await loginToPath(page, TEST_ACCOUNTS.physio.email, TEST_ACCOUNTS.physio.password, businessPath('physio', '/dashboard'))
 }
 
 // ---------------------------------------------------------------------------

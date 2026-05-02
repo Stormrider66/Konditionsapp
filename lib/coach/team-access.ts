@@ -17,16 +17,24 @@ export async function getPrimaryBusinessMembership(userId: string) {
   })
 }
 
-export async function getBusinessTeamOwnerIds(userId: string, businessSlug?: string) {
-  const membership = await prisma.businessMember.findFirst({
+export async function getBusinessMembership(userId: string, businessSlug?: string) {
+  return prisma.businessMember.findFirst({
     where: {
       userId,
       isActive: true,
-      ...(businessSlug ? { business: { slug: businessSlug } } : {}),
+      ...(businessSlug ? { business: { slug: businessSlug, isActive: true } } : {}),
     },
-    select: { businessId: true, role: true },
+    select: {
+      businessId: true,
+      role: true,
+      business: { select: { id: true, slug: true, name: true, type: true } },
+    },
     orderBy: { createdAt: 'asc' },
   })
+}
+
+export async function getBusinessTeamOwnerIds(userId: string, businessSlug?: string) {
+  const membership = await getBusinessMembership(userId, businessSlug)
 
   if (!membership || !BUSINESS_WIDE_ROLES.includes(membership.role as any)) {
     return []
@@ -44,6 +52,31 @@ export async function getBusinessTeamOwnerIds(userId: string, businessSlug?: str
   return owners.map((owner) => owner.userId)
 }
 
+async function getBusinessOrganizationIds(userId: string, businessSlug?: string) {
+  if (!businessSlug) return []
+
+  const membership = await getBusinessMembership(userId, businessSlug)
+  if (!membership || !BUSINESS_WIDE_ROLES.includes(membership.role as any)) {
+    return []
+  }
+
+  const ownerIds = await getBusinessTeamOwnerIds(userId, businessSlug)
+  if (ownerIds.length === 0) return []
+
+  const organizations = await prisma.organization.findMany({
+    where: {
+      userId: { in: ownerIds },
+      OR: [
+        { id: `${membership.business.slug}-org` },
+        { name: membership.business.name },
+      ],
+    },
+    select: { id: true },
+  })
+
+  return organizations.map((organization) => organization.id)
+}
+
 export async function getAccessibleTeamWhere(
   userId: string,
   businessSlug?: string
@@ -51,12 +84,31 @@ export async function getAccessibleTeamWhere(
   const permissions = await getStaffPermissions(userId, businessSlug)
   const assignedTeamIds = permissions.assignedTeamIds
   const businessOwnerIds = await getBusinessTeamOwnerIds(userId, businessSlug)
+  const businessOrganizationIds = await getBusinessOrganizationIds(userId, businessSlug)
 
-  return {
+  const accessWhere: Prisma.TeamWhereInput = {
     OR: [
       { userId },
       ...(assignedTeamIds.length > 0 ? [{ id: { in: assignedTeamIds } }] : []),
       ...(businessOwnerIds.length > 0 ? [{ userId: { in: businessOwnerIds } }] : []),
+    ],
+  }
+
+  if (!businessSlug) {
+    return accessWhere
+  }
+
+  return {
+    AND: [
+      accessWhere,
+      {
+        OR: [
+          ...(businessOrganizationIds.length > 0
+            ? [{ organizationId: { in: businessOrganizationIds } }]
+            : []),
+          { members: { some: { business: { slug: businessSlug } } } },
+        ],
+      },
     ],
   }
 }
@@ -121,7 +173,7 @@ export async function canAccessClientInTeam(
   const team = await getAccessibleTeam(userId, teamId, businessSlug)
   if (!team) return false
 
-  const membership = await getPrimaryBusinessMembership(userId)
+  const membership = await getBusinessMembership(userId, businessSlug)
   const client = await prisma.client.findFirst({
     where: {
       id: clientId,

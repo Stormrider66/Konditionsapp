@@ -72,6 +72,9 @@ export async function sendCalendarNotification(data: CalendarNotificationData): 
         id: true,
         name: true,
         businessId: true,
+        business: {
+          select: { slug: true },
+        },
         user: {
           select: { id: true, email: true, name: true },
         },
@@ -129,7 +132,13 @@ export async function sendCalendarNotification(data: CalendarNotificationData): 
 
     // Send emails
     for (const recipient of recipients) {
-      await sendNotificationEmail(recipient, client.name, data, emailBranding)
+      await sendNotificationEmail(
+        recipient,
+        client.name,
+        data,
+        client.business?.slug ?? null,
+        emailBranding
+      )
     }
   } catch (error) {
     console.error('Error sending calendar notification:', error)
@@ -174,12 +183,13 @@ async function sendNotificationEmail(
   recipient: NotificationRecipient,
   clientName: string,
   data: CalendarNotificationData,
+  businessSlug: string | null,
   branding: Awaited<ReturnType<typeof resolveEmailBranding>>,
 ): Promise<void> {
   if (!resend) return
 
   const subject = getEmailSubject(data, clientName)
-  const html = getEmailHtml(data, clientName, recipient)
+  const html = getEmailHtml(data, clientName, recipient, businessSlug)
 
   try {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
@@ -229,11 +239,17 @@ function getEmailSubject(data: CalendarNotificationData, clientName: string): st
 function getEmailHtml(
   data: CalendarNotificationData,
   clientName: string,
-  recipient: NotificationRecipient
+  recipient: NotificationRecipient,
+  businessSlug: string | null
 ): string {
   const typeLabel = getTypeLabel(data.type)
   const dateInfo = getDateInfo(data)
   const impactBadge = getImpactBadge(data.trainingImpact)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
+  const actionPath = recipient.role === 'COACH'
+    ? businessSlug ? `/${businessSlug}/coach/clients` : '/login'
+    : businessSlug ? `/${businessSlug}/athlete/calendar` : '/athlete/calendar'
+  const actionUrl = new URL(actionPath, baseUrl).toString()
 
   return `
 <!DOCTYPE html>
@@ -276,7 +292,7 @@ function getEmailHtml(
     </div>
 
     <div style="margin-top: 20px; text-align: center;">
-      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/${recipient.role === 'COACH' ? 'coach/clients' : 'athlete/calendar'}"
+      <a href="${actionUrl}"
          style="display: inline-block; background: #667eea; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
         Visa i Kalendern
       </a>

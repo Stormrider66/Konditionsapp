@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
+import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 
 /**
  * POST /api/programs/[id]/request-next
@@ -32,6 +33,9 @@ export async function POST(
         client: {
           select: {
             name: true,
+            business: {
+              select: { slug: true },
+            },
             athleteSubscription: {
               select: { assignedCoachId: true },
             },
@@ -49,6 +53,12 @@ export async function POST(
       return NextResponse.json({ error: 'Ingen coach kopplad' }, { status: 400 })
     }
 
+    const businessSlug =
+      program.client.business?.slug ?? (await getUserPrimaryBusinessSlug(coachId))
+    const actionUrl = businessSlug
+      ? `/${businessSlug}/coach/clients/${program.clientId}`
+      : '/'
+
     // Create notification for the athlete's client record (coach will see it via alerts)
     await prisma.aINotification.create({
       data: {
@@ -57,7 +67,7 @@ export async function POST(
         priority: 'HIGH',
         title: 'Nytt program efterfrågas',
         message: `${program.client.name} har slutfört "${program.name}" och vill ha ett nytt träningsprogram.`,
-        actionUrl: `/coach/clients/${program.clientId}`,
+        actionUrl,
         actionLabel: 'Visa atlet',
         triggeredBy: 'event',
         triggerReason: 'program_completed',

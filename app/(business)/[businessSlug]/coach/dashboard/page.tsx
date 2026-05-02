@@ -2,6 +2,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
+import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
 import { subDays, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns'
 import { sv, enUS } from 'date-fns/locale'
 import { getTranslations, getLocale } from '@/i18n/server'
@@ -38,6 +39,11 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
 
   // Get coach IDs scoped by role (OWNER/ADMIN see all, COACH sees own)
   const coachIds = await getCoachScopedIds(user.id, membership.businessId, membership.role)
+  const teamWhere = await getAccessibleTeamWhere(user.id, businessSlug)
+  const clientWhere = {
+    userId: { in: coachIds },
+    businessId: membership.businessId,
+  }
 
   const now = new Date()
   const sevenDaysAgo = subDays(now, 7)
@@ -61,13 +67,14 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
   ] = await Promise.all([
     // Clients count (scoped to business)
     prisma.client.count({
-      where: { userId: { in: coachIds } },
+      where: clientWhere,
     }),
 
     // Active programs count (scoped to business)
     prisma.trainingProgram.count({
       where: {
         coachId: { in: coachIds },
+        client: { businessId: membership.businessId },
         startDate: { lte: now },
         endDate: { gte: now },
       },
@@ -80,7 +87,10 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
         workout: {
           day: {
             week: {
-              program: { coachId: { in: coachIds } },
+              program: {
+                coachId: { in: coachIds },
+                client: { businessId: membership.businessId },
+              },
             },
           },
         },
@@ -114,7 +124,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     // Active injuries count (scoped to business)
     prisma.injuryAssessment.count({
       where: {
-        client: { userId: { in: coachIds } },
+        client: clientWhere,
         status: { in: ['ACTIVE', 'MONITORING'] },
         resolved: false,
       },
@@ -123,7 +133,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     // Recent tests (last 30 days)
     prisma.test.findMany({
       where: {
-        client: { userId: { in: coachIds } },
+        client: clientWhere,
         testDate: { gte: subDays(now, 30) },
         status: 'COMPLETED',
       },
@@ -141,7 +151,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     // Upcoming events (next 7 days)
     prisma.calendarEvent.findMany({
       where: {
-        client: { userId: { in: coachIds } },
+        client: clientWhere,
         startDate: {
           gte: startOfDay(now),
           lte: endOfDay(nextSevenDays),
@@ -161,7 +171,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     // Athletes with recent readiness data
     prisma.dailyMetrics.findMany({
       where: {
-        client: { userId: { in: coachIds } },
+        client: clientWhere,
         date: { gte: subDays(now, 1) },
       },
       select: {
@@ -175,7 +185,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     // Training load data for ACWR calculation
     prisma.trainingLoad.findMany({
       where: {
-        client: { userId: { in: coachIds } },
+        client: clientWhere,
         date: { gte: subDays(now, 7) },
       },
       select: {
@@ -193,15 +203,13 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
 
     // Team count for this coach
     prisma.team.count({
-      where: {
-        userId: user.id,
-      },
+      where: teamWhere,
     }),
 
     // Client primarySport distribution
     prisma.sportProfile.findMany({
       where: {
-        client: { userId: { in: coachIds } },
+        client: clientWhere,
       },
       select: { primarySport: true },
     }),
@@ -209,7 +217,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     // Strava activities this week (all clients)
     prisma.stravaActivity.count({
       where: {
-        client: { userId: { in: coachIds } },
+        client: clientWhere,
         startDate: { gte: sevenDaysAgo },
       },
     }),
@@ -217,7 +225,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     // Garmin activities this week (all clients)
     prisma.garminActivity.count({
       where: {
-        client: { userId: { in: coachIds } },
+        client: clientWhere,
         startDate: { gte: sevenDaysAgo },
       },
     }),
@@ -275,20 +283,20 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     const [activeAssignments, prsThisWeek, plateauData] = await Promise.all([
       prisma.strengthSessionAssignment.count({
         where: {
-          athlete: { userId: { in: coachIds } },
+          athlete: clientWhere,
           assignedDate: { gte: gymWeekStart, lte: gymWeekEnd },
           status: { in: ['PENDING', 'SCHEDULED'] },
         },
       }),
       prisma.oneRepMaxHistory.count({
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           date: { gte: sevenDaysAgo },
         },
       }),
       prisma.progressionTracking.findMany({
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           plateauWeeks: { gte: 3 },
           date: { gte: subDays(now, 30) },
         },

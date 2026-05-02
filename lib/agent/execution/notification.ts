@@ -271,6 +271,17 @@ export async function notifyCoachOfAction(
     )
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
+    const client = action.clientId
+      ? await prisma.client.findUnique({
+          where: { id: action.clientId },
+          select: { business: { select: { slug: true } } },
+        })
+      : null
+    const coachBaseUrl = client?.business?.slug
+      ? `${baseUrl}/${client.business.slug}/coach`
+      : `${baseUrl}/login`
+    const reviewUrl = client?.business?.slug ? `${coachBaseUrl}/agent-oversight` : coachBaseUrl
+    const athleteUrl = client?.business?.slug ? `${coachBaseUrl}/clients/${action.clientId}` : coachBaseUrl
 
     const html = `
 <!DOCTYPE html>
@@ -314,8 +325,8 @@ export async function notifyCoachOfAction(
         </p>
       </div>
 
-      <a href="${baseUrl}/coach/agent-oversight" class="button">Review Actions</a>
-      <a href="${baseUrl}/coach/clients/${action.clientId}" class="button button-secondary">View Athlete</a>
+      <a href="${reviewUrl}" class="button">Review Actions</a>
+      <a href="${athleteUrl}" class="button button-secondary">View Athlete</a>
 
     </div>
     <div class="footer">

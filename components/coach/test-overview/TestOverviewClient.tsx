@@ -75,7 +75,9 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
       const params = new URLSearchParams()
       if (selectedTeam !== 'all') params.set('teamId', selectedTeam)
 
-      const res = await fetch(`/api/coach/test-overview?${params}`)
+      const res = await fetch(`/api/coach/test-overview?${params}`, {
+        headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
+      })
       if (res.ok) {
         const data = await res.json()
         setTests(data.tests || [])
@@ -87,7 +89,7 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
     } finally {
       setLoading(false)
     }
-  }, [selectedTeam])
+  }, [businessSlug, selectedTeam])
 
   useEffect(() => {
     setLoading(true)

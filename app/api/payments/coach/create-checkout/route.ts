@@ -11,6 +11,7 @@ import { SubscriptionTier } from '@prisma/client';
 import { z } from 'zod';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
+import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 
 const checkoutSchema = z.object({
   tier: z.enum(['BASIC', 'PRO', 'ENTERPRISE']),
@@ -32,8 +33,10 @@ export async function POST(request: NextRequest) {
 
     // Build success and cancel URLs
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
-    const successUrl = `${baseUrl}/coach/subscription?success=true`;
-    const cancelUrl = `${baseUrl}/coach/subscription?cancelled=true`;
+    const businessSlug = await getUserPrimaryBusinessSlug(user.id)
+    const subscriptionPath = businessSlug ? `/${businessSlug}/coach/subscription` : '/pricing'
+    const successUrl = new URL(`${subscriptionPath}?success=true`, baseUrl).toString()
+    const cancelUrl = new URL(`${subscriptionPath}?cancelled=true`, baseUrl).toString()
 
     // Create checkout session
     const checkoutUrl = await createCoachCheckoutSession(

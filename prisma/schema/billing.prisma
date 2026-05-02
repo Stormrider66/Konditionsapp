@@ -65,7 +65,7 @@ model Subscription {
 
   // Billing
   stripeCustomerId       String?
-  stripeSubscriptionId   String?  @unique
+  stripeSubscriptionId   String?   @unique
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
 
@@ -183,7 +183,7 @@ model AthleteSubscription {
 
   // Stripe integration
   stripeCustomerId     String?
-  stripeSubscriptionId String?  @unique
+  stripeSubscriptionId String? @unique
   billingCycle         String? // "MONTHLY" | "YEARLY"
 
   // Revenue sharing (if paymentSource = BUSINESS)

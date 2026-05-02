@@ -18,11 +18,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { requireCoach, hasReachedAthleteLimit } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireCoach, hasReachedAthleteLimit } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
 import { createAthleteAccountForClient } from '@/lib/athlete-account-utils'
-import { getPrimaryBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
+import { getBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
 import { z } from 'zod'
 
 interface RouteContext {
@@ -66,8 +66,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const { teamId } = await context.params
+    const scope = getRequestedBusinessScope(req)
 
-    const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
+    const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'roster')
     if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 })
 
     const raw = await req.json().catch(() => null)
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     }
     const { rows } = parsed.data
 
-    const membership = await getPrimaryBusinessMembership(user.id)
+    const membership = await getBusinessMembership(user.id, scope.businessSlug)
 
     const results: RosterRowResult[] = []
 

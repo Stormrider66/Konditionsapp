@@ -117,7 +117,8 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
   const isBusinessAdmin = businessContext.role === 'OWNER' || businessContext.role === 'ADMIN'
   const businessSlug = businessContext.business?.slug
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
-  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : businessSlug ? `/${businessSlug}` : ''
+  const coachHref = (path: string) => basePath ? `${basePath}/coach${path}` : '/login'
 
   async function fetchUnreadCount() {
     try {
@@ -133,10 +134,10 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
 
   // Simplified main navigation for coaches (desktop header)
   const mainNavLinks = [
-    { href: `${basePath}/coach/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
-    { href: `${basePath}/coach/calendar`, label: 'Kalender', icon: CalendarDays },
-    { href: `${basePath}/coach/clients`, label: 'Atleter', icon: Users },
-    { href: `${basePath}/coach/programs`, label: 'Program', icon: FileStack },
+    { href: coachHref('/dashboard'), label: 'Dashboard', icon: LayoutDashboard },
+    { href: coachHref('/calendar'), label: 'Kalender', icon: CalendarDays },
+    { href: coachHref('/clients'), label: 'Atleter', icon: Users },
+    { href: coachHref('/programs'), label: 'Program', icon: FileStack },
   ]
 
   // Grouped navigation for dropdown menus
@@ -145,30 +146,30 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
       label: 'Verktyg',
       icon: Wrench,
       items: [
-        { href: `${basePath}/coach/test`, label: 'Nytt Test', icon: TestTube },
-        { href: `${basePath}/coach/ai-studio`, label: 'AI Studio', icon: Sparkles },
-        { href: `${basePath}/coach/hybrid-studio`, label: 'Hybrid Studio', icon: Flame },
-        { href: `${basePath}/coach/strength`, label: 'Strength Studio', icon: Dumbbell },
-        { href: `${basePath}/coach/cardio`, label: 'Cardio Studio', icon: Heart },
-        { href: `${basePath}/coach/ergometer-tests`, label: 'Ergometertester', icon: Gauge },
-        { href: `${basePath}/coach/video-analysis`, label: 'Videoanalys', icon: Video },
-        { href: `${basePath}/coach/monitoring`, label: 'Monitorering', icon: Activity },
-        { href: `${basePath}/coach/live-hr`, label: 'Live HR', icon: Heart },
+        { href: coachHref('/test'), label: 'Nytt Test', icon: TestTube },
+        { href: coachHref('/ai-studio'), label: 'AI Studio', icon: Sparkles },
+        { href: coachHref('/hybrid-studio'), label: 'Hybrid Studio', icon: Flame },
+        { href: coachHref('/strength'), label: 'Strength Studio', icon: Dumbbell },
+        { href: coachHref('/cardio'), label: 'Cardio Studio', icon: Heart },
+        { href: coachHref('/ergometer-tests'), label: 'Ergometertester', icon: Gauge },
+        { href: coachHref('/video-analysis'), label: 'Videoanalys', icon: Video },
+        { href: coachHref('/monitoring'), label: 'Monitorering', icon: Activity },
+        { href: coachHref('/live-hr'), label: 'Live HR', icon: Heart },
       ],
     },
     more: {
       label: 'Mer',
       icon: Menu,
       items: [
-        { href: `${basePath}/coach/analytics`, label: 'Analys', icon: BarChart3 },
-        { href: `${basePath}/coach/teams`, label: 'Lag', icon: Users2 },
-        { href: `${basePath}/coach/organizations`, label: 'Organisationer', icon: Building2 },
-        { href: `${basePath}/coach/documents`, label: 'Dokument', icon: FileStack },
-        { href: `${basePath}/coach/messages`, label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
-        { href: `${basePath}/coach/referrals`, label: 'Värvningar', icon: Gift },
-        { href: `${basePath}/coach/settings/ai`, label: 'Inställningar', icon: Settings },
+        { href: coachHref('/analytics'), label: 'Analys', icon: BarChart3 },
+        { href: coachHref('/teams'), label: 'Lag', icon: Users2 },
+        { href: coachHref('/organizations'), label: 'Organisationer', icon: Building2 },
+        { href: coachHref('/documents'), label: 'Dokument', icon: FileStack },
+        { href: coachHref('/messages'), label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
+        { href: coachHref('/referrals'), label: 'Värvningar', icon: Gift },
+        { href: coachHref('/settings/ai'), label: 'Inställningar', icon: Settings },
         // Business admin for OWNER/ADMIN members
-        ...(isBusinessAdmin && businessSlug ? [{ href: `/${businessSlug}/coach/admin`, label: 'Admin', icon: Shield }] : []),
+        ...(isBusinessAdmin ? [{ href: coachHref('/admin'), label: 'Admin', icon: Shield }] : []),
         // Platform admin only for ADMIN role users
         ...(userRole === 'ADMIN' ? [{ href: '/admin', label: 'Platform Admin', icon: Shield }] : []),
       ],
@@ -177,33 +178,33 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
 
   // Mobile navigation - flat list with all items
   const mobileNavLinks = [
-    { href: `${basePath}/coach/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
-    { href: `${basePath}/coach/calendar`, label: 'Kalender', icon: CalendarDays },
-    { href: `${basePath}/coach/clients`, label: 'Atleter', icon: Users },
-    { href: `${basePath}/coach/programs`, label: 'Program', icon: FileStack },
-    { href: `${basePath}/coach/test`, label: 'Nytt Test', icon: TestTube },
-    { href: `${basePath}/coach/ai-studio`, label: 'AI Studio', icon: Sparkles },
-    { href: `${basePath}/coach/hybrid-studio`, label: 'Hybrid Studio', icon: Flame },
-    { href: `${basePath}/coach/strength`, label: 'Strength Studio', icon: Dumbbell },
-    { href: `${basePath}/coach/cardio`, label: 'Cardio Studio', icon: Heart },
-    { href: `${basePath}/coach/ergometer-tests`, label: 'Ergometertester', icon: Gauge },
-    { href: `${basePath}/coach/video-analysis`, label: 'Videoanalys', icon: Video },
-    { href: `${basePath}/coach/monitoring`, label: 'Monitorering', icon: Activity },
-    { href: `${basePath}/coach/live-hr`, label: 'Live HR', icon: Heart },
-    { href: `${basePath}/coach/analytics`, label: 'Analys', icon: BarChart3 },
-    { href: `${basePath}/coach/teams`, label: 'Lag', icon: Users2 },
-    { href: `${basePath}/coach/organizations`, label: 'Organisationer', icon: Building2 },
-    { href: `${basePath}/coach/documents`, label: 'Dokument', icon: FileStack },
-    { href: `${basePath}/coach/messages`, label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
-    { href: `${basePath}/coach/referrals`, label: 'Värvningar', icon: Gift },
-    { href: `${basePath}/coach/settings/ai`, label: 'Inställningar', icon: Settings },
+    { href: coachHref('/dashboard'), label: 'Dashboard', icon: LayoutDashboard },
+    { href: coachHref('/calendar'), label: 'Kalender', icon: CalendarDays },
+    { href: coachHref('/clients'), label: 'Atleter', icon: Users },
+    { href: coachHref('/programs'), label: 'Program', icon: FileStack },
+    { href: coachHref('/test'), label: 'Nytt Test', icon: TestTube },
+    { href: coachHref('/ai-studio'), label: 'AI Studio', icon: Sparkles },
+    { href: coachHref('/hybrid-studio'), label: 'Hybrid Studio', icon: Flame },
+    { href: coachHref('/strength'), label: 'Strength Studio', icon: Dumbbell },
+    { href: coachHref('/cardio'), label: 'Cardio Studio', icon: Heart },
+    { href: coachHref('/ergometer-tests'), label: 'Ergometertester', icon: Gauge },
+    { href: coachHref('/video-analysis'), label: 'Videoanalys', icon: Video },
+    { href: coachHref('/monitoring'), label: 'Monitorering', icon: Activity },
+    { href: coachHref('/live-hr'), label: 'Live HR', icon: Heart },
+    { href: coachHref('/analytics'), label: 'Analys', icon: BarChart3 },
+    { href: coachHref('/teams'), label: 'Lag', icon: Users2 },
+    { href: coachHref('/organizations'), label: 'Organisationer', icon: Building2 },
+    { href: coachHref('/documents'), label: 'Dokument', icon: FileStack },
+    { href: coachHref('/messages'), label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
+    { href: coachHref('/referrals'), label: 'Värvningar', icon: Gift },
+    { href: coachHref('/settings/ai'), label: 'Inställningar', icon: Settings },
     // Business admin for OWNER/ADMIN members
-    ...(isBusinessAdmin && businessSlug ? [{ href: `/${businessSlug}/coach/admin`, label: 'Admin', icon: Shield }] : []),
+    ...(isBusinessAdmin ? [{ href: coachHref('/admin'), label: 'Admin', icon: Shield }] : []),
     // Platform admin only for ADMIN role users
     ...(userRole === 'ADMIN' ? [{ href: '/admin', label: 'Platform Admin', icon: Shield }] : []),
   ]
 
-  // Legacy base + coach links for backwards compatibility
+  // Existing rendering code still expects these groups separately.
   const baseNavLinks = mainNavLinks
   const coachNavLinks = [] as typeof mainNavLinks
 

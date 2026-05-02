@@ -4,9 +4,11 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { clientSchema, type ClientFormData } from '@/lib/validations/schemas'
 import { createAthleteAccountForClient } from '@/lib/athlete-account-utils'
-import { getCurrentUser, hasReachedAthleteLimit } from '@/lib/auth-utils'
+import { getCurrentUser, getRequestedBusinessScope, hasReachedAthleteLimit } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
+import { getBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 
 // GET /api/clients - Hämta alla klienter för inloggad användare
 // Supports pagination: ?limit=50&offset=0 (defaults: limit=500, offset=0)
@@ -27,8 +29,15 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '500') || 500), 500)
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0)
+    const scope = getRequestedBusinessScope(request)
+    const membership = await getBusinessMembership(user.id, scope.businessSlug)
+    const coachIds = membership
+      ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
+      : [user.id]
 
-    const where = { userId: user.id }
+    const where = membership
+      ? { userId: { in: coachIds }, businessId: membership.businessId }
+      : { userId: user.id }
 
     const [clients, total] = await Promise.all([
       prisma.client.findMany({
@@ -103,14 +112,24 @@ export async function POST(request: NextRequest) {
     }
 
     const data: ClientFormData = validation.data
+    const scope = getRequestedBusinessScope(request)
+    const businessMembership = await getBusinessMembership(user.id, scope.businessSlug)
+
+    let ownerId = user.id
+    let businessId = businessMembership?.businessId ?? null
+    if (data.teamId) {
+      const team = await getWritableTeam(user.id, data.teamId, scope.businessSlug, 'roster')
+      if (!team) {
+        return NextResponse.json(
+          { success: false, error: 'Team not found or unauthorized' },
+          { status: 404 }
+        )
+      }
+      ownerId = team.userId
+    }
 
     // Check subscription athlete limit before creating
     // Business members are exempt — their limit is managed at the business level
-    const businessMembership = await prisma.businessMember.findFirst({
-      where: { userId: user.id, isActive: true },
-      select: { businessId: true },
-    })
-
     if (!businessMembership) {
       const limitReached = await hasReachedAthleteLimit(user.id)
       if (limitReached) {
@@ -128,8 +147,8 @@ export async function POST(request: NextRequest) {
     if (data.email) {
       const existingClient = await prisma.client.findFirst({
         where: {
-          userId: user.id,
           email: data.email,
+          ...(businessId ? { businessId } : { userId: user.id }),
         },
       })
 
@@ -168,8 +187,8 @@ export async function POST(request: NextRequest) {
       // Convert birthDate string to Date
       const txClient = await tx.client.create({
         data: {
-          userId: txUser.id,
-          businessId: businessMembership?.businessId ?? null,
+          userId: ownerId,
+          businessId,
           name: data.name,
           email: data.email || null,
           phone: data.phone || null,
@@ -193,7 +212,7 @@ export async function POST(request: NextRequest) {
       try {
         await connectTeamMemberToCoach(client.id, client.teamId, {
           assignedByUserId: dbUser.id,
-          businessId: businessMembership?.businessId,
+          businessId: businessId ?? undefined,
         })
       } catch (err) {
         logger.warn('Team auto-connection failed', { clientId: client.id, teamId: client.teamId, error: err })

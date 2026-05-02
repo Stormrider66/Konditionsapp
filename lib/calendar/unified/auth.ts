@@ -8,6 +8,7 @@ import {
   userIdByEmailCache,
   userIdByEmailInFlight,
 } from './caches'
+import { getVerifiedLoadTestBypassEmail } from '@/lib/load-test-bypass'
 
 /**
  * Resolve the DB User.id for the current request. Dedupes
@@ -19,7 +20,7 @@ import {
 export async function resolveAuthenticatedUserId(
   request: NextRequest
 ): Promise<{ ok: true; userId: string } | { ok: false; response: NextResponse }> {
-  const forwardedEmail = request.headers.get('x-auth-user-email')
+  const forwardedEmail = getVerifiedLoadTestBypassEmail(request)
   const authCacheKey = buildAuthCacheKey(request, forwardedEmail)
   const nowMs = Date.now()
 

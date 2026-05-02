@@ -47,6 +47,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { createClient } from '@/lib/supabase/client'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { cn } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { NotificationBell } from '@/components/calendar/NotificationsPanel'
@@ -63,6 +64,9 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
     const [businessRole, setBusinessRole] = useState<BusinessMemberRole | null>(null)
     const [platformAdminRole, setPlatformAdminRole] = useState<string | null>(null)
     const displayName = user?.email || 'Coach'
+    const businessSlug = getBusinessSlugFromPathname(pathname)
+    const basePath = businessSlug ? `/${businessSlug}` : ''
+    const coachHref = (path: string) => basePath ? `${basePath}/coach${path}` : '/login'
     // Assuming we might want to show coach name if available in metadata later, but user.email is safe fallback
 
     // Fetch business context to check if user is a business admin
@@ -97,10 +101,10 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
 
     // Top Level Links
     const mainNavItems = [
-        { href: '/coach/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { href: '/coach/calendar', label: 'Kalender', icon: CalendarDays },
-        { href: '/coach/clients', label: 'Atleter', icon: Users },
-        { href: '/coach/programs', label: 'Program', icon: FileStack },
+        { href: coachHref('/dashboard'), label: 'Dashboard', icon: LayoutDashboard },
+        { href: coachHref('/calendar'), label: 'Kalender', icon: CalendarDays },
+        { href: coachHref('/clients'), label: 'Atleter', icon: Users },
+        { href: coachHref('/programs'), label: 'Program', icon: FileStack },
     ]
 
     // Dropdown Groups
@@ -109,33 +113,33 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
             label: 'Verktyg',
             icon: Wrench,
             items: [
-                { href: '/coach/test', label: 'Nytt Test', icon: Activity },
-                { href: '/coach/ai-studio', label: 'AI Studio', icon: Sparkles },
-                { href: '/coach/hybrid-studio', label: 'Hybrid Studio', icon: Flame },
-                { href: '/coach/strength', label: 'Strength Studio', icon: Dumbbell },
-                { href: '/coach/cardio', label: 'Cardio Studio', icon: Heart },
-                { href: '/coach/agility-studio', label: 'Agility Studio', icon: Zap },
-                { href: '/coach/ergometer-tests', label: 'Ergometertester', icon: Gauge },
-                { href: '/coach/video-analysis', label: 'Videoanalys', icon: Video },
-                { href: '/coach/monitoring', label: 'Monitorering', icon: Activity },
-                { href: '/coach/live-hr', label: 'Live HR', icon: Heart },
-                { href: '/coach/interval-sessions', label: 'Intervaller', icon: Timer },
+                { href: coachHref('/test'), label: 'Nytt Test', icon: Activity },
+                { href: coachHref('/ai-studio'), label: 'AI Studio', icon: Sparkles },
+                { href: coachHref('/hybrid-studio'), label: 'Hybrid Studio', icon: Flame },
+                { href: coachHref('/strength'), label: 'Strength Studio', icon: Dumbbell },
+                { href: coachHref('/cardio'), label: 'Cardio Studio', icon: Heart },
+                { href: coachHref('/agility-studio'), label: 'Agility Studio', icon: Zap },
+                { href: coachHref('/ergometer-tests'), label: 'Ergometertester', icon: Gauge },
+                { href: coachHref('/video-analysis'), label: 'Videoanalys', icon: Video },
+                { href: coachHref('/monitoring'), label: 'Monitorering', icon: Activity },
+                { href: coachHref('/live-hr'), label: 'Live HR', icon: Heart },
+                { href: coachHref('/interval-sessions'), label: 'Intervaller', icon: Timer },
             ]
         },
         more: {
             label: 'Mer',
             icon: Menu,
             items: [
-                { href: '/coach/social', label: 'Sociala medier', icon: Share2 },
-                { href: '/coach/competitions', label: 'Utmaningar', icon: Trophy },
-                { href: '/coach/community', label: 'Community', icon: Megaphone },
-                { href: '/coach/analytics', label: 'Analys', icon: BarChart3 },
-                { href: '/coach/teams', label: 'Lag', icon: Users2 },
-                { href: '/coach/organizations', label: 'Organisationer', icon: Building2 },
-                { href: '/coach/documents', label: 'Dokument', icon: FileStack },
-                { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare },
-                { href: '/coach/referrals', label: 'Värvningar', icon: Gift },
-                { href: '/coach/settings', label: 'Inställningar', icon: Settings },
+                { href: coachHref('/social'), label: 'Sociala medier', icon: Share2 },
+                { href: coachHref('/competitions'), label: 'Utmaningar', icon: Trophy },
+                { href: coachHref('/community'), label: 'Community', icon: Megaphone },
+                { href: coachHref('/analytics'), label: 'Analys', icon: BarChart3 },
+                { href: coachHref('/teams'), label: 'Lag', icon: Users2 },
+                { href: coachHref('/organizations'), label: 'Organisationer', icon: Building2 },
+                { href: coachHref('/documents'), label: 'Dokument', icon: FileStack },
+                { href: coachHref('/messages'), label: 'Meddelanden', icon: MessageSquare },
+                { href: coachHref('/referrals'), label: 'Värvningar', icon: Gift },
+                { href: coachHref('/settings'), label: 'Inställningar', icon: Settings },
             ]
         }
     }
@@ -145,7 +149,7 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
         ...navGroups.more.items,
         // Add Business Admin link if user is OWNER or ADMIN of business
         ...((businessRole === 'OWNER' || businessRole === 'ADMIN')
-            ? [{ href: '/coach/admin', label: 'Admin', icon: Shield }]
+            ? [{ href: coachHref('/admin'), label: 'Admin', icon: Shield }]
             : []),
         // Add Platform Admin link if user has a platform adminRole
         ...(platformAdminRole
@@ -166,7 +170,7 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
 
                 {/* Logo Area */}
                 <div className="flex items-center gap-4">
-                    <Link href="/coach/dashboard" className="flex items-center gap-2 group">
+                    <Link href={coachHref('/dashboard')} className="flex items-center gap-2 group">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.5)] group-hover:shadow-[0_0_20px_rgba(59,130,246,0.8)] transition-all">
                             C
                         </div>
@@ -288,7 +292,7 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator className="bg-white/10" />
                                 <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
-                                    <Link href="/coach/settings">
+                                    <Link href={coachHref('/settings')}>
                                         <Settings className="mr-2 h-4 w-4" />
                                         <span>Settings</span>
                                     </Link>

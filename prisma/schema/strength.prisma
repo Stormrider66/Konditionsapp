@@ -82,7 +82,7 @@ model OneRepMaxHistory {
   // KMH) let the table track sport-specific PRs (box jump height,
   // broad jump, sprint times, peak power, etc.) alongside 1RM lifts.
   // % of 1RM resolution in the runner only fires for KG entries.
-  unit      String         @default("KG")
+  unit      String @default("KG")
 
   // Context
   bodyWeight    Float? // kg at time of test

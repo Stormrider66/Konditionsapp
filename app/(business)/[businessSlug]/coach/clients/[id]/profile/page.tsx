@@ -1,6 +1,18 @@
-// app/(business)/[businessSlug]/coach/clients/[id]/profile/page.tsx
-// Re-export the athlete profile page.
-// Next 16 requires Route Segment Config (like `dynamic`) to be declared
-// inline in the page source — re-exports are not statically analyzable.
-export { default } from '@/app/clients/[id]/profile/page'
+import { CoachAthleteProfilePage } from '@/components/coach/clients/AthleteProfilePage'
+
+interface PageProps {
+  params: Promise<{
+    businessSlug: string
+    id: string
+  }>
+  searchParams: Promise<{ tab?: string }>
+}
+
+export default async function BusinessAthleteProfileRoute({ params, searchParams }: PageProps) {
+  const { businessSlug, id } = await params
+  const { tab } = await searchParams
+
+  return <CoachAthleteProfilePage id={id} tab={tab} basePath={`/${businessSlug}`} />
+}
+
 export const dynamic = 'force-dynamic'

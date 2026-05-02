@@ -81,7 +81,10 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
 
   const fetchRoster = useCallback(async () => {
     try {
-      const res = await fetch('/api/coach/roster')
+      const businessSlug = basePath.split('/').filter(Boolean)[0]
+      const res = await fetch('/api/coach/roster', {
+        headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
+      })
       if (res.ok) {
         const data = await res.json()
         setRoster(data.roster || [])
@@ -91,7 +94,7 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [basePath])
 
   useEffect(() => {
     fetchRoster()

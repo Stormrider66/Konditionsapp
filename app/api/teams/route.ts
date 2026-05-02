@@ -82,14 +82,17 @@ export async function POST(request: NextRequest) {
     }
 
     const data = validation.data
+    let organizationId = data.organizationId || null
+    let teamOwnerId = user.id
 
     // If organizationId is provided, verify it exists and belongs to user
-    if (data.organizationId) {
+    if (organizationId) {
       const org = await prisma.organization.findFirst({
         where: {
-          id: data.organizationId,
+          id: organizationId,
           userId: { in: businessOwnerIds.length ? businessOwnerIds : [user.id] },
         },
+        select: { id: true, userId: true },
       })
       if (!org) {
         return NextResponse.json(
@@ -100,14 +103,31 @@ export async function POST(request: NextRequest) {
           { status: 404 }
         )
       }
+      teamOwnerId = org.userId
+    } else if (scope.businessSlug) {
+      const businessOrg = await prisma.organization.findFirst({
+        where: {
+          userId: { in: businessOwnerIds.length ? businessOwnerIds : [user.id] },
+          OR: [
+            { id: `${scope.businessSlug}-org` },
+            { name: { equals: scope.businessSlug, mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true, userId: true },
+      })
+
+      if (businessOrg) {
+        organizationId = businessOrg.id
+        teamOwnerId = businessOrg.userId
+      }
     }
 
     const team = await prisma.team.create({
       data: {
-        userId: user.id,
+        userId: teamOwnerId,
         name: data.name,
         description: data.description || null,
-        organizationId: data.organizationId || null,
+        organizationId,
         sportType: data.sportType || null,
       },
       include: {

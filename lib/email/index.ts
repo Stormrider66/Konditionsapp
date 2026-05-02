@@ -181,14 +181,21 @@ export async function sendSubscriptionCancelledEmail(
   planName: string,
   endDate: string,
   locale: EmailLocale = 'sv',
+  options?: {
+    reactivateUrl?: string
+    reactivatePath?: string
+  },
   branding?: EmailBranding
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
+  const reactivateUrl =
+    options?.reactivateUrl ||
+    new URL(options?.reactivatePath || '/pricing', baseUrl).toString()
   const { subject, html } = getSubscriptionCancelledEmailTemplate({
     recipientName,
     planName,
     endDate,
-    reactivateUrl: `${baseUrl}/coach/subscription`,
+    reactivateUrl,
     locale,
     branding,
   });
@@ -213,7 +220,7 @@ export async function sendPaymentFailedEmail(
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
   const updatePaymentUrl =
     options?.updatePaymentUrl ||
-    new URL(options?.updatePaymentPath || '/coach/subscription', baseUrl).toString()
+    new URL(options?.updatePaymentPath || '/pricing', baseUrl).toString()
   const { subject, html } = getPaymentFailedEmailTemplate({
     recipientName,
     amount,

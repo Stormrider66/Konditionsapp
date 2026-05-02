@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { PlusIcon, Upload } from 'lucide-react'
@@ -23,10 +24,16 @@ export default async function BusinessCoachProgramsPage({ params }: BusinessCoac
 
   const basePath = `/${businessSlug}`
 
-  // Fetch all programs for this coach
+  const coachIds = await getCoachScopedIds(user.id, membership.businessId, membership.role)
+
+  // Fetch all programs for athletes in this active business. A coach may belong
+  // to multiple businesses, so client.businessId is the tenant boundary.
   const programs = await prisma.trainingProgram.findMany({
     where: {
-      coachId: user.id,
+      coachId: { in: coachIds },
+      client: {
+        businessId: membership.businessId,
+      },
     },
     include: {
       client: {

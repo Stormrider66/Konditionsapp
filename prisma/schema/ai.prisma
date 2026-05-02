@@ -228,8 +228,8 @@ model AIGeneratedWOD {
   modelUsed        String? // e.g., "claude-sonnet-4-6"
 
   // Source tracking
-  source              String?  // "generator" | "chat" | "cron"
-  chatConversationId  String?  // Link back to AI conversation
+  source             String? // "generator" | "chat" | "cron"
+  chatConversationId String? // Link back to AI conversation
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -316,7 +316,7 @@ model AIModel {
   // Availability
   isActive             Boolean @default(true)
   isDefault            Boolean @default(false) // Default model for new conversations
-  availableForAthletes Boolean @default(true)  // Super admin toggle: can athletes use this model?
+  availableForAthletes Boolean @default(true) // Super admin toggle: can athletes use this model?
 
   // Versioning
   releasedAt   DateTime?

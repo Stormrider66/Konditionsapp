@@ -2,7 +2,7 @@
 import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
-import { AnalyticsDashboardClient } from '@/app/coach/analytics/AnalyticsDashboardClient'
+import { AnalyticsDashboardClient } from '@/components/coach/analytics/AnalyticsDashboardClient'
 
 interface PageProps {
   params: Promise<{

@@ -214,7 +214,7 @@ export async function requireAthleteOrCoachInAthleteMode(): Promise<AthleteOrCoa
       const bizSlug = await getUserPrimaryBusinessSlug(user.id)
       const portal = await getPreferredProfessionalPortal(user.id)
       const dashboardPath = portal === 'physio' ? 'physio/dashboard' : 'coach/dashboard'
-      redirect(bizSlug ? `/${bizSlug}/${dashboardPath}` : `/${dashboardPath}`)
+      redirect(bizSlug ? `/${bizSlug}/${dashboardPath}` : '/')
     }
 
     const access = await getAthleteModeAccess(user.id)
@@ -222,7 +222,7 @@ export async function requireAthleteOrCoachInAthleteMode(): Promise<AthleteOrCoa
       const bizSlug = await getUserPrimaryBusinessSlug(user.id)
       redirect(bizSlug
         ? `/${bizSlug}/coach/subscription?reason=trial_expired`
-        : '/coach/subscription?reason=trial_expired')
+        : '/pricing?reason=trial_expired')
     }
 
     const fullUser = await prisma.user.findUnique({
@@ -235,7 +235,7 @@ export async function requireAthleteOrCoachInAthleteMode(): Promise<AthleteOrCoa
       const portal = physioAccess && !coachAccess ? 'physio' : 'coach'
       redirect(bizSlug
         ? `/${bizSlug}/${portal}/settings/athlete-profile`
-        : `/${portal}/settings/athlete-profile`)
+        : '/')
     }
 
     await ensureAthleteClientDefaults(fullUser.selfAthleteClientId)

@@ -8,7 +8,9 @@
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
-import { CoachCalendarClient } from '@/app/coach/calendar/CoachCalendarClient'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
+import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
+import { CoachCalendarClient } from '@/components/coach/calendar/CoachCalendarClient'
 import { addDays, startOfDay, endOfDay } from 'date-fns'
 import { notFound } from 'next/navigation'
 import { SportType } from '@prisma/client'
@@ -29,24 +31,16 @@ export default async function BusinessCalendarPage({ params }: BusinessCalendarP
 
   const basePath = `/${businessSlug}`
 
-  // Get all coaches in the business
-  const members = await prisma.businessMember.findMany({
-    where: {
-      businessId: membership.businessId,
-      isActive: true,
-      user: { role: 'COACH' },
-    },
-    select: { userId: true },
-  })
-  const coachIds = members.map(m => m.userId)
-  if (!coachIds.includes(user.id)) {
-    coachIds.push(user.id)
-  }
+  // Get all coach IDs and teams scoped to the active business. A coach can
+  // belong to multiple businesses, so businessId is the actual data boundary.
+  const coachIds = await getCoachScopedIds(user.id, membership.businessId, membership.role)
+  const teamWhere = await getAccessibleTeamWhere(user.id, businessSlug)
 
   // Get all athletes for this business (with team and sport info)
   const athletes = await prisma.client.findMany({
     where: {
       userId: { in: coachIds },
+      businessId: membership.businessId,
     },
     select: {
       id: true,
@@ -64,9 +58,7 @@ export default async function BusinessCalendarPage({ params }: BusinessCalendarP
 
   // Get all teams for this business
   const teams = await prisma.team.findMany({
-    where: {
-      userId: { in: coachIds },
-    },
+    where: teamWhere,
     select: {
       id: true,
       name: true,

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 
 export default async function RoleInfoPage() {
   const user = await getCurrentUser()
@@ -42,6 +43,11 @@ export default async function RoleInfoPage() {
     },
     take: 10,
   })
+
+  const businessSlug = user.role === 'COACH' ? await getUserPrimaryBusinessSlug(user.id) : null
+  const coachHref = (path: string) => (
+    businessSlug ? `/${businessSlug}/coach${path}` : '/signup/coach'
+  )
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-3xl">
@@ -110,7 +116,7 @@ export default async function RoleInfoPage() {
                     You don&apos;t have any clients yet. Create a client first, then an athlete
                     account will be created automatically if they have an email.
                   </p>
-                  <Link href="/clients/new">
+                  <Link href={coachHref('/clients/new')}>
                     <Button>Create Client</Button>
                   </Link>
                 </div>
@@ -131,7 +137,7 @@ export default async function RoleInfoPage() {
                         )}
                       </div>
                       {!client.athleteAccount && client.email && (
-                        <Link href={`/clients/${client.id}`}>
+                        <Link href={coachHref(`/clients/${client.id}`)}>
                           <Button size="sm" variant="outline">
                             Create Athlete Account
                           </Button>
@@ -140,7 +146,7 @@ export default async function RoleInfoPage() {
                     </div>
                   ))}
                   <div className="pt-4 border-t">
-                    <Link href="/clients">
+                    <Link href={coachHref('/clients')}>
                       <Button className="w-full">Go to Coach Dashboard</Button>
                     </Link>
                   </div>
@@ -253,7 +259,7 @@ export default async function RoleInfoPage() {
               </Button>
             </Link>
             {user.role === 'COACH' && (
-              <Link href="/coach/programs">
+              <Link href={coachHref('/programs')}>
                 <Button variant="outline" className="w-full">
                   Coach Programs
                 </Button>

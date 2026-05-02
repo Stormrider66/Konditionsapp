@@ -10,7 +10,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Radio } from 'lucide-react'
-import { LiveHRSessionList } from '@/app/coach/live-hr/SessionList'
+import { LiveHRSessionList } from '@/components/coach/live-hr/SessionList'
 
 interface PageProps {
   params: Promise<{

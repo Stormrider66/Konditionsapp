@@ -142,7 +142,7 @@ export function ProgramsList({ programs }: ProgramsListProps) {
       {/* Programs grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredPrograms.map((program) => (
-          <ProgramCard key={program.id} program={program} />
+          <ProgramCard key={program.id} program={program} basePath={basePath} businessSlug={pathBusinessSlug} />
         ))}
       </div>
 
@@ -161,7 +161,15 @@ export function ProgramsList({ programs }: ProgramsListProps) {
   )
 }
 
-function ProgramCard({ program }: { program: any }) {
+function ProgramCard({
+  program,
+  basePath,
+  businessSlug,
+}: {
+  program: any
+  basePath: string
+  businessSlug: string | null
+}) {
   const currentPhase = getCurrentPhase(program)
   const progressPercent = getProgressPercent(program)
   const isActive = isActiveProgram(program)
@@ -178,6 +186,7 @@ function ProgramCard({ program }: { program: any }) {
     try {
       const response = await fetch(`/api/programs/${program.id}`, {
         method: 'DELETE',
+        headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
       })
 
       const data = await response.json()
@@ -240,7 +249,7 @@ function ProgramCard({ program }: { program: any }) {
         </AlertDialog>
       </div>
 
-      <Link href={`/coach/programs/${program.id}`} className="block">
+      <Link href={`${basePath}/coach/programs/${program.id}`} className="block">
         <GlassCardHeader>
           <div className="flex justify-between items-start mb-2">
             <GlassCardTitle className="text-lg pr-12 text-slate-900 dark:text-white">{program.name}</GlassCardTitle>

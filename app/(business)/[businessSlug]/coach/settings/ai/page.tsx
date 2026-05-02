@@ -9,8 +9,8 @@
 import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
-import { ApiKeySettingsClient } from '@/app/coach/settings/ai/ApiKeySettingsClient'
-import { DefaultModelSelector } from '@/app/coach/settings/ai/DefaultModelSelector'
+import { ApiKeySettingsClient } from '@/components/coach/settings/ai/ApiKeySettingsClient'
+import { DefaultModelSelector } from '@/components/coach/settings/ai/DefaultModelSelector'
 import { AthleteModelSettings } from '@/components/coach/settings/AthleteModelSettings'
 
 interface PageProps {

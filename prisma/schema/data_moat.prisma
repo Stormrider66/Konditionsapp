@@ -405,7 +405,7 @@ model CoachReview {
   coachProfileId  String
   athleteClientId String
 
-  rating  Int     // 1-5
+  rating  Int // 1-5
   title   String?
   comment String? @db.Text
 
@@ -425,22 +425,22 @@ model CoachReview {
 
 // ==================== MULTIVARIATE ANALYSIS (MVA) ====================
 model MVAModel {
-  id                 String    @id @default(cuid())
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                 String            @id @default(cuid())
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   teamId             String
   coachId            String
   sport              SportType
-  modelType          String    // "PCA", "PLS"
-  config             Json      // PreprocessingConfig
-  xVariables         Json      // string[] of variable IDs included
+  modelType          String // "PCA", "PLS"
+  config             Json // PreprocessingConfig
+  xVariables         Json // string[] of variable IDs included
   nObservations      Int
   nXVariables        Int
   nComponents        Int
-  explainedVarianceX Float[]   // per component
-  modelData          Json      // Serialized loadings, means, stds for reconstruction
-  status             String    @default("COMPLETED")
-  version            Int       @default(1)
+  explainedVarianceX Float[] // per component
+  modelData          Json // Serialized loadings, means, stds for reconstruction
+  status             String            @default("COMPLETED")
+  version            Int               @default(1)
   athleteScores      MVAAthleteScore[]
 
   @@index([teamId, modelType])
@@ -453,12 +453,12 @@ model MVAAthleteScore {
   modelId         String
   model           MVAModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
   athleteId       String
-  scores          Float[]  // [PC1, PC2, ..., PCn]
+  scores          Float[] // [PC1, PC2, ..., PCn]
   hotellingT2     Float
   dmodx           Float
   isOutlierT2     Boolean  @default(false)
   isOutlierDModX  Boolean  @default(false)
-  topContributors Json?    // [{ variableId, contribution, direction }]
+  topContributors Json? // [{ variableId, contribution, direction }]
 
   @@unique([modelId, athleteId])
   @@index([athleteId])

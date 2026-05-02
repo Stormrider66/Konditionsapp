@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { sendEmail, getTrialWarningEmailTemplate } from '@/lib/email'
+import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 
 // Warning thresholds in days
 const WARNING_THRESHOLDS = [7, 3]
@@ -328,10 +329,15 @@ async function processCoachWarning(
 
   try {
     const locale = (subscription.user.language === 'en' ? 'en' : 'sv') as 'sv' | 'en'
+    const businessSlug = await getUserPrimaryBusinessSlug(subscription.userId)
+    const upgradePath = businessSlug ? `/${businessSlug}/coach/subscription` : '/pricing'
     const template = getTrialWarningEmailTemplate({
       recipientName: subscription.user.name || 'Coach',
       daysRemaining: threshold,
-      upgradeUrl: `${process.env.NEXT_PUBLIC_APP_URL}/coach/subscription`,
+      upgradeUrl: new URL(
+        upgradePath,
+        process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
+      ).toString(),
       locale,
     })
     await sendEmail({

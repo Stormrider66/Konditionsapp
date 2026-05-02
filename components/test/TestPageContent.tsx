@@ -51,12 +51,12 @@ const TEST_CATEGORIES = [
 ] as const
 
 interface TestPageContentProps {
-  businessSlug?: string
+  businessSlug: string
   organizationName?: string
 }
 
 export function TestPageContent({ businessSlug, organizationName }: TestPageContentProps) {
-  const basePath = businessSlug ? `/${businessSlug}/coach` : ''
+  const basePath = `/${businessSlug}/coach`
   const orgName = organizationName || PLATFORM_NAME
 
   const [testCategory, setTestCategory] = useState<TestCategory>('lactate')

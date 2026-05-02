@@ -66,7 +66,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
             Lägg till labb- eller fälttest för att se fysiologisk data här.
           </p>
           {viewMode === 'coach' && (
-            <Link href="/test">
+            <Link href={basePath ? `${basePath}/coach/test` : '/'}>
               <Button className={isGlass ? "bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest text-xs h-12 px-8 rounded-xl" : ""}>
                 Skapa nytt test
               </Button>

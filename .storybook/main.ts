@@ -13,12 +13,12 @@
  * build-storybook` to produce a static site in ./storybook-static.
  */
 
-import type { StorybookConfig } from '@storybook/nextjs'
+import type { StorybookConfig } from '@storybook/nextjs-vite'
 
 const config: StorybookConfig = {
   stories: ['../components/**/*.stories.@(ts|tsx|mdx)'],
   framework: {
-    name: '@storybook/nextjs',
+    name: '@storybook/nextjs-vite',
     options: {},
   },
   typescript: {

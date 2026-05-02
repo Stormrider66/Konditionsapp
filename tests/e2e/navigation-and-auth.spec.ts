@@ -36,7 +36,7 @@ test.describe('Authentication & Navigation Guards', () => {
   test('Authenticated coach is redirected away from /login', async ({ page }) => {
     // Login first
     await login(page, TEST_ACCOUNTS.coach.email, TEST_ACCOUNTS.coach.password)
-    await page.waitForURL('**/coach/dashboard', { timeout: 15_000 })
+    await page.waitForURL(`**/${TEST_BUSINESS_SLUG}/coach/dashboard`, { timeout: 15_000 })
 
     // Visiting /login should redirect to dashboard
     await page.goto('/login')
@@ -47,7 +47,7 @@ test.describe('Authentication & Navigation Guards', () => {
 
   test('Business-scoped route with wrong slug redirects', async ({ page }) => {
     await login(page, TEST_ACCOUNTS.coach.email, TEST_ACCOUNTS.coach.password)
-    await page.waitForURL('**/coach/dashboard', { timeout: 15_000 })
+    await page.waitForURL(`**/${TEST_BUSINESS_SLUG}/coach/dashboard`, { timeout: 15_000 })
 
     // Try accessing a non-existent business
     await page.goto('/nonexistent-business-slug/coach/dashboard')

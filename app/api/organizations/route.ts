@@ -59,6 +59,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach()
+    const scope = getRequestedBusinessScope(request)
+    const ownerIds = await getBusinessTeamOwnerIds(user.id, scope.businessSlug)
 
     const body = await request.json()
 
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     const organization = await prisma.organization.create({
       data: {
-        userId: user.id,
+        userId: ownerIds[0] || user.id,
         name: data.name,
         description: data.description || null,
         sportType: data.sportType || null,

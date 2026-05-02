@@ -1,5 +1,5 @@
 // app/(business)/[businessSlug]/coach/settings/page.tsx
-import { CoachSettingsClient } from '@/app/coach/settings/CoachSettingsClient'
+import { CoachSettingsClient } from '@/components/coach/settings/CoachSettingsClient'
 import { requireCoach } from '@/lib/auth-utils'
 import { notFound } from 'next/navigation'
 import { validateBusinessMembership } from '@/lib/business-context'

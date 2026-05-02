@@ -8,11 +8,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
-import { getPrimaryBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
+import { getBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
@@ -22,12 +22,13 @@ export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const { teamId } = await context.params
+    const scope = getRequestedBusinessScope(req)
 
-    const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
+    const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'roster')
     if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 })
 
     const filter = req.nextUrl.searchParams.get('filter') ?? 'all'
-    const membership = await getPrimaryBusinessMembership(user.id)
+    const membership = await getBusinessMembership(user.id, scope.businessSlug)
 
     const where =
       filter === 'unassigned'
@@ -74,8 +75,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const { teamId } = await context.params
+    const scope = getRequestedBusinessScope(req)
 
-    const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
+    const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'roster')
     if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 })
 
     const body = await req.json().catch(() => ({}))
@@ -88,7 +90,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'No valid client IDs' }, { status: 400 })
     }
 
-    const membership = await getPrimaryBusinessMembership(user.id)
+    const membership = await getBusinessMembership(user.id, scope.businessSlug)
 
     // Only allow moving clients from the same coach/business workspace.
     const owned = await prisma.client.findMany({

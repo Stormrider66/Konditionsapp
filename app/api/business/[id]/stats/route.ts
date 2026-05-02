@@ -11,6 +11,7 @@ import { logError } from '@/lib/logger-console'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
 import { performance } from 'node:perf_hooks'
+import { getVerifiedLoadTestBypassEmail, isVerifiedLoadTestBypassRequest } from '@/lib/load-test-bypass'
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -182,22 +183,7 @@ function logBusinessStatsErrorThrottled(error: unknown) {
 }
 
 function shouldEmitPerfDebugHeaders(request: NextRequest) {
-  const rawHost =
-    request.headers.get('x-forwarded-host') ||
-    request.headers.get('host') ||
-    request.nextUrl.host
-  const host = (() => {
-    if (!rawHost) return request.nextUrl.hostname
-    const ipv6 = rawHost.match(/^\[(.+)\](?::\d+)?$/)
-    if (ipv6) return ipv6[1]
-    return rawHost.split(':')[0]
-  })()
-  const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1'
-  if (!isLocal) return false
-
-  const incomingSecret = request.headers.get('x-load-test-secret')
-  const secret = process.env.LOAD_TEST_BYPASS_SECRET || 'local-k6-bypass-secret'
-  return !!secret && !!incomingSecret && incomingSecret === secret
+  return isVerifiedLoadTestBypassRequest(request)
 }
 
 function withHandlerTiming(
@@ -215,25 +201,9 @@ function withHandlerTiming(
 }
 
 async function resolveCoachForBusinessStats(request: NextRequest) {
-  const bypassEnabled =
-    (() => {
-      const rawHost =
-        request.headers.get('x-forwarded-host') ||
-        request.headers.get('host') ||
-        request.nextUrl.host
-      const host = (() => {
-        if (!rawHost) return request.nextUrl.hostname
-        const ipv6 = rawHost.match(/^\[(.+)\](?::\d+)?$/)
-        if (ipv6) return ipv6[1]
-        return rawHost.split(':')[0]
-      })()
-      return host === 'localhost' || host === '127.0.0.1' || host === '::1'
-    })()
-  const bypassSecret = process.env.LOAD_TEST_BYPASS_SECRET || 'local-k6-bypass-secret'
-  const incomingSecret = request.headers.get('x-load-test-secret')
-  const forwardedEmail = request.headers.get('x-auth-user-email')
+  const forwardedEmail = getVerifiedLoadTestBypassEmail(request)
 
-  if (bypassEnabled && bypassSecret && incomingSecret === bypassSecret && forwardedEmail) {
+  if (forwardedEmail) {
     const cached = bypassCoachCache.get(forwardedEmail)
     const now = Date.now()
     const bypassUser =

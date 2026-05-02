@@ -516,7 +516,7 @@ model AgentEvent {
 
   eventType String // GARMIN_ACTIVITY, CHECKIN_SUBMITTED, MEAL_LOGGED, etc.
   entityId  String // The entity this event is for
-  eventData Json   // Event-specific payload
+  eventData Json // Event-specific payload
 
   sessionId   String?
   session     ManagedAgentSession? @relation(fields: [sessionId], references: [id])
@@ -582,9 +582,9 @@ model OperatorAgentJob {
   scheduledFor DateTime @default(now())
 
   /// Retry tracking
-  attempts     Int    @default(0)
-  maxAttempts  Int    @default(3)
-  lastError    String? @db.Text
+  attempts    Int     @default(0)
+  maxAttempts Int     @default(3)
+  lastError   String? @db.Text
 
   /// Input context for the agent (referenced IDs, etc.)
   context Json?
@@ -607,15 +607,15 @@ model OperatorAgentJob {
 /// discussing even if the serverless function recycles.
 model SlackThreadContext {
   /// Slack thread timestamp (unique identifier for a thread)
-  threadTs String @id
+  threadTs       String   @id
   /// Channel ID (for looking up context by channel+thread)
-  channelId String
+  channelId      String
   /// Serialized message history (Anthropic MessageParam[] as JSON)
-  messages Json
+  messages       Json
   /// When this context was last used (for TTL cleanup)
   lastActivityAt DateTime @default(now())
   /// Number of messages in the context (for monitoring)
-  messageCount Int @default(0)
+  messageCount   Int      @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

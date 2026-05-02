@@ -97,7 +97,10 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
     setLoading(true)
     try {
       const dateStr = format(date, 'yyyy-MM-dd')
-      const res = await fetch(`/api/coach/appointments/today?date=${dateStr}`)
+      const businessSlug = basePath.split('/').filter(Boolean)[0]
+      const res = await fetch(`/api/coach/appointments/today?date=${dateStr}`, {
+        headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
+      })
       if (res.ok) {
         const data = await res.json()
         setAppointments(data.appointments || [])
@@ -107,7 +110,7 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [basePath])
 
   useEffect(() => {
     fetchAppointments(selectedDate)

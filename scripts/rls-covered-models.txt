@@ -136,6 +136,7 @@ IntervalSession
 IntervalSessionParticipant
 IntervalSessionTemplate
 Invitation
+ImportAttempt
 KnowledgeChunk
 KnowledgeSkill
 LiveHRParticipant

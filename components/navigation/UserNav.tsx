@@ -30,6 +30,7 @@ export function UserNav({ user }: UserNavProps) {
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
   const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
+  const coachHref = (path: string) => basePath ? `${basePath}/coach${path}` : '/login'
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const handleSignOut = async () => {
@@ -85,13 +86,13 @@ export function UserNav({ user }: UserNavProps) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild className="min-h-[44px]">
-          <Link href={`${basePath}/coach/subscription`}>
+          <Link href={coachHref('/subscription')}>
             <CreditCard className="mr-2 h-4 w-4 flex-shrink-0" />
             <span>{t('subscription')}</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="min-h-[44px]">
-          <Link href={`${basePath}/coach/referrals`}>
+          <Link href={coachHref('/referrals')}>
             <Gift className="mr-2 h-4 w-4 flex-shrink-0" />
             <span>{t('referrals')}</span>
           </Link>

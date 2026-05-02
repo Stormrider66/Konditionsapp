@@ -4,7 +4,7 @@
 model SharedAchievement {
   id              String   @id @default(uuid())
   clientId        String
-  achievementType String   // "MILESTONE" | "STREAK"
+  achievementType String // "MILESTONE" | "STREAK"
   title           String
   description     String
   imageUrl        String?
@@ -23,16 +23,16 @@ model SharedAchievement {
 // Social Media & Community System
 // ============================================
 model SocialMediaAccount {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   businessId     String
-  business       Business @relation("BusinessSocialAccounts", fields: [businessId], references: [id], onDelete: Cascade)
-  platform       String   // INSTAGRAM, FACEBOOK, TIKTOK, LINKEDIN, GOOGLE_BUSINESS, THREADS
+  business       Business  @relation("BusinessSocialAccounts", fields: [businessId], references: [id], onDelete: Cascade)
+  platform       String // INSTAGRAM, FACEBOOK, TIKTOK, LINKEDIN, GOOGLE_BUSINESS, THREADS
   accountName    String
-  accessToken    String   // Encrypted — or Ayrshare profile key
+  accessToken    String // Encrypted — or Ayrshare profile key
   refreshToken   String?
   tokenExpiresAt DateTime?
   externalId     String?
-  isActive       Boolean  @default(true)
+  isActive       Boolean   @default(true)
   lastPostAt     DateTime?
 
   createdAt DateTime @default(now())
@@ -45,26 +45,26 @@ model SocialMediaAccount {
 }
 
 model SocialPost {
-  id            String   @id @default(uuid())
-  businessId    String
-  business      Business @relation("BusinessSocialPosts", fields: [businessId], references: [id], onDelete: Cascade)
-  createdById   String
-  createdBy     User     @relation("UserSocialPosts", fields: [createdById], references: [id])
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation("BusinessSocialPosts", fields: [businessId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User     @relation("UserSocialPosts", fields: [createdById], references: [id])
 
-  caption       String   @db.Text
+  caption       String  @db.Text
   mediaUrl      String?
-  mediaType     String?  // IMAGE, VIDEO, CAROUSEL
+  mediaType     String? // IMAGE, VIDEO, CAROUSEL
   templateId    String?
-  isAiGenerated Boolean  @default(false)
+  isAiGenerated Boolean @default(false)
 
-  triggerType   String?  // PR_ACHIEVED, CHALLENGE_COMPLETE, WEEKLY_SUMMARY, MILESTONE, CLASS_PROMO, MANUAL
-  triggerData   Json?
+  triggerType String? // PR_ACHIEVED, CHALLENGE_COMPLETE, WEEKLY_SUMMARY, MILESTONE, CLASS_PROMO, MANUAL
+  triggerData Json?
 
   athleteConsentIds String[] // Client IDs who consented
 
-  status        String   @default("DRAFT") // DRAFT, APPROVED, QUEUED, PUBLISHED, FAILED
-  approvedById  String?
-  approvedAt    DateTime?
+  status       String    @default("DRAFT") // DRAFT, APPROVED, QUEUED, PUBLISHED, FAILED
+  approvedById String?
+  approvedAt   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -76,18 +76,18 @@ model SocialPost {
 }
 
 model SocialPostPublish {
-  id           String             @id @default(uuid())
-  postId       String
-  post         SocialPost         @relation(fields: [postId], references: [id], onDelete: Cascade)
-  accountId    String
-  account      SocialMediaAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  id        String             @id @default(uuid())
+  postId    String
+  post      SocialPost         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  accountId String
+  account   SocialMediaAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   scheduledAt  DateTime?
   publishedAt  DateTime?
-  status       String   @default("PENDING") // PENDING, PUBLISHING, PUBLISHED, FAILED
+  status       String    @default("PENDING") // PENDING, PUBLISHING, PUBLISHED, FAILED
   externalId   String?
-  errorMessage String?  @db.Text
-  retryCount   Int      @default(0)
+  errorMessage String?   @db.Text
+  retryCount   Int       @default(0)
 
   @@index([scheduledAt, status])
   @@index([postId])
@@ -96,26 +96,26 @@ model SocialPostPublish {
 // Community Feed
 // ============================================
 model CommunityPost {
-  id          String   @id @default(uuid())
-  businessId  String
-  business    Business @relation("BusinessCommunityPosts", fields: [businessId], references: [id], onDelete: Cascade)
-  authorId    String
-  author      User     @relation("UserCommunityPosts", fields: [authorId], references: [id])
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation("BusinessCommunityPosts", fields: [businessId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User     @relation("UserCommunityPosts", fields: [authorId], references: [id])
 
-  content     String   @db.Text
-  mediaUrl    String?
-  type        String   @default("GENERAL") // ANNOUNCEMENT, MOTIVATION, WORKOUT_SHARE, ACHIEVEMENT, GENERAL
-  isPinned    Boolean  @default(false)
+  content  String  @db.Text
+  mediaUrl String?
+  type     String  @default("GENERAL") // ANNOUNCEMENT, MOTIVATION, WORKOUT_SHARE, ACHIEVEMENT, GENERAL
+  isPinned Boolean @default(false)
 
   // Broadcast / notification delivery
-  teamId       String?  // Scope to a specific team (null = all members)
-  notifyInApp  Boolean  @default(false)
-  notifyEmail  Boolean  @default(false)
-  notifySMS    Boolean  @default(false)
-  notifiedAt   DateTime? // When notifications were sent
+  teamId      String? // Scope to a specific team (null = all members)
+  notifyInApp Boolean   @default(false)
+  notifyEmail Boolean   @default(false)
+  notifySMS   Boolean   @default(false)
+  notifiedAt  DateTime? // When notifications were sent
 
-  likesCount    Int    @default(0)
-  commentsCount Int    @default(0)
+  likesCount    Int @default(0)
+  commentsCount Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -132,11 +132,11 @@ model CommunityPost {
 }
 
 model CommunityComment {
-  id     String        @id @default(uuid())
-  postId String
-  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  id       String        @id @default(uuid())
+  postId   String
+  post     CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   authorId String
-  author   User        @relation("UserCommunityComments", fields: [authorId], references: [id])
+  author   User          @relation("UserCommunityComments", fields: [authorId], references: [id])
 
   content String @db.Text
 

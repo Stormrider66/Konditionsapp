@@ -44,10 +44,10 @@ interface Client {
 
 interface ProgramWizardProps {
   clients: Client[]
-  basePath?: string
+  basePath: string
 }
 
-export function ProgramWizard({ clients, basePath = '/coach' }: ProgramWizardProps) {
+export function ProgramWizard({ clients, basePath }: ProgramWizardProps) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedSport, setSelectedSport] = useState<SportType | null>(null)

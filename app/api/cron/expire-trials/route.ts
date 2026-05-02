@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { sendEmail, getTrialExpiredEmailTemplate } from '@/lib/email'
+import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 
 const DEFAULT_BATCH_LIMIT = 120
 const DEFAULT_PAGE_SIZE = 200
@@ -344,9 +345,14 @@ async function processExpiredCoachTrial(subscription: ExpiredCoachTrial): Promis
     if (subscription.user.email) {
       try {
         const locale = (subscription.user.language === 'en' ? 'en' : 'sv') as 'sv' | 'en'
+        const businessSlug = await getUserPrimaryBusinessSlug(subscription.userId)
+        const upgradePath = businessSlug ? `/${businessSlug}/coach/subscription` : '/pricing'
         const template = getTrialExpiredEmailTemplate({
           recipientName: subscription.user.name || 'Coach',
-          upgradeUrl: `${process.env.NEXT_PUBLIC_APP_URL}/coach/subscription`,
+          upgradeUrl: new URL(
+            upgradePath,
+            process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
+          ).toString(),
           locale,
         })
         await sendEmail({

@@ -2,4 +2,4 @@
 'use client'
 
 // Re-export the client component from the original location
-export { default } from '@/app/coach/ergometer-tests/page'
+export { default } from '@/components/coach/ergometer-tests/ErgometerTestsPage'

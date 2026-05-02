@@ -36,6 +36,7 @@ export default function Home() {
   })
   const [user, setUser] = useState<User | null>(null)
   const [userRole, setUserRole] = useState<'COACH' | 'PHYSIO' | 'ATHLETE' | 'ADMIN' | null>(null)
+  const [businessSlug, setBusinessSlug] = useState<string | null>(null)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
 
   useEffect(() => {
@@ -64,6 +65,7 @@ export default function Home() {
               const bizResponse = await fetch('/api/users/me/business')
               const bizResult = await bizResponse.json()
               if (bizResult.data?.slug) {
+                setBusinessSlug(bizResult.data.slug)
                 window.location.href = `/${bizResult.data.slug}/athlete/dashboard`
                 return
               }
@@ -81,16 +83,12 @@ export default function Home() {
               const bizResult = await bizResponse.json()
               const portal = role === 'PHYSIO' ? 'physio' : 'coach'
               if (bizResult.data?.slug) {
+                setBusinessSlug(bizResult.data.slug)
                 window.location.href = `/${bizResult.data.slug}/${portal}/dashboard`
                 return
               }
             } catch (err) {
               console.error('Error fetching business context:', err)
-            }
-
-            if (role === 'PHYSIO') {
-              window.location.href = '/physio/dashboard'
-              return
             }
           }
         }
@@ -120,6 +118,10 @@ export default function Home() {
       console.error('Error fetching stats:', error)
       setStats({ clientCount: 0, testCount: 0, loading: false })
     }
+  }
+
+  const coachHref = (path: string) => {
+    return businessSlug ? `/${businessSlug}/coach${path}` : '/login'
   }
 
   // Show loading state while checking authentication
@@ -198,7 +200,7 @@ export default function Home() {
             <div className="lg:col-span-2">
               <h2 className="text-lg font-semibold mb-4">Snabbåtgärder</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <Link href="/test">
+                <Link href={coachHref('/test')}>
                   <Card className="h-full hover:shadow-lg hover:border-blue-300 transition cursor-pointer group">
                     <CardContent className="p-4 text-center">
                       <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-200 transition">
@@ -210,7 +212,7 @@ export default function Home() {
                   </Card>
                 </Link>
 
-                <Link href="/clients">
+                <Link href={coachHref('/clients')}>
                   <Card className="h-full hover:shadow-lg hover:border-green-300 transition cursor-pointer group">
                     <CardContent className="p-4 text-center">
                       <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-green-200 transition">
@@ -222,7 +224,7 @@ export default function Home() {
                   </Card>
                 </Link>
 
-                <Link href="/coach/programs">
+                <Link href={coachHref('/programs')}>
                   <Card className="h-full hover:shadow-lg hover:border-purple-300 transition cursor-pointer group">
                     <CardContent className="p-4 text-center">
                       <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-purple-200 transition">
@@ -234,7 +236,7 @@ export default function Home() {
                   </Card>
                 </Link>
 
-                <Link href="/coach/ai-studio">
+                <Link href={coachHref('/ai-studio')}>
                   <Card className="h-full hover:shadow-lg hover:border-amber-300 transition cursor-pointer group">
                     <CardContent className="p-4 text-center">
                       <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-amber-200 transition">
@@ -246,7 +248,7 @@ export default function Home() {
                   </Card>
                 </Link>
 
-                <Link href="/coach/video-analysis">
+                <Link href={coachHref('/video-analysis')}>
                   <Card className="h-full hover:shadow-lg hover:border-pink-300 transition cursor-pointer group">
                     <CardContent className="p-4 text-center">
                       <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-pink-200 transition">
@@ -258,7 +260,7 @@ export default function Home() {
                   </Card>
                 </Link>
 
-                <Link href="/coach/monitoring">
+                <Link href={coachHref('/monitoring')}>
                   <Card className="h-full hover:shadow-lg hover:border-cyan-300 transition cursor-pointer group">
                     <CardContent className="p-4 text-center">
                       <div className="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-cyan-200 transition">

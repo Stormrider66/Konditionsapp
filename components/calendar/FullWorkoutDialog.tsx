@@ -50,7 +50,7 @@ const STUDIO_OPTIONS: StudioOption[] = [
     icon: Dumbbell,
     color: 'text-orange-600',
     bgColor: 'bg-orange-50 hover:bg-orange-100',
-    path: '/coach/strength',
+    path: '/strength',
   },
   {
     id: 'cardio',
@@ -59,7 +59,7 @@ const STUDIO_OPTIONS: StudioOption[] = [
     icon: HeartPulse,
     color: 'text-blue-600',
     bgColor: 'bg-blue-50 hover:bg-blue-100',
-    path: '/coach/cardio',
+    path: '/cardio',
   },
   {
     id: 'hybrid',
@@ -68,7 +68,7 @@ const STUDIO_OPTIONS: StudioOption[] = [
     icon: Layers,
     color: 'text-purple-600',
     bgColor: 'bg-purple-50 hover:bg-purple-100',
-    path: '/coach/hybrid-studio',
+    path: '/hybrid-studio',
   },
   {
     id: 'agility',
@@ -77,7 +77,7 @@ const STUDIO_OPTIONS: StudioOption[] = [
     icon: Zap,
     color: 'text-green-600',
     bgColor: 'bg-green-50 hover:bg-green-100',
-    path: '/coach/agility-studio',
+    path: '/agility-studio',
   },
   {
     id: 'free-text',
@@ -123,8 +123,13 @@ export function FullWorkoutDialog({
         return
       }
 
-      const prefix = businessSlug ? `/${businessSlug}` : ''
-      router.push(`${prefix}${option.path}?clientId=${clientId}&date=${dateString}&fromCalendar=true`)
+      if (!businessSlug) {
+        router.push('/login')
+        onOpenChange(false)
+        return
+      }
+
+      router.push(`/${businessSlug}/coach${option.path}?clientId=${clientId}&date=${dateString}&fromCalendar=true`)
       onOpenChange(false)
     },
     [router, clientId, date, onOpenChange, onOpenEventDialog, businessSlug]

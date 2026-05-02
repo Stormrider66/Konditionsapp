@@ -71,12 +71,14 @@ export default function BusinessClientsPage() {
   useEffect(() => {
     fetchClients()
     fetchTeams()
-  }, [])
+  }, [businessSlug])
 
   const fetchClients = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/clients')
+      const response = await fetch('/api/clients', {
+        headers: { 'x-business-slug': businessSlug },
+      })
       const result = await response.json()
 
       if (result.success) {
@@ -94,7 +96,9 @@ export default function BusinessClientsPage() {
 
   const fetchTeams = async () => {
     try {
-      const response = await fetch('/api/teams')
+      const response = await fetch('/api/teams', {
+        headers: { 'x-business-slug': businessSlug },
+      })
       const result = await response.json()
       if (result.success) {
         setTeams(result.data || [])
@@ -115,6 +119,7 @@ export default function BusinessClientsPage() {
     try {
       const response = await fetch(`/api/clients/${clientToDelete.id}`, {
         method: 'DELETE',
+        headers: { 'x-business-slug': businessSlug },
       })
 
       if (response.ok) {

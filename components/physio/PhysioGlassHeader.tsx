@@ -48,8 +48,9 @@ export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps
     const [businessName, setBusinessName] = useState<string | null>(null)
     const displayName = user?.user_metadata?.name || user?.email || 'Physio'
 
-    // Base path - either business-scoped or legacy
-    const basePath = businessSlug ? `/${businessSlug}/physio` : '/physio'
+    const physioHref = (path: string) => (
+        businessSlug ? `/${businessSlug}/physio${path}` : '/login'
+    )
 
     // Fetch business name if business-scoped
     React.useEffect(() => {
@@ -77,10 +78,10 @@ export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps
 
     // Main navigation items
     const mainNavItems = [
-        { href: `${basePath}/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
-        { href: `${basePath}/athletes`, label: 'Athletes', icon: Users },
-        { href: `${basePath}/treatments`, label: 'Treatments', icon: Stethoscope },
-        { href: `${basePath}/rehab-programs`, label: 'Rehab', icon: Activity },
+        { href: physioHref('/dashboard'), label: 'Dashboard', icon: LayoutDashboard },
+        { href: physioHref('/athletes'), label: 'Athletes', icon: Users },
+        { href: physioHref('/treatments'), label: 'Treatments', icon: Stethoscope },
+        { href: physioHref('/rehab-programs'), label: 'Rehab', icon: Activity },
     ]
 
     // Dropdown groups
@@ -89,18 +90,18 @@ export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps
             label: 'Tools',
             icon: ClipboardList,
             items: [
-                { href: `${basePath}/screenings`, label: 'Movement Screens', icon: Clipboard },
-                { href: `${basePath}/restrictions`, label: 'Restrictions', icon: Ban },
-                { href: `${basePath}/acute-reports`, label: 'Acute Reports', icon: AlertTriangle },
+                { href: physioHref('/screenings'), label: 'Movement Screens', icon: Clipboard },
+                { href: physioHref('/restrictions'), label: 'Restrictions', icon: Ban },
+                { href: physioHref('/acute-reports'), label: 'Acute Reports', icon: AlertTriangle },
             ]
         },
         more: {
             label: 'More',
             icon: Menu,
             items: [
-                { href: `${basePath}/messages`, label: 'Care Team', icon: MessageSquare },
-                { href: `${basePath}/reports`, label: 'Reports', icon: FileText },
-                { href: `${basePath}/settings`, label: 'Settings', icon: Settings },
+                { href: physioHref('/messages'), label: 'Care Team', icon: MessageSquare },
+                { href: physioHref('/reports'), label: 'Reports', icon: FileText },
+                { href: physioHref('/settings'), label: 'Settings', icon: Settings },
             ]
         }
     }
@@ -118,7 +119,7 @@ export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps
 
                 {/* Logo Area */}
                 <div className="flex items-center gap-4">
-                    <Link href={`${basePath}/dashboard`} className="flex items-center gap-2 group">
+                    <Link href={physioHref('/dashboard')} className="flex items-center gap-2 group">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(16,185,129,0.5)] group-hover:shadow-[0_0_20px_rgba(16,185,129,0.8)] transition-all">
                             {businessName ? businessName.charAt(0).toUpperCase() : <Stethoscope className="w-4 h-4" />}
                         </div>
@@ -235,7 +236,7 @@ export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps
                                 <DropdownMenuSeparator className="bg-white/10" />
                                 <AthleteModeToggle variant="dropdown" />
                                 <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
-                                    <Link href={`${basePath}/settings`}>
+                                    <Link href={physioHref('/settings')}>
                                         <Settings className="mr-2 h-4 w-4" />
                                         <span>Settings</span>
                                     </Link>

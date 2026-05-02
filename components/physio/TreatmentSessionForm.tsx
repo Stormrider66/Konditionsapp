@@ -71,7 +71,7 @@ const modalities = [
     'Instrument Assisted Soft Tissue',
 ]
 
-export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId, basePath = '/physio' }: TreatmentSessionFormProps) {
+export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId, basePath = '' }: TreatmentSessionFormProps) {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [athletes, setAthletes] = useState<Athlete[]>([])
@@ -159,7 +159,7 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
 
             if (res.ok) {
                 const data = await res.json()
-                router.push(`${basePath}/treatments/${data.id}`)
+                router.push(basePath ? `${basePath}/treatments/${data.id}` : '/login')
             } else {
                 const error = await res.json()
                 alert(error.error || 'Failed to create treatment session')

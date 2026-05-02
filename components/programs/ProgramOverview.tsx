@@ -50,10 +50,10 @@ import { ProgramInfographic } from '@/components/programs/ProgramInfographic'
 
 interface ProgramOverviewProps {
   program: ProgramWithWeeks & { infographicUrl?: string | null; infographicModel?: string | null }
-  basePath?: string
+  basePath: string
 }
 
-export function ProgramOverview({ program, basePath = '/coach' }: ProgramOverviewProps) {
+export function ProgramOverview({ program, basePath }: ProgramOverviewProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isDeleting, setIsDeleting] = useState(false)

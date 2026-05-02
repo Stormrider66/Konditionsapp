@@ -16,6 +16,7 @@ import {
   sendPaymentFailedEmail,
 } from '@/lib/email';
 import { logger } from '@/lib/logger';
+import { getUserPrimaryBusinessSlug } from '@/lib/business-context';
 
 // Lazy initialize Stripe client to avoid build-time errors
 let _stripe: Stripe | null = null;
@@ -38,6 +39,11 @@ function getStripeClient(): Stripe {
 // validated at runtime rather than import time.
 function stripe(): Stripe {
   return getStripeClient();
+}
+
+async function getCoachSubscriptionPath(userId: string): Promise<string> {
+  const businessSlug = await getUserPrimaryBusinessSlug(userId);
+  return businessSlug ? `/${businessSlug}/coach/subscription` : '/pricing';
 }
 
 // Coach subscription price IDs from environment
@@ -437,7 +443,8 @@ async function handleCoachSubscriptionDeleted(
         user.name || user.email.split('@')[0],
         tier || 'Subscription',
         endDate.toLocaleDateString('sv-SE'),
-        'sv'
+        'sv',
+        { reactivatePath: await getCoachSubscriptionPath(userId) }
       );
     }
   } catch (emailError) {
@@ -527,7 +534,8 @@ async function handleCoachInvoiceFailed(
           user.name || user.email.split('@')[0],
           amount,
           retryDate,
-          'sv'
+          'sv',
+          { updatePaymentPath: await getCoachSubscriptionPath(subscription.metadata.userId) }
         );
       }
     } catch (emailError) {

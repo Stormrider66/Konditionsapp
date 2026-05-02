@@ -1,5 +1,5 @@
 // app/(business)/[businessSlug]/coach/settings/ai-kostnader/page.tsx
-import { AICostInfoClient } from '@/app/coach/settings/ai-kostnader/AICostInfoClient'
+import { AICostInfoClient } from '@/components/coach/settings/ai-kostnader/AICostInfoClient'
 import { requireCoach } from '@/lib/auth-utils'
 import { notFound } from 'next/navigation'
 import { validateBusinessMembership } from '@/lib/business-context'

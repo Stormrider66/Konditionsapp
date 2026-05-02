@@ -370,6 +370,12 @@ model Exercise {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  favorites     ExerciseFavorite[]
+  hiddenByUsers HiddenExercise[]
+
+  // Program importer: learned name → exercise mappings (Phase 5a)
+  nameAliases ExerciseNameAlias[]
+
   @@index([coachId])
   @@index([category])
   @@index([name])
@@ -381,12 +387,6 @@ model Exercise {
   @@index([isRehabExercise])
   @@index([progressionExerciseId])
   @@index([regressionExerciseId])
-
-  favorites       ExerciseFavorite[]
-  hiddenByUsers   HiddenExercise[]
-
-  // Program importer: learned name → exercise mappings (Phase 5a)
-  nameAliases     ExerciseNameAlias[]
 }
 
 /**
@@ -419,7 +419,6 @@ model ImportAttempt {
 
 /**
  * Learned name aliases for the program importer.
- *
  * When a coach picks the right exercise for a parsed program, we record the
  * source name → exerciseId mapping so the next import of that name auto-
  * resolves. Scoped to coachId (null = global/system alias available to all
@@ -695,21 +694,21 @@ model DailyMetrics {
 }
 
 model DailyMetricsProcessingJob {
-  id        String              @id @default(uuid())
-  jobKey    String              @unique
-  clientId  String
-  date      DateTime            @db.Date
-  signature String
-  payload   Json
-  status    BackgroundJobStatus @default(PENDING)
-  attempts  Int                 @default(0)
-  lastError String?             @db.Text
-  runAfter  DateTime            @default(now())
-  lockedAt  DateTime?
-  startedAt DateTime?
+  id          String              @id @default(uuid())
+  jobKey      String              @unique
+  clientId    String
+  date        DateTime            @db.Date
+  signature   String
+  payload     Json
+  status      BackgroundJobStatus @default(PENDING)
+  attempts    Int                 @default(0)
+  lastError   String?             @db.Text
+  runAfter    DateTime            @default(now())
+  lockedAt    DateTime?
+  startedAt   DateTime?
   completedAt DateTime?
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
@@ -1565,8 +1564,8 @@ model AdHocWorkout {
   trainingLoadId String?
 
   // Link to matching Garmin activity (auto-linked or manual)
-  garminActivityId String?          @unique
-  garminActivity   GarminActivity?  @relation("AdHocGarminLink", fields: [garminActivityId], references: [id], onDelete: SetNull)
+  garminActivityId String?         @unique
+  garminActivity   GarminActivity? @relation("AdHocGarminLink", fields: [garminActivityId], references: [id], onDelete: SetNull)
 
   // Relations
   athlete Client @relation("ClientAdHocWorkouts", fields: [athleteId], references: [id], onDelete: Cascade)
@@ -1737,37 +1736,37 @@ model LiveVoiceCoachingSession {
   clientId String
 
   // Workout reference (one of these is set based on workoutType)
-  workoutType            String  @default("CARDIO") // CARDIO, STRENGTH, or HYBRID
-  cardioAssignmentId     String?
-  strengthAssignmentId   String?
-  hybridAssignmentId     String?
+  workoutType          String  @default("CARDIO") // CARDIO, STRENGTH, or HYBRID
+  cardioAssignmentId   String?
+  strengthAssignmentId String?
+  hybridAssignmentId   String?
 
   // Tracking
-  status             String @default("ACTIVE") // ACTIVE, COMPLETED, ERROR
+  status             String  @default("ACTIVE") // ACTIVE, COMPLETED, ERROR
   durationSeconds    Int?
   audioInputSeconds  Float?
   audioOutputSeconds Float?
   estimatedCostUsd   Float?
-  modelUsed          String @default("gemini-3.1-flash-live-preview")
+  modelUsed          String  @default("gemini-3.1-flash-live-preview")
   endReason          String? // completed, user_cancelled, error, timeout
-  segmentsCompleted  Int    @default(0)
+  segmentsCompleted  Int     @default(0)
 
   // Post-session intelligence
-  summary            String?  @db.Text // AI-generated session summary
-  extractedMemories  Json?    // Memories extracted from transcripts
+  summary             String? @db.Text // AI-generated session summary
+  extractedMemories   Json? // Memories extracted from transcripts
   painOrInjuryFlagged Boolean @default(false) // Whether coach alert was triggered
 
   // Who paid for it (for cost attribution)
   keyOwnerId String
 
-  client               Client                       @relation("ClientLiveVoiceSessions", fields: [clientId], references: [id], onDelete: Cascade)
-  cardioAssignment     CardioSessionAssignment?      @relation("AssignmentLiveVoiceSessions", fields: [cardioAssignmentId], references: [id], onDelete: Cascade)
-  strengthAssignment   StrengthSessionAssignment?    @relation("StrengthAssignmentLiveVoiceSessions", fields: [strengthAssignmentId], references: [id], onDelete: Cascade)
-  hybridAssignment     HybridWorkoutAssignment?      @relation("HybridAssignmentLiveVoiceSessions", fields: [hybridAssignmentId], references: [id], onDelete: Cascade)
-  keyOwner             User                          @relation("UserLiveVoiceKeyOwner", fields: [keyOwnerId], references: [id], onDelete: Cascade)
-  transcripts          LiveVoiceTranscript[]
+  client             Client                     @relation("ClientLiveVoiceSessions", fields: [clientId], references: [id], onDelete: Cascade)
+  cardioAssignment   CardioSessionAssignment?   @relation("AssignmentLiveVoiceSessions", fields: [cardioAssignmentId], references: [id], onDelete: Cascade)
+  strengthAssignment StrengthSessionAssignment? @relation("StrengthAssignmentLiveVoiceSessions", fields: [strengthAssignmentId], references: [id], onDelete: Cascade)
+  hybridAssignment   HybridWorkoutAssignment?   @relation("HybridAssignmentLiveVoiceSessions", fields: [hybridAssignmentId], references: [id], onDelete: Cascade)
+  keyOwner           User                       @relation("UserLiveVoiceKeyOwner", fields: [keyOwnerId], references: [id], onDelete: Cascade)
+  transcripts        LiveVoiceTranscript[]
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   endedAt   DateTime?
 
   @@index([clientId])
@@ -1780,10 +1779,10 @@ model LiveVoiceCoachingSession {
 
 /// Individual transcript entries from a live voice coaching session
 model LiveVoiceTranscript {
-  id        String @id @default(uuid())
+  id        String   @id @default(uuid())
   sessionId String
   role      String // 'athlete' or 'coach_ai'
-  content   String @db.Text
+  content   String   @db.Text
   timestamp DateTime
 
   session LiveVoiceCoachingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
@@ -1828,12 +1827,12 @@ model WeeklyReport {
 
 /// A timed interval session where coaches record lap splits for athletes
 model IntervalSession {
-  id      String @id @default(uuid())
-  coachId String
-  coach   User   @relation("CoachIntervalSessions", fields: [coachId], references: [id])
-  teamId  String?
-  team    Team?  @relation(fields: [teamId], references: [id])
-  name    String?
+  id        String  @id @default(uuid())
+  coachId   String
+  coach     User    @relation("CoachIntervalSessions", fields: [coachId], references: [id])
+  teamId    String?
+  team      Team?   @relation(fields: [teamId], references: [id])
+  name      String?
   sportType String?
 
   // Protocol (optional structured definition)
@@ -1841,11 +1840,11 @@ model IntervalSession {
 
   // Scheduling (optional — schedule a session in advance)
   scheduledDate DateTime? @db.Date
-  scheduledTime String?   // "HH:mm" format
+  scheduledTime String? // "HH:mm" format
 
   // Rest mode: NONE (manual advance), INDIVIDUAL (per-athlete countdown), GROUP (shared countdown)
-  restMode            String    @default("NONE")
-  groupRestStartedAt  DateTime? // Anchor for group rest countdown
+  restMode           String    @default("NONE")
+  groupRestStartedAt DateTime? // Anchor for group rest countdown
 
   // Lifecycle: SETUP → ACTIVE → LACTATE_ENTRY → ENDED
   status          String    @default("SETUP")
@@ -1856,8 +1855,8 @@ model IntervalSession {
 
   participants IntervalSessionParticipant[]
   teamEvent    TeamEvent?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime                     @default(now())
+  updatedAt    DateTime                     @updatedAt
 
   @@index([coachId])
   @@index([coachId, scheduledDate])
@@ -1882,7 +1881,7 @@ model IntervalSessionParticipant {
 
   laps     IntervalLap[]
   lactates IntervalLactate[]
-  joinedAt DateTime @default(now())
+  joinedAt DateTime          @default(now())
 
   @@unique([sessionId, clientId])
   @@index([sessionId])
@@ -1891,13 +1890,13 @@ model IntervalSessionParticipant {
 
 /// Individual lap/split times recorded during interval sessions
 model IntervalLap {
-  id             String                    @id @default(uuid())
+  id             String                     @id @default(uuid())
   participantId  String
   participant    IntervalSessionParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  intervalNumber Int    // 1-based
-  splitTimeMs    Int    // This lap duration (ms)
-  cumulativeMs   Int    // From session start (ms)
-  recordedAt     DateTime @default(now())
+  intervalNumber Int // 1-based
+  splitTimeMs    Int // This lap duration (ms)
+  cumulativeMs   Int // From session start (ms)
+  recordedAt     DateTime                   @default(now())
 
   @@unique([participantId, intervalNumber])
   @@index([participantId])
@@ -1905,14 +1904,14 @@ model IntervalLap {
 
 /// Lactate measurements taken between intervals
 model IntervalLactate {
-  id             String                    @id @default(uuid())
+  id             String                     @id @default(uuid())
   participantId  String
   participant    IntervalSessionParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  intervalNumber Int    // 0 = resting/pre-session
-  lactate        Float  // mmol/L
+  intervalNumber Int // 0 = resting/pre-session
+  lactate        Float // mmol/L
   heartRate      Int?
   notes          String?
-  recordedAt     DateTime @default(now())
+  recordedAt     DateTime                   @default(now())
 
   @@unique([participantId, intervalNumber])
   @@index([participantId])
@@ -1920,12 +1919,12 @@ model IntervalLactate {
 
 /// Saved interval session templates for reuse
 model IntervalSessionTemplate {
-  id        String @id @default(uuid())
+  id        String  @id @default(uuid())
   coachId   String
-  coach     User   @relation("CoachIntervalTemplates", fields: [coachId], references: [id])
+  coach     User    @relation("CoachIntervalTemplates", fields: [coachId], references: [id])
   name      String
   sportType String?
-  protocol  Json   // { intervalCount, targetDurationSeconds, restDurationSeconds, description }
+  protocol  Json // { intervalCount, targetDurationSeconds, restDurationSeconds, description }
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1935,25 +1934,25 @@ model IntervalSessionTemplate {
 
 // ==================== WORKOUT TEMPLATE DISCOVERY ====================
 model WorkoutTemplate {
-  id              String                     @id @default(uuid())
-  name            String
-  nameSv          String
-  description     String?
-  descriptionSv   String?
-  category        WorkoutTemplateCategory
-  workoutType     WorkoutType
-  difficulty      WorkoutTemplateDifficulty
-  targetSports    SportType[]
-  muscleGroups    String[]
-  equipment       String[]
+  id                String                    @id @default(uuid())
+  name              String
+  nameSv            String
+  description       String?
+  descriptionSv     String?
+  category          WorkoutTemplateCategory
+  workoutType       WorkoutType
+  difficulty        WorkoutTemplateDifficulty
+  targetSports      SportType[]
+  muscleGroups      String[]
+  equipment         String[]
   estimatedDuration Int
-  sections        Json
-  isSystem        Boolean                    @default(true)
-  coachId         String?
-  coach           User?                      @relation("WorkoutTemplateOwner", fields: [coachId], references: [id], onDelete: SetNull)
-  usageCount      Int                        @default(0)
-  tags            String[]
-  favorites       WorkoutTemplateFavorite[]
+  sections          Json
+  isSystem          Boolean                   @default(true)
+  coachId           String?
+  coach             User?                     @relation("WorkoutTemplateOwner", fields: [coachId], references: [id], onDelete: SetNull)
+  usageCount        Int                       @default(0)
+  tags              String[]
+  favorites         WorkoutTemplateFavorite[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1972,8 +1971,8 @@ model WorkoutTemplateFavorite {
   templateId String
   createdAt  DateTime @default(now())
 
-  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  template WorkoutTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   @@unique([userId, templateId])
   @@index([userId])
@@ -1990,21 +1989,21 @@ model Competition {
   createdBy   User     @relation("UserCompetitions", fields: [createdById], references: [id])
 
   name        String
-  description String?  @db.Text
-  type        String   // MOST_WORKOUTS, TOTAL_VOLUME, TOTAL_DISTANCE, WEIGHT_LOSS, STREAK, CUSTOM
-  metric      String   // Human-readable metric name
-  unit        String?  // "kg", "km", "pass", etc.
+  description String? @db.Text
+  type        String // MOST_WORKOUTS, TOTAL_VOLUME, TOTAL_DISTANCE, WEIGHT_LOSS, STREAK, CUSTOM
+  metric      String // Human-readable metric name
+  unit        String? // "kg", "km", "pass", etc.
 
-  startDate   DateTime
-  endDate     DateTime
-  isActive    Boolean  @default(true)
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(true)
 
-  rules       Json?    // { minWorkouts, allowedExercises, etc. }
-  prizes      Json?    // { first, second, third }
-  imageUrl    String?  // Cover image
+  rules    Json? // { minWorkouts, allowedExercises, etc. }
+  prizes   Json? // { first, second, third }
+  imageUrl String? // Cover image
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   entries CompetitionEntry[]
 
@@ -2019,10 +2018,10 @@ model CompetitionEntry {
   clientId      String
   client        Client      @relation("ClientCompetitionEntries", fields: [clientId], references: [id], onDelete: Cascade)
 
-  currentValue  Float       @default(0)
+  currentValue  Float    @default(0)
   rank          Int?
-  joinedAt      DateTime    @default(now())
-  lastUpdatedAt DateTime    @default(now())
+  joinedAt      DateTime @default(now())
+  lastUpdatedAt DateTime @default(now())
 
   @@unique([competitionId, clientId])
   @@index([competitionId, currentValue])

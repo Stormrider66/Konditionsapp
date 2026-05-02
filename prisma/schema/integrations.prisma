@@ -262,24 +262,24 @@ model Concept2Result {
 }
 
 model GroupClass {
-  id          String    @id @default(uuid())
-  businessId  String
-  business    Business  @relation("BusinessGroupClasses", fields: [businessId], references: [id], onDelete: Cascade)
-  coachId     String
-  coach       User      @relation("GroupClassCoach", fields: [coachId], references: [id])
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation("BusinessGroupClasses", fields: [businessId], references: [id], onDelete: Cascade)
+  coachId    String
+  coach      User     @relation("GroupClassCoach", fields: [coachId], references: [id])
 
   name        String
   description String?
-  type        String   // SPINNING, HIIT, YOGA, CIRCUIT, CROSSFIT, BODY_PUMP, STRETCHING, OTHER
-  duration    Int      // minutes
-  maxCapacity Int      @default(20)
+  type        String // SPINNING, HIIT, YOGA, CIRCUIT, CROSSFIT, BODY_PUMP, STRETCHING, OTHER
+  duration    Int // minutes
+  maxCapacity Int       @default(20)
   locationId  String?
   location    Location? @relation("GroupClassLocation", fields: [locationId], references: [id])
 
-  dayOfWeek   Int      // 0=Sunday, 1=Monday...6=Saturday
-  startTime   String   // "07:00"
-  isActive    Boolean  @default(true)
-  color       String?
+  dayOfWeek Int // 0=Sunday, 1=Monday...6=Saturday
+  startTime String // "07:00"
+  isActive  Boolean @default(true)
+  color     String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -293,7 +293,7 @@ model GroupClass {
 model GroupClassSchedule {
   id           String     @id @default(uuid())
   groupClassId String
-  groupClass   GroupClass  @relation(fields: [groupClassId], references: [id], onDelete: Cascade)
+  groupClass   GroupClass @relation(fields: [groupClassId], references: [id], onDelete: Cascade)
 
   date      DateTime @db.Date
   startTime DateTime
@@ -313,14 +313,14 @@ model GroupClassSchedule {
 }
 
 model GroupClassBooking {
-  id         String              @id @default(uuid())
+  id         String             @id @default(uuid())
   scheduleId String
-  schedule   GroupClassSchedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  schedule   GroupClassSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   clientId   String
-  client     Client              @relation("ClientGroupClassBookings", fields: [clientId], references: [id], onDelete: Cascade)
+  client     Client             @relation("ClientGroupClassBookings", fields: [clientId], references: [id], onDelete: Cascade)
 
-  status      String   @default("BOOKED") // BOOKED, CHECKED_IN, CANCELLED, NO_SHOW
-  bookedAt    DateTime @default(now())
+  status      String    @default("BOOKED") // BOOKED, CHECKED_IN, CANCELLED, NO_SHOW
+  bookedAt    DateTime  @default(now())
   checkedInAt DateTime?
   cancelledAt DateTime?
 
@@ -332,32 +332,32 @@ model GroupClassBooking {
 // Gym Platform Integrations (Zoezi, Wondr, Boka Direkt, MindBody)
 // ============================================
 model GymPlatformConnection {
-  id          String   @id @default(uuid())
-  businessId  String
-  business    Business @relation("BusinessGymPlatforms", fields: [businessId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation("BusinessGymPlatforms", fields: [businessId], references: [id], onDelete: Cascade)
 
-  provider    String   // ZOEZI, WONDR, BOKADIREKT, MINDBODY
+  provider    String // ZOEZI, WONDR, BOKADIREKT, MINDBODY
   displayName String
 
   // Authentication (encrypted at application layer)
-  apiKey         String?  @db.Text
-  apiSecret      String?  @db.Text
+  apiKey         String?   @db.Text
+  apiSecret      String?   @db.Text
   siteId         String?
-  accessToken    String?  @db.Text
-  refreshToken   String?  @db.Text
+  accessToken    String?   @db.Text
+  refreshToken   String?   @db.Text
   tokenExpiresAt DateTime?
 
   // Sync configuration
-  syncClasses    Boolean @default(true)
-  syncBookings   Boolean @default(true)
-  pushWorkouts   Boolean @default(false)
-  syncInterval   Int     @default(30) // minutes
+  syncClasses  Boolean @default(true)
+  syncBookings Boolean @default(true)
+  pushWorkouts Boolean @default(false)
+  syncInterval Int     @default(30) // minutes
 
   // Status
-  isActive       Boolean  @default(true)
-  lastSyncAt     DateTime?
-  lastSyncError  String?
-  lastSyncStats  Json?
+  isActive      Boolean   @default(true)
+  lastSyncAt    DateTime?
+  lastSyncError String?
+  lastSyncStats Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -370,46 +370,46 @@ model GymPlatformConnection {
 }
 
 model GymSyncedClass {
-  id              String                @id @default(uuid())
-  connectionId    String
-  connection      GymPlatformConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  externalId      String
+  id           String                @id @default(uuid())
+  connectionId String
+  connection   GymPlatformConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  externalId   String
 
-  name            String
-  instructor      String?
-  startTime       DateTime
-  endTime         DateTime
-  location        String?
-  maxCapacity     Int?
-  bookedCount     Int?
-  description     String?
+  name        String
+  instructor  String?
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  maxCapacity Int?
+  bookedCount Int?
+  description String?
 
   groupClassScheduleId String?
 
-  lastSyncedAt    DateTime @default(now())
+  lastSyncedAt DateTime @default(now())
 
   @@unique([connectionId, externalId])
   @@index([connectionId, startTime])
 }
 
 model GymSyncedBooking {
-  id               String                @id @default(uuid())
-  connectionId     String
-  connection       GymPlatformConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  externalId       String
+  id           String                @id @default(uuid())
+  connectionId String
+  connection   GymPlatformConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  externalId   String
 
-  type             String   // CLASS, PT_SESSION, DROP_IN
+  type             String // CLASS, PT_SESSION, DROP_IN
   clientName       String
   clientEmail      String?
   clientExternalId String?
   clientId         String?
 
-  className        String?
-  startTime        DateTime
-  endTime          DateTime?
-  status           String   // BOOKED, CHECKED_IN, CANCELLED, NO_SHOW
+  className String?
+  startTime DateTime
+  endTime   DateTime?
+  status    String // BOOKED, CHECKED_IN, CANCELLED, NO_SHOW
 
-  lastSyncedAt     DateTime @default(now())
+  lastSyncedAt DateTime @default(now())
 
   @@unique([connectionId, externalId])
   @@index([connectionId, startTime])

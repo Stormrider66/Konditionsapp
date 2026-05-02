@@ -5,14 +5,22 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import type { Prisma } from '@prisma/client'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { getStaffPermissions } from '@/lib/permissions/assistant-coach'
+import { getBusinessMembership } from '@/lib/coach/team-access'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 
 export async function GET(req: NextRequest) {
   try {
     const user = await requireCoach()
-    const permissions = await getStaffPermissions(user.id)
+    const scope = getRequestedBusinessScope(req)
+    const membership = await getBusinessMembership(user.id, scope.businessSlug)
+    const permissions = await getStaffPermissions(user.id, scope.businessSlug)
+    const coachIds = membership
+      ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
+      : [user.id]
 
     const { searchParams } = new URL(req.url)
     const teamId = searchParams.get('teamId')
@@ -21,14 +29,19 @@ export async function GET(req: NextRequest) {
     const toDate = searchParams.get('to')
     const clientIds = searchParams.get('clientIds')?.split(',').filter(Boolean)
 
-    // Build client filter based on role
-    const clientFilter: Record<string, unknown> = {}
+    // Build client filter based on role and active business.
+    const clientFilter: Prisma.ClientWhereInput = {}
     if (permissions.isTeamScoped && permissions.assignedTeamIds.length > 0) {
       clientFilter.teamId = { in: teamId ? [teamId] : permissions.assignedTeamIds }
     } else if (teamId) {
       clientFilter.teamId = teamId
     }
-    clientFilter.userId = user.id
+    if (membership) {
+      clientFilter.businessId = membership.businessId
+      clientFilter.userId = { in: coachIds }
+    } else {
+      clientFilter.userId = user.id
+    }
     if (clientIds && clientIds.length > 0) {
       clientFilter.id = { in: clientIds }
     }
@@ -41,12 +54,9 @@ export async function GET(req: NextRequest) {
     // Fetch lab tests
     const tests = await prisma.test.findMany({
       where: {
-        client: permissions.isTeamScoped
-          ? { teamId: { in: teamId ? [teamId] : permissions.assignedTeamIds } }
-          : { userId: user.id, ...(teamId ? { teamId } : {}) },
+        client: clientFilter,
         ...(testType ? { testType: testType as any } : {}),
         ...(Object.keys(dateFilter).length > 0 ? { testDate: dateFilter } : {}),
-        ...(clientIds ? { clientId: { in: clientIds } } : {}),
       },
       include: {
         client: { select: { id: true, name: true, teamId: true, team: { select: { name: true } } } },
@@ -59,11 +69,8 @@ export async function GET(req: NextRequest) {
     // Fetch field tests
     const fieldTests = await prisma.fieldTest.findMany({
       where: {
-        client: permissions.isTeamScoped
-          ? { teamId: { in: teamId ? [teamId] : permissions.assignedTeamIds } }
-          : { userId: user.id, ...(teamId ? { teamId } : {}) },
+        client: clientFilter,
         ...(Object.keys(dateFilter).length > 0 ? { date: dateFilter } : {}),
-        ...(clientIds ? { clientId: { in: clientIds } } : {}),
       },
       include: {
         client: { select: { id: true, name: true, teamId: true, team: { select: { name: true } } } },

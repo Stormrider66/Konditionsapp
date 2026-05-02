@@ -24,6 +24,8 @@ import { POST as postGarminOAuth } from '@/app/api/integrations/garmin/route'
 import { POST as postConcept2OAuth } from '@/app/api/integrations/concept2/route'
 import { GET as getConcept2Sync, POST as postConcept2Sync } from '@/app/api/integrations/concept2/sync/route'
 
+const COACH_UPGRADE_URL = '/testbusiness/coach/subscription'
+
 // Helper to create a 403 feature-denied response
 function featureDeniedResponse(feature: string) {
   return NextResponse.json(
@@ -164,7 +166,7 @@ describe('Subscription gating - premium routes', () => {
       vi.mocked(requireCoach).mockResolvedValue({ id: 'coach-free', role: 'COACH' } as any)
       vi.mocked(requireCoachFeatureAccess).mockResolvedValue(
         NextResponse.json(
-          { error: 'Feature disabled', code: 'FEATURE_DISABLED', feature: 'program_generation', upgradeUrl: '/coach/subscription' },
+          { error: 'Feature disabled', code: 'FEATURE_DISABLED', feature: 'program_generation', upgradeUrl: COACH_UPGRADE_URL },
           { status: 403 }
         )
       )
@@ -189,7 +191,7 @@ describe('Subscription gating - premium routes', () => {
       vi.mocked(getCurrentUser).mockResolvedValue({ id: 'coach-free', role: 'COACH' } as any)
       vi.mocked(requireCoachFeatureAccess).mockResolvedValue(
         NextResponse.json(
-          { error: 'Feature disabled', code: 'FEATURE_DISABLED', feature: 'advanced_intelligence', upgradeUrl: '/coach/subscription' },
+          { error: 'Feature disabled', code: 'FEATURE_DISABLED', feature: 'advanced_intelligence', upgradeUrl: COACH_UPGRADE_URL },
           { status: 403 }
         )
       )
@@ -205,7 +207,7 @@ describe('Subscription gating - premium routes', () => {
       vi.mocked(getCurrentUser).mockResolvedValue({ id: 'coach-free', role: 'COACH' } as any)
       vi.mocked(requireCoachFeatureAccess).mockResolvedValue(
         NextResponse.json(
-          { error: 'Feature disabled', code: 'FEATURE_DISABLED', feature: 'advanced_intelligence', upgradeUrl: '/coach/subscription' },
+          { error: 'Feature disabled', code: 'FEATURE_DISABLED', feature: 'advanced_intelligence', upgradeUrl: COACH_UPGRADE_URL },
           { status: 403 }
         )
       )
@@ -227,7 +229,7 @@ describe('Subscription gating - premium routes', () => {
       vi.mocked(requireCoach).mockResolvedValue({ id: 'coach-free', role: 'COACH' } as any)
       vi.mocked(requireCoachFeatureAccess).mockResolvedValue(
         NextResponse.json(
-          { error: 'Feature disabled', code: 'FEATURE_DISABLED', feature: 'lactate_ocr', upgradeUrl: '/coach/subscription' },
+          { error: 'Feature disabled', code: 'FEATURE_DISABLED', feature: 'lactate_ocr', upgradeUrl: COACH_UPGRADE_URL },
           { status: 403 }
         )
       )

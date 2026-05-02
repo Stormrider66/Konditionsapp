@@ -39,9 +39,20 @@
       "Bash(1 <<'SQL'\nSELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'KnowledgeChunk' AND indexname LIKE '%embedding%';\nSQL)",
       "WebFetch(domain:www.anthropic.com)",
       "WebFetch(domain:www.nightfall.ai)",
-      "WebFetch(domain:ai.google.dev)"
+      "WebFetch(domain:ai.google.dev)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "mcp__vercel__get_deployment_build_logs",
+      "mcp__vercel__list_deployments",
+      "Bash(awk '{print $1\"\\\\t\"$2}')",
+      "Bash(npm run *)",
+      "Bash(npx vitest *)",
+      "Bash(npm info *)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "vercel"
+  ]
 }

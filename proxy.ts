@@ -2,6 +2,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { readJwtClaims, type AppClaims } from '@/lib/auth/jwt-claims'
+import { isVerifiedLoadTestBypassRequest } from '@/lib/load-test-bypass'
 
 type CachedAuthUser = { id: string; email: string | null; appMetadata: Record<string, unknown> | null } | null
 
@@ -249,6 +250,44 @@ const ATHLETE_REDIRECT_ROUTES = [
   '/athlete/predictions',
 ]
 
+type LegacyCoachRouteMatch = {
+  prefix: string
+  target: string
+}
+
+const LEGACY_COACH_ROUTE_ALIASES: LegacyCoachRouteMatch[] = [
+  { prefix: '/clients', target: '/coach/clients' },
+  { prefix: '/teams', target: '/coach/teams' },
+  { prefix: '/programs', target: '/coach/programs' },
+  { prefix: '/tests', target: '/coach/tests' },
+  { prefix: '/test', target: '/coach/test' },
+  { prefix: '/coach', target: '/coach' },
+]
+
+function matchLegacyCoachRoute(pathname: string): LegacyCoachRouteMatch | null {
+  return (
+    LEGACY_COACH_ROUTE_ALIASES.find(
+      ({ prefix }) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+    ) ?? null
+  )
+}
+
+function buildLegacyCoachRedirectPath(pathname: string, businessSlug: string): string {
+  const match = matchLegacyCoachRoute(pathname)
+  if (!match) return pathname
+
+  if (match.prefix === '/coach' && pathname === '/coach') {
+    return `/${businessSlug}/coach/dashboard`
+  }
+
+  if (match.prefix === '/tests' && pathname === '/tests') {
+    return `/${businessSlug}/coach/test-overview`
+  }
+
+  const suffix = pathname.slice(match.prefix.length)
+  return `/${businessSlug}${match.target}${suffix}`
+}
+
 function allowsInAppCamera(pathname: string): boolean {
   return pathname === '/athlete/nutrition/scan' || pathname.endsWith('/athlete/nutrition/scan')
 }
@@ -396,6 +435,11 @@ async function getSupabaseUserCached(
 export async function proxy(request: NextRequest) {
   const perfT0 = Date.now()
   const pathname = request.nextUrl.pathname
+  const incomingAuthUserEmail = request.headers.get('x-auth-user-email')
+
+  // Never forward client-supplied auth identity headers. Middleware may add
+  // this header later for an explicitly enabled local load-test bypass only.
+  request.headers.delete('x-auth-user-email')
 
   // Generate a correlation ID for end-to-end request tracing.
   // Propagate via request headers (for API routes / logger) and response headers (for clients).
@@ -413,6 +457,12 @@ export async function proxy(request: NextRequest) {
     res.headers.set('x-correlation-id', correlationId)
     res.headers.set('x-nonce', cspNonce)
     return addSecurityHeaders(res, pathname, cspNonce)
+  }
+
+  function redirectTo(path: string): NextResponse {
+    const url = new URL(path, request.url)
+    url.search = request.nextUrl.search
+    return NextResponse.redirect(url)
   }
 
   // =========================
@@ -465,9 +515,14 @@ export async function proxy(request: NextRequest) {
       })
     }
 
-    // If we found a matching business, rewrite the URL to inject the slug
+    // If we found a matching business, rewrite the URL to inject the slug.
+    // Custom domains also need the coach-owned legacy aliases mapped into
+    // their business-scoped coach destination before the rewrite returns.
     if (customDomainSlug && !pathname.startsWith(`/${customDomainSlug}`)) {
-      const newUrl = new URL(`/${customDomainSlug}${pathname}`, request.url)
+      const rewrittenPath = matchLegacyCoachRoute(pathname)
+        ? buildLegacyCoachRedirectPath(pathname, customDomainSlug)
+        : `/${customDomainSlug}${pathname}`
+      const newUrl = new URL(rewrittenPath, request.url)
       newUrl.search = request.nextUrl.search
       return NextResponse.rewrite(newUrl, {
         request: { headers: request.headers },
@@ -557,35 +612,11 @@ export async function proxy(request: NextRequest) {
 
   // Load-test auth bypass (local-only opt-in):
   // Allows k6 to avoid Supabase auth round-trips in middleware when explicitly enabled.
-  const rawHost =
-    request.headers.get('x-forwarded-host') ||
-    request.headers.get('host') ||
-    request.nextUrl.host
-  const hostnameFromHeaders = (() => {
-    if (!rawHost) return request.nextUrl.hostname
-    // Handle IPv6 host header format: "[::1]:3000"
-    const ipv6 = rawHost.match(/^\[(.+)\](?::\d+)?$/)
-    if (ipv6) return ipv6[1]
-    return rawHost.split(':')[0]
-  })()
-  const loadTestBypassEnabled =
-    hostnameFromHeaders === 'localhost' ||
-    hostnameFromHeaders === '127.0.0.1' ||
-    // k6 on Windows often targets IPv6 loopback to avoid connection-refused issues.
-    hostnameFromHeaders === '::1'
-  const loadTestSecret = process.env.LOAD_TEST_BYPASS_SECRET || 'local-k6-bypass-secret'
-  const loadTestBypassEmail = process.env.LOAD_TEST_BYPASS_USER_EMAIL
-  const incomingLoadTestSecret = request.headers.get('x-load-test-secret')
-  if (
-    isApiRoute &&
-    loadTestBypassEnabled &&
-    loadTestSecret &&
-    incomingLoadTestSecret === loadTestSecret
-  ) {
-    const forwardedEmail = request.headers.get('x-auth-user-email') || loadTestBypassEmail
-    if (!forwardedEmail) {
-      return finalizeResponse(response)
-    }
+  const forwardedEmail =
+    isApiRoute && isVerifiedLoadTestBypassRequest(request)
+      ? (incomingAuthUserEmail || process.env.LOAD_TEST_BYPASS_USER_EMAIL || '').trim()
+      : null
+  if (forwardedEmail) {
     const forwardedHeaders = new Headers(request.headers)
     forwardedHeaders.set('x-auth-user-email', forwardedEmail)
     const bypassResponse = NextResponse.next({
@@ -744,21 +775,26 @@ export async function proxy(request: NextRequest) {
         return finalizeResponse(response)
       }
 
-      // Role-based route protection
-      if (pathname.startsWith('/coach')) {
+      // Role-based route protection for coach-owned legacy routes.
+      // These URLs are kept only as compatibility aliases; the application
+      // destination for coaches/admins is always business-scoped.
+      if (matchLegacyCoachRoute(pathname)) {
         if (role !== 'COACH' && role !== 'ADMIN') {
           if (role === 'ATHLETE') {
             return NextResponse.redirect(new URL('/athlete/dashboard', request.url))
+          }
+          if (role === 'PHYSIO') {
+            const slug = await lookupPrimarySlug()
+            return NextResponse.redirect(new URL(slug ? `/${slug}/physio/dashboard` : '/', request.url))
           }
           return NextResponse.redirect(new URL('/', request.url))
         }
 
         // Every coach has a business (auto-provisioned at signup).
-        // Redirect every /coach/** hit to /{slug}/coach/**.
+        // Redirect every coach-owned legacy URL to /{slug}/coach/**.
         const businessSlug = await lookupPrimarySlug()
         if (businessSlug) {
-          const newPath = pathname.replace('/coach/', `/${businessSlug}/coach/`)
-          return NextResponse.redirect(new URL(newPath, request.url))
+          return redirectTo(buildLegacyCoachRedirectPath(pathname, businessSlug))
         }
         // No slug — shouldn't happen post Phase 8. Send to marketing.
         return NextResponse.redirect(new URL('/', request.url))
@@ -858,8 +894,11 @@ export async function proxy(request: NextRequest) {
         // Every physio has a business (auto-provisioned at signup).
         const physioBusinessSlug = await lookupPrimarySlug()
         if (physioBusinessSlug) {
-          const newPhysioPath = pathname.replace('/physio/', `/${physioBusinessSlug}/physio/`)
-          return NextResponse.redirect(new URL(newPhysioPath, request.url))
+          const newPhysioPath =
+            pathname === '/physio'
+              ? `/${physioBusinessSlug}/physio/dashboard`
+              : pathname.replace('/physio/', `/${physioBusinessSlug}/physio/`)
+          return redirectTo(newPhysioPath)
         }
         return NextResponse.redirect(new URL('/', request.url))
       }
