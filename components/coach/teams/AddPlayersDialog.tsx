@@ -83,10 +83,11 @@ export function AddPlayersDialog({
   const [newGender, setNewGender] = useState<'MALE' | 'FEMALE'>('MALE')
   const [creating, setCreating] = useState(false)
   const businessSlug = basePath.split('/').filter(Boolean)[0]
-  const businessHeaders = useMemo<Record<string, string>>(
-    () => (businessSlug ? { 'x-business-slug': businessSlug } : {}),
-    [businessSlug]
-  )
+  const businessHeaders = useMemo<Record<string, string>>(() => {
+    const headers: Record<string, string> = {}
+    if (businessSlug) headers['x-business-slug'] = businessSlug
+    return headers
+  }, [businessSlug])
 
   useEffect(() => {
     if (!open) return
