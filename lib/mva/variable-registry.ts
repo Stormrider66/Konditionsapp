@@ -6,6 +6,12 @@ import {
   extractTimeSeries,
   countRecent,
 } from './temporal-helpers'
+import { buildRepeatedSprintProfile } from '@/lib/hockey/ice-speed'
+import {
+  buildHockeyNormGap,
+  findHockeyNormReference,
+  DEFAULT_HOCKEY_NORM_REFERENCES,
+} from '@/lib/hockey/norm-references'
 
 /**
  * Helper: get best sport test result by category and protocol(s).
@@ -54,6 +60,40 @@ function bestHockeySide(left: number | null | undefined, right: number | null | 
   const values = [left, right].filter((value): value is number => value != null && Number.isFinite(value))
   if (values.length === 0) return null
   return lowerIsBetter ? Math.min(...values) : Math.max(...values)
+}
+
+function hockeyRepeatedSprint(bundle: AthleteDataBundle) {
+  const value = getLatestHockeyTest(bundle)?.endurance7x40
+  const times = Array.isArray(value)
+    ? value.filter((entry): entry is number => typeof entry === 'number' && Number.isFinite(entry))
+    : []
+  return buildRepeatedSprintProfile(times)
+}
+
+function ageAtDate(birthDate: Date | null | undefined, date: Date): number | null {
+  if (!birthDate) return null
+  const years = date.getFullYear() - birthDate.getFullYear()
+  const beforeBirthday = date.getMonth() < birthDate.getMonth()
+    || (date.getMonth() === birthDate.getMonth() && date.getDate() < birthDate.getDate())
+  return years - (beforeBirthday ? 1 : 0)
+}
+
+function hockeyDevelopmentLevel(bundle: AthleteDataBundle): string {
+  const latest = getLatestHockeyTest(bundle)
+  const age = ageAtDate(bundle.data.identity.client?.birthDate, latest?.testDate ?? new Date())
+  const teamName = bundle.data.identity.client?.team?.name.toLowerCase() ?? ''
+  if (/(a-?team|a-lag|senior|herr|dam|shl|allsvenskan|hockeyallsvenskan)/.test(teamName)) return 'A-team'
+  if (/j20|u20/.test(teamName)) return 'J20'
+  if (/j18|u18/.test(teamName)) return 'J18'
+  if (age == null) return 'Unknown'
+  if (age <= 17) return 'J18'
+  if (age <= 19) return 'J20'
+  return 'A-team'
+}
+
+function hockeyDefaultNormGap(bundle: AthleteDataBundle, metricKey: string, value: number | null): number | null {
+  const norm = findHockeyNormReference(DEFAULT_HOCKEY_NORM_REFERENCES, hockeyDevelopmentLevel(bundle), null, metricKey)
+  return buildHockeyNormGap(value, norm)?.gapToTarget ?? null
 }
 
 /**
@@ -1067,6 +1107,15 @@ export const MVA_VARIABLE_REGISTRY: MVAVariable[] = [
     sportRelevance: ['TEAM_ICE_HOCKEY'],
   },
   {
+    id: 'hockey_pullup_1rm',
+    name: 'Pull-up 1RM',
+    nameSv: 'Pull-up 1RM',
+    category: 'STRENGTH',
+    unit: 'kg',
+    extractor: (bundle) => getLatestHockeyTest(bundle)?.pullUp1RM ?? null,
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
     id: 'hockey_grip_strength_max',
     name: 'Max Grip Strength',
     nameSv: 'Max greppstyrka',
@@ -1075,6 +1124,27 @@ export const MVA_VARIABLE_REGISTRY: MVAVariable[] = [
     extractor: (bundle) => {
       const latest = getLatestHockeyTest(bundle)
       return latest ? bestHockeySide(latest.gripStrengthLeft, latest.gripStrengthRight) : null
+    },
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'hockey_standing_long_jump',
+    name: 'Hockey Standing Long Jump',
+    nameSv: 'Hockey stående längdhopp',
+    category: 'STRENGTH',
+    unit: 'cm',
+    extractor: (bundle) => getLatestHockeyTest(bundle)?.standingLongJump ?? null,
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'hockey_three_jump_best',
+    name: 'Hockey 3-Step Jump Best',
+    nameSv: 'Hockey 3-steg bäst',
+    category: 'STRENGTH',
+    unit: 'cm',
+    extractor: (bundle) => {
+      const latest = getLatestHockeyTest(bundle)
+      return latest ? bestHockeySide(latest.threeJumpLeft, latest.threeJumpRight) : null
     },
     sportRelevance: ['TEAM_ICE_HOCKEY'],
   },
@@ -1160,6 +1230,82 @@ export const MVA_VARIABLE_REGISTRY: MVAVariable[] = [
       const latest = getLatestHockeyTest(bundle)
       if (!latest?.beepTestLevel) return null
       return latest.beepTestLevel + ((latest.beepTestShuttle ?? 0) / 10)
+    },
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'hockey_7x40_best_kmh',
+    name: 'Hockey 7x40 Best Speed',
+    nameSv: 'Hockey 7x40 bästa fart',
+    category: 'PERFORMANCE',
+    unit: 'km/h',
+    extractor: (bundle) => hockeyRepeatedSprint(bundle).bestSpeedKmh,
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'hockey_7x40_average_kmh',
+    name: 'Hockey 7x40 Average Speed',
+    nameSv: 'Hockey 7x40 snittfart',
+    category: 'PERFORMANCE',
+    unit: 'km/h',
+    extractor: (bundle) => hockeyRepeatedSprint(bundle).averageSpeedKmh,
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'hockey_7x40_resistance_pct',
+    name: 'Hockey 7x40 Fatigue Resistance',
+    nameSv: 'Hockey 7x40 fatigue resistance',
+    category: 'PERFORMANCE',
+    unit: '%',
+    extractor: (bundle) => hockeyRepeatedSprint(bundle).fatigueResistancePct,
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'hockey_7x40_drop_pct',
+    name: 'Hockey 7x40 Drop',
+    nameSv: 'Hockey 7x40 drop',
+    category: 'PERFORMANCE',
+    unit: '%',
+    extractor: (bundle) => hockeyRepeatedSprint(bundle).fatigueDropPct,
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'gap_musclelab_wkg_to_target',
+    name: 'MuscleLab Gap to Target',
+    nameSv: 'MuscleLab gap till target',
+    category: 'PERFORMANCE',
+    unit: 'W/kg',
+    extractor: (bundle) => hockeyDefaultNormGap(bundle, 'muscleLabWkg', getHockeyMaximaValue(bundle, 'maxAveragePowerPerBodyMass')),
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'gap_sprint_10m_s_to_target',
+    name: '10m Sprint Gap to Target',
+    nameSv: '10m sprint gap till target',
+    category: 'PERFORMANCE',
+    unit: 's',
+    extractor: (bundle) => hockeyDefaultNormGap(bundle, 'sprint10m', getLatestHockeyTest(bundle)?.sprint10m ?? null),
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'gap_7x40_mean_kmh_to_target',
+    name: '7x40 Average Speed Gap to Target',
+    nameSv: '7x40 snittfart gap till target',
+    category: 'PERFORMANCE',
+    unit: 'km/h',
+    extractor: (bundle) => hockeyDefaultNormGap(bundle, 'endurance7x40AverageKmh', hockeyRepeatedSprint(bundle).averageSpeedKmh),
+    sportRelevance: ['TEAM_ICE_HOCKEY'],
+  },
+  {
+    id: 'gap_back_squat_x_bw_to_target',
+    name: 'Back Squat xBW Gap to Target',
+    nameSv: 'Knäböj xBW gap till target',
+    category: 'STRENGTH',
+    unit: 'xBW',
+    extractor: (bundle) => {
+      const squat = getLatestHockeyTest(bundle)?.backSquat1RM
+      const weight = bundle.data.identity.client?.weight
+      return hockeyDefaultNormGap(bundle, 'backSquat1RM', squat && weight ? squat / weight : null)
     },
     sportRelevance: ['TEAM_ICE_HOCKEY'],
   },

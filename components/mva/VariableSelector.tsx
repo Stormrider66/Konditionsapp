@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Play } from 'lucide-react'
+import { Play, Sparkles } from 'lucide-react'
 
 interface VariableInfo {
   id: string
@@ -51,6 +51,87 @@ const CATEGORY_ORDER = [
   'INTEGRATION',
   'TEMPORAL',
 ]
+
+const HOCKEY_VARIABLE_PRESETS = [
+  {
+    id: 'explosive-power',
+    label: 'Explosive power',
+    description: 'MuscleLab, jumps, acceleration and agility.',
+    variableIds: [
+      'hockey_musclelab_power_wkg',
+      'hockey_musclelab_max_force',
+      'hockey_standing_long_jump',
+      'hockey_three_jump_best',
+      'hockey_ice_sprint_5m',
+      'hockey_ice_sprint_10m',
+      'hockey_ice_agility_5_10_5',
+    ],
+  },
+  {
+    id: 'on-ice-speed',
+    label: 'On-ice speed',
+    description: '5-30m sprint profile and change of direction.',
+    variableIds: [
+      'hockey_ice_sprint_5m',
+      'hockey_ice_sprint_10m',
+      'hockey_ice_sprint_20m',
+      'hockey_ice_sprint_30m',
+      'hockey_ice_agility_5_10_5',
+    ],
+  },
+  {
+    id: 'repeated-sprint',
+    label: 'Repeated sprint',
+    description: '7x40 speed, drop, resistance and beep score.',
+    variableIds: [
+      'hockey_7x40_best_kmh',
+      'hockey_7x40_average_kmh',
+      'hockey_7x40_resistance_pct',
+      'hockey_7x40_drop_pct',
+      'hockey_beep_test_level',
+    ],
+  },
+  {
+    id: 'strength',
+    label: 'Strength',
+    description: 'Lower/upper body max strength and grip.',
+    variableIds: [
+      'hockey_back_squat_1rm',
+      'hockey_power_clean_1rm',
+      'hockey_bench_press_1rm',
+      'hockey_pullup_1rm',
+      'hockey_grip_strength_max',
+      'relative_strength',
+    ],
+  },
+  {
+    id: 'aerobic-readiness',
+    label: 'Aerobic + readiness',
+    description: 'Endurance, VO2 and recovery context.',
+    variableIds: [
+      'vo2max',
+      'hockey_beep_test_level',
+      'hockey_7x40_average_kmh',
+      'hockey_7x40_resistance_pct',
+      'readiness_mean',
+      'sleep_quality_mean',
+      'fatigue_mean',
+      'acute_load',
+      'acwr',
+    ],
+  },
+  {
+    id: 'target-gaps',
+    label: 'Target gaps',
+    description: 'Gap to J18/J20/A-team targets. CSV export uses saved team norms.',
+    variableIds: [
+      'gap_musclelab_wkg_to_target',
+      'gap_sprint_10m_s_to_target',
+      'gap_7x40_mean_kmh_to_target',
+      'gap_back_squat_x_bw_to_target',
+    ],
+  },
+] as const
 
 function coverageColor(coverage: number): string {
   if (coverage >= 0.8) return 'bg-green-500'
@@ -128,6 +209,14 @@ export function VariableSelector({
   }
 
   const selectedCount = selectedIds.size
+  const isHockeyTeam = teamSportType === 'TEAM_ICE_HOCKEY'
+  const availableIds = useMemo(() => new Set(variables.map((variable) => variable.id)), [variables])
+
+  const applyPreset = (ids: readonly string[]) => {
+    const next = ids.filter((id) => availableIds.has(id))
+    setSelectedIds(new Set(next))
+    setActiveCategory(null)
+  }
 
   return (
     <Card className="dark:bg-slate-900/50 dark:border-white/10">
@@ -162,6 +251,43 @@ export function VariableSelector({
             )
           })}
         </div>
+
+        {isHockeyTeam && (
+          <div className="rounded-lg border bg-muted/20 p-3 dark:border-white/10">
+            <div className="mb-2 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-cyan-500" />
+              <div>
+                <p className="text-sm font-medium dark:text-white">Hockey/SIMCA presets</p>
+                <p className="text-xs text-muted-foreground">
+                  Snabbval för PCA/PLS. Target-gap preset speglar standardnormer i appen och sparade normer i CSV-exporten.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-2 md:grid-cols-3">
+              {HOCKEY_VARIABLE_PRESETS.map((preset) => {
+                const availableCount = preset.variableIds.filter((id) => availableIds.has(id)).length
+                const disabled = availableCount === 0
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => applyPreset(preset.variableIds)}
+                    className="rounded-md border px-3 py-2 text-left transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold dark:text-white">{preset.label}</span>
+                      <Badge variant="outline" className="text-[10px]">
+                        {availableCount}/{preset.variableIds.length}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-[11px] text-muted-foreground">{preset.description}</p>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Select all/none for active category */}
         {activeCategory && (

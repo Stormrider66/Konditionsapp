@@ -12,6 +12,12 @@ interface HockeyTestSummary {
   developmentLevel?: string
   teamName?: string | null
   metrics: Record<string, number | null>
+  qualityFlags?: Array<{
+    key: string
+    severity: 'info' | 'warning'
+    label: string
+    detail: string
+  }>
 }
 
 interface HockeyTrend {
@@ -48,6 +54,15 @@ export interface HockeyAthleteReportPlanItem {
   tone: 'priority' | 'watch' | 'positive' | 'info'
 }
 
+export interface HockeyAthleteReportInterpretation {
+  id: string
+  tone: 'priority' | 'watch' | 'maintain' | 'quality' | 'positive'
+  title: string
+  summary: string
+  action: string
+  evidence: string[]
+}
+
 interface HockeyPathwaySeason {
   season: string
   level: string
@@ -69,6 +84,29 @@ interface HockeyPathwayMilestone {
   tone: 'info' | 'positive'
 }
 
+interface HockeyPathwayReadinessGap {
+  metricKey: string
+  label: string
+  value: number | null
+  target: number
+  elite: number
+  gapToTarget: number
+  gapToElite: number
+  unit: string
+  lowerIsBetter: boolean
+  status: 'missing' | 'below-target' | 'target' | 'elite'
+}
+
+interface HockeyPathwayReadiness {
+  level: string
+  score: number | null
+  targetHits: number
+  targetCount: number
+  eliteHits: number
+  gaps?: HockeyPathwayReadinessGap[]
+  primaryGap: HockeyPathwayReadinessGap | null
+}
+
 export interface HockeyAthleteReportData {
   clientId: string
   clientName: string
@@ -83,9 +121,12 @@ export interface HockeyAthleteReportData {
   snapshotMetricKeys: readonly string[]
   bestMetricKeys: readonly string[]
   coachPlan: HockeyAthleteReportPlanItem[]
+  interpretations?: HockeyAthleteReportInterpretation[]
   pathway?: {
     seasons: HockeyPathwaySeason[]
     milestones: HockeyPathwayMilestone[]
+    readiness?: HockeyPathwayReadiness[]
+    nextLevel?: HockeyPathwayReadiness | null
   }
 }
 
@@ -263,6 +304,22 @@ function planItems(pdf: jsPDF, items: HockeyAthleteReportPlanItem[], y: number):
   return y + 2
 }
 
+function interpretationItems(pdf: jsPDF, items: HockeyAthleteReportInterpretation[], y: number): number {
+  if (items.length === 0) return y
+  y = sectionTitle(pdf, 'Coach decisions', y)
+  return table(
+    pdf,
+    ['Signal', 'Decision', 'Action'],
+    items.slice(0, 5).map((item) => [
+      item.tone,
+      item.title,
+      item.action,
+    ]),
+    y,
+    { fontSize: 6.8 },
+  )
+}
+
 function metricByKey(data: HockeyAthleteReportData, key: string): HockeyAthleteReportMetric | undefined {
   return data.metrics.find((metric) => metric.key === key)
 }
@@ -318,24 +375,45 @@ function pathwayChange(value: number | null | undefined, unit: string, decimals:
 
 function developmentPathway(pdf: jsPDF, data: HockeyAthleteReportData, y: number): number {
   const seasons = data.pathway?.seasons ?? []
-  if (seasons.length === 0) return y
+  const readiness = data.pathway?.readiness ?? []
+  if (seasons.length === 0 && readiness.length === 0) return y
 
   y = sectionTitle(pdf, 'Development pathway', y)
-  y = table(
-    pdf,
-    ['Season', 'Level', 'Tests', 'Age', 'Power', '10m', '7x40 speed'],
-    seasons.slice(-8).map((season) => [
-      season.season,
-      season.level,
-      `${season.testCount}`,
-      season.ageRange ?? '-',
-      pathwayChange(season.changes.muscleLabWkg, 'W/kg', 1),
-      pathwayChange(season.changes.sprint10m, 's', 2),
-      pathwayChange(season.changes.endurance7x40AverageKmh, 'km/h', 1),
-    ]),
-    y,
-    { fontSize: 6.8 },
-  )
+  if (seasons.length > 0) {
+    y = table(
+      pdf,
+      ['Season', 'Level', 'Tests', 'Age', 'Power', '10m', '7x40 speed'],
+      seasons.slice(-8).map((season) => [
+        season.season,
+        season.level,
+        `${season.testCount}`,
+        season.ageRange ?? '-',
+        pathwayChange(season.changes.muscleLabWkg, 'W/kg', 1),
+        pathwayChange(season.changes.sprint10m, 's', 2),
+        pathwayChange(season.changes.endurance7x40AverageKmh, 'km/h', 1),
+      ]),
+      y,
+      { fontSize: 6.8 },
+    )
+  }
+
+  if (readiness.length > 0) {
+    y = table(
+      pdf,
+      ['Level', 'Ready', 'Targets', 'Elite', 'Primary gap'],
+      readiness.map((level) => [
+        level.level,
+        level.score == null ? '-' : `${level.score}%`,
+        `${level.targetHits}/${level.targetCount}`,
+        `${level.eliteHits}`,
+        level.primaryGap
+          ? `${level.primaryGap.label}: ${Math.abs(level.primaryGap.gapToTarget).toFixed(level.primaryGap.unit === 's' ? 2 : 1)} ${level.primaryGap.unit}`
+          : 'Target met',
+      ]),
+      y,
+      { fontSize: 6.8 },
+    )
+  }
 
   const milestones = data.pathway?.milestones ?? []
   if (milestones.length > 0) {
@@ -384,6 +462,8 @@ export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): B
     ['Experience', `${settings.yearsPlaying ?? '-'} years`],
     ['Shift profile', avgShiftLength ? `${avgShiftLength} sec/shift` : '-', `${settings.averageIceTimeMinutes ?? '-'} min · ${settings.shiftsPerGame ?? '-'} shifts`],
   ], y)
+
+  y = interpretationItems(pdf, data.interpretations ?? [], y)
 
   if (data.coachPlan.length > 0) {
     y = sectionTitle(pdf, 'Coach plan', y)
@@ -441,9 +521,24 @@ export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): B
     )
   }
 
+  if ((data.latest?.qualityFlags ?? []).length > 0) {
+    y = sectionTitle(pdf, 'Test quality', y)
+    y = table(
+      pdf,
+      ['Signal', 'Severity', 'Detail'],
+      (data.latest?.qualityFlags ?? []).map((flag) => [
+        flag.label,
+        flag.severity === 'warning' ? 'Check' : 'Info',
+        flag.detail,
+      ]),
+      y,
+      { fontSize: 6.8 },
+    )
+  }
+
   if (data.history.length > 0) {
     y = sectionTitle(pdf, 'Recent history', y)
-    y = table(
+    table(
       pdf,
       ['Date', 'MuscleLab', '10m', '30m', '5-10-5'],
       data.history.slice(0, 8).map((test) => [

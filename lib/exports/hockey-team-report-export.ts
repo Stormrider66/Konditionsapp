@@ -27,6 +27,17 @@ interface HockeyAthleteRow {
     positionCoverage: number
     band: HockeyBenchmarkBand
   } | null>
+  normGaps: Record<string, {
+    gapToTarget: number
+    gapToElite: number
+    unit: string
+  } | null>
+  qualityFlags: Array<{
+    key: string
+    severity: 'info' | 'warning'
+    label: string
+    detail: string
+  }>
 }
 
 interface HockeyLeader {
@@ -520,12 +531,19 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
       value: number | null
     } => Boolean(item))
   ).sort((a, b) => bandPriority(a.benchmark.band) - bandPriority(b.benchmark.band))
+  const qualityWarnings = data.athletes
+    .map((athlete) => ({
+      athlete,
+      warnings: athlete.qualityFlags.filter((flag) => flag.severity === 'warning'),
+    }))
+    .filter((entry) => entry.warnings.length > 0)
 
   y = summaryCards(pdf, [
     ['Athletes tested', `${testedAthletes}/${data.athletes.length}`],
     ['Hockey tests', `${data.testCount}`],
     ['Metrics tracked', `${data.metrics.length}`],
     ['Watchlist', `${priorityItems.length}`, 'priority/watch flags'],
+    ['Quality flags', `${qualityWarnings.length}`, 'athletes to verify'],
   ], y)
 
   const actions = buildHockeyActionItems(data)
@@ -583,6 +601,21 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
     )
   }
 
+  if (qualityWarnings.length > 0) {
+    y = sectionTitle(pdf, 'Test quality checks', y)
+    y = table(
+      pdf,
+      ['Athlete', 'Flags', 'First signal'],
+      qualityWarnings.slice(0, 12).map((entry) => [
+        entry.athlete.name,
+        `${entry.warnings.length}`,
+        entry.warnings[0]?.label ?? '-',
+      ]),
+      y,
+      { fontSize: 7 },
+    )
+  }
+
   const trendMetric = data.history.find((metric) => metric.key === 'muscleLabWkg' && metric.teamTrend.length > 1)
     ?? data.history.find((metric) => metric.teamTrend.length > 1)
   if (trendMetric) {
@@ -594,7 +627,7 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
   const coreMetrics = CORE_METRICS
     .map((key) => metricByKey(data, key))
     .filter((metric): metric is HockeyMetric => Boolean(metric))
-  y = table(
+  table(
     pdf,
     ['Athlete', 'Pos', 'Date', ...coreMetrics.map((metric) => metric.label)],
     data.athletes
@@ -606,8 +639,11 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
         athlete.latestTestDate ?? '-',
         ...coreMetrics.map((metric) => {
           const rank = athlete.ranks[metric.key]
+          const normGap = athlete.normGaps[metric.key]
           const value = formatMetricValue(athlete.metrics[metric.key], metric.unit)
-          return rank ? `${value} P${rank.percentile}` : value
+          const rankText = rank ? ` P${rank.percentile}` : ''
+          const targetText = normGap ? ` T${pathwayChange(normGap.gapToTarget, normGap.unit)}` : ''
+          return `${value}${rankText}${targetText}`
         }),
       ]),
     y,

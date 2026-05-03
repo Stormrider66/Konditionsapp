@@ -22,6 +22,13 @@ import { requireCoach } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { buildRepeatedSprintProfile, percentile, repeatedSprintScore, round as roundHockey } from '@/lib/hockey/ice-speed'
+import {
+  buildHockeyNormGap,
+  findHockeyNormReference,
+  mergeHockeyNormReferences,
+  type HockeyNormGap,
+} from '@/lib/hockey/norm-references'
+import { buildHockeyQualityFlags, type HockeyQualityFlag } from '@/lib/hockey/test-quality'
 
 interface PRRow {
   id: string
@@ -62,6 +69,7 @@ type HockeyMetricBenchmarks = Record<string, {
   positionCoverage: number
   band: HockeyBenchmarkBand
 } | null>
+type HockeyNormGaps = Record<string, HockeyNormGap | null>
 
 const DEFAULT_DAYS = 365
 const HOCKEY_PATHWAY_YEARS = 5
@@ -101,21 +109,6 @@ const PATHWAY_METRIC_KEYS = [
   'powerClean1RM',
 ] as const
 
-const HOCKEY_NORM_REFERENCES = [
-  { level: 'J18', position: 'All', metricKey: 'muscleLabWkg', target: 22, elite: 27, unit: 'W/kg' },
-  { level: 'J20', position: 'All', metricKey: 'muscleLabWkg', target: 25, elite: 30, unit: 'W/kg' },
-  { level: 'A-team', position: 'All', metricKey: 'muscleLabWkg', target: 28, elite: 34, unit: 'W/kg' },
-  { level: 'J18', position: 'All', metricKey: 'sprint10m', target: 1.95, elite: 1.82, unit: 's', lowerIsBetter: true },
-  { level: 'J20', position: 'All', metricKey: 'sprint10m', target: 1.88, elite: 1.76, unit: 's', lowerIsBetter: true },
-  { level: 'A-team', position: 'All', metricKey: 'sprint10m', target: 1.82, elite: 1.70, unit: 's', lowerIsBetter: true },
-  { level: 'J18', position: 'All', metricKey: 'endurance7x40AverageKmh', target: 25.0, elite: 27.0, unit: 'km/h' },
-  { level: 'J20', position: 'All', metricKey: 'endurance7x40AverageKmh', target: 26.0, elite: 28.0, unit: 'km/h' },
-  { level: 'A-team', position: 'All', metricKey: 'endurance7x40AverageKmh', target: 27.0, elite: 29.0, unit: 'km/h' },
-  { level: 'J18', position: 'All', metricKey: 'backSquat1RM', target: 1.5, elite: 1.8, unit: 'xBW' },
-  { level: 'J20', position: 'All', metricKey: 'backSquat1RM', target: 1.7, elite: 2.0, unit: 'xBW' },
-  { level: 'A-team', position: 'All', metricKey: 'backSquat1RM', target: 1.9, elite: 2.2, unit: 'xBW' },
-] as const
-
 type HockeyTestForSummary = {
   clientId: string
   testDate: Date
@@ -146,6 +139,7 @@ type TeamMemberForPathway = {
   id: string
   name: string
   birthDate: Date
+  weight: number
   position: string | null
   sportProfile: {
     hockeySettings: unknown
@@ -321,6 +315,14 @@ function averageMetric(rows: Array<Record<string, number | null>>, key: string, 
   return round(values.reduce((sum, value) => sum + value, 0) / values.length, unit === 's' ? 2 : 1)
 }
 
+function normComparableValue(metricValue: number | null | undefined, unit: string, bodyWeightKg: number | null | undefined): number | null {
+  if (metricValue == null || !Number.isFinite(metricValue)) return null
+  if (unit === 'xBW') {
+    return bodyWeightKg && bodyWeightKg > 0 ? round(metricValue / bodyWeightKg, 2) : null
+  }
+  return metricValue
+}
+
 function buildHockeyPathway(teamMembers: TeamMemberForPathway[], tests: HockeyPathwayTest[], teamName: string) {
   const testsByAthlete = new Map<string, HockeyPathwayTest[]>()
   for (const test of tests) {
@@ -466,6 +468,7 @@ export async function GET(
             id: true,
             name: true,
             birthDate: true,
+            weight: true,
             position: true,
             sportProfile: { select: { hockeySettings: true } },
           },
@@ -531,6 +534,19 @@ export async function GET(
       },
     })
 
+    const savedNormReferences = await prisma.hockeyNormReference.findMany({
+      where: {
+        teamId,
+        coachId: user.id,
+      },
+      orderBy: [
+        { level: 'asc' },
+        { metricKey: 'asc' },
+        { position: 'asc' },
+      ],
+    })
+    const hockeyNormReferences = mergeHockeyNormReferences(savedNormReferences)
+
     const memberNameById = new Map<string, string>(
       team.members.map((m) => [m.id, typeof m.name === 'string' ? m.name : ''])
     )
@@ -594,6 +610,22 @@ export async function GET(
         metrics,
         ranks: {} as HockeyMetricRanks,
         benchmarks: {} as HockeyMetricBenchmarks,
+        normGaps: {} as HockeyNormGaps,
+        qualityFlags: latest
+          ? buildHockeyQualityFlags({
+              metrics: {
+                ...metrics,
+                gripStrengthLeft: latest.gripStrengthLeft,
+                gripStrengthRight: latest.gripStrengthRight,
+                threeJumpLeft: latest.threeJumpLeft,
+                threeJumpRight: latest.threeJumpRight,
+                agility505Left: latest.agility505Left,
+                agility505Right: latest.agility505Right,
+              },
+              endurance7x40: latest.endurance7x40,
+              muscleLabMaxima: latest.muscleLabMaxima,
+            })
+          : [] as HockeyQualityFlag[],
       }
     })
 
@@ -710,6 +742,20 @@ export async function GET(
       }
     })
 
+    const pathway = buildHockeyPathway(team.members, hockeyTests, team.name)
+    const pathwayLevelByAthlete = new Map(pathway.athletes.map((athlete) => [athlete.id, athlete.currentLevel]))
+    const memberById = new Map(team.members.map((member) => [member.id, member]))
+
+    for (const athlete of hockeyAthletes) {
+      const member = memberById.get(athlete.id)
+      const level = pathwayLevelByAthlete.get(athlete.id) ?? 'Unknown'
+      for (const metric of HOCKEY_METRICS) {
+        const norm = findHockeyNormReference(hockeyNormReferences, level, athlete.position.key, metric.key)
+        const comparableValue = normComparableValue(athlete.metrics[metric.key], norm?.unit ?? metric.unit, member?.weight)
+        athlete.normGaps[metric.key] = buildHockeyNormGap(comparableValue, norm)
+      }
+    }
+
     const hockeyPositions = Array.from(
       hockeyAthletes.reduce((map, athlete) => {
         const existing = map.get(athlete.position.key)
@@ -799,8 +845,8 @@ export async function GET(
           leaders: hockeyLeaders,
           history: hockeyHistory,
           positions: hockeyPositions,
-          pathway: buildHockeyPathway(team.members, hockeyTests, team.name),
-          normReferences: HOCKEY_NORM_REFERENCES,
+          pathway,
+          normReferences: hockeyNormReferences,
           testCount: hockeyTests.length,
         },
       },

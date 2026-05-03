@@ -1081,3 +1081,26 @@ model HockeyPhysicalTest {
   @@index([teamId, testDate])
   @@index([coachId])
 }
+
+/// Coach/team-editable norm references for hockey pathway targets.
+model HockeyNormReference {
+  id                String   @id @default(uuid())
+  teamId            String?
+  businessId        String?
+  coachId           String
+  level             String
+  position          String   @default("All")
+  metricKey         String
+  target            Float
+  elite             Float
+  priorityThreshold Float?
+  unit              String
+  lowerIsBetter     Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([coachId, teamId, level, position, metricKey])
+  @@index([teamId])
+  @@index([coachId])
+  @@index([businessId])
+}
