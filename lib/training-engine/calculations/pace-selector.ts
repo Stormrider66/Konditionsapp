@@ -2,8 +2,13 @@
 // Comprehensive Pace Selection System - Unified Orchestration
 // Integrates VDOT, Lactate Analysis, and Athlete Classification
 
-import { calculateVDOTFromRace, type VDOTResult, type DanielsTrainingPaces } from './vdot'
-import { analyzeLactateProfile, type LactateProfile } from './lactate-profile-analyzer'
+import { calculateVDOTFromRace, type VDOTResult } from './vdot'
+import {
+  analyzeLactateProfile,
+  createLactateProfileFromThresholds,
+  type LactateProfile,
+  type StoredLactateThreshold,
+} from './lactate-profile-analyzer'
 import { classifyAthlete, type AthleteClassification } from './athlete-classifier'
 
 /**
@@ -26,6 +31,8 @@ export interface LactateTestData {
     lactate: number
   }>
   maxHR: number
+  aerobicThreshold?: StoredLactateThreshold
+  anaerobicThreshold?: StoredLactateThreshold
   manualLT1Stage?: number
   manualLT2Stage?: number
 }
@@ -178,12 +185,19 @@ export function selectOptimalPaces(
   let lactateConfidence: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | undefined
 
   if (lactateTest && lactateTest.testStages.length >= 4) {
-    lactateProfile = analyzeLactateProfile(
-      lactateTest.testStages,
-      lactateTest.maxHR,
-      lactateTest.manualLT1Stage,
-      lactateTest.manualLT2Stage
-    )
+    lactateProfile = lactateTest.anaerobicThreshold
+      ? createLactateProfileFromThresholds(
+          lactateTest.testStages,
+          lactateTest.maxHR,
+          lactateTest.anaerobicThreshold,
+          lactateTest.aerobicThreshold
+        )
+      : analyzeLactateProfile(
+          lactateTest.testStages,
+          lactateTest.maxHR,
+          lactateTest.manualLT1Stage,
+          lactateTest.manualLT2Stage
+        )
     lactateConfidence = lactateProfile.confidence
 
     // Add warnings from lactate analysis
@@ -293,7 +307,6 @@ export function selectOptimalPaces(
   } else {
     // Profile estimation (least accurate)
     // Estimate VDOT from profile data
-    const estimatedVDOT = estimateVDOTFromProfile(profile)
     const tempVDOT = calculateVDOTFromRace('MARATHON', 180, undefined, new Date(), profile.age, profile.gender) // 3:00 marathon baseline
 
     marathonPaceKmh = tempVDOT.trainingPaces.marathon.kmh
@@ -626,7 +639,7 @@ function buildNorwegianZones(
 /**
  * BUILD HR ZONES (5-zone system)
  */
-function buildHRZones(maxHR: number, restingHR: number): HRZones {
+function buildHRZones(maxHR: number, _restingHR: number): HRZones {
   // Using % of max HR method (simpler than Karvonen)
   return {
     zone1: {
@@ -655,29 +668,6 @@ function buildHRZones(maxHR: number, restingHR: number): HRZones {
       description: 'Maximum / VO2max'
     }
   }
-}
-
-/**
- * HELPER: Estimate VDOT from profile when no data available
- */
-function estimateVDOTFromProfile(profile: AthleteProfileData): number {
-  // Very rough estimation based on training volume and age
-  let baseVDOT = 40 // Average recreational runner
-
-  // Adjust for volume
-  if (profile.weeklyKm > 80) baseVDOT += 15
-  else if (profile.weeklyKm > 60) baseVDOT += 10
-  else if (profile.weeklyKm > 40) baseVDOT += 5
-
-  // Adjust for training age
-  if (profile.trainingAge > 5) baseVDOT += 5
-  else if (profile.trainingAge > 2) baseVDOT += 2
-
-  // Adjust for age
-  if (profile.age > 50) baseVDOT -= 5
-  else if (profile.age > 40) baseVDOT -= 2
-
-  return baseVDOT
 }
 
 /**

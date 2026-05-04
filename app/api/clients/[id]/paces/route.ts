@@ -5,8 +5,46 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
-import { selectOptimalPaces, type RacePerformance, type AthleteProfileData, type LactateTestData } from '@/lib/training-engine/calculations/pace-selector'
+import {
+  selectOptimalPaces,
+  type RacePerformance,
+  type AthleteProfileData,
+  type LactateTestData,
+} from '@/lib/training-engine/calculations/pace-selector'
+import type { StoredLactateThreshold } from '@/lib/training-engine/calculations/lactate-profile-analyzer'
 import { logger } from '@/lib/logger'
+
+function numberFromUnknown(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+  return undefined
+}
+
+function thresholdFromJson(value: unknown): StoredLactateThreshold | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+
+  const threshold = value as Record<string, unknown>
+  const speed = numberFromUnknown(threshold.value)
+  if (!speed || speed <= 0) return undefined
+
+  const lactate = numberFromUnknown(threshold.lactate)
+  const heartRate = numberFromUnknown(threshold.heartRate) ?? numberFromUnknown(threshold.hr)
+  const method = typeof threshold.method === 'string' ? threshold.method : undefined
+  const confidence = typeof threshold.confidence === 'string' ? threshold.confidence : undefined
+
+  return {
+    speed,
+    ...(lactate && lactate > 0 ? { lactate } : {}),
+    ...(heartRate && heartRate > 0 ? { heartRate } : {}),
+    ...(method ? { method } : {}),
+    ...(confidence === 'VERY_HIGH' || confidence === 'HIGH' || confidence === 'MEDIUM' || confidence === 'LOW'
+      ? { confidence }
+      : {}),
+  }
+}
 
 /**
  * GET /api/clients/[id]/paces
@@ -105,6 +143,8 @@ export async function GET(
             lactate: stage.lactate,
           })),
           maxHR: latestTest.maxHR,
+          aerobicThreshold: thresholdFromJson(latestTest.aerobicThreshold),
+          anaerobicThreshold: thresholdFromJson(latestTest.anaerobicThreshold),
         }
 
         // Set maxHR for profile if available
@@ -297,6 +337,8 @@ export async function POST(
             lactate: stage.lactate,
           })),
           maxHR: latestTest.maxHR,
+          aerobicThreshold: thresholdFromJson(latestTest.aerobicThreshold),
+          anaerobicThreshold: thresholdFromJson(latestTest.anaerobicThreshold),
           manualLT1Stage,
           manualLT2Stage,
         }

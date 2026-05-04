@@ -20,7 +20,13 @@ export interface LactateThreshold {
   speed: number // km/h (or power for cycling)
   heartRate: number // bpm
   confidence: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW'
-  method: 'DMAX' | 'RATIO' | 'MANUAL' | 'FIXED_2MMOL' | 'FIXED_4MMOL'
+  method:
+    | 'DMAX'
+    | 'RATIO'
+    | 'MANUAL'
+    | 'SAVED_TEST'
+    | 'FIXED_2MMOL'
+    | 'FIXED_4MMOL'
 }
 
 export type MetabolicType =
@@ -52,6 +58,14 @@ export interface LactateProfile {
   // Warnings and errors
   warnings: string[]
   errors: string[]
+}
+
+export interface StoredLactateThreshold {
+  lactate?: number
+  speed?: number
+  heartRate?: number
+  method?: string
+  confidence?: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW'
 }
 
 /**
@@ -118,7 +132,9 @@ export function analyzeLactateProfile(
     }
     const dmaxResult = calculateDmax(dmaxData)
 
-    if (dmaxResult.r2 >= 0.90) {
+    if (!isValidDmaxResult(dmaxResult, maxLactate, sortedStages)) {
+      warnings.push('D-max result was outside the observed test range. Using individual ratio method.')
+    } else if (dmaxResult.r2 >= 0.90) {
       // D-max successful with high confidence
       const profile = createProfileFromDmax(dmaxResult, maxLactate, sortedStages, curvePattern)
       return profile
@@ -132,12 +148,12 @@ export function analyzeLactateProfile(
       // D-max failed
       warnings.push(`D-max failed (R²=${dmaxResult.r2.toFixed(3)} < 0.85). Using individual ratio method.`)
     }
-  } catch (error) {
+  } catch {
     warnings.push('D-max calculation failed. Using individual ratio method.')
   }
 
   // === METHOD 3: Individual Ratio Method ===
-  const ratioProfile = createProfileFromRatioMethod(maxLactate, sortedStages, curvePattern, maxHR)
+  const ratioProfile = createProfileFromRatioMethod(maxLactate, sortedStages, curvePattern)
 
   // Add warnings about max lactate and metabolic type
   if (maxLactate > 15) {
@@ -159,6 +175,112 @@ export function analyzeLactateProfile(
   ratioProfile.errors = errors
 
   return ratioProfile
+}
+
+/**
+ * Build a lactate profile from thresholds already saved on the completed test.
+ *
+ * The test calculation pipeline is the source of truth for a completed lab test.
+ * The pace dashboard should not run a second D-max pass and risk picking a
+ * different turnpoint from the same data.
+ */
+export function createLactateProfileFromThresholds(
+  testStages: LactateTestStage[],
+  maxHR: number,
+  lt2Override: StoredLactateThreshold,
+  lt1Override?: StoredLactateThreshold
+): LactateProfile {
+  const errors: string[] = []
+
+  if (testStages.length < 4) {
+    errors.push('CRITICAL: Insufficient test stages (<4). Need at least 4 stages for reliable analysis.')
+    return createFallbackProfile(testStages, maxHR, errors)
+  }
+
+  const sortedStages = [...testStages].sort((a, b) => a.sequence - b.sequence)
+  const maxLactate = Math.max(...sortedStages.map(s => s.lactate))
+  const curvePattern = detectCurvePattern(sortedStages)
+
+  const lt2 = createThresholdFromStoredValue(
+    sortedStages,
+    maxLactate,
+    lt2Override,
+    'lt2',
+    maxHR
+  )
+
+  const lt1 = lt1Override
+    ? createThresholdFromStoredValue(sortedStages, maxLactate, lt1Override, 'lt1', maxHR)
+    : createThresholdFromStoredValue(
+        sortedStages,
+        maxLactate,
+        {
+          lactate: Math.max(1, Math.min(2, lt2.lactate * 0.45)),
+          speed: lt2.speed * 0.75,
+          heartRate: Math.round(lt2.heartRate * 0.78),
+          confidence: 'MEDIUM',
+        },
+        'lt1',
+        maxHR
+      )
+
+  const metabolicType = detectMetabolicType(maxLactate, lt2.lactatePercent / 100)
+  const athleteLevel = detectAthleteLevel(maxLactate, lt2.lactatePercent / 100, curvePattern)
+
+  return {
+    lt1,
+    lt2,
+    maxLactate,
+    lt1Ratio: lt1.lactatePercent / 100,
+    lt2Ratio: lt2.lactatePercent / 100,
+    metabolicType,
+    athleteLevel,
+    curvePattern,
+    confidence: lt2.confidence,
+    warnings: ['Using saved lactate-test thresholds for pace selection.'],
+    errors,
+  }
+}
+
+function createThresholdFromStoredValue(
+  stages: LactateTestStage[],
+  maxLactate: number,
+  threshold: StoredLactateThreshold,
+  thresholdType: 'lt1' | 'lt2',
+  maxHR: number
+): LactateThreshold {
+  const fallbackStage = thresholdType === 'lt2' ? stages[stages.length - 1] : stages[0]
+  const fallbackSpeed = fallbackStage.speed || fallbackStage.power || (thresholdType === 'lt2' ? 12 : 10)
+  const speed = isPositiveNumber(threshold.speed) ? threshold.speed : fallbackSpeed
+
+  const interpolatedLactate = interpolateStageValue(stages, speed, 'lactate')
+  const rawLactate = isPositiveNumber(threshold.lactate) ? threshold.lactate : interpolatedLactate
+  const fallbackLactate = thresholdType === 'lt2' ? Math.min(4, maxLactate) : Math.min(2, maxLactate)
+  const lactate = clamp(
+    isPositiveNumber(rawLactate) ? rawLactate : fallbackLactate,
+    0.1,
+    Math.max(maxLactate, 0.1)
+  )
+
+  const interpolatedHR = interpolateStageValue(stages, speed, 'heartRate')
+  const heartRate = Math.round(
+    isPositiveNumber(threshold.heartRate)
+      ? threshold.heartRate
+      : isPositiveNumber(interpolatedHR)
+        ? interpolatedHR
+        : thresholdType === 'lt2'
+          ? maxHR * 0.88
+          : maxHR * 0.75
+  )
+
+  return {
+    lactate: Number(lactate.toFixed(2)),
+    lactatePercent: (lactate / maxLactate) * 100,
+    speed: Number(speed.toFixed(2)),
+    heartRate,
+    confidence: threshold.confidence || 'HIGH',
+    method: isKnownThresholdMethod(threshold.method) ? threshold.method : 'SAVED_TEST',
+  }
 }
 
 /**
@@ -219,8 +341,7 @@ function createProfileFromDmax(
 function createProfileFromRatioMethod(
   maxLactate: number,
   stages: LactateTestStage[],
-  curvePattern: 'ASCENDING' | 'PLATEAU' | 'IRREGULAR',
-  maxHR: number
+  curvePattern: 'ASCENDING' | 'PLATEAU' | 'IRREGULAR'
 ): LactateProfile {
   // Estimate LT2 ratio based on max lactate and curve pattern
   const lt2RatioEstimate = estimateLT2Ratio(maxLactate, curvePattern)
@@ -459,6 +580,80 @@ function detectCurvePattern(
   }
 
   return 'ASCENDING'
+}
+
+function isValidDmaxResult(
+  dmaxResult: DmaxResult,
+  maxLactate: number,
+  stages: LactateTestStage[]
+): boolean {
+  const intensities = stages
+    .map((stage) => stage.speed || stage.power || 0)
+    .filter((value) => value > 0)
+
+  if (intensities.length === 0) return false
+
+  const minIntensity = Math.min(...intensities)
+  const maxIntensity = Math.max(...intensities)
+
+  return (
+    dmaxResult.intensity >= minIntensity &&
+    dmaxResult.intensity <= maxIntensity &&
+    dmaxResult.lactate > 0 &&
+    dmaxResult.lactate <= maxLactate
+  )
+}
+
+function interpolateStageValue(
+  stages: LactateTestStage[],
+  targetIntensity: number,
+  field: 'lactate' | 'heartRate'
+): number | undefined {
+  const validStages = stages
+    .map((stage) => ({
+      intensity: stage.speed || stage.power || 0,
+      value: stage[field],
+    }))
+    .filter((stage) => stage.intensity > 0 && Number.isFinite(stage.value))
+    .sort((a, b) => a.intensity - b.intensity)
+
+  if (validStages.length === 0) return undefined
+
+  if (targetIntensity <= validStages[0].intensity) return validStages[0].value
+
+  const lastStage = validStages[validStages.length - 1]
+  if (targetIntensity >= lastStage.intensity) return lastStage.value
+
+  for (let i = 1; i < validStages.length; i++) {
+    const below = validStages[i - 1]
+    const above = validStages[i]
+
+    if (targetIntensity <= above.intensity) {
+      const factor = (targetIntensity - below.intensity) / (above.intensity - below.intensity)
+      return below.value + factor * (above.value - below.value)
+    }
+  }
+
+  return undefined
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max)
+}
+
+function isPositiveNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+}
+
+function isKnownThresholdMethod(value: unknown): value is LactateThreshold['method'] {
+  return (
+    value === 'DMAX' ||
+    value === 'RATIO' ||
+    value === 'MANUAL' ||
+    value === 'SAVED_TEST' ||
+    value === 'FIXED_2MMOL' ||
+    value === 'FIXED_4MMOL'
+  )
 }
 
 /**

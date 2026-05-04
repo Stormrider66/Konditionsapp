@@ -28,8 +28,9 @@ import { PendingPRFeedSingle } from '@/components/coach/strength/PendingPRFeed'
 import { ProgressionDashboard } from '@/components/coach/progression/ProgressionDashboard'
 import { ClientLoadSummary } from '@/components/coach/clients/ClientLoadSummary'
 import { RecentTestsCard } from '@/components/coach/clients/RecentTestsCard'
+import { SportProfileEditor } from '@/components/coach/clients/SportProfileEditor'
 import { ReadinessDashboard } from '@/components/athlete/ReadinessDashboard'
-import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, Calendar, ExternalLink, Loader2, UserPlus, ClipboardList } from 'lucide-react'
+import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, ExternalLink, Loader2, UserPlus, ClipboardList } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import {
@@ -472,9 +473,15 @@ export default function BusinessClientDetailPage() {
         )}
       </div>
 
-      {!sportProfileLoading && sportProfile && (
+      {!sportProfileLoading && (
         <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6 mb-4 sm:mb-6">
           <h2 className="text-xl font-semibold mb-4 dark:text-white">Sportspecifik Data</h2>
+          <SportProfileEditor
+            key={sportProfile?.id ?? id}
+            clientId={id}
+            sportProfile={sportProfile}
+            onUpdated={(updatedProfile) => setSportProfile(updatedProfile as SportProfileSummary | null)}
+          />
           <SportSpecificAthleteView
             clientId={id}
             clientName={client.name}
