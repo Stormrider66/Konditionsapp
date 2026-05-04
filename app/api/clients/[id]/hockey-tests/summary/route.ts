@@ -39,6 +39,9 @@ interface HockeySummary {
   ageAtTest: number | null
   developmentLevel: string
   teamName: string | null
+  aerobicAutoLinked?: boolean
+  aerobicAutoLinkSource?: string | null
+  aerobicAutoLinkDate?: string | null
   metrics: Record<string, number | null>
   qualityFlags: HockeyQualityFlag[]
 }
@@ -113,6 +116,13 @@ interface HockeyPathway {
   milestones: HockeyPathwayMilestone[]
   readiness: HockeyPathwayReadiness[]
   nextLevel: HockeyPathwayReadiness | null
+}
+
+type LoadedHockeyTest = Awaited<ReturnType<typeof loadTests>>[number]
+type EnrichedHockeyTest = LoadedHockeyTest & {
+  aerobicAutoLinked?: boolean
+  aerobicAutoLinkSource?: string | null
+  aerobicAutoLinkDate?: string | null
 }
 
 const LOWER_IS_BETTER = new Set([
@@ -201,7 +211,7 @@ function improvementDeltaValue(key: string, latest: number | null, previous: num
 }
 
 function toSummary(
-  test: Awaited<ReturnType<typeof loadTests>>[number],
+  test: EnrichedHockeyTest,
   birthDate: Date | null,
   bodyMassKg: number | null,
 ): HockeySummary {
@@ -281,6 +291,9 @@ function toSummary(
     ageAtTest: age,
     developmentLevel: developmentLevel(age, test.team?.name),
     teamName: test.team?.name ?? null,
+    aerobicAutoLinked: test.aerobicAutoLinked === true,
+    aerobicAutoLinkSource: test.aerobicAutoLinkSource ?? null,
+    aerobicAutoLinkDate: test.aerobicAutoLinkDate ?? null,
     metrics,
     qualityFlags: buildHockeyQualityFlags({
       metrics,

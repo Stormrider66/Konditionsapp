@@ -119,6 +119,9 @@ interface HockeyAthleteRow {
   name: string
   position: { key: string; label: string }
   latestTestDate: string | null
+  aerobicAutoLinked?: boolean
+  aerobicAutoLinkSource?: string | null
+  aerobicAutoLinkDate?: string | null
   metrics: Record<string, number | null>
   ranks: Record<string, { rank: number; percentile: number } | null>
   benchmarks: Record<string, {
@@ -258,6 +261,19 @@ function formatDate(iso: string): string {
     month: 'short',
     day: 'numeric',
   })
+}
+
+function aerobicSourceLabel(source: string | null | undefined): string {
+  switch (source) {
+    case 'lab-test':
+      return 'labb'
+    case 'athlete-profile':
+      return 'profil'
+    case 'manual-profile':
+      return 'manuell'
+    default:
+      return 'labb/profil'
+  }
 }
 
 function formatMetricValue(value: number | null | undefined, unit: string): string {
@@ -1146,7 +1162,12 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                           {athlete.position.label}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
-                          {athlete.latestTestDate ? new Date(athlete.latestTestDate).toLocaleDateString('sv-SE') : '–'}
+                          <div>{athlete.latestTestDate ? new Date(athlete.latestTestDate).toLocaleDateString('sv-SE') : '–'}</div>
+                          {athlete.aerobicAutoLinked && (
+                            <Badge variant="secondary" className="mt-1 h-4 px-1.5 text-[9px] font-normal">
+                              Aerob {aerobicSourceLabel(athlete.aerobicAutoLinkSource)}
+                            </Badge>
+                          )}
                         </td>
                         {hockey.metrics.map((metric) => (
                           <td key={metric.key} className="px-3 py-2 text-right font-mono whitespace-nowrap">
@@ -1287,6 +1308,9 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                     </p>
                     <p className="text-xs text-muted-foreground">
                       VO2max, LT2, laktat och ramptid jämförs mot laget och kan exporteras till SIMCA.
+                      {hockeyAthletes.some((athlete) => athlete.aerobicAutoLinked)
+                        ? ' Badge i tabellen visar när värden är länkade från labb/profil.'
+                        : ''}
                     </p>
                   </div>
                   <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs">

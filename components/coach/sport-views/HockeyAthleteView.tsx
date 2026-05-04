@@ -49,6 +49,9 @@ interface HockeyTestSummary {
   ageAtTest: number | null
   developmentLevel: string
   teamName: string | null
+  aerobicAutoLinked?: boolean
+  aerobicAutoLinkSource?: string | null
+  aerobicAutoLinkDate?: string | null
   metrics: Record<string, number | null>
   qualityFlags: Array<{
     key: string
@@ -370,6 +373,19 @@ function formatDate(iso: string): string {
     month: 'short',
     day: 'numeric',
   })
+}
+
+function aerobicSourceLabel(source: string | null | undefined): string {
+  switch (source) {
+    case 'lab-test':
+      return 'labbtest'
+    case 'athlete-profile':
+      return 'profil'
+    case 'manual-profile':
+      return 'manuell profil'
+    default:
+      return 'profil/labb'
+  }
 }
 
 function formatMetric(value: number | null | undefined, unit: string, decimals: number): string {
@@ -889,7 +905,15 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
           {summary?.latest ? (
             <>
               <div className="flex items-center justify-between gap-3">
-                <Badge variant="secondary">{formatDate(summary.latest.testDate)}</Badge>
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge variant="secondary">{formatDate(summary.latest.testDate)}</Badge>
+                  {summary.latest.aerobicAutoLinked && (
+                    <Badge variant="secondary">
+                      Aerob länkad från {aerobicSourceLabel(summary.latest.aerobicAutoLinkSource)}
+                      {summary.latest.aerobicAutoLinkDate ? ` ${summary.latest.aerobicAutoLinkDate}` : ''}
+                    </Badge>
+                  )}
+                </div>
                 <Badge variant="outline">
                   {summary.latest.sourceType === 'MUSCLE_LAB_IMPORT' ? 'MuscleLab' : 'Manuell'}
                 </Badge>

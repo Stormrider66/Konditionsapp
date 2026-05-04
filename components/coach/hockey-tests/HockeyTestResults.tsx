@@ -115,6 +115,9 @@ interface HockeyTest {
       flags: string[]
     } | null
   } | null
+  aerobicAutoLinked?: boolean
+  aerobicAutoLinkSource?: string | null
+  aerobicAutoLinkDate?: string | null
 }
 
 interface HockeyTestResultsProps {
@@ -123,6 +126,19 @@ interface HockeyTestResultsProps {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function aerobicSourceLabel(source: string | null | undefined): string {
+  switch (source) {
+    case 'lab-test':
+      return 'labbtest'
+    case 'athlete-profile':
+      return 'profil'
+    case 'manual-profile':
+      return 'manuell profil'
+    default:
+      return 'profil/labb'
+  }
 }
 
 function TestValue({ label, value, unit, highlight, decimals = 2 }: {
@@ -475,7 +491,15 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                     {/* Endurance tests */}
                     {(test.beepTestLevel || endurance || test.vo2Max || test.lt1SpeedKmh || test.lt2SpeedKmh) && (
                       <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Activity className="h-3 w-3" /> Uthållighet</p>
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><Activity className="h-3 w-3" /> Uthållighet</p>
+                          {test.aerobicAutoLinked && (
+                            <Badge variant="secondary" className="h-4 px-1.5 text-[9px] font-normal">
+                              Länkat från {aerobicSourceLabel(test.aerobicAutoLinkSource)}
+                              {test.aerobicAutoLinkDate ? ` ${test.aerobicAutoLinkDate}` : ''}
+                            </Badge>
+                          )}
+                        </div>
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                           <TestValue label="Beep nivå" value={test.beepTestLevel} unit="" decimals={1} />
                           <TestValue label="Beep shuttle" value={test.beepTestShuttle} unit="" decimals={0} />
