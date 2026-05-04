@@ -19,6 +19,10 @@ import {
   findHockeyNormReference,
   mergeHockeyNormReferences,
 } from '@/lib/hockey/norm-references'
+import {
+  applyLinkedHockeyAerobicProfile,
+  getLinkedHockeyAerobicProfiles,
+} from '@/lib/hockey/aerobic-profile-link'
 
 const DEFAULT_DAYS = 365
 const SIMCA_EXPORT_VERSION = 'hockey-simca-v2'
@@ -589,7 +593,7 @@ export async function GET(
     })
     const hockeyNormReferences = mergeHockeyNormReferences(savedNormReferences)
 
-    const tests = await prisma.hockeyPhysicalTest.findMany({
+    const testsRaw = await prisma.hockeyPhysicalTest.findMany({
       where: {
         clientId: { in: memberIds },
         testDate: { gte: since },
@@ -632,6 +636,10 @@ export async function GET(
         endurance7x40: true,
       },
     })
+    const linkedProfiles = await getLinkedHockeyAerobicProfiles(memberIds)
+    const tests = testsRaw.map((test) => (
+      applyLinkedHockeyAerobicProfile(test, linkedProfiles.get(test.clientId))
+    ))
 
     const testsByAthlete = new Map<string, typeof tests>()
     for (const test of tests) {

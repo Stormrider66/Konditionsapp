@@ -25,6 +25,10 @@ import {
   buildHockeyCoachInterpretations,
   type HockeyCoachInterpretation,
 } from '@/lib/hockey/coach-interpretation'
+import {
+  applyLinkedHockeyAerobicProfile,
+  getLinkedHockeyAerobicProfiles,
+} from '@/lib/hockey/aerobic-profile-link'
 
 interface HockeySummary {
   id: string
@@ -574,6 +578,7 @@ async function loadTests(clientId: string) {
     take: 80,
     select: {
       id: true,
+      clientId: true,
       testDate: true,
       sourceType: true,
       notes: true,
@@ -633,7 +638,11 @@ export async function GET(
         select: { birthDate: true, position: true, weight: true },
       }),
     ])
-    const history = tests.map((test) => toSummary(test, client?.birthDate ?? null, client?.weight ?? null))
+    const linkedProfiles = await getLinkedHockeyAerobicProfiles([clientId])
+    const enrichedTests = tests.map((test) => (
+      applyLinkedHockeyAerobicProfile(test, linkedProfiles.get(test.clientId))
+    ))
+    const history = enrichedTests.map((test) => toSummary(test, client?.birthDate ?? null, client?.weight ?? null))
     const latest = history[0] ?? null
     const previous = history[1] ?? null
     const trends = buildTrends(latest, previous)

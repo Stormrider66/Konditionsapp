@@ -17,6 +17,10 @@ import {
 } from '@/lib/coach/team-access'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
+import {
+  applyLinkedHockeyAerobicProfile,
+  getLinkedHockeyAerobicProfiles,
+} from '@/lib/hockey/aerobic-profile-link'
 
 const createTestSchema = z.object({
   clientId: z.string().uuid(),
@@ -102,8 +106,10 @@ export async function GET(req: NextRequest) {
       orderBy: { testDate: 'desc' },
       take: 100,
     })
+    const linkedProfiles = await getLinkedHockeyAerobicProfiles(tests.map((test) => test.clientId))
+    const enrichedTests = tests.map((test) => applyLinkedHockeyAerobicProfile(test, linkedProfiles.get(test.clientId)))
 
-    return NextResponse.json({ tests })
+    return NextResponse.json({ tests: enrichedTests })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -148,6 +154,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const linkedProfiles = await getLinkedHockeyAerobicProfiles([parsed.data.clientId])
+    const aerobicData = applyLinkedHockeyAerobicProfile(
+      parsed.data,
+      linkedProfiles.get(parsed.data.clientId)
+    )
+
     const test = await prisma.hockeyPhysicalTest.create({
       data: {
         clientId: parsed.data.clientId,
@@ -174,16 +186,16 @@ export async function POST(req: NextRequest) {
         threeJumpRight: parsed.data.threeJumpRight,
         beepTestLevel: parsed.data.beepTestLevel,
         beepTestShuttle: parsed.data.beepTestShuttle,
-        vo2Max: parsed.data.vo2Max,
-        lt1SpeedKmh: parsed.data.lt1SpeedKmh,
-        lt1HeartRate: parsed.data.lt1HeartRate,
-        lt1Lactate: parsed.data.lt1Lactate,
-        lt2SpeedKmh: parsed.data.lt2SpeedKmh,
-        lt2HeartRate: parsed.data.lt2HeartRate,
-        lt2Lactate: parsed.data.lt2Lactate,
-        maxLactate: parsed.data.maxLactate,
-        maxHeartRate: parsed.data.maxHeartRate,
-        rampTimeSeconds: parsed.data.rampTimeSeconds,
+        vo2Max: aerobicData.vo2Max,
+        lt1SpeedKmh: aerobicData.lt1SpeedKmh,
+        lt1HeartRate: aerobicData.lt1HeartRate,
+        lt1Lactate: aerobicData.lt1Lactate,
+        lt2SpeedKmh: aerobicData.lt2SpeedKmh,
+        lt2HeartRate: aerobicData.lt2HeartRate,
+        lt2Lactate: aerobicData.lt2Lactate,
+        maxLactate: aerobicData.maxLactate,
+        maxHeartRate: aerobicData.maxHeartRate,
+        rampTimeSeconds: aerobicData.rampTimeSeconds,
         backSquat1RM: parsed.data.backSquat1RM,
         powerClean1RM: parsed.data.powerClean1RM,
         benchPress1RM: parsed.data.benchPress1RM,

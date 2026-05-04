@@ -29,6 +29,10 @@ import {
   type HockeyNormGap,
 } from '@/lib/hockey/norm-references'
 import { buildHockeyQualityFlags, type HockeyQualityFlag } from '@/lib/hockey/test-quality'
+import {
+  applyLinkedHockeyAerobicProfile,
+  getLinkedHockeyAerobicProfiles,
+} from '@/lib/hockey/aerobic-profile-link'
 
 interface PRRow {
   id: string
@@ -533,7 +537,7 @@ export async function GET(
       },
     })
 
-    const hockeyTests = await prisma.hockeyPhysicalTest.findMany({
+    const hockeyTestsRaw = await prisma.hockeyPhysicalTest.findMany({
       where: {
         clientId: { in: memberIds },
         testDate: { gte: pathwaySince },
@@ -576,6 +580,10 @@ export async function GET(
         muscleLabMaxima: true,
       },
     })
+    const linkedProfiles = await getLinkedHockeyAerobicProfiles(memberIds)
+    const hockeyTests = hockeyTestsRaw.map((test) => (
+      applyLinkedHockeyAerobicProfile(test, linkedProfiles.get(test.clientId))
+    ))
 
     const savedNormReferences = await prisma.hockeyNormReference.findMany({
       where: {
