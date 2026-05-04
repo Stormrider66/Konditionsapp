@@ -65,10 +65,10 @@ function metricFocus(metricKey: string): { title: string; description: string } 
       description: 'Prioritera baslyft, grepp/överkropp och progressiv styrka utan att störa match- eller istäthet.',
     }
   }
-  if (['beepScore', 'endurance7x40Best', 'endurance7x40Average', 'endurance7x40AverageKmh', 'endurance7x40Drop', 'endurance7x40Resistance', 'endurance7x40Score'].includes(metricKey)) {
+  if (['beepScore', 'vo2Max', 'lt1SpeedKmh', 'lt2SpeedKmh', 'maxLactate', 'maxHeartRate', 'rampTimeSeconds', 'endurance7x40Best', 'endurance7x40Average', 'endurance7x40AverageKmh', 'endurance7x40Drop', 'endurance7x40Resistance', 'endurance7x40Score'].includes(metricKey)) {
     return {
-      title: 'Repeated shift conditioning',
-      description: 'Använd upprepade 30-45 sek arbetsblock, låg falloff och kontrollerad återhämtning mellan serier.',
+      title: 'Aerob profil och repeated shift',
+      description: 'Kombinera LT2/VO2-styrda intervaller med upprepade 30-45 sek arbetsblock och kontrollerad återhämtning mellan serier.',
     }
   }
   return {
@@ -133,10 +133,13 @@ export function buildHockeyActionItems(data: HockeyActionPlanData, options?: { b
 
   const declining = data.history.flatMap((metric) =>
     metric.athletes
-      .filter((athlete) => athlete.delta != null && athlete.delta < 0)
+      .filter((athlete) => {
+        if (athlete.delta == null) return false
+        return metric.lowerIsBetter ? athlete.delta > 0 : athlete.delta < 0
+      })
       .map((athlete) => ({ metric, athlete, drop: athlete.delta as number }))
   )
-    .sort((a, b) => a.drop - b.drop)
+    .sort((a, b) => Math.abs(b.drop) - Math.abs(a.drop))
     .slice(0, 6)
 
   if (declining.length > 0) {

@@ -48,6 +48,10 @@ const METRIC_LABELS: Record<string, string> = {
   powerClean1RM: 'power clean',
   standingLongJump: 'standing long jump',
   threeJumpBest: '3-step jump',
+  vo2Max: 'VO2max',
+  lt1SpeedKmh: 'LT1 speed',
+  lt2SpeedKmh: 'LT2 speed',
+  maxLactate: 'max lactate',
 }
 
 function metricLabel(key: string): string {
@@ -147,6 +151,77 @@ export function buildHockeyCoachInterpretations(input: HockeyCoachInterpretation
 
   const fatigueDrop = latest.metrics.enduranceFatigueDrop
   const resistance = latest.metrics.endurance7x40Resistance
+  const vo2 = latest.metrics.vo2Max
+  const lt1Speed = latest.metrics.lt1SpeedKmh
+  const lt2Speed = latest.metrics.lt2SpeedKmh
+  const lt2HeartRate = latest.metrics.lt2HeartRate
+  const maxLactate = latest.metrics.maxLactate
+  const vo2Trend = input.trends.find((trend) => trend.key === 'vo2Max')
+  const lt2Trend = input.trends.find((trend) => trend.key === 'lt2SpeedKmh')
+
+  if (vo2 == null && lt2Speed == null && latest.metrics.beepScore == null) {
+    items.push({
+      id: 'aerobic-baseline-missing',
+      tone: 'watch',
+      title: 'Add one aerobic anchor',
+      summary: 'This profile has no VO2max, LT2 speed or beep-test anchor, so conditioning decisions lean heavily on repeated-sprint data.',
+      action: 'Add either the lab/ramp fields or a beep/YoYo-style field at the next test so aerobic capacity can be tracked across seasons.',
+      evidence: ['VO2max missing', 'LT2 speed missing'],
+    })
+  }
+
+  if (lt2Trend?.isImprovement && (!vo2Trend || Math.abs(vo2Trend.percentChange ?? 0) < 1)) {
+    items.push({
+      id: 'lt2-efficiency-gain',
+      tone: 'positive',
+      title: 'LT2 improved without a clear VO2max jump',
+      summary: 'The useful threshold speed is moving while VO2max is stable or unavailable, which usually points to better aerobic efficiency.',
+      action: 'Keep the sub-threshold and threshold dose, then check whether repeated-sprint average speed follows in the next hockey test.',
+      evidence: [
+        `LT2 ${signed(lt2Trend.delta, 'km/h', 1)}`,
+        vo2Trend ? `VO2max ${signed(vo2Trend.delta, 'ml/kg/min', 1)}` : 'VO2max trend unavailable',
+      ],
+    })
+  }
+
+  if (lt1Speed != null && lt2Speed != null && lt2Speed - lt1Speed < 1) {
+    items.push({
+      id: 'threshold-band-narrow',
+      tone: 'watch',
+      title: 'LT1-LT2 speed band is narrow',
+      summary: `LT1 and LT2 are only ${(lt2Speed - lt1Speed).toFixed(1)} km/h apart, so easy and threshold intensities may be too close in practice.`,
+      action: 'Separate low-intensity aerobic work from threshold work and re-check lactate/HR stability on the next ramp.',
+      evidence: [
+        `LT1 ${lt1Speed.toFixed(1)} km/h`,
+        `LT2 ${lt2Speed.toFixed(1)} km/h`,
+      ],
+    })
+  }
+
+  if (maxLactate != null && maxLactate >= 13) {
+    items.push({
+      id: 'high-lactate-profile',
+      tone: 'maintain',
+      title: 'High lactate ceiling supports repeated high-power shifts',
+      summary: `Max lactate is ${maxLactate.toFixed(1)} mmol/L, which suggests strong anaerobic contribution when the test was maximal.`,
+      action: 'Pair this with 7x40 drop and shift-recovery data so the player can use the ceiling without losing repeat quality.',
+      evidence: [
+        lt2HeartRate == null ? 'LT2 HR unavailable' : `LT2 HR ${lt2HeartRate.toFixed(0)} bpm`,
+      ],
+    })
+  } else if (maxLactate != null && maxLactate < 8) {
+    items.push({
+      id: 'low-lactate-profile',
+      tone: 'watch',
+      title: 'Low max lactate needs context',
+      summary: `Max lactate is ${maxLactate.toFixed(1)} mmol/L, which can mean an aerobic-leaning profile or that the ramp was not truly maximal.`,
+      action: 'Check max HR, RPE and test termination reason before using this as a fiber-profile signal.',
+      evidence: [
+        latest.metrics.maxHeartRate == null ? 'Max HR unavailable' : `Max HR ${latest.metrics.maxHeartRate.toFixed(0)} bpm`,
+      ],
+    })
+  }
+
   if (fatigueDrop != null && fatigueDrop >= 8) {
     items.push({
       id: 'repeated-sprint-fatigue',

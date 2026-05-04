@@ -365,6 +365,21 @@ function iceSpeedProfile(pdf: jsPDF, latest: HockeyTestSummary | null, y: number
     ], y)
   }
 
+  const hasLabAerobic = latest.metrics.vo2Max != null
+    || latest.metrics.lt1SpeedKmh != null
+    || latest.metrics.lt2SpeedKmh != null
+    || latest.metrics.maxLactate != null
+  if (hasLabAerobic) {
+    y = summaryCards(pdf, [
+      ['VO2max', formatMetricValue(latest.metrics.vo2Max, 'ml/kg/min', 1), 'lab/ramp'],
+      ['LT1 speed', formatMetricValue(latest.metrics.lt1SpeedKmh, 'km/h', 1), formatMetricValue(latest.metrics.lt1HeartRate, 'bpm', 0)],
+      ['LT2 speed', formatMetricValue(latest.metrics.lt2SpeedKmh, 'km/h', 1), formatMetricValue(latest.metrics.lt2HeartRate, 'bpm', 0)],
+      ['LT1 lactate', formatMetricValue(latest.metrics.lt1Lactate, 'mmol/L', 1), 'threshold'],
+      ['LT2 lactate', formatMetricValue(latest.metrics.lt2Lactate, 'mmol/L', 1), 'threshold'],
+      ['Max lactate', formatMetricValue(latest.metrics.maxLactate, 'mmol/L', 1), formatMetricValue(latest.metrics.maxHeartRate, 'bpm', 0)],
+    ], y)
+  }
+
   return y + 2
 }
 
@@ -391,6 +406,18 @@ function developmentPathway(pdf: jsPDF, data: HockeyAthleteReportData, y: number
         pathwayChange(season.changes.muscleLabWkg, 'W/kg', 1),
         pathwayChange(season.changes.sprint10m, 's', 2),
         pathwayChange(season.changes.endurance7x40AverageKmh, 'km/h', 1),
+      ]),
+      y,
+      { fontSize: 6.8 },
+    )
+    y = table(
+      pdf,
+      ['Season', 'VO2max', 'LT2 speed', 'Max lactate'],
+      seasons.slice(-8).map((season) => [
+        season.season,
+        pathwayChange(season.changes.vo2Max, 'ml/kg/min', 1),
+        pathwayChange(season.changes.lt2SpeedKmh, 'km/h', 1),
+        pathwayChange(season.changes.maxLactate, 'mmol/L', 1),
       ]),
       y,
       { fontSize: 6.8 },
@@ -540,13 +567,13 @@ export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): B
     y = sectionTitle(pdf, 'Recent history', y)
     table(
       pdf,
-      ['Date', 'MuscleLab', '10m', '30m', '5-10-5'],
+      ['Date', 'MuscleLab', '10m', 'VO2max', 'LT2'],
       data.history.slice(0, 8).map((test) => [
         formatDate(test.testDate),
         formatMetricValue(test.metrics.muscleLabWkg, 'W/kg', 1),
         formatMetricValue(test.metrics.sprint10m, 's', 2),
-        formatMetricValue(test.metrics.sprint30m, 's', 2),
-        formatMetricValue(test.metrics.agilityBest, 's', 2),
+        formatMetricValue(test.metrics.vo2Max, 'ml/kg/min', 1),
+        formatMetricValue(test.metrics.lt2SpeedKmh, 'km/h', 1),
       ]),
       y,
       { fontSize: 7 },

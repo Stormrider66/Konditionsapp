@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logError } from '@/lib/logger-console'
+import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { buildRepeatedSprintProfile, percentile, repeatedSprintScore } from '@/lib/hockey/ice-speed'
 import {
   buildHockeyNormGap,
@@ -45,6 +46,8 @@ const COLUMNS = [
   'pathway_power_wkg_slope_per_season',
   'pathway_10m_improvement_s_per_season',
   'pathway_7x40_kmh_slope_per_season',
+  'pathway_vo2_slope_per_season',
+  'pathway_lt2_kmh_slope_per_season',
   'gap_musclelab_wkg_to_target',
   'gap_musclelab_wkg_to_elite',
   'gap_sprint_10m_s_to_target',
@@ -71,6 +74,16 @@ const COLUMNS = [
   'beep_level',
   'beep_shuttle',
   'beep_score',
+  'vo2_max_ml_kg_min',
+  'lt1_speed_kmh',
+  'lt1_heart_rate_bpm',
+  'lt1_lactate_mmol_l',
+  'lt2_speed_kmh',
+  'lt2_heart_rate_bpm',
+  'lt2_lactate_mmol_l',
+  'max_lactate_mmol_l',
+  'max_heart_rate_bpm',
+  'ramp_time_s',
   'sprint_5m_s',
   'sprint_10m_s',
   'sprint_20m_s',
@@ -110,6 +123,11 @@ const COLUMNS = [
   'z_standing_long_jump_cm',
   'z_three_jump_best_cm',
   'z_beep_score',
+  'z_vo2_max_ml_kg_min',
+  'z_lt1_speed_kmh',
+  'z_lt2_speed_kmh',
+  'z_max_lactate_mmol_l',
+  'z_ramp_time_s',
   'z_sprint_5m_s',
   'z_sprint_10m_s',
   'z_sprint_20m_s',
@@ -127,7 +145,7 @@ const COLUMNS = [
 ] as const
 
 type SimcaExportColumn = typeof COLUMNS[number]
-type SimcaExportPresetId = 'full' | 'explosive_power' | 'on_ice_speed' | 'repeated_sprint' | 'strength' | 'target_gaps' | 'development_pathway'
+type SimcaExportPresetId = 'full' | 'explosive_power' | 'on_ice_speed' | 'repeated_sprint' | 'aerobic_profile' | 'strength' | 'target_gaps' | 'development_pathway'
 
 const BASE_SIMCA_COLUMNS = [
   'simca_export_version',
@@ -227,6 +245,40 @@ const SIMCA_EXPORT_PRESETS: Record<SimcaExportPresetId, { label: string; descrip
       'z_endurance_7x40_drop_pct',
     ],
   },
+  aerobic_profile: {
+    label: 'Aerobic profile',
+    description: 'VO2max, LT1/LT2, lactate, max HR, ramp time and repeated-sprint context.',
+    columns: [
+      ...BASE_SIMCA_COLUMNS,
+      'athlete_age_at_test',
+      'pathway_season',
+      'pathway_level',
+      'beep_score',
+      'vo2_max_ml_kg_min',
+      'lt1_speed_kmh',
+      'lt1_heart_rate_bpm',
+      'lt1_lactate_mmol_l',
+      'lt2_speed_kmh',
+      'lt2_heart_rate_bpm',
+      'lt2_lactate_mmol_l',
+      'max_lactate_mmol_l',
+      'max_heart_rate_bpm',
+      'ramp_time_s',
+      'endurance_7x40_mean_kmh',
+      'endurance_7x40_resistance_pct',
+      'endurance_7x40_rsa_score',
+      'pathway_vo2_slope_per_season',
+      'pathway_lt2_kmh_slope_per_season',
+      'z_vo2_max_ml_kg_min',
+      'z_lt1_speed_kmh',
+      'z_lt2_speed_kmh',
+      'z_max_lactate_mmol_l',
+      'z_ramp_time_s',
+      'z_endurance_7x40_mean_kmh',
+      'z_endurance_7x40_resistance_pct',
+      'z_endurance_7x40_rsa_score',
+    ],
+  },
   strength: {
     label: 'Strength',
     description: '1RM lifts, grip, pullups and relative squat strength.',
@@ -284,6 +336,8 @@ const SIMCA_EXPORT_PRESETS: Record<SimcaExportPresetId, { label: string; descrip
       'pathway_power_wkg_slope_per_season',
       'pathway_10m_improvement_s_per_season',
       'pathway_7x40_kmh_slope_per_season',
+      'pathway_vo2_slope_per_season',
+      'pathway_lt2_kmh_slope_per_season',
     ],
   },
 }
@@ -298,6 +352,11 @@ const Z_SCORE_METRICS = [
   { source: 'standing_long_jump_cm', target: 'z_standing_long_jump_cm' },
   { source: 'three_jump_best_cm', target: 'z_three_jump_best_cm' },
   { source: 'beep_score', target: 'z_beep_score' },
+  { source: 'vo2_max_ml_kg_min', target: 'z_vo2_max_ml_kg_min' },
+  { source: 'lt1_speed_kmh', target: 'z_lt1_speed_kmh' },
+  { source: 'lt2_speed_kmh', target: 'z_lt2_speed_kmh' },
+  { source: 'max_lactate_mmol_l', target: 'z_max_lactate_mmol_l' },
+  { source: 'ramp_time_s', target: 'z_ramp_time_s' },
   { source: 'sprint_5m_s', target: 'z_sprint_5m_s', lowerIsBetter: true },
   { source: 'sprint_10m_s', target: 'z_sprint_10m_s', lowerIsBetter: true },
   { source: 'sprint_20m_s', target: 'z_sprint_20m_s', lowerIsBetter: true },
@@ -468,12 +527,18 @@ export async function GET(
     const daysParam = Number(request.nextUrl.searchParams.get('days') ?? DEFAULT_DAYS)
     const presetId = exportPresetFromParam(request.nextUrl.searchParams.get('preset'))
     const manifestOnly = request.nextUrl.searchParams.get('manifest') === '1'
+    const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
     const days = Number.isFinite(daysParam) && daysParam > 0
       ? Math.min(Math.round(daysParam), 3650)
       : DEFAULT_DAYS
 
+    const accessibleTeam = await getAccessibleTeam(user.id, teamId, businessSlug)
+    if (!accessibleTeam) {
+      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+    }
+
     const team = await prisma.team.findFirst({
-      where: { id: teamId, userId: user.id },
+      where: { id: teamId },
       select: {
         id: true,
         name: true,
@@ -490,9 +555,7 @@ export async function GET(
       },
     })
 
-    if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
-    }
+    if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 })
 
     if (manifestOnly) {
       return NextResponse.json({
@@ -548,6 +611,16 @@ export async function GET(
         threeJumpRight: true,
         beepTestLevel: true,
         beepTestShuttle: true,
+        vo2Max: true,
+        lt1SpeedKmh: true,
+        lt1HeartRate: true,
+        lt1Lactate: true,
+        lt2SpeedKmh: true,
+        lt2HeartRate: true,
+        lt2Lactate: true,
+        maxLactate: true,
+        maxHeartRate: true,
+        rampTimeSeconds: true,
         sprint5m: true,
         sprint10m: true,
         sprint20m: true,
@@ -595,12 +668,16 @@ export async function GET(
         if (previousPower != null && power != null && power > previousPower) positiveChanges += 1
         if (previous?.sprint10m != null && test.sprint10m != null && test.sprint10m < previous.sprint10m) positiveChanges += 1
         if (previousEndurance?.meanKmh != null && endurance.meanKmh != null && endurance.meanKmh > previousEndurance.meanKmh) positiveChanges += 1
+        if (previous?.vo2Max != null && test.vo2Max != null && test.vo2Max > previous.vo2Max) positiveChanges += 1
+        if (previous?.lt2SpeedKmh != null && test.lt2SpeedKmh != null && test.lt2SpeedKmh > previous.lt2SpeedKmh) positiveChanges += 1
 
         const testsInSeason = chronological.filter((candidate) => seasonLabel(candidate.testDate) === season).length
         const dataGapCount = [
           power,
           test.sprint10m,
           endurance.meanKmh,
+          test.vo2Max,
+          test.lt2SpeedKmh,
           test.backSquat1RM,
           test.powerClean1RM,
         ].filter((value) => value == null).length
@@ -618,6 +695,8 @@ export async function GET(
           pathway_power_wkg_slope_per_season: slope(firstPower, power, seasonIndex),
           pathway_10m_improvement_s_per_season: slope(first.sprint10m, test.sprint10m, seasonIndex, true),
           pathway_7x40_kmh_slope_per_season: slope(firstEndurance.meanKmh, endurance.meanKmh, seasonIndex),
+          pathway_vo2_slope_per_season: slope(first.vo2Max, test.vo2Max, seasonIndex),
+          pathway_lt2_kmh_slope_per_season: slope(first.lt2SpeedKmh, test.lt2SpeedKmh, seasonIndex),
         })
       })
     }
@@ -692,6 +771,16 @@ export async function GET(
         beep_level: test.beepTestLevel,
         beep_shuttle: test.beepTestShuttle,
         beep_score: round(beepScore, 1),
+        vo2_max_ml_kg_min: test.vo2Max,
+        lt1_speed_kmh: test.lt1SpeedKmh,
+        lt1_heart_rate_bpm: test.lt1HeartRate,
+        lt1_lactate_mmol_l: test.lt1Lactate,
+        lt2_speed_kmh: test.lt2SpeedKmh,
+        lt2_heart_rate_bpm: test.lt2HeartRate,
+        lt2_lactate_mmol_l: test.lt2Lactate,
+        max_lactate_mmol_l: test.maxLactate,
+        max_heart_rate_bpm: test.maxHeartRate,
+        ramp_time_s: test.rampTimeSeconds,
         sprint_5m_s: test.sprint5m,
         sprint_10m_s: test.sprint10m,
         sprint_20m_s: test.sprint20m,

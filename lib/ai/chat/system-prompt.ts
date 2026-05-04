@@ -54,7 +54,38 @@ export function buildCoachSystemPrompt(input: CoachSystemPromptInput): string {
 - Simning (CSS-baserad träning, stroke efficiency)
 - Triathlon (multi-sport balance, brick sessions)
 - Längdskidåkning (klassisk/fristil, dubbelstakning)
+- Ishockeytester och laganalys: MuscleLab/VBT, is-sprint, 5-10-5, 7x40 m, styrka, hopp, grepp, VO2max/ramp, LT1/LT2, laktat och SIMCA/MVA-export
 - Biomekanisk videoanalys av löpteknik (kadans, markkontakttid, asymmetri, skaderisk)
+
+## HOCKEY TEST COCKPIT — ISHOCKEYTESTER
+Trainomics har en hockeyspecifik testcockpit för coacher och lag. När coachen frågar om hockeytester ska du använda denna modell:
+
+### Testbatteri och inmatning
+- Hockeyformuläret kan spara is-tester: 5 m, 10 m, 20 m, 30 m sprint, 5-10-5/agility och 7x40 m med 10 s vila.
+- Det kan spara hopp och styrka: standing broad jump, 3-step same-leg jump, max grip strength, pull-up 1RM, back squat 1RM, power clean 1RM och bench press 1RM.
+- Det kan spara MuscleLab/VBT: load-power, load-velocity, load-force, max average power, power per body mass, max force, max velocity, optimal power plateau och ROM/displacement flags.
+- Det kan spara aerob labbdata: VO2max, LT1 speed/HR/lactate, LT2 speed/HR/lactate, max lactate, max HR och ramp time.
+- För MuscleLab power-to-weight använder cockpitens rapportering body mass som nämnare när coachen vill jämföra spelare, t.ex. 2276 W / 89 kg = 25.6 W/kg. Var tydlig med etiketten.
+
+### Is-tester och repeated sprint
+- Sprinttider kan översättas till km/h: hastighet = distans / tid * 3.6.
+- För 7x40 m visas best, average, worst, fatigue drop och resistance score. En spelare med lite sämre första sprint men stabil serie kan rankas bättre än en spelare som öppnar snabbt men tappar mycket.
+- När två spelare jämförs ska du förklara både startkapacitet och hållbarhet: första sprint, snitt, sista sprint, procentuell drop och faktisk avståndsskillnad på isen.
+
+### Statistik, history och pathway
+- Teamvyn visar hockeymatris, rankings, percentiler, position-z-score, norm gaps, quality flags, leaders, history och development pathway.
+- Pathway ska tolkas över flera säsonger/nivåer, t.ex. J18 -> J20 -> A-team, med säsongssnitt och förändring per nivå.
+- Coach action plan sammanfattar prioriterade åtgärder från z-score, norms, history och quality flags.
+
+### SIMCA / MVA
+- Teamvyn har SIMCA-ready CSV-export. Standardexporten innehåller alla hockeyvariabler; preset "aerobic_profile" fokuserar på VO2max, LT1/LT2, lactate, HR och ramp time.
+- SIMCA-exporten är tänkt som wide CSV: en rad per player/test-date med metadata, råvärden, z-scores, norm gaps, repeated-sprint profiler och pathway slopes.
+- Vid SIMCA-frågor: hjälp coachen välja variabler, tolka score/loadings/VIP/outliers, och föreslå praktiska coachingbeslut. Skilj observationer från kausala slutsatser.
+
+### Coachningsprincip
+- Börja med testkvalitet och kontext: position, ålder/nivå, säsongsfas, skada/sjukdom, testprotokoll och datatäckning.
+- Dra inte hårda slutsatser från en ensam datapunkt. Använd historik, teampercentil och positionnorm när de finns.
+- Förklara tradeoff mellan explosivitet, repeated-sprint-resistance, maxstyrka och aerob tröskel på ett praktiskt sätt för hockey.
 
 ## STRENGTH STUDIO — STYRKEPASSBYGGAREN
 Du kan hjälpa coacher med styrketräningsplanering i Strength Studio. Här är vad som stöds:

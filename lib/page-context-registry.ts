@@ -59,6 +59,34 @@ export const PAGE_CONTEXT_REGISTRY: Record<string, PageContextConfig> = {
     description: 'Detaljerat testresultat med laktatkurva, tröskelvärden och beräknade zoner.',
     concepts: ['vo2max', 'dmax', 'trainingZones', 'criticalPower'],
   },
+  'coach/hockey-tests': {
+    pageTitle: 'Hockey testcockpit',
+    description: 'Hockeyspecifik testinmatning för is-sprint, 5-10-5, 7x40 m, MuscleLab/VBT, styrka, hopp, grepp, beep test och VO2max/ramp med LT1, LT2, laktat, maxpuls och ramptid. Resultaten sparas till HockeyPhysicalTest och används i spelarprofil, teammatris, rapporter, normer, pathway och SIMCA-export.',
+    concepts: ['vo2max', 'trainingZones', 'wattsPerKg', 'oneRM'],
+    cards: [
+      { id: 'hockey-ice-tests', title: 'Is-tester' },
+      { id: 'hockey-musclelab', title: 'MuscleLab / VBT', conceptKey: 'wattsPerKg' },
+      { id: 'hockey-aerobic-lab', title: 'VO2max / ramp', conceptKey: 'vo2max' },
+      { id: 'hockey-strength', title: 'Styrka', conceptKey: 'oneRM' },
+    ],
+  },
+  'coach/teams/[id]/tests': {
+    pageTitle: 'Hockey team tests',
+    description: 'Lagets testvy med hockeymatris, rankings, percentiler, position-z-score, norm gaps, quality flags, leaders, history, development pathway, coach action plan, PDF-rapporter och SIMCA-ready CSV-export. Is-sprint visas även som km/h och 7x40 m tolkas med best, average, worst, fatigue drop och resistance score.',
+    concepts: ['vo2max', 'wattsPerKg', 'oneRM', 'trainingZones'],
+    cards: [
+      { id: 'hockey-test-matrix', title: 'Hockey testmatris' },
+      { id: 'hockey-action-plan', title: 'Coach action plan' },
+      { id: 'hockey-pathway', title: 'Development pathway' },
+      { id: 'hockey-simca-export', title: 'SIMCA-export' },
+      { id: 'hockey-aerobic-profile', title: 'Aerob profil', conceptKey: 'vo2max' },
+    ],
+  },
+  'coach/teams/[id]/multivariate': {
+    pageTitle: 'Hockey multivariate analysis',
+    description: 'MVA/SIMCA-vy för teamdata. Används för PCA/PLS/SIMCA-arbete med hockeyvariabler, outliers, score/loadings, VIP, positionkluster och export/import av analysartefakter.',
+    concepts: ['vo2max', 'wattsPerKg', 'trainingZones'],
+  },
   'coach/programs': {
     pageTitle: 'Program',
     description: 'Översikt av träningsprogram med periodisering och metodikval.',

@@ -11,7 +11,7 @@
  *    the per-row PR list with name + value + unit + source badge.
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   Card,
@@ -83,6 +83,7 @@ import {
 import { toast } from 'sonner'
 import { buildHockeyActionItems, type HockeyActionItem } from '@/lib/hockey/team-action-plan'
 import { buildTeamIceSpeedProfileRows } from '@/lib/hockey/ice-speed'
+import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 
 interface PRRow {
   id: string
@@ -261,7 +262,7 @@ function formatDate(iso: string): string {
 
 function formatMetricValue(value: number | null | undefined, unit: string): string {
   if (value == null) return '–'
-  const decimals = unit === 's' ? 2 : ['W/kg', 'nivå', 'km/h'].includes(unit) ? 1 : 0
+  const decimals = unit === 's' ? 2 : ['W/kg', 'nivå', 'km/h', 'ml/kg/min', 'mmol/L', 'xBW'].includes(unit) ? 1 : 0
   return `${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
@@ -324,13 +325,13 @@ function getBenchmarkLabel(band: HockeyBenchmarkBand): string {
 
 function formatPathwayChange(value: number | null | undefined, unit: string): string {
   if (value == null) return '–'
-  const decimals = unit === 's' ? 2 : ['W/kg', 'km/h'].includes(unit) ? 1 : 0
+  const decimals = unit === 's' ? 2 : ['W/kg', 'km/h', 'ml/kg/min', 'mmol/L', 'xBW'].includes(unit) ? 1 : 0
   return `${value > 0 ? '+' : ''}${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
 function formatNormGap(value: number | null | undefined, unit: string): string {
   if (value == null) return '–'
-  const decimals = unit === 's' ? 2 : ['W/kg', 'km/h', 'xBW'].includes(unit) ? 1 : 0
+  const decimals = unit === 's' ? 2 : ['W/kg', 'km/h', 'ml/kg/min', 'mmol/L', 'xBW'].includes(unit) ? 1 : 0
   return `${value > 0 ? '+' : ''}${value.toFixed(decimals)} ${unit}`
 }
 
@@ -338,7 +339,13 @@ function metricByKey(metrics: HockeyMetric[] | undefined, key: string): HockeyMe
   return metrics?.find((metric) => metric.key === key)
 }
 
+function businessSlugFromBasePath(basePath: string): string | null {
+  const parts = basePath.split('/').filter(Boolean)
+  return parts[1] === 'coach' ? parts[0] : null
+}
+
 export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientProps) {
+  const pageContext = usePageContextOptional()
   const [sessions, setSessions] = useState<TestSession[]>([])
   const [hockey, setHockey] = useState<HockeyTeamSummary | null>(null)
   const [selectedHockeyMetric, setSelectedHockeyMetric] = useState('muscleLabWkg')
@@ -371,6 +378,15 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   const [isSavingEdit, setIsSavingEdit] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const businessSlug = businessSlugFromBasePath(basePath)
+
+  const scopedTeamApiUrl = useCallback((path: string, params?: Record<string, string>) => {
+    const search = new URLSearchParams()
+    if (businessSlug) search.set('businessSlug', businessSlug)
+    Object.entries(params ?? {}).forEach(([key, value]) => search.set(key, value))
+    const query = search.toString()
+    return query ? `${path}?${query}` : path
+  }, [businessSlug])
 
   const handleSaveEdit = async () => {
     if (!editing) return
@@ -432,7 +448,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     setIsLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/teams/${teamId}/test-sessions`)
+      const res = await fetch(scopedTeamApiUrl(`/api/teams/${teamId}/test-sessions`))
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const body = await res.json()
       if (body.success) {
@@ -445,7 +461,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     } finally {
       setIsLoading(false)
     }
-  }, [teamId])
+  }, [scopedTeamApiUrl, teamId])
 
   useEffect(() => {
     void fetchSessions()
@@ -482,7 +498,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   const saveNormDrafts = async () => {
     setIsSavingNorms(true)
     try {
-      const res = await fetch(`/api/teams/${teamId}/hockey-norms`, {
+      const res = await fetch(scopedTeamApiUrl(`/api/teams/${teamId}/hockey-norms`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ norms: normDrafts }),
@@ -509,7 +525,8 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     })
   }
 
-  const hockeyExportHref = `/api/teams/${teamId}/hockey-tests/export`
+  const hockeyExportHref = scopedTeamApiUrl(`/api/teams/${teamId}/hockey-tests/export`)
+  const hockeyAerobicExportHref = scopedTeamApiUrl(`/api/teams/${teamId}/hockey-tests/export`, { preset: 'aerobic_profile' })
   const hockeyAthletes = hockey?.athletes
     .filter((athlete) => selectedPosition === 'all' || athlete.position.key === selectedPosition) ?? []
   const selectedHistory = hockey?.history.find((metric) => metric.key === selectedHockeyMetric)
@@ -518,8 +535,17 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     .filter((athlete) => athlete.latest != null)
     .sort((a, b) => (b.delta ?? -Infinity) - (a.delta ?? -Infinity))
     .slice(0, 8) ?? []
-  const hockeyActionItems: HockeyActionItem[] = hockey ? buildHockeyActionItems(hockey, { basePath }) : []
+  const hockeyActionItems: HockeyActionItem[] = useMemo(
+    () => hockey ? buildHockeyActionItems(hockey, { basePath }) : [],
+    [basePath, hockey]
+  )
   const iceSpeedGapRows = buildIceSpeedGapRows(hockeyAthletes)
+  const aerobicLeaders = useMemo(
+    () => ['vo2Max', 'lt2SpeedKmh', 'maxLactate', 'rampTimeSeconds']
+      .map((key) => hockey?.leaders.find((leader) => leader.key === key))
+      .filter((leader): leader is HockeyLeader => Boolean(leader?.leader)),
+    [hockey?.leaders]
+  )
   const pathway = hockey?.pathway
   const pathwayTrendData = pathway?.seasonSummaries.map((season) => ({
     season: season.season,
@@ -536,6 +562,86 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   const visibleNormDrafts = normDrafts
     .map((norm, index) => ({ norm, index }))
     .filter(({ norm }) => !selectedPathwayMetric || norm.metricKey === selectedPathwayMetric.key)
+
+  useEffect(() => {
+    const setPageContext = pageContext?.setPageContext
+    if (!setPageContext) return
+
+    setPageContext({
+      type: 'hockey-team-tests',
+      title: `${teamName} hockey tests`,
+      summary: 'Hockeyteamets testvy är öppen. AI:n kan använda lagets laddade testmatris, leaders, action plan, pathway, normer och SIMCA-exportflöde som sidkontext.',
+      conceptKeys: ['vo2max', 'wattsPerKg', 'oneRM', 'trainingZones'],
+      data: {
+        teamId,
+        teamName,
+        businessSlug,
+        selectedPosition,
+        selectedMetric: selectedHockeyMetric,
+        totalStrengthSessions: sessions.length,
+        hockeyTestCount: hockey?.testCount ?? 0,
+        athleteCount: hockey?.athletes.length ?? 0,
+        metricCount: hockey?.metrics.length ?? 0,
+        loadedFeatures: {
+          matrix: Boolean(hockey),
+          positionBenchmarks: Boolean(hockey?.athletes.some((athlete) => Object.keys(athlete.benchmarks).length > 0)),
+          normReferences: (hockey?.normReferences.length ?? 0) > 0,
+          developmentPathway: (hockey?.pathway.seasonSummaries.length ?? 0) > 0,
+          coachActionPlan: hockeyActionItems.length > 0,
+          simcaExport: Boolean(hockey),
+          aerobicProfileExport: aerobicLeaders.length > 0,
+        },
+        leaders: hockey?.leaders
+          .filter((leader) => leader.leader)
+          .slice(0, 8)
+          .map((leader) => ({
+            metric: leader.key,
+            label: leader.label,
+            unit: leader.unit,
+            athlete: leader.leader?.athleteName,
+            value: leader.leader?.value,
+            teamAverage: leader.average,
+            coverage: leader.coverage,
+          })) ?? [],
+        aerobicLeaders: aerobicLeaders.map((leader) => ({
+          metric: leader.key,
+          label: leader.label,
+          unit: leader.unit,
+          athlete: leader.leader?.athleteName,
+          value: leader.leader?.value,
+          teamAverage: leader.average,
+        })),
+        actionPlan: hockeyActionItems.slice(0, 6).map((item) => ({
+          title: item.title,
+          severity: item.severity,
+          athleteCount: item.athletes.length,
+          description: item.description,
+        })),
+        pathway: hockey?.pathway ? {
+          seasons: hockey.pathway.seasonSummaries.length,
+          latestLevelCounts: hockey.pathway.latestLevelCounts,
+          promotedCount: hockey.pathway.promoted.length,
+          watchCount: hockey.pathway.watch.length,
+        } : null,
+        simca: {
+          fullExportEndpoint: `/api/teams/${teamId}/hockey-tests/export`,
+          aerobicPreset: 'aerobic_profile',
+          aerobicPresetFocus: ['vo2Max', 'lt1SpeedKmh', 'lt2SpeedKmh', 'maxLactate', 'maxHeartRate', 'rampTimeSeconds'],
+        },
+      },
+    })
+  }, [
+    aerobicLeaders,
+    businessSlug,
+    hockey,
+    hockeyActionItems,
+    pageContext?.setPageContext,
+    selectedHockeyMetric,
+    selectedPosition,
+    sessions.length,
+    teamId,
+    teamName,
+  ])
 
   return (
     <div className="space-y-6">
@@ -1167,6 +1273,40 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+
+            {aerobicLeaders.length > 0 && (
+              <div className="rounded-md border bg-muted/10 p-3 space-y-3">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <p className="text-sm font-semibold flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-emerald-500" />
+                      Aerob profil
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      VO2max, LT2, laktat och ramptid jämförs mot laget och kan exporteras till SIMCA.
+                    </p>
+                  </div>
+                  <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs">
+                    <a href={hockeyAerobicExportHref}>
+                      <Download className="mr-1.5 h-3.5 w-3.5" />
+                      SIMCA aerob
+                    </a>
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                  {aerobicLeaders.map((leader) => (
+                    <div key={leader.key} className="rounded-md border bg-background px-3 py-2">
+                      <p className="text-[10px] uppercase text-muted-foreground">{leader.label}</p>
+                      <p className="text-sm font-semibold truncate">{leader.leader?.athleteName}</p>
+                      <p className="font-mono text-xs text-muted-foreground">
+                        {formatMetricValue(leader.leader?.value, leader.unit)}
+                        {leader.average != null && ` · snitt ${formatMetricValue(leader.average, leader.unit)}`}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

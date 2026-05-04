@@ -142,11 +142,13 @@ const CORE_METRICS = [
   'endurance7x40Score',
   'endurance7x40AverageKmh',
   'beepScore',
+  'vo2Max',
+  'lt2SpeedKmh',
 ]
 
 function formatMetricValue(value: number | null | undefined, unit: string): string {
   if (value == null || !Number.isFinite(value)) return '-'
-  const decimals = unit === 's' ? 2 : ['W/kg', 'nivå', 'km/h', 'xBW'].includes(unit) ? 1 : 0
+  const decimals = unit === 's' ? 2 : ['W/kg', 'nivå', 'km/h', 'ml/kg/min', 'mmol/L', 'xBW'].includes(unit) ? 1 : 0
   return `${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
@@ -391,9 +393,30 @@ function iceSpeedProfile(pdf: jsPDF, data: HockeyTeamReportData, y: number): num
   return y + 2
 }
 
+function aerobicProfile(pdf: jsPDF, data: HockeyTeamReportData, y: number): number {
+  const metricKeys = ['vo2Max', 'lt2SpeedKmh', 'maxLactate', 'rampTimeSeconds']
+  const rows = metricKeys
+    .map((key) => {
+      const metric = metricByKey(data, key)
+      const leader = data.leaders.find((candidate) => candidate.key === key)
+      if (!metric || !leader?.leader) return null
+      return [
+        metric.label,
+        leader.leader.athleteName,
+        formatMetricValue(leader.leader.value, metric.unit),
+        formatMetricValue(leader.average, metric.unit),
+      ]
+    })
+    .filter((row): row is string[] => row != null)
+
+  if (rows.length === 0) return y
+  y = sectionTitle(pdf, 'Aerobic profile', y)
+  return table(pdf, ['Metric', 'Leader', 'Value', 'Team avg'], rows, y, { fontSize: 7 })
+}
+
 function pathwayChange(value: number | null | undefined, unit: string): string {
   if (value == null || !Number.isFinite(value)) return '-'
-  const decimals = unit === 's' ? 2 : ['W/kg', 'km/h'].includes(unit) ? 1 : 0
+  const decimals = unit === 's' ? 2 : ['W/kg', 'km/h', 'ml/kg/min', 'mmol/L', 'xBW'].includes(unit) ? 1 : 0
   return `${value > 0 ? '+' : ''}${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
@@ -571,6 +594,7 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
   )
 
   y = iceSpeedProfile(pdf, data, y)
+  y = aerobicProfile(pdf, data, y)
 
   y = sectionTitle(pdf, 'Position coverage', y)
   y = summaryCards(

@@ -279,6 +279,16 @@ const PHYSICAL_METRICS = [
   { key: 'sprint0to30Kmh', label: '0-30 fart', unit: 'km/h', decimals: 1 },
   { key: 'agilityBest', label: '5-10-5', unit: 's', decimals: 2 },
   { key: 'beepScore', label: 'Beep', unit: '', decimals: 1 },
+  { key: 'vo2Max', label: 'VO2max', unit: 'ml/kg/min', decimals: 1 },
+  { key: 'lt1SpeedKmh', label: 'LT1 fart', unit: 'km/h', decimals: 1 },
+  { key: 'lt1HeartRate', label: 'LT1 puls', unit: 'bpm', decimals: 0 },
+  { key: 'lt1Lactate', label: 'LT1 laktat', unit: 'mmol/L', decimals: 1 },
+  { key: 'lt2SpeedKmh', label: 'LT2 fart', unit: 'km/h', decimals: 1 },
+  { key: 'lt2HeartRate', label: 'LT2 puls', unit: 'bpm', decimals: 0 },
+  { key: 'lt2Lactate', label: 'LT2 laktat', unit: 'mmol/L', decimals: 1 },
+  { key: 'maxLactate', label: 'Max laktat', unit: 'mmol/L', decimals: 1 },
+  { key: 'maxHeartRate', label: 'Maxpuls', unit: 'bpm', decimals: 0 },
+  { key: 'rampTimeSeconds', label: 'Ramptid', unit: 's', decimals: 0 },
   { key: 'endurance7x40Best', label: '7x40 bäst', unit: 's', decimals: 2 },
   { key: 'endurance7x40BestKmh', label: '7x40 fart', unit: 'km/h', decimals: 1 },
   { key: 'endurance7x40Average', label: '7x40 snitt', unit: 's', decimals: 2 },
@@ -306,6 +316,8 @@ const SNAPSHOT_METRICS = [
   'sprint30m',
   'agilityBest',
   'standingLongJump',
+  'vo2Max',
+  'lt2SpeedKmh',
   'endurance7x40AverageKmh',
   'endurance7x40Resistance',
   'enduranceFatigueDrop',
@@ -328,6 +340,11 @@ const BEST_METRICS = [
   'sprint20to30Kmh',
   'sprint0to30Kmh',
   'agilityBest',
+  'vo2Max',
+  'lt1SpeedKmh',
+  'lt2SpeedKmh',
+  'maxLactate',
+  'maxHeartRate',
   'endurance7x40Best',
   'endurance7x40BestKmh',
   'endurance7x40Average',
@@ -339,6 +356,7 @@ const PATHWAY_METRICS = [
   { key: 'muscleLabWkg', label: 'Power', unit: 'W/kg', decimals: 1, color: '#0891b2' },
   { key: 'sprint10m', label: '10m ice', unit: 's', decimals: 2, color: '#dc2626' },
   { key: 'endurance7x40AverageKmh', label: '7x40 avg speed', unit: 'km/h', decimals: 1, color: '#16a34a' },
+  { key: 'vo2Max', label: 'VO2max', unit: 'ml/kg/min', decimals: 1, color: '#ea580c' },
   { key: 'backSquat1RM', label: 'Back squat', unit: 'kg', decimals: 0, color: '#7c3aed' },
 ] as const
 
@@ -383,7 +401,7 @@ function metricFocus(metricKey: string): { title: string; description: string } 
       description: 'Bygg vidare med baslyft, drag/press och grepp utan att störa is- eller matchkvalitet.',
     }
   }
-  if (['beepScore', 'endurance7x40Average', 'endurance7x40AverageKmh', 'endurance7x40Resistance', 'endurance7x40DecrementPct', 'enduranceFatigueDrop'].includes(metricKey)) {
+  if (['beepScore', 'vo2Max', 'lt1SpeedKmh', 'lt2SpeedKmh', 'endurance7x40Average', 'endurance7x40AverageKmh', 'endurance7x40Resistance', 'endurance7x40DecrementPct', 'enduranceFatigueDrop'].includes(metricKey)) {
     return {
       title: 'Repeated shift conditioning',
       description: 'Använd upprepade 30-45 sek arbetsblock och kontrollera falloff mellan repetitioner.',

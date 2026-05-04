@@ -55,6 +55,16 @@ interface HockeyTest {
   threeJumpRight: number | null
   beepTestLevel: number | null
   beepTestShuttle: number | null
+  vo2Max: number | null
+  lt1SpeedKmh: number | null
+  lt1HeartRate: number | null
+  lt1Lactate: number | null
+  lt2SpeedKmh: number | null
+  lt2HeartRate: number | null
+  lt2Lactate: number | null
+  maxLactate: number | null
+  maxHeartRate: number | null
+  rampTimeSeconds: number | null
   backSquat1RM: number | null
   powerClean1RM: number | null
   benchPress1RM: number | null
@@ -115,12 +125,18 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function TestValue({ label, value, unit, highlight }: { label: string; value: number | null | undefined; unit: string; highlight?: boolean }) {
+function TestValue({ label, value, unit, highlight, decimals = 2 }: {
+  label: string
+  value: number | null | undefined
+  unit: string
+  highlight?: boolean
+  decimals?: number
+}) {
   if (value == null) return null
   return (
     <div className={cn('text-center', highlight && 'text-green-600 font-semibold')}>
       <p className="text-[10px] text-muted-foreground uppercase">{label}</p>
-      <p className="font-mono text-sm font-medium">{typeof value === 'number' ? value.toFixed(2) : value}</p>
+      <p className="font-mono text-sm font-medium">{typeof value === 'number' ? value.toFixed(decimals) : value}</p>
       <p className="text-[9px] text-muted-foreground">{unit}</p>
     </div>
   )
@@ -140,6 +156,13 @@ function percentDifference(left: number | null | undefined, right: number | null
 
 function enduranceStats(values: number[] | null) {
   return buildRepeatedSprintProfile(values ?? [])
+}
+
+function formatRampTime(seconds: number | null | undefined): string | null {
+  if (seconds == null || !Number.isFinite(seconds) || seconds <= 0) return null
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
 }
 
 function MuscleLabChart({ test }: { test: HockeyTest }) {
@@ -327,6 +350,7 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                         RSA {enduranceSummary.averageSpeedKmh.toFixed(1)} km/h
                       </Badge>
                     )}
+                    {test.vo2Max != null && <Badge variant="outline" className="text-[10px]">{test.vo2Max.toFixed(1)} VO2</Badge>}
                     {isExpanded && (
                       <Button
                         variant="outline"
@@ -449,13 +473,27 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                     )}
 
                     {/* Endurance tests */}
-                    {(test.beepTestLevel || endurance) && (
+                    {(test.beepTestLevel || endurance || test.vo2Max || test.lt1SpeedKmh || test.lt2SpeedKmh) && (
                       <div>
                         <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Activity className="h-3 w-3" /> Uthållighet</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <TestValue label="Beep nivå" value={test.beepTestLevel} unit="" />
-                          <TestValue label="Beep shuttle" value={test.beepTestShuttle} unit="" />
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                          <TestValue label="Beep nivå" value={test.beepTestLevel} unit="" decimals={1} />
+                          <TestValue label="Beep shuttle" value={test.beepTestShuttle} unit="" decimals={0} />
+                          <TestValue label="VO2max" value={test.vo2Max} unit="ml/kg/min" decimals={1} />
+                          <TestValue label="Maxpuls" value={test.maxHeartRate} unit="bpm" decimals={0} />
+                          <TestValue label="Max laktat" value={test.maxLactate} unit="mmol/L" decimals={1} />
+                          <TestValue label="LT1 fart" value={test.lt1SpeedKmh} unit="km/h" decimals={1} />
+                          <TestValue label="LT1 puls" value={test.lt1HeartRate} unit="bpm" decimals={0} />
+                          <TestValue label="LT1 laktat" value={test.lt1Lactate} unit="mmol/L" decimals={1} />
+                          <TestValue label="LT2 fart" value={test.lt2SpeedKmh} unit="km/h" decimals={1} />
+                          <TestValue label="LT2 puls" value={test.lt2HeartRate} unit="bpm" decimals={0} />
+                          <TestValue label="LT2 laktat" value={test.lt2Lactate} unit="mmol/L" decimals={1} />
                         </div>
+                        {formatRampTime(test.rampTimeSeconds) && (
+                          <p className="mt-2 text-[10px] text-muted-foreground">
+                            Ramptid till avslut: {formatRampTime(test.rampTimeSeconds)}
+                          </p>
+                        )}
                       </div>
                     )}
 

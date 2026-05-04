@@ -132,7 +132,7 @@ function NumberInput({ label, value, onChange, unit, placeholder }: {
           placeholder={placeholder}
           className="h-9"
         />
-        {unit && <span className="text-xs text-muted-foreground shrink-0 w-6">{unit}</span>}
+        {unit && <span className="min-w-6 shrink-0 text-xs text-muted-foreground">{unit}</span>}
       </div>
     </div>
   )
@@ -415,6 +415,16 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
   const [pullUp1RM, setPullUp1RM] = useState('')
   const [beepLevel, setBeepLevel] = useState('')
   const [beepShuttle, setBeepShuttle] = useState('')
+  const [vo2Max, setVo2Max] = useState('')
+  const [lt1SpeedKmh, setLt1SpeedKmh] = useState('')
+  const [lt1HeartRate, setLt1HeartRate] = useState('')
+  const [lt1Lactate, setLt1Lactate] = useState('')
+  const [lt2SpeedKmh, setLt2SpeedKmh] = useState('')
+  const [lt2HeartRate, setLt2HeartRate] = useState('')
+  const [lt2Lactate, setLt2Lactate] = useState('')
+  const [maxLactate, setMaxLactate] = useState('')
+  const [maxHeartRate, setMaxHeartRate] = useState('')
+  const [rampTimeMinutes, setRampTimeMinutes] = useState('')
 
   const selectedClient = clients.find((c) => c.id === clientId)
   const endurance = enduranceSummary(endurance7x40)
@@ -432,7 +442,7 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
     muscleLabRows.length > 0 || muscleLabRaw != null || powerBest != null || gripAsymmetry != null,
     parseNumber(standingLong) != null || parseNumber(threeJumpLeft) != null || parseNumber(threeJumpRight) != null,
     strengthCount > 0,
-    parseNumber(beepLevel) != null || endurance.count > 0,
+    parseNumber(beepLevel) != null || parseNumber(vo2Max) != null || endurance.count > 0,
   ].filter(Boolean).length
 
   // Apply scanned/imported data to form
@@ -478,6 +488,16 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
     if (data.pullUp1RM) { setPullUp1RM(String(data.pullUp1RM)); setStrengthOpen(true) }
     if (data.beepTestLevel) { setBeepLevel(String(data.beepTestLevel)); setEnduranceOpen(true) }
     if (data.beepTestShuttle) { setBeepShuttle(String(data.beepTestShuttle)); setEnduranceOpen(true) }
+    if (data.vo2Max) { setVo2Max(String(data.vo2Max)); setEnduranceOpen(true) }
+    if (data.lt1SpeedKmh) { setLt1SpeedKmh(String(data.lt1SpeedKmh)); setEnduranceOpen(true) }
+    if (data.lt1HeartRate) { setLt1HeartRate(String(data.lt1HeartRate)); setEnduranceOpen(true) }
+    if (data.lt1Lactate) { setLt1Lactate(String(data.lt1Lactate)); setEnduranceOpen(true) }
+    if (data.lt2SpeedKmh) { setLt2SpeedKmh(String(data.lt2SpeedKmh)); setEnduranceOpen(true) }
+    if (data.lt2HeartRate) { setLt2HeartRate(String(data.lt2HeartRate)); setEnduranceOpen(true) }
+    if (data.lt2Lactate) { setLt2Lactate(String(data.lt2Lactate)); setEnduranceOpen(true) }
+    if (data.maxLactate) { setMaxLactate(String(data.maxLactate)); setEnduranceOpen(true) }
+    if (data.maxHeartRate) { setMaxHeartRate(String(data.maxHeartRate)); setEnduranceOpen(true) }
+    if (data.rampTimeMinutes) { setRampTimeMinutes(String(data.rampTimeMinutes)); setEnduranceOpen(true) }
     if (Array.isArray(data.muscleLabJumps)) {
       setMuscleLabRows(data.muscleLabJumps as MuscleLabRow[])
       setPowerOpen(true)
@@ -582,6 +602,7 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
       }
 
       const enduranceArr = endurance7x40.map((v) => parseFloat(v)).filter((v) => !isNaN(v))
+      const rampSeconds = rampTimeMinutes ? Math.round(parseFloat(rampTimeMinutes) * 60) : undefined
 
       const res = await fetch('/api/coach/hockey-tests', {
         method: 'POST',
@@ -610,6 +631,16 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
           threeJumpRight: toNum(threeJumpRight),
           beepTestLevel: toNum(beepLevel),
           beepTestShuttle: beepShuttle ? parseInt(beepShuttle, 10) : undefined,
+          vo2Max: toNum(vo2Max),
+          lt1SpeedKmh: toNum(lt1SpeedKmh),
+          lt1HeartRate: lt1HeartRate ? parseInt(lt1HeartRate, 10) : undefined,
+          lt1Lactate: toNum(lt1Lactate),
+          lt2SpeedKmh: toNum(lt2SpeedKmh),
+          lt2HeartRate: lt2HeartRate ? parseInt(lt2HeartRate, 10) : undefined,
+          lt2Lactate: toNum(lt2Lactate),
+          maxLactate: toNum(maxLactate),
+          maxHeartRate: maxHeartRate ? parseInt(maxHeartRate, 10) : undefined,
+          rampTimeSeconds: rampSeconds && Number.isFinite(rampSeconds) ? rampSeconds : undefined,
           backSquat1RM: toNum(backSquat1RM),
           powerClean1RM: toNum(powerClean1RM),
           benchPress1RM: toNum(benchPress1RM),
@@ -757,6 +788,12 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
                 value={`${endurance.averageSpeedKmh.toFixed(1)} km/h · ${endurance.fatigueResistancePct?.toFixed(0) ?? '-'}% resist`}
                 tone={endurance.fatigueDropPct != null && endurance.fatigueDropPct >= 10 ? 'watch' : 'info'}
               />
+            )}
+            {parseNumber(vo2Max) != null && (
+              <DiagnosticChip label="VO2max" value={`${parseNumber(vo2Max)?.toFixed(1)} ml/kg/min`} tone="good" />
+            )}
+            {parseNumber(lt2SpeedKmh) != null && (
+              <DiagnosticChip label="LT2 löpfart" value={`${parseNumber(lt2SpeedKmh)?.toFixed(1)} km/h`} tone="info" />
             )}
           </div>
         </CardContent>
@@ -939,8 +976,28 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
                 <NumberInput label="Beep test nivå" value={beepLevel} onChange={setBeepLevel} placeholder="13" />
                 <NumberInput label="Beep test shuttle" value={beepShuttle} onChange={setBeepShuttle} placeholder="6" />
               </div>
+              <div className="rounded-md border bg-muted/20 p-3 space-y-3">
+                <div>
+                  <p className="text-xs font-medium">VO2max / ramp</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Spara labbvärden från spelarens VO2max-test direkt i hockeybatteriet.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <NumberInput label="VO2max" value={vo2Max} onChange={setVo2Max} unit="ml/kg/min" placeholder="58.5" />
+                  <NumberInput label="Maxpuls" value={maxHeartRate} onChange={setMaxHeartRate} unit="bpm" placeholder="198" />
+                  <NumberInput label="Max laktat" value={maxLactate} onChange={setMaxLactate} unit="mmol/L" placeholder="12.4" />
+                  <NumberInput label="Ramptid" value={rampTimeMinutes} onChange={setRampTimeMinutes} unit="min" placeholder="13.5" />
+                  <NumberInput label="LT1 fart" value={lt1SpeedKmh} onChange={setLt1SpeedKmh} unit="km/h" placeholder="11.5" />
+                  <NumberInput label="LT1 puls" value={lt1HeartRate} onChange={setLt1HeartRate} unit="bpm" placeholder="154" />
+                  <NumberInput label="LT1 laktat" value={lt1Lactate} onChange={setLt1Lactate} unit="mmol/L" placeholder="1.8" />
+                  <NumberInput label="LT2 fart" value={lt2SpeedKmh} onChange={setLt2SpeedKmh} unit="km/h" placeholder="15.0" />
+                  <NumberInput label="LT2 puls" value={lt2HeartRate} onChange={setLt2HeartRate} unit="bpm" placeholder="178" />
+                  <NumberInput label="LT2 laktat" value={lt2Lactate} onChange={setLt2Lactate} unit="mmol/L" placeholder="3.8" />
+                </div>
+              </div>
               <p className="text-[10px] text-muted-foreground">
-                VO2max hämtas från spelarens profil när sessionen summeras.
+                LT1/LT2 kan anges som löpfart, puls och laktat så att coachen ser både aerob bas och tröskelkapacitet.
               </p>
             </CardContent>
           </CollapsibleContent>

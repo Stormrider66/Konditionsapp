@@ -131,6 +131,8 @@ const PATHWAY_MILESTONE_LABELS: Record<string, string> = {
   endurance7x40AverageKmh: '7x40 average speed',
   backSquat1RM: 'back squat',
   powerClean1RM: 'power clean',
+  vo2Max: 'VO2max',
+  lt2SpeedKmh: 'LT2 speed',
 }
 
 const PATHWAY_LEVELS = ['J18', 'J20', 'A-team'] as const
@@ -139,6 +141,8 @@ const READINESS_METRIC_LABELS: Record<string, string> = {
   muscleLabWkg: 'MuscleLab power',
   sprint10m: '10m ice sprint',
   endurance7x40AverageKmh: '7x40 mean speed',
+  vo2Max: 'VO2max',
+  lt2SpeedKmh: 'LT2 speed',
   backSquat1RM: 'Back squat',
 }
 
@@ -227,6 +231,16 @@ function toSummary(
     threeJumpRight: test.threeJumpRight,
     threeJumpBest: bestOf([test.threeJumpLeft, test.threeJumpRight]),
     beepScore: round(beepScore, 1),
+    vo2Max: round(test.vo2Max, 1),
+    lt1SpeedKmh: round(test.lt1SpeedKmh, 1),
+    lt1HeartRate: test.lt1HeartRate,
+    lt1Lactate: round(test.lt1Lactate, 1),
+    lt2SpeedKmh: round(test.lt2SpeedKmh, 1),
+    lt2HeartRate: test.lt2HeartRate,
+    lt2Lactate: round(test.lt2Lactate, 1),
+    maxLactate: round(test.maxLactate, 1),
+    maxHeartRate: test.maxHeartRate,
+    rampTimeSeconds: test.rampTimeSeconds,
     sprint5m: test.sprint5m,
     sprint10m: test.sprint10m,
     sprint20m: test.sprint20m,
@@ -481,7 +495,10 @@ function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): Hockey
   const powerTrend = trendByKey.get('muscleLabWkg')
   const sprintTrend = trendByKey.get('sprint10m')
   const agilityTrend = trendByKey.get('agilityBest')
+  const vo2Trend = trendByKey.get('vo2Max')
+  const lt2Trend = trendByKey.get('lt2SpeedKmh')
   const fatigueDrop = latest.metrics.enduranceFatigueDrop
+  const maxLactate = latest.metrics.maxLactate
 
   if (powerTrend && !powerTrend.isImprovement && Math.abs(powerTrend.percentChange ?? 0) >= 3) {
     flags.push({
@@ -512,6 +529,30 @@ function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): Hockey
       key: 'enduranceFatigueDrop',
       severity: 'warning',
       label: `7x40 drop ${fatigueDrop.toFixed(1)}%, följ återhämtning och sprintuthållighet`,
+    })
+  }
+
+  if (vo2Trend && !vo2Trend.isImprovement && Math.abs(vo2Trend.delta) >= 2) {
+    flags.push({
+      key: 'vo2Max',
+      severity: 'warning',
+      label: `VO2max ned ${Math.abs(vo2Trend.delta).toFixed(1)} ml/kg/min sedan föregående test`,
+    })
+  }
+
+  if (lt2Trend && lt2Trend.isImprovement && (!vo2Trend || Math.abs(vo2Trend.delta) < 1)) {
+    flags.push({
+      key: 'lt2SpeedKmh',
+      severity: 'info',
+      label: `LT2 fart upp ${Math.abs(lt2Trend.delta).toFixed(1)} km/h med stabil VO2-profil`,
+    })
+  }
+
+  if (maxLactate != null && maxLactate < 8) {
+    flags.push({
+      key: 'maxLactate',
+      severity: 'info',
+      label: `Maxlaktat ${maxLactate.toFixed(1)} mmol/L, kontrollera maximal insats och profiltyp`,
     })
   }
 
@@ -552,6 +593,16 @@ async function loadTests(clientId: string) {
       threeJumpRight: true,
       beepTestLevel: true,
       beepTestShuttle: true,
+      vo2Max: true,
+      lt1SpeedKmh: true,
+      lt1HeartRate: true,
+      lt1Lactate: true,
+      lt2SpeedKmh: true,
+      lt2HeartRate: true,
+      lt2Lactate: true,
+      maxLactate: true,
+      maxHeartRate: true,
+      rampTimeSeconds: true,
       backSquat1RM: true,
       powerClean1RM: true,
       benchPress1RM: true,

@@ -58,6 +58,16 @@ export interface HockeyTestReportData {
   threeJumpRight: number | null
   beepTestLevel: number | null
   beepTestShuttle: number | null
+  vo2Max: number | null
+  lt1SpeedKmh: number | null
+  lt1HeartRate: number | null
+  lt1Lactate: number | null
+  lt2SpeedKmh: number | null
+  lt2HeartRate: number | null
+  lt2Lactate: number | null
+  maxLactate: number | null
+  maxHeartRate: number | null
+  rampTimeSeconds: number | null
   backSquat1RM: number | null
   powerClean1RM: number | null
   benchPress1RM: number | null
@@ -295,6 +305,8 @@ export function generateHockeyTestReportPDF(test: HockeyTestReportData): Blob {
     metric('Pmax / body mass', maxima?.maxAveragePowerPerBodyMass, 'W/kg', 1),
     metric('Max AP', maxima?.maxAveragePowerW, 'W', 0),
     metric('Raw peak power', diagnostics?.maxPeakPowerW, 'W', 0),
+    metric('VO2max', test.vo2Max, 'ml/kg/min', 1),
+    metric('LT2 speed', test.lt2SpeedKmh, 'km/h', 1),
     metric('5 m', test.sprint5m, 's'),
     metric('10 m', test.sprint10m, 's'),
     metric('30 m', test.sprint30m, 's'),
@@ -324,6 +336,14 @@ export function generateHockeyTestReportPDF(test: HockeyTestReportData): Blob {
     metric('7x40 drop', enduranceDrop, '%', 1),
     metric('7x40 resistance', repeatedSprint.fatigueResistancePct, '%', 0),
     metric('7x40 decrement', repeatedSprint.sprintDecrementPct, '%', 1),
+    metric('LT1 speed', test.lt1SpeedKmh, 'km/h', 1),
+    metric('LT1 HR', test.lt1HeartRate, 'bpm', 0),
+    metric('LT1 lactate', test.lt1Lactate, 'mmol/L', 1),
+    metric('LT2 HR', test.lt2HeartRate, 'bpm', 0),
+    metric('LT2 lactate', test.lt2Lactate, 'mmol/L', 1),
+    metric('Max lactate', test.maxLactate, 'mmol/L', 1),
+    metric('Max HR', test.maxHeartRate, 'bpm', 0),
+    metric('Ramp time', test.rampTimeSeconds, 's', 0),
     metric('Grip asymmetry', gripAsymmetry, '%', 1),
     metric('3-step best', threeJumpBest, 'cm', 0),
     metric('3-step asymmetry', threeJumpAsymmetry, '%', 1),

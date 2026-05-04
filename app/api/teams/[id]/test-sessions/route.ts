@@ -86,6 +86,16 @@ const HOCKEY_METRICS: HockeyMetric[] = [
   { key: 'standingLongJump', label: 'Längdhopp', unit: 'cm' },
   { key: 'threeJumpBest', label: '3-steg bäst', unit: 'cm' },
   { key: 'beepScore', label: 'Beep', unit: 'nivå' },
+  { key: 'vo2Max', label: 'VO2max', unit: 'ml/kg/min' },
+  { key: 'lt1SpeedKmh', label: 'LT1 fart', unit: 'km/h' },
+  { key: 'lt1HeartRate', label: 'LT1 puls', unit: 'bpm' },
+  { key: 'lt1Lactate', label: 'LT1 laktat', unit: 'mmol/L' },
+  { key: 'lt2SpeedKmh', label: 'LT2 fart', unit: 'km/h' },
+  { key: 'lt2HeartRate', label: 'LT2 puls', unit: 'bpm' },
+  { key: 'lt2Lactate', label: 'LT2 laktat', unit: 'mmol/L' },
+  { key: 'maxLactate', label: 'Max laktat', unit: 'mmol/L' },
+  { key: 'maxHeartRate', label: 'Maxpuls', unit: 'bpm' },
+  { key: 'rampTimeSeconds', label: 'Ramptid', unit: 's' },
   { key: 'sprint5m', label: '5m is', unit: 's', lowerIsBetter: true },
   { key: 'sprint10m', label: '10m is', unit: 's', lowerIsBetter: true },
   { key: 'sprint20m', label: '20m is', unit: 's', lowerIsBetter: true },
@@ -105,6 +115,8 @@ const PATHWAY_METRIC_KEYS = [
   'muscleLabWkg',
   'sprint10m',
   'endurance7x40AverageKmh',
+  'vo2Max',
+  'lt2SpeedKmh',
   'backSquat1RM',
   'powerClean1RM',
 ] as const
@@ -128,6 +140,16 @@ type HockeyTestForSummary = {
   threeJumpRight: number | null
   beepTestLevel: number | null
   beepTestShuttle: number | null
+  vo2Max: number | null
+  lt1SpeedKmh: number | null
+  lt1HeartRate: number | null
+  lt1Lactate: number | null
+  lt2SpeedKmh: number | null
+  lt2HeartRate: number | null
+  lt2Lactate: number | null
+  maxLactate: number | null
+  maxHeartRate: number | null
+  rampTimeSeconds: number | null
   backSquat1RM: number | null
   powerClean1RM: number | null
   benchPress1RM: number | null
@@ -279,6 +301,16 @@ function metricValuesForTest(test: HockeyTestForSummary | undefined): HockeyMetr
     standingLongJump: test?.standingLongJump ?? null,
     threeJumpBest: bestOf([test?.threeJumpLeft, test?.threeJumpRight]),
     beepScore: round(beepScore, 1),
+    vo2Max: round(test?.vo2Max ?? null, 1),
+    lt1SpeedKmh: round(test?.lt1SpeedKmh ?? null, 1),
+    lt1HeartRate: test?.lt1HeartRate ?? null,
+    lt1Lactate: round(test?.lt1Lactate ?? null, 1),
+    lt2SpeedKmh: round(test?.lt2SpeedKmh ?? null, 1),
+    lt2HeartRate: test?.lt2HeartRate ?? null,
+    lt2Lactate: round(test?.lt2Lactate ?? null, 1),
+    maxLactate: round(test?.maxLactate ?? null, 1),
+    maxHeartRate: test?.maxHeartRate ?? null,
+    rampTimeSeconds: test?.rampTimeSeconds ?? null,
     sprint5m: test?.sprint5m ?? null,
     sprint10m: test?.sprint10m ?? null,
     sprint20m: test?.sprint20m ?? null,
@@ -377,7 +409,7 @@ function buildHockeyPathway(teamMembers: TeamMemberForPathway[], tests: HockeyPa
     const totalPositiveChanges = seasons.reduce((count, season) => (
       count + PATHWAY_METRIC_KEYS.filter((key) => (season.changes[key] ?? 0) > 0).length
     ), 0)
-    const watchCount = ['muscleLabWkg', 'sprint10m', 'endurance7x40AverageKmh'].filter((key) => latestMetrics[key] == null).length
+    const watchCount = ['muscleLabWkg', 'sprint10m', 'endurance7x40AverageKmh', 'vo2Max'].filter((key) => latestMetrics[key] == null).length
 
     return {
       id: member.id,
@@ -452,8 +484,9 @@ export async function GET(
   try {
     const user = await requireCoach()
     const { id: teamId } = await params
+    const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
 
-    const accessibleTeam = await getAccessibleTeam(user.id, teamId)
+    const accessibleTeam = await getAccessibleTeam(user.id, teamId, businessSlug)
     if (!accessibleTeam) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
     }
@@ -526,6 +559,16 @@ export async function GET(
         threeJumpRight: true,
         beepTestLevel: true,
         beepTestShuttle: true,
+        vo2Max: true,
+        lt1SpeedKmh: true,
+        lt1HeartRate: true,
+        lt1Lactate: true,
+        lt2SpeedKmh: true,
+        lt2HeartRate: true,
+        lt2Lactate: true,
+        maxLactate: true,
+        maxHeartRate: true,
+        rampTimeSeconds: true,
         backSquat1RM: true,
         powerClean1RM: true,
         benchPress1RM: true,

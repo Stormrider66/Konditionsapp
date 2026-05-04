@@ -22,14 +22,15 @@ const putSchema = z.object({
 })
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireCoach()
     const { id: teamId } = await params
+    const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
 
-    const accessibleTeam = await getAccessibleTeam(user.id, teamId)
+    const accessibleTeam = await getAccessibleTeam(user.id, teamId, businessSlug)
     if (!accessibleTeam) {
       return NextResponse.json({ success: false, error: 'Team not found' }, { status: 404 })
     }
@@ -63,8 +64,9 @@ export async function PUT(
   try {
     const user = await requireCoach()
     const { id: teamId } = await params
+    const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
 
-    const accessibleTeam = await getAccessibleTeam(user.id, teamId)
+    const accessibleTeam = await getAccessibleTeam(user.id, teamId, businessSlug)
     if (!accessibleTeam) {
       return NextResponse.json({ success: false, error: 'Team not found' }, { status: 404 })
     }
