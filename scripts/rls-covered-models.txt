@@ -118,6 +118,7 @@ GymSyncedClass
 Habit
 HabitLog
 HiddenExercise
+HockeyNormReference
 HockeyPhysicalTest
 HybridMovement
 HybridRoundLog

@@ -329,15 +329,11 @@ async function processCoachWarning(
 
   try {
     const locale = (subscription.user.language === 'en' ? 'en' : 'sv') as 'sv' | 'en'
-    const businessSlug = await getUserPrimaryBusinessSlug(subscription.userId)
-    const upgradePath = businessSlug ? `/${businessSlug}/coach/subscription` : '/pricing'
+    const upgradeUrl = await resolveCoachUpgradeUrl(subscription.userId)
     const template = getTrialWarningEmailTemplate({
       recipientName: subscription.user.name || 'Coach',
       daysRemaining: threshold,
-      upgradeUrl: new URL(
-        upgradePath,
-        process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
-      ).toString(),
+      upgradeUrl,
       locale,
     })
     await sendEmail({
@@ -399,4 +395,17 @@ function parseBoundedInt(
   if (!Number.isFinite(parsed)) return fallback
 
   return Math.min(Math.max(parsed, min), max)
+}
+
+async function resolveCoachUpgradeUrl(userId: string): Promise<string> {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
+
+  try {
+    const businessSlug = await getUserPrimaryBusinessSlug(userId)
+    const upgradePath = businessSlug ? `/${businessSlug}/coach/subscription` : '/pricing'
+    return new URL(upgradePath, baseUrl).toString()
+  } catch (error) {
+    logger.warn('Failed to resolve coach business slug for trial warning email', { userId }, error)
+    return new URL('/pricing', baseUrl).toString()
+  }
 }
