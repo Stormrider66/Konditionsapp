@@ -132,7 +132,7 @@ function NumberInput({ label, value, onChange, unit, placeholder }: {
           placeholder={placeholder}
           className="h-9"
         />
-        {unit && <span className="text-xs text-muted-foreground shrink-0 w-6">{unit}</span>}
+        {unit && <span className="min-w-6 shrink-0 text-xs text-muted-foreground">{unit}</span>}
       </div>
     </div>
   )
@@ -415,6 +415,26 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
   const [pullUp1RM, setPullUp1RM] = useState('')
   const [beepLevel, setBeepLevel] = useState('')
   const [beepShuttle, setBeepShuttle] = useState('')
+  const [vo2max, setVo2max] = useState('')
+  const [lt1HeartRate, setLt1HeartRate] = useState('')
+  const [lt1SpeedKmh, setLt1SpeedKmh] = useState('')
+  const [lt1Lactate, setLt1Lactate] = useState('')
+  const [lt2HeartRate, setLt2HeartRate] = useState('')
+  const [lt2SpeedKmh, setLt2SpeedKmh] = useState('')
+  const [lt2Lactate, setLt2Lactate] = useState('')
+  const [maxHeartRate, setMaxHeartRate] = useState('')
+  const [maxLactate, setMaxLactate] = useState('')
+  const [rampDurationSec, setRampDurationSec] = useState('')
+  const [peakSpeedKmh, setPeakSpeedKmh] = useState('')
+  const [rerMax, setRerMax] = useState('')
+  const [veMax, setVeMax] = useState('')
+  const [breathingFrequencyMax, setBreathingFrequencyMax] = useState('')
+  const [economyMlKgKm, setEconomyMlKgKm] = useState('')
+  const [hrRecovery1Min, setHrRecovery1Min] = useState('')
+  const [hrRecovery2Min, setHrRecovery2Min] = useState('')
+  const [lactateClearance3Min, setLactateClearance3Min] = useState('')
+  const [lactateClearance5Min, setLactateClearance5Min] = useState('')
+  const [lactateClearance10Min, setLactateClearance10Min] = useState('')
 
   const selectedClient = clients.find((c) => c.id === clientId)
   const endurance = enduranceSummary(endurance7x40)
@@ -432,7 +452,7 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
     muscleLabRows.length > 0 || muscleLabRaw != null || powerBest != null || gripAsymmetry != null,
     parseNumber(standingLong) != null || parseNumber(threeJumpLeft) != null || parseNumber(threeJumpRight) != null,
     strengthCount > 0,
-    parseNumber(beepLevel) != null || endurance.count > 0,
+    parseNumber(beepLevel) != null || parseNumber(vo2max) != null || parseNumber(lt2SpeedKmh) != null || parseNumber(maxLactate) != null || endurance.count > 0,
   ].filter(Boolean).length
 
   // Apply scanned/imported data to form
@@ -478,6 +498,26 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
     if (data.pullUp1RM) { setPullUp1RM(String(data.pullUp1RM)); setStrengthOpen(true) }
     if (data.beepTestLevel) { setBeepLevel(String(data.beepTestLevel)); setEnduranceOpen(true) }
     if (data.beepTestShuttle) { setBeepShuttle(String(data.beepTestShuttle)); setEnduranceOpen(true) }
+    if (data.vo2max) { setVo2max(String(data.vo2max)); setEnduranceOpen(true) }
+    if (data.lt1HeartRate) { setLt1HeartRate(String(data.lt1HeartRate)); setEnduranceOpen(true) }
+    if (data.lt1SpeedKmh) { setLt1SpeedKmh(String(data.lt1SpeedKmh)); setEnduranceOpen(true) }
+    if (data.lt1Lactate) { setLt1Lactate(String(data.lt1Lactate)); setEnduranceOpen(true) }
+    if (data.lt2HeartRate) { setLt2HeartRate(String(data.lt2HeartRate)); setEnduranceOpen(true) }
+    if (data.lt2SpeedKmh) { setLt2SpeedKmh(String(data.lt2SpeedKmh)); setEnduranceOpen(true) }
+    if (data.lt2Lactate) { setLt2Lactate(String(data.lt2Lactate)); setEnduranceOpen(true) }
+    if (data.maxHeartRate) { setMaxHeartRate(String(data.maxHeartRate)); setEnduranceOpen(true) }
+    if (data.maxLactate) { setMaxLactate(String(data.maxLactate)); setEnduranceOpen(true) }
+    if (data.rampDurationSec) { setRampDurationSec(String(data.rampDurationSec)); setEnduranceOpen(true) }
+    if (data.peakSpeedKmh) { setPeakSpeedKmh(String(data.peakSpeedKmh)); setEnduranceOpen(true) }
+    if (data.rerMax) { setRerMax(String(data.rerMax)); setEnduranceOpen(true) }
+    if (data.veMax) { setVeMax(String(data.veMax)); setEnduranceOpen(true) }
+    if (data.breathingFrequencyMax) { setBreathingFrequencyMax(String(data.breathingFrequencyMax)); setEnduranceOpen(true) }
+    if (data.economyMlKgKm) { setEconomyMlKgKm(String(data.economyMlKgKm)); setEnduranceOpen(true) }
+    if (data.hrRecovery1Min) { setHrRecovery1Min(String(data.hrRecovery1Min)); setEnduranceOpen(true) }
+    if (data.hrRecovery2Min) { setHrRecovery2Min(String(data.hrRecovery2Min)); setEnduranceOpen(true) }
+    if (data.lactateClearance3Min) { setLactateClearance3Min(String(data.lactateClearance3Min)); setEnduranceOpen(true) }
+    if (data.lactateClearance5Min) { setLactateClearance5Min(String(data.lactateClearance5Min)); setEnduranceOpen(true) }
+    if (data.lactateClearance10Min) { setLactateClearance10Min(String(data.lactateClearance10Min)); setEnduranceOpen(true) }
     if (Array.isArray(data.muscleLabJumps)) {
       setMuscleLabRows(data.muscleLabJumps as MuscleLabRow[])
       setPowerOpen(true)
@@ -573,6 +613,7 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
     setSaving(true)
     try {
       const toNum = (v: string) => v ? parseFloat(v) : undefined
+      const toInt = (v: string) => v ? parseInt(v, 10) : undefined
       const toJson = (obj: Record<string, string>) => {
         const result: Record<string, number> = {}
         for (const [k, v] of Object.entries(obj)) {
@@ -609,7 +650,27 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
           threeJumpLeft: toNum(threeJumpLeft),
           threeJumpRight: toNum(threeJumpRight),
           beepTestLevel: toNum(beepLevel),
-          beepTestShuttle: beepShuttle ? parseInt(beepShuttle, 10) : undefined,
+          beepTestShuttle: toInt(beepShuttle),
+          vo2max: toNum(vo2max),
+          lt1HeartRate: toInt(lt1HeartRate),
+          lt1SpeedKmh: toNum(lt1SpeedKmh),
+          lt1Lactate: toNum(lt1Lactate),
+          lt2HeartRate: toInt(lt2HeartRate),
+          lt2SpeedKmh: toNum(lt2SpeedKmh),
+          lt2Lactate: toNum(lt2Lactate),
+          maxHeartRate: toInt(maxHeartRate),
+          maxLactate: toNum(maxLactate),
+          rampDurationSec: toInt(rampDurationSec),
+          peakSpeedKmh: toNum(peakSpeedKmh),
+          rerMax: toNum(rerMax),
+          veMax: toNum(veMax),
+          breathingFrequencyMax: toNum(breathingFrequencyMax),
+          economyMlKgKm: toNum(economyMlKgKm),
+          hrRecovery1Min: toInt(hrRecovery1Min),
+          hrRecovery2Min: toInt(hrRecovery2Min),
+          lactateClearance3Min: toNum(lactateClearance3Min),
+          lactateClearance5Min: toNum(lactateClearance5Min),
+          lactateClearance10Min: toNum(lactateClearance10Min),
           backSquat1RM: toNum(backSquat1RM),
           powerClean1RM: toNum(powerClean1RM),
           benchPress1RM: toNum(benchPress1RM),
@@ -757,6 +818,15 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
                 value={`${endurance.averageSpeedKmh.toFixed(1)} km/h · ${endurance.fatigueResistancePct?.toFixed(0) ?? '-'}% resist`}
                 tone={endurance.fatigueDropPct != null && endurance.fatigueDropPct >= 10 ? 'watch' : 'info'}
               />
+            )}
+            {parseNumber(vo2max) != null && (
+              <DiagnosticChip label="VO2max" value={`${parseNumber(vo2max)?.toFixed(1)} ml/kg/min`} tone="info" />
+            )}
+            {parseNumber(lt2SpeedKmh) != null && (
+              <DiagnosticChip label="LT2 fart" value={`${parseNumber(lt2SpeedKmh)?.toFixed(1)} km/h`} tone="good" />
+            )}
+            {parseNumber(maxLactate) != null && (
+              <DiagnosticChip label="Max laktat" value={`${parseNumber(maxLactate)?.toFixed(1)} mmol/L`} tone="info" />
             )}
           </div>
         </CardContent>
@@ -938,9 +1008,35 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
               <div className="grid grid-cols-2 gap-3">
                 <NumberInput label="Beep test nivå" value={beepLevel} onChange={setBeepLevel} placeholder="13" />
                 <NumberInput label="Beep test shuttle" value={beepShuttle} onChange={setBeepShuttle} placeholder="6" />
+                <NumberInput label="VO2max" value={vo2max} onChange={setVo2max} unit="ml/kg/min" placeholder="58.5" />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <NumberInput label="LT1 puls" value={lt1HeartRate} onChange={setLt1HeartRate} unit="bpm" placeholder="145" />
+                <NumberInput label="LT1 fart" value={lt1SpeedKmh} onChange={setLt1SpeedKmh} unit="km/h" placeholder="11.5" />
+                <NumberInput label="LT1 laktat" value={lt1Lactate} onChange={setLt1Lactate} unit="mmol/L" placeholder="2.0" />
+                <NumberInput label="LT2 puls" value={lt2HeartRate} onChange={setLt2HeartRate} unit="bpm" placeholder="176" />
+                <NumberInput label="LT2 fart" value={lt2SpeedKmh} onChange={setLt2SpeedKmh} unit="km/h" placeholder="15.2" />
+                <NumberInput label="LT2 laktat" value={lt2Lactate} onChange={setLt2Lactate} unit="mmol/L" placeholder="4.0" />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <NumberInput label="Max HR" value={maxHeartRate} onChange={setMaxHeartRate} unit="bpm" placeholder="194" />
+                <NumberInput label="Max laktat" value={maxLactate} onChange={setMaxLactate} unit="mmol/L" placeholder="11.8" />
+                <NumberInput label="Ramp tid" value={rampDurationSec} onChange={setRampDurationSec} unit="s" placeholder="735" />
+                <NumberInput label="Peak fart" value={peakSpeedKmh} onChange={setPeakSpeedKmh} unit="km/h" placeholder="18.5" />
+                <NumberInput label="RER max" value={rerMax} onChange={setRerMax} placeholder="1.15" />
+                <NumberInput label="VE max" value={veMax} onChange={setVeMax} unit="L/min" placeholder="165" />
+                <NumberInput label="BF max" value={breathingFrequencyMax} onChange={setBreathingFrequencyMax} unit="/min" placeholder="58" />
+                <NumberInput label="Ekonomi" value={economyMlKgKm} onChange={setEconomyMlKgKm} unit="ml/kg/km" placeholder="205" />
+                <NumberInput label="HRR 1 min" value={hrRecovery1Min} onChange={setHrRecovery1Min} unit="bpm" placeholder="32" />
+                <NumberInput label="HRR 2 min" value={hrRecovery2Min} onChange={setHrRecovery2Min} unit="bpm" placeholder="48" />
+                <NumberInput label="Laktat clr 5 min" value={lactateClearance5Min} onChange={setLactateClearance5Min} unit="mmol/L" placeholder="3.4" />
+                <NumberInput label="Laktat clr 10 min" value={lactateClearance10Min} onChange={setLactateClearance10Min} unit="mmol/L" placeholder="5.8" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <NumberInput label="Laktat clr 3 min" value={lactateClearance3Min} onChange={setLactateClearance3Min} unit="mmol/L" placeholder="2.1" />
               </div>
               <p className="text-[10px] text-muted-foreground">
-                VO2max hämtas från spelarens profil när sessionen summeras.
+                VO2max kan anges från labbtest eller estimeras från fälttest om ni vill samla allt i samma hockeysession.
               </p>
             </CardContent>
           </CollapsibleContent>

@@ -65,7 +65,7 @@ function metricFocus(metricKey: string): { title: string; description: string } 
       description: 'Prioritera baslyft, grepp/överkropp och progressiv styrka utan att störa match- eller istäthet.',
     }
   }
-  if (['beepScore', 'endurance7x40Best', 'endurance7x40Average', 'endurance7x40AverageKmh', 'endurance7x40Drop', 'endurance7x40Resistance', 'endurance7x40Score'].includes(metricKey)) {
+  if (['beepScore', 'vo2max', 'endurance7x40Best', 'endurance7x40Average', 'endurance7x40AverageKmh', 'endurance7x40Drop', 'endurance7x40Resistance', 'endurance7x40Score'].includes(metricKey)) {
     return {
       title: 'Repeated shift conditioning',
       description: 'Använd upprepade 30-45 sek arbetsblock, låg falloff och kontrollerad återhämtning mellan serier.',

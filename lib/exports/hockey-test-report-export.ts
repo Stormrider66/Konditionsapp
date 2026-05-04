@@ -58,6 +58,26 @@ export interface HockeyTestReportData {
   threeJumpRight: number | null
   beepTestLevel: number | null
   beepTestShuttle: number | null
+  vo2max: number | null
+  lt1HeartRate: number | null
+  lt1SpeedKmh: number | null
+  lt1Lactate: number | null
+  lt2HeartRate: number | null
+  lt2SpeedKmh: number | null
+  lt2Lactate: number | null
+  maxHeartRate: number | null
+  maxLactate: number | null
+  rampDurationSec: number | null
+  peakSpeedKmh: number | null
+  rerMax: number | null
+  veMax: number | null
+  breathingFrequencyMax: number | null
+  economyMlKgKm: number | null
+  hrRecovery1Min: number | null
+  hrRecovery2Min: number | null
+  lactateClearance3Min: number | null
+  lactateClearance5Min: number | null
+  lactateClearance10Min: number | null
   backSquat1RM: number | null
   powerClean1RM: number | null
   benchPress1RM: number | null
@@ -489,6 +509,24 @@ export function generateHockeyTestReportPDF(test: HockeyTestReportData): Blob {
     metric('3-step jump right', test.threeJumpRight, 'cm', 0),
     metric('Beep level', test.beepTestLevel, '', 0),
     metric('Beep shuttle', test.beepTestShuttle, '', 0),
+    metric('VO2max', test.vo2max, 'ml/kg/min', 1),
+    metric('LT1 HR', test.lt1HeartRate, 'bpm', 0),
+    metric('LT1 speed', test.lt1SpeedKmh, 'km/h', 1),
+    metric('LT1 lactate', test.lt1Lactate, 'mmol/L', 1),
+    metric('LT2 HR', test.lt2HeartRate, 'bpm', 0),
+    metric('LT2 speed', test.lt2SpeedKmh, 'km/h', 1),
+    metric('LT2 lactate', test.lt2Lactate, 'mmol/L', 1),
+    metric('Max HR', test.maxHeartRate, 'bpm', 0),
+    metric('Max lactate', test.maxLactate, 'mmol/L', 1),
+    metric('Ramp duration', test.rampDurationSec ? test.rampDurationSec / 60 : null, 'min', 1),
+    metric('Peak speed', test.peakSpeedKmh, 'km/h', 1),
+    metric('RER max', test.rerMax, '', 2),
+    metric('VE max', test.veMax, 'L/min', 1),
+    metric('BF max', test.breathingFrequencyMax, '/min', 1),
+    metric('Economy', test.economyMlKgKm, 'ml/kg/km', 1),
+    metric('HRR 1 min', test.hrRecovery1Min, 'bpm', 0),
+    metric('HRR 2 min', test.hrRecovery2Min, 'bpm', 0),
+    metric('Lactate clearance 5 min', test.lactateClearance5Min, 'mmol/L', 1),
   ]), y)
 
   if (test.notes) {

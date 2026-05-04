@@ -57,6 +57,9 @@ function formatHockeySummary(test: {
   agility505Right: number | null
   beepTestLevel: number | null
   beepTestShuttle: number | null
+  vo2max: number | null
+  lt2SpeedKmh: number | null
+  maxLactate: number | null
 }): string | null {
   const parts: string[] = []
   const muscleLabWkg = numberFromJson(test.muscleLabMaxima, 'maxAveragePowerPerBodyMass')
@@ -74,6 +77,9 @@ function formatHockeySummary(test: {
   if (test.beepTestLevel != null) {
     parts.push(`Beep ${test.beepTestLevel}${test.beepTestShuttle ? `.${test.beepTestShuttle}` : ''}`)
   }
+  if (test.vo2max != null) parts.push(`VO₂max ${test.vo2max.toFixed(1)}`)
+  if (test.lt2SpeedKmh != null) parts.push(`LT2 ${test.lt2SpeedKmh.toFixed(1)} km/h`)
+  if (test.maxLactate != null) parts.push(`Laktat ${test.maxLactate.toFixed(1)}`)
 
   return parts.length > 0 ? parts.slice(0, 3).join(' · ') : null
 }
@@ -126,6 +132,9 @@ export async function GET(
           agility505Right: true,
           beepTestLevel: true,
           beepTestShuttle: true,
+          vo2max: true,
+          lt2SpeedKmh: true,
+          maxLactate: true,
         },
       }),
       prisma.customTestResult.findMany({

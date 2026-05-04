@@ -46,6 +46,26 @@ Returnera ENBART giltig JSON med detta format (utelämna fält som inte finns i 
   "standingLongJump": 240,
   "threeJumpLeft": 680,
   "threeJumpRight": 700,
+  "vo2max": 58.5,
+  "lt1HeartRate": 145,
+  "lt1SpeedKmh": 11.5,
+  "lt1Lactate": 2.0,
+  "lt2HeartRate": 176,
+  "lt2SpeedKmh": 15.2,
+  "lt2Lactate": 4.0,
+  "maxHeartRate": 194,
+  "maxLactate": 11.8,
+  "rampDurationSec": 735,
+  "peakSpeedKmh": 18.5,
+  "rerMax": 1.15,
+  "veMax": 165,
+  "breathingFrequencyMax": 58,
+  "economyMlKgKm": 205,
+  "hrRecovery1Min": 32,
+  "hrRecovery2Min": 48,
+  "lactateClearance3Min": 2.1,
+  "lactateClearance5Min": 3.4,
+  "lactateClearance10Min": 5.8,
   "athleteName": "Erik Karlsson",
   "testDate": "2026-04-03",
   "confidence": 0.85
@@ -58,6 +78,11 @@ Notera:
 - Tider i sekunder med decimaler (6.50, inte 6:50)
 - Hopp i cm
 - Greppstyrka i kg
+- VO2max i ml/kg/min
+- LT1/LT2 puls i slag/min, fart i km/h och laktat i mmol/L
+- rampDurationSec i sekunder
+- HR recovery anges som pulsfallet i slag/min efter 1 och 2 minuter
+- lactateClearance anges som fall i mmol/L efter 3, 5 och 10 minuter
 - confidence: 0-1, hur säker du är på utläsningen
 - athleteName: om du kan läsa spelarens namn från dokumentet
 - testDate: om du kan läsa datum (YYYY-MM-DD format)

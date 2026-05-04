@@ -279,6 +279,12 @@ const PHYSICAL_METRICS = [
   { key: 'sprint0to30Kmh', label: '0-30 fart', unit: 'km/h', decimals: 1 },
   { key: 'agilityBest', label: '5-10-5', unit: 's', decimals: 2 },
   { key: 'beepScore', label: 'Beep', unit: '', decimals: 1 },
+  { key: 'vo2max', label: 'VO2max', unit: 'ml/kg/min', decimals: 1 },
+  { key: 'lt2SpeedKmh', label: 'LT2 fart', unit: 'km/h', decimals: 1 },
+  { key: 'lt2HeartRate', label: 'LT2 HR', unit: 'bpm', decimals: 0 },
+  { key: 'maxLactate', label: 'Max laktat', unit: 'mmol/L', decimals: 1 },
+  { key: 'maxHeartRate', label: 'Max HR', unit: 'bpm', decimals: 0 },
+  { key: 'rampDurationMin', label: 'Ramp tid', unit: 'min', decimals: 1 },
   { key: 'endurance7x40Best', label: '7x40 bäst', unit: 's', decimals: 2 },
   { key: 'endurance7x40BestKmh', label: '7x40 fart', unit: 'km/h', decimals: 1 },
   { key: 'endurance7x40Average', label: '7x40 snitt', unit: 's', decimals: 2 },
@@ -305,6 +311,8 @@ const SNAPSHOT_METRICS = [
   'sprint10m',
   'sprint30m',
   'agilityBest',
+  'vo2max',
+  'lt2SpeedKmh',
   'standingLongJump',
   'endurance7x40AverageKmh',
   'endurance7x40Resistance',
@@ -383,7 +391,7 @@ function metricFocus(metricKey: string): { title: string; description: string } 
       description: 'Bygg vidare med baslyft, drag/press och grepp utan att störa is- eller matchkvalitet.',
     }
   }
-  if (['beepScore', 'endurance7x40Average', 'endurance7x40AverageKmh', 'endurance7x40Resistance', 'endurance7x40DecrementPct', 'enduranceFatigueDrop'].includes(metricKey)) {
+  if (['beepScore', 'vo2max', 'lt2SpeedKmh', 'lt2HeartRate', 'maxLactate', 'maxHeartRate', 'rampDurationMin', 'endurance7x40Average', 'endurance7x40AverageKmh', 'endurance7x40Resistance', 'endurance7x40DecrementPct', 'enduranceFatigueDrop'].includes(metricKey)) {
     return {
       title: 'Repeated shift conditioning',
       description: 'Använd upprepade 30-45 sek arbetsblock och kontrollera falloff mellan repetitioner.',

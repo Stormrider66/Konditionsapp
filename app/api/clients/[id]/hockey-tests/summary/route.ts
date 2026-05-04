@@ -12,7 +12,7 @@ import { NextResponse } from 'next/server'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { buildRepeatedSprintProfile, positiveSplit, speedKmh } from '@/lib/hockey/ice-speed'
+import { buildRepeatedSprintProfile, distanceGapM, median, percentile, positiveSplit, speedKmh } from '@/lib/hockey/ice-speed'
 import { buildHockeyQualityFlags, type HockeyQualityFlag } from '@/lib/hockey/test-quality'
 import {
   buildHockeyNormGap,
@@ -31,6 +31,7 @@ interface HockeySummary {
   testDate: string
   sourceType: string
   notes: string | null
+  teamId: string | null
   season: string
   ageAtTest: number | null
   developmentLevel: string
@@ -111,6 +112,54 @@ interface HockeyPathway {
   nextLevel: HockeyPathwayReadiness | null
 }
 
+interface HockeyComparisonMetricConfig {
+  key: string
+  label: string
+  unit: string
+  decimals: number
+  lowerIsBetter?: boolean
+  distanceM?: number
+}
+
+interface HockeyPlayerComparisonMetric {
+  key: string
+  label: string
+  unit: string
+  decimals: number
+  lowerIsBetter: boolean
+  value: number
+  teamPercentile: number | null
+  positionPercentile: number | null
+  teamMedian: number | null
+  positionMedian: number | null
+  teamRank: number | null
+  positionRank: number | null
+  gapToTeamMedian: number | null
+  gapToPositionMedian: number | null
+  gapToLeader: number | null
+  gapToLeaderMeters: number | null
+  leaderValue: number | null
+  coverage: number
+  positionCoverage: number
+  band: 'top' | 'above' | 'team' | 'watch' | 'priority'
+}
+
+interface HockeyPlayerComparison {
+  teamId: string
+  teamName: string
+  athleteCount: number
+  position: string
+  positionLabel: string
+  mode: 'TEAM_CONTEXT' | 'POSITION_CONTEXT' | 'FULL_RANKING'
+  sensitiveMetricsVisible: boolean
+  metrics: HockeyPlayerComparisonMetric[]
+}
+
+interface HockeyPlayerVisibility {
+  comparisonMode: 'OWN_PROGRESS' | 'TEAM_CONTEXT' | 'POSITION_CONTEXT' | 'FULL_RANKING'
+  sensitiveMetricsVisible: boolean
+}
+
 const LOWER_IS_BETTER = new Set([
   'sprint5m',
   'sprint10m',
@@ -142,6 +191,20 @@ const READINESS_METRIC_LABELS: Record<string, string> = {
   backSquat1RM: 'Back squat',
 }
 
+const COMPARISON_METRICS: HockeyComparisonMetricConfig[] = [
+  { key: 'muscleLabWkg', label: 'MuscleLab', unit: 'W/kg', decimals: 1 },
+  { key: 'sprint10m', label: '10m is', unit: 's', decimals: 2, lowerIsBetter: true, distanceM: 10 },
+  { key: 'sprint30m', label: '30m is', unit: 's', decimals: 2, lowerIsBetter: true, distanceM: 30 },
+  { key: 'agilityBest', label: '5-10-5', unit: 's', decimals: 2, lowerIsBetter: true },
+  { key: 'endurance7x40AverageKmh', label: '7x40 snitt', unit: 'km/h', decimals: 1 },
+  { key: 'endurance7x40Resistance', label: '7x40 resistance', unit: '%', decimals: 0 },
+  { key: 'vo2max', label: 'VO2max', unit: 'ml/kg/min', decimals: 1 },
+  { key: 'lt2SpeedKmh', label: 'LT2 fart', unit: 'km/h', decimals: 1 },
+  { key: 'backSquatRelative', label: 'Knäböj', unit: 'xBW', decimals: 2 },
+]
+
+const SENSITIVE_COMPARISON_KEYS = new Set(['vo2max', 'lt2SpeedKmh'])
+
 function numberFromJson(value: unknown, key: string): number | null {
   if (!value || typeof value !== 'object') return null
   const raw = (value as Record<string, unknown>)[key]
@@ -158,6 +221,43 @@ function round(value: number | null, decimals = 1): number | null {
   if (value == null || !Number.isFinite(value)) return null
   const factor = Math.pow(10, decimals)
   return Math.round(value * factor) / factor
+}
+
+function percentileBand(percentileValue: number | null): HockeyPlayerComparisonMetric['band'] {
+  if (percentileValue == null) return 'team'
+  if (percentileValue >= 80) return 'top'
+  if (percentileValue >= 60) return 'above'
+  if (percentileValue >= 40) return 'team'
+  if (percentileValue >= 20) return 'watch'
+  return 'priority'
+}
+
+function normalizeHockeyPosition(position: string | null | undefined): { key: string; label: string } {
+  const raw = (position ?? '').trim().toLowerCase()
+  if (!raw) return { key: 'unknown', label: 'Position saknas' }
+  if (['g', 'goalie', 'goalkeeper', 'målvakt', 'malvakt'].some((needle) => raw.includes(needle))) {
+    return { key: 'G', label: 'Målvakt' }
+  }
+  if (['d', 'defense', 'defence', 'defender', 'back'].some((needle) => raw === needle || raw.includes(needle))) {
+    return { key: 'D', label: 'Back' }
+  }
+  if (['c', 'center', 'centre', 'centerforward'].some((needle) => raw === needle || raw.includes(needle))) {
+    return { key: 'C', label: 'Center' }
+  }
+  if (['w', 'wing', 'winger', 'forward', 'fwd', 'lw', 'rw'].some((needle) => raw === needle || raw.includes(needle))) {
+    return { key: 'W', label: 'Forward' }
+  }
+  return { key: raw.toUpperCase().slice(0, 12), label: position ?? 'Övrig' }
+}
+
+function comparisonGap(value: number, reference: number | null, lowerIsBetter: boolean): number | null {
+  if (reference == null) return null
+  return round(lowerIsBetter ? reference - value : value - reference, 2)
+}
+
+function leaderGap(value: number, leader: number | null, lowerIsBetter: boolean): number | null {
+  if (leader == null) return null
+  return round(lowerIsBetter ? value - leader : leader - value, 2)
 }
 
 function seasonLabel(date: Date): string {
@@ -227,6 +327,26 @@ function toSummary(
     threeJumpRight: test.threeJumpRight,
     threeJumpBest: bestOf([test.threeJumpLeft, test.threeJumpRight]),
     beepScore: round(beepScore, 1),
+    vo2max: test.vo2max,
+    lt1HeartRate: test.lt1HeartRate,
+    lt1SpeedKmh: test.lt1SpeedKmh,
+    lt1Lactate: test.lt1Lactate,
+    lt2HeartRate: test.lt2HeartRate,
+    lt2SpeedKmh: test.lt2SpeedKmh,
+    lt2Lactate: test.lt2Lactate,
+    maxHeartRate: test.maxHeartRate,
+    maxLactate: test.maxLactate,
+    rampDurationMin: test.rampDurationSec ? round(test.rampDurationSec / 60, 1) : null,
+    peakSpeedKmh: test.peakSpeedKmh,
+    rerMax: test.rerMax,
+    veMax: test.veMax,
+    breathingFrequencyMax: test.breathingFrequencyMax,
+    economyMlKgKm: test.economyMlKgKm,
+    hrRecovery1Min: test.hrRecovery1Min,
+    hrRecovery2Min: test.hrRecovery2Min,
+    lactateClearance3Min: test.lactateClearance3Min,
+    lactateClearance5Min: test.lactateClearance5Min,
+    lactateClearance10Min: test.lactateClearance10Min,
     sprint5m: test.sprint5m,
     sprint10m: test.sprint10m,
     sprint20m: test.sprint20m,
@@ -259,6 +379,7 @@ function toSummary(
     testDate: test.testDate.toISOString(),
     sourceType: test.sourceType,
     notes: test.notes,
+    teamId: test.teamId,
     season: seasonLabel(test.testDate),
     ageAtTest: age,
     developmentLevel: developmentLevel(age, test.team?.name),
@@ -526,13 +647,77 @@ function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): Hockey
   return flags.slice(0, 4)
 }
 
-async function loadTests(clientId: string) {
-  return prisma.hockeyPhysicalTest.findMany({
-    where: { clientId },
+async function buildPlayerComparison(options: {
+  clientId: string
+  latestRawTest: Awaited<ReturnType<typeof loadTests>>[number] | undefined
+  latest: HockeySummary | null
+  clientPosition: string | null | undefined
+}): Promise<HockeyPlayerComparison | null> {
+  if (!options.latest || !options.latestRawTest) return null
+
+  const team = options.latestRawTest.teamId
+    ? await prisma.team.findUnique({
+        where: { id: options.latestRawTest.teamId },
+        select: {
+          id: true,
+          name: true,
+          hockeyPlayerComparisonMode: true,
+          hockeySensitiveMetricsVisible: true,
+          members: {
+            select: {
+              id: true,
+              name: true,
+              position: true,
+              birthDate: true,
+              weight: true,
+            },
+          },
+        },
+      })
+    : await prisma.team.findFirst({
+        where: { members: { some: { id: options.clientId } } },
+        select: {
+          id: true,
+          name: true,
+          hockeyPlayerComparisonMode: true,
+          hockeySensitiveMetricsVisible: true,
+          members: {
+            select: {
+              id: true,
+              name: true,
+              position: true,
+              birthDate: true,
+              weight: true,
+            },
+          },
+        },
+      })
+
+  if (!team || team.members.length < 2) return null
+  const mode = team.hockeyPlayerComparisonMode === 'OWN_PROGRESS'
+    ? 'OWN_PROGRESS'
+    : team.hockeyPlayerComparisonMode === 'TEAM_CONTEXT'
+      ? 'TEAM_CONTEXT'
+      : team.hockeyPlayerComparisonMode === 'FULL_RANKING'
+        ? 'FULL_RANKING'
+        : 'POSITION_CONTEXT'
+  const sensitiveMetricsVisible = team.hockeySensitiveMetricsVisible !== false
+
+  if (mode === 'OWN_PROGRESS') return null
+
+  const memberIds = team.members.map((member) => member.id)
+  const since = new Date(options.latestRawTest.testDate)
+  since.setDate(since.getDate() - 120)
+  const teamTests = await prisma.hockeyPhysicalTest.findMany({
+    where: {
+      clientId: { in: memberIds },
+      testDate: { gte: since },
+    },
     orderBy: { testDate: 'desc' },
-    take: 80,
     select: {
       id: true,
+      clientId: true,
+      teamId: true,
       testDate: true,
       sourceType: true,
       notes: true,
@@ -552,6 +737,214 @@ async function loadTests(clientId: string) {
       threeJumpRight: true,
       beepTestLevel: true,
       beepTestShuttle: true,
+      vo2max: true,
+      lt1HeartRate: true,
+      lt1SpeedKmh: true,
+      lt1Lactate: true,
+      lt2HeartRate: true,
+      lt2SpeedKmh: true,
+      lt2Lactate: true,
+      maxHeartRate: true,
+      maxLactate: true,
+      rampDurationSec: true,
+      peakSpeedKmh: true,
+      rerMax: true,
+      veMax: true,
+      breathingFrequencyMax: true,
+      economyMlKgKm: true,
+      hrRecovery1Min: true,
+      hrRecovery2Min: true,
+      lactateClearance3Min: true,
+      lactateClearance5Min: true,
+      lactateClearance10Min: true,
+      backSquat1RM: true,
+      powerClean1RM: true,
+      benchPress1RM: true,
+      pullUp1RM: true,
+      muscleLabMaxima: true,
+      team: { select: { name: true } },
+    },
+  })
+
+  const latestByAthlete = new Map<string, (typeof teamTests)[number]>()
+  for (const test of teamTests) {
+    if (!latestByAthlete.has(test.clientId)) {
+      latestByAthlete.set(test.clientId, test)
+    }
+  }
+
+  const summaries = team.members
+    .map((member) => {
+      const test = latestByAthlete.get(member.id)
+      if (!test) return null
+      return {
+        id: member.id,
+        position: normalizeHockeyPosition(member.position),
+        summary: toSummary(test, member.birthDate, member.weight),
+      }
+    })
+    .filter((row): row is { id: string; position: { key: string; label: string }; summary: HockeySummary } => row != null)
+
+  const athlete = summaries.find((row) => row.id === options.clientId)
+  if (!athlete) return null
+
+  const athletePosition = athlete.position.key !== 'unknown'
+    ? athlete.position
+    : normalizeHockeyPosition(options.clientPosition)
+
+  const metrics = COMPARISON_METRICS
+    .filter((metric) => sensitiveMetricsVisible || !SENSITIVE_COMPARISON_KEYS.has(metric.key))
+    .map((metric): HockeyPlayerComparisonMetric | null => {
+    const value = athlete.summary.metrics[metric.key]
+    if (value == null) return null
+
+    const rowsWithMetric = summaries
+      .map((row) => ({
+        ...row,
+        value: row.summary.metrics[metric.key],
+      }))
+      .filter((row): row is typeof row & { value: number } => row.value != null && Number.isFinite(row.value))
+
+    if (rowsWithMetric.length < 2) return null
+
+    const positionRows = rowsWithMetric.filter((row) => row.position.key === athletePosition.key)
+    const values = rowsWithMetric.map((row) => row.value)
+    const positionValues = positionRows.map((row) => row.value)
+    const sorted = [...values].sort((a, b) => metric.lowerIsBetter ? a - b : b - a)
+    const leader = sorted[0] ?? null
+    const teamPercentile = percentile(value, values, metric.lowerIsBetter !== true)
+    const positionPercentile = positionValues.length >= 2
+      ? percentile(value, positionValues, metric.lowerIsBetter !== true)
+      : null
+    const rankedTeamRows = [...rowsWithMetric].sort((a, b) => metric.lowerIsBetter ? a.value - b.value : b.value - a.value)
+    const rankedPositionRows = [...positionRows].sort((a, b) => metric.lowerIsBetter ? a.value - b.value : b.value - a.value)
+    const teamRank = rankedTeamRows.findIndex((row) => row.id === options.clientId) + 1
+    const positionRank = rankedPositionRows.findIndex((row) => row.id === options.clientId) + 1
+
+    return {
+      key: metric.key,
+      label: metric.label,
+      unit: metric.unit,
+      decimals: metric.decimals,
+      lowerIsBetter: metric.lowerIsBetter === true,
+      value,
+      teamPercentile,
+      positionPercentile: mode === 'TEAM_CONTEXT' ? null : positionPercentile,
+      teamMedian: round(median(values), metric.decimals),
+      positionMedian: mode === 'TEAM_CONTEXT'
+        ? null
+        : positionValues.length >= 2 ? round(median(positionValues), metric.decimals) : null,
+      teamRank: mode === 'FULL_RANKING' && teamRank > 0 ? teamRank : null,
+      positionRank: mode === 'FULL_RANKING' && positionRank > 0 ? positionRank : null,
+      gapToTeamMedian: comparisonGap(value, median(values), metric.lowerIsBetter === true),
+      gapToPositionMedian: mode === 'TEAM_CONTEXT'
+        ? null
+        : positionValues.length >= 2
+        ? comparisonGap(value, median(positionValues), metric.lowerIsBetter === true)
+        : null,
+      gapToLeader: leaderGap(value, leader, metric.lowerIsBetter === true),
+      gapToLeaderMeters: metric.distanceM && metric.lowerIsBetter
+        ? distanceGapM(metric.distanceM, leader, value)
+        : null,
+      leaderValue: leader,
+      coverage: rowsWithMetric.length,
+      positionCoverage: mode === 'TEAM_CONTEXT' ? 0 : positionRows.length,
+      band: percentileBand(mode === 'TEAM_CONTEXT' ? teamPercentile : positionPercentile ?? teamPercentile),
+    }
+  }).filter((metric): metric is HockeyPlayerComparisonMetric => metric != null)
+
+  return {
+    teamId: team.id,
+    teamName: team.name,
+    athleteCount: summaries.length,
+    position: athletePosition.key,
+    positionLabel: athletePosition.label,
+    mode,
+    sensitiveMetricsVisible,
+    metrics,
+  }
+}
+
+async function loadPlayerVisibility(options: {
+  clientId: string
+  latestRawTest: Awaited<ReturnType<typeof loadTests>>[number] | undefined
+}): Promise<HockeyPlayerVisibility> {
+  const team = options.latestRawTest?.teamId
+    ? await prisma.team.findUnique({
+        where: { id: options.latestRawTest.teamId },
+        select: {
+          hockeyPlayerComparisonMode: true,
+          hockeySensitiveMetricsVisible: true,
+        },
+      })
+    : await prisma.team.findFirst({
+        where: { members: { some: { id: options.clientId } } },
+        select: {
+          hockeyPlayerComparisonMode: true,
+          hockeySensitiveMetricsVisible: true,
+        },
+      })
+
+  return {
+    comparisonMode: team?.hockeyPlayerComparisonMode === 'OWN_PROGRESS'
+      ? 'OWN_PROGRESS'
+      : team?.hockeyPlayerComparisonMode === 'TEAM_CONTEXT'
+        ? 'TEAM_CONTEXT'
+        : team?.hockeyPlayerComparisonMode === 'FULL_RANKING'
+          ? 'FULL_RANKING'
+          : 'POSITION_CONTEXT',
+    sensitiveMetricsVisible: team?.hockeySensitiveMetricsVisible !== false,
+  }
+}
+
+async function loadTests(clientId: string) {
+  return prisma.hockeyPhysicalTest.findMany({
+    where: { clientId },
+    orderBy: { testDate: 'desc' },
+    take: 80,
+    select: {
+      id: true,
+      clientId: true,
+      teamId: true,
+      testDate: true,
+      sourceType: true,
+      notes: true,
+      agility505Left: true,
+      agility505Right: true,
+      sprint5m: true,
+      sprint10m: true,
+      sprint20m: true,
+      sprint30m: true,
+      sprint20mFly: true,
+      sprint30mFly: true,
+      endurance7x40: true,
+      gripStrengthLeft: true,
+      gripStrengthRight: true,
+      standingLongJump: true,
+      threeJumpLeft: true,
+      threeJumpRight: true,
+      beepTestLevel: true,
+      beepTestShuttle: true,
+      vo2max: true,
+      lt1HeartRate: true,
+      lt1SpeedKmh: true,
+      lt1Lactate: true,
+      lt2HeartRate: true,
+      lt2SpeedKmh: true,
+      lt2Lactate: true,
+      maxHeartRate: true,
+      maxLactate: true,
+      rampDurationSec: true,
+      peakSpeedKmh: true,
+      rerMax: true,
+      veMax: true,
+      breathingFrequencyMax: true,
+      economyMlKgKm: true,
+      hrRecovery1Min: true,
+      hrRecovery2Min: true,
+      lactateClearance3Min: true,
+      lactateClearance5Min: true,
+      lactateClearance10Min: true,
       backSquat1RM: true,
       powerClean1RM: true,
       benchPress1RM: true,
@@ -588,6 +981,18 @@ export async function GET(
     const trends = buildTrends(latest, previous)
     const bests = buildBests(history)
     const pathway = buildPathway(history, normalizeNormPosition(client?.position))
+    const [comparison, playerVisibility] = await Promise.all([
+      buildPlayerComparison({
+        clientId,
+        latestRawTest: tests[0],
+        latest,
+        clientPosition: client?.position,
+      }),
+      loadPlayerVisibility({
+        clientId,
+        latestRawTest: tests[0],
+      }),
+    ])
 
     return NextResponse.json({
       success: true,
@@ -599,6 +1004,8 @@ export async function GET(
         flags: buildFlags(latest, trends),
         history,
         pathway,
+        comparison,
+        playerVisibility,
         interpretations: buildHockeyCoachInterpretations({
           latest,
           trends,

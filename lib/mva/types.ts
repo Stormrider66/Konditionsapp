@@ -141,6 +141,26 @@ export interface HockeyPhysicalTestSummary {
   threeJumpRight: number | null
   beepTestLevel: number | null
   beepTestShuttle: number | null
+  vo2max: number | null
+  lt1HeartRate: number | null
+  lt1SpeedKmh: number | null
+  lt1Lactate: number | null
+  lt2HeartRate: number | null
+  lt2SpeedKmh: number | null
+  lt2Lactate: number | null
+  maxHeartRate: number | null
+  maxLactate: number | null
+  rampDurationSec: number | null
+  peakSpeedKmh: number | null
+  rerMax: number | null
+  veMax: number | null
+  breathingFrequencyMax: number | null
+  economyMlKgKm: number | null
+  hrRecovery1Min: number | null
+  hrRecovery2Min: number | null
+  lactateClearance3Min: number | null
+  lactateClearance5Min: number | null
+  lactateClearance10Min: number | null
   backSquat1RM: number | null
   powerClean1RM: number | null
   benchPress1RM: number | null

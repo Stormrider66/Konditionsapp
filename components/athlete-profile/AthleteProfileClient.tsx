@@ -17,6 +17,7 @@ import { InjuryHealthTab } from './tabs/InjuryHealthTab'
 import { ReadinessTab } from './tabs/ReadinessTab'
 import { TechniqueTab } from './tabs/TechniqueTab'
 import { GoalsPlanningTab } from './tabs/GoalsPlanningTab'
+import { HockeyPlayerProfile } from './HockeyPlayerProfile'
 import { HockeyAthleteView } from '@/components/coach/sport-views/HockeyAthleteView'
 import { cn } from '@/lib/utils'
 
@@ -166,11 +167,20 @@ export function AthleteProfileClient({
 
                 {hasHockeyProfile && (
                   <TabsContent value="hockey" className="mt-0">
-                    <HockeyAthleteView
-                      clientId={client.id}
-                      clientName={client.name}
-                      settings={sportProfile?.hockeySettings ?? undefined}
-                    />
+                    {isAthlete ? (
+                      <HockeyPlayerProfile
+                        clientId={client.id}
+                        clientName={client.name}
+                        settings={sportProfile?.hockeySettings ?? undefined}
+                        basePath={basePath}
+                      />
+                    ) : (
+                      <HockeyAthleteView
+                        clientId={client.id}
+                        clientName={client.name}
+                        settings={sportProfile?.hockeySettings ?? undefined}
+                      />
+                    )}
                   </TabsContent>
                 )}
               </div>

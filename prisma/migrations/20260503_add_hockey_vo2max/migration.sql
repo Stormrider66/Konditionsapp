@@ -1,0 +1,2 @@
+ALTER TABLE "HockeyPhysicalTest"
+ADD COLUMN "vo2max" DOUBLE PRECISION;

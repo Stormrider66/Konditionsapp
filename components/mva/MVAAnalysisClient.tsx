@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Activity, AlertTriangle, Download, FileSpreadsheet, GitCompareArrows, Loader2, RefreshCw, Settings2, Target, Trash2, Users } from 'lucide-react'
+import { Activity, AlertTriangle, Copy, Download, FileSpreadsheet, GitCompareArrows, Loader2, RefreshCw, Settings2, Target, Trash2, Users } from 'lucide-react'
 import { ScorePlot } from './ScorePlot'
 import { LoadingPlot } from './LoadingPlot'
 import { ScreePlot } from './ScreePlot'
@@ -172,6 +172,20 @@ interface SimcaExportPreset {
   columns: string[]
 }
 
+interface SimcaExportManifest {
+  version: string
+  defaultPreset: string
+  presets: SimcaExportPreset[]
+  quality?: {
+    days: number
+    teamAthleteCount: number
+    athleteWithTestsCount: number
+    exportedTestCount: number
+    firstTestDate: string | null
+    latestTestDate: string | null
+  }
+}
+
 interface SimcaComparisonResult {
   baseline: {
     id: string
@@ -225,6 +239,23 @@ function formatSigned(value: number | null, digits = 2): string {
   if (value === null) return 'n/a'
   const sign = value > 0 ? '+' : ''
   return `${sign}${value.toFixed(digits)}`
+}
+
+function summarizeSimcaColumnGroups(columns: string[]): string[] {
+  const groups = [
+    { label: 'ID', matches: ['team_', 'athlete_', 'position', 'test_date', 'source_type'] },
+    { label: 'Pathway', matches: ['pathway_'] },
+    { label: 'Normgap', matches: ['gap_'] },
+    { label: 'Power', matches: ['musclelab_', 'jump', 'z_musclelab', 'z_standing', 'z_three'] },
+    { label: 'Strength', matches: ['squat', 'clean', 'bench', 'pullup', 'grip'] },
+    { label: 'Lab/endurance', matches: ['vo2', 'lt1_', 'lt2_', 'lactate', 'heart_rate', 'ramp_', 'rer_', 've_', 'economy'] },
+    { label: 'Ice speed', matches: ['sprint_', 'agility_', 'endurance_7x40'] },
+    { label: 'Z-score', matches: ['z_'] },
+  ]
+
+  return groups
+    .filter((group) => columns.some((column) => group.matches.some((match) => column.startsWith(match) || column.includes(match))))
+    .map((group) => group.label)
 }
 
 type ArchetypeId = 'explosive' | 'strength' | 'aerobic' | 'recovery' | 'balanced'
@@ -410,6 +441,8 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
   const [simcaImports, setSimcaImports] = useState<SimcaImportArtifact[]>([])
   const [simcaExportPresets, setSimcaExportPresets] = useState<SimcaExportPreset[]>([])
   const [simcaExportPresetId, setSimcaExportPresetId] = useState('full')
+  const [simcaExportManifestVersion, setSimcaExportManifestVersion] = useState<string | null>(null)
+  const [simcaExportQuality, setSimcaExportQuality] = useState<SimcaExportManifest['quality'] | null>(null)
   const [simcaImportsLoading, setSimcaImportsLoading] = useState(false)
   const [deletingSimcaImportId, setDeletingSimcaImportId] = useState<string | null>(null)
   const [simcaBaselineId, setSimcaBaselineId] = useState<string>('')
@@ -528,8 +561,11 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
       const res = await fetch(`/api/teams/${teamId}/hockey-tests/export?manifest=1`)
       const json = await res.json()
       if (json.success) {
-        setSimcaExportPresets(json.data.presets ?? [])
-        setSimcaExportPresetId((current) => current || json.data.defaultPreset || 'full')
+        const manifest = json.data as SimcaExportManifest
+        setSimcaExportPresets(manifest.presets ?? [])
+        setSimcaExportManifestVersion(manifest.version ?? null)
+        setSimcaExportQuality(manifest.quality ?? null)
+        setSimcaExportPresetId((current) => current || manifest.defaultPreset || 'full')
       }
     } catch {
       // Export still works with the default preset link.
@@ -637,8 +673,34 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
     }
   }, [simcaBaselineId, simcaCurrentId, teamId])
 
+  const copySimcaColumns = useCallback(async (preset: SimcaExportPreset) => {
+    try {
+      await navigator.clipboard.writeText(preset.columns.join('\n'))
+      setSimcaImportError(null)
+      setSimcaImportMessage(`Kolumnlista kopierad: ${preset.label}`)
+    } catch {
+      setSimcaImportMessage(null)
+      setSimcaImportError('Kunde inte kopiera kolumnlistan')
+    }
+  }, [])
+
   const isHockeyTeam = (fetchedSportType ?? teamSportType) === 'TEAM_ICE_HOCKEY'
   const selectedSimcaExportPreset = simcaExportPresets.find((preset) => preset.id === simcaExportPresetId)
+  const selectedSimcaColumnGroups = selectedSimcaExportPreset
+    ? summarizeSimcaColumnGroups(selectedSimcaExportPreset.columns)
+    : []
+  const simcaExportCoveragePercent = simcaExportQuality && simcaExportQuality.teamAthleteCount > 0
+    ? Math.round((simcaExportQuality.athleteWithTestsCount / simcaExportQuality.teamAthleteCount) * 100)
+    : null
+  const simcaExportReadiness = !simcaExportQuality
+    ? null
+    : simcaExportQuality.exportedTestCount === 0
+      ? { tone: 'danger', label: 'Ingen exportdata', detail: 'Lägg in hockeytester innan SIMCA-export.' }
+      : simcaExportQuality.athleteWithTestsCount < 5
+        ? { tone: 'warning', label: 'Litet underlag', detail: 'SIMCA/PCA blir stabilare med minst 5 spelare och helst fler testpunkter.' }
+        : simcaExportCoveragePercent != null && simcaExportCoveragePercent < 60
+          ? { tone: 'warning', label: 'Låg täckning', detail: 'Många spelare saknar hockeytest i exportfönstret.' }
+          : { tone: 'ok', label: 'Redo för export', detail: 'Underlaget räcker för en första SIMCA/PCA-genomgång.' }
   const simcaWorkflow = isHockeyTeam ? (
     <Card className="mb-6 dark:bg-slate-900/50 dark:border-white/10">
       <CardContent className="grid gap-4 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(220px,320px)_auto_auto] lg:items-center">
@@ -700,6 +762,94 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
           Importera SIMCA
         </Button>
       </CardContent>
+      {selectedSimcaExportPreset && (
+        <div className="border-t px-6 py-3 text-xs dark:border-white/10">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-medium dark:text-white">Exportinnehåll</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[10px]"
+                  onClick={() => void copySimcaColumns(selectedSimcaExportPreset)}
+                >
+                  <Copy className="mr-1 h-3 w-3" />
+                  Kopiera kolumner
+                </Button>
+              </div>
+              <p className="mt-1 text-muted-foreground">
+                {selectedSimcaExportPreset.columnCount} kolumner
+                {simcaExportManifestVersion ? ` · ${simcaExportManifestVersion}` : ''}
+                {simcaExportPresets.length > 0 ? ` · ${simcaExportPresets.length} presets` : ''}
+              </p>
+            </div>
+            {selectedSimcaColumnGroups.length > 0 && (
+              <div className="flex max-w-3xl flex-wrap gap-1.5">
+                {selectedSimcaColumnGroups.map((group) => (
+                  <Badge key={group} variant="outline" className="text-[10px]">
+                    {group}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+          {selectedSimcaExportPreset.columns.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1">
+              {selectedSimcaExportPreset.columns.slice(0, 14).map((column) => (
+                <code key={column} className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  {column}
+                </code>
+              ))}
+              {selectedSimcaExportPreset.columns.length > 14 && (
+                <span className="px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  +{selectedSimcaExportPreset.columns.length - 14} fler
+                </span>
+              )}
+            </div>
+          )}
+          {simcaExportQuality && (
+            <div className="mt-3 grid gap-2 md:grid-cols-5">
+              {simcaExportReadiness && (
+                <div className={`rounded-md border px-2.5 py-2 md:col-span-1 ${
+                  simcaExportReadiness.tone === 'danger'
+                    ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300'
+                    : simcaExportReadiness.tone === 'warning'
+                      ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
+                      : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
+                }`}>
+                  <p className="font-medium">{simcaExportReadiness.label}</p>
+                  <p className="text-[10px] opacity-80">{simcaExportReadiness.detail}</p>
+                </div>
+              )}
+              <div className="rounded-md border px-2.5 py-2 dark:border-white/10">
+                <p className="font-medium dark:text-white">
+                  {simcaExportQuality.athleteWithTestsCount}/{simcaExportQuality.teamAthleteCount}
+                  {simcaExportCoveragePercent != null ? ` (${simcaExportCoveragePercent}%)` : ''}
+                </p>
+                <p className="text-[10px] text-muted-foreground">spelare med test</p>
+              </div>
+              <div className="rounded-md border px-2.5 py-2 dark:border-white/10">
+                <p className="font-medium dark:text-white">{simcaExportQuality.exportedTestCount}</p>
+                <p className="text-[10px] text-muted-foreground">exportrader</p>
+              </div>
+              <div className="rounded-md border px-2.5 py-2 dark:border-white/10">
+                <p className="font-medium dark:text-white">{simcaExportQuality.days} dagar</p>
+                <p className="text-[10px] text-muted-foreground">exportfönster</p>
+              </div>
+              <div className="rounded-md border px-2.5 py-2 dark:border-white/10">
+                <p className="font-medium dark:text-white">
+                  {simcaExportQuality.latestTestDate ?? 'saknas'}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {simcaExportQuality.firstTestDate ? `första ${simcaExportQuality.firstTestDate}` : 'senaste test'}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       {(simcaImportMessage || simcaImportError) && (
         <div className="border-t px-6 py-2 text-xs dark:border-white/10">
           {simcaImportMessage && <span className="text-emerald-600">{simcaImportMessage}</span>}

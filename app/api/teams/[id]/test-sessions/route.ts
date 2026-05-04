@@ -86,6 +86,12 @@ const HOCKEY_METRICS: HockeyMetric[] = [
   { key: 'standingLongJump', label: 'Längdhopp', unit: 'cm' },
   { key: 'threeJumpBest', label: '3-steg bäst', unit: 'cm' },
   { key: 'beepScore', label: 'Beep', unit: 'nivå' },
+  { key: 'vo2max', label: 'VO2max', unit: 'ml/kg/min' },
+  { key: 'lt2SpeedKmh', label: 'LT2 fart', unit: 'km/h' },
+  { key: 'lt2HeartRate', label: 'LT2 HR', unit: 'bpm' },
+  { key: 'maxLactate', label: 'Max laktat', unit: 'mmol/L' },
+  { key: 'maxHeartRate', label: 'Max HR', unit: 'bpm' },
+  { key: 'rampDurationMin', label: 'Ramp tid', unit: 'min' },
   { key: 'sprint5m', label: '5m is', unit: 's', lowerIsBetter: true },
   { key: 'sprint10m', label: '10m is', unit: 's', lowerIsBetter: true },
   { key: 'sprint20m', label: '20m is', unit: 's', lowerIsBetter: true },
@@ -128,6 +134,12 @@ type HockeyTestForSummary = {
   threeJumpRight: number | null
   beepTestLevel: number | null
   beepTestShuttle: number | null
+  vo2max: number | null
+  lt2HeartRate: number | null
+  lt2SpeedKmh: number | null
+  maxHeartRate: number | null
+  maxLactate: number | null
+  rampDurationSec: number | null
   backSquat1RM: number | null
   powerClean1RM: number | null
   benchPress1RM: number | null
@@ -279,6 +291,12 @@ function metricValuesForTest(test: HockeyTestForSummary | undefined): HockeyMetr
     standingLongJump: test?.standingLongJump ?? null,
     threeJumpBest: bestOf([test?.threeJumpLeft, test?.threeJumpRight]),
     beepScore: round(beepScore, 1),
+    vo2max: test?.vo2max ?? null,
+    lt2SpeedKmh: test?.lt2SpeedKmh ?? null,
+    lt2HeartRate: test?.lt2HeartRate ?? null,
+    maxLactate: test?.maxLactate ?? null,
+    maxHeartRate: test?.maxHeartRate ?? null,
+    rampDurationMin: test?.rampDurationSec ? round(test.rampDurationSec / 60, 1) : null,
     sprint5m: test?.sprint5m ?? null,
     sprint10m: test?.sprint10m ?? null,
     sprint20m: test?.sprint20m ?? null,
@@ -463,6 +481,8 @@ export async function GET(
       select: {
         id: true,
         name: true,
+        hockeyPlayerComparisonMode: true,
+        hockeySensitiveMetricsVisible: true,
         members: {
           select: {
             id: true,
@@ -526,6 +546,12 @@ export async function GET(
         threeJumpRight: true,
         beepTestLevel: true,
         beepTestShuttle: true,
+        vo2max: true,
+        lt2HeartRate: true,
+        lt2SpeedKmh: true,
+        maxHeartRate: true,
+        maxLactate: true,
+        rampDurationSec: true,
         backSquat1RM: true,
         powerClean1RM: true,
         benchPress1RM: true,
@@ -847,6 +873,10 @@ export async function GET(
           positions: hockeyPositions,
           pathway,
           normReferences: hockeyNormReferences,
+          playerVisibility: {
+            comparisonMode: team.hockeyPlayerComparisonMode,
+            sensitiveMetricsVisible: team.hockeySensitiveMetricsVisible,
+          },
           testCount: hockeyTests.length,
         },
       },

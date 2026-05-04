@@ -40,9 +40,11 @@ import {
   AlertTriangle,
   Target,
   Timer,
+  Eye,
 } from 'lucide-react'
 import { TeamTestImportDialog } from './TeamTestImportDialog'
 import { TeamTestManualEntryDialog } from './TeamTestManualEntryDialog'
+import { TeamHockeyBulkEntryDialog } from './TeamHockeyBulkEntryDialog'
 import { PR_UNIT_LABELS, isPrUnit, type PrUnit, PR_UNITS } from '@/lib/strength/units'
 import { Input } from '@/components/ui/input'
 import {
@@ -61,6 +63,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -235,7 +238,45 @@ interface HockeyTeamSummary {
   positions: Array<{ key: string; label: string; athleteCount: number }>
   pathway: HockeyPathwaySummary
   normReferences: HockeyNormReference[]
+  playerVisibility: {
+    comparisonMode: HockeyPlayerComparisonMode
+    sensitiveMetricsVisible: boolean
+  }
   testCount: number
+}
+
+type HockeyPlayerComparisonMode = 'OWN_PROGRESS' | 'TEAM_CONTEXT' | 'POSITION_CONTEXT' | 'FULL_RANKING'
+
+interface HockeyDataQualityArea {
+  id: string
+  label: string
+  description: string
+  keys: string[]
+  requiredKeys: string[]
+}
+
+interface HockeyDataQualitySummary {
+  area: HockeyDataQualityArea
+  presentCells: number
+  totalCells: number
+  coveragePercent: number
+  completeAthletes: number
+  missingAthletes: Array<{
+    id: string
+    name: string
+    position: string
+    missingLabels: string[]
+  }>
+}
+
+interface HockeyDataQualityWatchItem {
+  id: string
+  name: string
+  position: string
+  latestTestDate: string | null
+  missingCount: number
+  missingLabels: string[]
+  warningCount: number
 }
 
 interface TeamTestsClientProps {
@@ -249,6 +290,90 @@ const SOURCE_LABEL: Record<string, { label: string; variant: 'default' | 'second
   CALCULATED: { label: 'Beräknat', variant: 'secondary' },
   ESTIMATED: { label: 'Auto', variant: 'outline' },
 }
+
+const PLAYER_COMPARISON_MODE_LABELS: Record<HockeyPlayerComparisonMode, { label: string; description: string }> = {
+  OWN_PROGRESS: {
+    label: 'Endast egen utveckling',
+    description: 'Spelare ser sina tester, historik och nästa fokus utan lagjämförelse.',
+  },
+  TEAM_CONTEXT: {
+    label: 'Mjuk lagkontext',
+    description: 'Visar percentil, median och gap mot laget utan positionsdata eller rank.',
+  },
+  POSITION_CONTEXT: {
+    label: 'Position + lag',
+    description: 'Visar mjuk jämförelse mot både laget och spelarens position. Ingen ranklista.',
+  },
+  FULL_RANKING: {
+    label: 'Ranknummer',
+    description: 'Visar ranknummer inom lag/position, fortfarande utan andra spelares namn.',
+  },
+}
+
+const PLAYER_COMPARISON_PREVIEW: Record<HockeyPlayerComparisonMode, {
+  headline: string
+  cards: string[]
+  hidden: string[]
+}> = {
+  OWN_PROGRESS: {
+    headline: 'Spelaren ser egen testhistorik, personbästan och nästa fokus.',
+    cards: ['Utveckling över tid', 'Senaste tester', 'Nästa fokus'],
+    hidden: ['Lagpercentiler', 'positionsmedian', 'ranknummer'],
+  },
+  TEAM_CONTEXT: {
+    headline: 'Spelaren ser var resultatet ligger i laget utan tydlig ranking.',
+    cards: ['Lagpercentil', 'lagmedian', 'utvecklingsgap'],
+    hidden: ['Positionsrank', 'ranknummer', 'andra spelares namn'],
+  },
+  POSITION_CONTEXT: {
+    headline: 'Spelaren ser mjuk kontext mot både laget och sin position.',
+    cards: ['Positionspercentil', 'positionsmedian', 'lagunderlag'],
+    hidden: ['Ranknummer', 'andra spelares namn'],
+  },
+  FULL_RANKING: {
+    headline: 'Spelaren ser egna ranknummer, men fortfarande inte andra spelares resultat.',
+    cards: ['Lagrank', 'positionsrank', 'gap till ledare'],
+    hidden: ['Andra spelares namn', 'rå leaderboard'],
+  },
+}
+
+const HOCKEY_DATA_QUALITY_AREAS: HockeyDataQualityArea[] = [
+  {
+    id: 'power',
+    label: 'Power/hopp',
+    description: 'MuscleLab, längdhopp och 3-steg.',
+    keys: ['muscleLabWkg', 'standingLongJump', 'threeJumpBest'],
+    requiredKeys: ['muscleLabWkg', 'standingLongJump'],
+  },
+  {
+    id: 'strength',
+    label: 'Styrka',
+    description: 'Baslyft, pull-up och greppstyrka.',
+    keys: ['backSquat1RM', 'powerClean1RM', 'benchPress1RM', 'pullUp1RM', 'gripMax'],
+    requiredKeys: ['backSquat1RM', 'powerClean1RM', 'benchPress1RM'],
+  },
+  {
+    id: 'ice-speed',
+    label: 'Isfart',
+    description: 'Acceleration, 30m och riktningsförändring.',
+    keys: ['sprint5m', 'sprint10m', 'sprint20m', 'sprint30m', 'agilityBest'],
+    requiredKeys: ['sprint10m', 'sprint30m', 'agilityBest'],
+  },
+  {
+    id: 'repeated-sprint',
+    label: '7x40',
+    description: 'Upprepad sprintförmåga och farttålighet.',
+    keys: ['endurance7x40Best', 'endurance7x40AverageKmh', 'endurance7x40Resistance', 'endurance7x40Drop'],
+    requiredKeys: ['endurance7x40AverageKmh', 'endurance7x40Resistance'],
+  },
+  {
+    id: 'lab',
+    label: 'Lab/motor',
+    description: 'VO2max, LT2 och rampdata.',
+    keys: ['vo2max', 'lt2SpeedKmh', 'lt2HeartRate', 'maxHeartRate', 'maxLactate', 'rampDurationMin'],
+    requiredKeys: ['vo2max', 'lt2SpeedKmh', 'maxHeartRate'],
+  },
+]
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('sv-SE', {
@@ -338,6 +463,99 @@ function metricByKey(metrics: HockeyMetric[] | undefined, key: string): HockeyMe
   return metrics?.find((metric) => metric.key === key)
 }
 
+function metricLabelByKey(metrics: HockeyMetric[] | undefined, key: string): string {
+  return metricByKey(metrics, key)?.label ?? key
+}
+
+function isMetricPresent(value: number | null | undefined): boolean {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function buildHockeyDataQuality(
+  athletes: HockeyAthleteRow[],
+  metrics: HockeyMetric[] | undefined,
+): {
+  areaSummaries: HockeyDataQualitySummary[]
+  watchlist: HockeyDataQualityWatchItem[]
+  totalCoveragePercent: number
+  athletesWithoutTests: number
+  warningCount: number
+} {
+  const areaSummaries = HOCKEY_DATA_QUALITY_AREAS.map((area) => {
+    let presentCells = 0
+    const totalCells = athletes.length * area.keys.length
+    let completeAthletes = 0
+    const missingAthletes: HockeyDataQualitySummary['missingAthletes'] = []
+
+    for (const athlete of athletes) {
+      const missingLabels = area.requiredKeys
+        .filter((key) => !isMetricPresent(athlete.metrics[key]))
+        .map((key) => metricLabelByKey(metrics, key))
+
+      area.keys.forEach((key) => {
+        if (isMetricPresent(athlete.metrics[key])) presentCells += 1
+      })
+
+      if (missingLabels.length === 0) {
+        completeAthletes += 1
+      } else {
+        missingAthletes.push({
+          id: athlete.id,
+          name: athlete.name,
+          position: athlete.position.label,
+          missingLabels,
+        })
+      }
+    }
+
+    return {
+      area,
+      presentCells,
+      totalCells,
+      coveragePercent: totalCells > 0 ? Math.round((presentCells / totalCells) * 100) : 0,
+      completeAthletes,
+      missingAthletes: missingAthletes
+        .sort((a, b) => b.missingLabels.length - a.missingLabels.length || a.name.localeCompare(b.name, 'sv'))
+        .slice(0, 4),
+    }
+  })
+
+  const allRequiredKeys = Array.from(new Set(HOCKEY_DATA_QUALITY_AREAS.flatMap((area) => area.requiredKeys)))
+  const watchlist = athletes
+    .map((athlete) => {
+      const missingLabels = allRequiredKeys
+        .filter((key) => !isMetricPresent(athlete.metrics[key]))
+        .map((key) => metricLabelByKey(metrics, key))
+      return {
+        id: athlete.id,
+        name: athlete.name,
+        position: athlete.position.label,
+        latestTestDate: athlete.latestTestDate,
+        missingCount: missingLabels.length,
+        missingLabels,
+        warningCount: athlete.qualityFlags.filter((flag) => flag.severity === 'warning').length,
+      }
+    })
+    .filter((item) => item.missingCount > 0 || item.warningCount > 0 || !item.latestTestDate)
+    .sort((a, b) => {
+      if (!a.latestTestDate && b.latestTestDate) return -1
+      if (a.latestTestDate && !b.latestTestDate) return 1
+      return b.missingCount - a.missingCount || b.warningCount - a.warningCount || a.name.localeCompare(b.name, 'sv')
+    })
+    .slice(0, 8)
+
+  const presentCells = areaSummaries.reduce((sum, area) => sum + area.presentCells, 0)
+  const totalCells = areaSummaries.reduce((sum, area) => sum + area.totalCells, 0)
+
+  return {
+    areaSummaries,
+    watchlist,
+    totalCoveragePercent: totalCells > 0 ? Math.round((presentCells / totalCells) * 100) : 0,
+    athletesWithoutTests: athletes.filter((athlete) => !athlete.latestTestDate).length,
+    warningCount: athletes.reduce((sum, athlete) => sum + athlete.qualityFlags.filter((flag) => flag.severity === 'warning').length, 0),
+  }
+}
+
 export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientProps) {
   const [sessions, setSessions] = useState<TestSession[]>([])
   const [hockey, setHockey] = useState<HockeyTeamSummary | null>(null)
@@ -347,11 +565,15 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   const [error, setError] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [manualOpen, setManualOpen] = useState(false)
+  const [hockeyBulkOpen, setHockeyBulkOpen] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [isExportingTeamReport, setIsExportingTeamReport] = useState(false)
   const [selectedPathwayAthleteId, setSelectedPathwayAthleteId] = useState<string | null>(null)
   const [normDrafts, setNormDrafts] = useState<HockeyNormReference[]>([])
   const [isSavingNorms, setIsSavingNorms] = useState(false)
+  const [playerComparisonMode, setPlayerComparisonMode] = useState<HockeyPlayerComparisonMode>('POSITION_CONTEXT')
+  const [sensitiveMetricsVisible, setSensitiveMetricsVisible] = useState(true)
+  const [isSavingPlayerVisibility, setIsSavingPlayerVisibility] = useState(false)
 
   // Edit/delete state for individual PRs in a session. Editing uses
   // the same PATCH endpoint as the per-client PR table — value, unit,
@@ -439,6 +661,8 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
         setSessions(body.data.sessions)
         setHockey(body.data.hockey ?? null)
         setNormDrafts(body.data.hockey?.normReferences ?? [])
+        setPlayerComparisonMode(body.data.hockey?.playerVisibility?.comparisonMode ?? 'POSITION_CONTEXT')
+        setSensitiveMetricsVisible(body.data.hockey?.playerVisibility?.sensitiveMetricsVisible ?? true)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Kunde inte hämta testdata')
@@ -500,6 +724,30 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     }
   }
 
+  const savePlayerVisibility = async () => {
+    setIsSavingPlayerVisibility(true)
+    try {
+      const res = await fetch(`/api/teams/${teamId}/hockey-player-visibility`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          comparisonMode: playerComparisonMode,
+          sensitiveMetricsVisible,
+        }),
+      })
+      const body = await res.json().catch(() => null)
+      if (!res.ok || body?.success === false) {
+        throw new Error(body?.error ?? `HTTP ${res.status}`)
+      }
+      toast.success('Spelarvisning sparad')
+      await fetchSessions()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Kunde inte spara spelarvisning')
+    } finally {
+      setIsSavingPlayerVisibility(false)
+    }
+  }
+
   const toggleExpand = (date: string) => {
     setExpanded((prev) => {
       const next = new Set(prev)
@@ -512,6 +760,10 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   const hockeyExportHref = `/api/teams/${teamId}/hockey-tests/export`
   const hockeyAthletes = hockey?.athletes
     .filter((athlete) => selectedPosition === 'all' || athlete.position.key === selectedPosition) ?? []
+  const playerVisibilityPreviewAthlete = hockeyAthletes.find((athlete) => athlete.latestTestDate)
+    ?? hockeyAthletes[0]
+    ?? null
+  const hockeyDataQuality = buildHockeyDataQuality(hockeyAthletes, hockey?.metrics)
   const selectedHistory = hockey?.history.find((metric) => metric.key === selectedHockeyMetric)
     ?? hockey?.history.find((metric) => metric.teamTrend.length > 0)
   const hockeyChangeRows = selectedHistory?.athletes
@@ -574,6 +826,121 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                 ))}
             </div>
 
+            <div className="rounded-md border bg-muted/10 p-3">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-xl">
+                  <p className="text-sm font-semibold flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-blue-500" />
+                    Spelarvisning
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Styr hur mycket lag- och positionsjämförelse hockeyspelare ser i sin egen profil.
+                  </p>
+                </div>
+                <div className="grid w-full gap-3 lg:max-w-2xl lg:grid-cols-[1fr_auto]">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Jämförelseläge</Label>
+                    <Select
+                      value={playerComparisonMode}
+                      onValueChange={(value) => setPlayerComparisonMode(value as HockeyPlayerComparisonMode)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(PLAYER_COMPARISON_MODE_LABELS).map(([value, option]) => (
+                          <SelectItem key={value} value={value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">
+                      {PLAYER_COMPARISON_MODE_LABELS[playerComparisonMode].description}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 lg:min-w-56">
+                    <div>
+                      <Label className="text-xs">Visa labbdata</Label>
+                      <p className="text-[11px] text-muted-foreground">VO2max och LT2 i jämförelser</p>
+                    </div>
+                    <Switch checked={sensitiveMetricsVisible} onCheckedChange={setSensitiveMetricsVisible} />
+                  </div>
+                  <div className="lg:col-span-2 rounded-md border bg-background p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold">Förhandsvisning för spelare</p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          {PLAYER_COMPARISON_PREVIEW[playerComparisonMode].headline}
+                        </p>
+                      </div>
+                      <Badge variant={playerComparisonMode === 'FULL_RANKING' ? 'default' : 'secondary'} className="shrink-0 text-[10px]">
+                        {PLAYER_COMPARISON_MODE_LABELS[playerComparisonMode].label}
+                      </Badge>
+                    </div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <div>
+                        <p className="text-[10px] font-medium uppercase text-muted-foreground">Synligt</p>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {PLAYER_COMPARISON_PREVIEW[playerComparisonMode].cards.map((item) => (
+                            <Badge key={item} variant="outline" className="text-[10px]">
+                              {item}
+                            </Badge>
+                          ))}
+                          {sensitiveMetricsVisible ? (
+                            <Badge variant="outline" className="text-[10px]">VO2/LT2</Badge>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-medium uppercase text-muted-foreground">Dolt</p>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {PLAYER_COMPARISON_PREVIEW[playerComparisonMode].hidden.map((item) => (
+                            <Badge key={item} variant="secondary" className="text-[10px]">
+                              {item}
+                            </Badge>
+                          ))}
+                          {!sensitiveMetricsVisible ? (
+                            <Badge variant="secondary" className="text-[10px]">VO2/LT2</Badge>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    {playerVisibilityPreviewAthlete ? (
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/20 px-2.5 py-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-semibold">{playerVisibilityPreviewAthlete.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {playerVisibilityPreviewAthlete.position.label}
+                            {playerVisibilityPreviewAthlete.latestTestDate ? ` · senaste test ${formatDate(playerVisibilityPreviewAthlete.latestTestDate)}` : ' · saknar testdatum'}
+                          </p>
+                        </div>
+                        <Link href={`${basePath}/clients/${playerVisibilityPreviewAthlete.id}/profile?tab=hockey`}>
+                          <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-[10px]">
+                            <ExternalLink className="mr-1 h-3.5 w-3.5" />
+                            Granska profil
+                          </Button>
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="mt-3 rounded-md border border-dashed px-2.5 py-2 text-[11px] text-muted-foreground">
+                        Lägg till hockeytester för att kunna förhandsgranska en spelares profil.
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    className="lg:col-span-2"
+                    size="sm"
+                    onClick={savePlayerVisibility}
+                    disabled={isSavingPlayerVisibility}
+                  >
+                    {isSavingPlayerVisibility && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Spara spelarvisning
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             {hockeyActionItems.length > 0 && (
               <div className="rounded-md border bg-muted/10 p-3 space-y-3">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -629,6 +996,111 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                 </div>
               </div>
             )}
+
+            <div className="rounded-md border bg-muted/10 p-3 space-y-3">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="text-sm font-semibold flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-emerald-500" />
+                    Hockey data quality
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Saknade testområden per spelare innan rapport, spelarjämförelser och SIMCA-export.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge variant={hockeyDataQuality.totalCoveragePercent >= 75 ? 'default' : hockeyDataQuality.totalCoveragePercent >= 50 ? 'secondary' : 'outline'} className="text-[10px]">
+                    {hockeyDataQuality.totalCoveragePercent}% täckning
+                  </Badge>
+                  {hockeyDataQuality.athletesWithoutTests > 0 && (
+                    <Badge variant="outline" className="text-[10px]">
+                      {hockeyDataQuality.athletesWithoutTests} utan test
+                    </Badge>
+                  )}
+                  {hockeyDataQuality.warningCount > 0 && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      {hockeyDataQuality.warningCount} kvalitetsflaggor
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
+                {hockeyDataQuality.areaSummaries.map((summary) => (
+                  <div key={summary.area.id} className="rounded-md border bg-background p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-semibold">{summary.area.label}</p>
+                        <p className="text-[10px] text-muted-foreground">{summary.area.description}</p>
+                      </div>
+                      <Badge variant={summary.coveragePercent >= 75 ? 'default' : summary.coveragePercent >= 50 ? 'secondary' : 'outline'} className="text-[10px]">
+                        {summary.coveragePercent}%
+                      </Badge>
+                    </div>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-emerald-500"
+                        style={{ width: `${Math.min(summary.coveragePercent, 100)}%` }}
+                      />
+                    </div>
+                    <p className="mt-2 text-[10px] text-muted-foreground">
+                      Komplett: {summary.completeAthletes}/{hockeyAthletes.length} spelare
+                    </p>
+                    {summary.missingAthletes.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {summary.missingAthletes.slice(0, 2).map((athlete) => (
+                          <Link key={athlete.id} href={`${basePath}/clients/${athlete.id}/profile?tab=hockey`}>
+                            <p className="truncate text-[10px] font-medium hover:underline">
+                              {athlete.name}: <span className="text-muted-foreground">{athlete.missingLabels.slice(0, 2).join(', ')}</span>
+                            </p>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {hockeyDataQuality.watchlist.length > 0 ? (
+                <div className="rounded-md border bg-background p-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-xs font-medium">Data watchlist</p>
+                    <Badge variant="outline" className="text-[10px]">{hockeyDataQuality.watchlist.length} spelare</Badge>
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {hockeyDataQuality.watchlist.slice(0, 6).map((item) => (
+                      <div key={item.id} className="flex items-start justify-between gap-3 rounded-md border px-2 py-1.5">
+                        <div className="min-w-0">
+                          <Link href={`${basePath}/clients/${item.id}/profile?tab=hockey`}>
+                            <p className="truncate text-xs font-semibold hover:underline">{item.name}</p>
+                          </Link>
+                          <p className="text-[10px] text-muted-foreground">
+                            {item.position} · {item.latestTestDate ?? 'saknar hockeytest'}
+                          </p>
+                          {item.missingLabels.length > 0 && (
+                            <p className="mt-1 line-clamp-1 text-[10px] text-muted-foreground">
+                              Saknar: {item.missingLabels.slice(0, 5).join(', ')}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          {item.missingCount > 0 && (
+                            <Badge variant="outline" className="text-[10px]">{item.missingCount} luckor</Badge>
+                          )}
+                          {item.warningCount > 0 && (
+                            <Badge variant="secondary" className="text-[10px]">{item.warningCount} flaggor</Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
+                  Alla nyckelområden har tillräcklig data för senaste hockeytestet.
+                </div>
+              )}
+            </div>
 
             {pathway && pathway.seasonSummaries.length > 0 && (
               <div className="rounded-md border bg-muted/10 p-3 space-y-3">
@@ -1333,6 +1805,10 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
             : `${sessions.length} testpass · ${sessions.reduce((s, r) => s + r.totalPRs, 0)} loggade PRs`}
         </div>
         <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setHockeyBulkOpen(true)}>
+            <Shield className="h-4 w-4 mr-1.5" />
+            Hockey bulk
+          </Button>
           <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>
             <Pencil className="h-4 w-4 mr-1.5" />
             Manuell inmatning
@@ -1540,6 +2016,17 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
         teamName={teamName}
         onSaved={() => {
           setManualOpen(false)
+          void fetchSessions()
+        }}
+      />
+
+      <TeamHockeyBulkEntryDialog
+        open={hockeyBulkOpen}
+        onOpenChange={setHockeyBulkOpen}
+        teamId={teamId}
+        teamName={teamName}
+        onSaved={() => {
+          setHockeyBulkOpen(false)
           void fetchSessions()
         }}
       />

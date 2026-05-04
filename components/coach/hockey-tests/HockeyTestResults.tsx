@@ -55,6 +55,26 @@ interface HockeyTest {
   threeJumpRight: number | null
   beepTestLevel: number | null
   beepTestShuttle: number | null
+  vo2max: number | null
+  lt1HeartRate: number | null
+  lt1SpeedKmh: number | null
+  lt1Lactate: number | null
+  lt2HeartRate: number | null
+  lt2SpeedKmh: number | null
+  lt2Lactate: number | null
+  maxHeartRate: number | null
+  maxLactate: number | null
+  rampDurationSec: number | null
+  peakSpeedKmh: number | null
+  rerMax: number | null
+  veMax: number | null
+  breathingFrequencyMax: number | null
+  economyMlKgKm: number | null
+  hrRecovery1Min: number | null
+  hrRecovery2Min: number | null
+  lactateClearance3Min: number | null
+  lactateClearance5Min: number | null
+  lactateClearance10Min: number | null
   backSquat1RM: number | null
   powerClean1RM: number | null
   benchPress1RM: number | null
@@ -449,12 +469,32 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
                     )}
 
                     {/* Endurance tests */}
-                    {(test.beepTestLevel || endurance) && (
+                    {(test.beepTestLevel || test.vo2max || test.lt2SpeedKmh || test.maxLactate || endurance) && (
                       <div>
                         <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Activity className="h-3 w-3" /> Uthållighet</p>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                           <TestValue label="Beep nivå" value={test.beepTestLevel} unit="" />
                           <TestValue label="Beep shuttle" value={test.beepTestShuttle} unit="" />
+                          <TestValue label="VO2max" value={test.vo2max} unit="ml/kg/min" />
+                          <TestValue label="Max HR" value={test.maxHeartRate} unit="bpm" />
+                          <TestValue label="LT1 HR" value={test.lt1HeartRate} unit="bpm" />
+                          <TestValue label="LT1 fart" value={test.lt1SpeedKmh} unit="km/h" />
+                          <TestValue label="LT1 laktat" value={test.lt1Lactate} unit="mmol/L" />
+                          <TestValue label="LT2 HR" value={test.lt2HeartRate} unit="bpm" />
+                          <TestValue label="LT2 fart" value={test.lt2SpeedKmh} unit="km/h" />
+                          <TestValue label="LT2 laktat" value={test.lt2Lactate} unit="mmol/L" />
+                          <TestValue label="Max laktat" value={test.maxLactate} unit="mmol/L" />
+                          <TestValue label="Ramp tid" value={test.rampDurationSec} unit="s" />
+                          <TestValue label="Peak fart" value={test.peakSpeedKmh} unit="km/h" />
+                          <TestValue label="RER max" value={test.rerMax} unit="" />
+                          <TestValue label="VE max" value={test.veMax} unit="L/min" />
+                          <TestValue label="BF max" value={test.breathingFrequencyMax} unit="/min" />
+                          <TestValue label="Ekonomi" value={test.economyMlKgKm} unit="ml/kg/km" />
+                          <TestValue label="HRR 1m" value={test.hrRecovery1Min} unit="bpm" />
+                          <TestValue label="HRR 2m" value={test.hrRecovery2Min} unit="bpm" />
+                          <TestValue label="Lac clr 3m" value={test.lactateClearance3Min} unit="mmol/L" />
+                          <TestValue label="Lac clr 5m" value={test.lactateClearance5Min} unit="mmol/L" />
+                          <TestValue label="Lac clr 10m" value={test.lactateClearance10Min} unit="mmol/L" />
                         </div>
                       </div>
                     )}

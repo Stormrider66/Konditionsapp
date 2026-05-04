@@ -393,6 +393,8 @@ model Team {
 
   // Team sport configuration
   sportType SportType?
+  hockeyPlayerComparisonMode String @default("POSITION_CONTEXT") // OWN_PROGRESS, TEAM_CONTEXT, POSITION_CONTEXT, FULL_RANKING
+  hockeySensitiveMetricsVisible Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

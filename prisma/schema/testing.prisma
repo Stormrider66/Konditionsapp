@@ -1055,6 +1055,26 @@ model HockeyPhysicalTest {
   // Beep test / multi-stage fitness test
   beepTestLevel   Float?
   beepTestShuttle Int?
+  vo2max          Float? // ml/kg/min from lab test or field estimate
+  lt1HeartRate    Int?
+  lt1SpeedKmh     Float?
+  lt1Lactate      Float?
+  lt2HeartRate    Int?
+  lt2SpeedKmh     Float?
+  lt2Lactate      Float?
+  maxHeartRate    Int?
+  maxLactate      Float?
+  rampDurationSec Int?
+  peakSpeedKmh    Float?
+  rerMax          Float?
+  veMax           Float?
+  breathingFrequencyMax Float?
+  economyMlKgKm   Float?
+  hrRecovery1Min  Int?
+  hrRecovery2Min  Int?
+  lactateClearance3Min Float?
+  lactateClearance5Min Float?
+  lactateClearance10Min Float?
 
   // Strength maxes (kg)
   backSquat1RM  Float?

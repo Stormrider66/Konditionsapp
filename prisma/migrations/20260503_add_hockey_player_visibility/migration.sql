@@ -1,0 +1,3 @@
+ALTER TABLE "Team"
+ADD COLUMN "hockeyPlayerComparisonMode" TEXT NOT NULL DEFAULT 'POSITION_CONTEXT',
+ADD COLUMN "hockeySensitiveMetricsVisible" BOOLEAN NOT NULL DEFAULT true;
