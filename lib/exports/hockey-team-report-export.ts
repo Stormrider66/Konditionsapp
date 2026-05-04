@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf'
 import { buildHockeyActionItems, type HockeyActionItem } from '@/lib/hockey/team-action-plan'
 import { buildTeamIceSpeedProfileRows } from '@/lib/hockey/ice-speed'
+import { buildHockeyDataQuality, type HockeyDataQualityReport } from '@/lib/hockey/data-quality'
 
 type HockeyBenchmarkBand = 'top' | 'above' | 'team' | 'watch' | 'priority'
 
@@ -351,6 +352,68 @@ function actionPlan(pdf: jsPDF, actions: HockeyActionItem[], y: number): number 
   return y + 2
 }
 
+function dataQualitySection(
+  pdf: jsPDF,
+  data: HockeyTeamReportData,
+  quality: HockeyDataQualityReport,
+  y: number,
+): number {
+  if (data.athletes.length === 0) return y
+
+  y = sectionTitle(pdf, 'Data quality and SIMCA readiness', y)
+  y = summaryCards(pdf, [
+    ['Core coverage', `${quality.totalCoveragePercent}%`, 'hockey battery'],
+    ['Tested athletes', `${data.athletes.length - quality.athletesWithoutTests}/${data.athletes.length}`],
+    ['Missing tests', `${quality.athletesWithoutTests}`],
+    ['Quality flags', `${quality.warningCount}`, 'warning signals'],
+  ], y)
+
+  const readinessText = quality.totalCoveragePercent >= 75 && quality.analysisReadyAthletes >= 8
+    ? 'SIMCA export is ready for team profiling. Add missing required cells to improve loadings and position comparisons.'
+    : 'SIMCA export can be generated, but fill the missing required tests first for stronger PCA/PLS interpretation.'
+  y = addPageIfNeeded(pdf, y, 9)
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(8)
+  pdf.setTextColor(85, 85, 85)
+  pdf.text(pdf.splitTextToSize(readinessText, CONTENT_WIDTH), MARGIN, y)
+  y += 8
+
+  y = table(
+    pdf,
+    ['Area', 'Coverage', 'Complete', 'Missing examples'],
+    quality.areaSummaries.map((summary) => [
+      summary.area.label,
+      `${summary.coveragePercent}%`,
+      `${summary.completeAthletes}/${data.athletes.length}`,
+      summary.missingAthletes.length > 0
+        ? summary.missingAthletes
+          .slice(0, 2)
+          .map((athlete) => `${athlete.name}: ${athlete.missingLabels.slice(0, 2).join(', ')}`)
+          .join(' | ')
+        : '-',
+    ]),
+    y,
+    { fontSize: 6.8 },
+  )
+
+  if (quality.watchlist.length > 0) {
+    y = table(
+      pdf,
+      ['Watchlist', 'Last test', 'Missing', 'Flags'],
+      quality.watchlist.slice(0, 10).map((item) => [
+        item.name,
+        item.latestTestDate ?? 'No test',
+        item.missingLabels.slice(0, 3).join(', ') || '-',
+        item.warningCount > 0 ? `${item.warningCount}` : '-',
+      ]),
+      y,
+      { fontSize: 6.8 },
+    )
+  }
+
+  return y + 2
+}
+
 function iceSpeedProfile(pdf: jsPDF, data: HockeyTeamReportData, y: number): number {
   const rows = buildTeamIceSpeedProfileRows(
     data.athletes.filter((athlete) => athlete.latestTestDate),
@@ -537,11 +600,15 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
       warnings: athlete.qualityFlags.filter((flag) => flag.severity === 'warning'),
     }))
     .filter((entry) => entry.warnings.length > 0)
+  const dataQuality = buildHockeyDataQuality(data.athletes, {
+    labelForKey: (key) => metricByKey(data, key)?.label ?? key,
+  })
 
   y = summaryCards(pdf, [
     ['Athletes tested', `${testedAthletes}/${data.athletes.length}`],
     ['Hockey tests', `${data.testCount}`],
     ['Metrics tracked', `${data.metrics.length}`],
+    ['Data coverage', `${dataQuality.totalCoveragePercent}%`, 'core battery'],
     ['Watchlist', `${priorityItems.length}`, 'priority/watch flags'],
     ['Quality flags', `${qualityWarnings.length}`, 'athletes to verify'],
   ], y)
@@ -551,6 +618,8 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
     y = sectionTitle(pdf, 'Coach action plan', y)
     y = actionPlan(pdf, actions, y)
   }
+
+  y = dataQualitySection(pdf, data, dataQuality, y)
 
   y = developmentPathway(pdf, data, y)
 

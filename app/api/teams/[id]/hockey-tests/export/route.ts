@@ -18,14 +18,27 @@ import {
   findHockeyNormReference,
   mergeHockeyNormReferences,
 } from '@/lib/hockey/norm-references'
+import {
+  buildSimcaExportQualitySummary,
+  buildSimcaRowQuality,
+  SIMCA_EXPORT_PRESET_DETAILS,
+  SIMCA_QUALITY_AREAS,
+  SIMCA_QUALITY_KEYS,
+  SIMCA_REQUIRED_KEYS,
+  type SimcaExportPresetId,
+} from '@/lib/hockey/data-quality'
 
 const DEFAULT_DAYS = 365
-const SIMCA_EXPORT_VERSION = 'hockey-simca-v2'
+const SIMCA_EXPORT_VERSION = 'hockey-simca-v3'
 
 const COLUMNS = [
   'simca_export_version',
   'simca_export_generated_at',
   'simca_export_preset',
+  'simca_row_core_coverage_pct',
+  'simca_row_required_missing_count',
+  'simca_row_required_missing_keys',
+  'simca_row_analysis_ready',
   'team_id',
   'team_name',
   'athlete_id',
@@ -152,12 +165,15 @@ const COLUMNS = [
 ] as const
 
 type SimcaExportColumn = typeof COLUMNS[number]
-type SimcaExportPresetId = 'full' | 'explosive_power' | 'on_ice_speed' | 'repeated_sprint' | 'strength' | 'target_gaps' | 'development_pathway'
 
 const BASE_SIMCA_COLUMNS = [
   'simca_export_version',
   'simca_export_generated_at',
   'simca_export_preset',
+  'simca_row_core_coverage_pct',
+  'simca_row_required_missing_count',
+  'simca_row_required_missing_keys',
+  'simca_row_analysis_ready',
   'team_id',
   'team_name',
   'athlete_id',
@@ -169,13 +185,13 @@ const BASE_SIMCA_COLUMNS = [
 
 const SIMCA_EXPORT_PRESETS: Record<SimcaExportPresetId, { label: string; description: string; columns: readonly SimcaExportColumn[] }> = {
   full: {
-    label: 'Full hockey export',
-    description: 'All hockey metrics, z-scores, pathway variables and target gaps.',
+    label: SIMCA_EXPORT_PRESET_DETAILS.full.label,
+    description: SIMCA_EXPORT_PRESET_DETAILS.full.description,
     columns: COLUMNS,
   },
   explosive_power: {
-    label: 'Explosive power',
-    description: 'MuscleLab, jumps, acceleration and agility for power profiling.',
+    label: SIMCA_EXPORT_PRESET_DETAILS.explosive_power.label,
+    description: SIMCA_EXPORT_PRESET_DETAILS.explosive_power.description,
     columns: [
       ...BASE_SIMCA_COLUMNS,
       'athlete_age_at_test',
@@ -198,8 +214,8 @@ const SIMCA_EXPORT_PRESETS: Record<SimcaExportPresetId, { label: string; descrip
     ],
   },
   on_ice_speed: {
-    label: 'On-ice speed',
-    description: 'Sprint splits, stint speeds and distance gaps to the team leader.',
+    label: SIMCA_EXPORT_PRESET_DETAILS.on_ice_speed.label,
+    description: SIMCA_EXPORT_PRESET_DETAILS.on_ice_speed.description,
     columns: [
       ...BASE_SIMCA_COLUMNS,
       'athlete_age_at_test',
@@ -226,8 +242,8 @@ const SIMCA_EXPORT_PRESETS: Record<SimcaExportPresetId, { label: string; descrip
     ],
   },
   repeated_sprint: {
-    label: 'Repeated sprint',
-    description: '7x40 best/mean speed, fatigue, resistance and RSA score.',
+    label: SIMCA_EXPORT_PRESET_DETAILS.repeated_sprint.label,
+    description: SIMCA_EXPORT_PRESET_DETAILS.repeated_sprint.description,
     columns: [
       ...BASE_SIMCA_COLUMNS,
       'athlete_age_at_test',
@@ -261,8 +277,8 @@ const SIMCA_EXPORT_PRESETS: Record<SimcaExportPresetId, { label: string; descrip
     ],
   },
   strength: {
-    label: 'Strength',
-    description: '1RM lifts, grip, pullups and relative squat strength.',
+    label: SIMCA_EXPORT_PRESET_DETAILS.strength.label,
+    description: SIMCA_EXPORT_PRESET_DETAILS.strength.description,
     columns: [
       ...BASE_SIMCA_COLUMNS,
       'athlete_age_at_test',
@@ -283,8 +299,8 @@ const SIMCA_EXPORT_PRESETS: Record<SimcaExportPresetId, { label: string; descrip
     ],
   },
   target_gaps: {
-    label: 'Target gaps',
-    description: 'Gaps to saved hockey norms for the current pathway level.',
+    label: SIMCA_EXPORT_PRESET_DETAILS.target_gaps.label,
+    description: SIMCA_EXPORT_PRESET_DETAILS.target_gaps.description,
     columns: [
       ...BASE_SIMCA_COLUMNS,
       'athlete_age_at_test',
@@ -301,8 +317,8 @@ const SIMCA_EXPORT_PRESETS: Record<SimcaExportPresetId, { label: string; descrip
     ],
   },
   development_pathway: {
-    label: 'Development pathway',
-    description: 'Season, level transition and progression-rate variables for J18 to A-team tracking.',
+    label: SIMCA_EXPORT_PRESET_DETAILS.development_pathway.label,
+    description: SIMCA_EXPORT_PRESET_DETAILS.development_pathway.description,
     columns: [
       ...BASE_SIMCA_COLUMNS,
       'athlete_age_at_test',
@@ -562,6 +578,15 @@ export async function GET(
             exportedTestCount: manifestTests.length,
             firstTestDate: firstTest?.testDate.toISOString().slice(0, 10) ?? null,
             latestTestDate: lastTest?.testDate.toISOString().slice(0, 10) ?? null,
+            analysisReadyRule: 'All required battery columns present and at least 75% core hockey coverage.',
+            coreColumns: SIMCA_QUALITY_KEYS,
+            requiredColumns: SIMCA_REQUIRED_KEYS,
+            areas: SIMCA_QUALITY_AREAS.map((area) => ({
+              id: area.id,
+              label: area.label,
+              columns: area.keys,
+              requiredColumns: area.requiredKeys,
+            })),
           },
           presets: Object.entries(SIMCA_EXPORT_PRESETS).map(([id, preset]) => ({
             id,
@@ -875,6 +900,11 @@ export async function GET(
       }
     }
 
+    rawRows.forEach((row) => {
+      Object.assign(row, buildSimcaRowQuality(row))
+    })
+    const exportQuality = buildSimcaExportQualitySummary(rawRows)
+
     const zScores = new Map<number, Record<string, number | null>>()
     for (const metric of Z_SCORE_METRICS) {
       const lowerIsBetter = 'lowerIsBetter' in metric && metric.lowerIsBetter === true
@@ -911,6 +941,12 @@ export async function GET(
         'Cache-Control': 'no-store',
         'X-SIMCA-Export-Version': SIMCA_EXPORT_VERSION,
         'X-SIMCA-Export-Preset': presetId,
+        'X-SIMCA-Core-Coverage-Pct': String(exportQuality.averageCoreCoveragePercent),
+        'X-SIMCA-Analysis-Ready-Rows': `${exportQuality.analysisReadyRows}/${exportQuality.rowCount}`,
+        'X-SIMCA-Missing-Required-Cells': String(exportQuality.missingRequiredCells),
+        'X-SIMCA-Area-Coverage-Pct': exportQuality.areaCoverage
+          .map((area) => `${area.id}:${area.coveragePercent}`)
+          .join(';'),
       },
     })
   } catch (error) {

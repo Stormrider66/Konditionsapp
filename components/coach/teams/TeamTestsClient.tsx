@@ -86,6 +86,11 @@ import {
 import { toast } from 'sonner'
 import { buildHockeyActionItems, type HockeyActionItem } from '@/lib/hockey/team-action-plan'
 import { buildTeamIceSpeedProfileRows } from '@/lib/hockey/ice-speed'
+import {
+  buildHockeyDataQuality,
+  SIMCA_EXPORT_PRESET_DETAILS,
+  type SimcaExportPresetId,
+} from '@/lib/hockey/data-quality'
 
 interface PRRow {
   id: string
@@ -247,38 +252,6 @@ interface HockeyTeamSummary {
 
 type HockeyPlayerComparisonMode = 'OWN_PROGRESS' | 'TEAM_CONTEXT' | 'POSITION_CONTEXT' | 'FULL_RANKING'
 
-interface HockeyDataQualityArea {
-  id: string
-  label: string
-  description: string
-  keys: string[]
-  requiredKeys: string[]
-}
-
-interface HockeyDataQualitySummary {
-  area: HockeyDataQualityArea
-  presentCells: number
-  totalCells: number
-  coveragePercent: number
-  completeAthletes: number
-  missingAthletes: Array<{
-    id: string
-    name: string
-    position: string
-    missingLabels: string[]
-  }>
-}
-
-interface HockeyDataQualityWatchItem {
-  id: string
-  name: string
-  position: string
-  latestTestDate: string | null
-  missingCount: number
-  missingLabels: string[]
-  warningCount: number
-}
-
 interface TeamTestsClientProps {
   teamId: string
   teamName: string
@@ -290,6 +263,16 @@ const SOURCE_LABEL: Record<string, { label: string; variant: 'default' | 'second
   CALCULATED: { label: 'Beräknat', variant: 'secondary' },
   ESTIMATED: { label: 'Auto', variant: 'outline' },
 }
+
+const SIMCA_EXPORT_PRESETS: Array<{ id: SimcaExportPresetId; label: string; description: string }> = [
+  { id: 'full', ...SIMCA_EXPORT_PRESET_DETAILS.full },
+  { id: 'explosive_power', ...SIMCA_EXPORT_PRESET_DETAILS.explosive_power },
+  { id: 'on_ice_speed', ...SIMCA_EXPORT_PRESET_DETAILS.on_ice_speed },
+  { id: 'repeated_sprint', ...SIMCA_EXPORT_PRESET_DETAILS.repeated_sprint },
+  { id: 'strength', ...SIMCA_EXPORT_PRESET_DETAILS.strength },
+  { id: 'target_gaps', ...SIMCA_EXPORT_PRESET_DETAILS.target_gaps },
+  { id: 'development_pathway', ...SIMCA_EXPORT_PRESET_DETAILS.development_pathway },
+]
 
 const PLAYER_COMPARISON_MODE_LABELS: Record<HockeyPlayerComparisonMode, { label: string; description: string }> = {
   OWN_PROGRESS: {
@@ -336,44 +319,6 @@ const PLAYER_COMPARISON_PREVIEW: Record<HockeyPlayerComparisonMode, {
     hidden: ['Andra spelares namn', 'rå leaderboard'],
   },
 }
-
-const HOCKEY_DATA_QUALITY_AREAS: HockeyDataQualityArea[] = [
-  {
-    id: 'power',
-    label: 'Power/hopp',
-    description: 'MuscleLab, längdhopp och 3-steg.',
-    keys: ['muscleLabWkg', 'standingLongJump', 'threeJumpBest'],
-    requiredKeys: ['muscleLabWkg', 'standingLongJump'],
-  },
-  {
-    id: 'strength',
-    label: 'Styrka',
-    description: 'Baslyft, pull-up och greppstyrka.',
-    keys: ['backSquat1RM', 'powerClean1RM', 'benchPress1RM', 'pullUp1RM', 'gripMax'],
-    requiredKeys: ['backSquat1RM', 'powerClean1RM', 'benchPress1RM'],
-  },
-  {
-    id: 'ice-speed',
-    label: 'Isfart',
-    description: 'Acceleration, 30m och riktningsförändring.',
-    keys: ['sprint5m', 'sprint10m', 'sprint20m', 'sprint30m', 'agilityBest'],
-    requiredKeys: ['sprint10m', 'sprint30m', 'agilityBest'],
-  },
-  {
-    id: 'repeated-sprint',
-    label: '7x40',
-    description: 'Upprepad sprintförmåga och farttålighet.',
-    keys: ['endurance7x40Best', 'endurance7x40AverageKmh', 'endurance7x40Resistance', 'endurance7x40Drop'],
-    requiredKeys: ['endurance7x40AverageKmh', 'endurance7x40Resistance'],
-  },
-  {
-    id: 'lab',
-    label: 'Lab/motor',
-    description: 'VO2max, LT2 och rampdata.',
-    keys: ['vo2max', 'lt2SpeedKmh', 'lt2HeartRate', 'maxHeartRate', 'maxLactate', 'rampDurationMin'],
-    requiredKeys: ['vo2max', 'lt2SpeedKmh', 'maxHeartRate'],
-  },
-]
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('sv-SE', {
@@ -467,95 +412,6 @@ function metricLabelByKey(metrics: HockeyMetric[] | undefined, key: string): str
   return metricByKey(metrics, key)?.label ?? key
 }
 
-function isMetricPresent(value: number | null | undefined): boolean {
-  return typeof value === 'number' && Number.isFinite(value)
-}
-
-function buildHockeyDataQuality(
-  athletes: HockeyAthleteRow[],
-  metrics: HockeyMetric[] | undefined,
-): {
-  areaSummaries: HockeyDataQualitySummary[]
-  watchlist: HockeyDataQualityWatchItem[]
-  totalCoveragePercent: number
-  athletesWithoutTests: number
-  warningCount: number
-} {
-  const areaSummaries = HOCKEY_DATA_QUALITY_AREAS.map((area) => {
-    let presentCells = 0
-    const totalCells = athletes.length * area.keys.length
-    let completeAthletes = 0
-    const missingAthletes: HockeyDataQualitySummary['missingAthletes'] = []
-
-    for (const athlete of athletes) {
-      const missingLabels = area.requiredKeys
-        .filter((key) => !isMetricPresent(athlete.metrics[key]))
-        .map((key) => metricLabelByKey(metrics, key))
-
-      area.keys.forEach((key) => {
-        if (isMetricPresent(athlete.metrics[key])) presentCells += 1
-      })
-
-      if (missingLabels.length === 0) {
-        completeAthletes += 1
-      } else {
-        missingAthletes.push({
-          id: athlete.id,
-          name: athlete.name,
-          position: athlete.position.label,
-          missingLabels,
-        })
-      }
-    }
-
-    return {
-      area,
-      presentCells,
-      totalCells,
-      coveragePercent: totalCells > 0 ? Math.round((presentCells / totalCells) * 100) : 0,
-      completeAthletes,
-      missingAthletes: missingAthletes
-        .sort((a, b) => b.missingLabels.length - a.missingLabels.length || a.name.localeCompare(b.name, 'sv'))
-        .slice(0, 4),
-    }
-  })
-
-  const allRequiredKeys = Array.from(new Set(HOCKEY_DATA_QUALITY_AREAS.flatMap((area) => area.requiredKeys)))
-  const watchlist = athletes
-    .map((athlete) => {
-      const missingLabels = allRequiredKeys
-        .filter((key) => !isMetricPresent(athlete.metrics[key]))
-        .map((key) => metricLabelByKey(metrics, key))
-      return {
-        id: athlete.id,
-        name: athlete.name,
-        position: athlete.position.label,
-        latestTestDate: athlete.latestTestDate,
-        missingCount: missingLabels.length,
-        missingLabels,
-        warningCount: athlete.qualityFlags.filter((flag) => flag.severity === 'warning').length,
-      }
-    })
-    .filter((item) => item.missingCount > 0 || item.warningCount > 0 || !item.latestTestDate)
-    .sort((a, b) => {
-      if (!a.latestTestDate && b.latestTestDate) return -1
-      if (a.latestTestDate && !b.latestTestDate) return 1
-      return b.missingCount - a.missingCount || b.warningCount - a.warningCount || a.name.localeCompare(b.name, 'sv')
-    })
-    .slice(0, 8)
-
-  const presentCells = areaSummaries.reduce((sum, area) => sum + area.presentCells, 0)
-  const totalCells = areaSummaries.reduce((sum, area) => sum + area.totalCells, 0)
-
-  return {
-    areaSummaries,
-    watchlist,
-    totalCoveragePercent: totalCells > 0 ? Math.round((presentCells / totalCells) * 100) : 0,
-    athletesWithoutTests: athletes.filter((athlete) => !athlete.latestTestDate).length,
-    warningCount: athletes.reduce((sum, athlete) => sum + athlete.qualityFlags.filter((flag) => flag.severity === 'warning').length, 0),
-  }
-}
-
 export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientProps) {
   const [sessions, setSessions] = useState<TestSession[]>([])
   const [hockey, setHockey] = useState<HockeyTeamSummary | null>(null)
@@ -574,6 +430,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   const [playerComparisonMode, setPlayerComparisonMode] = useState<HockeyPlayerComparisonMode>('POSITION_CONTEXT')
   const [sensitiveMetricsVisible, setSensitiveMetricsVisible] = useState(true)
   const [isSavingPlayerVisibility, setIsSavingPlayerVisibility] = useState(false)
+  const [selectedSimcaPreset, setSelectedSimcaPreset] = useState<SimcaExportPresetId>('full')
 
   // Edit/delete state for individual PRs in a session. Editing uses
   // the same PATCH endpoint as the per-client PR table — value, unit,
@@ -757,13 +614,15 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     })
   }
 
-  const hockeyExportHref = `/api/teams/${teamId}/hockey-tests/export`
+  const hockeyExportHref = `/api/teams/${teamId}/hockey-tests/export?preset=${selectedSimcaPreset}`
   const hockeyAthletes = hockey?.athletes
     .filter((athlete) => selectedPosition === 'all' || athlete.position.key === selectedPosition) ?? []
   const playerVisibilityPreviewAthlete = hockeyAthletes.find((athlete) => athlete.latestTestDate)
     ?? hockeyAthletes[0]
     ?? null
-  const hockeyDataQuality = buildHockeyDataQuality(hockeyAthletes, hockey?.metrics)
+  const hockeyDataQuality = buildHockeyDataQuality(hockeyAthletes, {
+    labelForKey: (key) => metricLabelByKey(hockey?.metrics, key),
+  })
   const selectedHistory = hockey?.history.find((metric) => metric.key === selectedHockeyMetric)
     ?? hockey?.history.find((metric) => metric.teamTrend.length > 0)
   const hockeyChangeRows = selectedHistory?.athletes
@@ -1011,6 +870,9 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                 <div className="flex flex-wrap gap-1.5">
                   <Badge variant={hockeyDataQuality.totalCoveragePercent >= 75 ? 'default' : hockeyDataQuality.totalCoveragePercent >= 50 ? 'secondary' : 'outline'} className="text-[10px]">
                     {hockeyDataQuality.totalCoveragePercent}% täckning
+                  </Badge>
+                  <Badge variant={hockeyDataQuality.analysisReadyAthletes > 0 ? 'default' : 'outline'} className="text-[10px]">
+                    {hockeyDataQuality.analysisReadyAthletes}/{hockeyAthletes.length} SIMCA-klara
                   </Badge>
                   {hockeyDataQuality.athletesWithoutTests > 0 && (
                     <Badge variant="outline" className="text-[10px]">
@@ -1779,6 +1641,27 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                 <Button variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-1.5" />
                   Exportera SIMCA CSV
+                </Button>
+              </a>
+              <Select value={selectedSimcaPreset} onValueChange={(value) => setSelectedSimcaPreset(value as SimcaExportPresetId)}>
+                <SelectTrigger className="h-9 w-[172px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SIMCA_EXPORT_PRESETS.map((preset) => (
+                    <SelectItem key={preset.id} value={preset.id}>
+                      <div className="flex flex-col">
+                        <span>{preset.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{preset.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <a href={`${hockeyExportHref}&manifest=1`} target="_blank" rel="noreferrer">
+                <Button variant="outline" size="sm">
+                  <ExternalLink className="h-4 w-4 mr-1.5" />
+                  SIMCA manifest
                 </Button>
               </a>
               <Link href={`${basePath}/hockey-tests`}>
