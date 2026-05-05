@@ -99,14 +99,81 @@ const MEAL_TYPE_CONFIG: Record<MealType, { icon: typeof Sunrise; label: string; 
 }
 
 const QUICK_MEALS = [
-  { description: 'Havregrynsgröt med banan', calories: 350, protein: 12, carbs: 55, fat: 8 },
-  { description: 'Ägg och rostat bröd', calories: 400, protein: 20, carbs: 30, fat: 22 },
-  { description: 'Proteinshake', calories: 200, protein: 30, carbs: 10, fat: 3 },
-  { description: 'Kycklingbowl med ris', calories: 550, protein: 40, carbs: 60, fat: 12 },
-  { description: 'Sallad med lax', calories: 450, protein: 35, carbs: 15, fat: 28 },
-  { description: 'Kvarg med bär', calories: 180, protein: 20, carbs: 15, fat: 2 },
-  { description: 'Smörgås med ost och skinka', calories: 320, protein: 18, carbs: 28, fat: 16 },
-  { description: 'Pasta med köttfärssås', calories: 600, protein: 30, carbs: 70, fat: 20 },
+  {
+    description: 'Havregrynsgröt med banan',
+    calories: 350, protein: 12, carbs: 55, fat: 8,
+    items: [
+      { name: 'Havregryn', grams: 80, kcal: 280, p: 10, c: 48, f: 6 },
+      { name: 'Mjölk (1.5%)', grams: 150, kcal: 62, p: 5, c: 7, f: 2 },
+      { name: 'Banan', grams: 100, kcal: 89, p: 1, c: 23, f: 0 },
+    ],
+  },
+  {
+    description: 'Ägg och rostat bröd',
+    calories: 400, protein: 20, carbs: 30, fat: 22,
+    items: [
+      { name: 'Ägg (stekt)', grams: 120, kcal: 216, p: 15, c: 1, f: 17 },
+      { name: 'Rostbröd', grams: 60, kcal: 155, p: 5, c: 29, f: 2 },
+      { name: 'Smör', grams: 10, kcal: 72, p: 0, c: 0, f: 8 },
+    ],
+  },
+  {
+    description: 'Proteinshake',
+    calories: 200, protein: 30, carbs: 10, fat: 3,
+    items: [
+      { name: 'Proteinpulver', grams: 35, kcal: 130, p: 27, c: 3, f: 1 },
+      { name: 'Mjölk (1.5%)', grams: 200, kcal: 82, p: 7, c: 10, f: 2 },
+    ],
+  },
+  {
+    description: 'Kycklingbowl med ris',
+    calories: 550, protein: 40, carbs: 60, fat: 12,
+    items: [
+      { name: 'Kycklingbröst', grams: 150, kcal: 165, p: 31, c: 0, f: 4 },
+      { name: 'Ris (kokt)', grams: 200, kcal: 260, p: 5, c: 56, f: 1 },
+      { name: 'Grönsaker', grams: 100, kcal: 35, p: 2, c: 6, f: 0 },
+      { name: 'Olivolja', grams: 10, kcal: 88, p: 0, c: 0, f: 10 },
+    ],
+  },
+  {
+    description: 'Sallad med lax',
+    calories: 450, protein: 35, carbs: 15, fat: 28,
+    items: [
+      { name: 'Laxfilé', grams: 150, kcal: 312, p: 30, c: 0, f: 21 },
+      { name: 'Blandad sallad', grams: 100, kcal: 20, p: 1, c: 3, f: 0 },
+      { name: 'Avokado', grams: 50, kcal: 80, p: 1, c: 4, f: 7 },
+      { name: 'Olivolja (dressing)', grams: 10, kcal: 88, p: 0, c: 0, f: 10 },
+    ],
+  },
+  {
+    description: 'Kvarg med bär',
+    calories: 180, protein: 20, carbs: 15, fat: 2,
+    items: [
+      { name: 'Kvarg (naturell)', grams: 200, kcal: 120, p: 20, c: 6, f: 0 },
+      { name: 'Blandade bär', grams: 80, kcal: 36, p: 1, c: 8, f: 0 },
+      { name: 'Honung', grams: 10, kcal: 30, p: 0, c: 8, f: 0 },
+    ],
+  },
+  {
+    description: 'Smörgås med ost och skinka',
+    calories: 320, protein: 18, carbs: 28, fat: 16,
+    items: [
+      { name: 'Bröd', grams: 60, kcal: 155, p: 5, c: 28, f: 2 },
+      { name: 'Ost', grams: 25, kcal: 90, p: 6, c: 0, f: 7 },
+      { name: 'Skinka', grams: 30, kcal: 36, p: 6, c: 1, f: 1 },
+      { name: 'Smör', grams: 8, kcal: 58, p: 0, c: 0, f: 6 },
+    ],
+  },
+  {
+    description: 'Pasta med köttfärssås',
+    calories: 600, protein: 30, carbs: 70, fat: 20,
+    items: [
+      { name: 'Pasta (kokt)', grams: 200, kcal: 262, p: 9, c: 52, f: 2 },
+      { name: 'Köttfärs (nöt)', grams: 100, kcal: 205, p: 17, c: 0, f: 15 },
+      { name: 'Tomatsås', grams: 100, kcal: 40, p: 1, c: 8, f: 1 },
+      { name: 'Riven ost', grams: 15, kcal: 56, p: 4, c: 0, f: 4 },
+    ],
+  },
 ]
 
 export function QuickMealLog({
@@ -223,6 +290,11 @@ export function QuickMealLog({
   // Personalized quick meals
   const [personalMeals, setPersonalMeals] = useState<typeof QUICK_MEALS | null>(null)
 
+  // Selected quick meal breakdown (so user can see and edit what was assumed)
+  const [selectedQuickMealItems, setSelectedQuickMealItems] = useState<
+    Array<{ name: string; grams: number; kcal: number; p: number; c: number; f: number }> | null
+  >(null)
+
   // Yesterday's meal for current meal type
   const [yesterdayMeal, setYesterdayMeal] = useState<{
     description: string
@@ -276,6 +348,50 @@ export function QuickMealLog({
       fatGrams: meal.fat.toString(),
     }))
     setShowMacros(true)
+    setSelectedQuickMealItems(meal.items || null)
+  }
+
+  const handleQuickMealItemGramsChange = (index: number, newGrams: number) => {
+    if (!selectedQuickMealItems) return
+    const safeGrams = Math.max(0, newGrams)
+
+    setSelectedQuickMealItems(prev => {
+      if (!prev) return prev
+      const updated = prev.map((item, i) => {
+        if (i !== index) return item
+        // Scale macros proportionally to the new weight
+        const ratio = item.grams > 0 ? safeGrams / item.grams : 0
+        return {
+          ...item,
+          grams: safeGrams,
+          kcal: Math.round(item.kcal * ratio),
+          p: Math.round(item.p * ratio * 10) / 10,
+          c: Math.round(item.c * ratio * 10) / 10,
+          f: Math.round(item.f * ratio * 10) / 10,
+        }
+      })
+
+      // Recalculate totals from updated items
+      const totals = updated.reduce(
+        (acc, it) => ({
+          cal: acc.cal + it.kcal,
+          p: acc.p + it.p,
+          c: acc.c + it.c,
+          f: acc.f + it.f,
+        }),
+        { cal: 0, p: 0, c: 0, f: 0 }
+      )
+
+      setFormData(prev => ({
+        ...prev,
+        calories: totals.cal.toString(),
+        proteinGrams: totals.p.toFixed(1),
+        carbsGrams: totals.c.toFixed(1),
+        fatGrams: totals.f.toFixed(1),
+      }))
+
+      return updated
+    })
   }
 
   const handleAIEstimate = async () => {
@@ -415,6 +531,7 @@ export function QuickMealLog({
     })
     setShowMacros(false)
     setEnhancedFields({})
+    setSelectedQuickMealItems(null)
     setYesterdayMeal(null)
     setError(null)
     setTab(defaultTab)
@@ -536,6 +653,35 @@ export function QuickMealLog({
               ))}
             </div>
           </div>
+
+          {/* Quick meal item breakdown (editable weights) */}
+          {selectedQuickMealItems && selectedQuickMealItems.length > 0 && (
+            <div className="space-y-2 rounded-lg border border-border/50 dark:border-slate-700 p-3 bg-muted/30 dark:bg-slate-800/50">
+              <Label className="text-xs text-muted-foreground">Innehåll (justera vikter)</Label>
+              <div className="space-y-1.5">
+                {selectedQuickMealItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-xs">
+                    <span className="flex-1 min-w-0 truncate dark:text-slate-300">{item.name}</span>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="5"
+                        value={item.grams}
+                        onChange={(e) => handleQuickMealItemGramsChange(idx, Number(e.target.value))}
+                        className="w-16 h-7 text-xs text-center dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                      />
+                      <span className="text-muted-foreground text-[10px] w-4">g</span>
+                    </div>
+                    <span className="text-muted-foreground text-[10px] w-14 text-right">{item.kcal} kcal</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Ändra gram för att justera makron automatiskt
+              </p>
+            </div>
+          )}
 
           {/* Description */}
           <div className="space-y-2">
