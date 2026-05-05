@@ -225,6 +225,10 @@ export function FoodPhotoScanner({
   const [portionSnapCount, setPortionSnapCount] = useState(0)
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
 
+  // Pre-analysis context (user-provided hints before scanning)
+  const [userContext, setUserContext] = useState('')
+  const [showContextInput, setShowContextInput] = useState(false)
+
   // Refinement state
   const [refinementText, setRefinementText] = useState('')
   const [isRefining, setIsRefining] = useState(false)
@@ -421,6 +425,9 @@ export function FoodPhotoScanner({
       const now = new Date()
       formData.append('clientHour', String(now.getHours()))
       formData.append('clientDayOfWeek', String(now.getDay()))
+      if (userContext.trim()) {
+        formData.append('context', userContext.trim())
+      }
 
       const response = await fetch('/api/ai/food-scan', {
         method: 'POST',
@@ -610,6 +617,8 @@ export function FoodPhotoScanner({
     initialAiItemsRef.current = null
     initialAiConfidenceRef.current = null
     refinedRef.current = false
+    setUserContext('')
+    setShowContextInput(false)
     setRefinementText('')
     setIsRefining(false)
     setIsRecording(false)
@@ -976,11 +985,35 @@ export function FoodPhotoScanner({
                   </Button>
                 </div>
               )}
+              {/* Pre-analysis context — user can provide hints */}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setShowContextInput(!showContextInput)}
+                  className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+                >
+                  {showContextInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  {showContextInput ? 'Dölj kontext' : 'Lägg till kontext (valfritt)'}
+                </button>
+                {showContextInput && (
+                  <Textarea
+                    value={userContext}
+                    onChange={(e) => setUserContext(e.target.value)}
+                    placeholder="T.ex. &quot;Köttet är 200g älgfärs&quot;, &quot;Riset är 150g kokt&quot;, &quot;Tillagat i olivolja&quot;"
+                    className="bg-white/5 border-white/10 text-white text-sm min-h-[60px] placeholder:text-slate-500"
+                  />
+                )}
+                {userContext.trim() && !showContextInput && (
+                  <p className="text-[11px] text-cyan-400 truncate">
+                    Kontext: {userContext.trim()}
+                  </p>
+                )}
+              </div>
+
               <Button
                 className="w-full gap-2"
                 onClick={handleAnalyze}
               >
-                <Loader2 className="h-4 w-4 hidden" />
                 Analysera måltid
               </Button>
             </div>

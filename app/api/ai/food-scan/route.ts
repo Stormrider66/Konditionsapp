@@ -47,11 +47,13 @@ function buildPrompt({
   clientDayOfWeek,
   enhancedMode,
   memoryContext,
+  userContext,
 }: {
   clientHour: number | null
   clientDayOfWeek: number | null
   enhancedMode: boolean
   memoryContext: string | null
+  userContext: string | null
 }) {
   const timeLine =
     clientHour != null
@@ -62,13 +64,17 @@ function buildPrompt({
 
   const memoryBlock = memoryContext ? `${memoryContext}\n\n` : ''
 
+  const userContextBlock = userContext
+    ? `\nANVÄNDARENS KONTEXT (viktig information — prioritera detta över egna uppskattningar):\n${userContext}\n\nOm användaren angett en specifik vikt (t.ex. "200g kött"), använd EXAKT den vikten istället för att uppskatta.\nOm användaren angett en specifik matvara (t.ex. "älgfärs" istället för nötfärs), använd den matvarans näringsvärden.\n\n`
+    : ''
+
   const enhancedBlock = enhancedMode
     ? `\n\nUTÖKAD ANALYS (detaljerade makrosubkategorier):\n8. Fettfördelning per matvara: mättade, enkelomättade, fleromättade fettsyror (gram)\n9. Kolhydratfördelning per matvara: socker och komplexa kolhydrater (stärkelse) i gram\n10. Proteinkvalitet: ange om matvaran är en komplett proteinkälla (alla essentiella aminosyror)\n11. Summera fett- och kolhydratsubkategorier i totals`
     : ''
 
   return `Du är en expert på näringslära och matidentifiering. Analysera denna bild av en måltid och uppskatta kalorier och makronäringsämnen.
 
-${timeLine}${memoryBlock}INSTRUKTIONER:
+${timeLine}${memoryBlock}${userContextBlock}INSTRUKTIONER:
 1. Identifiera varje separat matvara/ingrediens i bilden
 2. Uppskatta portionsstorlek i gram och beskriv portionen på svenska (t.ex. "1 skiva", "2 dl", "1 portion")
 3. Beräkna kalorier och makros (protein, kolhydrater, fett, fiber) per matvara
@@ -129,6 +135,8 @@ export async function POST(request: NextRequest) {
     const clientDayOfWeek = Number.isFinite(parsedDay) && parsedDay >= 0 && parsedDay <= 6
       ? parsedDay
       : null
+
+    const userContext = (formData.get('context') as string | null)?.trim() || null
 
     if (!imageFile) {
       return NextResponse.json(
@@ -209,6 +217,7 @@ export async function POST(request: NextRequest) {
       clientDayOfWeek,
       enhancedMode,
       memoryContext: null,
+      userContext,
     })
 
     const firstPass = await generateObject({
@@ -254,6 +263,7 @@ export async function POST(request: NextRequest) {
           clientDayOfWeek,
           enhancedMode,
           memoryContext: memory.text,
+          userContext,
         })
 
         // Isolated try/catch: a pass-2 failure (Gemini 5xx, rate limit, schema
