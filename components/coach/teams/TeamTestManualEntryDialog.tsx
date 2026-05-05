@@ -28,11 +28,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import {
   Command,
   CommandEmpty,
   CommandGroup,
@@ -75,6 +70,7 @@ export function TeamTestManualEntryDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [resultMsg, setResultMsg] = useState<string | null>(null)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [exerciseLoadError, setExerciseLoadError] = useState<string | null>(null)
 
   // Selection state. Athletes default-included; coach un-checks the
   // ones not present at the test. Exercises start empty — coach picks
@@ -93,6 +89,7 @@ export function TeamTestManualEntryDialog({
     let cancelled = false
     async function load() {
       setIsLoading(true)
+      setExerciseLoadError(null)
       try {
         const [teamRes, exRes] = await Promise.all([
           fetch(`/api/teams/${teamId}/analysis-summary`),
@@ -121,26 +118,36 @@ export function TeamTestManualEntryDialog({
               }))
             )
           }
+        } else if (!cancelled) {
+          setExercises([])
+          setExerciseLoadError('Kunde inte hämta övningsbiblioteket just nu.')
         }
       } finally {
         if (!cancelled) setIsLoading(false)
       }
     }
-    load()
+    void load()
     return () => {
       cancelled = true
     }
   }, [open, teamId])
 
-  // Reset state when the dialog closes so reopening starts clean.
-  useEffect(() => {
-    if (open) return
+  const resetDialogState = () => {
     setSelectedExercises([])
     setExcludedAthleteIds(new Set())
     setValues({})
     setResultMsg(null)
     setServerError(null)
-  }, [open])
+    setExerciseLoadError(null)
+    setExercisePickerOpen(false)
+  }
+
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      resetDialogState()
+    }
+    onOpenChange(nextOpen)
+  }
 
   const includedAthletes = useMemo(
     () => members.filter((m) => !excludedAthleteIds.has(m.id)),
@@ -253,13 +260,8 @@ export function TeamTestManualEntryDialog({
     }
   }
 
-  const exercisesById = useMemo(
-    () => new Map(exercises.map((e) => [e.id, e])),
-    [exercises]
-  )
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -286,37 +288,47 @@ export function TeamTestManualEntryDialog({
             </div>
             <div>
               <Label>Övningar</Label>
-              <div className="flex flex-wrap gap-1.5 items-center min-h-[36px]">
-                {selectedExercises.map((ex) => (
-                  <Badge key={ex.id} variant="secondary" className="text-xs gap-1">
-                    {ex.nameSv || ex.name}
-                    <button
-                      type="button"
-                      onClick={() => removeExercise(ex.id)}
-                      className="hover:text-destructive transition-colors"
-                      aria-label="Ta bort övning"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-                <Popover open={exercisePickerOpen} onOpenChange={setExercisePickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      disabled={isLoading}
-                    >
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-1.5 items-center min-h-[36px]">
+                  {selectedExercises.map((ex) => (
+                    <Badge key={ex.id} variant="secondary" className="text-xs gap-1">
+                      {ex.nameSv || ex.name}
+                      <button
+                        type="button"
+                        onClick={() => removeExercise(ex.id)}
+                        className="hover:text-destructive transition-colors"
+                        aria-label="Ta bort övning"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    disabled={isLoading}
+                    aria-expanded={exercisePickerOpen}
+                    onClick={() => setExercisePickerOpen((current) => !current)}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
                       <Plus className="h-3 w-3 mr-1" />
-                      Lägg till övning
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[320px] p-0" align="start">
+                    )}
+                    Lägg till övning
+                  </Button>
+                </div>
+
+                {exercisePickerOpen && (
+                  <div className="w-full max-w-sm overflow-hidden rounded-md border bg-background shadow-sm">
                     <Command>
                       <CommandInput placeholder="Sök övning…" className="h-9" />
                       <CommandList>
-                        <CommandEmpty>Inga övningar hittades</CommandEmpty>
+                        <CommandEmpty>
+                          {exerciseLoadError ?? 'Inga övningar hittades'}
+                        </CommandEmpty>
                         <CommandGroup>
                           {exercises
                             .filter((e) => !selectedExercises.some((s) => s.id === e.id))
@@ -332,8 +344,12 @@ export function TeamTestManualEntryDialog({
                         </CommandGroup>
                       </CommandList>
                     </Command>
-                  </PopoverContent>
-                </Popover>
+                  </div>
+                )}
+
+                {exerciseLoadError && !exercisePickerOpen && (
+                  <p className="text-xs text-destructive">{exerciseLoadError}</p>
+                )}
               </div>
             </div>
           </div>
@@ -438,7 +454,7 @@ export function TeamTestManualEntryDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+          <Button variant="outline" onClick={() => handleDialogOpenChange(false)} disabled={isSubmitting}>
             Stäng
           </Button>
           <Button
