@@ -122,6 +122,7 @@ interface HockeyTest {
 
 interface HockeyTestResultsProps {
   teams: Team[]
+  businessSlug?: string
 }
 
 function formatDate(iso: string): string {
@@ -272,7 +273,7 @@ function MuscleLabChart({ test }: { test: HockeyTest }) {
   )
 }
 
-export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
+export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProps) {
   const [tests, setTests] = useState<HockeyTest[]>([])
   const [loading, setLoading] = useState(true)
   const [teamFilter, setTeamFilter] = useState('all')
@@ -285,7 +286,9 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
       if (teamFilter !== 'all') params.set('teamId', teamFilter)
       setLoading(true)
       try {
-        const res = await fetch(`/api/coach/hockey-tests?${params}`)
+        const res = await fetch(`/api/coach/hockey-tests?${params}`, {
+          headers: businessSlug ? { 'x-business-slug': businessSlug } : undefined,
+        })
         if (res.ok) {
           const data = await res.json()
           setTests(data.tests || [])
@@ -297,7 +300,7 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
       }
     }
     void fetchTests()
-  }, [teamFilter])
+  }, [businessSlug, teamFilter])
 
   const handleExportPDF = async (test: HockeyTest) => {
     setExportingId(test.id)
@@ -316,10 +319,10 @@ export function HockeyTestResults({ teams }: HockeyTestResultsProps) {
     <div className="space-y-4">
       <Select value={teamFilter} onValueChange={setTeamFilter}>
         <SelectTrigger className="w-48">
-          <SelectValue placeholder="Alla lag" />
+          <SelectValue placeholder="Alla spelare" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Alla lag</SelectItem>
+          <SelectItem value="all">Alla spelare</SelectItem>
           {teams.map((t) => (
             <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
           ))}

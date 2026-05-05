@@ -3,6 +3,8 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { getStaffPermissions } from '@/lib/permissions/assistant-coach'
+import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { HockeyTestForm } from '@/components/coach/hockey-tests/HockeyTestForm'
 import { HockeyTestResults } from '@/components/coach/hockey-tests/HockeyTestResults'
@@ -23,10 +25,8 @@ export default async function HockeyTestsPage({ params }: PageProps) {
 
   const permissions = await getStaffPermissions(user.id, businessSlug)
 
-  // Get teams and clients the user can access
-  const teamFilter = permissions.isTeamScoped && permissions.assignedTeamIds.length > 0
-    ? { id: { in: permissions.assignedTeamIds } }
-    : { userId: user.id }
+  const coachIds = await getCoachScopedIds(user.id, membership.businessId, membership.role)
+  const teamFilter = await getAccessibleTeamWhere(user.id, businessSlug)
 
   const teams = await prisma.team.findMany({
     where: teamFilter,
@@ -37,7 +37,10 @@ export default async function HockeyTestsPage({ params }: PageProps) {
   const clients = await prisma.client.findMany({
     where: permissions.isTeamScoped
       ? { teamId: { in: permissions.assignedTeamIds } }
-      : { userId: user.id },
+      : {
+          businessId: membership.businessId,
+          userId: { in: coachIds },
+        },
     select: { id: true, name: true, teamId: true },
     orderBy: { name: 'asc' },
   })
@@ -82,12 +85,12 @@ export default async function HockeyTestsPage({ params }: PageProps) {
 
         {canRunTests && (
           <TabsContent value="new">
-            <HockeyTestForm clients={clients} teams={teams} />
+            <HockeyTestForm clients={clients} teams={teams} businessSlug={businessSlug} />
           </TabsContent>
         )}
 
         <TabsContent value="results">
-          <HockeyTestResults teams={teams} />
+          <HockeyTestResults teams={teams} businessSlug={businessSlug} />
         </TabsContent>
       </Tabs>
     </div>

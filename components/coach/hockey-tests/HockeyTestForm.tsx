@@ -43,6 +43,7 @@ interface Team {
 interface HockeyTestFormProps {
   clients: Client[]
   teams: Team[]
+  businessSlug?: string
   onSaved?: () => void
 }
 
@@ -366,7 +367,7 @@ function parseMusclLabCSV(text: string): Record<string, unknown> {
   return data
 }
 
-export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps) {
+export function HockeyTestForm({ clients, teams, businessSlug, onSaved }: HockeyTestFormProps) {
   const scanInputRef = useRef<HTMLInputElement>(null)
   const csvInputRef = useRef<HTMLInputElement>(null)
   const [scanning, setScanning] = useState(false)
@@ -606,7 +607,10 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
 
       const res = await fetch('/api/coach/hockey-tests', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
+        },
         body: JSON.stringify({
           clientId,
           teamId: selectedClient?.teamId || undefined,
@@ -714,11 +718,19 @@ export function HockeyTestForm({ clients, teams, onSaved }: HockeyTestFormProps)
                       </div>
                     )
                   })}
+                  {clients.filter((c) => !c.teamId).length > 0 && (
+                    <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase">Individuella spelare</div>
+                  )}
                   {clients.filter((c) => !c.teamId).map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {clients.filter((c) => !c.teamId).length > 0 && (
+                <p className="text-[10px] text-muted-foreground">
+                  Spelare utan lag kan testas här och kopplas till lag senare.
+                </p>
+              )}
             </div>
             <div className="space-y-1">
               <Label>Testdatum</Label>
