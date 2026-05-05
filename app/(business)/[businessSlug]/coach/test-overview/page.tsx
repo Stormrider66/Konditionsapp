@@ -3,6 +3,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { getStaffPermissions } from '@/lib/permissions/assistant-coach'
+import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
 import { TestOverviewClient } from '@/components/coach/test-overview/TestOverviewClient'
 import { BarChart3 } from 'lucide-react'
@@ -18,7 +19,8 @@ export default async function TestOverviewPage({ params }: PageProps) {
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
 
-  const permissions = await getStaffPermissions(user.id, businessSlug)
+  const previewRole = await getStaffRolePreview(user.id)
+  const permissions = await getStaffPermissions(user.id, businessSlug, { roleOverride: previewRole })
 
   // Get teams the user can access
   const teamFilter = await getAccessibleTeamWhere(user.id, businessSlug)

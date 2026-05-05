@@ -11,11 +11,11 @@ import { prisma } from '@/lib/prisma'
 import { inviteUserToBusiness } from '@/lib/invite-utils'
 import {
   getStaffPermissions,
-  ROLE_LABELS,
   roleLabelFor,
   isRoleInvitableFor,
   invitableRolesFor,
 } from '@/lib/permissions/assistant-coach'
+import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 import { handleApiError } from '@/lib/api/utils'
 import { z } from 'zod'
 
@@ -29,7 +29,8 @@ const inviteSchema = z.object({
 export async function GET() {
   try {
     const user = await requireCoach()
-    const permissions = await getStaffPermissions(user.id)
+    const previewRole = await getStaffRolePreview(user.id)
+    const permissions = await getStaffPermissions(user.id, undefined, { roleOverride: previewRole })
 
     if (!permissions.canInviteStaff) {
       return NextResponse.json({ error: 'Ingen behörighet' }, { status: 403 })
@@ -101,7 +102,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireCoach()
-    const permissions = await getStaffPermissions(user.id)
+    const previewRole = await getStaffRolePreview(user.id)
+    const permissions = await getStaffPermissions(user.id, undefined, { roleOverride: previewRole })
 
     if (!permissions.canInviteStaff) {
       return NextResponse.json({ error: 'Ingen behörighet att bjuda in personal' }, { status: 403 })
@@ -138,7 +140,7 @@ export async function POST(req: NextRequest) {
       email: parsed.data.email,
       name: parsed.data.name,
       businessId: membership.businessId,
-      role: parsed.data.role as any,
+      role: parsed.data.role,
       invitedByUserId: user.id,
     })
 

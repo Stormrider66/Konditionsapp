@@ -14,7 +14,6 @@
  */
 
 import { prisma } from '@/lib/prisma'
-
 export type StaffRole = 'OWNER' | 'ADMIN' | 'COACH' | 'PHYSICAL_TRAINER' | 'ASSISTANT_COACH' | 'PHYSIO' | 'MEMBER'
 
 /** Mirrors prisma BusinessType enum. Kept as a string union to avoid importing @prisma/client into client components. */
@@ -173,7 +172,8 @@ const PERMISSION_MATRIX: Record<string, Omit<StaffPermissions, 'role' | 'roleLab
  */
 export async function getStaffPermissions(
   userId: string,
-  businessSlug?: string
+  businessSlug?: string,
+  options?: { roleOverride?: StaffRole | null }
 ): Promise<StaffPermissions> {
   const membership = await prisma.businessMember.findFirst({
     where: {
@@ -184,7 +184,9 @@ export async function getStaffPermissions(
     select: { role: true },
   })
 
-  const role = (membership?.role || 'MEMBER') as StaffRole
+  const actualRole = (membership?.role || 'MEMBER') as StaffRole
+  const previewRole = options?.roleOverride ?? null
+  const role = previewRole ?? actualRole
 
   // Check if user is a direct COACH (no business membership)
   if (!membership) {

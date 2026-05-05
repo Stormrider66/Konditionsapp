@@ -8,12 +8,10 @@ import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingCont
 import {
     LayoutDashboard,
     Users,
-    Calendar,
     CalendarDays,
     Menu,
     LogOut,
     Settings,
-    User as UserIcon,
     Wrench,
     Sparkles,
     Flame,
@@ -36,6 +34,7 @@ import {
     Share2,
     Trophy,
     Megaphone,
+    UserCog,
 } from 'lucide-react'
 import type { BusinessMemberRole } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -57,7 +56,12 @@ import { AthleteModeToggle } from '@/components/coach/AthleteModeToggle'
 import { OrgSwitcher } from '@/components/coach/OrgSwitcher'
 
 interface BusinessCoachGlassHeaderProps {
-    user: any
+    user: {
+        email?: string | null
+        user_metadata?: {
+            avatar_url?: string | null
+        }
+    } | null
     businessSlug: string
 }
 
@@ -69,8 +73,9 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     const [businessRole, setBusinessRole] = useState<BusinessMemberRole | null>(null)
     const [businessName, setBusinessName] = useState<string | null>(branding?.businessName ?? null)
     const [platformAdminRole, setPlatformAdminRole] = useState<string | null>(null)
+    const [rolePreview, setRolePreview] = useState<string | null>(null)
+    const [rolePreviewSaving, setRolePreviewSaving] = useState(false)
     const [dashboardMode, setDashboardMode] = useState<'PT' | 'TEAM' | 'GYM'>('PT')
-    const [isAssistantCoach, setIsAssistantCoach] = useState(false)
     const [staffRole, setStaffRole] = useState<string>('COACH')
     const displayName = user?.email || 'Coach'
 
@@ -82,17 +87,29 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
 
     // Base path for all business-scoped routes
     const basePath = `/${businessSlug}`
+    const rolePreviewOptions = [
+        { value: 'OWNER', label: 'Ägare' },
+        { value: 'ADMIN', label: 'Sportchef' },
+        { value: 'COACH', label: 'Huvudtränare' },
+        { value: 'PHYSICAL_TRAINER', label: 'Fystränare' },
+        { value: 'ASSISTANT_COACH', label: 'Assisterande tränare' },
+        { value: 'PHYSIO', label: 'Fysioterapeut' },
+        { value: 'MEMBER', label: 'Medlem' },
+    ]
 
     // Fetch business context and dashboard mode
     useEffect(() => {
         const fetchBusinessContext = async () => {
             try {
-                const [contextRes, modeRes, permRes] = await Promise.all([
+                const [contextRes, modeRes, permRes, previewRes] = await Promise.all([
                     fetch('/api/coach/admin/context', {
                         headers: { 'x-business-slug': businessSlug },
                     }),
                     fetch('/api/coach/dashboard-mode'),
-                    fetch('/api/coach/permissions'),
+                    fetch('/api/coach/permissions', {
+                        headers: { 'x-business-slug': businessSlug },
+                    }),
+                    fetch('/api/coach/role-preview'),
                 ])
                 if (contextRes.ok) {
                     const result = await contextRes.json()
@@ -114,15 +131,34 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                 }
                 if (permRes.ok) {
                     const permData = await permRes.json()
-                    setIsAssistantCoach(permData.role === 'ASSISTANT_COACH')
                     setStaffRole(permData.role || 'COACH')
+                }
+                if (previewRes.ok) {
+                    const previewData = await previewRes.json()
+                    setRolePreview(previewData.role || null)
                 }
             } catch (err) {
                 console.error('[BusinessContext] Failed to fetch:', err)
             }
         }
-        fetchBusinessContext()
+        void fetchBusinessContext()
     }, [businessSlug])
+
+    const applyRolePreview = async (role: string | null) => {
+        setRolePreviewSaving(true)
+        try {
+            const res = await fetch('/api/coach/role-preview', {
+                method: role ? 'POST' : 'DELETE',
+                headers: role ? { 'Content-Type': 'application/json' } : undefined,
+                body: role ? JSON.stringify({ role }) : undefined,
+            })
+            if (!res.ok) return
+            setRolePreview(role)
+            router.refresh()
+        } finally {
+            setRolePreviewSaving(false)
+        }
+    }
 
     const handleSignOut = async () => {
         const supabase = createClient()
@@ -285,13 +321,6 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     ]
 
     // Build sets of prioritized hrefs for mobile rendering
-    const prioritizedHrefs = new Set([
-        ...mainNavItems.map((i) => i.href),
-        ...prioritizedTools.map((i) => i.href),
-        ...prioritizedMore.map((i) => i.href),
-        ...adminLinks.map((i) => i.href),
-    ])
-
     // Mobile: prioritized items first, then separator, then remaining
     const mobilePrioritized = [
         ...mainNavItems,
@@ -302,12 +331,6 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     const mobileRemaining = [
         ...remainingTools,
         ...remainingMore,
-    ]
-
-    const mobileNavItems = [
-        ...mainNavItems,
-        ...navGroups.tools.items,
-        ...moreItems
     ]
 
     return (
@@ -467,6 +490,58 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
 
                     {/* Language & Notifications (Desktop) */}
                     <div className="hidden md:flex items-center gap-1 text-slate-200">
+                        {platformAdminRole && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className={cn(
+                                            'h-8 gap-1.5 px-2 text-xs text-slate-300 hover:bg-white/10 hover:text-white',
+                                            rolePreview && 'text-amber-200 ring-1 ring-amber-300/30'
+                                        )}
+                                    >
+                                        <UserCog className="h-3.5 w-3.5" />
+                                        {rolePreview
+                                            ? rolePreviewOptions.find((role) => role.value === rolePreview)?.label ?? rolePreview
+                                            : 'Visa som'}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-56 bg-slate-900 border-white/10 text-slate-200" align="end">
+                                    <DropdownMenuLabel>
+                                        Rollförhandsvisning
+                                        <p className="mt-1 text-[10px] font-normal text-slate-400">
+                                            Super admin-läge. Ändrar inte roller i databasen.
+                                        </p>
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator className="bg-white/10" />
+                                    {rolePreviewOptions.map((option) => (
+                                        <DropdownMenuItem
+                                            key={option.value}
+                                            disabled={rolePreviewSaving}
+                                            onClick={() => { void applyRolePreview(option.value) }}
+                                            className="focus:bg-white/10 focus:text-white cursor-pointer"
+                                        >
+                                            <UserCog className="mr-2 h-4 w-4" />
+                                            <span>{option.label}</span>
+                                            {rolePreview === option.value && <span className="ml-auto text-[10px] text-amber-200">Aktiv</span>}
+                                        </DropdownMenuItem>
+                                    ))}
+                                    {rolePreview && (
+                                        <>
+                                            <DropdownMenuSeparator className="bg-white/10" />
+                                            <DropdownMenuItem
+                                                disabled={rolePreviewSaving}
+                                                onClick={() => { void applyRolePreview(null) }}
+                                                className="focus:bg-white/10 focus:text-white cursor-pointer"
+                                            >
+                                                Rensa förhandsvisning
+                                            </DropdownMenuItem>
+                                        </>
+                                    )}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
                         <LanguageSwitcher showLabel={false} variant="ghost" />
                         <NotificationBell />
                     </div>
@@ -477,7 +552,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-8 w-8 rounded-full ring-2 ring-white/10 hover:ring-blue-500/50 transition-all p-0">
                                     <Avatar className="h-8 w-8">
-                                        <AvatarImage src={user?.user_metadata?.avatar_url} alt={displayName} />
+                                        <AvatarImage src={user?.user_metadata?.avatar_url ?? undefined} alt={displayName} />
                                         <AvatarFallback className="bg-slate-800 text-blue-500 font-bold">
                                             {displayName.charAt(0).toUpperCase()}
                                         </AvatarFallback>
@@ -596,7 +671,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                     <button
                                         onClick={() => {
                                             setIsOpen(false)
-                                            handleSignOut()
+                                            void handleSignOut()
                                         }}
                                         className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 w-full text-left"
                                     >

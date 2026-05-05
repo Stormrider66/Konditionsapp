@@ -3,6 +3,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { getStaffPermissions } from '@/lib/permissions/assistant-coach'
+import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -23,7 +24,8 @@ export default async function HockeyTestsPage({ params }: PageProps) {
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
 
-  const permissions = await getStaffPermissions(user.id, businessSlug)
+  const previewRole = await getStaffRolePreview(user.id)
+  const permissions = await getStaffPermissions(user.id, businessSlug, { roleOverride: previewRole })
 
   const coachIds = await getCoachScopedIds(user.id, membership.businessId, membership.role)
   const teamFilter = await getAccessibleTeamWhere(user.id, businessSlug)

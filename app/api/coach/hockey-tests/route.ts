@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { getStaffPermissions } from '@/lib/permissions/assistant-coach'
+import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 import {
   canAccessClientInTeam,
   getBusinessMembership,
@@ -78,7 +79,8 @@ export async function GET(req: NextRequest) {
   try {
     const user = await requireCoach()
     const scope = getRequestedBusinessScope(req)
-    const permissions = await getStaffPermissions(user.id, scope.businessSlug)
+    const previewRole = await getStaffRolePreview(user.id)
+    const permissions = await getStaffPermissions(user.id, scope.businessSlug, { roleOverride: previewRole })
     const membership = await getBusinessMembership(user.id, scope.businessSlug)
     const coachIds = membership
       ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
@@ -146,7 +148,8 @@ export async function POST(req: NextRequest) {
   try {
     const user = await requireCoach()
     const scope = getRequestedBusinessScope(req)
-    const permissions = await getStaffPermissions(user.id, scope.businessSlug)
+    const previewRole = await getStaffRolePreview(user.id)
+    const permissions = await getStaffPermissions(user.id, scope.businessSlug, { roleOverride: previewRole })
     const body = await req.json()
     const parsed = createTestSchema.safeParse(body)
 

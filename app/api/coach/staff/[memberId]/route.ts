@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { getStaffPermissions } from '@/lib/permissions/assistant-coach'
+import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 
 interface RouteContext {
   params: Promise<{ memberId: string }>
@@ -16,7 +17,8 @@ interface RouteContext {
 export async function DELETE(_req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
-    const permissions = await getStaffPermissions(user.id)
+    const previewRole = await getStaffRolePreview(user.id)
+    const permissions = await getStaffPermissions(user.id, undefined, { roleOverride: previewRole })
 
     if (!permissions.canInviteStaff) {
       return NextResponse.json({ error: 'Ingen behörighet' }, { status: 403 })

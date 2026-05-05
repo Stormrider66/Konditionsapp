@@ -5,10 +5,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import type { Prisma } from '@prisma/client'
+import { TestType, type Prisma } from '@prisma/client'
 import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { getStaffPermissions } from '@/lib/permissions/assistant-coach'
+import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 import { getBusinessMembership } from '@/lib/coach/team-access'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 
@@ -17,7 +18,8 @@ export async function GET(req: NextRequest) {
     const user = await requireCoach()
     const scope = getRequestedBusinessScope(req)
     const membership = await getBusinessMembership(user.id, scope.businessSlug)
-    const permissions = await getStaffPermissions(user.id, scope.businessSlug)
+    const previewRole = await getStaffRolePreview(user.id)
+    const permissions = await getStaffPermissions(user.id, scope.businessSlug, { roleOverride: previewRole })
     const coachIds = membership
       ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
       : [user.id]
@@ -28,6 +30,9 @@ export async function GET(req: NextRequest) {
     const fromDate = searchParams.get('from')
     const toDate = searchParams.get('to')
     const clientIds = searchParams.get('clientIds')?.split(',').filter(Boolean)
+    const parsedTestType = testType && Object.values(TestType).includes(testType as TestType)
+      ? testType as TestType
+      : null
 
     // Build client filter based on role and active business.
     const clientFilter: Prisma.ClientWhereInput = {}
@@ -55,7 +60,7 @@ export async function GET(req: NextRequest) {
     const tests = await prisma.test.findMany({
       where: {
         client: clientFilter,
-        ...(testType ? { testType: testType as any } : {}),
+        ...(parsedTestType ? { testType: parsedTestType } : {}),
         ...(Object.keys(dateFilter).length > 0 ? { testDate: dateFilter } : {}),
       },
       include: {

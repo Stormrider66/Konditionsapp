@@ -10,7 +10,7 @@ import { sendCoachInviteEmail } from '@/lib/email'
 import { resolveEmailBranding } from '@/lib/email/branding'
 import { buildRecoveryCallbackUrl } from '@/lib/url-utils'
 
-type BusinessMemberRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'COACH'
+type BusinessMemberRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'COACH' | 'PHYSICAL_TRAINER' | 'ASSISTANT_COACH' | 'PHYSIO'
 
 export interface InviteUserResult {
   success: boolean
