@@ -92,8 +92,16 @@ export async function GET(req: NextRequest) {
       ? { teamId: { in: permissions.assignedTeamIds } }
       : membership
         ? {
-            businessId: membership.businessId,
-            userId: { in: coachIds },
+            OR: [
+              {
+                businessId: membership.businessId,
+                userId: { in: coachIds },
+              },
+              {
+                userId: user.id,
+                teamId: null,
+              },
+            ],
           }
         : { userId: user.id }
 
@@ -168,8 +176,16 @@ export async function POST(req: NextRequest) {
             ? { teamId: { in: permissions.assignedTeamIds } }
             : membership
               ? {
-                  businessId: membership.businessId,
-                  userId: { in: coachIds },
+                  OR: [
+                    {
+                      businessId: membership.businessId,
+                      userId: { in: coachIds },
+                    },
+                    {
+                      userId: user.id,
+                      teamId: null,
+                    },
+                  ],
                 }
               : { userId: user.id }),
         },

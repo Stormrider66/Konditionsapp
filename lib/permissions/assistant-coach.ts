@@ -127,7 +127,7 @@ const PERMISSION_MATRIX: Record<string, Omit<StaffPermissions, 'role' | 'roleLab
   ADMIN: {
     isTeamScoped: false,
     canViewAthletes: true, canViewTestResults: true, canViewProgress: true,
-    canEditPrograms: false, canRunIntervals: false, canRunTests: false, canAccessStudios: false, canAccessAI: false,
+    canEditPrograms: false, canRunIntervals: false, canRunTests: true, canAccessStudios: false, canAccessAI: false,
     canViewCalendar: true, canCreateEvents: true,
     canInviteStaff: true, canAssignTeams: true, canManageBilling: false, canManageSettings: true,
   },

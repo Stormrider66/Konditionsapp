@@ -38,8 +38,16 @@ export default async function HockeyTestsPage({ params }: PageProps) {
     where: permissions.isTeamScoped
       ? { teamId: { in: permissions.assignedTeamIds } }
       : {
-          businessId: membership.businessId,
-          userId: { in: coachIds },
+          OR: [
+            {
+              businessId: membership.businessId,
+              userId: { in: coachIds },
+            },
+            {
+              userId: user.id,
+              teamId: null,
+            },
+          ],
         },
     select: { id: true, name: true, teamId: true },
     orderBy: { name: 'asc' },
