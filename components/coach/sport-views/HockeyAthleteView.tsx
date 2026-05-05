@@ -163,9 +163,12 @@ interface HockeySummaryResponse {
   interpretations: Array<{
     id: string
     tone: 'priority' | 'watch' | 'maintain' | 'quality' | 'positive'
+    focusArea: 'test-quality' | 'readiness' | 'speed' | 'power' | 'aerobic' | 'repeated-sprint' | 'strength' | 'maintenance'
     title: string
     summary: string
     action: string
+    trainingBlock: string
+    retest: string
     evidence: string[]
   }>
   count: number
@@ -175,6 +178,13 @@ interface HockeyCoachPlanItem {
   title: string
   description: string
   tone: 'priority' | 'watch' | 'positive' | 'info'
+}
+
+interface HockeyPlayerHighlight {
+  title: string
+  status: string
+  bullets: string[]
+  tone: 'priority' | 'positive' | 'info'
 }
 
 const POSITION_LABELS: Record<string, string> = {
@@ -493,6 +503,66 @@ function buildAthleteCoachPlan(
   return items.slice(0, 4)
 }
 
+function buildPlayerHighlight(summary: HockeySummaryResponse | null, clientName: string): HockeyPlayerHighlight {
+  if (!summary?.latest) {
+    return {
+      title: `${clientName}: testprofil saknas`,
+      status: 'Logga första hockeybatteriet för att visa nuläge, bästa värden och utveckling.',
+      tone: 'info',
+      bullets: [
+        'Första vyn bör innehålla sprint, 7x40, hopp, styrka och aerob ankare.',
+        'När två tester finns visar profilen förändring och vad nästa block bör fokusera på.',
+      ],
+    }
+  }
+
+  const latest = summary.latest
+  const positiveBestCount = BEST_METRICS.filter((key) => summary.bests[key]?.testId === latest.id).length
+  const priority = summary.interpretations.find((item) => item.tone === 'priority' || item.tone === 'quality')
+  const positive = summary.interpretations.find((item) => item.tone === 'positive')
+  const nextLevel = summary.pathway.nextLevel
+  const nextLevelText = nextLevel?.score == null
+    ? nextLevel?.level ? `${nextLevel.level}: behöver fler testvärden` : 'Nästa nivå behöver fler testvärden'
+    : `${nextLevel.level}: ${nextLevel.score}% av tillgängliga targets`
+
+  if (priority) {
+    return {
+      title: `${clientName}: tydlig utvecklingsprioritet`,
+      status: priority.title,
+      tone: 'priority',
+      bullets: [
+        priority.action,
+        priority.trainingBlock,
+        `Nästa nivå: ${nextLevelText}.`,
+      ],
+    }
+  }
+
+  if (positiveBestCount > 0 || positive) {
+    return {
+      title: `${clientName}: positiv testtrend`,
+      status: positive?.title ?? `${positiveBestCount} nya bestnoteringar i senaste testet`,
+      tone: 'positive',
+      bullets: [
+        positive?.action ?? 'Behåll dosen som skapade förbättringen och flytta fokus till största kvarvarande gap.',
+        positive?.retest ?? 'Bekräfta utvecklingen vid nästa planerade test.',
+        `Nästa nivå: ${nextLevelText}.`,
+      ],
+    }
+  }
+
+  return {
+    title: `${clientName}: stabil hockeyprofil`,
+    status: 'Ingen stor varningssignal sticker ut från senaste testet.',
+    tone: 'info',
+    bullets: [
+      summary.interpretations[0]?.action ?? 'Fortsätt aktuell plan och retesta efter nästa block.',
+      `Nästa nivå: ${nextLevelText}.`,
+      latest.aerobicAutoLinked ? 'Aeroba värden är länkade från labb/profil så spelaren slipper dubbelregistrering.' : 'Lägg till labb/ramp-data när den finns för bättre aerob trend.',
+    ],
+  }
+}
+
 function planToneClasses(tone: HockeyCoachPlanItem['tone']): string {
   if (tone === 'priority') return 'border-red-500/40 bg-red-500/10'
   if (tone === 'watch') return 'border-amber-500/40 bg-amber-500/10'
@@ -514,6 +584,12 @@ function interpretationBadge(tone: HockeySummaryResponse['interpretations'][numb
   if (tone === 'watch') return 'Följ upp'
   if (tone === 'positive') return 'Styrka'
   return 'Behåll'
+}
+
+function playerHighlightClasses(tone: HockeyPlayerHighlight['tone']): string {
+  if (tone === 'priority') return 'border-red-500/40 bg-red-500/10'
+  if (tone === 'positive') return 'border-emerald-500/40 bg-emerald-500/10'
+  return 'border-sky-500/30 bg-sky-500/10'
 }
 
 function pathwayChangeText(value: number | null | undefined, unit: string, decimals: number): string {
@@ -598,6 +674,7 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
     .map((key) => METRIC_BY_KEY.get(key))
     .filter((metric): metric is (typeof PHYSICAL_METRICS)[number] => metric != null)
   const coachPlan = buildAthleteCoachPlan(summary, hockeySettings)
+  const playerHighlight = buildPlayerHighlight(summary, clientName)
   const pathway = summary?.pathway
   const pathwayChartData: Array<Record<string, string | number | null>> = (pathway?.seasons ?? []).map((season) => ({
     season: season.season,
@@ -716,6 +793,45 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
             )}
             Exportera spelarrapport PDF
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card className={playerHighlightClasses(playerHighlight.tone)} style={{ borderColor: theme.colors.border }}>
+        <CardHeader className="pb-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
+                <Target className="h-4 w-4 text-sky-500" />
+                Spelarvy
+              </CardTitle>
+              <CardDescription style={{ color: theme.colors.textMuted }}>
+                Kort version att använda i samtal med spelaren.
+              </CardDescription>
+            </div>
+            <Badge
+              variant={playerHighlight.tone === 'priority' ? 'destructive' : playerHighlight.tone === 'positive' ? 'secondary' : 'outline'}
+              className="w-fit"
+            >
+              {playerHighlight.tone === 'priority' ? 'Prioritet' : playerHighlight.tone === 'positive' ? 'Positiv trend' : 'Nuläge'}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <h4 className="text-sm font-semibold" style={{ color: theme.colors.textPrimary }}>{playerHighlight.title}</h4>
+            <p className="mt-1 text-sm" style={{ color: theme.colors.textMuted }}>{playerHighlight.status}</p>
+          </div>
+          <div className="grid gap-2 md:grid-cols-3">
+            {playerHighlight.bullets.map((bullet, index) => (
+              <div
+                key={`${index}-${bullet}`}
+                className="rounded-md border px-3 py-2 text-xs"
+                style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border, color: theme.colors.textMuted }}
+              >
+                {bullet}
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
@@ -1118,8 +1234,15 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
                     <p className="mt-1 text-xs font-medium" style={{ color: theme.colors.textPrimary }}>
                       {item.action}
                     </p>
+                    <div className="mt-2 grid gap-1 text-[11px]" style={{ color: theme.colors.textMuted }}>
+                      <p><span className="font-medium" style={{ color: theme.colors.textPrimary }}>Block:</span> {item.trainingBlock}</p>
+                      <p><span className="font-medium" style={{ color: theme.colors.textPrimary }}>Retest:</span> {item.retest}</p>
+                    </div>
                     {item.evidence.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
+                        <Badge variant="outline" className="text-[10px]">
+                          {item.focusArea}
+                        </Badge>
                         {item.evidence.map((evidence) => (
                           <Badge key={evidence} variant="outline" className="text-[10px]">
                             {evidence}

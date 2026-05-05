@@ -40,6 +40,7 @@ import {
   AlertTriangle,
   Target,
   Timer,
+  FlaskConical,
 } from 'lucide-react'
 import { TeamTestImportDialog } from './TeamTestImportDialog'
 import { TeamTestManualEntryDialog } from './TeamTestManualEntryDialog'
@@ -355,6 +356,44 @@ function metricByKey(metrics: HockeyMetric[] | undefined, key: string): HockeyMe
   return metrics?.find((metric) => metric.key === key)
 }
 
+function buildSimcaReadiness(hockey: HockeyTeamSummary | null): Array<{ tone: 'ok' | 'watch'; label: string }> {
+  if (!hockey) return [{ tone: 'watch', label: 'Ingen hockeymatris laddad ännu.' }]
+
+  const testedAthletes = hockey.athletes.filter((athlete) => athlete.latestTestDate).length
+  const seasonCount = hockey.pathway.seasonSummaries.length
+  const aerobicCoverage = hockey.athletes.filter((athlete) => (
+    athlete.metrics.vo2Max != null || athlete.metrics.lt2SpeedKmh != null || athlete.metrics.beepScore != null
+  )).length
+
+  return [
+    {
+      tone: testedAthletes >= 8 ? 'ok' : 'watch',
+      label: testedAthletes >= 8
+        ? `${testedAthletes} spelare med testdata: bra för första PCA-karta.`
+        : `${testedAthletes} spelare med testdata: använd SIMCA som deskriptiv översikt tills gruppen är större.`,
+    },
+    {
+      tone: seasonCount >= 2 ? 'ok' : 'watch',
+      label: seasonCount >= 2
+        ? `${seasonCount} säsonger: pathway-variabler kan börja tolkas.`
+        : 'Minst två säsonger behövs innan pathway-slopes bör tolkas.',
+    },
+    {
+      tone: aerobicCoverage >= Math.max(4, Math.ceil(testedAthletes * 0.6)) ? 'ok' : 'watch',
+      label: `${aerobicCoverage}/${testedAthletes || hockey.athletes.length} spelare har VO2/LT2/beep-ankare.`,
+    },
+  ]
+}
+
+const SIMCA_PRESET_LINKS: Array<{ id: string; label: string; description: string }> = [
+  { id: 'full', label: 'Full', description: 'Alla variabler' },
+  { id: 'explosive_power', label: 'Power', description: 'MuscleLab, hopp, acceleration' },
+  { id: 'on_ice_speed', label: 'Isfart', description: 'Sprintstints och avståndsgap' },
+  { id: 'repeated_sprint', label: '7x40', description: 'RSA, drop och resistance' },
+  { id: 'aerobic_profile', label: 'Aerob', description: 'VO2, LT1/LT2, laktat, ramp' },
+  { id: 'development_pathway', label: 'Pathway', description: 'J18 till A-lag över säsonger' },
+]
+
 function businessSlugFromBasePath(basePath: string): string | null {
   const parts = basePath.split('/').filter(Boolean)
   return parts[1] === 'coach' ? parts[0] : null
@@ -543,6 +582,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
 
   const hockeyExportHref = scopedTeamApiUrl(`/api/teams/${teamId}/hockey-tests/export`)
   const hockeyAerobicExportHref = scopedTeamApiUrl(`/api/teams/${teamId}/hockey-tests/export`, { preset: 'aerobic_profile' })
+  const simcaReadiness = useMemo(() => buildSimcaReadiness(hockey), [hockey])
   const hockeyAthletes = hockey?.athletes
     .filter((athlete) => selectedPosition === 'all' || athlete.position.key === selectedPosition) ?? []
   const selectedHistory = hockey?.history.find((metric) => metric.key === selectedHockeyMetric)
@@ -606,6 +646,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
           coachActionPlan: hockeyActionItems.length > 0,
           simcaExport: Boolean(hockey),
           aerobicProfileExport: aerobicLeaders.length > 0,
+          simcaReadyForPca: simcaReadiness.every((item) => item.tone === 'ok'),
         },
         leaders: hockey?.leaders
           .filter((leader) => leader.leader)
@@ -641,8 +682,9 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
         } : null,
         simca: {
           fullExportEndpoint: `/api/teams/${teamId}/hockey-tests/export`,
-          aerobicPreset: 'aerobic_profile',
-          aerobicPresetFocus: ['vo2Max', 'lt1SpeedKmh', 'lt2SpeedKmh', 'maxLactate', 'maxHeartRate', 'rampTimeSeconds'],
+          presets: SIMCA_PRESET_LINKS.map((preset) => preset.id),
+          readiness: simcaReadiness,
+          variableGroups: ['explosive_power', 'strength', 'ice_speed', 'repeated_sprint', 'aerobic', 'pathway'],
         },
       },
     })
@@ -654,6 +696,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     pageContext?.setPageContext,
     selectedHockeyMetric,
     selectedPosition,
+    simcaReadiness,
     sessions.length,
     teamId,
     teamName,
@@ -1453,6 +1496,51 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
               </div>
             )}
 
+            <div className="rounded-md border bg-muted/10 p-3 space-y-3">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="text-sm font-semibold flex items-center gap-2">
+                    <FlaskConical className="h-4 w-4 text-violet-500" />
+                    SIMCA exportpaket
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Välj smal preset först, och använd full export när SIMCA-projektet är stabilt.
+                  </p>
+                </div>
+                <Link href={`${basePath}/teams/${teamId}/multivariate`}>
+                  <Button variant="outline" size="sm" className="h-8 px-2 text-xs">
+                    <Trophy className="h-3.5 w-3.5 mr-1.5" />
+                    Öppna MVA
+                  </Button>
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className="md:col-span-2 grid grid-cols-2 lg:grid-cols-3 gap-2">
+                  {SIMCA_PRESET_LINKS.map((preset) => (
+                    <a key={preset.id} href={scopedTeamApiUrl(`/api/teams/${teamId}/hockey-tests/export`, { preset: preset.id })}>
+                      <Button variant="outline" size="sm" className="h-auto w-full justify-start px-2 py-2 text-left">
+                        <Download className="mr-2 h-3.5 w-3.5 shrink-0" />
+                        <span className="min-w-0">
+                          <span className="block text-xs font-medium">{preset.label}</span>
+                          <span className="block truncate text-[10px] font-normal text-muted-foreground">{preset.description}</span>
+                        </span>
+                      </Button>
+                    </a>
+                  ))}
+                </div>
+                <div className="space-y-1.5">
+                  {simcaReadiness.map((item) => (
+                    <div key={item.label} className="flex items-start gap-2 rounded-md border bg-background px-2 py-1.5 text-[11px]">
+                      <Badge variant={item.tone === 'ok' ? 'secondary' : 'outline'} className="mt-0.5 h-4 px-1.5 text-[9px]">
+                        {item.tone === 'ok' ? 'OK' : 'Följ'}
+                      </Badge>
+                      <span className="text-muted-foreground">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
@@ -1470,19 +1558,13 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
               <a href={hockeyExportHref}>
                 <Button variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-1.5" />
-                  Exportera SIMCA CSV
+                  Exportera full SIMCA CSV
                 </Button>
               </a>
               <Link href={`${basePath}/hockey-tests`}>
                 <Button variant="outline" size="sm">
                   <Shield className="h-4 w-4 mr-1.5" />
                   Logga hockeytest
-                </Button>
-              </Link>
-              <Link href={`${basePath}/teams/${teamId}/multivariate`}>
-                <Button variant="outline" size="sm">
-                  <Trophy className="h-4 w-4 mr-1.5" />
-                  Öppna MVA
                 </Button>
               </Link>
             </div>

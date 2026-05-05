@@ -57,9 +57,12 @@ export interface HockeyAthleteReportPlanItem {
 export interface HockeyAthleteReportInterpretation {
   id: string
   tone: 'priority' | 'watch' | 'maintain' | 'quality' | 'positive'
+  focusArea?: string
   title: string
   summary: string
   action: string
+  trainingBlock?: string
+  retest?: string
   evidence: string[]
 }
 
@@ -311,9 +314,11 @@ function interpretationItems(pdf: jsPDF, items: HockeyAthleteReportInterpretatio
     pdf,
     ['Signal', 'Decision', 'Action'],
     items.slice(0, 5).map((item) => [
-      item.tone,
+      item.focusArea ? `${item.tone} · ${item.focusArea}` : item.tone,
       item.title,
-      item.action,
+      [item.action, item.trainingBlock ? `Block: ${item.trainingBlock}` : null, item.retest ? `Retest: ${item.retest}` : null]
+        .filter(Boolean)
+        .join('\n'),
     ]),
     y,
     { fontSize: 6.8 },

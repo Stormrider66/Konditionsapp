@@ -25,6 +25,8 @@
     "load:k6:baseline": "node load-tests/k6/run.cjs baseline",
     "load:k6:stress": "node load-tests/k6/run.cjs stress",
     "validate:calculations": "tsx scripts/validate-calculations.ts",
+    "qa:hockey": "tsx scripts/qa-hockey-cockpit.ts",
+    "seed:skelleftea-hockey-demo": "tsx --tsconfig tsconfig.scripts.json scripts/seed-skelleftea-hockey-demo.ts",
     "audit:athlete-integrity": "ts-node --project tsconfig.scripts.json --require tsconfig-paths/register scripts/audit-athlete-integrity.ts",
     "audit:rls-coverage": "tsx scripts/audit-rls-coverage.ts",
     "audit:legacy-routes": "ts-node --project tsconfig.scripts.json --require tsconfig-paths/register scripts/audit-legacy-routes.ts",

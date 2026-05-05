@@ -346,6 +346,51 @@ const SIMCA_EXPORT_PRESETS: Record<SimcaExportPresetId, { label: string; descrip
   },
 }
 
+const SIMCA_VARIABLE_GROUPS = [
+  {
+    id: 'identity',
+    label: 'Identity and context',
+    columns: ['team_name', 'athlete_name', 'position', 'test_date', 'pathway_season', 'pathway_level'],
+  },
+  {
+    id: 'explosive_power',
+    label: 'Explosive power',
+    columns: ['musclelab_ap_w_per_kg_bw', 'standing_long_jump_cm', 'three_jump_best_cm', 'sprint_5m_s', 'sprint_10m_s'],
+  },
+  {
+    id: 'strength',
+    label: 'Strength',
+    columns: ['back_squat_1rm_x_bw', 'power_clean_1rm_kg', 'bench_press_1rm_kg', 'pullup_1rm_kg', 'grip_max_kg'],
+  },
+  {
+    id: 'ice_speed',
+    label: 'Ice speed and gaps',
+    columns: ['sprint_0_10m_kmh', 'sprint_10_20m_kmh', 'sprint_20_30m_kmh', 'sprint_0_30m_gap_m'],
+  },
+  {
+    id: 'repeated_sprint',
+    label: 'Repeated sprint',
+    columns: ['endurance_7x40_mean_kmh', 'endurance_7x40_resistance_pct', 'endurance_7x40_decrement_pct', 'endurance_7x40_rsa_score'],
+  },
+  {
+    id: 'aerobic',
+    label: 'Aerobic lab profile',
+    columns: ['vo2_max_ml_kg_min', 'lt1_speed_kmh', 'lt2_speed_kmh', 'max_lactate_mmol_l', 'max_heart_rate_bpm', 'ramp_time_s'],
+  },
+  {
+    id: 'pathway',
+    label: 'Development pathway',
+    columns: ['pathway_seasons_tested', 'pathway_positive_change_count', 'pathway_power_wkg_slope_per_season', 'pathway_vo2_slope_per_season'],
+  },
+] as const
+
+const SIMCA_READINESS_RULES = [
+  'Use at least 8-10 athletes for a simple PCA map; treat smaller samples as descriptive only.',
+  'Use at least two seasons per athlete before interpreting pathway slopes.',
+  'Keep linked lab/profile aerobic fields in the same export, but document them as linked sources in the coach view.',
+  'Prefer preset exports for first analysis, then use the full export when the SIMCA project structure is stable.',
+]
+
 const Z_SCORE_METRICS = [
   { source: 'musclelab_ap_w_per_kg_bw', target: 'z_musclelab_ap_w_per_kg_bw' },
   { source: 'back_squat_1rm_kg', target: 'z_back_squat_1rm_kg' },
@@ -567,6 +612,8 @@ export async function GET(
         data: {
           version: SIMCA_EXPORT_VERSION,
           defaultPreset: 'full',
+          variableGroups: SIMCA_VARIABLE_GROUPS,
+          readinessRules: SIMCA_READINESS_RULES,
           presets: Object.entries(SIMCA_EXPORT_PRESETS).map(([id, preset]) => ({
             id,
             label: preset.label,
