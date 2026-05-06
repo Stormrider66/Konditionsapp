@@ -51,6 +51,11 @@ const priorityLabels: Record<FeedbackPriority, string> = {
   URGENT: 'Blockerar mig',
 }
 
+const fieldClassName =
+  'border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-400 focus-visible:ring-orange-500'
+
+const labelClassName = 'text-slate-200'
+
 function getViewportMetadata() {
   if (typeof window === 'undefined') return {}
 
@@ -175,7 +180,7 @@ export function BetaFeedbackWidget({
         type="button"
         variant="secondary"
         className={cn(
-          'fixed bottom-5 left-5 z-40 h-11 rounded-full border border-slate-200/70 bg-white/95 px-4 text-slate-900 shadow-lg backdrop-blur hover:bg-white dark:border-slate-700/70 dark:bg-slate-900/95 dark:text-slate-100 dark:hover:bg-slate-900',
+          'fixed bottom-5 left-5 z-40 h-11 rounded-full border border-slate-700/80 bg-slate-950/95 px-4 text-slate-100 shadow-lg backdrop-blur hover:bg-slate-900 hover:text-white',
           className
         )}
         onClick={() => setOpen(true)}
@@ -186,10 +191,10 @@ export function BetaFeedbackWidget({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl">
+        <DialogContent className="max-h-[92vh] overflow-y-auto border-slate-700 bg-slate-950 text-slate-100 shadow-2xl sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Skicka feedback</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-slate-50">Skicka feedback</DialogTitle>
+            <DialogDescription className="text-slate-300">
               Buggar, förbättringar och saker som känns fel i beta.
             </DialogDescription>
           </DialogHeader>
@@ -197,15 +202,15 @@ export function BetaFeedbackWidget({
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="feedback-category">Typ</Label>
+                <Label htmlFor="feedback-category" className={labelClassName}>Typ</Label>
                 <Select
                   value={category}
                   onValueChange={(value) => setCategory(value as FeedbackCategory)}
                 >
-                  <SelectTrigger id="feedback-category">
+                  <SelectTrigger id="feedback-category" className={fieldClassName}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="border-slate-700 bg-slate-950 text-slate-100">
                     {Object.entries(categoryLabels).map(([value, label]) => (
                       <SelectItem key={value} value={value}>
                         {label}
@@ -216,15 +221,15 @@ export function BetaFeedbackWidget({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="feedback-priority">Prioritet</Label>
+                <Label htmlFor="feedback-priority" className={labelClassName}>Prioritet</Label>
                 <Select
                   value={priority}
                   onValueChange={(value) => setPriority(value as FeedbackPriority)}
                 >
-                  <SelectTrigger id="feedback-priority">
+                  <SelectTrigger id="feedback-priority" className={fieldClassName}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="border-slate-700 bg-slate-950 text-slate-100">
                     {Object.entries(priorityLabels).map(([value, label]) => (
                       <SelectItem key={value} value={value}>
                         {label}
@@ -236,32 +241,33 @@ export function BetaFeedbackWidget({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="feedback-title">Rubrik</Label>
+              <Label htmlFor="feedback-title" className={labelClassName}>Rubrik</Label>
               <Input
                 id="feedback-title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 maxLength={160}
                 placeholder="Kort sammanfattning"
+                className={fieldClassName}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="feedback-description">Detaljer</Label>
+              <Label htmlFor="feedback-description" className={labelClassName}>Detaljer</Label>
               <Textarea
                 id="feedback-description"
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
                 maxLength={5000}
                 placeholder="Vad hände, vad förväntade du dig, och hur kan vi återskapa det?"
-                className="min-h-32"
+                className={cn('min-h-32', fieldClassName)}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="feedback-email">E-post (valfritt)</Label>
+              <Label htmlFor="feedback-email" className={labelClassName}>E-post (valfritt)</Label>
               <Input
                 id="feedback-email"
                 type="email"
@@ -269,16 +275,22 @@ export function BetaFeedbackWidget({
                 onChange={(event) => setReporterEmail(event.target.value)}
                 maxLength={254}
                 placeholder="namn@example.com"
+                className={fieldClassName}
               />
             </div>
 
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-400">
+            <div className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-300">
               <Bug className="mr-2 inline h-3.5 w-3.5 align-[-2px]" />
               Aktuell sida och teknisk kontext bifogas automatiskt.
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-slate-700 bg-transparent text-slate-200 hover:bg-slate-900 hover:text-white"
+                onClick={() => setOpen(false)}
+              >
                 Avbryt
               </Button>
               <Button type="submit" disabled={!canSubmit}>
