@@ -12,6 +12,7 @@ import { WorkoutThemeProvider, useWorkoutThemeOptional } from '@/lib/themes/Them
 import type { ThemePreferences } from '@/lib/themes/types'
 import { DEFAULT_THEME_PREFERENCES } from '@/lib/themes/types'
 import { cn } from '@/lib/utils'
+import { BetaFeedbackWidget } from '@/components/feedback/BetaFeedbackWidget'
 
 interface SportProfile {
   id: string
@@ -145,6 +146,13 @@ function ThemedContent({
         <AthleteFloatingChat
           clientId={athleteInfo.clientId}
           athleteName={athleteInfo.clientName}
+        />
+      )}
+
+      {user && (
+        <BetaFeedbackWidget
+          userRole="ATHLETE"
+          clientId={athleteInfo?.clientId}
         />
       )}
     </div>

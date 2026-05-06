@@ -9,6 +9,7 @@ import { PageContextProvider, usePageContextOptional } from '@/components/ai-stu
 import { WorkoutThemeProvider, useWorkoutThemeOptional, DEFAULT_THEME_PREFERENCES } from '@/lib/themes/ThemeProvider'
 import type { User } from '@supabase/supabase-js'
 import { cn } from '@/lib/utils'
+import { BetaFeedbackWidget } from '@/components/feedback/BetaFeedbackWidget'
 
 function FloatingAIChatWithContext() {
   const pageContextValue = usePageContextOptional()
@@ -73,6 +74,8 @@ function ThemedContent({
 
       {/* Floating AI Chat - available on all coach pages with page context */}
       <FloatingAIChatWithContext />
+
+      <BetaFeedbackWidget userRole="COACH" />
     </div>
   )
 }

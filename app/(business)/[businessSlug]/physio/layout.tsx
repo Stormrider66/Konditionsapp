@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { PhysioGlassHeader } from '@/components/physio/PhysioGlassHeader'
 import { canAccessPhysioPlatform } from '@/lib/user-capabilities'
+import { BetaFeedbackWidget } from '@/components/feedback/BetaFeedbackWidget'
 
 interface PhysioLayoutProps {
     children: React.ReactNode
@@ -54,6 +55,7 @@ export default async function BusinessPhysioLayout({
             <main className="pt-16">
                 {children}
             </main>
+            <BetaFeedbackWidget userRole="PHYSIO" businessSlug={businessSlug} />
         </div>
     )
 }

@@ -13,6 +13,7 @@ import { BusinessBrandingProvider } from '@/lib/contexts/BusinessBrandingContext
 import type { BusinessBranding } from '@/lib/branding/types'
 import { PLATFORM_NAME } from '@/lib/branding/types'
 import { DynamicFontLoader } from '@/components/branding/DynamicFontLoader'
+import { BetaFeedbackWidget } from '@/components/feedback/BetaFeedbackWidget'
 
 function FloatingAIChatWithContext() {
   const pageContextValue = usePageContextOptional()
@@ -115,6 +116,8 @@ function ThemedContent({
 
       {/* Floating AI Chat - available on all coach pages with page context */}
       <FloatingAIChatWithContext />
+
+      <BetaFeedbackWidget userRole="COACH" businessSlug={businessSlug} />
 
       {/* Powered by footer for white-label businesses */}
       {branding?.hasWhiteLabel && !branding.hidePlatformBranding && (

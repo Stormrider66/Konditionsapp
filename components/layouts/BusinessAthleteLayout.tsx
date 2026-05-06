@@ -17,6 +17,7 @@ import { BusinessBrandingProvider } from '@/lib/contexts/BusinessBrandingContext
 import type { BusinessBranding } from '@/lib/branding/types'
 import { PLATFORM_NAME } from '@/lib/branding/types'
 import { DynamicFontLoader } from '@/components/branding/DynamicFontLoader'
+import { BetaFeedbackWidget } from '@/components/feedback/BetaFeedbackWidget'
 
 interface SportProfile {
   id: string
@@ -230,6 +231,14 @@ function ThemedContent({
         <AthleteFloatingChat
           clientId={athleteInfo.clientId}
           athleteName={athleteInfo.clientName}
+        />
+      )}
+
+      {user && (
+        <BetaFeedbackWidget
+          userRole="ATHLETE"
+          clientId={athleteInfo?.clientId}
+          businessSlug={businessSlug}
         />
       )}
 

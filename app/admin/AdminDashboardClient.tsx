@@ -61,6 +61,7 @@ import {
   Trash2,
   Pencil,
   Check,
+  LifeBuoy,
 } from 'lucide-react';
 import { useTranslations } from '@/i18n/client';
 import { ContractsTable } from '@/components/admin/contracts/ContractsTable';
@@ -71,6 +72,7 @@ import { AIModelsManager } from '@/components/admin/ai-models/AIModelsManager';
 import { AthleteIntegrityHealthPanel } from '@/components/admin/data-health/AthleteIntegrityHealthPanel';
 import { OperatorAgentsPanel } from '@/components/admin/operator-agents/OperatorAgentsPanel';
 import { WeeklyReportsPanel } from '@/components/admin/operator-agents/WeeklyReportsPanel';
+import { SupportTicketsPanel } from '@/components/admin/support/SupportTicketsPanel';
 import {
   LineChart,
   Line,
@@ -502,6 +504,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
             <TabsTrigger value="operator-agents" className="flex items-center gap-1 whitespace-nowrap">
               <Bot className="h-3 w-3" />
               Agents
+            </TabsTrigger>
+            <TabsTrigger value="support" className="flex items-center gap-1 whitespace-nowrap">
+              <LifeBuoy className="h-3 w-3" />
+              Support
             </TabsTrigger>
             <TabsTrigger value="weekly-reports" className="flex items-center gap-1 whitespace-nowrap">
               <FileText className="h-3 w-3" />
@@ -1002,6 +1008,11 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
         {/* Operator Agents Tab */}
         <TabsContent value="operator-agents">
           <OperatorAgentsPanel />
+        </TabsContent>
+
+        {/* Support Tab */}
+        <TabsContent value="support">
+          <SupportTicketsPanel />
         </TabsContent>
 
         {/* Weekly Reports Tab */}
