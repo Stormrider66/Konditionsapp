@@ -24,6 +24,7 @@ import {
   applyLinkedHockeyAerobicProfile,
   getLinkedHockeyAerobicProfiles,
 } from '@/lib/hockey/aerobic-profile-link'
+import { syncHockeyStrengthPrsFromTest } from '@/lib/hockey/test-package-server'
 
 const createTestSchema = z.object({
   clientId: z.string().uuid(),
@@ -205,12 +206,13 @@ export async function POST(req: NextRequest) {
       linkedProfiles.get(parsed.data.clientId)
     )
 
+    const testDate = new Date(parsed.data.testDate)
     const test = await prisma.hockeyPhysicalTest.create({
       data: {
         clientId: parsed.data.clientId,
         teamId: parsed.data.teamId || null,
         coachId: user.id,
-        testDate: new Date(parsed.data.testDate),
+        testDate,
         notes: parsed.data.notes,
         agility505Left: parsed.data.agility505Left,
         agility505Right: parsed.data.agility505Right,
@@ -252,7 +254,18 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return NextResponse.json({ test }, { status: 201 })
+    const strengthPrSync = await syncHockeyStrengthPrsFromTest({
+      clientId: parsed.data.clientId,
+      testDate,
+      values: {
+        backSquat1RM: parsed.data.backSquat1RM,
+        powerClean1RM: parsed.data.powerClean1RM,
+        benchPress1RM: parsed.data.benchPress1RM,
+        pullUp1RM: parsed.data.pullUp1RM,
+      },
+    })
+
+    return NextResponse.json({ test, strengthPrSync }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

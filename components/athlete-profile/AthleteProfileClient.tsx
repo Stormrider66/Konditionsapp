@@ -18,6 +18,7 @@ import { ReadinessTab } from './tabs/ReadinessTab'
 import { TechniqueTab } from './tabs/TechniqueTab'
 import { GoalsPlanningTab } from './tabs/GoalsPlanningTab'
 import { HockeyAthleteView } from '@/components/coach/sport-views/HockeyAthleteView'
+import { FootballAthleteView } from '@/components/coach/sport-views/FootballAthleteView'
 import { cn } from '@/lib/utils'
 
 interface AthleteProfileClientProps {
@@ -40,6 +41,7 @@ const PROFILE_TABS = [
 ] as const
 
 const HOCKEY_SPORT = 'TEAM_ICE_HOCKEY'
+const FOOTBALL_SPORT = 'TEAM_FOOTBALL'
 
 export function AthleteProfileClient({
   data,
@@ -58,9 +60,14 @@ export function AthleteProfileClient({
   const hasHockeyProfile = sportProfile
     ? sportProfile.primarySport === HOCKEY_SPORT || sportProfile.secondarySports.includes(HOCKEY_SPORT)
     : false
-  const visibleTabs = hasHockeyProfile
-    ? [...PROFILE_TABS, { id: 'hockey', label: 'Hockey', icon: Shield }]
-    : PROFILE_TABS
+  const hasFootballProfile = sportProfile
+    ? sportProfile.primarySport === FOOTBALL_SPORT || sportProfile.secondarySports.includes(FOOTBALL_SPORT)
+    : false
+  const sportTabs = [
+    ...(hasHockeyProfile ? [{ id: 'hockey', label: 'Hockeytester', icon: Shield }] : []),
+    ...(hasFootballProfile ? [{ id: 'football', label: 'Fotbollstester', icon: Shield }] : []),
+  ]
+  const visibleTabs = [...PROFILE_TABS, ...sportTabs]
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -170,6 +177,16 @@ export function AthleteProfileClient({
                       clientId={client.id}
                       clientName={client.name}
                       settings={sportProfile?.hockeySettings ?? undefined}
+                    />
+                  </TabsContent>
+                )}
+
+                {hasFootballProfile && (
+                  <TabsContent value="football" className="mt-0">
+                    <FootballAthleteView
+                      clientId={client.id}
+                      clientName={client.name}
+                      settings={sportProfile?.footballSettings ?? undefined}
                     />
                   </TabsContent>
                 )}

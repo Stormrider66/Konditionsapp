@@ -393,6 +393,7 @@ model Team {
 
   // Team sport configuration
   sportType SportType?
+  hockeyTestPackage Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -733,8 +734,9 @@ model Business {
   hidePlatformBranding Boolean   @default(false)
 
   // Settings
-  isActive Boolean @default(true)
-  settings Json? // Business-specific settings
+  isActive          Boolean @default(true)
+  settings          Json? // Business-specific settings
+  hockeyTestPackage Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

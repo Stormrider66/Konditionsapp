@@ -81,6 +81,14 @@ interface SportProfileData {
   hyroxSettings: Record<string, unknown> | null
   skiingSettings: Record<string, unknown> | null
   hockeySettings: Record<string, unknown> | null
+  footballSettings: Record<string, unknown> | null
+  handballSettings: Record<string, unknown> | null
+  floorballSettings: Record<string, unknown> | null
+  basketballSettings: Record<string, unknown> | null
+  volleyballSettings: Record<string, unknown> | null
+  tennisSettings: Record<string, unknown> | null
+  padelSettings: Record<string, unknown> | null
+  functionalFitnessSettings: Record<string, unknown> | null
   generalFitnessSettings: Record<string, unknown> | null
   equipment: Record<string, unknown> | null
   preferredSessionLength: number | null

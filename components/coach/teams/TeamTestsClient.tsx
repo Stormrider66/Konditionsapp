@@ -44,6 +44,7 @@ import {
 } from 'lucide-react'
 import { TeamTestImportDialog } from './TeamTestImportDialog'
 import { TeamTestManualEntryDialog } from './TeamTestManualEntryDialog'
+import { TeamHockeyTestPackageCard } from './TeamHockeyTestPackageCard'
 import { PR_UNIT_LABELS, isPrUnit, type PrUnit, PR_UNITS } from '@/lib/strength/units'
 import { Input } from '@/components/ui/input'
 import {
@@ -1761,12 +1762,17 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">Hur testdata används</CardTitle>
           <CardDescription className="text-xs">
-            Varje rad ovan är en PR i atletens registrerade 1RM-historik. Pass byggda
-            med &quot;% av 1RM&quot; löser sig per atlet baserat på senaste KG-värde — kör
-            tester regelbundet så pass alltid räknas mot aktuell styrka.
+            Manuell inmatning använder lagets hockeytestpaket. Styrketester sparas både
+            som hockeytest och som PR när testet har en kopplad övning, så analys, SIMCA
+            och &quot;% av 1RM&quot;-pass får samma källa.
           </CardDescription>
         </CardHeader>
       </Card>
+
+      <TeamHockeyTestPackageCard
+        teamId={teamId}
+        businessSlug={businessSlug ?? undefined}
+      />
 
       <TeamTestImportDialog
         open={importOpen}
@@ -1784,6 +1790,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
         onOpenChange={setManualOpen}
         teamId={teamId}
         teamName={teamName}
+        businessSlug={businessSlug ?? undefined}
         onSaved={() => {
           setManualOpen(false)
           void fetchSessions()

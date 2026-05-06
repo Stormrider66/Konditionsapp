@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
+import { getAthleteTestsHref } from '@/lib/athlete-tests/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
@@ -48,6 +49,14 @@ export default async function BusinessAthleteTestsPage({ params }: BusinessTests
   }
 
   const basePath = `/${businessSlug}`
+  const sportProfile = await prisma.sportProfile.findUnique({
+    where: { clientId },
+    select: { primarySport: true, secondarySports: true },
+  })
+  const sportAwareHref = getAthleteTestsHref(basePath, sportProfile)
+  if (sportAwareHref !== `${basePath}/athlete/tests`) {
+    redirect(sportAwareHref)
+  }
 
   // Fetch all tests for this client
   const tests = await prisma.test.findMany({

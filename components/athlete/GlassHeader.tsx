@@ -46,6 +46,7 @@ import { SportSwitcher } from './SportSwitcher'
 import { SportType } from '@prisma/client'
 import { TrialBadge } from '@/components/ui/TrialBadge'
 import { AthleteModeToggle } from '@/components/coach/AthleteModeToggle'
+import { getAthleteTestsHref } from '@/lib/athlete-tests/navigation'
 
 interface SportProfile {
     primarySport: SportType
@@ -69,6 +70,7 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
         trialDaysRemaining: number | null
     } | null>(null)
     const displayName = clientName || athleteName || user?.email || 'Athlete'
+    const athleteTestsHref = getAthleteTestsHref('', sportProfile)
 
     // Fetch subscription status for trial badge
     useEffect(() => {
@@ -124,7 +126,7 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
             icon: Menu,
             items: [
                 { href: '/athlete/profile', label: 'Min Profil', icon: UserIcon },
-                { href: '/athlete/tests', label: 'Tester & Rapporter', icon: FlaskConical },
+                { href: athleteTestsHref, label: 'Tester & Rapporter', icon: FlaskConical },
                 { href: '/athlete/lactate/new', label: 'Laktattest', icon: Droplet },
                 { href: '/athlete/messages', label: 'Meddelanden', icon: MessageSquare },
                 { href: '/athlete/settings', label: 'Inställningar', icon: Settings },

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { getAthleteTestsHref } from '@/lib/athlete-tests/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,6 +34,14 @@ import { cn } from '@/lib/utils'
 
 export default async function AthleteTestsPage() {
   const { clientId } = await requireAthleteOrCoachInAthleteMode()
+  const sportProfile = await prisma.sportProfile.findUnique({
+    where: { clientId },
+    select: { primarySport: true, secondarySports: true },
+  })
+  const sportAwareHref = getAthleteTestsHref('', sportProfile)
+  if (sportAwareHref !== '/athlete/tests') {
+    redirect(sportAwareHref)
+  }
 
   // Fetch all tests for this client
   const tests = await prisma.test.findMany({
@@ -303,4 +312,3 @@ function formatTestType(type: string): string {
   }
   return types[type] || type
 }
-

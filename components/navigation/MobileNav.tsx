@@ -25,6 +25,7 @@ import { UserNav } from './UserNav'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { useTranslations } from '@/i18n/client'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
+import { getAthleteTestsHref, getAthleteTestsNavMeta } from '@/lib/athlete-tests/navigation'
 
 // Sport icons and labels
 const SPORT_DISPLAY: Record<SportType, { icon: string; label: string; labelSv: string }> = {
@@ -118,6 +119,8 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
   const businessSlug = businessContext.business?.slug
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
   const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : businessSlug ? `/${businessSlug}` : ''
+  const athleteTestsHref = getAthleteTestsHref(basePath, sportProfile)
+  const athleteTestsMeta = getAthleteTestsNavMeta(sportProfile)
   const coachHref = (path: string) => basePath ? `${basePath}/coach${path}` : '/login'
 
   async function fetchUnreadCount() {
@@ -237,7 +240,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
       icon: Menu,
       items: [
         { href: `${basePath}/athlete/profile`, label: 'Min Profil', icon: UserIcon },
-        { href: `${basePath}/athlete/tests`, label: 'Tester & Rapporter', icon: FlaskConical },
+        { href: athleteTestsHref, label: 'Tester & Rapporter', icon: FlaskConical },
         { href: `${basePath}/athlete/lactate/new`, label: 'Laktattest', icon: Droplet },
         { href: `${basePath}/athlete/messages`, label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
         { href: `${basePath}/athlete/settings`, label: 'Inställningar', icon: Settings },
@@ -267,7 +270,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     { href: `${basePath}/athlete/video-analysis`, label: 'Videoanalys', icon: Video, description: 'Teknikanalys & feedback' },
 
     // Tests & Data
-    { href: `${basePath}/athlete/tests`, label: 'Tester & Rapporter', icon: FlaskConical, description: 'Testresultat och rapporter' },
+    { href: athleteTestsHref, label: athleteTestsMeta.label, icon: FlaskConical, description: athleteTestsMeta.description },
     { href: `${basePath}/athlete/lactate/new`, label: 'Laktattest', icon: Droplet, description: 'Rapportera laktat' },
 
     // Communication

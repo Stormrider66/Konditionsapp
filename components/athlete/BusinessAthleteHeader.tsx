@@ -46,6 +46,7 @@ import { BroadcastNotificationBell } from '@/components/athlete/BroadcastNotific
 import { SportSwitcher } from './SportSwitcher'
 import { SportType } from '@prisma/client'
 import { AthleteModeToggle } from '@/components/coach/AthleteModeToggle'
+import { getAthleteTestsHref } from '@/lib/athlete-tests/navigation'
 
 interface SportProfile {
     primarySport: SportType
@@ -80,6 +81,7 @@ export function BusinessAthleteHeader({
 
     // Base path for all business-scoped routes
     const basePath = `/${businessSlug}`
+    const athleteTestsHref = getAthleteTestsHref(basePath, sportProfile)
 
     const handleSignOut = async () => {
         const supabase = createClient()
@@ -116,7 +118,7 @@ export function BusinessAthleteHeader({
             items: [
                 { href: `${basePath}/athlete/profile`, label: 'Min Profil', icon: UserIcon },
                 { href: `${basePath}/athlete/my-coach`, label: 'Min Coach', icon: HeartHandshake },
-                { href: `${basePath}/athlete/tests`, label: 'Tester & Rapporter', icon: FlaskConical },
+                { href: athleteTestsHref, label: 'Tester & Rapporter', icon: FlaskConical },
                 { href: `${basePath}/athlete/lactate/new`, label: 'Laktattest', icon: Droplet },
                 { href: `${basePath}/athlete/messages`, label: 'Meddelanden', icon: MessageSquare },
                 { href: `${basePath}/athlete/settings`, label: 'Inställningar', icon: Settings },

@@ -3,14 +3,10 @@
 /**
  * TeamTestManualEntryDialog
  *
- * Form-driven alternative to the wide-format paste flow. Use case:
- * the coach is sitting next to the rack with a phone, no paper sheet
- * to paste from. Pick exercises + athletes, type values into a grid,
- * save.
- *
- * Submission piggybacks on the same /api/strength-pr/bulk endpoint
- * the paste flow uses. Source = TESTED, unit = KG (always — for now
- * non-KG tests still go through the per-PR form).
+ * Form-driven alternative to the wide-format paste flow. The coach
+ * picks tests from the team's hockey battery so values map to
+ * canonical hockey metrics and linked 1RM exercises without name
+ * ambiguity.
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -42,10 +38,16 @@ interface Member {
   name: string
 }
 
-interface Exercise {
+interface PackageItem {
   id: string
-  name: string
-  nameSv: string | null
+  metricKey: string
+  label: string
+  unit: string
+  category: string
+  linkedExerciseId?: string | null
+  linkedExerciseName?: string | null
+  aliases: string[]
+  enabled: boolean
 }
 
 interface TeamTestManualEntryDialogProps {
@@ -53,6 +55,7 @@ interface TeamTestManualEntryDialogProps {
   onOpenChange: (open: boolean) => void
   teamId: string
   teamName: string
+  businessSlug?: string
   onSaved?: () => void
 }
 
@@ -61,25 +64,23 @@ export function TeamTestManualEntryDialog({
   onOpenChange,
   teamId,
   teamName,
+  businessSlug,
   onSaved,
 }: TeamTestManualEntryDialogProps) {
   const [testDate, setTestDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [members, setMembers] = useState<Member[]>([])
-  const [exercises, setExercises] = useState<Exercise[]>([])
+  const [packageItems, setPackageItems] = useState<PackageItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [resultMsg, setResultMsg] = useState<string | null>(null)
   const [serverError, setServerError] = useState<string | null>(null)
   const [exerciseLoadError, setExerciseLoadError] = useState<string | null>(null)
 
-  // Selection state. Athletes default-included; coach un-checks the
-  // ones not present at the test. Exercises start empty — coach picks
-  // each one through the searchable popover.
-  const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([])
+  const [selectedItems, setSelectedItems] = useState<PackageItem[]>([])
   const [excludedAthleteIds, setExcludedAthleteIds] = useState<Set<string>>(new Set())
   const [exercisePickerOpen, setExercisePickerOpen] = useState(false)
 
-  // Cell values keyed by `${clientId}:${exerciseId}` — sparse storage
+  // Cell values keyed by `${clientId}:${packageItemId}` — sparse storage
   // so empty cells stay empty (vs. a 2D array of 0s the bulk endpoint
   // would reject as ogiltig vikt).
   const [values, setValues] = useState<Record<string, string>>({})
@@ -93,7 +94,7 @@ export function TeamTestManualEntryDialog({
       try {
         const [teamRes, exRes] = await Promise.all([
           fetch(`/api/teams/${teamId}/analysis-summary`),
-          fetch('/api/exercises?limit=500'),
+          fetch(`/api/teams/${teamId}/hockey-test-package${businessSlug ? `?businessSlug=${encodeURIComponent(businessSlug)}` : ''}`),
         ])
         if (teamRes.ok) {
           const body = await teamRes.json()
@@ -108,19 +109,13 @@ export function TeamTestManualEntryDialog({
         }
         if (exRes.ok) {
           const body = await exRes.json()
-          const list = Array.isArray(body) ? body : body.exercises ?? []
+          const list = Array.isArray(body.package?.items) ? body.package.items : []
           if (!cancelled) {
-            setExercises(
-              list.map((e: { id: string; name: string; nameSv: string | null }) => ({
-                id: e.id,
-                name: e.name,
-                nameSv: e.nameSv,
-              }))
-            )
+            setPackageItems(list.filter((item: PackageItem) => item.enabled))
           }
         } else if (!cancelled) {
-          setExercises([])
-          setExerciseLoadError('Kunde inte hämta övningsbiblioteket just nu.')
+          setPackageItems([])
+          setExerciseLoadError('Kunde inte hämta lagets testpaket just nu.')
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -130,10 +125,10 @@ export function TeamTestManualEntryDialog({
     return () => {
       cancelled = true
     }
-  }, [open, teamId])
+  }, [businessSlug, open, teamId])
 
   const resetDialogState = () => {
-    setSelectedExercises([])
+    setSelectedItems([])
     setExcludedAthleteIds(new Set())
     setValues({})
     setResultMsg(null)
@@ -154,11 +149,11 @@ export function TeamTestManualEntryDialog({
     [members, excludedAthleteIds]
   )
 
-  const cellKey = (clientId: string, exerciseId: string) => `${clientId}:${exerciseId}`
+  const cellKey = (clientId: string, packageItemId: string) => `${clientId}:${packageItemId}`
 
-  const setCell = (clientId: string, exerciseId: string, raw: string) => {
+  const setCell = (clientId: string, packageItemId: string, raw: string) => {
     setValues((prev) => {
-      const k = cellKey(clientId, exerciseId)
+      const k = cellKey(clientId, packageItemId)
       const next = { ...prev }
       const trimmed = raw.trim()
       if (trimmed === '') {
@@ -170,18 +165,18 @@ export function TeamTestManualEntryDialog({
     })
   }
 
-  const addExercise = (ex: Exercise) => {
-    if (selectedExercises.some((e) => e.id === ex.id)) {
+  const addItem = (item: PackageItem) => {
+    if (selectedItems.some((selected) => selected.id === item.id)) {
       setExercisePickerOpen(false)
       return
     }
-    setSelectedExercises((prev) => [...prev, ex])
+    setSelectedItems((prev) => [...prev, item])
     setExercisePickerOpen(false)
   }
 
-  const removeExercise = (id: string) => {
-    setSelectedExercises((prev) => prev.filter((e) => e.id !== id))
-    // Drop any cells for this exercise so the kg → bulk submission
+  const removeItem = (id: string) => {
+    setSelectedItems((prev) => prev.filter((item) => item.id !== id))
+    // Drop any cells for this test so the submission
     // doesn't carry orphan values from a removed column.
     setValues((prev) => {
       const next = { ...prev }
@@ -207,24 +202,24 @@ export function TeamTestManualEntryDialog({
   const entries = useMemo(() => {
     const out: Array<{
       clientId: string
-      exerciseId: string
-      oneRepMax: number
+      packageItemId: string
+      value: number
     }> = []
     for (const member of includedAthletes) {
-      for (const ex of selectedExercises) {
-        const raw = values[cellKey(member.id, ex.id)]
+      for (const item of selectedItems) {
+        const raw = values[cellKey(member.id, item.id)]
         if (!raw) continue
         const value = parseFloat(raw.replace(',', '.'))
         if (!Number.isFinite(value) || value <= 0) continue
         out.push({
           clientId: member.id,
-          exerciseId: ex.id,
-          oneRepMax: value,
+          packageItemId: item.id,
+          value,
         })
       }
     }
     return out
-  }, [values, includedAthletes, selectedExercises])
+  }, [values, includedAthletes, selectedItems])
 
   const handleSubmit = async () => {
     if (entries.length === 0) return
@@ -232,16 +227,12 @@ export function TeamTestManualEntryDialog({
     setServerError(null)
     setResultMsg(null)
     try {
-      const res = await fetch('/api/strength-pr/bulk', {
+      const res = await fetch(`/api/teams/${teamId}/hockey-test-package/results${businessSlug ? `?businessSlug=${encodeURIComponent(businessSlug)}` : ''}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          teamId,
-          entries: entries.map((e) => ({
-            ...e,
-            date: testDate,
-            source: 'TESTED' as const,
-          })),
+          testDate,
+          entries,
         }),
       })
       if (!res.ok) {
@@ -249,8 +240,9 @@ export function TeamTestManualEntryDialog({
         throw new Error(body?.error ?? `HTTP ${res.status}`)
       }
       const body = await res.json()
-      const updatedSuffix = body.updated > 0 ? ` · ${body.updated} uppdaterade` : ''
-      setResultMsg(`Sparade ${body.created} nya PRs${updatedSuffix}.`)
+      const prCount = (body.prCreated ?? 0) + (body.prUpdated ?? 0)
+      const hockeyCount = (body.hockeyCreated ?? 0) + (body.hockeyUpdated ?? 0)
+      setResultMsg(`Sparade ${hockeyCount} hockeytester · ${prCount} PR-rader.`)
       setValues({})
       onSaved?.()
     } catch (e) {
@@ -269,8 +261,9 @@ export function TeamTestManualEntryDialog({
             Manuell inmatning – {teamName}
           </DialogTitle>
           <DialogDescription>
-            Välj övningar (kolumner) och atleter (rader), skriv in vikt per cell. Tom
-            cell hoppas över. Källa sätts som &quot;Testat&quot;, enhet KG.
+            Välj tester från lagets hockeypaket (kolumner) och atleter (rader).
+            Tom cell hoppas över. Styrketester sparas även till PR-historik när
+            testet har en kopplad övning.
           </DialogDescription>
         </DialogHeader>
 
@@ -287,17 +280,17 @@ export function TeamTestManualEntryDialog({
               />
             </div>
             <div>
-              <Label>Övningar</Label>
+              <Label>Tester</Label>
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-1.5 items-center min-h-[36px]">
-                  {selectedExercises.map((ex) => (
-                    <Badge key={ex.id} variant="secondary" className="text-xs gap-1">
-                      {ex.nameSv || ex.name}
+                  {selectedItems.map((item) => (
+                    <Badge key={item.id} variant="secondary" className="text-xs gap-1">
+                      {item.label}
                       <button
                         type="button"
-                        onClick={() => removeExercise(ex.id)}
+                        onClick={() => removeItem(item.id)}
                         className="hover:text-destructive transition-colors"
-                        aria-label="Ta bort övning"
+                        aria-label="Ta bort test"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -317,28 +310,33 @@ export function TeamTestManualEntryDialog({
                     ) : (
                       <Plus className="h-3 w-3 mr-1" />
                     )}
-                    Lägg till övning
+                    Lägg till test
                   </Button>
                 </div>
 
                 {exercisePickerOpen && (
                   <div className="w-full max-w-sm overflow-hidden rounded-md border bg-background shadow-sm">
                     <Command>
-                      <CommandInput placeholder="Sök övning…" className="h-9" />
+                      <CommandInput placeholder="Sök test…" className="h-9" />
                       <CommandList>
                         <CommandEmpty>
-                          {exerciseLoadError ?? 'Inga övningar hittades'}
+                          {exerciseLoadError ?? 'Inga tester hittades'}
                         </CommandEmpty>
                         <CommandGroup>
-                          {exercises
-                            .filter((e) => !selectedExercises.some((s) => s.id === e.id))
-                            .map((e) => (
+                          {packageItems
+                            .filter((item) => !selectedItems.some((selected) => selected.id === item.id))
+                            .map((item) => (
                               <CommandItem
-                                key={e.id}
-                                value={`${e.nameSv ?? ''} ${e.name}`}
-                                onSelect={() => addExercise(e)}
+                                key={item.id}
+                                value={`${item.label} ${item.aliases.join(' ')}`}
+                                onSelect={() => addItem(item)}
                               >
-                                {e.nameSv || e.name}
+                                <div className="flex w-full items-center justify-between gap-2">
+                                  <span>{item.label}</span>
+                                  <span className="text-[10px] uppercase text-muted-foreground">
+                                    {item.unit}
+                                  </span>
+                                </div>
                               </CommandItem>
                             ))}
                         </CommandGroup>
@@ -388,21 +386,23 @@ export function TeamTestManualEntryDialog({
             </p>
           )}
 
-          {selectedExercises.length === 0 ? (
+          {selectedItems.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">
-              Lägg till minst en övning för att starta inmatning.
+              Lägg till minst ett test för att starta inmatning.
             </p>
           ) : includedAthletes.length > 0 ? (
-            <div className="rounded-md border overflow-x-auto max-h-[50vh]">
-              <table className="text-xs w-full">
+            <div className="rounded-md border overflow-auto max-h-[50vh]">
+              <table className="text-xs min-w-max">
                 <thead className="bg-muted/40 sticky top-0">
                   <tr>
-                    <th className="px-2 py-1.5 text-left min-w-[160px]">Atlet</th>
-                    {selectedExercises.map((ex) => (
-                      <th key={ex.id} className="px-2 py-1.5 text-left min-w-[110px]">
-                        {ex.nameSv || ex.name}
+                    <th className="px-2 py-1.5 text-left min-w-[180px]">Atlet</th>
+                    {selectedItems.map((item) => (
+                      <th key={item.id} className="px-2 py-1.5 text-left min-w-[170px]">
+                        <span className="inline-block max-w-[130px] truncate align-bottom">
+                          {item.label}
+                        </span>
                         <span className="ml-1 font-normal text-muted-foreground">
-                          (kg)
+                          ({item.unit})
                         </span>
                       </th>
                     ))}
@@ -412,15 +412,15 @@ export function TeamTestManualEntryDialog({
                   {includedAthletes.map((m) => (
                     <tr key={m.id} className="border-t">
                       <td className="px-2 py-1.5 font-medium">{m.name}</td>
-                      {selectedExercises.map((ex) => (
-                        <td key={ex.id} className="px-1 py-1">
+                      {selectedItems.map((item) => (
+                        <td key={item.id} className="px-1 py-1">
                           <Input
                             type="text"
                             inputMode="decimal"
                             placeholder="—"
-                            value={values[cellKey(m.id, ex.id)] ?? ''}
-                            onChange={(e) => setCell(m.id, ex.id, e.target.value)}
-                            className="h-7 text-xs px-2 tabular-nums"
+                            value={values[cellKey(m.id, item.id)] ?? ''}
+                            onChange={(e) => setCell(m.id, item.id, e.target.value)}
+                            className="h-7 w-40 text-xs px-2 tabular-nums"
                             disabled={isSubmitting}
                           />
                         </td>
@@ -448,7 +448,7 @@ export function TeamTestManualEntryDialog({
 
           {entries.length > 0 && !isSubmitting && (
             <p className="text-xs text-muted-foreground text-center">
-              {entries.length} PRs redo att sparas.
+              {entries.length} resultat redo att sparas.
             </p>
           )}
         </div>
@@ -462,8 +462,7 @@ export function TeamTestManualEntryDialog({
             disabled={isSubmitting || entries.length === 0 || isLoading}
           >
             {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Spara {entries.length > 0 ? `${entries.length} ` : ''}PR
-            {entries.length === 1 ? '' : 's'}
+            Spara {entries.length > 0 ? `${entries.length} ` : ''}resultat
           </Button>
         </DialogFooter>
       </DialogContent>
