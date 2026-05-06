@@ -32,6 +32,9 @@ export function LandingFooter() {
           <Link href="/privacy" className="hover:text-foreground transition-colors">
             Privacy Policy
           </Link>
+          <Link href="/terms" className="hover:text-foreground transition-colors">
+            Terms of Service
+          </Link>
         </nav>
         <p className="text-center text-muted-foreground text-sm">
           &copy; {new Date().getFullYear()} Trainomics. {t('footer.copyright')}

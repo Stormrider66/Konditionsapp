@@ -421,8 +421,7 @@ export default function TermsOfServicePage() {
                   </p>
                   <address className="not-italic bg-muted/50 rounded-lg p-4 text-sm">
                     Trainomics<br />
-                    Email: <a href="mailto:legal@trainomics.app" className="text-primary hover:underline">legal@trainomics.app</a><br />
-                    Support: <a href="mailto:support@trainomics.app" className="text-primary hover:underline">support@trainomics.app</a><br />
+                    Email: <a href="mailto:privacy@trainomics.app" className="text-primary hover:underline">privacy@trainomics.app</a><br />
                     Website: trainomics.app
                   </address>
                 </Section>
