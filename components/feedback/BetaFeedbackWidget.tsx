@@ -1,8 +1,8 @@
 'use client'
 
-import { FormEvent, useMemo, useState } from 'react'
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { Bug, Loader2, MessageSquarePlus, Send } from 'lucide-react'
+import { Bug, Image as ImageIcon, Loader2, MessageSquarePlus, Send, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -55,6 +55,7 @@ const fieldClassName =
   'border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-400 focus-visible:ring-orange-500'
 
 const labelClassName = 'text-slate-200'
+const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024
 
 function getViewportMetadata() {
   if (typeof window === 'undefined') return {}
@@ -104,7 +105,22 @@ export function BetaFeedbackWidget({
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [reporterEmail, setReporterEmail] = useState('')
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null)
+  const [screenshotPreviewUrl, setScreenshotPreviewUrl] = useState<string | null>(null)
+  const [screenshotInputKey, setScreenshotInputKey] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!screenshotFile) {
+      setScreenshotPreviewUrl(null)
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(screenshotFile)
+    setScreenshotPreviewUrl(objectUrl)
+
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [screenshotFile])
 
   const resolvedBusinessSlug = useMemo(
     () => businessSlug || getBusinessSlugFromPathname(pathname),
@@ -112,6 +128,62 @@ export function BetaFeedbackWidget({
   )
 
   const canSubmit = title.trim().length > 0 && description.trim().length > 0 && !isSubmitting
+
+  function handleScreenshotChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] || null
+    if (!file) {
+      setScreenshotFile(null)
+      return
+    }
+
+    if (file.size > MAX_SCREENSHOT_BYTES) {
+      toast({
+        title: 'Bilden är för stor',
+        description: 'Maxstorlek är 5 MB.',
+        variant: 'destructive',
+      })
+      setScreenshotFile(null)
+      setScreenshotInputKey((key) => key + 1)
+      return
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Ogiltigt filformat',
+        description: 'Välj en bildfil.',
+        variant: 'destructive',
+      })
+      setScreenshotFile(null)
+      setScreenshotInputKey((key) => key + 1)
+      return
+    }
+
+    setScreenshotFile(file)
+  }
+
+  function clearScreenshot() {
+    setScreenshotFile(null)
+    setScreenshotInputKey((key) => key + 1)
+  }
+
+  async function uploadScreenshotIfNeeded() {
+    if (!screenshotFile) return null
+
+    const formData = new FormData()
+    formData.append('screenshot', screenshotFile)
+
+    const response = await fetch('/api/support/screenshots', {
+      method: 'POST',
+      body: formData,
+    })
+    const result = await response.json().catch(() => null)
+
+    if (!response.ok || !result?.path) {
+      throw new Error(result?.error || 'Could not upload screenshot')
+    }
+
+    return result.path as string
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -122,6 +194,7 @@ export function BetaFeedbackWidget({
     try {
       const currentUrl = typeof window !== 'undefined' ? window.location.href : undefined
       const pathSegments = (pathname || '').split('/').filter(Boolean)
+      const screenshotPath = await uploadScreenshotIfNeeded()
 
       const response = await fetch('/api/support/tickets', {
         method: 'POST',
@@ -132,6 +205,7 @@ export function BetaFeedbackWidget({
           category,
           priority,
           reporterEmail: reporterEmail.trim() || undefined,
+          screenshot: screenshotPath || undefined,
           url: currentUrl,
           userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : undefined,
           metadata: {
@@ -142,6 +216,13 @@ export function BetaFeedbackWidget({
             businessSlug: resolvedBusinessSlug || undefined,
             pathname,
             appArea: pathSegments.slice(0, 3).join('/') || undefined,
+            screenshot: screenshotFile
+              ? {
+                  fileName: screenshotFile.name,
+                  fileSize: screenshotFile.size,
+                  mimeType: screenshotFile.type,
+                }
+              : undefined,
             referrer: typeof document !== 'undefined' ? document.referrer || undefined : undefined,
             ...getViewportMetadata(),
           },
@@ -160,6 +241,7 @@ export function BetaFeedbackWidget({
       setTitle('')
       setDescription('')
       setReporterEmail('')
+      clearScreenshot()
       setCategory('bug')
       setPriority('NORMAL')
       setOpen(false)
@@ -277,6 +359,67 @@ export function BetaFeedbackWidget({
                 placeholder="namn@example.com"
                 className={fieldClassName}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="feedback-screenshot" className={labelClassName}>Skärmbild (valfritt)</Label>
+              <div className="rounded-md border border-slate-700 bg-slate-950 p-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 text-sm text-slate-300">
+                    {screenshotFile ? (
+                      <>
+                        <p className="truncate font-medium text-slate-100">{screenshotFile.name}</p>
+                        <p className="text-xs text-slate-400">
+                          {(screenshotFile.size / (1024 * 1024)).toFixed(2)} MB
+                        </p>
+                      </>
+                    ) : (
+                      <p>Lägg till en bild som visar problemet.</p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    {screenshotFile && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-slate-300 hover:bg-slate-900 hover:text-white"
+                        onClick={clearScreenshot}
+                      >
+                        <X className="h-4 w-4" />
+                        Ta bort
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-slate-700 bg-transparent text-slate-200 hover:bg-slate-900 hover:text-white"
+                      asChild
+                    >
+                      <label htmlFor="feedback-screenshot" className="cursor-pointer">
+                        <ImageIcon className="h-4 w-4" />
+                        Välj bild
+                      </label>
+                    </Button>
+                  </div>
+                </div>
+                <Input
+                  key={screenshotInputKey}
+                  id="feedback-screenshot"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/heic,image/heif"
+                  className="sr-only"
+                  onChange={handleScreenshotChange}
+                />
+                {screenshotPreviewUrl && (
+                  <img
+                    src={screenshotPreviewUrl}
+                    alt="Förhandsvisning av skärmbild"
+                    className="mt-3 max-h-48 w-full rounded-md border border-slate-800 object-contain"
+                  />
+                )}
+              </div>
             </div>
 
             <div className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-300">

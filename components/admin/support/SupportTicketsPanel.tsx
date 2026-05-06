@@ -52,6 +52,7 @@ interface SupportTicket {
   url: string | null
   userAgent: string | null
   screenshot: string | null
+  screenshotUrl?: string | null
   metadata: unknown
   agentClassified: boolean
   agentDraftResponse: string | null
@@ -535,9 +536,28 @@ function TicketDetail({
                   GitHub issue
                 </a>
               )}
+              {ticket.screenshotUrl && (
+                <a href={ticket.screenshotUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-primary hover:underline">
+                  <ExternalLink className="h-4 w-4" />
+                  Open screenshot
+                </a>
+              )}
             </div>
           </div>
         </div>
+
+        {ticket.screenshotUrl && (
+          <div>
+            <p className="mb-2 text-sm font-medium">Screenshot</p>
+            <a href={ticket.screenshotUrl} target="_blank" rel="noreferrer" className="block rounded-md border bg-muted/40 p-2">
+              <img
+                src={ticket.screenshotUrl}
+                alt={`Screenshot for ${ticket.title}`}
+                className="max-h-96 w-full rounded object-contain"
+              />
+            </a>
+          </div>
+        )}
 
         {ticket.resolution && (
           <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">

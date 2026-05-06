@@ -10,8 +10,11 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin, getCurrentUser } from '@/lib/auth-utils'
 import { rateLimitJsonResponse, getRequestIp } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { createSignedUrl } from '@/lib/storage/supabase-storage-server'
 import type { Prisma } from '@prisma/client'
 import { z } from 'zod'
+
+const SUPPORT_SCREENSHOTS_BUCKET = 'support-screenshots'
 
 const optionalString = (maxLength: number) =>
   z.preprocess(
@@ -79,6 +82,7 @@ function buildCodexImplementationBrief(ticket: {
   priority: string
   status: string
   url: string | null
+  screenshot: string | null
   userAgent: string | null
   reporterEmail: string | null
   metadata: Prisma.JsonValue | null
@@ -110,6 +114,7 @@ function buildCodexImplementationBrief(ticket: {
     '',
     '## Context',
     ticket.url ? `Reported URL: ${ticket.url}` : null,
+    ticket.screenshot ? `Screenshot storage path: ${ticket.screenshot}` : null,
     getMetadataString(metadata, 'pathname') ? `Pathname: ${getMetadataString(metadata, 'pathname')}` : null,
     getMetadataString(metadata, 'appArea') ? `App area: ${getMetadataString(metadata, 'appArea')}` : null,
     getMetadataString(metadata, 'userRole') ? `User role: ${getMetadataString(metadata, 'userRole')}` : null,
@@ -242,8 +247,24 @@ export async function GET(req: NextRequest) {
       _count: true,
     })
 
+    const ticketsWithScreenshotUrls = await Promise.all(tickets.map(async (ticket) => {
+      if (!ticket.screenshot) return ticket
+
+      try {
+        const screenshotUrl = await createSignedUrl(SUPPORT_SCREENSHOTS_BUCKET, ticket.screenshot, 60 * 60)
+        return { ...ticket, screenshotUrl }
+      } catch (signError) {
+        logger.warn('[support] Failed to sign screenshot URL', {
+          ticketId: ticket.id,
+          screenshot: ticket.screenshot,
+          error: signError instanceof Error ? signError.message : String(signError),
+        })
+        return { ...ticket, screenshotUrl: null }
+      }
+    }))
+
     return NextResponse.json({
-      tickets,
+      tickets: ticketsWithScreenshotUrls,
       counts: Object.fromEntries(counts.map(c => [c.status, c._count])),
     })
   } catch (error) {
@@ -316,6 +337,7 @@ export async function PATCH(req: NextRequest) {
         '---',
         `Ticket: ${ticket.id}`,
         ticket.url ? `URL: ${ticket.url}` : null,
+        ticket.screenshot ? `Screenshot storage path: ${ticket.screenshot}` : null,
         ticket.userAgent ? `User agent: ${ticket.userAgent}` : null,
         `Priority: ${ticket.priority}`,
         ticket.reporterEmail ? `Reporter: ${ticket.reporterEmail}` : null,
