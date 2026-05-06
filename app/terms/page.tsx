@@ -62,8 +62,8 @@ export default function TermsOfServicePage() {
                     You agree to provide accurate, current, and complete information during registration and
                     to keep that information up to date. You are responsible for safeguarding your login
                     credentials and for all activity that occurs under your account. Notify us promptly at{' '}
-                    <a href="mailto:support@trainomics.app" className="text-primary hover:underline">
-                      support@trainomics.app
+                    <a href="mailto:privacy@trainomics.app" className="text-primary hover:underline">
+                      privacy@trainomics.app
                     </a>{' '}
                     if you suspect unauthorized access.
                   </p>
