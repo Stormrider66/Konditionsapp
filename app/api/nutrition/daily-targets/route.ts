@@ -252,6 +252,8 @@ export async function GET(request: NextRequest) {
         fatG: daily.fatG,
         baselineKcal: daily.baselineKcal,
         workoutAdjustmentKcal: daily.workoutAdjustmentKcal,
+        workoutEnergyKcal: daily.workoutEnergyKcal,
+        fuelingAdjustmentKcal: daily.fuelingAdjustmentKcal,
       }
     })
 

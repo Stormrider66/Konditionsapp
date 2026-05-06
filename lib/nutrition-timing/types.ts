@@ -217,6 +217,11 @@ export interface DailyMacroTargets {
   lifestyleAdjustmentFatG: number
   lifestyleActivity: LifestyleActivity
   workoutAdjustmentKcal: number
+  // Actual workout energy from synced devices/imports when available, or the
+  // local estimate for planned workouts. This is separated from carb-floor
+  // fueling adjustments so UI labels can match Garmin/Strava calorie numbers.
+  workoutEnergyKcal: number
+  fuelingAdjustmentKcal: number
   workoutAdjustmentProteinG: number
   workoutAdjustmentCarbsG: number
   workoutAdjustmentFatG: number

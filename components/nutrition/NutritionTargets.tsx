@@ -91,6 +91,8 @@ function MacroProgressItem({ label, consumed, target, unit, icon, color, progres
 
 export function NutritionTargets({ targets, consumed, isRestDay = false, compact = false, variant = 'default' }: NutritionTargetsProps) {
   const isGlass = variant === 'glass'
+  const workoutEnergyKcal = targets.workoutEnergyKcal ?? targets.workoutAdjustmentKcal
+  const fuelingAdjustmentKcal = targets.fuelingAdjustmentKcal ?? 0
 
   // Calculate macro percentages (for visualization)
   const totalMacroCalories = targets.carbsG * 4 + targets.proteinG * 4 + targets.fatG * 9
@@ -226,7 +228,7 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
             {targets.caloriesKcal.toLocaleString('sv-SE')}
             <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-orange-700 dark:text-orange-300' : ''}`}>kcal</span>
           </p>
-          {(targets.workoutAdjustmentKcal > 0 || targets.lifestyleAdjustmentKcal > 0) && (
+          {(workoutEnergyKcal > 0 || fuelingAdjustmentKcal !== 0 || targets.lifestyleAdjustmentKcal > 0) && (
             <p className={`text-xs mt-0.5 ${isGlass ? 'text-orange-700 dark:text-orange-300' : 'text-orange-700'}`}>
               Basbehov {targets.baselineKcal.toLocaleString('sv-SE')} kcal
               {targets.lifestyleAdjustmentKcal > 0 && (
@@ -235,10 +237,22 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
                   <span className="font-medium">{targets.lifestyleAdjustmentKcal.toLocaleString('sv-SE')} kcal från livsstil</span>
                 </>
               )}
-              {targets.workoutAdjustmentKcal > 0 && (
+              {workoutEnergyKcal > 0 && (
                 <>
                   <span className="mx-1">+</span>
-                  <span className="font-medium">{targets.workoutAdjustmentKcal.toLocaleString('sv-SE')} kcal från träning</span>
+                  <span className="font-medium">{workoutEnergyKcal.toLocaleString('sv-SE')} kcal från träning</span>
+                </>
+              )}
+              {fuelingAdjustmentKcal > 0 && (
+                <>
+                  <span className="mx-1">+</span>
+                  <span className="font-medium">{fuelingAdjustmentKcal.toLocaleString('sv-SE')} kcal för kolhydratmål</span>
+                </>
+              )}
+              {fuelingAdjustmentKcal < 0 && (
+                <>
+                  <span className="mx-1">-</span>
+                  <span className="font-medium">{Math.abs(fuelingAdjustmentKcal).toLocaleString('sv-SE')} kcal måljustering</span>
                 </>
               )}
             </p>

@@ -58,6 +58,27 @@ describe('generateDailyGuidance', () => {
     expect(t.baselineCarbsG + t.workoutAdjustmentCarbsG).toBeGreaterThanOrEqual(t.carbsG - 5) // rounding tolerance
     expect(t.baselineProteinG).toBeGreaterThan(0)
     expect(t.workoutAdjustmentFatG).toBeGreaterThanOrEqual(0)
+    expect(t.workoutEnergyKcal + t.fuelingAdjustmentKcal).toBe(t.workoutAdjustmentKcal)
+  })
+
+  it('keeps measured synced calories separate from carb-floor fueling adjustments', () => {
+    const guidance = generateDailyGuidance(
+      createInput([
+        createWorkout({
+          type: 'RUNNING',
+          intensity: 'MODERATE',
+          duration: 39,
+          source: 'SYNCED',
+          status: 'COMPLETED',
+          estimatedCaloriesKcal: 522,
+        }),
+      ])
+    )
+    const t = guidance.targets
+
+    expect(t.workoutEnergyKcal).toBe(522)
+    expect(t.workoutAdjustmentKcal).toBeGreaterThan(t.workoutEnergyKcal)
+    expect(t.fuelingAdjustmentKcal).toBe(t.workoutAdjustmentKcal - t.workoutEnergyKcal)
   })
 
   it('distributes strength-workout adjustment toward protein more than endurance', () => {

@@ -239,12 +239,14 @@ export function calculateDailyTargets(
   const effectiveBaselineFatG = baselineFatG + lifestyleFatG
 
   // 2. Workout adjustment — each workout contributes a kcal bonus, split across macros.
+  let workoutEnergyKcalRaw = 0
   let adjCarbsG = 0
   let adjProteinG = 0
   let adjFatG = 0
 
   for (const workout of workouts) {
     const workoutKcal = estimateWorkoutKcal(workout, weightKg)
+    workoutEnergyKcalRaw += workoutKcal
     const split = workoutMacroSplit(workout)
     adjCarbsG += (workoutKcal * split.carbs) / 4
     adjProteinG += (workoutKcal * split.protein) / 4
@@ -306,6 +308,9 @@ export function calculateDailyTargets(
   // The carb floor / TDEE cap absorb their effect into the workout line
   // (it's the line that scales with training load).
   const adjKcalReconciled = caloriesKcal - Math.round(baselineKcalRaw) - Math.round(lifestyleKcalRaw)
+  const workoutAdjustmentKcal = Math.max(0, adjKcalReconciled)
+  const workoutEnergyKcal = Math.round(workoutEnergyKcalRaw)
+  const fuelingAdjustmentKcal = workoutAdjustmentKcal - workoutEnergyKcal
 
   // 5. Hydration: rest-day baseline + 500ml per hour of training.
   const baseHydration = weightKg * 28
@@ -327,7 +332,9 @@ export function calculateDailyTargets(
     lifestyleAdjustmentCarbsG: Math.round(lifestyleCarbsG),
     lifestyleAdjustmentFatG: Math.round(lifestyleFatG),
     lifestyleActivity,
-    workoutAdjustmentKcal: Math.max(0, adjKcalReconciled),
+    workoutAdjustmentKcal,
+    workoutEnergyKcal,
+    fuelingAdjustmentKcal,
     workoutAdjustmentProteinG: Math.round(adjProteinG),
     workoutAdjustmentCarbsG: Math.round(adjCarbsG),
     workoutAdjustmentFatG: Math.round(adjFatG),

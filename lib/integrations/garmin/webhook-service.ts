@@ -885,6 +885,10 @@ async function processActivityDetails(detail: GarminActivityDetailsPayload) {
     updateData.deviceName = detail.summary.deviceName
   }
 
+  if (detail.summary?.activeKilocalories !== undefined) {
+    updateData.calories = detail.summary.activeKilocalories
+  }
+
   if (Object.keys(updateData).length > 0) {
     updateData.updatedAt = new Date()
     await prisma.garminActivity.update({
