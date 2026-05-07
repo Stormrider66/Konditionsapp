@@ -136,6 +136,7 @@ export async function POST(request: NextRequest) {
       isPublic?: boolean;
       warmupData?: unknown;
       strengthData?: unknown;
+      metconData?: unknown;
       cooldownData?: unknown;
     }>(request);
 
@@ -158,6 +159,7 @@ export async function POST(request: NextRequest) {
       isPublic,
       warmupData,
       strengthData,
+      metconData,
       cooldownData,
     } = body;
 
@@ -180,6 +182,7 @@ export async function POST(request: NextRequest) {
         // Section data
         warmupData: warmupData ?? undefined,
         strengthData: strengthData ?? undefined,
+        metconData: metconData ?? undefined,
         cooldownData: cooldownData ?? undefined,
         movements: {
           create: movements?.map((m, index) => ({

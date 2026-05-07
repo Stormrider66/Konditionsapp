@@ -182,6 +182,7 @@ model HybridWorkout {
   // Section data (JSON for flexibility)
   warmupData   Json? // {notes?: string, movements?: [...]}
   strengthData Json? // {notes?: string, movements?: [{sets, reps, rest, ...}]}
+  metconData   Json? // {blocks?: [{title, format, intervalSeconds, rounds, restAfterSeconds, movements: [...]}]}
   cooldownData Json? // {notes?: string, movements?: [...]}
   // Note: existing 'movements' relation is the METCON section
 

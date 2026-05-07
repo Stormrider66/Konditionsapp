@@ -289,7 +289,7 @@ export function HybridFocusModeWorkout({
       case 'EMOM':
         return (
           <EMOMTimer
-            totalMinutes={totalMinutes || totalRounds}
+            totalMinutes={totalRounds || totalMinutes || 1}
             workTime={workTime}
             restTime={restTime}
             currentMinute={currentRound}

@@ -67,7 +67,7 @@ import { HybridWorkoutBuilder } from './HybridWorkoutBuilder';
 import { WorkoutDetailSheet } from './WorkoutDetailSheet';
 import { WorkoutAssignmentDialog } from './WorkoutAssignmentDialog';
 import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog';
-import type { HybridWorkoutWithSections, HybridSectionData } from '@/types';
+import type { HybridWorkoutWithSections, HybridMetconData, HybridSectionData } from '@/types';
 import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog';
 import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutDialog';
 import { toHybridBuilderInitialData } from '@/components/workouts/import/converters';
@@ -109,6 +109,7 @@ interface HybridWorkout {
   // Section data
   warmupData?: HybridSectionData;
   strengthData?: HybridSectionData;
+  metconData?: HybridMetconData;
   cooldownData?: HybridSectionData;
   coachId?: string;
   isPublic?: boolean;
@@ -539,6 +540,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
                 repScheme: selectedWorkout.repScheme,
                 scalingLevel: selectedWorkout.scalingLevel,
                 tags: selectedWorkout.tags,
+                metconData: selectedWorkout.metconData,
                 movements: selectedWorkout.movements?.map((m) => ({
                   id: m.id,
                   exerciseId: m.exercise.id,

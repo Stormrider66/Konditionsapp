@@ -84,6 +84,25 @@ function formatTime(seconds: number): string {
   return secs > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${mins} min`;
 }
 
+function formatInterval(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${seconds}s`;
+}
+
+function formatBlockTiming(block: NonNullable<HybridWorkoutWithSections['metconData']>['blocks'][number]) {
+  const parts: string[] = [];
+  if (block.format === 'EMOM' && block.intervalSeconds && block.rounds) {
+    parts.push(`E${formatInterval(block.intervalSeconds)} x ${block.rounds}`);
+    parts.push(`${Math.ceil((block.intervalSeconds * block.rounds) / 60)} min`);
+  } else {
+    parts.push(block.format);
+    if (block.rounds) parts.push(`${block.rounds} rundor`);
+  }
+  if (block.restAfterSeconds) parts.push(`vila ${formatTime(block.restAfterSeconds)}`);
+  return parts.join(' • ');
+}
+
 function formatScore(result: HybridWorkoutResult): string {
   switch (result.scoreType) {
     case 'TIME':
@@ -318,7 +337,55 @@ export function WorkoutDetailSheet({
                   {workout.repScheme.split('-').length} rundor: {workout.repScheme.split('-').join(' → ')} reps per övning
                 </p>
               )}
-              {workout.movements && workout.movements.length > 0 ? (
+              {workout.metconData?.blocks?.length ? (
+                <div className="space-y-4">
+                  {workout.metconData.blocks.map((block, blockIndex) => (
+                    <div key={block.id} className="rounded-lg border p-3" style={{ borderColor: theme.colors.border }}>
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <Badge variant="secondary">{blockIndex + 1}</Badge>
+                        <span className="font-medium" style={{ color: theme.colors.textPrimary }}>
+                          {block.title}
+                        </span>
+                        <Badge variant="outline">{formatBlockTiming(block)}</Badge>
+                      </div>
+                      {block.notes && (
+                        <p className="text-sm mb-2 whitespace-pre-wrap" style={{ color: theme.colors.textSecondary }}>
+                          {block.notes}
+                        </p>
+                      )}
+                      <ul className="space-y-2">
+                        {block.movements.map((m, i) => (
+                          <li key={m.id || `${block.id}-${i}`} className="text-sm flex items-start gap-2">
+                            <span
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                              style={{
+                                backgroundColor: theme.colors.exerciseNumber,
+                                color: theme.colors.exerciseNumberText,
+                              }}
+                            >
+                              {i + 1}
+                            </span>
+                            <div>
+                              <span className="font-medium" style={{ color: theme.colors.textPrimary }}>
+                                {m.exerciseName}
+                              </span>
+                              <span className="ml-2" style={{ color: theme.colors.textMuted }}>
+                                {m.reps && `${m.reps} reps`}
+                                {m.calories && `${m.calories} cal`}
+                                {m.distance && `${m.distance}m`}
+                                {m.duration && `${m.duration}s`}
+                                {(m.weightMale || m.weightFemale) && (
+                                  <span className="ml-1">({m.weightMale || '-'}/{m.weightFemale || '-'}kg)</span>
+                                )}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              ) : workout.movements && workout.movements.length > 0 ? (
                 <ul className="space-y-2">
                   {workout.movements.map((m, i) => (
                     <li key={m.id} className="text-sm flex items-start gap-2">

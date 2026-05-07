@@ -1424,6 +1424,39 @@ export interface HybridSectionData {
   movements?: HybridSectionMovement[]
 }
 
+export type HybridMetconBlockFormat = 'EMOM' | 'AMRAP' | 'FOR_TIME' | 'INTERVALS' | 'CUSTOM'
+
+export interface HybridMetconBlockMovement {
+  id?: string
+  exerciseId: string
+  exerciseName: string
+  order: number
+  reps?: number
+  calories?: number
+  distance?: number
+  duration?: number
+  weightMale?: number
+  weightFemale?: number
+  notes?: string
+}
+
+export interface HybridMetconBlock {
+  id: string
+  title: string
+  format: HybridMetconBlockFormat
+  intervalSeconds?: number
+  rounds?: number
+  workSeconds?: number
+  restSeconds?: number
+  restAfterSeconds?: number
+  notes?: string
+  movements: HybridMetconBlockMovement[]
+}
+
+export interface HybridMetconData {
+  blocks: HybridMetconBlock[]
+}
+
 export interface HybridWorkoutWithSections {
   id: string
   name: string
@@ -1444,6 +1477,7 @@ export interface HybridWorkoutWithSections {
   // Section data
   warmupData?: HybridSectionData
   strengthData?: HybridSectionData
+  metconData?: HybridMetconData
   cooldownData?: HybridSectionData
   // Metcon movements (existing)
   movements: HybridMovementData[]
@@ -1461,6 +1495,8 @@ export interface HybridWorkoutWithSections {
 export interface HybridMovementData {
   id: string
   order: number
+  roundNumber?: number | null
+  setNumber?: number | null
   reps?: number
   calories?: number
   distance?: number

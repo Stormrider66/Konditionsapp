@@ -8,7 +8,7 @@
 
 import ExcelJS from 'exceljs'
 import { jsPDF } from 'jspdf'
-import type { HybridSectionData, HybridSectionMovement } from '@/types'
+import type { HybridMetconData, HybridSectionData, HybridSectionMovement } from '@/types'
 import type { ThemeId } from '@/lib/themes/types'
 import { getTheme } from '@/lib/themes/definitions'
 import { getPdfColors } from '@/lib/themes/theme-utils'
@@ -35,6 +35,7 @@ export interface HybridWorkoutExportData {
   movements: HybridMovementExport[]
   warmupData?: HybridSectionData
   strengthData?: HybridSectionData
+  metconData?: HybridMetconData
   cooldownData?: HybridSectionData
   athleteName?: string
   coachName?: string

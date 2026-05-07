@@ -63,9 +63,10 @@ import {
   Target,
   Activity,
   MapPin,
+  Copy,
 } from 'lucide-react';
 import { SectionEditor } from './SectionEditor';
-import type { HybridSectionData } from '@/types';
+import type { HybridMetconData, HybridSectionData } from '@/types';
 
 interface Exercise {
   id: string;
@@ -93,6 +94,19 @@ interface WorkoutMovement {
   notes?: string;
 }
 
+interface MetconBlock {
+  id: string;
+  title: string;
+  format: 'EMOM' | 'AMRAP' | 'FOR_TIME' | 'INTERVALS' | 'CUSTOM';
+  intervalSeconds?: number;
+  rounds?: number;
+  workSeconds?: number;
+  restSeconds?: number;
+  restAfterSeconds?: number;
+  notes?: string;
+  movements: WorkoutMovement[];
+}
+
 /**
  * Shape consumed by `initialData`. Exported so consumers (notably the
  * workout importer's converter) can produce it without redeclaring the
@@ -115,6 +129,7 @@ export interface HybridWorkoutBuilderInitialData {
   // Section data
   warmupData?: HybridSectionData;
   strengthData?: HybridSectionData;
+  metconData?: HybridMetconData;
   cooldownData?: HybridSectionData;
 }
 
@@ -190,6 +205,121 @@ function parseRepScheme(scheme: string): RepSchemeInfo | null {
   }
 
   return null;
+}
+
+function createTempId(prefix = 'temp') {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function formatSecondsLabel(seconds?: number) {
+  if (!seconds) return '';
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  if (minutes > 0 && remainder > 0) {
+    return `${minutes}:${remainder.toString().padStart(2, '0')}`;
+  }
+  if (minutes > 0) return `${minutes}:00`;
+  return `${seconds}s`;
+}
+
+function movementToMetconPayload(movement: WorkoutMovement, order: number) {
+  return {
+    id: movement.id,
+    exerciseId: movement.exerciseId,
+    exerciseName: movement.exercise.nameSv || movement.exercise.name,
+    order,
+    reps: movement.reps,
+    calories: movement.calories,
+    distance: movement.distance,
+    duration: movement.duration,
+    weightMale: movement.weightMale,
+    weightFemale: movement.weightFemale,
+    notes: movement.notes,
+  };
+}
+
+function createMovementFromExercise(exercise: Exercise, order: number): WorkoutMovement {
+  return {
+    id: createTempId('movement'),
+    exerciseId: exercise.id,
+    exercise,
+    order,
+    reps: exercise.defaultReps,
+    weightMale: exercise.defaultWeightMale,
+    weightFemale: exercise.defaultWeightFemale,
+  };
+}
+
+function buildInitialMetconBlocks(
+  initialData?: HybridWorkoutBuilderInitialData
+): MetconBlock[] {
+  const movementLookup = new Map(
+    (initialData?.movements || []).map((movement) => [movement.exerciseId, movement])
+  );
+
+  if (initialData?.metconData?.blocks?.length) {
+    return initialData.metconData.blocks.map((block, blockIndex) => ({
+      id: block.id || createTempId('block'),
+      title: block.title || `Block ${blockIndex + 1}`,
+      format: block.format || 'EMOM',
+      intervalSeconds: block.intervalSeconds,
+      rounds: block.rounds,
+      workSeconds: block.workSeconds,
+      restSeconds: block.restSeconds,
+      restAfterSeconds: block.restAfterSeconds,
+      notes: block.notes,
+      movements: block.movements.map((movement, movementIndex) => {
+        const hydrated = movementLookup.get(movement.exerciseId);
+        if (hydrated) {
+          return {
+            ...hydrated,
+            id: movement.id || hydrated.id || createTempId('movement'),
+            order: movementIndex + 1,
+            reps: movement.reps,
+            calories: movement.calories,
+            distance: movement.distance,
+            duration: movement.duration,
+            weightMale: movement.weightMale,
+            weightFemale: movement.weightFemale,
+            notes: movement.notes,
+          };
+        }
+
+        return {
+          id: movement.id || createTempId('movement'),
+          exerciseId: movement.exerciseId,
+          exercise: {
+            id: movement.exerciseId,
+            name: movement.exerciseName,
+            equipmentTypes: [],
+          },
+          order: movementIndex + 1,
+          reps: movement.reps,
+          calories: movement.calories,
+          distance: movement.distance,
+          duration: movement.duration,
+          weightMale: movement.weightMale,
+          weightFemale: movement.weightFemale,
+          notes: movement.notes,
+        };
+      }),
+    }));
+  }
+
+  return [
+    {
+      id: createTempId('block'),
+      title: 'Block 1',
+      format: (initialData?.format === 'EMOM' ? 'EMOM' : 'CUSTOM'),
+      intervalSeconds:
+        initialData?.format === 'EMOM'
+          ? (initialData.workTime || 60) + (initialData.restTime || 0)
+          : undefined,
+      rounds: initialData?.totalRounds,
+      restAfterSeconds: undefined,
+      movements: initialData?.movements || [],
+    },
+  ];
 }
 
 // Sortable movement card component
@@ -331,7 +461,9 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
   const [restTime, setRestTime] = useState<number | undefined>(initialData?.restTime);
   const [repScheme, setRepScheme] = useState(initialData?.repScheme || '');
   const [scalingLevel, setScalingLevel] = useState(initialData?.scalingLevel || 'RX');
-  const [movements, setMovements] = useState<WorkoutMovement[]>(initialData?.movements || []);
+  const [metconBlocks, setMetconBlocks] = useState<MetconBlock[]>(() =>
+    buildInitialMetconBlocks(initialData)
+  );
   const [tags, setTags] = useState<string[]>(initialData?.tags || []);
 
   // Section data
@@ -352,6 +484,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [exerciseSearch, setExerciseSearch] = useState('');
   const [exercisePopoverOpen, setExercisePopoverOpen] = useState(false);
+  const [exercisePickerBlockId, setExercisePickerBlockId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Equipment filter
@@ -371,17 +504,24 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
     })
   );
 
-  function handleDragEnd(event: DragEndEvent) {
+  const metconMovements = metconBlocks.flatMap((block) => block.movements);
+
+  function handleBlockDragEnd(blockId: string, event: DragEndEvent) {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      setMovements((items) => {
+      setMetconBlocks((blocks) => blocks.map((block) => {
+        if (block.id !== blockId) return block;
+        const items = block.movements;
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
         const newItems = arrayMove(items, oldIndex, newIndex);
         // Update order numbers
-        return newItems.map((item, index) => ({ ...item, order: index + 1 }));
-      });
+        return {
+          ...block,
+          movements: newItems.map((item, index) => ({ ...item, order: index + 1 })),
+        };
+      }));
     }
   }
 
@@ -443,54 +583,150 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
     }
   }
 
+  function addMetconBlock() {
+    const blockNumber = metconBlocks.length + 1;
+    setMetconBlocks((blocks) => [
+      ...blocks,
+      {
+        id: createTempId('block'),
+        title: `Block ${blockNumber}`,
+        format: format === 'EMOM' ? 'EMOM' : 'CUSTOM',
+        intervalSeconds: format === 'EMOM' ? 120 : undefined,
+        rounds: format === 'EMOM' ? 7 : undefined,
+        movements: [],
+      },
+    ]);
+  }
+
+  function duplicateMetconBlock(blockId: string) {
+    const source = metconBlocks.find((block) => block.id === blockId);
+    if (!source) return;
+
+    setMetconBlocks((blocks) => [
+      ...blocks,
+      {
+        ...source,
+        id: createTempId('block'),
+        title: `${source.title} kopia`,
+        movements: source.movements.map((movement, index) => ({
+          ...movement,
+          id: createTempId('movement'),
+          order: index + 1,
+        })),
+      },
+    ]);
+  }
+
+  function removeMetconBlock(blockId: string) {
+    setMetconBlocks((blocks) => {
+      if (blocks.length === 1) return blocks;
+      return blocks.filter((block) => block.id !== blockId);
+    });
+  }
+
+  function updateMetconBlock(blockId: string, updates: Partial<MetconBlock>) {
+    setMetconBlocks((blocks) =>
+      blocks.map((block) => (block.id === blockId ? { ...block, ...updates } : block))
+    );
+  }
+
   function addMovement(exercise: Exercise) {
-    const newMovement: WorkoutMovement = {
-      id: `temp-${Date.now()}`,
-      exerciseId: exercise.id,
-      exercise,
-      order: movements.length + 1,
-      reps: exercise.defaultReps,
-      weightMale: exercise.defaultWeightMale,
-      weightFemale: exercise.defaultWeightFemale,
-    };
-    setMovements((prev) => [...prev, newMovement]);
+    const targetBlockId = exercisePickerBlockId || metconBlocks[0]?.id;
+    if (!targetBlockId) return;
+
+    setMetconBlocks((blocks) =>
+      blocks.map((block) => {
+        if (block.id !== targetBlockId) return block;
+        return {
+          ...block,
+          movements: [
+            ...block.movements,
+            createMovementFromExercise(exercise, block.movements.length + 1),
+          ],
+        };
+      })
+    );
     setExercisePopoverOpen(false);
+    setExercisePickerBlockId(null);
     setExerciseSearch('');
   }
 
   function removeMovement(id: string) {
-    setMovements(movements.filter((m) => m.id !== id).map((m, i) => ({ ...m, order: i + 1 })));
+    setMetconBlocks((blocks) =>
+      blocks.map((block) => ({
+        ...block,
+        movements: block.movements
+          .filter((movement) => movement.id !== id)
+          .map((movement, index) => ({ ...movement, order: index + 1 })),
+      }))
+    );
   }
 
   function updateMovement(id: string, updates: Partial<WorkoutMovement>) {
-    setMovements(movements.map((m) => (m.id === id ? { ...m, ...updates } : m)));
-  }
-
-  function moveMovement(fromIndex: number, toIndex: number) {
-    const newMovements = [...movements];
-    const [removed] = newMovements.splice(fromIndex, 1);
-    newMovements.splice(toIndex, 0, removed);
-    setMovements(newMovements.map((m, i) => ({ ...m, order: i + 1 })));
+    setMetconBlocks((blocks) =>
+      blocks.map((block) => ({
+        ...block,
+        movements: block.movements.map((movement) =>
+          movement.id === id ? { ...movement, ...updates } : movement
+        ),
+      }))
+    );
   }
 
   async function handleSave() {
     setSaving(true);
     try {
+      const flatMovements = metconBlocks.flatMap((block) => block.movements);
+      const emomBlocks = metconBlocks.filter((block) => block.format === 'EMOM');
+      const primaryEmomBlock = emomBlocks[0];
+      const derivedIntervalSeconds = primaryEmomBlock?.intervalSeconds || workTime;
+      const derivedRounds =
+        format === 'EMOM' && emomBlocks.length > 0
+          ? emomBlocks.reduce((sum, block) => sum + (block.rounds || 0), 0) || totalRounds
+          : totalRounds;
+      const derivedTotalMinutes =
+        format === 'EMOM' && emomBlocks.length > 0
+          ? Math.ceil(
+              emomBlocks.reduce(
+                (sum, block) =>
+                  sum + (block.rounds || 0) * (block.intervalSeconds || derivedIntervalSeconds || 60) +
+                  (block.restAfterSeconds || 0),
+                0
+              ) / 60
+            )
+          : totalMinutes;
+      const metconData = {
+        blocks: metconBlocks.map((block) => ({
+          id: block.id,
+          title: block.title,
+          format: block.format,
+          intervalSeconds: block.intervalSeconds,
+          rounds: block.rounds,
+          workSeconds: block.workSeconds,
+          restSeconds: block.restSeconds,
+          restAfterSeconds: block.restAfterSeconds,
+          notes: block.notes,
+          movements: block.movements.map((movement, index) =>
+            movementToMetconPayload(movement, index + 1)
+          ),
+        })),
+      };
+
       const payload = {
         name,
         description,
         format,
         timeCap,
-        totalMinutes,
-        totalRounds,
-        workTime,
-        restTime,
+        totalMinutes: derivedTotalMinutes,
+        totalRounds: derivedRounds,
+        workTime: format === 'EMOM' ? derivedIntervalSeconds : workTime,
+        restTime: format === 'EMOM' ? 0 : restTime,
         repScheme,
         scalingLevel,
         tags,
-        movements: movements.map((m) => ({
+        movements: flatMovements.map((m, index) => ({
           exerciseId: m.exerciseId,
-          order: m.order,
+          order: index + 1,
           reps: m.reps,
           calories: m.calories,
           distance: m.distance,
@@ -502,6 +738,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
         // Section data - only include if section is enabled
         warmupData: showWarmup ? warmupData : null,
         strengthData: showStrength ? strengthData : null,
+        metconData,
         cooldownData: showCooldown ? cooldownData : null,
       };
 
@@ -560,7 +797,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
 
   const canProceedStep1 = format !== '';
   const canProceedStep2 = name.trim() !== '';
-  const canSave = movements.length > 0;
+  const canSave = metconMovements.length > 0;
 
   return (
     <div className="space-y-6">
@@ -602,6 +839,22 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                 }`}
                 onClick={() => {
                   setFormat(option.value);
+                  if (option.value === 'EMOM') {
+                    setWorkTime((current) => current || 120);
+                    setTotalRounds((current) => current || 7);
+                    setMetconBlocks((blocks) =>
+                      blocks.map((block, index) =>
+                        index === 0
+                          ? {
+                              ...block,
+                              format: 'EMOM',
+                              intervalSeconds: block.intervalSeconds || 120,
+                              rounds: block.rounds || 7,
+                            }
+                          : block
+                      )
+                    );
+                  }
                   setStep(2); // Auto-advance to step 2
                 }}
               >
@@ -663,7 +916,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
           </div>
 
           {/* Format-specific fields */}
-          {(format === 'AMRAP' || format === 'EMOM') && (
+          {format === 'AMRAP' && (
             <div className="space-y-2">
               <Label htmlFor="totalMinutes">Total Tid (minuter)</Label>
               <Input
@@ -673,6 +926,60 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                 onChange={(e) => setTotalMinutes(e.target.value ? parseInt(e.target.value) : undefined)}
                 placeholder="t.ex. 20"
               />
+            </div>
+          )}
+
+          {format === 'EMOM' && (
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="emomRounds">Intervaller</Label>
+                <Input
+                  id="emomRounds"
+                  type="number"
+                  value={totalRounds || ''}
+                  onChange={(e) => {
+                    const nextRounds = e.target.value ? parseInt(e.target.value) : undefined;
+                    setTotalRounds(nextRounds);
+                    setMetconBlocks((blocks) =>
+                      blocks.map((block, index) =>
+                        index === 0 && block.format === 'EMOM'
+                          ? { ...block, rounds: nextRounds }
+                          : block
+                      )
+                    );
+                  }}
+                  placeholder="t.ex. 7"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="emomInterval">Start var (sekunder)</Label>
+                <Input
+                  id="emomInterval"
+                  type="number"
+                  value={workTime || ''}
+                  onChange={(e) => {
+                    const nextInterval = e.target.value ? parseInt(e.target.value) : undefined;
+                    setWorkTime(nextInterval);
+                    setRestTime(0);
+                    setMetconBlocks((blocks) =>
+                      blocks.map((block, index) =>
+                        index === 0 && block.format === 'EMOM'
+                          ? { ...block, intervalSeconds: nextInterval }
+                          : block
+                      )
+                    );
+                  }}
+                  placeholder="120"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Total tid</Label>
+                <div className="flex h-10 items-center rounded-md border bg-muted/50 px-3 text-sm text-muted-foreground">
+                  {totalRounds && workTime
+                    ? `${Math.ceil((totalRounds * workTime) / 60)} min`
+                    : 'Beräknas från intervaller'}
+                </div>
+              </div>
             </div>
           )}
 
@@ -952,14 +1259,17 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                 <Zap className="h-4 w-4 text-primary" />
                 <span className="font-medium">Metcon</span>
                 <Badge variant="secondary" className="text-xs">Obligatorisk</Badge>
+                <Badge variant="outline" className="text-xs">
+                  {metconBlocks.length} block
+                </Badge>
                 {repScheme && (
                   <Badge variant="outline" className="text-xs">
                     {repScheme}
                   </Badge>
                 )}
-                {movements.length > 0 && (
+                {metconMovements.length > 0 && (
                   <Badge variant="outline" className="text-xs ml-auto">
-                    {movements.length} rörelser
+                    {metconMovements.length} rörelser
                   </Badge>
                 )}
               </div>
@@ -983,87 +1293,234 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
             <CardContent className="pt-4">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Rörelser</Label>
-                  <Button type="button" size="sm" variant="outline" onClick={() => setExercisePopoverOpen(!exercisePopoverOpen)}>
+                  <Label className="text-sm font-medium">Block</Label>
+                  <Button type="button" size="sm" variant="outline" onClick={addMetconBlock}>
                     <Plus className="mr-1 h-3.5 w-3.5" />
-                    {exercisePopoverOpen ? 'Stäng' : 'Lägg till'}
+                    Nytt block
                   </Button>
                 </div>
 
-                {/* Exercise selector - inline */}
-                {exercisePopoverOpen && (
-                  <Card className="border-dashed">
-                    <CardContent className="p-3">
-                      <Input
-                        placeholder="Sök rörelser..."
-                        value={exerciseSearch}
-                        onChange={(e) => setExerciseSearch(e.target.value)}
-                        className="mb-3 h-9"
-                      />
-                      <div className="max-h-[200px] overflow-y-auto">
-                        {filteredExercises.length === 0 ? (
-                          <p className="text-sm text-muted-foreground text-center py-3">Inga rörelser hittades.</p>
-                        ) : (
-                          Object.entries(groupedExercises).map(([category, exs]) => (
-                            <div key={category} className="mb-3">
-                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
-                                {categoryLabels[category] || category}
-                              </p>
-                              <div className="grid grid-cols-2 gap-1.5">
-                                {exs.slice(0, 8).map((exercise) => (
-                                  <Button
-                                    key={exercise.id}
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="justify-start h-auto py-1.5 px-2 text-xs text-left"
-                                    onClick={() => addMovement(exercise)}
-                                    title={exercise.name}
-                                  >
-                                    {exercise.nameSv || exercise.name}
-                                  </Button>
-                                ))}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                {metconBlocks.map((block, blockIndex) => {
+                  const blockDuration =
+                    block.format === 'EMOM' && block.rounds && block.intervalSeconds
+                      ? block.rounds * block.intervalSeconds
+                      : undefined;
 
-                {movements.length === 0 ? (
-                  <div className="py-6 text-center">
-                    <Dumbbell className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                    <p className="text-sm text-muted-foreground">
-                      Klicka på &quot;Lägg till&quot; för att börja bygga metcon.
-                    </p>
-                  </div>
-                ) : (
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <SortableContext
-                      items={movements.map((m) => m.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      <div className="space-y-2">
-                        {movements.map((movement, index) => (
-                          <SortableMovementCard
-                            key={movement.id}
-                            movement={movement}
-                            index={index}
-                            onRemove={removeMovement}
-                            onUpdate={updateMovement}
-                            repSchemeInfo={parseRepScheme(repScheme)}
+                  return (
+                    <div key={block.id} className="rounded-lg border bg-background p-3 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {blockIndex + 1}
+                          </Badge>
+                          <Input
+                            value={block.title}
+                            onChange={(e) => updateMetconBlock(block.id, { title: e.target.value })}
+                            className="h-9 w-44 font-medium"
+                            placeholder="Blocknamn"
                           />
-                        ))}
+                          {block.format === 'EMOM' && block.rounds && block.intervalSeconds && (
+                            <Badge variant="outline" className="text-xs">
+                              E{formatSecondsLabel(block.intervalSeconds)} x {block.rounds}
+                            </Badge>
+                          )}
+                          {blockDuration && (
+                            <Badge variant="outline" className="text-xs">
+                              {Math.ceil(blockDuration / 60)} min
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => duplicateMetconBlock(block.id)}
+                            title="Duplicera block"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => removeMetconBlock(block.id)}
+                            disabled={metconBlocks.length === 1}
+                            title="Ta bort block"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </div>
-                    </SortableContext>
-                  </DndContext>
-                )}
+
+                      <div className="grid gap-3 md:grid-cols-5">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Format</Label>
+                          <Select
+                            value={block.format}
+                            onValueChange={(value) =>
+                              updateMetconBlock(block.id, {
+                                format: value as MetconBlock['format'],
+                                intervalSeconds:
+                                  value === 'EMOM' ? block.intervalSeconds || 120 : block.intervalSeconds,
+                                rounds: value === 'EMOM' ? block.rounds || 7 : block.rounds,
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="EMOM">EMOM/E2MOM</SelectItem>
+                              <SelectItem value="AMRAP">AMRAP</SelectItem>
+                              <SelectItem value="FOR_TIME">For Time</SelectItem>
+                              <SelectItem value="INTERVALS">Intervaller</SelectItem>
+                              <SelectItem value="CUSTOM">Anpassad</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Start var (s)</Label>
+                          <Input
+                            type="number"
+                            className="h-9"
+                            value={block.intervalSeconds || ''}
+                            onChange={(e) =>
+                              updateMetconBlock(block.id, {
+                                intervalSeconds: e.target.value ? parseInt(e.target.value) : undefined,
+                              })
+                            }
+                            placeholder="120"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Rundor</Label>
+                          <Input
+                            type="number"
+                            className="h-9"
+                            value={block.rounds || ''}
+                            onChange={(e) =>
+                              updateMetconBlock(block.id, {
+                                rounds: e.target.value ? parseInt(e.target.value) : undefined,
+                              })
+                            }
+                            placeholder="7"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Vila efter (s)</Label>
+                          <Input
+                            type="number"
+                            className="h-9"
+                            value={block.restAfterSeconds || ''}
+                            onChange={(e) =>
+                              updateMetconBlock(block.id, {
+                                restAfterSeconds: e.target.value ? parseInt(e.target.value) : undefined,
+                              })
+                            }
+                            placeholder="180"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Rörelser</Label>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-9 w-full"
+                            onClick={() => {
+                              const isOpen = exercisePopoverOpen && exercisePickerBlockId === block.id;
+                              setExercisePopoverOpen(!isOpen);
+                              setExercisePickerBlockId(isOpen ? null : block.id);
+                            }}
+                          >
+                            <Plus className="mr-1 h-3.5 w-3.5" />
+                            Lägg till
+                          </Button>
+                        </div>
+                      </div>
+
+                      <Textarea
+                        value={block.notes || ''}
+                        onChange={(e) => updateMetconBlock(block.id, { notes: e.target.value || undefined })}
+                        rows={2}
+                        placeholder="Blockanteckningar, tempo eller coach cues..."
+                      />
+
+                      {exercisePopoverOpen && exercisePickerBlockId === block.id && (
+                        <div className="rounded-lg border border-dashed p-3">
+                          <Input
+                            placeholder="Sök rörelser..."
+                            value={exerciseSearch}
+                            onChange={(e) => setExerciseSearch(e.target.value)}
+                            className="mb-3 h-9"
+                          />
+                          <div className="max-h-[200px] overflow-y-auto">
+                            {filteredExercises.length === 0 ? (
+                              <p className="text-sm text-muted-foreground text-center py-3">Inga rörelser hittades.</p>
+                            ) : (
+                              Object.entries(groupedExercises).map(([category, exs]) => (
+                                <div key={category} className="mb-3">
+                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+                                    {categoryLabels[category] || category}
+                                  </p>
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    {exs.slice(0, 8).map((exercise) => (
+                                      <Button
+                                        key={exercise.id}
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="justify-start h-auto py-1.5 px-2 text-xs text-left"
+                                        onClick={() => addMovement(exercise)}
+                                        title={exercise.name}
+                                      >
+                                        {exercise.nameSv || exercise.name}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {block.movements.length === 0 ? (
+                        <div className="py-5 text-center rounded-lg bg-muted/30">
+                          <Dumbbell className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            Lägg till rörelser för {block.title.toLowerCase()}.
+                          </p>
+                        </div>
+                      ) : (
+                        <DndContext
+                          sensors={sensors}
+                          collisionDetection={closestCenter}
+                          onDragEnd={(event) => handleBlockDragEnd(block.id, event)}
+                        >
+                          <SortableContext
+                            items={block.movements.map((m) => m.id)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            <div className="space-y-2">
+                              {block.movements.map((movement, index) => (
+                                <SortableMovementCard
+                                  key={movement.id}
+                                  movement={movement}
+                                  index={index}
+                                  onRemove={removeMovement}
+                                  onUpdate={updateMovement}
+                                  repSchemeInfo={parseRepScheme(repScheme)}
+                                />
+                              ))}
+                            </div>
+                          </SortableContext>
+                        </DndContext>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

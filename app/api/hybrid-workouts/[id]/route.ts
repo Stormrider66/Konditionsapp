@@ -142,6 +142,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       // Section data
       warmupData,
       strengthData,
+      metconData,
       cooldownData,
     } = body;
 
@@ -171,6 +172,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
           // Section data
           warmupData: warmupData ?? undefined,
           strengthData: strengthData ?? undefined,
+          metconData: metconData ?? undefined,
           cooldownData: cooldownData ?? undefined,
           movements: {
             create: movements?.map(

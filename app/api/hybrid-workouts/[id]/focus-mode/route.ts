@@ -185,6 +185,7 @@ export async function GET(
           benchmarkSource: workout.benchmarkSource,
           warmupData: workout.warmupData,
           strengthData: workout.strengthData,
+          metconData: workout.metconData,
           cooldownData: workout.cooldownData,
         },
         workoutLog: existingLog
