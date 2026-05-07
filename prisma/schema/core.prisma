@@ -593,6 +593,7 @@ model Client {
 
   // Meal Logging System relations
   mealLogs                MealLog[]
+  nutritionRecipes        NutritionRecipe[]
   athleteCoachPermission  AthleteCoachPermission?
   nutritionWrappeds       NutritionWrapped[]
 

@@ -217,6 +217,57 @@ model MealFoodItem {
   @@index([foodId])
 }
 
+/// Athlete-owned reusable recipe template. This is intentionally separate
+/// from MealLog so saved recipes do not pollute meal history.
+model NutritionRecipe {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  name         String
+  description  String?
+  baseServings Float   @default(1)
+  source       String  @default("MANUAL") // MANUAL | SCAN | MEAL_COPY
+
+  items NutritionRecipeIngredient[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, updatedAt])
+  @@index([clientId, name])
+}
+
+/// Ingredient rows for a reusable recipe template. Nutrients are cached per
+/// 100g, matching Food and IngredientBuilder so scaling stays exact.
+model NutritionRecipeIngredient {
+  id       String          @id @default(cuid())
+  recipeId String
+  recipe   NutritionRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  foodId String?
+  food   Food?   @relation(fields: [foodId], references: [id], onDelete: SetNull)
+
+  name           String
+  normalizedName String
+  category       String?
+  grams          Float
+
+  caloriesPer100g Float @default(0)
+  proteinPer100g  Float @default(0)
+  carbsPer100g    Float @default(0)
+  fatPer100g      Float @default(0)
+  fiberPer100g    Float @default(0)
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([recipeId])
+  @@index([foodId])
+  @@index([normalizedName])
+}
+
 /// Reference food database — primarily Livsmedelsverket (Swedish food agency),
 /// but `source` is left open for future imports (Open Food Facts, custom user
 /// foods, etc.). All nutrient fields are per 100g; the meal-side code
@@ -250,7 +301,8 @@ model Food {
   // Surface ranking. Bumped by the search API when an item is picked.
   popularity Int @default(0)
 
-  items MealFoodItem[]
+  items       MealFoodItem[]
+  recipeItems NutritionRecipeIngredient[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Camera, Plus, Sparkles, Trash2, Loader2 } from 'lucide-react'
+import { BookOpen, Camera, Plus, Save, Sparkles, Trash2, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface IngredientRow {
@@ -52,6 +52,31 @@ interface RecipeScanIngredient {
   food: FoodOption | null
 }
 
+type RecipeSource = 'MANUAL' | 'SCAN' | 'MEAL_COPY'
+
+interface SavedRecipeIngredient {
+  id: string
+  foodId?: string | null
+  name: string
+  category?: string | null
+  grams: number
+  caloriesPer100g: number
+  proteinPer100g: number
+  carbsPer100g: number
+  fatPer100g: number
+  fiberPer100g: number
+}
+
+interface SavedRecipe {
+  id: string
+  name: string
+  description?: string | null
+  baseServings: number
+  source: RecipeSource | string
+  updatedAt: string
+  items: SavedRecipeIngredient[]
+}
+
 export function ingredientMacros(row: IngredientRow): IngredientTotals {
   const factor = row.grams / 100
   return {
@@ -87,6 +112,68 @@ function makeRow(): IngredientRow {
   }
 }
 
+function makeSuggestedRecipeName(rows: IngredientRow[]): string {
+  const names = rows
+    .map((row) => row.name.trim())
+    .filter(Boolean)
+    .slice(0, 3)
+  if (names.length === 0) return ''
+  const name = names.join(', ')
+  return name.length > 80 ? `${name.slice(0, 77)}...` : name
+}
+
+function parsePositiveNumber(value: string, fallback: number): number {
+  const parsed = Number.parseFloat(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+function ingredientRowsToRecipeItems(rows: IngredientRow[]) {
+  return rows
+    .filter((row) => row.name.trim().length > 0 && row.grams > 0)
+    .map((row) => ({
+      foodId: row.foodId,
+      name: row.name.trim(),
+      grams: row.grams,
+      caloriesPer100g: row.caloriesPer100g ?? 0,
+      proteinPer100g: row.proteinPer100g ?? 0,
+      carbsPer100g: row.carbsPer100g ?? 0,
+      fatPer100g: row.fatPer100g ?? 0,
+      fiberPer100g: row.fiberPer100g ?? 0,
+    }))
+}
+
+function savedRecipeTotals(recipe: SavedRecipe): IngredientTotals {
+  return recipe.items.reduce<IngredientTotals>(
+    (acc, item) => {
+      const factor = item.grams / 100
+      return {
+        calories: acc.calories + item.caloriesPer100g * factor,
+        proteinGrams: acc.proteinGrams + item.proteinPer100g * factor,
+        carbsGrams: acc.carbsGrams + item.carbsPer100g * factor,
+        fatGrams: acc.fatGrams + item.fatPer100g * factor,
+        fiberGrams: acc.fiberGrams + item.fiberPer100g * factor,
+      }
+    },
+    { calories: 0, proteinGrams: 0, carbsGrams: 0, fatGrams: 0, fiberGrams: 0 }
+  )
+}
+
+function recipeToIngredientRows(recipe: SavedRecipe, servings: number): IngredientRow[] {
+  const baseServings = recipe.baseServings > 0 ? recipe.baseServings : 1
+  const factor = servings / baseServings
+  return recipe.items.map((item) => ({
+    rowId: makeRowId(),
+    foodId: item.foodId ?? undefined,
+    name: item.name,
+    grams: Math.round(item.grams * factor * 10) / 10,
+    caloriesPer100g: item.caloriesPer100g,
+    proteinPer100g: item.proteinPer100g,
+    carbsPer100g: item.carbsPer100g,
+    fatPer100g: item.fatPer100g,
+    fiberPer100g: item.fiberPer100g,
+  }))
+}
+
 export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
   const ensureRow = () => {
     if (value.length === 0) onChange([makeRow()])
@@ -99,12 +186,59 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
+  const [lastRecipeSource, setLastRecipeSource] = useState<RecipeSource>('MANUAL')
+  const [recipes, setRecipes] = useState<SavedRecipe[]>([])
+  const [recipesLoaded, setRecipesLoaded] = useState(false)
+  const [recipesOpen, setRecipesOpen] = useState(false)
+  const [loadingRecipes, setLoadingRecipes] = useState(false)
+  const [recipeError, setRecipeError] = useState<string | null>(null)
+  const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null)
+  const [recipeServings, setRecipeServings] = useState('1')
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [saveName, setSaveName] = useState('')
+  const [savingRecipe, setSavingRecipe] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
 
   const updateRow = (rowId: string, patch: Partial<IngredientRow>) => {
     onChange(value.map((r) => (r.rowId === rowId ? { ...r, ...patch } : r)))
   }
   const removeRow = (rowId: string) => {
     onChange(value.filter((r) => r.rowId !== rowId))
+  }
+
+  const loadRecipes = async () => {
+    if (loadingRecipes) return
+    setRecipeError(null)
+    setLoadingRecipes(true)
+    try {
+      const res = await fetch('/api/nutrition/recipes')
+      const payload = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(payload?.error || 'Kunde inte hämta recept')
+      }
+      setRecipes((payload?.data ?? []) as SavedRecipe[])
+      setRecipesLoaded(true)
+    } catch (err) {
+      setRecipeError(err instanceof Error ? err.message : 'Kunde inte hämta recept')
+    } finally {
+      setLoadingRecipes(false)
+    }
+  }
+
+  const toggleRecipes = () => {
+    const nextOpen = !recipesOpen
+    setRecipesOpen(nextOpen)
+    setSaveOpen(false)
+    if (nextOpen && !recipesLoaded) void loadRecipes()
+  }
+
+  const openSaveRecipe = () => {
+    setSaveError(null)
+    setSaveMessage(null)
+    setSaveName((current) => current || makeSuggestedRecipeName(value))
+    setSaveOpen(true)
+    setRecipesOpen(false)
   }
 
   const handleRecipeFile = async (file: File) => {
@@ -124,7 +258,7 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
         return
       }
       // Replace any empty seed rows; append to filled rows.
-      const existing = value.filter((r) => r.name.trim().length > 0 || r.grams > 0)
+      const existing = value.filter((r) => r.name.trim().length > 0)
       const newRows: IngredientRow[] = ingredients.map((ing) =>
         ing.food
           ? {
@@ -145,6 +279,10 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
             }
       )
       onChange([...existing, ...newRows])
+      if (typeof payload?.title === 'string' && payload.title.trim()) {
+        setSaveName(payload.title.trim().slice(0, 80))
+      }
+      setLastRecipeSource('SCAN')
     } catch (err) {
       setScanError(err instanceof Error ? err.message : 'Kunde inte tolka receptet')
     } finally {
@@ -153,6 +291,70 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
+
+  const saveRecipe = async () => {
+    const items = ingredientRowsToRecipeItems(value)
+    const name = saveName.trim()
+    if (!name || items.length === 0) return
+    setSaveError(null)
+    setSaveMessage(null)
+    setSavingRecipe(true)
+    try {
+      const res = await fetch('/api/nutrition/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          baseServings: 1,
+          source: lastRecipeSource,
+          items,
+        }),
+      })
+      const payload = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(payload?.error || 'Kunde inte spara recept')
+      }
+      const recipe = payload?.data as SavedRecipe
+      setRecipes((prev) => [recipe, ...prev.filter((r) => r.id !== recipe.id)])
+      setRecipesLoaded(true)
+      setSaveOpen(false)
+      setSaveName('')
+      setSaveMessage('Receptet sparades.')
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Kunde inte spara recept')
+    } finally {
+      setSavingRecipe(false)
+    }
+  }
+
+  const applySelectedRecipe = () => {
+    const recipe = recipes.find((r) => r.id === selectedRecipeId)
+    if (!recipe) return
+    const servings = parsePositiveNumber(recipeServings, 1)
+    const newRows = recipeToIngredientRows(recipe, servings)
+    const existing = value.filter((r) => r.name.trim().length > 0)
+    onChange([...existing, ...newRows])
+    setRecipesOpen(false)
+    setSaveMessage(`${recipe.name} lades till.`)
+  }
+
+  const deleteRecipe = async (recipeId: string) => {
+    setRecipeError(null)
+    try {
+      const res = await fetch(`/api/nutrition/recipes/${recipeId}`, { method: 'DELETE' })
+      const payload = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(payload?.error || 'Kunde inte ta bort recept')
+      }
+      setRecipes((prev) => prev.filter((recipe) => recipe.id !== recipeId))
+      setSelectedRecipeId((current) => (current === recipeId ? null : current))
+    } catch (err) {
+      setRecipeError(err instanceof Error ? err.message : 'Kunde inte ta bort recept')
+    }
+  }
+
+  const hasRowsToSave = value.some((row) => row.name.trim().length > 0 && row.grams > 0)
+  const selectedRecipe = recipes.find((recipe) => recipe.id === selectedRecipeId)
 
   return (
     <div className="space-y-3">
@@ -183,11 +385,32 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
           variant="outline"
           size="sm"
           className="gap-2 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+          onClick={toggleRecipes}
+        >
+          {loadingRecipes ? <Loader2 className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
+          Mina recept
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-2 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
           onClick={() => fileInputRef.current?.click()}
           disabled={scanning}
         >
           {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
           {scanning ? 'Läser receptet…' : 'Skanna recept'}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-2 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+          onClick={openSaveRecipe}
+          disabled={!hasRowsToSave || savingRecipe}
+        >
+          {savingRecipe ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Spara recept
         </Button>
         <input
           ref={fileInputRef}
@@ -201,6 +424,137 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
           }}
         />
       </div>
+
+      {saveOpen && (
+        <div className="rounded-lg border border-border dark:border-slate-700 bg-muted/30 dark:bg-slate-900/40 p-3 space-y-2">
+          <div className="text-xs font-medium text-foreground dark:text-slate-100">Spara som recept</div>
+          <Input
+            value={saveName}
+            onChange={(e) => setSaveName(e.target.value)}
+            placeholder="Namn på recept"
+            maxLength={80}
+            className="dark:text-white dark:placeholder:text-slate-500"
+          />
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              className="flex-1"
+              onClick={saveRecipe}
+              disabled={savingRecipe || saveName.trim().length < 2}
+            >
+              {savingRecipe ? 'Sparar…' : 'Spara'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1 dark:text-slate-200 dark:border-slate-600"
+              onClick={() => setSaveOpen(false)}
+            >
+              Avbryt
+            </Button>
+          </div>
+          {saveError && <div className="text-xs text-red-500">{saveError}</div>}
+        </div>
+      )}
+
+      {recipesOpen && (
+        <div className="rounded-lg border border-border dark:border-slate-700 bg-muted/30 dark:bg-slate-900/40 p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-xs font-medium text-foreground dark:text-slate-100">Sparade recept</div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => void loadRecipes()}
+              disabled={loadingRecipes}
+            >
+              {loadingRecipes ? 'Hämtar…' : 'Uppdatera'}
+            </Button>
+          </div>
+
+          {recipeError && <div className="text-xs text-red-500">{recipeError}</div>}
+          {!recipeError && recipesLoaded && recipes.length === 0 && (
+            <div className="text-xs text-muted-foreground">Inga sparade recept ännu.</div>
+          )}
+
+          <div className="space-y-1.5 max-h-56 overflow-y-auto overscroll-contain">
+            {recipes.map((recipe) => {
+              const recipeTotals = savedRecipeTotals(recipe)
+              const isSelected = selectedRecipeId === recipe.id
+              return (
+                <div key={recipe.id} className="rounded-md border border-border/70 dark:border-slate-700 bg-background/70 dark:bg-slate-950/40">
+                  <div className="flex items-stretch gap-1">
+                    <button
+                      type="button"
+                      className={cn(
+                        'min-w-0 flex-1 px-3 py-2 text-left text-sm rounded-l-md transition-colors',
+                        isSelected
+                          ? 'bg-primary/10 text-foreground dark:text-slate-100'
+                          : 'hover:bg-accent dark:hover:bg-slate-800 dark:text-slate-200'
+                      )}
+                      onClick={() => {
+                        setSelectedRecipeId(recipe.id)
+                        setRecipeServings(String(recipe.baseServings || 1))
+                      }}
+                    >
+                      <div className="truncate font-medium">{recipe.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {Math.round(recipeTotals.calories)} kcal · P {recipeTotals.proteinGrams.toFixed(1)} · K{' '}
+                        {recipeTotals.carbsGrams.toFixed(1)} · F {recipeTotals.fatGrams.toFixed(1)}
+                      </div>
+                    </button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-auto w-9 rounded-l-none"
+                      onClick={() => void deleteRecipe(recipe.id)}
+                      aria-label={`Ta bort ${recipe.name}`}
+                    >
+                      <Trash2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </div>
+                  {isSelected && (
+                    <div className="border-t border-border/60 dark:border-slate-700 p-2 flex items-center gap-2">
+                      <div className="relative w-28">
+                        <Input
+                          type="number"
+                          min="0.1"
+                          step="0.25"
+                          value={recipeServings}
+                          onChange={(e) => setRecipeServings(e.target.value)}
+                          className="pr-16 h-8 text-sm dark:text-white"
+                        />
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                          portion
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="flex-1 h-8"
+                        onClick={applySelectedRecipe}
+                        disabled={!selectedRecipe}
+                      >
+                        Använd
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {saveMessage && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+          {saveMessage}
+        </div>
+      )}
 
       {scanError && (
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-500">
