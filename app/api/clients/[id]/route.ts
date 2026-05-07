@@ -7,6 +7,7 @@ import { logger } from '@/lib/logger'
 import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
 import { getBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 
 type RouteParams = {
   params: Promise<{
@@ -149,11 +150,13 @@ export async function PUT(
       teamOwnerId = team.userId
     }
 
+    const profileEmail = data.email?.trim() ? data.email.trim().toLowerCase() : undefined
+
     // Convert birthDate string to Date
     const updateData = {
       ...(teamOwnerId ? { userId: teamOwnerId } : {}),
       name: data.name,
-      email: data.email || undefined,
+      email: profileEmail,
       phone: data.phone || undefined,
       gender: data.gender,
       birthDate: new Date(data.birthDate),
@@ -166,6 +169,19 @@ export async function PUT(
     // Check ownership before updating
     const existingClient = await prisma.client.findUnique({
       where: { id },
+      include: {
+        athleteAccount: {
+          select: {
+            userId: true,
+            user: {
+              select: {
+                email: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
     })
 
     const canAccessClient = existingClient && (
@@ -184,7 +200,112 @@ export async function PUT(
       )
     }
 
-    const client = await prisma.client.update({ where: { id }, data: updateData })
+    const athleteUser = existingClient.athleteAccount?.user
+    const shouldSyncAthleteEmail = Boolean(
+      athleteUser &&
+      profileEmail &&
+      athleteUser.email.toLowerCase() !== profileEmail
+    )
+    const shouldSyncAthleteName = Boolean(
+      athleteUser &&
+      athleteUser.name !== data.name
+    )
+
+    if (athleteUser && !profileEmail) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Klienten har ett aktivt atletkonto och måste ha en e-postadress.',
+        },
+        { status: 400 }
+      )
+    }
+
+    if (athleteUser && profileEmail && (shouldSyncAthleteEmail || shouldSyncAthleteName)) {
+      if (shouldSyncAthleteEmail) {
+        const existingUser = await prisma.user.findFirst({
+          where: {
+            email: { equals: profileEmail, mode: 'insensitive' },
+            id: { not: existingClient.athleteAccount!.userId },
+          },
+          select: { id: true },
+        })
+
+        if (existingUser) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'E-postadressen används redan av en annan användare.',
+            },
+            { status: 409 }
+          )
+        }
+      }
+
+      const supabaseAdmin = createAdminSupabaseClient()
+      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+        existingClient.athleteAccount!.userId,
+        {
+          ...(shouldSyncAthleteEmail ? { email: profileEmail, email_confirm: true } : {}),
+          user_metadata: {
+            name: data.name,
+            role: 'ATHLETE',
+          },
+        },
+      )
+
+      if (authError) {
+        logger.error('Failed to sync athlete profile email in Supabase Auth', {
+          clientId: id,
+          userId: existingClient.athleteAccount!.userId,
+          email: profileEmail,
+        }, authError)
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Kunde inte uppdatera atletens inloggningsadress.',
+          },
+          { status: 500 }
+        )
+      }
+    }
+
+    let client
+    try {
+      client = await prisma.$transaction(async (tx) => {
+        const updatedClient = await tx.client.update({ where: { id }, data: updateData })
+
+        if (athleteUser && profileEmail && (shouldSyncAthleteEmail || shouldSyncAthleteName)) {
+          await tx.user.update({
+            where: { id: existingClient.athleteAccount!.userId },
+            data: {
+              email: profileEmail,
+              name: data.name,
+            },
+          })
+        }
+
+        return updatedClient
+      })
+    } catch (txError) {
+      if (athleteUser && shouldSyncAthleteEmail) {
+        await createAdminSupabaseClient().auth.admin.updateUserById(
+          existingClient.athleteAccount!.userId,
+          {
+            email: athleteUser.email,
+            email_confirm: true,
+          },
+        ).catch((rollbackError) => {
+          logger.error('Failed to roll back athlete auth email after client update failure', {
+            clientId: id,
+            userId: existingClient.athleteAccount!.userId,
+            email: athleteUser.email,
+          }, rollbackError)
+        })
+      }
+
+      throw txError
+    }
 
     // Auto-connect to team coach if teamId changed to a new team
     const newTeamId = updateData.teamId

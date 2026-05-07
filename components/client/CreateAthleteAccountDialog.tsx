@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, UserPlus, Mail, Check, Copy, AlertCircle } from 'lucide-react'
+import { Loader2, UserPlus, Mail, Check, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface CreateAthleteAccountDialogProps {
@@ -29,7 +29,7 @@ interface CreateAthleteAccountDialogProps {
 
 interface CreatedAccountInfo {
   email: string
-  temporaryPassword: string
+  mode: 'created' | 'invited'
 }
 
 export function CreateAthleteAccountDialog({
@@ -45,9 +45,8 @@ export function CreateAthleteAccountDialog({
   const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState(clientEmail || '')
   const [createdAccount, setCreatedAccount] = useState<CreatedAccountInfo | null>(null)
-  const [copiedPassword, setCopiedPassword] = useState(false)
 
-  const handleCreate = async () => {
+  const handleSubmit = async () => {
     if (!email) {
       toast({
         title: 'E-post krävs',
@@ -59,30 +58,30 @@ export function CreateAthleteAccountDialog({
 
     setIsLoading(true)
     try {
-      const response = await fetch('/api/athlete-accounts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId,
-          email,
-        }),
-      })
+      const response = await fetch(
+        hasExistingAccount ? `/api/athlete-accounts/${clientId}/invite` : '/api/athlete-accounts',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: hasExistingAccount ? undefined : JSON.stringify({ clientId, email }),
+        }
+      )
 
       const data = await response.json()
 
       if (response.ok) {
         setCreatedAccount({
-          email,
-          temporaryPassword: data.temporaryPassword,
+          email: data.email || email,
+          mode: hasExistingAccount ? 'invited' : 'created',
         })
         toast({
-          title: 'Atletkonto skapat!',
-          description: `Ett välkomstmail har skickats till ${email}`,
+          title: hasExistingAccount ? 'Inbjudan skickad!' : 'Atletkonto skapat!',
+          description: data.message || `En inbjudan har skickats till ${email}`,
         })
         onAccountCreated?.()
       } else {
         toast({
-          title: 'Kunde inte skapa konto',
+          title: hasExistingAccount ? 'Kunde inte skicka inbjudan' : 'Kunde inte skapa konto',
           description: data.error || 'Ett fel uppstod',
           variant: 'destructive',
         })
@@ -98,36 +97,13 @@ export function CreateAthleteAccountDialog({
     }
   }
 
-  const copyPassword = async () => {
-    if (createdAccount?.temporaryPassword) {
-      await navigator.clipboard.writeText(createdAccount.temporaryPassword)
-      setCopiedPassword(true)
-      toast({
-        title: 'Kopierat!',
-        description: 'Lösenordet har kopierats till urklipp',
-      })
-      setTimeout(() => setCopiedPassword(false), 2000)
-    }
-  }
-
   const handleClose = () => {
     setOpen(false)
     // Reset state after dialog closes
     setTimeout(() => {
       setCreatedAccount(null)
-      setCopiedPassword(false)
       setEmail(clientEmail || '')
     }, 200)
-  }
-
-  // If athlete already has an account, show disabled state
-  if (hasExistingAccount) {
-    return (
-      <Button variant="outline" size="sm" disabled>
-        <Check className="w-4 h-4 mr-2 text-green-600" />
-        Har atletkonto
-      </Button>
-    )
   }
 
   return (
@@ -138,26 +114,35 @@ export function CreateAthleteAccountDialog({
       <DialogTrigger asChild>
         {trigger || (
           <Button variant="outline" size="sm">
-            <UserPlus className="w-4 h-4 mr-2" />
-            Skapa atletkonto
+            {hasExistingAccount ? (
+              <Mail className="w-4 h-4 mr-2" />
+            ) : (
+              <UserPlus className="w-4 h-4 mr-2" />
+            )}
+            {hasExistingAccount ? 'Skicka inbjudan' : 'Bjud in atlet'}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Skapa atletkonto</DialogTitle>
+          <DialogTitle>
+            {hasExistingAccount ? 'Skicka inbjudan' : 'Skapa och bjud in atlet'}
+          </DialogTitle>
           <DialogDescription>
-            Skapa ett inloggningskonto för <strong>{clientName}</strong> så att de kan logga in i atletportalen
+            {hasExistingAccount
+              ? <>Skicka en ny inloggningslänk till <strong>{clientName}</strong>. E-postadressen synkas från klientprofilen först.</>
+              : <>Skapa ett inloggningskonto för <strong>{clientName}</strong> och skicka en säker inbjudningslänk.</>}
           </DialogDescription>
         </DialogHeader>
 
         {createdAccount ? (
-          // Success state - show credentials
           <div className="space-y-4 py-4">
             <Alert className="bg-green-50 border-green-200">
               <Check className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                Atletkontot har skapats! Ett välkomstmail med inloggningsuppgifter har skickats.
+                {createdAccount.mode === 'created'
+                  ? 'Atletkontot har skapats och inbjudan har skickats.'
+                  : 'Inbjudan har skickats.'}
               </AlertDescription>
             </Alert>
 
@@ -166,29 +151,10 @@ export function CreateAthleteAccountDialog({
                 <Label className="text-xs text-gray-500">E-post</Label>
                 <p className="font-medium">{createdAccount.email}</p>
               </div>
-              <div>
-                <Label className="text-xs text-gray-500">Temporärt lösenord</Label>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white px-3 py-2 rounded border font-mono text-sm">
-                    {createdAccount.temporaryPassword}
-                  </code>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={copyPassword}
-                  >
-                    {copiedPassword ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
             </div>
 
             <p className="text-sm text-gray-500">
-              Atleten kommer att uppmanas att byta lösenord vid första inloggningen.
+              Atleten väljer sitt eget lösenord via länken. Inga lösenord visas eller delas av coachen.
             </p>
 
             <DialogFooter>
@@ -198,7 +164,6 @@ export function CreateAthleteAccountDialog({
             </DialogFooter>
           </div>
         ) : (
-          // Input state - enter email
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="athlete-email">E-postadress</Label>
@@ -211,19 +176,22 @@ export function CreateAthleteAccountDialog({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
-                  disabled={isLoading}
+                  disabled={isLoading || hasExistingAccount}
                 />
               </div>
               <p className="text-xs text-gray-500">
-                Ett välkomstmail med inloggningsuppgifter skickas till denna adress
+                {hasExistingAccount
+                  ? 'Ändra e-post i klientprofilen om adressen inte stämmer.'
+                  : 'Adressen sparas på klientprofilen och används för atletens inloggning.'}
               </p>
             </div>
 
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Detta skapar ett nytt användarkonto kopplat till klienten {clientName}.
-                Atleten får tillgång till sin träningsdata, program och kan logga pass.
+                {hasExistingAccount
+                  ? 'Atletens användarkonto synkas mot profilens e-post innan inbjudan skickas.'
+                  : `Detta skapar ett nytt användarkonto kopplat till klienten ${clientName}. Atleten får tillgång till sin träningsdata, program och kan logga pass.`}
               </AlertDescription>
             </Alert>
 
@@ -231,16 +199,20 @@ export function CreateAthleteAccountDialog({
               <Button variant="outline" onClick={handleClose} disabled={isLoading}>
                 Avbryt
               </Button>
-              <Button onClick={handleCreate} disabled={isLoading || !email}>
+              <Button onClick={handleSubmit} disabled={isLoading || !email}>
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Skapar...
+                    {hasExistingAccount ? 'Skickar...' : 'Skapar...'}
                   </>
                 ) : (
                   <>
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Skapa konto
+                    {hasExistingAccount ? (
+                      <Mail className="w-4 h-4 mr-2" />
+                    ) : (
+                      <UserPlus className="w-4 h-4 mr-2" />
+                    )}
+                    {hasExistingAccount ? 'Skicka inbjudan' : 'Skapa och bjud in'}
                   </>
                 )}
               </Button>

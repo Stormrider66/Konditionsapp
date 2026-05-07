@@ -323,7 +323,23 @@ export default function BusinessClientsPage() {
                                 Fullständig profil
                               </Link>
                             </DropdownMenuItem>
-                            {!(client as any).athleteAccount && (
+                            {(client as any).athleteAccount ? (
+                              <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+                                <CreateAthleteAccountDialog
+                                  clientId={client.id}
+                                  clientName={client.name}
+                                  clientEmail={client.email}
+                                  hasExistingAccount
+                                  onAccountCreated={fetchClients}
+                                  trigger={
+                                    <button className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer">
+                                      <Mail className="w-4 h-4 mr-2" />
+                                      Skicka inbjudan
+                                    </button>
+                                  }
+                                />
+                              </DropdownMenuItem>
+                            ) : (
                               <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
                                 <CreateAthleteAccountDialog
                                   clientId={client.id}
@@ -441,10 +457,25 @@ export default function BusinessClientsPage() {
                         </TableCell>
                         <TableCell>
                           {(client as any).athleteAccount ? (
-                            <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200">
-                              <Check className="w-3 h-3 mr-1" />
-                              Aktivt
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200">
+                                <Check className="w-3 h-3 mr-1" />
+                                Aktivt
+                              </Badge>
+                              <CreateAthleteAccountDialog
+                                clientId={client.id}
+                                clientName={client.name}
+                                clientEmail={client.email}
+                                hasExistingAccount
+                                onAccountCreated={fetchClients}
+                                trigger={
+                                  <Button variant="outline" size="sm" className="h-7 text-xs">
+                                    <Mail className="w-3 h-3 mr-1" />
+                                    Bjud in
+                                  </Button>
+                                }
+                              />
+                            </div>
                           ) : (
                             <CreateAthleteAccountDialog
                               clientId={client.id}
@@ -490,7 +521,23 @@ export default function BusinessClientsPage() {
                                   Fullständig profil
                                 </Link>
                               </DropdownMenuItem>
-                              {!(client as any).athleteAccount && (
+                              {(client as any).athleteAccount ? (
+                                <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+                                  <CreateAthleteAccountDialog
+                                    clientId={client.id}
+                                    clientName={client.name}
+                                    clientEmail={client.email}
+                                    hasExistingAccount
+                                    onAccountCreated={fetchClients}
+                                    trigger={
+                                      <button className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer">
+                                        <Mail className="w-4 h-4 mr-2" />
+                                        Skicka inbjudan
+                                      </button>
+                                    }
+                                  />
+                                </DropdownMenuItem>
+                              ) : (
                                 <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
                                   <CreateAthleteAccountDialog
                                     clientId={client.id}

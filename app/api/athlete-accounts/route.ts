@@ -1,16 +1,11 @@
 // app/api/athlete-accounts/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
 import { requireCoach, hasReachedAthleteLimit, canAccessClient } from '@/lib/auth-utils'
 import { CreateAthleteAccountDTO } from '@/types'
 import { logger } from '@/lib/logger'
-import { Resend } from 'resend'
-import { escapeHtml, sanitizeAttribute, sanitizeUrl } from '@/lib/sanitize'
-import { getAthleteSubscriptionDataForTier, type AthleteTier } from '@/lib/athlete-account-utils'
-import { resolveEmailBranding } from '@/lib/email/branding'
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+import { createAthleteAccountForClient, type AthleteTier } from '@/lib/athlete-account-utils'
+import { sendAthletePlatformInvite } from '@/lib/athlete-platform-invite'
 
 const VALID_ATHLETE_TIERS: readonly AthleteTier[] = ['FREE', 'STANDARD', 'PRO', 'ELITE']
 function isValidAthleteTier(value: unknown): value is AthleteTier {
@@ -45,12 +40,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body: CreateAthleteAccountDTO & { tier?: string; trialDays?: number } = await request.json()
-    const { clientId, email, temporaryPassword, notificationPrefs } = body
+    const { clientId, email, notificationPrefs } = body
 
     // Validate required fields
-    if (!clientId || !email) {
+    if (!clientId) {
       return NextResponse.json(
-        { error: 'Client ID and email are required' },
+        { error: 'Client ID is required' },
         { status: 400 }
       )
     }
@@ -67,33 +62,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if client already has an athlete account
-    const existingAccount = await prisma.athleteAccount.findUnique({
-      where: { clientId },
-    })
-
-    if (existingAccount) {
-      return NextResponse.json(
-        { error: 'This client already has an athlete account' },
-        { status: 400 }
-      )
-    }
-
-    // Check if email is already in use
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    })
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'This email is already in use' },
-        { status: 400 }
-      )
-    }
-
-    // Get client details for athlete user name
     const client = await prisma.client.findUnique({
       where: { id: clientId },
+      include: { athleteAccount: true },
     })
 
     if (!client) {
@@ -103,226 +74,63 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate temporary password if not provided
-    const password = temporaryPassword || generateTemporaryPassword()
-
-    // Create user account in Supabase using server-only admin client
-    const { createAdminSupabaseClient } = await import('@/lib/supabase/admin')
-    const supabaseAdmin = createAdminSupabaseClient()
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Auto-confirm email
-      user_metadata: {
-        name: client.name,
-        role: 'ATHLETE',
-      },
-    })
-
-    if (authError || !authData.user) {
-      logger.error('Supabase auth error', { email, clientId }, authError)
+    if (client.athleteAccount) {
       return NextResponse.json(
-        { error: `Failed to create athlete account: ${authError?.message}` },
-        { status: 500 }
+        { error: 'This client already has an athlete account' },
+        { status: 400 }
       )
     }
 
-    // Wrap all DB operations in a transaction to prevent partial state
-    let athleteAccount
-    try {
-      athleteAccount = await prisma.$transaction(async (tx) => {
-        // Create user in our database
-        const athleteUser = await tx.user.create({
-          data: {
-            id: authData.user.id,
-            email: email,
-            name: client.name,
-            role: 'ATHLETE',
-            language: coach.language, // Inherit coach's language
-          },
-        })
-
-        // Create athlete account linking
-        const account = await tx.athleteAccount.create({
-          data: {
-            clientId,
-            userId: athleteUser.id,
-            notificationPrefs: notificationPrefs || {
-              email: true,
-              push: false,
-              workoutReminders: true,
-            },
-          },
-          include: {
-            client: true,
-            user: true,
-          },
-        })
-
-        const existingSubscription = await tx.athleteSubscription.findUnique({
-          where: { clientId },
-          select: { id: true },
-        })
-
-        if (!existingSubscription) {
-          await tx.athleteSubscription.create({
-            data: {
-              clientId,
-              ...getAthleteSubscriptionDataForTier(tier, {
-                trialDays,
-                businessId: client.businessId ?? undefined,
-              }),
-            },
-          })
-        }
-
-        // Auto-add the new athlete User to the parent Client's Business
-        if (client.businessId) {
-          const existingMembership = await tx.businessMember.findUnique({
-            where: {
-              businessId_userId: {
-                businessId: client.businessId,
-                userId: athleteUser.id,
-              },
-            },
-            select: { id: true },
-          })
-
-          if (!existingMembership) {
-            await tx.businessMember.create({
-              data: {
-                businessId: client.businessId,
-                userId: athleteUser.id,
-                role: 'MEMBER',
-                isActive: true,
-                acceptedAt: new Date(),
-              },
-            })
-          }
-        }
-
-        const existingPreferences = await tx.agentPreferences.findUnique({
-          where: { clientId },
-          select: { id: true },
-        })
-
-        if (!existingPreferences) {
-          await tx.agentPreferences.create({
-            data: {
-              clientId,
-              autonomyLevel: 'ADVISORY',
-              allowWorkoutModification: false,
-              allowRestDayInjection: false,
-              maxIntensityReduction: 10,
-              dailyBriefingEnabled: false,
-              proactiveNudgesEnabled: false,
-            },
-          })
-        }
-
-        const existingSportProfile = await tx.sportProfile.findUnique({
-          where: { clientId },
-          select: { id: true },
-        })
-
-        if (!existingSportProfile) {
-          await tx.sportProfile.create({
-            data: {
-              clientId,
-              primarySport: 'RUNNING',
-              onboardingCompleted: false,
-              onboardingStep: 0,
-            },
-          })
-        }
-
-        // Update subscription athlete count when the coach has a personal subscription.
-        const subscription = await tx.subscription.findUnique({
-          where: { userId: coach.id },
-        })
-
-        if (subscription) {
-          await tx.subscription.update({
-            where: { userId: coach.id },
-            data: {
-              currentAthletes: {
-                increment: 1,
-              },
-            },
-          })
-        }
-
-        return account
-      })
-    } catch (txError) {
-      // Clean up Supabase user if DB transaction failed
-      logger.error('Athlete account DB transaction failed, cleaning up auth user', { email, clientId }, txError)
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id).catch((cleanupErr) => {
-        logger.error('Failed to clean up Supabase user after transaction failure', { userId: authData.user.id }, cleanupErr)
-      })
-      throw txError
+    const profileEmail = email?.trim().toLowerCase() || client.email?.trim().toLowerCase()
+    if (!profileEmail) {
+      return NextResponse.json(
+        { error: 'Klienten måste ha en e-postadress i profilen' },
+        { status: 400 }
+      )
     }
 
-    // Send welcome email with temporary password
-    if (resend && process.env.EMAILS_PAUSED !== 'true') {
-      try {
-        // Coach is the implicit sender of the athlete-welcome mail. When their
-        // email is on the business's verified custom domain, the From: header
-        // becomes their personal address.
-        const emailBranding = await resolveEmailBranding(client.businessId ?? null, {
-          senderUserId: coach.id,
-        })
-        const safeClientName = escapeHtml(client.name)
-        const safeEmail = escapeHtml(email)
-        const safePassword = escapeHtml(password)
-        const loginUrlRaw = `${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/login`
-        const safeLoginUrl = sanitizeAttribute(sanitizeUrl(loginUrlRaw))
+    const existingUser = await prisma.user.findFirst({
+      where: { email: { equals: profileEmail, mode: 'insensitive' } },
+      select: { id: true },
+    })
 
-        const welcomeHtml = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h1 style="color: #1a1a1a;">Välkommen till Konditionstest!</h1>
-              <p>Hej ${safeClientName},</p>
-              <p>Din tränare har skapat ett atletkonto åt dig. Nu kan du logga in och se dina träningsprogram, logga pass och följa din utveckling.</p>
-              <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 0 0 10px 0;"><strong>E-post:</strong> ${safeEmail}</p>
-                <p style="margin: 0;"><strong>Temporärt lösenord:</strong> ${safePassword}</p>
-              </div>
-              <p style="color: #666;">Vi rekommenderar att du ändrar ditt lösenord efter första inloggningen.</p>
-              <a href="${safeLoginUrl}"
-                 style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
-                Logga in
-              </a>
-              <p style="color: #999; font-size: 12px; margin-top: 30px;">
-                Om du har frågor, kontakta din tränare direkt.
-              </p>
-            </div>
-          `
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
-        await resend.emails.send({
-          from: emailBranding.fromAddress,
-          replyTo: emailBranding.replyTo,
-          to: email,
-          subject: 'Välkommen till Konditionstest - Ditt atletkonto är skapat',
-          html: welcomeHtml,
-          text: welcomeHtml.replace(/<[^>]+>/g, '').replace(/\n{3,}/g, '\n\n').trim(),
-          headers: {
-            'List-Unsubscribe': `<mailto:unsubscribe@trainomics.app?subject=unsubscribe>, <${appUrl}/unsubscribe>`,
-            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-          },
-        })
-        logger.info('Welcome email sent', { email, clientId })
-      } catch (emailError) {
-        logger.error('Failed to send welcome email', { email, clientId }, emailError)
-        // Don't fail the request if email fails - account is still created
-      }
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'This email is already in use' },
+        { status: 400 }
+      )
     }
 
-    // SECURITY: Never return passwords in API responses
-    // Credentials are sent via email only
+    if (client.email?.toLowerCase() !== profileEmail) {
+      await prisma.client.update({
+        where: { id: clientId },
+        data: { email: profileEmail },
+      })
+    }
+
+    const created = await createAthleteAccountForClient(clientId, coach.id, {
+      notificationPrefs,
+      tier,
+      trialDays,
+    })
+
+    if (!created.success || !created.athleteAccount) {
+      return NextResponse.json(
+        { error: created.error || 'Kunde inte skapa atletkonto' },
+        { status: 400 }
+      )
+    }
+
+    const inviteResult = await sendAthletePlatformInvite(clientId, coach.id)
+
     return NextResponse.json(
       {
-        athleteAccount,
-        message: 'Athlete account created successfully. Login credentials have been sent to the athlete\'s email.',
+        athleteAccount: created.athleteAccount,
+        emailSent: inviteResult.emailSent ?? false,
+        email: profileEmail,
+        message: inviteResult.success
+          ? `Atletkonto skapat och inbjudan skickad till ${profileEmail}.`
+          : `Atletkonto skapat, men inbjudan kunde inte skickas: ${inviteResult.error}`,
       },
       { status: 201 }
     )
@@ -394,17 +202,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-/**
- * Generate a random temporary password
- */
-function generateTemporaryPassword(): string {
-  const length = 12
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
-  let password = ''
-  for (let i = 0; i < length; i++) {
-    password += charset.charAt(Math.floor(Math.random() * charset.length))
-  }
-  return password
 }
