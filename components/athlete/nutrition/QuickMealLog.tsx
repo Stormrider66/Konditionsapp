@@ -87,6 +87,47 @@ export interface MealLogData {
   notes?: string
 }
 
+interface YesterdayMealItem {
+  foodId: string | null
+  name: string
+  estimatedGrams: number
+  portionDescription: string | null
+  calories: number
+  proteinGrams: number
+  carbsGrams: number
+  fatGrams: number
+  fiberGrams: number
+}
+
+interface YesterdayMeal {
+  description: string
+  calories: number | null
+  proteinGrams: number | null
+  carbsGrams: number | null
+  fatGrams: number | null
+  items?: YesterdayMealItem[]
+}
+
+function formatGrams(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1)
+}
+
+function formatYesterdayItem(item: YesterdayMealItem): string {
+  const portion = item.portionDescription?.trim()
+  const grams = `${formatGrams(item.estimatedGrams)} g`
+  return portion ? `${item.name} (${portion}, ${grams})` : `${item.name} ${grams}`
+}
+
+function getYesterdayAmountSummary(meal: YesterdayMeal): string | null {
+  if (!meal.items || meal.items.length === 0) return null
+
+  const totalGrams = meal.items.reduce((sum, item) => sum + item.estimatedGrams, 0)
+  const itemPreview = meal.items.slice(0, 3).map(formatYesterdayItem).join(', ')
+  const extraCount = meal.items.length > 3 ? ` +${meal.items.length - 3} till` : ''
+
+  return `${formatGrams(Math.round(totalGrams * 10) / 10)} g totalt · ${itemPreview}${extraCount}`
+}
+
 const MEAL_TYPE_CONFIG: Record<MealType, { icon: typeof Sunrise; label: string; color: string }> = {
   BREAKFAST: { icon: Sunrise, label: 'Frukost', color: 'bg-yellow-500' },
   MORNING_SNACK: { icon: Coffee, label: 'Förmiddagsfika', color: 'bg-orange-400' },
@@ -295,14 +336,10 @@ export function QuickMealLog({
     Array<{ name: string; grams: number; kcal: number; p: number; c: number; f: number }> | null
   >(null)
 
-  // Yesterday's meal for current meal type
-  const [yesterdayMeal, setYesterdayMeal] = useState<{
-    description: string
-    calories: number | null
-    proteinGrams: number | null
-    carbsGrams: number | null
-    fatGrams: number | null
-  } | null>(null)
+  // Yesterday's meals, keyed by meal type so switching type updates the repeat option.
+  const [yesterdayMeals, setYesterdayMeals] = useState<Record<string, YesterdayMeal>>({})
+  const yesterdayMeal = yesterdayMeals[formData.mealType] || null
+  const yesterdayAmountSummary = yesterdayMeal ? getYesterdayAmountSummary(yesterdayMeal) : null
 
   // Fetch personalized meals + yesterday's meals when dialog opens
   useEffect(() => {
@@ -325,15 +362,11 @@ export function QuickMealLog({
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.yesterdayMeals) {
-          const currentType = defaultMealType || guessDefaultMealType()
-          const match = data.yesterdayMeals[currentType]
-          if (match?.description) {
-            setYesterdayMeal(match)
-          }
+          setYesterdayMeals(data.yesterdayMeals as Record<string, YesterdayMeal>)
         }
       })
       .catch(() => {})
-  }, [open, defaultMealType])
+  }, [open])
 
   const quickMeals = personalMeals || QUICK_MEALS
   const quickMealsLabel = personalMeals ? 'Dina vanligaste' : 'Snabbval'
@@ -349,6 +382,36 @@ export function QuickMealLog({
     }))
     setShowMacros(true)
     setSelectedQuickMealItems(meal.items || null)
+  }
+
+  const handleYesterdayMealSelect = () => {
+    if (!yesterdayMeal) return
+
+    setFormData(prev => ({
+      ...prev,
+      description: yesterdayMeal.description,
+      calories: yesterdayMeal.calories?.toString() || '',
+      proteinGrams: yesterdayMeal.proteinGrams?.toString() || '',
+      carbsGrams: yesterdayMeal.carbsGrams?.toString() || '',
+      fatGrams: yesterdayMeal.fatGrams?.toString() || '',
+    }))
+    setSelectedQuickMealItems(null)
+
+    if (yesterdayMeal.items && yesterdayMeal.items.length > 0) {
+      setIngredients(ingredientRowsFromItems(yesterdayMeal.items.map((item) => ({
+        foodId: item.foodId ?? undefined,
+        name: item.name,
+        estimatedGrams: item.estimatedGrams,
+        calories: item.calories,
+        proteinGrams: item.proteinGrams,
+        carbsGrams: item.carbsGrams,
+        fatGrams: item.fatGrams,
+        fiberGrams: item.fiberGrams,
+      }))))
+      setTab('ingredients')
+    }
+
+    if (yesterdayMeal.calories) setShowMacros(true)
   }
 
   const handleQuickMealItemGramsChange = (index: number, newGrams: number) => {
@@ -447,7 +510,7 @@ export function QuickMealLog({
       (r) => r.name.trim().length > 0 && r.grams > 0
     )
     const derivedDescription = usingIngredients
-      ? ingredients
+      ? formData.description.trim() || ingredients
           .filter((r) => r.name.trim().length > 0)
           .map((r) => r.name.trim())
           .join(', ')
@@ -532,7 +595,7 @@ export function QuickMealLog({
     setShowMacros(false)
     setEnhancedFields({})
     setSelectedQuickMealItems(null)
-    setYesterdayMeal(null)
+    setYesterdayMeals({})
     setError(null)
     setTab(defaultTab)
     setIngredients([])
@@ -615,21 +678,20 @@ export function QuickMealLog({
           {yesterdayMeal && !formData.description && (
             <Button
               variant="outline"
-              className="w-full justify-start gap-2 text-sm dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
-              onClick={() => {
-                setFormData(prev => ({
-                  ...prev,
-                  description: yesterdayMeal.description,
-                  calories: yesterdayMeal.calories?.toString() || '',
-                  proteinGrams: yesterdayMeal.proteinGrams?.toString() || '',
-                  carbsGrams: yesterdayMeal.carbsGrams?.toString() || '',
-                  fatGrams: yesterdayMeal.fatGrams?.toString() || '',
-                }))
-                if (yesterdayMeal.calories) setShowMacros(true)
-              }}
+              className="h-auto w-full justify-start gap-2 py-2 text-sm dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+              onClick={handleYesterdayMealSelect}
             >
               <Repeat className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="truncate min-w-0 flex-1 text-left">Samma som igår: <span className="font-medium">{yesterdayMeal.description}</span></span>
+              <span className="min-w-0 flex-1 text-left">
+                <span className="block truncate">
+                  Samma som igår: <span className="font-medium">{yesterdayMeal.description}</span>
+                </span>
+                {yesterdayAmountSummary && (
+                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                    {yesterdayAmountSummary}
+                  </span>
+                )}
+              </span>
             </Button>
           )}
 

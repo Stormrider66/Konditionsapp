@@ -270,6 +270,20 @@ export async function GET(request: NextRequest) {
           proteinGrams: true,
           carbsGrams: true,
           fatGrams: true,
+          items: {
+            orderBy: { sortOrder: 'asc' },
+            select: {
+              foodId: true,
+              name: true,
+              estimatedGrams: true,
+              portionDescription: true,
+              calories: true,
+              proteinGrams: true,
+              carbsGrams: true,
+              fatGrams: true,
+              fiberGrams: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       })
@@ -281,6 +295,17 @@ export async function GET(request: NextRequest) {
         proteinGrams: number | null
         carbsGrams: number | null
         fatGrams: number | null
+        items: {
+          foodId: string | null
+          name: string
+          estimatedGrams: number
+          portionDescription: string | null
+          calories: number
+          proteinGrams: number
+          carbsGrams: number
+          fatGrams: number
+          fiberGrams: number
+        }[]
       }> = {}
 
       for (const meal of meals) {
@@ -291,6 +316,7 @@ export async function GET(request: NextRequest) {
             proteinGrams: meal.proteinGrams,
             carbsGrams: meal.carbsGrams,
             fatGrams: meal.fatGrams,
+            items: meal.items,
           }
         }
       }
