@@ -652,7 +652,9 @@ export function HockeyTestForm({ clients, teams, businessSlug, onSaved }: Hockey
           muscleLabJumps: muscleLabRows.length > 0 ? muscleLabRows : undefined,
           muscleLabMaxima: muscleLabMaxima || undefined,
           muscleLabRaw: muscleLabRaw || undefined,
-          sourceType: muscleLabRows.length > 0 || muscleLabRaw ? 'MUSCLE_LAB_IMPORT' : 'MANUAL',
+          sourceType: muscleLabRows.length > 0 || muscleLabMaxima || muscleLabRaw
+            ? 'MUSCLE_LAB_IMPORT'
+            : 'MANUAL',
         }),
       })
 

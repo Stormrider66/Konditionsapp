@@ -130,7 +130,11 @@ export async function GET(req: NextRequest) {
         client: { select: { id: true, name: true } },
         team: { select: { id: true, name: true } },
       },
-      orderBy: { testDate: 'desc' },
+      orderBy: [
+        { testDate: 'desc' },
+        { updatedAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
       take: 100,
     })
     const linkedProfiles = await getLinkedHockeyAerobicProfiles(tests.map((test) => test.clientId))
@@ -207,52 +211,87 @@ export async function POST(req: NextRequest) {
     )
 
     const testDate = new Date(parsed.data.testDate)
-    const test = await prisma.hockeyPhysicalTest.create({
-      data: {
-        clientId: parsed.data.clientId,
-        teamId: parsed.data.teamId || null,
-        coachId: user.id,
-        testDate,
-        notes: parsed.data.notes,
-        agility505Left: parsed.data.agility505Left,
-        agility505Right: parsed.data.agility505Right,
-        sprint5m: parsed.data.sprint5m,
-        sprint10m: parsed.data.sprint10m,
-        sprint20m: parsed.data.sprint20m,
-        sprint30m: parsed.data.sprint30m,
-        sprint20mFly: parsed.data.sprint20mFly,
-        sprint30mFly: parsed.data.sprint30mFly,
-        endurance7x40: parsed.data.endurance7x40 || undefined,
-        jumpSquatLadder: parsed.data.jumpSquatLadder || undefined,
-        singleLegJumpLeft: parsed.data.singleLegJumpLeft || undefined,
-        singleLegJumpRight: parsed.data.singleLegJumpRight || undefined,
-        gripStrengthLeft: parsed.data.gripStrengthLeft,
-        gripStrengthRight: parsed.data.gripStrengthRight,
-        standingLongJump: parsed.data.standingLongJump,
-        threeJumpLeft: parsed.data.threeJumpLeft,
-        threeJumpRight: parsed.data.threeJumpRight,
-        beepTestLevel: parsed.data.beepTestLevel,
-        beepTestShuttle: parsed.data.beepTestShuttle,
-        vo2Max: aerobicData.vo2Max,
-        lt1SpeedKmh: aerobicData.lt1SpeedKmh,
-        lt1HeartRate: aerobicData.lt1HeartRate,
-        lt1Lactate: aerobicData.lt1Lactate,
-        lt2SpeedKmh: aerobicData.lt2SpeedKmh,
-        lt2HeartRate: aerobicData.lt2HeartRate,
-        lt2Lactate: aerobicData.lt2Lactate,
-        maxLactate: aerobicData.maxLactate,
-        maxHeartRate: aerobicData.maxHeartRate,
-        rampTimeSeconds: aerobicData.rampTimeSeconds,
-        backSquat1RM: parsed.data.backSquat1RM,
-        powerClean1RM: parsed.data.powerClean1RM,
-        benchPress1RM: parsed.data.benchPress1RM,
-        pullUp1RM: parsed.data.pullUp1RM,
-        muscleLabJumps: parsed.data.muscleLabJumps as Prisma.InputJsonValue | undefined,
-        muscleLabMaxima: parsed.data.muscleLabMaxima as Prisma.InputJsonValue | undefined,
-        muscleLabRaw: parsed.data.muscleLabRaw as Prisma.InputJsonValue | undefined,
-        sourceType: parsed.data.sourceType,
-      },
-    })
+    const hasMuscleLabData = Boolean(
+      (parsed.data.muscleLabJumps?.length ?? 0) > 0 ||
+      parsed.data.muscleLabMaxima ||
+      parsed.data.muscleLabRaw,
+    )
+    const sourceType = hasMuscleLabData ? 'MUSCLE_LAB_IMPORT' : parsed.data.sourceType
+    const testValues = {
+      notes: parsed.data.notes,
+      agility505Left: parsed.data.agility505Left,
+      agility505Right: parsed.data.agility505Right,
+      sprint5m: parsed.data.sprint5m,
+      sprint10m: parsed.data.sprint10m,
+      sprint20m: parsed.data.sprint20m,
+      sprint30m: parsed.data.sprint30m,
+      sprint20mFly: parsed.data.sprint20mFly,
+      sprint30mFly: parsed.data.sprint30mFly,
+      endurance7x40: parsed.data.endurance7x40 as Prisma.InputJsonValue | undefined,
+      jumpSquatLadder: parsed.data.jumpSquatLadder as Prisma.InputJsonValue | undefined,
+      singleLegJumpLeft: parsed.data.singleLegJumpLeft as Prisma.InputJsonValue | undefined,
+      singleLegJumpRight: parsed.data.singleLegJumpRight as Prisma.InputJsonValue | undefined,
+      gripStrengthLeft: parsed.data.gripStrengthLeft,
+      gripStrengthRight: parsed.data.gripStrengthRight,
+      standingLongJump: parsed.data.standingLongJump,
+      threeJumpLeft: parsed.data.threeJumpLeft,
+      threeJumpRight: parsed.data.threeJumpRight,
+      beepTestLevel: parsed.data.beepTestLevel,
+      beepTestShuttle: parsed.data.beepTestShuttle,
+      vo2Max: aerobicData.vo2Max,
+      lt1SpeedKmh: aerobicData.lt1SpeedKmh,
+      lt1HeartRate: aerobicData.lt1HeartRate,
+      lt1Lactate: aerobicData.lt1Lactate,
+      lt2SpeedKmh: aerobicData.lt2SpeedKmh,
+      lt2HeartRate: aerobicData.lt2HeartRate,
+      lt2Lactate: aerobicData.lt2Lactate,
+      maxLactate: aerobicData.maxLactate,
+      maxHeartRate: aerobicData.maxHeartRate,
+      rampTimeSeconds: aerobicData.rampTimeSeconds,
+      backSquat1RM: parsed.data.backSquat1RM,
+      powerClean1RM: parsed.data.powerClean1RM,
+      benchPress1RM: parsed.data.benchPress1RM,
+      pullUp1RM: parsed.data.pullUp1RM,
+      muscleLabJumps: parsed.data.muscleLabJumps as Prisma.InputJsonValue | undefined,
+      muscleLabMaxima: parsed.data.muscleLabMaxima as Prisma.InputJsonValue | undefined,
+      muscleLabRaw: parsed.data.muscleLabRaw as Prisma.InputJsonValue | undefined,
+      sourceType,
+    }
+
+    const existingSameDayTest = hasMuscleLabData
+      ? await prisma.hockeyPhysicalTest.findFirst({
+          where: {
+            clientId: parsed.data.clientId,
+            testDate: {
+              gte: testDate,
+              lt: new Date(testDate.getTime() + 24 * 60 * 60 * 1000),
+            },
+          },
+          orderBy: [
+            { updatedAt: 'desc' },
+            { createdAt: 'desc' },
+          ],
+          select: { id: true },
+        })
+      : null
+
+    const test = existingSameDayTest
+      ? await prisma.hockeyPhysicalTest.update({
+          where: { id: existingSameDayTest.id },
+          data: {
+            ...testValues,
+            teamId: parsed.data.teamId || undefined,
+          },
+        })
+      : await prisma.hockeyPhysicalTest.create({
+          data: {
+            clientId: parsed.data.clientId,
+            teamId: parsed.data.teamId || null,
+            coachId: user.id,
+            testDate,
+            ...testValues,
+          },
+        })
 
     const strengthPrSync = await syncHockeyStrengthPrsFromTest({
       clientId: parsed.data.clientId,

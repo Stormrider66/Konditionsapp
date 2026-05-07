@@ -285,7 +285,9 @@ function toSummary(
   return {
     id: test.id,
     testDate: test.testDate.toISOString(),
-    sourceType: test.sourceType,
+    sourceType: test.sourceType === 'MUSCLE_LAB_IMPORT' || test.muscleLabMaxima
+      ? 'MUSCLE_LAB_IMPORT'
+      : test.sourceType,
     notes: test.notes,
     season: seasonLabel(test.testDate),
     ageAtTest: age,
@@ -587,7 +589,11 @@ function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): Hockey
 async function loadTests(clientId: string) {
   return prisma.hockeyPhysicalTest.findMany({
     where: { clientId },
-    orderBy: { testDate: 'desc' },
+    orderBy: [
+      { testDate: 'desc' },
+      { updatedAt: 'desc' },
+      { createdAt: 'desc' },
+    ],
     take: 80,
     select: {
       id: true,

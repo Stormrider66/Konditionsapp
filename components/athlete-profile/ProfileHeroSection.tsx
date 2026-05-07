@@ -43,6 +43,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
   const athleteProfile = data.identity.athleteProfile
   const latestTest = data.physiology.tests[0]
   const latestRace = data.performance.raceResults[0]
+  const canEditMetrics = viewMode === 'coach' || isAthlete
 
   const router = useRouter()
 
@@ -91,11 +92,14 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
     setBodyError('')
     setBodySaving(true)
     try {
-      const res = await fetch('/api/athlete/profile/body', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ height: bodyHeight, weight: bodyWeight }),
-      })
+      const res = await fetch(
+        isAthlete ? '/api/athlete/profile/body' : `/api/clients/${client.id}/profile-metrics`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ height: bodyHeight, weight: bodyWeight }),
+        }
+      )
       const json = await res.json()
       if (!json.success) {
         setBodyError(json.error || 'Kunde inte spara')
@@ -121,14 +125,17 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
     setPhysioError('')
     setPhysioSaving(true)
     try {
-      const res = await fetch('/api/athlete/profile/physiology', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          manualVo2max: physioVo2max || null,
-          manualMaxHR: physioMaxHR || null,
-        }),
-      })
+      const res = await fetch(
+        isAthlete ? '/api/athlete/profile/physiology' : `/api/clients/${client.id}/profile-metrics`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            manualVo2max: physioVo2max || null,
+            manualMaxHR: physioMaxHR || null,
+          }),
+        }
+      )
       const json = await res.json()
       if (!json.success) {
         setPhysioError(json.error || 'Kunde inte spara')
@@ -145,11 +152,11 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
 
   // Calculate key metrics
   const age = calculateAge(client.birthDate)
-  const vo2max = latestTest?.vo2max || client.manualVo2max
-  const vo2maxSource = latestTest?.vo2max ? 'test' : (client.manualVo2max ? 'manual' : null)
+  const vo2max = client.manualVo2max || latestTest?.vo2max
+  const vo2maxSource = client.manualVo2max ? 'manual' : (latestTest?.vo2max ? 'test' : null)
   const vdot = athleteProfile?.currentVDOT || latestRace?.vdot
-  const maxHR = latestTest?.maxHR || client.manualMaxHR
-  const maxHRSource = latestTest?.maxHR ? 'test' : (client.manualMaxHR ? 'manual' : null)
+  const maxHR = client.manualMaxHR || latestTest?.maxHR
+  const maxHRSource = client.manualMaxHR ? 'manual' : (latestTest?.maxHR ? 'test' : null)
 
   // Get initials for avatar
   const initials = client.name
@@ -248,7 +255,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
               <span className="opacity-20">•</span>
               <span className="inline-flex items-center gap-1">
                 {client.height} cm / {client.weight} kg
-                {isAthlete && (
+                {canEditMetrics && (
                   <button
                     onClick={() => {
                       setBodyHeight(client.height)
@@ -328,7 +335,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
             subtext={vo2maxSource === 'test' && latestTest ? `${format(new Date(latestTest.testDate), 'd MMM yyyy', { locale: sv })}` : vo2maxSource === 'manual' ? 'Manuellt' : undefined}
             isGlass={isGlass}
             accentColor="emerald"
-            onEdit={isAthlete ? () => {
+            onEdit={canEditMetrics ? () => {
               setPhysioVo2max(client.manualVo2max)
               setPhysioMaxHR(client.manualMaxHR)
               setPhysioError('')
@@ -353,7 +360,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
             subtext={maxHRSource === 'manual' ? 'Manuellt' : undefined}
             isGlass={isGlass}
             accentColor="red"
-            onEdit={isAthlete ? () => {
+            onEdit={canEditMetrics ? () => {
               setPhysioVo2max(client.manualVo2max)
               setPhysioMaxHR(client.manualMaxHR)
               setPhysioError('')
@@ -405,7 +412,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
       )}
 
       {/* Edit Body Measurements Dialog */}
-      {isAthlete && (
+      {canEditMetrics && (
         <Dialog open={showBodyDialog} onOpenChange={setShowBodyDialog}>
           <DialogContent className="sm:max-w-[360px] text-foreground">
             <DialogHeader>
@@ -487,14 +494,14 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
         </Dialog>
       )}
       {/* Edit Physiology Dialog */}
-      {isAthlete && (
+      {canEditMetrics && (
         <Dialog open={showPhysioDialog} onOpenChange={setShowPhysioDialog}>
           <DialogContent className="sm:max-w-[360px] text-foreground">
             <DialogHeader>
               <DialogTitle className="text-foreground">Uppdatera fysiologiska värden</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              Fyll i dina värden manuellt. Dessa ersätts automatiskt om du gör ett konditionstest.
+              Fyll i aktuella manuella värden när de ändras mellan konditionstester.
             </p>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
