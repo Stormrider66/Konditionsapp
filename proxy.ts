@@ -47,13 +47,6 @@ function resolveSupabaseServiceKey(): string {
   return anon
 }
 
-// Middleware runs in the Edge runtime. `supabase.auth.getUser()` can be a major bottleneck
-// under load because it may involve network I/O. Cache it briefly and dedupe in-flight
-// lookups to avoid stampeding (especially for k6 which uses a single cookie across VUs).
-const AUTH_USER_CACHE_TTL_MS = 60 * 1000
-const authUserCache = new Map<string, { expiresAt: number; user: CachedAuthUser }>()
-const authUserInFlight = new Map<string, Promise<CachedAuthUser>>()
-
 // Custom domain → business slug cache (5-min TTL)
 const DOMAIN_CACHE_TTL_MS = 5 * 60 * 1000
 const domainSlugCache = new Map<string, { expiresAt: number; slug: string | null }>()
@@ -376,59 +369,18 @@ function addSecurityHeaders(
   return response
 }
 
-function buildAuthCacheKeyFromRequest(request: NextRequest): string {
-  const cookieHeader = request.headers.get('cookie') || ''
-  const supabaseSessionCookie = cookieHeader
-    .split(';')
-    .map((part) => part.trim())
-    .find((part) => part.startsWith('sb-') && part.includes('auth-token='))
-
-  if (supabaseSessionCookie) {
-    return `cookie:${supabaseSessionCookie}`
-  }
-
-  // Avoid unbounded keys; edge instances may handle many anonymous requests.
-  return `cookie:${cookieHeader.slice(0, 256)}`
-}
-
-async function getSupabaseUserCached(
-  request: NextRequest,
+async function getSupabaseUser(
   supabase: ReturnType<typeof createServerClient>
 ): Promise<CachedAuthUser> {
-  const cacheKey = buildAuthCacheKeyFromRequest(request)
-  const nowMs = Date.now()
-  const cached = authUserCache.get(cacheKey)
-  if (cached && cached.expiresAt > nowMs) {
-    return cached.user
-  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return null
 
-  const inFlight = authUserInFlight.get(cacheKey)
-  if (inFlight) {
-    return inFlight
-  }
-
-  const lookupPromise = (async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return null
-    return {
-      id: user.id,
-      email: user.email ?? null,
-      appMetadata: (user.app_metadata ?? null) as Record<string, unknown> | null,
-    }
-  })()
-
-  authUserInFlight.set(cacheKey, lookupPromise)
-  try {
-    const resolved = await lookupPromise
-    authUserCache.set(cacheKey, {
-      expiresAt: nowMs + AUTH_USER_CACHE_TTL_MS,
-      user: resolved,
-    })
-    return resolved
-  } finally {
-    authUserInFlight.delete(cacheKey)
+  return {
+    id: user.id,
+    email: user.email ?? null,
+    appMetadata: (user.app_metadata ?? null) as Record<string, unknown> | null,
   }
 }
 
@@ -676,8 +628,10 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired (cached to reduce edge->supabase calls under load).
-  const supabaseUser = await getSupabaseUserCached(request, supabase)
+  // Refresh session if needed. Do not cache or dedupe this call:
+  // Supabase may rotate refresh tokens and write Set-Cookie headers as a
+  // side effect, and every request must carry those mutations forward.
+  const supabaseUser = await getSupabaseUser(supabase)
 
   // For API routes, don't do page redirects/auth routing in middleware.
   // API handlers should return JSON 401/403 as appropriate.
