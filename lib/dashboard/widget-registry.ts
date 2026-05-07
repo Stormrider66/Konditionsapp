@@ -323,6 +323,15 @@ const ATHLETE_WIDGETS: WidgetDefinition[] = [
     defaultVisible: true,
     defaultOrder: 260,
   },
+  {
+    key: 'oura-health-card',
+    name: 'Oura Ring',
+    description: 'Beredskap, sömnpoäng, HRV, vilopuls och SpO₂ från Oura',
+    category: 'health',
+    audience: ['athlete'],
+    defaultVisible: true,
+    defaultOrder: 265,
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -587,6 +596,7 @@ export const PRESETS: Record<PresetKey, Preset> = {
         'active-programs',
         'upcoming-workouts',
         'garmin-health-card',
+        'oura-health-card',
       ])
       return new Set(all.filter(w => w.required || keep.has(w.key)).map(w => w.key))
     },
@@ -601,6 +611,7 @@ export const PRESETS: Record<PresetKey, Preset> = {
         'readiness-panel',
         'active-restrictions',
         'garmin-health-card',
+        'oura-health-card',
         'mental-prep',
         'nutrition-timing',
         'nutrition-dashboard',
@@ -638,6 +649,7 @@ export const PRESETS: Record<PresetKey, Preset> = {
         base.add('zone-distribution-chart')
         base.add('integrated-recent-activity')
         base.add('garmin-health-card')
+        base.add('oura-health-card')
         base.add('morning-briefing')
       } else if (sport && strengthFocusSports.includes(sport)) {
         base.add('wod-history-summary')
