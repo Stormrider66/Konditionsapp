@@ -26,6 +26,7 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
   const [voiceMealOpen, setVoiceMealOpen] = useState(false)
   const [quickMealOpen, setQuickMealOpen] = useState(false)
   const [quickMealTab, setQuickMealTab] = useState<'text' | 'ingredients'>('text')
+  const [recipeScanRequestKey, setRecipeScanRequestKey] = useState(0)
 
   const handleMealMethod = (method: MealInputMethod) => {
     if (method === 'photo') {
@@ -41,7 +42,8 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
       if (method === 'voice') {
         setVoiceMealOpen(true)
       } else {
-        setQuickMealTab(method === 'ingredients' ? 'ingredients' : 'text')
+        if (method === 'recipe') setRecipeScanRequestKey((key) => key + 1)
+        setQuickMealTab(method === 'ingredients' || method === 'recipe' ? 'ingredients' : 'text')
         setQuickMealOpen(true)
       }
     }, 0)
@@ -123,6 +125,7 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
           window.dispatchEvent(new Event('meal-logged'))
         }}
         defaultTab={quickMealTab}
+        recipeScanRequestKey={recipeScanRequestKey}
       />
     </>
   )

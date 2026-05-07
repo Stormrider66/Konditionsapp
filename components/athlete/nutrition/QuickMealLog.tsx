@@ -35,6 +35,7 @@ import {
   Moon,
   Coffee,
   Apple,
+  Camera,
   Dumbbell,
   UtensilsCrossed,
   AlertCircle,
@@ -69,6 +70,7 @@ interface QuickMealLogProps {
   defaultMealType?: MealType
   editMeal?: EditMealData | null
   defaultTab?: MealLogTab
+  recipeScanRequestKey?: number
 }
 
 type MealLogTab = 'text' | 'ingredients'
@@ -225,6 +227,7 @@ export function QuickMealLog({
   defaultMealType,
   editMeal,
   defaultTab = 'text',
+  recipeScanRequestKey = 0,
 }: QuickMealLogProps) {
   const isEditMode = !!editMeal
   const [isLoading, setIsLoading] = useState(false)
@@ -232,6 +235,7 @@ export function QuickMealLog({
   const [error, setError] = useState<string | null>(null)
   const [showMacros, setShowMacros] = useState(false)
   const [tab, setTab] = useState<MealLogTab>(defaultTab)
+  const [ingredientScanRequestKey, setIngredientScanRequestKey] = useState(0)
   const [ingredients, setIngredients] = useState<IngredientRow[]>([])
   const [enhancedFields, setEnhancedFields] = useState<{
     saturatedFatGrams?: number
@@ -368,6 +372,12 @@ export function QuickMealLog({
       .catch(() => {})
   }, [open])
 
+  useEffect(() => {
+    if (!open || recipeScanRequestKey <= 0) return
+    setTab('ingredients')
+    setIngredientScanRequestKey((key) => key + 1)
+  }, [open, recipeScanRequestKey])
+
   const quickMeals = personalMeals || QUICK_MEALS
   const quickMealsLabel = personalMeals ? 'Dina vanligaste' : 'Snabbval'
 
@@ -382,6 +392,11 @@ export function QuickMealLog({
     }))
     setShowMacros(true)
     setSelectedQuickMealItems(meal.items || null)
+  }
+
+  const openRecipeImageUpload = () => {
+    setTab('ingredients')
+    setIngredientScanRequestKey((key) => key + 1)
   }
 
   const handleYesterdayMealSelect = () => {
@@ -674,26 +689,43 @@ export function QuickMealLog({
             </TabsList>
 
             <TabsContent value="text" className="space-y-4">
-          {/* Same as yesterday */}
-          {yesterdayMeal && !formData.description && (
-            <Button
-              variant="outline"
-              className="h-auto w-full justify-start gap-2 py-2 text-sm dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
-              onClick={handleYesterdayMealSelect}
-            >
-              <Repeat className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="min-w-0 flex-1 text-left">
-                <span className="block truncate">
-                  Samma som igår: <span className="font-medium">{yesterdayMeal.description}</span>
-                </span>
-                {yesterdayAmountSummary && (
-                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                    {yesterdayAmountSummary}
+              {!isEditMode && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-auto w-full justify-start gap-3 py-3 text-left dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+                  onClick={openRecipeImageUpload}
+                >
+                  <Camera className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium">Ladda upp bild på recept</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Skanna ett fotograferat recept och spara det bland dina recept.
+                    </span>
                   </span>
-                )}
-              </span>
-            </Button>
-          )}
+                </Button>
+              )}
+
+              {/* Same as yesterday */}
+              {yesterdayMeal && !formData.description && (
+                <Button
+                  variant="outline"
+                  className="h-auto w-full justify-start gap-2 py-2 text-sm dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+                  onClick={handleYesterdayMealSelect}
+                >
+                  <Repeat className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block truncate">
+                      Samma som igår: <span className="font-medium">{yesterdayMeal.description}</span>
+                    </span>
+                    {yesterdayAmountSummary && (
+                      <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                        {yesterdayAmountSummary}
+                      </span>
+                    )}
+                  </span>
+                </Button>
+              )}
 
           {/* Quick Meals */}
           <div className="space-y-2">
@@ -859,7 +891,11 @@ export function QuickMealLog({
               <p className="text-xs text-muted-foreground">
                 Sök bland 2 500+ livsmedel från Livsmedelsverket. Beskrivning och makron räknas automatiskt.
               </p>
-              <IngredientBuilder value={ingredients} onChange={setIngredients} />
+              <IngredientBuilder
+                value={ingredients}
+                onChange={setIngredients}
+                scanRequestKey={ingredientScanRequestKey}
+              />
             </TabsContent>
           </Tabs>
 

@@ -44,6 +44,7 @@ interface FoodOption {
 interface IngredientBuilderProps {
   value: IngredientRow[]
   onChange: (next: IngredientRow[]) => void
+  scanRequestKey?: number
 }
 
 interface RecipeScanIngredient {
@@ -213,7 +214,7 @@ function formatRecipeAmount(amount: number, unit: RecipeAmountUnit): string {
   return `${amount} ${unit}`
 }
 
-export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
+export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: IngredientBuilderProps) {
   const ensureRow = () => {
     if (value.length === 0) onChange([makeRow()])
   }
@@ -239,6 +240,10 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
   const [savingRecipe, setSavingRecipe] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (scanRequestKey > 0) fileInputRef.current?.click()
+  }, [scanRequestKey])
 
   const updateRow = (rowId: string, patch: Partial<IngredientRow>) => {
     onChange(value.map((r) => (r.rowId === rowId ? { ...r, ...patch } : r)))
@@ -323,6 +328,8 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
         setSaveName(payload.title.trim().slice(0, 80))
       }
       setLastRecipeSource('SCAN')
+      setRecipesOpen(false)
+      setSaveOpen(true)
     } catch (err) {
       setScanError(err instanceof Error ? err.message : 'Kunde inte tolka receptet')
     } finally {
@@ -439,7 +446,7 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
           disabled={scanning}
         >
           {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-          {scanning ? 'Läser receptet…' : 'Skanna recept'}
+          {scanning ? 'Läser receptet…' : 'Ladda upp receptbild'}
         </Button>
         <Button
           type="button"

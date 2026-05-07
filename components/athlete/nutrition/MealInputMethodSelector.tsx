@@ -8,10 +8,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Camera, Mic, FileText, ChevronRight } from 'lucide-react'
+import { Camera, Mic, FileText, ChevronRight, BookOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export type MealInputMethod = 'photo' | 'voice' | 'quick' | 'ingredients'
+export type MealInputMethod = 'photo' | 'voice' | 'quick' | 'ingredients' | 'recipe'
 
 interface MealInputMethodSelectorProps {
   open: boolean
@@ -50,6 +50,14 @@ const MEAL_METHODS = [
     icon: <FileText className="h-6 w-6" />,
     color:
       'bg-cyan-500/10 text-cyan-500 border-cyan-500/20 dark:bg-cyan-400/25 dark:text-cyan-300 dark:border-cyan-400/40',
+  },
+  {
+    id: 'recipe' as const,
+    label: 'Receptbild',
+    description: 'Ladda upp ett fotograferat recept',
+    icon: <BookOpen className="h-6 w-6" />,
+    color:
+      'bg-amber-500/10 text-amber-500 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-400/40',
   },
 ]
 
