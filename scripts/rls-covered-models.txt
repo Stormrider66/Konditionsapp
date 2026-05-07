@@ -160,6 +160,8 @@ MenstrualDailyLog
 Message
 MonthlyTrainingSummary
 MovementScreen
+NutritionRecipe
+NutritionRecipeIngredient
 NutritionGoal
 NutritionWrapped
 OAuthRequestToken
