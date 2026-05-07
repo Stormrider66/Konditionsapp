@@ -8,7 +8,7 @@ export async function getOpenSupportTickets(): Promise<OperatorToolResult> {
   try {
     const tickets = await prisma.supportTicket.findMany({
       where: {
-        status: 'OPEN',
+        status: { in: ['OPEN', 'IN_PROGRESS'] },
         agentClassified: false,
       },
       orderBy: { createdAt: 'asc' },
