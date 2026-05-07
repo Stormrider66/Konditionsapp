@@ -34,7 +34,7 @@ import {
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { NutritionFocusDashboard } from '@/components/athlete/NutritionFocusDashboard'
-import { RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, HeroCardSlider, QuickActionsGrid, GarminHealthCard } from '@/components/athlete/dashboard'
+import { RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, HeroCardSlider, QuickActionsGrid, GarminHealthCard, OuraHealthCard } from '@/components/athlete/dashboard'
 import { AgentRecommendationsPanel } from '@/components/athlete/agent'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
 import { calculateMuscularFatigue, type WorkoutLogWithSetLogs } from '@/lib/hero-card'
@@ -843,6 +843,10 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
               />
             ) },
             { key: 'wod-history-summary', node: <WODHistorySummary recentWods={wodHistory} stats={wodStats} basePath={basePath} /> },
+            { key: 'oura-health-card', node: (() => {
+              const fs = latestMetrics?.factorScores as Record<string, any> | null
+              return <OuraHealthCard oura={fs?.oura ?? null} />
+            })() },
             { key: 'garmin-health-card', node: (
               <GarminHealthCard
                 hrvRMSSD={latestMetrics?.hrvRMSSD}
