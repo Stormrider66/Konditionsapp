@@ -48,6 +48,30 @@ const applyDensity = (density: number | undefined, grams: number, decimals = 1) 
   return roundTo(density * grams, decimals)
 }
 
+export function parsePortionGramsFromText(text: string): number | null {
+  const normalized = text
+    .trim()
+    .toLowerCase()
+    .replace(',', '.')
+    .replace(/\s+/g, ' ')
+
+  const match = normalized.match(/(^|\s)(\d+(?:\.\d+)?)\s*(kg|g|gram|ml|cl|dl|l|liter)\b/)
+  if (!match) return null
+
+  const amount = Number.parseFloat(match[2])
+  if (!Number.isFinite(amount) || amount <= 0) return null
+
+  const unit = match[3]
+  if (unit === 'kg') return roundTo(amount * 1000, 1)
+  if (unit === 'g' || unit === 'gram') return roundTo(amount, 1)
+  if (unit === 'ml') return roundTo(amount, 1)
+  if (unit === 'cl') return roundTo(amount * 10, 1)
+  if (unit === 'dl') return roundTo(amount * 100, 1)
+  if (unit === 'l' || unit === 'liter') return roundTo(amount * 1000, 1)
+
+  return null
+}
+
 export function createEditableFoodItem(
   item: FoodPhotoAnalysisResult['items'][number]
 ): EditableFoodItem {

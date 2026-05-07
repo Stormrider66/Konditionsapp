@@ -39,7 +39,7 @@ const recipeSchema = z.object({
     .array(
       z.object({
         name: z.string().describe('Ingrediensens svenska namn — så nära Livsmedelsverkets terminologi som möjligt.'),
-        grams: z.number().nonnegative().describe('Vikt i gram per portion.'),
+        grams: z.number().nonnegative().describe('Vikt i gram för hela receptet/satsen.'),
       })
     )
     .min(1),
@@ -111,16 +111,18 @@ export async function POST(request: NextRequest) {
     const prompt = `Du är en expert på näringslära. Bilden visar ett recept eller en ingredienslista —
 det kan vara ett receptkort, en ingrediensförteckning på en förpackning, en handskriven lista
 eller ett fotograferat recept. Din uppgift är att extrahera alla ingredienser med uppskattad
-vikt i gram per portion.
+vikt i gram för hela receptet/satsen.
 
 INSTRUKTIONER:
 1. Identifiera varje separat ingrediens och dess mängd. Ange svensk benämning som matchar
    svenska livsmedelsdatabasens terminologi (t.ex. "havregryn", "vetemjöl", "kycklingfilé").
 2. Konvertera alla mått till gram. Vanliga konverteringar: 1 dl mjöl ≈ 60 g, 1 dl vatten/mjölk = 100 g,
    1 msk olja ≈ 14 g, 1 tsk salt ≈ 5 g, 1 ägg ≈ 55 g, 1 standardportion ris (torrt) ≈ 75 g.
-3. Om receptet anger att det räcker till flera portioner, ANGE GRAM PER PORTION (dela med antalet portioner).
-4. Om antalet portioner inte framgår, anta 4 portioner och nämn det i notes.
-5. Ignorera kryddor i mycket små mängder (under 1 g) om de inte är betydande näringsämnen.
+3. Om receptet anger att det räcker till flera portioner, dela INTE ingredienserna per portion.
+   Spara hela satsens ingrediensmängder så användaren senare kan logga hur mycket hen åt eller drack.
+4. Om receptet anger slutvolym eller slutvikt (t.ex. "ca 8 dl"), nämn det i notes men behåll ingrediensmängderna för hela satsen.
+5. Om antalet portioner inte framgår, gissa inte portioner. Arbeta med hela receptet.
+6. Ignorera kryddor i mycket små mängder (under 1 g) om de inte är betydande näringsämnen.
 
 VIKTIGT:
 - Returnera alltid minst en ingrediens.

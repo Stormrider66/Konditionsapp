@@ -53,6 +53,7 @@ interface RecipeScanIngredient {
 }
 
 type RecipeSource = 'MANUAL' | 'SCAN' | 'MEAL_COPY'
+type RecipeAmountUnit = 'portion' | 'g' | 'ml' | 'dl'
 
 interface SavedRecipeIngredient {
   id: string
@@ -158,9 +159,27 @@ function savedRecipeTotals(recipe: SavedRecipe): IngredientTotals {
   )
 }
 
-function recipeToIngredientRows(recipe: SavedRecipe, servings: number): IngredientRow[] {
+function savedRecipeTotalGrams(recipe: SavedRecipe): number {
+  return recipe.items.reduce((sum, item) => sum + item.grams, 0)
+}
+
+function recipeAmountToScaleFactor(recipe: SavedRecipe, amount: number, unit: RecipeAmountUnit): number {
   const baseServings = recipe.baseServings > 0 ? recipe.baseServings : 1
-  const factor = servings / baseServings
+  if (unit === 'portion') return amount / baseServings
+
+  const totalGrams = savedRecipeTotalGrams(recipe)
+  if (totalGrams <= 0) return 0
+
+  const grams =
+    unit === 'dl'
+      ? amount * 100
+      : amount
+
+  return grams / totalGrams
+}
+
+function recipeToIngredientRows(recipe: SavedRecipe, amount: number, unit: RecipeAmountUnit): IngredientRow[] {
+  const factor = recipeAmountToScaleFactor(recipe, amount, unit)
   return recipe.items.map((item) => ({
     rowId: makeRowId(),
     foodId: item.foodId ?? undefined,
@@ -172,6 +191,26 @@ function recipeToIngredientRows(recipe: SavedRecipe, servings: number): Ingredie
     fatPer100g: item.fatPer100g,
     fiberPer100g: item.fiberPer100g,
   }))
+}
+
+function inferRecipeAmountUnit(recipe: SavedRecipe): RecipeAmountUnit {
+  const name = recipe.name.toLowerCase()
+  if (/\b(mjölk|dryck|juice|smoothie|shake|soppa|sås|buljong|kaffe|te)\b/i.test(name)) {
+    return 'dl'
+  }
+  return 'portion'
+}
+
+function defaultRecipeAmount(recipe: SavedRecipe, unit: RecipeAmountUnit): string {
+  if (unit === 'dl') return '2'
+  if (unit === 'ml') return '200'
+  if (unit === 'g') return '100'
+  return String(recipe.baseServings || 1)
+}
+
+function formatRecipeAmount(amount: number, unit: RecipeAmountUnit): string {
+  if (unit === 'portion') return `${amount} portion`
+  return `${amount} ${unit}`
 }
 
 export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
@@ -193,7 +232,8 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
   const [loadingRecipes, setLoadingRecipes] = useState(false)
   const [recipeError, setRecipeError] = useState<string | null>(null)
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null)
-  const [recipeServings, setRecipeServings] = useState('1')
+  const [recipeAmount, setRecipeAmount] = useState('1')
+  const [recipeAmountUnit, setRecipeAmountUnit] = useState<RecipeAmountUnit>('portion')
   const [saveOpen, setSaveOpen] = useState(false)
   const [saveName, setSaveName] = useState('')
   const [savingRecipe, setSavingRecipe] = useState(false)
@@ -330,12 +370,12 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
   const applySelectedRecipe = () => {
     const recipe = recipes.find((r) => r.id === selectedRecipeId)
     if (!recipe) return
-    const servings = parsePositiveNumber(recipeServings, 1)
-    const newRows = recipeToIngredientRows(recipe, servings)
+    const amount = parsePositiveNumber(recipeAmount, 1)
+    const newRows = recipeToIngredientRows(recipe, amount, recipeAmountUnit)
     const existing = value.filter((r) => r.name.trim().length > 0)
     onChange([...existing, ...newRows])
     setRecipesOpen(false)
-    setSaveMessage(`${recipe.name} lades till.`)
+    setSaveMessage(`${recipe.name} (${formatRecipeAmount(amount, recipeAmountUnit)}) lades till.`)
   }
 
   const deleteRecipe = async (recipeId: string) => {
@@ -483,7 +523,12 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
           <div className="space-y-1.5 max-h-56 overflow-y-auto overscroll-contain">
             {recipes.map((recipe) => {
               const recipeTotals = savedRecipeTotals(recipe)
+              const recipeTotalGrams = savedRecipeTotalGrams(recipe)
               const isSelected = selectedRecipeId === recipe.id
+              const selectedAmount = parsePositiveNumber(recipeAmount, 1)
+              const selectedFactor = isSelected
+                ? recipeAmountToScaleFactor(recipe, selectedAmount, recipeAmountUnit)
+                : 1
               return (
                 <div key={recipe.id} className="rounded-md border border-border/70 dark:border-slate-700 bg-background/70 dark:bg-slate-950/40">
                   <div className="flex items-stretch gap-1">
@@ -496,14 +541,17 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
                           : 'hover:bg-accent dark:hover:bg-slate-800 dark:text-slate-200'
                       )}
                       onClick={() => {
+                        const unit = inferRecipeAmountUnit(recipe)
                         setSelectedRecipeId(recipe.id)
-                        setRecipeServings(String(recipe.baseServings || 1))
+                        setRecipeAmountUnit(unit)
+                        setRecipeAmount(defaultRecipeAmount(recipe, unit))
                       }}
                     >
                       <div className="truncate font-medium">{recipe.name}</div>
                       <div className="text-xs text-muted-foreground">
                         {Math.round(recipeTotals.calories)} kcal · P {recipeTotals.proteinGrams.toFixed(1)} · K{' '}
                         {recipeTotals.carbsGrams.toFixed(1)} · F {recipeTotals.fatGrams.toFixed(1)}
+                        {recipeTotalGrams > 0 ? ` · ${Math.round(recipeTotalGrams)} g totalt` : ''}
                       </div>
                     </button>
                     <Button
@@ -518,29 +566,49 @@ export function IngredientBuilder({ value, onChange }: IngredientBuilderProps) {
                     </Button>
                   </div>
                   {isSelected && (
-                    <div className="border-t border-border/60 dark:border-slate-700 p-2 flex items-center gap-2">
-                      <div className="relative w-28">
-                        <Input
-                          type="number"
-                          min="0.1"
-                          step="0.25"
-                          value={recipeServings}
-                          onChange={(e) => setRecipeServings(e.target.value)}
-                          className="pr-16 h-8 text-sm dark:text-white"
-                        />
-                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                          portion
-                        </span>
+                    <div className="border-t border-border/60 dark:border-slate-700 p-2 space-y-2">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
+                        <div className="relative min-w-0">
+                          <Input
+                            type="number"
+                            min="0.1"
+                            step={recipeAmountUnit === 'portion' ? '0.25' : '1'}
+                            value={recipeAmount}
+                            onChange={(e) => setRecipeAmount(e.target.value)}
+                            className="h-8 text-sm dark:text-white"
+                            aria-label="Mängd att logga"
+                          />
+                        </div>
+                        <select
+                          value={recipeAmountUnit}
+                          onChange={(e) => {
+                            const unit = e.target.value as RecipeAmountUnit
+                            setRecipeAmountUnit(unit)
+                            setRecipeAmount((current) => current || defaultRecipeAmount(recipe, unit))
+                          }}
+                          className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                          aria-label="Enhet"
+                        >
+                          <option value="portion">portion</option>
+                          <option value="g">g</option>
+                          <option value="ml">ml</option>
+                          <option value="dl">dl</option>
+                        </select>
                       </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="flex-1 h-8"
-                        onClick={applySelectedRecipe}
-                        disabled={!selectedRecipe}
-                      >
-                        Använd
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <div className="min-w-0 flex-1 text-xs text-muted-foreground">
+                          Loggar ca {Math.round(recipeTotals.calories * selectedFactor)} kcal från sparat recept
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-8"
+                          onClick={applySelectedRecipe}
+                          disabled={!selectedRecipe}
+                        >
+                          Använd
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>

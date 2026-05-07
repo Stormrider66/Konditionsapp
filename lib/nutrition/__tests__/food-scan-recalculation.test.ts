@@ -1,6 +1,7 @@
 import {
   calculateFoodTotals,
   createEditableFoodItem,
+  parsePortionGramsFromText,
   recalculateItemFromGrams,
   updateDensityFromManualValue,
 } from '@/lib/nutrition/food-scan-recalculation'
@@ -84,5 +85,16 @@ describe('food scan recalculation', () => {
     expect(totals.calories).toBe(261)
     expect(totals.proteinGrams).toBeCloseTo(10.1, 5)
     expect(totals.carbsGrams).toBeCloseTo(39.5, 5)
+  })
+
+  it('parses drink-style portion text into grams', () => {
+    expect(parsePortionGramsFromText('2 dl')).toBe(200)
+    expect(parsePortionGramsFromText('jag drack 250 ml')).toBe(250)
+    expect(parsePortionGramsFromText('0,5 liter')).toBe(500)
+  })
+
+  it('ignores portion text without a concrete gram-equivalent amount', () => {
+    expect(parsePortionGramsFromText('1 hel sats')).toBeNull()
+    expect(parsePortionGramsFromText('ett glas')).toBeNull()
   })
 })

@@ -45,6 +45,7 @@ import type { FoodPhotoAnalysisResult } from '@/lib/validations/gemini-schemas'
 import {
   calculateFoodTotals,
   createEditableFoodItem,
+  parsePortionGramsFromText,
   recalculateItemFromGrams,
   updateDensityFromManualValue,
   type EditableFoodItem,
@@ -905,7 +906,20 @@ export function FoodPhotoScanner({
   }
 
   const updateItemText = (index: number, field: 'name' | 'portionDescription', value: string) => {
-    setItems((prev) => prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)))
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item
+        if (field !== 'portionDescription') return { ...item, [field]: value }
+
+        const grams = parsePortionGramsFromText(value)
+        if (grams == null) return { ...item, portionDescription: value }
+
+        return {
+          ...recalculateItemFromGrams(item, grams),
+          portionDescription: value,
+        }
+      })
+    )
   }
 
   const updateItemNumber = (
