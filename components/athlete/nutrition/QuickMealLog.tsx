@@ -13,13 +13,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -112,6 +105,18 @@ interface YesterdayMeal {
 
 function formatGrams(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
+}
+
+function toDateInputValue(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function dateInputValueToDate(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(year, month - 1, day)
 }
 
 function formatYesterdayItem(item: YesterdayMealItem): string {
@@ -230,11 +235,13 @@ export function QuickMealLog({
   recipeScanRequestKey = 0,
 }: QuickMealLogProps) {
   const isEditMode = !!editMeal
+  const initialDateValue = toDateInputValue(date)
   const [isLoading, setIsLoading] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showMacros, setShowMacros] = useState(false)
   const [tab, setTab] = useState<MealLogTab>(defaultTab)
+  const [selectedDate, setSelectedDate] = useState(initialDateValue)
   const [ingredientScanRequestKey, setIngredientScanRequestKey] = useState(0)
   const [ingredients, setIngredients] = useState<IngredientRow[]>([])
   const [enhancedFields, setEnhancedFields] = useState<{
@@ -256,6 +263,11 @@ export function QuickMealLog({
     isPreWorkout: false,
     isPostWorkout: false,
     notes: '',
+  })
+  const selectedDateLabel = dateInputValueToDate(selectedDate || initialDateValue).toLocaleDateString('sv-SE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
   })
 
   // Pre-fill form when editing. Also fetch the meal's per-ingredient
@@ -306,6 +318,14 @@ export function QuickMealLog({
       return () => ctrl.abort()
     }
   }, [editMeal, open])
+
+  const wasOpenRef = useRef(false)
+  useEffect(() => {
+    if (open && !wasOpenRef.current && !isEditMode) {
+      setSelectedDate(initialDateValue)
+    }
+    wasOpenRef.current = open
+  }, [open, isEditMode, initialDateValue])
 
   // Hook the phone OS back button so it closes the dialog instead of
   // navigating off the page. We push a marker history entry when the dialog
@@ -537,7 +557,7 @@ export function QuickMealLog({
     setError(null)
     try {
       const data: MealLogData & Record<string, unknown> = {
-        date: date.toISOString().split('T')[0],
+        date: isEditMode ? initialDateValue : selectedDate || initialDateValue,
         mealType: formData.mealType,
         time: formData.time || undefined,
         description: derivedDescription,
@@ -613,6 +633,7 @@ export function QuickMealLog({
     setYesterdayMeals({})
     setError(null)
     setTab(defaultTab)
+    setSelectedDate(initialDateValue)
     setIngredients([])
     onClose()
   }
@@ -635,7 +656,7 @@ export function QuickMealLog({
                 {isEditMode ? 'Redigera måltid' : 'Logga måltid'}
               </DialogTitle>
               <DialogDescription className="dark:text-slate-400 text-left">
-                {date.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })}
+                {isEditMode ? 'Uppdatera måltiden' : selectedDateLabel}
               </DialogDescription>
             </div>
           </div>
@@ -646,6 +667,19 @@ export function QuickMealLog({
             <div className="flex items-center gap-2 text-sm text-red-500 bg-red-500/10 rounded-lg p-3">
               <AlertCircle className="h-4 w-4 shrink-0" />
               {error}
+            </div>
+          )}
+
+          {!isEditMode && (
+            <div className="space-y-2">
+              <Label htmlFor="meal-date" className="dark:text-slate-200">Datum</Label>
+              <Input
+                id="meal-date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value || initialDateValue)}
+                className="dark:text-white"
+              />
             </div>
           )}
 
