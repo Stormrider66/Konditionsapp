@@ -47,10 +47,14 @@ async function main() {
     await page.fill('input[name="password"]', password)
     await page.getByRole('button', { name: /logga in|log in/i }).click()
     await page.waitForLoadState('networkidle', { timeout: 120_000 }).catch(() => {})
+    await page.evaluate(async () => {
+      await fetch('/api/coach/role-preview', { method: 'DELETE', credentials: 'include' }).catch(() => null)
+    })
 
     const hockeyTestsPath = `/${businessSlug}/coach/hockey-tests`
     await page.goto(`${baseUrl}${hockeyTestsPath}`, { waitUntil: 'domcontentloaded', timeout: 120_000 })
     await expect(page.getByText('Fysiska tester - Ishockey')).toBeVisible({ timeout: 60_000 })
+    await page.getByText('Uthållighet', { exact: true }).click()
     await expect(page.getByText('VO2max / ramp')).toBeVisible()
     await expect(page.getByText('7x40m Uthållighet')).toBeVisible()
     await expect(page.getByText('LT1 fart')).toBeVisible()
@@ -64,8 +68,9 @@ async function main() {
       if (teamId) {
         const hockeyTestsApi = await page.evaluate(
           async ({ teamId, businessSlug }) => {
-            const res = await fetch(`/api/coach/hockey-tests?teamId=${teamId}&businessSlug=${businessSlug}`, {
+            const res = await fetch(`/api/coach/hockey-tests?teamId=${teamId}`, {
               credentials: 'include',
+              headers: { 'x-business-slug': businessSlug },
             })
             return {
               ok: res.ok,
@@ -83,8 +88,9 @@ async function main() {
 
         const testPackageApi = await page.evaluate(
           async ({ teamId, businessSlug }) => {
-            const res = await fetch(`/api/teams/${teamId}/hockey-test-package?businessSlug=${businessSlug}`, {
+            const res = await fetch(`/api/teams/${teamId}/hockey-test-package`, {
               credentials: 'include',
+              headers: { 'x-business-slug': businessSlug },
             })
             return {
               ok: res.ok,
@@ -118,16 +124,28 @@ async function main() {
         expect(athleteSummaryApi.body.data.history.length).toBeGreaterThan(0)
 
         await page.goto(`${baseUrl}/${businessSlug}/coach/teams/${teamId}/tests`, { waitUntil: 'domcontentloaded', timeout: 120_000 })
-        await expect(page.getByText('Tester')).toBeVisible({ timeout: 60_000 })
-        await expect(page.getByText('Istest fart & avståndsgap')).toBeVisible()
-        await expect(page.getByText('Aerob profil')).toBeVisible()
+        await expect(page.getByRole('heading', { name: 'Tester' })).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByText('Hockey testmatris')).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByText('Development pathway')).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByText('Normer och percentiler')).toBeVisible({ timeout: 60_000 })
 
-        await page.goto(`${baseUrl}/api/teams/${teamId}/hockey-tests/export?preset=aerobic_profile&businessSlug=${businessSlug}`, {
-          waitUntil: 'domcontentloaded',
-          timeout: 120_000,
-        })
-        await expect(page.locator('body')).toContainText('vo2_max_ml_kg_min')
-        await expect(page.locator('body')).toContainText('lt2_speed_kmh')
+        const exportApi = await page.evaluate(
+          async ({ teamId, businessSlug }) => {
+            const res = await fetch(`/api/teams/${teamId}/hockey-tests/export?preset=aerobic_profile`, {
+              credentials: 'include',
+              headers: { 'x-business-slug': businessSlug },
+            })
+            return {
+              ok: res.ok,
+              status: res.status,
+              body: await res.text(),
+            }
+          },
+          { teamId, businessSlug },
+        )
+        expect(exportApi.status).toBe(200)
+        expect(exportApi.body).toContain('vo2_max_ml_kg_min')
+        expect(exportApi.body).toContain('lt2_speed_kmh')
       }
     }
 
