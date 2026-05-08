@@ -31,6 +31,8 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
   const fromCalendar = searchParams.get('fromCalendar') === 'true'
   const calendarClientId = searchParams.get('clientId')
   const calendarDate = searchParams.get('date')
+  const editSessionId = searchParams.get('editSessionId')
+  const appliedEditSessionIdRef = React.useRef<string | null>(null)
   const [calendarAssignSessionId, setCalendarAssignSessionId] = useState<string | null>(null)
 
   const businessSlug = useMemo(() => {
@@ -39,6 +41,36 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
     if (match && match[1] !== 'coach') return match[1]
     return undefined
   }, [pathname])
+
+  React.useEffect(() => {
+    if (!editSessionId || appliedEditSessionIdRef.current === editSessionId) return
+    appliedEditSessionIdRef.current = editSessionId
+
+    let cancelled = false
+    fetch(`/api/cardio-sessions/${editSessionId}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body.error || 'Kunde inte öppna konditionspasset')
+        }
+        return res.json()
+      })
+      .then((session: CardioSessionData) => {
+        if (cancelled) return
+        setEditSession(session)
+        setActiveTab('builder')
+      })
+      .catch((error) => {
+        if (cancelled) return
+        toast.error('Kunde inte öppna passet', {
+          description: error instanceof Error ? error.message : undefined,
+        })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [editSessionId])
 
   return (
     <div className="container mx-auto py-6 px-4 space-y-8">
@@ -181,4 +213,3 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
     </div>
   )
 }
-

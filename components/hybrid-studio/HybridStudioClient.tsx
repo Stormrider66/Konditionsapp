@@ -9,7 +9,7 @@
  * - Create new workout dialog
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -172,6 +172,8 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
   const fromCalendar = searchParams.get('fromCalendar') === 'true';
   const calendarClientId = searchParams.get('clientId');
   const calendarDate = searchParams.get('date');
+  const editWorkoutId = searchParams.get('editWorkoutId');
+  const appliedEditWorkoutIdRef = useRef<string | null>(null);
   const [calendarAssignSessionId, setCalendarAssignSessionId] = useState<string | null>(null);
 
   const businessSlug = useMemo(() => {
@@ -180,6 +182,36 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
     if (match && match[1] !== 'coach') return match[1];
     return undefined;
   }, [pathname]);
+
+  useEffect(() => {
+    if (!editWorkoutId || appliedEditWorkoutIdRef.current === editWorkoutId) return;
+    appliedEditWorkoutIdRef.current = editWorkoutId;
+
+    let cancelled = false;
+    fetch(`/api/hybrid-workouts/${editWorkoutId}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || 'Kunde inte öppna hybridpasset');
+        }
+        return res.json();
+      })
+      .then((workout: HybridWorkout) => {
+        if (cancelled) return;
+        setSelectedWorkout(workout);
+        setIsEditOpen(true);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        toast.error('Kunde inte öppna passet', {
+          description: error instanceof Error ? error.message : undefined,
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editWorkoutId]);
 
   const handleDelete = async () => {
     if (!deleteWorkout) return;

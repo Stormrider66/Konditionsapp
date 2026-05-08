@@ -2,6 +2,59 @@ import type { CalendarItemsMode, UnifiedCalendarItem } from './types'
 
 type Row = Record<string, unknown>
 
+function getScheduledWorkoutSource(event: Row) {
+  const e = event as any
+  const strengthAssignment = e.strengthAssignments?.[0]
+  if (strengthAssignment) {
+    return {
+      kind: 'strength',
+      assignmentId: strengthAssignment.id,
+      sourceId: strengthAssignment.sessionId,
+      sourceName: strengthAssignment.session?.name ?? null,
+      status: strengthAssignment.status,
+      assignedDate: strengthAssignment.assignedDate,
+    }
+  }
+
+  const cardioAssignment = e.cardioAssignments?.[0]
+  if (cardioAssignment) {
+    return {
+      kind: 'cardio',
+      assignmentId: cardioAssignment.id,
+      sourceId: cardioAssignment.sessionId,
+      sourceName: cardioAssignment.session?.name ?? null,
+      status: cardioAssignment.status,
+      assignedDate: cardioAssignment.assignedDate,
+    }
+  }
+
+  const hybridAssignment = e.hybridAssignments?.[0]
+  if (hybridAssignment) {
+    return {
+      kind: 'hybrid',
+      assignmentId: hybridAssignment.id,
+      sourceId: hybridAssignment.workoutId,
+      sourceName: hybridAssignment.workout?.name ?? null,
+      status: hybridAssignment.status,
+      assignedDate: hybridAssignment.assignedDate,
+    }
+  }
+
+  const agilityAssignment = e.agilityAssignments?.[0]
+  if (agilityAssignment) {
+    return {
+      kind: 'agility',
+      assignmentId: agilityAssignment.id,
+      sourceId: agilityAssignment.workoutId,
+      sourceName: agilityAssignment.workout?.name ?? null,
+      status: agilityAssignment.status,
+      assignedDate: agilityAssignment.assignedDate,
+    }
+  }
+
+  return null
+}
+
 export function serializeWorkout(
   workout: Row & {
     id: string
@@ -120,6 +173,10 @@ export function serializeCalendarEvent(
   itemsMode: CalendarItemsMode
 ): UnifiedCalendarItem {
   const e = event as any
+  const scheduledWorkoutSource = event.type === 'SCHEDULED_WORKOUT'
+    ? getScheduledWorkoutSource(event)
+    : null
+
   return {
     id: event.id,
     type: 'CALENDAR_EVENT',
@@ -133,18 +190,19 @@ export function serializeCalendarEvent(
       trainingImpact: e.trainingImpact,
       allDay: e.allDay,
       color: e.color,
+      isReadOnly: e.isReadOnly,
+      startTime: e.startTime,
+      endTime: e.endTime,
+      scheduledWorkoutSource,
       ...(itemsMode === 'light'
         ? {}
         : {
             impactNotes: e.impactNotes,
-            startTime: e.startTime,
-            endTime: e.endTime,
             altitude: e.altitude,
             adaptationPhase: e.adaptationPhase,
             illnessType: e.illnessType,
             returnToTrainingDate: e.returnToTrainingDate,
             medicalClearance: e.medicalClearance,
-            isReadOnly: e.isReadOnly,
             externalCalendarType: e.externalCalendarType,
             externalCalendarName: e.externalCalendarName,
             createdBy: e.createdBy,

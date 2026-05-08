@@ -12,6 +12,49 @@ export interface QueryInput {
 // Each "fetchX" returns either a typed array or `[]` when the caller disabled
 // that source. The route then concatenates + serializes.
 
+const scheduledWorkoutAssignmentSelect = {
+  strengthAssignments: {
+    take: 1,
+    select: {
+      id: true,
+      sessionId: true,
+      assignedDate: true,
+      status: true,
+      session: { select: { id: true, name: true } },
+    },
+  },
+  cardioAssignments: {
+    take: 1,
+    select: {
+      id: true,
+      sessionId: true,
+      assignedDate: true,
+      status: true,
+      session: { select: { id: true, name: true } },
+    },
+  },
+  hybridAssignments: {
+    take: 1,
+    select: {
+      id: true,
+      workoutId: true,
+      assignedDate: true,
+      status: true,
+      workout: { select: { id: true, name: true } },
+    },
+  },
+  agilityAssignments: {
+    take: 1,
+    select: {
+      id: true,
+      workoutId: true,
+      assignedDate: true,
+      status: true,
+      workout: { select: { id: true, name: true } },
+    },
+  },
+} as const
+
 export const fetchWorkouts = ({ clientId, startDate, endDate, itemsMode, maxItemsPerSource }: QueryInput) =>
   itemsMode === 'light'
     ? prisma.workout.findMany({
@@ -159,6 +202,10 @@ export const fetchCalendarEvents = ({ clientId, startDate, endDate, itemsMode, m
           trainingImpact: true,
           allDay: true,
           color: true,
+          isReadOnly: true,
+          startTime: true,
+          endTime: true,
+          ...scheduledWorkoutAssignmentSelect,
         },
         take: maxItemsPerSource,
         orderBy: { startDate: 'asc' },
@@ -173,7 +220,10 @@ export const fetchCalendarEvents = ({ clientId, startDate, endDate, itemsMode, m
           ],
           status: { not: 'CANCELLED' },
         },
-        include: { createdBy: { select: { id: true, name: true, role: true } } },
+        include: {
+          createdBy: { select: { id: true, name: true, role: true } },
+          ...scheduledWorkoutAssignmentSelect,
+        },
         take: maxItemsPerSource,
         orderBy: { startDate: 'asc' },
       })

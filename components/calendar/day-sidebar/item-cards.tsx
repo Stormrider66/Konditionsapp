@@ -4,6 +4,7 @@
 // Each card renders one calendar-item row in the sidebar list.
 
 import { useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
@@ -259,13 +260,54 @@ export function CalendarEventItem({
   onDeleted,
   isGlass = false,
 }: CalendarEventItemProps) {
+  const router = useRouter()
+  const pathname = usePathname()
   const [isDeleting, setIsDeleting] = useState(false)
   const meta = event.metadata
   const eventType = (meta.eventType as string) || 'EXTERNAL_EVENT'
   const trainingImpact = (meta.trainingImpact as string) || 'NORMAL'
   const isReadOnly = meta.isReadOnly as boolean
+  const scheduledWorkoutSource = meta.scheduledWorkoutSource as
+    | {
+        kind?: string
+        sourceId?: string
+        sourceName?: string | null
+        assignmentId?: string
+        status?: string
+      }
+    | null
+    | undefined
+  const canEditScheduledWorkoutSource = ['strength', 'cardio', 'hybrid'].includes(
+    scheduledWorkoutSource?.kind || ''
+  )
   const config = EVENT_TYPE_CONFIG[eventType as keyof typeof EVENT_TYPE_CONFIG]
   const impactConfig = IMPACT_CONFIG[trainingImpact as keyof typeof IMPACT_CONFIG]
+
+  const openScheduledWorkout = () => {
+    const kind = scheduledWorkoutSource?.kind
+    const sourceId = scheduledWorkoutSource?.sourceId
+    if (!kind || !sourceId) return
+
+    const coachBasePath = (() => {
+      const match = pathname?.match(/^\/([^/]+)\/coach(?:\/|$)/)
+      if (match?.[1]) return `/${match[1]}/coach`
+      return '/coach'
+    })()
+
+    const studioPathByKind: Record<string, string> = {
+      strength: 'strength',
+      cardio: 'cardio',
+      hybrid: 'hybrid-studio',
+      agility: 'agility-studio',
+    }
+    const studioPath = studioPathByKind[kind]
+    if (!studioPath) return
+
+    const idParam = kind === 'strength' || kind === 'cardio'
+      ? 'editSessionId'
+      : 'editWorkoutId'
+    router.push(`${coachBasePath}/${studioPath}?${idParam}=${sourceId}&fromCalendarEdit=true`)
+  }
 
   const handleDelete = async () => {
     setIsDeleting(true)
@@ -318,6 +360,11 @@ export function CalendarEventItem({
               >
                 {impactConfig?.labelSv}
               </Badge>
+              {scheduledWorkoutSource?.sourceName && (
+                <span className="text-xs text-muted-foreground truncate">
+                  {scheduledWorkoutSource.sourceName}
+                </span>
+              )}
               {eventType === 'ALTITUDE_CAMP' && typeof meta.altitude === 'number' && meta.altitude > 0 && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Mountain className="h-3 w-3" />
@@ -336,9 +383,15 @@ export function CalendarEventItem({
 
       {!isReadOnly && (
         <div className="flex items-center gap-1 mt-2 pt-2 border-t border-white/5">
+          {scheduledWorkoutSource?.sourceId && canEditScheduledWorkoutSource && (
+            <Button variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold" onClick={openScheduledWorkout}>
+              <ExternalLink className="h-3 w-3 mr-1" />
+              Redigera pass
+            </Button>
+          )}
           <Button variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold" onClick={onEdit}>
             <Edit className="h-3 w-3 mr-1" />
-            Redigera
+            {eventType === 'SCHEDULED_WORKOUT' ? 'Tid' : 'Redigera'}
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>

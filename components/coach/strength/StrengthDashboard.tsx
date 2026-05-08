@@ -104,6 +104,8 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
   const fromCalendar = searchParams.get('fromCalendar') === 'true'
   const calendarClientId = searchParams.get('clientId')
   const calendarDate = searchParams.get('date')
+  const editSessionId = searchParams.get('editSessionId')
+  const appliedEditSessionIdRef = React.useRef<string | null>(null)
   const [calendarAssignSessionId, setCalendarAssignSessionId] = useState<string | null>(null)
 
   // Extract businessSlug from pathname (e.g. /my-business/coach/strength)
@@ -113,6 +115,37 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
     if (match && match[1] !== 'coach') return match[1]
     return undefined
   }, [pathname])
+
+  useEffect(() => {
+    if (!editSessionId || appliedEditSessionIdRef.current === editSessionId) return
+    appliedEditSessionIdRef.current = editSessionId
+
+    let cancelled = false
+    fetch(`/api/strength-sessions/${editSessionId}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body.error || 'Kunde inte öppna styrkepasset')
+        }
+        return res.json()
+      })
+      .then((session: StrengthSessionData) => {
+        if (cancelled) return
+        setEditSession(session)
+        setUseSectionBuilder(true)
+        setActiveTab('builder')
+      })
+      .catch((error) => {
+        if (cancelled) return
+        toast.error('Kunde inte öppna passet', {
+          description: error instanceof Error ? error.message : undefined,
+        })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [editSessionId])
 
   // Set rich page context for AI chat
   useEffect(() => {
@@ -754,4 +787,3 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
     </div>
   )
 }
-
