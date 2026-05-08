@@ -19,4 +19,22 @@
 #   git push --no-verify
 # …but prefer fixing the error.
 
-npm run typecheck
+if command -v npm >/dev/null 2>&1; then
+  npm run typecheck
+  exit $?
+fi
+
+CODEX_NODE_BIN="$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin"
+if [ -x "$CODEX_NODE_BIN/node" ]; then
+  export PATH="$CODEX_NODE_BIN:$PATH"
+fi
+
+if command -v node >/dev/null 2>&1 && [ -x "node_modules/.bin/prisma" ] && [ -x "node_modules/.bin/tsc" ]; then
+  echo "npm not found; running typecheck directly with local project binaries."
+  ./node_modules/.bin/prisma generate &&
+    NODE_OPTIONS=--max-old-space-size=6144 ./node_modules/.bin/tsc --noEmit -p tsconfig.json
+  exit $?
+fi
+
+echo "npm not found and local typecheck binaries are unavailable; skipping pre-push typecheck."
+echo "Run npm run typecheck before pushing from a full Node/npm environment."

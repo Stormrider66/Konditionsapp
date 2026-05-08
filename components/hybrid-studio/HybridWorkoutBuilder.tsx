@@ -1457,12 +1457,19 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                       )}
 
                       {block.movements.length === 0 ? (
-                        <div className="py-5 text-center rounded-lg bg-muted/30">
+                        <button
+                          type="button"
+                          className="w-full py-5 text-center rounded-lg bg-muted/30 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          onClick={() => {
+                            setExercisePopoverOpen(true);
+                            setExercisePickerBlockId(block.id);
+                          }}
+                        >
                           <Dumbbell className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                           <p className="text-sm text-muted-foreground">
                             Lägg till rörelser för {block.title.toLowerCase()}.
                           </p>
-                        </div>
+                        </button>
                       ) : (
                         <DndContext
                           sensors={sensors}
