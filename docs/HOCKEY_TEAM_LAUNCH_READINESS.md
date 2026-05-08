@@ -142,6 +142,7 @@ Pass these before inviting the first external teams:
 - no repeated 401/403 errors for valid coach sessions
 - no tenant-boundary failure in manual spot checks
 - `canAccessClient` regression tests pass for team-scoped staff
+- staff invite regression tests pass for team-scoped roles and team assignment validation
 - email launch mode is decided: either invites enabled and verified, or a manual onboarding workaround is documented
 
 ## Must-Fix Before Invite
@@ -155,6 +156,7 @@ Pass these before inviting the first external teams:
    - athlete cannot open another athlete's hockey summary
    - assistant/team-scoped staff cannot export another team's CSV
    - physical trainer/assistant coach can access assigned-team athletes but not every athlete in the club
+   - team-scoped staff invites require valid teams from the pilot business
 6. Confirm expensive surfaces degrade safely:
    - repeated CSV export does not block dashboards
    - daily metrics writes do not build a visible deferred-processing backlog

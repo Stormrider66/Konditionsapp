@@ -26,6 +26,12 @@ const inviteSchema = z.object({
   teamIds: z.array(z.string().uuid()).optional(),
 })
 
+const TEAM_SCOPED_ROLES = ['PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO'] as const
+
+function uniqueTeamIds(teamIds: string[] | undefined) {
+  return Array.from(new Set(teamIds ?? []))
+}
+
 export async function GET() {
   try {
     const user = await requireCoach()
@@ -135,6 +141,45 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const teamScopedRole = TEAM_SCOPED_ROLES.includes(parsed.data.role as typeof TEAM_SCOPED_ROLES[number])
+    const teamIds = uniqueTeamIds(parsed.data.teamIds)
+
+    if (teamScopedRole && teamIds.length === 0) {
+      return NextResponse.json(
+        { error: 'Team-bundna roller måste kopplas till minst ett lag' },
+        { status: 400 },
+      )
+    }
+
+    if (teamIds.length > 0) {
+      const businessUserIds = await prisma.businessMember.findMany({
+        where: {
+          businessId: membership.businessId,
+          isActive: true,
+        },
+        select: { userId: true },
+      })
+      const validTeams = await prisma.team.findMany({
+        where: {
+          id: { in: teamIds },
+          OR: [
+            { members: { some: { businessId: membership.businessId } } },
+            { userId: { in: businessUserIds.map((member) => member.userId) } },
+          ],
+        },
+        select: { id: true },
+      })
+      const validTeamIds = new Set(validTeams.map((team) => team.id))
+      const invalidTeamIds = teamIds.filter((teamId) => !validTeamIds.has(teamId))
+
+      if (invalidTeamIds.length > 0) {
+        return NextResponse.json(
+          { error: 'Ett eller flera lag tillhör inte denna verksamhet' },
+          { status: 400 },
+        )
+      }
+    }
+
     // Invite user to business with the specified role
     const result = await inviteUserToBusiness({
       email: parsed.data.email,
@@ -149,9 +194,8 @@ export async function POST(req: NextRequest) {
     }
 
     // If team-scoped role, create team assignments
-    const teamScopedRoles = ['PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO']
-    if (teamScopedRoles.includes(parsed.data.role) && parsed.data.teamIds && result.userId) {
-      for (const teamId of parsed.data.teamIds) {
+    if (teamScopedRole && result.userId) {
+      for (const teamId of teamIds) {
         try {
           await prisma.teamCoachAssignment.create({
             data: {
