@@ -42,6 +42,7 @@ export interface SendEmailResult {
   success: boolean;
   messageId?: string;
   error?: string;
+  paused?: boolean;
 }
 
 // ==================== CORE SEND FUNCTION ====================
@@ -55,7 +56,7 @@ async function sendEmailInternal(
     // Kill switch: set EMAILS_PAUSED=true to suppress all outbound email
     if (process.env.EMAILS_PAUSED === 'true') {
       logger.info('Email paused (EMAILS_PAUSED=true), skipping', { to, subject });
-      return { success: true, messageId: 'paused' };
+      return { success: true, messageId: 'paused', paused: true };
     }
 
     if (!process.env.RESEND_API_KEY) {

@@ -127,10 +127,13 @@ export async function POST(request: NextRequest) {
       {
         athleteAccount: created.athleteAccount,
         emailSent: inviteResult.emailSent ?? false,
+        emailPaused: inviteResult.emailPaused ?? false,
         email: profileEmail,
-        message: inviteResult.success
-          ? `Atletkonto skapat och inbjudan skickad till ${profileEmail}.`
-          : `Atletkonto skapat, men inbjudan kunde inte skickas: ${inviteResult.error}`,
+        message: inviteResult.emailPaused
+          ? `Atletkonto skapat, men utgående e-post är pausad. Skicka inloggningslänk manuellt till ${profileEmail}.`
+          : inviteResult.success
+            ? `Atletkonto skapat och inbjudan skickad till ${profileEmail}.`
+            : `Atletkonto skapat, men inbjudan kunde inte skickas: ${inviteResult.error}`,
       },
       { status: 201 }
     )

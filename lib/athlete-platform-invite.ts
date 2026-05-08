@@ -11,6 +11,7 @@ import { buildRecoveryCallbackUrl } from '@/lib/url-utils'
 export interface SendAthletePlatformInviteResult {
   success: boolean
   emailSent?: boolean
+  emailPaused?: boolean
   email?: string
   syncedEmail?: boolean
   syncedName?: boolean
@@ -243,7 +244,7 @@ export async function sendAthletePlatformInvite(
     branding,
   }).catch((error) => {
     logger.error('Athlete platform invite: email send failed', { clientId, email }, error)
-    return { success: false, error: 'Email send failed' }
+    return { success: false, error: 'Email send failed', paused: false }
   })
 
   if (!sent.success) {
@@ -251,6 +252,18 @@ export async function sendAthletePlatformInvite(
       success: false,
       email,
       error: 'Kunde inte skicka inbjudan via e-post',
+    }
+  }
+
+  if (sent.paused) {
+    return {
+      success: true,
+      emailSent: false,
+      emailPaused: true,
+      email,
+      syncedEmail: syncResult.syncedEmail,
+      syncedName: syncResult.syncedName,
+      error: 'Utgående e-post är pausad',
     }
   }
 

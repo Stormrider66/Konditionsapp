@@ -37,6 +37,26 @@ Use this as the immediate launch plan for inviting 3-6 hockey teams. It is inten
 - team tests page renders speed-gap and aerobic-profile sections
 - aerobic SIMCA export includes `vo2_max_ml_kg_min` and `lt2_speed_kmh`
 
+## Invite/Email QA Coverage
+
+Run before athlete or staff onboarding:
+
+```bash
+npm run qa:launch-config
+```
+
+Required decision:
+
+```env
+HOCKEY_PILOT_INVITE_MODE=live    # real invite email
+# or
+HOCKEY_PILOT_INVITE_MODE=manual  # email suppressed/manual follow-up
+```
+
+When `live`, the check requires `EMAILS_PAUSED` to be off, Resend to be configured, Supabase service role credentials to be present, and `NEXT_PUBLIC_APP_URL` to be a production `https://` URL.
+
+When `manual`, the check warns if outbound email is not paused and asks for `HOCKEY_PILOT_MANUAL_INVITE_OWNER` so follow-up ownership is explicit.
+
 ## Immediate Test Data
 
 For local/demo validation:
@@ -107,6 +127,7 @@ node load-tests/k6/analyze-summary.cjs load-tests/hockey-pilot-summary.json
 Pass these before inviting the first external teams:
 
 - `npm run build` completes
+- `npm run qa:launch-config` passes
 - `npm run qa:hockey` passes against the target environment
 - hockey pilot load test passes at `35` steady VUs and `75` peak VUs
 - overall `http_req_failed < 1.5%`
@@ -126,14 +147,15 @@ Pass these before inviting the first external teams:
 ## Must-Fix Before Invite
 
 1. Verify invite/onboarding with real coach and athlete accounts while `EMAILS_PAUSED` is in the intended launch state.
-2. Run `npm run qa:hockey` against production-like data.
-3. Run `npm run load:k6:hockey-pilot` and save the summary JSON.
-4. Manually spot-check tenant isolation:
+2. Run `npm run qa:launch-config`.
+3. Run `npm run qa:hockey` against production-like data.
+4. Run `npm run load:k6:hockey-pilot` and save the summary JSON.
+5. Manually spot-check tenant isolation:
    - coach from Team A cannot access Team B-only athletes unless business-level permissions allow it
    - athlete cannot open another athlete's hockey summary
    - assistant/team-scoped staff cannot export another team's CSV
    - physical trainer/assistant coach can access assigned-team athletes but not every athlete in the club
-5. Confirm expensive surfaces degrade safely:
+6. Confirm expensive surfaces degrade safely:
    - repeated CSV export does not block dashboards
    - daily metrics writes do not build a visible deferred-processing backlog
    - AI/video/report features have practical rate limits during pilot week

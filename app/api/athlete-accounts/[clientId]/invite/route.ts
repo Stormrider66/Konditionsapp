@@ -34,10 +34,13 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       emailSent: result.emailSent,
+      emailPaused: result.emailPaused ?? false,
       email: result.email,
       syncedEmail: result.syncedEmail,
       syncedName: result.syncedName,
-      message: `Inbjudan skickad till ${result.email}`,
+      message: result.emailPaused
+        ? `Utgående e-post är pausad. Skicka inloggningslänk manuellt till ${result.email}.`
+        : `Inbjudan skickad till ${result.email}`,
     })
   } catch (error) {
     return handleApiError(error, 'POST /api/athlete-accounts/[clientId]/invite')
