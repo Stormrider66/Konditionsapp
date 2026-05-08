@@ -1,4 +1,5 @@
 import type { FoodPhotoAnalysisResult } from '@/lib/validations/gemini-schemas'
+import { applyBoneInAdjustment } from '@/lib/nutrition/bone-in-adjustment'
 
 type BaseFoodItem = FoodPhotoAnalysisResult['items'][number]
 
@@ -75,21 +76,22 @@ export function parsePortionGramsFromText(text: string): number | null {
 export function createEditableFoodItem(
   item: FoodPhotoAnalysisResult['items'][number]
 ): EditableFoodItem {
-  const grams = item.estimatedGrams
+  const adjustedItem = applyBoneInAdjustment(item)
+  const grams = adjustedItem.estimatedGrams
 
   return {
-    ...item,
+    ...adjustedItem,
     nutrientDensity: {
-      calories: grams > 0 ? item.calories / grams : 0,
-      proteinGrams: grams > 0 ? item.proteinGrams / grams : 0,
-      carbsGrams: grams > 0 ? item.carbsGrams / grams : 0,
-      fatGrams: grams > 0 ? item.fatGrams / grams : 0,
-      fiberGrams: grams > 0 ? item.fiberGrams / grams : 0,
-      saturatedFatGrams: toDensity(item.saturatedFatGrams, grams),
-      monounsaturatedFatGrams: toDensity(item.monounsaturatedFatGrams, grams),
-      polyunsaturatedFatGrams: toDensity(item.polyunsaturatedFatGrams, grams),
-      sugarGrams: toDensity(item.sugarGrams, grams),
-      complexCarbsGrams: toDensity(item.complexCarbsGrams, grams),
+      calories: grams > 0 ? adjustedItem.calories / grams : 0,
+      proteinGrams: grams > 0 ? adjustedItem.proteinGrams / grams : 0,
+      carbsGrams: grams > 0 ? adjustedItem.carbsGrams / grams : 0,
+      fatGrams: grams > 0 ? adjustedItem.fatGrams / grams : 0,
+      fiberGrams: grams > 0 ? adjustedItem.fiberGrams / grams : 0,
+      saturatedFatGrams: toDensity(adjustedItem.saturatedFatGrams, grams),
+      monounsaturatedFatGrams: toDensity(adjustedItem.monounsaturatedFatGrams, grams),
+      polyunsaturatedFatGrams: toDensity(adjustedItem.polyunsaturatedFatGrams, grams),
+      sugarGrams: toDensity(adjustedItem.sugarGrams, grams),
+      complexCarbsGrams: toDensity(adjustedItem.complexCarbsGrams, grams),
     },
   }
 }

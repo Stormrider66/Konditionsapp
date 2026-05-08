@@ -128,6 +128,8 @@ Uppdatera analysen baserat på användarens korrigering. Behåll all befintlig i
 
 VIKTIGT OM RECEPT OCH DRYCKER: Om en befintlig rad är ett helt recept/en hel sats (t.ex. "1 hel sats (ca 8 dl)") och användaren skriver att hen drack/åt en mindre mängd (t.ex. "jag drack 2 dl"), ska du skala raden proportionellt. Exempel: 2 dl av en sats på 8 dl = 25% av kalorier och makron, inte hela satsen.
 
+VIKTIGT OM KÖTT/FISK/FÅGEL MED BEN: Om användaren anger vikt med ben eller matvaran är t.ex. kycklingklubbor, kycklingvingar, revben, kotlett med ben eller hel fisk, behåll vikten inklusive ben i estimatedGrams men beräkna kalorier och makros på ätbar del efter ben. Skriv gärna i portionDescription, t.ex. "300 g med ben (ca 200 g ätbart)".
+
 VIKTIGT: Sätt alltid success till true — maten har redan identifierats och vi uppdaterar bara analysen.
 
 Returnera en komplett uppdaterad analys med alla matvaro — inte bara de ändrade.${enhancedMode ? `

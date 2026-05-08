@@ -88,6 +88,7 @@ VIKTIGT:
 - Var realistisk med portionsstorlekar — svenskar äter normala portioner
 - Räkna med vanliga svenska livsmedel och tillagningsmetoder
 - Om du ser förpackningar med näringsinformation, använd den informationen
+- För kött/fisk/fågel med ben: om vikt anges eller uppskattas inklusive ben, behåll vikten i estimatedGrams men beräkna kalorier och makros på ätbar del efter ben. Skriv gärna i portionDescription, t.ex. "300 g med ben (ca 200 g ätbart)".
 - Ange eventuella osäkerheter i notes-fältet${enhancedBlock}`
 }
 
