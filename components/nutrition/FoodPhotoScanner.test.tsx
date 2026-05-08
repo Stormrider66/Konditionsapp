@@ -42,6 +42,7 @@ vi.mock('next/navigation', () => ({
 describe('FoodPhotoScanner', () => {
   let refineRequestBody: Record<string, unknown> | null
   let refineResponse: Record<string, unknown>
+  let recipeRequestBody: Record<string, unknown> | null
 
   beforeAll(() => {
     Object.defineProperty(URL, 'createObjectURL', {
@@ -102,6 +103,7 @@ describe('FoodPhotoScanner', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     refineRequestBody = null
+    recipeRequestBody = null
     refineResponse = {
       result: {
         success: true,
@@ -168,6 +170,18 @@ describe('FoodPhotoScanner', () => {
           } as Response
         }
 
+        if (url === '/api/nutrition/recipes' && init?.method === 'POST') {
+          recipeRequestBody = JSON.parse(String(init.body || '{}')) as Record<string, unknown>
+          return {
+            ok: true,
+            status: 201,
+            json: async () => ({
+              success: true,
+              data: { id: 'recipe_1', name: 'Pasta' },
+            }),
+          } as Response
+        }
+
         throw new Error(`Unexpected fetch: ${url}`)
       })
     )
@@ -224,6 +238,44 @@ describe('FoodPhotoScanner', () => {
     expect(
       screen.getByText(/förhandsgranskningen kunde inte visas, men du kan fortfarande analysera bilden/i)
     ).toBeInTheDocument()
+  })
+
+  it('saves reviewed food scan items as a recipe', async () => {
+    const user = userEvent.setup()
+
+    const { container } = render(<FoodPhotoScanner />)
+
+    const fileInput = container.querySelector('input[type="file"]:not([capture])')
+    expect(fileInput).not.toBeNull()
+
+    const file = new File(['image'], 'meal.png', { type: 'image/png' })
+    fireEvent.change(fileInput as HTMLInputElement, {
+      target: { files: [file] },
+    })
+
+    await user.click(await screen.findByRole('button', { name: /analysera måltid/i }))
+    await user.click(await screen.findByRole('button', { name: /spara recept/i }))
+
+    await waitFor(() => {
+      expect(recipeRequestBody).toMatchObject({
+        name: 'Pasta',
+        baseServings: 1,
+        source: 'SCAN',
+      })
+      expect(recipeRequestBody?.items).toEqual([
+        expect.objectContaining({
+          name: 'Pasta',
+          category: 'GRAIN',
+          grams: 250,
+          caloriesPer100g: 200,
+          proteinPer100g: 7.2,
+          carbsPer100g: 32.8,
+          fatPer100g: 4,
+          fiberPer100g: 1.6,
+        }),
+      ])
+      expect(screen.getByText(/pasta sparades bland dina recept/i)).toBeInTheDocument()
+    })
   })
 
   it('re-sends the normalized image file during refine and updates the review state', async () => {

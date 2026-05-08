@@ -38,6 +38,7 @@ import {
   ChevronUp,
   Zap,
   ZapOff,
+  Save,
 } from 'lucide-react'
 
 const SESSION_KEY = 'food-scanner-state'
@@ -65,6 +66,43 @@ const MEAL_TYPE_LABELS: Record<string, string> = {
   DINNER: 'Middag',
   EVENING_SNACK: 'Kvällsmellanmål',
 }
+
+const roundTo = (value: number, decimals: number) => {
+  const factor = 10 ** decimals
+  return Math.round(value * factor) / factor
+}
+
+const nutrientPer100g = (value: number, grams: number) => {
+  if (!Number.isFinite(value) || grams <= 0) return 0
+  return roundTo((value / grams) * 100, 1)
+}
+
+const makeSuggestedRecipeName = (mealDescription: string, items: EditableFoodItem[]) => {
+  const description = mealDescription.trim()
+  if (description.length >= 2) return description.slice(0, 80)
+
+  const names = items
+    .map((item) => item.name.trim())
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(', ')
+
+  return (names || 'Skannat recept').slice(0, 80)
+}
+
+const foodItemsToRecipeItems = (items: EditableFoodItem[]) =>
+  items
+    .filter((item) => item.name.trim().length > 0 && item.estimatedGrams > 0)
+    .map((item) => ({
+      name: item.name.trim(),
+      category: item.category,
+      grams: roundTo(item.estimatedGrams, 1),
+      caloriesPer100g: nutrientPer100g(item.calories, item.estimatedGrams),
+      proteinPer100g: nutrientPer100g(item.proteinGrams, item.estimatedGrams),
+      carbsPer100g: nutrientPer100g(item.carbsGrams, item.estimatedGrams),
+      fatPer100g: nutrientPer100g(item.fatGrams, item.estimatedGrams),
+      fiberPer100g: nutrientPer100g(item.fiberGrams, item.estimatedGrams),
+    }))
 
 interface FoodPhotoScannerProps {
   onMealSaved?: (meal: unknown) => void
@@ -225,6 +263,9 @@ export function FoodPhotoScanner({
   const [memoryUsed, setMemoryUsed] = useState(false)
   const [portionSnapCount, setPortionSnapCount] = useState(0)
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
+  const [isSavingRecipe, setIsSavingRecipe] = useState(false)
+  const [recipeSaveMessage, setRecipeSaveMessage] = useState<string | null>(null)
+  const [recipeSaveError, setRecipeSaveError] = useState<string | null>(null)
 
   // Pre-analysis context (user-provided hints before scanning)
   const [userContext, setUserContext] = useState('')
@@ -467,6 +508,8 @@ export function FoodPhotoScanner({
       setEnhancedMode(data.enhancedMode ?? false)
       setMemoryUsed(Boolean(data.memoryUsed))
       setPortionSnapCount(Array.isArray(data.portionSnaps) ? data.portionSnaps.length : 0)
+      setRecipeSaveMessage(null)
+      setRecipeSaveError(null)
 
       // Snapshot the AI's first response so we can capture corrections on save.
       initialAiItemsRef.current = result.items.map((i) => ({ ...i }))
@@ -599,6 +642,41 @@ export function FoodPhotoScanner({
     }
   }
 
+  const handleSaveRecipe = async () => {
+    const recipeItems = foodItemsToRecipeItems(items)
+    if (recipeItems.length === 0) return
+
+    setIsSavingRecipe(true)
+    setRecipeSaveMessage(null)
+    setRecipeSaveError(null)
+
+    try {
+      const response = await fetch('/api/nutrition/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: makeSuggestedRecipeName(mealDescription, items),
+          description: notes.trim() || undefined,
+          baseServings: 1,
+          source: 'SCAN',
+          items: recipeItems,
+        }),
+      })
+
+      const data = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(data?.error || 'Kunde inte spara recept')
+      }
+
+      const savedName = typeof data?.data?.name === 'string' ? data.data.name : 'Receptet'
+      setRecipeSaveMessage(`${savedName} sparades bland dina recept.`)
+    } catch (err) {
+      setRecipeSaveError(err instanceof Error ? err.message : 'Kunde inte spara recept')
+    } finally {
+      setIsSavingRecipe(false)
+    }
+  }
+
   const handleReset = () => {
     selectionRequestIdRef.current += 1
     revokePreviewUrl()
@@ -615,6 +693,9 @@ export function FoodPhotoScanner({
     setMemoryUsed(false)
     setPortionSnapCount(0)
     setExpandedItems(new Set())
+    setIsSavingRecipe(false)
+    setRecipeSaveMessage(null)
+    setRecipeSaveError(null)
     initialAiItemsRef.current = null
     initialAiConfidenceRef.current = null
     refinedRef.current = false
@@ -833,6 +914,8 @@ export function FoodPhotoScanner({
       setConfidence(result.confidence)
       setNotes(result.notes?.join('\n') ?? '')
       setRefinementText('')
+      setRecipeSaveMessage(null)
+      setRecipeSaveError(null)
       refinedRef.current = true
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kunde inte uppdatera analysen')
@@ -1279,9 +1362,36 @@ export function FoodPhotoScanner({
 
           {/* Food items list */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-400">
-              Identifierade livsmedel ({items.length})
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-xs font-medium text-slate-400">
+                Identifierade livsmedel ({items.length})
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 shrink-0 gap-1.5 bg-white/5 border-white/10 px-2.5 text-xs text-white hover:bg-white/10"
+                onClick={handleSaveRecipe}
+                disabled={isSavingRecipe || foodItemsToRecipeItems(items).length === 0}
+              >
+                {isSavingRecipe ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Save className="h-3.5 w-3.5" />
+                )}
+                Spara recept
+              </Button>
+            </div>
+            {recipeSaveMessage && (
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+                {recipeSaveMessage}
+              </div>
+            )}
+            {recipeSaveError && (
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                {recipeSaveError}
+              </div>
+            )}
             {items.map((item, index) => (
               <GlassCard key={index}>
                 <GlassCardContent className="p-3">
