@@ -47,6 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import {
   Plus,
   Trash2,
@@ -141,15 +142,18 @@ interface HybridWorkoutBuilderProps {
 }
 
 const formatOptions = [
-  { value: 'FOR_TIME', label: 'For Time', labelSv: 'På Tid', icon: Timer, description: 'Slutför arbetet så snabbt som möjligt' },
-  { value: 'AMRAP', label: 'AMRAP', labelSv: 'AMRAP', icon: Repeat, description: 'Så många rundor som möjligt på given tid' },
   { value: 'EMOM', label: 'EMOM', labelSv: 'EMOM', icon: Clock, description: 'Varje minut på minuten' },
+  { value: 'AMRAP', label: 'AMRAP', labelSv: 'AMRAP', icon: Repeat, description: 'Så många rundor som möjligt på given tid' },
+  { value: 'FOR_TIME', label: 'For Time', labelSv: 'På Tid', icon: Timer, description: 'Slutför arbetet så snabbt som möjligt' },
   { value: 'TABATA', label: 'Tabata', labelSv: 'Tabata', icon: Zap, description: '20s arbete / 10s vila × 8 rundor' },
   { value: 'CHIPPER', label: 'Chipper', labelSv: 'Chipper', icon: Target, description: 'Lång sekvens av rörelser, en gång' },
   { value: 'LADDER', label: 'Ladder', labelSv: 'Stege', icon: Dumbbell, description: 'Stigande/fallande rep-schema' },
   { value: 'INTERVALS', label: 'Intervals', labelSv: 'Intervaller', icon: Zap, description: 'Arbete/vila intervaller' },
   { value: 'HYROX_SIM', label: 'HYROX Sim', labelSv: 'HYROX Sim', icon: Trophy, description: 'HYROX-simulering (löpning + stationer)' },
 ];
+
+const DEFAULT_EMOM_INTERVAL_SECONDS = 60;
+const DEFAULT_EMOM_ROUNDS = 10;
 
 const categoryLabels: Record<string, string> = {
   OLYMPIC_LIFT: 'Tyngdlyftning',
@@ -314,7 +318,7 @@ function buildInitialMetconBlocks(
       format: (initialData?.format === 'EMOM' ? 'EMOM' : 'CUSTOM'),
       intervalSeconds:
         initialData?.format === 'EMOM'
-          ? (initialData.workTime || 60) + (initialData.restTime || 0)
+          ? (initialData.workTime || DEFAULT_EMOM_INTERVAL_SECONDS) + (initialData.restTime || 0)
           : undefined,
       rounds: initialData?.totalRounds,
       restAfterSeconds: undefined,
@@ -592,8 +596,8 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
         id: createTempId('block'),
         title: `Block ${blockNumber}`,
         format: format === 'EMOM' ? 'EMOM' : 'CUSTOM',
-        intervalSeconds: format === 'EMOM' ? 120 : undefined,
-        rounds: format === 'EMOM' ? 7 : undefined,
+        intervalSeconds: format === 'EMOM' ? DEFAULT_EMOM_INTERVAL_SECONDS : undefined,
+        rounds: format === 'EMOM' ? DEFAULT_EMOM_ROUNDS : undefined,
         movements: [],
       },
     ]);
@@ -841,16 +845,16 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                 onClick={() => {
                   setFormat(option.value);
                   if (option.value === 'EMOM') {
-                    setWorkTime((current) => current || 120);
-                    setTotalRounds((current) => current || 7);
+                    setWorkTime((current) => current || DEFAULT_EMOM_INTERVAL_SECONDS);
+                    setTotalRounds((current) => current || DEFAULT_EMOM_ROUNDS);
                     setMetconBlocks((blocks) =>
                       blocks.map((block, index) =>
                         index === 0
                           ? {
                               ...block,
                               format: 'EMOM',
-                              intervalSeconds: block.intervalSeconds || 120,
-                              rounds: block.rounds || 7,
+                              intervalSeconds: block.intervalSeconds || DEFAULT_EMOM_INTERVAL_SECONDS,
+                              rounds: block.rounds || DEFAULT_EMOM_ROUNDS,
                             }
                           : block
                       )
@@ -927,60 +931,6 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                 onChange={(e) => setTotalMinutes(e.target.value ? parseInt(e.target.value) : undefined)}
                 placeholder="t.ex. 20"
               />
-            </div>
-          )}
-
-          {format === 'EMOM' && (
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="emomRounds">Intervaller</Label>
-                <Input
-                  id="emomRounds"
-                  type="number"
-                  value={totalRounds || ''}
-                  onChange={(e) => {
-                    const nextRounds = e.target.value ? parseInt(e.target.value) : undefined;
-                    setTotalRounds(nextRounds);
-                    setMetconBlocks((blocks) =>
-                      blocks.map((block, index) =>
-                        index === 0 && block.format === 'EMOM'
-                          ? { ...block, rounds: nextRounds }
-                          : block
-                      )
-                    );
-                  }}
-                  placeholder="t.ex. 7"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="emomInterval">Start var (sekunder)</Label>
-                <Input
-                  id="emomInterval"
-                  type="number"
-                  value={workTime || ''}
-                  onChange={(e) => {
-                    const nextInterval = e.target.value ? parseInt(e.target.value) : undefined;
-                    setWorkTime(nextInterval);
-                    setRestTime(0);
-                    setMetconBlocks((blocks) =>
-                      blocks.map((block, index) =>
-                        index === 0 && block.format === 'EMOM'
-                          ? { ...block, intervalSeconds: nextInterval }
-                          : block
-                      )
-                    );
-                  }}
-                  placeholder="120"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Total tid</Label>
-                <div className="flex h-10 items-center rounded-md border bg-muted/50 px-3 text-sm text-muted-foreground">
-                  {totalRounds && workTime
-                    ? `${Math.ceil((totalRounds * workTime) / 60)} min`
-                    : 'Beräknas från intervaller'}
-                </div>
-              </div>
             </div>
           )}
 
@@ -1304,8 +1254,9 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                 {metconBlocks.map((block, blockIndex) => {
                   const blockDuration =
                     block.format === 'EMOM' && block.rounds && block.intervalSeconds
-                      ? block.rounds * block.intervalSeconds
+                      ? block.rounds * block.intervalSeconds + (block.restAfterSeconds || 0)
                       : undefined;
+                  const hasRestAfter = Boolean(block.restAfterSeconds && block.restAfterSeconds > 0);
 
                   return (
                     <div key={block.id} className="rounded-lg border bg-background p-3 space-y-3">
@@ -1363,8 +1314,8 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                               updateMetconBlock(block.id, {
                                 format: value as MetconBlock['format'],
                                 intervalSeconds:
-                                  value === 'EMOM' ? block.intervalSeconds || 120 : block.intervalSeconds,
-                                rounds: value === 'EMOM' ? block.rounds || 7 : block.rounds,
+                                  value === 'EMOM' ? block.intervalSeconds || DEFAULT_EMOM_INTERVAL_SECONDS : block.intervalSeconds,
+                                rounds: value === 'EMOM' ? block.rounds || DEFAULT_EMOM_ROUNDS : block.rounds,
                               })
                             }
                           >
@@ -1391,7 +1342,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                                 intervalSeconds: e.target.value ? parseInt(e.target.value) : undefined,
                               })
                             }
-                            placeholder="120"
+                            placeholder="60"
                           />
                         </div>
                         <div className="space-y-1">
@@ -1405,22 +1356,40 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                                 rounds: e.target.value ? parseInt(e.target.value) : undefined,
                               })
                             }
-                            placeholder="7"
+                            placeholder="10"
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">Vila efter (s)</Label>
-                          <Input
-                            type="number"
-                            className="h-9"
-                            value={block.restAfterSeconds || ''}
-                            onChange={(e) =>
-                              updateMetconBlock(block.id, {
-                                restAfterSeconds: e.target.value ? parseInt(e.target.value) : undefined,
-                              })
-                            }
-                            placeholder="180"
-                          />
+                          <div className="flex h-4 items-center justify-between gap-2">
+                            <Label className="text-xs">Vila mellan</Label>
+                            <Switch
+                              checked={hasRestAfter}
+                              onCheckedChange={(checked) =>
+                                updateMetconBlock(block.id, {
+                                  restAfterSeconds: checked ? (block.restAfterSeconds || 180) : undefined,
+                                })
+                              }
+                              aria-label="Lägg till vila efter blocket"
+                              className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3"
+                            />
+                          </div>
+                          {hasRestAfter ? (
+                            <Input
+                              type="number"
+                              className="h-9"
+                              value={block.restAfterSeconds || ''}
+                              onChange={(e) =>
+                                updateMetconBlock(block.id, {
+                                  restAfterSeconds: e.target.value ? parseInt(e.target.value) : undefined,
+                                })
+                              }
+                              placeholder="180"
+                            />
+                          ) : (
+                            <div className="flex h-9 items-center rounded-md border bg-muted/30 px-3">
+                              <span className="text-xs text-muted-foreground">Ingen vila</span>
+                            </div>
+                          )}
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">Rörelser</Label>
