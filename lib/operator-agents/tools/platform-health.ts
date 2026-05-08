@@ -76,22 +76,31 @@ export async function getCronJobFailures(hours: number = 1): Promise<OperatorToo
 
 export async function getAgentErrorRate(): Promise<OperatorToolResult> {
   try {
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const since1h = new Date(Date.now() - 60 * 60 * 1000)
+    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
-    const [total, failed] = await Promise.all([
-      prisma.operatorAgentRun.count({ where: { createdAt: { gte: since } } }),
-      prisma.operatorAgentRun.count({ where: { createdAt: { gte: since }, status: 'FAILED' } }),
+    const [total1h, failed1h, total24h, failed24h] = await Promise.all([
+      prisma.operatorAgentRun.count({ where: { createdAt: { gte: since1h } } }),
+      prisma.operatorAgentRun.count({ where: { createdAt: { gte: since1h }, status: 'FAILED' } }),
+      prisma.operatorAgentRun.count({ where: { createdAt: { gte: since24h } } }),
+      prisma.operatorAgentRun.count({ where: { createdAt: { gte: since24h }, status: 'FAILED' } }),
     ])
 
-    const errorRate = total > 0 ? failed / total : 0
+    const errorRate1h = total1h > 0 ? failed1h / total1h : 0
+    const errorRate24h = total24h > 0 ? failed24h / total24h : 0
 
     return {
       success: true,
       data: {
-        totalRuns24h: total,
-        failedRuns24h: failed,
-        errorRate,
-        errorRatePercent: Math.round(errorRate * 100),
+        totalRuns1h: total1h,
+        failedRuns1h: failed1h,
+        errorRate: errorRate1h,
+        errorRatePercent: Math.round(errorRate1h * 100),
+        totalRuns24h: total24h,
+        failedRuns24h: failed24h,
+        errorRate24h,
+        errorRatePercent24h: Math.round(errorRate24h * 100),
+        note: 'Use the 1h error rate for alerting. The 24h rate is historical context and may stay elevated after an incident is fixed.',
       },
     }
   } catch (error) {

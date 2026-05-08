@@ -67,7 +67,7 @@ async function postAgentResultToSlackInner(
           emoji: ':lifebuoy:',
           severity: result.escalations > 0 ? 'critical' : 'info',
           title: `Processed ${result.itemsProcessed} tickets`,
-          body: result.summary,
+          body: withRunMeta(result),
         })
       }
       break
@@ -79,7 +79,7 @@ async function postAgentResultToSlackInner(
           emoji: ':shield:',
           severity: 'critical',
           title: 'Platform issue detected',
-          body: result.summary,
+          body: withRunMeta(result),
         })
       }
       break
@@ -91,7 +91,7 @@ async function postAgentResultToSlackInner(
           emoji: ':moneybag:',
           severity: 'warning',
           title: 'Cost alert',
-          body: result.summary,
+          body: withRunMeta(result),
         })
       }
       break
@@ -103,7 +103,7 @@ async function postAgentResultToSlackInner(
           emoji: ':heart:',
           severity: result.escalations > 0 ? 'critical' : 'info',
           title: `${result.itemsProcessed} subscribers analyzed`,
-          body: result.summary,
+          body: withRunMeta(result),
           ...(result.escalations > 0 ? {
             actions: {
               callbackId: 'churn_review',
@@ -122,7 +122,7 @@ async function postAgentResultToSlackInner(
         emoji: ':sunrise:',
         severity: 'info',
         title: 'Daily brief ready',
-        body: result.summary.slice(0, 2000),
+        body: withRunMeta(result, 2000),
       })
       break
 
@@ -133,7 +133,7 @@ async function postAgentResultToSlackInner(
         emoji: ':bar_chart:',
         severity: 'info',
         title: 'Weekly report ready',
-        body: result.summary.slice(0, 2000),
+        body: withRunMeta(result, 2000),
       })
       break
 
@@ -143,7 +143,7 @@ async function postAgentResultToSlackInner(
         emoji: ':eyes:',
         severity: result.escalations > 0 ? 'warning' : 'info',
         title: 'Weekly digest ready',
-        body: result.summary.slice(0, 2000),
+        body: withRunMeta(result, 2000),
       })
       break
 
@@ -154,7 +154,7 @@ async function postAgentResultToSlackInner(
           emoji: ':database:',
           severity: 'warning',
           title: 'Data integrity issue',
-          body: result.summary,
+          body: withRunMeta(result),
         })
       }
       break
@@ -166,7 +166,7 @@ async function postAgentResultToSlackInner(
           emoji: ':lock:',
           severity: 'critical',
           title: 'Security alert',
-          body: result.summary,
+          body: withRunMeta(result),
         })
       }
       break
@@ -178,7 +178,7 @@ async function postAgentResultToSlackInner(
           emoji: ':mega:',
           severity: 'info',
           title: `${result.actionsTaken} content pieces drafted`,
-          body: result.summary,
+          body: withRunMeta(result),
         })
       }
       break
@@ -190,7 +190,7 @@ async function postAgentResultToSlackInner(
           emoji: ':wave:',
           severity: 'info',
           title: `${result.actionsTaken} nudges drafted`,
-          body: result.summary,
+          body: withRunMeta(result),
         })
       }
       break
@@ -203,10 +203,16 @@ async function postAgentResultToSlackInner(
           emoji: ':robot_face:',
           severity: result.escalations > 0 ? 'warning' : 'info',
           title: result.summary.slice(0, 100),
-          body: result.summary,
+          body: withRunMeta(result),
         })
       }
   }
+}
+
+function withRunMeta(result: OperatorAgentRunResult, maxSummaryLength?: number): string {
+  const summary = maxSummaryLength ? result.summary.slice(0, maxSummaryLength) : result.summary
+  if (!result.modelUsed) return summary
+  return `${summary}\n\n_Model: \`${result.modelUsed}\`_`
 }
 
 function formatAgentName(type: string): string {

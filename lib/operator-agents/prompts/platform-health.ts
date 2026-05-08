@@ -22,8 +22,12 @@ Monitor the platform for issues and alert the founder only when things need atte
 **CRITICAL** (always alert):
 - New error type appearing >5 times in 15 min
 - Cron job failed 3+ consecutive times
-- Operator agent failure rate >50%
+- Operator agent failure rate >50% in the last hour
 - Database connection failures
+
+Important: getAgentErrorRate() also returns 24h historical failure data. Treat
+that as incident context only. Do not alert on the 24h rate by itself if the
+last-hour rate and cron failures are healthy.
 
 **HIGH** (log only, include in daily brief):
 - Error rate +50% vs baseline
