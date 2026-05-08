@@ -282,6 +282,8 @@ export function CalendarEventItem({
   )
   const config = EVENT_TYPE_CONFIG[eventType as keyof typeof EVENT_TYPE_CONFIG]
   const impactConfig = IMPACT_CONFIG[trainingImpact as keyof typeof IMPACT_CONFIG]
+  const sourceName = scheduledWorkoutSource?.sourceName?.trim()
+  const shouldShowSourceName = !!sourceName && !event.title.includes(sourceName)
 
   const openScheduledWorkout = () => {
     const kind = scheduledWorkoutSource?.kind
@@ -337,7 +339,7 @@ export function CalendarEventItem({
   return (
     <div
       className={cn(
-        'p-4 rounded-xl border transition-all duration-300',
+        'p-4 rounded-xl border transition-all duration-300 overflow-hidden',
         isGlass
           ? "bg-white/5 border-white/10"
           : (config?.bgColor || 'bg-gray-100'),
@@ -353,16 +355,16 @@ export function CalendarEventItem({
                 {event.title}
               </span>
             </div>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex flex-wrap items-center gap-2 mt-1 min-w-0">
               <Badge
                 variant="outline"
-                className={cn('text-xs', impactConfig?.color)}
+                className={cn('text-xs shrink-0', impactConfig?.color)}
               >
                 {impactConfig?.labelSv}
               </Badge>
-              {scheduledWorkoutSource?.sourceName && (
-                <span className="text-xs text-muted-foreground truncate">
-                  {scheduledWorkoutSource.sourceName}
+              {shouldShowSourceName && (
+                <span className="min-w-0 max-w-full truncate text-xs text-muted-foreground">
+                  {sourceName}
                 </span>
               )}
               {eventType === 'ALTITUDE_CAMP' && typeof meta.altitude === 'number' && meta.altitude > 0 && (
@@ -382,21 +384,21 @@ export function CalendarEventItem({
       </button>
 
       {!isReadOnly && (
-        <div className="flex items-center gap-1 mt-2 pt-2 border-t border-white/5">
+        <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-white/5">
           {scheduledWorkoutSource?.sourceId && canEditScheduledWorkoutSource && (
-            <Button variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold" onClick={openScheduledWorkout}>
-              <ExternalLink className="h-3 w-3 mr-1" />
+            <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={openScheduledWorkout}>
+              <ExternalLink className="h-3 w-3 shrink-0 mr-1" />
               Redigera pass
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold" onClick={onEdit}>
-            <Edit className="h-3 w-3 mr-1" />
+          <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={onEdit}>
+            <Edit className="h-3 w-3 shrink-0 mr-1" />
             {eventType === 'SCHEDULED_WORKOUT' ? 'Tid' : 'Redigera'}
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 text-xs uppercase font-bold text-red-400 hover:text-red-300">
-                <Trash2 className="h-3 w-3 mr-1" />
+              <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold text-red-400 hover:text-red-300">
+                <Trash2 className="h-3 w-3 shrink-0 mr-1" />
                 Ta bort
               </Button>
             </AlertDialogTrigger>
