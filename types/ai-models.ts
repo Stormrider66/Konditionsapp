@@ -152,11 +152,11 @@ export const AI_MODELS: AIModelConfig[] = [
   },
   // OpenAI Models (GPT-5)
   {
-    id: 'gpt-5.3-instant',
-    name: 'GPT-5.3 Instant',
+    id: 'gpt-5.4-nano',
+    name: 'GPT-5.4 Nano',
     provider: 'openai',
-    modelId: 'gpt-5.3-instant',
-    description: 'Snabbast och billigast. Bra för enklare uppgifter.',
+    modelId: 'gpt-5.4-nano',
+    description: 'Billigaste OpenAI-modellen. Bra för enkla bakgrundsuppgifter.',
     costTier: 'low',
     capabilities: {
       reasoning: 'good',
@@ -165,15 +165,15 @@ export const AI_MODELS: AIModelConfig[] = [
       maxOutputTokens: 16384,
     },
     pricing: {
-      input: 0.5,  // $0.50 per 1M tokens
-      output: 2.0, // $2.00 per 1M tokens
+      input: 0.2,   // $0.20 per 1M tokens
+      output: 1.25, // $1.25 per 1M tokens
     },
   },
   {
-    id: 'gpt-5-mini',
-    name: 'GPT-5 Mini',
+    id: 'gpt-5.4-mini',
+    name: 'GPT-5.4 Mini',
     provider: 'openai',
-    modelId: 'gpt-5-mini',
+    modelId: 'gpt-5.4-mini',
     description: 'Balanserad prestanda och kostnad.',
     costTier: 'medium',
     capabilities: {
@@ -183,8 +183,8 @@ export const AI_MODELS: AIModelConfig[] = [
       maxOutputTokens: 32768,
     },
     pricing: {
-      input: 1.5,  // $1.50 per 1M tokens
-      output: 6.0, // $6.00 per 1M tokens
+      input: 0.75,  // $0.75 per 1M tokens
+      output: 4.5,  // $4.50 per 1M tokens
     },
   },
   {
@@ -201,8 +201,8 @@ export const AI_MODELS: AIModelConfig[] = [
       maxOutputTokens: 128000,
     },
     pricing: {
-      input: 1.75,  // $1.75 per 1M tokens
-      output: 14.0, // $14.00 per 1M tokens
+      input: 5.0,   // $5.00 per 1M tokens
+      output: 30.0, // $30.00 per 1M tokens
     },
     bestForLongOutput: true,
   },
@@ -366,12 +366,12 @@ export const MODEL_TIERS: Record<ModelIntent, {
   fast: {
     google:    { modelId: 'gemini-3.1-flash-lite-preview', displayName: 'Gemini 3.1 Flash Lite', supportsVision: true },
     anthropic: { modelId: 'claude-haiku-4-5',              displayName: 'Claude Haiku 4.5',     supportsVision: true },
-    openai:    { modelId: 'gpt-5.3-instant',               displayName: 'GPT-5.3 Instant',      supportsVision: true },
+    openai:    { modelId: 'gpt-5.4-nano',                  displayName: 'GPT-5.4 Nano',         supportsVision: true },
   },
   balanced: {
     google:    { modelId: 'gemini-3-flash-preview',     displayName: 'Gemini 3 Flash',    supportsVision: true },
     anthropic: { modelId: 'claude-sonnet-4-6',          displayName: 'Claude Sonnet 4.6', supportsVision: true },
-    openai:    { modelId: 'gpt-5-mini',                 displayName: 'GPT-5 Mini',        supportsVision: true },
+    openai:    { modelId: 'gpt-5.4-mini',               displayName: 'GPT-5.4 Mini',      supportsVision: true },
   },
   powerful: {
     google:    { modelId: 'gemini-3.1-pro-preview',     displayName: 'Gemini 3.1 Pro',    supportsVision: true },
@@ -570,8 +570,8 @@ export function legacyModelIdToIntent(id: string): ModelIntent {
   }
 
   // Also match the short IDs used in the AI_MODELS array
-  const fastIds = ['gemini-3.1-flash-lite', 'claude-haiku', 'gpt-5.3-instant']
-  const balancedIds = ['gemini-3-flash', 'claude-sonnet', 'gpt-5-mini']
+  const fastIds = ['gemini-3.1-flash-lite', 'claude-haiku', 'gpt-5.3-instant', 'gpt-5.4-nano']
+  const balancedIds = ['gemini-3-flash', 'claude-sonnet', 'gpt-5-mini', 'gpt-5.4-mini']
   const powerfulIds = ['gemini-3-pro', 'claude-opus', 'gpt-5.5']
 
   if (fastIds.includes(id)) return 'fast'

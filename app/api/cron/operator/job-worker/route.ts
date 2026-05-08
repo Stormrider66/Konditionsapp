@@ -7,7 +7,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { processPendingJobs } from '@/lib/operator-agents/job-queue'
+import { processPendingJobs } from '@/lib/operator-agents'
 import { logger } from '@/lib/logger'
 
 function verifyCronSecret(request: Request): boolean {

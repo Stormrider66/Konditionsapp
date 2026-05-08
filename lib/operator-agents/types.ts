@@ -30,10 +30,11 @@ export type OperatorAgentType =
 /**
  * Default model intent per operator agent.
  *
- * All operator agents currently run on the 'fast' tier (Gemini 3.1 Flash Lite
- * via @/types/ai-models MODEL_TIERS) to keep beta-stage operating cost in the
- * single dollars per month. Raise individual agents to 'balanced' or 'powerful'
- * if quality regresses — the runner reads this map at every invocation.
+ * All operator agents currently run on the 'fast' tier. The runner resolves
+ * that to the cheapest configured provider model (OpenAI GPT-5.4 Nano first,
+ * Gemini Flash-Lite fallback) to keep beta-stage operating cost low. Raise
+ * individual agents to 'balanced' or 'powerful' if quality regresses — the
+ * runner reads this map at every invocation.
  */
 export const OPERATOR_MODEL_INTENT: Record<OperatorAgentType, ModelIntent> = {
   SUPPORT: 'fast',

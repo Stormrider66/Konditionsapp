@@ -8,17 +8,20 @@
  *   import { runOperatorAgent } from '@/lib/operator-agents'
  *   await runOperatorAgent('SUPPORT', { triggeredBy: 'cron' })
  *
- * Provider: Google Gemini via Vercel AI SDK. Tool definitions are kept in
- * Anthropic JSON-schema shape so the 12 agent files don't have to change;
- * the runner converts them to AI SDK tools at the boundary.
+ * Provider: OpenAI GPT-5.4 Nano via Vercel AI SDK when OPENAI_API_KEY is
+ * configured, otherwise Gemini Flash-Lite. Tool definitions are kept in
+ * Anthropic JSON-schema shape so the 12 agent files don't have to change; the
+ * runner converts them to AI SDK tools at the boundary.
  */
 
 import type Anthropic from '@anthropic-ai/sdk'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { createOpenAI } from '@ai-sdk/openai'
 import { generateText, jsonSchema, stepCountIs, tool, type ToolSet } from 'ai'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { MODEL_TIERS, type ModelIntent } from '@/types/ai-models'
+import type { AIProvider } from '@/types/ai-models'
 import type { OperatorAgentType, OperatorAgentRunResult } from './types'
 import { OPERATOR_MODEL_INTENT } from './types'
 
@@ -41,7 +44,35 @@ export interface OperatorAgentContext {
   runId: string
   triggeredBy: string
   model: string
+  provider: AIProvider
   modelIntent: ModelIntent
+}
+
+interface OperatorModelSelection {
+  provider: AIProvider
+  modelId: string
+  apiKey: string
+}
+
+function resolveOperatorModel(modelIntent: ModelIntent): OperatorModelSelection | null {
+  if (process.env.OPENAI_API_KEY) {
+    return {
+      provider: 'openai',
+      modelId: MODEL_TIERS[modelIntent].openai.modelId,
+      apiKey: process.env.OPENAI_API_KEY,
+    }
+  }
+
+  const googleApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
+  if (googleApiKey) {
+    return {
+      provider: 'google',
+      modelId: MODEL_TIERS[modelIntent].google.modelId,
+      apiKey: googleApiKey,
+    }
+  }
+
+  return null
 }
 
 const AGENT_REGISTRY = new Map<OperatorAgentType, OperatorAgentDefinition>()
@@ -101,21 +132,24 @@ export async function runOperatorAgent(
       throw new Error(`Operator agent not registered: ${agentType}`)
     }
 
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
-    if (!apiKey) {
-      throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not configured')
+    const modelIntent = OPERATOR_MODEL_INTENT[agentType]
+    const selectedModel = resolveOperatorModel(modelIntent)
+    if (!selectedModel) {
+      throw new Error('OPENAI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY not configured')
     }
 
-    const modelIntent = OPERATOR_MODEL_INTENT[agentType]
-    const modelId = MODEL_TIERS[modelIntent].google.modelId
-
-    logger.info(`[operator-agents] Starting ${agentType}`, { runId: run.id, model: modelId })
+    logger.info(`[operator-agents] Starting ${agentType}`, {
+      runId: run.id,
+      provider: selectedModel.provider,
+      model: selectedModel.modelId,
+    })
 
     const result = await definition.run({
       agentType,
       runId: run.id,
       triggeredBy,
-      model: modelId,
+      provider: selectedModel.provider,
+      model: selectedModel.modelId,
       modelIntent,
     })
 
@@ -132,7 +166,7 @@ export async function runOperatorAgent(
           escalations: result.escalations,
           summary: result.summary,
           details: result.details as never,
-          modelUsed: result.modelUsed || modelId,
+          modelUsed: result.modelUsed || selectedModel.modelId,
           tokensUsed: result.tokensUsed,
           costUsd: result.costUsd,
         },
@@ -250,7 +284,7 @@ async function generateWithRetry(
       if (!isRetryable || attempt === maxAttempts) throw error
 
       const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 8000) + Math.floor(Math.random() * 500)
-      logger.warn('[operator-agents] Gemini API transient error, retrying', {
+      logger.warn('[operator-agents] AI provider transient error, retrying', {
         status,
         attempt,
         maxAttempts,
@@ -279,11 +313,14 @@ export async function runAgentLoop(
   tokensUsed: number
   costUsd: number
 }> {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
-  if (!apiKey) {
-    throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not configured')
+  const selectedModel = resolveOperatorModel(ctx.modelIntent)
+  if (!selectedModel) {
+    throw new Error('OPENAI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY not configured')
   }
-  const google = createGoogleGenerativeAI({ apiKey })
+
+  const aiModel = selectedModel.provider === 'openai'
+    ? createOpenAI({ apiKey: selectedModel.apiKey })(selectedModel.modelId)
+    : createGoogleGenerativeAI({ apiKey: selectedModel.apiKey })(selectedModel.modelId)
 
   const toolsUsed: string[] = []
 
@@ -306,7 +343,7 @@ export async function runAgentLoop(
   )
 
   const result = await generateWithRetry({
-    model: google(ctx.model),
+    model: aiModel,
     system: definition.systemPrompt,
     prompt: initialPrompt,
     tools: aiTools,
@@ -320,6 +357,6 @@ export async function runAgentLoop(
     finalResponse: result.text || 'Max iterations reached without a final response.',
     toolsUsed,
     tokensUsed: inputTokens + outputTokens,
-    costUsd: estimateOperatorCost(ctx.model, inputTokens, outputTokens),
+    costUsd: estimateOperatorCost(selectedModel.modelId, inputTokens, outputTokens),
   }
 }
