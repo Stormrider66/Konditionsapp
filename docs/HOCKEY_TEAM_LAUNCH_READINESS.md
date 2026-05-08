@@ -173,6 +173,12 @@ When the hockey pilot run finishes, the runner also saves `<summary>.analyzer.tx
 
 If k6 exits nonzero after writing the summary JSON, the runner still saves analyzer, gate, and manifest evidence. The manifest records the k6 exit code so threshold failures are reviewable instead of disappearing into terminal scrollback.
 
+Generate a pre-filled go/no-go evidence note from the manifest:
+
+```bash
+npm run qa:hockey-pilot-evidence -- load-tests/evidence/hockey-pilot-YYYY-MM-DD.manifest.json load-tests/evidence/hockey-pilot-YYYY-MM-DD.md
+```
+
 `npm run qa:hockey-pilot-summary -- <summary.json>` can also be run manually to re-check a saved k6 JSON. The checker uses the same traffic weights to decide which endpoint groups are required. For example, `HOCKEY_PILOT_ATHLETE_WEIGHT=0` makes athlete-only endpoints optional for coach-only debug runs. Use `HOCKEY_PILOT_REQUIRED_ENDPOINTS` only for narrow investigations where you intentionally want a custom coverage set.
 
 ## Pilot Green Gate

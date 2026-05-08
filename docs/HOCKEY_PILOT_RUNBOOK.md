@@ -46,6 +46,12 @@ K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run load:
    - manifest JSON
    - completed evidence template
 
+   You can generate a pre-filled evidence note from the manifest:
+
+```bash
+npm run qa:hockey-pilot-evidence -- load-tests/evidence/hockey-pilot-YYYY-MM-DD.manifest.json load-tests/evidence/hockey-pilot-YYYY-MM-DD.md
+```
+
 ## During Invite
 
 Invite in small waves:
@@ -93,6 +99,7 @@ Continue to the next wave only when:
 ## After Each Run
 
 1. Fill out `docs/templates/hockey-pilot-run-evidence.md`.
+   - Or generate a pre-filled copy with `npm run qa:hockey-pilot-evidence -- <manifest.json> <output.md>`.
 2. Attach or link the generated artifacts.
 3. Record the decision:
    - `GO`
