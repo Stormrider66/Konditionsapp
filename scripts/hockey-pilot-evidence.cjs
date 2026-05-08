@@ -73,6 +73,7 @@ function buildMarkdown({ manifest, summary, gateText, cwd }) {
   const artifacts = manifest.artifacts || {}
   const result = manifest.result || {}
   const weights = manifest.weights || {}
+  const git = manifest.git || {}
   const createdAt = manifest.createdAt ? new Date(manifest.createdAt) : new Date()
   const gatePassed = /Hockey pilot summary gate passed\./.test(gateText)
   const gateFailed = /Hockey pilot summary gate failed/.test(gateText)
@@ -95,7 +96,7 @@ function buildMarkdown({ manifest, summary, gateText, cwd }) {
 - Runner: -
 - Environment: ${manifest.target || '-'}
 - Target URL: ${manifest.target || '-'}
-- Commit SHA: -
+- Commit SHA: ${git.commitSha || '-'}
 - Decision: \`${decisionFromManifest(manifest)}\`
 
 ## Pilot Shape
@@ -120,7 +121,7 @@ K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run load:k6:
 - Summary JSON: ${relativeOrDash(artifacts.summaryJson, cwd)}
 - Analyzer output: ${relativeOrDash(artifacts.analyzerOutput, cwd)}
 - Summary gate output: ${relativeOrDash(artifacts.gateOutput, cwd)}
-- Manifest JSON: -
+- Manifest JSON: ${relativeOrDash(artifacts.manifestJson, cwd)}
 - Screenshot or support notes: -
 
 ## Manifest Snapshot
@@ -129,6 +130,8 @@ K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run load:k6:
 - Failed step: ${result.failedStep || '-'}
 - k6 exit code: ${result.k6ExitCode ?? '-'}
 - Summary gate: ${gateStatus}
+- Git branch: ${git.branch || '-'}
+- Git tree dirty: ${git.dirty === true ? 'yes' : git.dirty === false ? 'no' : '-'}
 - Business/team: ${manifest.businessSlug || manifest.businessId || '-'} / ${manifest.teamId || '-'}
 - Client ID count: ${manifest.clientIdCount ?? '-'}
 - Traffic weights: read ${weights.read || '-'}, athlete ${weights.athlete || '-'}, dashboard ${weights.dashboard || '-'}, export ${weights.export || '-'}

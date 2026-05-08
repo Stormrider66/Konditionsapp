@@ -78,19 +78,43 @@ function firstSetEnv(env, keys) {
   return null;
 }
 
+function gitOutput(command) {
+  try {
+    return execSync(command, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      shell: true,
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+function gitSnapshot(env) {
+  const commitSha = env.GIT_COMMIT_SHA || gitOutput('git rev-parse HEAD');
+  const branch = env.GIT_BRANCH || gitOutput('git rev-parse --abbrev-ref HEAD');
+  const dirtyStatus = gitOutput('git status --short');
+  return {
+    commitSha: commitSha || null,
+    branch: branch || null,
+    dirty: dirtyStatus === null ? null : dirtyStatus.length > 0,
+  };
+}
+
 function writeHockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gateOutput, env, result }) {
   fs.writeFileSync(
     manifestPath,
-    `${JSON.stringify(hockeyPilotManifest({ summaryExport, analyzerOutput, gateOutput, env, result }), null, 2)}\n`
+    `${JSON.stringify(hockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gateOutput, env, result }), null, 2)}\n`
   );
   console.log(`\nSaved hockey pilot manifest: ${manifestPath}`);
 }
 
-function hockeyPilotManifest({ summaryExport, analyzerOutput, gateOutput, env, result }) {
+function hockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gateOutput, env, result }) {
   return {
     createdAt: new Date().toISOString(),
     script: scriptName,
     result,
+    git: gitSnapshot(env),
     target: env.BASE_URL || null,
     businessId: env.BUSINESS_ID || null,
     businessSlug: env.BUSINESS_SLUG || null,
@@ -111,6 +135,7 @@ function hockeyPilotManifest({ summaryExport, analyzerOutput, gateOutput, env, r
       summaryJson: path.resolve(process.cwd(), summaryExport),
       analyzerOutput,
       gateOutput,
+      manifestJson: manifestPath,
     },
   };
 }

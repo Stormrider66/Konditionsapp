@@ -60,6 +60,11 @@ function writePilotArtifacts(dir: string, status: 'passed' | 'failed' = 'passed'
           exitCode: status === 'passed' ? 0 : 1,
           k6ExitCode: status === 'passed' ? 0 : 99,
         },
+        git: {
+          commitSha: 'abc123pilotsha',
+          branch: 'main',
+          dirty: false,
+        },
         target: 'https://pilot.example.com',
         businessSlug: 'skelleftea-aik',
         teamId: 'team-1',
@@ -74,6 +79,7 @@ function writePilotArtifacts(dir: string, status: 'passed' | 'failed' = 'passed'
           summaryJson: summaryPath,
           analyzerOutput: analyzerPath,
           gateOutput: gatePath,
+          manifestJson: manifestPath,
         },
       },
       null,
@@ -95,6 +101,9 @@ describe('hockey-pilot-evidence', () => {
 
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('Decision: `GO`')
+    expect(result.stdout).toContain('Commit SHA: abc123pilotsha')
+    expect(result.stdout).toContain('Git branch: main')
+    expect(result.stdout).toContain('Git tree dirty: no')
     expect(result.stdout).toContain('Overall p95: 1741ms')
     expect(result.stdout).toContain('Slowest endpoint: hockey-simca-export (2752ms p95)')
     expect(result.stdout).toContain('| team-dashboard | 1393ms | 1671ms | 0.00% |')

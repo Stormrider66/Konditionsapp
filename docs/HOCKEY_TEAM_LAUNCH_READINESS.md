@@ -169,7 +169,7 @@ Values in `load-tests/.env.k6` may be quoted and can use inline comments after a
 
 Set `K6_SUMMARY_EXPORT` for pilot runs so the summary JSON is saved as launch evidence. The k6 runner creates the export directory automatically.
 
-When the hockey pilot run finishes, the runner also saves `<summary>.analyzer.txt`, `<summary>.gate.txt`, and `<summary>.manifest.json` next to the JSON file. The manifest records the target, business/team IDs, client count, auth modes, traffic weights, artifact paths, and whether the analyzer/gate passed or failed.
+When the hockey pilot run finishes, the runner also saves `<summary>.analyzer.txt`, `<summary>.gate.txt`, and `<summary>.manifest.json` next to the JSON file. The manifest records the target, business/team IDs, client count, auth modes, traffic weights, git commit/branch/dirty status, artifact paths, and whether the analyzer/gate passed or failed.
 
 If k6 exits nonzero after writing the summary JSON, the runner still saves analyzer, gate, and manifest evidence. The manifest records the k6 exit code so threshold failures are reviewable instead of disappearing into terminal scrollback.
 

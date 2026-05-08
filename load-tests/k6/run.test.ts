@@ -93,6 +93,8 @@ function runRunner(args: string[], env: Record<string, string>) {
     'K6_BIN',
     'K6_ENV_PATH',
     'K6_SUMMARY_EXPORT',
+    'GIT_COMMIT_SHA',
+    'GIT_BRANCH',
     'BASE_URL',
     'CLIENT_ID',
     'CLIENT_IDS',
@@ -148,6 +150,9 @@ describe('load-tests k6 runner', () => {
     const manifest = JSON.parse(readFileSync(manifestPath(summaryPath), 'utf8'))
     expect(manifest.script).toBe('hockey-pilot')
     expect(manifest.result).toEqual({ status: 'passed', failedStep: null, exitCode: 0, k6ExitCode: 0 })
+    expect(manifest.git.commitSha).toMatch(/^[0-9a-f]{40}$/)
+    expect(manifest.git.branch).toEqual(expect.any(String))
+    expect(typeof manifest.git.dirty).toBe('boolean')
     expect(manifest.target).toBe('https://pilot.example.com')
     expect(manifest.businessId).toBe('business-1')
     expect(manifest.teamId).toBe('team-1')
@@ -163,6 +168,27 @@ describe('load-tests k6 runner', () => {
     expect(manifest.artifacts.summaryJson).toBe(summaryPath)
     expect(manifest.artifacts.analyzerOutput).toBe(sidecarPath(summaryPath, 'analyzer'))
     expect(manifest.artifacts.gateOutput).toBe(sidecarPath(summaryPath, 'gate'))
+    expect(manifest.artifacts.manifestJson).toBe(manifestPath(summaryPath))
+  })
+
+  it('uses explicit git metadata overrides when provided', () => {
+    const dir = tempDir()
+    const envPath = writeEnvFile(dir, baseEnvLines())
+    const summaryPath = path.join(dir, 'summary.json')
+    const fakeK6 = writeFakeK6(dir)
+
+    const result = runRunner(['hockey-pilot'], {
+      K6_ENV_PATH: envPath,
+      K6_BIN: fakeK6.scriptPath,
+      K6_SUMMARY_EXPORT: summaryPath,
+      GIT_COMMIT_SHA: 'abc123pilotsha',
+      GIT_BRANCH: 'pilot-release',
+    })
+
+    expect(result.status).toBe(0)
+    const manifest = JSON.parse(readFileSync(manifestPath(summaryPath), 'utf8'))
+    expect(manifest.git.commitSha).toBe('abc123pilotsha')
+    expect(manifest.git.branch).toBe('pilot-release')
   })
 
   it('passes env file values to k6 while letting shell env override them', () => {
