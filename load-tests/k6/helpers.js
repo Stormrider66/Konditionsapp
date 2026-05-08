@@ -72,7 +72,6 @@ function recordEndpointMetrics(res, tags) {
 export function buildHeaders(extra = {}) {
   const headers = {
     Accept: 'application/json',
-    ...extra,
   }
 
   if (__ENV.BEARER_TOKEN) {
@@ -88,21 +87,24 @@ export function buildHeaders(extra = {}) {
     headers['x-auth-user-email'] = __ENV.LOAD_TEST_BYPASS_USER_EMAIL
   }
 
-  return headers
+  return {
+    ...headers,
+    ...extra,
+  }
 }
 
-export function get(path, tags = {}) {
+export function get(path, tags = {}, extraHeaders = {}) {
   const res = http.get(`${BASE_URL}${path}`, {
-    headers: buildHeaders(),
+    headers: buildHeaders(extraHeaders),
     tags,
   })
   recordEndpointMetrics(res, tags)
   return res
 }
 
-export function postJson(path, body, tags = {}) {
+export function postJson(path, body, tags = {}, extraHeaders = {}) {
   const res = http.post(`${BASE_URL}${path}`, JSON.stringify(body), {
-    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    headers: buildHeaders({ 'Content-Type': 'application/json', ...extraHeaders }),
     tags,
   })
   recordEndpointMetrics(res, tags)

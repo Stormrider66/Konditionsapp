@@ -103,7 +103,16 @@ BUSINESS_ID=...
 TEAM_ID=...
 BUSINESS_SLUG=skelleftea-aik
 AUTH_COOKIE=...
+ATHLETE_AUTH_COOKIE=... # required for athlete daily-metrics writes unless using ATHLETE_BEARER_TOKEN or athlete bypass email
 ```
+
+To generate a coach session plus a matching athlete session locally:
+
+```bash
+LOAD_TEST_ATHLETE_EMAIL="athlete@example.com" npm run load:k6:auth -- "coach@example.com"
+```
+
+When `LOAD_TEST_ATHLETE_EMAIL` is set, the generated `CLIENT_ID`/`CLIENT_IDS` are pinned to that athlete's client record so daily-metrics writes exercise the correct access path. If athlete traffic is enabled, keep `CLIENT_IDS` to the one athlete that matches the athlete auth session.
 
 Optional load knobs:
 
@@ -116,22 +125,57 @@ HOCKEY_PILOT_ATHLETE_WEIGHT=0.25
 HOCKEY_PILOT_DASHBOARD_WEIGHT=0.20
 HOCKEY_PILOT_EXPORT_WEIGHT=0.15
 HOCKEY_EXPORT_PRESET=aerobic_profile
+ATHLETE_BEARER_TOKEN=...
+ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL=athlete@example.com
+HOCKEY_PILOT_REQUIRED_ENDPOINTS= # optional comma-separated override; use only for narrow debug runs
 ```
+
+Coach/review endpoints use `AUTH_COOKIE`/`BEARER_TOKEN`. Athlete daily-use endpoints can override that with `ATHLETE_AUTH_COOKIE`, `ATHLETE_BEARER_TOKEN`, or `ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL`. The athlete identity must map to the `CLIENT_ID`/`CLIENT_IDS` used for daily metrics, otherwise writes should correctly return `403`.
+
+If you deliberately want a coach-only hockey load run, set:
+
+```env
+HOCKEY_PILOT_ATHLETE_WEIGHT=0
+```
+
+Otherwise the script fails fast when athlete traffic is enabled without athlete auth, so a long run does not quietly become a wall of expected `403`s.
+
+At least one traffic weight must be greater than `0`; all-zero weights are treated as a configuration error.
 
 Run:
 
 ```bash
+npm run qa:hockey-pilot-readiness
+npm run qa:hockey-pilot-env
 K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json npm run load:k6:hockey-pilot
-node load-tests/k6/analyze-summary.cjs load-tests/hockey-pilot-summary.json
+npm run qa:hockey-pilot-tooling
 ```
+
+`npm run load:k6:hockey-pilot` also runs the same env preflight automatically before k6 starts. When `K6_SUMMARY_EXPORT` is set, it also prints the k6 analyzer output and runs the summary gate after k6 finishes.
+
+Shell environment variables override values in `load-tests/.env.k6`, so one-off commands such as `HOCKEY_PILOT_ATHLETE_WEIGHT=0 npm run load:k6:hockey-pilot` behave consistently in both preflight and k6.
+
+Values in `load-tests/.env.k6` may be quoted and can use inline comments after a space, for example `CLIENT_ID=abc123 # pilot athlete`.
+
+Set `K6_SUMMARY_EXPORT` for pilot runs so the summary JSON is saved as launch evidence. The k6 runner creates the export directory automatically.
+
+When the hockey pilot run finishes, the runner also saves `<summary>.analyzer.txt`, `<summary>.gate.txt`, and `<summary>.manifest.json` next to the JSON file. The manifest records the target, business/team IDs, client count, auth modes, traffic weights, artifact paths, and whether the analyzer/gate passed or failed.
+
+If k6 exits nonzero after writing the summary JSON, the runner still saves analyzer, gate, and manifest evidence. The manifest records the k6 exit code so threshold failures are reviewable instead of disappearing into terminal scrollback.
+
+`npm run qa:hockey-pilot-summary -- <summary.json>` can also be run manually to re-check a saved k6 JSON. The checker uses the same traffic weights to decide which endpoint groups are required. For example, `HOCKEY_PILOT_ATHLETE_WEIGHT=0` makes athlete-only endpoints optional for coach-only debug runs. Use `HOCKEY_PILOT_REQUIRED_ENDPOINTS` only for narrow investigations where you intentionally want a custom coverage set.
 
 ## Pilot Green Gate
 
 Pass these before inviting the first external teams:
 
 - `npm run build` completes
+- `npm run qa:hockey-pilot-readiness` passes locally
 - `npm run qa:launch-config` passes
 - `npm run qa:hockey` passes against the target environment
+- `npm run qa:hockey-pilot-env` passes before running k6
+- `npm run qa:hockey-pilot-summary -- <summary.json>` passes after the run
+- `npm run qa:hockey-pilot-tooling` passes after preflight, runner, or summary-gate edits
 - hockey pilot load test passes at `35` steady VUs and `75` peak VUs
 - overall `http_req_failed < 1.5%`
 - overall p95 request duration `<= 2000ms`
@@ -139,11 +183,13 @@ Pass these before inviting the first external teams:
 - `team-dashboard` p95 `<= 1500ms`
 - `business-stats` p95 `<= 1500ms`
 - `hockey-tests-list` p95 `<= 1800ms`
+- `hockey-package` p95 `<= 1500ms`
 - `hockey-athlete-summary` p95 `<= 1500ms`
 - `athlete-calendar` p95 `<= 1800ms`
 - `daily-metrics-get` p95 `<= 1000ms`
 - `daily-metrics-post` p95 `<= 1200ms`
 - `hockey-simca-export` p95 `<= 3000ms`
+- required endpoint fail rates stay below their k6 thresholds
 - no database pool exhaustion during the run
 - no repeated 401/403 errors for valid coach sessions
 - no tenant-boundary failure in manual spot checks
@@ -156,7 +202,7 @@ Pass these before inviting the first external teams:
 1. Verify invite/onboarding with real coach and athlete accounts while `EMAILS_PAUSED` is in the intended launch state.
 2. Run `npm run qa:launch-config`.
 3. Run `npm run qa:hockey` against production-like data.
-4. Run `npm run load:k6:hockey-pilot` and save the summary JSON.
+4. Run `npm run load:k6:hockey-pilot`, save the summary JSON, and confirm the automatic summary gate passes.
 5. Manually spot-check tenant isolation:
    - coach from Team A cannot access Team B-only athletes unless business-level permissions allow it
    - athlete cannot open another athlete's hockey summary
@@ -179,9 +225,13 @@ Pass these before inviting the first external teams:
 ## Evidence To Save
 
 - k6 summary JSON
-- analyzer output
+- analyzer output (`<summary>.analyzer.txt`)
+- summary gate output (`<summary>.gate.txt`)
+- run manifest (`<summary>.manifest.json`)
 - commit SHA
 - environment: local/staging/production
 - VU knobs used
 - seeded/imported data size
 - known failures and fixes
+
+See `docs/HOCKEY_PILOT_RUNBOOK.md` for the invite-week operating flow and `docs/templates/hockey-pilot-run-evidence.md` for the evidence note template.

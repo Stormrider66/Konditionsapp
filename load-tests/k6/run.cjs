@@ -10,6 +10,111 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
+function quoteArg(value) {
+  return value.includes(' ') ? `"${value}"` : value;
+}
+
+function normalizeEnvValue(rawValue) {
+  let value = rawValue.trim();
+
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1);
+  }
+
+  const inlineCommentIndex = value.search(/\s#/);
+  if (inlineCommentIndex !== -1) {
+    value = value.slice(0, inlineCommentIndex).trim();
+  }
+
+  return value;
+}
+
+function summarySidecarPath(summaryPath, suffix) {
+  const resolved = path.resolve(process.cwd(), summaryPath);
+  const ext = path.extname(resolved);
+  const base = ext ? resolved.slice(0, -ext.length) : resolved;
+  return `${base}.${suffix}.txt`;
+}
+
+function summaryManifestPath(summaryPath) {
+  const resolved = path.resolve(process.cwd(), summaryPath);
+  const ext = path.extname(resolved);
+  const base = ext ? resolved.slice(0, -ext.length) : resolved;
+  return `${base}.manifest.json`;
+}
+
+function runReportCommand(label, command, outputPath, env) {
+  console.log(`\nRunning ${label}...\n`);
+
+  try {
+    const output = execSync(command, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: true,
+      env,
+    });
+    process.stdout.write(output);
+    fs.writeFileSync(outputPath, output);
+    console.log(`\nSaved ${label} output: ${outputPath}`);
+    return { ok: true, status: 0 };
+  } catch (e) {
+    const stdout = e.stdout ? String(e.stdout) : '';
+    const stderr = e.stderr ? String(e.stderr) : '';
+    if (stdout) process.stdout.write(stdout);
+    if (stderr) process.stderr.write(stderr);
+    fs.writeFileSync(outputPath, `${stdout}${stderr}`);
+    console.error(`\nSaved ${label} output: ${outputPath}`);
+    return { ok: false, status: e.status || 1 };
+  }
+}
+
+function firstSetEnv(env, keys) {
+  for (const key of keys) {
+    if (env[key]) return key;
+  }
+  return null;
+}
+
+function writeHockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gateOutput, env, result }) {
+  fs.writeFileSync(
+    manifestPath,
+    `${JSON.stringify(hockeyPilotManifest({ summaryExport, analyzerOutput, gateOutput, env, result }), null, 2)}\n`
+  );
+  console.log(`\nSaved hockey pilot manifest: ${manifestPath}`);
+}
+
+function hockeyPilotManifest({ summaryExport, analyzerOutput, gateOutput, env, result }) {
+  return {
+    createdAt: new Date().toISOString(),
+    script: scriptName,
+    result,
+    target: env.BASE_URL || null,
+    businessId: env.BUSINESS_ID || null,
+    businessSlug: env.BUSINESS_SLUG || null,
+    teamId: env.TEAM_ID || null,
+    clientIdCount: (env.CLIENT_IDS || env.CLIENT_ID || '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean).length,
+    coachAuthMode: firstSetEnv(env, ['AUTH_COOKIE', 'BEARER_TOKEN', 'LOAD_TEST_BYPASS_USER_EMAIL']) || 'missing',
+    athleteAuthMode: firstSetEnv(env, ['ATHLETE_AUTH_COOKIE', 'ATHLETE_BEARER_TOKEN', 'ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL']) || 'missing',
+    weights: {
+      read: env.HOCKEY_PILOT_READ_WEIGHT || '0.40',
+      athlete: env.HOCKEY_PILOT_ATHLETE_WEIGHT || '0.25',
+      dashboard: env.HOCKEY_PILOT_DASHBOARD_WEIGHT || '0.20',
+      export: env.HOCKEY_PILOT_EXPORT_WEIGHT || '0.15',
+    },
+    artifacts: {
+      summaryJson: path.resolve(process.cwd(), summaryExport),
+      analyzerOutput,
+      gateOutput,
+    },
+  };
+}
+
 const scriptName = process.argv[2];
 if (!scriptName) {
   console.error('Usage: node load-tests/k6/run.cjs <smoke|baseline|stress|prod-shape|hockey-pilot>');
@@ -22,10 +127,25 @@ if (!fs.existsSync(scriptPath)) {
   process.exit(1);
 }
 
-const envFile = path.join(__dirname, '..', '.env.k6');
+const envFile = process.env.K6_ENV_PATH
+  ? path.resolve(process.cwd(), process.env.K6_ENV_PATH)
+  : path.join(__dirname, '..', '.env.k6');
 if (!fs.existsSync(envFile)) {
-  console.error('Missing load-tests/.env.k6 — run: node scripts/grab-auth-cookie.cjs');
+  console.error(`Missing ${envFile} — run: node scripts/grab-auth-cookie.cjs`);
   process.exit(1);
+}
+
+if (scriptName === 'hockey-pilot') {
+  const preflightPath = path.join(__dirname, '..', '..', 'scripts', 'qa-hockey-pilot-env.cjs');
+  console.log('Running hockey pilot env preflight...\n');
+  try {
+    execSync(`node ${quoteArg(preflightPath)}`, {
+      stdio: 'inherit',
+      shell: true,
+    });
+  } catch (e) {
+    process.exit(e.status || 1);
+  }
 }
 
 // Parse .env.k6
@@ -35,7 +155,8 @@ const envVars = fs
   .filter(line => line.trim() && !line.startsWith('#'))
   .map(line => {
     const eq = line.indexOf('=');
-    return [line.substring(0, eq), line.substring(eq + 1)];
+    if (eq === -1) return ['', ''];
+    return [line.substring(0, eq).trim(), normalizeEnvValue(line.substring(eq + 1))];
   });
 
 // Prefer passing vars via the process env rather than `k6 -e ...` flags.
@@ -44,24 +165,108 @@ const envObj = {};
 for (const [k, v] of envVars) {
   if (k) envObj[k] = v;
 }
+const runtimeEnv = { ...envObj, ...process.env };
 
 const defaultK6Bin = 'C:\\Program Files\\k6\\k6.exe';
 const configuredK6Bin = process.env.K6_BIN && process.env.K6_BIN.trim();
 const k6Bin = configuredK6Bin || (fs.existsSync(defaultK6Bin) ? defaultK6Bin : 'k6');
-const quotedK6Bin = k6Bin.includes(' ') ? `"${k6Bin}"` : k6Bin;
+const quotedK6Bin = quoteArg(k6Bin);
 
 // Optional: write machine-readable summary to JSON.
 // This is more reliable than scraping console output (progress uses carriage returns).
-const summaryExport = process.env.K6_SUMMARY_EXPORT && process.env.K6_SUMMARY_EXPORT.trim();
+const summaryExport = runtimeEnv.K6_SUMMARY_EXPORT && runtimeEnv.K6_SUMMARY_EXPORT.trim();
+if (summaryExport) {
+  fs.mkdirSync(path.dirname(path.resolve(process.cwd(), summaryExport)), { recursive: true });
+}
 const summaryFlag = summaryExport
-  ? `--summary-export ${summaryExport.includes(' ') ? `"${summaryExport}"` : summaryExport}`
+  ? `--summary-export ${quoteArg(summaryExport)}`
   : '';
 
 const cmd = `${quotedK6Bin} run ${summaryFlag} ${scriptPath}`;
 console.log(`Running: ${k6Bin} run [...env] ${scriptPath}\n`);
 
+let k6ExitCode = 0;
 try {
-  execSync(cmd, { stdio: 'inherit', shell: true, env: { ...process.env, ...envObj } });
+  execSync(cmd, { stdio: 'inherit', shell: true, env: runtimeEnv });
 } catch (e) {
-  process.exit(e.status || 1);
+  k6ExitCode = e.status || 1;
+  const canAnalyzeFailedRun = scriptName === 'hockey-pilot' &&
+    summaryExport &&
+    fs.existsSync(path.resolve(process.cwd(), summaryExport));
+
+  if (!canAnalyzeFailedRun) {
+    process.exit(k6ExitCode);
+  }
+
+  console.warn(`k6 exited with code ${k6ExitCode}, but a summary JSON exists. Continuing with hockey pilot evidence capture.`);
+}
+
+if (scriptName === 'hockey-pilot' && summaryExport) {
+  const analyzerPath = path.join(__dirname, 'analyze-summary.cjs');
+  const summaryGatePath = path.join(__dirname, 'check-hockey-pilot-summary.cjs');
+  const analyzerOutput = summarySidecarPath(summaryExport, 'analyzer');
+  const gateOutput = summarySidecarPath(summaryExport, 'gate');
+  const manifestPath = summaryManifestPath(summaryExport);
+
+  const analyzerResult = runReportCommand(
+    'k6 summary analyzer',
+    `node ${quoteArg(analyzerPath)} ${quoteArg(summaryExport)}`,
+    analyzerOutput,
+    runtimeEnv
+  );
+  if (!analyzerResult.ok) {
+    writeHockeyPilotManifest({
+      manifestPath,
+      summaryExport,
+      analyzerOutput,
+      gateOutput,
+      env: runtimeEnv,
+      result: {
+        status: 'failed',
+        failedStep: k6ExitCode ? 'k6+analyzer' : 'analyzer',
+        exitCode: analyzerResult.status,
+        k6ExitCode,
+      },
+    });
+    process.exit(analyzerResult.status);
+  }
+
+  const gateResult = runReportCommand(
+    'hockey pilot summary gate',
+    `node ${quoteArg(summaryGatePath)} ${quoteArg(summaryExport)}`,
+    gateOutput,
+    runtimeEnv
+  );
+  if (!gateResult.ok) {
+    writeHockeyPilotManifest({
+      manifestPath,
+      summaryExport,
+      analyzerOutput,
+      gateOutput,
+      env: runtimeEnv,
+      result: {
+        status: 'failed',
+        failedStep: k6ExitCode ? 'k6+summary-gate' : 'summary-gate',
+        exitCode: gateResult.status,
+        k6ExitCode,
+      },
+    });
+    process.exit(gateResult.status);
+  }
+
+  writeHockeyPilotManifest({
+    manifestPath,
+    summaryExport,
+    analyzerOutput,
+    gateOutput,
+    env: runtimeEnv,
+    result: {
+      status: k6ExitCode ? 'failed' : 'passed',
+      failedStep: k6ExitCode ? 'k6' : null,
+      exitCode: k6ExitCode,
+      k6ExitCode,
+    },
+  });
+
+  if (k6ExitCode) process.exit(k6ExitCode);
 }

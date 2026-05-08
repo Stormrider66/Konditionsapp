@@ -15,10 +15,17 @@ const VUS_WARM = Math.max(1, parseInt(__ENV.HOCKEY_PILOT_WARM_VUS || '10', 10) |
 const VUS_STEADY = Math.max(1, parseInt(__ENV.HOCKEY_PILOT_STEADY_VUS || '35', 10) || 35)
 const VUS_PEAK = Math.max(1, parseInt(__ENV.HOCKEY_PILOT_PEAK_VUS || '75', 10) || 75)
 
-const READ_WEIGHT = Math.max(0, parseFloat(__ENV.HOCKEY_PILOT_READ_WEIGHT || '0.40') || 0.40)
-const ATHLETE_WEIGHT = Math.max(0, parseFloat(__ENV.HOCKEY_PILOT_ATHLETE_WEIGHT || '0.25') || 0.25)
-const DASHBOARD_WEIGHT = Math.max(0, parseFloat(__ENV.HOCKEY_PILOT_DASHBOARD_WEIGHT || '0.20') || 0.20)
-const EXPORT_WEIGHT = Math.max(0, parseFloat(__ENV.HOCKEY_PILOT_EXPORT_WEIGHT || '0.15') || 0.15)
+function nonNegativeFloatEnv(name, fallback) {
+  const raw = __ENV[name]
+  if (raw == null || raw === '') return fallback
+  const parsed = parseFloat(raw)
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : fallback
+}
+
+const READ_WEIGHT = nonNegativeFloatEnv('HOCKEY_PILOT_READ_WEIGHT', 0.40)
+const ATHLETE_WEIGHT = nonNegativeFloatEnv('HOCKEY_PILOT_ATHLETE_WEIGHT', 0.25)
+const DASHBOARD_WEIGHT = nonNegativeFloatEnv('HOCKEY_PILOT_DASHBOARD_WEIGHT', 0.20)
+const EXPORT_WEIGHT = nonNegativeFloatEnv('HOCKEY_PILOT_EXPORT_WEIGHT', 0.15)
 
 const TEAM_DASHBOARD_DAYS = Math.max(1, Math.min(parseInt(__ENV.TEAM_DASHBOARD_DAYS || '30', 10) || 30, 90))
 const EXPORT_PRESET = __ENV.HOCKEY_EXPORT_PRESET || 'aerobic_profile'
@@ -27,11 +34,27 @@ const CALENDAR_MAX_ITEMS_PER_SOURCE = Math.max(
   1,
   Math.min(parseInt(__ENV.CALENDAR_MAX_ITEMS_PER_SOURCE || '150', 10) || 150, 1000)
 )
+const ATHLETE_AUTH_COOKIE = __ENV.ATHLETE_AUTH_COOKIE || ''
+const ATHLETE_BEARER_TOKEN = __ENV.ATHLETE_BEARER_TOKEN || ''
+const ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL = __ENV.ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL || ''
+const HAS_ATHLETE_AUTH = Boolean(
+  ATHLETE_AUTH_COOKIE ||
+  ATHLETE_BEARER_TOKEN ||
+  ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL
+)
+
+if (ATHLETE_WEIGHT > 0 && !HAS_ATHLETE_AUTH) {
+  throw new Error(
+    'HOCKEY_PILOT_ATHLETE_WEIGHT is enabled, but no athlete auth is configured. Set ATHLETE_AUTH_COOKIE, ATHLETE_BEARER_TOKEN, ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL, or HOCKEY_PILOT_ATHLETE_WEIGHT=0.'
+  )
+}
 
 function normalizedWeights() {
   const total = READ_WEIGHT + ATHLETE_WEIGHT + DASHBOARD_WEIGHT + EXPORT_WEIGHT
   if (total <= 0) {
-    return { read: 0.40, athlete: 0.25, dashboard: 0.20, exportFlow: 0.15 }
+    throw new Error(
+      'At least one hockey pilot traffic weight must be greater than 0. Check HOCKEY_PILOT_READ_WEIGHT, HOCKEY_PILOT_ATHLETE_WEIGHT, HOCKEY_PILOT_DASHBOARD_WEIGHT, and HOCKEY_PILOT_EXPORT_WEIGHT.'
+    )
   }
   return {
     read: READ_WEIGHT / total,
@@ -59,6 +82,14 @@ function todayIso() {
 
 function businessSlugParam() {
   return BUSINESS_SLUG ? `&businessSlug=${encodeURIComponent(BUSINESS_SLUG)}` : ''
+}
+
+function athleteAuthHeaders() {
+  const headers = {}
+  if (ATHLETE_AUTH_COOKIE) headers.Cookie = ATHLETE_AUTH_COOKIE
+  if (ATHLETE_BEARER_TOKEN) headers.Authorization = `Bearer ${ATHLETE_BEARER_TOKEN}`
+  if (ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL) headers['x-auth-user-email'] = ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL
+  return headers
 }
 
 const START_DATE = __ENV.START_DATE || isoStartOfCurrentMonthUtc()
@@ -133,10 +164,13 @@ function runHockeyReadFlow(clientId) {
 }
 
 function runAthleteDailyFlow(clientId) {
+  const authHeaders = athleteAuthHeaders()
+
   group('athlete-calendar', () => {
     const res = get(
       `/api/calendar/unified?clientId=${clientId}&startDate=${START_DATE}&endDate=${END_DATE}&includeItems=true&includeGroupedByDate=false&itemsMode=light&maxItemsPerSource=${CALENDAR_MAX_ITEMS_PER_SOURCE}`,
-      { endpoint: 'athlete-calendar' }
+      { endpoint: 'athlete-calendar' },
+      authHeaders
     )
     check(res, {
       'athlete calendar status is 200': (r) => r.status === 200,
@@ -146,7 +180,7 @@ function runAthleteDailyFlow(clientId) {
   group('daily-metrics-read', () => {
     const res = get(`/api/daily-metrics?clientId=${clientId}&days=${DAILY_METRICS_DAYS}`, {
       endpoint: 'daily-metrics-get',
-    })
+    }, authHeaders)
     check(res, {
       'daily-metrics GET status is 200': (r) => r.status === 200,
     })
@@ -166,7 +200,8 @@ function runAthleteDailyFlow(clientId) {
         stress: 3,
         injuryPain: 1,
       },
-      { endpoint: 'daily-metrics-post' }
+      { endpoint: 'daily-metrics-post' },
+      authHeaders
     )
     check(res, {
       'daily-metrics POST status 200/201': (r) => r.status === 200 || r.status === 201,
