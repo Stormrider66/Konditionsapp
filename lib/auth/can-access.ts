@@ -124,7 +124,7 @@ export async function canAccessClient(
               isActive: true,
               role: { in: ['OWNER', 'ADMIN', 'COACH', 'PHYSICAL_TRAINER', 'ASSISTANT_COACH'] },
             },
-            select: { businessId: true },
+            select: { businessId: true, role: true },
           })
         : Promise.resolve([]),
       prisma.client.findUnique({
@@ -134,7 +134,11 @@ export async function canAccessClient(
     ])
 
     if (clientTeam?.businessId) {
-      const membershipBusinessIds = new Set(memberships.map((m) => m.businessId))
+      const membershipBusinessIds = new Set(
+        memberships
+          .filter((m) => ['OWNER', 'ADMIN', 'COACH'].includes(m.role))
+          .map((m) => m.businessId)
+      )
       if (membershipBusinessIds.has(clientTeam.businessId)) return true
     }
 
