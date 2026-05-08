@@ -54,7 +54,7 @@ interface RecipeScanIngredient {
 }
 
 type RecipeSource = 'MANUAL' | 'SCAN' | 'MEAL_COPY'
-type RecipeAmountUnit = 'portion' | 'g' | 'ml' | 'dl'
+type RecipeAmountUnit = 'g' | 'st' | 'portion' | 'ml' | 'dl'
 
 interface SavedRecipeIngredient {
   id: string
@@ -164,7 +164,12 @@ function savedRecipeTotalGrams(recipe: SavedRecipe): number {
   return recipe.items.reduce((sum, item) => sum + item.grams, 0)
 }
 
-function recipeAmountToScaleFactor(recipe: SavedRecipe, amount: number, unit: RecipeAmountUnit): number {
+function recipeAmountToScaleFactor(
+  recipe: SavedRecipe,
+  amount: number,
+  unit: RecipeAmountUnit,
+  pieceGrams = 0
+): number {
   const baseServings = recipe.baseServings > 0 ? recipe.baseServings : 1
   if (unit === 'portion') return amount / baseServings
 
@@ -174,13 +179,20 @@ function recipeAmountToScaleFactor(recipe: SavedRecipe, amount: number, unit: Re
   const grams =
     unit === 'dl'
       ? amount * 100
+      : unit === 'st'
+        ? amount * pieceGrams
       : amount
 
   return grams / totalGrams
 }
 
-function recipeToIngredientRows(recipe: SavedRecipe, amount: number, unit: RecipeAmountUnit): IngredientRow[] {
-  const factor = recipeAmountToScaleFactor(recipe, amount, unit)
+function recipeToIngredientRows(
+  recipe: SavedRecipe,
+  amount: number,
+  unit: RecipeAmountUnit,
+  pieceGrams = 0
+): IngredientRow[] {
+  const factor = recipeAmountToScaleFactor(recipe, amount, unit, pieceGrams)
   return recipe.items.map((item) => ({
     rowId: makeRowId(),
     foodId: item.foodId ?? undefined,
@@ -199,19 +211,38 @@ function inferRecipeAmountUnit(recipe: SavedRecipe): RecipeAmountUnit {
   if (/\b(mjölk|dryck|juice|smoothie|shake|soppa|sås|buljong|kaffe|te)\b/i.test(name)) {
     return 'dl'
   }
-  return 'portion'
+  if (/\b(bröd|fralla|frallor|bulle|bullar|muffin|muffins|kaka|kakor|knäcke|bars?)\b/i.test(name)) {
+    return 'st'
+  }
+  return 'g'
 }
 
 function defaultRecipeAmount(recipe: SavedRecipe, unit: RecipeAmountUnit): string {
   if (unit === 'dl') return '2'
   if (unit === 'ml') return '200'
   if (unit === 'g') return '100'
+  if (unit === 'st') return '1'
   return String(recipe.baseServings || 1)
 }
 
-function formatRecipeAmount(amount: number, unit: RecipeAmountUnit): string {
+function defaultPieceGrams(recipe: SavedRecipe): string {
+  const totalGrams = savedRecipeTotalGrams(recipe)
+  const baseServings = recipe.baseServings > 1 ? recipe.baseServings : 0
+  if (baseServings > 0 && totalGrams > 0) return String(Math.round(totalGrams / baseServings))
+  return ''
+}
+
+function formatRecipeAmount(amount: number, unit: RecipeAmountUnit, pieceGrams = 0): string {
+  if (unit === 'st') {
+    const weight = pieceGrams > 0 ? ` á ${formatGramsForDisplay(pieceGrams)} g` : ''
+    return `${formatGramsForDisplay(amount)} st${weight}`
+  }
   if (unit === 'portion') return `${amount} portion`
-  return `${amount} ${unit}`
+  return `${formatGramsForDisplay(amount)} ${unit}`
+}
+
+function formatGramsForDisplay(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }
 
 export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: IngredientBuilderProps) {
@@ -234,7 +265,8 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
   const [recipeError, setRecipeError] = useState<string | null>(null)
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null)
   const [recipeAmount, setRecipeAmount] = useState('1')
-  const [recipeAmountUnit, setRecipeAmountUnit] = useState<RecipeAmountUnit>('portion')
+  const [recipeAmountUnit, setRecipeAmountUnit] = useState<RecipeAmountUnit>('g')
+  const [recipePieceGrams, setRecipePieceGrams] = useState('')
   const [saveOpen, setSaveOpen] = useState(false)
   const [saveName, setSaveName] = useState('')
   const [savingRecipe, setSavingRecipe] = useState(false)
@@ -366,7 +398,14 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
       setRecipesLoaded(true)
       setSaveOpen(false)
       setSaveName('')
-      setSaveMessage('Receptet sparades.')
+      const unit = inferRecipeAmountUnit(recipe)
+      setSelectedRecipeId(recipe.id)
+      setRecipeAmountUnit(unit)
+      setRecipeAmount(defaultRecipeAmount(recipe, unit))
+      setRecipePieceGrams(defaultPieceGrams(recipe))
+      setRecipesOpen(true)
+      onChange([makeRow()])
+      setSaveMessage('Receptet sparades. Välj hur mycket du åt innan du loggar måltiden.')
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Kunde inte spara recept')
     } finally {
@@ -378,11 +417,16 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
     const recipe = recipes.find((r) => r.id === selectedRecipeId)
     if (!recipe) return
     const amount = parsePositiveNumber(recipeAmount, 1)
-    const newRows = recipeToIngredientRows(recipe, amount, recipeAmountUnit)
+    const pieceGrams = recipeAmountUnit === 'st' ? parsePositiveNumber(recipePieceGrams, 0) : 0
+    if (recipeAmountUnit === 'st' && pieceGrams <= 0) {
+      setRecipeError('Ange gram per styck för att använda receptet.')
+      return
+    }
+    const newRows = recipeToIngredientRows(recipe, amount, recipeAmountUnit, pieceGrams)
     const existing = value.filter((r) => r.name.trim().length > 0)
     onChange([...existing, ...newRows])
     setRecipesOpen(false)
-    setSaveMessage(`${recipe.name} (${formatRecipeAmount(amount, recipeAmountUnit)}) lades till.`)
+    setSaveMessage(`${recipe.name} (${formatRecipeAmount(amount, recipeAmountUnit, pieceGrams)}) lades till.`)
   }
 
   const deleteRecipe = async (recipeId: string) => {
@@ -416,12 +460,12 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2">
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="gap-2 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+          className="min-w-0 gap-2 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
           onClick={() => onChange([...value, makeRow()])}
         >
           <Plus className="h-4 w-4" />
@@ -431,7 +475,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
           type="button"
           variant="outline"
           size="sm"
-          className="gap-2 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+          className="min-w-0 gap-2 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
           onClick={toggleRecipes}
         >
           {loadingRecipes ? <Loader2 className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
@@ -441,7 +485,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
           type="button"
           variant="outline"
           size="sm"
-          className="gap-2 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+          className="min-w-0 gap-2 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
           onClick={() => fileInputRef.current?.click()}
           disabled={scanning}
         >
@@ -452,7 +496,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
           type="button"
           variant="outline"
           size="sm"
-          className="gap-2 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+          className="min-w-0 gap-2 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
           onClick={openSaveRecipe}
           disabled={!hasRowsToSave || savingRecipe}
         >
@@ -473,7 +517,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
       </div>
 
       {saveOpen && (
-        <div className="rounded-lg border border-border dark:border-slate-700 bg-muted/30 dark:bg-slate-900/40 p-3 space-y-2">
+        <div className="min-w-0 rounded-lg border border-border dark:border-slate-700 bg-muted/30 dark:bg-slate-900/40 p-3 space-y-2">
           <div className="text-xs font-medium text-foreground dark:text-slate-100">Spara som recept</div>
           <Input
             value={saveName}
@@ -527,17 +571,18 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
             <div className="text-xs text-muted-foreground">Inga sparade recept ännu.</div>
           )}
 
-          <div className="space-y-1.5 max-h-56 overflow-y-auto overscroll-contain">
+          <div className="space-y-1.5 max-h-56 overflow-y-auto overflow-x-hidden overscroll-contain">
             {recipes.map((recipe) => {
               const recipeTotals = savedRecipeTotals(recipe)
               const recipeTotalGrams = savedRecipeTotalGrams(recipe)
               const isSelected = selectedRecipeId === recipe.id
               const selectedAmount = parsePositiveNumber(recipeAmount, 1)
+              const selectedPieceGrams = recipeAmountUnit === 'st' ? parsePositiveNumber(recipePieceGrams, 0) : 0
               const selectedFactor = isSelected
-                ? recipeAmountToScaleFactor(recipe, selectedAmount, recipeAmountUnit)
+                ? recipeAmountToScaleFactor(recipe, selectedAmount, recipeAmountUnit, selectedPieceGrams)
                 : 1
               return (
-                <div key={recipe.id} className="rounded-md border border-border/70 dark:border-slate-700 bg-background/70 dark:bg-slate-950/40">
+                <div key={recipe.id} className="min-w-0 rounded-md border border-border/70 dark:border-slate-700 bg-background/70 dark:bg-slate-950/40">
                   <div className="flex items-stretch gap-1">
                     <button
                       type="button"
@@ -552,10 +597,12 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
                         setSelectedRecipeId(recipe.id)
                         setRecipeAmountUnit(unit)
                         setRecipeAmount(defaultRecipeAmount(recipe, unit))
+                        setRecipePieceGrams(defaultPieceGrams(recipe))
+                        setRecipeError(null)
                       }}
                     >
                       <div className="truncate font-medium">{recipe.name}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground line-clamp-2">
                         {Math.round(recipeTotals.calories)} kcal · P {recipeTotals.proteinGrams.toFixed(1)} · K{' '}
                         {recipeTotals.carbsGrams.toFixed(1)} · F {recipeTotals.fatGrams.toFixed(1)}
                         {recipeTotalGrams > 0 ? ` · ${Math.round(recipeTotalGrams)} g totalt` : ''}
@@ -574,12 +621,12 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
                   </div>
                   {isSelected && (
                     <div className="border-t border-border/60 dark:border-slate-700 p-2 space-y-2">
-                      <div className="grid grid-cols-[1fr_auto] gap-2">
+                      <div className="grid grid-cols-[minmax(0,1fr)_minmax(5.75rem,auto)] gap-2">
                         <div className="relative min-w-0">
                           <Input
                             type="number"
                             min="0.1"
-                            step={recipeAmountUnit === 'portion' ? '0.25' : '1'}
+                            step={recipeAmountUnit === 'portion' ? '0.25' : recipeAmountUnit === 'st' ? '0.5' : '1'}
                             value={recipeAmount}
                             onChange={(e) => setRecipeAmount(e.target.value)}
                             className="h-8 text-sm dark:text-white"
@@ -592,16 +639,40 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
                             const unit = e.target.value as RecipeAmountUnit
                             setRecipeAmountUnit(unit)
                             setRecipeAmount((current) => current || defaultRecipeAmount(recipe, unit))
+                            if (unit === 'st' && !recipePieceGrams) {
+                              setRecipePieceGrams(defaultPieceGrams(recipe))
+                            }
+                            setRecipeError(null)
                           }}
                           className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground dark:border-slate-600 dark:bg-slate-950 dark:text-white"
                           aria-label="Enhet"
                         >
-                          <option value="portion">portion</option>
                           <option value="g">g</option>
+                          <option value="st">st</option>
+                          <option value="portion">portion</option>
                           <option value="ml">ml</option>
                           <option value="dl">dl</option>
                         </select>
                       </div>
+                      {recipeAmountUnit === 'st' && (
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+                          <Input
+                            type="number"
+                            min="1"
+                            step="1"
+                            inputMode="numeric"
+                            value={recipePieceGrams}
+                            onChange={(e) => {
+                              setRecipePieceGrams(e.target.value)
+                              setRecipeError(null)
+                            }}
+                            className="h-8 text-sm dark:text-white"
+                            placeholder="Gram per styck"
+                            aria-label="Gram per styck"
+                          />
+                          <span className="text-xs text-muted-foreground">g/st</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2">
                         <div className="min-w-0 flex-1 text-xs text-muted-foreground">
                           Loggar ca {Math.round(recipeTotals.calories * selectedFactor)} kcal från sparat recept

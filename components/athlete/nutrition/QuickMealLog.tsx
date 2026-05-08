@@ -640,7 +640,7 @@ export function QuickMealLog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-[500px] sm:w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
+      <DialogContent className="!w-[calc(100vw-1rem)] !max-w-[calc(100vw-1rem)] sm:!max-w-[500px] max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
         <DialogHeader>
           <div className="flex items-start gap-2">
             <button
@@ -662,7 +662,7 @@ export function QuickMealLog({
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="min-w-0 space-y-4 py-4">
           {error && (
             <div className="flex items-center gap-2 text-sm text-red-500 bg-red-500/10 rounded-lg p-3">
               <AlertCircle className="h-4 w-4 shrink-0" />
@@ -686,7 +686,7 @@ export function QuickMealLog({
           {/* Meal Type Selection */}
           <div className="space-y-2">
             <Label className="dark:text-slate-200">Måltidstyp</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-4 gap-2">
               {(Object.entries(MEAL_TYPE_CONFIG) as [MealType, typeof MEAL_TYPE_CONFIG[MealType]][]).map(
                 ([type, config]) => {
                   const Icon = config.icon
@@ -716,7 +716,7 @@ export function QuickMealLog({
           </div>
 
           {/* Tabs: free-text description vs structured ingredient list */}
-          <Tabs value={tab} onValueChange={(v) => setTab(v as MealLogTab)}>
+          <Tabs value={tab} onValueChange={(v) => setTab(v as MealLogTab)} className="min-w-0">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="text">Beskrivning</TabsTrigger>
               <TabsTrigger value="ingredients">Ingredienser</TabsTrigger>
@@ -934,8 +934,8 @@ export function QuickMealLog({
           </Tabs>
 
           {/* Workout flags */}
-          <div className="flex gap-4">
-            <div className="flex items-center gap-2">
+          <div className="grid grid-cols-1 min-[390px]:grid-cols-2 gap-3">
+            <div className="flex min-w-0 items-center gap-2">
               <Switch
                 checked={formData.isPreWorkout}
                 onCheckedChange={(checked) =>
@@ -944,7 +944,7 @@ export function QuickMealLog({
               />
               <Label className="text-sm dark:text-slate-200">Pre-workout</Label>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <Switch
                 checked={formData.isPostWorkout}
                 onCheckedChange={(checked) =>
