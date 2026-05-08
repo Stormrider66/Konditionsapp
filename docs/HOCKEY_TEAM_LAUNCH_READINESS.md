@@ -87,6 +87,8 @@ It exercises:
 - hockey test list
 - hockey test package
 - athlete hockey summary
+- athlete calendar
+- daily metrics read/write
 - business stats
 - team dashboard
 - SIMCA/aerobic-profile export
@@ -109,9 +111,10 @@ Optional load knobs:
 HOCKEY_PILOT_WARM_VUS=10
 HOCKEY_PILOT_STEADY_VUS=35
 HOCKEY_PILOT_PEAK_VUS=75
-HOCKEY_PILOT_READ_WEIGHT=0.55
-HOCKEY_PILOT_DASHBOARD_WEIGHT=0.25
-HOCKEY_PILOT_EXPORT_WEIGHT=0.20
+HOCKEY_PILOT_READ_WEIGHT=0.40
+HOCKEY_PILOT_ATHLETE_WEIGHT=0.25
+HOCKEY_PILOT_DASHBOARD_WEIGHT=0.20
+HOCKEY_PILOT_EXPORT_WEIGHT=0.15
 HOCKEY_EXPORT_PRESET=aerobic_profile
 ```
 
@@ -137,6 +140,9 @@ Pass these before inviting the first external teams:
 - `business-stats` p95 `<= 1500ms`
 - `hockey-tests-list` p95 `<= 1800ms`
 - `hockey-athlete-summary` p95 `<= 1500ms`
+- `athlete-calendar` p95 `<= 1800ms`
+- `daily-metrics-get` p95 `<= 1000ms`
+- `daily-metrics-post` p95 `<= 1200ms`
 - `hockey-simca-export` p95 `<= 3000ms`
 - no database pool exhaustion during the run
 - no repeated 401/403 errors for valid coach sessions

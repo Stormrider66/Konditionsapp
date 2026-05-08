@@ -1,5 +1,5 @@
 import { check, group, sleep } from 'k6'
-import { get, requiredEnv } from './helpers.js'
+import { get, postJson, requiredEnv } from './helpers.js'
 
 const CLIENT_ID = requiredEnv('CLIENT_ID')
 const BUSINESS_ID = requiredEnv('BUSINESS_ID')
@@ -15,29 +15,54 @@ const VUS_WARM = Math.max(1, parseInt(__ENV.HOCKEY_PILOT_WARM_VUS || '10', 10) |
 const VUS_STEADY = Math.max(1, parseInt(__ENV.HOCKEY_PILOT_STEADY_VUS || '35', 10) || 35)
 const VUS_PEAK = Math.max(1, parseInt(__ENV.HOCKEY_PILOT_PEAK_VUS || '75', 10) || 75)
 
-const READ_WEIGHT = Math.max(0, parseFloat(__ENV.HOCKEY_PILOT_READ_WEIGHT || '0.55') || 0.55)
-const DASHBOARD_WEIGHT = Math.max(0, parseFloat(__ENV.HOCKEY_PILOT_DASHBOARD_WEIGHT || '0.25') || 0.25)
-const EXPORT_WEIGHT = Math.max(0, parseFloat(__ENV.HOCKEY_PILOT_EXPORT_WEIGHT || '0.20') || 0.20)
+const READ_WEIGHT = Math.max(0, parseFloat(__ENV.HOCKEY_PILOT_READ_WEIGHT || '0.40') || 0.40)
+const ATHLETE_WEIGHT = Math.max(0, parseFloat(__ENV.HOCKEY_PILOT_ATHLETE_WEIGHT || '0.25') || 0.25)
+const DASHBOARD_WEIGHT = Math.max(0, parseFloat(__ENV.HOCKEY_PILOT_DASHBOARD_WEIGHT || '0.20') || 0.20)
+const EXPORT_WEIGHT = Math.max(0, parseFloat(__ENV.HOCKEY_PILOT_EXPORT_WEIGHT || '0.15') || 0.15)
 
 const TEAM_DASHBOARD_DAYS = Math.max(1, Math.min(parseInt(__ENV.TEAM_DASHBOARD_DAYS || '30', 10) || 30, 90))
 const EXPORT_PRESET = __ENV.HOCKEY_EXPORT_PRESET || 'aerobic_profile'
+const DAILY_METRICS_DAYS = Math.max(1, Math.min(parseInt(__ENV.DAILY_METRICS_DAYS || '30', 10) || 30, 90))
+const CALENDAR_MAX_ITEMS_PER_SOURCE = Math.max(
+  1,
+  Math.min(parseInt(__ENV.CALENDAR_MAX_ITEMS_PER_SOURCE || '150', 10) || 150, 1000)
+)
 
 function normalizedWeights() {
-  const total = READ_WEIGHT + DASHBOARD_WEIGHT + EXPORT_WEIGHT
+  const total = READ_WEIGHT + ATHLETE_WEIGHT + DASHBOARD_WEIGHT + EXPORT_WEIGHT
   if (total <= 0) {
-    return { read: 0.55, dashboard: 0.25, exportFlow: 0.20 }
+    return { read: 0.40, athlete: 0.25, dashboard: 0.20, exportFlow: 0.15 }
   }
   return {
     read: READ_WEIGHT / total,
+    athlete: ATHLETE_WEIGHT / total,
     dashboard: DASHBOARD_WEIGHT / total,
     exportFlow: EXPORT_WEIGHT / total,
   }
+}
+
+function isoStartOfCurrentMonthUtc() {
+  const now = new Date()
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0))
+  return d.toISOString()
+}
+
+function isoEndOfCurrentMonthUtc() {
+  const now = new Date()
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999))
+  return d.toISOString()
+}
+
+function todayIso() {
+  return new Date().toISOString().split('T')[0]
 }
 
 function businessSlugParam() {
   return BUSINESS_SLUG ? `&businessSlug=${encodeURIComponent(BUSINESS_SLUG)}` : ''
 }
 
+const START_DATE = __ENV.START_DATE || isoStartOfCurrentMonthUtc()
+const END_DATE = __ENV.END_DATE || isoEndOfCurrentMonthUtc()
 const weights = normalizedWeights()
 
 export const options = {
@@ -62,6 +87,12 @@ export const options = {
     'endpoint_failed{endpoint:hockey-package}': ['rate<0.01'],
     'endpoint_duration{endpoint:hockey-athlete-summary}': ['p(95)<1500', 'p(99)<3500'],
     'endpoint_failed{endpoint:hockey-athlete-summary}': ['rate<0.01'],
+    'endpoint_duration{endpoint:athlete-calendar}': ['p(95)<1800', 'p(99)<4000'],
+    'endpoint_failed{endpoint:athlete-calendar}': ['rate<0.01'],
+    'endpoint_duration{endpoint:daily-metrics-get}': ['p(95)<1000', 'p(99)<2500'],
+    'endpoint_failed{endpoint:daily-metrics-get}': ['rate<0.01'],
+    'endpoint_duration{endpoint:daily-metrics-post}': ['p(95)<1200', 'p(99)<3000'],
+    'endpoint_failed{endpoint:daily-metrics-post}': ['rate<0.01'],
     'endpoint_duration{endpoint:business-stats}': ['p(95)<1500', 'p(99)<3500'],
     'endpoint_failed{endpoint:business-stats}': ['rate<0.01'],
     'endpoint_duration{endpoint:team-dashboard}': ['p(95)<1500', 'p(99)<3500'],
@@ -97,6 +128,48 @@ function runHockeyReadFlow(clientId) {
     })
     check(res, {
       'hockey athlete summary status is 200': (r) => r.status === 200,
+    })
+  })
+}
+
+function runAthleteDailyFlow(clientId) {
+  group('athlete-calendar', () => {
+    const res = get(
+      `/api/calendar/unified?clientId=${clientId}&startDate=${START_DATE}&endDate=${END_DATE}&includeItems=true&includeGroupedByDate=false&itemsMode=light&maxItemsPerSource=${CALENDAR_MAX_ITEMS_PER_SOURCE}`,
+      { endpoint: 'athlete-calendar' }
+    )
+    check(res, {
+      'athlete calendar status is 200': (r) => r.status === 200,
+    })
+  })
+
+  group('daily-metrics-read', () => {
+    const res = get(`/api/daily-metrics?clientId=${clientId}&days=${DAILY_METRICS_DAYS}`, {
+      endpoint: 'daily-metrics-get',
+    })
+    check(res, {
+      'daily-metrics GET status is 200': (r) => r.status === 200,
+    })
+  })
+
+  group('daily-metrics-write', () => {
+    const res = postJson(
+      '/api/daily-metrics',
+      {
+        clientId,
+        date: todayIso(),
+        sleepQuality: 7,
+        sleepHours: 7.4,
+        muscleSoreness: 4,
+        energyLevel: 7,
+        mood: 7,
+        stress: 3,
+        injuryPain: 1,
+      },
+      { endpoint: 'daily-metrics-post' }
+    )
+    check(res, {
+      'daily-metrics POST status 200/201': (r) => r.status === 200 || r.status === 201,
     })
   })
 }
@@ -142,7 +215,9 @@ export default function () {
 
   if (roll < weights.read) {
     runHockeyReadFlow(clientId)
-  } else if (roll < weights.read + weights.dashboard) {
+  } else if (roll < weights.read + weights.athlete) {
+    runAthleteDailyFlow(clientId)
+  } else if (roll < weights.read + weights.athlete + weights.dashboard) {
     runDashboardFlow()
   } else {
     runExportFlow()
