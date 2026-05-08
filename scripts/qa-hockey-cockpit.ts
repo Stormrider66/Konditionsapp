@@ -62,6 +62,61 @@ async function main() {
       const href = await teamLink.first().getAttribute('href')
       const teamId = href?.match(/\/teams\/([^/]+)\/multivariate/)?.[1]
       if (teamId) {
+        const hockeyTestsApi = await page.evaluate(
+          async ({ teamId, businessSlug }) => {
+            const res = await fetch(`/api/coach/hockey-tests?teamId=${teamId}&businessSlug=${businessSlug}`, {
+              credentials: 'include',
+            })
+            return {
+              ok: res.ok,
+              status: res.status,
+              body: await res.json().catch(() => null),
+            }
+          },
+          { teamId, businessSlug },
+        )
+        expect(hockeyTestsApi.status).toBe(200)
+        expect(Array.isArray(hockeyTestsApi.body?.tests)).toBe(true)
+        expect(hockeyTestsApi.body.tests.length).toBeGreaterThan(0)
+        const firstClientId = hockeyTestsApi.body.tests.find((test: { clientId?: string }) => test.clientId)?.clientId
+        expect(firstClientId).toBeTruthy()
+
+        const testPackageApi = await page.evaluate(
+          async ({ teamId, businessSlug }) => {
+            const res = await fetch(`/api/teams/${teamId}/hockey-test-package?businessSlug=${businessSlug}`, {
+              credentials: 'include',
+            })
+            return {
+              ok: res.ok,
+              status: res.status,
+              body: await res.json().catch(() => null),
+            }
+          },
+          { teamId, businessSlug },
+        )
+        expect(testPackageApi.status).toBe(200)
+        expect(testPackageApi.body?.success).toBe(true)
+        expect(Array.isArray(testPackageApi.body?.package?.items)).toBe(true)
+        expect(testPackageApi.body.package.items.length).toBeGreaterThan(0)
+
+        const athleteSummaryApi = await page.evaluate(
+          async ({ clientId }) => {
+            const res = await fetch(`/api/clients/${clientId}/hockey-tests/summary`, {
+              credentials: 'include',
+            })
+            return {
+              ok: res.ok,
+              status: res.status,
+              body: await res.json().catch(() => null),
+            }
+          },
+          { clientId: firstClientId },
+        )
+        expect(athleteSummaryApi.status).toBe(200)
+        expect(athleteSummaryApi.body?.success).toBe(true)
+        expect(Array.isArray(athleteSummaryApi.body?.data?.history)).toBe(true)
+        expect(athleteSummaryApi.body.data.history.length).toBeGreaterThan(0)
+
         await page.goto(`${baseUrl}/${businessSlug}/coach/teams/${teamId}/tests`, { waitUntil: 'domcontentloaded', timeout: 120_000 })
         await expect(page.getByText('Tester')).toBeVisible({ timeout: 60_000 })
         await expect(page.getByText('Istest fart & avståndsgap')).toBeVisible()
@@ -71,8 +126,8 @@ async function main() {
           waitUntil: 'domcontentloaded',
           timeout: 120_000,
         })
-        await expect(page.locator('body')).toContainText('vo2Max')
-        await expect(page.locator('body')).toContainText('lt2SpeedKmh')
+        await expect(page.locator('body')).toContainText('vo2_max_ml_kg_min')
+        await expect(page.locator('body')).toContainText('lt2_speed_kmh')
       }
     }
 

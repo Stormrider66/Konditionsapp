@@ -26,6 +26,17 @@ Use this as the immediate launch plan for inviting 3-6 hockey teams. It is inten
 | Athlete daily use | `GET/POST /api/daily-metrics`, `GET /api/calendar/unified` | write bursts, deferred processing backlog |
 | Invite/onboarding | business invitations, athlete platform invites, auth callback | email paused, auth edge cases, tenant isolation |
 
+## Browser QA Coverage
+
+`npm run qa:hockey` logs in as a coach and checks:
+
+- hockey cockpit page renders without browser console/page errors
+- hockey test list API returns tests for the selected team
+- team hockey test package API returns enabled package items
+- athlete hockey summary API returns history for a real team athlete
+- team tests page renders speed-gap and aerobic-profile sections
+- aerobic SIMCA export includes `vo2_max_ml_kg_min` and `lt2_speed_kmh`
+
 ## Immediate Test Data
 
 For local/demo validation:
