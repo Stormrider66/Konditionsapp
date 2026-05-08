@@ -99,6 +99,23 @@ function athleteAuthHeaders() {
 const START_DATE = __ENV.START_DATE || isoStartOfCurrentMonthUtc()
 const END_DATE = __ENV.END_DATE || isoEndOfCurrentMonthUtc()
 const weights = normalizedWeights()
+const ENDPOINTS = [
+  'hockey-tests-list',
+  'hockey-package',
+  'hockey-athlete-summary',
+  'athlete-calendar',
+  'daily-metrics-get',
+  'daily-metrics-post',
+  'business-stats',
+  'team-dashboard',
+  'hockey-simca-export',
+]
+
+function debugMetricThresholds(metricName) {
+  return Object.fromEntries(
+    ENDPOINTS.map((endpoint) => [`${metricName}{endpoint:${endpoint}}`, ['p(95)<600000']])
+  )
+}
 
 export const options = {
   scenarios: {
@@ -134,6 +151,9 @@ export const options = {
     'endpoint_failed{endpoint:team-dashboard}': ['rate<0.01'],
     'endpoint_duration{endpoint:hockey-simca-export}': ['p(95)<3000', 'p(99)<6000'],
     'endpoint_failed{endpoint:hockey-simca-export}': ['rate<0.02'],
+    ...debugMetricThresholds('endpoint_handler_ms'),
+    ...debugMetricThresholds('endpoint_overhead_ms'),
+    ...debugMetricThresholds('endpoint_next_queue_ms'),
   },
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
 }

@@ -7,7 +7,6 @@ function isLocalHostname(hostname: string): boolean {
 }
 
 export function isLoadTestBypassEnabled(request: NextRequest): boolean {
-  if (process.env.NODE_ENV === 'production') return false
   if (process.env.ENABLE_LOAD_TEST_BYPASS !== 'true') return false
   if (!isLocalHostname(request.nextUrl.hostname)) return false
 

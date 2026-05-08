@@ -5,16 +5,17 @@
  * GET /api/daily-metrics - Retrieve historical metrics
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import {
   enqueueDailyMetricsPostWriteJob,
-  processDailyMetricsPostWriteJobs,
+  processDailyMetricsAssessmentsNow,
 } from '@/lib/daily-metrics-jobs'
 import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
 import { logger } from '@/lib/logger'
 import { regenerateTodaysBriefing } from '@/lib/ai/briefing-generator'
+import { jsonWithPerfDebug, startPerfDebug } from '@/lib/api/perf-debug'
 
 const dailyMetricsWriteInFlight = new Map<string, Promise<void>>()
 const dailyMetricsGetCache = createDistributedJsonCache<{ data: unknown }>('daily-metrics-get')
@@ -27,6 +28,7 @@ const dailyMetricsRecentWriteCache = new Map<
 const DAILY_METRICS_RECENT_WRITE_TTL_MS = 2 * 60 * 1000
 
 export async function POST(request: NextRequest) {
+  const perf = startPerfDebug(request)
   let activeWriteKey: string | null = null
   let releaseWriteLock: () => void = () => {}
   let rejectWriteLock: (reason?: unknown) => void = () => {}
@@ -34,7 +36,7 @@ export async function POST(request: NextRequest) {
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return jsonWithPerfDebug(perf, { error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -66,14 +68,15 @@ export async function POST(request: NextRequest) {
     } = body
 
     if (!clientId || !date) {
-      return NextResponse.json(
+      return jsonWithPerfDebug(
+        perf,
         { error: 'Missing required fields: clientId, date' },
         { status: 400 }
       )
     }
 
     if (resolved.clientId !== clientId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return jsonWithPerfDebug(perf, { error: 'Access denied' }, { status: 403 })
     }
 
     const writeKey = `${clientId}:${date}`
@@ -84,7 +87,7 @@ export async function POST(request: NextRequest) {
       recentWrite.expiresAt > Date.now() &&
       recentWrite.signature === writeSignature
     ) {
-      return NextResponse.json(recentWrite.payload)
+      return jsonWithPerfDebug(perf, recentWrite.payload, {}, { 'x-cache': 'recent-write' })
     }
 
     const inFlightWrite = dailyMetricsWriteInFlight.get(writeKey)
@@ -95,24 +98,29 @@ export async function POST(request: NextRequest) {
         currentRecent.expiresAt > Date.now() &&
         currentRecent.signature === writeSignature
       ) {
-        return NextResponse.json(currentRecent.payload)
+        return jsonWithPerfDebug(perf, currentRecent.payload, {}, { 'x-cache': 'recent-write' })
       }
 
-      return NextResponse.json({
-        success: true,
-        queued: true,
-        assessments: {
-          hrv: null,
-          rhr: null,
-          wellness: null,
-          readiness: null,
-          strengthFatigue: null,
+      return jsonWithPerfDebug(
+        perf,
+        {
+          success: true,
+          queued: true,
+          assessments: {
+            hrv: null,
+            rhr: null,
+            wellness: null,
+            readiness: null,
+            strengthFatigue: null,
+          },
+          injuryResponse: {
+            triggered: false,
+            pendingEvaluation: true,
+          },
         },
-        injuryResponse: {
-          triggered: false,
-          pendingEvaluation: true,
-        },
-      })
+        {},
+        { 'x-cache': 'inflight-write' }
+      )
     }
 
     const writeLockPromise = new Promise<void>((resolve, reject) => {
@@ -265,7 +273,11 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await processDailyMetricsPostWriteJobs({ limit: 1, jobKey: writeKey })
+      await processDailyMetricsAssessmentsNow({
+        clientId,
+        date,
+        signature: writeSignature,
+      })
 
       // Re-read the updated metrics to get computed readiness
       const updated = await prisma.dailyMetrics.findUnique({
@@ -347,11 +359,12 @@ export async function POST(request: NextRequest) {
     }
 
     releaseWriteLock()
-    return NextResponse.json(responsePayload)
+    return jsonWithPerfDebug(perf, responsePayload, {}, { 'x-cache': 'write-through' })
   } catch (error) {
     rejectWriteLock(error)
     logger.error('Error saving daily metrics', {}, error)
-    return NextResponse.json(
+    return jsonWithPerfDebug(
+      perf,
       { error: 'Failed to save daily metrics' },
       { status: 500 }
     )
@@ -363,10 +376,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const perf = startPerfDebug(request)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return jsonWithPerfDebug(perf, { error: 'Unauthorized' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -374,26 +388,27 @@ export async function GET(request: NextRequest) {
     const days = parseInt(searchParams.get('days') || '30')
 
     if (!clientId) {
-      return NextResponse.json(
+      return jsonWithPerfDebug(
+        perf,
         { error: 'Missing required parameter: clientId' },
         { status: 400 }
       )
     }
     if (resolved.clientId !== clientId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return jsonWithPerfDebug(perf, { error: 'Access denied' }, { status: 403 })
     }
 
     const cacheKey = `${resolved.user.id}:${clientId}:${days}`
     const nowMs = Date.now()
     const cached = await dailyMetricsGetCache.get(cacheKey)
     if (cached && cached.expiresAt > nowMs) {
-      return NextResponse.json(cached.payload.data)
+      return jsonWithPerfDebug(perf, cached.payload.data, {}, { 'x-cache': 'hit' })
     }
 
     const inFlight = dailyMetricsGetInFlight.get(cacheKey)
     if (inFlight) {
       const payload = await inFlight
-      return NextResponse.json(payload)
+      return jsonWithPerfDebug(perf, payload, {}, { 'x-cache': 'inflight' })
     }
 
     const loadPromise = (async () => {
@@ -475,13 +490,14 @@ export async function GET(request: NextRequest) {
     dailyMetricsGetInFlight.set(cacheKey, loadPromise)
     try {
       const payload = await loadPromise
-      return NextResponse.json(payload)
+      return jsonWithPerfDebug(perf, payload, {}, { 'x-cache': 'miss' })
     } finally {
       dailyMetricsGetInFlight.delete(cacheKey)
     }
   } catch (error) {
     logger.error('Error retrieving daily metrics', {}, error)
-    return NextResponse.json(
+    return jsonWithPerfDebug(
+      perf,
       { error: 'Failed to retrieve daily metrics' },
       { status: 500 }
     )

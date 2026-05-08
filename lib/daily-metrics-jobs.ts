@@ -292,6 +292,41 @@ export async function processDailyMetricsPostWriteJobPayload(
   }
 }
 
+export async function processDailyMetricsAssessmentsNow(input: {
+  clientId: string
+  date: string
+  signature: string
+}) {
+  const { clientId, date, signature } = input
+  const key = buildDailyMetricsJobKey(clientId, date)
+  const now = Date.now()
+  const cachedProcessing = dailyMetricsProcessedSignatureCache.get(key)
+  if (
+    cachedProcessing &&
+    cachedProcessing.signature === signature &&
+    now - cachedProcessing.processedAt < DAILY_METRICS_RECOMPUTE_SKIP_TTL_MS
+  ) {
+    return {
+      readinessScore: cachedProcessing.readinessScore,
+      readinessLevel: cachedProcessing.readinessLevel,
+    }
+  }
+
+  const computed = await recomputeDailyMetricsAssessments({ clientId, date })
+  pruneIfOversized(
+    dailyMetricsProcessedSignatureCache,
+    (v) => now - v.processedAt > DAILY_METRICS_RECOMPUTE_SKIP_TTL_MS,
+  )
+  dailyMetricsProcessedSignatureCache.set(key, {
+    signature,
+    processedAt: now,
+    readinessScore: computed.readinessScore,
+    readinessLevel: computed.readinessLevel,
+  })
+
+  return computed
+}
+
 async function recomputeDailyMetricsAssessments(input: RecomputeDailyMetricsAssessmentsInput) {
   const { clientId, date } = input
   const metricsDate = new Date(date)

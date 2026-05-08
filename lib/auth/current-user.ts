@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { User, UserRole } from '@/types'
@@ -22,7 +23,30 @@ function requestCache<T extends (...args: any[]) => any>(fn: T): T {
   return fn
 }
 
+const ATHLETE_DEFAULTS_VERIFIED_TTL_MS = 5 * 60 * 1000
+const athleteDefaultsVerifiedCache = new Map<string, number>()
+
+function isLocalHostname(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1'
+}
+
+async function getLocalLoadTestBypassEmail(): Promise<string | null> {
+  if (process.env.ENABLE_LOAD_TEST_BYPASS !== 'true') return null
+
+  const requestHeaders = await headers()
+  const host = requestHeaders.get('host')?.split(':')[0] ?? ''
+  if (!isLocalHostname(host)) return null
+
+  const secret = process.env.LOAD_TEST_BYPASS_SECRET
+  if (!secret || requestHeaders.get('x-load-test-secret') !== secret) return null
+
+  return requestHeaders.get('x-auth-user-email')?.trim() || null
+}
+
 async function ensureAthleteClientDefaults(clientId: string): Promise<void> {
+  const verifiedUntil = athleteDefaultsVerifiedCache.get(clientId)
+  if (verifiedUntil && verifiedUntil > Date.now()) return
+
   try {
     const client = await prisma.client.findUnique({
       where: { id: clientId },
@@ -43,7 +67,10 @@ async function ensureAthleteClientDefaults(clientId: string): Promise<void> {
     const needsSportProfile = !client.sportProfile
     const shouldSyncSubscription = !!selfAthleteUser || !client.athleteSubscription
 
-    if (!needsAgentPreferences && !needsSportProfile && !shouldSyncSubscription) return
+    if (!needsAgentPreferences && !needsSportProfile && !shouldSyncSubscription) {
+      athleteDefaultsVerifiedCache.set(clientId, Date.now() + ATHLETE_DEFAULTS_VERIFIED_TTL_MS)
+      return
+    }
 
     const subscriptionSeed = shouldSyncSubscription
       ? selfAthleteUser
@@ -66,6 +93,7 @@ async function ensureAthleteClientDefaults(clientId: string): Promise<void> {
       createdAgentPreferences: needsAgentPreferences,
       createdSportProfile: needsSportProfile,
     })
+    athleteDefaultsVerifiedCache.set(clientId, Date.now() + ATHLETE_DEFAULTS_VERIFIED_TTL_MS)
   } catch (error) {
     logger.error('Failed to recover athlete client defaults', { clientId }, error)
   }
@@ -93,6 +121,24 @@ export function getRequestedBusinessScope(
  * within a single request hit Supabase/DB once.
  */
 export const getCurrentUser = requestCache(async (): Promise<User | null> => {
+  const bypassEmail = await getLocalLoadTestBypassEmail()
+  if (bypassEmail) {
+    const user = await prisma.user.findUnique({
+      where: { email: bypassEmail },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        adminRole: true,
+        language: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
+    if (user) return user
+  }
+
   const supabase = await createClient()
   const { data: { user: supabaseUser } } = await supabase.auth.getUser()
   if (!supabaseUser) return null

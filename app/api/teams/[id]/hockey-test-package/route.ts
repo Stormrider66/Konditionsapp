@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { getAccessibleTeamWhere, getWritableTeam } from '@/lib/coach/team-access'
+import { jsonWithPerfDebug, startPerfDebug } from '@/lib/api/perf-debug'
 import {
   DEFAULT_HOCKEY_TEST_PACKAGE,
   hockeyTestPackageToJson,
@@ -29,6 +30,20 @@ type ExerciseCandidate = {
 
 let exerciseCandidateCache: { expiresAt: number; candidates: ExerciseCandidate[] } | null = null
 const EXERCISE_CANDIDATE_TTL_MS = 10 * 60 * 1000
+const PACKAGE_RESPONSE_TTL_MS = 5 * 60 * 1000
+const packageResponseCache = new Map<string, { expiresAt: number; payload: unknown }>()
+
+function packageCacheKey(userId: string, teamId: string, businessSlug?: string) {
+  return `${userId}:${businessSlug ?? ''}:${teamId}`
+}
+
+function clearPackageCacheForTeam(teamId: string) {
+  for (const key of packageResponseCache.keys()) {
+    if (key.endsWith(`:${teamId}`)) {
+      packageResponseCache.delete(key)
+    }
+  }
+}
 
 async function getExerciseCandidates() {
   const now = Date.now()
@@ -79,10 +94,17 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const perf = startPerfDebug(request)
   try {
     const user = await requireCoach()
     const { id: teamId } = await params
     const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
+    const cacheKey = packageCacheKey(user.id, teamId, businessSlug)
+    const cached = packageResponseCache.get(cacheKey)
+    if (cached && cached.expiresAt > Date.now()) {
+      return jsonWithPerfDebug(perf, cached.payload, {}, { 'x-cache': 'hit' })
+    }
+
     const accessibleTeamWhere = await getAccessibleTeamWhere(user.id, businessSlug)
     const stored = await prisma.team.findFirst({
       where: {
@@ -92,18 +114,23 @@ export async function GET(
       select: { hockeyTestPackage: true },
     })
     if (!stored) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return jsonWithPerfDebug(perf, { error: 'Team not found' }, { status: 404 })
     }
 
     const basePackage = normalizeHockeyTestPackage(stored?.hockeyTestPackage ?? DEFAULT_HOCKEY_TEST_PACKAGE)
     const testPackage = await hydrateLinkedExercises(basePackage)
+    const payload = { success: true, package: testPackage }
+    packageResponseCache.set(cacheKey, {
+      expiresAt: Date.now() + PACKAGE_RESPONSE_TTL_MS,
+      payload,
+    })
 
-    return NextResponse.json({ success: true, package: testPackage })
+    return jsonWithPerfDebug(perf, payload, {}, { 'x-cache': 'miss' })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return jsonWithPerfDebug(perf, { error: 'Unauthorized' }, { status: 401 })
     }
-    return NextResponse.json({ error: 'Failed to load hockey test package' }, { status: 500 })
+    return jsonWithPerfDebug(perf, { error: 'Failed to load hockey test package' }, { status: 500 })
   }
 }
 export async function PUT(
@@ -128,6 +155,7 @@ export async function PUT(
       },
       select: { hockeyTestPackage: true },
     })
+    clearPackageCacheForTeam(teamId)
 
     return NextResponse.json({
       success: true,

@@ -59,6 +59,20 @@ describe('load-test bypass', () => {
     expect(getVerifiedLoadTestBypassEmail(req)).toBe('load@example.com')
   })
 
+  it('accepts local production-build requests when explicitly enabled', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    process.env.ENABLE_LOAD_TEST_BYPASS = 'true'
+    process.env.LOAD_TEST_BYPASS_SECRET = 'test-secret-123'
+
+    const req = request('http://localhost:3000/api/calendar/unified', {
+      'x-load-test-secret': 'test-secret-123',
+      'x-auth-user-email': 'load@example.com',
+    })
+
+    expect(isVerifiedLoadTestBypassRequest(req)).toBe(true)
+    expect(getVerifiedLoadTestBypassEmail(req)).toBe('load@example.com')
+  })
+
   it('does not trust x-forwarded-host to fake localhost', () => {
     process.env.ENABLE_LOAD_TEST_BYPASS = 'true'
     process.env.LOAD_TEST_BYPASS_SECRET = 'test-secret-123'

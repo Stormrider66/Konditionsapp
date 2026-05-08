@@ -25,6 +25,7 @@ import {
   getLinkedHockeyAerobicProfiles,
 } from '@/lib/hockey/aerobic-profile-link'
 import { syncHockeyStrengthPrsFromTest } from '@/lib/hockey/test-package-server'
+import { jsonWithPerfDebug, startPerfDebug } from '@/lib/api/perf-debug'
 
 const createTestSchema = z.object({
   clientId: z.string().uuid(),
@@ -77,6 +78,7 @@ const createTestSchema = z.object({
 })
 
 export async function GET(req: NextRequest) {
+  const perf = startPerfDebug(req)
   try {
     const user = await requireCoach()
     const scope = getRequestedBusinessScope(req)
@@ -115,7 +117,7 @@ export async function GET(req: NextRequest) {
         select: { id: true },
       })
       if (!team || (permissions.isTeamScoped && !permissions.assignedTeamIds.includes(teamId))) {
-        return NextResponse.json({ tests: [] })
+        return jsonWithPerfDebug(perf, { tests: [] })
       }
       clientFilter.teamId = teamId
     }
@@ -140,12 +142,12 @@ export async function GET(req: NextRequest) {
     const linkedProfiles = await getLinkedHockeyAerobicProfiles(tests.map((test) => test.clientId))
     const enrichedTests = tests.map((test) => applyLinkedHockeyAerobicProfile(test, linkedProfiles.get(test.clientId)))
 
-    return NextResponse.json({ tests: enrichedTests })
+    return jsonWithPerfDebug(perf, { tests: enrichedTests })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return jsonWithPerfDebug(perf, { error: 'Unauthorized' }, { status: 401 })
     }
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return jsonWithPerfDebug(perf, { error: 'Failed' }, { status: 500 })
   }
 }
 

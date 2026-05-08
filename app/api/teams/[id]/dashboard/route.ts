@@ -28,6 +28,21 @@ type TeamDashboardOptions = {
   businessSlug?: string
 }
 
+type TeamDashboardMember = {
+  id: string
+  name: string
+  email: string | null
+}
+
+type TeamDashboardMemberStat = {
+  athleteId: string
+  name: string
+  email: string | null
+  assignedCount: number
+  completedCount: number
+  completionRate: number
+}
+
 // Increase TTL aggressively to reduce refresh work that can block the Node event loop under load.
 // Dashboard data can tolerate being a few minutes stale during bursts.
 const TEAM_DASHBOARD_TTL_MS = 10 * 60 * 1000
@@ -159,27 +174,60 @@ function buildTeamDashboardCacheKey(options: TeamDashboardOptions) {
 async function buildTeamDashboardPayload(dbUserId: string, teamId: string, options: TeamDashboardOptions) {
   const accessibleTeamWhere = await getAccessibleTeamWhere(dbUserId, options.businessSlug)
 
-  const team = await prisma.team.findFirst({
-    where: {
-      id: teamId,
-      AND: [accessibleTeamWhere],
-    },
-    include: {
-      members: {
+  const team = options.includeMemberStats
+    ? await prisma.team.findFirst({
+        where: {
+          id: teamId,
+          AND: [accessibleTeamWhere],
+        },
         select: {
           id: true,
           name: true,
-          email: true,
+          description: true,
+          sportType: true,
+          members: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          organization: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          _count: {
+            select: {
+              members: true,
+            },
+          },
         },
-      },
-      organization: {
+      })
+    : await prisma.team.findFirst({
+        where: {
+          id: teamId,
+          AND: [accessibleTeamWhere],
+        },
         select: {
           id: true,
           name: true,
+          description: true,
+          sportType: true,
+          organization: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          _count: {
+            select: {
+              members: true,
+            },
+          },
         },
-      },
-    },
-  })
+      })
 
   if (!team) {
     throw new Error('TEAM_NOT_FOUND')
@@ -216,7 +264,9 @@ async function buildTeamDashboardPayload(dbUserId: string, teamId: string, optio
     : []
 
   const broadcastIds = broadcasts.map((b) => b.id)
-  const memberIds = team.members.map((m) => m.id)
+  const members: TeamDashboardMember[] =
+    'members' in team ? (team.members as TeamDashboardMember[]) : []
+  const memberIds = members.map((m) => m.id)
 
   // Aggregate completion counts in bulk to avoid N+1 count queries.
   const [strengthCompletedByBroadcast, cardioCompletedByBroadcast, hybridCompletedByBroadcast] =
@@ -382,8 +432,8 @@ async function buildTeamDashboardPayload(dbUserId: string, teamId: string, optio
   )
 
   // Calculate per-member stats (last 30 days)
-  const memberStats = options.includeMemberStats
-    ? team.members.map((member) => {
+  const memberStats: TeamDashboardMemberStat[] = options.includeMemberStats
+    ? members.map((member) => {
     const strengthAssigned = strengthAssignedMap.get(member.id) || 0
     const strengthCompleted = strengthCompletedMap.get(member.id) || 0
     const cardioAssigned = cardioAssignedMap.get(member.id) || 0
@@ -420,7 +470,7 @@ async function buildTeamDashboardPayload(dbUserId: string, teamId: string, optio
         name: team.name,
         description: team.description,
         sportType: team.sportType,
-        memberCount: team.members.length,
+        memberCount: team._count.members,
         organization: team.organization,
       },
       recentBroadcasts,
