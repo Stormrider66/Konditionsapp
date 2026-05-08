@@ -49,6 +49,8 @@ import {
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { formatDistanceValue, formatDurationMinutes, formatWorkoutTypeLabel, formatIntensityLabel, formatFieldTestType, formatAdHocInputType, formatAdHocTypeLabel, formatRaceDistanceLabel } from './formatters'
+import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton'
+import type { PrintableWorkoutKind } from '@/lib/workout-print/normalize'
 
 export interface WODItemProps {
   wod: UnifiedCalendarItem
@@ -280,6 +282,9 @@ export function CalendarEventItem({
   const canEditScheduledWorkoutSource = ['strength', 'cardio', 'hybrid'].includes(
     scheduledWorkoutSource?.kind || ''
   )
+  const canPrintScheduledWorkoutSource = ['strength', 'cardio', 'hybrid', 'agility'].includes(
+    scheduledWorkoutSource?.kind || ''
+  )
   const config = EVENT_TYPE_CONFIG[eventType as keyof typeof EVENT_TYPE_CONFIG]
   const impactConfig = IMPACT_CONFIG[trainingImpact as keyof typeof IMPACT_CONFIG]
   const sourceName = scheduledWorkoutSource?.sourceName?.trim()
@@ -390,6 +395,17 @@ export function CalendarEventItem({
               <ExternalLink className="h-3 w-3 shrink-0 mr-1" />
               Redigera pass
             </Button>
+          )}
+          {scheduledWorkoutSource?.sourceId && canPrintScheduledWorkoutSource && (
+            <PrintWorkoutButton
+              kind={scheduledWorkoutSource.kind as PrintableWorkoutKind}
+              workoutId={scheduledWorkoutSource.sourceId}
+              date={event.date}
+              label="Skriv ut"
+              variant="ghost"
+              size="sm"
+              className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold"
+            />
           )}
           <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={onEdit}>
             <Edit className="h-3 w-3 shrink-0 mr-1" />

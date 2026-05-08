@@ -35,6 +35,7 @@ import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { SessionExportButton } from '@/components/exports/SessionExportButton'
+import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton'
 import type { CardioSessionData, CardioSegment as CardioSegmentType } from '@/types'
 
 // Types
@@ -798,6 +799,14 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
                   initialData ? 'Uppdatera pass' : 'Spara pass'
                 )}
               </Button>
+              {initialData?.id && (
+                <PrintWorkoutButton
+                  kind="cardio"
+                  workoutId={initialData.id}
+                  label="Skriv ut"
+                  className="shrink-0"
+                />
+              )}
               <SessionExportButton
                 sessionType="cardio"
                 getSessionData={getSessionData}

@@ -86,6 +86,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CustomExerciseCreator } from '@/components/coach/exercise-library/CustomExerciseCreator'
+import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton'
 
 // Types
 type SectionType = 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
@@ -1411,6 +1412,14 @@ export function SectionWorkoutBuilder({
                 'Spara pass'
               )}
             </Button>
+            {initialData?.id && (
+              <PrintWorkoutButton
+                kind="strength"
+                workoutId={initialData.id}
+                label="Skriv ut pass"
+                className="w-full"
+              />
+            )}
           </CardContent>
         </Card>
       </div>

@@ -67,6 +67,7 @@ import {
 } from 'lucide-react';
 import { SectionEditor } from './SectionEditor';
 import type { HybridMetconData, HybridSectionData } from '@/types';
+import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton';
 
 interface Exercise {
   id: string;
@@ -1581,19 +1582,28 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
           {step === 1 ? 'Avbryt' : 'Tillbaka'}
         </Button>
 
-        {step < 3 ? (
-          <Button
-            onClick={() => setStep(step + 1)}
-            disabled={step === 1 ? !canProceedStep1 : !canProceedStep2}
-          >
-            Nästa
-            <ChevronRight className="ml-2 h-4 w-4" />
-          </Button>
-        ) : (
-          <Button onClick={handleSave} disabled={!canSave || saving}>
-            {saving ? 'Sparar...' : 'Spara Pass'}
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {initialData?.id && (
+            <PrintWorkoutButton
+              kind="hybrid"
+              workoutId={initialData.id}
+              label="Skriv ut"
+            />
+          )}
+          {step < 3 ? (
+            <Button
+              onClick={() => setStep(step + 1)}
+              disabled={step === 1 ? !canProceedStep1 : !canProceedStep2}
+            >
+              Nästa
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          ) : (
+            <Button onClick={handleSave} disabled={!canSave || saving}>
+              {saving ? 'Sparar...' : 'Spara Pass'}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

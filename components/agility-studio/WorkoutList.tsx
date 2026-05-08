@@ -36,6 +36,7 @@ import {
   Clock,
   Dumbbell,
   CalendarIcon,
+  Printer,
   Zap,
   ChevronDown
 } from 'lucide-react'
@@ -45,6 +46,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields'
+import { buildWorkoutPrintUrl, getCoachBasePath } from '@/components/workouts/print/PrintWorkoutButton'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { AgilityWorkout } from '@/types'
@@ -163,6 +165,18 @@ export function WorkoutList({
     }
   }
 
+  const handlePrint = (workout: AgilityWorkout) => {
+    window.open(
+      buildWorkoutPrintUrl({
+        coachBasePath: getCoachBasePath(window.location.pathname),
+        kind: 'agility',
+        workoutId: workout.id,
+      }),
+      '_blank',
+      'noopener,noreferrer'
+    )
+  }
+
   const toggleAthleteSelection = (athleteId: string) => {
     setSelectedAthletes(prev =>
       prev.includes(athleteId)
@@ -220,6 +234,10 @@ export function WorkoutList({
                           {t('workout.duplicate')}
                         </DropdownMenuItem>
                       )}
+                      <DropdownMenuItem onClick={() => handlePrint(workout)}>
+                        <Printer className="h-4 w-4 mr-2" />
+                        Skriv ut
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
                         onClick={() => {

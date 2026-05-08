@@ -41,6 +41,7 @@ import type {
   DevelopmentStage,
   SportType
 } from '@/types'
+import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton'
 
 interface AgilityWorkoutBuilderProps {
   drills: AgilityDrill[]
@@ -612,21 +613,30 @@ export function AgilityWorkoutBuilder({
             <ChevronLeft className="h-4 w-4 mr-1" />
             {step > 1 ? t('builder.back') : t('builder.cancel')}
           </Button>
-          <Button
-            onClick={() => (step < 4 ? setStep(step + 1) : handleSubmit())}
-            disabled={!canProceed() || isSubmitting}
-          >
-            {step < 4 ? (
-              <>
-                {t('builder.next')}
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </>
-            ) : isSubmitting ? (
-              t('builder.creating')
-            ) : (
-              t('builder.createWorkout')
+          <div className="flex gap-2">
+            {initialWorkout?.id && (
+              <PrintWorkoutButton
+                kind="agility"
+                workoutId={initialWorkout.id}
+                label="Skriv ut"
+              />
             )}
-          </Button>
+            <Button
+              onClick={() => (step < 4 ? setStep(step + 1) : handleSubmit())}
+              disabled={!canProceed() || isSubmitting}
+            >
+              {step < 4 ? (
+                <>
+                  {t('builder.next')}
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </>
+              ) : isSubmitting ? (
+                t('builder.creating')
+              ) : (
+                t('builder.createWorkout')
+              )}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
