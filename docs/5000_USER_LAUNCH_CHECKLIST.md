@@ -15,8 +15,10 @@ Recommended commands:
 
 - `K6_SUMMARY_EXPORT=load-tests/prod-shape-run1.json node load-tests/k6/run.js prod-shape`
 - `node load-tests/k6/analyze-summary.js load-tests/prod-shape-run1.json`
+- `npm run qa:daily-metrics-backlog`
 - `K6_SUMMARY_EXPORT=load-tests/prod-shape-run2.json node load-tests/k6/run.js prod-shape`
 - `node load-tests/k6/analyze-summary.js load-tests/prod-shape-run2.json`
+- `npm run qa:daily-metrics-backlog`
 - `node load-tests/k6/compare-summaries.js load-tests/prod-shape-run1.json load-tests/prod-shape-run2.json`
 
 ## Green Gate
@@ -67,7 +69,7 @@ All items below should pass in 2 consecutive runs.
 ### 7. Background Processing Health
 
 - bounded cron runs are not repeatedly timing out
-- daily-metrics processing jobs do not build backlog across peak windows
+- `npm run qa:daily-metrics-backlog` passes before and after peak windows
 - hot endpoints are not repeatedly serving degraded fallback payloads
 
 ### 8. Database Safety

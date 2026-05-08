@@ -31,12 +31,14 @@ npm run qa:hockey-pilot-readiness
 ```bash
 npm run qa:launch-config
 npm run qa:hockey
+npm run qa:daily-metrics-backlog
 ```
 
 5. Run the hockey pilot load test with evidence export:
 
 ```bash
 K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run load:k6:hockey-pilot
+npm run qa:daily-metrics-backlog
 ```
 
 6. Save the generated evidence:
@@ -69,6 +71,7 @@ Watch:
 - hockey test review errors
 - SIMCA/export failures
 - daily metrics save failures
+- daily metrics backlog growth
 - unexpected 401/403 reports from valid users
 - database connection or pool warnings
 
@@ -92,6 +95,7 @@ Continue to the next wave only when:
 - `npm run qa:launch-config` passes
 - `npm run qa:hockey` passes against the target environment
 - the hockey pilot load summary gate passes
+- `npm run qa:daily-metrics-backlog` passes after the load run
 - the manifest says `result.status` is `passed`
 - no critical support issues remain open
 - tenant isolation spot checks are clean

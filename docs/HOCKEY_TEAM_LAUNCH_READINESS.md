@@ -157,7 +157,9 @@ Run:
 ```bash
 npm run qa:hockey-pilot-readiness
 npm run qa:hockey-pilot-env
+npm run qa:daily-metrics-backlog
 K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json npm run load:k6:hockey-pilot
+npm run qa:daily-metrics-backlog
 npm run qa:hockey-pilot-tooling
 ```
 
@@ -191,6 +193,7 @@ Pass these before inviting the first external teams:
 - `npm run qa:hockey` passes against the target environment
 - `npm run qa:hockey-pilot-env` passes before running k6
 - `npm run qa:hockey-pilot-summary -- <summary.json>` passes after the run
+- `npm run qa:daily-metrics-backlog` passes before and after the run
 - `npm run qa:hockey-pilot-tooling` passes after preflight, runner, or summary-gate edits
 - hockey pilot load test passes at `35` steady VUs and `75` peak VUs
 - overall `http_req_failed < 1.5%`
