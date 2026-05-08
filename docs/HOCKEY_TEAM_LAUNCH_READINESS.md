@@ -114,12 +114,22 @@ LOAD_TEST_ATHLETE_EMAIL="athlete@example.com" npm run load:k6:auth -- "coach@exa
 
 When `LOAD_TEST_ATHLETE_EMAIL` is set, the generated `CLIENT_ID`/`CLIENT_IDS` are pinned to that athlete's client record so daily-metrics writes exercise the correct access path. If athlete traffic is enabled, keep `CLIENT_IDS` to the one athlete that matches the athlete auth session.
 
+For a multi-business pilot owner, pin the environment generation to the intended business and team so the run does not accidentally target an older or empty team:
+
+```bash
+LOAD_TEST_BUSINESS_SLUG=skelleftea-aik LOAD_TEST_TEAM_ID="<team-id>" LOAD_TEST_ATHLETE_EMAIL="athlete@example.com" npm run load:k6:auth -- "coach@example.com"
+```
+
 Optional load knobs:
 
 ```env
 HOCKEY_PILOT_WARM_VUS=10
 HOCKEY_PILOT_STEADY_VUS=35
 HOCKEY_PILOT_PEAK_VUS=75
+HOCKEY_PILOT_WARM_DURATION=2m
+HOCKEY_PILOT_STEADY_DURATION=6m
+HOCKEY_PILOT_PEAK_DURATION=4m
+HOCKEY_PILOT_RAMP_DOWN_DURATION=2m
 HOCKEY_PILOT_READ_WEIGHT=0.40
 HOCKEY_PILOT_ATHLETE_WEIGHT=0.25
 HOCKEY_PILOT_DASHBOARD_WEIGHT=0.20

@@ -14,6 +14,10 @@ const TARGET_CLIENT_IDS = CLIENT_IDS.length > 0 ? CLIENT_IDS : [CLIENT_ID]
 const VUS_WARM = Math.max(1, parseInt(__ENV.HOCKEY_PILOT_WARM_VUS || '10', 10) || 10)
 const VUS_STEADY = Math.max(1, parseInt(__ENV.HOCKEY_PILOT_STEADY_VUS || '35', 10) || 35)
 const VUS_PEAK = Math.max(1, parseInt(__ENV.HOCKEY_PILOT_PEAK_VUS || '75', 10) || 75)
+const WARM_DURATION = __ENV.HOCKEY_PILOT_WARM_DURATION || '2m'
+const STEADY_DURATION = __ENV.HOCKEY_PILOT_STEADY_DURATION || '6m'
+const PEAK_DURATION = __ENV.HOCKEY_PILOT_PEAK_DURATION || '4m'
+const RAMP_DOWN_DURATION = __ENV.HOCKEY_PILOT_RAMP_DOWN_DURATION || '2m'
 
 function nonNegativeFloatEnv(name, fallback) {
   const raw = __ENV[name]
@@ -101,10 +105,10 @@ export const options = {
     hockey_pilot_mix: {
       executor: 'ramping-vus',
       stages: [
-        { duration: '2m', target: VUS_WARM },
-        { duration: '6m', target: VUS_STEADY },
-        { duration: '4m', target: VUS_PEAK },
-        { duration: '2m', target: 0 },
+        { duration: WARM_DURATION, target: VUS_WARM },
+        { duration: STEADY_DURATION, target: VUS_STEADY },
+        { duration: PEAK_DURATION, target: VUS_PEAK },
+        { duration: RAMP_DOWN_DURATION, target: 0 },
       ],
       gracefulRampDown: '45s',
     },
@@ -221,8 +225,9 @@ function runDashboardFlow() {
   })
 
   group('team-dashboard', () => {
+    const slugQuery = BUSINESS_SLUG ? `&businessSlug=${encodeURIComponent(BUSINESS_SLUG)}` : ''
     const res = get(
-      `/api/teams/${TEAM_ID}/dashboard?includeMemberStats=false&includeRecentBroadcasts=true&days=${TEAM_DASHBOARD_DAYS}`,
+      `/api/teams/${TEAM_ID}/dashboard?includeMemberStats=false&includeRecentBroadcasts=true&days=${TEAM_DASHBOARD_DAYS}${slugQuery}`,
       { endpoint: 'team-dashboard' }
     )
     check(res, {

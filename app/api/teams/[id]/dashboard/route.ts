@@ -15,6 +15,7 @@ import { logger } from '@/lib/logger'
 import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
 import { performance } from 'node:perf_hooks'
 import { getVerifiedLoadTestBypassEmail, isVerifiedLoadTestBypassRequest } from '@/lib/load-test-bypass'
+import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -24,6 +25,7 @@ type TeamDashboardOptions = {
   includeMemberStats: boolean
   includeRecentBroadcasts: boolean
   days: number
+  businessSlug?: string
 }
 
 // Increase TTL aggressively to reduce refresh work that can block the Node event loop under load.
@@ -141,11 +143,13 @@ function parseTeamDashboardOptions(request: NextRequest): TeamDashboardOptions {
   const includeMemberStats = sp.get('includeMemberStats') !== 'false'
   const includeRecentBroadcasts = sp.get('includeRecentBroadcasts') !== 'false'
   const days = Math.max(1, Math.min(parseInt(sp.get('days') || '30', 10) || 30, 90))
-  return { includeMemberStats, includeRecentBroadcasts, days }
+  const businessSlug = sp.get('businessSlug') || undefined
+  return { includeMemberStats, includeRecentBroadcasts, days, businessSlug }
 }
 
 function buildTeamDashboardCacheKey(options: TeamDashboardOptions) {
   return [
+    options.businessSlug ? `biz:${options.businessSlug}` : 'biz:none',
     options.includeMemberStats ? 'ms1' : 'ms0',
     options.includeRecentBroadcasts ? 'rb1' : 'rb0',
     `d${options.days}`,
@@ -153,11 +157,12 @@ function buildTeamDashboardCacheKey(options: TeamDashboardOptions) {
 }
 
 async function buildTeamDashboardPayload(dbUserId: string, teamId: string, options: TeamDashboardOptions) {
-  // Verify team exists and user owns it
+  const accessibleTeamWhere = await getAccessibleTeamWhere(dbUserId, options.businessSlug)
+
   const team = await prisma.team.findFirst({
     where: {
       id: teamId,
-      userId: dbUserId,
+      AND: [accessibleTeamWhere],
     },
     include: {
       members: {
@@ -438,9 +443,11 @@ async function buildDegradedTeamDashboardPayload(
   teamId: string,
   options: TeamDashboardOptions
 ) {
-  // Keep this cheap: verify ownership and return a minimal payload.
+  const accessibleTeamWhere = await getAccessibleTeamWhere(dbUserId, options.businessSlug)
+
+  // Keep this cheap: verify access and return a minimal payload.
   const team = await prisma.team.findFirst({
-    where: { id: teamId, userId: dbUserId },
+    where: { id: teamId, AND: [accessibleTeamWhere] },
     select: {
       id: true,
       name: true,

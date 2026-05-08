@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { getAccessibleTeam, getWritableTeam } from '@/lib/coach/team-access'
+import { getAccessibleTeamWhere, getWritableTeam } from '@/lib/coach/team-access'
 import {
   DEFAULT_HOCKEY_TEST_PACKAGE,
   hockeyTestPackageToJson,
@@ -20,7 +20,22 @@ function normalizeName(value: string) {
     .trim()
 }
 
-async function hydrateLinkedExercises(pkg: HockeyTestPackage) {
+type ExerciseCandidate = {
+  id: string
+  name: string
+  nameSv: string | null
+  names: string[]
+}
+
+let exerciseCandidateCache: { expiresAt: number; candidates: ExerciseCandidate[] } | null = null
+const EXERCISE_CANDIDATE_TTL_MS = 10 * 60 * 1000
+
+async function getExerciseCandidates() {
+  const now = Date.now()
+  if (exerciseCandidateCache && exerciseCandidateCache.expiresAt > now) {
+    return exerciseCandidateCache.candidates
+  }
+
   const exercises = await prisma.exercise.findMany({
     select: { id: true, name: true, nameSv: true },
   })
@@ -28,6 +43,16 @@ async function hydrateLinkedExercises(pkg: HockeyTestPackage) {
     ...exercise,
     names: [exercise.name, exercise.nameSv ?? ''].filter(Boolean).map(normalizeName),
   }))
+  exerciseCandidateCache = {
+    expiresAt: now + EXERCISE_CANDIDATE_TTL_MS,
+    candidates,
+  }
+
+  return candidates
+}
+
+async function hydrateLinkedExercises(pkg: HockeyTestPackage) {
+  const candidates = await getExerciseCandidates()
 
   const items = pkg.items.map((item): HockeyTestPackageItem => {
     if (item.linkedExerciseId || item.category !== 'strength') return item
@@ -58,15 +83,18 @@ export async function GET(
     const user = await requireCoach()
     const { id: teamId } = await params
     const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
-    const team = await getAccessibleTeam(user.id, teamId, businessSlug)
-    if (!team) {
+    const accessibleTeamWhere = await getAccessibleTeamWhere(user.id, businessSlug)
+    const stored = await prisma.team.findFirst({
+      where: {
+        id: teamId,
+        AND: [accessibleTeamWhere],
+      },
+      select: { hockeyTestPackage: true },
+    })
+    if (!stored) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
     }
 
-    const stored = await prisma.team.findUnique({
-      where: { id: teamId },
-      select: { hockeyTestPackage: true },
-    })
     const basePackage = normalizeHockeyTestPackage(stored?.hockeyTestPackage ?? DEFAULT_HOCKEY_TEST_PACKAGE)
     const testPackage = await hydrateLinkedExercises(basePackage)
 

@@ -116,8 +116,10 @@ const gates = [...overallGates, ...endpointGates()];
 
 function metricValue(name, field) {
   const entry = metrics[name];
-  if (!entry || !entry.values) return null;
-  return entry.values[field] ?? null;
+  if (!entry) return null;
+  if (entry.values) return entry.values[field] ?? null;
+  if (field === 'rate') return entry.rate ?? entry.value ?? null;
+  return entry[field] ?? null;
 }
 
 function formatValue(value, format) {

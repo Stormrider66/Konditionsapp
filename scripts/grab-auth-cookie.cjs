@@ -5,6 +5,7 @@
  * Usage:
  *   node scripts/grab-auth-cookie.cjs <coach-email>
  *   LOAD_TEST_ATHLETE_EMAIL=athlete@example.com node scripts/grab-auth-cookie.cjs <coach-email>
+ *   LOAD_TEST_BUSINESS_SLUG=skelleftea-aik LOAD_TEST_TEAM_ID=<team-id> node scripts/grab-auth-cookie.cjs <coach-email>
  *
  * Uses the service role key to create magic-link sessions, then writes
  * load-tests/.env.k6 for k6.
@@ -75,6 +76,8 @@ async function getAthleteClientIdForEmail(email) {
 async function main() {
   const email = process.argv[2] || 'henrik.lundholm@gmail.com';
   const athleteEmail = process.env.LOAD_TEST_ATHLETE_EMAIL || process.argv[3] || '';
+  const businessSlugOverride = process.env.LOAD_TEST_BUSINESS_SLUG || process.env.TRAINOMICS_QA_BUSINESS_SLUG || '';
+  const teamIdOverride = process.env.LOAD_TEST_TEAM_ID || '';
   const coachSession = await createAuthCookie(email);
   const athleteSession = athleteEmail ? await createAuthCookie(athleteEmail) : null;
 
@@ -100,26 +103,43 @@ async function main() {
   });
 
   const businessMembership = await prisma.businessMember.findFirst({
-    where: { userId: dbUser.id, isActive: true },
+    where: {
+      userId: dbUser.id,
+      isActive: true,
+      ...(businessSlugOverride ? { business: { slug: businessSlugOverride } } : {}),
+    },
     select: {
       businessId: true,
       business: { select: { slug: true } },
     },
     orderBy: { createdAt: 'asc' },
   });
+  if (businessSlugOverride && !businessMembership) {
+    console.error(`No active business membership found for ${email} in business slug ${businessSlugOverride}`);
+    process.exit(1);
+  }
 
-  const firstTeam = await prisma.team.findFirst({
-    where: businessMembership?.businessId
-      ? {
-          OR: [
-            { userId: dbUser.id },
-            { members: { some: { businessId: businessMembership.businessId } } },
-          ],
-        }
-      : { userId: dbUser.id },
-    select: { id: true },
-    orderBy: { createdAt: 'asc' },
-  });
+  const firstTeam = teamIdOverride
+    ? await prisma.team.findUnique({
+        where: { id: teamIdOverride },
+        select: { id: true },
+      })
+    : await prisma.team.findFirst({
+        where: businessMembership?.businessId
+          ? {
+              OR: [
+                { userId: dbUser.id },
+                { members: { some: { businessId: businessMembership.businessId } } },
+              ],
+            }
+          : { userId: dbUser.id },
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      });
+  if (teamIdOverride && !firstTeam) {
+    console.error(`No team found for LOAD_TEST_TEAM_ID=${teamIdOverride}`);
+    process.exit(1);
+  }
 
   const coachClientIds = Array.from(
     new Set([
