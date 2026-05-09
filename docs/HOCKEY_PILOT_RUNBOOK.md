@@ -81,7 +81,7 @@ npm run qa:hockey-evidence-commands
 vercel inspect https://your-deployment-url.vercel.app
 ```
 
-`npm run qa:hockey-evidence-commands` prints the browser and load evidence commands from the current env, including target URL, deployment commit, QA credentials placeholders, pilot wave sizing, load profile, traffic mix, invite mode, support owner, support notes link, and evidence export path.
+`npm run qa:hockey-evidence-commands` prints the browser and load evidence commands from the current env, including target URL, deployment commit, QA credentials placeholders, pilot wave sizing, load profile, traffic mix, invite mode, support owner, support notes link, and evidence export path. The printed load command sets `BASE_URL` from the same target URL as browser QA so both evidence runs cover the same deployment.
 
 The load runner records invite mode from `.env.local`, `load-tests/.env.k6`, or shell env. If you override invite mode for a one-off run, set `HOCKEY_PILOT_INVITE_MODE`, `EMAILS_PAUSED`, and `HOCKEY_PILOT_MANUAL_INVITE_OWNER` in the same shell command.
 
