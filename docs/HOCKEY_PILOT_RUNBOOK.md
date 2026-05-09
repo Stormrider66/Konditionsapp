@@ -23,7 +23,14 @@ Use this during the first 3-6 team hockey pilot. The goal is simple: invite grad
 3. Confirm the invite wave size:
 
 ```bash
-HOCKEY_PILOT_TEAM_COUNT=6 HOCKEY_PILOT_ATHLETES_PER_TEAM=30 HOCKEY_PILOT_STAFF_PER_TEAM=5 npm run qa:hockey-pilot-wave-plan
+HOCKEY_PILOT_TEAM_COUNT=6 \
+HOCKEY_PILOT_ATHLETES_PER_TEAM=30 \
+HOCKEY_PILOT_STAFF_PER_TEAM=5 \
+HOCKEY_PILOT_EXPECTED_PEAK_USERS=75 \
+HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" \
+HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 \
+HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 \
+npm run qa:hockey-pilot-wave-plan
 ```
 
 4. Run local tooling checks:
@@ -42,7 +49,11 @@ npm run qa:hockey-pilot-gates -- --include-browser
 6. Run the hockey pilot load test with evidence export:
 
 ```bash
-HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load
+HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" \
+HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 \
+HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 \
+K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json \
+npm run qa:hockey-pilot-gates -- --include-load
 ```
 
 7. Save the generated evidence:
@@ -107,6 +118,8 @@ Continue to the next wave only when:
 - the hockey pilot load summary gate passes
 - `npm run qa:daily-metrics-backlog` passes after the load run
 - the manifest says `result.status` is `passed`
+- a support owner is named for the invite window
+- support SLA is 24h or faster
 - no critical support issues remain open
 - tenant isolation spot checks are clean
 
@@ -121,6 +134,7 @@ Continue to the next wave only when:
    - `FIX_AND_RERUN`
 4. Record support status:
    - support owner
+   - response SLA
    - support notes link
    - open critical support issue count
 5. If paused, write the specific owner and next action before inviting more teams.
