@@ -66,6 +66,7 @@ function relativeOrDash(filePath, cwd) {
 function decisionFromManifest(manifest) {
   if (manifest?.git?.dirty === true) return 'FIX_AND_RERUN'
   if (Number.parseInt(manifest?.support?.openCriticalIssues || '0', 10) > 0) return 'FIX_AND_RERUN'
+  if (Number.parseInt(manifest?.support?.slaHours || '24', 10) > 24) return 'FIX_AND_RERUN'
   return manifest?.result?.status === 'passed' ? 'GO' : 'FIX_AND_RERUN'
 }
 
@@ -151,6 +152,7 @@ K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run qa:hocke
 - Traffic weights: read ${weights.read || '-'}, athlete ${weights.athlete || '-'}, dashboard ${weights.dashboard || '-'}, export ${weights.export || '-'}
 - Load profile: warm ${loadProfile.warmVus || '-'} VUs/${loadProfile.warmDuration || '-'}, steady ${loadProfile.steadyVus || '-'} VUs/${loadProfile.steadyDuration || '-'}, peak ${loadProfile.peakVus || '-'} VUs/${loadProfile.peakDuration || '-'}, ramp down ${loadProfile.rampDownDuration || '-'}
 - Support owner: ${support.owner || '-'}
+- Support SLA: ${support.slaHours ?? '-'}h
 - Open critical support issues: ${support.openCriticalIssues ?? '-'}
 
 ## Gate Results
@@ -192,6 +194,7 @@ ${endpointTable}
 - Export/SIMCA reports: -
 - Daily metrics save reports: -
 - Valid-user 401/403 reports: -
+- Support SLA: ${support.slaHours ?? '-'}h
 - Open critical support issues: ${support.openCriticalIssues ?? '-'}
 
 ## Issues

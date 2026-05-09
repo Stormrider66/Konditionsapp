@@ -135,6 +135,7 @@ function runRunner(args: string[], env: Record<string, string>) {
     'HOCKEY_PILOT_SUPPORT_NOTES_URL',
     'HOCKEY_PILOT_OPEN_CRITICAL_ISSUES',
     'HOCKEY_PILOT_SUPPORT_OWNER',
+    'HOCKEY_PILOT_SUPPORT_SLA_HOURS',
   ]) {
     delete childEnv[key]
   }
@@ -213,6 +214,7 @@ describe('load-tests k6 runner', () => {
       notesUrl: null,
       openCriticalIssues: '0',
       owner: null,
+      slaHours: '24',
     })
     expect(manifest.artifacts.summaryJson).toBe(summaryPath)
     expect(manifest.artifacts.analyzerOutput).toBe(sidecarPath(summaryPath, 'analyzer'))
@@ -272,6 +274,7 @@ describe('load-tests k6 runner', () => {
       HOCKEY_PILOT_SUPPORT_NOTES_URL: 'https://notes.example.com/pilot',
       HOCKEY_PILOT_OPEN_CRITICAL_ISSUES: '0',
       HOCKEY_PILOT_SUPPORT_OWNER: 'Support Lead',
+      HOCKEY_PILOT_SUPPORT_SLA_HOURS: '12',
     })
 
     expect(result.status).toBe(0)
@@ -280,11 +283,13 @@ describe('load-tests k6 runner', () => {
       notesUrl: 'https://notes.example.com/pilot',
       openCriticalIssues: '0',
       owner: 'Support Lead',
+      slaHours: '12',
     })
     const evidence = readFileSync(evidencePath(summaryPath), 'utf8')
     expect(evidence).toContain('Decision: `GO`')
     expect(evidence).toContain('Screenshot or support notes: https://notes.example.com/pilot')
     expect(evidence).toContain('Support owner: Support Lead')
+    expect(evidence).toContain('Support SLA: 12h')
     expect(evidence).toContain('Open critical support issues: 0')
   })
 

@@ -200,6 +200,7 @@ function hockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gate
       notesUrl: env.HOCKEY_PILOT_SUPPORT_NOTES_URL || null,
       openCriticalIssues: env.HOCKEY_PILOT_OPEN_CRITICAL_ISSUES || '0',
       owner: env.HOCKEY_PILOT_SUPPORT_OWNER || null,
+      slaHours: env.HOCKEY_PILOT_SUPPORT_SLA_HOURS || String(wavePlan.supportSlaHours || 24),
     },
     artifacts: {
       summaryJson: path.resolve(process.cwd(), summaryExport),

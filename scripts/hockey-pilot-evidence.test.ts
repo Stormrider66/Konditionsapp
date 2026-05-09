@@ -104,6 +104,7 @@ function writePilotArtifacts(dir: string, status: 'passed' | 'failed' = 'passed'
           notesUrl: 'https://notes.example.com/pilot',
           openCriticalIssues: '0',
           owner: 'Support Lead',
+          slaHours: '24',
         },
         artifacts: {
           summaryJson: summaryPath,
@@ -145,6 +146,7 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Release evidence status: committed tree')
     expect(result.stdout).toContain('Screenshot or support notes: https://notes.example.com/pilot')
     expect(result.stdout).toContain('Support owner: Support Lead')
+    expect(result.stdout).toContain('Support SLA: 24h')
     expect(result.stdout).toContain('Open critical support issues: 0')
     expect(result.stdout).toContain('Overall p95: 1741ms')
     expect(result.stdout).toContain('Slowest endpoint: hockey-simca-export (2752ms p95)')
@@ -204,5 +206,22 @@ describe('hockey-pilot-evidence', () => {
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
     expect(result.stdout).toContain('Open critical support issues: 1')
+  })
+
+  it('marks passed runs with slow support SLA as fix and rerun evidence', () => {
+    const dir = tempDir()
+    const { manifestPath } = writePilotArtifacts(dir)
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    manifest.support.slaHours = '48'
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+
+    const result = spawnSync(process.execPath, [scriptPath, manifestPath], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    })
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
+    expect(result.stdout).toContain('Support SLA: 48h')
   })
 })
