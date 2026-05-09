@@ -9,27 +9,42 @@ function shouldIncludeLoadQa(argv = process.argv, env = process.env) {
   return argv.includes('--include-load') || env.HOCKEY_PILOT_GATES_INCLUDE_LOAD === 'true'
 }
 
+function gateModeEnv({ includeBrowserQa = false, includeLoadQa = false } = {}) {
+  return [
+    'deterministic',
+    includeBrowserQa ? 'browser' : null,
+    includeLoadQa ? 'load' : null,
+  ].filter(Boolean).join(',')
+}
+
 function buildChecks({ includeBrowserQa = false, includeLoadQa = false } = {}) {
+  const commonEnv = {
+    HOCKEY_PILOT_GATE_MODES: gateModeEnv({ includeBrowserQa, includeLoadQa }),
+  }
   const checks = [
     {
       label: 'Pilot tooling and local readiness',
       command: 'npm',
       args: ['run', 'qa:hockey-pilot-readiness'],
+      env: commonEnv,
     },
     {
       label: 'Launch configuration',
       command: 'npm',
       args: ['run', 'qa:launch-config'],
+      env: commonEnv,
     },
     {
       label: 'Cron configuration',
       command: 'npm',
       args: ['run', 'qa:cron-config'],
+      env: commonEnv,
     },
     {
       label: 'Daily metrics backlog',
       command: 'npm',
       args: ['run', 'qa:daily-metrics-backlog'],
+      env: commonEnv,
     },
   ]
 
@@ -38,6 +53,7 @@ function buildChecks({ includeBrowserQa = false, includeLoadQa = false } = {}) {
       label: 'Hockey cockpit browser QA',
       command: 'npm',
       args: ['run', 'qa:hockey'],
+      env: commonEnv,
     })
   }
 
@@ -47,11 +63,13 @@ function buildChecks({ includeBrowserQa = false, includeLoadQa = false } = {}) {
         label: 'Hockey pilot load run',
         command: 'npm',
         args: ['run', 'load:k6:hockey-pilot'],
+        env: commonEnv,
       },
       {
         label: 'Daily metrics backlog after load',
         command: 'npm',
         args: ['run', 'qa:daily-metrics-backlog'],
+        env: commonEnv,
       }
     )
   }
@@ -64,6 +82,7 @@ function runCheck(check) {
   const result = spawnSync(check.command, check.args, {
     stdio: 'inherit',
     shell: process.platform === 'win32',
+    env: { ...process.env, ...(check.env || {}) },
   })
 
   if (result.status !== 0) {
@@ -107,6 +126,7 @@ if (require.main === module) {
 
 module.exports = {
   buildChecks,
+  gateModeEnv,
   shouldIncludeBrowserQa,
   shouldIncludeLoadQa,
 }

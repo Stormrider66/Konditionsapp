@@ -67,6 +67,10 @@ function decisionFromManifest(manifest) {
   return manifest?.result?.status === 'passed' ? 'GO' : 'FIX_AND_RERUN'
 }
 
+function formatList(value) {
+  return Array.isArray(value) && value.length > 0 ? value.join(', ') : '-'
+}
+
 function buildMarkdown({ manifest, summary, gateText, cwd }) {
   const rows = endpointRows(summary)
   const slowest = rows[0]
@@ -132,6 +136,7 @@ K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run qa:hocke
 - Failed step: ${result.failedStep || '-'}
 - k6 exit code: ${result.k6ExitCode ?? '-'}
 - Summary gate: ${gateStatus}
+- Gate modes: ${formatList(manifest.gateModes)}
 - Git branch: ${git.branch || '-'}
 - Git tree dirty: ${git.dirty === true ? 'yes' : git.dirty === false ? 'no' : '-'}
 - Business/team: ${manifest.businessSlug || manifest.businessId || '-'} / ${manifest.teamId || '-'}

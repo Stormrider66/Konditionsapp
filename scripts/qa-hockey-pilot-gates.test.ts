@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
-const { buildChecks, shouldIncludeBrowserQa, shouldIncludeLoadQa } = require(path.join(testDir, 'qa-hockey-pilot-gates.cjs'))
+const { buildChecks, gateModeEnv, shouldIncludeBrowserQa, shouldIncludeLoadQa } = require(path.join(testDir, 'qa-hockey-pilot-gates.cjs'))
 
 describe('qa-hockey-pilot-gates', () => {
   it('runs deterministic pilot gates by default', () => {
@@ -15,6 +15,11 @@ describe('qa-hockey-pilot-gates', () => {
       'run qa:cron-config',
       'run qa:daily-metrics-backlog',
     ])
+  })
+
+  it('passes gate mode metadata to child checks', () => {
+    const checks = buildChecks({ includeBrowserQa: true, includeLoadQa: true })
+    expect(checks.every((check: { env?: Record<string, string> }) => check.env?.HOCKEY_PILOT_GATE_MODES === 'deterministic,browser,load')).toBe(true)
   })
 
   it('can include browser cockpit QA explicitly', () => {
@@ -60,5 +65,11 @@ describe('qa-hockey-pilot-gates', () => {
     expect(shouldIncludeLoadQa(['node', 'script'], {})).toBe(false)
     expect(shouldIncludeLoadQa(['node', 'script', '--include-load'], {})).toBe(true)
     expect(shouldIncludeLoadQa(['node', 'script'], { HOCKEY_PILOT_GATES_INCLUDE_LOAD: 'true' })).toBe(true)
+  })
+
+  it('formats gate mode env consistently', () => {
+    expect(gateModeEnv()).toBe('deterministic')
+    expect(gateModeEnv({ includeBrowserQa: true })).toBe('deterministic,browser')
+    expect(gateModeEnv({ includeLoadQa: true })).toBe('deterministic,load')
   })
 })

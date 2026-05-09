@@ -102,6 +102,7 @@ function runRunner(args: string[], env: Record<string, string>) {
     'GIT_COMMIT_SHA',
     'GIT_BRANCH',
     'HOCKEY_PILOT_EVIDENCE_OUTPUT',
+    'HOCKEY_PILOT_GATE_MODES',
     'BASE_URL',
     'CLIENT_ID',
     'CLIENT_IDS',
@@ -141,6 +142,7 @@ describe('load-tests k6 runner', () => {
       K6_ENV_PATH: envPath,
       K6_BIN: fakeK6.scriptPath,
       K6_SUMMARY_EXPORT: summaryPath,
+      HOCKEY_PILOT_GATE_MODES: 'deterministic,load',
     })
 
     expect(result.status).toBe(0)
@@ -157,6 +159,7 @@ describe('load-tests k6 runner', () => {
     const manifest = JSON.parse(readFileSync(manifestPath(summaryPath), 'utf8'))
     expect(manifest.script).toBe('hockey-pilot')
     expect(manifest.result).toEqual({ status: 'passed', failedStep: null, exitCode: 0, k6ExitCode: 0 })
+    expect(manifest.gateModes).toEqual(['deterministic', 'load'])
     expect(manifest.git.commitSha).toMatch(/^[0-9a-f]{40}$/)
     expect(manifest.git.branch).toEqual(expect.any(String))
     expect(typeof manifest.git.dirty).toBe('boolean')

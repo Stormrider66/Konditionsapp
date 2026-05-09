@@ -89,6 +89,13 @@ function firstSetEnv(env, keys) {
   return null;
 }
 
+function listEnv(value) {
+  return (value || '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 function gitOutput(command) {
   try {
     return execSync(command, {
@@ -152,6 +159,7 @@ function hockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gate
     createdAt: new Date().toISOString(),
     script: scriptName,
     result,
+    gateModes: listEnv(env.HOCKEY_PILOT_GATE_MODES),
     git: gitSnapshot(env),
     target: env.BASE_URL || null,
     businessId: env.BUSINESS_ID || null,
