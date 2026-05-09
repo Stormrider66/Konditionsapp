@@ -79,6 +79,14 @@ function validateProductionLikeUrl(value) {
   }
 }
 
+function targetQuality(value) {
+  const error = validateProductionLikeUrl(value);
+  return {
+    productionLike: !error,
+    reason: error || 'https-production-like',
+  };
+}
+
 function main() {
   const env = { ...parseEnvFile(envPath), ...process.env };
   const errors = [];
@@ -129,6 +137,7 @@ function main() {
   const wavePlan = readWavePlan(env);
   const waveValidation = validateWavePlan(wavePlan);
   const peakVus = positiveInteger(env.HOCKEY_PILOT_PEAK_VUS, 75);
+  const target = targetQuality(env.BASE_URL);
 
   for (const error of waveValidation.errors) errors.push(error);
   for (const warning of waveValidation.warnings) warnings.push(warning);
@@ -186,6 +195,7 @@ function main() {
 
   console.log('Hockey pilot k6 env passed.');
   console.log(`Target: ${env.BASE_URL}`);
+  console.log(`Target production-like: ${target.productionLike ? 'yes' : 'no'} (${target.reason})`);
   console.log(`Coach auth: ${coachAuthMode}`);
   console.log(`Athlete traffic: ${athleteWeight > 0 ? 'enabled' : 'disabled'}`);
   if (athleteWeight > 0) console.log(`Athlete auth: ${athleteAuthMode}`);

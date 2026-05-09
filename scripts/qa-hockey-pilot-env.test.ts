@@ -91,6 +91,7 @@ describe('qa-hockey-pilot-env', () => {
 
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('Hockey pilot k6 env passed.')
+    expect(result.stdout).toContain('Target production-like: yes (https-production-like)')
     expect(result.stdout).toContain('Coach auth: bypass')
     expect(result.stdout).toContain('Athlete traffic: enabled')
     expect(result.stdout).toContain('Athlete auth: bypass')
@@ -248,5 +249,14 @@ describe('qa-hockey-pilot-env', () => {
 
     expect(result.status).toBe(0)
     expect(result.stderr).toContain('Set K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json so the run saves evidence for review.')
+  })
+
+  it('prints target quality for local debug runs', () => {
+    const result = runPreflight(baseEnvLines([
+      'BASE_URL=http://localhost:3000',
+    ]))
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('Target production-like: no (Pilot load gate target must use https for launch evidence.)')
   })
 })
