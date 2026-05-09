@@ -67,7 +67,7 @@ function decisionFromManifest(manifest) {
   if (manifest?.git?.dirty === true) return 'FIX_AND_RERUN'
   if (Number.parseInt(manifest?.support?.openCriticalIssues || '0', 10) > 0) return 'FIX_AND_RERUN'
   if (Number.parseInt(manifest?.support?.slaHours || '24', 10) > 24) return 'FIX_AND_RERUN'
-  if (manifest?.gateModes?.includes('load') && manifest?.targetInfo?.productionLike === false) return 'FIX_AND_RERUN'
+  if (manifest?.gateModes?.includes('load') && manifest?.targetInfo?.productionLike !== true) return 'FIX_AND_RERUN'
   return manifest?.result?.status === 'passed' ? 'GO' : 'FIX_AND_RERUN'
 }
 

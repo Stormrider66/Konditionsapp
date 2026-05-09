@@ -253,4 +253,21 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
     expect(result.stdout).toContain('Target production-like: no (local-target)')
   })
+
+  it('marks load evidence without target quality metadata as fix and rerun evidence', () => {
+    const dir = tempDir()
+    const { manifestPath } = writePilotArtifacts(dir)
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    delete manifest.targetInfo
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+
+    const result = spawnSync(process.execPath, [scriptPath, manifestPath], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    })
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
+    expect(result.stdout).toContain('Target production-like: -')
+  })
 })
