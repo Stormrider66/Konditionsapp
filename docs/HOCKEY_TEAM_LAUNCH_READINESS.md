@@ -182,6 +182,8 @@ Use `npm run qa:hockey-evidence-commands` immediately before production-like bro
 
 Set `HOCKEY_PILOT_EVIDENCE_MODE=debug` only when rehearsing locally. Debug output is useful for flow checks, but it is not launch evidence for inviting teams.
 
+The post-invite monitoring gate prints default pause thresholds for auth/invite errors, server errors, slow hockey requests, and critical support issues. Override them only when the pilot owner explicitly accepts the added risk.
+
 Add browser cockpit QA when a target app and QA credentials are ready:
 
 ```bash

@@ -97,6 +97,9 @@ HOCKEY_PILOT_SUPPORT_NOTES_URL="https://..." \
 HOCKEY_PILOT_INCIDENT_CHANNEL="#hockey-pilot" \
 HOCKEY_PILOT_FIRST_CHECK_MINUTES=30 \
 HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION=48 \
+HOCKEY_PILOT_MAX_AUTH_ERRORS_PER_HOUR=3 \
+HOCKEY_PILOT_MAX_SERVER_ERRORS_PER_HOUR=5 \
+HOCKEY_PILOT_MAX_SLOW_HOCKEY_REQUESTS_PER_HOUR=5 \
 npm run qa:hockey-pilot-monitoring
 ```
 
@@ -221,6 +224,13 @@ Run `npm run qa:hockey-pilot-monitoring` at the start of each invite window, the
 - run `npm run qa:cron-config` and confirm scheduled jobs are not noisy or failing
 - check hockey dashboard, test review, and SIMCA export complaints
 - record support notes, owner, SLA, open critical issues, and next-wave decision
+
+Default pause thresholds:
+
+- auth/invite errors: more than 3 per hour
+- server errors: more than 5 per hour
+- slow hockey requests: more than 5 per hour
+- critical support issues: more than 0
 
 ## Escalation
 
