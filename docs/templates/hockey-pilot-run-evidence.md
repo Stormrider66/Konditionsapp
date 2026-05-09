@@ -47,6 +47,7 @@ HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCK
 - Git tree dirty:
 - Release evidence status:
 - Business/team:
+- Target production-like:
 - Client ID count:
 - Pilot users: `___` users (`___` teams)
 - Traffic weights: read `___`, athlete `___`, dashboard `___`, export `___`
