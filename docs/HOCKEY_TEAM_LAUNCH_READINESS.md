@@ -177,7 +177,7 @@ HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCK
 npm run qa:hockey-pilot-tooling
 ```
 
-Use `npm run qa:hockey-evidence-commands` immediately before production-like browser/load evidence runs. Replace the warned placeholder values first, then tune the printed team count, peak users, load profile, traffic mix, support notes URL, invite mode, and post-invite monitoring command for the current invite wave. The generated target URL can come from `TRAINOMICS_QA_BASE_URL`, `VERCEL_DEPLOYMENT_URL`, or `BASE_URL`; the load command then sets `BASE_URL` to the same target used by browser QA.
+Use `npm run qa:hockey-evidence-commands` immediately before production-like browser/load evidence runs. Replace the warned placeholder values first, then tune the printed team count, peak users, load profile, traffic mix, support notes URL, invite mode, post-invite monitoring command, and incident playbook command for the current invite wave. The generated target URL can come from `TRAINOMICS_QA_BASE_URL`, `VERCEL_DEPLOYMENT_URL`, or `BASE_URL`; the load command then sets `BASE_URL` to the same target used by browser QA.
 
 Set `HOCKEY_PILOT_EVIDENCE_MODE=debug` only when rehearsing locally. Debug output is useful for flow checks, but it is not launch evidence for inviting teams.
 
