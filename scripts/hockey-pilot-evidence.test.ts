@@ -332,4 +332,44 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Target deployment commit: -')
     expect(result.stdout).toContain('Target deployment matches commit SHA: -')
   })
+
+  it('marks load evidence without invite metadata as fix and rerun evidence', () => {
+    const dir = tempDir()
+    const { manifestPath } = writePilotArtifacts(dir)
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    delete manifest.invite
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+
+    const result = spawnSync(process.execPath, [scriptPath, manifestPath], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    })
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
+    expect(result.stdout).toContain('Decision reason: invite mode metadata was missing')
+    expect(result.stdout).toContain('Invite mode: -')
+  })
+
+  it('marks manual invite evidence without paused email or owner as fix and rerun evidence', () => {
+    const dir = tempDir()
+    const { manifestPath } = writePilotArtifacts(dir)
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    manifest.invite = {
+      mode: 'manual',
+      emailsPaused: false,
+      manualOwner: null,
+    }
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+
+    const result = spawnSync(process.execPath, [scriptPath, manifestPath], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    })
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
+    expect(result.stdout).toContain('manual invite mode did not have emails paused')
+    expect(result.stdout).toContain('manual invite owner metadata was missing')
+  })
 })

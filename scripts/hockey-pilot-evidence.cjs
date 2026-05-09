@@ -91,6 +91,18 @@ function decisionReasons(manifest) {
         : 'target deployment commit metadata was missing'
     )
   }
+  if (manifest?.gateModes?.includes('load')) {
+    if (!manifest?.invite?.mode) reasons.push('invite mode metadata was missing')
+    if (manifest?.invite?.mode === 'manual' && manifest?.invite?.emailsPaused !== true) {
+      reasons.push('manual invite mode did not have emails paused')
+    }
+    if (manifest?.invite?.mode === 'manual' && !manifest?.invite?.manualOwner) {
+      reasons.push('manual invite owner metadata was missing')
+    }
+    if (manifest?.invite?.mode === 'live' && manifest?.invite?.emailsPaused === true) {
+      reasons.push('live invite mode still had emails paused')
+    }
+  }
   if (manifest?.result?.status !== 'passed') reasons.push('automated gate result was not passed')
   return reasons
 }
