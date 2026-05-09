@@ -77,6 +77,7 @@ function buildMarkdown({ manifest, summary, gateText, cwd }) {
   const artifacts = manifest.artifacts || {}
   const result = manifest.result || {}
   const weights = manifest.weights || {}
+  const wavePlan = manifest.wavePlan || {}
   const git = manifest.git || {}
   const createdAt = manifest.createdAt ? new Date(manifest.createdAt) : new Date()
   const gatePassed = /Hockey pilot summary gate passed\./.test(gateText)
@@ -105,10 +106,10 @@ function buildMarkdown({ manifest, summary, gateText, cwd }) {
 
 ## Pilot Shape
 
-- Teams invited: -
-- Expected athletes: -
-- Expected coach/staff users: -
-- Busy window tested: -
+- Teams invited: ${wavePlan.teamCount ?? '-'}
+- Expected athletes: ${wavePlan.estimatedAthletes ?? '-'}
+- Expected coach/staff users: ${wavePlan.estimatedStaff ?? '-'}
+- Busy window tested: ${wavePlan.expectedPeakUsers ? `${wavePlan.expectedPeakUsers} expected peak users` : '-'}
 - Test data notes: business \`${manifest.businessSlug || manifest.businessId || '-'}\`, team \`${manifest.teamId || '-'}\`
 
 ## Commands
@@ -141,6 +142,7 @@ K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run qa:hocke
 - Git tree dirty: ${git.dirty === true ? 'yes' : git.dirty === false ? 'no' : '-'}
 - Business/team: ${manifest.businessSlug || manifest.businessId || '-'} / ${manifest.teamId || '-'}
 - Client ID count: ${manifest.clientIdCount ?? '-'}
+- Pilot users: ${wavePlan.estimatedUsers ?? '-'} (${wavePlan.teamCount ?? '-'} teams)
 - Traffic weights: read ${weights.read || '-'}, athlete ${weights.athlete || '-'}, dashboard ${weights.dashboard || '-'}, export ${weights.export || '-'}
 
 ## Gate Results

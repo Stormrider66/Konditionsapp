@@ -120,6 +120,10 @@ function runRunner(args: string[], env: Record<string, string>) {
     'HOCKEY_PILOT_READ_WEIGHT',
     'HOCKEY_PILOT_DASHBOARD_WEIGHT',
     'HOCKEY_PILOT_EXPORT_WEIGHT',
+    'HOCKEY_PILOT_TEAM_COUNT',
+    'HOCKEY_PILOT_ATHLETES_PER_TEAM',
+    'HOCKEY_PILOT_STAFF_PER_TEAM',
+    'HOCKEY_PILOT_EXPECTED_PEAK_USERS',
   ]) {
     delete childEnv[key]
   }
@@ -169,6 +173,15 @@ describe('load-tests k6 runner', () => {
     expect(manifest.clientIdCount).toBe(1)
     expect(manifest.coachAuthMode).toBe('LOAD_TEST_BYPASS_USER_EMAIL')
     expect(manifest.athleteAuthMode).toBe('ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL')
+    expect(manifest.wavePlan).toMatchObject({
+      teamCount: 6,
+      athletesPerTeam: 30,
+      staffPerTeam: 5,
+      expectedPeakUsers: 75,
+      estimatedAthletes: 180,
+      estimatedStaff: 30,
+      estimatedUsers: 210,
+    })
     expect(manifest.weights).toEqual({
       read: '0.40',
       athlete: '0.25',
@@ -181,7 +194,43 @@ describe('load-tests k6 runner', () => {
     expect(manifest.artifacts.manifestJson).toBe(manifestPath(summaryPath))
     expect(manifest.artifacts.evidenceMarkdown).toBe(evidencePath(summaryPath))
     expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Decision: `GO`')
+    expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Teams invited: 6')
+    expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Expected athletes: 180')
     expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Evidence note:')
+  })
+
+  it('records explicit wave sizing in the hockey pilot manifest and evidence', () => {
+    const dir = tempDir()
+    const envPath = writeEnvFile(dir, baseEnvLines())
+    const summaryPath = path.join(dir, 'summary.json')
+    const fakeK6 = writeFakeK6(dir)
+
+    const result = runRunner(['hockey-pilot'], {
+      K6_ENV_PATH: envPath,
+      K6_BIN: fakeK6.scriptPath,
+      K6_SUMMARY_EXPORT: summaryPath,
+      HOCKEY_PILOT_TEAM_COUNT: '4',
+      HOCKEY_PILOT_ATHLETES_PER_TEAM: '22',
+      HOCKEY_PILOT_STAFF_PER_TEAM: '3',
+      HOCKEY_PILOT_EXPECTED_PEAK_USERS: '38',
+    })
+
+    expect(result.status).toBe(0)
+    const manifest = JSON.parse(readFileSync(manifestPath(summaryPath), 'utf8'))
+    expect(manifest.wavePlan).toMatchObject({
+      teamCount: 4,
+      athletesPerTeam: 22,
+      staffPerTeam: 3,
+      expectedPeakUsers: 38,
+      estimatedAthletes: 88,
+      estimatedStaff: 12,
+      estimatedUsers: 100,
+    })
+    const evidence = readFileSync(evidencePath(summaryPath), 'utf8')
+    expect(evidence).toContain('Teams invited: 4')
+    expect(evidence).toContain('Expected athletes: 88')
+    expect(evidence).toContain('Expected coach/staff users: 12')
+    expect(evidence).toContain('Busy window tested: 38 expected peak users')
   })
 
   it('uses explicit git metadata overrides when provided', () => {

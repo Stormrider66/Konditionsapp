@@ -9,6 +9,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { readPlan: readHockeyPilotWavePlan } = require('../../scripts/qa-hockey-pilot-wave-plan.cjs');
 
 function quoteArg(value) {
   return value.includes(' ') ? `"${value}"` : value;
@@ -155,6 +156,7 @@ function writeHockeyPilotEvidence({ manifestPath, summaryExport, env }) {
 }
 
 function hockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gateOutput, env, result }) {
+  const wavePlan = readHockeyPilotWavePlan(env);
   return {
     createdAt: new Date().toISOString(),
     script: scriptName,
@@ -171,6 +173,7 @@ function hockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gate
       .filter(Boolean).length,
     coachAuthMode: firstSetEnv(env, ['AUTH_COOKIE', 'BEARER_TOKEN', 'LOAD_TEST_BYPASS_USER_EMAIL']) || 'missing',
     athleteAuthMode: firstSetEnv(env, ['ATHLETE_AUTH_COOKIE', 'ATHLETE_BEARER_TOKEN', 'ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL']) || 'missing',
+    wavePlan,
     weights: {
       read: env.HOCKEY_PILOT_READ_WEIGHT || '0.40',
       athlete: env.HOCKEY_PILOT_ATHLETE_WEIGHT || '0.25',

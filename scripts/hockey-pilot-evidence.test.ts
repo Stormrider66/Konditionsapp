@@ -70,6 +70,21 @@ function writePilotArtifacts(dir: string, status: 'passed' | 'failed' = 'passed'
         businessSlug: 'skelleftea-aik',
         teamId: 'team-1',
         clientIdCount: 12,
+        wavePlan: {
+          teamCount: 4,
+          athletesPerTeam: 25,
+          staffPerTeam: 3,
+          expectedPeakUsers: 45,
+          estimatedAthletes: 100,
+          estimatedStaff: 12,
+          estimatedUsers: 112,
+          waves: [
+            'Internal dry run',
+            'Team 1',
+            'Teams 2-3 after 48 quiet hours',
+            'Team 4 after rerunning the load gate',
+          ],
+        },
         weights: {
           read: '0.40',
           athlete: '0.25',
@@ -107,6 +122,11 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Evidence note:')
     expect(result.stdout).toContain('Git branch: main')
     expect(result.stdout).toContain('Gate modes: deterministic, browser, load')
+    expect(result.stdout).toContain('Teams invited: 4')
+    expect(result.stdout).toContain('Expected athletes: 100')
+    expect(result.stdout).toContain('Expected coach/staff users: 12')
+    expect(result.stdout).toContain('Busy window tested: 45 expected peak users')
+    expect(result.stdout).toContain('Pilot users: 112 (4 teams)')
     expect(result.stdout).toContain('Git tree dirty: no')
     expect(result.stdout).toContain('Overall p95: 1741ms')
     expect(result.stdout).toContain('Slowest endpoint: hockey-simca-export (2752ms p95)')

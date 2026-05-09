@@ -23,6 +23,7 @@ describe('qa-hockey-pilot-wave-plan', () => {
       'Team 1',
       'Team 2 after 48 quiet hours',
     ])
+    expect(buildWavePlan(4)).toContain('Team 4 after rerunning the load gate')
   })
 
   it('reads pilot sizing from environment variables', () => {

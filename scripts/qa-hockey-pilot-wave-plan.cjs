@@ -33,7 +33,7 @@ function buildWavePlan(teamCount) {
   }
 
   if (teamCount >= 4) {
-    waves.push(`Teams 4-${teamCount} after rerunning the load gate`)
+    waves.push(teamCount === 4 ? 'Team 4 after rerunning the load gate' : `Teams 4-${teamCount} after rerunning the load gate`)
   }
 
   return waves
