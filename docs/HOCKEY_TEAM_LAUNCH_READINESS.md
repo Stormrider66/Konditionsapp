@@ -193,6 +193,8 @@ When the hockey pilot run finishes, the runner also saves `<summary>.analyzer.tx
 
 Set `HOCKEY_PILOT_TARGET_COMMIT_SHA` to the Vercel deployment commit when running invite evidence. The manifest records whether that deployment commit matches the manifest commit, and a mismatch marks the generated decision as `FIX_AND_RERUN`.
 
+Do not leave `HOCKEY_PILOT_TARGET_COMMIT_SHA` as `vercel-deployment-commit-sha`; the browser and load preflights reject that placeholder. Copy the real commit from the Vercel deployment details page or inspect the deployment with `vercel inspect <deployment-url>`.
+
 Only manifests that include `targetInfo.productionLike: true` count as invite evidence. Older manifests without target metadata, localhost runs, and plain HTTP runs should be treated as `FIX_AND_RERUN`.
 
 The generated evidence note includes a `Decision reason` line. For `FIX_AND_RERUN`, use that line as the first triage clue before digging into logs.

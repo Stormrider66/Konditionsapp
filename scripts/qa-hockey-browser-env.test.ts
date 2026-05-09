@@ -159,6 +159,21 @@ describe('qa-hockey-browser-env', () => {
     expect(result.targetDeploymentMatches).toBeNull()
   })
 
+  it('rejects the placeholder target deployment commit for browser evidence', () => {
+    const result = validateBrowserQaConfig({
+      baseUrl: 'https://pilot.example.com',
+      businessSlug: 'pilot-club',
+      email: 'coach@example.com',
+      password: 'secret',
+      strictTarget: true,
+      currentCommitSha: 'abc123pilotsha',
+      targetDeploymentCommit: 'vercel-deployment-commit-sha',
+    })
+
+    expect(result.errors).toContain('Replace HOCKEY_PILOT_TARGET_COMMIT_SHA with the real Vercel deployment commit SHA.')
+    expect(result.targetDeploymentMatches).toBe(false)
+  })
+
   it('fails strict browser evidence when the target deployment commit does not match', () => {
     const result = validateBrowserQaConfig({
       baseUrl: 'https://pilot.example.com',

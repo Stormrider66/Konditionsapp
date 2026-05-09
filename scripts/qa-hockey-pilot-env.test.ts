@@ -239,6 +239,20 @@ describe('qa-hockey-pilot-env', () => {
     expect(result.stderr).toContain('HOCKEY_PILOT_TARGET_COMMIT_SHA is required for load invite evidence.')
   })
 
+  it('rejects the placeholder target deployment commit for load evidence', () => {
+    const result = runPreflight(
+      baseEnvLines(),
+      {
+        GIT_COMMIT_SHA: 'abc123pilotsha',
+        HOCKEY_PILOT_TARGET_COMMIT_SHA: 'vercel-deployment-commit-sha',
+        HOCKEY_PILOT_GATE_MODES: 'deterministic,load',
+      }
+    )
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('Replace HOCKEY_PILOT_TARGET_COMMIT_SHA with the real Vercel deployment commit SHA.')
+  })
+
   it('requires production-like https target when running as the load gate', () => {
     const localResult = runPreflight(
       baseEnvLines([

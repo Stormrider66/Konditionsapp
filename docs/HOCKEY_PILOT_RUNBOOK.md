@@ -63,6 +63,12 @@ For invite evidence, the load target must also be a production-like `https://` U
 
 Before using browser or load results for an invite decision, confirm the target deployment is the same commit SHA recorded in the manifest or preflight output. Set `HOCKEY_PILOT_TARGET_COMMIT_SHA` when running invite evidence so the browser preflight, load manifest, and evidence note record whether the deployment matches. A newer Vercel build means the evidence should be rerun against the new deployment.
 
+Find the real deployment commit from the Vercel deployment details page before replacing `vercel-deployment-commit-sha`. You can also inspect the deployment with the Vercel CLI:
+
+```bash
+vercel inspect https://your-deployment-url.vercel.app
+```
+
 7. Save the generated evidence:
    - summary JSON
    - analyzer text

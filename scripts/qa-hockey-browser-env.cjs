@@ -72,6 +72,10 @@ function commitMatches(left, right) {
     normalizedRight.startsWith(normalizedLeft)
 }
 
+function isPlaceholderCommit(value) {
+  return String(value || '').trim().toLowerCase() === 'vercel-deployment-commit-sha'
+}
+
 function validateBrowserQaConfig(config) {
   const errors = []
   const warnings = []
@@ -118,6 +122,10 @@ function validateBrowserQaConfig(config) {
 
   if (config.strictTarget && !config.targetDeploymentCommit) {
     errors.push('HOCKEY_PILOT_TARGET_COMMIT_SHA is required for browser invite evidence.')
+  }
+
+  if (config.strictTarget && isPlaceholderCommit(config.targetDeploymentCommit)) {
+    errors.push('Replace HOCKEY_PILOT_TARGET_COMMIT_SHA with the real Vercel deployment commit SHA.')
   }
 
   if (config.strictTarget && targetDeploymentMatches === false) {
