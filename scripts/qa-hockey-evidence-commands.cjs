@@ -69,7 +69,7 @@ function todayIsoDate(now = new Date()) {
 
 function buildCommands(env = process.env) {
   const currentCommit = value(env, ['GIT_COMMIT_SHA'], gitOutput('git rev-parse HEAD') || 'current-git-commit-sha')
-  const deploymentUrl = value(env, ['TRAINOMICS_QA_BASE_URL', 'VERCEL_DEPLOYMENT_URL'], 'https://pilot.example.com')
+  const deploymentUrl = value(env, ['TRAINOMICS_QA_BASE_URL', 'VERCEL_DEPLOYMENT_URL', 'BASE_URL'], 'https://pilot.example.com')
   const targetCommitProvided = hasNonEmptyEnv(env, 'HOCKEY_PILOT_TARGET_COMMIT_SHA')
   const targetCommit = targetCommitProvided ? env.HOCKEY_PILOT_TARGET_COMMIT_SHA.trim() : currentCommit
   const businessSlug = value(env, ['TRAINOMICS_QA_BUSINESS_SLUG', 'E2E_BUSINESS_SLUG'], 'skelleftea-aik')

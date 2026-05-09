@@ -84,6 +84,18 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_TARGET_COMMIT_SHA=abc123')
   })
 
+  it('uses BASE_URL as a target URL fallback for load-focused env', () => {
+    const commands = buildCommands({
+      GIT_COMMIT_SHA: 'abc123pilotsha',
+      BASE_URL: 'https://trainomics-load-pilot.vercel.app',
+      HOCKEY_PILOT_TARGET_COMMIT_SHA: 'abc123',
+    })
+
+    expect(commands.deploymentUrl).toBe('https://trainomics-load-pilot.vercel.app')
+    expect(commands.browserCommand).toContain('TRAINOMICS_QA_BASE_URL=https://trainomics-load-pilot.vercel.app')
+    expect(commands.loadCommand).toContain('BASE_URL=https://trainomics-load-pilot.vercel.app')
+  })
+
   it('uses today in the default evidence export path', () => {
     const commands = buildCommands({
       GIT_COMMIT_SHA: 'abc123pilotsha',
