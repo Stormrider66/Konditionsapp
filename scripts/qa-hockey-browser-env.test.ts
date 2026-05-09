@@ -61,6 +61,8 @@ describe('qa-hockey-browser-env', () => {
 
     expect(result.errors).toEqual([])
     expect(result.warnings).toEqual([])
+    expect(result.targetProductionLike).toBe(true)
+    expect(result.targetReason).toBe('https-production-like')
   })
 
   it('fails missing credentials clearly', () => {
@@ -87,6 +89,12 @@ describe('qa-hockey-browser-env', () => {
     }).warnings).toEqual([
       'Browser QA target is local; use a production-like URL before inviting external teams.',
     ])
+    expect(validateBrowserQaConfig({
+      baseUrl: 'http://localhost:3000',
+      businessSlug: 'pilot-club',
+      email: 'coach@example.com',
+      password: 'secret',
+    }).targetReason).toBe('local-target')
 
     expect(validateBrowserQaConfig({
       baseUrl: 'http://pilot.example.com',
@@ -96,6 +104,12 @@ describe('qa-hockey-browser-env', () => {
     }).warnings).toEqual([
       'Browser QA target is not https; production-like pilot checks should use https.',
     ])
+    expect(validateBrowserQaConfig({
+      baseUrl: 'http://pilot.example.com',
+      businessSlug: 'pilot-club',
+      email: 'coach@example.com',
+      password: 'secret',
+    }).targetReason).toBe('non-https-target')
   })
 
   it('fails local and non-https targets when running the browser pilot gate', () => {

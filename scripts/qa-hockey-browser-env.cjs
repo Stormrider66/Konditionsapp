@@ -50,6 +50,8 @@ function browserQaConfig(env = process.env) {
 function validateBrowserQaConfig(config) {
   const errors = []
   const warnings = []
+  let targetProductionLike = false
+  let targetReason = 'missing'
 
   if (!config.baseUrl) {
     errors.push('TRAINOMICS_QA_BASE_URL or E2E_BASE_URL is required for browser QA.')
@@ -60,6 +62,8 @@ function validateBrowserQaConfig(config) {
         errors.push('Browser QA base URL must use http or https.')
       }
       const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1'
+      targetProductionLike = url.protocol === 'https:' && !isLocal
+      targetReason = targetProductionLike ? 'https-production-like' : isLocal ? 'local-target' : 'non-https-target'
       if (isLocal) {
         const message = 'Browser QA target is local; use a production-like URL before inviting external teams.'
         if (config.strictTarget) errors.push(message)
@@ -71,6 +75,7 @@ function validateBrowserQaConfig(config) {
         else warnings.push(message)
       }
     } catch {
+      targetReason = 'invalid-url'
       errors.push('Browser QA base URL is not a valid URL.')
     }
   }
@@ -85,13 +90,14 @@ function validateBrowserQaConfig(config) {
     errors.push('TRAINOMICS_QA_PASSWORD or E2E_COACH_PASSWORD is required for browser QA.')
   }
 
-  return { errors, warnings }
+  return { errors, warnings, targetProductionLike, targetReason }
 }
 
 function main() {
   const env = { ...loadLocalEnv(), ...process.env }
   const config = browserQaConfig(env)
-  const { errors, warnings } = validateBrowserQaConfig(config)
+  const validation = validateBrowserQaConfig(config)
+  const { errors, warnings } = validation
 
   if (errors.length > 0) {
     console.error('Hockey browser QA env failed:')
@@ -106,6 +112,7 @@ function main() {
   console.log(`Business slug: ${config.businessSlug}`)
   console.log(`Coach login: ${config.email}`)
   console.log(`Strict target: ${config.strictTarget ? 'yes' : 'no'}`)
+  console.log(`Target production-like: ${validation.targetProductionLike ? 'yes' : 'no'} (${validation.targetReason})`)
   for (const warning of warnings) console.warn(`Warning: ${warning}`)
 }
 
