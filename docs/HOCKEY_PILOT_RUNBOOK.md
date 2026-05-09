@@ -134,6 +134,7 @@ Continue to the next wave only when:
 - the hockey pilot load summary gate passes
 - `npm run qa:daily-metrics-backlog` passes after the load run
 - the manifest says `result.status` is `passed`
+- invite mode and email pause state match the planned onboarding flow
 - a support owner is named for the invite window
 - support SLA is 24h or faster
 - no critical support issues remain open
@@ -145,6 +146,7 @@ Continue to the next wave only when:
    - Regenerate a pre-filled copy with `npm run qa:hockey-pilot-evidence -- <manifest.json> <output.md>` if needed.
    - Confirm `Target production-like` is `yes`; older manifests without target metadata must be rerun.
    - Confirm the target deployment still matches the manifest commit SHA.
+   - Confirm invite mode, email pause state, and manual invite owner match the plan.
 2. Attach or link the generated artifacts.
 3. Record the decision:
    - `GO`

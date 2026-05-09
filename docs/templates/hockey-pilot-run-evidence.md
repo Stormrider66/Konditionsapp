@@ -50,6 +50,9 @@ HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCK
 - Target deployment matches commit SHA: `yes/no`
 - Business/team:
 - Target production-like: `yes/no` (`reason`)
+- Invite mode:
+- Emails paused:
+- Manual invite owner:
 - Client ID count:
 - Pilot users: `___` users (`___` teams)
 - Traffic weights: read `___`, athlete `___`, dashboard `___`, export `___`

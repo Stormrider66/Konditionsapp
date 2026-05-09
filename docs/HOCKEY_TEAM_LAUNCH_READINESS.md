@@ -289,6 +289,7 @@ Pass these before inviting the first external teams:
 - run manifest (`<summary>.manifest.json`)
 - commit SHA
 - deployment commit checked against the manifest commit SHA
+- invite mode, email pause state, and manual invite owner
 - environment: local/staging/production
 - VU knobs used
 - seeded/imported data size
