@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 const { readPlan: readWavePlan, validatePlan: validateWavePlan } = require('./qa-hockey-pilot-wave-plan.cjs');
 
 const envPath = process.env.K6_ENV_PATH
@@ -87,6 +88,32 @@ function targetQuality(value) {
   };
 }
 
+function gitOutput(command) {
+  try {
+    return execSync(command, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      shell: true,
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+function currentCommitSha(env) {
+  return env.GIT_COMMIT_SHA || gitOutput('git rev-parse HEAD');
+}
+
+function commitMatches(left, right) {
+  if (!left || !right) return null;
+  const normalizedLeft = String(left).trim().toLowerCase();
+  const normalizedRight = String(right).trim().toLowerCase();
+  if (!normalizedLeft || !normalizedRight) return null;
+  return normalizedLeft === normalizedRight ||
+    normalizedLeft.startsWith(normalizedRight) ||
+    normalizedRight.startsWith(normalizedLeft);
+}
+
 function main() {
   const env = { ...parseEnvFile(envPath), ...process.env };
   const errors = [];
@@ -138,9 +165,16 @@ function main() {
   const waveValidation = validateWavePlan(wavePlan);
   const peakVus = positiveInteger(env.HOCKEY_PILOT_PEAK_VUS, 75);
   const target = targetQuality(env.BASE_URL);
+  const commitSha = currentCommitSha(env);
+  const targetDeploymentCommit = env.HOCKEY_PILOT_TARGET_COMMIT_SHA || null;
+  const targetDeploymentMatches = commitMatches(targetDeploymentCommit, commitSha);
 
   for (const error of waveValidation.errors) errors.push(error);
   for (const warning of waveValidation.warnings) warnings.push(warning);
+
+  if (requiresEvidenceExport && targetDeploymentMatches === false) {
+    errors.push('HOCKEY_PILOT_TARGET_COMMIT_SHA does not match the current manifest commit.');
+  }
 
   if (Number.isFinite(wavePlan.expectedPeakUsers) && peakVus < wavePlan.expectedPeakUsers) {
     errors.push(`HOCKEY_PILOT_PEAK_VUS is ${peakVus}, but HOCKEY_PILOT_EXPECTED_PEAK_USERS is ${wavePlan.expectedPeakUsers}. Raise peak VUs or lower the expected peak before using this as pilot evidence.`);
@@ -196,6 +230,8 @@ function main() {
   console.log('Hockey pilot k6 env passed.');
   console.log(`Target: ${env.BASE_URL}`);
   console.log(`Target production-like: ${target.productionLike ? 'yes' : 'no'} (${target.reason})`);
+  console.log(`Target deployment commit: ${targetDeploymentCommit || '-'}`);
+  console.log(`Target deployment matches commit SHA: ${targetDeploymentMatches === true ? 'yes' : targetDeploymentMatches === false ? 'no' : '-'}`);
   console.log(`Coach auth: ${coachAuthMode}`);
   console.log(`Athlete traffic: ${athleteWeight > 0 ? 'enabled' : 'disabled'}`);
   if (athleteWeight > 0) console.log(`Athlete auth: ${athleteAuthMode}`);

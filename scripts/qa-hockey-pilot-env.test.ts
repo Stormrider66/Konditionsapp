@@ -45,6 +45,7 @@ function runPreflight(lines: string[], env: Record<string, string> = {}) {
   const childEnv = { ...process.env }
   for (const key of [
     'BASE_URL',
+    'GIT_COMMIT_SHA',
     'CLIENT_ID',
     'CLIENT_IDS',
     'BUSINESS_ID',
@@ -66,6 +67,7 @@ function runPreflight(lines: string[], env: Record<string, string> = {}) {
     'HOCKEY_PILOT_EXPECTED_PEAK_USERS',
     'HOCKEY_PILOT_PEAK_VUS',
     'HOCKEY_PILOT_GATE_MODES',
+    'HOCKEY_PILOT_TARGET_COMMIT_SHA',
     'HOCKEY_PILOT_SUPPORT_OWNER',
     'HOCKEY_PILOT_SUPPORT_SLA_HOURS',
     'HOCKEY_PILOT_OPEN_CRITICAL_ISSUES',
@@ -92,6 +94,8 @@ describe('qa-hockey-pilot-env', () => {
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('Hockey pilot k6 env passed.')
     expect(result.stdout).toContain('Target production-like: yes (https-production-like)')
+    expect(result.stdout).toContain('Target deployment commit: -')
+    expect(result.stdout).toContain('Target deployment matches commit SHA: -')
     expect(result.stdout).toContain('Coach auth: bypass')
     expect(result.stdout).toContain('Athlete traffic: enabled')
     expect(result.stdout).toContain('Athlete auth: bypass')
@@ -240,6 +244,35 @@ describe('qa-hockey-pilot-env', () => {
     )
     expect(plainHttpResult.status).toBe(1)
     expect(plainHttpResult.stderr).toContain('Pilot load gate target must use https for launch evidence.')
+  })
+
+  it('fails load gate evidence when the target deployment commit does not match', () => {
+    const result = runPreflight(
+      baseEnvLines(),
+      {
+        GIT_COMMIT_SHA: 'abc123pilotsha',
+        HOCKEY_PILOT_TARGET_COMMIT_SHA: 'different-sha',
+        HOCKEY_PILOT_GATE_MODES: 'deterministic,load',
+      }
+    )
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('HOCKEY_PILOT_TARGET_COMMIT_SHA does not match the current manifest commit.')
+  })
+
+  it('prints matching target deployment commit evidence', () => {
+    const result = runPreflight(
+      baseEnvLines(),
+      {
+        GIT_COMMIT_SHA: 'abc123pilotsha',
+        HOCKEY_PILOT_TARGET_COMMIT_SHA: 'abc123',
+        HOCKEY_PILOT_GATE_MODES: 'deterministic,load',
+      }
+    )
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('Target deployment commit: abc123')
+    expect(result.stdout).toContain('Target deployment matches commit SHA: yes')
   })
 
   it('only warns about missing summary export outside the load gate', () => {
