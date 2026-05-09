@@ -156,6 +156,7 @@ Run:
 
 ```bash
 npm run qa:hockey-pilot-gates
+npm run qa:hockey-pilot-wave-plan
 npm run qa:hockey-pilot-env
 K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json npm run qa:hockey-pilot-gates -- --include-load
 npm run qa:hockey-pilot-tooling
@@ -195,6 +196,7 @@ Pass these before inviting the first external teams:
 - `npm run qa:hockey-pilot-gates` passes locally
 - `npm run qa:hockey-pilot-readiness` passes locally
 - `npm run qa:launch-config` passes
+- `npm run qa:hockey-pilot-wave-plan` passes with the intended team/staff/athlete counts
 - `npm run qa:hockey` passes against the target environment
 - `npm run qa:hockey-pilot-env` passes before running k6
 - `npm run qa:cron-config` passes
@@ -226,15 +228,20 @@ Pass these before inviting the first external teams:
 
 1. Verify invite/onboarding with real coach and athlete accounts while `EMAILS_PAUSED` is in the intended launch state.
 2. Run `npm run qa:launch-config`.
-3. Run `npm run qa:hockey` against production-like data.
-4. Run `npm run load:k6:hockey-pilot`, save the summary JSON, and confirm the automatic summary gate passes.
-5. Manually spot-check tenant isolation:
+3. Run `npm run qa:hockey-pilot-wave-plan` with the intended pilot size:
+   - `HOCKEY_PILOT_TEAM_COUNT`
+   - `HOCKEY_PILOT_ATHLETES_PER_TEAM`
+   - `HOCKEY_PILOT_STAFF_PER_TEAM`
+   - `HOCKEY_PILOT_EXPECTED_PEAK_USERS`
+4. Run `npm run qa:hockey` against production-like data.
+5. Run `npm run load:k6:hockey-pilot`, save the summary JSON, and confirm the automatic summary gate passes.
+6. Manually spot-check tenant isolation:
    - coach from Team A cannot access Team B-only athletes unless business-level permissions allow it
    - athlete cannot open another athlete's hockey summary
    - assistant/team-scoped staff cannot export another team's CSV
    - physical trainer/assistant coach can access assigned-team athletes but not every athlete in the club
    - team-scoped staff invites require valid teams from the pilot business
-6. Confirm expensive surfaces degrade safely:
+7. Confirm expensive surfaces degrade safely:
    - repeated CSV export does not block dashboards
    - daily metrics writes do not build a visible deferred-processing backlog
    - AI/video/report features have practical rate limits during pilot week

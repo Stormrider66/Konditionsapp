@@ -19,6 +19,7 @@ describe('qa-hockey-pilot-gates', () => {
     expect(buildChecks().map((check: { args: string[] }) => check.args.join(' '))).toEqual([
       'run qa:hockey-pilot-readiness',
       'run qa:launch-config',
+      'run qa:hockey-pilot-wave-plan',
       'run qa:cron-config',
       'run qa:daily-metrics-backlog',
     ])
@@ -33,6 +34,7 @@ describe('qa-hockey-pilot-gates', () => {
     expect(buildChecks({ includeBrowserQa: true }).map((check: { args: string[] }) => check.args.join(' '))).toEqual([
       'run qa:hockey-pilot-readiness',
       'run qa:launch-config',
+      'run qa:hockey-pilot-wave-plan',
       'run qa:hockey',
       'run qa:cron-config',
       'run qa:daily-metrics-backlog',
@@ -43,6 +45,7 @@ describe('qa-hockey-pilot-gates', () => {
     expect(buildChecks({ includeLoadQa: true }).map((check: { args: string[] }) => check.args.join(' '))).toEqual([
       'run qa:hockey-pilot-readiness',
       'run qa:launch-config',
+      'run qa:hockey-pilot-wave-plan',
       'run qa:cron-config',
       'run qa:daily-metrics-backlog',
       'run load:k6:hockey-pilot',
@@ -54,6 +57,7 @@ describe('qa-hockey-pilot-gates', () => {
     expect(buildChecks({ includeBrowserQa: true, includeLoadQa: true }).map((check: { args: string[] }) => check.args.join(' '))).toEqual([
       'run qa:hockey-pilot-readiness',
       'run qa:launch-config',
+      'run qa:hockey-pilot-wave-plan',
       'run qa:hockey',
       'run qa:cron-config',
       'run qa:daily-metrics-backlog',
@@ -89,7 +93,7 @@ describe('qa-hockey-pilot-gates', () => {
     expect(result).toMatchObject({
       ok: false,
       status: 42,
-      failedCheck: checks[4],
+      failedCheck: checks[5],
     })
     expect(formatCommand(result.failedCheck)).toBe('npm run load:k6:hockey-pilot')
   })

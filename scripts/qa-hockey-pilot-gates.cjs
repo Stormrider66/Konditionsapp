@@ -35,6 +35,12 @@ function buildChecks({ includeBrowserQa = false, includeLoadQa = false } = {}) {
       env: commonEnv,
     },
     {
+      label: 'Pilot invite wave plan',
+      command: 'npm',
+      args: ['run', 'qa:hockey-pilot-wave-plan'],
+      env: commonEnv,
+    },
+    {
       label: 'Cron configuration',
       command: 'npm',
       args: ['run', 'qa:cron-config'],
@@ -49,7 +55,7 @@ function buildChecks({ includeBrowserQa = false, includeLoadQa = false } = {}) {
   ]
 
   if (includeBrowserQa) {
-    checks.splice(2, 0, {
+    checks.splice(3, 0, {
       label: 'Hockey cockpit browser QA',
       command: 'npm',
       args: ['run', 'qa:hockey'],

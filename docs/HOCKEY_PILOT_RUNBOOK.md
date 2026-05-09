@@ -20,25 +20,31 @@ Use this during the first 3-6 team hockey pilot. The goal is simple: invite grad
    - `live`: emails are enabled and verified
    - `manual`: emails are paused and one owner handles follow-up
 
-3. Run local tooling checks:
+3. Confirm the invite wave size:
+
+```bash
+HOCKEY_PILOT_TEAM_COUNT=6 HOCKEY_PILOT_ATHLETES_PER_TEAM=30 HOCKEY_PILOT_STAFF_PER_TEAM=5 npm run qa:hockey-pilot-wave-plan
+```
+
+4. Run local tooling checks:
 
 ```bash
 npm run qa:hockey-pilot-gates
 ```
 
-4. Run target-environment browser checks:
+5. Run target-environment browser checks:
 
 ```bash
 npm run qa:hockey-pilot-gates -- --include-browser
 ```
 
-5. Run the hockey pilot load test with evidence export:
+6. Run the hockey pilot load test with evidence export:
 
 ```bash
 K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load
 ```
 
-6. Save the generated evidence:
+7. Save the generated evidence:
    - summary JSON
    - analyzer text
    - gate text
@@ -90,6 +96,7 @@ Continue to the next wave only when:
 
 - `npm run qa:hockey-pilot-readiness` passes
 - `npm run qa:launch-config` passes
+- `npm run qa:hockey-pilot-wave-plan` passes
 - `npm run qa:hockey` passes against the target environment
 - `npm run qa:cron-config` passes
 - `npm run qa:hockey-pilot-gates` passes
