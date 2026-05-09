@@ -42,7 +42,7 @@ npm run qa:hockey-pilot-gates -- --include-browser
 6. Run the hockey pilot load test with evidence export:
 
 ```bash
-K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load
+HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load
 ```
 
 7. Save the generated evidence:
@@ -119,7 +119,11 @@ Continue to the next wave only when:
    - `GO`
    - `PAUSE`
    - `FIX_AND_RERUN`
-4. If paused, write the specific owner and next action before inviting more teams.
+4. Record support status:
+   - support owner
+   - support notes link
+   - open critical support issue count
+5. If paused, write the specific owner and next action before inviting more teams.
 
 ## Escalation
 

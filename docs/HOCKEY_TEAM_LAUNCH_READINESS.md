@@ -138,6 +138,9 @@ HOCKEY_PILOT_EXPORT_WEIGHT=0.15
 HOCKEY_EXPORT_PRESET=aerobic_profile
 ATHLETE_BEARER_TOKEN=...
 ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL=athlete@example.com
+HOCKEY_PILOT_SUPPORT_OWNER="Support Lead"
+HOCKEY_PILOT_SUPPORT_NOTES_URL="https://..."
+HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0
 HOCKEY_PILOT_REQUIRED_ENDPOINTS= # optional comma-separated override; use only for narrow debug runs
 ```
 
@@ -154,6 +157,8 @@ Otherwise the script fails fast when athlete traffic is enabled without athlete 
 At least one traffic weight must be greater than `0`; all-zero weights are treated as a configuration error.
 
 `HOCKEY_PILOT_PEAK_VUS` must be at least `HOCKEY_PILOT_EXPECTED_PEAK_USERS` before the run can count as pilot evidence.
+
+Set `HOCKEY_PILOT_OPEN_CRITICAL_ISSUES` before evidence runs. Any value above `0` marks the generated evidence decision as `FIX_AND_RERUN` even when the load gate passes.
 
 Run:
 
