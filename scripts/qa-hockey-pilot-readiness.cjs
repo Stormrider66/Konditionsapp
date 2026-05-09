@@ -28,9 +28,8 @@ for (const check of checks) {
 
 console.log('\nHockey pilot local readiness checks passed.');
 console.log('');
-console.log('Before inviting external teams, also run these against the target environment:');
-console.log('- npm run qa:launch-config');
-console.log('- npm run qa:hockey');
-console.log('- K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run load:k6:hockey-pilot');
+console.log('Before inviting external teams, run the combined gate command against the target environment:');
+console.log('- npm run qa:hockey-pilot-gates -- --include-browser');
+console.log('- K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load');
 console.log('');
-console.log('Save the generated summary JSON, analyzer text, gate text, manifest JSON, and a completed docs/templates/hockey-pilot-run-evidence.md copy.');
+console.log('The load runner saves the summary JSON, analyzer text, gate text, manifest JSON, and evidence note automatically.');

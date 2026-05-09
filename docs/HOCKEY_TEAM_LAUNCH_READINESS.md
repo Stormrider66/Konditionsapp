@@ -157,8 +157,7 @@ Run:
 ```bash
 npm run qa:hockey-pilot-gates
 npm run qa:hockey-pilot-env
-K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json npm run load:k6:hockey-pilot
-npm run qa:daily-metrics-backlog
+K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json npm run qa:hockey-pilot-gates -- --include-load
 npm run qa:hockey-pilot-tooling
 ```
 

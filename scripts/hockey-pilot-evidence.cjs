@@ -114,7 +114,7 @@ npm run qa:hockey-pilot-readiness
 npm run qa:hockey-pilot-gates
 npm run qa:launch-config
 npm run qa:hockey
-K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run load:k6:hockey-pilot
+K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run qa:hockey-pilot-gates -- --include-load
 \`\`\`
 
 ## Artifacts

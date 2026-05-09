@@ -5,7 +5,11 @@ function shouldIncludeBrowserQa(argv = process.argv, env = process.env) {
   return argv.includes('--include-browser') || env.HOCKEY_PILOT_GATES_INCLUDE_BROWSER === 'true'
 }
 
-function buildChecks({ includeBrowserQa = false } = {}) {
+function shouldIncludeLoadQa(argv = process.argv, env = process.env) {
+  return argv.includes('--include-load') || env.HOCKEY_PILOT_GATES_INCLUDE_LOAD === 'true'
+}
+
+function buildChecks({ includeBrowserQa = false, includeLoadQa = false } = {}) {
   const checks = [
     {
       label: 'Pilot tooling and local readiness',
@@ -37,6 +41,21 @@ function buildChecks({ includeBrowserQa = false } = {}) {
     })
   }
 
+  if (includeLoadQa) {
+    checks.push(
+      {
+        label: 'Hockey pilot load run',
+        command: 'npm',
+        args: ['run', 'load:k6:hockey-pilot'],
+      },
+      {
+        label: 'Daily metrics backlog after load',
+        command: 'npm',
+        args: ['run', 'qa:daily-metrics-backlog'],
+      }
+    )
+  }
+
   return checks
 }
 
@@ -65,7 +84,8 @@ function runChecks(checks) {
 
 function main() {
   const includeBrowserQa = shouldIncludeBrowserQa()
-  const checks = buildChecks({ includeBrowserQa })
+  const includeLoadQa = shouldIncludeLoadQa()
+  const checks = buildChecks({ includeBrowserQa, includeLoadQa })
   const status = runChecks(checks)
   if (status !== 0) {
     process.exitCode = status
@@ -76,6 +96,9 @@ function main() {
   if (!includeBrowserQa) {
     console.log('Browser cockpit QA was skipped. Add --include-browser when a target app and QA credentials are ready.')
   }
+  if (!includeLoadQa) {
+    console.log('Pilot load run was skipped. Add --include-load when K6_SUMMARY_EXPORT and load-test auth are ready.')
+  }
 }
 
 if (require.main === module) {
@@ -85,4 +108,5 @@ if (require.main === module) {
 module.exports = {
   buildChecks,
   shouldIncludeBrowserQa,
+  shouldIncludeLoadQa,
 }

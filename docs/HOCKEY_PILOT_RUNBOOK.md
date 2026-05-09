@@ -35,8 +35,7 @@ npm run qa:hockey-pilot-gates -- --include-browser
 5. Run the hockey pilot load test with evidence export:
 
 ```bash
-K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run load:k6:hockey-pilot
-npm run qa:daily-metrics-backlog
+K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load
 ```
 
 6. Save the generated evidence:
@@ -94,6 +93,7 @@ Continue to the next wave only when:
 - `npm run qa:hockey` passes against the target environment
 - `npm run qa:cron-config` passes
 - `npm run qa:hockey-pilot-gates` passes
+- `npm run qa:hockey-pilot-gates -- --include-load` passes with evidence export
 - the hockey pilot load summary gate passes
 - `npm run qa:daily-metrics-backlog` passes after the load run
 - the manifest says `result.status` is `passed`
