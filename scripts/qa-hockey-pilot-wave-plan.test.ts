@@ -32,6 +32,9 @@ describe('qa-hockey-pilot-wave-plan', () => {
       HOCKEY_PILOT_ATHLETES_PER_TEAM: '24',
       HOCKEY_PILOT_STAFF_PER_TEAM: '3',
       HOCKEY_PILOT_EXPECTED_PEAK_USERS: '45',
+      HOCKEY_PILOT_SUPPORT_OWNER: 'Henrik',
+      HOCKEY_PILOT_SUPPORT_SLA_HOURS: '12',
+      HOCKEY_PILOT_OPEN_CRITICAL_ISSUES: '0',
     })
 
     expect(plan).toMatchObject({
@@ -39,6 +42,9 @@ describe('qa-hockey-pilot-wave-plan', () => {
       athletesPerTeam: 24,
       staffPerTeam: 3,
       expectedPeakUsers: 45,
+      supportOwner: 'Henrik',
+      supportSlaHours: 12,
+      openCriticalIssues: 0,
       estimatedAthletes: 96,
       estimatedStaff: 12,
       estimatedUsers: 108,
@@ -49,6 +55,7 @@ describe('qa-hockey-pilot-wave-plan', () => {
     const validation = validatePlan(readPlan({}))
     expect(validation.errors).toEqual([])
     expect(validation.warnings).toContain('Teams 4-6 require a fresh --include-load gate before inviting.')
+    expect(validation.warnings).toContain('Set HOCKEY_PILOT_SUPPORT_OWNER before sending external invites.')
     expect(validation.warnings).toContain('Expected peak is above the normal pilot window; keep the 75-VU load evidence attached to the invite decision.')
   })
 
@@ -58,6 +65,8 @@ describe('qa-hockey-pilot-wave-plan', () => {
       HOCKEY_PILOT_ATHLETES_PER_TEAM: '45',
       HOCKEY_PILOT_STAFF_PER_TEAM: '9',
       HOCKEY_PILOT_EXPECTED_PEAK_USERS: '90',
+      HOCKEY_PILOT_SUPPORT_SLA_HOURS: '48',
+      HOCKEY_PILOT_OPEN_CRITICAL_ISSUES: '1',
     }))
 
     expect(validation.errors).toEqual([
@@ -66,6 +75,8 @@ describe('qa-hockey-pilot-wave-plan', () => {
       'Staff per team is 9; this gate is sized for up to 8 staff per team.',
       'Estimated pilot users is 378; keep this first pilot at or below 300 users.',
       'Expected peak users is 90; rerun and raise the load gate before inviting above 75 concurrent users.',
+      'Support SLA is 48h; keep pilot response time at or below 24h.',
+      'Open critical support issues is 1; close critical issues before inviting another wave.',
     ])
   })
 

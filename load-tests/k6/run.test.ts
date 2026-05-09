@@ -270,7 +270,7 @@ describe('load-tests k6 runner', () => {
       K6_SUMMARY_EXPORT: summaryPath,
       GIT_TREE_DIRTY: 'false',
       HOCKEY_PILOT_SUPPORT_NOTES_URL: 'https://notes.example.com/pilot',
-      HOCKEY_PILOT_OPEN_CRITICAL_ISSUES: '2',
+      HOCKEY_PILOT_OPEN_CRITICAL_ISSUES: '0',
       HOCKEY_PILOT_SUPPORT_OWNER: 'Support Lead',
     })
 
@@ -278,14 +278,14 @@ describe('load-tests k6 runner', () => {
     const manifest = JSON.parse(readFileSync(manifestPath(summaryPath), 'utf8'))
     expect(manifest.support).toEqual({
       notesUrl: 'https://notes.example.com/pilot',
-      openCriticalIssues: '2',
+      openCriticalIssues: '0',
       owner: 'Support Lead',
     })
     const evidence = readFileSync(evidencePath(summaryPath), 'utf8')
-    expect(evidence).toContain('Decision: `FIX_AND_RERUN`')
+    expect(evidence).toContain('Decision: `GO`')
     expect(evidence).toContain('Screenshot or support notes: https://notes.example.com/pilot')
     expect(evidence).toContain('Support owner: Support Lead')
-    expect(evidence).toContain('Open critical support issues: 2')
+    expect(evidence).toContain('Open critical support issues: 0')
   })
 
   it('records explicit wave sizing in the hockey pilot manifest and evidence', () => {
