@@ -31,6 +31,7 @@ npm run qa:hockey-pilot-readiness
 ```bash
 npm run qa:launch-config
 npm run qa:hockey
+npm run qa:cron-config
 npm run qa:daily-metrics-backlog
 ```
 
@@ -94,6 +95,7 @@ Continue to the next wave only when:
 - `npm run qa:hockey-pilot-readiness` passes
 - `npm run qa:launch-config` passes
 - `npm run qa:hockey` passes against the target environment
+- `npm run qa:cron-config` passes
 - the hockey pilot load summary gate passes
 - `npm run qa:daily-metrics-backlog` passes after the load run
 - the manifest says `result.status` is `passed`

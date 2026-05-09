@@ -15,6 +15,7 @@ Recommended commands:
 
 - `K6_SUMMARY_EXPORT=load-tests/prod-shape-run1.json node load-tests/k6/run.js prod-shape`
 - `node load-tests/k6/analyze-summary.js load-tests/prod-shape-run1.json`
+- `npm run qa:cron-config`
 - `npm run qa:daily-metrics-backlog`
 - `K6_SUMMARY_EXPORT=load-tests/prod-shape-run2.json node load-tests/k6/run.js prod-shape`
 - `node load-tests/k6/analyze-summary.js load-tests/prod-shape-run2.json`
@@ -69,6 +70,7 @@ All items below should pass in 2 consecutive runs.
 ### 7. Background Processing Health
 
 - bounded cron runs are not repeatedly timing out
+- `npm run qa:cron-config` passes
 - `npm run qa:daily-metrics-backlog` passes before and after peak windows
 - hot endpoints are not repeatedly serving degraded fallback payloads
 
