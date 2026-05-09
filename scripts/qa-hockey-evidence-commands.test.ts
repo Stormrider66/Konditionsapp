@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
-const { buildCommands, commandWarnings, main, shellQuote, todayIsoDate } = require(path.join(testDir, 'qa-hockey-evidence-commands.cjs'))
+const { buildCommands, commandWarnings, isProductionLikeUrl, main, shellQuote, todayIsoDate } = require(path.join(testDir, 'qa-hockey-evidence-commands.cjs'))
 
 describe('qa-hockey-evidence-commands', () => {
   it('builds browser and load evidence commands from pilot env', () => {
@@ -124,6 +124,22 @@ describe('qa-hockey-evidence-commands', () => {
       'Set TRAINOMICS_QA_PASSWORD to the real QA coach password.',
       'Set HOCKEY_PILOT_SUPPORT_OWNER to a named person.',
       'Replace HOCKEY_PILOT_TARGET_COMMIT_SHA with the real Vercel deployment commit.',
+    ])
+  })
+
+  it('reports non-production-like evidence URLs', () => {
+    expect(isProductionLikeUrl('https://trainomics-hockey-pilot.vercel.app')).toBe(true)
+    expect(isProductionLikeUrl('http://trainomics-hockey-pilot.vercel.app')).toBe(false)
+    expect(isProductionLikeUrl('http://localhost:3000')).toBe(false)
+
+    expect(commandWarnings({
+      deploymentUrl: 'http://localhost:3000',
+      qaEmail: 'pilot-coach@trainomics.test',
+      qaPassword: 'secret',
+      supportOwner: 'Henrik',
+      targetCommit: 'abc123',
+    })).toEqual([
+      'Use a production-like https URL for invite evidence.',
     ])
   })
 

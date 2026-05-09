@@ -35,9 +35,22 @@ function isPlaceholder(valueToCheck) {
   return ['...', 'coach@example.com', 'support lead', 'vercel-deployment-commit-sha', 'https://pilot.example.com'].includes(normalized)
 }
 
+function isProductionLikeUrl(valueToCheck) {
+  const raw = String(valueToCheck || '').trim()
+  if (!raw) return false
+  try {
+    const url = new URL(raw)
+    const hostname = url.hostname.toLowerCase()
+    return url.protocol === 'https:' && hostname !== 'localhost' && hostname !== '127.0.0.1' && hostname !== '::1'
+  } catch {
+    return false
+  }
+}
+
 function commandWarnings(values) {
   const warnings = []
   if (isPlaceholder(values.deploymentUrl)) warnings.push('Set TRAINOMICS_QA_BASE_URL to the real production-like pilot URL.')
+  if (!isPlaceholder(values.deploymentUrl) && !isProductionLikeUrl(values.deploymentUrl)) warnings.push('Use a production-like https URL for invite evidence.')
   if (isPlaceholder(values.qaEmail)) warnings.push('Set TRAINOMICS_QA_EMAIL to a real QA coach login.')
   if (isPlaceholder(values.qaPassword)) warnings.push('Set TRAINOMICS_QA_PASSWORD to the real QA coach password.')
   if (isPlaceholder(values.supportOwner)) warnings.push('Set HOCKEY_PILOT_SUPPORT_OWNER to a named person.')
@@ -166,6 +179,7 @@ if (require.main === module) {
 module.exports = {
   buildCommands,
   commandWarnings,
+  isProductionLikeUrl,
   main,
   shellQuote,
   todayIsoDate,
