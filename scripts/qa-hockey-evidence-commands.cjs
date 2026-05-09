@@ -57,6 +57,7 @@ function buildCommands(env = process.env) {
   const qaPassword = value(env, ['TRAINOMICS_QA_PASSWORD', 'E2E_COACH_PASSWORD'], '...')
   const supportOwner = value(env, ['HOCKEY_PILOT_SUPPORT_OWNER'], 'Support Lead')
   const supportSlaHours = value(env, ['HOCKEY_PILOT_SUPPORT_SLA_HOURS'], '24')
+  const supportNotesUrl = value(env, ['HOCKEY_PILOT_SUPPORT_NOTES_URL'], '')
   const openCriticalIssues = value(env, ['HOCKEY_PILOT_OPEN_CRITICAL_ISSUES'], '0')
   const inviteMode = value(env, ['HOCKEY_PILOT_INVITE_MODE'], 'manual')
   const emailsPaused = value(env, ['EMAILS_PAUSED'], inviteMode === 'manual' ? 'true' : 'false')
@@ -81,6 +82,7 @@ function buildCommands(env = process.env) {
   const loadCommand = [
     envPair('HOCKEY_PILOT_SUPPORT_OWNER', supportOwner),
     envPair('HOCKEY_PILOT_SUPPORT_SLA_HOURS', supportSlaHours),
+    ...(supportNotesUrl ? [envPair('HOCKEY_PILOT_SUPPORT_NOTES_URL', supportNotesUrl)] : []),
     envPair('HOCKEY_PILOT_OPEN_CRITICAL_ISSUES', openCriticalIssues),
     envPair('HOCKEY_PILOT_TARGET_COMMIT_SHA', targetCommit),
     envPair('HOCKEY_PILOT_INVITE_MODE', inviteMode),

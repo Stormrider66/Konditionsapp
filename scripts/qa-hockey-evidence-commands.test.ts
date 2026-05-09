@@ -17,6 +17,7 @@ describe('qa-hockey-evidence-commands', () => {
       TRAINOMICS_QA_BUSINESS_SLUG: 'pilot-club',
       HOCKEY_PILOT_SUPPORT_OWNER: 'Henrik',
       HOCKEY_PILOT_SUPPORT_SLA_HOURS: '12',
+      HOCKEY_PILOT_SUPPORT_NOTES_URL: 'https://notes.example.com/pilot',
       HOCKEY_PILOT_OPEN_CRITICAL_ISSUES: '0',
       HOCKEY_PILOT_INVITE_MODE: 'manual',
       EMAILS_PAUSED: 'true',
@@ -31,6 +32,7 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.browserCommand).toContain('TRAINOMICS_QA_PASSWORD="secret pass"')
     expect(commands.browserCommand).toContain('npm run qa:hockey-pilot-gates -- --include-browser')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_SUPPORT_OWNER=Henrik')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_SUPPORT_NOTES_URL=https://notes.example.com/pilot')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_INVITE_MODE=manual')
     expect(commands.loadCommand).toContain('K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-2026-05-09.json')
     expect(commands.loadCommand).toContain('npm run qa:hockey-pilot-gates -- --include-load')
