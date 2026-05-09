@@ -175,7 +175,7 @@ HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCK
 npm run qa:hockey-pilot-tooling
 ```
 
-Use `npm run qa:hockey-evidence-commands` immediately before production-like browser/load evidence runs. Replace the warned placeholder values first, then tune the printed team count, peak users, load profile, traffic mix, support notes URL, and invite mode for the current invite wave. The generated load command sets `BASE_URL` to the same target URL used by browser QA.
+Use `npm run qa:hockey-evidence-commands` immediately before production-like browser/load evidence runs. Replace the warned placeholder values first, then tune the printed team count, peak users, load profile, traffic mix, support notes URL, and invite mode for the current invite wave. The generated target URL can come from `TRAINOMICS_QA_BASE_URL`, `VERCEL_DEPLOYMENT_URL`, or `BASE_URL`; the load command then sets `BASE_URL` to the same target used by browser QA.
 
 Add browser cockpit QA when a target app and QA credentials are ready:
 
