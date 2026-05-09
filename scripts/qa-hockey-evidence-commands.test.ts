@@ -26,6 +26,11 @@ describe('qa-hockey-evidence-commands', () => {
       HOCKEY_PILOT_STEADY_DURATION: '5m',
       HOCKEY_PILOT_PEAK_DURATION: '3m',
       HOCKEY_PILOT_RAMP_DOWN_DURATION: '1m',
+      HOCKEY_PILOT_READ_WEIGHT: '0.50',
+      HOCKEY_PILOT_ATHLETE_WEIGHT: '0.20',
+      HOCKEY_PILOT_DASHBOARD_WEIGHT: '0.20',
+      HOCKEY_PILOT_EXPORT_WEIGHT: '0.10',
+      HOCKEY_EXPORT_PRESET: 'team_summary',
       HOCKEY_PILOT_SUPPORT_OWNER: 'Henrik',
       HOCKEY_PILOT_SUPPORT_SLA_HOURS: '12',
       HOCKEY_PILOT_SUPPORT_NOTES_URL: 'https://notes.example.com/pilot',
@@ -53,6 +58,11 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_STEADY_DURATION=5m')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_PEAK_DURATION=3m')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_RAMP_DOWN_DURATION=1m')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_READ_WEIGHT=0.50')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_ATHLETE_WEIGHT=0.20')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_DASHBOARD_WEIGHT=0.20')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_EXPORT_WEIGHT=0.10')
+    expect(commands.loadCommand).toContain('HOCKEY_EXPORT_PRESET=team_summary')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_SUPPORT_OWNER=Henrik')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_SUPPORT_NOTES_URL=https://notes.example.com/pilot')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_INVITE_MODE=manual')
@@ -91,6 +101,9 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_EXPECTED_PEAK_USERS=75')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_PEAK_VUS=75')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_PEAK_DURATION=4m')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_READ_WEIGHT=0.40')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_ATHLETE_WEIGHT=0.25')
+    expect(commands.loadCommand).toContain('HOCKEY_EXPORT_PRESET=aerobic_profile')
   })
 
   it('quotes shell values that contain spaces', () => {

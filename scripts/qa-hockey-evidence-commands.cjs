@@ -66,6 +66,11 @@ function buildCommands(env = process.env) {
   const steadyDuration = value(env, ['HOCKEY_PILOT_STEADY_DURATION'], '6m')
   const peakDuration = value(env, ['HOCKEY_PILOT_PEAK_DURATION'], '4m')
   const rampDownDuration = value(env, ['HOCKEY_PILOT_RAMP_DOWN_DURATION'], '2m')
+  const readWeight = value(env, ['HOCKEY_PILOT_READ_WEIGHT'], '0.40')
+  const athleteWeight = value(env, ['HOCKEY_PILOT_ATHLETE_WEIGHT'], '0.25')
+  const dashboardWeight = value(env, ['HOCKEY_PILOT_DASHBOARD_WEIGHT'], '0.20')
+  const exportWeight = value(env, ['HOCKEY_PILOT_EXPORT_WEIGHT'], '0.15')
+  const exportPreset = value(env, ['HOCKEY_EXPORT_PRESET'], 'aerobic_profile')
   const supportOwner = value(env, ['HOCKEY_PILOT_SUPPORT_OWNER'], 'Support Lead')
   const supportSlaHours = value(env, ['HOCKEY_PILOT_SUPPORT_SLA_HOURS'], '24')
   const supportNotesUrl = value(env, ['HOCKEY_PILOT_SUPPORT_NOTES_URL'], '')
@@ -102,6 +107,11 @@ function buildCommands(env = process.env) {
     envPair('HOCKEY_PILOT_STEADY_DURATION', steadyDuration),
     envPair('HOCKEY_PILOT_PEAK_DURATION', peakDuration),
     envPair('HOCKEY_PILOT_RAMP_DOWN_DURATION', rampDownDuration),
+    envPair('HOCKEY_PILOT_READ_WEIGHT', readWeight),
+    envPair('HOCKEY_PILOT_ATHLETE_WEIGHT', athleteWeight),
+    envPair('HOCKEY_PILOT_DASHBOARD_WEIGHT', dashboardWeight),
+    envPair('HOCKEY_PILOT_EXPORT_WEIGHT', exportWeight),
+    envPair('HOCKEY_EXPORT_PRESET', exportPreset),
     envPair('HOCKEY_PILOT_SUPPORT_OWNER', supportOwner),
     envPair('HOCKEY_PILOT_SUPPORT_SLA_HOURS', supportSlaHours),
     ...(supportNotesUrl ? [envPair('HOCKEY_PILOT_SUPPORT_NOTES_URL', supportNotesUrl)] : []),
