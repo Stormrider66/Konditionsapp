@@ -66,6 +66,19 @@ function listEnv(value) {
     .filter(Boolean);
 }
 
+function validateProductionLikeUrl(value) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:') return 'Pilot load gate target must use https for launch evidence.';
+    if (['localhost', '127.0.0.1', '::1'].includes(url.hostname)) {
+      return 'Pilot load gate target must be production-like, not localhost.';
+    }
+    return null;
+  } catch {
+    return 'BASE_URL is not a valid URL.';
+  }
+}
+
 function main() {
   const env = { ...parseEnvFile(envPath), ...process.env };
   const errors = [];
@@ -75,6 +88,11 @@ function main() {
 
   for (const key of ['BASE_URL', 'CLIENT_ID', 'BUSINESS_ID', 'TEAM_ID']) {
     if (!env[key]) errors.push(`${key} is required.`);
+  }
+
+  if (requiresEvidenceExport && env.BASE_URL) {
+    const targetError = validateProductionLikeUrl(env.BASE_URL);
+    if (targetError) errors.push(targetError);
   }
 
   if (!env.AUTH_COOKIE && !env.BEARER_TOKEN && !env.LOAD_TEST_BYPASS_USER_EMAIL) {

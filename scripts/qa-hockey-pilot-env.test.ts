@@ -221,6 +221,26 @@ describe('qa-hockey-pilot-env', () => {
     expect(result.stderr).toContain('Set K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json so the run saves evidence for review.')
   })
 
+  it('requires production-like https target when running as the load gate', () => {
+    const localResult = runPreflight(
+      baseEnvLines([
+        'BASE_URL=http://localhost:3000',
+      ]),
+      { HOCKEY_PILOT_GATE_MODES: 'deterministic,load' }
+    )
+    expect(localResult.status).toBe(1)
+    expect(localResult.stderr).toContain('Pilot load gate target must use https for launch evidence.')
+
+    const plainHttpResult = runPreflight(
+      baseEnvLines([
+        'BASE_URL=http://pilot.example.com',
+      ]),
+      { HOCKEY_PILOT_GATE_MODES: 'deterministic,load' }
+    )
+    expect(plainHttpResult.status).toBe(1)
+    expect(plainHttpResult.stderr).toContain('Pilot load gate target must use https for launch evidence.')
+  })
+
   it('only warns about missing summary export outside the load gate', () => {
     const result = runPreflight(baseEnvLines([
       'K6_SUMMARY_EXPORT=',
