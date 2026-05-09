@@ -35,7 +35,7 @@
     "qa:hockey-pilot-evidence": "node scripts/hockey-pilot-evidence.cjs",
     "qa:hockey-pilot-wave-plan": "node scripts/qa-hockey-pilot-wave-plan.cjs",
     "qa:hockey-pilot-summary": "node load-tests/k6/check-hockey-pilot-summary.cjs",
-    "qa:hockey-pilot-tooling": "vitest run scripts/qa-hockey-pilot-env.test.ts scripts/hockey-pilot-evidence.test.ts scripts/qa-cron-config.test.ts scripts/qa-daily-metrics-backlog.test.ts scripts/qa-hockey-pilot-gates.test.ts scripts/qa-hockey-pilot-wave-plan.test.ts load-tests/k6/check-hockey-pilot-summary.test.ts load-tests/k6/run.test.ts",
+    "qa:hockey-pilot-tooling": "vitest run scripts/qa-hockey-pilot-env.test.ts scripts/hockey-pilot-evidence.test.ts scripts/qa-cron-config.test.ts scripts/qa-daily-metrics-backlog.test.ts scripts/qa-launch-config.test.ts scripts/qa-hockey-pilot-gates.test.ts scripts/qa-hockey-pilot-wave-plan.test.ts load-tests/k6/check-hockey-pilot-summary.test.ts load-tests/k6/run.test.ts",
     "qa:hockey-pilot-readiness": "node scripts/qa-hockey-pilot-readiness.cjs",
     "seed:skelleftea-hockey-demo": "tsx --tsconfig tsconfig.scripts.json scripts/seed-skelleftea-hockey-demo.ts",
     "audit:athlete-integrity": "ts-node --project tsconfig.scripts.json --require tsconfig-paths/register scripts/audit-athlete-integrity.ts",

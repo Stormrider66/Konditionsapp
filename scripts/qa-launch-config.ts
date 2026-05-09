@@ -18,7 +18,7 @@ function loadLocalEnv() {
   }
 }
 
-function isHttpsProductionUrl(value: string | undefined) {
+export function isHttpsProductionUrl(value: string | undefined) {
   if (!value) return false
   try {
     const url = new URL(value)
@@ -28,13 +28,11 @@ function isHttpsProductionUrl(value: string | undefined) {
   }
 }
 
-function main() {
-  loadLocalEnv()
-
+export function checkLaunchConfig(env: Record<string, string | undefined>) {
   const errors: string[] = []
   const warnings: string[] = []
-  const inviteMode = process.env.HOCKEY_PILOT_INVITE_MODE
-  const emailsPaused = process.env.EMAILS_PAUSED === 'true'
+  const inviteMode = env.HOCKEY_PILOT_INVITE_MODE
+  const emailsPaused = env.EMAILS_PAUSED === 'true'
 
   if (inviteMode !== 'live' && inviteMode !== 'manual') {
     errors.push('Set HOCKEY_PILOT_INVITE_MODE to "live" or "manual" before pilot onboarding.')
@@ -42,26 +40,38 @@ function main() {
 
   if (inviteMode === 'live') {
     if (emailsPaused) errors.push('EMAILS_PAUSED must not be true when HOCKEY_PILOT_INVITE_MODE=live.')
-    if (!process.env.RESEND_API_KEY) errors.push('RESEND_API_KEY is required for live invite email.')
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) errors.push('NEXT_PUBLIC_SUPABASE_URL is required for invite auth links.')
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) errors.push('SUPABASE_SERVICE_ROLE_KEY is required to generate invite auth links.')
-    if (!isHttpsProductionUrl(process.env.NEXT_PUBLIC_APP_URL)) {
+    if (!env.RESEND_API_KEY) errors.push('RESEND_API_KEY is required for live invite email.')
+    if (!env.NEXT_PUBLIC_SUPABASE_URL) errors.push('NEXT_PUBLIC_SUPABASE_URL is required for invite auth links.')
+    if (!env.SUPABASE_SERVICE_ROLE_KEY) errors.push('SUPABASE_SERVICE_ROLE_KEY is required to generate invite auth links.')
+    if (!isHttpsProductionUrl(env.NEXT_PUBLIC_APP_URL)) {
       errors.push('NEXT_PUBLIC_APP_URL must be a production https URL for live invite links.')
     }
   }
 
   if (inviteMode === 'manual') {
     if (!emailsPaused) {
-      warnings.push('HOCKEY_PILOT_INVITE_MODE=manual but EMAILS_PAUSED is not true; outbound emails may still send.')
+      errors.push('EMAILS_PAUSED must be true when HOCKEY_PILOT_INVITE_MODE=manual.')
     }
-    if (!process.env.HOCKEY_PILOT_MANUAL_INVITE_OWNER) {
-      warnings.push('Set HOCKEY_PILOT_MANUAL_INVITE_OWNER to the person responsible for manual invite follow-up.')
+    if (!env.HOCKEY_PILOT_MANUAL_INVITE_OWNER) {
+      errors.push('HOCKEY_PILOT_MANUAL_INVITE_OWNER is required for manual invite follow-up.')
     }
   }
 
-  if (process.env.USE_JWT_CLAIMS !== 'true') {
+  if (env.USE_JWT_CLAIMS !== 'true') {
     warnings.push('USE_JWT_CLAIMS is not true; middleware may use slower DB lookup fallback during pilot traffic.')
   }
+
+  return {
+    errors,
+    warnings,
+    inviteMode,
+  }
+}
+
+function main() {
+  loadLocalEnv()
+
+  const { errors, warnings, inviteMode } = checkLaunchConfig(process.env)
 
   if (errors.length > 0) {
     console.error('Hockey pilot launch config failed:')
@@ -75,4 +85,6 @@ function main() {
   for (const warning of warnings) console.warn(`Warning: ${warning}`)
 }
 
-main()
+if (process.env.NODE_ENV !== 'test') {
+  main()
+}
