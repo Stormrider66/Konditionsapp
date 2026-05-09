@@ -70,6 +70,8 @@ npm run qa:hockey-deployment-commit
 vercel inspect https://your-deployment-url.vercel.app
 ```
 
+The load runner records invite mode from `.env.local`, `load-tests/.env.k6`, or shell env. If you override invite mode for a one-off run, set `HOCKEY_PILOT_INVITE_MODE`, `EMAILS_PAUSED`, and `HOCKEY_PILOT_MANUAL_INVITE_OWNER` in the same shell command.
+
 7. Save the generated evidence:
    - summary JSON
    - analyzer text
