@@ -106,7 +106,7 @@ function formatCommand(check) {
 function nextStepMessages({ includeBrowserQa = false, includeLoadQa = false } = {}) {
   const messages = []
   if (!includeBrowserQa) {
-    messages.push('Browser cockpit QA was skipped. Run with a production-like target: TRAINOMICS_QA_BASE_URL="https://pilot.example.com" HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" npm run qa:hockey-pilot-gates -- --include-browser')
+    messages.push('Browser cockpit QA was skipped. Generate the current evidence command first: npm run qa:hockey-evidence-commands, then replace warned placeholders and run the printed browser command against a production-like target.')
   }
   if (!includeLoadQa) {
     messages.push('Pilot load run was skipped. Generate the current evidence command first: npm run qa:hockey-evidence-commands, then replace warned placeholders and run the printed load command.')
