@@ -167,6 +167,16 @@ ${endpointTable}
 - Team-scoped staff cannot access another team: -
 - Athlete cannot access another athlete summary: -
 
+## Support Watch
+
+- Sign-in or invite reports: -
+- Dashboard slow-load reports: -
+- Hockey test review reports: -
+- Export/SIMCA reports: -
+- Daily metrics save reports: -
+- Valid-user 401/403 reports: -
+- Open critical support issues: -
+
 ## Issues
 
 | Severity | Area | Symptom | Owner | Next action |

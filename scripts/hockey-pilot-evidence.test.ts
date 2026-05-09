@@ -132,6 +132,8 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Slowest endpoint: hockey-simca-export (2752ms p95)')
     expect(result.stdout).toContain('| team-dashboard | 1393ms | 1671ms | 0.00% |')
     expect(result.stdout).toContain('Traffic weights: read 0.40, athlete 0.25, dashboard 0.20, export 0.15')
+    expect(result.stdout).toContain('## Support Watch')
+    expect(result.stdout).toContain('Valid-user 401/403 reports: -')
   })
 
   it('writes the evidence note when an output path is provided', () => {
