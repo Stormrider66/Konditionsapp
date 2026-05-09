@@ -230,7 +230,7 @@ describe('qa-hockey-pilot-env', () => {
       { HOCKEY_PILOT_GATE_MODES: 'deterministic,load' }
     )
     expect(localResult.status).toBe(1)
-    expect(localResult.stderr).toContain('Pilot load gate target must use https for launch evidence.')
+    expect(localResult.stderr).toContain('Pilot load gate target must be production-like, not localhost.')
 
     const plainHttpResult = runPreflight(
       baseEnvLines([
@@ -257,6 +257,6 @@ describe('qa-hockey-pilot-env', () => {
     ]))
 
     expect(result.status).toBe(0)
-    expect(result.stdout).toContain('Target production-like: no (Pilot load gate target must use https for launch evidence.)')
+    expect(result.stdout).toContain('Target production-like: no (Pilot load gate target must be production-like, not localhost.)')
   })
 })

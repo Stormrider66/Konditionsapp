@@ -69,10 +69,10 @@ function listEnv(value) {
 function validateProductionLikeUrl(value) {
   try {
     const url = new URL(value);
-    if (url.protocol !== 'https:') return 'Pilot load gate target must use https for launch evidence.';
     if (['localhost', '127.0.0.1', '::1'].includes(url.hostname)) {
       return 'Pilot load gate target must be production-like, not localhost.';
     }
+    if (url.protocol !== 'https:') return 'Pilot load gate target must use https for launch evidence.';
     return null;
   } catch {
     return 'BASE_URL is not a valid URL.';
