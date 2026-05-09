@@ -41,6 +41,10 @@ describe('qa-hockey-evidence-commands', () => {
       HOCKEY_PILOT_INCIDENT_CHANNEL: '#hockey-pilot',
       HOCKEY_PILOT_FIRST_CHECK_MINUTES: '20',
       HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION: '72',
+      HOCKEY_PILOT_MAX_AUTH_ERRORS_PER_HOUR: '2',
+      HOCKEY_PILOT_MAX_SERVER_ERRORS_PER_HOUR: '4',
+      HOCKEY_PILOT_MAX_SLOW_HOCKEY_REQUESTS_PER_HOUR: '6',
+      HOCKEY_PILOT_MAX_SUPPORT_CRITICAL_ISSUES: '0',
       HOCKEY_PILOT_OPEN_CRITICAL_ISSUES: '0',
       HOCKEY_PILOT_INVITE_MODE: 'manual',
       EMAILS_PAUSED: 'true',
@@ -82,6 +86,10 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.monitoringCommand).toContain('HOCKEY_PILOT_INCIDENT_CHANNEL="#hockey-pilot"')
     expect(commands.monitoringCommand).toContain('HOCKEY_PILOT_FIRST_CHECK_MINUTES=20')
     expect(commands.monitoringCommand).toContain('HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION=72')
+    expect(commands.monitoringCommand).toContain('HOCKEY_PILOT_MAX_AUTH_ERRORS_PER_HOUR=2')
+    expect(commands.monitoringCommand).toContain('HOCKEY_PILOT_MAX_SERVER_ERRORS_PER_HOUR=4')
+    expect(commands.monitoringCommand).toContain('HOCKEY_PILOT_MAX_SLOW_HOCKEY_REQUESTS_PER_HOUR=6')
+    expect(commands.monitoringCommand).toContain('HOCKEY_PILOT_MAX_SUPPORT_CRITICAL_ISSUES=0')
     expect(commands.monitoringCommand).toContain('npm run qa:hockey-pilot-monitoring')
     expect(commands.incidentCommand).toContain('HOCKEY_PILOT_SUPPORT_OWNER=Henrik')
     expect(commands.incidentCommand).toContain('HOCKEY_PILOT_TECHNICAL_OWNER="Tech Lead"')

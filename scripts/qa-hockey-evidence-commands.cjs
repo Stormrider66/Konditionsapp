@@ -108,6 +108,10 @@ function buildCommands(env = process.env) {
   const incidentChannel = value(env, ['HOCKEY_PILOT_INCIDENT_CHANNEL'], '')
   const firstCheckMinutes = value(env, ['HOCKEY_PILOT_FIRST_CHECK_MINUTES'], '30')
   const quietHoursBeforeExpansion = value(env, ['HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION'], '48')
+  const maxAuthErrorsPerHour = value(env, ['HOCKEY_PILOT_MAX_AUTH_ERRORS_PER_HOUR'], '3')
+  const maxServerErrorsPerHour = value(env, ['HOCKEY_PILOT_MAX_SERVER_ERRORS_PER_HOUR'], '5')
+  const maxSlowHockeyRequestsPerHour = value(env, ['HOCKEY_PILOT_MAX_SLOW_HOCKEY_REQUESTS_PER_HOUR'], '5')
+  const maxSupportCriticalIssues = value(env, ['HOCKEY_PILOT_MAX_SUPPORT_CRITICAL_ISSUES'], '0')
   const openCriticalIssues = value(env, ['HOCKEY_PILOT_OPEN_CRITICAL_ISSUES'], '0')
   const inviteMode = value(env, ['HOCKEY_PILOT_INVITE_MODE'], 'manual')
   const emailsPaused = value(env, ['EMAILS_PAUSED'], inviteMode === 'manual' ? 'true' : 'false')
@@ -177,6 +181,10 @@ function buildCommands(env = process.env) {
     ...(incidentChannel ? [envPair('HOCKEY_PILOT_INCIDENT_CHANNEL', incidentChannel)] : []),
     envPair('HOCKEY_PILOT_FIRST_CHECK_MINUTES', firstCheckMinutes),
     envPair('HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION', quietHoursBeforeExpansion),
+    envPair('HOCKEY_PILOT_MAX_AUTH_ERRORS_PER_HOUR', maxAuthErrorsPerHour),
+    envPair('HOCKEY_PILOT_MAX_SERVER_ERRORS_PER_HOUR', maxServerErrorsPerHour),
+    envPair('HOCKEY_PILOT_MAX_SLOW_HOCKEY_REQUESTS_PER_HOUR', maxSlowHockeyRequestsPerHour),
+    envPair('HOCKEY_PILOT_MAX_SUPPORT_CRITICAL_ISSUES', maxSupportCriticalIssues),
     'npm run qa:hockey-pilot-monitoring',
   ].join(' ')
 
