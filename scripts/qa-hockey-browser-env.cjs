@@ -43,6 +43,7 @@ function browserQaConfig(env = process.env) {
     businessSlug: env.TRAINOMICS_QA_BUSINESS_SLUG || env.E2E_BUSINESS_SLUG || 'skelleftea-aik',
     email: env.TRAINOMICS_QA_EMAIL || env.E2E_COACH_EMAIL || '',
     password: env.TRAINOMICS_QA_PASSWORD || env.E2E_COACH_PASSWORD || '',
+    strictTarget: (env.HOCKEY_PILOT_GATE_MODES || '').split(',').map((mode) => mode.trim()).includes('browser'),
   }
 }
 
@@ -58,11 +59,16 @@ function validateBrowserQaConfig(config) {
       if (!['http:', 'https:'].includes(url.protocol)) {
         errors.push('Browser QA base URL must use http or https.')
       }
-      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-        warnings.push('Browser QA target is local; use a production-like URL before inviting external teams.')
+      const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1'
+      if (isLocal) {
+        const message = 'Browser QA target is local; use a production-like URL before inviting external teams.'
+        if (config.strictTarget) errors.push(message)
+        else warnings.push(message)
       }
-      if (url.protocol !== 'https:' && url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
-        warnings.push('Browser QA target is not https; production-like pilot checks should use https.')
+      if (url.protocol !== 'https:' && !isLocal) {
+        const message = 'Browser QA target is not https; production-like pilot checks should use https.'
+        if (config.strictTarget) errors.push(message)
+        else warnings.push(message)
       }
     } catch {
       errors.push('Browser QA base URL is not a valid URL.')
@@ -99,6 +105,7 @@ function main() {
   console.log(`Target: ${config.baseUrl}`)
   console.log(`Business slug: ${config.businessSlug}`)
   console.log(`Coach login: ${config.email}`)
+  console.log(`Strict target: ${config.strictTarget ? 'yes' : 'no'}`)
   for (const warning of warnings) console.warn(`Warning: ${warning}`)
 }
 

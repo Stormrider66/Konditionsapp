@@ -24,6 +24,7 @@ describe('qa-hockey-browser-env', () => {
       businessSlug: 'pilot-club',
       email: 'coach@example.com',
       password: 'secret',
+      strictTarget: false,
     })
   })
 
@@ -36,7 +37,18 @@ describe('qa-hockey-browser-env', () => {
       businessSlug: 'skelleftea-aik',
       email: 'coach@example.com',
       password: 'secret',
+      strictTarget: false,
     })
+  })
+
+  it('enables strict target validation for browser gate mode', () => {
+    expect(browserQaConfig({
+      TRAINOMICS_QA_BASE_URL: 'https://pilot.example.com',
+      TRAINOMICS_QA_BUSINESS_SLUG: 'pilot-club',
+      TRAINOMICS_QA_EMAIL: 'coach@example.com',
+      TRAINOMICS_QA_PASSWORD: 'secret',
+      HOCKEY_PILOT_GATE_MODES: 'deterministic,browser',
+    }).strictTarget).toBe(true)
   })
 
   it('passes a complete https target config', () => {
@@ -82,6 +94,28 @@ describe('qa-hockey-browser-env', () => {
       email: 'coach@example.com',
       password: 'secret',
     }).warnings).toEqual([
+      'Browser QA target is not https; production-like pilot checks should use https.',
+    ])
+  })
+
+  it('fails local and non-https targets when running the browser pilot gate', () => {
+    expect(validateBrowserQaConfig({
+      baseUrl: 'http://localhost:3000',
+      businessSlug: 'pilot-club',
+      email: 'coach@example.com',
+      password: 'secret',
+      strictTarget: true,
+    }).errors).toEqual([
+      'Browser QA target is local; use a production-like URL before inviting external teams.',
+    ])
+
+    expect(validateBrowserQaConfig({
+      baseUrl: 'http://pilot.example.com',
+      businessSlug: 'pilot-club',
+      email: 'coach@example.com',
+      password: 'secret',
+      strictTarget: true,
+    }).errors).toEqual([
       'Browser QA target is not https; production-like pilot checks should use https.',
     ])
   })

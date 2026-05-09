@@ -4,6 +4,24 @@ import { chromium, expect } from '@playwright/test'
 
 const dotenvLocalPath = path.join(process.cwd(), '.env.local')
 
+function normalizeEnvValue(rawValue: string) {
+  let value = rawValue.trim()
+
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1)
+  }
+
+  const inlineCommentIndex = value.search(/\s#/)
+  if (inlineCommentIndex !== -1) {
+    value = value.slice(0, inlineCommentIndex).trim()
+  }
+
+  return value
+}
+
 function loadLocalEnv() {
   if (!fs.existsSync(dotenvLocalPath)) return
 
@@ -14,7 +32,7 @@ function loadLocalEnv() {
     const separatorIndex = line.indexOf('=')
     if (separatorIndex === -1) continue
     const key = line.slice(0, separatorIndex).trim()
-    const value = line.slice(separatorIndex + 1).trim().replace(/^"(.*)"$/, '$1')
+    const value = normalizeEnvValue(line.slice(separatorIndex + 1))
     if (!process.env[key]) process.env[key] = value
   }
 }
