@@ -96,7 +96,7 @@ It exercises:
 Required `load-tests/.env.k6` values:
 
 ```env
-BASE_URL=http://localhost:3000
+BASE_URL=https://pilot.example.com
 CLIENT_ID=...
 CLIENT_IDS=client-id-1,client-id-2,client-id-3
 BUSINESS_ID=...
@@ -161,6 +161,8 @@ At least one traffic weight must be greater than `0`; all-zero weights are treat
 
 Set `HOCKEY_PILOT_SUPPORT_OWNER`, `HOCKEY_PILOT_SUPPORT_SLA_HOURS`, and `HOCKEY_PILOT_OPEN_CRITICAL_ISSUES` before evidence runs. Any critical issue count above `0`, or a support SLA above `24`, marks the generated evidence decision as `FIX_AND_RERUN` even when the load gate passes.
 
+When `npm run qa:hockey-pilot-gates -- --include-load` is used as launch evidence, `BASE_URL` must be a production-like `https://` target. Localhost and plain HTTP are still useful for debugging, but they do not count as invite evidence.
+
 Run:
 
 ```bash
@@ -216,6 +218,7 @@ Pass these before inviting the first external teams:
 - `npm run qa:hockey-pilot-summary -- <summary.json>` passes after the run
 - `npm run qa:daily-metrics-backlog` passes before and after the run
 - `npm run qa:hockey-pilot-tooling` passes after preflight, runner, or summary-gate edits
+- browser and load evidence were run against production-like `https://` targets
 - support owner is explicit, SLA is `24h` or faster, and open critical support issue count is `0`
 - hockey pilot load test passes at `35` steady VUs and `75` peak VUs
 - overall `http_req_failed < 1.5%`

@@ -46,6 +46,8 @@ npm run qa:hockey-browser-env
 npm run qa:hockey-pilot-gates -- --include-browser
 ```
 
+For invite evidence, the browser target must be a production-like `https://` URL. Localhost browser checks are useful during development, but the combined browser gate fails local/plain HTTP targets on purpose.
+
 6. Run the hockey pilot load test with evidence export:
 
 ```bash
@@ -55,6 +57,8 @@ HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 \
 K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json \
 npm run qa:hockey-pilot-gates -- --include-load
 ```
+
+For invite evidence, the load target must also be a production-like `https://` URL. Use localhost only for debugging the script itself.
 
 7. Save the generated evidence:
    - summary JSON
@@ -115,6 +119,7 @@ Continue to the next wave only when:
 - `npm run qa:cron-config` passes
 - `npm run qa:hockey-pilot-gates` passes
 - `npm run qa:hockey-pilot-gates -- --include-load` passes with evidence export
+- browser and load gates were run against production-like `https://` targets
 - the hockey pilot load summary gate passes
 - `npm run qa:daily-metrics-backlog` passes after the load run
 - the manifest says `result.status` is `passed`
