@@ -148,7 +148,7 @@ HOCKEY_PILOT_SUPPORT_OWNER="${support.owner || 'Support Lead'}" HOCKEY_PILOT_SUP
 - Git tree dirty: ${git.dirty === true ? 'yes' : git.dirty === false ? 'no' : '-'}
 - Release evidence status: ${git.dirty === true ? 'dirty tree; rerun from a committed state before inviting' : git.dirty === false ? 'committed tree' : '-'}
 - Business/team: ${manifest.businessSlug || manifest.businessId || '-'} / ${manifest.teamId || '-'}
-- Target production-like: ${manifest.targetInfo?.productionLike === true ? 'yes' : manifest.targetInfo?.productionLike === false ? 'no' : '-'}
+- Target production-like: ${manifest.targetInfo?.productionLike === true ? 'yes' : manifest.targetInfo?.productionLike === false ? 'no' : '-'}${manifest.targetInfo?.reason ? ` (${manifest.targetInfo.reason})` : ''}
 - Client ID count: ${manifest.clientIdCount ?? '-'}
 - Pilot users: ${wavePlan.estimatedUsers ?? '-'} (${wavePlan.teamCount ?? '-'} teams)
 - Traffic weights: read ${weights.read || '-'}, athlete ${weights.athlete || '-'}, dashboard ${weights.dashboard || '-'}, export ${weights.export || '-'}

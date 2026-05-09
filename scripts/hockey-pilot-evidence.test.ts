@@ -149,7 +149,7 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Pilot users: 112 (4 teams)')
     expect(result.stdout).toContain('Git tree dirty: no')
     expect(result.stdout).toContain('Release evidence status: committed tree')
-    expect(result.stdout).toContain('Target production-like: yes')
+    expect(result.stdout).toContain('Target production-like: yes (https-production-like)')
     expect(result.stdout).toContain('Screenshot or support notes: https://notes.example.com/pilot')
     expect(result.stdout).toContain('Support owner: Support Lead')
     expect(result.stdout).toContain('Support SLA: 24h')
@@ -251,6 +251,6 @@ describe('hockey-pilot-evidence', () => {
 
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
-    expect(result.stdout).toContain('Target production-like: no')
+    expect(result.stdout).toContain('Target production-like: no (local-target)')
   })
 })
