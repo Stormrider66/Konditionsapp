@@ -101,6 +101,8 @@ function buildCommands(env = process.env) {
   const exportWeight = value(env, ['HOCKEY_PILOT_EXPORT_WEIGHT'], '0.15')
   const exportPreset = value(env, ['HOCKEY_EXPORT_PRESET'], 'aerobic_profile')
   const supportOwner = value(env, ['HOCKEY_PILOT_SUPPORT_OWNER'], 'Support Lead')
+  const technicalOwner = value(env, ['HOCKEY_PILOT_TECHNICAL_OWNER'], 'Technical Lead')
+  const rollbackOwner = value(env, ['HOCKEY_PILOT_ROLLBACK_OWNER'], 'Release Lead')
   const supportSlaHours = value(env, ['HOCKEY_PILOT_SUPPORT_SLA_HOURS'], '24')
   const supportNotesUrl = value(env, ['HOCKEY_PILOT_SUPPORT_NOTES_URL'], '')
   const incidentChannel = value(env, ['HOCKEY_PILOT_INCIDENT_CHANNEL'], '')
@@ -178,6 +180,16 @@ function buildCommands(env = process.env) {
     'npm run qa:hockey-pilot-monitoring',
   ].join(' ')
 
+  const incidentCommand = [
+    envPair('HOCKEY_PILOT_SUPPORT_OWNER', supportOwner),
+    envPair('HOCKEY_PILOT_TECHNICAL_OWNER', technicalOwner),
+    envPair('HOCKEY_PILOT_ROLLBACK_OWNER', rollbackOwner),
+    ...(incidentChannel ? [envPair('HOCKEY_PILOT_INCIDENT_CHANNEL', incidentChannel)] : []),
+    ...(supportNotesUrl ? [envPair('HOCKEY_PILOT_SUPPORT_NOTES_URL', supportNotesUrl)] : []),
+    envPair('HOCKEY_PILOT_OPEN_CRITICAL_ISSUES', openCriticalIssues),
+    'npm run qa:hockey-pilot-incidents',
+  ].join(' ')
+
   return {
     currentCommit,
     deploymentUrl,
@@ -187,6 +199,7 @@ function buildCommands(env = process.env) {
     browserCommand: evidenceMode === 'debug' ? debugBrowserCommand : browserCommand,
     loadCommand: evidenceMode === 'debug' ? debugLoadCommand : loadCommand,
     monitoringCommand,
+    incidentCommand,
   }
 }
 
@@ -215,6 +228,9 @@ function main(env = process.env) {
   console.log('')
   console.log('Post-invite monitoring:')
   console.log(commands.monitoringCommand)
+  console.log('')
+  console.log('Incident playbook:')
+  console.log(commands.incidentCommand)
 }
 
 if (require.main === module) {

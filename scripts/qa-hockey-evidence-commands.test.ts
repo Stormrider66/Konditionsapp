@@ -34,6 +34,8 @@ describe('qa-hockey-evidence-commands', () => {
       HOCKEY_PILOT_EXPORT_WEIGHT: '0.10',
       HOCKEY_EXPORT_PRESET: 'team_summary',
       HOCKEY_PILOT_SUPPORT_OWNER: 'Henrik',
+      HOCKEY_PILOT_TECHNICAL_OWNER: 'Tech Lead',
+      HOCKEY_PILOT_ROLLBACK_OWNER: 'Release Lead',
       HOCKEY_PILOT_SUPPORT_SLA_HOURS: '12',
       HOCKEY_PILOT_SUPPORT_NOTES_URL: 'https://notes.example.com/pilot',
       HOCKEY_PILOT_INCIDENT_CHANNEL: '#hockey-pilot',
@@ -81,6 +83,13 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.monitoringCommand).toContain('HOCKEY_PILOT_FIRST_CHECK_MINUTES=20')
     expect(commands.monitoringCommand).toContain('HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION=72')
     expect(commands.monitoringCommand).toContain('npm run qa:hockey-pilot-monitoring')
+    expect(commands.incidentCommand).toContain('HOCKEY_PILOT_SUPPORT_OWNER=Henrik')
+    expect(commands.incidentCommand).toContain('HOCKEY_PILOT_TECHNICAL_OWNER="Tech Lead"')
+    expect(commands.incidentCommand).toContain('HOCKEY_PILOT_ROLLBACK_OWNER="Release Lead"')
+    expect(commands.incidentCommand).toContain('HOCKEY_PILOT_INCIDENT_CHANNEL="#hockey-pilot"')
+    expect(commands.incidentCommand).toContain('HOCKEY_PILOT_SUPPORT_NOTES_URL=https://notes.example.com/pilot')
+    expect(commands.incidentCommand).toContain('HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0')
+    expect(commands.incidentCommand).toContain('npm run qa:hockey-pilot-incidents')
     expect(commands.warnings).toEqual([])
   })
 
@@ -257,5 +266,6 @@ describe('qa-hockey-evidence-commands', () => {
     expect(output).toContain('Browser evidence:')
     expect(output).toContain('Load evidence:')
     expect(output).toContain('Post-invite monitoring:')
+    expect(output).toContain('Incident playbook:')
   })
 })
