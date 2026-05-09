@@ -139,6 +139,7 @@ HOCKEY_EXPORT_PRESET=aerobic_profile
 ATHLETE_BEARER_TOKEN=...
 ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL=athlete@example.com
 HOCKEY_PILOT_SUPPORT_OWNER="Support Lead"
+HOCKEY_PILOT_SUPPORT_SLA_HOURS=24
 HOCKEY_PILOT_SUPPORT_NOTES_URL="https://..."
 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0
 HOCKEY_PILOT_REQUIRED_ENDPOINTS= # optional comma-separated override; use only for narrow debug runs
@@ -158,7 +159,7 @@ At least one traffic weight must be greater than `0`; all-zero weights are treat
 
 `HOCKEY_PILOT_PEAK_VUS` must be at least `HOCKEY_PILOT_EXPECTED_PEAK_USERS` before the run can count as pilot evidence.
 
-Set `HOCKEY_PILOT_OPEN_CRITICAL_ISSUES` before evidence runs. Any value above `0` marks the generated evidence decision as `FIX_AND_RERUN` even when the load gate passes.
+Set `HOCKEY_PILOT_SUPPORT_OWNER`, `HOCKEY_PILOT_SUPPORT_SLA_HOURS`, and `HOCKEY_PILOT_OPEN_CRITICAL_ISSUES` before evidence runs. Any critical issue count above `0`, or a support SLA above `24`, marks the generated evidence decision as `FIX_AND_RERUN` even when the load gate passes.
 
 Run:
 
@@ -167,7 +168,7 @@ npm run qa:hockey-pilot-gates
 npm run qa:hockey-pilot-wave-plan
 npm run qa:hockey-pilot-tenant-boundary
 npm run qa:hockey-pilot-env
-K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json npm run qa:hockey-pilot-gates -- --include-load
+HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json npm run qa:hockey-pilot-gates -- --include-load
 npm run qa:hockey-pilot-tooling
 ```
 
@@ -215,6 +216,7 @@ Pass these before inviting the first external teams:
 - `npm run qa:hockey-pilot-summary -- <summary.json>` passes after the run
 - `npm run qa:daily-metrics-backlog` passes before and after the run
 - `npm run qa:hockey-pilot-tooling` passes after preflight, runner, or summary-gate edits
+- support owner is explicit, SLA is `24h` or faster, and open critical support issue count is `0`
 - hockey pilot load test passes at `35` steady VUs and `75` peak VUs
 - overall `http_req_failed < 1.5%`
 - overall p95 request duration `<= 2000ms`
