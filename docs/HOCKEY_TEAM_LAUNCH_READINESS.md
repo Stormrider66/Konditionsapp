@@ -170,9 +170,12 @@ npm run qa:hockey-pilot-gates
 npm run qa:hockey-pilot-wave-plan
 npm run qa:hockey-pilot-tenant-boundary
 npm run qa:hockey-pilot-env
+npm run qa:hockey-evidence-commands
 HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json npm run qa:hockey-pilot-gates -- --include-load
 npm run qa:hockey-pilot-tooling
 ```
+
+Use `npm run qa:hockey-evidence-commands` immediately before production-like browser/load evidence runs. Replace the warned placeholder values first, then tune the printed team count, peak users, load profile, traffic mix, support notes URL, and invite mode for the current invite wave.
 
 Add browser cockpit QA when a target app and QA credentials are ready:
 

@@ -41,7 +41,15 @@ npm run qa:hockey-pilot-wave-plan
 npm run qa:hockey-pilot-gates
 ```
 
-5. Run target-environment browser checks:
+5. Build the target-environment evidence commands:
+
+```bash
+npm run qa:hockey-evidence-commands
+```
+
+Replace anything listed under `Replace before running` before using the generated commands as invite evidence. The helper includes the target URL, deployment commit, QA login, pilot wave sizing, load profile, traffic mix, support metadata, invite mode, and dated evidence export path.
+
+6. Run target-environment browser checks:
 
 ```bash
 HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" npm run qa:hockey-browser-env
@@ -50,7 +58,7 @@ HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" npm run qa:hockey-
 
 For invite evidence, the browser target must be a production-like `https://` URL. Localhost browser checks are useful during development, but the combined browser gate fails local/plain HTTP targets on purpose. The browser preflight prints `Target production-like: yes/no` and `Target deployment matches commit SHA: yes/no`.
 
-6. Run the hockey pilot load test with evidence export:
+7. Run the hockey pilot load test with evidence export:
 
 ```bash
 HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" \
@@ -73,11 +81,11 @@ npm run qa:hockey-evidence-commands
 vercel inspect https://your-deployment-url.vercel.app
 ```
 
-`npm run qa:hockey-evidence-commands` prints the browser and load evidence commands from the current env, including target URL, deployment commit, invite mode, support owner, and evidence export path.
+`npm run qa:hockey-evidence-commands` prints the browser and load evidence commands from the current env, including target URL, deployment commit, QA credentials placeholders, pilot wave sizing, load profile, traffic mix, invite mode, support owner, support notes link, and evidence export path.
 
 The load runner records invite mode from `.env.local`, `load-tests/.env.k6`, or shell env. If you override invite mode for a one-off run, set `HOCKEY_PILOT_INVITE_MODE`, `EMAILS_PAUSED`, and `HOCKEY_PILOT_MANUAL_INVITE_OWNER` in the same shell command.
 
-7. Save the generated evidence:
+8. Save the generated evidence:
    - summary JSON
    - analyzer text
    - gate text
