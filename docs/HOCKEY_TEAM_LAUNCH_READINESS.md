@@ -161,7 +161,7 @@ At least one traffic weight must be greater than `0`; all-zero weights are treat
 
 Set `HOCKEY_PILOT_SUPPORT_OWNER`, `HOCKEY_PILOT_SUPPORT_SLA_HOURS`, and `HOCKEY_PILOT_OPEN_CRITICAL_ISSUES` before evidence runs. Any critical issue count above `0`, or a support SLA above `24`, marks the generated evidence decision as `FIX_AND_RERUN` even when the load gate passes.
 
-When `npm run qa:hockey-pilot-gates -- --include-load` is used as launch evidence, `BASE_URL` must be a production-like `https://` target. Localhost and plain HTTP are still useful for debugging, but they do not count as invite evidence. The browser and load preflights print `Target production-like: yes/no` so this is visible before a run is accepted.
+When `npm run qa:hockey-pilot-gates -- --include-load` is used as launch evidence, `BASE_URL` must be a production-like `https://` target. Localhost and plain HTTP are still useful for debugging, but they do not count as invite evidence. The browser and load preflights print `Target production-like: yes/no` and deployment commit match status so this is visible before a run is accepted.
 
 Run:
 

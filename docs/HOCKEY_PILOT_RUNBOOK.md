@@ -42,11 +42,11 @@ npm run qa:hockey-pilot-gates
 5. Run target-environment browser checks:
 
 ```bash
-npm run qa:hockey-browser-env
-npm run qa:hockey-pilot-gates -- --include-browser
+HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" npm run qa:hockey-browser-env
+HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" npm run qa:hockey-pilot-gates -- --include-browser
 ```
 
-For invite evidence, the browser target must be a production-like `https://` URL. Localhost browser checks are useful during development, but the combined browser gate fails local/plain HTTP targets on purpose. The browser preflight prints `Target production-like: yes/no`.
+For invite evidence, the browser target must be a production-like `https://` URL. Localhost browser checks are useful during development, but the combined browser gate fails local/plain HTTP targets on purpose. The browser preflight prints `Target production-like: yes/no` and `Target deployment matches commit SHA: yes/no`.
 
 6. Run the hockey pilot load test with evidence export:
 
@@ -61,7 +61,7 @@ npm run qa:hockey-pilot-gates -- --include-load
 
 For invite evidence, the load target must also be a production-like `https://` URL. Use localhost only for debugging the script itself. The load preflight also prints `Target production-like: yes/no`.
 
-Before using browser or load results for an invite decision, confirm the target deployment is the same commit SHA recorded in the manifest. Set `HOCKEY_PILOT_TARGET_COMMIT_SHA` when running load evidence so the generated manifest and evidence note record whether the deployment matches. A newer Vercel build means the evidence should be rerun against the new deployment.
+Before using browser or load results for an invite decision, confirm the target deployment is the same commit SHA recorded in the manifest or preflight output. Set `HOCKEY_PILOT_TARGET_COMMIT_SHA` when running invite evidence so the browser preflight, load manifest, and evidence note record whether the deployment matches. A newer Vercel build means the evidence should be rerun against the new deployment.
 
 7. Save the generated evidence:
    - summary JSON

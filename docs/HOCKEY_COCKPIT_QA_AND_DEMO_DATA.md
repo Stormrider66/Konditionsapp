@@ -21,10 +21,13 @@ TRAINOMICS_QA_BASE_URL="https://pilot.example.com" \
 TRAINOMICS_QA_EMAIL="coach@example.com" \
 TRAINOMICS_QA_PASSWORD="..." \
 TRAINOMICS_QA_BUSINESS_SLUG="skelleftea-aik" \
+HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" \
 npm run qa:hockey-pilot-gates -- --include-browser
 ```
 
 The combined browser gate intentionally fails localhost and plain HTTP targets so a local demo check cannot be mistaken for launch evidence.
+
+When `HOCKEY_PILOT_TARGET_COMMIT_SHA` is set, the browser preflight also fails strict pilot evidence if the target deployment commit does not match the current evidence commit.
 
 `npm run qa:hockey` still supports localhost for local development. When `HOCKEY_PILOT_GATE_MODES` includes `browser`, the runner itself applies the same production-like `https://` target guard as the preflight.
 
