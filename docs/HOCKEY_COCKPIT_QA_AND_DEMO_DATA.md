@@ -26,6 +26,8 @@ npm run qa:hockey-pilot-gates -- --include-browser
 
 The combined browser gate intentionally fails localhost and plain HTTP targets so a local demo check cannot be mistaken for launch evidence.
 
+`npm run qa:hockey` still supports localhost for local development. When `HOCKEY_PILOT_GATE_MODES` includes `browser`, the runner itself applies the same production-like `https://` target guard as the preflight.
+
 The script logs in, opens the hockey testing page, checks that the VO2/ramp, LT1/LT2, and 7x40 sections render, follows the first team shortcut, checks the team tests page for ice-speed/team-gap and aerobic-profile blocks, then opens the aerobic SIMCA export and verifies key aerobic variables are present.
 
 ## Demo Seed
