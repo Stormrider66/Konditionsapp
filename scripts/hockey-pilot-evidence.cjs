@@ -64,11 +64,33 @@ function relativeOrDash(filePath, cwd) {
 }
 
 function decisionFromManifest(manifest) {
-  if (manifest?.git?.dirty === true) return 'FIX_AND_RERUN'
-  if (Number.parseInt(manifest?.support?.openCriticalIssues || '0', 10) > 0) return 'FIX_AND_RERUN'
-  if (Number.parseInt(manifest?.support?.slaHours || '24', 10) > 24) return 'FIX_AND_RERUN'
-  if (manifest?.gateModes?.includes('load') && manifest?.targetInfo?.productionLike !== true) return 'FIX_AND_RERUN'
+  if (decisionReasons(manifest).length > 0) return 'FIX_AND_RERUN'
   return manifest?.result?.status === 'passed' ? 'GO' : 'FIX_AND_RERUN'
+}
+
+function decisionReasons(manifest) {
+  const reasons = []
+  if (manifest?.git?.dirty === true) reasons.push('git tree was dirty')
+  if (Number.parseInt(manifest?.support?.openCriticalIssues || '0', 10) > 0) {
+    reasons.push('open critical support issues were present')
+  }
+  if (Number.parseInt(manifest?.support?.slaHours || '24', 10) > 24) {
+    reasons.push('support SLA was above 24 hours')
+  }
+  if (manifest?.gateModes?.includes('load') && manifest?.targetInfo?.productionLike !== true) {
+    reasons.push(
+      manifest?.targetInfo
+        ? 'load evidence target was not production-like'
+        : 'load evidence target metadata was missing'
+    )
+  }
+  if (manifest?.result?.status !== 'passed') reasons.push('automated gate result was not passed')
+  return reasons
+}
+
+function formatDecisionReasons(manifest) {
+  const reasons = decisionReasons(manifest)
+  return reasons.length > 0 ? reasons.join('; ') : 'all automated launch evidence checks passed'
 }
 
 function formatList(value) {
@@ -109,6 +131,7 @@ function buildMarkdown({ manifest, summary, gateText, cwd }) {
 - Target URL: ${manifest.target || '-'}
 - Commit SHA: ${git.commitSha || '-'}
 - Decision: \`${decisionFromManifest(manifest)}\`
+- Decision reason: ${formatDecisionReasons(manifest)}
 
 ## Pilot Shape
 
@@ -209,7 +232,7 @@ ${endpointTable}
 
 ${decisionFromManifest(manifest) === 'GO'
   ? 'Automated hockey pilot load gate passed. Complete manual checks before inviting the next wave.'
-  : 'Automated hockey pilot gate did not fully pass. Fix the failed step and rerun before inviting more teams.'}
+  : `Automated hockey pilot gate did not fully pass: ${formatDecisionReasons(manifest)}. Fix and rerun before inviting more teams.`}
 `
 }
 

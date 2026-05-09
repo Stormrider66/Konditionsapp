@@ -138,6 +138,7 @@ describe('hockey-pilot-evidence', () => {
 
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('Decision: `GO`')
+    expect(result.stdout).toContain('Decision reason: all automated launch evidence checks passed')
     expect(result.stdout).toContain('Commit SHA: abc123pilotsha')
     expect(result.stdout).toContain('Evidence note:')
     expect(result.stdout).toContain('Git branch: main')
@@ -180,6 +181,7 @@ describe('hockey-pilot-evidence', () => {
     expect(existsSync(outputPath)).toBe(true)
     const markdown = readFileSync(outputPath, 'utf8')
     expect(markdown).toContain('Decision: `FIX_AND_RERUN`')
+    expect(markdown).toContain('Decision reason: automated gate result was not passed')
     expect(markdown).toContain('Failed step: hockey pilot summary gate')
     expect(result.stdout).toContain('Saved hockey pilot evidence note:')
   })
@@ -194,6 +196,7 @@ describe('hockey-pilot-evidence', () => {
 
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
+    expect(result.stdout).toContain('Decision reason: git tree was dirty')
     expect(result.stdout).toContain('Git tree dirty: yes')
     expect(result.stdout).toContain('Release evidence status: dirty tree; rerun from a committed state before inviting')
   })
@@ -212,6 +215,7 @@ describe('hockey-pilot-evidence', () => {
 
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
+    expect(result.stdout).toContain('Decision reason: open critical support issues were present')
     expect(result.stdout).toContain('Open critical support issues: 1')
   })
 
@@ -229,6 +233,7 @@ describe('hockey-pilot-evidence', () => {
 
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
+    expect(result.stdout).toContain('Decision reason: support SLA was above 24 hours')
     expect(result.stdout).toContain('Support SLA: 48h')
   })
 
@@ -251,6 +256,7 @@ describe('hockey-pilot-evidence', () => {
 
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
+    expect(result.stdout).toContain('Decision reason: load evidence target was not production-like')
     expect(result.stdout).toContain('Target production-like: no (local-target)')
   })
 
@@ -268,6 +274,7 @@ describe('hockey-pilot-evidence', () => {
 
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
+    expect(result.stdout).toContain('Decision reason: load evidence target metadata was missing')
     expect(result.stdout).toContain('Target production-like: -')
   })
 })
