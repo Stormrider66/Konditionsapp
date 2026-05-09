@@ -53,9 +53,10 @@ function isProductionLikeUrl(valueToCheck) {
 
 function commandWarnings(values) {
   const warnings = []
+  if (values.evidenceMode === 'debug') warnings.push('Debug evidence mode: browser/load results are not invite evidence.')
   if (isPlaceholder(values.deploymentUrl)) warnings.push('Set TRAINOMICS_QA_BASE_URL to the real production-like pilot URL.')
-  if (!isPlaceholder(values.deploymentUrl) && !isProductionLikeUrl(values.deploymentUrl)) warnings.push('Use a production-like https URL for invite evidence.')
-  if (!values.targetCommitProvided) warnings.push('Set HOCKEY_PILOT_TARGET_COMMIT_SHA from the Vercel deployment before invite evidence.')
+  if (values.evidenceMode !== 'debug' && !isPlaceholder(values.deploymentUrl) && !isProductionLikeUrl(values.deploymentUrl)) warnings.push('Use a production-like https URL for invite evidence.')
+  if (values.evidenceMode !== 'debug' && !values.targetCommitProvided) warnings.push('Set HOCKEY_PILOT_TARGET_COMMIT_SHA from the Vercel deployment before invite evidence.')
   if (isPlaceholder(values.qaEmail)) warnings.push('Set TRAINOMICS_QA_EMAIL to a real QA coach login.')
   if (isPlaceholder(values.qaPassword)) warnings.push('Set TRAINOMICS_QA_PASSWORD to the real QA coach password.')
   if (isPlaceholder(values.supportOwner)) warnings.push('Set HOCKEY_PILOT_SUPPORT_OWNER to a named person.')
@@ -69,6 +70,7 @@ function todayIsoDate(now = new Date()) {
 
 function buildCommands(env = process.env) {
   const currentCommit = value(env, ['GIT_COMMIT_SHA'], gitOutput('git rev-parse HEAD') || 'current-git-commit-sha')
+  const evidenceMode = value(env, ['HOCKEY_PILOT_EVIDENCE_MODE'], 'invite')
   const deploymentUrl = value(env, ['TRAINOMICS_QA_BASE_URL', 'VERCEL_DEPLOYMENT_URL', 'BASE_URL'], 'https://pilot.example.com')
   const targetCommitProvided = hasNonEmptyEnv(env, 'HOCKEY_PILOT_TARGET_COMMIT_SHA')
   const targetCommit = targetCommitProvided ? env.HOCKEY_PILOT_TARGET_COMMIT_SHA.trim() : currentCommit
@@ -104,6 +106,7 @@ function buildCommands(env = process.env) {
   const summaryExport = value(env, ['K6_SUMMARY_EXPORT'], `load-tests/evidence/hockey-pilot-${todayIsoDate()}.json`)
   const warnings = commandWarnings({
     deploymentUrl,
+    evidenceMode,
     qaEmail,
     qaPassword,
     supportOwner,
@@ -118,6 +121,13 @@ function buildCommands(env = process.env) {
     envPair('TRAINOMICS_QA_BUSINESS_SLUG', businessSlug),
     envPair('HOCKEY_PILOT_TARGET_COMMIT_SHA', targetCommit),
     'npm run qa:hockey-pilot-gates -- --include-browser',
+  ].join(' ')
+  const debugBrowserCommand = [
+    envPair('TRAINOMICS_QA_BASE_URL', deploymentUrl),
+    envPair('TRAINOMICS_QA_EMAIL', qaEmail),
+    envPair('TRAINOMICS_QA_PASSWORD', qaPassword),
+    envPair('TRAINOMICS_QA_BUSINESS_SLUG', businessSlug),
+    'npm run qa:hockey-browser-env',
   ].join(' ')
 
   const loadCommand = [
@@ -149,6 +159,7 @@ function buildCommands(env = process.env) {
     envPair('K6_SUMMARY_EXPORT', summaryExport),
     'npm run qa:hockey-pilot-gates -- --include-load',
   ].join(' ')
+  const debugLoadCommand = loadCommand.replace('npm run qa:hockey-pilot-gates -- --include-load', 'npm run load:k6:hockey-pilot')
 
   const monitoringCommand = [
     envPair('HOCKEY_PILOT_SUPPORT_OWNER', supportOwner),
@@ -163,9 +174,10 @@ function buildCommands(env = process.env) {
     currentCommit,
     deploymentUrl,
     targetCommit,
+    evidenceMode,
     warnings,
-    browserCommand,
-    loadCommand,
+    browserCommand: evidenceMode === 'debug' ? debugBrowserCommand : browserCommand,
+    loadCommand: evidenceMode === 'debug' ? debugLoadCommand : loadCommand,
     monitoringCommand,
   }
 }
@@ -174,6 +186,7 @@ function main(env = process.env) {
   const commands = buildCommands(env)
 
   console.log('Hockey pilot evidence commands')
+  console.log(`Evidence mode: ${commands.evidenceMode}`)
   console.log(`Current evidence commit: ${commands.currentCommit}`)
   console.log(`Target deployment URL: ${commands.deploymentUrl}`)
   console.log(`Target deployment commit: ${commands.targetCommit}`)

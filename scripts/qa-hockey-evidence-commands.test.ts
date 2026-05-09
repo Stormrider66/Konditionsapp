@@ -11,6 +11,7 @@ describe('qa-hockey-evidence-commands', () => {
   it('builds browser and load evidence commands from pilot env', () => {
     const commands = buildCommands({
       GIT_COMMIT_SHA: 'abc123pilotsha',
+      HOCKEY_PILOT_EVIDENCE_MODE: 'invite',
       TRAINOMICS_QA_BASE_URL: 'https://trainomics-hockey-pilot.vercel.app',
       HOCKEY_PILOT_TARGET_COMMIT_SHA: 'abc123pilotsha',
       TRAINOMICS_QA_EMAIL: 'pilot-coach@trainomics.test',
@@ -46,6 +47,7 @@ describe('qa-hockey-evidence-commands', () => {
     })
 
     expect(commands.currentCommit).toBe('abc123pilotsha')
+    expect(commands.evidenceMode).toBe('invite')
     expect(commands.targetCommit).toBe('abc123pilotsha')
     expect(commands.browserCommand).toContain('TRAINOMICS_QA_BASE_URL=https://trainomics-hockey-pilot.vercel.app')
     expect(commands.browserCommand).toContain('TRAINOMICS_QA_EMAIL=pilot-coach@trainomics.test')
@@ -105,6 +107,26 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.loadCommand).toContain('BASE_URL=https://trainomics-load-pilot.vercel.app')
   })
 
+  it('prints debug commands that are not invite evidence', () => {
+    const commands = buildCommands({
+      GIT_COMMIT_SHA: 'abc123pilotsha',
+      HOCKEY_PILOT_EVIDENCE_MODE: 'debug',
+      TRAINOMICS_QA_BASE_URL: 'http://localhost:3000',
+      TRAINOMICS_QA_EMAIL: 'pilot-coach@trainomics.test',
+      TRAINOMICS_QA_PASSWORD: 'secret',
+      HOCKEY_PILOT_SUPPORT_OWNER: 'Henrik',
+    })
+
+    expect(commands.evidenceMode).toBe('debug')
+    expect(commands.browserCommand).toContain('npm run qa:hockey-browser-env')
+    expect(commands.browserCommand).not.toContain('--include-browser')
+    expect(commands.loadCommand).toContain('npm run load:k6:hockey-pilot')
+    expect(commands.loadCommand).not.toContain('--include-load')
+    expect(commands.warnings).toContain('Debug evidence mode: browser/load results are not invite evidence.')
+    expect(commands.warnings).not.toContain('Use a production-like https URL for invite evidence.')
+  })
+
+
   it('uses today in the default evidence export path', () => {
     const commands = buildCommands({
       GIT_COMMIT_SHA: 'abc123pilotsha',
@@ -137,6 +159,7 @@ describe('qa-hockey-evidence-commands', () => {
   it('reports placeholders that must be replaced before running', () => {
     expect(commandWarnings({
       deploymentUrl: 'https://pilot.example.com',
+      evidenceMode: 'invite',
       qaEmail: 'coach@example.com',
       qaPassword: '...',
       supportOwner: 'Support Lead',
@@ -158,6 +181,7 @@ describe('qa-hockey-evidence-commands', () => {
 
     expect(commandWarnings({
       deploymentUrl: 'http://localhost:3000',
+      evidenceMode: 'invite',
       qaEmail: 'pilot-coach@trainomics.test',
       qaPassword: 'secret',
       supportOwner: 'Henrik',
@@ -171,6 +195,7 @@ describe('qa-hockey-evidence-commands', () => {
   it('reports when the deployment commit was not explicitly provided', () => {
     expect(commandWarnings({
       deploymentUrl: 'https://trainomics-hockey-pilot.vercel.app',
+      evidenceMode: 'invite',
       qaEmail: 'pilot-coach@trainomics.test',
       qaPassword: 'secret',
       supportOwner: 'Henrik',
