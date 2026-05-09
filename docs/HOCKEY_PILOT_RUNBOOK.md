@@ -60,6 +60,8 @@ npm run qa:hockey-pilot-gates -- --include-load
 
 For invite evidence, the load target must also be a production-like `https://` URL. Use localhost only for debugging the script itself. The load preflight also prints `Target production-like: yes/no`.
 
+Before using browser or load results for an invite decision, confirm the target deployment is the same commit SHA recorded in the manifest. A newer Vercel build means the evidence should be rerun against the new deployment.
+
 7. Save the generated evidence:
    - summary JSON
    - analyzer text
@@ -120,6 +122,7 @@ Continue to the next wave only when:
 - `npm run qa:hockey-pilot-gates` passes
 - `npm run qa:hockey-pilot-gates -- --include-load` passes with evidence export
 - browser and load gates were run against production-like `https://` targets
+- the target deployment commit matches the manifest commit SHA
 - the hockey pilot load summary gate passes
 - `npm run qa:daily-metrics-backlog` passes after the load run
 - the manifest says `result.status` is `passed`
@@ -133,6 +136,7 @@ Continue to the next wave only when:
 1. Review the generated evidence note.
    - Regenerate a pre-filled copy with `npm run qa:hockey-pilot-evidence -- <manifest.json> <output.md>` if needed.
    - Confirm `Target production-like` is `yes`; older manifests without target metadata must be rerun.
+   - Confirm the target deployment still matches the manifest commit SHA.
 2. Attach or link the generated artifacts.
 3. Record the decision:
    - `GO`

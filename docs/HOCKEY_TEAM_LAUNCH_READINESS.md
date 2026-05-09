@@ -223,6 +223,7 @@ Pass these before inviting the first external teams:
 - `npm run qa:daily-metrics-backlog` passes before and after the run
 - `npm run qa:hockey-pilot-tooling` passes after preflight, runner, or summary-gate edits
 - browser and load evidence were run against production-like `https://` targets
+- the production-like deployment commit matches the manifest commit SHA
 - support owner is explicit, SLA is `24h` or faster, and open critical support issue count is `0`
 - hockey pilot load test passes at `35` steady VUs and `75` peak VUs
 - overall `http_req_failed < 1.5%`
@@ -283,6 +284,7 @@ Pass these before inviting the first external teams:
 - summary gate output (`<summary>.gate.txt`)
 - run manifest (`<summary>.manifest.json`)
 - commit SHA
+- deployment commit checked against the manifest commit SHA
 - environment: local/staging/production
 - VU knobs used
 - seeded/imported data size

@@ -47,6 +47,7 @@ HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCK
 - Git branch:
 - Git tree dirty:
 - Release evidence status:
+- Target deployment matches commit SHA: `yes/no`
 - Business/team:
 - Target production-like: `yes/no` (`reason`)
 - Client ID count:
