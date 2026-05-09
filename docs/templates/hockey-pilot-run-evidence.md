@@ -8,6 +8,7 @@
 - Target URL:
 - Commit SHA:
 - Decision: `GO` / `PAUSE` / `FIX_AND_RERUN`
+- Decision reason:
 
 ## Pilot Shape
 
@@ -106,4 +107,4 @@ HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCK
 
 ## Decision Notes
 
-Write the short reason for the decision here. If paused, include the fix owner and the next rerun condition.
+Write the short reason for the decision here. If paused or marked `FIX_AND_RERUN`, include the fix owner and the next rerun condition.

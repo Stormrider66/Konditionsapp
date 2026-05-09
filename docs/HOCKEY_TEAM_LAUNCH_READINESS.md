@@ -193,6 +193,8 @@ When the hockey pilot run finishes, the runner also saves `<summary>.analyzer.tx
 
 Only manifests that include `targetInfo.productionLike: true` count as invite evidence. Older manifests without target metadata, localhost runs, and plain HTTP runs should be treated as `FIX_AND_RERUN`.
 
+The generated evidence note includes a `Decision reason` line. For `FIX_AND_RERUN`, use that line as the first triage clue before digging into logs.
+
 If k6 exits nonzero after writing the summary JSON, the runner still saves analyzer, gate, and manifest evidence. The manifest records the k6 exit code so threshold failures are reviewable instead of disappearing into terminal scrollback.
 
 Regenerate the pre-filled go/no-go evidence note from the manifest if needed:
