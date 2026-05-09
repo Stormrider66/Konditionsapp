@@ -55,6 +55,10 @@ function buildCommands(env = process.env) {
   const businessSlug = value(env, ['TRAINOMICS_QA_BUSINESS_SLUG', 'E2E_BUSINESS_SLUG'], 'skelleftea-aik')
   const qaEmail = value(env, ['TRAINOMICS_QA_EMAIL', 'E2E_COACH_EMAIL'], 'coach@example.com')
   const qaPassword = value(env, ['TRAINOMICS_QA_PASSWORD', 'E2E_COACH_PASSWORD'], '...')
+  const teamCount = value(env, ['HOCKEY_PILOT_TEAM_COUNT'], '6')
+  const athletesPerTeam = value(env, ['HOCKEY_PILOT_ATHLETES_PER_TEAM'], '30')
+  const staffPerTeam = value(env, ['HOCKEY_PILOT_STAFF_PER_TEAM'], '5')
+  const expectedPeakUsers = value(env, ['HOCKEY_PILOT_EXPECTED_PEAK_USERS'], '75')
   const supportOwner = value(env, ['HOCKEY_PILOT_SUPPORT_OWNER'], 'Support Lead')
   const supportSlaHours = value(env, ['HOCKEY_PILOT_SUPPORT_SLA_HOURS'], '24')
   const supportNotesUrl = value(env, ['HOCKEY_PILOT_SUPPORT_NOTES_URL'], '')
@@ -80,6 +84,10 @@ function buildCommands(env = process.env) {
   ].join(' ')
 
   const loadCommand = [
+    envPair('HOCKEY_PILOT_TEAM_COUNT', teamCount),
+    envPair('HOCKEY_PILOT_ATHLETES_PER_TEAM', athletesPerTeam),
+    envPair('HOCKEY_PILOT_STAFF_PER_TEAM', staffPerTeam),
+    envPair('HOCKEY_PILOT_EXPECTED_PEAK_USERS', expectedPeakUsers),
     envPair('HOCKEY_PILOT_SUPPORT_OWNER', supportOwner),
     envPair('HOCKEY_PILOT_SUPPORT_SLA_HOURS', supportSlaHours),
     ...(supportNotesUrl ? [envPair('HOCKEY_PILOT_SUPPORT_NOTES_URL', supportNotesUrl)] : []),

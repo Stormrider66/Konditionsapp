@@ -15,6 +15,10 @@ describe('qa-hockey-evidence-commands', () => {
       TRAINOMICS_QA_EMAIL: 'pilot-coach@trainomics.test',
       TRAINOMICS_QA_PASSWORD: 'secret pass',
       TRAINOMICS_QA_BUSINESS_SLUG: 'pilot-club',
+      HOCKEY_PILOT_TEAM_COUNT: '4',
+      HOCKEY_PILOT_ATHLETES_PER_TEAM: '22',
+      HOCKEY_PILOT_STAFF_PER_TEAM: '3',
+      HOCKEY_PILOT_EXPECTED_PEAK_USERS: '38',
       HOCKEY_PILOT_SUPPORT_OWNER: 'Henrik',
       HOCKEY_PILOT_SUPPORT_SLA_HOURS: '12',
       HOCKEY_PILOT_SUPPORT_NOTES_URL: 'https://notes.example.com/pilot',
@@ -31,6 +35,10 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.browserCommand).toContain('TRAINOMICS_QA_EMAIL=pilot-coach@trainomics.test')
     expect(commands.browserCommand).toContain('TRAINOMICS_QA_PASSWORD="secret pass"')
     expect(commands.browserCommand).toContain('npm run qa:hockey-pilot-gates -- --include-browser')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_TEAM_COUNT=4')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_ATHLETES_PER_TEAM=22')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_STAFF_PER_TEAM=3')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_EXPECTED_PEAK_USERS=38')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_SUPPORT_OWNER=Henrik')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_SUPPORT_NOTES_URL=https://notes.example.com/pilot')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_INVITE_MODE=manual')
@@ -56,6 +64,17 @@ describe('qa-hockey-evidence-commands', () => {
     })
 
     expect(commands.loadCommand).toContain(`K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-${todayIsoDate()}.json`)
+  })
+
+  it('uses the first hockey pilot wave as the default load shape', () => {
+    const commands = buildCommands({
+      GIT_COMMIT_SHA: 'abc123pilotsha',
+    })
+
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_TEAM_COUNT=6')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_ATHLETES_PER_TEAM=30')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_STAFF_PER_TEAM=5')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_EXPECTED_PEAK_USERS=75')
   })
 
   it('quotes shell values that contain spaces', () => {
