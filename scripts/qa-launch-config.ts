@@ -83,13 +83,15 @@ export function checkLaunchConfig(env: Record<string, string | undefined>) {
     errors,
     warnings,
     inviteMode,
+    emailsPaused,
+    manualInviteOwner: env.HOCKEY_PILOT_MANUAL_INVITE_OWNER || null,
   }
 }
 
 function main() {
   loadLocalEnv()
 
-  const { errors, warnings, inviteMode } = checkLaunchConfig(process.env)
+  const { errors, warnings, inviteMode, emailsPaused, manualInviteOwner } = checkLaunchConfig(process.env)
 
   if (errors.length > 0) {
     console.error('Hockey pilot launch config failed:')
@@ -100,6 +102,8 @@ function main() {
   }
 
   console.log(`Hockey pilot launch config passed (${inviteMode} invite mode).`)
+  console.log(`Emails paused: ${emailsPaused ? 'yes' : 'no'}`)
+  if (inviteMode === 'manual') console.log(`Manual invite owner: ${manualInviteOwner || '-'}`)
   for (const warning of warnings) console.warn(`Warning: ${warning}`)
 }
 

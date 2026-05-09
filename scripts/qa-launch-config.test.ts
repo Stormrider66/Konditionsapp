@@ -27,6 +27,8 @@ describe('qa-launch-config', () => {
 
     expect(result.errors).toEqual([])
     expect(result.warnings).toEqual([])
+    expect(result.emailsPaused).toBe(true)
+    expect(result.manualInviteOwner).toBe('Henrik')
   })
 
   it('requires production email and auth config for live invite mode', () => {
