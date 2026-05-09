@@ -69,8 +69,11 @@ Find the real deployment commit from the Vercel deployment details page before r
 
 ```bash
 npm run qa:hockey-deployment-commit
+npm run qa:hockey-evidence-commands
 vercel inspect https://your-deployment-url.vercel.app
 ```
+
+`npm run qa:hockey-evidence-commands` prints the browser and load evidence commands from the current env, including target URL, deployment commit, invite mode, support owner, and evidence export path.
 
 The load runner records invite mode from `.env.local`, `load-tests/.env.k6`, or shell env. If you override invite mode for a one-off run, set `HOCKEY_PILOT_INVITE_MODE`, `EMAILS_PAUSED`, and `HOCKEY_PILOT_MANUAL_INVITE_OWNER` in the same shell command.
 

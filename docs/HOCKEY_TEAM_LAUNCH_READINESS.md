@@ -193,7 +193,7 @@ When the hockey pilot run finishes, the runner also saves `<summary>.analyzer.tx
 
 Set `HOCKEY_PILOT_TARGET_COMMIT_SHA` to the Vercel deployment commit when running invite evidence. The manifest records whether that deployment commit matches the manifest commit, and a mismatch marks the generated decision as `FIX_AND_RERUN`.
 
-Do not leave `HOCKEY_PILOT_TARGET_COMMIT_SHA` as `vercel-deployment-commit-sha`; the browser and load preflights reject that placeholder. Run `npm run qa:hockey-deployment-commit`, then copy the real commit from the Vercel deployment details page or inspect the deployment with `vercel inspect <deployment-url>`.
+Do not leave `HOCKEY_PILOT_TARGET_COMMIT_SHA` as `vercel-deployment-commit-sha`; the browser and load preflights reject that placeholder. Run `npm run qa:hockey-deployment-commit`, then copy the real commit from the Vercel deployment details page or inspect the deployment with `vercel inspect <deployment-url>`. Run `npm run qa:hockey-evidence-commands` to print the browser and load evidence commands from the current env.
 
 Invite metadata in the evidence manifest is loaded from `.env.local`, `load-tests/.env.k6`, and shell env, in that order of priority. Shell env wins for one-off runs. Load evidence without invite mode, email pause state, and manual owner for manual mode is treated as `FIX_AND_RERUN`.
 
