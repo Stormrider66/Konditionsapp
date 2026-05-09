@@ -35,7 +35,7 @@
     "qa:hockey-pilot-env": "node scripts/qa-hockey-pilot-env.cjs",
     "qa:hockey-pilot-evidence": "node scripts/hockey-pilot-evidence.cjs",
     "qa:hockey-pilot-wave-plan": "node scripts/qa-hockey-pilot-wave-plan.cjs",
-    "qa:hockey-pilot-tenant-boundary": "vitest run __tests__/api/tenant-boundary/access-routes.test.ts __tests__/api/tenant-boundary/calendar-unified.test.ts __tests__/api/tenant-boundary/agent-dispatch.test.ts app/api/coach/staff/route.test.ts",
+    "qa:hockey-pilot-tenant-boundary": "vitest run __tests__/api/tenant-boundary/access-routes.test.ts __tests__/api/tenant-boundary/calendar-unified.test.ts __tests__/api/tenant-boundary/agent-dispatch.test.ts __tests__/api/tenant-boundary/hockey-pilot.test.ts app/api/coach/staff/route.test.ts",
     "qa:hockey-pilot-summary": "node load-tests/k6/check-hockey-pilot-summary.cjs",
     "qa:hockey-pilot-tooling": "vitest run scripts/qa-hockey-browser-env.test.ts scripts/qa-hockey-pilot-env.test.ts scripts/hockey-pilot-evidence.test.ts scripts/qa-cron-config.test.ts scripts/qa-daily-metrics-backlog.test.ts scripts/qa-launch-config.test.ts scripts/qa-hockey-pilot-gates.test.ts scripts/qa-hockey-pilot-wave-plan.test.ts load-tests/k6/check-hockey-pilot-summary.test.ts load-tests/k6/run.test.ts",
     "qa:hockey-pilot-readiness": "node scripts/qa-hockey-pilot-readiness.cjs",
