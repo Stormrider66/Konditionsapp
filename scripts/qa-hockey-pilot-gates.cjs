@@ -103,6 +103,17 @@ function formatCommand(check) {
   return [check.command, ...(check.args || [])].join(' ')
 }
 
+function nextStepMessages({ includeBrowserQa = false, includeLoadQa = false } = {}) {
+  const messages = []
+  if (!includeBrowserQa) {
+    messages.push('Browser cockpit QA was skipped. Run: npm run qa:hockey-pilot-gates -- --include-browser')
+  }
+  if (!includeLoadQa) {
+    messages.push('Pilot load run was skipped. Run with evidence export: HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load')
+  }
+  return messages
+}
+
 function runCheck(check) {
   console.log(`\n== ${check.label} ==\n`)
   const result = spawnSync(check.command, check.args, {
@@ -152,12 +163,7 @@ function main() {
   }
 
   console.log('\nHockey pilot gate checks passed.')
-  if (!includeBrowserQa) {
-    console.log('Browser cockpit QA was skipped. Add --include-browser when a target app and QA credentials are ready.')
-  }
-  if (!includeLoadQa) {
-    console.log('Pilot load run was skipped. Add --include-load when K6_SUMMARY_EXPORT and load-test auth are ready.')
-  }
+  for (const message of nextStepMessages({ includeBrowserQa, includeLoadQa })) console.log(message)
 }
 
 if (require.main === module) {
@@ -168,6 +174,7 @@ module.exports = {
   buildChecks,
   formatCommand,
   gateModeEnv,
+  nextStepMessages,
   runChecks,
   shouldIncludeBrowserQa,
   shouldIncludeLoadQa,
