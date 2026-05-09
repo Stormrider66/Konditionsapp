@@ -51,6 +51,8 @@ npm run qa:hockey-evidence-commands
 
 Replace anything listed under `Replace before running` before using the generated commands as invite evidence. The helper includes the target URL, deployment commit, QA login, pilot wave sizing, load profile, traffic mix, support metadata, invite mode, dated evidence export path, and post-invite monitoring command.
 
+For local rehearsal only, set `HOCKEY_PILOT_EVIDENCE_MODE=debug` before running `npm run qa:hockey-evidence-commands`. Debug mode prints non-strict browser/load commands and clearly marks the output as not invite evidence. Use the default `invite` mode for any external-team decision.
+
 6. Run target-environment browser checks:
 
 ```bash
