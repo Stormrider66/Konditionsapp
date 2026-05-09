@@ -160,7 +160,9 @@ describe('load-tests k6 runner', () => {
       K6_BIN: fakeK6.scriptPath,
       K6_SUMMARY_EXPORT: summaryPath,
       HOCKEY_PILOT_GATE_MODES: 'deterministic,load',
+      GIT_COMMIT_SHA: 'abc123pilotsha',
       GIT_TREE_DIRTY: 'false',
+      HOCKEY_PILOT_TARGET_COMMIT_SHA: 'abc123',
     })
 
     expect(result.status).toBe(0)
@@ -178,7 +180,7 @@ describe('load-tests k6 runner', () => {
     expect(manifest.script).toBe('hockey-pilot')
     expect(manifest.result).toEqual({ status: 'passed', failedStep: null, exitCode: 0, k6ExitCode: 0 })
     expect(manifest.gateModes).toEqual(['deterministic', 'load'])
-    expect(manifest.git.commitSha).toMatch(/^[0-9a-f]{40}$/)
+    expect(manifest.git.commitSha).toBe('abc123pilotsha')
     expect(manifest.git.branch).toEqual(expect.any(String))
     expect(typeof manifest.git.dirty).toBe('boolean')
     expect(manifest.target).toBe('https://pilot.example.com')
@@ -188,8 +190,8 @@ describe('load-tests k6 runner', () => {
       reason: 'https-production-like',
     })
     expect(manifest.targetDeployment).toEqual({
-      commitSha: null,
-      matchesManifestCommit: null,
+      commitSha: 'abc123',
+      matchesManifestCommit: true,
     })
     expect(manifest.businessId).toBe('business-1')
     expect(manifest.teamId).toBe('team-1')

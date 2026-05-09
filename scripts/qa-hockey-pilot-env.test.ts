@@ -226,12 +226,25 @@ describe('qa-hockey-pilot-env', () => {
     expect(result.stderr).toContain('Set K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json so the run saves evidence for review.')
   })
 
+  it('requires target deployment commit when running as the load gate', () => {
+    const result = runPreflight(
+      baseEnvLines(),
+      {
+        GIT_COMMIT_SHA: 'abc123pilotsha',
+        HOCKEY_PILOT_GATE_MODES: 'deterministic,load',
+      }
+    )
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('HOCKEY_PILOT_TARGET_COMMIT_SHA is required for load invite evidence.')
+  })
+
   it('requires production-like https target when running as the load gate', () => {
     const localResult = runPreflight(
       baseEnvLines([
         'BASE_URL=http://localhost:3000',
       ]),
-      { HOCKEY_PILOT_GATE_MODES: 'deterministic,load' }
+      { GIT_COMMIT_SHA: 'abc123pilotsha', HOCKEY_PILOT_TARGET_COMMIT_SHA: 'abc123', HOCKEY_PILOT_GATE_MODES: 'deterministic,load' }
     )
     expect(localResult.status).toBe(1)
     expect(localResult.stderr).toContain('Pilot load gate target must be production-like, not localhost.')
@@ -240,7 +253,7 @@ describe('qa-hockey-pilot-env', () => {
       baseEnvLines([
         'BASE_URL=http://pilot.example.com',
       ]),
-      { HOCKEY_PILOT_GATE_MODES: 'deterministic,load' }
+      { GIT_COMMIT_SHA: 'abc123pilotsha', HOCKEY_PILOT_TARGET_COMMIT_SHA: 'abc123', HOCKEY_PILOT_GATE_MODES: 'deterministic,load' }
     )
     expect(plainHttpResult.status).toBe(1)
     expect(plainHttpResult.stderr).toContain('Pilot load gate target must use https for launch evidence.')

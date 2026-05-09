@@ -172,6 +172,10 @@ function main() {
   for (const error of waveValidation.errors) errors.push(error);
   for (const warning of waveValidation.warnings) warnings.push(warning);
 
+  if (requiresEvidenceExport && !targetDeploymentCommit) {
+    errors.push('HOCKEY_PILOT_TARGET_COMMIT_SHA is required for load invite evidence.');
+  }
+
   if (requiresEvidenceExport && targetDeploymentMatches === false) {
     errors.push('HOCKEY_PILOT_TARGET_COMMIT_SHA does not match the current manifest commit.');
   }
