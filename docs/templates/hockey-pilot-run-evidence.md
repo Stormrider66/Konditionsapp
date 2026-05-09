@@ -63,6 +63,15 @@ K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:ho
 | --- | ---: | ---: | ---: |
 |  |  |  |  |
 
+## Access Checks
+
+- Automated tenant-boundary regressions:
+- Staff invite/team assignment regressions:
+- Live Team A vs Team B coach check:
+- Live athlete-to-athlete summary check:
+- Live team-scoped export check:
+- Live support/admin override check:
+
 ## Manual Checks
 
 - Coach can open assigned team dashboard:

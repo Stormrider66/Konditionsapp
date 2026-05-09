@@ -159,6 +159,15 @@ K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run qa:hocke
 | --- | ---: | ---: | ---: |
 ${endpointTable}
 
+## Access Checks
+
+- Automated tenant-boundary regressions: ${manifest.gateModes?.includes('deterministic') ? 'run via `qa:hockey-pilot-gates`' : '-'}
+- Staff invite/team assignment regressions: ${manifest.gateModes?.includes('deterministic') ? 'run via `qa:hockey-pilot-tenant-boundary`' : '-'}
+- Live Team A vs Team B coach check: -
+- Live athlete-to-athlete summary check: -
+- Live team-scoped export check: -
+- Live support/admin override check: -
+
 ## Manual Checks
 
 - Coach can open assigned team dashboard: -
