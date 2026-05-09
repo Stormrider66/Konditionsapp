@@ -161,7 +161,7 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Support owner: Support Lead')
     expect(result.stdout).toContain('Support SLA: 24h')
     expect(result.stdout).toContain('Open critical support issues: 0')
-    expect(result.stdout).toContain('HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0')
+    expect(result.stdout).toContain('HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 HOCKEY_PILOT_TARGET_COMMIT_SHA="abc123"')
     expect(result.stdout).toContain('Overall p95: 1741ms')
     expect(result.stdout).toContain('Slowest endpoint: hockey-simca-export (2752ms p95)')
     expect(result.stdout).toContain('| team-dashboard | 1393ms | 1671ms | 0.00% |')

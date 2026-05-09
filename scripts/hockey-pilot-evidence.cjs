@@ -152,7 +152,7 @@ npm run qa:hockey-pilot-readiness
 npm run qa:hockey-pilot-gates
 npm run qa:launch-config
 npm run qa:hockey
-HOCKEY_PILOT_SUPPORT_OWNER="${support.owner || 'Support Lead'}" HOCKEY_PILOT_SUPPORT_SLA_HOURS=${support.slaHours || '24'} HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run qa:hockey-pilot-gates -- --include-load
+HOCKEY_PILOT_SUPPORT_OWNER="${support.owner || 'Support Lead'}" HOCKEY_PILOT_SUPPORT_SLA_HOURS=${support.slaHours || '24'} HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 HOCKEY_PILOT_TARGET_COMMIT_SHA="${targetDeployment.commitSha || git.commitSha || 'vercel-deployment-commit-sha'}" K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run qa:hockey-pilot-gates -- --include-load
 \`\`\`
 
 ## Artifacts
