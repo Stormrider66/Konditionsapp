@@ -20,6 +20,8 @@ Use this during the first 3-6 team hockey pilot. The goal is simple: invite grad
    - `live`: emails are enabled and verified
    - `manual`: emails are paused and one owner handles follow-up
 
+   For manual mode, `HOCKEY_PILOT_MANUAL_INVITE_OWNER` must be a named person, not `TBD`, `owner`, or `Support Lead`.
+
 3. Confirm the invite wave size:
 
 ```bash

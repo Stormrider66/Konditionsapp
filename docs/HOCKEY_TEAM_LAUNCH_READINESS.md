@@ -55,7 +55,7 @@ HOCKEY_PILOT_INVITE_MODE=manual  # email suppressed/manual follow-up
 
 When `live`, the check requires `EMAILS_PAUSED` to be off, Resend to be configured, Supabase service role credentials to be present, and `NEXT_PUBLIC_APP_URL` to be a production `https://` URL.
 
-When `manual`, the check requires outbound email to be paused and requires `HOCKEY_PILOT_MANUAL_INVITE_OWNER` so follow-up ownership is explicit.
+When `manual`, the check requires outbound email to be paused and requires `HOCKEY_PILOT_MANUAL_INVITE_OWNER` so follow-up ownership is explicit. The owner must be a named person, not a placeholder.
 
 ## Immediate Test Data
 
