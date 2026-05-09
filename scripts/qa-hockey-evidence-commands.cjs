@@ -51,8 +51,14 @@ function isProductionLikeUrl(valueToCheck) {
   }
 }
 
+function normalizeEvidenceMode(rawMode) {
+  const normalized = String(rawMode || 'invite').trim().toLowerCase()
+  return normalized === 'debug' || normalized === 'invite' ? normalized : 'invite'
+}
+
 function commandWarnings(values) {
   const warnings = []
+  if (values.rawEvidenceMode && normalizeEvidenceMode(values.rawEvidenceMode) !== String(values.rawEvidenceMode).trim().toLowerCase()) warnings.push('HOCKEY_PILOT_EVIDENCE_MODE must be invite or debug; using invite mode.')
   if (values.evidenceMode === 'debug') warnings.push('Debug evidence mode: browser/load results are not invite evidence.')
   if (isPlaceholder(values.deploymentUrl)) warnings.push('Set TRAINOMICS_QA_BASE_URL to the real production-like pilot URL.')
   if (values.evidenceMode !== 'debug' && !isPlaceholder(values.deploymentUrl) && !isProductionLikeUrl(values.deploymentUrl)) warnings.push('Use a production-like https URL for invite evidence.')
@@ -70,7 +76,8 @@ function todayIsoDate(now = new Date()) {
 
 function buildCommands(env = process.env) {
   const currentCommit = value(env, ['GIT_COMMIT_SHA'], gitOutput('git rev-parse HEAD') || 'current-git-commit-sha')
-  const evidenceMode = value(env, ['HOCKEY_PILOT_EVIDENCE_MODE'], 'invite')
+  const rawEvidenceMode = value(env, ['HOCKEY_PILOT_EVIDENCE_MODE'], 'invite')
+  const evidenceMode = normalizeEvidenceMode(rawEvidenceMode)
   const deploymentUrl = value(env, ['TRAINOMICS_QA_BASE_URL', 'VERCEL_DEPLOYMENT_URL', 'BASE_URL'], 'https://pilot.example.com')
   const targetCommitProvided = hasNonEmptyEnv(env, 'HOCKEY_PILOT_TARGET_COMMIT_SHA')
   const targetCommit = targetCommitProvided ? env.HOCKEY_PILOT_TARGET_COMMIT_SHA.trim() : currentCommit
@@ -107,6 +114,7 @@ function buildCommands(env = process.env) {
   const warnings = commandWarnings({
     deploymentUrl,
     evidenceMode,
+    rawEvidenceMode,
     qaEmail,
     qaPassword,
     supportOwner,
@@ -217,6 +225,7 @@ module.exports = {
   buildCommands,
   commandWarnings,
   isProductionLikeUrl,
+  normalizeEvidenceMode,
   main,
   shellQuote,
   todayIsoDate,

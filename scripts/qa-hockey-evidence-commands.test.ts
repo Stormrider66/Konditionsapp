@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
-const { buildCommands, commandWarnings, isProductionLikeUrl, main, shellQuote, todayIsoDate } = require(path.join(testDir, 'qa-hockey-evidence-commands.cjs'))
+const { buildCommands, commandWarnings, isProductionLikeUrl, main, normalizeEvidenceMode, shellQuote, todayIsoDate } = require(path.join(testDir, 'qa-hockey-evidence-commands.cjs'))
 
 describe('qa-hockey-evidence-commands', () => {
   it('builds browser and load evidence commands from pilot env', () => {
@@ -126,6 +126,25 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.warnings).not.toContain('Use a production-like https URL for invite evidence.')
   })
 
+  it('falls back to invite mode for unknown evidence modes', () => {
+    expect(normalizeEvidenceMode('debug')).toBe('debug')
+    expect(normalizeEvidenceMode('invite')).toBe('invite')
+    expect(normalizeEvidenceMode('debig')).toBe('invite')
+
+    const commands = buildCommands({
+      GIT_COMMIT_SHA: 'abc123pilotsha',
+      HOCKEY_PILOT_EVIDENCE_MODE: 'debig',
+      TRAINOMICS_QA_BASE_URL: 'https://trainomics-hockey-pilot.vercel.app',
+      HOCKEY_PILOT_TARGET_COMMIT_SHA: 'abc123',
+    })
+
+    expect(commands.evidenceMode).toBe('invite')
+    expect(commands.warnings).toContain('HOCKEY_PILOT_EVIDENCE_MODE must be invite or debug; using invite mode.')
+    expect(commands.browserCommand).toContain('--include-browser')
+    expect(commands.loadCommand).toContain('--include-load')
+  })
+
+
 
   it('uses today in the default evidence export path', () => {
     const commands = buildCommands({
@@ -160,6 +179,7 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commandWarnings({
       deploymentUrl: 'https://pilot.example.com',
       evidenceMode: 'invite',
+      rawEvidenceMode: 'invite',
       qaEmail: 'coach@example.com',
       qaPassword: '...',
       supportOwner: 'Support Lead',
