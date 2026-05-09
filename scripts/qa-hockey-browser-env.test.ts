@@ -124,6 +124,8 @@ describe('qa-hockey-browser-env', () => {
       email: 'coach@example.com',
       password: 'secret',
       strictTarget: true,
+      currentCommitSha: 'abc123pilotsha',
+      targetDeploymentCommit: 'abc123',
     }).errors).toEqual([
       'Browser QA target is local; use a production-like URL before inviting external teams.',
     ])
@@ -134,9 +136,27 @@ describe('qa-hockey-browser-env', () => {
       email: 'coach@example.com',
       password: 'secret',
       strictTarget: true,
+      currentCommitSha: 'abc123pilotsha',
+      targetDeploymentCommit: 'abc123',
     }).errors).toEqual([
       'Browser QA target is not https; production-like pilot checks should use https.',
     ])
+  })
+
+  it('fails strict browser evidence without a target deployment commit', () => {
+    const result = validateBrowserQaConfig({
+      baseUrl: 'https://pilot.example.com',
+      businessSlug: 'pilot-club',
+      email: 'coach@example.com',
+      password: 'secret',
+      strictTarget: true,
+      currentCommitSha: 'abc123pilotsha',
+    })
+
+    expect(result.errors).toEqual([
+      'HOCKEY_PILOT_TARGET_COMMIT_SHA is required for browser invite evidence.',
+    ])
+    expect(result.targetDeploymentMatches).toBeNull()
   })
 
   it('fails strict browser evidence when the target deployment commit does not match', () => {

@@ -116,6 +116,10 @@ function validateBrowserQaConfig(config) {
     errors.push('TRAINOMICS_QA_PASSWORD or E2E_COACH_PASSWORD is required for browser QA.')
   }
 
+  if (config.strictTarget && !config.targetDeploymentCommit) {
+    errors.push('HOCKEY_PILOT_TARGET_COMMIT_SHA is required for browser invite evidence.')
+  }
+
   if (config.strictTarget && targetDeploymentMatches === false) {
     errors.push('HOCKEY_PILOT_TARGET_COMMIT_SHA does not match the current browser evidence commit.')
   }
