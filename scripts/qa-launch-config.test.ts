@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkLaunchConfig, isHttpsProductionUrl, normalizeEnvValue } from './qa-launch-config'
+import { checkLaunchConfig, isHttpsProductionUrl, isPlaceholderOwner, normalizeEnvValue } from './qa-launch-config'
 
 describe('qa-launch-config', () => {
   it('requires a valid invite mode', () => {
@@ -29,6 +29,17 @@ describe('qa-launch-config', () => {
     expect(result.warnings).toEqual([])
     expect(result.emailsPaused).toBe(true)
     expect(result.manualInviteOwner).toBe('Henrik')
+  })
+
+  it('rejects placeholder manual invite owners', () => {
+    expect(checkLaunchConfig({
+      HOCKEY_PILOT_INVITE_MODE: 'manual',
+      EMAILS_PAUSED: 'true',
+      HOCKEY_PILOT_MANUAL_INVITE_OWNER: 'TBD',
+      USE_JWT_CLAIMS: 'true',
+    }).errors).toEqual([
+      'HOCKEY_PILOT_MANUAL_INVITE_OWNER must be a named person, not a placeholder.',
+    ])
   })
 
   it('requires production email and auth config for live invite mode', () => {
@@ -61,6 +72,11 @@ describe('qa-launch-config', () => {
     expect(isHttpsProductionUrl('http://app.example.com')).toBe(false)
     expect(isHttpsProductionUrl('https://localhost:3000')).toBe(false)
     expect(isHttpsProductionUrl('not-a-url')).toBe(false)
+  })
+
+  it('detects placeholder owner values', () => {
+    expect(isPlaceholderOwner('Support Lead')).toBe(true)
+    expect(isPlaceholderOwner('Henrik')).toBe(false)
   })
 
   it('normalizes .env.local values with quotes and inline comments', () => {

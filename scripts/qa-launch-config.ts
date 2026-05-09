@@ -46,6 +46,11 @@ export function isHttpsProductionUrl(value: string | undefined) {
   }
 }
 
+export function isPlaceholderOwner(value: string | undefined) {
+  const normalized = (value || '').trim().toLowerCase()
+  return ['owner', 'support lead', 'tbd', 'todo', 'manual owner'].includes(normalized)
+}
+
 export function checkLaunchConfig(env: Record<string, string | undefined>) {
   const errors: string[] = []
   const warnings: string[] = []
@@ -72,6 +77,8 @@ export function checkLaunchConfig(env: Record<string, string | undefined>) {
     }
     if (!env.HOCKEY_PILOT_MANUAL_INVITE_OWNER) {
       errors.push('HOCKEY_PILOT_MANUAL_INVITE_OWNER is required for manual invite follow-up.')
+    } else if (isPlaceholderOwner(env.HOCKEY_PILOT_MANUAL_INVITE_OWNER)) {
+      errors.push('HOCKEY_PILOT_MANUAL_INVITE_OWNER must be a named person, not a placeholder.')
     }
   }
 
