@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { readPlan: readWavePlan, validatePlan: validateWavePlan } = require('./qa-hockey-pilot-wave-plan.cjs');
 
 const envPath = process.env.K6_ENV_PATH
   ? path.resolve(process.cwd(), process.env.K6_ENV_PATH)
@@ -52,6 +53,12 @@ function nonNegativeFloat(value, fallback) {
   return Number.isFinite(parsed) ? Math.max(0, parsed) : fallback;
 }
 
+function positiveInteger(value, fallback) {
+  if (value == null || value === '') return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 function main() {
   const env = { ...parseEnvFile(envPath), ...process.env };
   const errors = [];
@@ -91,7 +98,17 @@ function main() {
       ? 'bearer'
       : env.ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL
         ? 'bypass'
-        : 'missing';
+      : 'missing';
+  const wavePlan = readWavePlan(env);
+  const waveValidation = validateWavePlan(wavePlan);
+  const peakVus = positiveInteger(env.HOCKEY_PILOT_PEAK_VUS, 75);
+
+  for (const error of waveValidation.errors) errors.push(error);
+  for (const warning of waveValidation.warnings) warnings.push(warning);
+
+  if (Number.isFinite(wavePlan.expectedPeakUsers) && peakVus < wavePlan.expectedPeakUsers) {
+    errors.push(`HOCKEY_PILOT_PEAK_VUS is ${peakVus}, but HOCKEY_PILOT_EXPECTED_PEAK_USERS is ${wavePlan.expectedPeakUsers}. Raise peak VUs or lower the expected peak before using this as pilot evidence.`);
+  }
 
   if (totalTrafficWeight <= 0) {
     errors.push('At least one hockey pilot traffic weight must be greater than 0.');
@@ -142,6 +159,9 @@ function main() {
   if (athleteWeight > 0) console.log(`Athlete auth: ${athleteAuthMode}`);
   console.log(`Traffic weight total: ${totalTrafficWeight}`);
   console.log(`Client IDs: ${clientIds.length || 0}`);
+  console.log(`Pilot users: ${wavePlan.estimatedUsers}`);
+  console.log(`Expected peak users: ${wavePlan.expectedPeakUsers}`);
+  console.log(`Peak VUs: ${peakVus}`);
   for (const warning of warnings) console.warn(`Warning: ${warning}`);
 }
 

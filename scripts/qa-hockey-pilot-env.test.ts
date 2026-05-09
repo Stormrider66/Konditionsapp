@@ -60,6 +60,11 @@ function runPreflight(lines: string[], env: Record<string, string> = {}) {
     'HOCKEY_PILOT_ATHLETE_WEIGHT',
     'HOCKEY_PILOT_DASHBOARD_WEIGHT',
     'HOCKEY_PILOT_EXPORT_WEIGHT',
+    'HOCKEY_PILOT_TEAM_COUNT',
+    'HOCKEY_PILOT_ATHLETES_PER_TEAM',
+    'HOCKEY_PILOT_STAFF_PER_TEAM',
+    'HOCKEY_PILOT_EXPECTED_PEAK_USERS',
+    'HOCKEY_PILOT_PEAK_VUS',
     'K6_SUMMARY_EXPORT',
   ]) {
     delete childEnv[key]
@@ -85,6 +90,9 @@ describe('qa-hockey-pilot-env', () => {
     expect(result.stdout).toContain('Coach auth: bypass')
     expect(result.stdout).toContain('Athlete traffic: enabled')
     expect(result.stdout).toContain('Athlete auth: bypass')
+    expect(result.stdout).toContain('Pilot users: 210')
+    expect(result.stdout).toContain('Expected peak users: 75')
+    expect(result.stdout).toContain('Peak VUs: 75')
   })
 
   it('fails when athlete traffic is enabled without athlete auth', () => {
@@ -157,5 +165,30 @@ describe('qa-hockey-pilot-env', () => {
     expect(result.stdout).toContain('Target: https://pilot.example.com')
     expect(result.stdout).toContain('Coach auth: cookie')
     expect(result.stdout).toContain('Client IDs: 1')
+  })
+
+  it('fails when pilot wave sizing exceeds the first pilot gate', () => {
+    const result = runPreflight(baseEnvLines([
+      'HOCKEY_PILOT_TEAM_COUNT=7',
+      'HOCKEY_PILOT_ATHLETES_PER_TEAM=45',
+      'HOCKEY_PILOT_STAFF_PER_TEAM=9',
+      'HOCKEY_PILOT_EXPECTED_PEAK_USERS=90',
+      'HOCKEY_PILOT_PEAK_VUS=90',
+    ]))
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('Pilot team count is 7')
+    expect(result.stderr).toContain('Estimated pilot users is 378')
+    expect(result.stderr).toContain('Expected peak users is 90')
+  })
+
+  it('fails when peak VUs do not cover the expected pilot peak', () => {
+    const result = runPreflight(baseEnvLines([
+      'HOCKEY_PILOT_EXPECTED_PEAK_USERS=60',
+      'HOCKEY_PILOT_PEAK_VUS=35',
+    ]))
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('HOCKEY_PILOT_PEAK_VUS is 35, but HOCKEY_PILOT_EXPECTED_PEAK_USERS is 60')
   })
 })

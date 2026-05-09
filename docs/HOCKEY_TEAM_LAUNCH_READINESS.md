@@ -126,6 +126,7 @@ Optional load knobs:
 HOCKEY_PILOT_WARM_VUS=10
 HOCKEY_PILOT_STEADY_VUS=35
 HOCKEY_PILOT_PEAK_VUS=75
+HOCKEY_PILOT_EXPECTED_PEAK_USERS=75
 HOCKEY_PILOT_WARM_DURATION=2m
 HOCKEY_PILOT_STEADY_DURATION=6m
 HOCKEY_PILOT_PEAK_DURATION=4m
@@ -151,6 +152,8 @@ HOCKEY_PILOT_ATHLETE_WEIGHT=0
 Otherwise the script fails fast when athlete traffic is enabled without athlete auth, so a long run does not quietly become a wall of expected `403`s.
 
 At least one traffic weight must be greater than `0`; all-zero weights are treated as a configuration error.
+
+`HOCKEY_PILOT_PEAK_VUS` must be at least `HOCKEY_PILOT_EXPECTED_PEAK_USERS` before the run can count as pilot evidence.
 
 Run:
 
