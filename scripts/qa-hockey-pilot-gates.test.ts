@@ -108,7 +108,7 @@ describe('qa-hockey-pilot-gates', () => {
   it('prints exact next-step commands for skipped optional gates', () => {
     expect(nextStepMessages()).toEqual([
       'Browser cockpit QA was skipped. Run with a production-like target: TRAINOMICS_QA_BASE_URL="https://pilot.example.com" npm run qa:hockey-pilot-gates -- --include-browser',
-      'Pilot load run was skipped. Run with evidence export: HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load',
+      'Pilot load run was skipped. Run with evidence export: HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load',
     ])
     expect(nextStepMessages({ includeBrowserQa: true, includeLoadQa: true })).toEqual([])
   })
