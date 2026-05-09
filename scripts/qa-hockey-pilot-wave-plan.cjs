@@ -5,6 +5,7 @@ const DEFAULTS = {
   athletesPerTeam: 30,
   staffPerTeam: 5,
   expectedPeakUsers: 75,
+  quietHoursBeforeExpansion: 48,
   supportSlaHours: 24,
   openCriticalIssues: 0,
 }
@@ -15,6 +16,7 @@ const LIMITS = {
   maxStaffPerTeam: 8,
   maxEstimatedUsers: 300,
   maxPeakUsers: 75,
+  minQuietHoursBeforeExpansion: 48,
   maxSupportSlaHours: 24,
   maxOpenCriticalIssues: 0,
 }
@@ -31,19 +33,31 @@ function parseNonNegativeInteger(value, fallback) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : Number.NaN
 }
 
-function buildWavePlan(teamCount) {
+function buildWavePlan(teamCount, quietHoursBeforeExpansion = DEFAULTS.quietHoursBeforeExpansion) {
   const waves = [
-    'Internal dry run',
-    'Team 1',
+    {
+      label: 'Internal dry run',
+      gate: 'Local readiness, browser evidence, and load evidence pass before any external invite.',
+    },
+    {
+      label: 'Team 1',
+      gate: 'Invite one team only after owners and support notes are named.',
+    },
   ]
 
   if (teamCount >= 2) {
     const end = Math.min(teamCount, 3)
-    waves.push(end === 2 ? 'Team 2 after 48 quiet hours' : 'Teams 2-3 after 48 quiet hours')
+    waves.push({
+      label: end === 2 ? 'Team 2' : 'Teams 2-3',
+      gate: `Invite after ${quietHoursBeforeExpansion} quiet hours with no pause criteria hit.`,
+    })
   }
 
   if (teamCount >= 4) {
-    waves.push(teamCount === 4 ? 'Team 4 after rerunning the load gate' : `Teams 4-${teamCount} after rerunning the load gate`)
+    waves.push({
+      label: teamCount === 4 ? 'Team 4' : `Teams 4-${teamCount}`,
+      gate: 'Rerun production-like browser and load evidence before inviting.',
+    })
   }
 
   return waves
@@ -54,6 +68,7 @@ function readPlan(env = process.env) {
   const athletesPerTeam = parsePositiveInteger(env.HOCKEY_PILOT_ATHLETES_PER_TEAM, DEFAULTS.athletesPerTeam)
   const staffPerTeam = parsePositiveInteger(env.HOCKEY_PILOT_STAFF_PER_TEAM, DEFAULTS.staffPerTeam)
   const expectedPeakUsers = parsePositiveInteger(env.HOCKEY_PILOT_EXPECTED_PEAK_USERS, DEFAULTS.expectedPeakUsers)
+  const quietHoursBeforeExpansion = parsePositiveInteger(env.HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION, DEFAULTS.quietHoursBeforeExpansion)
   const supportOwner = typeof env.HOCKEY_PILOT_SUPPORT_OWNER === 'string' && env.HOCKEY_PILOT_SUPPORT_OWNER.trim()
     ? env.HOCKEY_PILOT_SUPPORT_OWNER.trim()
     : null
@@ -68,13 +83,14 @@ function readPlan(env = process.env) {
     athletesPerTeam,
     staffPerTeam,
     expectedPeakUsers,
+    quietHoursBeforeExpansion,
     supportOwner,
     supportSlaHours,
     openCriticalIssues,
     estimatedAthletes,
     estimatedStaff,
     estimatedUsers,
-    waves: Number.isFinite(teamCount) ? buildWavePlan(teamCount) : [],
+    waves: Number.isFinite(teamCount) ? buildWavePlan(teamCount, quietHoursBeforeExpansion) : [],
   }
 }
 
@@ -87,6 +103,7 @@ function validatePlan(plan) {
     ['HOCKEY_PILOT_ATHLETES_PER_TEAM', plan.athletesPerTeam],
     ['HOCKEY_PILOT_STAFF_PER_TEAM', plan.staffPerTeam],
     ['HOCKEY_PILOT_EXPECTED_PEAK_USERS', plan.expectedPeakUsers],
+    ['HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION', plan.quietHoursBeforeExpansion],
     ['HOCKEY_PILOT_SUPPORT_SLA_HOURS', plan.supportSlaHours],
   ]) {
     if (!Number.isFinite(value)) errors.push(`${label} must be a positive whole number.`)
@@ -111,6 +128,9 @@ function validatePlan(plan) {
   }
   if (plan.expectedPeakUsers > LIMITS.maxPeakUsers) {
     errors.push(`Expected peak users is ${plan.expectedPeakUsers}; rerun and raise the load gate before inviting above ${LIMITS.maxPeakUsers} concurrent users.`)
+  }
+  if (plan.quietHoursBeforeExpansion < LIMITS.minQuietHoursBeforeExpansion) {
+    errors.push(`Quiet hours before expansion is ${plan.quietHoursBeforeExpansion}; wait at least ${LIMITS.minQuietHoursBeforeExpansion} quiet hours before inviting the next wave.`)
   }
   if (plan.supportSlaHours > LIMITS.maxSupportSlaHours) {
     errors.push(`Support SLA is ${plan.supportSlaHours}h; keep pilot response time at or below ${LIMITS.maxSupportSlaHours}h.`)
@@ -139,12 +159,13 @@ function printPlan(plan, validation) {
   console.log(`Estimated staff: ${plan.estimatedStaff}`)
   console.log(`Estimated users: ${plan.estimatedUsers}`)
   console.log(`Expected peak users: ${plan.expectedPeakUsers}`)
+  console.log(`Quiet hours before expansion: ${plan.quietHoursBeforeExpansion}`)
   console.log(`Support owner: ${plan.supportOwner ?? '-'}`)
   console.log(`Support SLA: ${plan.supportSlaHours}h`)
   console.log(`Open critical support issues: ${plan.openCriticalIssues}`)
   console.log('Invite waves:')
   for (const [index, wave] of plan.waves.entries()) {
-    console.log(`${index + 1}. ${wave}`)
+    console.log(`${index + 1}. ${wave.label} - ${wave.gate}`)
   }
   for (const warning of validation.warnings) console.warn(`Warning: ${warning}`)
 }
