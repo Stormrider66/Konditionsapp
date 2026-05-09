@@ -65,6 +65,7 @@ function runPreflight(lines: string[], env: Record<string, string> = {}) {
     'HOCKEY_PILOT_STAFF_PER_TEAM',
     'HOCKEY_PILOT_EXPECTED_PEAK_USERS',
     'HOCKEY_PILOT_PEAK_VUS',
+    'HOCKEY_PILOT_GATE_MODES',
     'K6_SUMMARY_EXPORT',
   ]) {
     delete childEnv[key]
@@ -93,6 +94,7 @@ describe('qa-hockey-pilot-env', () => {
     expect(result.stdout).toContain('Pilot users: 210')
     expect(result.stdout).toContain('Expected peak users: 75')
     expect(result.stdout).toContain('Peak VUs: 75')
+    expect(result.stdout).toContain('Gate modes: -')
   })
 
   it('fails when athlete traffic is enabled without athlete auth', () => {
@@ -190,5 +192,26 @@ describe('qa-hockey-pilot-env', () => {
 
     expect(result.status).toBe(1)
     expect(result.stderr).toContain('HOCKEY_PILOT_PEAK_VUS is 35, but HOCKEY_PILOT_EXPECTED_PEAK_USERS is 60')
+  })
+
+  it('requires summary export when running as the load gate', () => {
+    const result = runPreflight(
+      baseEnvLines([
+        'K6_SUMMARY_EXPORT=',
+      ]),
+      { HOCKEY_PILOT_GATE_MODES: 'deterministic,load' }
+    )
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('Set K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json so the run saves evidence for review.')
+  })
+
+  it('only warns about missing summary export outside the load gate', () => {
+    const result = runPreflight(baseEnvLines([
+      'K6_SUMMARY_EXPORT=',
+    ]))
+
+    expect(result.status).toBe(0)
+    expect(result.stderr).toContain('Set K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json so the run saves evidence for review.')
   })
 })

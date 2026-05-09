@@ -59,10 +59,19 @@ function positiveInteger(value, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function listEnv(value) {
+  return (value || '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 function main() {
   const env = { ...parseEnvFile(envPath), ...process.env };
   const errors = [];
   const warnings = [];
+  const gateModes = listEnv(env.HOCKEY_PILOT_GATE_MODES);
+  const requiresEvidenceExport = gateModes.includes('load');
 
   for (const key of ['BASE_URL', 'CLIENT_ID', 'BUSINESS_ID', 'TEAM_ID']) {
     if (!env[key]) errors.push(`${key} is required.`);
@@ -136,7 +145,12 @@ function main() {
   }
 
   if (!env.K6_SUMMARY_EXPORT) {
-    warnings.push('Set K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json so the run saves evidence for review.');
+    const message = 'Set K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json so the run saves evidence for review.';
+    if (requiresEvidenceExport) {
+      errors.push(message);
+    } else {
+      warnings.push(message);
+    }
   } else {
     const summaryDir = path.dirname(path.resolve(process.cwd(), env.K6_SUMMARY_EXPORT));
     if (!fs.existsSync(summaryDir)) {
@@ -162,6 +176,7 @@ function main() {
   console.log(`Pilot users: ${wavePlan.estimatedUsers}`);
   console.log(`Expected peak users: ${wavePlan.expectedPeakUsers}`);
   console.log(`Peak VUs: ${peakVus}`);
+  console.log(`Gate modes: ${gateModes.length ? gateModes.join(',') : '-'}`);
   for (const warning of warnings) console.warn(`Warning: ${warning}`);
 }
 
