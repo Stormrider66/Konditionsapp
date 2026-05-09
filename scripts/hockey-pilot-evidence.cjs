@@ -77,6 +77,7 @@ function buildMarkdown({ manifest, summary, gateText, cwd }) {
   const artifacts = manifest.artifacts || {}
   const result = manifest.result || {}
   const weights = manifest.weights || {}
+  const loadProfile = manifest.loadProfile || {}
   const wavePlan = manifest.wavePlan || {}
   const git = manifest.git || {}
   const createdAt = manifest.createdAt ? new Date(manifest.createdAt) : new Date()
@@ -144,6 +145,7 @@ K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run qa:hocke
 - Client ID count: ${manifest.clientIdCount ?? '-'}
 - Pilot users: ${wavePlan.estimatedUsers ?? '-'} (${wavePlan.teamCount ?? '-'} teams)
 - Traffic weights: read ${weights.read || '-'}, athlete ${weights.athlete || '-'}, dashboard ${weights.dashboard || '-'}, export ${weights.export || '-'}
+- Load profile: warm ${loadProfile.warmVus || '-'} VUs/${loadProfile.warmDuration || '-'}, steady ${loadProfile.steadyVus || '-'} VUs/${loadProfile.steadyDuration || '-'}, peak ${loadProfile.peakVus || '-'} VUs/${loadProfile.peakDuration || '-'}, ramp down ${loadProfile.rampDownDuration || '-'}
 
 ## Gate Results
 

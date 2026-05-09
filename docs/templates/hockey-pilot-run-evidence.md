@@ -49,6 +49,7 @@ K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:ho
 - Client ID count:
 - Pilot users: `___` users (`___` teams)
 - Traffic weights: read `___`, athlete `___`, dashboard `___`, export `___`
+- Load profile: warm `___` VUs/`___`, steady `___` VUs/`___`, peak `___` VUs/`___`, ramp down `___`
 
 ## Gate Results
 

@@ -124,6 +124,13 @@ function runRunner(args: string[], env: Record<string, string>) {
     'HOCKEY_PILOT_ATHLETES_PER_TEAM',
     'HOCKEY_PILOT_STAFF_PER_TEAM',
     'HOCKEY_PILOT_EXPECTED_PEAK_USERS',
+    'HOCKEY_PILOT_WARM_VUS',
+    'HOCKEY_PILOT_STEADY_VUS',
+    'HOCKEY_PILOT_PEAK_VUS',
+    'HOCKEY_PILOT_WARM_DURATION',
+    'HOCKEY_PILOT_STEADY_DURATION',
+    'HOCKEY_PILOT_PEAK_DURATION',
+    'HOCKEY_PILOT_RAMP_DOWN_DURATION',
   ]) {
     delete childEnv[key]
   }
@@ -188,6 +195,15 @@ describe('load-tests k6 runner', () => {
       dashboard: '0.20',
       export: '0.15',
     })
+    expect(manifest.loadProfile).toEqual({
+      warmVus: '10',
+      steadyVus: '35',
+      peakVus: '75',
+      warmDuration: '2m',
+      steadyDuration: '6m',
+      peakDuration: '4m',
+      rampDownDuration: '2m',
+    })
     expect(manifest.artifacts.summaryJson).toBe(summaryPath)
     expect(manifest.artifacts.analyzerOutput).toBe(sidecarPath(summaryPath, 'analyzer'))
     expect(manifest.artifacts.gateOutput).toBe(sidecarPath(summaryPath, 'gate'))
@@ -196,7 +212,40 @@ describe('load-tests k6 runner', () => {
     expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Decision: `GO`')
     expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Teams invited: 6')
     expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Expected athletes: 180')
+    expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Load profile: warm 10 VUs/2m, steady 35 VUs/6m, peak 75 VUs/4m, ramp down 2m')
     expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Evidence note:')
+  })
+
+  it('records explicit load profile knobs in the hockey pilot manifest', () => {
+    const dir = tempDir()
+    const envPath = writeEnvFile(dir, baseEnvLines())
+    const summaryPath = path.join(dir, 'summary.json')
+    const fakeK6 = writeFakeK6(dir)
+
+    const result = runRunner(['hockey-pilot'], {
+      K6_ENV_PATH: envPath,
+      K6_BIN: fakeK6.scriptPath,
+      K6_SUMMARY_EXPORT: summaryPath,
+      HOCKEY_PILOT_WARM_VUS: '12',
+      HOCKEY_PILOT_STEADY_VUS: '44',
+      HOCKEY_PILOT_PEAK_VUS: '80',
+      HOCKEY_PILOT_WARM_DURATION: '3m',
+      HOCKEY_PILOT_STEADY_DURATION: '8m',
+      HOCKEY_PILOT_PEAK_DURATION: '5m',
+      HOCKEY_PILOT_RAMP_DOWN_DURATION: '90s',
+    })
+
+    expect(result.status).toBe(0)
+    const manifest = JSON.parse(readFileSync(manifestPath(summaryPath), 'utf8'))
+    expect(manifest.loadProfile).toEqual({
+      warmVus: '12',
+      steadyVus: '44',
+      peakVus: '80',
+      warmDuration: '3m',
+      steadyDuration: '8m',
+      peakDuration: '5m',
+      rampDownDuration: '90s',
+    })
   })
 
   it('records explicit wave sizing in the hockey pilot manifest and evidence', () => {

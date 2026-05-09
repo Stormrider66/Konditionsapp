@@ -91,6 +91,15 @@ function writePilotArtifacts(dir: string, status: 'passed' | 'failed' = 'passed'
           dashboard: '0.20',
           export: '0.15',
         },
+        loadProfile: {
+          warmVus: '10',
+          steadyVus: '35',
+          peakVus: '75',
+          warmDuration: '2m',
+          steadyDuration: '6m',
+          peakDuration: '4m',
+          rampDownDuration: '2m',
+        },
         artifacts: {
           summaryJson: summaryPath,
           analyzerOutput: analyzerPath,
@@ -132,6 +141,7 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Slowest endpoint: hockey-simca-export (2752ms p95)')
     expect(result.stdout).toContain('| team-dashboard | 1393ms | 1671ms | 0.00% |')
     expect(result.stdout).toContain('Traffic weights: read 0.40, athlete 0.25, dashboard 0.20, export 0.15')
+    expect(result.stdout).toContain('Load profile: warm 10 VUs/2m, steady 35 VUs/6m, peak 75 VUs/4m, ramp down 2m')
     expect(result.stdout).toContain('## Support Watch')
     expect(result.stdout).toContain('Valid-user 401/403 reports: -')
   })

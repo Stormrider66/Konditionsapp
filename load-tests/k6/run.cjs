@@ -180,6 +180,15 @@ function hockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gate
       dashboard: env.HOCKEY_PILOT_DASHBOARD_WEIGHT || '0.20',
       export: env.HOCKEY_PILOT_EXPORT_WEIGHT || '0.15',
     },
+    loadProfile: {
+      warmVus: env.HOCKEY_PILOT_WARM_VUS || '10',
+      steadyVus: env.HOCKEY_PILOT_STEADY_VUS || '35',
+      peakVus: env.HOCKEY_PILOT_PEAK_VUS || '75',
+      warmDuration: env.HOCKEY_PILOT_WARM_DURATION || '2m',
+      steadyDuration: env.HOCKEY_PILOT_STEADY_DURATION || '6m',
+      peakDuration: env.HOCKEY_PILOT_PEAK_DURATION || '4m',
+      rampDownDuration: env.HOCKEY_PILOT_RAMP_DOWN_DURATION || '2m',
+    },
     artifacts: {
       summaryJson: path.resolve(process.cwd(), summaryExport),
       analyzerOutput,
