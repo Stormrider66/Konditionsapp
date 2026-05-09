@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
-const { REQUIRED_CHECKS, readMonitoringPlan, validateMonitoringPlan } = require(path.join(testDir, 'qa-hockey-pilot-monitoring.cjs'))
+const { DEFAULT_THRESHOLDS, REQUIRED_CHECKS, readMonitoringPlan, validateMonitoringPlan } = require(path.join(testDir, 'qa-hockey-pilot-monitoring.cjs'))
 
 describe('qa-hockey-pilot-monitoring', () => {
   it('builds the first 48-hour monitoring plan from env', () => {
@@ -15,6 +15,10 @@ describe('qa-hockey-pilot-monitoring', () => {
       HOCKEY_PILOT_INCIDENT_CHANNEL: '#hockey-pilot',
       HOCKEY_PILOT_FIRST_CHECK_MINUTES: '20',
       HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION: '72',
+      HOCKEY_PILOT_MAX_AUTH_ERRORS_PER_HOUR: '2',
+      HOCKEY_PILOT_MAX_SERVER_ERRORS_PER_HOUR: '4',
+      HOCKEY_PILOT_MAX_SLOW_HOCKEY_REQUESTS_PER_HOUR: '6',
+      HOCKEY_PILOT_MAX_SUPPORT_CRITICAL_ISSUES: '0',
     })
 
     expect(plan).toMatchObject({
@@ -23,8 +27,18 @@ describe('qa-hockey-pilot-monitoring', () => {
       incidentChannel: '#hockey-pilot',
       firstCheckMinutes: 20,
       quietHoursBeforeExpansion: 72,
+      thresholds: {
+        authErrorsPerHour: 2,
+        serverErrorsPerHour: 4,
+        slowHockeyRequestsPerHour: 6,
+        supportCriticalIssues: 0,
+      },
     })
     expect(plan.requiredChecks).toEqual(REQUIRED_CHECKS)
+  })
+
+  it('uses default pause thresholds', () => {
+    expect(readMonitoringPlan({}).thresholds).toEqual(DEFAULT_THRESHOLDS)
   })
 
   it('passes when support ownership and monitoring cadence are ready', () => {
@@ -58,6 +72,19 @@ describe('qa-hockey-pilot-monitoring', () => {
     ])
     expect(validation.warnings).toEqual([
       'Set HOCKEY_PILOT_INCIDENT_CHANNEL so urgent pilot issues have one place to land.',
+    ])
+  })
+
+  it('fails invalid pause thresholds clearly', () => {
+    const validation = validateMonitoringPlan(readMonitoringPlan({
+      HOCKEY_PILOT_SUPPORT_OWNER: 'Henrik',
+      HOCKEY_PILOT_SUPPORT_NOTES_URL: 'https://notes.example.com/hockey-pilot',
+      HOCKEY_PILOT_INCIDENT_CHANNEL: '#hockey-pilot',
+      HOCKEY_PILOT_MAX_AUTH_ERRORS_PER_HOUR: 'many',
+    }))
+
+    expect(validation.errors).toEqual([
+      'Monitoring threshold authErrorsPerHour must be a non-negative whole number.',
     ])
   })
 })
