@@ -11,7 +11,7 @@ describe('qa-hockey-evidence-commands', () => {
   it('builds browser and load evidence commands from pilot env', () => {
     const commands = buildCommands({
       GIT_COMMIT_SHA: 'abc123pilotsha',
-      TRAINOMICS_QA_BASE_URL: 'https://pilot.example.com',
+      TRAINOMICS_QA_BASE_URL: 'https://trainomics-hockey-pilot.vercel.app',
       TRAINOMICS_QA_EMAIL: 'pilot-coach@trainomics.test',
       TRAINOMICS_QA_PASSWORD: 'secret pass',
       TRAINOMICS_QA_BUSINESS_SLUG: 'pilot-club',
@@ -43,7 +43,7 @@ describe('qa-hockey-evidence-commands', () => {
 
     expect(commands.currentCommit).toBe('abc123pilotsha')
     expect(commands.targetCommit).toBe('abc123pilotsha')
-    expect(commands.browserCommand).toContain('TRAINOMICS_QA_BASE_URL=https://pilot.example.com')
+    expect(commands.browserCommand).toContain('TRAINOMICS_QA_BASE_URL=https://trainomics-hockey-pilot.vercel.app')
     expect(commands.browserCommand).toContain('TRAINOMICS_QA_EMAIL=pilot-coach@trainomics.test')
     expect(commands.browserCommand).toContain('TRAINOMICS_QA_PASSWORD="secret pass"')
     expect(commands.browserCommand).toContain('npm run qa:hockey-pilot-gates -- --include-browser')
@@ -113,11 +113,13 @@ describe('qa-hockey-evidence-commands', () => {
 
   it('reports placeholders that must be replaced before running', () => {
     expect(commandWarnings({
+      deploymentUrl: 'https://pilot.example.com',
       qaEmail: 'coach@example.com',
       qaPassword: '...',
       supportOwner: 'Support Lead',
       targetCommit: 'vercel-deployment-commit-sha',
     })).toEqual([
+      'Set TRAINOMICS_QA_BASE_URL to the real production-like pilot URL.',
       'Set TRAINOMICS_QA_EMAIL to a real QA coach login.',
       'Set TRAINOMICS_QA_PASSWORD to the real QA coach password.',
       'Set HOCKEY_PILOT_SUPPORT_OWNER to a named person.',
@@ -140,6 +142,7 @@ describe('qa-hockey-evidence-commands', () => {
 
     expect(output).toContain('vercel inspect https://pilot.example.com')
     expect(output).toContain('Replace before running:')
+    expect(output).toContain('Set TRAINOMICS_QA_BASE_URL to the real production-like pilot URL.')
     expect(output).toContain('Browser evidence:')
     expect(output).toContain('Load evidence:')
   })

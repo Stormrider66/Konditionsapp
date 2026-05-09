@@ -32,11 +32,12 @@ function envPair(key, rawValue) {
 
 function isPlaceholder(valueToCheck) {
   const normalized = String(valueToCheck || '').trim().toLowerCase()
-  return ['...', 'coach@example.com', 'support lead', 'vercel-deployment-commit-sha'].includes(normalized)
+  return ['...', 'coach@example.com', 'support lead', 'vercel-deployment-commit-sha', 'https://pilot.example.com'].includes(normalized)
 }
 
 function commandWarnings(values) {
   const warnings = []
+  if (isPlaceholder(values.deploymentUrl)) warnings.push('Set TRAINOMICS_QA_BASE_URL to the real production-like pilot URL.')
   if (isPlaceholder(values.qaEmail)) warnings.push('Set TRAINOMICS_QA_EMAIL to a real QA coach login.')
   if (isPlaceholder(values.qaPassword)) warnings.push('Set TRAINOMICS_QA_PASSWORD to the real QA coach password.')
   if (isPlaceholder(values.supportOwner)) warnings.push('Set HOCKEY_PILOT_SUPPORT_OWNER to a named person.')
@@ -80,6 +81,7 @@ function buildCommands(env = process.env) {
   const manualInviteOwner = value(env, ['HOCKEY_PILOT_MANUAL_INVITE_OWNER'], 'Henrik')
   const summaryExport = value(env, ['K6_SUMMARY_EXPORT'], `load-tests/evidence/hockey-pilot-${todayIsoDate()}.json`)
   const warnings = commandWarnings({
+    deploymentUrl,
     qaEmail,
     qaPassword,
     supportOwner,
