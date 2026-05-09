@@ -66,6 +66,9 @@ function runPreflight(lines: string[], env: Record<string, string> = {}) {
     'HOCKEY_PILOT_EXPECTED_PEAK_USERS',
     'HOCKEY_PILOT_PEAK_VUS',
     'HOCKEY_PILOT_GATE_MODES',
+    'HOCKEY_PILOT_SUPPORT_OWNER',
+    'HOCKEY_PILOT_SUPPORT_SLA_HOURS',
+    'HOCKEY_PILOT_OPEN_CRITICAL_ISSUES',
     'K6_SUMMARY_EXPORT',
   ]) {
     delete childEnv[key]
@@ -192,6 +195,18 @@ describe('qa-hockey-pilot-env', () => {
 
     expect(result.status).toBe(1)
     expect(result.stderr).toContain('HOCKEY_PILOT_PEAK_VUS is 35, but HOCKEY_PILOT_EXPECTED_PEAK_USERS is 60')
+  })
+
+  it('fails when support readiness is not clean for the pilot wave', () => {
+    const result = runPreflight(baseEnvLines([
+      'HOCKEY_PILOT_SUPPORT_OWNER=Support Lead',
+      'HOCKEY_PILOT_SUPPORT_SLA_HOURS=48',
+      'HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=1',
+    ]))
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('Support SLA is 48h')
+    expect(result.stderr).toContain('Open critical support issues is 1')
   })
 
   it('requires summary export when running as the load gate', () => {
