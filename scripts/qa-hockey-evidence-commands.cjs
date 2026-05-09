@@ -189,6 +189,7 @@ function buildCommands(env = process.env) {
     envPair('HOCKEY_PILOT_OPEN_CRITICAL_ISSUES', openCriticalIssues),
     'npm run qa:hockey-pilot-incidents',
   ].join(' ')
+  const indexCommand = 'npm run qa:hockey-pilot-evidence-index'
 
   return {
     currentCommit,
@@ -200,6 +201,7 @@ function buildCommands(env = process.env) {
     loadCommand: evidenceMode === 'debug' ? debugLoadCommand : loadCommand,
     monitoringCommand,
     incidentCommand,
+    indexCommand,
   }
 }
 
@@ -231,6 +233,9 @@ function main(env = process.env) {
   console.log('')
   console.log('Incident playbook:')
   console.log(commands.incidentCommand)
+  console.log('')
+  console.log('Evidence index:')
+  console.log(commands.indexCommand)
 }
 
 if (require.main === module) {

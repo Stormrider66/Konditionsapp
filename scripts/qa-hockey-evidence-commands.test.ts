@@ -90,6 +90,7 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.incidentCommand).toContain('HOCKEY_PILOT_SUPPORT_NOTES_URL=https://notes.example.com/pilot')
     expect(commands.incidentCommand).toContain('HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0')
     expect(commands.incidentCommand).toContain('npm run qa:hockey-pilot-incidents')
+    expect(commands.indexCommand).toBe('npm run qa:hockey-pilot-evidence-index')
     expect(commands.warnings).toEqual([])
   })
 
@@ -267,5 +268,6 @@ describe('qa-hockey-evidence-commands', () => {
     expect(output).toContain('Load evidence:')
     expect(output).toContain('Post-invite monitoring:')
     expect(output).toContain('Incident playbook:')
+    expect(output).toContain('Evidence index:')
   })
 })
