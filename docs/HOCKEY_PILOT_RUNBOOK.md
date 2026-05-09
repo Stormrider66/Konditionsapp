@@ -123,7 +123,10 @@ npm run qa:hockey-pilot-incidents
 
 ```bash
 npm run qa:hockey-pilot-evidence -- load-tests/evidence/hockey-pilot-YYYY-MM-DD.manifest.json load-tests/evidence/hockey-pilot-YYYY-MM-DD.md
+npm run qa:hockey-pilot-evidence-index
 ```
+
+`npm run qa:hockey-pilot-evidence-index` writes `load-tests/evidence/INDEX.md` with every manifest, evidence note, target, commit, gate mode, decision, and support state in one table.
 
 ## During Invite
 
@@ -195,6 +198,7 @@ Continue to the next wave only when:
    - Confirm the target deployment still matches the manifest commit SHA.
    - Confirm invite mode, email pause state, and manual invite owner match the plan.
 2. Attach or link the generated artifacts.
+   - Run `npm run qa:hockey-pilot-evidence-index` so the evidence ledger includes the latest manifest and note.
 3. Record the decision:
    - `GO`
    - `PAUSE`

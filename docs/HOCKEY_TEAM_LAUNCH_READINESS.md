@@ -173,6 +173,7 @@ npm run qa:hockey-pilot-incidents
 npm run qa:hockey-pilot-tenant-boundary
 npm run qa:hockey-pilot-env
 npm run qa:hockey-evidence-commands
+npm run qa:hockey-pilot-evidence-index
 HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json npm run qa:hockey-pilot-gates -- --include-load
 npm run qa:hockey-pilot-tooling
 ```
