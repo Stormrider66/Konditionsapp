@@ -170,15 +170,15 @@ npm run qa:hockey-pilot-gates
 npm run qa:hockey-pilot-wave-plan
 npm run qa:hockey-pilot-tenant-boundary
 npm run qa:hockey-pilot-env
-HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json npm run qa:hockey-pilot-gates -- --include-load
+HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json npm run qa:hockey-pilot-gates -- --include-load
 npm run qa:hockey-pilot-tooling
 ```
 
 Add browser cockpit QA when a target app and QA credentials are ready:
 
 ```bash
-npm run qa:hockey-browser-env
-npm run qa:hockey-pilot-gates -- --include-browser
+HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" npm run qa:hockey-browser-env
+HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" npm run qa:hockey-pilot-gates -- --include-browser
 ```
 
 `npm run load:k6:hockey-pilot` also runs the same env preflight automatically before k6 starts. When `K6_SUMMARY_EXPORT` is set, it also prints the k6 analyzer output and runs the summary gate after k6 finishes.

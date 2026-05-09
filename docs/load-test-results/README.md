@@ -54,10 +54,10 @@ For hockey pilot invite evidence, use `npm run qa:hockey-pilot-gates -- --includ
    For hockey pilot evidence, run the stricter pilot gate:
 
    ```bash
-   HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load
+   HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load
    ```
 
-   The pilot preflight prints `Target production-like: yes/no`; only `yes` runs count as invite evidence.
+   The pilot preflight prints `Target production-like: yes/no` and deployment commit match status; only production-like targets with matching deployment commits count as invite evidence.
 
 5. **(Optional) Run stress** if you're testing capacity, not correctness.
 

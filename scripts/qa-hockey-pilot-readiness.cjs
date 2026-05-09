@@ -29,7 +29,7 @@ for (const check of checks) {
 console.log('\nHockey pilot local readiness checks passed.');
 console.log('');
 console.log('Before inviting external teams, run the combined gate command against the target environment:');
-console.log('- TRAINOMICS_QA_BASE_URL="https://pilot.example.com" npm run qa:hockey-pilot-gates -- --include-browser');
-console.log('- HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load');
+console.log('- TRAINOMICS_QA_BASE_URL="https://pilot.example.com" HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" npm run qa:hockey-pilot-gates -- --include-browser');
+console.log('- HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load');
 console.log('');
 console.log('The load runner saves the summary JSON, analyzer text, gate text, manifest JSON, and evidence note automatically.');
