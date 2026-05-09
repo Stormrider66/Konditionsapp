@@ -181,6 +181,11 @@ describe('load-tests k6 runner', () => {
     expect(manifest.git.branch).toEqual(expect.any(String))
     expect(typeof manifest.git.dirty).toBe('boolean')
     expect(manifest.target).toBe('https://pilot.example.com')
+    expect(manifest.targetInfo).toEqual({
+      url: 'https://pilot.example.com',
+      productionLike: true,
+      reason: 'https-production-like',
+    })
     expect(manifest.businessId).toBe('business-1')
     expect(manifest.teamId).toBe('team-1')
     expect(manifest.clientIdCount).toBe(1)

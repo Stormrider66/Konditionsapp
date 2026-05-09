@@ -97,6 +97,33 @@ function listEnv(value) {
     .filter(Boolean);
 }
 
+function targetSnapshot(baseUrl) {
+  if (!baseUrl) {
+    return {
+      url: null,
+      productionLike: false,
+      reason: 'missing',
+    };
+  }
+
+  try {
+    const url = new URL(baseUrl);
+    const isLocal = ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
+    const productionLike = url.protocol === 'https:' && !isLocal;
+    return {
+      url: baseUrl,
+      productionLike,
+      reason: productionLike ? 'https-production-like' : isLocal ? 'local-target' : 'non-https-target',
+    };
+  } catch {
+    return {
+      url: baseUrl,
+      productionLike: false,
+      reason: 'invalid-url',
+    };
+  }
+}
+
 function gitOutput(command) {
   try {
     return execSync(command, {
@@ -171,6 +198,7 @@ function hockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gate
     gateModes: listEnv(env.HOCKEY_PILOT_GATE_MODES),
     git: gitSnapshot(env),
     target: env.BASE_URL || null,
+    targetInfo: targetSnapshot(env.BASE_URL),
     businessId: env.BUSINESS_ID || null,
     businessSlug: env.BUSINESS_SLUG || null,
     teamId: env.TEAM_ID || null,

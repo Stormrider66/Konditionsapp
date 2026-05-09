@@ -67,6 +67,7 @@ function decisionFromManifest(manifest) {
   if (manifest?.git?.dirty === true) return 'FIX_AND_RERUN'
   if (Number.parseInt(manifest?.support?.openCriticalIssues || '0', 10) > 0) return 'FIX_AND_RERUN'
   if (Number.parseInt(manifest?.support?.slaHours || '24', 10) > 24) return 'FIX_AND_RERUN'
+  if (manifest?.gateModes?.includes('load') && manifest?.targetInfo?.productionLike === false) return 'FIX_AND_RERUN'
   return manifest?.result?.status === 'passed' ? 'GO' : 'FIX_AND_RERUN'
 }
 
@@ -147,6 +148,7 @@ HOCKEY_PILOT_SUPPORT_OWNER="${support.owner || 'Support Lead'}" HOCKEY_PILOT_SUP
 - Git tree dirty: ${git.dirty === true ? 'yes' : git.dirty === false ? 'no' : '-'}
 - Release evidence status: ${git.dirty === true ? 'dirty tree; rerun from a committed state before inviting' : git.dirty === false ? 'committed tree' : '-'}
 - Business/team: ${manifest.businessSlug || manifest.businessId || '-'} / ${manifest.teamId || '-'}
+- Target production-like: ${manifest.targetInfo?.productionLike === true ? 'yes' : manifest.targetInfo?.productionLike === false ? 'no' : '-'}
 - Client ID count: ${manifest.clientIdCount ?? '-'}
 - Pilot users: ${wavePlan.estimatedUsers ?? '-'} (${wavePlan.teamCount ?? '-'} teams)
 - Traffic weights: read ${weights.read || '-'}, athlete ${weights.athlete || '-'}, dashboard ${weights.dashboard || '-'}, export ${weights.export || '-'}

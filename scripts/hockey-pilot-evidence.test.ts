@@ -67,6 +67,11 @@ function writePilotArtifacts(dir: string, status: 'passed' | 'failed' = 'passed'
           dirty: options.dirty ?? false,
         },
         target: 'https://pilot.example.com',
+        targetInfo: {
+          url: 'https://pilot.example.com',
+          productionLike: true,
+          reason: 'https-production-like',
+        },
         businessSlug: 'skelleftea-aik',
         teamId: 'team-1',
         clientIdCount: 12,
@@ -144,6 +149,7 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Pilot users: 112 (4 teams)')
     expect(result.stdout).toContain('Git tree dirty: no')
     expect(result.stdout).toContain('Release evidence status: committed tree')
+    expect(result.stdout).toContain('Target production-like: yes')
     expect(result.stdout).toContain('Screenshot or support notes: https://notes.example.com/pilot')
     expect(result.stdout).toContain('Support owner: Support Lead')
     expect(result.stdout).toContain('Support SLA: 24h')
@@ -224,5 +230,27 @@ describe('hockey-pilot-evidence', () => {
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
     expect(result.stdout).toContain('Support SLA: 48h')
+  })
+
+  it('marks load evidence from non-production targets as fix and rerun evidence', () => {
+    const dir = tempDir()
+    const { manifestPath } = writePilotArtifacts(dir)
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    manifest.target = 'http://localhost:3000'
+    manifest.targetInfo = {
+      url: 'http://localhost:3000',
+      productionLike: false,
+      reason: 'local-target',
+    }
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+
+    const result = spawnSync(process.execPath, [scriptPath, manifestPath], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    })
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
+    expect(result.stdout).toContain('Target production-like: no')
   })
 })
