@@ -84,8 +84,12 @@ function decisionReasons(manifest) {
         : 'load evidence target metadata was missing'
     )
   }
-  if (manifest?.targetDeployment?.matchesManifestCommit === false) {
-    reasons.push('target deployment commit did not match manifest commit')
+  if (manifest?.gateModes?.includes('load') && manifest?.targetDeployment?.matchesManifestCommit !== true) {
+    reasons.push(
+      manifest?.targetDeployment
+        ? 'target deployment commit did not match manifest commit'
+        : 'target deployment commit metadata was missing'
+    )
   }
   if (manifest?.result?.status !== 'passed') reasons.push('automated gate result was not passed')
   return reasons

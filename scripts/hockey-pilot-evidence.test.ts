@@ -305,4 +305,23 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Target deployment commit: different-sha')
     expect(result.stdout).toContain('Target deployment matches commit SHA: no')
   })
+
+  it('marks load evidence without target deployment metadata as fix and rerun evidence', () => {
+    const dir = tempDir()
+    const { manifestPath } = writePilotArtifacts(dir)
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    delete manifest.targetDeployment
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+
+    const result = spawnSync(process.execPath, [scriptPath, manifestPath], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    })
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
+    expect(result.stdout).toContain('Decision reason: target deployment commit metadata was missing')
+    expect(result.stdout).toContain('Target deployment commit: -')
+    expect(result.stdout).toContain('Target deployment matches commit SHA: -')
+  })
 })
