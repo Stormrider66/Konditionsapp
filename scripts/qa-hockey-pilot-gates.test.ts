@@ -20,6 +20,7 @@ describe('qa-hockey-pilot-gates', () => {
       'run qa:hockey-pilot-readiness',
       'run qa:launch-config',
       'run qa:hockey-pilot-wave-plan',
+      'run qa:hockey-pilot-tenant-boundary',
       'run qa:cron-config',
       'run qa:daily-metrics-backlog',
     ])
@@ -35,6 +36,7 @@ describe('qa-hockey-pilot-gates', () => {
       'run qa:hockey-pilot-readiness',
       'run qa:launch-config',
       'run qa:hockey-pilot-wave-plan',
+      'run qa:hockey-pilot-tenant-boundary',
       'run qa:hockey',
       'run qa:cron-config',
       'run qa:daily-metrics-backlog',
@@ -46,6 +48,7 @@ describe('qa-hockey-pilot-gates', () => {
       'run qa:hockey-pilot-readiness',
       'run qa:launch-config',
       'run qa:hockey-pilot-wave-plan',
+      'run qa:hockey-pilot-tenant-boundary',
       'run qa:cron-config',
       'run qa:daily-metrics-backlog',
       'run load:k6:hockey-pilot',
@@ -58,6 +61,7 @@ describe('qa-hockey-pilot-gates', () => {
       'run qa:hockey-pilot-readiness',
       'run qa:launch-config',
       'run qa:hockey-pilot-wave-plan',
+      'run qa:hockey-pilot-tenant-boundary',
       'run qa:hockey',
       'run qa:cron-config',
       'run qa:daily-metrics-backlog',
@@ -93,7 +97,7 @@ describe('qa-hockey-pilot-gates', () => {
     expect(result).toMatchObject({
       ok: false,
       status: 42,
-      failedCheck: checks[5],
+      failedCheck: checks[6],
     })
     expect(formatCommand(result.failedCheck)).toBe('npm run load:k6:hockey-pilot')
   })

@@ -97,6 +97,7 @@ Continue to the next wave only when:
 - `npm run qa:hockey-pilot-readiness` passes
 - `npm run qa:launch-config` passes
 - `npm run qa:hockey-pilot-wave-plan` passes
+- `npm run qa:hockey-pilot-tenant-boundary` passes
 - `npm run qa:hockey` passes against the target environment
 - `npm run qa:cron-config` passes
 - `npm run qa:hockey-pilot-gates` passes

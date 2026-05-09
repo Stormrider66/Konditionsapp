@@ -41,6 +41,12 @@ function buildChecks({ includeBrowserQa = false, includeLoadQa = false } = {}) {
       env: commonEnv,
     },
     {
+      label: 'Tenant boundary regression checks',
+      command: 'npm',
+      args: ['run', 'qa:hockey-pilot-tenant-boundary'],
+      env: commonEnv,
+    },
+    {
       label: 'Cron configuration',
       command: 'npm',
       args: ['run', 'qa:cron-config'],
@@ -55,7 +61,7 @@ function buildChecks({ includeBrowserQa = false, includeLoadQa = false } = {}) {
   ]
 
   if (includeBrowserQa) {
-    checks.splice(3, 0, {
+    checks.splice(4, 0, {
       label: 'Hockey cockpit browser QA',
       command: 'npm',
       args: ['run', 'qa:hockey'],
