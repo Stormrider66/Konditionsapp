@@ -11,6 +11,9 @@ const { readPlan: readWavePlan, validatePlan: validateWavePlan } = require('./qa
 const envPath = process.env.K6_ENV_PATH
   ? path.resolve(process.cwd(), process.env.K6_ENV_PATH)
   : path.join(__dirname, '..', 'load-tests', '.env.k6');
+const localEnvPath = process.env.K6_LOCAL_ENV_PATH
+  ? path.resolve(process.cwd(), process.env.K6_LOCAL_ENV_PATH)
+  : path.join(process.cwd(), '.env.local');
 
 function parseEnvFile(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -28,6 +31,11 @@ function parseEnvFile(filePath) {
     if (key) env[key] = value;
   }
   return env;
+}
+
+function parseOptionalEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) return {};
+  return parseEnvFile(filePath);
 }
 
 function normalizeEnvValue(rawValue) {
@@ -119,7 +127,7 @@ function isPlaceholderCommit(value) {
 }
 
 function main() {
-  const env = { ...parseEnvFile(envPath), ...process.env };
+  const env = { ...parseOptionalEnvFile(localEnvPath), ...parseEnvFile(envPath), ...process.env };
   const errors = [];
   const warnings = [];
   const gateModes = listEnv(env.HOCKEY_PILOT_GATE_MODES);

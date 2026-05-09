@@ -33,6 +33,21 @@ function normalizeEnvValue(rawValue) {
   return value;
 }
 
+function readEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) return {};
+
+  const env = {};
+  for (const rawLine of fs.readFileSync(filePath, 'utf8').split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq === -1) continue;
+    const key = line.substring(0, eq).trim();
+    if (key) env[key] = normalizeEnvValue(line.substring(eq + 1));
+  }
+  return env;
+}
+
 function summarySidecarPath(summaryPath, suffix) {
   const resolved = path.resolve(process.cwd(), summaryPath);
   const ext = path.extname(resolved);
@@ -298,24 +313,12 @@ if (scriptName === 'hockey-pilot') {
   }
 }
 
-// Parse .env.k6
-const envVars = fs
-  .readFileSync(envFile, 'utf8')
-  .split('\n')
-  .filter(line => line.trim() && !line.startsWith('#'))
-  .map(line => {
-    const eq = line.indexOf('=');
-    if (eq === -1) return ['', ''];
-    return [line.substring(0, eq).trim(), normalizeEnvValue(line.substring(eq + 1))];
-  });
-
 // Prefer passing vars via the process env rather than `k6 -e ...` flags.
 // On Windows, long command lines and `%` expansions (from URL-encoded cookies) can corrupt args.
-const envObj = {};
-for (const [k, v] of envVars) {
-  if (k) envObj[k] = v;
-}
-const runtimeEnv = { ...envObj, ...process.env };
+const localEnvFile = process.env.K6_LOCAL_ENV_PATH
+  ? path.resolve(process.cwd(), process.env.K6_LOCAL_ENV_PATH)
+  : path.join(process.cwd(), '.env.local');
+const runtimeEnv = { ...readEnvFile(localEnvFile), ...readEnvFile(envFile), ...process.env };
 
 const defaultK6Bin = 'C:\\Program Files\\k6\\k6.exe';
 const configuredK6Bin = process.env.K6_BIN && process.env.K6_BIN.trim();

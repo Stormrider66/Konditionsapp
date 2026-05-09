@@ -72,6 +72,7 @@ function runPreflight(lines: string[], env: Record<string, string> = {}) {
     'HOCKEY_PILOT_SUPPORT_SLA_HOURS',
     'HOCKEY_PILOT_OPEN_CRITICAL_ISSUES',
     'K6_SUMMARY_EXPORT',
+    'K6_LOCAL_ENV_PATH',
   ]) {
     delete childEnv[key]
   }
@@ -84,6 +85,14 @@ function runPreflight(lines: string[], env: Record<string, string> = {}) {
       ...env,
     },
     encoding: 'utf8',
+  })
+}
+
+function runPreflightWithLocalEnv(lines: string[], localLines: string[], env: Record<string, string> = {}) {
+  const localEnvPath = writeEnv(localLines)
+  return runPreflight(lines, {
+    K6_LOCAL_ENV_PATH: localEnvPath,
+    ...env,
   })
 }
 
@@ -293,6 +302,23 @@ describe('qa-hockey-pilot-env', () => {
       {
         GIT_COMMIT_SHA: 'abc123pilotsha',
         HOCKEY_PILOT_TARGET_COMMIT_SHA: 'abc123',
+        HOCKEY_PILOT_GATE_MODES: 'deterministic,load',
+      }
+    )
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('Target deployment commit: abc123')
+    expect(result.stdout).toContain('Target deployment matches commit SHA: yes')
+  })
+
+  it('loads fallback metadata from .env.local before .env.k6 and shell overrides', () => {
+    const result = runPreflightWithLocalEnv(
+      baseEnvLines(),
+      [
+        'HOCKEY_PILOT_TARGET_COMMIT_SHA=abc123',
+      ],
+      {
+        GIT_COMMIT_SHA: 'abc123pilotsha',
         HOCKEY_PILOT_GATE_MODES: 'deterministic,load',
       }
     )

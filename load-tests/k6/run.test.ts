@@ -30,6 +30,12 @@ function writeEnvFile(dir: string, lines: string[]) {
   return envPath
 }
 
+function writeNamedEnvFile(dir: string, name: string, lines: string[]) {
+  const envPath = path.join(dir, name)
+  writeFileSync(envPath, `${lines.join('\n')}\n`)
+  return envPath
+}
+
 function writeFakeK6(dir: string, options: { fail?: boolean; gateFail?: boolean } = {}) {
   const logPath = path.join(dir, 'k6-log.json')
   const scriptPath = path.join(dir, 'fake-k6.cjs')
@@ -98,6 +104,7 @@ function runRunner(args: string[], env: Record<string, string>) {
   for (const key of [
     'K6_BIN',
     'K6_ENV_PATH',
+    'K6_LOCAL_ENV_PATH',
     'K6_SUMMARY_EXPORT',
     'GIT_COMMIT_SHA',
     'GIT_BRANCH',
@@ -106,6 +113,7 @@ function runRunner(args: string[], env: Record<string, string>) {
     'HOCKEY_PILOT_TARGET_COMMIT_SHA',
     'HOCKEY_PILOT_GATE_MODES',
     'BASE_URL',
+    'EMAILS_PAUSED',
     'CLIENT_ID',
     'CLIENT_IDS',
     'BUSINESS_ID',
@@ -137,6 +145,8 @@ function runRunner(args: string[], env: Record<string, string>) {
     'HOCKEY_PILOT_OPEN_CRITICAL_ISSUES',
     'HOCKEY_PILOT_SUPPORT_OWNER',
     'HOCKEY_PILOT_SUPPORT_SLA_HOURS',
+    'HOCKEY_PILOT_INVITE_MODE',
+    'HOCKEY_PILOT_MANUAL_INVITE_OWNER',
   ]) {
     delete childEnv[key]
   }
@@ -392,6 +402,36 @@ describe('load-tests k6 runner', () => {
       matchesManifestCommit: true,
     })
     expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Target deployment matches commit SHA: yes')
+  })
+
+  it('uses .env.local as fallback metadata for invite evidence', () => {
+    const dir = tempDir()
+    const envPath = writeEnvFile(dir, baseEnvLines())
+    const localEnvPath = writeNamedEnvFile(dir, '.env.local', [
+      'HOCKEY_PILOT_INVITE_MODE=manual',
+      'EMAILS_PAUSED=true',
+      'HOCKEY_PILOT_MANUAL_INVITE_OWNER=Henrik',
+    ])
+    const summaryPath = path.join(dir, 'summary.json')
+    const fakeK6 = writeFakeK6(dir)
+
+    const result = runRunner(['hockey-pilot'], {
+      K6_ENV_PATH: envPath,
+      K6_LOCAL_ENV_PATH: localEnvPath,
+      K6_BIN: fakeK6.scriptPath,
+      K6_SUMMARY_EXPORT: summaryPath,
+      GIT_COMMIT_SHA: 'abc123pilotsha',
+      GIT_TREE_DIRTY: 'false',
+      HOCKEY_PILOT_TARGET_COMMIT_SHA: 'abc123',
+    })
+
+    expect(result.status).toBe(0)
+    const manifest = JSON.parse(readFileSync(manifestPath(summaryPath), 'utf8'))
+    expect(manifest.invite).toEqual({
+      mode: 'manual',
+      emailsPaused: true,
+      manualOwner: 'Henrik',
+    })
   })
 
   it('passes env file values to k6 while letting shell env override them', () => {
