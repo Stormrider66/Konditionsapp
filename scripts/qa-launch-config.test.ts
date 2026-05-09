@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkLaunchConfig, isHttpsProductionUrl } from './qa-launch-config'
+import { checkLaunchConfig, isHttpsProductionUrl, normalizeEnvValue } from './qa-launch-config'
 
 describe('qa-launch-config', () => {
   it('requires a valid invite mode', () => {
@@ -59,5 +59,11 @@ describe('qa-launch-config', () => {
     expect(isHttpsProductionUrl('http://app.example.com')).toBe(false)
     expect(isHttpsProductionUrl('https://localhost:3000')).toBe(false)
     expect(isHttpsProductionUrl('not-a-url')).toBe(false)
+  })
+
+  it('normalizes .env.local values with quotes and inline comments', () => {
+    expect(normalizeEnvValue('"manual"')).toBe('manual')
+    expect(normalizeEnvValue("'true'")).toBe('true')
+    expect(normalizeEnvValue('true # pilot email kill switch')).toBe('true')
   })
 })
