@@ -59,6 +59,13 @@ function buildCommands(env = process.env) {
   const athletesPerTeam = value(env, ['HOCKEY_PILOT_ATHLETES_PER_TEAM'], '30')
   const staffPerTeam = value(env, ['HOCKEY_PILOT_STAFF_PER_TEAM'], '5')
   const expectedPeakUsers = value(env, ['HOCKEY_PILOT_EXPECTED_PEAK_USERS'], '75')
+  const warmVus = value(env, ['HOCKEY_PILOT_WARM_VUS'], '10')
+  const steadyVus = value(env, ['HOCKEY_PILOT_STEADY_VUS'], '35')
+  const peakVus = value(env, ['HOCKEY_PILOT_PEAK_VUS'], '75')
+  const warmDuration = value(env, ['HOCKEY_PILOT_WARM_DURATION'], '2m')
+  const steadyDuration = value(env, ['HOCKEY_PILOT_STEADY_DURATION'], '6m')
+  const peakDuration = value(env, ['HOCKEY_PILOT_PEAK_DURATION'], '4m')
+  const rampDownDuration = value(env, ['HOCKEY_PILOT_RAMP_DOWN_DURATION'], '2m')
   const supportOwner = value(env, ['HOCKEY_PILOT_SUPPORT_OWNER'], 'Support Lead')
   const supportSlaHours = value(env, ['HOCKEY_PILOT_SUPPORT_SLA_HOURS'], '24')
   const supportNotesUrl = value(env, ['HOCKEY_PILOT_SUPPORT_NOTES_URL'], '')
@@ -88,6 +95,13 @@ function buildCommands(env = process.env) {
     envPair('HOCKEY_PILOT_ATHLETES_PER_TEAM', athletesPerTeam),
     envPair('HOCKEY_PILOT_STAFF_PER_TEAM', staffPerTeam),
     envPair('HOCKEY_PILOT_EXPECTED_PEAK_USERS', expectedPeakUsers),
+    envPair('HOCKEY_PILOT_WARM_VUS', warmVus),
+    envPair('HOCKEY_PILOT_STEADY_VUS', steadyVus),
+    envPair('HOCKEY_PILOT_PEAK_VUS', peakVus),
+    envPair('HOCKEY_PILOT_WARM_DURATION', warmDuration),
+    envPair('HOCKEY_PILOT_STEADY_DURATION', steadyDuration),
+    envPair('HOCKEY_PILOT_PEAK_DURATION', peakDuration),
+    envPair('HOCKEY_PILOT_RAMP_DOWN_DURATION', rampDownDuration),
     envPair('HOCKEY_PILOT_SUPPORT_OWNER', supportOwner),
     envPair('HOCKEY_PILOT_SUPPORT_SLA_HOURS', supportSlaHours),
     ...(supportNotesUrl ? [envPair('HOCKEY_PILOT_SUPPORT_NOTES_URL', supportNotesUrl)] : []),

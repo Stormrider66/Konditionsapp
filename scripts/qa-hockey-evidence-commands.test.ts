@@ -19,6 +19,13 @@ describe('qa-hockey-evidence-commands', () => {
       HOCKEY_PILOT_ATHLETES_PER_TEAM: '22',
       HOCKEY_PILOT_STAFF_PER_TEAM: '3',
       HOCKEY_PILOT_EXPECTED_PEAK_USERS: '38',
+      HOCKEY_PILOT_WARM_VUS: '8',
+      HOCKEY_PILOT_STEADY_VUS: '24',
+      HOCKEY_PILOT_PEAK_VUS: '40',
+      HOCKEY_PILOT_WARM_DURATION: '1m',
+      HOCKEY_PILOT_STEADY_DURATION: '5m',
+      HOCKEY_PILOT_PEAK_DURATION: '3m',
+      HOCKEY_PILOT_RAMP_DOWN_DURATION: '1m',
       HOCKEY_PILOT_SUPPORT_OWNER: 'Henrik',
       HOCKEY_PILOT_SUPPORT_SLA_HOURS: '12',
       HOCKEY_PILOT_SUPPORT_NOTES_URL: 'https://notes.example.com/pilot',
@@ -39,6 +46,13 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_ATHLETES_PER_TEAM=22')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_STAFF_PER_TEAM=3')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_EXPECTED_PEAK_USERS=38')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_WARM_VUS=8')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_STEADY_VUS=24')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_PEAK_VUS=40')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_WARM_DURATION=1m')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_STEADY_DURATION=5m')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_PEAK_DURATION=3m')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_RAMP_DOWN_DURATION=1m')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_SUPPORT_OWNER=Henrik')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_SUPPORT_NOTES_URL=https://notes.example.com/pilot')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_INVITE_MODE=manual')
@@ -75,6 +89,8 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_ATHLETES_PER_TEAM=30')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_STAFF_PER_TEAM=5')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_EXPECTED_PEAK_USERS=75')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_PEAK_VUS=75')
+    expect(commands.loadCommand).toContain('HOCKEY_PILOT_PEAK_DURATION=4m')
   })
 
   it('quotes shell values that contain spaces', () => {
