@@ -53,6 +53,7 @@ describe('qa-hockey-pilot-wave-plan', () => {
       HOCKEY_PILOT_EXPECTED_PEAK_USERS: '45',
       HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION: '72',
       HOCKEY_PILOT_SUPPORT_OWNER: 'Henrik',
+      HOCKEY_PILOT_SUPPORT_NOTES_URL: 'https://notes.example.com/hockey-pilot',
       HOCKEY_PILOT_SUPPORT_SLA_HOURS: '12',
       HOCKEY_PILOT_OPEN_CRITICAL_ISSUES: '0',
     })
@@ -64,6 +65,7 @@ describe('qa-hockey-pilot-wave-plan', () => {
       expectedPeakUsers: 45,
       quietHoursBeforeExpansion: 72,
       supportOwner: 'Henrik',
+      supportNotesUrl: 'https://notes.example.com/hockey-pilot',
       supportSlaHours: 12,
       openCriticalIssues: 0,
       estimatedAthletes: 96,
@@ -77,6 +79,7 @@ describe('qa-hockey-pilot-wave-plan', () => {
     expect(validation.errors).toEqual([])
     expect(validation.warnings).toContain('Teams 4-6 require a fresh --include-load gate before inviting.')
     expect(validation.warnings).toContain('Set HOCKEY_PILOT_SUPPORT_OWNER before sending external invites.')
+    expect(validation.warnings).toContain('Set HOCKEY_PILOT_SUPPORT_NOTES_URL before sending external invites.')
     expect(validation.warnings).toContain('Expected peak is above the normal pilot window; keep the 75-VU load evidence attached to the invite decision.')
   })
 

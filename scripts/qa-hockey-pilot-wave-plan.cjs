@@ -72,6 +72,9 @@ function readPlan(env = process.env) {
   const supportOwner = typeof env.HOCKEY_PILOT_SUPPORT_OWNER === 'string' && env.HOCKEY_PILOT_SUPPORT_OWNER.trim()
     ? env.HOCKEY_PILOT_SUPPORT_OWNER.trim()
     : null
+  const supportNotesUrl = typeof env.HOCKEY_PILOT_SUPPORT_NOTES_URL === 'string' && env.HOCKEY_PILOT_SUPPORT_NOTES_URL.trim()
+    ? env.HOCKEY_PILOT_SUPPORT_NOTES_URL.trim()
+    : null
   const supportSlaHours = parsePositiveInteger(env.HOCKEY_PILOT_SUPPORT_SLA_HOURS, DEFAULTS.supportSlaHours)
   const openCriticalIssues = parseNonNegativeInteger(env.HOCKEY_PILOT_OPEN_CRITICAL_ISSUES, DEFAULTS.openCriticalIssues)
   const estimatedAthletes = teamCount * athletesPerTeam
@@ -85,6 +88,7 @@ function readPlan(env = process.env) {
     expectedPeakUsers,
     quietHoursBeforeExpansion,
     supportOwner,
+    supportNotesUrl,
     supportSlaHours,
     openCriticalIssues,
     estimatedAthletes,
@@ -145,6 +149,9 @@ function validatePlan(plan) {
   if (!plan.supportOwner) {
     warnings.push('Set HOCKEY_PILOT_SUPPORT_OWNER before sending external invites.')
   }
+  if (!plan.supportNotesUrl) {
+    warnings.push('Set HOCKEY_PILOT_SUPPORT_NOTES_URL before sending external invites.')
+  }
   if (plan.expectedPeakUsers > 40) {
     warnings.push('Expected peak is above the normal pilot window; keep the 75-VU load evidence attached to the invite decision.')
   }
@@ -161,6 +168,7 @@ function printPlan(plan, validation) {
   console.log(`Expected peak users: ${plan.expectedPeakUsers}`)
   console.log(`Quiet hours before expansion: ${plan.quietHoursBeforeExpansion}`)
   console.log(`Support owner: ${plan.supportOwner ?? '-'}`)
+  console.log(`Support notes: ${plan.supportNotesUrl ?? '-'}`)
   console.log(`Support SLA: ${plan.supportSlaHours}h`)
   console.log(`Open critical support issues: ${plan.openCriticalIssues}`)
   console.log('Invite waves:')
