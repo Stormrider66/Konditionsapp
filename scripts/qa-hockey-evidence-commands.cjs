@@ -20,6 +20,10 @@ function value(env, keys, fallback) {
   return fallback
 }
 
+function hasNonEmptyEnv(env, key) {
+  return typeof env[key] === 'string' && env[key].trim().length > 0
+}
+
 function shellQuote(valueToQuote) {
   const raw = String(valueToQuote ?? '')
   if (/^[A-Za-z0-9_./:@%+=,-]+$/.test(raw)) return raw
@@ -66,7 +70,7 @@ function todayIsoDate(now = new Date()) {
 function buildCommands(env = process.env) {
   const currentCommit = value(env, ['GIT_COMMIT_SHA'], gitOutput('git rev-parse HEAD') || 'current-git-commit-sha')
   const deploymentUrl = value(env, ['TRAINOMICS_QA_BASE_URL', 'VERCEL_DEPLOYMENT_URL'], 'https://pilot.example.com')
-  const targetCommitProvided = Boolean(env.HOCKEY_PILOT_TARGET_COMMIT_SHA)
+  const targetCommitProvided = hasNonEmptyEnv(env, 'HOCKEY_PILOT_TARGET_COMMIT_SHA')
   const targetCommit = value(env, ['HOCKEY_PILOT_TARGET_COMMIT_SHA'], currentCommit)
   const businessSlug = value(env, ['TRAINOMICS_QA_BUSINESS_SLUG', 'E2E_BUSINESS_SLUG'], 'skelleftea-aik')
   const qaEmail = value(env, ['TRAINOMICS_QA_EMAIL', 'E2E_COACH_EMAIL'], 'coach@example.com')

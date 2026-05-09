@@ -158,6 +158,15 @@ describe('qa-hockey-evidence-commands', () => {
     })).toEqual([
       'Set HOCKEY_PILOT_TARGET_COMMIT_SHA from the Vercel deployment before invite evidence.',
     ])
+
+    expect(buildCommands({
+      GIT_COMMIT_SHA: 'abc123pilotsha',
+      TRAINOMICS_QA_BASE_URL: 'https://trainomics-hockey-pilot.vercel.app',
+      HOCKEY_PILOT_TARGET_COMMIT_SHA: '   ',
+      TRAINOMICS_QA_EMAIL: 'pilot-coach@trainomics.test',
+      TRAINOMICS_QA_PASSWORD: 'secret',
+      HOCKEY_PILOT_SUPPORT_OWNER: 'Henrik',
+    }).warnings).toContain('Set HOCKEY_PILOT_TARGET_COMMIT_SHA from the Vercel deployment before invite evidence.')
   })
 
   it('prints inspect and evidence commands', () => {
