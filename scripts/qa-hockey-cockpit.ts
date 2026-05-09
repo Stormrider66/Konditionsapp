@@ -37,6 +37,28 @@ function loadLocalEnv() {
   }
 }
 
+function isBrowserGateMode() {
+  return (process.env.HOCKEY_PILOT_GATE_MODES ?? '')
+    .split(',')
+    .map((mode) => mode.trim())
+    .includes('browser')
+}
+
+function assertProductionLikeBrowserTarget(baseUrl: string) {
+  try {
+    const url = new URL(baseUrl)
+    const isLocal = ['localhost', '127.0.0.1', '::1'].includes(url.hostname)
+    if (url.protocol !== 'https:' || isLocal) {
+      throw new Error('Browser pilot gate requires a production-like https target.')
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Browser pilot gate requires a production-like https target.') {
+      throw error
+    }
+    throw new Error('Browser pilot gate base URL is not a valid URL.')
+  }
+}
+
 async function main() {
   loadLocalEnv()
 
@@ -47,6 +69,9 @@ async function main() {
 
   if (!email || !password) {
     throw new Error('Set TRAINOMICS_QA_EMAIL and TRAINOMICS_QA_PASSWORD, or E2E_COACH_EMAIL and E2E_COACH_PASSWORD.')
+  }
+  if (isBrowserGateMode()) {
+    assertProductionLikeBrowserTarget(baseUrl)
   }
 
   const browser = await chromium.launch({ headless: true })
