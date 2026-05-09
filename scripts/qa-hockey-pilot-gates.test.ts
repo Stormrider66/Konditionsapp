@@ -5,7 +5,14 @@ import { describe, expect, it } from 'vitest'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
-const { buildChecks, gateModeEnv, shouldIncludeBrowserQa, shouldIncludeLoadQa } = require(path.join(testDir, 'qa-hockey-pilot-gates.cjs'))
+const {
+  buildChecks,
+  formatCommand,
+  gateModeEnv,
+  runChecks,
+  shouldIncludeBrowserQa,
+  shouldIncludeLoadQa,
+} = require(path.join(testDir, 'qa-hockey-pilot-gates.cjs'))
 
 describe('qa-hockey-pilot-gates', () => {
   it('runs deterministic pilot gates by default', () => {
@@ -71,5 +78,19 @@ describe('qa-hockey-pilot-gates', () => {
     expect(gateModeEnv()).toBe('deterministic')
     expect(gateModeEnv({ includeBrowserQa: true })).toBe('deterministic,browser')
     expect(gateModeEnv({ includeLoadQa: true })).toBe('deterministic,load')
+  })
+
+  it('reports the first failed check with command details', () => {
+    const checks = buildChecks({ includeLoadQa: true })
+    const result = runChecks(checks, (check: { label: string }) => (
+      check.label === 'Hockey pilot load run' ? 42 : 0
+    ))
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 42,
+      failedCheck: checks[4],
+    })
+    expect(formatCommand(result.failedCheck)).toBe('npm run load:k6:hockey-pilot')
   })
 })

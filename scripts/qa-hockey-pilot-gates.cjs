@@ -77,6 +77,10 @@ function buildChecks({ includeBrowserQa = false, includeLoadQa = false } = {}) {
   return checks
 }
 
+function formatCommand(check) {
+  return [check.command, ...(check.args || [])].join(' ')
+}
+
 function runCheck(check) {
   console.log(`\n== ${check.label} ==\n`)
   const result = spawnSync(check.command, check.args, {
@@ -93,21 +97,35 @@ function runCheck(check) {
   return 0
 }
 
-function runChecks(checks) {
+function runChecks(checks, run = runCheck) {
   for (const check of checks) {
-    const status = runCheck(check)
-    if (status !== 0) return status
+    const status = run(check)
+    if (status !== 0) {
+      return {
+        ok: false,
+        status,
+        failedCheck: check,
+      }
+    }
   }
-  return 0
+
+  return {
+    ok: true,
+    status: 0,
+  }
 }
 
 function main() {
   const includeBrowserQa = shouldIncludeBrowserQa()
   const includeLoadQa = shouldIncludeLoadQa()
   const checks = buildChecks({ includeBrowserQa, includeLoadQa })
-  const status = runChecks(checks)
-  if (status !== 0) {
-    process.exitCode = status
+  const result = runChecks(checks)
+  if (!result.ok) {
+    console.error('\nHockey pilot gate checks failed.')
+    console.error(`Failed check: ${result.failedCheck.label}`)
+    console.error(`Command: ${formatCommand(result.failedCheck)}`)
+    console.error(`Gate modes: ${result.failedCheck.env?.HOCKEY_PILOT_GATE_MODES || 'deterministic'}`)
+    process.exitCode = result.status
     return
   }
 
@@ -126,7 +144,9 @@ if (require.main === module) {
 
 module.exports = {
   buildChecks,
+  formatCommand,
   gateModeEnv,
+  runChecks,
   shouldIncludeBrowserQa,
   shouldIncludeLoadQa,
 }
