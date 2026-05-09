@@ -23,16 +23,13 @@ Use this during the first 3-6 team hockey pilot. The goal is simple: invite grad
 3. Run local tooling checks:
 
 ```bash
-npm run qa:hockey-pilot-readiness
+npm run qa:hockey-pilot-gates
 ```
 
-4. Run target-environment checks:
+4. Run target-environment browser checks:
 
 ```bash
-npm run qa:launch-config
-npm run qa:hockey
-npm run qa:cron-config
-npm run qa:daily-metrics-backlog
+npm run qa:hockey-pilot-gates -- --include-browser
 ```
 
 5. Run the hockey pilot load test with evidence export:
@@ -96,6 +93,7 @@ Continue to the next wave only when:
 - `npm run qa:launch-config` passes
 - `npm run qa:hockey` passes against the target environment
 - `npm run qa:cron-config` passes
+- `npm run qa:hockey-pilot-gates` passes
 - the hockey pilot load summary gate passes
 - `npm run qa:daily-metrics-backlog` passes after the load run
 - the manifest says `result.status` is `passed`

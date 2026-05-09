@@ -155,13 +155,17 @@ At least one traffic weight must be greater than `0`; all-zero weights are treat
 Run:
 
 ```bash
-npm run qa:hockey-pilot-readiness
+npm run qa:hockey-pilot-gates
 npm run qa:hockey-pilot-env
-npm run qa:cron-config
-npm run qa:daily-metrics-backlog
 K6_SUMMARY_EXPORT=load-tests/hockey-pilot-summary.json npm run load:k6:hockey-pilot
 npm run qa:daily-metrics-backlog
 npm run qa:hockey-pilot-tooling
+```
+
+Add browser cockpit QA when a target app and QA credentials are ready:
+
+```bash
+npm run qa:hockey-pilot-gates -- --include-browser
 ```
 
 `npm run load:k6:hockey-pilot` also runs the same env preflight automatically before k6 starts. When `K6_SUMMARY_EXPORT` is set, it also prints the k6 analyzer output and runs the summary gate after k6 finishes.
@@ -189,6 +193,7 @@ npm run qa:hockey-pilot-evidence -- load-tests/evidence/hockey-pilot-YYYY-MM-DD.
 Pass these before inviting the first external teams:
 
 - `npm run build` completes
+- `npm run qa:hockey-pilot-gates` passes locally
 - `npm run qa:hockey-pilot-readiness` passes locally
 - `npm run qa:launch-config` passes
 - `npm run qa:hockey` passes against the target environment
