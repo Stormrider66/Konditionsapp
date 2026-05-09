@@ -4,20 +4,27 @@ This note covers the repeatable checks and seed data for the Skelleftea hockey w
 
 ## QA Script
 
-Run:
+For local/demo development, run:
 
 ```bash
+TRAINOMICS_QA_BASE_URL="http://localhost:3000" \
 TRAINOMICS_QA_EMAIL="coach@example.com" \
 TRAINOMICS_QA_PASSWORD="..." \
 TRAINOMICS_QA_BUSINESS_SLUG="skelleftea-aik" \
 npm run qa:hockey
 ```
 
-Optional:
+For invite evidence, use the combined gate against a production-like `https://` target:
 
 ```bash
-TRAINOMICS_QA_BASE_URL="http://localhost:3000"
+TRAINOMICS_QA_BASE_URL="https://pilot.example.com" \
+TRAINOMICS_QA_EMAIL="coach@example.com" \
+TRAINOMICS_QA_PASSWORD="..." \
+TRAINOMICS_QA_BUSINESS_SLUG="skelleftea-aik" \
+npm run qa:hockey-pilot-gates -- --include-browser
 ```
+
+The combined browser gate intentionally fails localhost and plain HTTP targets so a local demo check cannot be mistaken for launch evidence.
 
 The script logs in, opens the hockey testing page, checks that the VO2/ramp, LT1/LT2, and 7x40 sections render, follows the first team shortcut, checks the team tests page for ice-speed/team-gap and aerobic-profile blocks, then opens the aerobic SIMCA export and verifies key aerobic variables are present.
 
@@ -40,4 +47,3 @@ The seed creates or updates:
 - Matching lab/ramp `Test` records and `AthleteProfile` lactate data.
 
 Half of the latest hockey tests intentionally omit aerobic values. That lets the app demonstrate the linked-source badge where VO2, LT1/LT2, max lactate, max HR, and ramp context are pulled from lab/profile data without manually duplicating values.
-
