@@ -101,6 +101,7 @@ function runRunner(args: string[], env: Record<string, string>) {
     'K6_SUMMARY_EXPORT',
     'GIT_COMMIT_SHA',
     'GIT_BRANCH',
+    'GIT_TREE_DIRTY',
     'HOCKEY_PILOT_EVIDENCE_OUTPUT',
     'HOCKEY_PILOT_GATE_MODES',
     'BASE_URL',
@@ -154,6 +155,7 @@ describe('load-tests k6 runner', () => {
       K6_BIN: fakeK6.scriptPath,
       K6_SUMMARY_EXPORT: summaryPath,
       HOCKEY_PILOT_GATE_MODES: 'deterministic,load',
+      GIT_TREE_DIRTY: 'false',
     })
 
     expect(result.status).toBe(0)
@@ -294,12 +296,14 @@ describe('load-tests k6 runner', () => {
       K6_SUMMARY_EXPORT: summaryPath,
       GIT_COMMIT_SHA: 'abc123pilotsha',
       GIT_BRANCH: 'pilot-release',
+      GIT_TREE_DIRTY: 'true',
     })
 
     expect(result.status).toBe(0)
     const manifest = JSON.parse(readFileSync(manifestPath(summaryPath), 'utf8'))
     expect(manifest.git.commitSha).toBe('abc123pilotsha')
     expect(manifest.git.branch).toBe('pilot-release')
+    expect(manifest.git.dirty).toBe(true)
   })
 
   it('passes env file values to k6 while letting shell env override them', () => {

@@ -112,6 +112,13 @@ function gitOutput(command) {
 function gitSnapshot(env) {
   const commitSha = env.GIT_COMMIT_SHA || gitOutput('git rev-parse HEAD');
   const branch = env.GIT_BRANCH || gitOutput('git rev-parse --abbrev-ref HEAD');
+  if (env.GIT_TREE_DIRTY === 'true' || env.GIT_TREE_DIRTY === 'false') {
+    return {
+      commitSha: commitSha || null,
+      branch: branch || null,
+      dirty: env.GIT_TREE_DIRTY === 'true',
+    };
+  }
   const dirtyStatus = gitOutput('git status --short');
   return {
     commitSha: commitSha || null,

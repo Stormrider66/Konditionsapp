@@ -23,7 +23,7 @@ function tempDir() {
   return dir
 }
 
-function writePilotArtifacts(dir: string, status: 'passed' | 'failed' = 'passed') {
+function writePilotArtifacts(dir: string, status: 'passed' | 'failed' = 'passed', options: { dirty?: boolean } = {}) {
   const summaryPath = path.join(dir, 'summary.json')
   const gatePath = path.join(dir, 'summary.gate.txt')
   const analyzerPath = path.join(dir, 'summary.analyzer.txt')
@@ -64,7 +64,7 @@ function writePilotArtifacts(dir: string, status: 'passed' | 'failed' = 'passed'
         git: {
           commitSha: 'abc123pilotsha',
           branch: 'main',
-          dirty: false,
+          dirty: options.dirty ?? false,
         },
         target: 'https://pilot.example.com',
         businessSlug: 'skelleftea-aik',
@@ -137,6 +137,7 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Busy window tested: 45 expected peak users')
     expect(result.stdout).toContain('Pilot users: 112 (4 teams)')
     expect(result.stdout).toContain('Git tree dirty: no')
+    expect(result.stdout).toContain('Release evidence status: committed tree')
     expect(result.stdout).toContain('Overall p95: 1741ms')
     expect(result.stdout).toContain('Slowest endpoint: hockey-simca-export (2752ms p95)')
     expect(result.stdout).toContain('| team-dashboard | 1393ms | 1671ms | 0.00% |')
@@ -164,5 +165,19 @@ describe('hockey-pilot-evidence', () => {
     expect(markdown).toContain('Decision: `FIX_AND_RERUN`')
     expect(markdown).toContain('Failed step: hockey pilot summary gate')
     expect(result.stdout).toContain('Saved hockey pilot evidence note:')
+  })
+
+  it('marks passed dirty-tree runs as fix and rerun evidence', () => {
+    const dir = tempDir()
+    const { manifestPath } = writePilotArtifacts(dir, 'passed', { dirty: true })
+    const result = spawnSync(process.execPath, [scriptPath, manifestPath], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    })
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
+    expect(result.stdout).toContain('Git tree dirty: yes')
+    expect(result.stdout).toContain('Release evidence status: dirty tree; rerun from a committed state before inviting')
   })
 })

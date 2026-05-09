@@ -64,6 +64,7 @@ function relativeOrDash(filePath, cwd) {
 }
 
 function decisionFromManifest(manifest) {
+  if (manifest?.git?.dirty === true) return 'FIX_AND_RERUN'
   return manifest?.result?.status === 'passed' ? 'GO' : 'FIX_AND_RERUN'
 }
 
@@ -141,6 +142,7 @@ K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run qa:hocke
 - Gate modes: ${formatList(manifest.gateModes)}
 - Git branch: ${git.branch || '-'}
 - Git tree dirty: ${git.dirty === true ? 'yes' : git.dirty === false ? 'no' : '-'}
+- Release evidence status: ${git.dirty === true ? 'dirty tree; rerun from a committed state before inviting' : git.dirty === false ? 'committed tree' : '-'}
 - Business/team: ${manifest.businessSlug || manifest.businessId || '-'} / ${manifest.teamId || '-'}
 - Client ID count: ${manifest.clientIdCount ?? '-'}
 - Pilot users: ${wavePlan.estimatedUsers ?? '-'} (${wavePlan.teamCount ?? '-'} teams)

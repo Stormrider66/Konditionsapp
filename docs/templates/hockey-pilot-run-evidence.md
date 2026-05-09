@@ -45,6 +45,7 @@ K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:ho
 - Gate modes:
 - Git branch:
 - Git tree dirty:
+- Release evidence status:
 - Business/team:
 - Client ID count:
 - Pilot users: `___` users (`___` teams)
