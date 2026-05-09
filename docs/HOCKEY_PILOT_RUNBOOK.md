@@ -132,6 +132,7 @@ Continue to the next wave only when:
 
 1. Review the generated evidence note.
    - Regenerate a pre-filled copy with `npm run qa:hockey-pilot-evidence -- <manifest.json> <output.md>` if needed.
+   - Confirm `Target production-like` is `yes`; older manifests without target metadata must be rerun.
 2. Attach or link the generated artifacts.
 3. Record the decision:
    - `GO`

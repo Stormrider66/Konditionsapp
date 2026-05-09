@@ -191,6 +191,8 @@ Set `K6_SUMMARY_EXPORT` for pilot runs so the summary JSON is saved as launch ev
 
 When the hockey pilot run finishes, the runner also saves `<summary>.analyzer.txt`, `<summary>.gate.txt`, `<summary>.manifest.json`, and `<summary>.md` next to the JSON file. The manifest records the target, business/team IDs, client count, auth modes, traffic weights, git commit/branch/dirty status, artifact paths, and whether the analyzer/gate passed or failed.
 
+Only manifests that include `targetInfo.productionLike: true` count as invite evidence. Older manifests without target metadata, localhost runs, and plain HTTP runs should be treated as `FIX_AND_RERUN`.
+
 If k6 exits nonzero after writing the summary JSON, the runner still saves analyzer, gate, and manifest evidence. The manifest records the k6 exit code so threshold failures are reviewable instead of disappearing into terminal scrollback.
 
 Regenerate the pre-filled go/no-go evidence note from the manifest if needed:
