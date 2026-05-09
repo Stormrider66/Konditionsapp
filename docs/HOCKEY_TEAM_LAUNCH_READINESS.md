@@ -169,6 +169,7 @@ Run:
 npm run qa:hockey-pilot-gates
 npm run qa:hockey-pilot-wave-plan
 npm run qa:hockey-pilot-monitoring
+npm run qa:hockey-pilot-incidents
 npm run qa:hockey-pilot-tenant-boundary
 npm run qa:hockey-pilot-env
 npm run qa:hockey-evidence-commands

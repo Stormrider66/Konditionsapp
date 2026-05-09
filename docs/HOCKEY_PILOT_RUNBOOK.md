@@ -100,7 +100,19 @@ HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION=48 \
 npm run qa:hockey-pilot-monitoring
 ```
 
-9. Save the generated evidence:
+9. Confirm incident response is staffed:
+
+```bash
+HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" \
+HOCKEY_PILOT_TECHNICAL_OWNER="Technical Lead" \
+HOCKEY_PILOT_ROLLBACK_OWNER="Release Lead" \
+HOCKEY_PILOT_INCIDENT_CHANNEL="#hockey-pilot" \
+HOCKEY_PILOT_SUPPORT_NOTES_URL="https://..." \
+HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 \
+npm run qa:hockey-pilot-incidents
+```
+
+10. Save the generated evidence:
    - summary JSON
    - analyzer text
    - gate text
@@ -163,6 +175,7 @@ Continue to the next wave only when:
 - `npm run qa:hockey-pilot-gates` passes
 - `npm run qa:hockey-pilot-gates -- --include-load` passes with evidence export
 - `npm run qa:hockey-pilot-monitoring` passes with a named support owner and notes link
+- `npm run qa:hockey-pilot-incidents` passes with support, technical, rollback, channel, and notes owners
 - browser and load gates were run against production-like `https://` targets
 - the target deployment commit matches the manifest commit SHA
 - the hockey pilot load summary gate passes
@@ -207,7 +220,10 @@ Run `npm run qa:hockey-pilot-monitoring` at the start of each invite window, the
 
 ## Escalation
 
-- Auth or tenant isolation issue: stop invites immediately.
-- Data loss or incorrect athlete/team visibility: stop invites immediately.
-- Performance-only issue: pause next wave, collect manifest and logs, fix, rerun.
-- Email-only issue: switch to manual invite mode if the product remains otherwise healthy.
+Run `npm run qa:hockey-pilot-incidents` before the invite window and use its incident actions during the pilot.
+
+- Auth or invite failures: pause new invites, capture affected email/domain, and check Supabase Auth plus Vercel logs.
+- Tenant access or cross-team visibility: stop invites immediately, record affected users/business slugs, and rerun tenant-boundary checks.
+- Hockey dashboard or export slowdown: collect the load manifest, analyzer output, endpoint timings, and affected team/export preset.
+- Daily metrics or cron backlog: run `npm run qa:daily-metrics-backlog` and `npm run qa:cron-config`, then inspect failed/stale jobs.
+- Support volume spike: group support notes by symptom, owner, and affected team before changing invite timing.
