@@ -35,6 +35,9 @@ describe('qa-hockey-evidence-commands', () => {
       HOCKEY_PILOT_SUPPORT_OWNER: 'Henrik',
       HOCKEY_PILOT_SUPPORT_SLA_HOURS: '12',
       HOCKEY_PILOT_SUPPORT_NOTES_URL: 'https://notes.example.com/pilot',
+      HOCKEY_PILOT_INCIDENT_CHANNEL: '#hockey-pilot',
+      HOCKEY_PILOT_FIRST_CHECK_MINUTES: '20',
+      HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION: '72',
       HOCKEY_PILOT_OPEN_CRITICAL_ISSUES: '0',
       HOCKEY_PILOT_INVITE_MODE: 'manual',
       EMAILS_PAUSED: 'true',
@@ -70,6 +73,12 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_INVITE_MODE=manual')
     expect(commands.loadCommand).toContain('K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-2026-05-09.json')
     expect(commands.loadCommand).toContain('npm run qa:hockey-pilot-gates -- --include-load')
+    expect(commands.monitoringCommand).toContain('HOCKEY_PILOT_SUPPORT_OWNER=Henrik')
+    expect(commands.monitoringCommand).toContain('HOCKEY_PILOT_SUPPORT_NOTES_URL=https://notes.example.com/pilot')
+    expect(commands.monitoringCommand).toContain('HOCKEY_PILOT_INCIDENT_CHANNEL="#hockey-pilot"')
+    expect(commands.monitoringCommand).toContain('HOCKEY_PILOT_FIRST_CHECK_MINUTES=20')
+    expect(commands.monitoringCommand).toContain('HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION=72')
+    expect(commands.monitoringCommand).toContain('npm run qa:hockey-pilot-monitoring')
     expect(commands.warnings).toEqual([])
   })
 
@@ -202,5 +211,6 @@ describe('qa-hockey-evidence-commands', () => {
     expect(output).toContain('Set TRAINOMICS_QA_BASE_URL to the real production-like pilot URL.')
     expect(output).toContain('Browser evidence:')
     expect(output).toContain('Load evidence:')
+    expect(output).toContain('Post-invite monitoring:')
   })
 })

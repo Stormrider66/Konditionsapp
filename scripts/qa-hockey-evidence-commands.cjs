@@ -94,6 +94,9 @@ function buildCommands(env = process.env) {
   const supportOwner = value(env, ['HOCKEY_PILOT_SUPPORT_OWNER'], 'Support Lead')
   const supportSlaHours = value(env, ['HOCKEY_PILOT_SUPPORT_SLA_HOURS'], '24')
   const supportNotesUrl = value(env, ['HOCKEY_PILOT_SUPPORT_NOTES_URL'], '')
+  const incidentChannel = value(env, ['HOCKEY_PILOT_INCIDENT_CHANNEL'], '')
+  const firstCheckMinutes = value(env, ['HOCKEY_PILOT_FIRST_CHECK_MINUTES'], '30')
+  const quietHoursBeforeExpansion = value(env, ['HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION'], '48')
   const openCriticalIssues = value(env, ['HOCKEY_PILOT_OPEN_CRITICAL_ISSUES'], '0')
   const inviteMode = value(env, ['HOCKEY_PILOT_INVITE_MODE'], 'manual')
   const emailsPaused = value(env, ['EMAILS_PAUSED'], inviteMode === 'manual' ? 'true' : 'false')
@@ -147,6 +150,15 @@ function buildCommands(env = process.env) {
     'npm run qa:hockey-pilot-gates -- --include-load',
   ].join(' ')
 
+  const monitoringCommand = [
+    envPair('HOCKEY_PILOT_SUPPORT_OWNER', supportOwner),
+    ...(supportNotesUrl ? [envPair('HOCKEY_PILOT_SUPPORT_NOTES_URL', supportNotesUrl)] : []),
+    ...(incidentChannel ? [envPair('HOCKEY_PILOT_INCIDENT_CHANNEL', incidentChannel)] : []),
+    envPair('HOCKEY_PILOT_FIRST_CHECK_MINUTES', firstCheckMinutes),
+    envPair('HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION', quietHoursBeforeExpansion),
+    'npm run qa:hockey-pilot-monitoring',
+  ].join(' ')
+
   return {
     currentCommit,
     deploymentUrl,
@@ -154,6 +166,7 @@ function buildCommands(env = process.env) {
     warnings,
     browserCommand,
     loadCommand,
+    monitoringCommand,
   }
 }
 
@@ -178,6 +191,9 @@ function main(env = process.env) {
   console.log('')
   console.log('Load evidence:')
   console.log(commands.loadCommand)
+  console.log('')
+  console.log('Post-invite monitoring:')
+  console.log(commands.monitoringCommand)
 }
 
 if (require.main === module) {
