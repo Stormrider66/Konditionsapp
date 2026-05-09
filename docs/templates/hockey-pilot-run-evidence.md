@@ -33,6 +33,7 @@ K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:ho
 - Analyzer output:
 - Summary gate output:
 - Manifest JSON:
+- Evidence note:
 - Screenshot or support notes:
 
 ## Manifest Snapshot
@@ -40,9 +41,14 @@ K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:ho
 - Result status:
 - Failed step:
 - k6 exit code:
+- Summary gate:
+- Gate modes:
+- Git branch:
+- Git tree dirty:
 - Business/team:
 - Client ID count:
-- Traffic weights:
+- Pilot users: `___` users (`___` teams)
+- Traffic weights: read `___`, athlete `___`, dashboard `___`, export `___`
 
 ## Gate Results
 
@@ -51,6 +57,10 @@ K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:ho
 - Overall p99:
 - Slowest endpoint:
 - Endpoint failures:
+
+| Endpoint | p95 | p99 | Fail rate |
+| --- | ---: | ---: | ---: |
+|  |  |  |  |
 
 ## Manual Checks
 
