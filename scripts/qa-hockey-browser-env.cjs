@@ -2,6 +2,7 @@
 
 const fs = require('fs')
 const path = require('path')
+const { execSync } = require('child_process')
 
 function normalizeEnvValue(rawValue) {
   let value = rawValue.trim()
@@ -44,7 +45,31 @@ function browserQaConfig(env = process.env) {
     email: env.TRAINOMICS_QA_EMAIL || env.E2E_COACH_EMAIL || '',
     password: env.TRAINOMICS_QA_PASSWORD || env.E2E_COACH_PASSWORD || '',
     strictTarget: (env.HOCKEY_PILOT_GATE_MODES || '').split(',').map((mode) => mode.trim()).includes('browser'),
+    currentCommitSha: env.GIT_COMMIT_SHA || null,
+    targetDeploymentCommit: env.HOCKEY_PILOT_TARGET_COMMIT_SHA || null,
   }
+}
+
+function gitOutput(command) {
+  try {
+    return execSync(command, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      shell: true,
+    }).trim()
+  } catch {
+    return null
+  }
+}
+
+function commitMatches(left, right) {
+  if (!left || !right) return null
+  const normalizedLeft = String(left).trim().toLowerCase()
+  const normalizedRight = String(right).trim().toLowerCase()
+  if (!normalizedLeft || !normalizedRight) return null
+  return normalizedLeft === normalizedRight ||
+    normalizedLeft.startsWith(normalizedRight) ||
+    normalizedRight.startsWith(normalizedLeft)
 }
 
 function validateBrowserQaConfig(config) {
@@ -52,6 +77,7 @@ function validateBrowserQaConfig(config) {
   const warnings = []
   let targetProductionLike = false
   let targetReason = 'missing'
+  const targetDeploymentMatches = commitMatches(config.targetDeploymentCommit, config.currentCommitSha)
 
   if (!config.baseUrl) {
     errors.push('TRAINOMICS_QA_BASE_URL or E2E_BASE_URL is required for browser QA.')
@@ -90,12 +116,17 @@ function validateBrowserQaConfig(config) {
     errors.push('TRAINOMICS_QA_PASSWORD or E2E_COACH_PASSWORD is required for browser QA.')
   }
 
-  return { errors, warnings, targetProductionLike, targetReason }
+  if (config.strictTarget && targetDeploymentMatches === false) {
+    errors.push('HOCKEY_PILOT_TARGET_COMMIT_SHA does not match the current browser evidence commit.')
+  }
+
+  return { errors, warnings, targetProductionLike, targetReason, targetDeploymentMatches }
 }
 
 function main() {
   const env = { ...loadLocalEnv(), ...process.env }
   const config = browserQaConfig(env)
+  config.currentCommitSha = config.currentCommitSha || gitOutput('git rev-parse HEAD')
   const validation = validateBrowserQaConfig(config)
   const { errors, warnings } = validation
 
@@ -113,6 +144,8 @@ function main() {
   console.log(`Coach login: ${config.email}`)
   console.log(`Strict target: ${config.strictTarget ? 'yes' : 'no'}`)
   console.log(`Target production-like: ${validation.targetProductionLike ? 'yes' : 'no'} (${validation.targetReason})`)
+  console.log(`Target deployment commit: ${config.targetDeploymentCommit || '-'}`)
+  console.log(`Target deployment matches commit SHA: ${validation.targetDeploymentMatches === true ? 'yes' : validation.targetDeploymentMatches === false ? 'no' : '-'}`)
   for (const warning of warnings) console.warn(`Warning: ${warning}`)
 }
 

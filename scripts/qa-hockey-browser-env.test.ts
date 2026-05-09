@@ -25,6 +25,8 @@ describe('qa-hockey-browser-env', () => {
       email: 'coach@example.com',
       password: 'secret',
       strictTarget: false,
+      currentCommitSha: null,
+      targetDeploymentCommit: null,
     })
   })
 
@@ -38,6 +40,8 @@ describe('qa-hockey-browser-env', () => {
       email: 'coach@example.com',
       password: 'secret',
       strictTarget: false,
+      currentCommitSha: null,
+      targetDeploymentCommit: null,
     })
   })
 
@@ -63,6 +67,7 @@ describe('qa-hockey-browser-env', () => {
     expect(result.warnings).toEqual([])
     expect(result.targetProductionLike).toBe(true)
     expect(result.targetReason).toBe('https-production-like')
+    expect(result.targetDeploymentMatches).toBeNull()
   })
 
   it('fails missing credentials clearly', () => {
@@ -132,6 +137,38 @@ describe('qa-hockey-browser-env', () => {
     }).errors).toEqual([
       'Browser QA target is not https; production-like pilot checks should use https.',
     ])
+  })
+
+  it('fails strict browser evidence when the target deployment commit does not match', () => {
+    const result = validateBrowserQaConfig({
+      baseUrl: 'https://pilot.example.com',
+      businessSlug: 'pilot-club',
+      email: 'coach@example.com',
+      password: 'secret',
+      strictTarget: true,
+      currentCommitSha: 'abc123pilotsha',
+      targetDeploymentCommit: 'different-sha',
+    })
+
+    expect(result.errors).toEqual([
+      'HOCKEY_PILOT_TARGET_COMMIT_SHA does not match the current browser evidence commit.',
+    ])
+    expect(result.targetDeploymentMatches).toBe(false)
+  })
+
+  it('accepts short matching target deployment commits for browser evidence', () => {
+    const result = validateBrowserQaConfig({
+      baseUrl: 'https://pilot.example.com',
+      businessSlug: 'pilot-club',
+      email: 'coach@example.com',
+      password: 'secret',
+      strictTarget: true,
+      currentCommitSha: 'abc123pilotsha',
+      targetDeploymentCommit: 'abc123',
+    })
+
+    expect(result.errors).toEqual([])
+    expect(result.targetDeploymentMatches).toBe(true)
   })
 
   it('normalizes quoted env values and inline comments', () => {
