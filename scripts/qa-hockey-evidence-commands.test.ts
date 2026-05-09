@@ -12,6 +12,7 @@ describe('qa-hockey-evidence-commands', () => {
     const commands = buildCommands({
       GIT_COMMIT_SHA: 'abc123pilotsha',
       TRAINOMICS_QA_BASE_URL: 'https://trainomics-hockey-pilot.vercel.app',
+      HOCKEY_PILOT_TARGET_COMMIT_SHA: 'abc123pilotsha',
       TRAINOMICS_QA_EMAIL: 'pilot-coach@trainomics.test',
       TRAINOMICS_QA_PASSWORD: 'secret pass',
       TRAINOMICS_QA_BUSINESS_SLUG: 'pilot-club',
@@ -118,6 +119,7 @@ describe('qa-hockey-evidence-commands', () => {
       qaPassword: '...',
       supportOwner: 'Support Lead',
       targetCommit: 'vercel-deployment-commit-sha',
+      targetCommitProvided: true,
     })).toEqual([
       'Set TRAINOMICS_QA_BASE_URL to the real production-like pilot URL.',
       'Set TRAINOMICS_QA_EMAIL to a real QA coach login.',
@@ -138,8 +140,22 @@ describe('qa-hockey-evidence-commands', () => {
       qaPassword: 'secret',
       supportOwner: 'Henrik',
       targetCommit: 'abc123',
+      targetCommitProvided: true,
     })).toEqual([
       'Use a production-like https URL for invite evidence.',
+    ])
+  })
+
+  it('reports when the deployment commit was not explicitly provided', () => {
+    expect(commandWarnings({
+      deploymentUrl: 'https://trainomics-hockey-pilot.vercel.app',
+      qaEmail: 'pilot-coach@trainomics.test',
+      qaPassword: 'secret',
+      supportOwner: 'Henrik',
+      targetCommit: 'abc123',
+      targetCommitProvided: false,
+    })).toEqual([
+      'Set HOCKEY_PILOT_TARGET_COMMIT_SHA from the Vercel deployment before invite evidence.',
     ])
   })
 

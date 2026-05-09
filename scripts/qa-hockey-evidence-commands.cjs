@@ -51,6 +51,7 @@ function commandWarnings(values) {
   const warnings = []
   if (isPlaceholder(values.deploymentUrl)) warnings.push('Set TRAINOMICS_QA_BASE_URL to the real production-like pilot URL.')
   if (!isPlaceholder(values.deploymentUrl) && !isProductionLikeUrl(values.deploymentUrl)) warnings.push('Use a production-like https URL for invite evidence.')
+  if (!values.targetCommitProvided) warnings.push('Set HOCKEY_PILOT_TARGET_COMMIT_SHA from the Vercel deployment before invite evidence.')
   if (isPlaceholder(values.qaEmail)) warnings.push('Set TRAINOMICS_QA_EMAIL to a real QA coach login.')
   if (isPlaceholder(values.qaPassword)) warnings.push('Set TRAINOMICS_QA_PASSWORD to the real QA coach password.')
   if (isPlaceholder(values.supportOwner)) warnings.push('Set HOCKEY_PILOT_SUPPORT_OWNER to a named person.')
@@ -65,6 +66,7 @@ function todayIsoDate(now = new Date()) {
 function buildCommands(env = process.env) {
   const currentCommit = value(env, ['GIT_COMMIT_SHA'], gitOutput('git rev-parse HEAD') || 'current-git-commit-sha')
   const deploymentUrl = value(env, ['TRAINOMICS_QA_BASE_URL', 'VERCEL_DEPLOYMENT_URL'], 'https://pilot.example.com')
+  const targetCommitProvided = Boolean(env.HOCKEY_PILOT_TARGET_COMMIT_SHA)
   const targetCommit = value(env, ['HOCKEY_PILOT_TARGET_COMMIT_SHA'], currentCommit)
   const businessSlug = value(env, ['TRAINOMICS_QA_BUSINESS_SLUG', 'E2E_BUSINESS_SLUG'], 'skelleftea-aik')
   const qaEmail = value(env, ['TRAINOMICS_QA_EMAIL', 'E2E_COACH_EMAIL'], 'coach@example.com')
@@ -99,6 +101,7 @@ function buildCommands(env = process.env) {
     qaPassword,
     supportOwner,
     targetCommit,
+    targetCommitProvided,
   })
 
   const browserCommand = [
