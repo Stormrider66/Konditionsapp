@@ -24,7 +24,7 @@ npm run qa:hockey-pilot-readiness
 npm run qa:hockey-pilot-gates
 npm run qa:launch-config
 npm run qa:hockey
-K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load
+HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load
 ```
 
 ## Artifacts
@@ -52,6 +52,7 @@ K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:ho
 - Traffic weights: read `___`, athlete `___`, dashboard `___`, export `___`
 - Load profile: warm `___` VUs/`___`, steady `___` VUs/`___`, peak `___` VUs/`___`, ramp down `___`
 - Support owner:
+- Support SLA:
 - Open critical support issues:
 
 ## Gate Results
@@ -93,6 +94,7 @@ K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:ho
 - Export/SIMCA reports:
 - Daily metrics save reports:
 - Valid-user 401/403 reports:
+- Support SLA:
 - Open critical support issues:
 
 ## Issues
