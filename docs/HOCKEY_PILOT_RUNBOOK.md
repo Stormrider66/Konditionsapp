@@ -44,9 +44,9 @@ npm run qa:daily-metrics-backlog
    - analyzer text
    - gate text
    - manifest JSON
-   - completed evidence template
+   - completed evidence note
 
-   You can generate a pre-filled evidence note from the manifest:
+   The k6 runner creates the evidence note automatically next to the manifest. You can regenerate it manually from the manifest:
 
 ```bash
 npm run qa:hockey-pilot-evidence -- load-tests/evidence/hockey-pilot-YYYY-MM-DD.manifest.json load-tests/evidence/hockey-pilot-YYYY-MM-DD.md
@@ -102,8 +102,8 @@ Continue to the next wave only when:
 
 ## After Each Run
 
-1. Fill out `docs/templates/hockey-pilot-run-evidence.md`.
-   - Or generate a pre-filled copy with `npm run qa:hockey-pilot-evidence -- <manifest.json> <output.md>`.
+1. Review the generated evidence note.
+   - Regenerate a pre-filled copy with `npm run qa:hockey-pilot-evidence -- <manifest.json> <output.md>` if needed.
 2. Attach or link the generated artifacts.
 3. Record the decision:
    - `GO`

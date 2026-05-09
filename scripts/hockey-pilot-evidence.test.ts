@@ -80,6 +80,7 @@ function writePilotArtifacts(dir: string, status: 'passed' | 'failed' = 'passed'
           analyzerOutput: analyzerPath,
           gateOutput: gatePath,
           manifestJson: manifestPath,
+          evidenceMarkdown: path.join(dir, 'summary.md'),
         },
       },
       null,
@@ -102,6 +103,7 @@ describe('hockey-pilot-evidence', () => {
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('Decision: `GO`')
     expect(result.stdout).toContain('Commit SHA: abc123pilotsha')
+    expect(result.stdout).toContain('Evidence note:')
     expect(result.stdout).toContain('Git branch: main')
     expect(result.stdout).toContain('Git tree dirty: no')
     expect(result.stdout).toContain('Overall p95: 1741ms')

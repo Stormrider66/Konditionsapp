@@ -123,6 +123,7 @@ K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run load:k6:
 - Analyzer output: ${relativeOrDash(artifacts.analyzerOutput, cwd)}
 - Summary gate output: ${relativeOrDash(artifacts.gateOutput, cwd)}
 - Manifest JSON: ${relativeOrDash(artifacts.manifestJson, cwd)}
+- Evidence note: ${relativeOrDash(artifacts.evidenceMarkdown, cwd)}
 - Screenshot or support notes: -
 
 ## Manifest Snapshot

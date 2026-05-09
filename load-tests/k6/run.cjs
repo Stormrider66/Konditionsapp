@@ -46,6 +46,17 @@ function summaryManifestPath(summaryPath) {
   return `${base}.manifest.json`;
 }
 
+function summaryEvidencePath(summaryPath, env) {
+  if (env.HOCKEY_PILOT_EVIDENCE_OUTPUT && env.HOCKEY_PILOT_EVIDENCE_OUTPUT.trim()) {
+    return path.resolve(process.cwd(), env.HOCKEY_PILOT_EVIDENCE_OUTPUT.trim());
+  }
+
+  const resolved = path.resolve(process.cwd(), summaryPath);
+  const ext = path.extname(resolved);
+  const base = ext ? resolved.slice(0, -ext.length) : resolved;
+  return `${base}.md`;
+}
+
 function runReportCommand(label, command, outputPath, env) {
   console.log(`\nRunning ${label}...\n`);
 
@@ -107,6 +118,33 @@ function writeHockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput,
     `${JSON.stringify(hockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gateOutput, env, result }), null, 2)}\n`
   );
   console.log(`\nSaved hockey pilot manifest: ${manifestPath}`);
+  writeHockeyPilotEvidence({ manifestPath, summaryExport, env });
+}
+
+function writeHockeyPilotEvidence({ manifestPath, summaryExport, env }) {
+  if (env.HOCKEY_PILOT_EVIDENCE_OUTPUT === 'skip') return;
+
+  const evidencePath = summaryEvidencePath(summaryExport, env);
+  const evidenceScriptPath = path.join(__dirname, '..', '..', 'scripts', 'hockey-pilot-evidence.cjs');
+  try {
+    fs.mkdirSync(path.dirname(evidencePath), { recursive: true });
+    const output = execSync(
+      `node ${quoteArg(evidenceScriptPath)} ${quoteArg(manifestPath)} ${quoteArg(evidencePath)}`,
+      {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        shell: true,
+        env,
+      }
+    );
+    process.stdout.write(output);
+  } catch (e) {
+    const stdout = e.stdout ? String(e.stdout) : '';
+    const stderr = e.stderr ? String(e.stderr) : '';
+    if (stdout) process.stdout.write(stdout);
+    if (stderr) process.stderr.write(stderr);
+    console.warn(`Warning: failed to write hockey pilot evidence note: ${e.message || e}`);
+  }
 }
 
 function hockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gateOutput, env, result }) {
@@ -136,6 +174,7 @@ function hockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gate
       analyzerOutput,
       gateOutput,
       manifestJson: manifestPath,
+      evidenceMarkdown: summaryEvidencePath(summaryExport, env),
     },
   };
 }

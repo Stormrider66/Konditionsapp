@@ -74,6 +74,12 @@ function manifestPath(summaryPath: string) {
   return `${base}.manifest.json`
 }
 
+function evidencePath(summaryPath: string) {
+  const ext = path.extname(summaryPath)
+  const base = ext ? summaryPath.slice(0, -ext.length) : summaryPath
+  return `${base}.md`
+}
+
 function baseEnvLines(overrides: string[] = []) {
   return [
     'BASE_URL=https://pilot.example.com',
@@ -95,6 +101,7 @@ function runRunner(args: string[], env: Record<string, string>) {
     'K6_SUMMARY_EXPORT',
     'GIT_COMMIT_SHA',
     'GIT_BRANCH',
+    'HOCKEY_PILOT_EVIDENCE_OUTPUT',
     'BASE_URL',
     'CLIENT_ID',
     'CLIENT_IDS',
@@ -169,6 +176,9 @@ describe('load-tests k6 runner', () => {
     expect(manifest.artifacts.analyzerOutput).toBe(sidecarPath(summaryPath, 'analyzer'))
     expect(manifest.artifacts.gateOutput).toBe(sidecarPath(summaryPath, 'gate'))
     expect(manifest.artifacts.manifestJson).toBe(manifestPath(summaryPath))
+    expect(manifest.artifacts.evidenceMarkdown).toBe(evidencePath(summaryPath))
+    expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Decision: `GO`')
+    expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Evidence note:')
   })
 
   it('uses explicit git metadata overrides when provided', () => {
@@ -249,8 +259,29 @@ describe('load-tests k6 runner', () => {
     expect(existsSync(sidecarPath(summaryPath, 'analyzer'))).toBe(true)
     expect(existsSync(sidecarPath(summaryPath, 'gate'))).toBe(true)
     expect(existsSync(manifestPath(summaryPath))).toBe(true)
+    expect(existsSync(evidencePath(summaryPath))).toBe(true)
     expect(result.stdout).toContain('Running k6 summary analyzer')
     expect(result.stdout).toContain('Hockey pilot summary gate passed.')
+  })
+
+  it('uses a custom hockey pilot evidence note output path', () => {
+    const dir = tempDir()
+    const envPath = writeEnvFile(dir, baseEnvLines())
+    const summaryPath = path.join(dir, 'summary.json')
+    const customEvidencePath = path.join(dir, 'notes', 'pilot-note.md')
+    const fakeK6 = writeFakeK6(dir)
+
+    const result = runRunner(['hockey-pilot'], {
+      K6_ENV_PATH: envPath,
+      K6_BIN: fakeK6.scriptPath,
+      K6_SUMMARY_EXPORT: summaryPath,
+      HOCKEY_PILOT_EVIDENCE_OUTPUT: customEvidencePath,
+    })
+
+    expect(result.status).toBe(0)
+    const manifest = JSON.parse(readFileSync(manifestPath(summaryPath), 'utf8'))
+    expect(manifest.artifacts.evidenceMarkdown).toBe(customEvidencePath)
+    expect(readFileSync(customEvidencePath, 'utf8')).toContain('Hockey Pilot Run Evidence')
   })
 
   it('stops before k6 when hockey preflight fails', () => {
@@ -288,6 +319,7 @@ describe('load-tests k6 runner', () => {
 
     const manifest = JSON.parse(readFileSync(manifestPath(summaryPath), 'utf8'))
     expect(manifest.result).toEqual({ status: 'failed', failedStep: 'k6', exitCode: 42, k6ExitCode: 42 })
+    expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Decision: `FIX_AND_RERUN`')
   })
 
   it('saves analyzer and gate output when the summary gate fails', () => {
@@ -309,5 +341,6 @@ describe('load-tests k6 runner', () => {
     const manifest = JSON.parse(readFileSync(manifestPath(summaryPath), 'utf8'))
     expect(manifest.result).toEqual({ status: 'failed', failedStep: 'summary-gate', exitCode: 1, k6ExitCode: 0 })
     expect(manifest.artifacts.gateOutput).toBe(sidecarPath(summaryPath, 'gate'))
+    expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Summary gate: failed')
   })
 })
