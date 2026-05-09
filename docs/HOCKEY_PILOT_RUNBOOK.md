@@ -87,7 +87,18 @@ vercel inspect https://your-deployment-url.vercel.app
 
 The load runner records invite mode from `.env.local`, `load-tests/.env.k6`, or shell env. If you override invite mode for a one-off run, set `HOCKEY_PILOT_INVITE_MODE`, `EMAILS_PAUSED`, and `HOCKEY_PILOT_MANUAL_INVITE_OWNER` in the same shell command.
 
-8. Save the generated evidence:
+8. Confirm post-invite monitoring is staffed:
+
+```bash
+HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" \
+HOCKEY_PILOT_SUPPORT_NOTES_URL="https://..." \
+HOCKEY_PILOT_INCIDENT_CHANNEL="#hockey-pilot" \
+HOCKEY_PILOT_FIRST_CHECK_MINUTES=30 \
+HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION=48 \
+npm run qa:hockey-pilot-monitoring
+```
+
+9. Save the generated evidence:
    - summary JSON
    - analyzer text
    - gate text
@@ -149,6 +160,7 @@ Continue to the next wave only when:
 - `npm run qa:cron-config` passes
 - `npm run qa:hockey-pilot-gates` passes
 - `npm run qa:hockey-pilot-gates -- --include-load` passes with evidence export
+- `npm run qa:hockey-pilot-monitoring` passes with a named support owner and notes link
 - browser and load gates were run against production-like `https://` targets
 - the target deployment commit matches the manifest commit SHA
 - the hockey pilot load summary gate passes
@@ -178,6 +190,18 @@ Continue to the next wave only when:
    - support notes link
    - open critical support issue count
 5. If paused, write the specific owner and next action before inviting more teams.
+
+## First 48 Hours
+
+Run `npm run qa:hockey-pilot-monitoring` at the start of each invite window, then follow its checklist:
+
+- review auth and invite errors in Vercel logs
+- review Supabase auth and database errors
+- check tenant-boundary reports for unexpected 401/403 or cross-team visibility
+- run `npm run qa:daily-metrics-backlog` after the busiest team check-in window
+- run `npm run qa:cron-config` and confirm scheduled jobs are not noisy or failing
+- check hockey dashboard, test review, and SIMCA export complaints
+- record support notes, owner, SLA, open critical issues, and next-wave decision
 
 ## Escalation
 
