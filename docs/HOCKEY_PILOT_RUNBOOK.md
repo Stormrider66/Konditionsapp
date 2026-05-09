@@ -35,6 +35,7 @@ npm run qa:hockey-pilot-gates
 5. Run target-environment browser checks:
 
 ```bash
+npm run qa:hockey-browser-env
 npm run qa:hockey-pilot-gates -- --include-browser
 ```
 
@@ -98,6 +99,7 @@ Continue to the next wave only when:
 - `npm run qa:launch-config` passes
 - `npm run qa:hockey-pilot-wave-plan` passes
 - `npm run qa:hockey-pilot-tenant-boundary` passes
+- `npm run qa:hockey-browser-env` passes
 - `npm run qa:hockey` passes against the target environment
 - `npm run qa:cron-config` passes
 - `npm run qa:hockey-pilot-gates` passes

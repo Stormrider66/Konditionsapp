@@ -61,12 +61,22 @@ function buildChecks({ includeBrowserQa = false, includeLoadQa = false } = {}) {
   ]
 
   if (includeBrowserQa) {
-    checks.splice(4, 0, {
-      label: 'Hockey cockpit browser QA',
-      command: 'npm',
-      args: ['run', 'qa:hockey'],
-      env: commonEnv,
-    })
+    checks.splice(
+      4,
+      0,
+      {
+        label: 'Hockey browser QA environment',
+        command: 'npm',
+        args: ['run', 'qa:hockey-browser-env'],
+        env: commonEnv,
+      },
+      {
+        label: 'Hockey cockpit browser QA',
+        command: 'npm',
+        args: ['run', 'qa:hockey'],
+        env: commonEnv,
+      }
+    )
   }
 
   if (includeLoadQa) {

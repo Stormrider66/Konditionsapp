@@ -166,6 +166,7 @@ npm run qa:hockey-pilot-tooling
 Add browser cockpit QA when a target app and QA credentials are ready:
 
 ```bash
+npm run qa:hockey-browser-env
 npm run qa:hockey-pilot-gates -- --include-browser
 ```
 
@@ -199,6 +200,7 @@ Pass these before inviting the first external teams:
 - `npm run qa:launch-config` passes
 - `npm run qa:hockey-pilot-wave-plan` passes with the intended team/staff/athlete counts
 - `npm run qa:hockey-pilot-tenant-boundary` passes
+- `npm run qa:hockey-browser-env` passes before target browser QA
 - `npm run qa:hockey` passes against the target environment
 - `npm run qa:hockey-pilot-env` passes before running k6
 - `npm run qa:cron-config` passes
