@@ -30,6 +30,20 @@ function envPair(key, rawValue) {
   return `${key}=${shellQuote(rawValue)}`
 }
 
+function isPlaceholder(valueToCheck) {
+  const normalized = String(valueToCheck || '').trim().toLowerCase()
+  return ['...', 'coach@example.com', 'support lead', 'vercel-deployment-commit-sha'].includes(normalized)
+}
+
+function commandWarnings(values) {
+  const warnings = []
+  if (isPlaceholder(values.qaEmail)) warnings.push('Set TRAINOMICS_QA_EMAIL to a real QA coach login.')
+  if (isPlaceholder(values.qaPassword)) warnings.push('Set TRAINOMICS_QA_PASSWORD to the real QA coach password.')
+  if (isPlaceholder(values.supportOwner)) warnings.push('Set HOCKEY_PILOT_SUPPORT_OWNER to a named person.')
+  if (isPlaceholder(values.targetCommit)) warnings.push('Replace HOCKEY_PILOT_TARGET_COMMIT_SHA with the real Vercel deployment commit.')
+  return warnings
+}
+
 function todayIsoDate(now = new Date()) {
   return now.toISOString().slice(0, 10)
 }
@@ -48,6 +62,12 @@ function buildCommands(env = process.env) {
   const emailsPaused = value(env, ['EMAILS_PAUSED'], inviteMode === 'manual' ? 'true' : 'false')
   const manualInviteOwner = value(env, ['HOCKEY_PILOT_MANUAL_INVITE_OWNER'], 'Henrik')
   const summaryExport = value(env, ['K6_SUMMARY_EXPORT'], `load-tests/evidence/hockey-pilot-${todayIsoDate()}.json`)
+  const warnings = commandWarnings({
+    qaEmail,
+    qaPassword,
+    supportOwner,
+    targetCommit,
+  })
 
   const browserCommand = [
     envPair('TRAINOMICS_QA_BASE_URL', deploymentUrl),
@@ -74,6 +94,7 @@ function buildCommands(env = process.env) {
     currentCommit,
     deploymentUrl,
     targetCommit,
+    warnings,
     browserCommand,
     loadCommand,
   }
@@ -86,6 +107,11 @@ function main(env = process.env) {
   console.log(`Current evidence commit: ${commands.currentCommit}`)
   console.log(`Target deployment URL: ${commands.deploymentUrl}`)
   console.log(`Target deployment commit: ${commands.targetCommit}`)
+  if (commands.warnings.length > 0) {
+    console.log('')
+    console.log('Replace before running:')
+    for (const warning of commands.warnings) console.log(`- ${warning}`)
+  }
   console.log('')
   console.log('Confirm the deployment commit first:')
   console.log(`vercel inspect ${shellQuote(commands.deploymentUrl)}`)
@@ -103,6 +129,7 @@ if (require.main === module) {
 
 module.exports = {
   buildCommands,
+  commandWarnings,
   main,
   shellQuote,
   todayIsoDate,
