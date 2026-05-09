@@ -14,6 +14,8 @@ The k6 scripts themselves live in `load-tests/k6/`. The traffic model and target
 
 A "result" here is a `baseline.js` run, optionally followed by `stress.js` if we're testing capacity rather than correctness.
 
+For hockey pilot invite evidence, use `npm run qa:hockey-pilot-gates -- --include-load` instead of the generic baseline command. That path writes a hockey-specific manifest and evidence note, and it marks localhost/plain HTTP targets as non-launch evidence.
+
 ---
 
 ## How to run against a preview deploy
@@ -48,6 +50,14 @@ A "result" here is a `baseline.js` run, optionally followed by `stress.js` if we
    ```bash
    K6_SUMMARY_EXPORT=docs/load-test-results/_raw-$(date +%Y-%m-%d).json node load-tests/k6/run.cjs baseline
    ```
+
+   For hockey pilot evidence, run the stricter pilot gate:
+
+   ```bash
+   HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:hockey-pilot-gates -- --include-load
+   ```
+
+   The pilot preflight prints `Target production-like: yes/no`; only `yes` runs count as invite evidence.
 
 5. **(Optional) Run stress** if you're testing capacity, not correctness.
 
