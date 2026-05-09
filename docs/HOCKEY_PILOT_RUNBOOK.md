@@ -46,7 +46,7 @@ npm run qa:hockey-browser-env
 npm run qa:hockey-pilot-gates -- --include-browser
 ```
 
-For invite evidence, the browser target must be a production-like `https://` URL. Localhost browser checks are useful during development, but the combined browser gate fails local/plain HTTP targets on purpose.
+For invite evidence, the browser target must be a production-like `https://` URL. Localhost browser checks are useful during development, but the combined browser gate fails local/plain HTTP targets on purpose. The browser preflight prints `Target production-like: yes/no`.
 
 6. Run the hockey pilot load test with evidence export:
 
@@ -58,7 +58,7 @@ K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json \
 npm run qa:hockey-pilot-gates -- --include-load
 ```
 
-For invite evidence, the load target must also be a production-like `https://` URL. Use localhost only for debugging the script itself.
+For invite evidence, the load target must also be a production-like `https://` URL. Use localhost only for debugging the script itself. The load preflight also prints `Target production-like: yes/no`.
 
 7. Save the generated evidence:
    - summary JSON
