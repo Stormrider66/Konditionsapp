@@ -49,7 +49,7 @@ npm run qa:hockey-pilot-gates
 npm run qa:hockey-evidence-commands
 ```
 
-Replace anything listed under `Replace before running` before using the generated commands as invite evidence. The helper includes the target URL, deployment commit, QA login, pilot wave sizing, load profile, traffic mix, support metadata, invite mode, and dated evidence export path.
+Replace anything listed under `Replace before running` before using the generated commands as invite evidence. The helper includes the target URL, deployment commit, QA login, pilot wave sizing, load profile, traffic mix, support metadata, invite mode, dated evidence export path, and post-invite monitoring command.
 
 6. Run target-environment browser checks:
 
@@ -83,7 +83,7 @@ npm run qa:hockey-evidence-commands
 vercel inspect https://your-deployment-url.vercel.app
 ```
 
-`npm run qa:hockey-evidence-commands` prints the browser and load evidence commands from the current env, including target URL, deployment commit, QA credentials placeholders, pilot wave sizing, load profile, traffic mix, invite mode, support owner, support notes link, and evidence export path. The target URL is read from `TRAINOMICS_QA_BASE_URL`, `VERCEL_DEPLOYMENT_URL`, or `BASE_URL`; the printed load command sets `BASE_URL` from that same target so both evidence runs cover the same deployment.
+`npm run qa:hockey-evidence-commands` prints the browser, load, and post-invite monitoring commands from the current env, including target URL, deployment commit, QA credentials placeholders, pilot wave sizing, load profile, traffic mix, invite mode, support owner, support notes link, and evidence export path. The target URL is read from `TRAINOMICS_QA_BASE_URL`, `VERCEL_DEPLOYMENT_URL`, or `BASE_URL`; the printed load command sets `BASE_URL` from that same target so both evidence runs cover the same deployment.
 
 The load runner records invite mode from `.env.local`, `load-tests/.env.k6`, or shell env. If you override invite mode for a one-off run, set `HOCKEY_PILOT_INVITE_MODE`, `EMAILS_PAUSED`, and `HOCKEY_PILOT_MANUAL_INVITE_OWNER` in the same shell command.
 
