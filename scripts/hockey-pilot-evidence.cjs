@@ -65,6 +65,7 @@ function relativeOrDash(filePath, cwd) {
 
 function decisionFromManifest(manifest) {
   if (manifest?.git?.dirty === true) return 'FIX_AND_RERUN'
+  if (Number.parseInt(manifest?.support?.openCriticalIssues || '0', 10) > 0) return 'FIX_AND_RERUN'
   return manifest?.result?.status === 'passed' ? 'GO' : 'FIX_AND_RERUN'
 }
 
@@ -80,6 +81,7 @@ function buildMarkdown({ manifest, summary, gateText, cwd }) {
   const weights = manifest.weights || {}
   const loadProfile = manifest.loadProfile || {}
   const wavePlan = manifest.wavePlan || {}
+  const support = manifest.support || {}
   const git = manifest.git || {}
   const createdAt = manifest.createdAt ? new Date(manifest.createdAt) : new Date()
   const gatePassed = /Hockey pilot summary gate passed\./.test(gateText)
@@ -131,7 +133,7 @@ K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run qa:hocke
 - Summary gate output: ${relativeOrDash(artifacts.gateOutput, cwd)}
 - Manifest JSON: ${relativeOrDash(artifacts.manifestJson, cwd)}
 - Evidence note: ${relativeOrDash(artifacts.evidenceMarkdown, cwd)}
-- Screenshot or support notes: -
+- Screenshot or support notes: ${support.notesUrl || '-'}
 
 ## Manifest Snapshot
 
@@ -148,6 +150,8 @@ K6_SUMMARY_EXPORT=${relativeOrDash(artifacts.summaryJson, cwd)} npm run qa:hocke
 - Pilot users: ${wavePlan.estimatedUsers ?? '-'} (${wavePlan.teamCount ?? '-'} teams)
 - Traffic weights: read ${weights.read || '-'}, athlete ${weights.athlete || '-'}, dashboard ${weights.dashboard || '-'}, export ${weights.export || '-'}
 - Load profile: warm ${loadProfile.warmVus || '-'} VUs/${loadProfile.warmDuration || '-'}, steady ${loadProfile.steadyVus || '-'} VUs/${loadProfile.steadyDuration || '-'}, peak ${loadProfile.peakVus || '-'} VUs/${loadProfile.peakDuration || '-'}, ramp down ${loadProfile.rampDownDuration || '-'}
+- Support owner: ${support.owner || '-'}
+- Open critical support issues: ${support.openCriticalIssues ?? '-'}
 
 ## Gate Results
 
@@ -188,7 +192,7 @@ ${endpointTable}
 - Export/SIMCA reports: -
 - Daily metrics save reports: -
 - Valid-user 401/403 reports: -
-- Open critical support issues: -
+- Open critical support issues: ${support.openCriticalIssues ?? '-'}
 
 ## Issues
 

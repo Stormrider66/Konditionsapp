@@ -132,6 +132,9 @@ function runRunner(args: string[], env: Record<string, string>) {
     'HOCKEY_PILOT_STEADY_DURATION',
     'HOCKEY_PILOT_PEAK_DURATION',
     'HOCKEY_PILOT_RAMP_DOWN_DURATION',
+    'HOCKEY_PILOT_SUPPORT_NOTES_URL',
+    'HOCKEY_PILOT_OPEN_CRITICAL_ISSUES',
+    'HOCKEY_PILOT_SUPPORT_OWNER',
   ]) {
     delete childEnv[key]
   }
@@ -206,6 +209,11 @@ describe('load-tests k6 runner', () => {
       peakDuration: '4m',
       rampDownDuration: '2m',
     })
+    expect(manifest.support).toEqual({
+      notesUrl: null,
+      openCriticalIssues: '0',
+      owner: null,
+    })
     expect(manifest.artifacts.summaryJson).toBe(summaryPath)
     expect(manifest.artifacts.analyzerOutput).toBe(sidecarPath(summaryPath, 'analyzer'))
     expect(manifest.artifacts.gateOutput).toBe(sidecarPath(summaryPath, 'gate'))
@@ -248,6 +256,36 @@ describe('load-tests k6 runner', () => {
       peakDuration: '5m',
       rampDownDuration: '90s',
     })
+  })
+
+  it('records support metadata in the hockey pilot manifest and evidence', () => {
+    const dir = tempDir()
+    const envPath = writeEnvFile(dir, baseEnvLines())
+    const summaryPath = path.join(dir, 'summary.json')
+    const fakeK6 = writeFakeK6(dir)
+
+    const result = runRunner(['hockey-pilot'], {
+      K6_ENV_PATH: envPath,
+      K6_BIN: fakeK6.scriptPath,
+      K6_SUMMARY_EXPORT: summaryPath,
+      GIT_TREE_DIRTY: 'false',
+      HOCKEY_PILOT_SUPPORT_NOTES_URL: 'https://notes.example.com/pilot',
+      HOCKEY_PILOT_OPEN_CRITICAL_ISSUES: '2',
+      HOCKEY_PILOT_SUPPORT_OWNER: 'Support Lead',
+    })
+
+    expect(result.status).toBe(0)
+    const manifest = JSON.parse(readFileSync(manifestPath(summaryPath), 'utf8'))
+    expect(manifest.support).toEqual({
+      notesUrl: 'https://notes.example.com/pilot',
+      openCriticalIssues: '2',
+      owner: 'Support Lead',
+    })
+    const evidence = readFileSync(evidencePath(summaryPath), 'utf8')
+    expect(evidence).toContain('Decision: `FIX_AND_RERUN`')
+    expect(evidence).toContain('Screenshot or support notes: https://notes.example.com/pilot')
+    expect(evidence).toContain('Support owner: Support Lead')
+    expect(evidence).toContain('Open critical support issues: 2')
   })
 
   it('records explicit wave sizing in the hockey pilot manifest and evidence', () => {

@@ -100,6 +100,11 @@ function writePilotArtifacts(dir: string, status: 'passed' | 'failed' = 'passed'
           peakDuration: '4m',
           rampDownDuration: '2m',
         },
+        support: {
+          notesUrl: 'https://notes.example.com/pilot',
+          openCriticalIssues: '0',
+          owner: 'Support Lead',
+        },
         artifacts: {
           summaryJson: summaryPath,
           analyzerOutput: analyzerPath,
@@ -138,6 +143,9 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Pilot users: 112 (4 teams)')
     expect(result.stdout).toContain('Git tree dirty: no')
     expect(result.stdout).toContain('Release evidence status: committed tree')
+    expect(result.stdout).toContain('Screenshot or support notes: https://notes.example.com/pilot')
+    expect(result.stdout).toContain('Support owner: Support Lead')
+    expect(result.stdout).toContain('Open critical support issues: 0')
     expect(result.stdout).toContain('Overall p95: 1741ms')
     expect(result.stdout).toContain('Slowest endpoint: hockey-simca-export (2752ms p95)')
     expect(result.stdout).toContain('| team-dashboard | 1393ms | 1671ms | 0.00% |')
@@ -179,5 +187,22 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
     expect(result.stdout).toContain('Git tree dirty: yes')
     expect(result.stdout).toContain('Release evidence status: dirty tree; rerun from a committed state before inviting')
+  })
+
+  it('marks passed runs with critical support issues as fix and rerun evidence', () => {
+    const dir = tempDir()
+    const { manifestPath } = writePilotArtifacts(dir)
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    manifest.support.openCriticalIssues = '1'
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+
+    const result = spawnSync(process.execPath, [scriptPath, manifestPath], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    })
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
+    expect(result.stdout).toContain('Open critical support issues: 1')
   })
 })

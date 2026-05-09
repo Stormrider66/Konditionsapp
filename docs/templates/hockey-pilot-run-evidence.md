@@ -51,6 +51,8 @@ K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json npm run qa:ho
 - Pilot users: `___` users (`___` teams)
 - Traffic weights: read `___`, athlete `___`, dashboard `___`, export `___`
 - Load profile: warm `___` VUs/`___`, steady `___` VUs/`___`, peak `___` VUs/`___`, ramp down `___`
+- Support owner:
+- Open critical support issues:
 
 ## Gate Results
 

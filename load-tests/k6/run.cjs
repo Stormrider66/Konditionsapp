@@ -196,6 +196,11 @@ function hockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gate
       peakDuration: env.HOCKEY_PILOT_PEAK_DURATION || '4m',
       rampDownDuration: env.HOCKEY_PILOT_RAMP_DOWN_DURATION || '2m',
     },
+    support: {
+      notesUrl: env.HOCKEY_PILOT_SUPPORT_NOTES_URL || null,
+      openCriticalIssues: env.HOCKEY_PILOT_OPEN_CRITICAL_ISSUES || '0',
+      owner: env.HOCKEY_PILOT_SUPPORT_OWNER || null,
+    },
     artifacts: {
       summaryJson: path.resolve(process.cwd(), summaryExport),
       analyzerOutput,
