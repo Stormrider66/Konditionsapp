@@ -114,6 +114,7 @@ function buildCommands(env = process.env) {
   ].join(' ')
 
   const loadCommand = [
+    envPair('BASE_URL', deploymentUrl),
     envPair('HOCKEY_PILOT_TEAM_COUNT', teamCount),
     envPair('HOCKEY_PILOT_ATHLETES_PER_TEAM', athletesPerTeam),
     envPair('HOCKEY_PILOT_STAFF_PER_TEAM', staffPerTeam),

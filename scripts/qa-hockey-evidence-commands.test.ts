@@ -49,6 +49,7 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.browserCommand).toContain('TRAINOMICS_QA_PASSWORD="secret pass"')
     expect(commands.browserCommand).toContain('npm run qa:hockey-pilot-gates -- --include-browser')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_TEAM_COUNT=4')
+    expect(commands.loadCommand).toContain('BASE_URL=https://trainomics-hockey-pilot.vercel.app')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_ATHLETES_PER_TEAM=22')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_STAFF_PER_TEAM=3')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_EXPECTED_PEAK_USERS=38')
