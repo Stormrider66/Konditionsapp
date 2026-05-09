@@ -30,6 +30,10 @@ function envPair(key, rawValue) {
   return `${key}=${shellQuote(rawValue)}`
 }
 
+function todayIsoDate(now = new Date()) {
+  return now.toISOString().slice(0, 10)
+}
+
 function buildCommands(env = process.env) {
   const currentCommit = value(env, ['GIT_COMMIT_SHA'], gitOutput('git rev-parse HEAD') || 'current-git-commit-sha')
   const deploymentUrl = value(env, ['TRAINOMICS_QA_BASE_URL', 'VERCEL_DEPLOYMENT_URL'], 'https://pilot.example.com')
@@ -43,7 +47,7 @@ function buildCommands(env = process.env) {
   const inviteMode = value(env, ['HOCKEY_PILOT_INVITE_MODE'], 'manual')
   const emailsPaused = value(env, ['EMAILS_PAUSED'], inviteMode === 'manual' ? 'true' : 'false')
   const manualInviteOwner = value(env, ['HOCKEY_PILOT_MANUAL_INVITE_OWNER'], 'Henrik')
-  const summaryExport = value(env, ['K6_SUMMARY_EXPORT'], 'load-tests/evidence/hockey-pilot-YYYY-MM-DD.json')
+  const summaryExport = value(env, ['K6_SUMMARY_EXPORT'], `load-tests/evidence/hockey-pilot-${todayIsoDate()}.json`)
 
   const browserCommand = [
     envPair('TRAINOMICS_QA_BASE_URL', deploymentUrl),
@@ -101,4 +105,5 @@ module.exports = {
   buildCommands,
   main,
   shellQuote,
+  todayIsoDate,
 }

@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
-const { buildCommands, main, shellQuote } = require(path.join(testDir, 'qa-hockey-evidence-commands.cjs'))
+const { buildCommands, main, shellQuote, todayIsoDate } = require(path.join(testDir, 'qa-hockey-evidence-commands.cjs'))
 
 describe('qa-hockey-evidence-commands', () => {
   it('builds browser and load evidence commands from pilot env', () => {
@@ -44,6 +44,14 @@ describe('qa-hockey-evidence-commands', () => {
     expect(commands.currentCommit).toBe('abc123pilotsha')
     expect(commands.targetCommit).toBe('abc123')
     expect(commands.loadCommand).toContain('HOCKEY_PILOT_TARGET_COMMIT_SHA=abc123')
+  })
+
+  it('uses today in the default evidence export path', () => {
+    const commands = buildCommands({
+      GIT_COMMIT_SHA: 'abc123pilotsha',
+    })
+
+    expect(commands.loadCommand).toContain(`K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-${todayIsoDate()}.json`)
   })
 
   it('quotes shell values that contain spaces', () => {
