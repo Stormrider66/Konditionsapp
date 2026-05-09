@@ -29,7 +29,9 @@ HOCKEY_PILOT_TEAM_COUNT=6 \
 HOCKEY_PILOT_ATHLETES_PER_TEAM=30 \
 HOCKEY_PILOT_STAFF_PER_TEAM=5 \
 HOCKEY_PILOT_EXPECTED_PEAK_USERS=75 \
+HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION=48 \
 HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" \
+HOCKEY_PILOT_SUPPORT_NOTES_URL="https://..." \
 HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 \
 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 \
 npm run qa:hockey-pilot-wave-plan
@@ -102,10 +104,12 @@ npm run qa:hockey-pilot-evidence -- load-tests/evidence/hockey-pilot-YYYY-MM-DD.
 
 Invite in small waves:
 
-1. Internal dry run.
-2. Team 1 only.
-3. Teams 2-3 after 48 quiet hours.
-4. Teams 4-6 only after rerunning the hockey pilot load test.
+1. Internal dry run: local readiness, browser evidence, and load evidence pass before any external invite.
+2. Team 1 only: invite one team after pilot owner, technical owner, support owner, and support notes are named.
+3. Teams 2-3: invite after at least `HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION` quiet hours with no pause criteria hit.
+4. Teams 4-6: rerun production-like browser and load evidence before inviting.
+
+The wave-plan command prints the current gates and fails if `HOCKEY_PILOT_QUIET_HOURS_BEFORE_EXPANSION` is below 48 hours.
 
 Watch:
 
@@ -130,6 +134,7 @@ Pause new invites if any of these happen:
 - daily metrics writes create a visible backlog
 - coaches report cross-team visibility or missing team access
 - invite delivery mode is unclear
+- support notes are missing or owner is unnamed
 
 ## Go Criteria
 
