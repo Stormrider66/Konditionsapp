@@ -163,6 +163,9 @@ describe('load-tests k6 runner', () => {
       GIT_COMMIT_SHA: 'abc123pilotsha',
       GIT_TREE_DIRTY: 'false',
       HOCKEY_PILOT_TARGET_COMMIT_SHA: 'abc123',
+      HOCKEY_PILOT_INVITE_MODE: 'manual',
+      EMAILS_PAUSED: 'true',
+      HOCKEY_PILOT_MANUAL_INVITE_OWNER: 'Henrik',
     })
 
     expect(result.status).toBe(0)
@@ -198,6 +201,11 @@ describe('load-tests k6 runner', () => {
     expect(manifest.clientIdCount).toBe(1)
     expect(manifest.coachAuthMode).toBe('LOAD_TEST_BYPASS_USER_EMAIL')
     expect(manifest.athleteAuthMode).toBe('ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL')
+    expect(manifest.invite).toEqual({
+      mode: 'manual',
+      emailsPaused: true,
+      manualOwner: 'Henrik',
+    })
     expect(manifest.wavePlan).toMatchObject({
       teamCount: 6,
       athletesPerTeam: 30,

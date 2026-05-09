@@ -228,6 +228,11 @@ function hockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gate
       .filter(Boolean).length,
     coachAuthMode: firstSetEnv(env, ['AUTH_COOKIE', 'BEARER_TOKEN', 'LOAD_TEST_BYPASS_USER_EMAIL']) || 'missing',
     athleteAuthMode: firstSetEnv(env, ['ATHLETE_AUTH_COOKIE', 'ATHLETE_BEARER_TOKEN', 'ATHLETE_LOAD_TEST_BYPASS_USER_EMAIL']) || 'missing',
+    invite: {
+      mode: env.HOCKEY_PILOT_INVITE_MODE || null,
+      emailsPaused: env.EMAILS_PAUSED === 'true',
+      manualOwner: env.HOCKEY_PILOT_MANUAL_INVITE_OWNER || null,
+    },
     wavePlan,
     weights: {
       read: env.HOCKEY_PILOT_READ_WEIGHT || '0.40',

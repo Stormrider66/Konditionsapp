@@ -113,6 +113,7 @@ function buildMarkdown({ manifest, summary, gateText, cwd }) {
   const loadProfile = manifest.loadProfile || {}
   const wavePlan = manifest.wavePlan || {}
   const support = manifest.support || {}
+  const invite = manifest.invite || {}
   const git = manifest.git || {}
   const targetDeployment = manifest.targetDeployment || {}
   const createdAt = manifest.createdAt ? new Date(manifest.createdAt) : new Date()
@@ -182,6 +183,9 @@ HOCKEY_PILOT_SUPPORT_OWNER="${support.owner || 'Support Lead'}" HOCKEY_PILOT_SUP
 - Target deployment matches commit SHA: ${targetDeployment.matchesManifestCommit === true ? 'yes' : targetDeployment.matchesManifestCommit === false ? 'no' : '-'}
 - Business/team: ${manifest.businessSlug || manifest.businessId || '-'} / ${manifest.teamId || '-'}
 - Target production-like: ${manifest.targetInfo?.productionLike === true ? 'yes' : manifest.targetInfo?.productionLike === false ? 'no' : '-'}${manifest.targetInfo?.reason ? ` (${manifest.targetInfo.reason})` : ''}
+- Invite mode: ${invite.mode || '-'}
+- Emails paused: ${invite.emailsPaused === true ? 'yes' : invite.emailsPaused === false ? 'no' : '-'}
+- Manual invite owner: ${invite.manualOwner || '-'}
 - Client ID count: ${manifest.clientIdCount ?? '-'}
 - Pilot users: ${wavePlan.estimatedUsers ?? '-'} (${wavePlan.teamCount ?? '-'} teams)
 - Traffic weights: read ${weights.read || '-'}, athlete ${weights.athlete || '-'}, dashboard ${weights.dashboard || '-'}, export ${weights.export || '-'}

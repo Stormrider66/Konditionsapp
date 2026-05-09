@@ -79,6 +79,11 @@ function writePilotArtifacts(dir: string, status: 'passed' | 'failed' = 'passed'
         businessSlug: 'skelleftea-aik',
         teamId: 'team-1',
         clientIdCount: 12,
+        invite: {
+          mode: 'manual',
+          emailsPaused: true,
+          manualOwner: 'Henrik',
+        },
         wavePlan: {
           teamCount: 4,
           athletesPerTeam: 25,
@@ -157,6 +162,9 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Target deployment commit: abc123')
     expect(result.stdout).toContain('Target deployment matches commit SHA: yes')
     expect(result.stdout).toContain('Target production-like: yes (https-production-like)')
+    expect(result.stdout).toContain('Invite mode: manual')
+    expect(result.stdout).toContain('Emails paused: yes')
+    expect(result.stdout).toContain('Manual invite owner: Henrik')
     expect(result.stdout).toContain('Screenshot or support notes: https://notes.example.com/pilot')
     expect(result.stdout).toContain('Support owner: Support Lead')
     expect(result.stdout).toContain('Support SLA: 24h')
