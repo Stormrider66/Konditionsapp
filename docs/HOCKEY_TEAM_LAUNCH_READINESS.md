@@ -191,6 +191,8 @@ Set `K6_SUMMARY_EXPORT` for pilot runs so the summary JSON is saved as launch ev
 
 When the hockey pilot run finishes, the runner also saves `<summary>.analyzer.txt`, `<summary>.gate.txt`, `<summary>.manifest.json`, and `<summary>.md` next to the JSON file. The manifest records the target, business/team IDs, client count, auth modes, traffic weights, git commit/branch/dirty status, artifact paths, and whether the analyzer/gate passed or failed.
 
+Set `HOCKEY_PILOT_TARGET_COMMIT_SHA` to the Vercel deployment commit when running invite evidence. The manifest records whether that deployment commit matches the manifest commit, and a mismatch marks the generated decision as `FIX_AND_RERUN`.
+
 Only manifests that include `targetInfo.productionLike: true` count as invite evidence. Older manifests without target metadata, localhost runs, and plain HTTP runs should be treated as `FIX_AND_RERUN`.
 
 The generated evidence note includes a `Decision reason` line. For `FIX_AND_RERUN`, use that line as the first triage clue before digging into logs.

@@ -154,6 +154,24 @@ function gitSnapshot(env) {
   };
 }
 
+function commitMatches(left, right) {
+  if (!left || !right) return null;
+  const normalizedLeft = String(left).trim().toLowerCase();
+  const normalizedRight = String(right).trim().toLowerCase();
+  if (!normalizedLeft || !normalizedRight) return null;
+  return normalizedLeft === normalizedRight ||
+    normalizedLeft.startsWith(normalizedRight) ||
+    normalizedRight.startsWith(normalizedLeft);
+}
+
+function targetDeploymentSnapshot(env, git) {
+  const commitSha = env.HOCKEY_PILOT_TARGET_COMMIT_SHA || null;
+  return {
+    commitSha,
+    matchesManifestCommit: commitMatches(commitSha, git.commitSha),
+  };
+}
+
 function writeHockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gateOutput, env, result }) {
   fs.writeFileSync(
     manifestPath,
@@ -191,14 +209,16 @@ function writeHockeyPilotEvidence({ manifestPath, summaryExport, env }) {
 
 function hockeyPilotManifest({ manifestPath, summaryExport, analyzerOutput, gateOutput, env, result }) {
   const wavePlan = readHockeyPilotWavePlan(env);
+  const git = gitSnapshot(env);
   return {
     createdAt: new Date().toISOString(),
     script: scriptName,
     result,
     gateModes: listEnv(env.HOCKEY_PILOT_GATE_MODES),
-    git: gitSnapshot(env),
+    git,
     target: env.BASE_URL || null,
     targetInfo: targetSnapshot(env.BASE_URL),
+    targetDeployment: targetDeploymentSnapshot(env, git),
     businessId: env.BUSINESS_ID || null,
     businessSlug: env.BUSINESS_SLUG || null,
     teamId: env.TEAM_ID || null,

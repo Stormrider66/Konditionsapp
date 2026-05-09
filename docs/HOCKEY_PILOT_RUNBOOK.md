@@ -54,13 +54,14 @@ For invite evidence, the browser target must be a production-like `https://` URL
 HOCKEY_PILOT_SUPPORT_OWNER="Support Lead" \
 HOCKEY_PILOT_SUPPORT_SLA_HOURS=24 \
 HOCKEY_PILOT_OPEN_CRITICAL_ISSUES=0 \
+HOCKEY_PILOT_TARGET_COMMIT_SHA="vercel-deployment-commit-sha" \
 K6_SUMMARY_EXPORT=load-tests/evidence/hockey-pilot-YYYY-MM-DD.json \
 npm run qa:hockey-pilot-gates -- --include-load
 ```
 
 For invite evidence, the load target must also be a production-like `https://` URL. Use localhost only for debugging the script itself. The load preflight also prints `Target production-like: yes/no`.
 
-Before using browser or load results for an invite decision, confirm the target deployment is the same commit SHA recorded in the manifest. A newer Vercel build means the evidence should be rerun against the new deployment.
+Before using browser or load results for an invite decision, confirm the target deployment is the same commit SHA recorded in the manifest. Set `HOCKEY_PILOT_TARGET_COMMIT_SHA` when running load evidence so the generated manifest and evidence note record whether the deployment matches. A newer Vercel build means the evidence should be rerun against the new deployment.
 
 7. Save the generated evidence:
    - summary JSON

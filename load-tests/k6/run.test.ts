@@ -103,6 +103,7 @@ function runRunner(args: string[], env: Record<string, string>) {
     'GIT_BRANCH',
     'GIT_TREE_DIRTY',
     'HOCKEY_PILOT_EVIDENCE_OUTPUT',
+    'HOCKEY_PILOT_TARGET_COMMIT_SHA',
     'HOCKEY_PILOT_GATE_MODES',
     'BASE_URL',
     'CLIENT_ID',
@@ -185,6 +186,10 @@ describe('load-tests k6 runner', () => {
       url: 'https://pilot.example.com',
       productionLike: true,
       reason: 'https-production-like',
+    })
+    expect(manifest.targetDeployment).toEqual({
+      commitSha: null,
+      matchesManifestCommit: null,
     })
     expect(manifest.businessId).toBe('business-1')
     expect(manifest.teamId).toBe('team-1')
@@ -352,6 +357,31 @@ describe('load-tests k6 runner', () => {
     expect(manifest.git.commitSha).toBe('abc123pilotsha')
     expect(manifest.git.branch).toBe('pilot-release')
     expect(manifest.git.dirty).toBe(true)
+  })
+
+  it('records whether the target deployment commit matches the manifest commit', () => {
+    const dir = tempDir()
+    const envPath = writeEnvFile(dir, baseEnvLines())
+    const summaryPath = path.join(dir, 'summary.json')
+    const fakeK6 = writeFakeK6(dir)
+
+    const result = runRunner(['hockey-pilot'], {
+      K6_ENV_PATH: envPath,
+      K6_BIN: fakeK6.scriptPath,
+      K6_SUMMARY_EXPORT: summaryPath,
+      GIT_COMMIT_SHA: 'abc123pilotsha',
+      GIT_BRANCH: 'main',
+      GIT_TREE_DIRTY: 'false',
+      HOCKEY_PILOT_TARGET_COMMIT_SHA: 'abc123',
+    })
+
+    expect(result.status).toBe(0)
+    const manifest = JSON.parse(readFileSync(manifestPath(summaryPath), 'utf8'))
+    expect(manifest.targetDeployment).toEqual({
+      commitSha: 'abc123',
+      matchesManifestCommit: true,
+    })
+    expect(readFileSync(evidencePath(summaryPath), 'utf8')).toContain('Target deployment matches commit SHA: yes')
   })
 
   it('passes env file values to k6 while letting shell env override them', () => {

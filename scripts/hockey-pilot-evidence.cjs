@@ -84,6 +84,9 @@ function decisionReasons(manifest) {
         : 'load evidence target metadata was missing'
     )
   }
+  if (manifest?.targetDeployment?.matchesManifestCommit === false) {
+    reasons.push('target deployment commit did not match manifest commit')
+  }
   if (manifest?.result?.status !== 'passed') reasons.push('automated gate result was not passed')
   return reasons
 }
@@ -107,6 +110,7 @@ function buildMarkdown({ manifest, summary, gateText, cwd }) {
   const wavePlan = manifest.wavePlan || {}
   const support = manifest.support || {}
   const git = manifest.git || {}
+  const targetDeployment = manifest.targetDeployment || {}
   const createdAt = manifest.createdAt ? new Date(manifest.createdAt) : new Date()
   const gatePassed = /Hockey pilot summary gate passed\./.test(gateText)
   const gateFailed = /Hockey pilot summary gate failed/.test(gateText)
@@ -170,6 +174,8 @@ HOCKEY_PILOT_SUPPORT_OWNER="${support.owner || 'Support Lead'}" HOCKEY_PILOT_SUP
 - Git branch: ${git.branch || '-'}
 - Git tree dirty: ${git.dirty === true ? 'yes' : git.dirty === false ? 'no' : '-'}
 - Release evidence status: ${git.dirty === true ? 'dirty tree; rerun from a committed state before inviting' : git.dirty === false ? 'committed tree' : '-'}
+- Target deployment commit: ${targetDeployment.commitSha || '-'}
+- Target deployment matches commit SHA: ${targetDeployment.matchesManifestCommit === true ? 'yes' : targetDeployment.matchesManifestCommit === false ? 'no' : '-'}
 - Business/team: ${manifest.businessSlug || manifest.businessId || '-'} / ${manifest.teamId || '-'}
 - Target production-like: ${manifest.targetInfo?.productionLike === true ? 'yes' : manifest.targetInfo?.productionLike === false ? 'no' : '-'}${manifest.targetInfo?.reason ? ` (${manifest.targetInfo.reason})` : ''}
 - Client ID count: ${manifest.clientIdCount ?? '-'}

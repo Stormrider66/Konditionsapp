@@ -72,6 +72,10 @@ function writePilotArtifacts(dir: string, status: 'passed' | 'failed' = 'passed'
           productionLike: true,
           reason: 'https-production-like',
         },
+        targetDeployment: {
+          commitSha: 'abc123',
+          matchesManifestCommit: true,
+        },
         businessSlug: 'skelleftea-aik',
         teamId: 'team-1',
         clientIdCount: 12,
@@ -150,6 +154,8 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Pilot users: 112 (4 teams)')
     expect(result.stdout).toContain('Git tree dirty: no')
     expect(result.stdout).toContain('Release evidence status: committed tree')
+    expect(result.stdout).toContain('Target deployment commit: abc123')
+    expect(result.stdout).toContain('Target deployment matches commit SHA: yes')
     expect(result.stdout).toContain('Target production-like: yes (https-production-like)')
     expect(result.stdout).toContain('Screenshot or support notes: https://notes.example.com/pilot')
     expect(result.stdout).toContain('Support owner: Support Lead')
@@ -276,5 +282,27 @@ describe('hockey-pilot-evidence', () => {
     expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
     expect(result.stdout).toContain('Decision reason: load evidence target metadata was missing')
     expect(result.stdout).toContain('Target production-like: -')
+  })
+
+  it('marks mismatched target deployment commits as fix and rerun evidence', () => {
+    const dir = tempDir()
+    const { manifestPath } = writePilotArtifacts(dir)
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    manifest.targetDeployment = {
+      commitSha: 'different-sha',
+      matchesManifestCommit: false,
+    }
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+
+    const result = spawnSync(process.execPath, [scriptPath, manifestPath], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    })
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('Decision: `FIX_AND_RERUN`')
+    expect(result.stdout).toContain('Decision reason: target deployment commit did not match manifest commit')
+    expect(result.stdout).toContain('Target deployment commit: different-sha')
+    expect(result.stdout).toContain('Target deployment matches commit SHA: no')
   })
 })
