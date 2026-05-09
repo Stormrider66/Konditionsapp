@@ -66,6 +66,7 @@ Before using browser or load results for an invite decision, confirm the target 
 Find the real deployment commit from the Vercel deployment details page before replacing `vercel-deployment-commit-sha`. You can also inspect the deployment with the Vercel CLI:
 
 ```bash
+npm run qa:hockey-deployment-commit
 vercel inspect https://your-deployment-url.vercel.app
 ```
 
