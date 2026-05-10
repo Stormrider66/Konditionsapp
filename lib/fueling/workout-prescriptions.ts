@@ -1,4 +1,9 @@
 import type { PrismaClient, WorkoutIntensity, WorkoutType } from '@prisma/client'
+import {
+  adaptCarbTargetFromFeedback,
+  getFuelingFeedbackSummary,
+  type FuelingFeedbackSummary,
+} from '@/lib/fueling/feedback-summary'
 
 interface ProgramForFueling {
   id: string
@@ -19,7 +24,7 @@ interface ProgramForFueling {
   }>
 }
 
-type PrismaLike = Pick<PrismaClient, 'raceFuelingPlan' | 'workoutFuelingPrescription'>
+type PrismaLike = Pick<PrismaClient, 'raceFuelingPlan' | 'workoutFuelingLog' | 'workoutFuelingPrescription'>
 
 export async function createFuelingPrescriptionsForProgram(
   prisma: PrismaLike,
@@ -42,18 +47,20 @@ export async function createFuelingPrescriptionsForProgram(
 
   if (!plan?.recommendedCarbsGPerHour) return 0
 
+  const feedbackSummary = await getFuelingFeedbackSummary(prisma, program.clientId, 6)
   const maxWeek = Math.max(...program.weeks.map((week) => week.weekNumber), 1)
   const prescriptions = program.weeks.flatMap((week) =>
     week.days.flatMap((day) =>
       day.workouts
         .filter((workout) => shouldPrescribeFueling(workout, program.goalType))
         .map((workout) => {
-          const targetCarbsGPerHour = calculateProgressiveCarbTarget(
+          const progressiveTarget = calculateProgressiveCarbTarget(
             plan.recommendedCarbsGPerHour ?? 75,
             week.weekNumber,
             maxWeek,
             workout
           )
+          const targetCarbsGPerHour = adaptCarbTargetFromFeedback(progressiveTarget, feedbackSummary)
           const durationHours = (workout.duration ?? estimateDurationFromDistance(workout)) / 60
 
           return {
@@ -62,7 +69,7 @@ export async function createFuelingPrescriptionsForProgram(
             targetCarbsGPerHour,
             targetCarbsTotalG: durationHours > 0 ? Math.round(targetCarbsGPerHour * durationHours) : null,
             hydrationMl: durationHours > 0 ? Math.round(500 * durationHours) : null,
-            instructionsSv: buildFuelingInstructions(targetCarbsGPerHour, durationHours),
+            instructionsSv: buildFuelingInstructions(targetCarbsGPerHour, durationHours, feedbackSummary.status),
           }
         })
     )
@@ -120,7 +127,11 @@ function estimateDurationFromDistance(
   return Math.round((workout.distance / assumedSpeedKmh) * 60)
 }
 
-function buildFuelingInstructions(targetCarbsGPerHour: number, durationHours: number): string {
+function buildFuelingInstructions(
+  targetCarbsGPerHour: number,
+  durationHours: number,
+  feedbackStatus: FuelingFeedbackSummary['status']
+): string {
   const every20 = Math.round(targetCarbsGPerHour / 3)
   const total = durationHours > 0 ? Math.round(targetCarbsGPerHour * durationHours) : null
 
@@ -128,7 +139,24 @@ function buildFuelingInstructions(targetCarbsGPerHour: number, durationHours: nu
     `Magträning: sikta på ${targetCarbsGPerHour} g kolhydrater/timme.`,
     `Praktiskt upplägg: cirka ${every20} g var 20:e minut.`,
     total ? `Totalt för passet: ungefär ${total} g kolhydrater.` : null,
+    feedbackHint(feedbackStatus),
     targetCarbsGPerHour > 60 ? 'Använd gärna glukos/fruktos-blandning eftersom målet är över 60 g/timme.' : null,
     'Använd produkter som är tänkta för tävling och notera magrespons efter passet.',
   ].filter(Boolean).join(' ')
+}
+
+function feedbackHint(status: FuelingFeedbackSummary['status']): string | null {
+  if (status === 'REDUCE') {
+    return 'Senaste magresponsen talar för att backa lite och prioritera stabil känsla före höjning.'
+  }
+
+  if (status === 'HOLD') {
+    return 'Upprepa nivån tills intag och magrespons är stabila innan nästa höjning.'
+  }
+
+  if (status === 'READY_TO_PROGRESS') {
+    return 'Toleransen ser stabil ut, därför kan nivån höjas försiktigt.'
+  }
+
+  return null
 }

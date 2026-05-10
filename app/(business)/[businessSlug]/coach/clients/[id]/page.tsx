@@ -27,6 +27,7 @@ import { StrengthPRTable } from '@/components/coach/strength/StrengthPRTable'
 import { PendingPRFeedSingle } from '@/components/coach/strength/PendingPRFeed'
 import { ProgressionDashboard } from '@/components/coach/progression/ProgressionDashboard'
 import { ClientLoadSummary } from '@/components/coach/clients/ClientLoadSummary'
+import { ClientFuelingSummary } from '@/components/coach/clients/ClientFuelingSummary'
 import { RecentTestsCard } from '@/components/coach/clients/RecentTestsCard'
 import { SportProfileEditor } from '@/components/coach/clients/SportProfileEditor'
 import { ReadinessDashboard } from '@/components/athlete/ReadinessDashboard'
@@ -561,9 +562,10 @@ export default function BusinessClientDetailPage() {
   // trends, then a quick-jump to the full logs view.
   const analysisContent = client.athleteAccount ? (
     <div className="space-y-4 sm:space-y-6">
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-3">
         <ClientLoadSummary clientId={id} />
         <ReadinessDashboard clientId={id} />
+        <ClientFuelingSummary clientId={id} />
       </div>
 
       <PendingPRFeedSingle clientId={id} />
