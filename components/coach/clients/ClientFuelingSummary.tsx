@@ -11,6 +11,7 @@ import {
   Utensils,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -18,6 +19,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 type FuelingStatus = 'NO_DATA' | 'READY_TO_PROGRESS' | 'HOLD' | 'REDUCE' | 'ON_TRACK'
 
@@ -33,10 +36,13 @@ interface FuelingFeedbackSummary {
 }
 
 interface FuelingPlanSummary {
+  id: string
   name: string | null
   recommendedCarbsGPerHour: number | null
   recommendedCarbsTotalG: number | null
   raceDate: string | null
+  status: string
+  coachNotes: string | null
 }
 
 interface FuelingLogSummary {
@@ -101,6 +107,10 @@ export function ClientFuelingSummary({ clientId }: ClientFuelingSummaryProps) {
   const [data, setData] = useState<FuelingSummaryResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [targetCarbs, setTargetCarbs] = useState('')
+  const [coachNotes, setCoachNotes] = useState('')
+  const [planStatus, setPlanStatus] = useState('DRAFT')
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   useEffect(() => {
     let cancelled = false
@@ -130,10 +140,42 @@ export function ClientFuelingSummary({ clientId }: ClientFuelingSummaryProps) {
     }
   }, [clientId])
 
+  useEffect(() => {
+    const plan = data?.latestPlan
+    if (!plan) return
+    setTargetCarbs(plan.recommendedCarbsGPerHour ? String(Math.round(plan.recommendedCarbsGPerHour)) : '')
+    setCoachNotes(plan.coachNotes ?? '')
+    setPlanStatus(plan.status)
+  }, [data?.latestPlan])
+
   const summary = data?.summary
   const status = summary?.status ?? 'NO_DATA'
   const meta = STATUS_META[status]
   const StatusIcon = meta.icon
+
+  async function savePlanAdjustments() {
+    const plan = data?.latestPlan
+    if (!plan) return
+
+    setSaveState('saving')
+    try {
+      const response = await fetch(`/api/fueling/plans/${plan.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recommendedCarbsGPerHour: targetCarbs ? Number(targetCarbs) : null,
+          coachNotes: coachNotes || null,
+          status: planStatus,
+        }),
+      })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const body = await response.json()
+      setData((current) => current ? { ...current, latestPlan: body.plan } : current)
+      setSaveState('saved')
+    } catch {
+      setSaveState('error')
+    }
+  }
 
   return (
     <Card>
@@ -179,10 +221,59 @@ export function ClientFuelingSummary({ clientId }: ClientFuelingSummaryProps) {
             </div>
 
             {data?.latestPlan && (
-              <p className="text-xs text-muted-foreground">
-                Raceplan: <span className="font-medium text-slate-700 dark:text-slate-200">{data.latestPlan.name ?? 'Nästa tävling'}</span>
-                {data.latestPlan.recommendedCarbsGPerHour ? `, ${Math.round(data.latestPlan.recommendedCarbsGPerHour)} g/h` : ''}
-              </p>
+              <div className="rounded-lg border p-3 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    Raceplan: <span className="font-medium text-slate-700 dark:text-slate-200">{data.latestPlan.name ?? 'Nästa tävling'}</span>
+                  </p>
+                  <Badge variant="outline" className="text-[10px]">
+                    {data.latestPlan.status === 'APPROVED' ? 'Godkänd' : data.latestPlan.status === 'ARCHIVED' ? 'Arkiverad' : 'Utkast'}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="text-xs text-muted-foreground">
+                    Mål g/h
+                    <Input
+                      className="mt-1 h-9"
+                      inputMode="numeric"
+                      min={20}
+                      max={150}
+                      type="number"
+                      value={targetCarbs}
+                      onChange={(event) => setTargetCarbs(event.target.value)}
+                    />
+                  </label>
+                  <label className="text-xs text-muted-foreground">
+                    Status
+                    <select
+                      className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                      value={planStatus}
+                      onChange={(event) => setPlanStatus(event.target.value)}
+                    >
+                      <option value="DRAFT">Utkast</option>
+                      <option value="APPROVED">Godkänd</option>
+                      <option value="ARCHIVED">Arkiverad</option>
+                    </select>
+                  </label>
+                </div>
+                <Textarea
+                  className="min-h-[64px]"
+                  placeholder="Coachanteckning till planen..."
+                  value={coachNotes}
+                  onChange={(event) => setCoachNotes(event.target.value)}
+                />
+                <div className="flex items-center justify-between gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void savePlanAdjustments()}
+                    disabled={saveState === 'saving'}
+                  >
+                    {saveState === 'saving' ? 'Sparar...' : saveState === 'saved' ? 'Sparad' : 'Spara justering'}
+                  </Button>
+                  {saveState === 'error' && <span className="text-xs text-destructive">Kunde inte spara.</span>}
+                </div>
+              </div>
             )}
 
             {data?.recentLogs.length ? (

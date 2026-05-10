@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { Activity, CalendarDays, Flame, Utensils } from 'lucide-react'
+import { Activity, CalendarDays, Flame, PackageCheck, Timer, Utensils } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
@@ -20,6 +20,13 @@ interface RaceFuelingPlanSummary {
   confidence: string
   status: string
   warnings?: unknown
+  raceDayPlan?: {
+    intakeEvery20Min: number
+    gelEquivalentCount: number | null
+    bottleMixCount: number | null
+    timing: Array<{ minute: number; carbs: number; label: string }>
+    notesSv: string[]
+  } | null
 }
 
 interface RaceFuelingCardProps {
@@ -113,6 +120,32 @@ export function RaceFuelingCard({ clientId, variant = 'default' }: RaceFuelingCa
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 Planera cirka <span className="font-semibold">{Math.round(plan.recommendedCarbsTotalG)} g kolhydrater</span> under tävlingen.
               </p>
+            )}
+
+            {plan.raceDayPlan && (
+              <div className="rounded-lg border bg-orange-50/70 p-3 dark:bg-orange-900/10 dark:border-orange-900/30">
+                <div className="flex items-center gap-2 text-sm font-medium text-orange-800 dark:text-orange-300">
+                  <PackageCheck className="h-4 w-4" />
+                  Packa för race
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-700 dark:text-slate-200">
+                  <span className="inline-flex items-center gap-1">
+                    <Timer className="h-3 w-3 text-orange-600" />
+                    {plan.raceDayPlan.intakeEvery20Min} g var 20:e min
+                  </span>
+                  {plan.raceDayPlan.gelEquivalentCount && (
+                    <span>{plan.raceDayPlan.gelEquivalentCount} gel à 25 g</span>
+                  )}
+                  {plan.raceDayPlan.bottleMixCount && (
+                    <span>{plan.raceDayPlan.bottleMixCount} flaskor à 40 g</span>
+                  )}
+                </div>
+                {plan.raceDayPlan.timing.length > 0 && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Första intag efter {plan.raceDayPlan.timing[0].label}, fortsätt jämnt genom loppet.
+                  </p>
+                )}
+              </div>
             )}
           </div>
         ) : (

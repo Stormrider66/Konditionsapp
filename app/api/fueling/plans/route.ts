@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { canAccessClient } from '@/lib/auth-utils'
 import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import { estimateRaceFueling } from '@/lib/fueling/race-fueling'
+import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
 import { logger } from '@/lib/logger'
 
 const planSchema = z.object({
@@ -73,7 +74,13 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({ success: true, plans })
+    return NextResponse.json({
+      success: true,
+      plans: plans.map((plan) => ({
+        ...plan,
+        raceDayPlan: buildRaceDayFuelingPlan(plan.recommendedCarbsGPerHour, plan.durationMinutes),
+      })),
+    })
   } catch (error) {
     logger.error('Error fetching fueling plans', {}, error as Error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

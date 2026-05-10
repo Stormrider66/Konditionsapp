@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import type { Test, TestStage, TestType } from '@/types'
 import { estimateRaceFueling } from '@/lib/fueling/race-fueling'
+import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
 import type { RaceFuelingEstimate } from '@/lib/fueling/types'
 
 interface RaceFuelingEstimateSectionProps {
@@ -59,6 +60,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
 
   const selectedDistance = options[selectedDistanceIndex] ?? options[0]
   const selectedStage = usableStages.find((stage) => stage.sequence === selectedStageSequence) ?? usableStages[0]
+  const raceDayPlan = buildRaceDayFuelingPlan(estimate.recommendedCarbsPerHour, estimate.estimatedDurationMinutes)
 
   async function savePlan() {
     if (!selectedStage || !selectedDistance) return
@@ -147,6 +149,24 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
         <Metric label="Rekommenderat intag" value={estimate.recommendedCarbsPerHour ? `${estimate.recommendedCarbsPerHour} g/h` : 'Saknas'} />
         <Metric label="Totalt intag" value={estimate.scenarios[1]?.totalCarbs ? `${estimate.scenarios[1].totalCarbs} g` : 'Saknas'} />
       </div>
+
+      {raceDayPlan && (
+        <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-950">
+          <p className="font-medium mb-2">Praktisk raceplan</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Metric label="Intagsrytm" value={`${raceDayPlan.intakeEvery20Min} g var 20:e min`} />
+            <Metric label="Gel-ekvivalent" value={raceDayPlan.gelEquivalentCount ? `${raceDayPlan.gelEquivalentCount} st à 25 g` : 'Saknas'} />
+            <Metric label="Sportdryck" value={raceDayPlan.bottleMixCount ? `${raceDayPlan.bottleMixCount} flaskor à 40 g` : 'Saknas'} />
+          </div>
+          {raceDayPlan.notesSv.length > 0 && (
+            <ul className="list-disc pl-5 mt-3 space-y-1">
+              {raceDayPlan.notesSv.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

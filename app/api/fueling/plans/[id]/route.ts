@@ -1,0 +1,70 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { prisma } from '@/lib/prisma'
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
+import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
+import { logger } from '@/lib/logger'
+
+const updatePlanSchema = z.object({
+  name: z.string().trim().max(120).optional().nullable(),
+  recommendedCarbsGPerHour: z.number().min(20).max(150).optional().nullable(),
+  durationMinutes: z.number().positive().max(10000).optional().nullable(),
+  coachNotes: z.string().max(4000).optional().nullable(),
+  athleteNotes: z.string().max(4000).optional().nullable(),
+  status: z.enum(['DRAFT', 'APPROVED', 'ARCHIVED']).optional(),
+})
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { id } = await params
+    const existing = await prisma.raceFuelingPlan.findUnique({
+      where: { id },
+      select: { id: true, clientId: true, durationMinutes: true, recommendedCarbsGPerHour: true },
+    })
+    if (!existing) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
+
+    const hasAccess = await canAccessClient(user.id, existing.clientId)
+    if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+    const body = updatePlanSchema.parse(await request.json())
+    const nextCarbsPerHour = body.recommendedCarbsGPerHour ?? existing.recommendedCarbsGPerHour
+    const nextDurationMinutes = body.durationMinutes ?? existing.durationMinutes
+    const nextTotal = nextCarbsPerHour != null && nextDurationMinutes != null
+      ? Math.round(nextCarbsPerHour * (nextDurationMinutes / 60))
+      : null
+
+    const plan = await prisma.raceFuelingPlan.update({
+      where: { id },
+      data: {
+        name: body.name === undefined ? undefined : body.name,
+        recommendedCarbsGPerHour: body.recommendedCarbsGPerHour === undefined ? undefined : body.recommendedCarbsGPerHour,
+        recommendedCarbsTotalG: body.recommendedCarbsGPerHour !== undefined || body.durationMinutes !== undefined ? nextTotal : undefined,
+        durationMinutes: body.durationMinutes === undefined ? undefined : body.durationMinutes,
+        coachNotes: body.coachNotes === undefined ? undefined : body.coachNotes,
+        athleteNotes: body.athleteNotes === undefined ? undefined : body.athleteNotes,
+        status: body.status,
+        approvedAt: body.status === 'APPROVED' ? new Date() : body.status === 'DRAFT' ? null : undefined,
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      plan: {
+        ...plan,
+        raceDayPlan: buildRaceDayFuelingPlan(plan.recommendedCarbsGPerHour, plan.durationMinutes),
+      },
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid data', details: error.errors }, { status: 400 })
+    }
+    logger.error('Error updating fueling plan', {}, error as Error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}

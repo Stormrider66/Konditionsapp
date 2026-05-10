@@ -27,6 +27,9 @@ export async function GET(
           recommendedCarbsGPerHour: true,
           recommendedCarbsTotalG: true,
           raceDate: true,
+          status: true,
+          coachNotes: true,
+          athleteNotes: true,
         },
       }),
       prisma.workoutFuelingLog.findMany({
