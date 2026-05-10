@@ -66,6 +66,7 @@ interface FuelingPlanDetail {
         completedAt: string | null
         fuelingLog: {
           actualCarbsGPerHour: number | null
+          productsUsed: unknown
           stomachRating: number | null
           energyRating: number | null
         } | null
@@ -834,6 +835,7 @@ function ProductInput({
 
 function FuelingPrescriptionRow({ prescription, raceDate }: { prescription: WorkoutPrescription; raceDate: string | null }) {
   const latestLog = prescription.workout.logs[0]?.fuelingLog ?? null
+  const productsUsed = normalizeProductsUsed(latestLog?.productsUsed)
   const workoutDate = prescription.workout.day.date ? new Date(prescription.workout.day.date) : null
   const daysToRace = workoutDate && raceDate ? differenceInDays(new Date(raceDate), workoutDate) : null
 
@@ -870,10 +872,17 @@ function FuelingPrescriptionRow({ prescription, raceDate }: { prescription: Work
       )}
 
       {latestLog && (
-        <div className="mt-2 grid gap-2 rounded-md bg-slate-50 p-2 text-xs dark:bg-slate-800/60 sm:grid-cols-3">
-          <span>Utfört: {formatGramHour(latestLog.actualCarbsGPerHour)}</span>
-          <span>Mage: {formatRating(latestLog.stomachRating)}</span>
-          <span>Energi: {formatRating(latestLog.energyRating)}</span>
+        <div className="mt-2 rounded-md bg-slate-50 p-2 text-xs dark:bg-slate-800/60">
+          <div className="grid gap-2 sm:grid-cols-3">
+            <span>Utfört: {formatGramHour(latestLog.actualCarbsGPerHour)}</span>
+            <span>Mage: {formatRating(latestLog.stomachRating)}</span>
+            <span>Energi: {formatRating(latestLog.energyRating)}</span>
+          </div>
+          {productsUsed.length > 0 && (
+            <p className="mt-2 text-muted-foreground">
+              Produkter: {summarizeProductsUsed(productsUsed)}
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -1102,6 +1111,35 @@ function formatGramHour(value: number | null): string {
 
 function formatRating(value: number | null | undefined): string {
   return value == null ? '-' : `${value}/5`
+}
+
+type ProductUsed = {
+  label: string
+  count: number
+  carbsPerItemG: number
+}
+
+function normalizeProductsUsed(value: unknown): ProductUsed[] {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null
+      const record = item as Record<string, unknown>
+      const label = typeof record.label === 'string' ? record.label : null
+      const count = typeof record.count === 'number' ? record.count : null
+      const carbsPerItemG = typeof record.carbsPerItemG === 'number' ? record.carbsPerItemG : null
+
+      if (!label || !count || !carbsPerItemG) return null
+      return { label, count, carbsPerItemG }
+    })
+    .filter((item): item is ProductUsed => item !== null)
+}
+
+function summarizeProductsUsed(products: ProductUsed[]): string {
+  return products
+    .map((product) => `${product.count} ${product.label.toLowerCase()} à ${product.carbsPerItemG} g`)
+    .join(', ')
 }
 
 function formatGrams(value: number | null): string {

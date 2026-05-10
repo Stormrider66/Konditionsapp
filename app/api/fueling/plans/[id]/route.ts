@@ -105,6 +105,7 @@ export async function GET(
                     fuelingLog: {
                       select: {
                         actualCarbsGPerHour: true,
+                        productsUsed: true,
                         stomachRating: true,
                         energyRating: true,
                       },
