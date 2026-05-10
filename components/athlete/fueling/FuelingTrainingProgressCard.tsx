@@ -43,6 +43,15 @@ interface FuelingPlanSummary {
   name: string | null
   recommendedCarbsGPerHour: number | null
   raceDate: string | null
+  fuelingProgress?: FuelingProgressSummary | null
+}
+
+interface FuelingProgressSummary {
+  linkedWorkoutCount: number
+  loggedWorkoutCount: number
+  bestToleratedGPerHour: number | null
+  buildUpWeeks: number | null
+  nextBuildUpTargetGPerHour: number | null
 }
 
 interface FuelingLogSummary {
@@ -137,7 +146,7 @@ export function FuelingTrainingProgressCard({
       }
     }
 
-    loadSummary()
+    void loadSummary()
 
     return () => controller.abort()
   }, [clientId])
@@ -202,6 +211,10 @@ export function FuelingTrainingProgressCard({
               <Metric label="Nästa steg" value={formatGramHour(trend.nextTarget)} />
             </div>
 
+            {data?.latestPlan?.fuelingProgress && (
+              <AthleteFuelingProgressBox progress={data.latestPlan.fuelingProgress} />
+            )}
+
             {recommendation && (
               <AthleteRecommendationBox recommendation={recommendation} />
             )}
@@ -252,6 +265,35 @@ export function FuelingTrainingProgressCard({
         )}
       </CardContent>
     </Card>
+  )
+}
+
+function AthleteFuelingProgressBox({ progress }: { progress: FuelingProgressSummary }) {
+  const isSynced = progress.linkedWorkoutCount > 0
+  return (
+    <div className="rounded-lg border bg-blue-50/70 p-3 dark:border-blue-900/30 dark:bg-blue-900/10">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">
+            {isSynced ? 'Planen finns i dina pass' : 'Planen är redo att läggas i passen'}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {isSynced
+              ? `${progress.linkedWorkoutCount} pass kopplade och ${progress.loggedWorkoutCount} loggade.`
+              : 'När coachen synkar planen får du tydliga carb-mål på långpassen.'}
+          </p>
+        </div>
+        {progress.buildUpWeeks && (
+          <Badge variant="outline" className="shrink-0 bg-white/70 text-[10px] dark:bg-slate-950/40">
+            {progress.buildUpWeeks} veckor
+          </Badge>
+        )}
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Metric label="Nästa mål" value={formatGramHour(progress.nextBuildUpTargetGPerHour)} />
+        <Metric label="Bäst tålt" value={formatGramHour(progress.bestToleratedGPerHour)} />
+      </div>
+    </div>
   )
 }
 
