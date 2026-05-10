@@ -15,6 +15,13 @@ export interface RaceFuelingProductPlan {
   updatedAt?: string
 }
 
+export interface RaceFuelingProductTimingPoint {
+  minute: number
+  label: string
+  products: string[]
+  carbsG: number
+}
+
 export function normalizeRaceFuelingProductPlan(value: unknown): RaceFuelingProductPlan | null {
   if (!value || typeof value !== 'object') return null
   const record = value as Record<string, unknown>
@@ -48,6 +55,57 @@ export function summarizeRaceFuelingProductPlan(plan: RaceFuelingProductPlan): s
     .join(', ')
 
   return summary || null
+}
+
+export function buildRaceFuelingProductTiming(
+  plan: RaceFuelingProductPlan | null,
+  durationMinutes: number | null | undefined
+): RaceFuelingProductTimingPoint[] {
+  if (!plan || !durationMinutes || durationMinutes <= 20) return []
+
+  const units = expandProductUnits(plan)
+  if (units.length === 0) return []
+
+  const slots = buildTimingSlots(durationMinutes)
+  if (slots.length === 0) return []
+
+  const timing = new Map<number, RaceFuelingProductTimingPoint>()
+  units.forEach((unit, index) => {
+    const slotIndex = units.length === 1
+      ? 0
+      : Math.round((index * (slots.length - 1)) / (units.length - 1))
+    const minute = slots[Math.min(slotIndex, slots.length - 1)]
+    const point = timing.get(minute) ?? {
+      minute,
+      label: `${minute} min`,
+      products: [],
+      carbsG: 0,
+    }
+
+    point.products.push(unit.label)
+    point.carbsG += unit.carbsG
+    timing.set(minute, point)
+  })
+
+  return Array.from(timing.values()).sort((a, b) => a.minute - b.minute)
+}
+
+function expandProductUnits(plan: RaceFuelingProductPlan): Array<{ label: string; carbsG: number }> {
+  return plan.items.flatMap((item) => {
+    const count = Math.max(0, Math.floor(item.count))
+    return Array.from({ length: count }, () => ({
+      label: `${item.label} (${item.carbsPerItemG} g)`,
+      carbsG: item.carbsPerItemG,
+    }))
+  })
+}
+
+function buildTimingSlots(durationMinutes: number): number[] {
+  const slots: number[] = []
+  for (let minute = 20; minute < durationMinutes; minute += 20) {
+    slots.push(minute)
+  }
+  return slots.slice(0, 18)
 }
 
 function normalizeProductPlanItem(value: unknown): RaceFuelingProductPlanItem | null {

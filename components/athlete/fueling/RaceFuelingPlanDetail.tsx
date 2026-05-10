@@ -9,7 +9,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
-import { normalizeRaceFuelingProductPlan, summarizeRaceFuelingProductPlan, type RaceFuelingProductPlan } from '@/lib/fueling/product-plan'
+import {
+  buildRaceFuelingProductTiming,
+  normalizeRaceFuelingProductPlan,
+  summarizeRaceFuelingProductPlan,
+  type RaceFuelingProductPlan,
+} from '@/lib/fueling/product-plan'
 import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
 
 interface RaceDayPlan {
@@ -275,6 +280,8 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
     chewCount,
     chewCarbs,
   })
+  const timingProductPlan = storedProductPlan ?? (productPlan.totalCarbs > 0 ? toStoredProductPlan(productPlan) : null)
+  const productTiming = buildRaceFuelingProductTiming(timingProductPlan, raceDayPlan?.durationMinutes ?? plan.durationMinutes)
   const savedProductPlanNote = extractSavedFuelingProductPlanNote(isCoachMode ? plan.coachNotes : plan.athleteNotes)
 
   return (
@@ -615,6 +622,28 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
               <p className="mt-2 text-xs opacity-80">{productPlan.note}</p>
             )}
           </div>
+
+          {productTiming.length > 0 && (
+            <div className="space-y-2">
+              <div>
+                <p className="text-sm font-medium">Produkttiming</p>
+                <p className="text-xs text-muted-foreground">
+                  Fördelar sparade eller ifyllda produkter över loppets intagsrytm.
+                </p>
+              </div>
+              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {productTiming.map((point) => (
+                  <div key={point.minute} className="rounded-md border px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium">{point.label}</span>
+                      <span className="text-xs tabular-nums text-muted-foreground">{Math.round(point.carbsG)} g</span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{point.products.join(' + ')}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-2 print:hidden">
             <Button
