@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { Archive, CalendarDays, Eye, Loader2, RotateCcw, Utensils } from 'lucide-react'
+import { Archive, CalendarDays, CheckCircle2, Eye, Loader2, RotateCcw, Utensils } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -47,33 +47,34 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
   const [error, setError] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [applyingId, setApplyingId] = useState<string | null>(null)
+  const [applyResult, setApplyResult] = useState<{ planId: string; count: number } | null>(null)
   const resolvedDetailBasePath = detailBasePath ?? `${basePath}/athlete/fueling`
+
+  const loadPlans = useCallback(async (signal?: AbortSignal, showLoadingState = true) => {
+    if (showLoadingState) setIsLoading(true)
+    setError(null)
+    const params = new URLSearchParams({ limit: '50', includeArchived: showArchived ? 'true' : 'false' })
+    if (clientId) params.set('clientId', clientId)
+
+    try {
+      const response = await fetch(`/api/fueling/plans?${params.toString()}`, { signal })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const body = await response.json()
+      setPlans(body.plans ?? [])
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
+      setError(err instanceof Error ? err.message : 'Kunde inte hämta planer')
+    } finally {
+      if (showLoadingState && !signal?.aborted) setIsLoading(false)
+    }
+  }, [clientId, showArchived])
 
   useEffect(() => {
     const controller = new AbortController()
-
-    async function loadPlans() {
-      setIsLoading(true)
-      setError(null)
-      const params = new URLSearchParams({ limit: '50', includeArchived: showArchived ? 'true' : 'false' })
-      if (clientId) params.set('clientId', clientId)
-
-      try {
-        const response = await fetch(`/api/fueling/plans?${params.toString()}`, { signal: controller.signal })
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
-        const body = await response.json()
-        setPlans(body.plans ?? [])
-      } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return
-        setError(err instanceof Error ? err.message : 'Kunde inte hämta planer')
-      } finally {
-        if (!controller.signal.aborted) setIsLoading(false)
-      }
-    }
-
-    void loadPlans()
+    void loadPlans(controller.signal)
     return () => controller.abort()
-  }, [clientId, showArchived])
+  }, [loadPlans])
 
   const activePlans = useMemo(() => plans.filter((plan) => plan.status !== 'ARCHIVED'), [plans])
   const archivedPlans = useMemo(() => plans.filter((plan) => plan.status === 'ARCHIVED'), [plans])
@@ -99,6 +100,23 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
       setError('Kunde inte uppdatera planen')
     } finally {
       setUpdatingId(null)
+    }
+  }
+
+  async function applyPlanToPrograms(planId: string) {
+    setApplyingId(planId)
+    setApplyResult(null)
+    setError(null)
+    try {
+      const response = await fetch(`/api/fueling/plans/${planId}/apply`, { method: 'POST' })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const body = await response.json()
+      setApplyResult({ planId, count: body.updatedCount ?? 0 })
+      await loadPlans(undefined, false)
+    } catch {
+      setError('Kunde inte synka planen till kommande pass')
+    } finally {
+      setApplyingId(null)
     }
   }
 
@@ -130,6 +148,9 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
             plans={activePlans}
             detailBasePath={resolvedDetailBasePath}
             updatingId={updatingId}
+            applyingId={applyingId}
+            applyResult={applyResult}
+            onApply={(id) => void applyPlanToPrograms(id)}
             onArchive={(id) => void updateStatus(id, 'ARCHIVED')}
           />
 
@@ -140,6 +161,8 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
                 plans={archivedPlans}
                 detailBasePath={resolvedDetailBasePath}
                 updatingId={updatingId}
+                applyingId={applyingId}
+                applyResult={applyResult}
                 onRestore={(id) => void updateStatus(id, 'DRAFT')}
                 emptyText="Inga arkiverade planer ännu."
               />
@@ -155,6 +178,9 @@ function PlanGrid({
   plans,
   detailBasePath,
   updatingId,
+  applyingId,
+  applyResult,
+  onApply,
   onArchive,
   onRestore,
   emptyText = 'Ingen raceplan sparad ännu. Skapa en från en testrapport när målet är satt.',
@@ -162,6 +188,9 @@ function PlanGrid({
   plans: RaceFuelingPlanSummary[]
   detailBasePath: string
   updatingId: string | null
+  applyingId: string | null
+  applyResult: { planId: string; count: number } | null
+  onApply?: (id: string) => void
   onArchive?: (id: string) => void
   onRestore?: (id: string) => void
   emptyText?: string
@@ -215,6 +244,17 @@ function PlanGrid({
                   Öppna
                 </Link>
               </Button>
+              {onApply && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => onApply(plan.id)}
+                  disabled={applyingId === plan.id}
+                >
+                  {applyingId === plan.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  {applyResult?.planId === plan.id ? `${applyResult.count} pass` : 'Synka pass'}
+                </Button>
+              )}
               {onArchive && (
                 <Button
                   size="sm"
