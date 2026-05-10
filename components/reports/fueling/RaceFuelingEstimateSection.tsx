@@ -12,35 +12,50 @@ interface RaceFuelingEstimateSectionProps {
   weightKg?: number | null
 }
 
-const DISTANCE_OPTIONS: Record<TestType, Array<{ label: string; distanceKm?: number; durationMinutes?: number }>> = {
+type RaceTargetOption = {
+  label: string
+  distanceKm?: number
+  durationMinutes?: number
+  custom?: boolean
+}
+
+const DISTANCE_OPTIONS: Record<TestType, RaceTargetOption[]> = {
   RUNNING: [
     { label: '10 km', distanceKm: 10 },
     { label: 'Halvmarathon', distanceKm: 21.0975 },
     { label: 'Marathon', distanceKm: 42.195 },
+    { label: 'Egen distans / tid', custom: true },
   ],
   CYCLING: [
     { label: '2 timmar', durationMinutes: 120 },
     { label: '3 timmar', durationMinutes: 180 },
     { label: '5 timmar', durationMinutes: 300 },
+    { label: 'Egen distans / tid', custom: true },
   ],
   SKIING: [
     { label: '20 km', distanceKm: 20 },
     { label: '45 km', distanceKm: 45 },
     { label: '90 km', distanceKm: 90 },
+    { label: 'Egen distans / tid', custom: true },
   ],
 }
 
 export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFuelingEstimateSectionProps) {
   const usableStages = useMemo(() => getUsableStages(test), [test])
   const options = DISTANCE_OPTIONS[test.testType] ?? DISTANCE_OPTIONS.RUNNING
-  const [selectedDistanceIndex, setSelectedDistanceIndex] = useState(options.length - 1)
+  const [selectedDistanceIndex, setSelectedDistanceIndex] = useState(Math.max(0, options.length - 2))
   const [selectedStageSequence, setSelectedStageSequence] = useState<number | null>(usableStages[0]?.sequence ?? null)
+  const [customDistanceKm, setCustomDistanceKm] = useState('')
+  const [customDurationMinutes, setCustomDurationMinutes] = useState('180')
+  const [raceDate, setRaceDate] = useState('')
+  const [gutTolerance, setGutTolerance] = useState('')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   const estimate = useMemo<RaceFuelingEstimate | null>(() => {
     const selectedStage = usableStages.find((stage) => stage.sequence === selectedStageSequence) ?? usableStages[0]
-    const selectedDistance = options[selectedDistanceIndex] ?? options[0]
-    if (!selectedStage || !selectedDistance) return null
+    const selectedDistance = resolveRaceTarget(options[selectedDistanceIndex] ?? options[0], customDistanceKm, customDurationMinutes)
+    const currentGutToleranceCarbsPerHour = parsePositiveNumber(gutTolerance)
+    if (!selectedStage || !selectedDistance || (!selectedDistance.distanceKm && !selectedDistance.durationMinutes)) return null
 
     return estimateRaceFueling(
       {
@@ -52,13 +67,14 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
         targetPaceMinPerKm: selectedStage.pace,
       },
       test.testStages,
-      { weightKg }
+      { weightKg, currentGutToleranceCarbsPerHour }
     )
-  }, [options, selectedDistanceIndex, selectedStageSequence, test.testStages, test.testType, usableStages, weightKg])
+  }, [customDistanceKm, customDurationMinutes, gutTolerance, options, selectedDistanceIndex, selectedStageSequence, test.testStages, test.testType, usableStages, weightKg])
 
   if (!estimate || usableStages.length === 0) return null
 
-  const selectedDistance = options[selectedDistanceIndex] ?? options[0]
+  const selectedDistanceOption = options[selectedDistanceIndex] ?? options[0]
+  const selectedDistance = resolveRaceTarget(selectedDistanceOption, customDistanceKm, customDurationMinutes)
   const selectedStage = usableStages.find((stage) => stage.sequence === selectedStageSequence) ?? usableStages[0]
   const raceDayPlan = buildRaceDayFuelingPlan(estimate.recommendedCarbsPerHour, estimate.estimatedDurationMinutes)
 
@@ -72,12 +88,14 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
         clientId,
         testId: test.id,
         sport: test.testType,
-        name: `Tävlingsenergi ${selectedDistance.label}`,
+        name: `Tävlingsenergi ${formatRaceTargetLabel(selectedDistance)}`,
         distanceKm: selectedDistance.distanceKm,
         durationMinutes: selectedDistance.durationMinutes,
         targetSpeedKmh: selectedStage.speed,
         targetPowerWatts: selectedStage.power,
         targetPaceMinKm: selectedStage.pace,
+        raceDate: raceDate ? new Date(raceDate).toISOString() : null,
+        currentGutToleranceCarbsPerHour: gutTolerance ? Number(gutTolerance) : null,
       }),
     })
 
@@ -117,7 +135,10 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
           <select
             className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
             value={selectedDistanceIndex}
-            onChange={(event) => setSelectedDistanceIndex(Number(event.target.value))}
+            onChange={(event) => {
+              setSelectedDistanceIndex(Number(event.target.value))
+              setSaveStatus('idle')
+            }}
           >
             {options.map((option, index) => (
               <option key={option.label} value={index}>{option.label}</option>
@@ -130,7 +151,10 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
           <select
             className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
             value={selectedStageSequence ?? ''}
-            onChange={(event) => setSelectedStageSequence(Number(event.target.value))}
+            onChange={(event) => {
+              setSelectedStageSequence(Number(event.target.value))
+              setSaveStatus('idle')
+            }}
           >
             {usableStages.map((stage) => (
               <option key={stage.sequence} value={stage.sequence}>
@@ -140,6 +164,75 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
               </option>
             ))}
           </select>
+        </label>
+      </div>
+
+      {selectedDistanceOption.custom && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 print:hidden">
+          <label className="text-sm font-medium text-gray-700">
+            Egen distans (km)
+            <input
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+              inputMode="decimal"
+              min="0"
+              step="0.1"
+              type="number"
+              value={customDistanceKm}
+              onChange={(event) => {
+                setCustomDistanceKm(event.target.value)
+                setSaveStatus('idle')
+              }}
+              placeholder="Ex. 30"
+            />
+          </label>
+          <label className="text-sm font-medium text-gray-700">
+            Förväntad tid (min)
+            <input
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+              inputMode="numeric"
+              min="1"
+              step="1"
+              type="number"
+              value={customDurationMinutes}
+              onChange={(event) => {
+                setCustomDurationMinutes(event.target.value)
+                setSaveStatus('idle')
+              }}
+              placeholder="Valfritt om distans + intensitet räcker"
+            />
+          </label>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 print:hidden">
+        <label className="text-sm font-medium text-gray-700">
+          Tävlingsdatum
+          <input
+            className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+            type="date"
+            value={raceDate}
+            onChange={(event) => {
+              setRaceDate(event.target.value)
+              setSaveStatus('idle')
+            }}
+          />
+        </label>
+        <label className="text-sm font-medium text-gray-700">
+          Nuvarande magtolerans (g/h)
+          <input
+            className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+            inputMode="numeric"
+            min="0"
+            max="150"
+            step="5"
+            type="number"
+            value={gutTolerance}
+            onChange={(event) => {
+              setGutTolerance(event.target.value)
+              setSaveStatus('idle')
+            }}
+            placeholder="Ex. 60"
+          />
         </label>
       </div>
 
@@ -250,4 +343,34 @@ function formatDuration(minutes: number | null): string {
   const hours = Math.floor(totalMinutes / 60)
   const mins = totalMinutes % 60
   return hours > 0 ? `${hours} h ${mins} min` : `${mins} min`
+}
+
+function resolveRaceTarget(option: RaceTargetOption, customDistanceKm: string, customDurationMinutes: string): RaceTargetOption {
+  if (!option.custom) return option
+
+  const distanceKm = parsePositiveNumber(customDistanceKm)
+  const durationMinutes = parsePositiveNumber(customDurationMinutes)
+
+  return {
+    label: 'Egen distans / tid',
+    distanceKm,
+    durationMinutes,
+    custom: true,
+  }
+}
+
+function parsePositiveNumber(value: string): number | undefined {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
+}
+
+function formatRaceTargetLabel(option: RaceTargetOption): string {
+  if (!option.custom) return option.label
+
+  const parts = [
+    option.distanceKm ? `${option.distanceKm.toLocaleString('sv-SE', { maximumFractionDigits: 1 })} km` : null,
+    option.durationMinutes ? formatDuration(option.durationMinutes) : null,
+  ].filter(Boolean)
+
+  return parts.length > 0 ? parts.join(' / ') : option.label
 }
