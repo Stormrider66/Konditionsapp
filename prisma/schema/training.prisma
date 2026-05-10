@@ -1170,6 +1170,7 @@ model RaceFuelingPlan {
   scenarios   Json?
   assumptions Json?
   warnings    Json?
+  productPlan Json?
 
   // Coach/athlete workflow
   status        String @default("DRAFT") // DRAFT, APPROVED, ARCHIVED

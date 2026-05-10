@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
+import { normalizeRaceFuelingProductPlan, summarizeRaceFuelingProductPlan, type RaceFuelingProductPlan } from '@/lib/fueling/product-plan'
 import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
 
 interface RaceDayPlan {
@@ -37,6 +38,7 @@ interface FuelingPlanDetail {
   scenarios: unknown
   assumptions: unknown
   warnings: unknown
+  productPlan: unknown
   status: string
   coachNotes: string | null
   athleteNotes: string | null
@@ -87,6 +89,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
   const [bottleCarbs, setBottleCarbs] = useState('40')
   const [chewCount, setChewCount] = useState('')
   const [chewCarbs, setChewCarbs] = useState('20')
+  const [productPlanSaveState, setProductPlanSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   const loadPlan = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
@@ -114,6 +117,22 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
     if (!plan) return
     setEditableNotes(noteMode === 'coach' ? (plan.coachNotes ?? '') : (plan.athleteNotes ?? ''))
   }, [noteMode, plan])
+
+  useEffect(() => {
+    const storedProductPlan = normalizeRaceFuelingProductPlan(plan?.productPlan)
+    if (!storedProductPlan) return
+
+    const gel = storedProductPlan.items.find((item) => item.label === 'Gel')
+    const bottle = storedProductPlan.items.find((item) => item.label === 'Flaskor sportdryck')
+    const chew = storedProductPlan.items.find((item) => item.label === 'Chews / bars')
+
+    setGelCount(gel?.count ? String(gel.count) : '')
+    setGelCarbs(gel?.carbsPerItemG ? String(gel.carbsPerItemG) : '25')
+    setBottleCount(bottle?.count ? String(bottle.count) : '')
+    setBottleCarbs(bottle?.carbsPerItemG ? String(bottle.carbsPerItemG) : '40')
+    setChewCount(chew?.count ? String(chew.count) : '')
+    setChewCarbs(chew?.carbsPerItemG ? String(chew.carbsPerItemG) : '20')
+  }, [plan?.productPlan])
 
   async function applyToProgram() {
     setApplyState('applying')
@@ -152,6 +171,24 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
     }
   }
 
+  async function saveProductPlan() {
+    setProductPlanSaveState('saving')
+    const nextProductPlan = toStoredProductPlan(productPlan)
+
+    try {
+      const response = await fetch(`/api/fueling/plans/${planId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productPlan: nextProductPlan }),
+      })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      setPlan((current) => current ? { ...current, productPlan: nextProductPlan } : current)
+      setProductPlanSaveState('saved')
+    } catch {
+      setProductPlanSaveState('error')
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">
@@ -187,6 +224,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
     ? 'Ex: Öka från 70 till 85 g/h över tre långpass. Följ mage/energi efter varje pass...'
     : 'Ex: Maurten gel vid 20, 60 och 100 min. Sportdryck i flaska 1 och 2...'
   const buildUp = buildFuelingBuildUp(plan.workoutPrescriptions, plan.recommendedCarbsGPerHour)
+  const storedProductPlan = normalizeRaceFuelingProductPlan(plan.productPlan)
   const productPlan = buildProductPlan({
     targetCarbs: raceDayPlan?.totalCarbs ?? plan.recommendedCarbsTotalG,
     gelCount,
@@ -196,7 +234,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
     chewCount,
     chewCarbs,
   })
-  const savedProductPlan = extractSavedFuelingProductPlanNote(isCoachMode ? plan.coachNotes : plan.athleteNotes)
+  const savedProductPlanNote = extractSavedFuelingProductPlanNote(isCoachMode ? plan.coachNotes : plan.athleteNotes)
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6 print:max-w-none print:px-0">
@@ -371,14 +409,24 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {savedProductPlan && (
+          {storedProductPlan ? (
             <div className="rounded-lg border bg-emerald-50/70 p-3 text-sm text-emerald-950 dark:bg-emerald-900/10 dark:border-emerald-900/30 dark:text-emerald-100">
               <p className="font-medium">Sparad produktplan</p>
-              <p className="mt-1">{savedProductPlan.summary ?? 'Produkter sparade i anteckning.'}</p>
+              <p className="mt-1">{summarizeRaceFuelingProductPlan(storedProductPlan) ?? 'Produkter sparade.'}</p>
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                <span>Packat {formatGrams(savedProductPlan.packedCarbsG)}</span>
-                <span>Mål {formatGrams(savedProductPlan.targetCarbsG)}</span>
-                <span>Skillnad {formatSignedGrams(savedProductPlan.differenceG)}</span>
+                <span>Packat {formatGrams(storedProductPlan.totalCarbsG)}</span>
+                <span>Mål {formatGrams(storedProductPlan.targetCarbsG)}</span>
+                <span>Skillnad {formatSignedGrams(storedProductPlan.differenceG)}</span>
+              </div>
+            </div>
+          ) : savedProductPlanNote && (
+            <div className="rounded-lg border bg-emerald-50/70 p-3 text-sm text-emerald-950 dark:bg-emerald-900/10 dark:border-emerald-900/30 dark:text-emerald-100">
+              <p className="font-medium">Sparad produktplan i anteckning</p>
+              <p className="mt-1">{savedProductPlanNote.summary ?? 'Produkter sparade i anteckning.'}</p>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                <span>Packat {formatGrams(savedProductPlanNote.packedCarbsG)}</span>
+                <span>Mål {formatGrams(savedProductPlanNote.targetCarbsG)}</span>
+                <span>Skillnad {formatSignedGrams(savedProductPlanNote.differenceG)}</span>
               </div>
             </div>
           )}
@@ -440,6 +488,15 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
             </Button>
             <Button
               type="button"
+              variant="default"
+              size="sm"
+              onClick={() => void saveProductPlan()}
+              disabled={productPlanSaveState === 'saving'}
+            >
+              {productPlanSaveState === 'saving' ? 'Sparar...' : productPlanSaveState === 'saved' ? 'Produktplan sparad' : 'Spara produktplan'}
+            </Button>
+            <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={() => {
@@ -450,6 +507,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
             >
               Lägg i anteckning
             </Button>
+            {productPlanSaveState === 'error' && <span className="text-xs text-destructive">Kunde inte spara produktplan.</span>}
           </div>
         </CardContent>
       </Card>
@@ -546,6 +604,7 @@ interface ProductPlanSummary {
   totalCarbs: number
   difference: number | null
   marginLabel: string
+  items: RaceFuelingProductPlan['items']
   feedback: string
   note: string
 }
@@ -679,6 +738,11 @@ function buildProductPlan(input: ProductPlanInput): ProductPlanSummary {
   const chewCarbs = parseNonNegativeNumber(input.chewCarbs)
   const totalCarbs = Math.round(gelCount * gelCarbs + bottleCount * bottleCarbs + chewCount * chewCarbs)
   const difference = targetCarbs != null ? totalCarbs - targetCarbs : null
+  const items = [
+    productPlanItem('Gel', gelCount, gelCarbs),
+    productPlanItem('Flaskor sportdryck', bottleCount, bottleCarbs),
+    productPlanItem('Chews / bars', chewCount, chewCarbs),
+  ]
   const marginLabel = difference == null
     ? '-'
     : difference >= 20
@@ -698,8 +762,30 @@ function buildProductPlan(input: ProductPlanInput): ProductPlanSummary {
     totalCarbs,
     difference,
     marginLabel,
+    items,
     feedback: buildProductPlanFeedback(targetCarbs, totalCarbs, difference),
     note: buildProductPlanShortNote(gelCount, gelCarbs, bottleCount, bottleCarbs, chewCount, chewCarbs),
+  }
+}
+
+function productPlanItem(label: string, count: number, carbsPerItemG: number): RaceFuelingProductPlan['items'][number] {
+  return {
+    label,
+    count,
+    carbsPerItemG,
+    totalCarbsG: Math.round(count * carbsPerItemG),
+  }
+}
+
+function toStoredProductPlan(plan: ProductPlanSummary): RaceFuelingProductPlan {
+  return {
+    version: 1,
+    targetCarbsG: plan.targetCarbs,
+    totalCarbsG: plan.totalCarbs,
+    differenceG: plan.difference,
+    marginLabel: plan.marginLabel,
+    items: plan.items,
+    updatedAt: new Date().toISOString(),
   }
 }
 

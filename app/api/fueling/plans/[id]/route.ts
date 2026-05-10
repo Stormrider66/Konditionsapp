@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
 import { logger } from '@/lib/logger'
+
+const productPlanSchema = z.object({
+  version: z.literal(1),
+  targetCarbsG: z.number().nonnegative().max(10000).nullable(),
+  totalCarbsG: z.number().nonnegative().max(10000),
+  differenceG: z.number().min(-10000).max(10000).nullable(),
+  marginLabel: z.string().trim().max(40),
+  updatedAt: z.string().datetime().optional(),
+  items: z.array(z.object({
+    label: z.string().trim().min(1).max(80),
+    count: z.number().nonnegative().max(500),
+    carbsPerItemG: z.number().nonnegative().max(1000),
+    totalCarbsG: z.number().nonnegative().max(10000),
+  })).max(12),
+})
 
 const updatePlanSchema = z.object({
   name: z.string().trim().max(120).optional().nullable(),
@@ -11,6 +27,7 @@ const updatePlanSchema = z.object({
   durationMinutes: z.number().positive().max(10000).optional().nullable(),
   coachNotes: z.string().max(4000).optional().nullable(),
   athleteNotes: z.string().max(4000).optional().nullable(),
+  productPlan: productPlanSchema.optional().nullable(),
   status: z.enum(['DRAFT', 'APPROVED', 'ARCHIVED']).optional(),
 })
 
@@ -44,6 +61,7 @@ export async function GET(
         scenarios: true,
         assumptions: true,
         warnings: true,
+        productPlan: true,
         status: true,
         coachNotes: true,
         athleteNotes: true,
@@ -155,6 +173,11 @@ export async function PATCH(
         durationMinutes: body.durationMinutes === undefined ? undefined : body.durationMinutes,
         coachNotes: body.coachNotes === undefined ? undefined : body.coachNotes,
         athleteNotes: body.athleteNotes === undefined ? undefined : body.athleteNotes,
+        productPlan: body.productPlan === undefined
+          ? undefined
+          : body.productPlan === null
+            ? Prisma.JsonNull
+            : body.productPlan as Prisma.InputJsonValue,
         status: body.status,
         approvedAt: body.status === 'APPROVED' ? new Date() : body.status === 'DRAFT' ? null : undefined,
       },

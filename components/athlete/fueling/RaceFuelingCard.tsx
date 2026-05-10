@@ -8,6 +8,7 @@ import { Activity, CalendarDays, Flame, PackageCheck, Timer, Utensils } from 'lu
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { normalizeRaceFuelingProductPlan, summarizeRaceFuelingProductPlan } from '@/lib/fueling/product-plan'
 import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
 
 interface RaceFuelingPlanSummary {
@@ -22,6 +23,7 @@ interface RaceFuelingPlanSummary {
   recommendedCarbsTotalG: number | null
   confidence: string
   status: string
+  productPlan: unknown
   coachNotes: string | null
   athleteNotes: string | null
   warnings?: unknown
@@ -73,7 +75,13 @@ export function RaceFuelingCard({
   }, [clientId])
 
   const isGlass = variant === 'glass'
-  const savedProductPlan = extractSavedFuelingProductPlanNote(plan?.athleteNotes ?? plan?.coachNotes)
+  const structuredProductPlan = normalizeRaceFuelingProductPlan(plan?.productPlan)
+  const savedProductPlanNote = extractSavedFuelingProductPlanNote(plan?.athleteNotes ?? plan?.coachNotes)
+  const hasSavedProductPlan = Boolean(structuredProductPlan || savedProductPlanNote)
+  const savedProductPlanSummary = structuredProductPlan
+    ? summarizeRaceFuelingProductPlan(structuredProductPlan)
+    : savedProductPlanNote?.summary
+  const savedPackedCarbs = structuredProductPlan?.totalCarbsG ?? savedProductPlanNote?.packedCarbsG ?? null
 
   return (
     <Card className={isGlass ? 'bg-white/80 dark:bg-slate-900/70 backdrop-blur border-white/20' : undefined}>
@@ -167,14 +175,14 @@ export function RaceFuelingCard({
               </div>
             )}
 
-            {savedProductPlan && (
+            {hasSavedProductPlan && (
               <div className="rounded-lg border bg-emerald-50/70 p-3 text-sm text-emerald-950 dark:bg-emerald-900/10 dark:border-emerald-900/30 dark:text-emerald-100">
                 <div className="flex items-center gap-2 font-medium">
                   <PackageCheck className="h-4 w-4" />
                   Sparad produktplan
                 </div>
                 <p className="mt-1 text-xs">
-                  {savedProductPlan.summary ?? `${formatGrams(savedProductPlan.packedCarbsG)} packat`}
+                  {savedProductPlanSummary ?? `${formatGrams(savedPackedCarbs)} packat`}
                 </p>
               </div>
             )}

@@ -65,6 +65,7 @@ export async function GET(request: NextRequest) {
         scenarios: true,
         assumptions: true,
         warnings: true,
+        productPlan: true,
         status: true,
         coachNotes: true,
         athleteNotes: true,
