@@ -17,6 +17,7 @@ import {
   summarizeRaceFuelingProductPlan,
   type RaceFuelingProductPlan,
 } from '@/lib/fueling/product-plan'
+import { buildFuelingCoachingRecommendation } from '@/lib/fueling/coaching-recommendation'
 import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
 
 interface RaceDayPlan {
@@ -273,6 +274,21 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
     ? 'Ex: Öka från 70 till 85 g/h över tre långpass. Följ mage/energi efter varje pass...'
     : 'Ex: Maurten gel vid 20, 60 och 100 min. Sportdryck i flaska 1 och 2...'
   const buildUp = buildFuelingBuildUp(plan.workoutPrescriptions, plan.recommendedCarbsGPerHour)
+  const buildUpRecommendation = buildFuelingCoachingRecommendation({
+    logs: plan.workoutPrescriptions
+      .map((prescription) => {
+        const latestLog = prescription.workout.logs[0]?.fuelingLog ?? null
+        return {
+          plannedCarbsGPerHour: prescription.targetCarbsGPerHour,
+          actualCarbsGPerHour: latestLog?.actualCarbsGPerHour ?? null,
+          stomachRating: latestLog?.stomachRating ?? null,
+          energyRating: latestLog?.energyRating ?? null,
+          productsUsed: latestLog?.productsUsed,
+        }
+      })
+      .filter((log) => log.actualCarbsGPerHour != null || log.stomachRating != null || log.energyRating != null),
+    raceTargetGPerHour: plan.recommendedCarbsGPerHour,
+  })
   const storedProductPlan = normalizeRaceFuelingProductPlan(plan.productPlan)
   const productPlan = buildProductPlan({
     targetCarbs: raceDayPlan?.totalCarbs ?? plan.recommendedCarbsTotalG,
@@ -730,6 +746,24 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
                 <p className="mt-2 text-xs text-muted-foreground">
                   Högsta kommande passmål är {formatGramHour(buildUp.peakTarget)} jämfört med raceplanens {formatGramHour(plan.recommendedCarbsGPerHour)}.
                 </p>
+              </div>
+
+              <div className="rounded-lg border bg-emerald-50/70 p-4 dark:border-emerald-900/30 dark:bg-emerald-900/10">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{buildUpRecommendation.labelSv}</p>
+                    <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">{buildUpRecommendation.actionSv}</p>
+                  </div>
+                  {buildUpRecommendation.nextTargetGPerHour && (
+                    <Badge variant="outline" className="w-fit bg-white/70 dark:bg-slate-950/40">
+                      {buildUpRecommendation.nextTargetGPerHour} g/h
+                    </Badge>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">{buildUpRecommendation.reasonSv}</p>
+                {buildUpRecommendation.productSv && (
+                  <p className="mt-1 text-xs text-muted-foreground">{buildUpRecommendation.productSv}</p>
+                )}
               </div>
 
               <div className="space-y-4">

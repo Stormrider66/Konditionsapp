@@ -24,6 +24,10 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { buildFuelingSessionFeedback } from '@/lib/fueling/session-feedback'
 import {
+  buildFuelingCoachingRecommendation,
+  type FuelingCoachingRecommendation,
+} from '@/lib/fueling/coaching-recommendation'
+import {
   normalizeRaceFuelingProductItems,
   summarizeRaceFuelingProductItems,
 } from '@/lib/fueling/product-plan'
@@ -166,6 +170,12 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
   const meta = STATUS_META[status]
   const StatusIcon = meta.icon
   const trend = buildFuelingTrend(data?.recentLogs ?? [])
+  const recommendation = data
+    ? buildFuelingCoachingRecommendation({
+        logs: data.recentLogs,
+        raceTargetGPerHour: data.latestPlan?.recommendedCarbsGPerHour,
+      })
+    : null
 
   async function savePlanAdjustments() {
     const plan = data?.latestPlan
@@ -257,6 +267,10 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
               <Metric label="Mage" value={formatRating(summary?.averageStomachRating)} />
             </div>
 
+            {recommendation && (
+              <FuelingRecommendationBox recommendation={recommendation} />
+            )}
+
             {data?.latestPlan && (
               <div className="rounded-lg border p-3 space-y-3">
                 <div className="flex items-center justify-between gap-2">
@@ -343,6 +357,28 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
         )}
       </CardContent>
     </Card>
+  )
+}
+
+function FuelingRecommendationBox({ recommendation }: { recommendation: FuelingCoachingRecommendation }) {
+  return (
+    <div className="rounded-lg border bg-blue-50/70 p-3 dark:border-blue-900/30 dark:bg-blue-900/10">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">{recommendation.labelSv}</p>
+          <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">{recommendation.actionSv}</p>
+        </div>
+        {recommendation.nextTargetGPerHour && (
+          <Badge variant="outline" className="shrink-0 bg-white/70 dark:bg-slate-950/40">
+            {recommendation.nextTargetGPerHour} g/h
+          </Badge>
+        )}
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">{recommendation.reasonSv}</p>
+      {recommendation.productSv && (
+        <p className="mt-1 text-xs text-muted-foreground">{recommendation.productSv}</p>
+      )}
+    </div>
   )
 }
 

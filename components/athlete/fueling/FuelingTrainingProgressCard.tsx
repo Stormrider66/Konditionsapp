@@ -18,6 +18,10 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import {
+  buildFuelingCoachingRecommendation,
+  type FuelingCoachingRecommendation,
+} from '@/lib/fueling/coaching-recommendation'
+import {
   normalizeRaceFuelingProductItems,
   summarizeRaceFuelingProductItems,
 } from '@/lib/fueling/product-plan'
@@ -146,6 +150,12 @@ export function FuelingTrainingProgressCard({
   const target = summary?.averagePlannedCarbsGPerHour ?? data?.latestPlan?.recommendedCarbsGPerHour ?? null
   const latestLog = data?.recentLogs[0] ?? null
   const trend = buildAthleteFuelingTrend(data?.recentLogs ?? [], target)
+  const recommendation = data
+    ? buildFuelingCoachingRecommendation({
+        logs: data.recentLogs,
+        raceTargetGPerHour: data.latestPlan?.recommendedCarbsGPerHour,
+      })
+    : null
 
   return (
     <Card className={isGlass ? 'bg-white/80 dark:bg-slate-900/70 backdrop-blur border-white/20' : undefined}>
@@ -191,6 +201,10 @@ export function FuelingTrainingProgressCard({
               <Metric label="Bäst tålt" value={formatGramHour(summary?.bestToleratedCarbsGPerHour)} />
               <Metric label="Nästa steg" value={formatGramHour(trend.nextTarget)} />
             </div>
+
+            {recommendation && (
+              <AthleteRecommendationBox recommendation={recommendation} />
+            )}
 
             <div className="rounded-lg border bg-slate-50 p-3 dark:bg-slate-800/60 dark:border-white/10">
               <div className="flex items-start justify-between gap-3">
@@ -238,6 +252,27 @@ export function FuelingTrainingProgressCard({
         )}
       </CardContent>
     </Card>
+  )
+}
+
+function AthleteRecommendationBox({ recommendation }: { recommendation: FuelingCoachingRecommendation }) {
+  return (
+    <div className="rounded-lg border bg-blue-50/70 p-3 dark:border-blue-900/30 dark:bg-blue-900/10">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">{recommendation.labelSv}</p>
+          <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">{recommendation.actionSv}</p>
+        </div>
+        {recommendation.nextTargetGPerHour && (
+          <Badge variant="outline" className="shrink-0 bg-white/70 dark:bg-slate-950/40">
+            {recommendation.nextTargetGPerHour} g/h
+          </Badge>
+        )}
+      </div>
+      {recommendation.productSv && (
+        <p className="mt-2 text-xs text-muted-foreground">{recommendation.productSv}</p>
+      )}
+    </div>
   )
 }
 
