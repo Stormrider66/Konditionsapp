@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { canAccessClient } from '@/lib/auth-utils'
 import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import { estimateRaceFueling } from '@/lib/fueling/race-fueling'
+import { buildFuelingBuildUpPlan } from '@/lib/fueling/build-up-plan'
 import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
 import { logger } from '@/lib/logger'
 
@@ -73,15 +74,52 @@ export async function GET(request: NextRequest) {
         updatedAt: true,
         test: { select: { id: true, testDate: true, testType: true } },
         race: { select: { id: true, name: true, date: true, distance: true, targetTime: true } },
+        workoutPrescriptions: {
+          orderBy: {
+            workout: {
+              day: {
+                date: 'asc',
+              },
+            },
+          },
+          take: 24,
+          select: {
+            workout: {
+              select: {
+                logs: {
+                  orderBy: { completedAt: 'desc' },
+                  take: 1,
+                  select: {
+                    fuelingLog: {
+                      select: {
+                        actualCarbsGPerHour: true,
+                        stomachRating: true,
+                        energyRating: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     })
 
     return NextResponse.json({
       success: true,
-      plans: plans.map((plan) => ({
-        ...plan,
-        raceDayPlan: buildRaceDayFuelingPlan(plan.recommendedCarbsGPerHour, plan.durationMinutes),
-      })),
+      plans: plans.map((plan) => {
+        const { workoutPrescriptions, ...planSummary } = plan
+        return {
+          ...planSummary,
+          raceDayPlan: buildRaceDayFuelingPlan(plan.recommendedCarbsGPerHour, plan.durationMinutes),
+          fuelingProgress: buildFuelingProgressSummary({
+            raceDate: plan.raceDate,
+            recommendedCarbsGPerHour: plan.recommendedCarbsGPerHour,
+            workoutPrescriptions,
+          }),
+        }
+      }),
     })
   } catch (error) {
     logger.error('Error fetching fueling plans', {}, error as Error)
@@ -217,4 +255,55 @@ function defaultPlanName(sport: SportType, distanceKm?: number | null): string {
   } satisfies Record<SportType, string>
 
   return distanceKm ? `Tävlingsenergi ${sportLabel[sport]} ${distanceKm} km` : `Tävlingsenergi ${sportLabel[sport]}`
+}
+
+function buildFuelingProgressSummary({
+  raceDate,
+  recommendedCarbsGPerHour,
+  workoutPrescriptions,
+}: {
+  raceDate: Date | null
+  recommendedCarbsGPerHour: number | null
+  workoutPrescriptions: Array<{
+    workout: {
+      logs: Array<{
+        fuelingLog: {
+          actualCarbsGPerHour: number | null
+          stomachRating: number | null
+          energyRating: number | null
+        } | null
+      }>
+    }
+  }>
+}) {
+  const loggedFueling = workoutPrescriptions
+    .map((prescription) => prescription.workout.logs[0]?.fuelingLog ?? null)
+    .filter((log): log is NonNullable<typeof log> => Boolean(log))
+  const bestToleratedGPerHour = loggedFueling
+    .filter((log) => (log.stomachRating ?? 0) >= 4 && (log.energyRating ?? 0) >= 3)
+    .map((log) => log.actualCarbsGPerHour)
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+    .reduce<number | null>((best, value) => best == null ? value : Math.max(best, value), null)
+  const buildUpPlan = buildFuelingBuildUpPlan({
+    raceTargetGPerHour: recommendedCarbsGPerHour,
+    currentGutToleranceGPerHour: bestToleratedGPerHour,
+    weeksAvailable: raceDate ? weeksUntilDate(raceDate) : null,
+  })
+
+  return {
+    linkedWorkoutCount: workoutPrescriptions.length,
+    loggedWorkoutCount: loggedFueling.length,
+    bestToleratedGPerHour,
+    buildUpWeeks: buildUpPlan?.sessions.length ?? null,
+    nextBuildUpTargetGPerHour: buildUpPlan?.sessions[0]?.targetCarbsGPerHour ?? null,
+  }
+}
+
+function weeksUntilDate(value: Date): number | null {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const target = new Date(value)
+  target.setHours(0, 0, 0, 0)
+  const days = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  return days > 0 ? Math.ceil(days / 7) : null
 }

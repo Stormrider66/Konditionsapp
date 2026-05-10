@@ -26,6 +26,13 @@ interface RaceFuelingPlanSummary {
     gelEquivalentCount: number | null
     bottleMixCount: number | null
   } | null
+  fuelingProgress?: {
+    linkedWorkoutCount: number
+    loggedWorkoutCount: number
+    bestToleratedGPerHour: number | null
+    buildUpWeeks: number | null
+    nextBuildUpTargetGPerHour: number | null
+  } | null
 }
 
 interface RaceFuelingPlanListProps {
@@ -64,7 +71,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
       }
     }
 
-    loadPlans()
+    void loadPlans()
     return () => controller.abort()
   }, [clientId, showArchived])
 
@@ -199,6 +206,8 @@ function PlanGrid({
               <MiniMetric label="Gel" value={plan.raceDayPlan?.gelEquivalentCount ? `${plan.raceDayPlan.gelEquivalentCount} st` : '-'} />
             </div>
 
+            <FuelingProgressStrip progress={plan.fuelingProgress} />
+
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" className="flex-1">
                 <Link href={`${detailBasePath}/${plan.id}`}>
@@ -232,6 +241,33 @@ function PlanGrid({
           </CardContent>
         </Card>
       ))}
+    </div>
+  )
+}
+
+function FuelingProgressStrip({ progress }: { progress?: RaceFuelingPlanSummary['fuelingProgress'] }) {
+  if (!progress) return null
+
+  const isSynced = progress.linkedWorkoutCount > 0
+  return (
+    <div className="rounded-md border bg-blue-50/70 p-3 text-xs dark:border-blue-900/30 dark:bg-blue-900/10">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold text-slate-900 dark:text-white">
+            {isSynced ? `${progress.linkedWorkoutCount} pass kopplade` : 'Redo att synka'}
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            {progress.buildUpWeeks ? `${progress.buildUpWeeks} veckors magträning` : 'Skapa progression från planmålet'}
+          </p>
+        </div>
+        <Badge variant="outline" className="bg-white/70 text-[10px] dark:bg-slate-950/40">
+          {progress.loggedWorkoutCount} loggade
+        </Badge>
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <MiniMetric label="Nästa mål" value={formatGramHour(progress.nextBuildUpTargetGPerHour)} />
+        <MiniMetric label="Bäst tålt" value={formatGramHour(progress.bestToleratedGPerHour)} />
+      </div>
     </div>
   )
 }
