@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import type { Test, TestStage, TestType } from '@/types'
 import { estimateRaceFueling } from '@/lib/fueling/race-fueling'
+import { buildFuelingBuildUpPlan } from '@/lib/fueling/build-up-plan'
 import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
 import type { RaceFuelingEstimate } from '@/lib/fueling/types'
 
@@ -77,6 +78,11 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
   const selectedDistance = resolveRaceTarget(selectedDistanceOption, customDistanceKm, customDurationMinutes)
   const selectedStage = usableStages.find((stage) => stage.sequence === selectedStageSequence) ?? usableStages[0]
   const raceDayPlan = buildRaceDayFuelingPlan(estimate.recommendedCarbsPerHour, estimate.estimatedDurationMinutes)
+  const buildUpPlan = buildFuelingBuildUpPlan({
+    raceTargetGPerHour: estimate.recommendedCarbsPerHour,
+    currentGutToleranceGPerHour: parsePositiveNumber(gutTolerance),
+    weeksAvailable: raceDate ? weeksUntilRace(raceDate) : null,
+  })
 
   async function savePlan() {
     if (!selectedStage || !selectedDistance) return
@@ -261,6 +267,33 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
         </div>
       )}
 
+      {buildUpPlan && (
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
+          <div className="flex flex-col gap-1 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="font-medium">Magträning fram till loppet</p>
+              <p className="mt-1 text-blue-900">
+                Bygg från {buildUpPlan.startCarbsGPerHour} till {buildUpPlan.raceTargetGPerHour} g/h med ett tävlingslikt pass per vecka.
+              </p>
+            </div>
+            <span className="w-fit rounded-full bg-white px-2 py-1 text-xs font-medium text-blue-700">
+              {buildUpPlan.sessions.length} veckor
+            </span>
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+            {buildUpPlan.sessions.slice(0, 6).map((session) => (
+              <div key={session.week} className="rounded-md border border-blue-100 bg-white/70 p-3">
+                <p className="text-xs font-medium text-blue-700">Vecka {session.week}</p>
+                <p className="mt-1 text-lg font-semibold text-gray-900">{session.targetCarbsGPerHour} g/h</p>
+                <p className="text-xs font-medium text-gray-700">{session.focusSv}</p>
+                <p className="mt-1 text-xs text-gray-600">{session.noteSv}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-100">
@@ -373,4 +406,14 @@ function formatRaceTargetLabel(option: RaceTargetOption): string {
   ].filter(Boolean)
 
   return parts.length > 0 ? parts.join(' / ') : option.label
+}
+
+function weeksUntilRace(value: string): number | null {
+  const raceDate = new Date(`${value}T12:00:00`)
+  if (Number.isNaN(raceDate.getTime())) return null
+
+  const today = new Date()
+  today.setHours(12, 0, 0, 0)
+  const days = Math.ceil((raceDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  return days > 0 ? Math.ceil(days / 7) : null
 }
