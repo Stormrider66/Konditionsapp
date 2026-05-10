@@ -80,6 +80,12 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
   const [appliedCount, setAppliedCount] = useState<number | null>(null)
   const [editableNotes, setEditableNotes] = useState('')
   const [notesState, setNotesState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [gelCount, setGelCount] = useState('')
+  const [gelCarbs, setGelCarbs] = useState('25')
+  const [bottleCount, setBottleCount] = useState('')
+  const [bottleCarbs, setBottleCarbs] = useState('40')
+  const [chewCount, setChewCount] = useState('')
+  const [chewCarbs, setChewCarbs] = useState('20')
 
   const loadPlan = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
@@ -180,6 +186,15 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
     ? 'Ex: Öka från 70 till 85 g/h över tre långpass. Följ mage/energi efter varje pass...'
     : 'Ex: Maurten gel vid 20, 60 och 100 min. Sportdryck i flaska 1 och 2...'
   const buildUp = buildFuelingBuildUp(plan.workoutPrescriptions, plan.recommendedCarbsGPerHour)
+  const productPlan = buildProductPlan({
+    targetCarbs: raceDayPlan?.totalCarbs ?? plan.recommendedCarbsTotalG,
+    gelCount,
+    gelCarbs,
+    bottleCount,
+    bottleCarbs,
+    chewCount,
+    chewCarbs,
+  })
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6 print:max-w-none print:px-0">
@@ -348,6 +363,85 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
 
       <Card className="print:break-inside-avoid">
         <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <PackageCheck className="h-4 w-4 text-amber-600" />
+            Produktplan
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <ProductInput
+              label="Gel"
+              count={gelCount}
+              carbs={gelCarbs}
+              suggestedCount={raceDayPlan?.gelEquivalentCount ?? null}
+              onCountChange={setGelCount}
+              onCarbsChange={setGelCarbs}
+            />
+            <ProductInput
+              label="Flaskor sportdryck"
+              count={bottleCount}
+              carbs={bottleCarbs}
+              suggestedCount={raceDayPlan?.bottleMixCount ?? null}
+              onCountChange={setBottleCount}
+              onCarbsChange={setBottleCarbs}
+            />
+            <ProductInput
+              label="Chews / bars"
+              count={chewCount}
+              carbs={chewCarbs}
+              suggestedCount={null}
+              onCountChange={setChewCount}
+              onCarbsChange={setChewCarbs}
+            />
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-4">
+            <CompactMetric label="Planmål" value={productPlan.targetCarbs ? `${productPlan.targetCarbs} g` : '-'} />
+            <CompactMetric label="Packat" value={`${productPlan.totalCarbs} g`} />
+            <CompactMetric label="Skillnad" value={formatSignedGrams(productPlan.difference)} />
+            <CompactMetric label="Säkerhetsmarginal" value={productPlan.marginLabel} />
+          </div>
+
+          <div className="rounded-lg border bg-amber-50/70 p-3 text-sm text-amber-950 dark:bg-amber-900/10 dark:border-amber-900/30 dark:text-amber-100">
+            <p className="font-medium">Förslag</p>
+            <p className="mt-1">{productPlan.feedback}</p>
+            {productPlan.note.length > 0 && (
+              <p className="mt-2 text-xs opacity-80">{productPlan.note}</p>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2 print:hidden">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setGelCount(raceDayPlan?.gelEquivalentCount ? String(raceDayPlan.gelEquivalentCount) : '')
+                setBottleCount(raceDayPlan?.bottleMixCount ? String(raceDayPlan.bottleMixCount) : '')
+                setChewCount('')
+              }}
+            >
+              Använd standardförslag
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const nextNote = formatProductPlanNote(productPlan)
+                setEditableNotes((current) => current ? `${current}\n\n${nextNote}` : nextNote)
+                setNotesState('idle')
+              }}
+            >
+              Lägg i anteckning
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="print:break-inside-avoid">
+        <CardHeader>
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2 text-base">
@@ -417,6 +511,82 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
 
 type WorkoutPrescription = FuelingPlanDetail['workoutPrescriptions'][number]
 
+interface ProductPlanInput {
+  targetCarbs: number | null | undefined
+  gelCount: string
+  gelCarbs: string
+  bottleCount: string
+  bottleCarbs: string
+  chewCount: string
+  chewCarbs: string
+}
+
+interface ProductPlanSummary {
+  targetCarbs: number | null
+  gelCount: number
+  gelCarbs: number
+  bottleCount: number
+  bottleCarbs: number
+  chewCount: number
+  chewCarbs: number
+  totalCarbs: number
+  difference: number | null
+  marginLabel: string
+  feedback: string
+  note: string
+}
+
+function ProductInput({
+  label,
+  count,
+  carbs,
+  suggestedCount,
+  onCountChange,
+  onCarbsChange,
+}: {
+  label: string
+  count: string
+  carbs: string
+  suggestedCount: number | null
+  onCountChange: (value: string) => void
+  onCarbsChange: (value: string) => void
+}) {
+  return (
+    <div className="rounded-lg border p-3">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-medium">{label}</p>
+        {suggestedCount != null && (
+          <span className="text-[10px] text-muted-foreground">förslag {suggestedCount} st</span>
+        )}
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <label className="text-xs text-muted-foreground">
+          Antal
+          <input
+            className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            inputMode="numeric"
+            min="0"
+            type="number"
+            value={count}
+            onChange={(event) => onCountChange(event.target.value)}
+          />
+        </label>
+        <label className="text-xs text-muted-foreground">
+          g/st
+          <input
+            className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            inputMode="numeric"
+            min="0"
+            type="number"
+            value={carbs}
+            onChange={(event) => onCarbsChange(event.target.value)}
+          />
+        </label>
+      </div>
+    </div>
+  )
+}
+
 function FuelingPrescriptionRow({ prescription, raceDate }: { prescription: WorkoutPrescription; raceDate: string | null }) {
   const latestLog = prescription.workout.logs[0]?.fuelingLog ?? null
   const workoutDate = prescription.workout.day.date ? new Date(prescription.workout.day.date) : null
@@ -483,6 +653,78 @@ function CompactMetric({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-lg font-semibold tabular-nums text-slate-900 dark:text-white">{value}</p>
     </div>
   )
+}
+
+function buildProductPlan(input: ProductPlanInput): ProductPlanSummary {
+  const targetCarbs = input.targetCarbs != null ? Math.round(input.targetCarbs) : null
+  const gelCount = parseNonNegativeNumber(input.gelCount)
+  const gelCarbs = parseNonNegativeNumber(input.gelCarbs)
+  const bottleCount = parseNonNegativeNumber(input.bottleCount)
+  const bottleCarbs = parseNonNegativeNumber(input.bottleCarbs)
+  const chewCount = parseNonNegativeNumber(input.chewCount)
+  const chewCarbs = parseNonNegativeNumber(input.chewCarbs)
+  const totalCarbs = Math.round(gelCount * gelCarbs + bottleCount * bottleCarbs + chewCount * chewCarbs)
+  const difference = targetCarbs != null ? totalCarbs - targetCarbs : null
+  const marginLabel = difference == null
+    ? '-'
+    : difference >= 20
+      ? 'God'
+      : difference >= 0
+        ? 'Tight'
+        : 'Saknas'
+
+  return {
+    targetCarbs,
+    gelCount,
+    gelCarbs,
+    bottleCount,
+    bottleCarbs,
+    chewCount,
+    chewCarbs,
+    totalCarbs,
+    difference,
+    marginLabel,
+    feedback: buildProductPlanFeedback(targetCarbs, totalCarbs, difference),
+    note: buildProductPlanShortNote(gelCount, gelCarbs, bottleCount, bottleCarbs, chewCount, chewCarbs),
+  }
+}
+
+function buildProductPlanFeedback(targetCarbs: number | null, totalCarbs: number, difference: number | null): string {
+  if (targetCarbs == null) return 'Sätt tävlingstid och rekommenderat intag för att jämföra produkterna mot planmålet.'
+  if (totalCarbs === 0) return `Planmålet är ${targetCarbs} g. Lägg in produkterna atleten faktiskt tänker använda.`
+  if (difference == null) return 'Produktplanen är ifylld.'
+  if (difference < 0) return `Det saknas cirka ${Math.abs(difference)} g kolhydrater jämfört med planmålet. Lägg till extra gel, sportdryck eller langning.`
+  if (difference < 20) return 'Produktplanen matchar planmålet, men marginalen är liten. Kontrollera stationer och reservprodukt.'
+  return 'Produktplanen täcker planmålet med marginal. Bestäm vilka produkter som är reserv och vilka som ska tas enligt timing.'
+}
+
+function buildProductPlanShortNote(
+  gelCount: number,
+  gelCarbs: number,
+  bottleCount: number,
+  bottleCarbs: number,
+  chewCount: number,
+  chewCarbs: number
+): string {
+  return [
+    gelCount > 0 ? `${gelCount} gel à ${gelCarbs} g` : null,
+    bottleCount > 0 ? `${bottleCount} flaskor sportdryck à ${bottleCarbs} g` : null,
+    chewCount > 0 ? `${chewCount} chews/bars à ${chewCarbs} g` : null,
+  ].filter(Boolean).join(', ')
+}
+
+function formatProductPlanNote(plan: ProductPlanSummary): string {
+  return [
+    'Produktplan:',
+    plan.note || 'Produkter ej valda ännu.',
+    `Packat: ${plan.totalCarbs} g kolhydrater${plan.targetCarbs ? ` mot planmål ${plan.targetCarbs} g` : ''}.`,
+    plan.difference != null ? `Skillnad: ${formatSignedGrams(plan.difference)}.` : null,
+  ].filter(Boolean).join('\n')
+}
+
+function parseNonNegativeNumber(value: string): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
 }
 
 function buildFuelingBuildUp(
@@ -588,6 +830,12 @@ function formatGramHour(value: number | null): string {
 
 function formatRating(value: number | null | undefined): string {
   return value == null ? '-' : `${value}/5`
+}
+
+function formatSignedGrams(value: number | null): string {
+  if (value == null) return '-'
+  if (value > 0) return `+${value} g`
+  return `${value} g`
 }
 
 function formatDuration(minutes: number): string {
