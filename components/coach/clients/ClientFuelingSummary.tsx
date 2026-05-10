@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -65,6 +66,7 @@ interface FuelingSummaryResponse {
 
 interface ClientFuelingSummaryProps {
   clientId: string
+  plansHref?: string
 }
 
 const STATUS_META: Record<FuelingStatus, {
@@ -105,7 +107,7 @@ const STATUS_META: Record<FuelingStatus, {
   },
 }
 
-export function ClientFuelingSummary({ clientId }: ClientFuelingSummaryProps) {
+export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSummaryProps) {
   const [data, setData] = useState<FuelingSummaryResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -214,6 +216,13 @@ export function ClientFuelingSummary({ clientId }: ClientFuelingSummaryProps) {
             </Badge>
           )}
         </div>
+        {plansHref && (
+          <Button asChild variant="outline" size="sm" className="mt-3 w-full">
+            <Link href={plansHref}>
+              Alla raceplaner
+            </Link>
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading ? (

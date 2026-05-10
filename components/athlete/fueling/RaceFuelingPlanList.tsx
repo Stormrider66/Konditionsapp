@@ -31,14 +31,16 @@ interface RaceFuelingPlanSummary {
 interface RaceFuelingPlanListProps {
   clientId?: string
   basePath?: string
+  detailBasePath?: string
 }
 
-export function RaceFuelingPlanList({ clientId, basePath = '' }: RaceFuelingPlanListProps) {
+export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }: RaceFuelingPlanListProps) {
   const [plans, setPlans] = useState<RaceFuelingPlanSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const resolvedDetailBasePath = detailBasePath ?? `${basePath}/athlete/fueling`
 
   useEffect(() => {
     const controller = new AbortController()
@@ -119,7 +121,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '' }: RaceFuelingPlan
         <>
           <PlanGrid
             plans={activePlans}
-            basePath={basePath}
+            detailBasePath={resolvedDetailBasePath}
             updatingId={updatingId}
             onArchive={(id) => void updateStatus(id, 'ARCHIVED')}
           />
@@ -129,7 +131,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '' }: RaceFuelingPlan
               <h2 className="text-lg font-semibold">Arkiv</h2>
               <PlanGrid
                 plans={archivedPlans}
-                basePath={basePath}
+                detailBasePath={resolvedDetailBasePath}
                 updatingId={updatingId}
                 onRestore={(id) => void updateStatus(id, 'DRAFT')}
                 emptyText="Inga arkiverade planer ännu."
@@ -144,14 +146,14 @@ export function RaceFuelingPlanList({ clientId, basePath = '' }: RaceFuelingPlan
 
 function PlanGrid({
   plans,
-  basePath,
+  detailBasePath,
   updatingId,
   onArchive,
   onRestore,
   emptyText = 'Ingen raceplan sparad ännu. Skapa en från en testrapport när målet är satt.',
 }: {
   plans: RaceFuelingPlanSummary[]
-  basePath: string
+  detailBasePath: string
   updatingId: string | null
   onArchive?: (id: string) => void
   onRestore?: (id: string) => void
@@ -199,7 +201,7 @@ function PlanGrid({
 
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" className="flex-1">
-                <Link href={`${basePath}/athlete/fueling/${plan.id}`}>
+                <Link href={`${detailBasePath}/${plan.id}`}>
                   <Eye className="h-4 w-4" />
                   Öppna
                 </Link>

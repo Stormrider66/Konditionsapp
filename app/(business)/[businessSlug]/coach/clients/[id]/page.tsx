@@ -565,7 +565,7 @@ export default function BusinessClientDetailPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <ClientLoadSummary clientId={id} />
         <ReadinessDashboard clientId={id} />
-        <ClientFuelingSummary clientId={id} />
+        <ClientFuelingSummary clientId={id} plansHref={`${basePath}/clients/${id}/fueling`} />
       </div>
 
       <PendingPRFeedSingle clientId={id} />
