@@ -18,6 +18,7 @@ import {
   type RaceFuelingProductPlan,
 } from '@/lib/fueling/product-plan'
 import { buildFuelingCoachingRecommendation } from '@/lib/fueling/coaching-recommendation'
+import { buildFuelingBuildUpPlan, type FuelingBuildUpPlan } from '@/lib/fueling/build-up-plan'
 import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
 
 interface RaceDayPlan {
@@ -274,6 +275,11 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
     ? 'Ex: Öka från 70 till 85 g/h över tre långpass. Följ mage/energi efter varje pass...'
     : 'Ex: Maurten gel vid 20, 60 och 100 min. Sportdryck i flaska 1 och 2...'
   const buildUp = buildFuelingBuildUp(plan.workoutPrescriptions, plan.recommendedCarbsGPerHour)
+  const plannedBuildUp = buildFuelingBuildUpPlan({
+    raceTargetGPerHour: plan.recommendedCarbsGPerHour,
+    currentGutToleranceGPerHour: estimateCurrentGutTolerance(plan.workoutPrescriptions),
+    weeksAvailable: plan.raceDate ? weeksUntilDate(plan.raceDate) : null,
+  })
   const buildUpRecommendation = buildFuelingCoachingRecommendation({
     logs: plan.workoutPrescriptions
       .map((prescription) => {
@@ -723,67 +729,73 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
           </div>
         </CardHeader>
         <CardContent>
-          {plan.workoutPrescriptions.length > 0 ? (
-            <div className="space-y-5">
-              <div className="grid gap-3 md:grid-cols-4">
-                <CompactMetric label="Första mål" value={formatGramHour(buildUp.firstTarget)} />
-                <CompactMetric label="Högsta mål" value={formatGramHour(buildUp.peakTarget)} />
-                <CompactMetric label="Racemål" value={formatGramHour(plan.recommendedCarbsGPerHour)} />
-                <CompactMetric label="Loggat" value={`${buildUp.loggedCount}/${buildUp.totalCount}`} />
-              </div>
+          <div className="space-y-5">
+            {plannedBuildUp && (
+              <FuelingBuildUpPreview plan={plannedBuildUp} hasLinkedWorkouts={plan.workoutPrescriptions.length > 0} />
+            )}
 
-              <div className="rounded-lg border bg-blue-50/70 p-4 dark:bg-blue-900/10 dark:border-blue-900/30">
-                <div className="flex items-center gap-2 text-sm font-medium text-blue-900 dark:text-blue-200">
-                  <TrendingUp className="h-4 w-4" />
-                  Progression
+            {plan.workoutPrescriptions.length > 0 ? (
+              <div className="space-y-5">
+                <div className="grid gap-3 md:grid-cols-4">
+                  <CompactMetric label="Första mål" value={formatGramHour(buildUp.firstTarget)} />
+                  <CompactMetric label="Högsta mål" value={formatGramHour(buildUp.peakTarget)} />
+                  <CompactMetric label="Racemål" value={formatGramHour(plan.recommendedCarbsGPerHour)} />
+                  <CompactMetric label="Loggat" value={`${buildUp.loggedCount}/${buildUp.totalCount}`} />
                 </div>
-                <div className="mt-3 h-2 rounded-full bg-white dark:bg-slate-800">
-                  <div
-                    className="h-2 rounded-full bg-blue-600"
-                    style={{ width: `${buildUp.progressPercent}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Högsta kommande passmål är {formatGramHour(buildUp.peakTarget)} jämfört med raceplanens {formatGramHour(plan.recommendedCarbsGPerHour)}.
-                </p>
-              </div>
 
-              <div className="rounded-lg border bg-emerald-50/70 p-4 dark:border-emerald-900/30 dark:bg-emerald-900/10">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{buildUpRecommendation.labelSv}</p>
-                    <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">{buildUpRecommendation.actionSv}</p>
+                <div className="rounded-lg border bg-blue-50/70 p-4 dark:bg-blue-900/10 dark:border-blue-900/30">
+                  <div className="flex items-center gap-2 text-sm font-medium text-blue-900 dark:text-blue-200">
+                    <TrendingUp className="h-4 w-4" />
+                    Progression
                   </div>
-                  {buildUpRecommendation.nextTargetGPerHour && (
-                    <Badge variant="outline" className="w-fit bg-white/70 dark:bg-slate-950/40">
-                      {buildUpRecommendation.nextTargetGPerHour} g/h
-                    </Badge>
+                  <div className="mt-3 h-2 rounded-full bg-white dark:bg-slate-800">
+                    <div
+                      className="h-2 rounded-full bg-blue-600"
+                      style={{ width: `${buildUp.progressPercent}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Högsta kommande passmål är {formatGramHour(buildUp.peakTarget)} jämfört med raceplanens {formatGramHour(plan.recommendedCarbsGPerHour)}.
+                  </p>
+                </div>
+
+                <div className="rounded-lg border bg-emerald-50/70 p-4 dark:border-emerald-900/30 dark:bg-emerald-900/10">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">{buildUpRecommendation.labelSv}</p>
+                      <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">{buildUpRecommendation.actionSv}</p>
+                    </div>
+                    {buildUpRecommendation.nextTargetGPerHour && (
+                      <Badge variant="outline" className="w-fit bg-white/70 dark:bg-slate-950/40">
+                        {buildUpRecommendation.nextTargetGPerHour} g/h
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">{buildUpRecommendation.reasonSv}</p>
+                  {buildUpRecommendation.productSv && (
+                    <p className="mt-1 text-xs text-muted-foreground">{buildUpRecommendation.productSv}</p>
                   )}
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">{buildUpRecommendation.reasonSv}</p>
-                {buildUpRecommendation.productSv && (
-                  <p className="mt-1 text-xs text-muted-foreground">{buildUpRecommendation.productSv}</p>
-                )}
-              </div>
 
-              <div className="space-y-4">
-                {buildUp.groups.map((group) => (
-                  <div key={group.label} className="space-y-2">
-                    <h2 className="text-sm font-semibold">{group.label}</h2>
-                    <div className="space-y-2">
-                      {group.items.map((prescription) => (
-                        <FuelingPrescriptionRow key={prescription.id} prescription={prescription} raceDate={plan.raceDate} />
-                      ))}
+                <div className="space-y-4">
+                  {buildUp.groups.map((group) => (
+                    <div key={group.label} className="space-y-2">
+                      <h2 className="text-sm font-semibold">{group.label}</h2>
+                      <div className="space-y-2">
+                        {group.items.map((prescription) => (
+                          <FuelingPrescriptionRow key={prescription.id} prescription={prescription} raceDate={plan.raceDate} />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Inga kommande pass är kopplade ännu. Använd knappen ovan för att uppdatera aktiva program.
-            </p>
-          )}
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Inga kommande pass är kopplade ännu. Använd knappen ovan för att uppdatera aktiva program.
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -920,6 +932,50 @@ function FuelingPrescriptionRow({ prescription, raceDate }: { prescription: Work
             </p>
           )}
         </div>
+      )}
+    </div>
+  )
+}
+
+function FuelingBuildUpPreview({
+  plan,
+  hasLinkedWorkouts,
+}: {
+  plan: FuelingBuildUpPlan
+  hasLinkedWorkouts: boolean
+}) {
+  return (
+    <div className="rounded-lg border bg-blue-50/70 p-4 dark:border-blue-900/30 dark:bg-blue-900/10">
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">Planerad magträning</p>
+          <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
+            Bygg från {plan.startCarbsGPerHour} till {plan.raceTargetGPerHour} g/h över {plan.sessions.length} tävlingslika långpass.
+          </p>
+        </div>
+        <Badge variant="outline" className="w-fit bg-white/70 dark:bg-slate-950/40">
+          {hasLinkedWorkouts ? 'Synkad med program' : 'Redo att synka'}
+        </Badge>
+      </div>
+
+      <div className="mt-3 grid gap-2 md:grid-cols-3">
+        {plan.sessions.slice(0, 6).map((session) => (
+          <div key={session.week} className="rounded-md border bg-white/70 p-3 dark:bg-slate-950/30">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-blue-700 dark:text-blue-300">
+              Vecka {session.week}
+            </p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-slate-900 dark:text-white">
+              {session.targetCarbsGPerHour} g/h
+            </p>
+            <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{session.focusSv}</p>
+          </div>
+        ))}
+      </div>
+
+      {plan.sessions.length > 6 && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Visar de första 6 stegen. Resterande steg följer samma progression mot racemålet.
+        </p>
       )}
     </div>
   )
@@ -1077,6 +1133,19 @@ function buildFuelingBuildUp(
   }
 }
 
+function estimateCurrentGutTolerance(prescriptions: WorkoutPrescription[]): number | null {
+  const toleratedValues = prescriptions
+    .flatMap((prescription) => prescription.workout.logs)
+    .map((log) => log.fuelingLog)
+    .filter((log): log is NonNullable<typeof log> => Boolean(log))
+    .filter((log) => (log.stomachRating ?? 0) >= 4 && (log.energyRating ?? 0) >= 3)
+    .map((log) => log.actualCarbsGPerHour)
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+
+  if (toleratedValues.length === 0) return null
+  return Math.max(...toleratedValues)
+}
+
 function groupPrescriptionsByMonth(prescriptions: WorkoutPrescription[]): Array<{ label: string; items: WorkoutPrescription[] }> {
   const groups = new Map<string, WorkoutPrescription[]>()
 
@@ -1089,6 +1158,14 @@ function groupPrescriptionsByMonth(prescriptions: WorkoutPrescription[]): Array<
   }
 
   return Array.from(groups.entries()).map(([label, items]) => ({ label, items }))
+}
+
+function weeksUntilDate(value: string): number | null {
+  const targetDate = new Date(value)
+  if (Number.isNaN(targetDate.getTime())) return null
+
+  const days = differenceInDays(targetDate, new Date())
+  return days > 0 ? Math.ceil(days / 7) : null
 }
 
 function differenceInDays(later: Date, earlier: Date): number {
