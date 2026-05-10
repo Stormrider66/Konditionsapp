@@ -623,7 +623,7 @@ export function ReportTemplate({
             </section>
           )}
 
-          <RaceFuelingEstimateSection test={test} weightKg={client.weight} />
+          <RaceFuelingEstimateSection clientId={client.id} test={test} weightKg={client.weight} />
         </>
       )}
 

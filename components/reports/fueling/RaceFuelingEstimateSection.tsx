@@ -6,6 +6,7 @@ import { estimateRaceFueling } from '@/lib/fueling/race-fueling'
 import type { RaceFuelingEstimate } from '@/lib/fueling/types'
 
 interface RaceFuelingEstimateSectionProps {
+  clientId: string
   test: Test
   weightKg?: number | null
 }
@@ -28,11 +29,12 @@ const DISTANCE_OPTIONS: Record<TestType, Array<{ label: string; distanceKm?: num
   ],
 }
 
-export function RaceFuelingEstimateSection({ test, weightKg }: RaceFuelingEstimateSectionProps) {
+export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFuelingEstimateSectionProps) {
   const usableStages = useMemo(() => getUsableStages(test), [test])
   const options = DISTANCE_OPTIONS[test.testType] ?? DISTANCE_OPTIONS.RUNNING
   const [selectedDistanceIndex, setSelectedDistanceIndex] = useState(options.length - 1)
   const [selectedStageSequence, setSelectedStageSequence] = useState<number | null>(usableStages[0]?.sequence ?? null)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   const estimate = useMemo<RaceFuelingEstimate | null>(() => {
     const selectedStage = usableStages.find((stage) => stage.sequence === selectedStageSequence) ?? usableStages[0]
@@ -55,6 +57,31 @@ export function RaceFuelingEstimateSection({ test, weightKg }: RaceFuelingEstima
 
   if (!estimate || usableStages.length === 0) return null
 
+  const selectedDistance = options[selectedDistanceIndex] ?? options[0]
+  const selectedStage = usableStages.find((stage) => stage.sequence === selectedStageSequence) ?? usableStages[0]
+
+  async function savePlan() {
+    if (!selectedStage || !selectedDistance) return
+    setSaveStatus('saving')
+    const response = await fetch('/api/fueling/plans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientId,
+        testId: test.id,
+        sport: test.testType,
+        name: `Tävlingsenergi ${selectedDistance.label}`,
+        distanceKm: selectedDistance.distanceKm,
+        durationMinutes: selectedDistance.durationMinutes,
+        targetSpeedKmh: selectedStage.speed,
+        targetPowerWatts: selectedStage.power,
+        targetPaceMinKm: selectedStage.pace,
+      }),
+    })
+
+    setSaveStatus(response.ok ? 'saved' : 'error')
+  }
+
   return (
     <section className="mt-6 border-b pb-6 print:break-inside-avoid" data-pdf-section>
       <div className="flex items-start justify-between gap-4 mb-4">
@@ -64,9 +91,22 @@ export function RaceFuelingEstimateSection({ test, weightKg }: RaceFuelingEstima
             En uppskattning av kolhydratbehov vid tävlingslik intensitet baserat på metabol testdata.
           </p>
         </div>
-        <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-          Säkerhet: {confidenceLabel(estimate.confidence)}
-        </span>
+        <div className="flex flex-col items-end gap-2">
+          <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+            Säkerhet: {confidenceLabel(estimate.confidence)}
+          </span>
+          <button
+            type="button"
+            onClick={() => void savePlan()}
+            disabled={saveStatus === 'saving'}
+            className="print:hidden text-xs px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60"
+          >
+            {saveStatus === 'saving' ? 'Sparar...' : saveStatus === 'saved' ? 'Sparad' : 'Skapa tävlingsplan'}
+          </button>
+          {saveStatus === 'error' && (
+            <span className="print:hidden text-xs text-red-600">Kunde inte spara planen.</span>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 print:hidden">

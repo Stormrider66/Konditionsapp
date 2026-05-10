@@ -135,6 +135,16 @@ const ATHLETE_WIDGETS: WidgetDefinition[] = [
     defaultOrder: 80,
   },
   {
+    key: 'race-fueling',
+    name: 'Tävlingsenergi',
+    description: 'Kolhydratsplan för tävling och långpass',
+    category: 'nutrition',
+    audience: ['athlete'],
+    defaultVisible: true,
+    defaultOrder: 85,
+    sports: ['RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'TRIATHLON', 'HYROX'],
+  },
+  {
     key: 'post-workout-check',
     name: 'Efterträningskoll',
     description: 'Snabb återkoppling efter genomfört pass',

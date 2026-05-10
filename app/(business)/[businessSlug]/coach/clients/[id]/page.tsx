@@ -30,6 +30,7 @@ import { ClientLoadSummary } from '@/components/coach/clients/ClientLoadSummary'
 import { RecentTestsCard } from '@/components/coach/clients/RecentTestsCard'
 import { SportProfileEditor } from '@/components/coach/clients/SportProfileEditor'
 import { ReadinessDashboard } from '@/components/athlete/ReadinessDashboard'
+import { RaceFuelingCard } from '@/components/athlete/fueling/RaceFuelingCard'
 import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, ExternalLink, Loader2, UserPlus, ClipboardList } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
@@ -496,6 +497,10 @@ export default function BusinessClientDetailPage() {
           clientId={id}
           reportType="training-summary"
         />
+      </div>
+
+      <div className="mb-6">
+        <RaceFuelingCard clientId={id} />
       </div>
 
       {!sportProfileLoading && sportProfile?.primarySport === 'RUNNING' && (
