@@ -124,6 +124,7 @@ model TrainingProgram {
   test   Test?  @relation(fields: [testId], references: [id], onDelete: SetNull)
 
   weeks TrainingWeek[]
+  raceFuelingPlans RaceFuelingPlan[]
 
   // Data Moat System relations
   coachDecisions CoachDecision[] @relation("ProgramDecisions")
@@ -219,6 +220,7 @@ model Workout {
   day      TrainingDay      @relation(fields: [dayId], references: [id], onDelete: Cascade)
   segments WorkoutSegment[]
   logs     WorkoutLog[]
+  fuelingPrescription WorkoutFuelingPrescription?
   messages Message[]
 
   // Data Moat System relations
@@ -499,6 +501,7 @@ model WorkoutLog {
   workout Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   athlete User     @relation(fields: [athleteId], references: [id])
   setLogs SetLog[] // Per-set logging data for strength exercises
+  fuelingLog WorkoutFuelingLog?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1124,12 +1127,111 @@ model Race {
 
   calendar  RaceCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
   client    Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  fuelingPlans RaceFuelingPlan[]
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
   @@index([clientId, date])
   @@index([classification, date])
   @@index([calendarId])
+}
+
+// ============================================
+// RACE FUELING / TÄVLINGSENERGI
+// ============================================
+
+model RaceFuelingPlan {
+  id          String @id @default(uuid())
+  clientId    String
+  createdById String?
+  testId      String?
+  raceId      String?
+  programId   String?
+
+  sport SportType
+  name  String?
+
+  // Race target
+  distanceKm       Float?
+  durationMinutes  Float?
+  targetSpeedKmh   Float?
+  targetPowerWatts Float?
+  targetPaceMinKm  Float?
+  raceDate         DateTime?
+
+  // Calculated demand and practical recommendation
+  estimatedCarbDemandGPerHour Float?
+  estimatedCarbDemandTotalG   Float?
+  recommendedCarbsGPerHour    Float?
+  recommendedCarbsTotalG      Float?
+  confidence                  String @default("LOW")
+
+  // Structured scenarios and assumptions for Swedish UI/report rendering
+  scenarios   Json?
+  assumptions Json?
+  warnings    Json?
+
+  // Coach/athlete workflow
+  status        String @default("DRAFT") // DRAFT, APPROVED, ARCHIVED
+  coachNotes    String? @db.Text
+  athleteNotes  String? @db.Text
+  approvedAt    DateTime?
+
+  client    Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy User?            @relation("RaceFuelingPlanCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  test      Test?            @relation(fields: [testId], references: [id], onDelete: SetNull)
+  race      Race?            @relation(fields: [raceId], references: [id], onDelete: SetNull)
+  program   TrainingProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  workoutPrescriptions WorkoutFuelingPrescription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, raceDate])
+  @@index([clientId, status])
+  @@index([testId])
+  @@index([raceId])
+  @@index([programId])
+}
+
+model WorkoutFuelingPrescription {
+  id        String @id @default(uuid())
+  workoutId String @unique
+  planId    String?
+
+  targetCarbsGPerHour Float
+  targetCarbsTotalG   Float?
+  hydrationMl         Int?
+  sodiumMg            Int?
+  productPlan         Json?
+  instructionsSv      String? @db.Text
+
+  workout Workout           @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  plan    RaceFuelingPlan?  @relation(fields: [planId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+}
+
+model WorkoutFuelingLog {
+  id           String @id @default(uuid())
+  workoutLogId String @unique
+
+  actualCarbsGPerHour Float?
+  actualCarbsTotalG   Float?
+  hydrationMl         Int?
+  sodiumMg            Int?
+  productsUsed        Json?
+  stomachRating       Int? // 1-5, higher is better tolerance
+  energyRating        Int? // 1-5
+  notes               String? @db.Text
+
+  workoutLog WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ============================================

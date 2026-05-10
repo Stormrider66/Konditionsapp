@@ -177,6 +177,7 @@ model Test {
   testStages       TestStage[]
   report           Report?
   trainingPrograms TrainingProgram[]
+  raceFuelingPlans RaceFuelingPlan[]
 
   // Training Engine relationships
   thresholdCalculation ThresholdCalculation?

@@ -191,6 +191,7 @@ model User {
 
   // New relations for training programs
   coachPrograms    TrainingProgram[] @relation("CoachPrograms")
+  createdRaceFuelingPlans RaceFuelingPlan[] @relation("RaceFuelingPlanCreator")
   exercises        Exercise[]
   workoutLogs      WorkoutLog[]
   sentMessages     Message[]         @relation("SentMessages")
@@ -489,6 +490,7 @@ model Client {
   selfReportedLactates  SelfReportedLactate[]
   raceCalendars         RaceCalendar[]
   races                 Race[]
+  raceFuelingPlans      RaceFuelingPlan[]
   injuryAssessments     InjuryAssessment[]
   crossTrainingSessions CrossTrainingSession[]
   strengthSessions      StrengthTrainingSession[]

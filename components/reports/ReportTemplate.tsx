@@ -12,6 +12,7 @@ import { StrengthsWeaknesses } from './StrengthsWeaknesses'
 import { PaceZones } from './PaceZones'
 import { TrainingFocus } from './TrainingFocus'
 import { SubstrateUtilizationChart } from '../charts/SubstrateUtilizationChart'
+import { RaceFuelingEstimateSection } from './fueling/RaceFuelingEstimateSection'
 import { generateFullInterpretation } from '@/lib/calculations/interpretations'
 import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext'
 
@@ -621,6 +622,8 @@ export function ReportTemplate({
               </div>
             </section>
           )}
+
+          <RaceFuelingEstimateSection test={test} weightKg={client.weight} />
         </>
       )}
 
