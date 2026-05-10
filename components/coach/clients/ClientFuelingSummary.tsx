@@ -54,8 +54,10 @@ interface FuelingLogSummary {
   completedAt: string
   plannedCarbsGPerHour: number | null
   actualCarbsGPerHour: number | null
+  actualCarbsTotalG: number | null
   stomachRating: number | null
   energyRating: number | null
+  notes: string | null
 }
 
 interface FuelingSummaryResponse {
@@ -158,6 +160,7 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
   const status = summary?.status ?? 'NO_DATA'
   const meta = STATUS_META[status]
   const StatusIcon = meta.icon
+  const trend = buildFuelingTrend(data?.recentLogs ?? [])
 
   async function savePlanAdjustments() {
     const plan = data?.latestPlan
@@ -325,30 +328,7 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
             )}
 
             {data?.recentLogs.length ? (
-              <div className="space-y-2">
-                {data.recentLogs.slice(0, 3).map((log) => (
-                  <div key={log.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border px-3 py-2 text-xs">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-900 dark:text-white">{log.workoutName}</p>
-                      <p className="text-muted-foreground">
-                        {new Date(log.completedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
-                      </p>
-                    </div>
-                    <div className="text-right tabular-nums">
-                      <p className="font-medium">{formatGramHour(log.actualCarbsGPerHour)}</p>
-                      <p className="text-muted-foreground">plan {formatGramHour(log.plannedCarbsGPerHour)}</p>
-                    </div>
-                    <div className="hidden basis-full text-muted-foreground sm:block">
-                      {buildFuelingSessionFeedback({
-                        plannedCarbsGPerHour: log.plannedCarbsGPerHour,
-                        actualCarbsGPerHour: log.actualCarbsGPerHour,
-                        stomachRating: log.stomachRating,
-                        energyRating: log.energyRating,
-                      }).labelSv}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <FuelingTrendPanel logs={data.recentLogs} trend={trend} />
             ) : (
               <p className="text-sm text-muted-foreground">
                 Ingen carb-logg ännu. Be atleten fylla i intag, mage och energi efter nästa långpass.
@@ -358,6 +338,88 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
         )}
       </CardContent>
     </Card>
+  )
+}
+
+function FuelingTrendPanel({ logs, trend }: { logs: FuelingLogSummary[]; trend: FuelingTrend }) {
+  const orderedLogs = [...logs].reverse()
+
+  return (
+    <div className="rounded-lg border p-3 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-slate-900 dark:text-white">Trend senaste passen</p>
+          <p className="text-xs text-muted-foreground">{trend.label}</p>
+        </div>
+        <Badge variant="outline" className={trend.badgeClass}>
+          {trend.badge}
+        </Badge>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <Metric label="Senast" value={formatGramHour(trend.latestActual)} />
+        <Metric label="Bäst tålt" value={formatGramHour(trend.bestTolerated)} />
+        <Metric label="Gap" value={formatGap(trend.latestGap)} />
+      </div>
+
+      <div className="space-y-2">
+        {orderedLogs.map((log) => (
+          <TrendBar key={log.id} log={log} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function TrendBar({ log }: { log: FuelingLogSummary }) {
+  const plannedWidth = getBarWidth(log.plannedCarbsGPerHour)
+  const actualWidth = getBarWidth(log.actualCarbsGPerHour)
+  const feedback = buildFuelingSessionFeedback({
+    plannedCarbsGPerHour: log.plannedCarbsGPerHour,
+    actualCarbsGPerHour: log.actualCarbsGPerHour,
+    stomachRating: log.stomachRating,
+    energyRating: log.energyRating,
+  })
+
+  return (
+    <div className="rounded-md bg-slate-50 p-2 text-xs dark:bg-slate-800/60">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-medium text-slate-900 dark:text-white">{log.workoutName}</p>
+          <p className="text-muted-foreground">
+            {new Date(log.completedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+            {log.actualCarbsTotalG ? `, ${Math.round(log.actualCarbsTotalG)} g totalt` : ''}
+          </p>
+        </div>
+        <div className="text-right tabular-nums">
+          <p className="font-medium">{formatGramHour(log.actualCarbsGPerHour)}</p>
+          <p className="text-muted-foreground">plan {formatGramHour(log.plannedCarbsGPerHour)}</p>
+        </div>
+      </div>
+
+      <div className="mt-2 space-y-1">
+        <BarLine label="Plan" width={plannedWidth} className="bg-slate-300 dark:bg-slate-600" />
+        <BarLine label="Utfört" width={actualWidth} className="bg-amber-500" />
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
+        <span>Mage {formatRating(log.stomachRating)}</span>
+        <span>Energi {formatRating(log.energyRating)}</span>
+        <span>{feedback.labelSv}</span>
+      </div>
+      {log.notes && <p className="mt-1 line-clamp-2 text-muted-foreground">{log.notes}</p>}
+    </div>
+  )
+}
+
+function BarLine({ label, width, className }: { label: string; width: number; className: string }) {
+  return (
+    <div className="grid grid-cols-[42px_1fr] items-center gap-2">
+      <span className="text-[10px] text-muted-foreground">{label}</span>
+      <div className="h-2 rounded-full bg-white dark:bg-slate-900">
+        <div className={`h-2 rounded-full ${className}`} style={{ width: `${width}%` }} />
+      </div>
+    </div>
   )
 }
 
@@ -376,4 +438,74 @@ function formatGramHour(value: number | null | undefined): string {
 
 function formatRating(value: number | null | undefined): string {
   return value == null ? '-' : `${value.toFixed(1)}/5`
+}
+
+interface FuelingTrend {
+  badge: string
+  badgeClass: string
+  label: string
+  latestActual: number | null
+  latestGap: number | null
+  bestTolerated: number | null
+}
+
+function buildFuelingTrend(logs: FuelingLogSummary[]): FuelingTrend {
+  const orderedLogs = [...logs].reverse()
+  const latest = orderedLogs[orderedLogs.length - 1]
+  const latestGap = latest?.plannedCarbsGPerHour != null && latest.actualCarbsGPerHour != null
+    ? latest.actualCarbsGPerHour - latest.plannedCarbsGPerHour
+    : null
+  const bestTolerated = Math.max(
+    0,
+    ...logs
+      .filter((log) => (log.stomachRating ?? 0) >= 4 && log.actualCarbsGPerHour != null)
+      .map((log) => log.actualCarbsGPerHour ?? 0)
+  ) || null
+  const recent = orderedLogs.slice(-3)
+  const hasLowStomach = recent.some((log) => log.stomachRating != null && log.stomachRating < 3)
+  const isCloseToPlan = latestGap != null && latestGap >= -10
+  const isStable = recent.length >= 2 && recent.every((log) => (log.stomachRating ?? 0) >= 4)
+
+  if (hasLowStomach) {
+    return {
+      badge: 'Backa',
+      badgeClass: 'bg-red-50 text-red-700 border-red-200',
+      label: 'Senaste loggarna visar magrisk. Behåll eller sänk nästa passmål.',
+      latestActual: latest?.actualCarbsGPerHour ?? null,
+      latestGap,
+      bestTolerated,
+    }
+  }
+
+  if (isStable && isCloseToPlan) {
+    return {
+      badge: 'Höj möjligt',
+      badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      label: 'Intaget ligger nära planen och magen ser stabil ut.',
+      latestActual: latest?.actualCarbsGPerHour ?? null,
+      latestGap,
+      bestTolerated,
+    }
+  }
+
+  return {
+    badge: 'Följ upp',
+    badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
+    label: 'Fortsätt samla loggar innan nästa större höjning.',
+    latestActual: latest?.actualCarbsGPerHour ?? null,
+    latestGap,
+    bestTolerated,
+  }
+}
+
+function getBarWidth(value: number | null | undefined): number {
+  if (value == null) return 0
+  return Math.max(4, Math.min(100, Math.round((value / 120) * 100)))
+}
+
+function formatGap(value: number | null): string {
+  if (value == null) return '-'
+  const rounded = Math.round(value)
+  if (rounded > 0) return `+${rounded} g/h`
+  return `${rounded} g/h`
 }

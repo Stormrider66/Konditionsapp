@@ -45,7 +45,7 @@ export async function GET(
           },
         },
         orderBy: { createdAt: 'desc' },
-        take: 4,
+        take: 8,
         select: {
           id: true,
           actualCarbsGPerHour: true,
