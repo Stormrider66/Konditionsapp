@@ -32,7 +32,9 @@ interface FuelingFeedbackSummary {
 }
 
 interface FuelingPlanSummary {
+  name: string | null
   recommendedCarbsGPerHour: number | null
+  raceDate: string | null
 }
 
 interface FuelingLogSummary {
@@ -41,8 +43,10 @@ interface FuelingLogSummary {
   completedAt: string
   plannedCarbsGPerHour: number | null
   actualCarbsGPerHour: number | null
+  actualCarbsTotalG: number | null
   stomachRating: number | null
   energyRating: number | null
+  notes: string | null
 }
 
 interface FuelingSummaryResponse {
@@ -136,6 +140,7 @@ export function FuelingTrainingProgressCard({
   const StatusIcon = meta.icon
   const target = summary?.averagePlannedCarbsGPerHour ?? data?.latestPlan?.recommendedCarbsGPerHour ?? null
   const latestLog = data?.recentLogs[0] ?? null
+  const trend = buildAthleteFuelingTrend(data?.recentLogs ?? [], target)
 
   return (
     <Card className={isGlass ? 'bg-white/80 dark:bg-slate-900/70 backdrop-blur border-white/20' : undefined}>
@@ -177,6 +182,23 @@ export function FuelingTrainingProgressCard({
               <Metric label="Mage" value={formatRating(summary?.averageStomachRating)} />
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <Metric label="Bäst tålt" value={formatGramHour(summary?.bestToleratedCarbsGPerHour)} />
+              <Metric label="Nästa steg" value={formatGramHour(trend.nextTarget)} />
+            </div>
+
+            <div className="rounded-lg border bg-slate-50 p-3 dark:bg-slate-800/60 dark:border-white/10">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">{trend.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{trend.body}</p>
+                </div>
+                <Badge variant="outline" className={trend.badgeClass}>
+                  {trend.badge}
+                </Badge>
+              </div>
+            </div>
+
             {latestLog ? (
               <div className="rounded-md border px-3 py-2 text-xs">
                 <div className="flex items-center justify-between gap-3">
@@ -189,6 +211,7 @@ export function FuelingTrainingProgressCard({
                 </div>
                 <p className="text-muted-foreground mt-1">
                   Loggat: {formatGramHour(latestLog.actualCarbsGPerHour)}
+                  {latestLog.actualCarbsTotalG ? `, ${Math.round(latestLog.actualCarbsTotalG)} g totalt` : ''}
                   {latestLog.energyRating ? `, energi ${latestLog.energyRating}/5` : ''}
                 </p>
               </div>
@@ -197,10 +220,55 @@ export function FuelingTrainingProgressCard({
                 Tips: välj samma produkter som du tänker använda på tävling och logga responsen direkt efter passet.
               </p>
             )}
+
+            {data?.recentLogs.length ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Senaste loggar</p>
+                {[...data.recentLogs].reverse().map((log) => (
+                  <FuelingLogBar key={log.id} log={log} />
+                ))}
+              </div>
+            ) : null}
           </div>
         )}
       </CardContent>
     </Card>
+  )
+}
+
+function FuelingLogBar({ log }: { log: FuelingLogSummary }) {
+  const plannedWidth = getBarWidth(log.plannedCarbsGPerHour)
+  const actualWidth = getBarWidth(log.actualCarbsGPerHour)
+
+  return (
+    <div className="rounded-md border px-3 py-2 text-xs">
+      <div className="flex items-center justify-between gap-3">
+        <p className="truncate font-medium text-slate-900 dark:text-white">{log.workoutName}</p>
+        <span className="text-muted-foreground">
+          {new Date(log.completedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+        </span>
+      </div>
+      <div className="mt-2 space-y-1">
+        <BarLine label="Plan" width={plannedWidth} className="bg-slate-300 dark:bg-slate-600" />
+        <BarLine label="Utfört" width={actualWidth} className="bg-orange-500" />
+      </div>
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
+        <span>{formatGramHour(log.actualCarbsGPerHour)}</span>
+        <span>Mage {formatRating(log.stomachRating)}</span>
+        <span>Energi {formatRating(log.energyRating)}</span>
+      </div>
+    </div>
+  )
+}
+
+function BarLine({ label, width, className }: { label: string; width: number; className: string }) {
+  return (
+    <div className="grid grid-cols-[42px_1fr] items-center gap-2">
+      <span className="text-[10px] text-muted-foreground">{label}</span>
+      <div className="h-2 rounded-full bg-white dark:bg-slate-900">
+        <div className={`h-2 rounded-full ${className}`} style={{ width: `${width}%` }} />
+      </div>
+    </div>
   )
 }
 
@@ -219,4 +287,78 @@ function formatGramHour(value: number | null | undefined): string {
 
 function formatRating(value: number | null | undefined): string {
   return value == null ? '-' : `${value.toFixed(1)}/5`
+}
+
+interface AthleteFuelingTrend {
+  title: string
+  body: string
+  badge: string
+  badgeClass: string
+  nextTarget: number | null
+}
+
+function buildAthleteFuelingTrend(logs: FuelingLogSummary[], target: number | null): AthleteFuelingTrend {
+  const latest = logs[0]
+  const recent = logs.slice(0, 3)
+  const bestTolerated = Math.max(
+    0,
+    ...logs
+      .filter((log) => (log.stomachRating ?? 0) >= 4 && log.actualCarbsGPerHour != null)
+      .map((log) => log.actualCarbsGPerHour ?? 0)
+  ) || null
+  const lowStomach = recent.some((log) => log.stomachRating != null && log.stomachRating < 3)
+  const stable = recent.length >= 2 && recent.every((log) => (log.stomachRating ?? 0) >= 4)
+  const latestActual = latest?.actualCarbsGPerHour ?? null
+  const nextTarget = resolveNextTarget(target, latestActual, bestTolerated, lowStomach, stable)
+
+  if (lowStomach) {
+    return {
+      title: 'Nästa pass: backa lite',
+      body: 'Prioritera lugn mage före högre intag. Välj produkter som fungerat tidigare.',
+      badge: 'Backa',
+      badgeClass: 'bg-red-50 text-red-700 border-red-200',
+      nextTarget,
+    }
+  }
+
+  if (stable && latestActual != null) {
+    return {
+      title: 'Nästa pass: liten höjning möjlig',
+      body: 'Du verkar tåla nivån bra. Höj försiktigt och logga känslan direkt efter passet.',
+      badge: 'Höj',
+      badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      nextTarget,
+    }
+  }
+
+  return {
+    title: 'Nästa pass: samla mer data',
+    body: 'Upprepa en tydlig nivå så vi ser hur mage och energi svarar.',
+    badge: 'Följ upp',
+    badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
+    nextTarget,
+  }
+}
+
+function resolveNextTarget(
+  planTarget: number | null,
+  latestActual: number | null,
+  bestTolerated: number | null,
+  lowStomach: boolean,
+  stable: boolean
+): number | null {
+  const anchor = bestTolerated ?? latestActual ?? planTarget
+  if (anchor == null) return planTarget
+  if (lowStomach) return roundToFive(Math.max(30, anchor - 10))
+  if (stable) return roundToFive(Math.min(planTarget ?? 120, anchor + 5))
+  return roundToFive(Math.min(planTarget ?? anchor, anchor))
+}
+
+function getBarWidth(value: number | null | undefined): number {
+  if (value == null) return 0
+  return Math.max(4, Math.min(100, Math.round((value / 120) * 100)))
+}
+
+function roundToFive(value: number): number {
+  return Math.round(value / 5) * 5
 }
