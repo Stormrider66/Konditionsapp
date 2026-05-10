@@ -52,6 +52,7 @@ export default async function WorkoutLogPage({ params }: WorkoutLogPageProps) {
         },
         take: 1,
       },
+      fuelingPrescription: true,
     },
   })
 

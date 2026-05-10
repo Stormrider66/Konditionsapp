@@ -27,7 +27,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { Loader2, Upload, Clock, MapPin, Heart, Zap, Gauge, Mountain, Activity, Waves, ChevronDown, ChevronUp, Timer, Trophy } from 'lucide-react'
+import { Loader2, Upload, Clock, MapPin, Heart, Zap, Gauge, Mountain, Activity, Waves, ChevronDown, ChevronUp, Timer, Trophy, Utensils } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { FormattedWorkoutInstructions } from './workout/FormattedWorkoutInstructions'
@@ -547,6 +547,27 @@ export function WorkoutLoggingForm({
                   variant="expanded"
                   maxItems={5}
                 />
+              )}
+              {workout.fuelingPrescription && (
+                <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+                  <div className="flex items-start gap-3">
+                    <Utensils className="h-5 w-5 text-amber-600 dark:text-amber-300 mt-0.5" />
+                    <div>
+                      <p className="font-semibold">Magträning för tävling</p>
+                      <p className="mt-1">
+                        Sikta på {Math.round(workout.fuelingPrescription.targetCarbsGPerHour)} g kolhydrater/timme
+                        {workout.fuelingPrescription.targetCarbsTotalG
+                          ? `, totalt cirka ${Math.round(workout.fuelingPrescription.targetCarbsTotalG)} g under passet.`
+                          : '.'}
+                      </p>
+                      {workout.fuelingPrescription.instructionsSv && (
+                        <p className="mt-2 text-amber-900/80 dark:text-amber-100/80">
+                          {workout.fuelingPrescription.instructionsSv}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
 

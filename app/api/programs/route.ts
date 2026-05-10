@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessProgram, canAccessClient, resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+import { createFuelingPrescriptionsForProgram } from '@/lib/fueling/workout-prescriptions'
 
 /**
  * GET /api/programs
@@ -357,6 +358,25 @@ export async function POST(request: NextRequest) {
           },
         },
       },
+    })
+
+    await createFuelingPrescriptionsForProgram(prisma, {
+      id: program.id,
+      clientId: program.clientId,
+      goalType: program.goalType,
+      weeks: program.weeks.map((week) => ({
+        weekNumber: week.weekNumber,
+        days: week.days.map((day) => ({
+          workouts: day.workouts.map((workout) => ({
+            id: workout.id,
+            name: workout.name,
+            type: workout.type,
+            intensity: workout.intensity,
+            duration: workout.duration,
+            distance: workout.distance,
+          })),
+        })),
+      })),
     })
 
     return NextResponse.json(

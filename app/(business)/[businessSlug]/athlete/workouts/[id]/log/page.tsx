@@ -97,6 +97,7 @@ export default async function BusinessWorkoutLogPage({ params }: BusinessWorkout
         },
         take: 1,
       },
+      fuelingPrescription: true,
     },
   })
 

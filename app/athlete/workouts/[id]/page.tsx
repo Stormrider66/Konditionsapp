@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, CheckCircle2, Clock, MapPin, Calendar, Edit, Info, Activity, Zap, Trophy } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Clock, MapPin, Calendar, Edit, Info, Activity, Zap, Trophy, Utensils } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { WorkoutSegments } from '@/components/athlete/workout/WorkoutSegments'
@@ -67,6 +67,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
         },
         take: 1,
       },
+      fuelingPrescription: true,
     },
   })
 
@@ -205,6 +206,19 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
                   <div>
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Distans</p>
                     <p className="text-xl font-black text-slate-900 dark:text-white transition-colors">{workout.distance} km</p>
+                  </div>
+                </div>
+              )}
+              {workout.fuelingPrescription && (
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 border-amber-100 dark:bg-amber-500/10 dark:border-amber-500/10 flex items-center justify-center border transition-colors">
+                    <Utensils className="h-5 w-5 text-amber-600 dark:text-amber-500 transition-colors" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Kolhydrater</p>
+                    <p className="text-xl font-black text-slate-900 dark:text-white transition-colors">
+                      {Math.round(workout.fuelingPrescription.targetCarbsGPerHour)} g/h
+                    </p>
                   </div>
                 </div>
               )}

@@ -15,6 +15,7 @@ import { generateProgramInfographic, parsedProgramToInfographicData } from '@/li
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
 import type { MergedProgram } from '@/lib/ai/program-generator'
+import { createFuelingPrescriptionsForProgram } from '@/lib/fueling/workout-prescriptions'
 
 type ProgramType = 'MAIN' | 'COMPLEMENTARY';
 type ExistingProgramAction = 'KEEP' | 'DEACTIVATE' | 'REPLACE';
@@ -279,6 +280,38 @@ export async function POST(request: NextRequest) {
 
       return program;
     }, { timeout: 15000 });
+
+    const programForFueling = await prisma.trainingProgram.findUnique({
+      where: { id: savedProgram.id },
+      select: {
+        id: true,
+        clientId: true,
+        goalType: true,
+        weeks: {
+          select: {
+            weekNumber: true,
+            days: {
+              select: {
+                workouts: {
+                  select: {
+                    id: true,
+                    name: true,
+                    type: true,
+                    intensity: true,
+                    duration: true,
+                    distance: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+
+    if (programForFueling) {
+      await createFuelingPrescriptionsForProgram(prisma, programForFueling)
+    }
 
     // Fire-and-forget infographic generation (don't await, don't block response)
     if (parsedProgram) {

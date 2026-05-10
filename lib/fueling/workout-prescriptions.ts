@@ -1,0 +1,134 @@
+import type { PrismaClient, WorkoutIntensity, WorkoutType } from '@prisma/client'
+
+interface ProgramForFueling {
+  id: string
+  clientId: string
+  goalType?: string | null
+  weeks: Array<{
+    weekNumber: number
+    days: Array<{
+      workouts: Array<{
+        id: string
+        name: string
+        type: WorkoutType
+        intensity: WorkoutIntensity
+        duration?: number | null
+        distance?: number | null
+      }>
+    }>
+  }>
+}
+
+type PrismaLike = Pick<PrismaClient, 'raceFuelingPlan' | 'workoutFuelingPrescription'>
+
+export async function createFuelingPrescriptionsForProgram(
+  prisma: PrismaLike,
+  program: ProgramForFueling
+): Promise<number> {
+  const plan = await prisma.raceFuelingPlan.findFirst({
+    where: {
+      clientId: program.clientId,
+      status: { not: 'ARCHIVED' },
+    },
+    orderBy: [
+      { raceDate: 'asc' },
+      { createdAt: 'desc' },
+    ],
+    select: {
+      id: true,
+      recommendedCarbsGPerHour: true,
+    },
+  })
+
+  if (!plan?.recommendedCarbsGPerHour) return 0
+
+  const maxWeek = Math.max(...program.weeks.map((week) => week.weekNumber), 1)
+  const prescriptions = program.weeks.flatMap((week) =>
+    week.days.flatMap((day) =>
+      day.workouts
+        .filter((workout) => shouldPrescribeFueling(workout, program.goalType))
+        .map((workout) => {
+          const targetCarbsGPerHour = calculateProgressiveCarbTarget(
+            plan.recommendedCarbsGPerHour ?? 75,
+            week.weekNumber,
+            maxWeek,
+            workout
+          )
+          const durationHours = (workout.duration ?? estimateDurationFromDistance(workout)) / 60
+
+          return {
+            workoutId: workout.id,
+            planId: plan.id,
+            targetCarbsGPerHour,
+            targetCarbsTotalG: durationHours > 0 ? Math.round(targetCarbsGPerHour * durationHours) : null,
+            hydrationMl: durationHours > 0 ? Math.round(500 * durationHours) : null,
+            instructionsSv: buildFuelingInstructions(targetCarbsGPerHour, durationHours),
+          }
+        })
+    )
+  )
+
+  if (prescriptions.length === 0) return 0
+
+  await prisma.workoutFuelingPrescription.createMany({
+    data: prescriptions,
+    skipDuplicates: true,
+  })
+
+  return prescriptions.length
+}
+
+function shouldPrescribeFueling(
+  workout: Pick<ProgramForFueling['weeks'][number]['days'][number]['workouts'][number], 'name' | 'type' | 'duration' | 'distance' | 'intensity'>,
+  goalType?: string | null
+): boolean {
+  const name = workout.name.toLowerCase()
+  const isEnduranceType = ['RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'HYROX'].includes(workout.type)
+  if (!isEnduranceType) return false
+
+  const isRaceSpecific = /lång|long|race|tävling|lopp|marathon|halvmarathon|tempo|brick/i.test(name)
+  const duration = workout.duration ?? estimateDurationFromDistance(workout)
+  const goalLooksEndurance = goalType ? /marathon|half|10k|5k|cycling|skiing|triathlon|hyrox/i.test(goalType) : false
+
+  return Boolean(
+    duration >= 75 ||
+    (goalLooksEndurance && duration >= 60 && workout.intensity !== 'RECOVERY') ||
+    (isRaceSpecific && duration >= 45)
+  )
+}
+
+function calculateProgressiveCarbTarget(
+  raceTarget: number,
+  weekNumber: number,
+  maxWeek: number,
+  workout: Pick<ProgramForFueling['weeks'][number]['days'][number]['workouts'][number], 'name' | 'intensity'>
+): number {
+  const lowerTarget = Math.min(50, raceTarget)
+  const progress = maxWeek <= 1 ? 1 : (weekNumber - 1) / (maxWeek - 1)
+  const isRaceRehearsal = /race|tävling|lopp|marathon|brick/i.test(workout.name) || workout.intensity === 'THRESHOLD'
+  const progressionTarget = lowerTarget + (raceTarget - lowerTarget) * Math.min(1, progress * 1.15)
+  const raw = isRaceRehearsal && progress > 0.65 ? Math.max(progressionTarget, raceTarget * 0.9) : progressionTarget
+
+  return Math.round(Math.max(30, Math.min(120, raw)) / 5) * 5
+}
+
+function estimateDurationFromDistance(
+  workout: Pick<ProgramForFueling['weeks'][number]['days'][number]['workouts'][number], 'type' | 'distance'>
+): number {
+  if (!workout.distance) return 0
+  const assumedSpeedKmh = workout.type === 'CYCLING' ? 28 : workout.type === 'SKIING' ? 14 : workout.type === 'SWIMMING' ? 3 : 10
+  return Math.round((workout.distance / assumedSpeedKmh) * 60)
+}
+
+function buildFuelingInstructions(targetCarbsGPerHour: number, durationHours: number): string {
+  const every20 = Math.round(targetCarbsGPerHour / 3)
+  const total = durationHours > 0 ? Math.round(targetCarbsGPerHour * durationHours) : null
+
+  return [
+    `Magträning: sikta på ${targetCarbsGPerHour} g kolhydrater/timme.`,
+    `Praktiskt upplägg: cirka ${every20} g var 20:e minut.`,
+    total ? `Totalt för passet: ungefär ${total} g kolhydrater.` : null,
+    targetCarbsGPerHour > 60 ? 'Använd gärna glukos/fruktos-blandning eftersom målet är över 60 g/timme.' : null,
+    'Använd produkter som är tänkta för tävling och notera magrespons efter passet.',
+  ].filter(Boolean).join(' ')
+}
