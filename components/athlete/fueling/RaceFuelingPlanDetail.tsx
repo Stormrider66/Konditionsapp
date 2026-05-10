@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { ArrowLeft, CalendarDays, CheckCircle2, ClipboardCheck, FlaskConical, Loader2, PackageCheck, Printer, Save, Utensils } from 'lucide-react'
+import { ArrowLeft, CalendarDays, CheckCircle2, ClipboardCheck, FlaskConical, Loader2, PackageCheck, Printer, Save, TrendingUp, Utensils } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -44,11 +44,24 @@ interface FuelingPlanDetail {
     id: string
     targetCarbsGPerHour: number
     targetCarbsTotalG: number | null
+    hydrationMl: number | null
+    sodiumMg: number | null
+    instructionsSv: string | null
     workout: {
       id: string
       name: string
       duration: number | null
+      distance: number | null
+      status: string
       day: { date: string | null }
+      logs: Array<{
+        completedAt: string | null
+        fuelingLog: {
+          actualCarbsGPerHour: number | null
+          stomachRating: number | null
+          energyRating: number | null
+        } | null
+      }>
     }
   }>
 }
@@ -68,27 +81,27 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
   const [editableNotes, setEditableNotes] = useState('')
   const [notesState, setNotesState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
+  const loadPlan = useCallback(async (signal?: AbortSignal) => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/fueling/plans/${planId}`, { signal })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const body = await response.json()
+      if (body.success) setPlan(body.plan)
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
+      setError(err instanceof Error ? err.message : 'Kunde inte hämta planen')
+    } finally {
+      if (!signal?.aborted) setIsLoading(false)
+    }
+  }, [planId])
+
   useEffect(() => {
     const controller = new AbortController()
-
-    async function loadPlan() {
-      setIsLoading(true)
-      try {
-        const response = await fetch(`/api/fueling/plans/${planId}`, { signal: controller.signal })
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
-        const body = await response.json()
-        if (body.success) setPlan(body.plan)
-      } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return
-        setError(err instanceof Error ? err.message : 'Kunde inte hämta planen')
-      } finally {
-        if (!controller.signal.aborted) setIsLoading(false)
-      }
-    }
-
-    loadPlan()
+    void loadPlan(controller.signal)
     return () => controller.abort()
-  }, [planId])
+  }, [loadPlan])
 
   useEffect(() => {
     if (!plan) return
@@ -103,6 +116,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
       const body = await response.json()
       setAppliedCount(body.updatedCount ?? 0)
       setApplyState('applied')
+      await loadPlan()
     } catch {
       setApplyState('error')
     }
@@ -165,6 +179,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
   const editableNotePlaceholder = isCoachMode
     ? 'Ex: Öka från 70 till 85 g/h över tre långpass. Följ mage/energi efter varje pass...'
     : 'Ex: Maurten gel vid 20, 60 och 100 min. Sportdryck i flaska 1 och 2...'
+  const buildUp = buildFuelingBuildUp(plan.workoutPrescriptions, plan.recommendedCarbsGPerHour)
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6 print:max-w-none print:px-0">
@@ -333,33 +348,61 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
 
       <Card className="print:break-inside-avoid">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <FlaskConical className="h-4 w-4 text-blue-600" />
-            Kommande pass med carb-träning
-          </CardTitle>
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FlaskConical className="h-4 w-4 text-blue-600" />
+                Carb-träning mot tävling
+              </CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Kommande pass som bygger upp intaget mot raceplanens mål.
+              </p>
+            </div>
+            {buildUp.totalCount > 0 && (
+              <Badge variant="outline" className="w-fit">
+                {buildUp.totalCount} pass
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {plan.workoutPrescriptions.length > 0 ? (
-            <div className="space-y-2">
-              {plan.workoutPrescriptions.map((prescription) => (
-                <div key={prescription.id} className="flex items-center justify-between gap-4 rounded-md border px-3 py-2 text-sm">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{prescription.workout.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {prescription.workout.day.date
-                        ? new Date(prescription.workout.day.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
-                        : 'Datum saknas'}
-                      {prescription.workout.duration ? `, ${prescription.workout.duration} min` : ''}
-                    </p>
-                  </div>
-                  <div className="text-right tabular-nums">
-                    <p className="font-medium">{Math.round(prescription.targetCarbsGPerHour)} g/h</p>
-                    <p className="text-xs text-muted-foreground">
-                      {prescription.targetCarbsTotalG ? `${Math.round(prescription.targetCarbsTotalG)} g totalt` : 'total saknas'}
-                    </p>
-                  </div>
+            <div className="space-y-5">
+              <div className="grid gap-3 md:grid-cols-4">
+                <CompactMetric label="Första mål" value={formatGramHour(buildUp.firstTarget)} />
+                <CompactMetric label="Högsta mål" value={formatGramHour(buildUp.peakTarget)} />
+                <CompactMetric label="Racemål" value={formatGramHour(plan.recommendedCarbsGPerHour)} />
+                <CompactMetric label="Loggat" value={`${buildUp.loggedCount}/${buildUp.totalCount}`} />
+              </div>
+
+              <div className="rounded-lg border bg-blue-50/70 p-4 dark:bg-blue-900/10 dark:border-blue-900/30">
+                <div className="flex items-center gap-2 text-sm font-medium text-blue-900 dark:text-blue-200">
+                  <TrendingUp className="h-4 w-4" />
+                  Progression
                 </div>
-              ))}
+                <div className="mt-3 h-2 rounded-full bg-white dark:bg-slate-800">
+                  <div
+                    className="h-2 rounded-full bg-blue-600"
+                    style={{ width: `${buildUp.progressPercent}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Högsta kommande passmål är {formatGramHour(buildUp.peakTarget)} jämfört med raceplanens {formatGramHour(plan.recommendedCarbsGPerHour)}.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {buildUp.groups.map((group) => (
+                  <div key={group.label} className="space-y-2">
+                    <h2 className="text-sm font-semibold">{group.label}</h2>
+                    <div className="space-y-2">
+                      {group.items.map((prescription) => (
+                        <FuelingPrescriptionRow key={prescription.id} prescription={prescription} raceDate={plan.raceDate} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -368,6 +411,56 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
           )}
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+type WorkoutPrescription = FuelingPlanDetail['workoutPrescriptions'][number]
+
+function FuelingPrescriptionRow({ prescription, raceDate }: { prescription: WorkoutPrescription; raceDate: string | null }) {
+  const latestLog = prescription.workout.logs[0]?.fuelingLog ?? null
+  const workoutDate = prescription.workout.day.date ? new Date(prescription.workout.day.date) : null
+  const daysToRace = workoutDate && raceDate ? differenceInDays(new Date(raceDate), workoutDate) : null
+
+  return (
+    <div className="rounded-md border px-3 py-3 text-sm">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate font-medium">{prescription.workout.name}</p>
+            <Badge variant="outline" className="text-[10px]">
+              {prescription.workout.status === 'COMPLETED' ? 'Loggat' : 'Planerat'}
+            </Badge>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {workoutDate
+              ? workoutDate.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+              : 'Datum saknas'}
+            {prescription.workout.duration ? `, ${prescription.workout.duration} min` : ''}
+            {prescription.workout.distance ? `, ${prescription.workout.distance.toLocaleString('sv-SE', { maximumFractionDigits: 1 })} km` : ''}
+            {daysToRace != null && daysToRace >= 0 ? `, ${daysToRace} dagar till race` : ''}
+          </p>
+        </div>
+        <div className="text-left tabular-nums md:text-right">
+          <p className="font-medium">{Math.round(prescription.targetCarbsGPerHour)} g/h</p>
+          <p className="text-xs text-muted-foreground">
+            {prescription.targetCarbsTotalG ? `${Math.round(prescription.targetCarbsTotalG)} g totalt` : 'total saknas'}
+            {prescription.hydrationMl ? `, ${prescription.hydrationMl} ml` : ''}
+          </p>
+        </div>
+      </div>
+
+      {prescription.instructionsSv && (
+        <p className="mt-2 text-xs text-muted-foreground">{prescription.instructionsSv}</p>
+      )}
+
+      {latestLog && (
+        <div className="mt-2 grid gap-2 rounded-md bg-slate-50 p-2 text-xs dark:bg-slate-800/60 sm:grid-cols-3">
+          <span>Utfört: {formatGramHour(latestLog.actualCarbsGPerHour)}</span>
+          <span>Mage: {formatRating(latestLog.stomachRating)}</span>
+          <span>Energi: {formatRating(latestLog.energyRating)}</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -381,6 +474,71 @@ function Metric({ label, value }: { label: string; value: string }) {
       </CardContent>
     </Card>
   )
+}
+
+function CompactMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border bg-slate-50 p-3 dark:bg-slate-800/60 dark:border-white/10">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-lg font-semibold tabular-nums text-slate-900 dark:text-white">{value}</p>
+    </div>
+  )
+}
+
+function buildFuelingBuildUp(
+  prescriptions: WorkoutPrescription[],
+  raceTarget: number | null
+): {
+  firstTarget: number | null
+  peakTarget: number | null
+  totalCount: number
+  loggedCount: number
+  progressPercent: number
+  groups: Array<{ label: string; items: WorkoutPrescription[] }>
+} {
+  const sorted = [...prescriptions].sort((a, b) => {
+    const dateA = a.workout.day.date ? new Date(a.workout.day.date).getTime() : Number.MAX_SAFE_INTEGER
+    const dateB = b.workout.day.date ? new Date(b.workout.day.date).getTime() : Number.MAX_SAFE_INTEGER
+    return dateA - dateB
+  })
+  const targets = sorted.map((item) => item.targetCarbsGPerHour)
+  const peakTarget = targets.length > 0 ? Math.max(...targets) : null
+  const loggedCount = sorted.filter((item) => item.workout.logs.some((log) => log.fuelingLog)).length
+  const progressPercent = raceTarget && peakTarget
+    ? Math.max(6, Math.min(100, Math.round((peakTarget / raceTarget) * 100)))
+    : 0
+
+  return {
+    firstTarget: targets[0] ?? null,
+    peakTarget,
+    totalCount: sorted.length,
+    loggedCount,
+    progressPercent,
+    groups: groupPrescriptionsByMonth(sorted),
+  }
+}
+
+function groupPrescriptionsByMonth(prescriptions: WorkoutPrescription[]): Array<{ label: string; items: WorkoutPrescription[] }> {
+  const groups = new Map<string, WorkoutPrescription[]>()
+
+  for (const prescription of prescriptions) {
+    const date = prescription.workout.day.date ? new Date(prescription.workout.day.date) : null
+    const label = date
+      ? date.toLocaleDateString('sv-SE', { month: 'long', year: 'numeric' })
+      : 'Datum saknas'
+    groups.set(label, [...(groups.get(label) ?? []), prescription])
+  }
+
+  return Array.from(groups.entries()).map(([label, items]) => ({ label, items }))
+}
+
+function differenceInDays(later: Date, earlier: Date): number {
+  const dayMs = 24 * 60 * 60 * 1000
+  const laterDay = new Date(later)
+  const earlierDay = new Date(earlier)
+  laterDay.setHours(0, 0, 0, 0)
+  earlierDay.setHours(0, 0, 0, 0)
+  return Math.round((laterDay.getTime() - earlierDay.getTime()) / dayMs)
 }
 
 function PackItem({ label, value }: { label: string; value: string }) {
@@ -426,6 +584,10 @@ function normalizeStringList(value: unknown): string[] {
 
 function formatGramHour(value: number | null): string {
   return value == null ? '-' : `${Math.round(value)} g/h`
+}
+
+function formatRating(value: number | null | undefined): string {
+  return value == null ? '-' : `${value}/5`
 }
 
 function formatDuration(minutes: number): string {

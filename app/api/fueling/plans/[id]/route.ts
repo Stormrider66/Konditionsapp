@@ -53,18 +53,44 @@ export async function GET(
         test: { select: { id: true, testDate: true, testType: true } },
         race: { select: { id: true, name: true, date: true, distance: true, targetTime: true } },
         workoutPrescriptions: {
-          orderBy: { createdAt: 'desc' },
-          take: 8,
+          orderBy: {
+            workout: {
+              day: {
+                date: 'asc',
+              },
+            },
+          },
+          take: 24,
           select: {
             id: true,
             targetCarbsGPerHour: true,
             targetCarbsTotalG: true,
+            hydrationMl: true,
+            sodiumMg: true,
+            instructionsSv: true,
+            updatedAt: true,
             workout: {
               select: {
                 id: true,
                 name: true,
                 duration: true,
+                distance: true,
+                status: true,
                 day: { select: { date: true } },
+                logs: {
+                  orderBy: { completedAt: 'desc' },
+                  take: 1,
+                  select: {
+                    completedAt: true,
+                    fuelingLog: {
+                      select: {
+                        actualCarbsGPerHour: true,
+                        stomachRating: true,
+                        energyRating: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -81,6 +107,11 @@ export async function GET(
       success: true,
       plan: {
         ...plan,
+        workoutPrescriptions: [...plan.workoutPrescriptions].sort((a, b) => {
+          const dateA = a.workout.day.date?.getTime() ?? Number.MAX_SAFE_INTEGER
+          const dateB = b.workout.day.date?.getTime() ?? Number.MAX_SAFE_INTEGER
+          return dateA - dateB
+        }),
         raceDayPlan: buildRaceDayFuelingPlan(plan.recommendedCarbsGPerHour, plan.durationMinutes),
       },
     })
