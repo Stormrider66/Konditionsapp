@@ -172,7 +172,7 @@ export function BusinessAthleteHeader({
                 </div>
 
                 {/* Desktop Navigation */}
-                <nav className="hidden lg:flex items-center gap-6">
+                <nav className="hidden xl:flex items-center gap-6">
                     {/* Main Items */}
                     {mainNavItems.map((item) => {
                         const isActive = pathname === item.href
@@ -303,7 +303,7 @@ export function BusinessAthleteHeader({
                     {/* Mobile Menu Trigger */}
                     <Sheet open={isOpen} onOpenChange={setIsOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="lg:hidden text-slate-300 hover:text-white hover:bg-white/10">
+                            <Button variant="ghost" size="icon" className="xl:hidden text-slate-300 hover:text-white hover:bg-white/10">
                                 <Menu className="h-6 w-6" />
                                 <span className="sr-only">Toggle menu</span>
                             </Button>
