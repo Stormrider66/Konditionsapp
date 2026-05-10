@@ -6,6 +6,10 @@ import {
   GlassCardHeader,
   GlassCardTitle,
 } from '@/components/ui/GlassCard'
+import {
+  normalizeRaceFuelingProductItems,
+  summarizeRaceFuelingProductItems,
+} from '@/lib/fueling/product-plan'
 
 type WorkoutFuelingPrescription = {
   targetCarbsGPerHour: number
@@ -42,7 +46,7 @@ export function WorkoutFuelingPlanCard({ prescription, log }: WorkoutFuelingPlan
   const targetTotal = prescription.targetCarbsTotalG ? Math.round(prescription.targetCarbsTotalG) : null
   const actualHourly = log?.actualCarbsGPerHour != null ? Math.round(log.actualCarbsGPerHour) : null
   const actualTotal = log?.actualCarbsTotalG != null ? Math.round(log.actualCarbsTotalG) : null
-  const productsUsed = normalizeProductsUsed(log?.productsUsed)
+  const productsUsed = normalizeRaceFuelingProductItems(log?.productsUsed)
   const raceTarget = prescription.plan?.recommendedCarbsGPerHour
     ? Math.round(prescription.plan.recommendedCarbsGPerHour)
     : null
@@ -121,7 +125,7 @@ export function WorkoutFuelingPlanCard({ prescription, log }: WorkoutFuelingPlan
               Produkter som användes
             </p>
             <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
-              {summarizeProductsUsed(productsUsed)}
+              {summarizeRaceFuelingProductItems(productsUsed)}
             </p>
           </div>
         )}
@@ -161,33 +165,4 @@ function CompletedMetric({ label, value, detail }: { label: string; value: strin
       {detail && <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{detail}</p>}
     </div>
   )
-}
-
-type ProductUsed = {
-  label: string
-  count: number
-  carbsPerItemG: number
-}
-
-function normalizeProductsUsed(value: unknown): ProductUsed[] {
-  if (!Array.isArray(value)) return []
-
-  return value
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null
-      const record = item as Record<string, unknown>
-      const label = typeof record.label === 'string' ? record.label : null
-      const count = typeof record.count === 'number' ? record.count : null
-      const carbsPerItemG = typeof record.carbsPerItemG === 'number' ? record.carbsPerItemG : null
-
-      if (!label || !count || !carbsPerItemG) return null
-      return { label, count, carbsPerItemG }
-    })
-    .filter((item): item is ProductUsed => item !== null)
-}
-
-function summarizeProductsUsed(products: ProductUsed[]): string {
-  return products
-    .map((product) => `${product.count} ${product.label.toLowerCase()} à ${product.carbsPerItemG} g`)
-    .join(', ')
 }

@@ -31,6 +31,11 @@ import { Loader2, Upload, Clock, MapPin, Heart, Zap, Gauge, Mountain, Activity, 
 import { useToast } from '@/hooks/use-toast'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { buildFuelingSessionFeedback } from '@/lib/fueling/session-feedback'
+import {
+  buildRaceFuelingProductItems,
+  summarizeRaceFuelingProductItems,
+  type RaceFuelingProductPlanItem,
+} from '@/lib/fueling/product-plan'
 import { FormattedWorkoutInstructions } from './workout/FormattedWorkoutInstructions'
 import type { RaceContext } from './workout/WorkoutLogClient'
 
@@ -1407,7 +1412,7 @@ export function WorkoutLoggingForm({
                 {fuelingProductsUsed && fuelingProductsUsed.length > 0 && (
                   <div className="mb-4 rounded-md border border-slate-200 bg-white/70 p-3 text-xs text-slate-700 dark:border-white/10 dark:bg-slate-950/40 dark:text-slate-200">
                     <p className="mb-1 font-bold uppercase tracking-widest text-muted-foreground">Produkter sparade i loggen</p>
-                    <p>{summarizeFuelingProducts(fuelingProductsUsed)}</p>
+                    <p>{summarizeRaceFuelingProductItems(fuelingProductsUsed)}</p>
                   </div>
                 )}
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -1781,7 +1786,7 @@ function FuelingProductCalculator({
   onApply,
 }: {
   durationMinutes: number | null
-  onApply: (values: { totalCarbs: number; carbsPerHour: number; productsUsed: FuelingProductUsed[] }) => void
+  onApply: (values: { totalCarbs: number; carbsPerHour: number; productsUsed: RaceFuelingProductPlanItem[] }) => void
 }) {
   const [gelCount, setGelCount] = useState('')
   const [gelCarbs, setGelCarbs] = useState('25')
@@ -1797,10 +1802,10 @@ function FuelingProductCalculator({
   const durationHours = durationMinutes && durationMinutes > 0 ? durationMinutes / 60 : null
   const carbsPerHour = durationHours ? Math.round(totalCarbs / durationHours) : 0
   const canApply = totalCarbs > 0 && carbsPerHour > 0
-  const productsUsed = buildFuelingProductsUsed([
-    { label: 'Gel', count: gelCount, carbs: gelCarbs },
-    { label: 'Sportdryck', count: bottleCount, carbs: bottleCarbs },
-    { label: 'Chews/bar', count: chewCount, carbs: chewCarbs },
+  const productsUsed = buildRaceFuelingProductItems([
+    { label: 'Gel', count: parseProductCount(gelCount), carbsPerItemG: parseProductCount(gelCarbs) },
+    { label: 'Sportdryck', count: parseProductCount(bottleCount), carbsPerItemG: parseProductCount(bottleCarbs) },
+    { label: 'Chews/bar', count: parseProductCount(chewCount), carbsPerItemG: parseProductCount(chewCarbs) },
   ])
 
   return (
@@ -1900,36 +1905,6 @@ function ProductInputRow({
 function parseProductCount(value: string): number {
   const parsed = Number(value)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
-}
-
-type FuelingProductUsed = {
-  label: string
-  count: number
-  carbsPerItemG: number
-  totalCarbsG: number
-}
-
-function buildFuelingProductsUsed(
-  products: Array<{ label: string; count: string; carbs: string }>
-): FuelingProductUsed[] {
-  return products
-    .map((product) => {
-      const count = parseProductCount(product.count)
-      const carbsPerItemG = parseProductCount(product.carbs)
-      return {
-        label: product.label,
-        count,
-        carbsPerItemG,
-        totalCarbsG: count * carbsPerItemG,
-      }
-    })
-    .filter((product) => product.count > 0 && product.carbsPerItemG > 0)
-}
-
-function summarizeFuelingProducts(products: FuelingProductUsed[]): string {
-  return products
-    .map((product) => `${product.count} ${product.label.toLowerCase()} à ${product.carbsPerItemG} g`)
-    .join(', ')
 }
 
 function getEffortBadgeClass(effort: number): string {

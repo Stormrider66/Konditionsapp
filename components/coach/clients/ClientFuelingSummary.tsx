@@ -23,6 +23,10 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { buildFuelingSessionFeedback } from '@/lib/fueling/session-feedback'
+import {
+  normalizeRaceFuelingProductItems,
+  summarizeRaceFuelingProductItems,
+} from '@/lib/fueling/product-plan'
 
 type FuelingStatus = 'NO_DATA' | 'READY_TO_PROGRESS' | 'HOLD' | 'REDUCE' | 'ON_TRACK'
 
@@ -375,7 +379,7 @@ function FuelingTrendPanel({ logs, trend }: { logs: FuelingLogSummary[]; trend: 
 function TrendBar({ log }: { log: FuelingLogSummary }) {
   const plannedWidth = getBarWidth(log.plannedCarbsGPerHour)
   const actualWidth = getBarWidth(log.actualCarbsGPerHour)
-  const productsUsed = normalizeProductsUsed(log.productsUsed)
+  const productsUsed = normalizeRaceFuelingProductItems(log.productsUsed)
   const feedback = buildFuelingSessionFeedback({
     plannedCarbsGPerHour: log.plannedCarbsGPerHour,
     actualCarbsGPerHour: log.actualCarbsGPerHour,
@@ -412,7 +416,7 @@ function TrendBar({ log }: { log: FuelingLogSummary }) {
       {log.notes && <p className="mt-1 line-clamp-2 text-muted-foreground">{log.notes}</p>}
       {productsUsed.length > 0 && (
         <p className="mt-1 line-clamp-2 text-muted-foreground">
-          Produkter: {summarizeProductsUsed(productsUsed)}
+          Produkter: {summarizeRaceFuelingProductItems(productsUsed)}
         </p>
       )}
     </div>
@@ -515,33 +519,4 @@ function formatGap(value: number | null): string {
   const rounded = Math.round(value)
   if (rounded > 0) return `+${rounded} g/h`
   return `${rounded} g/h`
-}
-
-type ProductUsed = {
-  label: string
-  count: number
-  carbsPerItemG: number
-}
-
-function normalizeProductsUsed(value: unknown): ProductUsed[] {
-  if (!Array.isArray(value)) return []
-
-  return value
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null
-      const record = item as Record<string, unknown>
-      const label = typeof record.label === 'string' ? record.label : null
-      const count = typeof record.count === 'number' ? record.count : null
-      const carbsPerItemG = typeof record.carbsPerItemG === 'number' ? record.carbsPerItemG : null
-
-      if (!label || !count || !carbsPerItemG) return null
-      return { label, count, carbsPerItemG }
-    })
-    .filter((item): item is ProductUsed => item !== null)
-}
-
-function summarizeProductsUsed(products: ProductUsed[]): string {
-  return products
-    .map((product) => `${product.count} ${product.label.toLowerCase()} à ${product.carbsPerItemG} g`)
-    .join(', ')
 }

@@ -49,12 +49,34 @@ export function normalizeRaceFuelingProductPlan(value: unknown): RaceFuelingProd
 }
 
 export function summarizeRaceFuelingProductPlan(plan: RaceFuelingProductPlan): string | null {
-  const summary = plan.items
+  return summarizeRaceFuelingProductItems(plan.items)
+}
+
+export function normalizeRaceFuelingProductItems(value: unknown): RaceFuelingProductPlanItem[] {
+  if (!Array.isArray(value)) return []
+  return value.map(normalizeProductPlanItem).filter((item): item is RaceFuelingProductPlanItem => item !== null)
+}
+
+export function summarizeRaceFuelingProductItems(items: RaceFuelingProductPlanItem[]): string | null {
+  const summary = items
     .filter((item) => item.count > 0 && item.carbsPerItemG > 0)
     .map((item) => `${item.count} ${item.label.toLowerCase()} à ${item.carbsPerItemG} g`)
     .join(', ')
 
   return summary || null
+}
+
+export function buildRaceFuelingProductItems(
+  items: Array<{ label: string; count: number; carbsPerItemG: number }>
+): RaceFuelingProductPlanItem[] {
+  return items
+    .map((item) => ({
+      label: item.label,
+      count: item.count,
+      carbsPerItemG: item.carbsPerItemG,
+      totalCarbsG: item.count * item.carbsPerItemG,
+    }))
+    .filter((item) => item.count > 0 && item.carbsPerItemG > 0)
 }
 
 export function buildRaceFuelingProductTiming(

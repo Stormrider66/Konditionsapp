@@ -11,7 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import {
   buildRaceFuelingProductTiming,
+  normalizeRaceFuelingProductItems,
   normalizeRaceFuelingProductPlan,
+  summarizeRaceFuelingProductItems,
   summarizeRaceFuelingProductPlan,
   type RaceFuelingProductPlan,
 } from '@/lib/fueling/product-plan'
@@ -835,7 +837,7 @@ function ProductInput({
 
 function FuelingPrescriptionRow({ prescription, raceDate }: { prescription: WorkoutPrescription; raceDate: string | null }) {
   const latestLog = prescription.workout.logs[0]?.fuelingLog ?? null
-  const productsUsed = normalizeProductsUsed(latestLog?.productsUsed)
+  const productsUsed = normalizeRaceFuelingProductItems(latestLog?.productsUsed)
   const workoutDate = prescription.workout.day.date ? new Date(prescription.workout.day.date) : null
   const daysToRace = workoutDate && raceDate ? differenceInDays(new Date(raceDate), workoutDate) : null
 
@@ -880,7 +882,7 @@ function FuelingPrescriptionRow({ prescription, raceDate }: { prescription: Work
           </div>
           {productsUsed.length > 0 && (
             <p className="mt-2 text-muted-foreground">
-              Produkter: {summarizeProductsUsed(productsUsed)}
+              Produkter: {summarizeRaceFuelingProductItems(productsUsed)}
             </p>
           )}
         </div>
@@ -1111,35 +1113,6 @@ function formatGramHour(value: number | null): string {
 
 function formatRating(value: number | null | undefined): string {
   return value == null ? '-' : `${value}/5`
-}
-
-type ProductUsed = {
-  label: string
-  count: number
-  carbsPerItemG: number
-}
-
-function normalizeProductsUsed(value: unknown): ProductUsed[] {
-  if (!Array.isArray(value)) return []
-
-  return value
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null
-      const record = item as Record<string, unknown>
-      const label = typeof record.label === 'string' ? record.label : null
-      const count = typeof record.count === 'number' ? record.count : null
-      const carbsPerItemG = typeof record.carbsPerItemG === 'number' ? record.carbsPerItemG : null
-
-      if (!label || !count || !carbsPerItemG) return null
-      return { label, count, carbsPerItemG }
-    })
-    .filter((item): item is ProductUsed => item !== null)
-}
-
-function summarizeProductsUsed(products: ProductUsed[]): string {
-  return products
-    .map((product) => `${product.count} ${product.label.toLowerCase()} à ${product.carbsPerItemG} g`)
-    .join(', ')
 }
 
 function formatGrams(value: number | null): string {
