@@ -1,5 +1,6 @@
 // app/api/workouts/[id]/logs/[logId]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
@@ -106,6 +107,7 @@ export async function PUT(
           sodiumMg: body.fuelingLog.sodiumMg,
           stomachRating: body.fuelingLog.stomachRating,
           energyRating: body.fuelingLog.energyRating,
+          productsUsed: body.fuelingLog.productsUsed,
           notes: body.fuelingLog.notes,
         },
         create: {
@@ -116,6 +118,7 @@ export async function PUT(
           sodiumMg: body.fuelingLog.sodiumMg,
           stomachRating: body.fuelingLog.stomachRating,
           energyRating: body.fuelingLog.energyRating,
+          productsUsed: body.fuelingLog.productsUsed,
           notes: body.fuelingLog.notes,
         },
       })
@@ -145,6 +148,7 @@ function hasFuelingFeedback(fuelingLog: unknown): fuelingLog is {
   sodiumMg?: number
   stomachRating?: number
   energyRating?: number
+  productsUsed?: Prisma.InputJsonValue
   notes?: string
 } {
   if (!fuelingLog || typeof fuelingLog !== 'object') return false
@@ -156,6 +160,7 @@ function hasFuelingFeedback(fuelingLog: unknown): fuelingLog is {
     log.sodiumMg,
     log.stomachRating,
     log.energyRating,
+    log.productsUsed,
     log.notes,
   ].some((value) => value !== undefined && value !== null && value !== '')
 }

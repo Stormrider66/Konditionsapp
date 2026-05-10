@@ -88,6 +88,12 @@ const formSchema = z.object({
   stomachRating: z.number().min(1).max(5).optional(),
   energyRating: z.number().min(1).max(5).optional(),
   fuelingNotes: z.string().optional(),
+  fuelingProductsUsed: z.array(z.object({
+    label: z.string(),
+    count: z.number(),
+    carbsPerItemG: z.number(),
+    totalCarbsG: z.number(),
+  })).optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -402,6 +408,9 @@ export function WorkoutLoggingForm({
       stomachRating: existingLog?.fuelingLog?.stomachRating || undefined,
       energyRating: existingLog?.fuelingLog?.energyRating || undefined,
       fuelingNotes: existingLog?.fuelingLog?.notes || '',
+      fuelingProductsUsed: Array.isArray(existingLog?.fuelingLog?.productsUsed)
+        ? existingLog.fuelingLog.productsUsed
+        : undefined,
     },
   })
 
@@ -486,6 +495,7 @@ export function WorkoutLoggingForm({
             sodiumMg: data.sodiumMg,
             stomachRating: data.stomachRating,
             energyRating: data.energyRating,
+            productsUsed: data.fuelingProductsUsed,
             notes: data.fuelingNotes,
           },
           workoutId: workout.id,
@@ -549,6 +559,7 @@ export function WorkoutLoggingForm({
   const actualCarbsGPerHour = form.watch('actualCarbsGPerHour')
   const actualCarbsTotalG = form.watch('actualCarbsTotalG')
   const loggedDuration = form.watch('duration')
+  const fuelingProductsUsed = form.watch('fuelingProductsUsed')
   const shouldShowFuelingFeedback = Boolean(workout.fuelingPrescription || existingLog?.fuelingLog)
   const plannedCarbsGPerHour = workout.fuelingPrescription?.targetCarbsGPerHour ?? null
   const plannedCarbsTotalG = workout.fuelingPrescription?.targetCarbsTotalG ?? null
@@ -1387,11 +1398,18 @@ export function WorkoutLoggingForm({
                 </div>
                 <FuelingProductCalculator
                   durationMinutes={loggedDuration ?? workout.duration ?? null}
-                  onApply={({ totalCarbs, carbsPerHour }) => {
+                  onApply={({ totalCarbs, carbsPerHour, productsUsed }) => {
                     form.setValue('actualCarbsTotalG', totalCarbs, { shouldDirty: true, shouldValidate: true })
                     form.setValue('actualCarbsGPerHour', carbsPerHour, { shouldDirty: true, shouldValidate: true })
+                    form.setValue('fuelingProductsUsed', productsUsed, { shouldDirty: true, shouldValidate: true })
                   }}
                 />
+                {fuelingProductsUsed && fuelingProductsUsed.length > 0 && (
+                  <div className="mb-4 rounded-md border border-slate-200 bg-white/70 p-3 text-xs text-slate-700 dark:border-white/10 dark:bg-slate-950/40 dark:text-slate-200">
+                    <p className="mb-1 font-bold uppercase tracking-widest text-muted-foreground">Produkter sparade i loggen</p>
+                    <p>{summarizeFuelingProducts(fuelingProductsUsed)}</p>
+                  </div>
+                )}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <FormField
                     control={form.control}
@@ -1763,7 +1781,7 @@ function FuelingProductCalculator({
   onApply,
 }: {
   durationMinutes: number | null
-  onApply: (values: { totalCarbs: number; carbsPerHour: number }) => void
+  onApply: (values: { totalCarbs: number; carbsPerHour: number; productsUsed: FuelingProductUsed[] }) => void
 }) {
   const [gelCount, setGelCount] = useState('')
   const [gelCarbs, setGelCarbs] = useState('25')
@@ -1779,6 +1797,11 @@ function FuelingProductCalculator({
   const durationHours = durationMinutes && durationMinutes > 0 ? durationMinutes / 60 : null
   const carbsPerHour = durationHours ? Math.round(totalCarbs / durationHours) : 0
   const canApply = totalCarbs > 0 && carbsPerHour > 0
+  const productsUsed = buildFuelingProductsUsed([
+    { label: 'Gel', count: gelCount, carbs: gelCarbs },
+    { label: 'Sportdryck', count: bottleCount, carbs: bottleCarbs },
+    { label: 'Chews/bar', count: chewCount, carbs: chewCarbs },
+  ])
 
   return (
     <div className="mb-4 rounded-lg border border-amber-200 bg-white/70 p-4 dark:border-amber-500/20 dark:bg-slate-950/40">
@@ -1797,7 +1820,7 @@ function FuelingProductCalculator({
           variant="outline"
           size="sm"
           disabled={!canApply}
-          onClick={() => onApply({ totalCarbs, carbsPerHour })}
+          onClick={() => onApply({ totalCarbs, carbsPerHour, productsUsed })}
         >
           Använd {canApply ? `${totalCarbs} g / ${carbsPerHour} g/h` : 'värden'}
         </Button>
@@ -1877,6 +1900,36 @@ function ProductInputRow({
 function parseProductCount(value: string): number {
   const parsed = Number(value)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
+}
+
+type FuelingProductUsed = {
+  label: string
+  count: number
+  carbsPerItemG: number
+  totalCarbsG: number
+}
+
+function buildFuelingProductsUsed(
+  products: Array<{ label: string; count: string; carbs: string }>
+): FuelingProductUsed[] {
+  return products
+    .map((product) => {
+      const count = parseProductCount(product.count)
+      const carbsPerItemG = parseProductCount(product.carbs)
+      return {
+        label: product.label,
+        count,
+        carbsPerItemG,
+        totalCarbsG: count * carbsPerItemG,
+      }
+    })
+    .filter((product) => product.count > 0 && product.carbsPerItemG > 0)
+}
+
+function summarizeFuelingProducts(products: FuelingProductUsed[]): string {
+  return products
+    .map((product) => `${product.count} ${product.label.toLowerCase()} à ${product.carbsPerItemG} g`)
+    .join(', ')
 }
 
 function getEffortBadgeClass(effort: number): string {

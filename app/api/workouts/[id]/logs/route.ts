@@ -151,6 +151,7 @@ export async function POST(
           sodiumMg: body.fuelingLog.sodiumMg,
           stomachRating: body.fuelingLog.stomachRating,
           energyRating: body.fuelingLog.energyRating,
+          productsUsed: body.fuelingLog.productsUsed,
           notes: body.fuelingLog.notes,
         },
       })
@@ -479,6 +480,7 @@ function hasFuelingFeedback(fuelingLog: unknown): fuelingLog is {
   sodiumMg?: number
   stomachRating?: number
   energyRating?: number
+  productsUsed?: Prisma.InputJsonValue
   notes?: string
 } {
   if (!fuelingLog || typeof fuelingLog !== 'object') return false
@@ -490,6 +492,7 @@ function hasFuelingFeedback(fuelingLog: unknown): fuelingLog is {
     log.sodiumMg,
     log.stomachRating,
     log.energyRating,
+    log.productsUsed,
     log.notes,
   ].some((value) => value !== undefined && value !== null && value !== '')
 }
