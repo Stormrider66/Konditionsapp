@@ -1,5 +1,5 @@
 // app/(business)/[businessSlug]/athlete/programs/[id]/page.tsx
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { AthleteProgramOverview } from '@/components/athlete/AthleteProgramOverview'
 import { AthleteProgramCalendar } from '@/components/athlete/AthleteProgramCalendar'
+import { ProgramFuelingOverview } from '@/components/programs/ProgramFuelingOverview'
 
 interface BusinessProgramPageProps {
   params: Promise<{
@@ -78,6 +79,20 @@ export default async function BusinessAthleteProgramPage({ params }: BusinessPro
                       completedAt: 'desc',
                     },
                     take: 1,
+                    include: {
+                      fuelingLog: true,
+                    },
+                  },
+                  fuelingPrescription: {
+                    include: {
+                      plan: {
+                        select: {
+                          name: true,
+                          raceDate: true,
+                          recommendedCarbsGPerHour: true,
+                        },
+                      },
+                    },
                   },
                 },
               },
@@ -102,6 +117,10 @@ export default async function BusinessAthleteProgramPage({ params }: BusinessPro
       </Link>
 
       <AthleteProgramOverview program={program as any} basePath={basePath} />
+
+      <div className="mt-8">
+        <ProgramFuelingOverview program={program} />
+      </div>
 
       <div className="mt-12">
         <AthleteProgramCalendar program={program as any} athleteId={user.id} basePath={basePath} />

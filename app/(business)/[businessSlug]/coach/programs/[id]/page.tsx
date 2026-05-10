@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { ProgramOverview } from '@/components/programs/ProgramOverview'
 import { ProgramCalendar } from '@/components/programs/ProgramCalendar'
+import { ProgramFuelingOverview } from '@/components/programs/ProgramFuelingOverview'
 
 interface ProgramPageProps {
   params: Promise<{
@@ -90,6 +91,20 @@ export default async function BusinessProgramPage({ params }: ProgramPageProps) 
                       completedAt: 'desc',
                     },
                     take: 1,
+                    include: {
+                      fuelingLog: true,
+                    },
+                  },
+                  fuelingPrescription: {
+                    include: {
+                      plan: {
+                        select: {
+                          name: true,
+                          raceDate: true,
+                          recommendedCarbsGPerHour: true,
+                        },
+                      },
+                    },
                   },
                 },
               },
@@ -114,6 +129,10 @@ export default async function BusinessProgramPage({ params }: ProgramPageProps) 
       </Link>
 
       <ProgramOverview program={program} basePath={basePath} />
+
+      <div className="mt-8">
+        <ProgramFuelingOverview program={program} />
+      </div>
 
       <div className="mt-8">
         <ProgramCalendar program={program} basePath={basePath} />
