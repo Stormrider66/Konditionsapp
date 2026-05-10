@@ -4,7 +4,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
-import { CalendarDays, Clock, MapPin, Calendar, ChevronRight, Timer, Sparkles } from 'lucide-react'
+import { CalendarDays, Clock, MapPin, Calendar, ChevronRight, Timer, Sparkles, Utensils } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
@@ -185,6 +185,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
 
   // Program workout rendering (existing)
   const workout = item.workout
+  const fuelingPrescription = workout.fuelingPrescription
   if (variant === 'glass') {
     return (
       <div className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-black/20 hover:bg-white/5 transition-colors">
@@ -197,7 +198,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
               {format(new Date(workout.dayDate || workout.day.date), 'EEE d MMM', { locale: sv })}
             </Badge>
           </div>
-          <div className="flex items-center gap-3 text-xs text-slate-400">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
             <span className="truncate">{workout.programName}</span>
             {workout.startTime && (
               <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
@@ -212,6 +213,12 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
               </span>
             )}
             {workout.duration && <span>• {workout.duration} min</span>}
+            {fuelingPrescription && (
+              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-300">
+                <Utensils className="h-3 w-3" />
+                {formatFuelingPrescription(fuelingPrescription)}
+              </span>
+            )}
           </div>
         </div>
         <Link href={`${basePath}/athlete/workouts/${workout.id}/log`}>
@@ -246,7 +253,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
         </Badge>
       </div>
       <div
-        className="flex items-center gap-3 text-xs"
+        className="flex flex-wrap items-center gap-3 text-xs"
         style={{ color: theme.colors.textMuted }}
       >
         {workout.duration && (
@@ -261,9 +268,23 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
             {workout.distance} km
           </span>
         )}
+        {fuelingPrescription && (
+          <span className="flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-orange-700">
+            <Utensils className="h-3 w-3" />
+            {formatFuelingPrescription(fuelingPrescription)}
+          </span>
+        )}
       </div>
     </div>
   )
+}
+
+function formatFuelingPrescription(
+  prescription: NonNullable<Extract<DashboardItem, { kind: 'program' }>['workout']['fuelingPrescription']>
+): string {
+  const hourly = Math.round(prescription.targetCarbsGPerHour)
+  const total = prescription.targetCarbsTotalG ? Math.round(prescription.targetCarbsTotalG) : null
+  return total ? `${hourly} g/h, ${total} g totalt` : `${hourly} g/h`
 }
 
 function getItemId(item: DashboardItem): string {

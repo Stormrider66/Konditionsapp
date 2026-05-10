@@ -81,6 +81,7 @@ export type DashboardWorkout = Prisma.WorkoutGetPayload<{
       }
     }
     logs: true
+    fuelingPrescription: true
   }
 }>
 

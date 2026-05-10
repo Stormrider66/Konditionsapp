@@ -480,7 +480,8 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         }
       },
       segments: { include: { exercise: true } },
-      logs: { where: { athleteId: user.id }, take: 1 }
+      logs: { where: { athleteId: user.id }, take: 1 },
+      fuelingPrescription: true
     }
   }) as any[]
 
@@ -505,7 +506,8 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         }
       },
       segments: { include: { exercise: true } },
-      logs: { where: { athleteId: user.id }, take: 1 }
+      logs: { where: { athleteId: user.id }, take: 1 },
+      fuelingPrescription: true
     },
     orderBy: { day: { date: 'asc' } }
   }) as any[]

@@ -12,7 +12,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Activity, Flame, Timer, Dumbbell, Play, Zap, Route, TrendingUp, Clock, MapPin, X, CheckCircle2 } from 'lucide-react'
+import { Activity, Flame, Timer, Dumbbell, Play, Zap, Route, TrendingUp, Clock, MapPin, X, CheckCircle2, Utensils } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
@@ -390,6 +390,12 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
             <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-medium text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
               {workout.programName}
             </span>
+            {workout.fuelingPrescription && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-medium text-orange-700 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-300">
+                <Utensils className="h-3 w-3" />
+                {formatFuelingPrescription(workout.fuelingPrescription)}
+              </span>
+            )}
           </div>
 
           {/* Scheduling info */}
@@ -515,6 +521,14 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
       </div>
     </GlassCard>
   )
+}
+
+function formatFuelingPrescription(
+  prescription: NonNullable<DashboardWorkoutWithContext['fuelingPrescription']>
+): string {
+  const hourly = Math.round(prescription.targetCarbsGPerHour)
+  const total = prescription.targetCarbsTotalG ? Math.round(prescription.targetCarbsTotalG) : null
+  return total ? `${hourly} g/h, ${total} g totalt` : `${hourly} g/h`
 }
 
 function getCompletedHighlights(log: DashboardWorkoutWithContext['logs'][number] | undefined) {
