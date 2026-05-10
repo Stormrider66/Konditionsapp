@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
+import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
 
 interface RaceDayPlan {
   carbsPerHour: number
@@ -195,6 +196,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
     chewCount,
     chewCarbs,
   })
+  const savedProductPlan = extractSavedFuelingProductPlanNote(isCoachMode ? plan.coachNotes : plan.athleteNotes)
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6 print:max-w-none print:px-0">
@@ -369,6 +371,18 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {savedProductPlan && (
+            <div className="rounded-lg border bg-emerald-50/70 p-3 text-sm text-emerald-950 dark:bg-emerald-900/10 dark:border-emerald-900/30 dark:text-emerald-100">
+              <p className="font-medium">Sparad produktplan</p>
+              <p className="mt-1">{savedProductPlan.summary ?? 'Produkter sparade i anteckning.'}</p>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                <span>Packat {formatGrams(savedProductPlan.packedCarbsG)}</span>
+                <span>Mål {formatGrams(savedProductPlan.targetCarbsG)}</span>
+                <span>Skillnad {formatSignedGrams(savedProductPlan.differenceG)}</span>
+              </div>
+            </div>
+          )}
+
           <div className="grid gap-3 md:grid-cols-3">
             <ProductInput
               label="Gel"
@@ -830,6 +844,10 @@ function formatGramHour(value: number | null): string {
 
 function formatRating(value: number | null | undefined): string {
   return value == null ? '-' : `${value}/5`
+}
+
+function formatGrams(value: number | null): string {
+  return value == null ? '-' : `${Math.round(value)} g`
 }
 
 function formatSignedGrams(value: number | null): string {
