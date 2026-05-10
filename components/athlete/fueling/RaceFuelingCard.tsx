@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { Activity, CalendarDays, Flame, PackageCheck, Timer, Utensils } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 interface RaceFuelingPlanSummary {
   id: string
@@ -32,9 +34,11 @@ interface RaceFuelingPlanSummary {
 interface RaceFuelingCardProps {
   clientId?: string
   variant?: 'default' | 'glass'
+  basePath?: string
+  showDetailLink?: boolean
 }
 
-export function RaceFuelingCard({ clientId, variant = 'default' }: RaceFuelingCardProps) {
+export function RaceFuelingCard({ clientId, variant = 'default', basePath = '', showDetailLink = true }: RaceFuelingCardProps) {
   const [plan, setPlan] = useState<RaceFuelingPlanSummary | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -146,6 +150,14 @@ export function RaceFuelingCard({ clientId, variant = 'default' }: RaceFuelingCa
                   </p>
                 )}
               </div>
+            )}
+
+            {showDetailLink && (
+              <Button asChild variant="outline" size="sm" className="w-full">
+                <Link href={`${basePath}/athlete/fueling/${plan.id}`}>
+                  Visa hela raceplanen
+                </Link>
+              </Button>
             )}
           </div>
         ) : (

@@ -705,7 +705,7 @@ export default async function AthleteDashboardPage() {
         <NutritionTimingCard />
       </div>
       <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RaceFuelingCard clientId={clientId} variant="glass" />
+        <RaceFuelingCard clientId={clientId} variant="glass" basePath={basePath} />
         <FuelingTrainingProgressCard clientId={clientId} variant="glass" />
       </div>
       <div className="mb-6">

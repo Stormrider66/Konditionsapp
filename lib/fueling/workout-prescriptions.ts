@@ -24,7 +24,12 @@ interface ProgramForFueling {
   }>
 }
 
-type PrismaLike = Pick<PrismaClient, 'raceFuelingPlan' | 'workoutFuelingLog' | 'workoutFuelingPrescription'>
+type FuelingPlanForPrescription = {
+  id: string
+  recommendedCarbsGPerHour: number | null
+}
+
+type PrismaLike = Pick<PrismaClient, 'raceFuelingPlan' | 'trainingProgram' | 'workoutFuelingLog' | 'workoutFuelingPrescription'>
 
 export async function createFuelingPrescriptionsForProgram(
   prisma: PrismaLike,
@@ -45,6 +50,77 @@ export async function createFuelingPrescriptionsForProgram(
     },
   })
 
+  return upsertFuelingPrescriptionsForProgram(prisma, program, plan)
+}
+
+export async function refreshFuelingPrescriptionsForActivePrograms(
+  prisma: PrismaLike,
+  clientId: string,
+  planId: string
+): Promise<number> {
+  const plan = await prisma.raceFuelingPlan.findFirst({
+    where: {
+      id: planId,
+      clientId,
+      status: { not: 'ARCHIVED' },
+    },
+    select: {
+      id: true,
+      recommendedCarbsGPerHour: true,
+    },
+  })
+
+  if (!plan?.recommendedCarbsGPerHour) return 0
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const programs = await prisma.trainingProgram.findMany({
+    where: {
+      clientId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+      clientId: true,
+      goalType: true,
+      weeks: {
+        select: {
+          weekNumber: true,
+          days: {
+            where: { date: { gte: today } },
+            select: {
+              workouts: {
+                where: { status: { not: 'CANCELLED' } },
+                select: {
+                  id: true,
+                  name: true,
+                  type: true,
+                  intensity: true,
+                  duration: true,
+                  distance: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+
+  let count = 0
+  for (const program of programs) {
+    count += await upsertFuelingPrescriptionsForProgram(prisma, program, plan)
+  }
+
+  return count
+}
+
+async function upsertFuelingPrescriptionsForProgram(
+  prisma: PrismaLike,
+  program: ProgramForFueling,
+  plan: FuelingPlanForPrescription | null
+): Promise<number> {
   if (!plan?.recommendedCarbsGPerHour) return 0
 
   const feedbackSummary = await getFuelingFeedbackSummary(prisma, program.clientId, 6)
@@ -77,10 +153,21 @@ export async function createFuelingPrescriptionsForProgram(
 
   if (prescriptions.length === 0) return 0
 
-  await prisma.workoutFuelingPrescription.createMany({
-    data: prescriptions,
-    skipDuplicates: true,
-  })
+  await Promise.all(
+    prescriptions.map((prescription) =>
+      prisma.workoutFuelingPrescription.upsert({
+        where: { workoutId: prescription.workoutId },
+        create: prescription,
+        update: {
+          planId: prescription.planId,
+          targetCarbsGPerHour: prescription.targetCarbsGPerHour,
+          targetCarbsTotalG: prescription.targetCarbsTotalG,
+          hydrationMl: prescription.hydrationMl,
+          instructionsSv: prescription.instructionsSv,
+        },
+      })
+    )
+  )
 
   return prescriptions.length
 }

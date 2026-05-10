@@ -785,7 +785,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
           key: 'race-fueling',
           node: (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <RaceFuelingCard clientId={clientId} variant="glass" />
+              <RaceFuelingCard clientId={clientId} variant="glass" basePath={basePath} />
               <FuelingTrainingProgressCard clientId={clientId} variant="glass" />
             </div>
           ),

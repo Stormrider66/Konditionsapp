@@ -14,6 +14,82 @@ const updatePlanSchema = z.object({
   status: z.enum(['DRAFT', 'APPROVED', 'ARCHIVED']).optional(),
 })
 
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { id } = await params
+    const plan = await prisma.raceFuelingPlan.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        clientId: true,
+        name: true,
+        sport: true,
+        distanceKm: true,
+        durationMinutes: true,
+        targetSpeedKmh: true,
+        targetPowerWatts: true,
+        targetPaceMinKm: true,
+        raceDate: true,
+        estimatedCarbDemandGPerHour: true,
+        estimatedCarbDemandTotalG: true,
+        recommendedCarbsGPerHour: true,
+        recommendedCarbsTotalG: true,
+        confidence: true,
+        scenarios: true,
+        assumptions: true,
+        warnings: true,
+        status: true,
+        coachNotes: true,
+        athleteNotes: true,
+        approvedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        test: { select: { id: true, testDate: true, testType: true } },
+        race: { select: { id: true, name: true, date: true, distance: true, targetTime: true } },
+        workoutPrescriptions: {
+          orderBy: { createdAt: 'desc' },
+          take: 8,
+          select: {
+            id: true,
+            targetCarbsGPerHour: true,
+            targetCarbsTotalG: true,
+            workout: {
+              select: {
+                id: true,
+                name: true,
+                duration: true,
+                day: { select: { date: true } },
+              },
+            },
+          },
+        },
+      },
+    })
+
+    if (!plan) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
+
+    const hasAccess = await canAccessClient(user.id, plan.clientId)
+    if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+    return NextResponse.json({
+      success: true,
+      plan: {
+        ...plan,
+        raceDayPlan: buildRaceDayFuelingPlan(plan.recommendedCarbsGPerHour, plan.durationMinutes),
+      },
+    })
+  } catch (error) {
+    logger.error('Error fetching fueling plan', {}, error as Error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

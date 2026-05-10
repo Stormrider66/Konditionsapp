@@ -501,7 +501,7 @@ export default function BusinessClientDetailPage() {
       </div>
 
       <div className="mb-6">
-        <RaceFuelingCard clientId={id} />
+        <RaceFuelingCard clientId={id} showDetailLink={false} />
       </div>
 
       {!sportProfileLoading && sportProfile?.primarySport === 'RUNNING' && (

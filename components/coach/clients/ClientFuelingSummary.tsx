@@ -111,6 +111,8 @@ export function ClientFuelingSummary({ clientId }: ClientFuelingSummaryProps) {
   const [coachNotes, setCoachNotes] = useState('')
   const [planStatus, setPlanStatus] = useState('DRAFT')
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [applyState, setApplyState] = useState<'idle' | 'applying' | 'applied' | 'error'>('idle')
+  const [appliedCount, setAppliedCount] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -174,6 +176,22 @@ export function ClientFuelingSummary({ clientId }: ClientFuelingSummaryProps) {
       setSaveState('saved')
     } catch {
       setSaveState('error')
+    }
+  }
+
+  async function applyPlanToPrograms() {
+    const plan = data?.latestPlan
+    if (!plan) return
+
+    setApplyState('applying')
+    try {
+      const response = await fetch(`/api/fueling/plans/${plan.id}/apply`, { method: 'POST' })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const body = await response.json()
+      setAppliedCount(body.updatedCount ?? 0)
+      setApplyState('applied')
+    } catch {
+      setApplyState('error')
     }
   }
 
@@ -271,8 +289,21 @@ export function ClientFuelingSummary({ clientId }: ClientFuelingSummaryProps) {
                   >
                     {saveState === 'saving' ? 'Sparar...' : saveState === 'saved' ? 'Sparad' : 'Spara justering'}
                   </Button>
-                  {saveState === 'error' && <span className="text-xs text-destructive">Kunde inte spara.</span>}
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => void applyPlanToPrograms()}
+                    disabled={applyState === 'applying'}
+                  >
+                    {applyState === 'applying'
+                      ? 'Uppdaterar...'
+                      : applyState === 'applied'
+                        ? `${appliedCount ?? 0} pass`
+                        : 'Uppdatera pass'}
+                  </Button>
                 </div>
+                {saveState === 'error' && <span className="text-xs text-destructive">Kunde inte spara.</span>}
+                {applyState === 'error' && <span className="text-xs text-destructive">Kunde inte uppdatera pass.</span>}
               </div>
             )}
 
