@@ -141,6 +141,21 @@ export async function POST(
       },
     })
 
+    if (hasFuelingFeedback(body.fuelingLog)) {
+      await prisma.workoutFuelingLog.create({
+        data: {
+          workoutLogId: log.id,
+          actualCarbsGPerHour: body.fuelingLog.actualCarbsGPerHour,
+          actualCarbsTotalG: body.fuelingLog.actualCarbsTotalG,
+          hydrationMl: body.fuelingLog.hydrationMl,
+          sodiumMg: body.fuelingLog.sodiumMg,
+          stomachRating: body.fuelingLog.stomachRating,
+          energyRating: body.fuelingLog.energyRating,
+          notes: body.fuelingLog.notes,
+        },
+      })
+    }
+
     // Create RaceResult if race data was submitted
     let raceResultId: string | undefined
     let vdotData: { vdot: number; trainingPaces: unknown; equivalentTimes: unknown } | undefined
@@ -428,6 +443,7 @@ export async function GET(
         workoutId: id,
       },
       include: {
+        fuelingLog: true,
         athlete: {
           select: {
             id: true,
@@ -454,4 +470,26 @@ export async function GET(
       { status: 500 }
     )
   }
+}
+
+function hasFuelingFeedback(fuelingLog: unknown): fuelingLog is {
+  actualCarbsGPerHour?: number
+  actualCarbsTotalG?: number
+  hydrationMl?: number
+  sodiumMg?: number
+  stomachRating?: number
+  energyRating?: number
+  notes?: string
+} {
+  if (!fuelingLog || typeof fuelingLog !== 'object') return false
+  const log = fuelingLog as Record<string, unknown>
+  return [
+    log.actualCarbsGPerHour,
+    log.actualCarbsTotalG,
+    log.hydrationMl,
+    log.sodiumMg,
+    log.stomachRating,
+    log.energyRating,
+    log.notes,
+  ].some((value) => value !== undefined && value !== null && value !== '')
 }

@@ -62,6 +62,9 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
         where: {
           athleteId: user.id,
         },
+        include: {
+          fuelingLog: true,
+        },
         orderBy: {
           completedAt: 'desc',
         },

@@ -92,6 +92,9 @@ export default async function BusinessWorkoutLogPage({ params }: BusinessWorkout
         where: {
           athleteId: user.id,
         },
+        include: {
+          fuelingLog: true,
+        },
         orderBy: {
           completedAt: 'desc',
         },

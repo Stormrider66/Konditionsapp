@@ -79,6 +79,14 @@ const formSchema = z.object({
   intervalResults: z.array(intervalSegmentSchema).optional(),
   // Race result
   raceFinishTime: z.string().optional(),
+  // Fueling feedback
+  actualCarbsGPerHour: z.number().min(0).max(200).optional(),
+  actualCarbsTotalG: z.number().min(0).max(1000).optional(),
+  hydrationMl: z.number().min(0).max(10000).optional(),
+  sodiumMg: z.number().min(0).max(10000).optional(),
+  stomachRating: z.number().min(1).max(5).optional(),
+  energyRating: z.number().min(1).max(5).optional(),
+  fuelingNotes: z.string().optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -386,6 +394,13 @@ export function WorkoutLoggingForm({
       stravaUrl: existingLog?.stravaUrl || '',
       intervalResults: intervalSegments.length > 0 ? buildDefaultIntervalResults() : undefined,
       raceFinishTime: '',
+      actualCarbsGPerHour: existingLog?.fuelingLog?.actualCarbsGPerHour || workout.fuelingPrescription?.targetCarbsGPerHour || undefined,
+      actualCarbsTotalG: existingLog?.fuelingLog?.actualCarbsTotalG || workout.fuelingPrescription?.targetCarbsTotalG || undefined,
+      hydrationMl: existingLog?.fuelingLog?.hydrationMl || workout.fuelingPrescription?.hydrationMl || undefined,
+      sodiumMg: existingLog?.fuelingLog?.sodiumMg || undefined,
+      stomachRating: existingLog?.fuelingLog?.stomachRating || undefined,
+      energyRating: existingLog?.fuelingLog?.energyRating || undefined,
+      fuelingNotes: existingLog?.fuelingLog?.notes || '',
     },
   })
 
@@ -463,6 +478,15 @@ export function WorkoutLoggingForm({
           ...data,
           intervalResults: cleanedIntervalResults,
           raceResult,
+          fuelingLog: {
+            actualCarbsGPerHour: data.actualCarbsGPerHour,
+            actualCarbsTotalG: data.actualCarbsTotalG,
+            hydrationMl: data.hydrationMl,
+            sodiumMg: data.sodiumMg,
+            stomachRating: data.stomachRating,
+            energyRating: data.energyRating,
+            notes: data.fuelingNotes,
+          },
           workoutId: workout.id,
           athleteId,
           completedAt: new Date().toISOString(),
@@ -519,6 +543,9 @@ export function WorkoutLoggingForm({
 
   const perceivedEffort = form.watch('perceivedEffort')
   const difficulty = form.watch('difficulty')
+  const stomachRating = form.watch('stomachRating')
+  const energyRating = form.watch('energyRating')
+  const shouldShowFuelingFeedback = Boolean(workout.fuelingPrescription || existingLog?.fuelingLog)
 
   // Check if we have any performance fields to show
   const hasPerformanceFields = fieldConfig.duration || fieldConfig.distance || fieldConfig.pace || fieldConfig.hr || fieldConfig.power || fieldConfig.elevation
@@ -1304,6 +1331,171 @@ export function WorkoutLoggingForm({
                   </FormItem>
                 )}
               />
+            )}
+
+            {shouldShowFuelingFeedback && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
+                <div className="mb-4">
+                  <h3 className="font-semibold text-amber-950 dark:text-amber-100">Energi under passet</h3>
+                  <p className="text-sm text-amber-900/80 dark:text-amber-100/75">
+                    Logga vad du faktiskt fick i dig så kan coachen följa magträningen mot tävling.
+                  </p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="actualCarbsGPerHour"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Kolhydrater per timme</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={200}
+                            placeholder="t.ex. 75"
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="actualCarbsTotalG"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Totalt kolhydrater</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={1000}
+                            placeholder="t.ex. 120"
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="hydrationMl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vätska</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={10000}
+                            placeholder="ml"
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="sodiumMg"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Natrium</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={10000}
+                            placeholder="mg"
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="stomachRating"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex justify-between items-center">
+                          <FormLabel>Magkänsla</FormLabel>
+                          <Badge variant="outline">{stomachRating || 3}/5</Badge>
+                        </div>
+                        <FormControl>
+                          <Slider
+                            min={1}
+                            max={5}
+                            step={1}
+                            value={[field.value || 3]}
+                            onValueChange={(value) => field.onChange(value[0])}
+                            className="py-4"
+                          />
+                        </FormControl>
+                        <FormDescription>1 = problem, 5 = helt stabilt</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="energyRating"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex justify-between items-center">
+                          <FormLabel>Energinivå</FormLabel>
+                          <Badge variant="outline">{energyRating || 3}/5</Badge>
+                        </div>
+                        <FormControl>
+                          <Slider
+                            min={1}
+                            max={5}
+                            step={1}
+                            value={[field.value || 3]}
+                            onValueChange={(value) => field.onChange(value[0])}
+                            className="py-4"
+                          />
+                        </FormControl>
+                        <FormDescription>1 = låg energi, 5 = stark hela vägen</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="fuelingNotes"
+                  render={({ field }) => (
+                    <FormItem className="mt-4">
+                      <FormLabel>Kommentar om energi/mage</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Produkt, timing, magrespons, energi..."
+                          rows={2}
+                          {...field}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             )}
 
             {/* Notes - always shown */}

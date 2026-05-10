@@ -96,6 +96,31 @@ export async function PUT(
       },
     })
 
+    if (hasFuelingFeedback(body.fuelingLog)) {
+      await prisma.workoutFuelingLog.upsert({
+        where: { workoutLogId: log.id },
+        update: {
+          actualCarbsGPerHour: body.fuelingLog.actualCarbsGPerHour,
+          actualCarbsTotalG: body.fuelingLog.actualCarbsTotalG,
+          hydrationMl: body.fuelingLog.hydrationMl,
+          sodiumMg: body.fuelingLog.sodiumMg,
+          stomachRating: body.fuelingLog.stomachRating,
+          energyRating: body.fuelingLog.energyRating,
+          notes: body.fuelingLog.notes,
+        },
+        create: {
+          workoutLogId: log.id,
+          actualCarbsGPerHour: body.fuelingLog.actualCarbsGPerHour,
+          actualCarbsTotalG: body.fuelingLog.actualCarbsTotalG,
+          hydrationMl: body.fuelingLog.hydrationMl,
+          sodiumMg: body.fuelingLog.sodiumMg,
+          stomachRating: body.fuelingLog.stomachRating,
+          energyRating: body.fuelingLog.energyRating,
+          notes: body.fuelingLog.notes,
+        },
+      })
+    }
+
     return NextResponse.json({
       success: true,
       data: log,
@@ -111,6 +136,28 @@ export async function PUT(
       { status: 500 }
     )
   }
+}
+
+function hasFuelingFeedback(fuelingLog: unknown): fuelingLog is {
+  actualCarbsGPerHour?: number
+  actualCarbsTotalG?: number
+  hydrationMl?: number
+  sodiumMg?: number
+  stomachRating?: number
+  energyRating?: number
+  notes?: string
+} {
+  if (!fuelingLog || typeof fuelingLog !== 'object') return false
+  const log = fuelingLog as Record<string, unknown>
+  return [
+    log.actualCarbsGPerHour,
+    log.actualCarbsTotalG,
+    log.hydrationMl,
+    log.sodiumMg,
+    log.stomachRating,
+    log.energyRating,
+    log.notes,
+  ].some((value) => value !== undefined && value !== null && value !== '')
 }
 
 /**

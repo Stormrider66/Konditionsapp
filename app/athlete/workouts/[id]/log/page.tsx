@@ -47,6 +47,9 @@ export default async function WorkoutLogPage({ params }: WorkoutLogPageProps) {
         where: {
           athleteId: user.id,
         },
+        include: {
+          fuelingLog: true,
+        },
         orderBy: {
           completedAt: 'desc',
         },
