@@ -27,7 +27,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { Loader2, Upload, Clock, MapPin, Heart, Zap, Gauge, Mountain, Activity, Waves, ChevronDown, ChevronUp, Timer, Trophy, Utensils } from 'lucide-react'
+import { Loader2, Upload, Clock, MapPin, Heart, Zap, Gauge, Mountain, Activity, ChevronDown, ChevronUp, Timer, Trophy, Utensils, Calculator } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { buildFuelingSessionFeedback } from '@/lib/fueling/session-feedback'
@@ -547,10 +547,17 @@ export function WorkoutLoggingForm({
   const stomachRating = form.watch('stomachRating')
   const energyRating = form.watch('energyRating')
   const actualCarbsGPerHour = form.watch('actualCarbsGPerHour')
+  const actualCarbsTotalG = form.watch('actualCarbsTotalG')
+  const loggedDuration = form.watch('duration')
   const shouldShowFuelingFeedback = Boolean(workout.fuelingPrescription || existingLog?.fuelingLog)
+  const plannedCarbsGPerHour = workout.fuelingPrescription?.targetCarbsGPerHour ?? null
+  const plannedCarbsTotalG = workout.fuelingPrescription?.targetCarbsTotalG ?? null
+  const carbsDelta = actualCarbsTotalG != null && plannedCarbsTotalG != null
+    ? Math.round(actualCarbsTotalG - plannedCarbsTotalG)
+    : null
   const fuelingSessionFeedback = shouldShowFuelingFeedback
     ? buildFuelingSessionFeedback({
-        plannedCarbsGPerHour: workout.fuelingPrescription?.targetCarbsGPerHour,
+        plannedCarbsGPerHour,
         actualCarbsGPerHour,
         stomachRating,
         energyRating,
@@ -1351,6 +1358,40 @@ export function WorkoutLoggingForm({
                     Logga vad du faktiskt fick i dig så kan coachen följa magträningen mot tävling.
                   </p>
                 </div>
+                <div className="mb-4 grid gap-3 rounded-md border border-amber-200 bg-white/70 p-3 text-sm dark:border-amber-500/20 dark:bg-slate-950/40 sm:grid-cols-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Plan</p>
+                    <p className="mt-1 font-semibold text-slate-900 dark:text-white">
+                      {plannedCarbsGPerHour ? `${Math.round(plannedCarbsGPerHour)} g/h` : '-'}
+                    </p>
+                    {plannedCarbsTotalG && (
+                      <p className="text-xs text-muted-foreground">{Math.round(plannedCarbsTotalG)} g totalt</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Loggat</p>
+                    <p className="mt-1 font-semibold text-slate-900 dark:text-white">
+                      {actualCarbsGPerHour != null ? `${Math.round(actualCarbsGPerHour)} g/h` : '-'}
+                    </p>
+                    {actualCarbsTotalG != null && (
+                      <p className="text-xs text-muted-foreground">{Math.round(actualCarbsTotalG)} g totalt</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Skillnad</p>
+                    <p className="mt-1 font-semibold text-slate-900 dark:text-white">
+                      {carbsDelta != null ? `${carbsDelta > 0 ? '+' : ''}${carbsDelta} g` : '-'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">mot planerad total</p>
+                  </div>
+                </div>
+                <FuelingProductCalculator
+                  durationMinutes={loggedDuration ?? workout.duration ?? null}
+                  onApply={({ totalCarbs, carbsPerHour }) => {
+                    form.setValue('actualCarbsTotalG', totalCarbs, { shouldDirty: true, shouldValidate: true })
+                    form.setValue('actualCarbsGPerHour', carbsPerHour, { shouldDirty: true, shouldValidate: true })
+                  }}
+                />
                 <div className="grid gap-4 sm:grid-cols-2">
                   <FormField
                     control={form.control}
@@ -1715,6 +1756,127 @@ function buildSegmentLabel(segment: any): string {
   if (duration) return `${reps}x${duration}${pace}`
   if (desc) return `${reps}x ${desc}${pace}`
   return `${reps} intervaller`
+}
+
+function FuelingProductCalculator({
+  durationMinutes,
+  onApply,
+}: {
+  durationMinutes: number | null
+  onApply: (values: { totalCarbs: number; carbsPerHour: number }) => void
+}) {
+  const [gelCount, setGelCount] = useState('')
+  const [gelCarbs, setGelCarbs] = useState('25')
+  const [bottleCount, setBottleCount] = useState('')
+  const [bottleCarbs, setBottleCarbs] = useState('40')
+  const [chewCount, setChewCount] = useState('')
+  const [chewCarbs, setChewCarbs] = useState('20')
+
+  const totalCarbs =
+    parseProductCount(gelCount) * parseProductCount(gelCarbs) +
+    parseProductCount(bottleCount) * parseProductCount(bottleCarbs) +
+    parseProductCount(chewCount) * parseProductCount(chewCarbs)
+  const durationHours = durationMinutes && durationMinutes > 0 ? durationMinutes / 60 : null
+  const carbsPerHour = durationHours ? Math.round(totalCarbs / durationHours) : 0
+  const canApply = totalCarbs > 0 && carbsPerHour > 0
+
+  return (
+    <div className="mb-4 rounded-lg border border-amber-200 bg-white/70 p-4 dark:border-amber-500/20 dark:bg-slate-950/40">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+            <Calculator className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+            Snabbberäkna från produkter
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Summera det du använde och fyll loggen automatiskt.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!canApply}
+          onClick={() => onApply({ totalCarbs, carbsPerHour })}
+        >
+          Använd {canApply ? `${totalCarbs} g / ${carbsPerHour} g/h` : 'värden'}
+        </Button>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <ProductInputRow
+          label="Gel"
+          count={gelCount}
+          carbs={gelCarbs}
+          onCountChange={setGelCount}
+          onCarbsChange={setGelCarbs}
+        />
+        <ProductInputRow
+          label="Sportdryck"
+          count={bottleCount}
+          carbs={bottleCarbs}
+          onCountChange={setBottleCount}
+          onCarbsChange={setBottleCarbs}
+        />
+        <ProductInputRow
+          label="Chews/bar"
+          count={chewCount}
+          carbs={chewCarbs}
+          onCountChange={setChewCount}
+          onCarbsChange={setChewCarbs}
+        />
+      </div>
+      {!durationHours && (
+        <p className="mt-3 text-xs font-medium text-amber-800 dark:text-amber-100">
+          Fyll i faktisk tid först för att beräkna g/h.
+        </p>
+      )}
+    </div>
+  )
+}
+
+function ProductInputRow({
+  label,
+  count,
+  carbs,
+  onCountChange,
+  onCarbsChange,
+}: {
+  label: string
+  count: string
+  carbs: string
+  onCountChange: (value: string) => void
+  onCarbsChange: (value: string) => void
+}) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-950/50">
+      <p className="mb-2 text-xs font-bold text-slate-700 dark:text-slate-200">{label}</p>
+      <div className="grid grid-cols-2 gap-2">
+        <Input
+          type="number"
+          min={0}
+          step={1}
+          inputMode="numeric"
+          placeholder="Antal"
+          value={count}
+          onChange={(event) => onCountChange(event.target.value)}
+        />
+        <Input
+          type="number"
+          min={0}
+          step={1}
+          inputMode="numeric"
+          placeholder="g/st"
+          value={carbs}
+          onChange={(event) => onCarbsChange(event.target.value)}
+        />
+      </div>
+    </div>
+  )
+}
+
+function parseProductCount(value: string): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
 }
 
 function getEffortBadgeClass(effort: number): string {
