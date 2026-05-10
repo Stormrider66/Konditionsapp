@@ -47,6 +47,7 @@ import { MilestoneCelebrationCard } from '@/components/athlete/MilestoneCelebrat
 import { MentalPrepCard } from '@/components/athlete/MentalPrepCard'
 import { NutritionTimingCard } from '@/components/athlete/NutritionTimingCard'
 import { RaceFuelingCard } from '@/components/athlete/fueling/RaceFuelingCard'
+import { FuelingTrainingProgressCard } from '@/components/athlete/fueling/FuelingTrainingProgressCard'
 import { WeeklyTrainingSummaryCard } from '@/components/athlete/WeeklyTrainingSummaryCard'
 import { TrainingTrendChart } from '@/components/athlete/TrainingTrendChart'
 import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart'
@@ -778,7 +779,15 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         { key: 'pattern-alert', node: <PatternAlertCard /> },
         { key: 'mental-prep', node: <MentalPrepCard /> },
         { key: 'nutrition-timing', node: <NutritionTimingCard /> },
-        { key: 'race-fueling', node: <RaceFuelingCard variant="glass" /> },
+        {
+          key: 'race-fueling',
+          node: (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <RaceFuelingCard clientId={clientId} variant="glass" />
+              <FuelingTrainingProgressCard clientId={clientId} variant="glass" />
+            </div>
+          ),
+        },
         { key: 'post-workout-check', node: <PostWorkoutCheckCard /> },
         { key: 'ai-suggestions-banner', node: <AISuggestionsBanner /> },
       ])

@@ -47,6 +47,7 @@ import { MilestoneCelebrationCard } from '@/components/athlete/MilestoneCelebrat
 import { MentalPrepCard } from '@/components/athlete/MentalPrepCard'
 import { NutritionTimingCard } from '@/components/athlete/NutritionTimingCard'
 import { RaceFuelingCard } from '@/components/athlete/fueling/RaceFuelingCard'
+import { FuelingTrainingProgressCard } from '@/components/athlete/fueling/FuelingTrainingProgressCard'
 import { WeeklyTrainingSummaryCard } from '@/components/athlete/WeeklyTrainingSummaryCard'
 import { TrainingTrendChart } from '@/components/athlete/TrainingTrendChart'
 import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart'
@@ -701,8 +702,9 @@ export default async function AthleteDashboardPage() {
       <div className="mb-6">
         <NutritionTimingCard />
       </div>
-      <div className="mb-6">
-        <RaceFuelingCard variant="glass" />
+      <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RaceFuelingCard clientId={clientId} variant="glass" />
+        <FuelingTrainingProgressCard clientId={clientId} variant="glass" />
       </div>
       <div className="mb-6">
         <PostWorkoutCheckCard />
