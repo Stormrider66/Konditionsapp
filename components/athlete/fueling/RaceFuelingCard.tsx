@@ -153,11 +153,18 @@ export function RaceFuelingCard({ clientId, variant = 'default', basePath = '', 
             )}
 
             {showDetailLink && (
-              <Button asChild variant="outline" size="sm" className="w-full">
-                <Link href={`${basePath}/athlete/fueling/${plan.id}`}>
-                  Visa hela raceplanen
-                </Link>
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`${basePath}/athlete/fueling/${plan.id}`}>
+                    Visa planen
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`${basePath}/athlete/fueling`}>
+                    Alla planer
+                  </Link>
+                </Button>
+              </div>
             )}
           </div>
         ) : (

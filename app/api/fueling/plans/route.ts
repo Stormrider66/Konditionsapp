@@ -35,11 +35,12 @@ export async function GET(request: NextRequest) {
     const resolvedClientId = await resolveClientId(request, user.id)
     if (!resolvedClientId) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
 
-    const limit = Math.min(Number(request.nextUrl.searchParams.get('limit') ?? 3), 20)
+    const limit = Math.min(Number(request.nextUrl.searchParams.get('limit') ?? 3), 50)
+    const includeArchived = request.nextUrl.searchParams.get('includeArchived') === 'true'
     const plans = await prisma.raceFuelingPlan.findMany({
       where: {
         clientId: resolvedClientId,
-        status: { not: 'ARCHIVED' },
+        ...(includeArchived ? {} : { status: { not: 'ARCHIVED' } }),
       },
       orderBy: [
         { raceDate: 'asc' },
