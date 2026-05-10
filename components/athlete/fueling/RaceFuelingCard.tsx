@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { Activity, CalendarDays, Flame, PackageCheck, Timer, Utensils } from 'lucide-react'
+import { Activity, CalendarDays, Flame, PackageCheck, Timer, TrendingUp, Utensils } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -33,6 +33,13 @@ interface RaceFuelingPlanSummary {
     bottleMixCount: number | null
     timing: Array<{ minute: number; carbs: number; label: string }>
     notesSv: string[]
+  } | null
+  fuelingProgress?: {
+    linkedWorkoutCount: number
+    loggedWorkoutCount: number
+    bestToleratedGPerHour: number | null
+    buildUpWeeks: number | null
+    nextBuildUpTargetGPerHour: number | null
   } | null
 }
 
@@ -149,6 +156,10 @@ export function RaceFuelingCard({
               </p>
             )}
 
+            {plan.fuelingProgress && (
+              <DashboardFuelingProgress progress={plan.fuelingProgress} />
+            )}
+
             {plan.raceDayPlan && (
               <div className="rounded-lg border bg-orange-50/70 p-3 dark:bg-orange-900/10 dark:border-orange-900/30">
                 <div className="flex items-center gap-2 text-sm font-medium text-orange-800 dark:text-orange-300">
@@ -212,6 +223,40 @@ export function RaceFuelingCard({
   )
 }
 
+function DashboardFuelingProgress({
+  progress,
+}: {
+  progress: NonNullable<RaceFuelingPlanSummary['fuelingProgress']>
+}) {
+  const isSynced = progress.linkedWorkoutCount > 0
+  return (
+    <div className="rounded-lg border bg-blue-50/70 p-3 dark:border-blue-900/30 dark:bg-blue-900/10">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-sm font-medium text-blue-900 dark:text-blue-200">
+            <TrendingUp className="h-4 w-4" />
+            Carb-träning
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {isSynced
+              ? `${progress.linkedWorkoutCount} pass kopplade, ${progress.loggedWorkoutCount} loggade`
+              : 'Synka planen med kommande pass för att bygga toleransen.'}
+          </p>
+        </div>
+        {progress.buildUpWeeks && (
+          <Badge variant="outline" className="shrink-0 bg-white/70 text-[10px] dark:bg-slate-950/40">
+            {progress.buildUpWeeks} veckor
+          </Badge>
+        )}
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <MiniFuelingMetric label="Nästa mål" value={formatGramHour(progress.nextBuildUpTargetGPerHour)} />
+        <MiniFuelingMetric label="Bäst tålt" value={formatGramHour(progress.bestToleratedGPerHour)} />
+      </div>
+    </div>
+  )
+}
+
 function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="rounded-lg border bg-slate-50 dark:bg-slate-800/60 dark:border-white/10 p-3">
@@ -220,6 +265,15 @@ function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; 
         {label}
       </div>
       <p className="text-lg font-semibold mt-1 text-slate-900 dark:text-white">{value}</p>
+    </div>
+  )
+}
+
+function MiniFuelingMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md bg-white/70 px-3 py-2 dark:bg-slate-950/30">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-semibold tabular-nums text-slate-900 dark:text-white">{value}</p>
     </div>
   )
 }
@@ -257,4 +311,8 @@ function formatDuration(minutes: number): string {
 
 function formatGrams(value: number | null): string {
   return value == null ? '-' : `${Math.round(value)} g`
+}
+
+function formatGramHour(value: number | null): string {
+  return value == null ? '-' : `${Math.round(value)} g/h`
 }
