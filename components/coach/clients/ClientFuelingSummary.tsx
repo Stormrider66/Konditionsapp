@@ -43,6 +43,7 @@ interface FuelingPlanSummary {
   raceDate: string | null
   status: string
   coachNotes: string | null
+  athleteNotes: string | null
 }
 
 interface FuelingLogSummary {
@@ -280,6 +281,12 @@ export function ClientFuelingSummary({ clientId }: ClientFuelingSummaryProps) {
                   value={coachNotes}
                   onChange={(event) => setCoachNotes(event.target.value)}
                 />
+                {data.latestPlan.athleteNotes && (
+                  <div className="rounded-md bg-slate-50 p-2 text-xs text-muted-foreground dark:bg-slate-800/60">
+                    <span className="font-medium text-slate-700 dark:text-slate-200">Atletens produkter: </span>
+                    {data.latestPlan.athleteNotes}
+                  </div>
+                )}
                 <div className="flex items-center justify-between gap-2">
                   <Button
                     size="sm"

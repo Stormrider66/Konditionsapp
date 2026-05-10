@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { ArrowLeft, CalendarDays, CheckCircle2, FlaskConical, Loader2, PackageCheck, Timer, Utensils } from 'lucide-react'
+import { ArrowLeft, CalendarDays, CheckCircle2, ClipboardCheck, FlaskConical, Loader2, PackageCheck, Printer, Save, Utensils } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
 
 interface RaceDayPlan {
   carbsPerHour: number
@@ -63,6 +64,8 @@ export function RaceFuelingPlanDetail({ planId, backHref }: RaceFuelingPlanDetai
   const [error, setError] = useState<string | null>(null)
   const [applyState, setApplyState] = useState<'idle' | 'applying' | 'applied' | 'error'>('idle')
   const [appliedCount, setAppliedCount] = useState<number | null>(null)
+  const [athleteNotes, setAthleteNotes] = useState('')
+  const [notesState, setNotesState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -86,6 +89,10 @@ export function RaceFuelingPlanDetail({ planId, backHref }: RaceFuelingPlanDetai
     return () => controller.abort()
   }, [planId])
 
+  useEffect(() => {
+    if (plan) setAthleteNotes(plan.athleteNotes ?? '')
+  }, [plan])
+
   async function applyToProgram() {
     setApplyState('applying')
     try {
@@ -96,6 +103,23 @@ export function RaceFuelingPlanDetail({ planId, backHref }: RaceFuelingPlanDetai
       setApplyState('applied')
     } catch {
       setApplyState('error')
+    }
+  }
+
+  async function saveAthleteNotes() {
+    setNotesState('saving')
+    try {
+      const response = await fetch(`/api/fueling/plans/${planId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ athleteNotes: athleteNotes || null }),
+      })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const body = await response.json()
+      setPlan((current) => current ? { ...current, athleteNotes: body.plan.athleteNotes } : current)
+      setNotesState('saved')
+    } catch {
+      setNotesState('error')
     }
   }
 
@@ -130,7 +154,7 @@ export function RaceFuelingPlanDetail({ planId, backHref }: RaceFuelingPlanDetai
   const warnings = normalizeStringList(plan.warnings)
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
+    <div className="mx-auto max-w-6xl px-4 py-8 space-y-6 print:max-w-none print:px-0">
       <Button asChild variant="ghost">
         <Link href={backHref}>
           <ArrowLeft className="h-4 w-4" />
@@ -160,16 +184,22 @@ export function RaceFuelingPlanDetail({ planId, backHref }: RaceFuelingPlanDetai
           </div>
         </div>
 
-        <Button onClick={() => void applyToProgram()} disabled={applyState === 'applying'}>
-          {applyState === 'applying' ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <CheckCircle2 className="h-4 w-4" />
-          )}
-          {applyState === 'applied'
-            ? `${appliedCount ?? 0} pass uppdaterade`
-            : 'Uppdatera kommande pass'}
-        </Button>
+        <div className="flex flex-wrap gap-2 print:hidden">
+          <Button variant="outline" onClick={() => window.print()}>
+            <Printer className="h-4 w-4" />
+            Skriv ut
+          </Button>
+          <Button onClick={() => void applyToProgram()} disabled={applyState === 'applying'}>
+            {applyState === 'applying' ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
+            {applyState === 'applied'
+              ? `${appliedCount ?? 0} pass uppdaterade`
+              : 'Uppdatera kommande pass'}
+          </Button>
+        </div>
       </div>
 
       {applyState === 'error' && (
@@ -184,7 +214,7 @@ export function RaceFuelingPlanDetail({ planId, backHref }: RaceFuelingPlanDetai
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 print:break-inside-avoid">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <PackageCheck className="h-4 w-4 text-orange-600" />
@@ -225,7 +255,7 @@ export function RaceFuelingPlanDetail({ planId, backHref }: RaceFuelingPlanDetai
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="print:break-inside-avoid">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Utensils className="h-4 w-4 text-amber-600" />
@@ -234,7 +264,28 @@ export function RaceFuelingPlanDetail({ planId, backHref }: RaceFuelingPlanDetai
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <NoteBlock title="Coach" value={plan.coachNotes} />
-            <NoteBlock title="Atlet" value={plan.athleteNotes} />
+            <div className="space-y-2 print:hidden">
+              <p className="font-medium">Mina produkter och noteringar</p>
+              <Textarea
+                value={athleteNotes}
+                onChange={(event) => {
+                  setAthleteNotes(event.target.value)
+                  setNotesState('idle')
+                }}
+                placeholder="Ex: Maurten gel vid 20, 60 och 100 min. Sportdryck i flaska 1 och 2..."
+                className="min-h-[120px]"
+              />
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={() => void saveAthleteNotes()} disabled={notesState === 'saving'}>
+                  {notesState === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {notesState === 'saved' ? 'Sparat' : 'Spara'}
+                </Button>
+                {notesState === 'error' && <span className="text-xs text-destructive">Kunde inte spara.</span>}
+              </div>
+            </div>
+            <div className="hidden print:block">
+              <NoteBlock title="Atlet" value={athleteNotes || plan.athleteNotes} />
+            </div>
             {(assumptions.length > 0 || warnings.length > 0) && (
               <div>
                 <p className="font-medium">Antaganden</p>
@@ -247,7 +298,26 @@ export function RaceFuelingPlanDetail({ planId, backHref }: RaceFuelingPlanDetai
         </Card>
       </div>
 
-      <Card>
+      <Card className="print:break-inside-avoid">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ClipboardCheck className="h-4 w-4 text-emerald-600" />
+            Race week checklista
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 md:grid-cols-2">
+            {buildChecklist(raceDayPlan).map((item) => (
+              <div key={item} className="flex items-start gap-3 rounded-md border px-3 py-2 text-sm">
+                <span className="mt-0.5 h-4 w-4 rounded border border-slate-300 bg-white print:border-black" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="print:break-inside-avoid">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <FlaskConical className="h-4 w-4 text-blue-600" />
@@ -315,6 +385,25 @@ function NoteBlock({ title, value }: { title: string; value: string | null }) {
       <p className="mt-1 text-muted-foreground">{value || 'Ingen anteckning ännu.'}</p>
     </div>
   )
+}
+
+function buildChecklist(plan: RaceDayPlan | null): string[] {
+  const items = [
+    'Testa exakt samma produkter på minst ett långpass.',
+    'Bestäm var produkterna ska ligga: ficka, bälte, flaskor eller langning.',
+    'Skriv ned första tre intagen och följ rytmen tidigt i loppet.',
+    'Planera vätska efter väder, törst och tillgängliga stationer.',
+  ]
+
+  if (plan?.gelEquivalentCount) {
+    items.unshift(`Packa minst ${plan.gelEquivalentCount} gel eller motsvarande mängd kolhydrater.`)
+  }
+
+  if (plan?.bottleMixCount) {
+    items.push(`Förbered sportdryck motsvarande cirka ${plan.bottleMixCount} flaskor à 40 g kolhydrater.`)
+  }
+
+  return items
 }
 
 function normalizeStringList(value: unknown): string[] {
