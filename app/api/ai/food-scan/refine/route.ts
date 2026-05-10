@@ -134,7 +134,7 @@ VIKTIGT: Sätt alltid success till true — maten har redan identifierats och vi
 
 Returnera en komplett uppdaterad analys med alla matvaro — inte bara de ändrade.${enhancedMode ? `
 
-UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, fleromättat), kolhydratfördelning (socker, komplexa kolhydrater) och proteinkvalitet (isCompleteProtein) per matvara och i totals.` : ''}`,
+UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, fleromättat), kolhydratfördelning (socker, komplexa kolhydrater), proteinkvalitet (isCompleteProtein) och proteinkälla (proteinSource: ANIMAL, PLANT, MIXED eller UNKNOWN) per matvara och i totals.` : ''}`,
     })
 
     const result = await withAiContext(

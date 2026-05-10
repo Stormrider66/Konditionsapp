@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Loader2, AlertCircle, RefreshCw, Apple, Sparkles } from 'lucide-react'
+import { AlertCircle, RefreshCw, Apple, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { CalorieTrendChart } from './CalorieTrendChart'
 import { MacroPieChart } from './MacroPieChart'
 import { MealFrequencyChart } from './MealFrequencyChart'
 import { ProteinTimingCard } from './ProteinTimingCard'
 import { GoalAdherenceCard } from './GoalAdherenceCard'
+import { NutritionQualityCard, type NutritionQuality } from './NutritionQualityCard'
 
 interface DailyTotal {
   date: string
@@ -64,6 +65,7 @@ interface StatsData {
   proteinTiming: ProteinTiming
   goalAdherence: GoalAdherence | null
   overallMacroRatio: MacroRatio | null
+  nutritionQuality: NutritionQuality
   summary: {
     totalDaysLogged: number
     avgMealsPerDay: number
@@ -104,7 +106,7 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
   }
 
   useEffect(() => {
-    fetchStats(range)
+    void fetchStats(range)
   }, [range, clientId])
 
   if (isLoading) {
@@ -214,6 +216,8 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
 
       {/* Calorie trend chart */}
       <CalorieTrendChart dailyTotals={data.dailyTotals} />
+
+      <NutritionQualityCard quality={data.nutritionQuality} />
 
       {/* Macro pie + Goal adherence side by side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

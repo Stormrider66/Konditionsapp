@@ -124,7 +124,8 @@ UTÖKAD ANALYS (detaljerade makrosubkategorier):
 8. Fettfördelning per matvara: mättade, enkelomättade, fleromättade fettsyror (gram)
 9. Kolhydratfördelning per matvara: socker och komplexa kolhydrater (stärkelse) i gram
 10. Proteinkvalitet: ange om matvaran är en komplett proteinkälla (alla essentiella aminosyror)
-11. Summera fett- och kolhydratsubkategorier i totals` : ''}`,
+11. Proteinkälla per matvara: proteinSource ska vara ANIMAL, PLANT, MIXED eller UNKNOWN. Animaliskt är inte alltid samma sak som komplett; soja/tofu/tempeh och quinoa kan vara kompletta växtkällor.
+12. Summera fett- och kolhydratsubkategorier i totals` : ''}`,
         },
       ],
         }),

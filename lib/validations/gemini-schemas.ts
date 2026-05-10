@@ -440,6 +440,7 @@ export const FoodPhotoAnalysisSchema = z.object({
       sugarGrams: z.number().optional().describe('Sugar in grams'),
       complexCarbsGrams: z.number().optional().describe('Complex carbs (starch) in grams'),
       isCompleteProtein: z.boolean().optional().describe('Whether this item is a complete protein source'),
+      proteinSource: z.enum(['ANIMAL', 'PLANT', 'MIXED', 'UNKNOWN']).optional().describe('Primary protein source type'),
     })
   ),
 

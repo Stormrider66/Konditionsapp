@@ -85,6 +85,7 @@ export interface MealLogData {
 interface YesterdayMealItem {
   foodId: string | null
   name: string
+  category?: string | null
   estimatedGrams: number
   portionDescription: string | null
   calories: number
@@ -92,6 +93,12 @@ interface YesterdayMealItem {
   carbsGrams: number
   fatGrams: number
   fiberGrams: number
+  saturatedFatGrams?: number | null
+  monounsaturatedFatGrams?: number | null
+  polyunsaturatedFatGrams?: number | null
+  sugarGrams?: number | null
+  isCompleteProtein?: boolean | null
+  proteinSource?: 'ANIMAL' | 'PLANT' | 'MIXED' | 'UNKNOWN' | null
 }
 
 interface YesterdayMeal {
@@ -301,12 +308,19 @@ export function QuickMealLog({
             | Array<{
                 foodId: string | null
                 name: string
+                category?: string | null
                 estimatedGrams: number
                 calories: number
                 proteinGrams: number
                 carbsGrams: number
                 fatGrams: number
                 fiberGrams: number
+                saturatedFatGrams?: number | null
+                monounsaturatedFatGrams?: number | null
+                polyunsaturatedFatGrams?: number | null
+                sugarGrams?: number | null
+                isCompleteProtein?: boolean | null
+                proteinSource?: 'ANIMAL' | 'PLANT' | 'MIXED' | 'UNKNOWN' | null
               }>
             | undefined
           if (items && items.length > 0) {
@@ -436,12 +450,19 @@ export function QuickMealLog({
       setIngredients(ingredientRowsFromItems(yesterdayMeal.items.map((item) => ({
         foodId: item.foodId ?? undefined,
         name: item.name,
+        category: item.category,
         estimatedGrams: item.estimatedGrams,
         calories: item.calories,
         proteinGrams: item.proteinGrams,
         carbsGrams: item.carbsGrams,
         fatGrams: item.fatGrams,
         fiberGrams: item.fiberGrams,
+        saturatedFatGrams: item.saturatedFatGrams,
+        monounsaturatedFatGrams: item.monounsaturatedFatGrams,
+        polyunsaturatedFatGrams: item.polyunsaturatedFatGrams,
+        sugarGrams: item.sugarGrams,
+        isCompleteProtein: item.isCompleteProtein,
+        proteinSource: item.proteinSource,
       }))))
       setTab('ingredients')
     }
@@ -573,6 +594,12 @@ export function QuickMealLog({
         data.carbsGrams = Math.round(totals.carbsGrams * 10) / 10
         data.fatGrams = Math.round(totals.fatGrams * 10) / 10
         data.fiberGrams = Math.round(totals.fiberGrams * 10) / 10
+        if (totals.saturatedFatGrams != null) {
+          data.saturatedFatGrams = Math.round(totals.saturatedFatGrams * 10) / 10
+          data.monounsaturatedFatGrams = Math.round((totals.monounsaturatedFatGrams ?? 0) * 10) / 10
+          data.polyunsaturatedFatGrams = Math.round((totals.polyunsaturatedFatGrams ?? 0) * 10) / 10
+          data.sugarGrams = Math.round((totals.sugarGrams ?? 0) * 10) / 10
+        }
         data.items = ingredientRowsToApiItems(ingredients)
       } else {
         if (formData.calories) data.calories = parseInt(formData.calories)

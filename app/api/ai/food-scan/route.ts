@@ -69,7 +69,7 @@ function buildPrompt({
     : ''
 
   const enhancedBlock = enhancedMode
-    ? `\n\nUTÖKAD ANALYS (detaljerade makrosubkategorier):\n8. Fettfördelning per matvara: mättade, enkelomättade, fleromättade fettsyror (gram)\n9. Kolhydratfördelning per matvara: socker och komplexa kolhydrater (stärkelse) i gram\n10. Proteinkvalitet: ange om matvaran är en komplett proteinkälla (alla essentiella aminosyror)\n11. Summera fett- och kolhydratsubkategorier i totals`
+    ? `\n\nUTÖKAD ANALYS (detaljerade makrosubkategorier):\n8. Fettfördelning per matvara: mättade, enkelomättade, fleromättade fettsyror (gram)\n9. Kolhydratfördelning per matvara: socker och komplexa kolhydrater (stärkelse) i gram\n10. Proteinkvalitet: ange om matvaran är en komplett proteinkälla (alla essentiella aminosyror)\n11. Proteinkälla per matvara: proteinSource ska vara ANIMAL, PLANT, MIXED eller UNKNOWN. Animaliskt är inte alltid samma sak som komplett; soja/tofu/tempeh och quinoa kan vara kompletta växtkällor.\n12. Summera fett- och kolhydratsubkategorier i totals`
     : ''
 
   return `Du är en expert på näringslära och matidentifiering. Analysera denna bild av en måltid och uppskatta kalorier och makronäringsämnen.

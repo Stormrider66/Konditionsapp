@@ -582,6 +582,7 @@ export function FoodPhotoScanner({
               sugarGrams: item.sugarGrams,
               complexCarbsGrams: item.complexCarbsGrams,
               isCompleteProtein: item.isCompleteProtein,
+              proteinSource: item.proteinSource,
             } : {}),
           })),
         }),

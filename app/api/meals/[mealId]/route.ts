@@ -5,6 +5,12 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { MealType } from '@prisma/client'
+import {
+  inferCompleteProtein,
+  inferProteinSource,
+  normalizeProteinSource,
+  PROTEIN_SOURCE_VALUES,
+} from '@/lib/nutrition/protein-quality'
 
 // Validation schema for updating a meal log
 const updateMealSchema = z.object({
@@ -17,6 +23,12 @@ const updateMealSchema = z.object({
   fatGrams: z.number().positive().nullable().optional(),
   fiberGrams: z.number().positive().nullable().optional(),
   waterMl: z.number().int().positive().nullable().optional(),
+  saturatedFatGrams: z.number().nonnegative().nullable().optional(),
+  monounsaturatedFatGrams: z.number().nonnegative().nullable().optional(),
+  polyunsaturatedFatGrams: z.number().nonnegative().nullable().optional(),
+  sugarGrams: z.number().nonnegative().nullable().optional(),
+  complexCarbsGrams: z.number().nonnegative().nullable().optional(),
+  isCompleteProtein: z.boolean().nullable().optional(),
   isHighProtein: z.boolean().optional(),
   isPreWorkout: z.boolean().optional(),
   isPostWorkout: z.boolean().optional(),
@@ -38,10 +50,35 @@ const updateMealSchema = z.object({
         carbsGrams: z.number().nonnegative(),
         fatGrams: z.number().nonnegative(),
         fiberGrams: z.number().nonnegative().optional(),
+        saturatedFatGrams: z.number().nonnegative().optional(),
+        monounsaturatedFatGrams: z.number().nonnegative().optional(),
+        polyunsaturatedFatGrams: z.number().nonnegative().optional(),
+        sugarGrams: z.number().nonnegative().optional(),
+        complexCarbsGrams: z.number().nonnegative().optional(),
+        isCompleteProtein: z.boolean().optional(),
+        proteinSource: z.enum(PROTEIN_SOURCE_VALUES).optional(),
       })
     )
     .optional(),
 })
+
+function resolveItemProteinSource(item: {
+  name: string
+  category?: string | null
+  proteinSource?: string
+}) {
+  return normalizeProteinSource(item.proteinSource) ?? inferProteinSource(item.name, item.category)
+}
+
+function resolveItemCompleteProtein(item: {
+  name: string
+  category?: string | null
+  proteinSource?: string
+  isCompleteProtein?: boolean
+}) {
+  const source = resolveItemProteinSource(item)
+  return item.isCompleteProtein ?? inferCompleteProtein(item.name, item.category, source)
+}
 
 // GET /api/meals/[mealId] - Get a single meal
 export async function GET(
@@ -164,6 +201,13 @@ export async function PATCH(
               carbsGrams: item.carbsGrams,
               fatGrams: item.fatGrams,
               fiberGrams: item.fiberGrams ?? 0,
+              saturatedFatGrams: item.saturatedFatGrams,
+              monounsaturatedFatGrams: item.monounsaturatedFatGrams,
+              polyunsaturatedFatGrams: item.polyunsaturatedFatGrams,
+              sugarGrams: item.sugarGrams,
+              complexCarbsGrams: item.complexCarbsGrams,
+              isCompleteProtein: resolveItemCompleteProtein(item),
+              proteinSource: resolveItemProteinSource(item),
               sortOrder: i,
             })),
           })

@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { inferCompleteProtein, inferProteinSource, normalizeProteinSource } from '@/lib/nutrition/protein-quality'
 
 const RANGE_DAYS: Record<string, number> = {
   '7d': 7,
@@ -45,8 +46,24 @@ export async function GET(request: NextRequest) {
           carbsGrams: true,
           fatGrams: true,
           fiberGrams: true,
+          saturatedFatGrams: true,
+          monounsaturatedFatGrams: true,
+          polyunsaturatedFatGrams: true,
           isPreWorkout: true,
           isPostWorkout: true,
+          items: {
+            select: {
+              name: true,
+              category: true,
+              proteinGrams: true,
+              fatGrams: true,
+              saturatedFatGrams: true,
+              monounsaturatedFatGrams: true,
+              polyunsaturatedFatGrams: true,
+              isCompleteProtein: true,
+              proteinSource: true,
+            },
+          },
         },
       }),
 
@@ -211,8 +228,10 @@ export async function GET(request: NextRequest) {
           proteinPercent: Math.round((totalProteinCal / totalMacroCal) * 100),
           carbsPercent: Math.round((totalCarbsCal / totalMacroCal) * 100),
           fatPercent: Math.round((totalFatCal / totalMacroCal) * 100),
-        }
+      }
       : null
+
+    const nutritionQuality = calculateNutritionQuality(meals)
 
     // Summary
     const totalDaysLogged = dailyTotals.length
@@ -229,6 +248,7 @@ export async function GET(request: NextRequest) {
       proteinTiming,
       goalAdherence,
       overallMacroRatio,
+      nutritionQuality,
       summary: {
         totalDaysLogged,
         avgMealsPerDay,
@@ -243,6 +263,134 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Kunde inte hämta statistik' }, { status: 500 })
+  }
+}
+
+function round1(value: number): number {
+  return Math.round(value * 10) / 10
+}
+
+function percentage(part: number, total: number): number {
+  return total > 0 ? Math.round((part / total) * 100) : 0
+}
+
+function calculateNutritionQuality(meals: Array<{
+  proteinGrams: number | null
+  fatGrams: number | null
+  saturatedFatGrams: number | null
+  monounsaturatedFatGrams: number | null
+  polyunsaturatedFatGrams: number | null
+  items: Array<{
+    name: string
+    category: string | null
+    proteinGrams: number
+    fatGrams: number
+    saturatedFatGrams: number | null
+    monounsaturatedFatGrams: number | null
+    polyunsaturatedFatGrams: number | null
+    isCompleteProtein: boolean | null
+    proteinSource: string | null
+  }>
+}>) {
+  let totalProtein = 0
+  let animalProtein = 0
+  let plantProtein = 0
+  let mixedProtein = 0
+  let completeProtein = 0
+  let incompleteKnownProtein = 0
+  let unknownQualityProtein = 0
+
+  let totalFat = 0
+  let saturatedFat = 0
+  let monounsaturatedFat = 0
+  let polyunsaturatedFat = 0
+
+  for (const meal of meals) {
+    totalProtein += meal.proteinGrams ?? 0
+    totalFat += meal.fatGrams ?? 0
+
+    const items = meal.items ?? []
+    const itemProtein = items.reduce((sum, item) => sum + item.proteinGrams, 0)
+
+    if (items.length === 0 || itemProtein <= 0) {
+      unknownQualityProtein += meal.proteinGrams ?? 0
+    } else {
+      for (const item of items) {
+        const protein = item.proteinGrams
+        if (protein <= 0) continue
+
+        const source = normalizeProteinSource(item.proteinSource) ?? inferProteinSource(item.name, item.category)
+        if (source === 'ANIMAL') animalProtein += protein
+        else if (source === 'PLANT') plantProtein += protein
+        else if (source === 'MIXED') mixedProtein += protein
+
+        const isComplete = item.isCompleteProtein ?? inferCompleteProtein(item.name, item.category, source)
+        if (isComplete === true) completeProtein += protein
+        else if (isComplete === false) incompleteKnownProtein += protein
+        else unknownQualityProtein += protein
+      }
+
+      const mealProteinDelta = Math.max(0, (meal.proteinGrams ?? 0) - itemProtein)
+      unknownQualityProtein += mealProteinDelta
+    }
+
+    const itemFatWithBreakdown = items.filter(
+      (item) =>
+        item.saturatedFatGrams != null ||
+        item.monounsaturatedFatGrams != null ||
+        item.polyunsaturatedFatGrams != null
+    )
+
+    if (itemFatWithBreakdown.length > 0) {
+      for (const item of itemFatWithBreakdown) {
+        saturatedFat += item.saturatedFatGrams ?? 0
+        monounsaturatedFat += item.monounsaturatedFatGrams ?? 0
+        polyunsaturatedFat += item.polyunsaturatedFatGrams ?? 0
+      }
+    } else {
+      saturatedFat += meal.saturatedFatGrams ?? 0
+      monounsaturatedFat += meal.monounsaturatedFatGrams ?? 0
+      polyunsaturatedFat += meal.polyunsaturatedFatGrams ?? 0
+    }
+  }
+
+  const knownQualityProtein = completeProtein + incompleteKnownProtein
+  const knownProteinSource = animalProtein + plantProtein + mixedProtein
+  const knownFatBreakdown = saturatedFat + monounsaturatedFat + polyunsaturatedFat
+  const otherFat = Math.max(0, totalFat - knownFatBreakdown)
+
+  return {
+    protein: {
+      totalGrams: round1(totalProtein),
+      completeGrams: round1(completeProtein),
+      incompleteKnownGrams: round1(incompleteKnownProtein),
+      unknownQualityGrams: round1(unknownQualityProtein),
+      completePercentOfKnown: percentage(completeProtein, knownQualityProtein),
+      knownQualityCoveragePercent: percentage(knownQualityProtein, totalProtein),
+      targetCompletePercent: 75,
+      sourceDistribution: {
+        animalGrams: round1(animalProtein),
+        plantGrams: round1(plantProtein),
+        mixedGrams: round1(mixedProtein),
+        unknownGrams: round1(Math.max(0, totalProtein - knownProteinSource)),
+        animalPercent: percentage(animalProtein, totalProtein),
+        plantPercent: percentage(plantProtein, totalProtein),
+        mixedPercent: percentage(mixedProtein, totalProtein),
+        unknownPercent: percentage(Math.max(0, totalProtein - knownProteinSource), totalProtein),
+      },
+    },
+    fat: {
+      totalGrams: round1(totalFat),
+      saturatedGrams: round1(saturatedFat),
+      monounsaturatedGrams: round1(monounsaturatedFat),
+      polyunsaturatedGrams: round1(polyunsaturatedFat),
+      otherGrams: round1(otherFat),
+      saturatedPercent: percentage(saturatedFat, totalFat),
+      monounsaturatedPercent: percentage(monounsaturatedFat, totalFat),
+      polyunsaturatedPercent: percentage(polyunsaturatedFat, totalFat),
+      otherPercent: percentage(otherFat, totalFat),
+      knownBreakdownCoveragePercent: percentage(knownFatBreakdown, totalFat),
+    },
   }
 }
 

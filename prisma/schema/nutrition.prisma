@@ -207,6 +207,7 @@ model MealFoodItem {
   sugarGrams              Float?
   complexCarbsGrams       Float?
   isCompleteProtein       Boolean?
+  proteinSource           String? // ANIMAL | PLANT | MIXED | UNKNOWN
 
   sortOrder Int @default(0)
 
@@ -297,6 +298,8 @@ model Food {
   monounsaturatedFatPer100g Float?
   polyunsaturatedFatPer100g Float?
   sugarPer100g              Float?
+  proteinSource             String? // ANIMAL | PLANT | MIXED | UNKNOWN
+  isCompleteProtein         Boolean?
 
   // Surface ranking. Bumped by the search API when an item is picked.
   popularity Int @default(0)

@@ -5,6 +5,12 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { MealType } from '@prisma/client'
+import {
+  inferCompleteProtein,
+  inferProteinSource,
+  normalizeProteinSource,
+  PROTEIN_SOURCE_VALUES,
+} from '@/lib/nutrition/protein-quality'
 
 // Validation schema for creating a meal log
 const createMealSchema = z.object({
@@ -48,6 +54,7 @@ const createMealSchema = z.object({
     sugarGrams: z.number().nonnegative().optional(),
     complexCarbsGrams: z.number().nonnegative().optional(),
     isCompleteProtein: z.boolean().optional(),
+    proteinSource: z.enum(PROTEIN_SOURCE_VALUES).optional(),
   })).optional(),
   // When true, merge into a meal of the same (date, mealType) created in the
   // last MERGE_WINDOW_MINUTES instead of creating a separate entry. Used by
@@ -59,6 +66,24 @@ const createMealSchema = z.object({
 const MERGE_WINDOW_MINUTES = 30
 
 type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
+
+function resolveItemProteinSource(item: {
+  name: string
+  category?: string | null
+  proteinSource?: string
+}) {
+  return normalizeProteinSource(item.proteinSource) ?? inferProteinSource(item.name, item.category)
+}
+
+function resolveItemCompleteProtein(item: {
+  name: string
+  category?: string | null
+  proteinSource?: string
+  isCompleteProtein?: boolean
+}) {
+  const source = resolveItemProteinSource(item)
+  return item.isCompleteProtein ?? inferCompleteProtein(item.name, item.category, source)
+}
 
 // Bump popularity once per distinct foodId in the saved items list so the
 // food typeahead surfaces frequently-picked items first.
@@ -289,7 +314,8 @@ export async function POST(request: NextRequest) {
               polyunsaturatedFatGrams: item.polyunsaturatedFatGrams,
               sugarGrams: item.sugarGrams,
               complexCarbsGrams: item.complexCarbsGrams,
-              isCompleteProtein: item.isCompleteProtein,
+              isCompleteProtein: resolveItemCompleteProtein(item),
+              proteinSource: resolveItemProteinSource(item),
               sortOrder: existingItemCount + i,
             })),
           })
@@ -348,7 +374,8 @@ export async function POST(request: NextRequest) {
             polyunsaturatedFatGrams: item.polyunsaturatedFatGrams,
             sugarGrams: item.sugarGrams,
             complexCarbsGrams: item.complexCarbsGrams,
-            isCompleteProtein: item.isCompleteProtein,
+            isCompleteProtein: resolveItemCompleteProtein(item),
+            proteinSource: resolveItemProteinSource(item),
             sortOrder: i,
           })),
         })

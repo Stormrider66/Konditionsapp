@@ -165,6 +165,12 @@ VIKTIGT:
             carbsPer100g: true,
             fatPer100g: true,
             fiberPer100g: true,
+            saturatedFatPer100g: true,
+            monounsaturatedFatPer100g: true,
+            polyunsaturatedFatPer100g: true,
+            sugarPer100g: true,
+            isCompleteProtein: true,
+            proteinSource: true,
           },
         })
         if (prefix) return { ...ing, food: prefix }
@@ -180,6 +186,12 @@ VIKTIGT:
             carbsPer100g: true,
             fatPer100g: true,
             fiberPer100g: true,
+            saturatedFatPer100g: true,
+            monounsaturatedFatPer100g: true,
+            polyunsaturatedFatPer100g: true,
+            sugarPer100g: true,
+            isCompleteProtein: true,
+            proteinSource: true,
           },
         })
         return { ...ing, food: contains }

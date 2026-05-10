@@ -11,6 +11,7 @@ export interface IngredientRow {
   rowId: string
   foodId?: string
   name: string
+  category?: string | null
   grams: number
   // Per-100g values cached on the row when a Food was picked. macros below are
   // grams * (per-100g / 100). Free-text rows leave per-100g undefined and
@@ -20,6 +21,12 @@ export interface IngredientRow {
   carbsPer100g?: number
   fatPer100g?: number
   fiberPer100g?: number
+  saturatedFatPer100g?: number
+  monounsaturatedFatPer100g?: number
+  polyunsaturatedFatPer100g?: number
+  sugarPer100g?: number
+  isCompleteProtein?: boolean
+  proteinSource?: 'ANIMAL' | 'PLANT' | 'MIXED' | 'UNKNOWN'
 }
 
 export interface IngredientTotals {
@@ -28,6 +35,10 @@ export interface IngredientTotals {
   carbsGrams: number
   fatGrams: number
   fiberGrams: number
+  saturatedFatGrams?: number
+  monounsaturatedFatGrams?: number
+  polyunsaturatedFatGrams?: number
+  sugarGrams?: number
 }
 
 interface FoodOption {
@@ -39,6 +50,12 @@ interface FoodOption {
   carbsPer100g: number
   fatPer100g: number
   fiberPer100g: number | null
+  saturatedFatPer100g: number | null
+  monounsaturatedFatPer100g: number | null
+  polyunsaturatedFatPer100g: number | null
+  sugarPer100g: number | null
+  isCompleteProtein: boolean | null
+  proteinSource: 'ANIMAL' | 'PLANT' | 'MIXED' | 'UNKNOWN' | null
 }
 
 interface IngredientBuilderProps {
@@ -67,6 +84,12 @@ interface SavedRecipeIngredient {
   carbsPer100g: number
   fatPer100g: number
   fiberPer100g: number
+  saturatedFatPer100g?: number | null
+  monounsaturatedFatPer100g?: number | null
+  polyunsaturatedFatPer100g?: number | null
+  sugarPer100g?: number | null
+  isCompleteProtein?: boolean | null
+  proteinSource?: 'ANIMAL' | 'PLANT' | 'MIXED' | 'UNKNOWN' | null
 }
 
 interface SavedRecipe {
@@ -87,6 +110,10 @@ export function ingredientMacros(row: IngredientRow): IngredientTotals {
     carbsGrams: (row.carbsPer100g ?? 0) * factor,
     fatGrams: (row.fatPer100g ?? 0) * factor,
     fiberGrams: (row.fiberPer100g ?? 0) * factor,
+    saturatedFatGrams: row.saturatedFatPer100g != null ? row.saturatedFatPer100g * factor : undefined,
+    monounsaturatedFatGrams: row.monounsaturatedFatPer100g != null ? row.monounsaturatedFatPer100g * factor : undefined,
+    polyunsaturatedFatGrams: row.polyunsaturatedFatPer100g != null ? row.polyunsaturatedFatPer100g * factor : undefined,
+    sugarGrams: row.sugarPer100g != null ? row.sugarPer100g * factor : undefined,
   }
 }
 
@@ -100,6 +127,10 @@ export function sumIngredientMacros(rows: IngredientRow[]): IngredientTotals {
         carbsGrams: acc.carbsGrams + m.carbsGrams,
         fatGrams: acc.fatGrams + m.fatGrams,
         fiberGrams: acc.fiberGrams + m.fiberGrams,
+        saturatedFatGrams: m.saturatedFatGrams != null ? (acc.saturatedFatGrams ?? 0) + m.saturatedFatGrams : acc.saturatedFatGrams,
+        monounsaturatedFatGrams: m.monounsaturatedFatGrams != null ? (acc.monounsaturatedFatGrams ?? 0) + m.monounsaturatedFatGrams : acc.monounsaturatedFatGrams,
+        polyunsaturatedFatGrams: m.polyunsaturatedFatGrams != null ? (acc.polyunsaturatedFatGrams ?? 0) + m.polyunsaturatedFatGrams : acc.polyunsaturatedFatGrams,
+        sugarGrams: m.sugarGrams != null ? (acc.sugarGrams ?? 0) + m.sugarGrams : acc.sugarGrams,
       }
     },
     { calories: 0, proteinGrams: 0, carbsGrams: 0, fatGrams: 0, fiberGrams: 0 }
@@ -135,12 +166,19 @@ function ingredientRowsToRecipeItems(rows: IngredientRow[]) {
     .map((row) => ({
       foodId: row.foodId,
       name: row.name.trim(),
+      category: row.category,
       grams: row.grams,
       caloriesPer100g: row.caloriesPer100g ?? 0,
       proteinPer100g: row.proteinPer100g ?? 0,
       carbsPer100g: row.carbsPer100g ?? 0,
       fatPer100g: row.fatPer100g ?? 0,
       fiberPer100g: row.fiberPer100g ?? 0,
+      saturatedFatPer100g: row.saturatedFatPer100g,
+      monounsaturatedFatPer100g: row.monounsaturatedFatPer100g,
+      polyunsaturatedFatPer100g: row.polyunsaturatedFatPer100g,
+      sugarPer100g: row.sugarPer100g,
+      isCompleteProtein: row.isCompleteProtein,
+      proteinSource: row.proteinSource,
     }))
 }
 
@@ -195,14 +233,21 @@ function recipeToIngredientRows(
   const factor = recipeAmountToScaleFactor(recipe, amount, unit, pieceGrams)
   return recipe.items.map((item) => ({
     rowId: makeRowId(),
-    foodId: item.foodId ?? undefined,
-    name: item.name,
+      foodId: item.foodId ?? undefined,
+      name: item.name,
+      category: item.category ?? undefined,
     grams: Math.round(item.grams * factor * 10) / 10,
     caloriesPer100g: item.caloriesPer100g,
     proteinPer100g: item.proteinPer100g,
     carbsPer100g: item.carbsPer100g,
-    fatPer100g: item.fatPer100g,
-    fiberPer100g: item.fiberPer100g,
+      fatPer100g: item.fatPer100g,
+      fiberPer100g: item.fiberPer100g,
+      saturatedFatPer100g: item.saturatedFatPer100g ?? undefined,
+      monounsaturatedFatPer100g: item.monounsaturatedFatPer100g ?? undefined,
+      polyunsaturatedFatPer100g: item.polyunsaturatedFatPer100g ?? undefined,
+      sugarPer100g: item.sugarPer100g ?? undefined,
+      isCompleteProtein: item.isCompleteProtein ?? undefined,
+      proteinSource: item.proteinSource ?? undefined,
   }))
 }
 
@@ -342,12 +387,19 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
               rowId: makeRowId(),
               foodId: ing.food.id,
               name: ing.food.nameSv,
+              category: ing.food.category,
               grams: ing.grams,
               caloriesPer100g: ing.food.caloriesPer100g,
               proteinPer100g: ing.food.proteinPer100g,
               carbsPer100g: ing.food.carbsPer100g,
               fatPer100g: ing.food.fatPer100g,
               fiberPer100g: ing.food.fiberPer100g ?? undefined,
+              saturatedFatPer100g: ing.food.saturatedFatPer100g ?? undefined,
+              monounsaturatedFatPer100g: ing.food.monounsaturatedFatPer100g ?? undefined,
+              polyunsaturatedFatPer100g: ing.food.polyunsaturatedFatPer100g ?? undefined,
+              sugarPer100g: ing.food.sugarPer100g ?? undefined,
+              isCompleteProtein: ing.food.isCompleteProtein ?? undefined,
+              proteinSource: ing.food.proteinSource ?? undefined,
             }
           : {
               rowId: makeRowId(),
@@ -798,11 +850,18 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
     onChange({
       foodId: food.id,
       name: food.nameSv,
+      category: food.category,
       caloriesPer100g: food.caloriesPer100g,
       proteinPer100g: food.proteinPer100g,
       carbsPer100g: food.carbsPer100g,
       fatPer100g: food.fatPer100g,
       fiberPer100g: food.fiberPer100g ?? undefined,
+      saturatedFatPer100g: food.saturatedFatPer100g ?? undefined,
+      monounsaturatedFatPer100g: food.monounsaturatedFatPer100g ?? undefined,
+      polyunsaturatedFatPer100g: food.polyunsaturatedFatPer100g ?? undefined,
+      sugarPer100g: food.sugarPer100g ?? undefined,
+      isCompleteProtein: food.isCompleteProtein ?? undefined,
+      proteinSource: food.proteinSource ?? undefined,
     })
   }
 
@@ -822,7 +881,20 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
         throw new Error(payload?.error || 'Kunde inte uppskatta')
       }
       const totals = payload?.result?.totals as
-        | { calories?: number; proteinGrams?: number; carbsGrams?: number; fatGrams?: number; fiberGrams?: number }
+        | {
+            calories?: number
+            proteinGrams?: number
+            carbsGrams?: number
+            fatGrams?: number
+            fiberGrams?: number
+            saturatedFatGrams?: number
+            monounsaturatedFatGrams?: number
+            polyunsaturatedFatGrams?: number
+            sugarGrams?: number
+          }
+        | undefined
+      const firstItem = payload?.result?.items?.[0] as
+        | { isCompleteProtein?: boolean; proteinSource?: 'ANIMAL' | 'PLANT' | 'MIXED' | 'UNKNOWN' }
         | undefined
       if (!totals || totals.calories == null) {
         throw new Error('Inget resultat')
@@ -835,6 +907,12 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
         carbsPer100g: (totals.carbsGrams ?? 0) * factor,
         fatPer100g: (totals.fatGrams ?? 0) * factor,
         fiberPer100g: totals.fiberGrams != null ? totals.fiberGrams * factor : undefined,
+        saturatedFatPer100g: totals.saturatedFatGrams != null ? totals.saturatedFatGrams * factor : undefined,
+        monounsaturatedFatPer100g: totals.monounsaturatedFatGrams != null ? totals.monounsaturatedFatGrams * factor : undefined,
+        polyunsaturatedFatPer100g: totals.polyunsaturatedFatGrams != null ? totals.polyunsaturatedFatGrams * factor : undefined,
+        sugarPer100g: totals.sugarGrams != null ? totals.sugarGrams * factor : undefined,
+        isCompleteProtein: firstItem?.isCompleteProtein,
+        proteinSource: firstItem?.proteinSource,
       })
     } catch (err) {
       setEstimateError(err instanceof Error ? err.message : 'AI-uppskattning misslyckades')
@@ -861,11 +939,18 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
               onChange({
                 foodId: undefined,
                 name: e.target.value,
+                category: undefined,
                 caloriesPer100g: undefined,
                 proteinPer100g: undefined,
                 carbsPer100g: undefined,
                 fatPer100g: undefined,
                 fiberPer100g: undefined,
+                saturatedFatPer100g: undefined,
+                monounsaturatedFatPer100g: undefined,
+                polyunsaturatedFatPer100g: undefined,
+                sugarPer100g: undefined,
+                isCompleteProtein: undefined,
+                proteinSource: undefined,
               })
             }}
             onFocus={() => results.length > 0 && setOpen(true)}
@@ -971,12 +1056,19 @@ export function ingredientRowsToApiItems(rows: IngredientRow[]) {
       return {
         foodId: r.foodId,
         name: r.name.trim(),
+        category: r.category ?? undefined,
         estimatedGrams: r.grams,
         calories: m.calories,
         proteinGrams: m.proteinGrams,
         carbsGrams: m.carbsGrams,
         fatGrams: m.fatGrams,
         fiberGrams: m.fiberGrams,
+        saturatedFatGrams: m.saturatedFatGrams,
+        monounsaturatedFatGrams: m.monounsaturatedFatGrams,
+        polyunsaturatedFatGrams: m.polyunsaturatedFatGrams,
+        sugarGrams: m.sugarGrams,
+        isCompleteProtein: r.isCompleteProtein,
+        proteinSource: r.proteinSource,
       }
     })
 }
@@ -984,12 +1076,19 @@ export function ingredientRowsToApiItems(rows: IngredientRow[]) {
 export interface ItemFromMeal {
   foodId?: string | null
   name: string
+  category?: string | null
   estimatedGrams: number
   calories: number
   proteinGrams: number
   carbsGrams: number
   fatGrams: number
   fiberGrams: number
+  saturatedFatGrams?: number | null
+  monounsaturatedFatGrams?: number | null
+  polyunsaturatedFatGrams?: number | null
+  sugarGrams?: number | null
+  isCompleteProtein?: boolean | null
+  proteinSource?: 'ANIMAL' | 'PLANT' | 'MIXED' | 'UNKNOWN' | null
 }
 
 // Hydrate ingredient rows from a meal's persisted items. We back-derive the
@@ -1001,12 +1100,19 @@ export function ingredientRowsFromItems(items: ItemFromMeal[]): IngredientRow[] 
       rowId: makeRowId(),
       foodId: it.foodId ?? undefined,
       name: it.name,
+      category: it.category ?? undefined,
       grams: it.estimatedGrams,
       caloriesPer100g: it.calories * factor,
       proteinPer100g: it.proteinGrams * factor,
       carbsPer100g: it.carbsGrams * factor,
       fatPer100g: it.fatGrams * factor,
       fiberPer100g: it.fiberGrams * factor,
+      saturatedFatPer100g: it.saturatedFatGrams != null ? it.saturatedFatGrams * factor : undefined,
+      monounsaturatedFatPer100g: it.monounsaturatedFatGrams != null ? it.monounsaturatedFatGrams * factor : undefined,
+      polyunsaturatedFatPer100g: it.polyunsaturatedFatGrams != null ? it.polyunsaturatedFatGrams * factor : undefined,
+      sugarPer100g: it.sugarGrams != null ? it.sugarGrams * factor : undefined,
+      isCompleteProtein: it.isCompleteProtein ?? undefined,
+      proteinSource: it.proteinSource ?? undefined,
     }
   })
 }
