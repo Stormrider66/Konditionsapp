@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { buildFuelingSessionFeedback } from '@/lib/fueling/session-feedback'
 
 type FuelingStatus = 'NO_DATA' | 'READY_TO_PROGRESS' | 'HOLD' | 'REDUCE' | 'ON_TRACK'
 
@@ -317,7 +318,7 @@ export function ClientFuelingSummary({ clientId }: ClientFuelingSummaryProps) {
             {data?.recentLogs.length ? (
               <div className="space-y-2">
                 {data.recentLogs.slice(0, 3).map((log) => (
-                  <div key={log.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-xs">
+                  <div key={log.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border px-3 py-2 text-xs">
                     <div className="min-w-0">
                       <p className="truncate font-medium text-slate-900 dark:text-white">{log.workoutName}</p>
                       <p className="text-muted-foreground">
@@ -327,6 +328,14 @@ export function ClientFuelingSummary({ clientId }: ClientFuelingSummaryProps) {
                     <div className="text-right tabular-nums">
                       <p className="font-medium">{formatGramHour(log.actualCarbsGPerHour)}</p>
                       <p className="text-muted-foreground">plan {formatGramHour(log.plannedCarbsGPerHour)}</p>
+                    </div>
+                    <div className="hidden basis-full text-muted-foreground sm:block">
+                      {buildFuelingSessionFeedback({
+                        plannedCarbsGPerHour: log.plannedCarbsGPerHour,
+                        actualCarbsGPerHour: log.actualCarbsGPerHour,
+                        stomachRating: log.stomachRating,
+                        energyRating: log.energyRating,
+                      }).labelSv}
                     </div>
                   </div>
                 ))}

@@ -30,6 +30,7 @@ import {
 import { Loader2, Upload, Clock, MapPin, Heart, Zap, Gauge, Mountain, Activity, Waves, ChevronDown, ChevronUp, Timer, Trophy, Utensils } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { buildFuelingSessionFeedback } from '@/lib/fueling/session-feedback'
 import { FormattedWorkoutInstructions } from './workout/FormattedWorkoutInstructions'
 import type { RaceContext } from './workout/WorkoutLogClient'
 
@@ -545,7 +546,16 @@ export function WorkoutLoggingForm({
   const difficulty = form.watch('difficulty')
   const stomachRating = form.watch('stomachRating')
   const energyRating = form.watch('energyRating')
+  const actualCarbsGPerHour = form.watch('actualCarbsGPerHour')
   const shouldShowFuelingFeedback = Boolean(workout.fuelingPrescription || existingLog?.fuelingLog)
+  const fuelingSessionFeedback = shouldShowFuelingFeedback
+    ? buildFuelingSessionFeedback({
+        plannedCarbsGPerHour: workout.fuelingPrescription?.targetCarbsGPerHour,
+        actualCarbsGPerHour,
+        stomachRating,
+        energyRating,
+      })
+    : null
 
   // Check if we have any performance fields to show
   const hasPerformanceFields = fieldConfig.duration || fieldConfig.distance || fieldConfig.pace || fieldConfig.hr || fieldConfig.power || fieldConfig.elevation
@@ -1495,6 +1505,23 @@ export function WorkoutLoggingForm({
                     </FormItem>
                   )}
                 />
+                {fuelingSessionFeedback && (
+                  <div className="mt-4 rounded-md border bg-white/70 p-3 text-sm dark:bg-slate-950/40">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium text-slate-900 dark:text-white">
+                        {fuelingSessionFeedback.labelSv}
+                      </p>
+                      {fuelingSessionFeedback.nextTargetGPerHour && (
+                        <Badge variant="outline">
+                          Nästa: {fuelingSessionFeedback.nextTargetGPerHour} g/h
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="mt-1 text-muted-foreground">
+                      {fuelingSessionFeedback.messageSv}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
