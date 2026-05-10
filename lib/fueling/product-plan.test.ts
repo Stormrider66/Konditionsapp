@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { buildRaceFuelingProductTiming, normalizeRaceFuelingProductPlan, summarizeRaceFuelingProductPlan } from './product-plan'
+import {
+  buildRaceFuelingProductItems,
+  buildRaceFuelingProductTiming,
+  normalizeRaceFuelingProductItems,
+  normalizeRaceFuelingProductPlan,
+  summarizeRaceFuelingProductItems,
+  summarizeRaceFuelingProductPlan,
+} from './product-plan'
 
 describe('normalizeRaceFuelingProductPlan', () => {
   it('normalizes stored product plan JSON', () => {
@@ -44,6 +51,34 @@ describe('normalizeRaceFuelingProductPlan', () => {
       { minute: 40, label: '40 min', products: ['Gel (25 g)'], carbsG: 25 },
       { minute: 60, label: '60 min', products: ['Gel (25 g)'], carbsG: 25 },
       { minute: 80, label: '80 min', products: ['Flaskor sportdryck (40 g)'], carbsG: 40 },
+    ])
+  })
+
+  it('normalizes saved workout product items and ignores malformed rows', () => {
+    const items = normalizeRaceFuelingProductItems([
+      { label: 'Gel', count: 2, carbsPerItemG: 25, totalCarbsG: 50 },
+      { label: 'Sportdryck', count: '1', carbsPerItemG: 40, totalCarbsG: 40 },
+      { label: 'Chews/bar', count: 1, carbsPerItemG: 20, totalCarbsG: 20 },
+      null,
+    ])
+
+    expect(items).toEqual([
+      { label: 'Gel', count: 2, carbsPerItemG: 25, totalCarbsG: 50 },
+      { label: 'Chews/bar', count: 1, carbsPerItemG: 20, totalCarbsG: 20 },
+    ])
+    expect(summarizeRaceFuelingProductItems(items)).toBe('2 gel à 25 g, 1 chews/bar à 20 g')
+  })
+
+  it('builds product items from calculator values', () => {
+    const items = buildRaceFuelingProductItems([
+      { label: 'Gel', count: 3, carbsPerItemG: 25 },
+      { label: 'Sportdryck', count: 1, carbsPerItemG: 40 },
+      { label: 'Chews/bar', count: 0, carbsPerItemG: 20 },
+    ])
+
+    expect(items).toEqual([
+      { label: 'Gel', count: 3, carbsPerItemG: 25, totalCarbsG: 75 },
+      { label: 'Sportdryck', count: 1, carbsPerItemG: 40, totalCarbsG: 40 },
     ])
   })
 })
