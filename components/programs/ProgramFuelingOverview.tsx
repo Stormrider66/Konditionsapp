@@ -8,6 +8,10 @@ import {
   GlassCardHeader,
   GlassCardTitle,
 } from '@/components/ui/GlassCard'
+import {
+  buildFuelingCoachingRecommendation,
+  type FuelingCoachingRecommendation,
+} from '@/lib/fueling/coaching-recommendation'
 import { cn } from '@/lib/utils'
 
 type FuelingPrescription = {
@@ -26,6 +30,7 @@ type FuelingPrescription = {
 type FuelingLog = {
   actualCarbsGPerHour: number | null
   actualCarbsTotalG: number | null
+  productsUsed?: unknown
   stomachRating: number | null
   energyRating: number | null
 }
@@ -70,6 +75,17 @@ export function ProgramFuelingOverview({ program, className }: ProgramFuelingOve
   const raceTarget = latestPlan?.recommendedCarbsGPerHour ?? peakTarget
   const peakProgress = raceTarget > 0 ? Math.min(100, Math.round((peakTarget / raceTarget) * 100)) : 0
   const nextSession = sessions.find((session) => !session.log) ?? sessions[sessions.length - 1]
+  const recommendation = buildFuelingCoachingRecommendation({
+    raceTargetGPerHour: raceTarget,
+    logs: [...sessions].reverse().map((session) => ({
+      plannedCarbsGPerHour: session.prescription.targetCarbsGPerHour,
+      actualCarbsGPerHour: session.log?.actualCarbsGPerHour ?? null,
+      actualCarbsTotalG: session.log?.actualCarbsTotalG ?? null,
+      productsUsed: session.log?.productsUsed,
+      stomachRating: session.log?.stomachRating ?? null,
+      energyRating: session.log?.energyRating ?? null,
+    })),
+  })
 
   return (
     <GlassCard className={cn('rounded-2xl', className)}>
@@ -125,6 +141,8 @@ export function ProgramFuelingOverview({ program, className }: ProgramFuelingOve
           </div>
         </div>
 
+        <ProgramFuelingRecommendationBox recommendation={recommendation} />
+
         <div className="space-y-3">
           {sessions.map((session) => (
             <FuelingSessionRow key={session.workout.id} session={session} />
@@ -132,6 +150,35 @@ export function ProgramFuelingOverview({ program, className }: ProgramFuelingOve
         </div>
       </GlassCardContent>
     </GlassCard>
+  )
+}
+
+function ProgramFuelingRecommendationBox({ recommendation }: { recommendation: FuelingCoachingRecommendation }) {
+  return (
+    <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 dark:border-blue-900/30 dark:bg-blue-900/10">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-300">
+            Rekommendation
+          </p>
+          <p className="mt-1 text-sm font-black text-slate-900 dark:text-white">{recommendation.labelSv}</p>
+          <p className="mt-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            {recommendation.actionSv}
+          </p>
+        </div>
+        {recommendation.nextTargetGPerHour && (
+          <Badge variant="outline" className="w-fit shrink-0 rounded-full bg-white/80 dark:bg-slate-950/40">
+            {recommendation.nextTargetGPerHour} g/h
+          </Badge>
+        )}
+      </div>
+      <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">{recommendation.reasonSv}</p>
+      {recommendation.productSv && (
+        <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+          {recommendation.productSv}
+        </p>
+      )}
+    </div>
   )
 }
 
