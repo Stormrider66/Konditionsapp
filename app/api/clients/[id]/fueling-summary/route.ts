@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessClient } from '@/lib/auth-utils'
 import { getFuelingFeedbackSummary } from '@/lib/fueling/feedback-summary'
+import { buildFuelingProgressSummary } from '@/lib/fueling/progress-summary'
 import { logger } from '@/lib/logger'
 
 export async function GET(
@@ -30,6 +31,35 @@ export async function GET(
           status: true,
           coachNotes: true,
           athleteNotes: true,
+          workoutPrescriptions: {
+            orderBy: {
+              workout: {
+                day: {
+                  date: 'asc',
+                },
+              },
+            },
+            take: 24,
+            select: {
+              workout: {
+                select: {
+                  logs: {
+                    orderBy: { completedAt: 'desc' },
+                    take: 1,
+                    select: {
+                      fuelingLog: {
+                        select: {
+                          actualCarbsGPerHour: true,
+                          stomachRating: true,
+                          energyRating: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       }),
       prisma.workoutFuelingLog.findMany({
@@ -72,11 +102,15 @@ export async function GET(
       }),
     ])
 
+    const latestPlanSummary = latestPlan
+      ? toLatestPlanSummary(latestPlan)
+      : null
+
     return NextResponse.json({
       success: true,
       data: {
         summary,
-        latestPlan,
+        latestPlan: latestPlanSummary,
         recentLogs: recentLogs.map((log) => ({
           id: log.id,
           workoutName: log.workoutLog.workout.name,
@@ -94,5 +128,21 @@ export async function GET(
   } catch (error) {
     logger.error('Error fetching fueling summary', {}, error as Error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+function toLatestPlanSummary<T extends {
+  raceDate: Date | null
+  recommendedCarbsGPerHour: number | null
+  workoutPrescriptions: Parameters<typeof buildFuelingProgressSummary>[0]['workoutPrescriptions']
+}>(plan: T) {
+  const { workoutPrescriptions, ...summary } = plan
+  return {
+    ...summary,
+    fuelingProgress: buildFuelingProgressSummary({
+      raceDate: plan.raceDate,
+      recommendedCarbsGPerHour: plan.recommendedCarbsGPerHour,
+      workoutPrescriptions,
+    }),
   }
 }
