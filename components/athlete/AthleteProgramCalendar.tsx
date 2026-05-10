@@ -26,6 +26,7 @@ import {
   GlassCardContent,
   GlassCardDescription
 } from '@/components/ui/GlassCard'
+import { FuelingPrescriptionBadge } from '@/components/programs/FuelingPrescriptionBadge'
 
 interface AthleteProgramCalendarProps {
   program: any
@@ -338,6 +339,8 @@ function DayCard({ day, date, athleteId, isDark, isGlass = false, basePath = '' 
     <div className="space-y-4">
       {day.workouts.map((workout: any) => {
         const isCompleted = workout.logs && workout.logs.length > 0 && workout.logs[0].completed
+        const fuelingPrescription = workout.fuelingPrescription ?? null
+        const fuelingLog = workout.logs?.find((log: any) => log.fuelingLog)?.fuelingLog ?? null
 
         return (
           <div key={workout.id} className="relative flex items-start gap-6 group">
@@ -374,11 +377,19 @@ function DayCard({ day, date, athleteId, isDark, isGlass = false, basePath = '' 
                     )}>
                       {formatIntensity(workout.intensity)}
                     </Badge>
+                    {fuelingPrescription && (
+                      <FuelingPrescriptionBadge prescription={fuelingPrescription} compact />
+                    )}
                   </div>
 
                   {workout.instructions && (
                     <p className="text-xs text-slate-600 dark:text-slate-500 font-medium leading-relaxed italic line-clamp-2 uppercase tracking-wide transition-colors">
                       &quot;{workout.instructions}&quot;
+                    </p>
+                  )}
+                  {fuelingPrescription?.instructionsSv && (
+                    <p className="text-xs font-bold leading-relaxed text-orange-700 dark:text-orange-200 transition-colors">
+                      {fuelingPrescription.instructionsSv}
                     </p>
                   )}
 
@@ -396,6 +407,10 @@ function DayCard({ day, date, athleteId, isDark, isGlass = false, basePath = '' 
                       </div>
                     )}
                   </div>
+
+                  {fuelingPrescription && (
+                    <FuelingPrescriptionBadge prescription={fuelingPrescription} log={fuelingLog} />
+                  )}
                 </div>
 
                 <div className="flex md:flex-col items-center md:items-end gap-2">

@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { ProgramWithWeeks, WeekWithDays, DayWithWorkouts, WorkoutWithSegments } from '@/types/prisma-types'
 import { PushToGarminButton } from '@/components/programs/PushToGarminButton'
+import { FuelingPrescriptionBadge } from '@/components/programs/FuelingPrescriptionBadge'
 
 interface ProgramCalendarProps {
   program: ProgramWithWeeks
@@ -263,8 +264,10 @@ function DayCard({ day, date, clientId }: DayCardProps) {
 
   return (
     <div className="space-y-2">
-      {day.workouts.map((workout, index) => {
+      {day.workouts.map((workout) => {
         const isExpanded = expandedWorkouts.has(workout.id)
+        const fuelingPrescription = getFuelingPrescription(workout)
+        const fuelingLog = getLatestFuelingLog(workout)
         return (
           <div
             key={workout.id}
@@ -284,9 +287,17 @@ function DayCard({ day, date, clientId }: DayCardProps) {
                   <Badge variant="outline" className={getIntensityBadgeClass(workout.intensity)}>
                     {formatIntensity(workout.intensity)}
                   </Badge>
+                  {fuelingPrescription && (
+                    <FuelingPrescriptionBadge prescription={fuelingPrescription} compact />
+                  )}
                 </div>
                 {workout.instructions && (
                   <p className="text-sm text-slate-600 dark:text-slate-300">{workout.instructions}</p>
+                )}
+                {fuelingPrescription?.instructionsSv && (
+                  <p className="text-sm font-medium text-orange-700 dark:text-orange-200">
+                    {fuelingPrescription.instructionsSv}
+                  </p>
                 )}
               </div>
 
@@ -365,6 +376,10 @@ function DayCard({ day, date, clientId }: DayCardProps) {
                   return displayDistance ? <span>📏 {displayDistance.toFixed(1)} km</span> : null
                 })()}
               </div>
+
+              {fuelingPrescription && (
+                <FuelingPrescriptionBadge prescription={fuelingPrescription} log={fuelingLog} />
+              )}
             </div>
 
             <div className="flex flex-col gap-1 flex-shrink-0">
@@ -401,6 +416,34 @@ function DayCard({ day, date, clientId }: DayCardProps) {
       })}
     </div>
   )
+}
+
+type CalendarFuelingPrescription = {
+  targetCarbsGPerHour: number
+  targetCarbsTotalG?: number | null
+  hydrationMl?: number | null
+  sodiumMg?: number | null
+  instructionsSv?: string | null
+}
+
+type CalendarFuelingLog = {
+  actualCarbsGPerHour?: number | null
+  stomachRating?: number | null
+}
+
+type WorkoutWithFueling = Omit<WorkoutWithSegments, 'logs'> & {
+  fuelingPrescription?: CalendarFuelingPrescription | null
+  logs?: Array<{
+    fuelingLog?: CalendarFuelingLog | null
+  }>
+}
+
+function getFuelingPrescription(workout: WorkoutWithSegments): CalendarFuelingPrescription | null {
+  return (workout as WorkoutWithFueling).fuelingPrescription ?? null
+}
+
+function getLatestFuelingLog(workout: WorkoutWithSegments): CalendarFuelingLog | null {
+  return (workout as WorkoutWithFueling).logs?.find((log) => log.fuelingLog)?.fuelingLog ?? null
 }
 
 // Helper functions
