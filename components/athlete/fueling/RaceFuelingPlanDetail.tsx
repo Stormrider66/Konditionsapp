@@ -83,6 +83,13 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
   const [appliedCount, setAppliedCount] = useState<number | null>(null)
   const [editableNotes, setEditableNotes] = useState('')
   const [notesState, setNotesState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [planName, setPlanName] = useState('')
+  const [planRaceDate, setPlanRaceDate] = useState('')
+  const [planDistanceKm, setPlanDistanceKm] = useState('')
+  const [planDurationMinutes, setPlanDurationMinutes] = useState('')
+  const [planCarbsPerHour, setPlanCarbsPerHour] = useState('')
+  const [planStatus, setPlanStatus] = useState('DRAFT')
+  const [planSaveState, setPlanSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [gelCount, setGelCount] = useState('')
   const [gelCarbs, setGelCarbs] = useState('25')
   const [bottleCount, setBottleCount] = useState('')
@@ -117,6 +124,16 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
     if (!plan) return
     setEditableNotes(noteMode === 'coach' ? (plan.coachNotes ?? '') : (plan.athleteNotes ?? ''))
   }, [noteMode, plan])
+
+  useEffect(() => {
+    if (!plan) return
+    setPlanName(plan.name ?? '')
+    setPlanRaceDate(plan.raceDate ? toDateInputValue(plan.raceDate) : '')
+    setPlanDistanceKm(plan.distanceKm != null ? String(plan.distanceKm) : '')
+    setPlanDurationMinutes(plan.durationMinutes != null ? String(Math.round(plan.durationMinutes)) : '')
+    setPlanCarbsPerHour(plan.recommendedCarbsGPerHour != null ? String(Math.round(plan.recommendedCarbsGPerHour)) : '')
+    setPlanStatus(plan.status)
+  }, [plan])
 
   useEffect(() => {
     const storedProductPlan = normalizeRaceFuelingProductPlan(plan?.productPlan)
@@ -168,6 +185,30 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
       setNotesState('saved')
     } catch {
       setNotesState('error')
+    }
+  }
+
+  async function savePlanSettings() {
+    setPlanSaveState('saving')
+    try {
+      const response = await fetch(`/api/fueling/plans/${planId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: planName || null,
+          raceDate: planRaceDate ? new Date(planRaceDate).toISOString() : null,
+          distanceKm: planDistanceKm ? Number(planDistanceKm) : null,
+          durationMinutes: planDurationMinutes ? Number(planDurationMinutes) : undefined,
+          recommendedCarbsGPerHour: planCarbsPerHour ? Number(planCarbsPerHour) : undefined,
+          status: planStatus,
+        }),
+      })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const body = await response.json()
+      setPlan((current) => current ? { ...current, ...body.plan } : current)
+      setPlanSaveState('saved')
+    } catch {
+      setPlanSaveState('error')
     }
   }
 
@@ -295,6 +336,108 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
         <Metric label="Totalt intag" value={plan.recommendedCarbsTotalG ? `${Math.round(plan.recommendedCarbsTotalG)} g` : '-'} />
         <Metric label="Intagsrytm" value={raceDayPlan ? `${raceDayPlan.intakeEvery20Min} g / 20 min` : '-'} />
       </div>
+
+      <Card className="print:hidden">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CalendarDays className="h-4 w-4 text-blue-600" />
+            Planinställningar
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <label className="text-xs text-muted-foreground md:col-span-2">
+              Namn
+              <input
+                className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                value={planName}
+                onChange={(event) => {
+                  setPlanName(event.target.value)
+                  setPlanSaveState('idle')
+                }}
+              />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Status
+              <select
+                className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                value={planStatus}
+                onChange={(event) => {
+                  setPlanStatus(event.target.value)
+                  setPlanSaveState('idle')
+                }}
+              >
+                <option value="DRAFT">Utkast</option>
+                <option value="APPROVED">Godkänd</option>
+                <option value="ARCHIVED">Arkiverad</option>
+              </select>
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Race datum
+              <input
+                className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                type="date"
+                value={planRaceDate}
+                onChange={(event) => {
+                  setPlanRaceDate(event.target.value)
+                  setPlanSaveState('idle')
+                }}
+              />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Distans (km)
+              <input
+                className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                inputMode="decimal"
+                min="0"
+                step="0.1"
+                type="number"
+                value={planDistanceKm}
+                onChange={(event) => {
+                  setPlanDistanceKm(event.target.value)
+                  setPlanSaveState('idle')
+                }}
+              />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Förväntad tid (min)
+              <input
+                className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                inputMode="numeric"
+                min="1"
+                type="number"
+                value={planDurationMinutes}
+                onChange={(event) => {
+                  setPlanDurationMinutes(event.target.value)
+                  setPlanSaveState('idle')
+                }}
+              />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Rek. intag (g/h)
+              <input
+                className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                inputMode="numeric"
+                min="20"
+                max="150"
+                type="number"
+                value={planCarbsPerHour}
+                onChange={(event) => {
+                  setPlanCarbsPerHour(event.target.value)
+                  setPlanSaveState('idle')
+                }}
+              />
+            </label>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" onClick={() => void savePlanSettings()} disabled={planSaveState === 'saving'}>
+              {planSaveState === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {planSaveState === 'saved' ? 'Plan sparad' : 'Spara plan'}
+            </Button>
+            {planSaveState === 'error' && <span className="text-xs text-destructive">Kunde inte spara planen.</span>}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2 print:break-inside-avoid">
@@ -947,6 +1090,12 @@ function formatDuration(minutes: number): string {
   const hours = Math.floor(rounded / 60)
   const mins = rounded % 60
   return hours > 0 ? `${hours} h ${mins} min` : `${mins} min`
+}
+
+function toDateInputValue(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toISOString().slice(0, 10)
 }
 
 function formatDistance(distanceKm: number): string {

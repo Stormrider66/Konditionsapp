@@ -24,7 +24,9 @@ const productPlanSchema = z.object({
 const updatePlanSchema = z.object({
   name: z.string().trim().max(120).optional().nullable(),
   recommendedCarbsGPerHour: z.number().min(20).max(150).optional().nullable(),
+  distanceKm: z.number().positive().max(1000).optional().nullable(),
   durationMinutes: z.number().positive().max(10000).optional().nullable(),
+  raceDate: z.string().datetime().optional().nullable(),
   coachNotes: z.string().max(4000).optional().nullable(),
   athleteNotes: z.string().max(4000).optional().nullable(),
   productPlan: productPlanSchema.optional().nullable(),
@@ -170,7 +172,9 @@ export async function PATCH(
         name: body.name === undefined ? undefined : body.name,
         recommendedCarbsGPerHour: body.recommendedCarbsGPerHour === undefined ? undefined : body.recommendedCarbsGPerHour,
         recommendedCarbsTotalG: body.recommendedCarbsGPerHour !== undefined || body.durationMinutes !== undefined ? nextTotal : undefined,
+        distanceKm: body.distanceKm === undefined ? undefined : body.distanceKm,
         durationMinutes: body.durationMinutes === undefined ? undefined : body.durationMinutes,
+        raceDate: body.raceDate === undefined ? undefined : body.raceDate === null ? null : new Date(body.raceDate),
         coachNotes: body.coachNotes === undefined ? undefined : body.coachNotes,
         athleteNotes: body.athleteNotes === undefined ? undefined : body.athleteNotes,
         productPlan: body.productPlan === undefined
