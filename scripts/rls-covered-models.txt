@@ -181,6 +181,7 @@ ProgramGenerationSession
 ProgressionTracking
 Race
 RaceCalendar
+RaceFuelingPlan
 RaceResult
 Referral
 ReferralCode
@@ -247,6 +248,8 @@ VoiceWorkoutSession
 WeeklyReport
 WeeklyTrainingSummary
 Workout
+WorkoutFuelingLog
+WorkoutFuelingPrescription
 WorkoutLog
 WorkoutModification
 WorkoutSegment
