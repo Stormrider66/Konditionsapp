@@ -35,12 +35,23 @@ interface RaceFuelingCardProps {
   clientId?: string
   variant?: 'default' | 'glass'
   basePath?: string
+  detailBasePath?: string
+  listHref?: string
   showDetailLink?: boolean
 }
 
-export function RaceFuelingCard({ clientId, variant = 'default', basePath = '', showDetailLink = true }: RaceFuelingCardProps) {
+export function RaceFuelingCard({
+  clientId,
+  variant = 'default',
+  basePath = '',
+  detailBasePath,
+  listHref,
+  showDetailLink = true,
+}: RaceFuelingCardProps) {
   const [plan, setPlan] = useState<RaceFuelingPlanSummary | null>(null)
   const [loading, setLoading] = useState(true)
+  const resolvedDetailBasePath = detailBasePath ?? `${basePath}/athlete/fueling`
+  const resolvedListHref = listHref ?? `${basePath}/athlete/fueling`
 
   useEffect(() => {
     const controller = new AbortController()
@@ -155,12 +166,12 @@ export function RaceFuelingCard({ clientId, variant = 'default', basePath = '', 
             {showDetailLink && (
               <div className="grid grid-cols-2 gap-2">
                 <Button asChild variant="outline" size="sm">
-                  <Link href={`${basePath}/athlete/fueling/${plan.id}`}>
+                  <Link href={`${resolvedDetailBasePath}/${plan.id}`}>
                     Visa planen
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="sm">
-                  <Link href={`${basePath}/athlete/fueling`}>
+                  <Link href={resolvedListHref}>
                     Alla planer
                   </Link>
                 </Button>

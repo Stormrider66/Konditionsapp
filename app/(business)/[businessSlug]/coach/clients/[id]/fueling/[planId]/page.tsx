@@ -11,6 +11,7 @@ export default async function CoachClientFuelingPlanDetailPage({ params }: Coach
     <RaceFuelingPlanDetail
       planId={planId}
       backHref={`/${businessSlug}/coach/clients/${id}/fueling`}
+      noteMode="coach"
     />
   )
 }

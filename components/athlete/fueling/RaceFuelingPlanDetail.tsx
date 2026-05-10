@@ -56,15 +56,16 @@ interface FuelingPlanDetail {
 interface RaceFuelingPlanDetailProps {
   planId: string
   backHref: string
+  noteMode?: 'athlete' | 'coach'
 }
 
-export function RaceFuelingPlanDetail({ planId, backHref }: RaceFuelingPlanDetailProps) {
+export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }: RaceFuelingPlanDetailProps) {
   const [plan, setPlan] = useState<FuelingPlanDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [applyState, setApplyState] = useState<'idle' | 'applying' | 'applied' | 'error'>('idle')
   const [appliedCount, setAppliedCount] = useState<number | null>(null)
-  const [athleteNotes, setAthleteNotes] = useState('')
+  const [editableNotes, setEditableNotes] = useState('')
   const [notesState, setNotesState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   useEffect(() => {
@@ -90,8 +91,9 @@ export function RaceFuelingPlanDetail({ planId, backHref }: RaceFuelingPlanDetai
   }, [planId])
 
   useEffect(() => {
-    if (plan) setAthleteNotes(plan.athleteNotes ?? '')
-  }, [plan])
+    if (!plan) return
+    setEditableNotes(noteMode === 'coach' ? (plan.coachNotes ?? '') : (plan.athleteNotes ?? ''))
+  }, [noteMode, plan])
 
   async function applyToProgram() {
     setApplyState('applying')
@@ -106,17 +108,23 @@ export function RaceFuelingPlanDetail({ planId, backHref }: RaceFuelingPlanDetai
     }
   }
 
-  async function saveAthleteNotes() {
+  async function saveNotes() {
     setNotesState('saving')
     try {
       const response = await fetch(`/api/fueling/plans/${planId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ athleteNotes: athleteNotes || null }),
+        body: JSON.stringify({
+          [noteMode === 'coach' ? 'coachNotes' : 'athleteNotes']: editableNotes || null,
+        }),
       })
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const body = await response.json()
-      setPlan((current) => current ? { ...current, athleteNotes: body.plan.athleteNotes } : current)
+      setPlan((current) => current ? {
+        ...current,
+        coachNotes: body.plan.coachNotes,
+        athleteNotes: body.plan.athleteNotes,
+      } : current)
       setNotesState('saved')
     } catch {
       setNotesState('error')
@@ -152,6 +160,11 @@ export function RaceFuelingPlanDetail({ planId, backHref }: RaceFuelingPlanDetai
   const raceDayPlan = plan.raceDayPlan
   const assumptions = normalizeStringList(plan.assumptions)
   const warnings = normalizeStringList(plan.warnings)
+  const isCoachMode = noteMode === 'coach'
+  const editableNoteTitle = isCoachMode ? 'Coachanteckningar' : 'Mina produkter och noteringar'
+  const editableNotePlaceholder = isCoachMode
+    ? 'Ex: Öka från 70 till 85 g/h över tre långpass. Följ mage/energi efter varje pass...'
+    : 'Ex: Maurten gel vid 20, 60 och 100 min. Sportdryck i flaska 1 och 2...'
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6 print:max-w-none print:px-0">
@@ -263,28 +276,29 @@ export function RaceFuelingPlanDetail({ planId, backHref }: RaceFuelingPlanDetai
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            <NoteBlock title="Coach" value={plan.coachNotes} />
+            {!isCoachMode && <NoteBlock title="Coach" value={plan.coachNotes} />}
             <div className="space-y-2 print:hidden">
-              <p className="font-medium">Mina produkter och noteringar</p>
+              <p className="font-medium">{editableNoteTitle}</p>
               <Textarea
-                value={athleteNotes}
+                value={editableNotes}
                 onChange={(event) => {
-                  setAthleteNotes(event.target.value)
+                  setEditableNotes(event.target.value)
                   setNotesState('idle')
                 }}
-                placeholder="Ex: Maurten gel vid 20, 60 och 100 min. Sportdryck i flaska 1 och 2..."
+                placeholder={editableNotePlaceholder}
                 className="min-h-[120px]"
               />
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={() => void saveAthleteNotes()} disabled={notesState === 'saving'}>
+                <Button size="sm" variant="outline" onClick={() => void saveNotes()} disabled={notesState === 'saving'}>
                   {notesState === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   {notesState === 'saved' ? 'Sparat' : 'Spara'}
                 </Button>
                 {notesState === 'error' && <span className="text-xs text-destructive">Kunde inte spara.</span>}
               </div>
             </div>
+            {isCoachMode && <NoteBlock title="Atlet" value={plan.athleteNotes} />}
             <div className="hidden print:block">
-              <NoteBlock title="Atlet" value={athleteNotes || plan.athleteNotes} />
+              <NoteBlock title={isCoachMode ? 'Coach' : 'Atlet'} value={editableNotes || (isCoachMode ? plan.coachNotes : plan.athleteNotes)} />
             </div>
             {(assumptions.length > 0 || warnings.length > 0) && (
               <div>

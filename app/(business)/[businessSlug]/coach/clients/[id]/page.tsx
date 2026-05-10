@@ -501,7 +501,11 @@ export default function BusinessClientDetailPage() {
       </div>
 
       <div className="mb-6">
-        <RaceFuelingCard clientId={id} showDetailLink={false} />
+        <RaceFuelingCard
+          clientId={id}
+          detailBasePath={`${basePath}/clients/${id}/fueling`}
+          listHref={`${basePath}/clients/${id}/fueling`}
+        />
       </div>
 
       {!sportProfileLoading && sportProfile?.primarySport === 'RUNNING' && (
