@@ -84,7 +84,6 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
     parseOptionalNumber(createForm.distanceKm) &&
     (
       parseOptionalNumber(createForm.targetSpeedKmh) ||
-      parseOptionalNumber(createForm.targetPowerWatts) ||
       parseOptionalNumber(createForm.targetPaceMinKm)
     )
   )
@@ -344,7 +343,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
                 {createState === 'saved' ? 'Plan skapad' : 'Skapa plan'}
               </Button>
               <Button variant="ghost" onClick={() => setShowCreateForm(false)}>Avbryt</Button>
-              {!canCreatePlan && <span className="text-xs text-muted-foreground">Ange förväntad tid, eller distans tillsammans med målfart/effekt.</span>}
+              {!canCreatePlan && <span className="text-xs text-muted-foreground">Ange förväntad tid, eller distans tillsammans med målfart.</span>}
               {createState === 'error' && <span className="text-xs text-destructive">Kunde inte skapa planen.</span>}
             </div>
           </CardContent>
