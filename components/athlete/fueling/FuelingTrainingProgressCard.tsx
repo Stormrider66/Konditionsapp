@@ -1,8 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import {
   AlertTriangle,
+  ArrowRight,
   CheckCircle2,
   Flame,
   Loader2,
@@ -11,6 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -76,6 +79,7 @@ interface FuelingSummaryResponse {
 interface FuelingTrainingProgressCardProps {
   clientId: string
   variant?: 'default' | 'glass'
+  plansHref?: string
 }
 
 const STATUS_META: Record<FuelingStatus, {
@@ -119,6 +123,7 @@ const STATUS_META: Record<FuelingStatus, {
 export function FuelingTrainingProgressCard({
   clientId,
   variant = 'default',
+  plansHref = '/athlete/fueling',
 }: FuelingTrainingProgressCardProps) {
   const [data, setData] = useState<FuelingSummaryResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -158,6 +163,7 @@ export function FuelingTrainingProgressCard({
   const StatusIcon = meta.icon
   const target = summary?.averagePlannedCarbsGPerHour ?? data?.latestPlan?.recommendedCarbsGPerHour ?? null
   const latestLog = data?.recentLogs[0] ?? null
+  const hasRacePlan = Boolean(data?.latestPlan)
   const trend = buildAthleteFuelingTrend(data?.recentLogs ?? [], target)
   const recommendation = data
     ? buildFuelingCoachingRecommendation({
@@ -199,6 +205,25 @@ export function FuelingTrainingProgressCard({
               <StatusIcon className="h-4 w-4 mt-0.5 text-orange-700 dark:text-orange-400" />
               <p className="text-sm text-slate-700 dark:text-slate-200">{meta.body}</p>
             </div>
+
+            {!hasRacePlan && (
+              <div className="rounded-lg border bg-white p-3 dark:bg-slate-950/40 dark:border-white/10">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Ingen raceplan ännu</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Skapa ett mål för distans, tid eller intensitet så kan långpassen få tydliga carb-mål.
+                    </p>
+                  </div>
+                  <Button asChild size="sm" className="w-full sm:w-auto">
+                    <Link href={plansHref}>
+                      Skapa plan
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-3">
               <Metric label="Mål" value={formatGramHour(target)} />
