@@ -8,7 +8,14 @@ describe('formatFuelingPlanContext', () => {
       distanceKm: 42.195,
       targetPaceMinKm: 4.5,
       raceDate: '2026-09-12T08:00:00.000Z',
-    }, { includeRaceDate: true })).toBe('Löpning · 42,2 km · 4:30 min/km · 12 sep. 2026')
+    }, { includeRaceDate: true })).toBe('Löpning · Marathon · 4:30 min/km · 12 sep. 2026')
+  })
+
+  it('uses a friendly half-marathon distance label', () => {
+    expect(formatFuelingPlanContext({
+      sport: 'RUNNING',
+      distanceKm: 21.1,
+    })).toBe('Löpning · Halvmarathon')
   })
 
   it('can include the plan name for workout-level context', () => {
