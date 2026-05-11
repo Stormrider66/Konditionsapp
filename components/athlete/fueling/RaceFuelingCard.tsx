@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
 import { Activity, CalendarDays, Flame, PackageCheck, Timer, TrendingUp, Utensils } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -11,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { normalizeRaceFuelingProductPlan, summarizeRaceFuelingProductPlan } from '@/lib/fueling/product-plan'
 import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
 import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
-import { formatFuelingTargetIntensity } from '@/lib/fueling/target-intensity'
+import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
 
 interface RaceFuelingPlanSummary {
   id: string
@@ -94,7 +92,7 @@ export function RaceFuelingCard({
     ? summarizeRaceFuelingProductPlan(structuredProductPlan)
     : savedProductPlanNote?.summary
   const savedPackedCarbs = structuredProductPlan?.totalCarbsG ?? savedProductPlanNote?.packedCarbsG ?? null
-  const targetIntensity = plan ? formatFuelingTargetIntensity(plan) : null
+  const planContext = formatFuelingPlanContext(plan, { includeRaceDate: true })
 
   return (
     <Card className={isGlass ? 'bg-white/80 dark:bg-slate-900/70 backdrop-blur border-white/20' : undefined}>
@@ -132,13 +130,11 @@ export function RaceFuelingCard({
                 {plan.name ?? sportLabel(plan.sport)}
               </p>
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
-                {plan.distanceKm && <span>{formatDistance(plan.distanceKm)}</span>}
                 {plan.durationMinutes && <span>{formatDuration(plan.durationMinutes)}</span>}
-                {targetIntensity && <span>{targetIntensity}</span>}
-                {plan.raceDate && (
+                {planContext && (
                   <span className="inline-flex items-center gap-1">
                     <CalendarDays className="h-3 w-3" />
-                    {format(new Date(plan.raceDate), 'd MMM', { locale: sv })}
+                    {planContext}
                   </span>
                 )}
               </div>
@@ -302,12 +298,6 @@ function confidenceLabel(confidence: string): string {
 
 function sportLabel(sport: string): string {
   return fuelingSportLabel(sport)
-}
-
-function formatDistance(distanceKm: number): string {
-  if (Math.abs(distanceKm - 42.195) < 0.1) return 'Marathon'
-  if (Math.abs(distanceKm - 21.0975) < 0.1) return 'Halvmarathon'
-  return `${distanceKm.toLocaleString('sv-SE', { maximumFractionDigits: 1 })} km`
 }
 
 function formatDuration(minutes: number): string {
