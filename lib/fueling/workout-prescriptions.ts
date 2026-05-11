@@ -230,9 +230,12 @@ export function selectFuelingPlanForProgram<T extends FuelingPlanForPrescription
   if (plans.length === 0) return null
 
   const goal = goalType?.toLowerCase() ?? ''
-  const sortedPlans = hasAllPlanOrderingFields(plans)
-    ? sortFuelingPlansForDisplay(plans)
-    : plans
+  const usablePlans = plans.filter((plan) => Boolean(plan.recommendedCarbsGPerHour))
+  if (usablePlans.length === 0) return null
+
+  const sortedPlans = hasAllPlanOrderingFields(usablePlans)
+    ? sortFuelingPlansForDisplay(usablePlans)
+    : usablePlans
   const matchingPlan = sortedPlans.find((plan) => plan.sport && goalMatchesSport(goal, plan.sport))
   return matchingPlan ?? sortedPlans[0]
 }

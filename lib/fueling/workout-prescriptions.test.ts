@@ -85,6 +85,15 @@ describe('workout fueling prescriptions', () => {
     expect(selected?.id).toBe('first-plan')
   })
 
+  it('skips incomplete plans without a carb target', () => {
+    const selected = selectFuelingPlanForProgram([
+      { id: 'draft-run-plan', sport: 'RUNNING', recommendedCarbsGPerHour: null },
+      { id: 'ready-bike-plan', sport: 'CYCLING', recommendedCarbsGPerHour: 90 },
+    ], 'marathon')
+
+    expect(selected?.id).toBe('ready-bike-plan')
+  })
+
   it('prefers the next upcoming plan before undated and past plans', () => {
     const selected = selectFuelingPlanForProgram([
       {
