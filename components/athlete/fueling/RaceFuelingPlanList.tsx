@@ -80,7 +80,15 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
   const [applyingId, setApplyingId] = useState<string | null>(null)
   const [applyResult, setApplyResult] = useState<{ planId: string; count: number } | null>(null)
   const resolvedDetailBasePath = detailBasePath ?? `${basePath}/athlete/fueling`
-  const canCreatePlan = Boolean(parseOptionalNumber(createForm.distanceKm) || parseOptionalNumber(createForm.durationMinutes))
+  const hasDistanceAndIntensity = Boolean(
+    parseOptionalNumber(createForm.distanceKm) &&
+    (
+      parseOptionalNumber(createForm.targetSpeedKmh) ||
+      parseOptionalNumber(createForm.targetPowerWatts) ||
+      parseOptionalNumber(createForm.targetPaceMinKm)
+    )
+  )
+  const canCreatePlan = Boolean(parseOptionalNumber(createForm.durationMinutes) || hasDistanceAndIntensity)
 
   const loadPlans = useCallback(async (signal?: AbortSignal, showLoadingState = true) => {
     if (showLoadingState) setIsLoading(true)
@@ -336,7 +344,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
                 {createState === 'saved' ? 'Plan skapad' : 'Skapa plan'}
               </Button>
               <Button variant="ghost" onClick={() => setShowCreateForm(false)}>Avbryt</Button>
-              {!canCreatePlan && <span className="text-xs text-muted-foreground">Ange distans eller förväntad tid.</span>}
+              {!canCreatePlan && <span className="text-xs text-muted-foreground">Ange förväntad tid, eller distans tillsammans med målfart/effekt.</span>}
               {createState === 'error' && <span className="text-xs text-destructive">Kunde inte skapa planen.</span>}
             </div>
           </CardContent>
