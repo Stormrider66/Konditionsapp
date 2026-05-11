@@ -7,6 +7,7 @@ import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import { estimateRaceFueling } from '@/lib/fueling/race-fueling'
 import { buildFuelingProgressSummary } from '@/lib/fueling/progress-summary'
 import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
+import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
 import { logger } from '@/lib/logger'
 
 const planSchema = z.object({
@@ -233,26 +234,6 @@ async function resolveClientId(request: NextRequest, userId: string): Promise<st
 }
 
 function defaultPlanName(sport: SportType, distanceKm?: number | null): string {
-  const sportLabel = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    SKIING: 'Skidor',
-    SWIMMING: 'Simning',
-    TRIATHLON: 'Triathlon',
-    HYROX: 'HYROX',
-    GENERAL_FITNESS: 'Fitness',
-    FUNCTIONAL_FITNESS: 'Funktionell träning',
-    STRENGTH: 'Styrka',
-    TEAM_FOOTBALL: 'Fotboll',
-    TEAM_ICE_HOCKEY: 'Ishockey',
-    TEAM_HANDBALL: 'Handboll',
-    TEAM_FLOORBALL: 'Innebandy',
-    TEAM_BASKETBALL: 'Basket',
-    TEAM_VOLLEYBALL: 'Volleyboll',
-    TENNIS: 'Tennis',
-    PADEL: 'Padel',
-    NUTRITION: 'Nutrition',
-  } satisfies Record<SportType, string>
-
-  return distanceKm ? `Tävlingsenergi ${sportLabel[sport]} ${distanceKm} km` : `Tävlingsenergi ${sportLabel[sport]}`
+  const label = fuelingSportLabel(sport)
+  return distanceKm ? `Tävlingsenergi ${label} ${distanceKm} km` : `Tävlingsenergi ${label}`
 }

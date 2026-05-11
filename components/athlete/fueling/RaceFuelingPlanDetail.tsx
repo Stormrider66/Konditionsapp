@@ -20,6 +20,7 @@ import {
 import { buildFuelingCoachingRecommendation } from '@/lib/fueling/coaching-recommendation'
 import { buildFuelingBuildUpPlan, type FuelingBuildUpPlan } from '@/lib/fueling/build-up-plan'
 import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
+import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
 
 interface RaceDayPlan {
   carbsPerHour: number
@@ -1268,13 +1269,5 @@ function confidenceLabel(confidence: string): string {
 }
 
 function sportLabel(sport: string): string {
-  const labels: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    SKIING: 'Skidor',
-    SWIMMING: 'Simning',
-    TRIATHLON: 'Triathlon',
-    HYROX: 'HYROX',
-  }
-  return labels[sport] ?? sport
+  return fuelingSportLabel(sport)
 }

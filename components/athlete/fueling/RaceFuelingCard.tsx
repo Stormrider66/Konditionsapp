@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { normalizeRaceFuelingProductPlan, summarizeRaceFuelingProductPlan } from '@/lib/fueling/product-plan'
 import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
+import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
 
 interface RaceFuelingPlanSummary {
   id: string
@@ -285,15 +286,7 @@ function confidenceLabel(confidence: string): string {
 }
 
 function sportLabel(sport: string): string {
-  const labels: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    SKIING: 'Skidor',
-    SWIMMING: 'Simning',
-    TRIATHLON: 'Triathlon',
-    HYROX: 'HYROX',
-  }
-  return labels[sport] ?? 'Tävlingsplan'
+  return fuelingSportLabel(sport)
 }
 
 function formatDistance(distanceKm: number): string {

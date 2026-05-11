@@ -8,6 +8,7 @@ import { Archive, CalendarDays, CheckCircle2, Eye, Loader2, PlusCircle, RotateCc
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { FUELING_SPORT_OPTIONS, fuelingSportLabel } from '@/lib/fueling/sport-labels'
 
 interface RaceFuelingPlanSummary {
   id: string
@@ -52,26 +53,6 @@ interface CreatePlanFormState {
   raceDate: string
   currentGutToleranceCarbsPerHour: string
 }
-
-const SPORT_OPTIONS = [
-  { value: 'RUNNING', label: 'Löpning' },
-  { value: 'CYCLING', label: 'Cykling' },
-  { value: 'SKIING', label: 'Skidor' },
-  { value: 'SWIMMING', label: 'Simning' },
-  { value: 'TRIATHLON', label: 'Triathlon' },
-  { value: 'HYROX', label: 'HYROX' },
-  { value: 'GENERAL_FITNESS', label: 'Fitness' },
-  { value: 'FUNCTIONAL_FITNESS', label: 'Funktionell träning' },
-  { value: 'STRENGTH', label: 'Styrka' },
-  { value: 'TEAM_FOOTBALL', label: 'Fotboll' },
-  { value: 'TEAM_ICE_HOCKEY', label: 'Ishockey' },
-  { value: 'TEAM_HANDBALL', label: 'Handboll' },
-  { value: 'TEAM_FLOORBALL', label: 'Innebandy' },
-  { value: 'TEAM_BASKETBALL', label: 'Basket' },
-  { value: 'TEAM_VOLLEYBALL', label: 'Volleyboll' },
-  { value: 'TENNIS', label: 'Tennis' },
-  { value: 'PADEL', label: 'Padel' },
-] as const
 
 const EMPTY_CREATE_FORM: CreatePlanFormState = {
   name: '',
@@ -253,7 +234,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
                   value={createForm.sport}
                   onChange={(event) => updateCreateForm('sport', event.target.value)}
                 >
-                  {SPORT_OPTIONS.map((sport) => (
+                  {FUELING_SPORT_OPTIONS.map((sport) => (
                     <option key={sport.value} value={sport.value}>{sport.label}</option>
                   ))}
                 </select>
@@ -571,5 +552,5 @@ function parseOptionalNumber(value: string): number | undefined {
 }
 
 function sportLabel(sport: string): string {
-  return SPORT_OPTIONS.find((option) => option.value === sport)?.label ?? 'Raceplan'
+  return fuelingSportLabel(sport)
 }
