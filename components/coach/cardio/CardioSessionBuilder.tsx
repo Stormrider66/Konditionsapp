@@ -37,6 +37,7 @@ import { toast } from 'sonner'
 import { SessionExportButton } from '@/components/exports/SessionExportButton'
 import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton'
 import type { CardioSessionData, CardioSegment as CardioSegmentType } from '@/types'
+import { PatternBlockDialog, type GeneratedPatternStep } from './PatternBlockDialog'
 
 // Types
 type CardioFlatSegment = {
@@ -115,16 +116,7 @@ const AVAILABLE_SEGMENTS = [
   { id: 'seg6', name: 'Hill Sprints', type: 'HILL', defaultDuration: 0, defaultZone: '5', notes: 'Max effort uphill' },
   { id: 'seg7', name: 'Running Drills', type: 'DRILLS', defaultDuration: 10, defaultZone: '1', notes: 'Focus on technique' },
   { id: 'seg8', name: 'Repeat Group', type: 'REPEAT_GROUP', defaultDuration: 0, defaultZone: '1' },
-  { id: 'seg9', name: 'Cal Triplet (Bike/Row/Ski)', type: 'CAL_TRIPLET', defaultDuration: 0, defaultZone: '4' },
-  { id: 'seg10', name: 'Cal Pyramid 60→20 (Bike/Row/Ski)', type: 'CAL_PYRAMID', defaultDuration: 0, defaultZone: '4' },
 ]
-
-const TRIPLET_EQUIPMENT: { equipment: string; notes: string }[] = [
-  { equipment: 'ASSAULT_BIKE', notes: 'Assault Bike' },
-  { equipment: 'ROW', notes: 'Rodd' },
-  { equipment: 'SKI_ERG', notes: 'SkiErg' },
-]
-const PYRAMID_CAL_LADDER = [60, 50, 40, 30, 20]
 
 // Helper functions for auto-calculation
 const paceToDecimal = (pace: string): number | null => {
@@ -165,6 +157,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
   const [repeatCount, setRepeatCount] = useState(1)
   const [isSaving, setIsSaving] = useState(false)
   const [userZones, setUserZones] = useState<any>(null)
+  const [patternDialogOpen, setPatternDialogOpen] = useState(false)
 
   // Load initial data when editing
   useEffect(() => {
@@ -414,36 +407,6 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
       return
     }
 
-    if (template.type === 'CAL_TRIPLET') {
-      const triplet: CardioFlatSegment[] = TRIPLET_EQUIPMENT.map(t => ({
-        id: generateId(),
-        type: 'INTERVAL',
-        calories: 30,
-        zone: template.defaultZone,
-        equipment: t.equipment,
-        notes: t.notes,
-        distanceUnit: 'm',
-      }))
-      setSegments([...segments, ...triplet])
-      return
-    }
-
-    if (template.type === 'CAL_PYRAMID') {
-      const pyramid: CardioFlatSegment[] = PYRAMID_CAL_LADDER.flatMap(cals =>
-        TRIPLET_EQUIPMENT.map(t => ({
-          id: generateId(),
-          type: 'INTERVAL' as const,
-          calories: cals,
-          zone: template.defaultZone,
-          equipment: t.equipment,
-          notes: `${cals} cal ${t.notes}`,
-          distanceUnit: 'm' as const,
-        }))
-      )
-      setSegments([...segments, ...pyramid])
-      return
-    }
-
     const newSegment: CardioFlatSegment = {
       id: generateId(),
       type: template.type as CardioFlatSegment['type'],
@@ -458,6 +421,35 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
 
   const removeSegment = (id: string) => {
     setSegments(segments.filter(s => s.id !== id))
+  }
+
+  const addGeneratedPattern = (steps: GeneratedPatternStep[]) => {
+    if (!steps.length) return
+    const newSegments: CardioFlatSegment[] = []
+    for (const step of steps) {
+      newSegments.push({
+        id: generateId(),
+        type: 'INTERVAL',
+        zone: step.zone,
+        equipment: step.equipment,
+        notes: step.notes,
+        distanceUnit: step.distanceUnit,
+        calories: step.calories,
+        distance: step.distance,
+        duration: step.duration,
+      })
+      if (step.restAfter && step.restAfter > 0) {
+        newSegments.push({
+          id: generateId(),
+          type: 'RECOVERY',
+          zone: '1',
+          duration: step.restAfter,
+          distanceUnit: 'km',
+          notes: 'Vila mellan rundor',
+        })
+      }
+    }
+    setSegments([...segments, ...newSegments])
   }
 
   // Repeat group helpers
@@ -669,6 +661,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
   }
 
   return (
+    <>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Main Builder Area */}
       <div className="lg:col-span-2 space-y-6">
@@ -804,6 +797,14 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
                 {seg.name}
               </Button>
             ))}
+            <Button
+              variant="default"
+              className="w-full justify-start mt-2"
+              onClick={() => setPatternDialogOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Mönsterblock (stege/triplet/anpassad)
+            </Button>
           </CardContent>
         </Card>
 
@@ -880,6 +881,14 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
         </Card>
       </div>
     </div>
+    <PatternBlockDialog
+      open={patternDialogOpen}
+      onOpenChange={setPatternDialogOpen}
+      equipmentOptions={EQUIPMENT_OPTIONS}
+      equipmentLabelByValue={EQUIPMENT_LABEL_BY_VALUE}
+      onAdd={addGeneratedPattern}
+    />
+    </>
   )
 }
 
