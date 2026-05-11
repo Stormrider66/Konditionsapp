@@ -41,14 +41,14 @@ export function AssignmentHeroCard({ assignment, basePath = '', onRemove }: Assi
   const visual = getAssignmentVisual(assignment.assignmentType, assignment.sport || assignment.name)
 
   return (
-    <GlassCard className="lg:col-span-2 rounded-2xl group bg-slate-950 text-white ring-white/10 transition-all">
+    <GlassCard className="lg:col-span-2 rounded-2xl group bg-white/95 text-slate-950 ring-slate-900/10 dark:bg-slate-950 dark:text-white dark:ring-white/10 transition-all">
       <DashboardVisualLayer visual={visual} priority />
 
       {/* Remove button */}
       {!isCompleted && onRemove && (
         <button
           onClick={onRemove}
-          className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-white/10 text-slate-200 opacity-100 backdrop-blur sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white/20 transition-all"
+          className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-white/80 text-slate-600 opacity-100 backdrop-blur sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/20 transition-all"
           aria-label="Ta bort pass"
         >
           <X className="h-4 w-4" />
@@ -67,28 +67,28 @@ export function AssignmentHeroCard({ assignment, basePath = '', onRemove }: Assi
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 max-w-md transition-colors">
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-950 dark:text-white mb-2 max-w-md transition-colors">
             {assignment.name}
           </h2>
 
           {/* Description / Notes */}
           {(assignment.description || assignment.notes) && (
-            <p className="text-slate-200 max-w-sm text-sm md:text-base transition-colors">
+            <p className="text-slate-600 dark:text-slate-200 max-w-sm text-sm md:text-base transition-colors">
               {assignment.notes || assignment.description}
             </p>
           )}
 
           {/* Scheduling info */}
           {(assignment.startTime || assignment.locationName) && (
-            <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-slate-300">
+            <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-slate-600 dark:text-slate-300">
               {assignment.startTime && (
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-200 backdrop-blur">
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 backdrop-blur dark:text-emerald-200">
                   <Clock className="h-3.5 w-3.5" />
                   {assignment.startTime}
                 </span>
               )}
               {assignment.locationName && (
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-200 backdrop-blur">
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-700 backdrop-blur dark:text-blue-200">
                   <MapPin className="h-3.5 w-3.5" />
                   {assignment.locationName}
                 </span>
@@ -98,7 +98,7 @@ export function AssignmentHeroCard({ assignment, basePath = '', onRemove }: Assi
 
           {/* Completed badge */}
           {isCompleted && (
-            <div className="inline-flex items-center gap-2 mt-3 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-300/20 text-emerald-200 text-xs font-medium backdrop-blur transition-colors">
+            <div className="inline-flex items-center gap-2 mt-3 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-200 text-emerald-700 dark:border-emerald-300/20 dark:text-emerald-200 text-xs font-medium backdrop-blur transition-colors">
               <TrendingUp className="w-3 h-3" />
               Slutfört
             </div>
@@ -109,8 +109,8 @@ export function AssignmentHeroCard({ assignment, basePath = '', onRemove }: Assi
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 md:gap-6 mt-6 md:mt-8">
           {assignment.duration && (
             <div>
-              <div className="text-slate-300/70 text-xs uppercase tracking-wider mb-1">Längd</div>
-              <div className="text-lg md:text-xl font-bold text-white flex items-center gap-2 transition-colors">
+              <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">Längd</div>
+              <div className="text-lg md:text-xl font-bold text-slate-950 dark:text-white flex items-center gap-2 transition-colors">
                 <Timer className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
                 {assignment.duration} min
               </div>
@@ -120,10 +120,10 @@ export function AssignmentHeroCard({ assignment, basePath = '', onRemove }: Assi
           {/* Type-specific badge */}
           {(assignment.phase || assignment.format || assignment.sport) && (
             <div>
-              <div className="text-slate-300/70 text-xs uppercase tracking-wider mb-1">
+              <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">
                 {assignment.phase ? 'Fas' : assignment.sport ? 'Sport' : 'Format'}
               </div>
-              <div className="text-lg md:text-xl font-bold text-white flex items-center gap-2 transition-colors">
+              <div className="text-lg md:text-xl font-bold text-slate-950 dark:text-white flex items-center gap-2 transition-colors">
                 {renderAssignmentTypeIcon(assignment.assignmentType, 'w-4 h-4 md:w-5 md:h-5 text-orange-400')}
                 {assignment.phase || assignment.format || assignment.sport}
               </div>
@@ -137,7 +137,7 @@ export function AssignmentHeroCard({ assignment, basePath = '', onRemove }: Assi
             <Link href={route}>
               <Button
                 variant="outline"
-                className="w-full sm:w-auto min-h-[48px] border-white/20 bg-white/5 text-white hover:bg-white/10 hover:border-white/30 transition-all"
+                className="w-full sm:w-auto min-h-[48px] border-slate-300 bg-white/70 text-slate-900 hover:bg-white hover:border-slate-400 dark:border-white/20 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:hover:border-white/30 transition-all"
               >
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Visa resultat

@@ -444,7 +444,7 @@ export function RestDayHeroCard({
   }
 
   return (
-    <GlassCard className="lg:col-span-2 rounded-2xl group overflow-hidden bg-slate-950 text-white ring-white/10 transition-all">
+    <GlassCard className="lg:col-span-2 rounded-2xl group overflow-hidden bg-white/95 text-slate-950 ring-slate-900/10 dark:bg-slate-950 dark:text-white dark:ring-white/10 transition-all">
       <DashboardVisualLayer visual={visual} priority />
 
       {/* Subtle animated glow */}
@@ -453,23 +453,23 @@ export function RestDayHeroCard({
       <div className="p-6 md:p-8 relative z-10 flex flex-col h-full justify-between min-h-[280px] md:min-h-[300px]">
         <div>
           {/* Rest Day Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-300/20 text-cyan-200 text-xs font-bold uppercase tracking-wider mb-4 backdrop-blur transition-colors">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-200 text-cyan-700 dark:border-cyan-300/20 dark:text-cyan-200 text-xs font-bold uppercase tracking-wider mb-4 backdrop-blur transition-colors">
             {renderBadgeIcon(hasRecentActivity, mode, 'w-3 h-3')}
             {badgeLabel}
           </div>
 
           {/* Title with Icon */}
           <div className="flex items-start gap-4 mb-3">
-            <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-300/20 backdrop-blur transition-colors">
+            <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-200 backdrop-blur transition-colors dark:border-cyan-300/20">
               {hasRecentActivity
-                ? <Activity className="w-6 h-6 text-cyan-200" />
-                : renderMessageIcon(message.icon, 'w-6 h-6 text-cyan-200')}
+                ? <Activity className="w-6 h-6 text-cyan-700 dark:text-cyan-200" />
+                : renderMessageIcon(message.icon, 'w-6 h-6 text-cyan-700 dark:text-cyan-200')}
             </div>
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 transition-colors">
+              <h2 className="text-2xl md:text-3xl font-bold text-slate-950 dark:text-white mb-2 transition-colors">
                 {hasRecentActivity ? buildRecentActivityTitle(recentActivity) : message.title}
               </h2>
-              <p className="text-slate-200 max-w-md text-sm md:text-base transition-colors">
+              <p className="text-slate-600 dark:text-slate-200 max-w-md text-sm md:text-base transition-colors">
                 {description}
               </p>
             </div>
@@ -477,14 +477,14 @@ export function RestDayHeroCard({
 
           {recentActivity && (
             <div className="mb-4 flex flex-wrap gap-2">
-              <Badge variant="secondary" className="bg-white/10 text-slate-200 hover:bg-white/15">
+              <Badge variant="secondary" className="bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15">
                 {formatRecentActivitySource(recentActivity.source)}
               </Badge>
-              <Badge variant="secondary" className="bg-white/10 text-slate-200 hover:bg-white/15">
+              <Badge variant="secondary" className="bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15">
                 {formatRecentActivityDate(recentActivity.date)}
               </Badge>
               {recentActivity.deviceModel ? (
-                <Badge variant="secondary" className="bg-white/10 text-slate-200 hover:bg-white/15">
+                <Badge variant="secondary" className="bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15">
                   {recentActivity.deviceModel}
                 </Badge>
               ) : null}
@@ -494,44 +494,44 @@ export function RestDayHeroCard({
           {recentActivity && (
             <div className="grid grid-cols-2 gap-3 lg:max-w-xl">
               {recentActivity.durationMinutes ? (
-                <div className="rounded-xl border border-white/10 bg-white/10 p-3 backdrop-blur">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300/70">
+                <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
                     Längd
                   </div>
-                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-white">
+                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
                     <Timer className="h-4 w-4 text-cyan-500" />
                     {recentActivity.durationMinutes} min
                   </div>
                 </div>
               ) : null}
               {recentActivity.distanceKm ? (
-                <div className="rounded-xl border border-white/10 bg-white/10 p-3 backdrop-blur">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300/70">
+                <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
                     Distans
                   </div>
-                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-white">
+                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
                     <Route className="h-4 w-4 text-cyan-500" />
                     {recentActivity.distanceKm} km
                   </div>
                 </div>
               ) : null}
               {recentActivity.avgHR ? (
-                <div className="rounded-xl border border-white/10 bg-white/10 p-3 backdrop-blur">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300/70">
+                <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
                     Puls
                   </div>
-                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-white">
+                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
                     <Heart className="h-4 w-4 text-cyan-500" />
                     {recentActivity.avgHR} bpm
                   </div>
                 </div>
               ) : null}
               {recentActivity.tss ? (
-                <div className="rounded-xl border border-white/10 bg-white/10 p-3 backdrop-blur">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300/70">
+                <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
                     Belastning
                   </div>
-                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-white">
+                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
                     <Zap className="h-4 w-4 text-cyan-500" />
                     {recentActivity.tss} TSS
                   </div>
@@ -541,8 +541,8 @@ export function RestDayHeroCard({
           )}
 
           {/* Recovery Tip */}
-          <div className="mt-4 p-3 rounded-lg bg-white/10 border border-white/10 backdrop-blur transition-colors">
-            <p className="text-sm text-slate-200 flex items-start gap-2">
+          <div className="mt-4 p-3 rounded-lg bg-white/75 border border-slate-200/80 backdrop-blur transition-colors dark:bg-white/10 dark:border-white/10">
+            <p className="text-sm text-slate-700 dark:text-slate-200 flex items-start gap-2">
               <Sparkles className="w-4 h-4 text-cyan-300 mt-0.5 flex-shrink-0" />
               <span>{contextualHint}</span>
             </p>
@@ -568,14 +568,14 @@ export function RestDayHeroCard({
 
         {/* Next Workout Preview */}
         {nextItem && nextItem.kind === 'program' && (
-          <div className="mt-6 pt-6 border-t border-white/10 transition-colors">
-            <h3 className="text-sm font-medium text-slate-300/80 mb-3 flex items-center gap-2 transition-colors">
+          <div className="mt-6 pt-6 border-t border-slate-200/80 dark:border-white/10 transition-colors">
+            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-300/80 mb-3 flex items-center gap-2 transition-colors">
               <Calendar className="w-4 h-4" />
               Nästa pass
             </h3>
 
             <Link href={`${basePath}/athlete/workouts/${nextItem.workout.id}`}>
-              <div className="group/next p-4 rounded-xl bg-white/10 border border-white/10 backdrop-blur hover:border-orange-300/30 hover:bg-white/15 transition-all cursor-pointer">
+              <div className="group/next p-4 rounded-xl bg-white/75 border border-slate-200/80 backdrop-blur hover:border-orange-300/60 hover:bg-white transition-all cursor-pointer dark:bg-white/10 dark:border-white/10 dark:hover:border-orange-300/30 dark:hover:bg-white/15">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -586,18 +586,18 @@ export function RestDayHeroCard({
                         {formatIntensity(nextItem.workout.intensity)}
                       </span>
                     </div>
-                    <h4 className="font-semibold text-white truncate group-hover/next:text-orange-200 transition-colors">
+                    <h4 className="font-semibold text-slate-950 dark:text-white truncate group-hover/next:text-orange-700 dark:group-hover/next:text-orange-200 transition-colors">
                       {nextItem.workout.name}
                     </h4>
-                    <p className="text-sm text-slate-300 truncate">
+                    <p className="text-sm text-slate-500 dark:text-slate-300 truncate">
                       {nextItem.workout.programName}
                     </p>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover/next:text-orange-200 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
+                  <ChevronRight className="w-5 h-5 text-slate-500 dark:text-slate-300 group-hover/next:text-orange-700 dark:group-hover/next:text-orange-200 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
                 </div>
 
                 {/* Duration/Distance preview */}
-                <div className="flex gap-4 mt-2 text-xs text-slate-300">
+                <div className="flex gap-4 mt-2 text-xs text-slate-500 dark:text-slate-300">
                   {nextItem.workout.duration && (
                     <span>{nextItem.workout.duration} min</span>
                   )}
@@ -615,14 +615,14 @@ export function RestDayHeroCard({
           const NextTypeIcon = getAssignmentTypeIcon(nextItem.assignmentType)
           const nextBadgeStyle = getAssignmentTypeBadgeStyle(nextItem.assignmentType)
           return (
-            <div className="mt-6 pt-6 border-t border-white/10 transition-colors">
-              <h3 className="text-sm font-medium text-slate-300/80 mb-3 flex items-center gap-2 transition-colors">
+            <div className="mt-6 pt-6 border-t border-slate-200/80 dark:border-white/10 transition-colors">
+              <h3 className="text-sm font-medium text-slate-500 dark:text-slate-300/80 mb-3 flex items-center gap-2 transition-colors">
                 <Calendar className="w-4 h-4" />
                 Nästa pass
               </h3>
 
               <Link href={getAssignmentRoute(nextItem, basePath)}>
-                <div className="group/next p-4 rounded-xl bg-white/10 border border-white/10 backdrop-blur hover:border-orange-300/30 hover:bg-white/15 transition-all cursor-pointer">
+                <div className="group/next p-4 rounded-xl bg-white/75 border border-slate-200/80 backdrop-blur hover:border-orange-300/60 hover:bg-white transition-all cursor-pointer dark:bg-white/10 dark:border-white/10 dark:hover:border-orange-300/30 dark:hover:bg-white/15">
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -634,15 +634,15 @@ export function RestDayHeroCard({
                           {getAssignmentTypeLabel(nextItem.assignmentType)}
                         </span>
                       </div>
-                      <h4 className="font-semibold text-white truncate group-hover/next:text-orange-200 transition-colors">
+                      <h4 className="font-semibold text-slate-950 dark:text-white truncate group-hover/next:text-orange-700 dark:group-hover/next:text-orange-200 transition-colors">
                         {nextItem.name}
                       </h4>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover/next:text-orange-200 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
+                    <ChevronRight className="w-5 h-5 text-slate-500 dark:text-slate-300 group-hover/next:text-orange-700 dark:group-hover/next:text-orange-200 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
                   </div>
 
                   {/* Duration preview */}
-                  <div className="flex gap-4 mt-2 text-xs text-slate-300">
+                  <div className="flex gap-4 mt-2 text-xs text-slate-500 dark:text-slate-300">
                     {nextItem.duration && (
                       <span>{nextItem.duration} min</span>
                     )}
@@ -655,14 +655,14 @@ export function RestDayHeroCard({
 
         {/* Next WOD Preview */}
         {nextItem && nextItem.kind === 'wod' && (
-          <div className="mt-6 pt-6 border-t border-white/10 transition-colors">
-            <h3 className="text-sm font-medium text-slate-300/80 mb-3 flex items-center gap-2 transition-colors">
+          <div className="mt-6 pt-6 border-t border-slate-200/80 dark:border-white/10 transition-colors">
+            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-300/80 mb-3 flex items-center gap-2 transition-colors">
               <Calendar className="w-4 h-4" />
               Nästa pass
             </h3>
 
             <Link href={getWODRoute(nextItem, basePath)}>
-              <div className="group/next p-4 rounded-xl bg-white/10 border border-white/10 backdrop-blur hover:border-emerald-300/30 hover:bg-white/15 transition-all cursor-pointer">
+              <div className="group/next p-4 rounded-xl bg-white/75 border border-slate-200/80 backdrop-blur hover:border-emerald-300/60 hover:bg-white transition-all cursor-pointer dark:bg-white/10 dark:border-white/10 dark:hover:border-emerald-300/30 dark:hover:bg-white/15">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -674,17 +674,17 @@ export function RestDayHeroCard({
                         AI-Pass
                       </span>
                     </div>
-                    <h4 className="font-semibold text-white truncate group-hover/next:text-emerald-200 transition-colors">
+                    <h4 className="font-semibold text-slate-950 dark:text-white truncate group-hover/next:text-emerald-700 dark:group-hover/next:text-emerald-200 transition-colors">
                       {nextItem.title}
                     </h4>
-                    <p className="text-sm text-slate-300 truncate">
+                    <p className="text-sm text-slate-500 dark:text-slate-300 truncate">
                       {getWODModeLabel(nextItem.mode)}
                     </p>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover/next:text-emerald-200 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
+                  <ChevronRight className="w-5 h-5 text-slate-500 dark:text-slate-300 group-hover/next:text-emerald-700 dark:group-hover/next:text-emerald-200 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
                 </div>
 
-                <div className="flex gap-4 mt-2 text-xs text-slate-300">
+                <div className="flex gap-4 mt-2 text-xs text-slate-500 dark:text-slate-300">
                   <span>{nextItem.requestedDuration} min</span>
                 </div>
               </div>
@@ -694,14 +694,14 @@ export function RestDayHeroCard({
 
         {/* No upcoming workouts */}
         {!nextItem && (
-          <div className="mt-6 pt-6 border-t border-white/10 transition-colors">
-            <p className="text-sm text-slate-300 text-center">
+          <div className="mt-6 pt-6 border-t border-slate-200/80 dark:border-white/10 transition-colors">
+            <p className="text-sm text-slate-500 dark:text-slate-300 text-center">
               Inga kommande pass schemalagda
             </p>
             <Link href={`${basePath}/athlete/calendar`}>
               <Button
                 variant="outline"
-                className="w-full mt-3 border-white/20 bg-white/5 text-white hover:bg-white/10 hover:border-white/30 transition-all"
+                className="w-full mt-3 border-slate-300 bg-white/70 text-slate-900 hover:bg-white hover:border-slate-400 dark:border-white/20 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:hover:border-white/30 transition-all"
               >
                 <Calendar className="w-4 h-4 mr-2" />
                 Visa kalender

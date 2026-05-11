@@ -196,14 +196,14 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
     : null
 
   return (
-    <GlassCard className="lg:col-span-2 rounded-2xl group bg-slate-950 text-white ring-white/10 transition-all">
+    <GlassCard className="lg:col-span-2 rounded-2xl group bg-white/95 text-slate-950 ring-slate-900/10 dark:bg-slate-950 dark:text-white dark:ring-white/10 transition-all">
       <DashboardVisualLayer visual={visual} priority />
 
       {/* Remove button */}
       {!isCompleted && onRemove && (
         <button
           onClick={onRemove}
-          className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-white/10 text-slate-200 opacity-100 backdrop-blur sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white/20 transition-all"
+          className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-white/80 text-slate-600 opacity-100 backdrop-blur sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/20 transition-all"
           aria-label="Ta bort pass"
         >
           <X className="h-4 w-4" />
@@ -221,33 +221,33 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
 
         <div>
           {/* Category Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-orange-200 text-xs font-bold uppercase tracking-wider mb-4 backdrop-blur transition-colors">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-200/80 text-orange-700 dark:border-white/15 dark:bg-white/10 dark:text-orange-200 text-xs font-bold uppercase tracking-wider mb-4 backdrop-blur transition-colors">
             {renderBadgeIcon(workout.type, 'w-3 h-3')}
             {focus.category}
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 max-w-md transition-colors">
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-950 dark:text-white mb-2 max-w-md transition-colors">
             {focus.title}
           </h2>
 
           {/* Description */}
-          <p className="text-slate-200 max-w-sm text-sm md:text-base transition-colors">
+          <p className="text-slate-600 dark:text-slate-200 max-w-sm text-sm md:text-base transition-colors">
             {focus.description}
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-slate-100 backdrop-blur">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/75 px-3 py-1 text-xs font-medium text-slate-700 backdrop-blur dark:border-white/15 dark:bg-white/10 dark:text-slate-100">
               {formatWorkoutTypeLabel(workout.type)}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-slate-100 backdrop-blur">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/75 px-3 py-1 text-xs font-medium text-slate-700 backdrop-blur dark:border-white/15 dark:bg-white/10 dark:text-slate-100">
               {formatIntensity(workout.intensity)}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-slate-100 backdrop-blur">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/75 px-3 py-1 text-xs font-medium text-slate-700 backdrop-blur dark:border-white/15 dark:bg-white/10 dark:text-slate-100">
               {workout.programName}
             </span>
             {workout.fuelingPrescription && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-300/20 bg-orange-500/10 px-3 py-1 text-xs font-medium text-orange-200 backdrop-blur">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-500/10 px-3 py-1 text-xs font-medium text-orange-700 backdrop-blur dark:border-orange-300/20 dark:text-orange-200">
                 <Utensils className="h-3 w-3" />
                 {formatFuelingPrescription(workout.fuelingPrescription)}
               </span>
@@ -256,15 +256,15 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
 
           {/* Scheduling info */}
           {(workout.startTime || workout.locationName || workout.location?.name) && (
-            <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-slate-300">
+            <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-slate-600 dark:text-slate-300">
               {workout.startTime && (
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-200 backdrop-blur">
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 backdrop-blur dark:text-emerald-200">
                   <Clock className="h-3.5 w-3.5" />
                   {workout.startTime}
                 </span>
               )}
               {(workout.locationName || workout.location?.name) && (
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-200 backdrop-blur">
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-700 backdrop-blur dark:text-blue-200">
                   <MapPin className="h-3.5 w-3.5" />
                   {workout.locationName || workout.location?.name}
                 </span>
@@ -274,15 +274,15 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
 
           {/* Completed badge */}
           {isCompleted && (
-            <div className="mt-4 rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-4 backdrop-blur">
+            <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-500/10 p-4 backdrop-blur dark:border-emerald-300/20">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-200">
+                <div className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-200">
                   <CheckCircle2 className="h-4 w-4" />
                   Slutfört
-                  {completedAtLabel ? <span className="text-emerald-200/70">{completedAtLabel}</span> : null}
+                  {completedAtLabel ? <span className="text-emerald-700/70 dark:text-emerald-200/70">{completedAtLabel}</span> : null}
                 </div>
                 {completedLog?.notes ? (
-                  <span className="text-xs text-emerald-100/80">
+                  <span className="text-xs text-emerald-800/80 dark:text-emerald-100/80">
                     {completedLog.notes}
                   </span>
                 ) : null}
@@ -293,16 +293,16 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
                   {completedHighlights.map((highlight) => (
                     <div
                       key={highlight.label}
-                      className="rounded-xl border border-white/10 bg-white/10 p-3"
+                      className="rounded-xl border border-slate-200/80 bg-white/70 p-3 dark:border-white/10 dark:bg-white/10"
                     >
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-200/70">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700/70 dark:text-emerald-200/70">
                         {highlight.label}
                       </div>
-                      <div className="mt-1 text-lg font-semibold text-white">
+                      <div className="mt-1 text-lg font-semibold text-slate-950 dark:text-white">
                         {highlight.value}
                       </div>
                       {highlight.subvalue ? (
-                        <div className="mt-0.5 text-xs text-slate-300">{highlight.subvalue}</div>
+                        <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-300">{highlight.subvalue}</div>
                       ) : null}
                     </div>
                   ))}
@@ -316,8 +316,8 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 md:gap-6 mt-6 md:mt-8">
           {calculatedTotals.duration && (
             <div>
-              <div className="text-slate-300/70 text-xs uppercase tracking-wider mb-1">Längd</div>
-              <div className="text-lg md:text-xl font-bold text-white flex items-center gap-2 transition-colors">
+              <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">Längd</div>
+              <div className="text-lg md:text-xl font-bold text-slate-950 dark:text-white flex items-center gap-2 transition-colors">
                 <Timer className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
                 {calculatedTotals.duration} min
               </div>
@@ -326,8 +326,8 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
 
           {volume && (
             <div>
-              <div className="text-slate-300/70 text-xs uppercase tracking-wider mb-1">Volym</div>
-              <div className="text-lg md:text-xl font-bold text-white flex items-center gap-2 transition-colors">
+              <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">Volym</div>
+              <div className="text-lg md:text-xl font-bold text-slate-950 dark:text-white flex items-center gap-2 transition-colors">
                 <Dumbbell className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
                 {formatVolume(volume)}
               </div>
@@ -336,8 +336,8 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
 
           {calculatedTotals.distance && !volume && (
             <div>
-              <div className="text-slate-300/70 text-xs uppercase tracking-wider mb-1">Distans</div>
-              <div className="text-lg md:text-xl font-bold text-white flex items-center gap-2 transition-colors">
+              <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">Distans</div>
+              <div className="text-lg md:text-xl font-bold text-slate-950 dark:text-white flex items-center gap-2 transition-colors">
                 <Route className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
                 {calculatedTotals.distance} km
               </div>
@@ -345,7 +345,7 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
           )}
 
           <div>
-            <div className="text-slate-300/70 text-xs uppercase tracking-wider mb-1">Intensitet</div>
+            <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">Intensitet</div>
             <div className={`text-lg md:text-xl font-bold flex items-center gap-2 ${getIntensityColor(workout.intensity)}`}>
               <Activity className="w-4 h-4 md:w-5 md:h-5" />
               {formatIntensity(workout.intensity)}
@@ -359,7 +359,7 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
             <Link href={`${basePath}/athlete/workouts/${workout.id}`}>
               <Button
                 variant="outline"
-                className="w-full sm:w-auto min-h-[48px] border-white/20 bg-white/5 text-white hover:bg-white/10 hover:border-white/30 transition-all"
+                className="w-full sm:w-auto min-h-[48px] border-slate-300 bg-white/70 text-slate-900 hover:bg-white hover:border-slate-400 dark:border-white/20 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:hover:border-white/30 transition-all"
               >
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Visa detaljer

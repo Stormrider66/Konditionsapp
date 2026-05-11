@@ -53,18 +53,18 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
 
     if (variant === 'glass') {
       return (
-        <div className="relative flex items-center justify-between overflow-hidden rounded-lg border border-white/10 bg-slate-950/80 p-3 transition-colors hover:bg-slate-900/80">
+        <div className="relative flex items-center justify-between overflow-hidden rounded-lg border border-slate-200/80 bg-white/85 p-3 text-slate-900 transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-950/80 dark:text-white dark:hover:bg-slate-900/80">
           <DashboardVisualRail visual={visual} />
           <div className="relative z-10 flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium text-sm text-white truncate">
+              <span className="font-medium text-sm text-slate-900 dark:text-white truncate">
                 {item.title}
               </span>
-              <Badge variant="secondary" className="text-xs bg-white/10 text-slate-300 hover:bg-white/20">
+              <Badge variant="secondary" className="text-xs bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/20">
                 {format(new Date(item.createdAt), 'EEE d MMM', { locale: sv })}
               </Badge>
             </div>
-            <div className="flex items-center gap-3 text-xs text-slate-400">
+            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
               <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-xs ${badgeStyle}`}>
                 <Sparkles className="h-3 w-3" />
                 AI-Pass
@@ -74,7 +74,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
             </div>
           </div>
           <Link href={route} className="relative z-10">
-            <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white hover:bg-white/10">
+            <Button size="sm" variant="ghost" className="text-slate-500 hover:bg-slate-900/5 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </Link>
@@ -121,18 +121,18 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
 
     if (variant === 'glass') {
       return (
-        <div className="relative flex items-center justify-between overflow-hidden rounded-lg border border-white/10 bg-slate-950/80 p-3 transition-colors hover:bg-slate-900/80">
+        <div className="relative flex items-center justify-between overflow-hidden rounded-lg border border-slate-200/80 bg-white/85 p-3 text-slate-900 transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-950/80 dark:text-white dark:hover:bg-slate-900/80">
           <DashboardVisualRail visual={visual} />
           <div className="relative z-10 flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium text-sm text-white truncate">
+              <span className="font-medium text-sm text-slate-900 dark:text-white truncate">
                 {item.name}
               </span>
-              <Badge variant="secondary" className="text-xs bg-white/10 text-slate-300 hover:bg-white/20">
+              <Badge variant="secondary" className="text-xs bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/20">
                 {format(new Date(item.assignedDate), 'EEE d MMM', { locale: sv })}
               </Badge>
             </div>
-            <div className="flex items-center gap-3 text-xs text-slate-400">
+            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
               <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-xs ${badgeStyle}`}>
                 {renderAssignmentTypeIcon(item.assignmentType, 'h-3 w-3')}
                 {getAssignmentTypeLabel(item.assignmentType)}
@@ -153,7 +153,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
             </div>
           </div>
           <Link href={route} className="relative z-10">
-            <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white hover:bg-white/10">
+            <Button size="sm" variant="ghost" className="text-slate-500 hover:bg-slate-900/5 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </Link>
@@ -206,18 +206,18 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
   const fuelingPrescription = workout.fuelingPrescription
   if (variant === 'glass') {
     return (
-      <div className="relative flex items-center justify-between overflow-hidden rounded-lg border border-white/10 bg-slate-950/80 p-3 transition-colors hover:bg-slate-900/80">
+      <div className="relative flex items-center justify-between overflow-hidden rounded-lg border border-slate-200/80 bg-white/85 p-3 text-slate-900 transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-950/80 dark:text-white dark:hover:bg-slate-900/80">
         <DashboardVisualRail visual={visual} />
         <div className="relative z-10 flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-sm text-white truncate">
+            <span className="font-medium text-sm text-slate-900 dark:text-white truncate">
               {workout.name}
             </span>
-            <Badge variant="secondary" className="text-xs bg-white/10 text-slate-300 hover:bg-white/20">
+            <Badge variant="secondary" className="text-xs bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/20">
               {format(new Date(workout.dayDate || workout.day.date), 'EEE d MMM', { locale: sv })}
             </Badge>
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
             <span className="truncate">{workout.programName}</span>
             {workout.startTime && (
               <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
@@ -241,7 +241,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
           </div>
         </div>
         <Link href={`${basePath}/athlete/workouts/${workout.id}/log`} className="relative z-10">
-          <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white hover:bg-white/10">
+          <Button size="sm" variant="ghost" className="text-slate-500 hover:bg-slate-900/5 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </Link>
@@ -331,9 +331,9 @@ export function UpcomingWorkouts({ items, className, variant = 'default', basePa
   if (items.length === 0) {
     if (variant === 'glass') {
       return (
-        <GlassCard className={cn('bg-slate-950/80 text-white ring-white/10', className)}>
+        <GlassCard className={cn('bg-white/90 text-slate-900 ring-slate-900/10 dark:bg-slate-950/80 dark:text-white dark:ring-white/10', className)}>
           <GlassCardHeader>
-            <GlassCardTitle className="flex items-center gap-2 text-white">
+            <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
               <Calendar className="h-5 w-5 text-blue-400" />
               Kommande pass
             </GlassCardTitle>
@@ -375,9 +375,9 @@ export function UpcomingWorkouts({ items, className, variant = 'default', basePa
 
   if (variant === 'glass') {
     return (
-      <GlassCard className={cn('bg-slate-950/80 text-white ring-white/10', className)}>
+      <GlassCard className={cn('bg-white/90 text-slate-900 ring-slate-900/10 dark:bg-slate-950/80 dark:text-white dark:ring-white/10', className)}>
         <GlassCardHeader>
-          <GlassCardTitle className="flex items-center gap-2 text-white">
+          <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
             <Calendar className="h-5 w-5 text-blue-400" />
             Kommande pass
           </GlassCardTitle>
