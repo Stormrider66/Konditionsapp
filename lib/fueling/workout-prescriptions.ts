@@ -26,6 +26,7 @@ interface ProgramForFueling {
 
 type FuelingPlanForPrescription = {
   id: string
+  sport?: string | null
   recommendedCarbsGPerHour: number | null
 }
 
@@ -35,7 +36,7 @@ export async function createFuelingPrescriptionsForProgram(
   prisma: PrismaLike,
   program: ProgramForFueling
 ): Promise<number> {
-  const plan = await prisma.raceFuelingPlan.findFirst({
+  const plans = await prisma.raceFuelingPlan.findMany({
     where: {
       clientId: program.clientId,
       status: { not: 'ARCHIVED' },
@@ -46,9 +47,11 @@ export async function createFuelingPrescriptionsForProgram(
     ],
     select: {
       id: true,
+      sport: true,
       recommendedCarbsGPerHour: true,
     },
   })
+  const plan = selectFuelingPlanForProgram(plans, program.goalType)
 
   return upsertFuelingPrescriptionsForProgram(prisma, program, plan)
 }
@@ -66,6 +69,7 @@ export async function refreshFuelingPrescriptionsForActivePrograms(
     },
     select: {
       id: true,
+      sport: true,
       recommendedCarbsGPerHour: true,
     },
   })
@@ -212,6 +216,33 @@ export function estimateDurationFromDistance(
   if (!workout.distance) return 0
   const assumedSpeedKmh = workout.type === 'CYCLING' ? 28 : workout.type === 'SKIING' ? 14 : workout.type === 'SWIMMING' ? 3 : 10
   return Math.round((workout.distance / assumedSpeedKmh) * 60)
+}
+
+export function selectFuelingPlanForProgram<T extends FuelingPlanForPrescription>(
+  plans: T[],
+  goalType?: string | null
+): T | null {
+  if (plans.length === 0) return null
+
+  const goal = goalType?.toLowerCase() ?? ''
+  const matchingPlan = plans.find((plan) => plan.sport && goalMatchesSport(goal, plan.sport))
+  return matchingPlan ?? plans[0]
+}
+
+function goalMatchesSport(goal: string, sport: string): boolean {
+  if (!goal) return false
+  if (sport === 'RUNNING') return /run|running|löp|marathon|half|halv|10k|5k/.test(goal)
+  if (sport === 'CYCLING') return /cycl|cykel|bike|gravel|velo/.test(goal)
+  if (sport === 'SKIING') return /ski|skid|vasalopp/.test(goal)
+  if (sport === 'SWIMMING') return /swim|sim/.test(goal)
+  if (sport === 'TRIATHLON') return /triathlon|ironman|halviron/.test(goal)
+  if (sport === 'HYROX') return /hyrox/.test(goal)
+  if (sport === 'TENNIS') return /tennis/.test(goal)
+  if (sport === 'PADEL') return /padel/.test(goal)
+  if (sport === 'STRENGTH') return /strength|styrk/.test(goal)
+  if (sport === 'FUNCTIONAL_FITNESS' || sport === 'GENERAL_FITNESS') return /fitness|crossfit|funktionell/.test(goal)
+  if (sport.startsWith('TEAM_')) return /football|fotboll|hockey|handboll|floorball|innebandy|basket|volley/.test(goal)
+  return goal.includes(sport.toLowerCase())
 }
 
 function buildFuelingInstructions(
