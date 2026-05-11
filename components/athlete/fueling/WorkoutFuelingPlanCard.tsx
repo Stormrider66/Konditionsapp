@@ -11,6 +11,8 @@ import {
   summarizeRaceFuelingProductItems,
 } from '@/lib/fueling/product-plan'
 import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
+import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
+import { formatFuelingTargetIntensity } from '@/lib/fueling/target-intensity'
 
 type WorkoutFuelingPrescription = {
   targetCarbsGPerHour: number
@@ -20,6 +22,11 @@ type WorkoutFuelingPrescription = {
   instructionsSv?: string | null
   plan?: {
     name?: string | null
+    sport?: string | null
+    distanceKm?: number | null
+    targetSpeedKmh?: number | null
+    targetPowerWatts?: number | null
+    targetPaceMinKm?: number | null
     recommendedCarbsGPerHour?: number | null
   } | null
 }
@@ -55,6 +62,7 @@ export function WorkoutFuelingPlanCard({ prescription, log }: WorkoutFuelingPlan
     ? Math.round((targetTotal / targetHourly) * 60)
     : null
   const executionPlan = buildRaceDayFuelingPlan(targetHourly, inferredDurationMinutes)
+  const planContext = formatWorkoutPlanContext(prescription.plan)
 
   return (
     <GlassCard className="mb-8 border-orange-200 bg-orange-50/70 dark:border-orange-500/20 dark:bg-orange-500/5 transition-colors">
@@ -68,6 +76,11 @@ export function WorkoutFuelingPlanCard({ prescription, log }: WorkoutFuelingPlan
             <p className="mt-2 text-sm font-medium leading-relaxed text-slate-600 dark:text-slate-300">
               Träna magen och energiintaget som en del av själva passet.
             </p>
+            {planContext && (
+              <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                {planContext}
+              </p>
+            )}
           </div>
           {log && (
             <div className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
@@ -185,6 +198,19 @@ function ExecutionMetric({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-sm font-black text-slate-900 dark:text-white">{value}</p>
     </div>
   )
+}
+
+function formatWorkoutPlanContext(plan: WorkoutFuelingPrescription['plan']): string | null {
+  if (!plan) return null
+
+  const parts = [
+    plan.name,
+    plan.sport ? fuelingSportLabel(plan.sport) : null,
+    plan.distanceKm ? `${plan.distanceKm.toLocaleString('sv-SE', { maximumFractionDigits: 1 })} km` : null,
+    formatFuelingTargetIntensity(plan),
+  ].filter(Boolean)
+
+  return parts.length > 0 ? parts.join(' · ') : null
 }
 
 function FuelingMetric({

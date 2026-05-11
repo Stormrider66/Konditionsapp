@@ -85,6 +85,11 @@ export default async function BusinessWorkoutDetailPage({ params }: BusinessWork
           plan: {
             select: {
               name: true,
+              sport: true,
+              distanceKm: true,
+              targetSpeedKmh: true,
+              targetPowerWatts: true,
+              targetPaceMinKm: true,
               recommendedCarbsGPerHour: true,
             },
           },
