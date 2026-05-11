@@ -241,7 +241,12 @@ function goalMatchesSport(goal: string, sport: string): boolean {
   if (sport === 'PADEL') return /padel/.test(goal)
   if (sport === 'STRENGTH') return /strength|styrk/.test(goal)
   if (sport === 'FUNCTIONAL_FITNESS' || sport === 'GENERAL_FITNESS') return /fitness|crossfit|funktionell/.test(goal)
-  if (sport.startsWith('TEAM_')) return /football|fotboll|hockey|handboll|floorball|innebandy|basket|volley/.test(goal)
+  if (sport === 'TEAM_FOOTBALL') return /football|fotboll|soccer/.test(goal)
+  if (sport === 'TEAM_ICE_HOCKEY') return /hockey|ishockey/.test(goal)
+  if (sport === 'TEAM_HANDBALL') return /handboll|handball/.test(goal)
+  if (sport === 'TEAM_FLOORBALL') return /floorball|innebandy/.test(goal)
+  if (sport === 'TEAM_BASKETBALL') return /basket|basketball/.test(goal)
+  if (sport === 'TEAM_VOLLEYBALL') return /volley|volleyball/.test(goal)
   return goal.includes(sport.toLowerCase())
 }
 

@@ -67,6 +67,15 @@ describe('workout fueling prescriptions', () => {
     expect(selected?.id).toBe('bike-plan')
   })
 
+  it('matches specific team sports instead of any team sport', () => {
+    const selected = selectFuelingPlanForProgram([
+      { id: 'football-plan', sport: 'TEAM_FOOTBALL', recommendedCarbsGPerHour: 70 },
+      { id: 'hockey-plan', sport: 'TEAM_ICE_HOCKEY', recommendedCarbsGPerHour: 75 },
+    ], 'ishockey försäsong')
+
+    expect(selected?.id).toBe('hockey-plan')
+  })
+
   it('falls back to the first active fueling plan when the goal sport is unclear', () => {
     const selected = selectFuelingPlanForProgram([
       { id: 'first-plan', sport: 'RUNNING', recommendedCarbsGPerHour: 80 },
