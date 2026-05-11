@@ -172,7 +172,7 @@ async function upsertFuelingPrescriptionsForProgram(
   return prescriptions.length
 }
 
-function shouldPrescribeFueling(
+export function shouldPrescribeFueling(
   workout: Pick<ProgramForFueling['weeks'][number]['days'][number]['workouts'][number], 'name' | 'type' | 'duration' | 'distance' | 'intensity'>,
   goalType?: string | null
 ): boolean {
@@ -191,7 +191,7 @@ function shouldPrescribeFueling(
   )
 }
 
-function calculateProgressiveCarbTarget(
+export function calculateProgressiveCarbTarget(
   raceTarget: number,
   weekNumber: number,
   maxWeek: number,
@@ -206,7 +206,7 @@ function calculateProgressiveCarbTarget(
   return Math.round(Math.max(30, Math.min(120, raw)) / 5) * 5
 }
 
-function estimateDurationFromDistance(
+export function estimateDurationFromDistance(
   workout: Pick<ProgramForFueling['weeks'][number]['days'][number]['workouts'][number], 'type' | 'distance'>
 ): number {
   if (!workout.distance) return 0
