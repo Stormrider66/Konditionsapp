@@ -21,6 +21,7 @@ import { buildFuelingCoachingRecommendation } from '@/lib/fueling/coaching-recom
 import { buildFuelingBuildUpPlan, type FuelingBuildUpPlan } from '@/lib/fueling/build-up-plan'
 import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
 import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
+import { formatFuelingTargetIntensity } from '@/lib/fueling/target-intensity'
 
 interface RaceDayPlan {
   carbsPerHour: number
@@ -39,6 +40,9 @@ interface FuelingPlanDetail {
   sport: string
   distanceKm: number | null
   durationMinutes: number | null
+  targetSpeedKmh: number | null
+  targetPowerWatts: number | null
+  targetPaceMinKm: number | null
   raceDate: string | null
   estimatedCarbDemandGPerHour: number | null
   estimatedCarbDemandTotalG: number | null
@@ -297,6 +301,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
     raceTargetGPerHour: plan.recommendedCarbsGPerHour,
   })
   const storedProductPlan = normalizeRaceFuelingProductPlan(plan.productPlan)
+  const targetIntensity = formatFuelingTargetIntensity(plan)
   const productPlan = buildProductPlan({
     targetCarbs: raceDayPlan?.totalCarbs ?? plan.recommendedCarbsTotalG,
     gelCount,
@@ -332,6 +337,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
             <span>{sportLabel(plan.sport)}</span>
             {plan.distanceKm && <span>{formatDistance(plan.distanceKm)}</span>}
             {plan.durationMinutes && <span>{formatDuration(plan.durationMinutes)}</span>}
+            {targetIntensity && <span>{targetIntensity}</span>}
             {plan.raceDate && (
               <span className="inline-flex items-center gap-1">
                 <CalendarDays className="h-4 w-4" />

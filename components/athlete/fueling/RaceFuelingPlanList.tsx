@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FUELING_SPORT_OPTIONS, fuelingSportLabel } from '@/lib/fueling/sport-labels'
+import { formatFuelingTargetIntensity } from '@/lib/fueling/target-intensity'
 
 interface RaceFuelingPlanSummary {
   id: string
@@ -17,6 +18,9 @@ interface RaceFuelingPlanSummary {
   sport: string
   distanceKm: number | null
   durationMinutes: number | null
+  targetSpeedKmh: number | null
+  targetPowerWatts: number | null
+  targetPaceMinKm: number | null
   raceDate: string | null
   recommendedCarbsGPerHour: number | null
   recommendedCarbsTotalG: number | null
@@ -422,7 +426,45 @@ function PlanGrid({
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {plans.map((plan) => (
-        <Card key={plan.id}>
+        <PlanCard
+          key={plan.id}
+          plan={plan}
+          detailBasePath={detailBasePath}
+          updatingId={updatingId}
+          applyingId={applyingId}
+          applyResult={applyResult}
+          onApply={onApply}
+          onArchive={onArchive}
+          onRestore={onRestore}
+        />
+      ))}
+    </div>
+  )
+}
+
+function PlanCard({
+  plan,
+  detailBasePath,
+  updatingId,
+  applyingId,
+  applyResult,
+  onApply,
+  onArchive,
+  onRestore,
+}: {
+  plan: RaceFuelingPlanSummary
+  detailBasePath: string
+  updatingId: string | null
+  applyingId: string | null
+  applyResult: { planId: string; count: number } | null
+  onApply?: (id: string) => void
+  onArchive?: (id: string) => void
+  onRestore?: (id: string) => void
+}) {
+  const targetIntensity = formatFuelingTargetIntensity(plan)
+
+  return (
+    <Card>
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between gap-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -436,6 +478,7 @@ function PlanGrid({
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
               {plan.distanceKm && <span>{formatDistance(plan.distanceKm)}</span>}
               {plan.durationMinutes && <span>{formatDuration(plan.durationMinutes)}</span>}
+              {targetIntensity && <span>{targetIntensity}</span>}
               {plan.raceDate && (
                 <span className="inline-flex items-center gap-1">
                   <CalendarDays className="h-3 w-3" />
@@ -496,8 +539,6 @@ function PlanGrid({
             </div>
           </CardContent>
         </Card>
-      ))}
-    </div>
   )
 }
 

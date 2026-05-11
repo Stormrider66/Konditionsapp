@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { normalizeRaceFuelingProductPlan, summarizeRaceFuelingProductPlan } from '@/lib/fueling/product-plan'
 import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
 import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
+import { formatFuelingTargetIntensity } from '@/lib/fueling/target-intensity'
 
 interface RaceFuelingPlanSummary {
   id: string
@@ -18,6 +19,9 @@ interface RaceFuelingPlanSummary {
   sport: string
   distanceKm: number | null
   durationMinutes: number | null
+  targetSpeedKmh: number | null
+  targetPowerWatts: number | null
+  targetPaceMinKm: number | null
   raceDate: string | null
   estimatedCarbDemandGPerHour: number | null
   recommendedCarbsGPerHour: number | null
@@ -90,6 +94,7 @@ export function RaceFuelingCard({
     ? summarizeRaceFuelingProductPlan(structuredProductPlan)
     : savedProductPlanNote?.summary
   const savedPackedCarbs = structuredProductPlan?.totalCarbsG ?? savedProductPlanNote?.packedCarbsG ?? null
+  const targetIntensity = plan ? formatFuelingTargetIntensity(plan) : null
 
   return (
     <Card className={isGlass ? 'bg-white/80 dark:bg-slate-900/70 backdrop-blur border-white/20' : undefined}>
@@ -129,6 +134,7 @@ export function RaceFuelingCard({
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
                 {plan.distanceKm && <span>{formatDistance(plan.distanceKm)}</span>}
                 {plan.durationMinutes && <span>{formatDuration(plan.durationMinutes)}</span>}
+                {targetIntensity && <span>{targetIntensity}</span>}
                 {plan.raceDate && (
                   <span className="inline-flex items-center gap-1">
                     <CalendarDays className="h-3 w-3" />
