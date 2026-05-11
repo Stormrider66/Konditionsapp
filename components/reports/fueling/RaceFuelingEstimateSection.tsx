@@ -47,7 +47,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
   const [selectedDistanceIndex, setSelectedDistanceIndex] = useState(Math.max(0, options.length - 2))
   const [selectedStageSequence, setSelectedStageSequence] = useState<number | null>(usableStages[0]?.sequence ?? null)
   const [customDistanceKm, setCustomDistanceKm] = useState('')
-  const [customDurationMinutes, setCustomDurationMinutes] = useState('180')
+  const [customDurationMinutes, setCustomDurationMinutes] = useState('')
   const [raceDate, setRaceDate] = useState('')
   const [gutTolerance, setGutTolerance] = useState('')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -87,25 +87,29 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
   async function savePlan() {
     if (!selectedStage || !selectedDistance) return
     setSaveStatus('saving')
-    const response = await fetch('/api/fueling/plans', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        clientId,
-        testId: test.id,
-        sport: test.testType,
-        name: `Tävlingsenergi ${formatRaceTargetLabel(selectedDistance)}`,
-        distanceKm: selectedDistance.distanceKm,
-        durationMinutes: selectedDistance.durationMinutes,
-        targetSpeedKmh: selectedStage.speed,
-        targetPowerWatts: selectedStage.power,
-        targetPaceMinKm: selectedStage.pace,
-        raceDate: raceDate ? new Date(raceDate).toISOString() : null,
-        currentGutToleranceCarbsPerHour: gutTolerance ? Number(gutTolerance) : null,
-      }),
-    })
+    try {
+      const response = await fetch('/api/fueling/plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId,
+          testId: test.id,
+          sport: test.testType,
+          name: `Tävlingsenergi ${formatRaceTargetLabel(selectedDistance)}`,
+          distanceKm: selectedDistance.distanceKm,
+          durationMinutes: selectedDistance.durationMinutes,
+          targetSpeedKmh: selectedStage.speed,
+          targetPowerWatts: selectedStage.power,
+          targetPaceMinKm: selectedStage.pace,
+          raceDate: raceDate ? new Date(raceDate).toISOString() : null,
+          currentGutToleranceCarbsPerHour: gutTolerance ? Number(gutTolerance) : null,
+        }),
+      })
 
-    setSaveStatus(response.ok ? 'saved' : 'error')
+      setSaveStatus(response.ok ? 'saved' : 'error')
+    } catch {
+      setSaveStatus('error')
+    }
   }
 
   return (
