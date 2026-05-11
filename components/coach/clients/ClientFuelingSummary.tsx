@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   AlertTriangle,
@@ -138,33 +138,28 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
   const [applyState, setApplyState] = useState<'idle' | 'applying' | 'applied' | 'error'>('idle')
   const [appliedCount, setAppliedCount] = useState<number | null>(null)
 
-  useEffect(() => {
-    let cancelled = false
+  const loadFuelingSummary = useCallback(async (signal?: AbortSignal, showLoadingState = true) => {
+    if (showLoadingState) setIsLoading(true)
+    setError(null)
 
-    async function loadFuelingSummary() {
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        const response = await fetch(`/api/clients/${clientId}/fueling-summary`)
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
-        const body = await response.json()
-        if (!cancelled && body.success) setData(body.data)
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Kunde inte hämta tävlingsenergi')
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false)
-      }
-    }
-
-    void loadFuelingSummary()
-
-    return () => {
-      cancelled = true
+    try {
+      const response = await fetch(`/api/clients/${clientId}/fueling-summary`, { signal })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const body = await response.json()
+      if (body.success) setData(body.data)
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
+      setError(err instanceof Error ? err.message : 'Kunde inte hämta tävlingsenergi')
+    } finally {
+      if (showLoadingState && !signal?.aborted) setIsLoading(false)
     }
   }, [clientId])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void loadFuelingSummary(controller.signal)
+    return () => controller.abort()
+  }, [loadFuelingSummary])
 
   useEffect(() => {
     const plan = data?.latestPlan
@@ -203,7 +198,14 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
       })
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const body = await response.json()
-      setData((current) => current ? { ...current, latestPlan: body.plan } : current)
+      setData((current) => current ? {
+        ...current,
+        latestPlan: current.latestPlan ? {
+          ...current.latestPlan,
+          ...body.plan,
+          fuelingProgress: current.latestPlan.fuelingProgress,
+        } : body.plan,
+      } : current)
       setSaveState('saved')
     } catch {
       setSaveState('error')
@@ -221,6 +223,7 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
       const body = await response.json()
       setAppliedCount(body.updatedCount ?? 0)
       setApplyState('applied')
+      await loadFuelingSummary(undefined, false)
     } catch {
       setApplyState('error')
     }
