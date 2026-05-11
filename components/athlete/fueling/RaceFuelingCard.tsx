@@ -215,8 +215,17 @@ export function RaceFuelingCard({
             )}
           </div>
         ) : (
-          <div className="text-sm text-muted-foreground">
-            Ingen tävlingsplan sparad ännu. Skapa en från testrapporten när atleten har ett mål för lopp eller tävling.
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              Ingen tävlingsplan sparad ännu. Skapa en plan när atleten har ett mål för lopp, match, tävling eller långt event.
+            </p>
+            {showDetailLink && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={resolvedListHref}>
+                  Skapa plan
+                </Link>
+              </Button>
+            )}
           </div>
         )}
       </CardContent>
