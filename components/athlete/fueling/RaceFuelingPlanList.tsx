@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { Archive, CalendarDays, CheckCircle2, Eye, Loader2, RotateCcw, Utensils } from 'lucide-react'
+import { Archive, CalendarDays, CheckCircle2, Eye, Loader2, PlusCircle, RotateCcw, Utensils } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -41,15 +41,63 @@ interface RaceFuelingPlanListProps {
   detailBasePath?: string
 }
 
+interface CreatePlanFormState {
+  name: string
+  sport: string
+  distanceKm: string
+  durationMinutes: string
+  targetSpeedKmh: string
+  targetPowerWatts: string
+  targetPaceMinKm: string
+  raceDate: string
+  currentGutToleranceCarbsPerHour: string
+}
+
+const SPORT_OPTIONS = [
+  { value: 'RUNNING', label: 'Löpning' },
+  { value: 'CYCLING', label: 'Cykling' },
+  { value: 'SKIING', label: 'Skidor' },
+  { value: 'SWIMMING', label: 'Simning' },
+  { value: 'TRIATHLON', label: 'Triathlon' },
+  { value: 'HYROX', label: 'HYROX' },
+  { value: 'GENERAL_FITNESS', label: 'Fitness' },
+  { value: 'FUNCTIONAL_FITNESS', label: 'Funktionell träning' },
+  { value: 'STRENGTH', label: 'Styrka' },
+  { value: 'TEAM_FOOTBALL', label: 'Fotboll' },
+  { value: 'TEAM_ICE_HOCKEY', label: 'Ishockey' },
+  { value: 'TEAM_HANDBALL', label: 'Handboll' },
+  { value: 'TEAM_FLOORBALL', label: 'Innebandy' },
+  { value: 'TEAM_BASKETBALL', label: 'Basket' },
+  { value: 'TEAM_VOLLEYBALL', label: 'Volleyboll' },
+  { value: 'TENNIS', label: 'Tennis' },
+  { value: 'PADEL', label: 'Padel' },
+] as const
+
+const EMPTY_CREATE_FORM: CreatePlanFormState = {
+  name: '',
+  sport: 'RUNNING',
+  distanceKm: '',
+  durationMinutes: '',
+  targetSpeedKmh: '',
+  targetPowerWatts: '',
+  targetPaceMinKm: '',
+  raceDate: '',
+  currentGutToleranceCarbsPerHour: '',
+}
+
 export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }: RaceFuelingPlanListProps) {
   const [plans, setPlans] = useState<RaceFuelingPlanSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [createForm, setCreateForm] = useState<CreatePlanFormState>(EMPTY_CREATE_FORM)
+  const [createState, setCreateState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [applyingId, setApplyingId] = useState<string | null>(null)
   const [applyResult, setApplyResult] = useState<{ planId: string; count: number } | null>(null)
   const resolvedDetailBasePath = detailBasePath ?? `${basePath}/athlete/fueling`
+  const canCreatePlan = Boolean(parseOptionalNumber(createForm.distanceKm) || parseOptionalNumber(createForm.durationMinutes))
 
   const loadPlans = useCallback(async (signal?: AbortSignal, showLoadingState = true) => {
     if (showLoadingState) setIsLoading(true)
@@ -120,6 +168,45 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
     }
   }
 
+  async function createPlan() {
+    if (!canCreatePlan) return
+    setCreateState('saving')
+    setError(null)
+
+    try {
+      const response = await fetch('/api/fueling/plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId,
+          name: createForm.name.trim() || null,
+          sport: createForm.sport,
+          distanceKm: parseOptionalNumber(createForm.distanceKm),
+          durationMinutes: parseOptionalNumber(createForm.durationMinutes),
+          targetSpeedKmh: parseOptionalNumber(createForm.targetSpeedKmh),
+          targetPowerWatts: parseOptionalNumber(createForm.targetPowerWatts),
+          targetPaceMinKm: parseOptionalNumber(createForm.targetPaceMinKm),
+          raceDate: createForm.raceDate ? new Date(createForm.raceDate).toISOString() : null,
+          currentGutToleranceCarbsPerHour: parseOptionalNumber(createForm.currentGutToleranceCarbsPerHour),
+        }),
+      })
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      setCreateState('saved')
+      setCreateForm(EMPTY_CREATE_FORM)
+      setShowCreateForm(false)
+      setShowArchived(false)
+      await loadPlans(undefined, false)
+    } catch {
+      setCreateState('error')
+    }
+  }
+
+  function updateCreateForm(field: keyof CreatePlanFormState, value: string) {
+    setCreateForm((current) => ({ ...current, [field]: value }))
+    setCreateState('idle')
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -129,10 +216,144 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
             Sparade raceplaner, packlista och carb-träning mot tävling.
           </p>
         </div>
-        <Button variant="outline" onClick={() => setShowArchived((value) => !value)}>
-          {showArchived ? 'Dölj arkiv' : 'Visa arkiv'}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => setShowCreateForm((value) => !value)}>
+            <PlusCircle className="h-4 w-4" />
+            Ny plan
+          </Button>
+          <Button variant="outline" onClick={() => setShowArchived((value) => !value)}>
+            {showArchived ? 'Dölj arkiv' : 'Visa arkiv'}
+          </Button>
+        </div>
       </div>
+
+      {showCreateForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Utensils className="h-4 w-4 text-amber-600" />
+              Skapa tävlingsenergi
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-3">
+              <label className="text-xs text-muted-foreground md:col-span-2">
+                Namn
+                <input
+                  className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  value={createForm.name}
+                  onChange={(event) => updateCreateForm('name', event.target.value)}
+                  placeholder="Ex. Stockholm Marathon"
+                />
+              </label>
+              <label className="text-xs text-muted-foreground">
+                Sport
+                <select
+                  className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  value={createForm.sport}
+                  onChange={(event) => updateCreateForm('sport', event.target.value)}
+                >
+                  {SPORT_OPTIONS.map((sport) => (
+                    <option key={sport.value} value={sport.value}>{sport.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-xs text-muted-foreground">
+                Distans (km)
+                <input
+                  className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.1"
+                  type="number"
+                  value={createForm.distanceKm}
+                  onChange={(event) => updateCreateForm('distanceKm', event.target.value)}
+                  placeholder="42.2"
+                />
+              </label>
+              <label className="text-xs text-muted-foreground">
+                Förväntad tid (min)
+                <input
+                  className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  inputMode="numeric"
+                  min="1"
+                  type="number"
+                  value={createForm.durationMinutes}
+                  onChange={(event) => updateCreateForm('durationMinutes', event.target.value)}
+                  placeholder="180"
+                />
+              </label>
+              <label className="text-xs text-muted-foreground">
+                Tävlingsdatum
+                <input
+                  className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  type="date"
+                  value={createForm.raceDate}
+                  onChange={(event) => updateCreateForm('raceDate', event.target.value)}
+                />
+              </label>
+              <label className="text-xs text-muted-foreground">
+                Målfart km/h
+                <input
+                  className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.1"
+                  type="number"
+                  value={createForm.targetSpeedKmh}
+                  onChange={(event) => updateCreateForm('targetSpeedKmh', event.target.value)}
+                />
+              </label>
+              <label className="text-xs text-muted-foreground">
+                Måleffekt W
+                <input
+                  className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  inputMode="numeric"
+                  min="0"
+                  type="number"
+                  value={createForm.targetPowerWatts}
+                  onChange={(event) => updateCreateForm('targetPowerWatts', event.target.value)}
+                />
+              </label>
+              <label className="text-xs text-muted-foreground">
+                Målfart min/km
+                <input
+                  className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.1"
+                  type="number"
+                  value={createForm.targetPaceMinKm}
+                  onChange={(event) => updateCreateForm('targetPaceMinKm', event.target.value)}
+                />
+              </label>
+              <label className="text-xs text-muted-foreground">
+                Nuvarande magtolerans (g/h)
+                <input
+                  className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  inputMode="numeric"
+                  min="0"
+                  max="150"
+                  step="5"
+                  type="number"
+                  value={createForm.currentGutToleranceCarbsPerHour}
+                  onChange={(event) => updateCreateForm('currentGutToleranceCarbsPerHour', event.target.value)}
+                  placeholder="60"
+                />
+              </label>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={() => void createPlan()} disabled={!canCreatePlan || createState === 'saving'}>
+                {createState === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4" />}
+                {createState === 'saved' ? 'Plan skapad' : 'Skapa plan'}
+              </Button>
+              <Button variant="ghost" onClick={() => setShowCreateForm(false)}>Avbryt</Button>
+              {!canCreatePlan && <span className="text-xs text-muted-foreground">Ange distans eller förväntad tid.</span>}
+              {createState === 'error' && <span className="text-xs text-destructive">Kunde inte skapa planen.</span>}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {isLoading ? (
         <div className="flex min-h-[30vh] items-center justify-center text-muted-foreground">
@@ -344,14 +565,11 @@ function statusLabel(status: string): string {
   return 'Utkast'
 }
 
+function parseOptionalNumber(value: string): number | undefined {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
+}
+
 function sportLabel(sport: string): string {
-  const labels: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    SKIING: 'Skidor',
-    SWIMMING: 'Simning',
-    TRIATHLON: 'Triathlon',
-    HYROX: 'HYROX',
-  }
-  return labels[sport] ?? 'Raceplan'
+  return SPORT_OPTIONS.find((option) => option.value === sport)?.label ?? 'Raceplan'
 }
