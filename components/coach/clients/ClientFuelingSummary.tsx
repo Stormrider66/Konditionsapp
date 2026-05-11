@@ -367,6 +367,18 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
               </div>
             )}
 
+            {!data?.latestPlan && plansHref && (
+              <div className="rounded-lg border bg-slate-50 p-3 dark:bg-slate-800/60 dark:border-white/10">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">Ingen raceplan ännu</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Skapa en plan när distans, tid eller målintensitet finns så kan passen få carb-mål.
+                </p>
+                <Button asChild size="sm" variant="outline" className="mt-3 w-full">
+                  <Link href={plansHref}>Skapa raceplan</Link>
+                </Button>
+              </div>
+            )}
+
             {data?.recentLogs.length ? (
               <FuelingTrendPanel logs={data.recentLogs} trend={trend} />
             ) : (
