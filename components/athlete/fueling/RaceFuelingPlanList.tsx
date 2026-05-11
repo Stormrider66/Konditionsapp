@@ -3,14 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
 import { Archive, CalendarDays, CheckCircle2, Eye, Loader2, PlusCircle, RotateCcw, Utensils } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FUELING_SPORT_OPTIONS, fuelingSportLabel } from '@/lib/fueling/sport-labels'
-import { formatFuelingTargetIntensity } from '@/lib/fueling/target-intensity'
+import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
 
 interface RaceFuelingPlanSummary {
   id: string
@@ -461,7 +459,7 @@ function PlanCard({
   onArchive?: (id: string) => void
   onRestore?: (id: string) => void
 }) {
-  const targetIntensity = formatFuelingTargetIntensity(plan)
+  const planContext = formatFuelingPlanContext(plan, { includeRaceDate: true })
 
   return (
     <Card>
@@ -476,13 +474,11 @@ function PlanCard({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-              {plan.distanceKm && <span>{formatDistance(plan.distanceKm)}</span>}
               {plan.durationMinutes && <span>{formatDuration(plan.durationMinutes)}</span>}
-              {targetIntensity && <span>{targetIntensity}</span>}
-              {plan.raceDate && (
+              {planContext && (
                 <span className="inline-flex items-center gap-1">
                   <CalendarDays className="h-3 w-3" />
-                  {format(new Date(plan.raceDate), 'd MMM yyyy', { locale: sv })}
+                  {planContext}
                 </span>
               )}
             </div>
@@ -587,12 +583,6 @@ function formatDuration(minutes: number): string {
   const hours = Math.floor(rounded / 60)
   const mins = rounded % 60
   return hours > 0 ? `${hours} h ${mins} min` : `${mins} min`
-}
-
-function formatDistance(distanceKm: number): string {
-  if (Math.abs(distanceKm - 42.195) < 0.1) return 'Marathon'
-  if (Math.abs(distanceKm - 21.0975) < 0.1) return 'Halvmarathon'
-  return `${distanceKm.toLocaleString('sv-SE', { maximumFractionDigits: 1 })} km`
 }
 
 function statusLabel(status: string): string {
