@@ -84,4 +84,35 @@ describe('workout fueling prescriptions', () => {
 
     expect(selected?.id).toBe('first-plan')
   })
+
+  it('prefers the next upcoming plan before undated and past plans', () => {
+    const selected = selectFuelingPlanForProgram([
+      {
+        id: 'undated',
+        sport: 'RUNNING',
+        recommendedCarbsGPerHour: 80,
+        raceDate: null,
+        createdAt: '2026-05-01T08:00:00.000Z',
+        updatedAt: '2026-05-09T08:00:00.000Z',
+      },
+      {
+        id: 'past',
+        sport: 'RUNNING',
+        recommendedCarbsGPerHour: 80,
+        raceDate: '2026-04-01T08:00:00.000Z',
+        createdAt: '2026-03-01T08:00:00.000Z',
+        updatedAt: '2026-05-10T08:00:00.000Z',
+      },
+      {
+        id: 'upcoming',
+        sport: 'RUNNING',
+        recommendedCarbsGPerHour: 85,
+        raceDate: '2026-06-01T08:00:00.000Z',
+        createdAt: '2026-03-01T08:00:00.000Z',
+        updatedAt: '2026-03-01T08:00:00.000Z',
+      },
+    ], 'marathon')
+
+    expect(selected?.id).toBe('upcoming')
+  })
 })

@@ -4,6 +4,7 @@ import {
   getFuelingFeedbackSummary,
   type FuelingFeedbackSummary,
 } from '@/lib/fueling/feedback-summary'
+import { sortFuelingPlansForDisplay } from '@/lib/fueling/plan-ordering'
 
 interface ProgramForFueling {
   id: string
@@ -27,6 +28,9 @@ interface ProgramForFueling {
 type FuelingPlanForPrescription = {
   id: string
   sport?: string | null
+  raceDate?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
   recommendedCarbsGPerHour: number | null
 }
 
@@ -41,13 +45,14 @@ export async function createFuelingPrescriptionsForProgram(
       clientId: program.clientId,
       status: { not: 'ARCHIVED' },
     },
-    orderBy: [
-      { raceDate: 'asc' },
-      { createdAt: 'desc' },
-    ],
+    orderBy: { updatedAt: 'desc' },
+    take: 50,
     select: {
       id: true,
       sport: true,
+      raceDate: true,
+      createdAt: true,
+      updatedAt: true,
       recommendedCarbsGPerHour: true,
     },
   })
@@ -225,8 +230,29 @@ export function selectFuelingPlanForProgram<T extends FuelingPlanForPrescription
   if (plans.length === 0) return null
 
   const goal = goalType?.toLowerCase() ?? ''
-  const matchingPlan = plans.find((plan) => plan.sport && goalMatchesSport(goal, plan.sport))
-  return matchingPlan ?? plans[0]
+  const sortedPlans = hasAllPlanOrderingFields(plans)
+    ? sortFuelingPlansForDisplay(plans)
+    : plans
+  const matchingPlan = sortedPlans.find((plan) => plan.sport && goalMatchesSport(goal, plan.sport))
+  return matchingPlan ?? sortedPlans[0]
+}
+
+function hasAllPlanOrderingFields<T extends FuelingPlanForPrescription>(
+  plans: T[]
+): plans is Array<T & {
+  raceDate: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+}> {
+  return plans.every(hasPlanOrderingFields)
+}
+
+function hasPlanOrderingFields<T extends FuelingPlanForPrescription>(plan: T): plan is T & {
+  raceDate: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+} {
+  return plan.raceDate !== undefined && plan.createdAt !== undefined && plan.updatedAt !== undefined
 }
 
 function goalMatchesSport(goal: string, sport: string): boolean {
