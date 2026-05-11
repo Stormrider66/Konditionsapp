@@ -26,6 +26,15 @@ describe('sortFuelingPlansForDisplay', () => {
 
     expect(sorted.map((item) => item.id)).toEqual(['newer', 'older'])
   })
+
+  it('uses latest update as a tie-breaker for plans on the same date', () => {
+    const sorted = sortFuelingPlansForDisplay([
+      plan('older', '2026-06-01', '2026-05-01'),
+      plan('newer', '2026-06-01', '2026-05-03'),
+    ], new Date('2026-05-11T12:00:00'))
+
+    expect(sorted.map((item) => item.id)).toEqual(['newer', 'older'])
+  })
 })
 
 function plan(id: string, raceDate: string | null, updatedAt: string) {

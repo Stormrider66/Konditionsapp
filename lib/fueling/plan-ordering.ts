@@ -15,8 +15,14 @@ export function sortFuelingPlansForDisplay<T extends FuelingPlanOrderable>(
     const groupB = planOrderGroup(b, startOfToday)
     if (groupA !== groupB) return groupA - groupB
 
-    if (groupA === 0) return toTime(a.raceDate) - toTime(b.raceDate)
-    if (groupA === 2) return toTime(b.raceDate) - toTime(a.raceDate)
+    if (groupA === 0) {
+      const dateDiff = toTime(a.raceDate) - toTime(b.raceDate)
+      return dateDiff || toTime(b.updatedAt) - toTime(a.updatedAt)
+    }
+    if (groupA === 2) {
+      const dateDiff = toTime(b.raceDate) - toTime(a.raceDate)
+      return dateDiff || toTime(b.updatedAt) - toTime(a.updatedAt)
+    }
     return toTime(b.updatedAt) - toTime(a.updatedAt)
   })
 }
