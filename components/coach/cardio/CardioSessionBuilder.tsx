@@ -49,6 +49,7 @@ type CardioFlatSegment = {
   pace?: string // "5:30/km"
   heartRate?: string // "145-155 bpm"
   notes?: string
+  equipment?: string
   repeats?: number // for intervals
   restDuration?: number // min, for interval repeats
   distanceUnit?: 'km' | 'm'
@@ -64,10 +65,29 @@ type CardioChildStep = {
   zone: string
   pace?: string
   heartRate?: string
-  notes?: string // equipment / description shown on watch
+  notes?: string
+  equipment?: string
   targetType?: 'power' | 'pace' | 'cadence' | 'hr' | 'none'
   targetValue?: string // "250", "62", "2:05"
 }
+
+const EQUIPMENT_OPTIONS: { value: string; label: string }[] = [
+  { value: 'RUN', label: 'Löpning' },
+  { value: 'TREADMILL', label: 'Löpband' },
+  { value: 'BIKE', label: 'Cykel' },
+  { value: 'ASSAULT_BIKE', label: 'Assault Bike' },
+  { value: 'ECHO_BIKE', label: 'Echo Bike' },
+  { value: 'WATTBIKE', label: 'Wattbike' },
+  { value: 'ROW', label: 'Rodd (Concept2)' },
+  { value: 'SKI_ERG', label: 'SkiErg' },
+  { value: 'SWIM', label: 'Simning' },
+  { value: 'OTHER', label: 'Annat' },
+]
+
+const EQUIPMENT_LABEL_BY_VALUE: Record<string, string> = EQUIPMENT_OPTIONS.reduce(
+  (acc, opt) => ({ ...acc, [opt.value]: opt.label }),
+  {}
+)
 
 type CardioRepeatGroup = {
   id: string
@@ -95,7 +115,16 @@ const AVAILABLE_SEGMENTS = [
   { id: 'seg6', name: 'Hill Sprints', type: 'HILL', defaultDuration: 0, defaultZone: '5', notes: 'Max effort uphill' },
   { id: 'seg7', name: 'Running Drills', type: 'DRILLS', defaultDuration: 10, defaultZone: '1', notes: 'Focus on technique' },
   { id: 'seg8', name: 'Repeat Group', type: 'REPEAT_GROUP', defaultDuration: 0, defaultZone: '1' },
+  { id: 'seg9', name: 'Cal Triplet (Bike/Row/Ski)', type: 'CAL_TRIPLET', defaultDuration: 0, defaultZone: '4' },
+  { id: 'seg10', name: 'Cal Pyramid 60→20 (Bike/Row/Ski)', type: 'CAL_PYRAMID', defaultDuration: 0, defaultZone: '4' },
 ]
+
+const TRIPLET_EQUIPMENT: { equipment: string; notes: string }[] = [
+  { equipment: 'ASSAULT_BIKE', notes: 'Assault Bike' },
+  { equipment: 'ROW', notes: 'Rodd' },
+  { equipment: 'SKI_ERG', notes: 'SkiErg' },
+]
+const PYRAMID_CAL_LADDER = [60, 50, 40, 30, 20]
 
 // Helper functions for auto-calculation
 const paceToDecimal = (pace: string): number | null => {
@@ -161,6 +190,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
                 pace: step.pace || '',
                 heartRate: step.heartRate || '',
                 notes: step.notes || '',
+                equipment: step.equipment || '',
                 targetType: step.targetType || 'none',
                 targetValue: step.targetValue || '',
                 distanceUnit: (step.distance && step.distance < 1000) ? 'm' : 'km',
@@ -177,6 +207,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
             pace: s.pace || '',
             heartRate: s.heartRate || '',
             notes: s.notes || '',
+            equipment: s.equipment || '',
             repeats: s.repeats || undefined,
             restDuration: s.restDuration ? s.restDuration / 60 : undefined,
             distanceUnit: (s.distance && s.distance < 1000) ? 'm' : 'km',
@@ -278,6 +309,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
               pace: step.pace || undefined,
               heartRate: step.heartRate || undefined,
               notes: step.notes || undefined,
+              equipment: step.equipment || undefined,
               targetType: step.targetType && step.targetType !== 'none' ? step.targetType : undefined,
               targetValue: step.targetValue || undefined,
             })),
@@ -293,6 +325,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
           pace: s.pace || undefined,
           heartRate: s.heartRate || undefined,
           notes: s.notes || undefined,
+          equipment: s.equipment || undefined,
           repeats: s.repeats && s.repeats > 1 ? s.repeats : undefined,
           restDuration: s.restDuration ? Math.round(s.restDuration * 60) : undefined,
         }
@@ -378,6 +411,36 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
         ],
       }
       setSegments([...segments, newGroup])
+      return
+    }
+
+    if (template.type === 'CAL_TRIPLET') {
+      const triplet: CardioFlatSegment[] = TRIPLET_EQUIPMENT.map(t => ({
+        id: generateId(),
+        type: 'INTERVAL',
+        calories: 30,
+        zone: template.defaultZone,
+        equipment: t.equipment,
+        notes: t.notes,
+        distanceUnit: 'm',
+      }))
+      setSegments([...segments, ...triplet])
+      return
+    }
+
+    if (template.type === 'CAL_PYRAMID') {
+      const pyramid: CardioFlatSegment[] = PYRAMID_CAL_LADDER.flatMap(cals =>
+        TRIPLET_EQUIPMENT.map(t => ({
+          id: generateId(),
+          type: 'INTERVAL' as const,
+          calories: cals,
+          zone: template.defaultZone,
+          equipment: t.equipment,
+          notes: `${cals} cal ${t.notes}`,
+          distanceUnit: 'm' as const,
+        }))
+      )
+      setSegments([...segments, ...pyramid])
       return
     }
 
@@ -895,6 +958,22 @@ function SortableSegmentItem({
         </div>
 
         <div className="grid grid-cols-4 gap-2">
+          <div className="col-span-4">
+            <Label className="text-xs text-muted-foreground">Utrustning</Label>
+            <Select
+              value={segment.equipment || ''}
+              onValueChange={(v) => onUpdate(segment.id, 'equipment', v)}
+            >
+              <SelectTrigger className="h-7 text-sm">
+                <SelectValue placeholder="Välj utrustning..." />
+              </SelectTrigger>
+              <SelectContent>
+                {EQUIPMENT_OPTIONS.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label className="text-xs text-muted-foreground">Tid (min)</Label>
             <div className="flex items-center">
@@ -1174,12 +1253,19 @@ function ChildStepRow({
               )}
             </div>
 
-            <Input
-              className="h-6 w-28 text-xs px-1"
-              value={step.notes || ''}
-              onChange={(e) => onUpdate(groupId, step.id, 'notes', e.target.value)}
-              placeholder="Utrustning..."
-            />
+            <Select
+              value={step.equipment || ''}
+              onValueChange={(v) => onUpdate(groupId, step.id, 'equipment', v)}
+            >
+              <SelectTrigger className="h-6 w-32 text-xs">
+                <SelectValue placeholder="Utrustning..." />
+              </SelectTrigger>
+              <SelectContent>
+                {EQUIPMENT_OPTIONS.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </>
         )}
 
