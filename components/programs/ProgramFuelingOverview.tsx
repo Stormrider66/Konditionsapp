@@ -12,6 +12,8 @@ import {
   buildFuelingCoachingRecommendation,
   type FuelingCoachingRecommendation,
 } from '@/lib/fueling/coaching-recommendation'
+import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
+import { formatFuelingTargetIntensity } from '@/lib/fueling/target-intensity'
 import { cn } from '@/lib/utils'
 
 type FuelingPrescription = {
@@ -22,6 +24,11 @@ type FuelingPrescription = {
   instructionsSv: string | null
   plan?: {
     name: string | null
+    sport?: string | null
+    distanceKm?: number | null
+    targetSpeedKmh?: number | null
+    targetPowerWatts?: number | null
+    targetPaceMinKm?: number | null
     raceDate: Date | string | null
     recommendedCarbsGPerHour: number | null
   } | null
@@ -73,6 +80,7 @@ export function ProgramFuelingOverview({ program, className }: ProgramFuelingOve
   const loggedCount = sessions.filter((session) => session.log).length
   const latestPlan = sessions.find((session) => session.prescription.plan)?.prescription.plan ?? null
   const raceTarget = latestPlan?.recommendedCarbsGPerHour ?? peakTarget
+  const planContext = formatProgramPlanContext(latestPlan)
   const peakProgress = raceTarget > 0 ? Math.min(100, Math.round((peakTarget / raceTarget) * 100)) : 0
   const nextSession = sessions.find((session) => !session.log) ?? sessions[sessions.length - 1]
   const recommendation = buildFuelingCoachingRecommendation({
@@ -127,6 +135,11 @@ export function ProgramFuelingOverview({ program, className }: ProgramFuelingOve
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                 {latestPlan?.name ?? 'Senaste fuelingplan'} {nextSession ? `- nästa fokus: ${Math.round(nextSession.prescription.targetCarbsGPerHour)} g/h` : ''}
               </p>
+              {planContext && (
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {planContext}
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2 text-sm font-black text-orange-600 dark:text-orange-300">
               <TrendingUp className="h-4 w-4" />
@@ -180,6 +193,19 @@ function ProgramFuelingRecommendationBox({ recommendation }: { recommendation: F
       )}
     </div>
   )
+}
+
+function formatProgramPlanContext(plan: FuelingPrescription['plan']): string | null {
+  if (!plan) return null
+
+  const parts = [
+    plan.sport ? fuelingSportLabel(plan.sport) : null,
+    plan.distanceKm ? `${plan.distanceKm.toLocaleString('sv-SE', { maximumFractionDigits: 1 })} km` : null,
+    formatFuelingTargetIntensity(plan),
+    plan.raceDate ? format(new Date(plan.raceDate), 'd MMM yyyy', { locale: sv }) : null,
+  ].filter(Boolean)
+
+  return parts.length > 0 ? parts.join(' · ') : null
 }
 
 function MetricTile({

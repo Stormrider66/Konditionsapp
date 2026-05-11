@@ -100,6 +100,11 @@ export default async function BusinessProgramPage({ params }: ProgramPageProps) 
                       plan: {
                         select: {
                           name: true,
+                          sport: true,
+                          distanceKm: true,
+                          targetSpeedKmh: true,
+                          targetPowerWatts: true,
+                          targetPaceMinKm: true,
                           raceDate: true,
                           recommendedCarbsGPerHour: true,
                         },
