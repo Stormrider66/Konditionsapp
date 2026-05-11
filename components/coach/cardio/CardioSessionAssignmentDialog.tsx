@@ -35,6 +35,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, Calendar, Loader2, Clock, ChevronDown, Watch, Search, MapPin, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields';
+import {
+  RepeatWeeklyFields,
+  computeWeeklyDates,
+  DEFAULT_OCCURRENCES,
+} from '@/components/coach/scheduling/RepeatWeeklyFields';
 
 interface Athlete {
   id: string;
@@ -99,6 +104,10 @@ export function CardioSessionAssignmentDialog({
   const [locationName, setLocationName] = useState('');
   const [createCalendarEvent, setCreateCalendarEvent] = useState(true);
 
+  // Multi-date / weekly repeat state
+  const [repeatEnabled, setRepeatEnabled] = useState(false);
+  const [occurrences, setOccurrences] = useState(DEFAULT_OCCURRENCES);
+
   // Support both controlled and uncontrolled modes
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
@@ -128,6 +137,9 @@ export function CardioSessionAssignmentDialog({
       setLocationId('');
       setLocationName('');
       setCreateCalendarEvent(true);
+      // Reset repeat
+      setRepeatEnabled(false);
+      setOccurrences(DEFAULT_OCCURRENCES);
     }
   }, [open]);
 
@@ -203,57 +215,95 @@ export function CardioSessionAssignmentDialog({
   }
 
   async function handleAssign() {
-    if (!sessionId || selectedAthletes.length === 0) return;
+    if (!sessionId || selectedAthletes.length === 0 || !assignedDate) return;
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/cardio-sessions/${sessionId}/assign`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          athleteIds: selectedAthletes,
-          assignedDate,
-          notes: notes || undefined,
-          pushToGarmin: pushToGarmin || undefined,
-          locationId: selectedLocationId || undefined,
-          locationName: customLocationName || undefined,
-          responsibleCoachId: selectedTrainerId || undefined,
-          // Include scheduling fields if time is set
-          ...(startTime && {
-            startTime,
-            endTime: endTime || undefined,
-            locationId: locationId || undefined,
-            locationName: locationName || undefined,
-            createCalendarEvent,
-          }),
-        }),
-      });
+      const baseDate = new Date(assignedDate);
+      const dates = repeatEnabled
+        ? computeWeeklyDates(baseDate, occurrences)
+        : [baseDate];
+      const dateStrings = dates.map((d) => d.toISOString().split('T')[0]);
 
-      if (response.ok) {
-        const result = await response.json();
-        let description = `Tilldelat till ${selectedAthletes.length} atlet(er).`;
+      const responses = await Promise.all(
+        dateStrings.map((isoDate) =>
+          fetch(`/api/cardio-sessions/${sessionId}/assign`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              athleteIds: selectedAthletes,
+              assignedDate: isoDate,
+              notes: notes || undefined,
+              pushToGarmin: pushToGarmin || undefined,
+              locationId: selectedLocationId || undefined,
+              locationName: customLocationName || undefined,
+              responsibleCoachId: selectedTrainerId || undefined,
+              // Include scheduling fields if time is set (same time on each date)
+              ...(startTime && {
+                startTime,
+                endTime: endTime || undefined,
+                locationId: locationId || undefined,
+                locationName: locationName || undefined,
+                createCalendarEvent,
+              }),
+            }),
+          })
+            .then(async (response) => ({
+              ok: response.ok,
+              isoDate,
+              body: await response.json().catch(() => ({})),
+            }))
+            .catch((error) => {
+              console.error(`Failed to assign on ${isoDate}:`, error);
+              return { ok: false, isoDate, body: {} as Record<string, unknown> };
+            })
+        )
+      );
 
-        if (pushToGarmin && result.garminResults) {
-          const garminSuccess = result.garminResults.filter((r: { success: boolean }) => r.success).length;
-          const garminFailed = result.garminResults.filter((r: { success: boolean }) => !r.success).length;
+      const successCount = responses.filter((r) => r.ok).length;
+      const failCount = responses.length - successCount;
+      const totalAssignments = successCount * selectedAthletes.length;
+
+      if (successCount > 0) {
+        let description =
+          dates.length > 1
+            ? `${selectedAthletes.length} atlet(er) × ${successCount} datum = ${totalAssignments} tilldelningar.`
+            : `Tilldelat till ${selectedAthletes.length} atlet(er).`;
+
+        if (pushToGarmin) {
+          let garminSuccess = 0;
+          let garminFailed = 0;
+          for (const r of responses) {
+            const list = (r.body as { garminResults?: Array<{ success: boolean }> }).garminResults;
+            if (Array.isArray(list)) {
+              garminSuccess += list.filter((g) => g.success).length;
+              garminFailed += list.filter((g) => !g.success).length;
+            }
+          }
           if (garminSuccess > 0) {
-            description += ` Skickat till Garmin för ${garminSuccess} atlet(er).`;
+            description += ` Skickat till Garmin för ${garminSuccess} pass.`;
           }
           if (garminFailed > 0) {
-            description += ` Garmin-push misslyckades för ${garminFailed} atlet(er).`;
+            description += ` Garmin-push misslyckades för ${garminFailed} pass.`;
           }
           if (garminSuccess === 0 && garminFailed === 0) {
             description += ' Ingen atlet har Garmin anslutet.';
           }
         }
 
-        toast.success('Pass tilldelat!', { description });
+        if (failCount > 0) {
+          description += ` ${failCount} datum kunde inte tilldelas.`;
+          toast.warning('Delvis tilldelat', { description });
+        } else {
+          toast.success(dates.length > 1 ? 'Pass tilldelade!' : 'Pass tilldelat!', { description });
+        }
+
         setOpen(false);
         onAssigned?.();
       } else {
-        const data = await response.json();
+        const firstError = (responses[0]?.body as { error?: string })?.error;
         toast.error('Tilldelning misslyckades', {
-          description: data.error || 'Kunde inte tilldela passet.',
+          description: firstError || 'Kunde inte tilldela passet.',
         });
       }
     } catch (error) {
@@ -299,6 +349,14 @@ export function CardioSessionAssignmentDialog({
             type="date"
             value={assignedDate}
             onChange={(e) => setAssignedDate(e.target.value)}
+          />
+          <RepeatWeeklyFields
+            enabled={repeatEnabled}
+            onEnabledChange={setRepeatEnabled}
+            occurrences={occurrences}
+            onOccurrencesChange={setOccurrences}
+            baseDate={assignedDate ? new Date(assignedDate) : null}
+            idSuffix="-cardio-assign"
           />
         </div>
 
@@ -556,7 +614,7 @@ export function CardioSessionAssignmentDialog({
           ) : (
             <>
               <Users className="h-4 w-4 mr-2" />
-              Tilldela ({selectedAthletes.length})
+              Tilldela ({repeatEnabled ? `${selectedAthletes.length}×${occurrences}` : selectedAthletes.length})
             </>
           )}
         </Button>
