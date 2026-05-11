@@ -61,6 +61,38 @@ describe('race fueling estimates', () => {
     expect(estimate.recommendedCarbsPerHour).toBeGreaterThanOrEqual(60)
   })
 
+  it('uses sport-aware fallback demand for non-endurance sports', () => {
+    const teamEstimate = estimateRaceFueling(
+      {
+        sport: 'TEAM_FOOTBALL',
+        durationMinutes: 120,
+      },
+      [],
+      {}
+    )
+    const racketEstimate = estimateRaceFueling(
+      {
+        sport: 'PADEL',
+        durationMinutes: 120,
+      },
+      [],
+      {}
+    )
+    const strengthEstimate = estimateRaceFueling(
+      {
+        sport: 'STRENGTH',
+        durationMinutes: 90,
+      },
+      [],
+      {}
+    )
+
+    expect(teamEstimate.carbohydrateDemandPerHour).toBe(70)
+    expect(racketEstimate.carbohydrateDemandPerHour).toBe(65)
+    expect(strengthEstimate.carbohydrateDemandPerHour).toBe(55)
+    expect(teamEstimate.recommendedCarbsPerHour).toBeLessThan(50)
+  })
+
   it('uses metabolic stages for duration-only race goals when available', () => {
     const estimate = estimateRaceFueling(
       {

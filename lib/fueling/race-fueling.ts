@@ -242,11 +242,22 @@ function getStageIntensity(stage: FuelingTestStage, kind: 'speed' | 'power' | 'p
 function estimateFallbackDemand(goal: FuelingRaceGoal, durationMinutes: number | null): number | null {
   const sport = String(goal.sport)
   if (durationMinutes == null) return null
-  if (durationMinutes < 75) return 75
+  const baseDemand = fallbackDemandForSport(sport)
+  if (durationMinutes < 60) return Math.min(baseDemand, 60)
+  if (durationMinutes < 75) return Math.min(baseDemand, 75)
+  return baseDemand
+}
+
+function fallbackDemandForSport(sport: string): number {
   if (sport === 'CYCLING') return 110
   if (sport === 'TRIATHLON') return 100
   if (sport === 'SKIING') return 95
-  return 90
+  if (sport === 'RUNNING' || sport === 'SWIMMING') return 90
+  if (sport === 'HYROX' || sport === 'FUNCTIONAL_FITNESS') return 75
+  if (sport.startsWith('TEAM_')) return 70
+  if (sport === 'TENNIS' || sport === 'PADEL') return 65
+  if (sport === 'GENERAL_FITNESS' || sport === 'STRENGTH') return 55
+  return 75
 }
 
 function recommendationFromDuration(durationMinutes: number | null): number | null {
