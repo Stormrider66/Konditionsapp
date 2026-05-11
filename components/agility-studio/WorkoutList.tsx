@@ -46,8 +46,14 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields'
+import {
+  RepeatWeeklyFields,
+  computeWeeklyDates,
+  DEFAULT_OCCURRENCES,
+} from '@/components/coach/scheduling/RepeatWeeklyFields'
 import { buildWorkoutPrintUrl, getCoachBasePath } from '@/components/workouts/print/PrintWorkoutButton'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import type { AgilityWorkout } from '@/types'
 
@@ -94,6 +100,10 @@ export function WorkoutList({
   const [locationName, setLocationName] = useState('')
   const [createCalendarEvent, setCreateCalendarEvent] = useState(true)
 
+  // Multi-date / weekly repeat state
+  const [repeatEnabled, setRepeatEnabled] = useState(false)
+  const [occurrences, setOccurrences] = useState(DEFAULT_OCCURRENCES)
+
   const filteredWorkouts = workouts.filter(workout => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
@@ -108,38 +118,72 @@ export function WorkoutList({
 
     setIsAssigning(true)
     try {
-      const response = await fetch(`/api/agility-workouts/${selectedWorkout.id}/assign`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          athleteIds: selectedAthletes,
-          assignedDate: format(assignDate, 'yyyy-MM-dd'),
-          notes: assignNotes || undefined,
-          // Include scheduling fields if time is set
-          ...(startTime && {
-            startTime,
-            endTime: endTime || undefined,
-            locationId: locationId || undefined,
-            locationName: locationName || undefined,
-            createCalendarEvent,
-          }),
-        })
-      })
+      const dates = repeatEnabled
+        ? computeWeeklyDates(assignDate, occurrences)
+        : [assignDate]
 
-      if (!response.ok) throw new Error('Failed to assign workout')
+      const responses = await Promise.all(
+        dates.map((d) =>
+          fetch(`/api/agility-workouts/${selectedWorkout.id}/assign`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              athleteIds: selectedAthletes,
+              assignedDate: format(d, 'yyyy-MM-dd'),
+              notes: assignNotes || undefined,
+              ...(startTime && {
+                startTime,
+                endTime: endTime || undefined,
+                locationId: locationId || undefined,
+                locationName: locationName || undefined,
+                createCalendarEvent,
+              }),
+            })
+          })
+            .then(async (response) => ({
+              ok: response.ok,
+              body: await response.json().catch(() => ({})),
+            }))
+            .catch((error) => {
+              console.error('Failed to assign on date:', d, error)
+              return { ok: false, body: {} as Record<string, unknown> }
+            })
+        )
+      )
 
-      setAssignDialogOpen(false)
-      setSelectedAthletes([])
-      setAssignNotes('')
-      // Reset scheduling
-      setSchedulingOpen(false)
-      setStartTime('')
-      setEndTime('')
-      setLocationId('')
-      setLocationName('')
-      setCreateCalendarEvent(true)
+      const successCount = responses.filter((r) => r.ok).length
+      const failCount = responses.length - successCount
+
+      if (successCount > 0) {
+        const total = successCount * selectedAthletes.length
+        const msg = dates.length > 1
+          ? `${selectedAthletes.length} atlet(er) × ${successCount} datum = ${total} tilldelningar.`
+          : `Passet tilldelat ${selectedAthletes.length} atlet(er).`
+
+        if (failCount > 0) {
+          toast.warning('Delvis tilldelat', { description: `${msg} ${failCount} datum kunde inte tilldelas.` })
+        } else {
+          toast.success(dates.length > 1 ? 'Pass tilldelade!' : 'Pass tilldelat!', { description: msg })
+        }
+
+        setAssignDialogOpen(false)
+        setSelectedAthletes([])
+        setAssignNotes('')
+        setSchedulingOpen(false)
+        setStartTime('')
+        setEndTime('')
+        setLocationId('')
+        setLocationName('')
+        setCreateCalendarEvent(true)
+        setRepeatEnabled(false)
+        setOccurrences(DEFAULT_OCCURRENCES)
+      } else {
+        const firstError = (responses[0]?.body as { error?: string })?.error
+        toast.error(firstError || 'Kunde inte tilldela passet')
+      }
     } catch (error) {
       console.error('Error assigning workout:', error)
+      toast.error('Något gick fel')
     } finally {
       setIsAssigning(false)
     }
@@ -332,6 +376,14 @@ export function WorkoutList({
                   />
                 </PopoverContent>
               </Popover>
+              <RepeatWeeklyFields
+                enabled={repeatEnabled}
+                onEnabledChange={setRepeatEnabled}
+                occurrences={occurrences}
+                onOccurrencesChange={setOccurrences}
+                baseDate={assignDate ?? null}
+                idSuffix="-agility-assign"
+              />
             </div>
 
             {/* Athlete Selection */}
@@ -420,7 +472,11 @@ export function WorkoutList({
               onClick={handleAssign}
               disabled={selectedAthletes.length === 0 || !assignDate || isAssigning}
             >
-              {isAssigning ? t('workout.assigning') : t('workout.assignCount', { count: selectedAthletes.length })}
+              {isAssigning
+                ? t('workout.assigning')
+                : repeatEnabled
+                  ? `${t('workout.assignCount', { count: selectedAthletes.length })} × ${occurrences}`
+                  : t('workout.assignCount', { count: selectedAthletes.length })}
             </Button>
           </DialogFooter>
         </DialogContent>

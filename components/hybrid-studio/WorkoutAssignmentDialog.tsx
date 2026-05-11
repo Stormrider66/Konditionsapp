@@ -41,6 +41,11 @@ import {
 } from '@/components/ui/popover';
 import { CalendarIcon, Users, Dumbbell, Send, Check, Clock, ChevronDown } from 'lucide-react';
 import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields';
+import {
+  RepeatWeeklyFields,
+  computeWeeklyDates,
+  DEFAULT_OCCURRENCES,
+} from '@/components/coach/scheduling/RepeatWeeklyFields';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -93,6 +98,10 @@ export function WorkoutAssignmentDialog({
   const [locationName, setLocationName] = useState('');
   const [createCalendarEvent, setCreateCalendarEvent] = useState(true);
 
+  // Multi-date / weekly repeat state
+  const [repeatEnabled, setRepeatEnabled] = useState(false);
+  const [occurrences, setOccurrences] = useState(DEFAULT_OCCURRENCES);
+
   useEffect(() => {
     if (open) {
       fetchAthletes();
@@ -136,46 +145,77 @@ export function WorkoutAssignmentDialog({
 
     setLoading(true);
     try {
-      const response = await fetch('/api/hybrid-assignments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workoutId,
-          athleteIds: selectedAthletes,
-          assignedDate: assignedDate.toISOString(),
-          notes: notes || undefined,
-          customScaling: customScaling || undefined,
-          scalingNotes: scalingNotes || undefined,
-          // Include scheduling fields if time is set
-          ...(startTime && {
-            startTime,
-            endTime: endTime || undefined,
-            locationId: locationId || undefined,
-            locationName: locationName || undefined,
-            createCalendarEvent,
-          }),
-        }),
-      });
+      const dates = repeatEnabled
+        ? computeWeeklyDates(assignedDate, occurrences)
+        : [assignedDate];
 
-      if (response.ok) {
-        const data = await response.json();
-        toast.success(`Passet tilldelat ${selectedAthletes.length} atlet(er)`);
+      const responses = await Promise.all(
+        dates.map((d) =>
+          fetch('/api/hybrid-assignments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              workoutId,
+              athleteIds: selectedAthletes,
+              assignedDate: d.toISOString(),
+              notes: notes || undefined,
+              customScaling: customScaling || undefined,
+              scalingNotes: scalingNotes || undefined,
+              ...(startTime && {
+                startTime,
+                endTime: endTime || undefined,
+                locationId: locationId || undefined,
+                locationName: locationName || undefined,
+                createCalendarEvent,
+              }),
+            }),
+          })
+            .then(async (response) => ({
+              ok: response.ok,
+              body: await response.json().catch(() => ({})),
+            }))
+            .catch((error) => {
+              console.error('Failed to assign on date:', d, error);
+              return { ok: false, body: {} as Record<string, unknown> };
+            })
+        )
+      );
+
+      const successCount = responses.filter((r) => r.ok).length;
+      const failCount = responses.length - successCount;
+
+      if (successCount > 0) {
+        const total = successCount * selectedAthletes.length;
+        const msg =
+          dates.length > 1
+            ? `${selectedAthletes.length} atlet(er) × ${successCount} datum = ${total} tilldelningar.`
+            : `Passet tilldelat ${selectedAthletes.length} atlet(er).`;
+
+        if (failCount > 0) {
+          toast.warning('Delvis tilldelat', {
+            description: `${msg} ${failCount} datum kunde inte tilldelas.`,
+          });
+        } else {
+          toast.success(dates.length > 1 ? 'Pass tilldelade!' : 'Pass tilldelat!', { description: msg });
+        }
+
         setOpen(false);
         setSelectedAthletes([]);
         setNotes('');
         setCustomScaling('');
         setScalingNotes('');
-        // Reset scheduling
         setSchedulingOpen(false);
         setStartTime('');
         setEndTime('');
         setLocationId('');
         setLocationName('');
         setCreateCalendarEvent(true);
+        setRepeatEnabled(false);
+        setOccurrences(DEFAULT_OCCURRENCES);
         onAssigned?.();
       } else {
-        const error = await response.json();
-        toast.error(error.error || 'Kunde inte tilldela passet');
+        const firstError = (responses[0]?.body as { error?: string })?.error;
+        toast.error(firstError || 'Kunde inte tilldela passet');
       }
     } catch (error) {
       console.error('Failed to assign workout:', error);
@@ -227,6 +267,14 @@ export function WorkoutAssignmentDialog({
                 />
               </PopoverContent>
             </Popover>
+            <RepeatWeeklyFields
+              enabled={repeatEnabled}
+              onEnabledChange={setRepeatEnabled}
+              occurrences={occurrences}
+              onOccurrencesChange={setOccurrences}
+              baseDate={assignedDate}
+              idSuffix="-hybrid-assign"
+            />
           </div>
 
           {/* Athlete Selection */}
@@ -365,7 +413,7 @@ export function WorkoutAssignmentDialog({
             ) : (
               <>
                 <Send className="mr-2 h-4 w-4" />
-                Tilldela ({selectedAthletes.length})
+                Tilldela ({repeatEnabled ? `${selectedAthletes.length}×${occurrences}` : selectedAthletes.length})
               </>
             )}
           </Button>
