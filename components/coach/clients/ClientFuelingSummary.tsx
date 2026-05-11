@@ -197,15 +197,7 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
         }),
       })
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      const body = await response.json()
-      setData((current) => current ? {
-        ...current,
-        latestPlan: current.latestPlan ? {
-          ...current.latestPlan,
-          ...body.plan,
-          fuelingProgress: current.latestPlan.fuelingProgress,
-        } : body.plan,
-      } : current)
+      await loadFuelingSummary(undefined, false)
       setSaveState('saved')
     } catch {
       setSaveState('error')
