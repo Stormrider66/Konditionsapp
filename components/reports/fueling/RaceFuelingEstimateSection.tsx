@@ -5,6 +5,7 @@ import type { Test, TestStage, TestType } from '@/types'
 import { estimateRaceFueling } from '@/lib/fueling/race-fueling'
 import { buildFuelingBuildUpPlan } from '@/lib/fueling/build-up-plan'
 import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
+import { formatFuelingTargetIntensity } from '@/lib/fueling/target-intensity'
 import type { RaceFuelingEstimate } from '@/lib/fueling/types'
 
 interface RaceFuelingEstimateSectionProps {
@@ -81,6 +82,11 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
     selectedDistance?.durationMinutes ||
     (selectedDistance?.distanceKm && (selectedStage?.speed || selectedStage?.pace))
   )
+  const targetIntensity = formatFuelingTargetIntensity({
+    targetSpeedKmh: selectedStage?.speed,
+    targetPowerWatts: selectedStage?.power,
+    targetPaceMinKm: selectedStage?.pace,
+  })
   const raceDayPlan = buildRaceDayFuelingPlan(estimate.recommendedCarbsPerHour, estimate.estimatedDurationMinutes)
   const buildUpPlan = buildFuelingBuildUpPlan({
     raceTargetGPerHour: estimate.recommendedCarbsPerHour,
@@ -255,8 +261,9 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
         </label>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
         <Metric label="Beräknad tid" value={formatDuration(estimate.estimatedDurationMinutes)} />
+        <Metric label="Målintensitet" value={targetIntensity ?? 'Saknas'} />
         <Metric label="KH-förbrukning" value={estimate.carbohydrateDemandPerHour ? `${estimate.carbohydrateDemandPerHour} g/h` : 'Saknas'} />
         <Metric label="Rekommenderat intag" value={estimate.recommendedCarbsPerHour ? `${estimate.recommendedCarbsPerHour} g/h` : 'Saknas'} />
         <Metric label="Totalt intag" value={estimate.scenarios[1]?.totalCarbs ? `${estimate.scenarios[1].totalCarbs} g` : 'Saknas'} />
