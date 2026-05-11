@@ -77,6 +77,10 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
   const selectedDistanceOption = options[selectedDistanceIndex] ?? options[0]
   const selectedDistance = resolveRaceTarget(selectedDistanceOption, customDistanceKm, customDurationMinutes)
   const selectedStage = usableStages.find((stage) => stage.sequence === selectedStageSequence) ?? usableStages[0]
+  const canSavePlan = Boolean(
+    selectedDistance?.durationMinutes ||
+    (selectedDistance?.distanceKm && (selectedStage?.speed || selectedStage?.pace))
+  )
   const raceDayPlan = buildRaceDayFuelingPlan(estimate.recommendedCarbsPerHour, estimate.estimatedDurationMinutes)
   const buildUpPlan = buildFuelingBuildUpPlan({
     raceTargetGPerHour: estimate.recommendedCarbsPerHour,
@@ -85,7 +89,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
   })
 
   async function savePlan() {
-    if (!selectedStage || !selectedDistance) return
+    if (!selectedStage || !selectedDistance || !canSavePlan) return
     setSaveStatus('saving')
     try {
       const response = await fetch('/api/fueling/plans', {
@@ -128,11 +132,16 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
           <button
             type="button"
             onClick={() => void savePlan()}
-            disabled={saveStatus === 'saving'}
+            disabled={saveStatus === 'saving' || !canSavePlan}
             className="print:hidden text-xs px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60"
           >
             {saveStatus === 'saving' ? 'Sparar...' : saveStatus === 'saved' ? 'Sparad' : 'Skapa tävlingsplan'}
           </button>
+          {!canSavePlan && (
+            <span className="print:hidden max-w-52 text-right text-xs text-amber-700">
+              Ange förväntad tid, eller distans tillsammans med fart/pace.
+            </span>
+          )}
           {saveStatus === 'error' && (
             <span className="print:hidden text-xs text-red-600">Kunde inte spara planen.</span>
           )}
@@ -208,7 +217,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
                 setCustomDurationMinutes(event.target.value)
                 setSaveStatus('idle')
               }}
-              placeholder="Valfritt om distans + intensitet räcker"
+              placeholder="Behövs om fart/pace saknas"
             />
           </label>
         </div>
