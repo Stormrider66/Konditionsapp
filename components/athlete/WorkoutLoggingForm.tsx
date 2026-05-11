@@ -406,12 +406,12 @@ export function WorkoutLoggingForm({
       stravaUrl: existingLog?.stravaUrl || '',
       intervalResults: intervalSegments.length > 0 ? buildDefaultIntervalResults() : undefined,
       raceFinishTime: '',
-      actualCarbsGPerHour: existingLog?.fuelingLog?.actualCarbsGPerHour || workout.fuelingPrescription?.targetCarbsGPerHour || undefined,
-      actualCarbsTotalG: existingLog?.fuelingLog?.actualCarbsTotalG || workout.fuelingPrescription?.targetCarbsTotalG || undefined,
-      hydrationMl: existingLog?.fuelingLog?.hydrationMl || workout.fuelingPrescription?.hydrationMl || undefined,
-      sodiumMg: existingLog?.fuelingLog?.sodiumMg || undefined,
-      stomachRating: existingLog?.fuelingLog?.stomachRating || undefined,
-      energyRating: existingLog?.fuelingLog?.energyRating || undefined,
+      actualCarbsGPerHour: existingLog?.fuelingLog?.actualCarbsGPerHour ?? workout.fuelingPrescription?.targetCarbsGPerHour ?? undefined,
+      actualCarbsTotalG: existingLog?.fuelingLog?.actualCarbsTotalG ?? workout.fuelingPrescription?.targetCarbsTotalG ?? undefined,
+      hydrationMl: existingLog?.fuelingLog?.hydrationMl ?? workout.fuelingPrescription?.hydrationMl ?? undefined,
+      sodiumMg: existingLog?.fuelingLog?.sodiumMg ?? undefined,
+      stomachRating: existingLog?.fuelingLog?.stomachRating ?? undefined,
+      energyRating: existingLog?.fuelingLog?.energyRating ?? undefined,
       fuelingNotes: existingLog?.fuelingLog?.notes || '',
       fuelingProductsUsed: Array.isArray(existingLog?.fuelingLog?.productsUsed)
         ? existingLog.fuelingLog.productsUsed
