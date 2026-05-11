@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { Archive, CalendarDays, CheckCircle2, Eye, Loader2, PlusCircle, RotateCcw, Utensils } from 'lucide-react'
@@ -67,6 +68,7 @@ const EMPTY_CREATE_FORM: CreatePlanFormState = {
 }
 
 export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }: RaceFuelingPlanListProps) {
+  const router = useRouter()
   const [plans, setPlans] = useState<RaceFuelingPlanSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -173,11 +175,16 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
       })
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const body = await response.json()
       setCreateState('saved')
       setCreateForm(EMPTY_CREATE_FORM)
       setShowCreateForm(false)
       setShowArchived(false)
-      await loadPlans(undefined, false)
+      if (body.plan?.id) {
+        router.push(`${resolvedDetailBasePath}/${body.plan.id}`)
+      } else {
+        await loadPlans(undefined, false)
+      }
     } catch {
       setCreateState('error')
     }
