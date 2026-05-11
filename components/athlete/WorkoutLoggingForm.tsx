@@ -565,6 +565,8 @@ export function WorkoutLoggingForm({
   const actualCarbsTotalG = form.watch('actualCarbsTotalG')
   const loggedDuration = form.watch('duration')
   const fuelingProductsUsed = form.watch('fuelingProductsUsed')
+  const fuelingDurationMinutes = loggedDuration ?? workout.duration ?? null
+  const fuelingDurationHours = fuelingDurationMinutes && fuelingDurationMinutes > 0 ? fuelingDurationMinutes / 60 : null
   const shouldShowFuelingFeedback = Boolean(workout.fuelingPrescription || existingLog?.fuelingLog)
   const plannedCarbsGPerHour = workout.fuelingPrescription?.targetCarbsGPerHour ?? null
   const plannedCarbsTotalG = workout.fuelingPrescription?.targetCarbsTotalG ?? null
@@ -579,6 +581,22 @@ export function WorkoutLoggingForm({
         energyRating,
       })
     : null
+
+  function calculateFuelingTotalFromHourly() {
+    if (!fuelingDurationHours || actualCarbsGPerHour == null) return
+    form.setValue('actualCarbsTotalG', Math.round(actualCarbsGPerHour * fuelingDurationHours), {
+      shouldDirty: true,
+      shouldValidate: true,
+    })
+  }
+
+  function calculateFuelingHourlyFromTotal() {
+    if (!fuelingDurationHours || actualCarbsTotalG == null) return
+    form.setValue('actualCarbsGPerHour', Math.round(actualCarbsTotalG / fuelingDurationHours), {
+      shouldDirty: true,
+      shouldValidate: true,
+    })
+  }
 
   // Check if we have any performance fields to show
   const hasPerformanceFields = fieldConfig.duration || fieldConfig.distance || fieldConfig.pace || fieldConfig.hr || fieldConfig.power || fieldConfig.elevation
@@ -1401,8 +1419,33 @@ export function WorkoutLoggingForm({
                     <p className="text-xs text-muted-foreground">mot planerad total</p>
                   </div>
                 </div>
+                {fuelingDurationHours && (
+                  <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-amber-200 bg-white/70 p-3 text-xs text-slate-700 dark:border-amber-500/20 dark:bg-slate-950/40 dark:text-slate-200">
+                    <span className="font-medium">
+                      Beräknar på {Math.round(fuelingDurationMinutes ?? 0)} min.
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={actualCarbsGPerHour == null}
+                      onClick={calculateFuelingTotalFromHourly}
+                    >
+                      Räkna total från g/h
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={actualCarbsTotalG == null}
+                      onClick={calculateFuelingHourlyFromTotal}
+                    >
+                      Räkna g/h från total
+                    </Button>
+                  </div>
+                )}
                 <FuelingProductCalculator
-                  durationMinutes={loggedDuration ?? workout.duration ?? null}
+                  durationMinutes={fuelingDurationMinutes}
                   onApply={({ totalCarbs, carbsPerHour, productsUsed }) => {
                     form.setValue('actualCarbsTotalG', totalCarbs, { shouldDirty: true, shouldValidate: true })
                     form.setValue('actualCarbsGPerHour', carbsPerHour, { shouldDirty: true, shouldValidate: true })
