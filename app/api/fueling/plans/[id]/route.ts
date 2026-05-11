@@ -153,7 +153,13 @@ export async function PATCH(
     const { id } = await params
     const existing = await prisma.raceFuelingPlan.findUnique({
       where: { id },
-      select: { id: true, clientId: true, durationMinutes: true, recommendedCarbsGPerHour: true },
+      select: {
+        id: true,
+        clientId: true,
+        durationMinutes: true,
+        estimatedCarbDemandGPerHour: true,
+        recommendedCarbsGPerHour: true,
+      },
     })
     if (!existing) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
 
@@ -163,6 +169,9 @@ export async function PATCH(
     const body = updatePlanSchema.parse(await request.json())
     const nextCarbsPerHour = body.recommendedCarbsGPerHour ?? existing.recommendedCarbsGPerHour
     const nextDurationMinutes = body.durationMinutes ?? existing.durationMinutes
+    const nextDemandTotal = existing.estimatedCarbDemandGPerHour != null && nextDurationMinutes != null
+      ? Math.round(existing.estimatedCarbDemandGPerHour * (nextDurationMinutes / 60))
+      : null
     const nextTotal = nextCarbsPerHour != null && nextDurationMinutes != null
       ? Math.round(nextCarbsPerHour * (nextDurationMinutes / 60))
       : null
@@ -172,6 +181,7 @@ export async function PATCH(
       data: {
         name: body.name === undefined ? undefined : body.name,
         recommendedCarbsGPerHour: body.recommendedCarbsGPerHour === undefined ? undefined : body.recommendedCarbsGPerHour,
+        estimatedCarbDemandTotalG: body.durationMinutes !== undefined ? nextDemandTotal : undefined,
         recommendedCarbsTotalG: body.recommendedCarbsGPerHour !== undefined || body.durationMinutes !== undefined ? nextTotal : undefined,
         distanceKm: body.distanceKm === undefined ? undefined : body.distanceKm,
         durationMinutes: body.durationMinutes === undefined ? undefined : body.durationMinutes,
