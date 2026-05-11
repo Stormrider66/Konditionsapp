@@ -8,6 +8,7 @@ import { estimateRaceFueling } from '@/lib/fueling/race-fueling'
 import { buildFuelingProgressSummary } from '@/lib/fueling/progress-summary'
 import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
 import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
+import { sortFuelingPlansForDisplay } from '@/lib/fueling/plan-ordering'
 import { logger } from '@/lib/logger'
 
 const planSchema = z.object({
@@ -50,11 +51,8 @@ export async function GET(request: NextRequest) {
         clientId: resolvedClientId,
         ...(includeArchived ? {} : { status: { not: 'ARCHIVED' } }),
       },
-      orderBy: [
-        { raceDate: 'asc' },
-        { createdAt: 'desc' },
-      ],
-      take: limit,
+      orderBy: { updatedAt: 'desc' },
+      take: Math.max(limit, 100),
       select: {
         id: true,
         name: true,
@@ -112,10 +110,11 @@ export async function GET(request: NextRequest) {
         },
       },
     })
+    const sortedPlans = sortFuelingPlansForDisplay(plans).slice(0, limit)
 
     return NextResponse.json({
       success: true,
-      plans: plans.map((plan) => {
+      plans: sortedPlans.map((plan) => {
         const { workoutPrescriptions, ...planSummary } = plan
         return {
           ...planSummary,
