@@ -27,7 +27,13 @@ const planSchema = z.object({
   coachNotes: z.string().max(4000).optional().nullable(),
   athleteNotes: z.string().max(4000).optional().nullable(),
   status: z.enum(['DRAFT', 'APPROVED', 'ARCHIVED']).optional(),
-})
+}).refine(
+  (data) => Boolean(data.durationMinutes || (data.distanceKm && (data.targetSpeedKmh || data.targetPaceMinKm))),
+  {
+    message: 'Ange förväntad tid, eller distans tillsammans med målfart.',
+    path: ['durationMinutes'],
+  }
+)
 
 export async function GET(request: NextRequest) {
   try {
