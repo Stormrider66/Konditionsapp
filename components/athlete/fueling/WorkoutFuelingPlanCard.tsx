@@ -11,8 +11,7 @@ import {
   summarizeRaceFuelingProductItems,
 } from '@/lib/fueling/product-plan'
 import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
-import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
-import { formatFuelingTargetIntensity } from '@/lib/fueling/target-intensity'
+import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
 
 type WorkoutFuelingPrescription = {
   targetCarbsGPerHour: number
@@ -62,7 +61,7 @@ export function WorkoutFuelingPlanCard({ prescription, log }: WorkoutFuelingPlan
     ? Math.round((targetTotal / targetHourly) * 60)
     : null
   const executionPlan = buildRaceDayFuelingPlan(targetHourly, inferredDurationMinutes)
-  const planContext = formatWorkoutPlanContext(prescription.plan)
+  const planContext = formatFuelingPlanContext(prescription.plan, { includeName: true })
 
   return (
     <GlassCard className="mb-8 border-orange-200 bg-orange-50/70 dark:border-orange-500/20 dark:bg-orange-500/5 transition-colors">
@@ -198,19 +197,6 @@ function ExecutionMetric({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-sm font-black text-slate-900 dark:text-white">{value}</p>
     </div>
   )
-}
-
-function formatWorkoutPlanContext(plan: WorkoutFuelingPrescription['plan']): string | null {
-  if (!plan) return null
-
-  const parts = [
-    plan.name,
-    plan.sport ? fuelingSportLabel(plan.sport) : null,
-    plan.distanceKm ? `${plan.distanceKm.toLocaleString('sv-SE', { maximumFractionDigits: 1 })} km` : null,
-    formatFuelingTargetIntensity(plan),
-  ].filter(Boolean)
-
-  return parts.length > 0 ? parts.join(' · ') : null
 }
 
 function FuelingMetric({

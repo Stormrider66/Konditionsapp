@@ -12,8 +12,7 @@ import {
   buildFuelingCoachingRecommendation,
   type FuelingCoachingRecommendation,
 } from '@/lib/fueling/coaching-recommendation'
-import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
-import { formatFuelingTargetIntensity } from '@/lib/fueling/target-intensity'
+import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
 import { cn } from '@/lib/utils'
 
 type FuelingPrescription = {
@@ -80,7 +79,7 @@ export function ProgramFuelingOverview({ program, className }: ProgramFuelingOve
   const loggedCount = sessions.filter((session) => session.log).length
   const latestPlan = sessions.find((session) => session.prescription.plan)?.prescription.plan ?? null
   const raceTarget = latestPlan?.recommendedCarbsGPerHour ?? peakTarget
-  const planContext = formatProgramPlanContext(latestPlan)
+  const planContext = formatFuelingPlanContext(latestPlan, { includeRaceDate: true })
   const peakProgress = raceTarget > 0 ? Math.min(100, Math.round((peakTarget / raceTarget) * 100)) : 0
   const nextSession = sessions.find((session) => !session.log) ?? sessions[sessions.length - 1]
   const recommendation = buildFuelingCoachingRecommendation({
@@ -193,19 +192,6 @@ function ProgramFuelingRecommendationBox({ recommendation }: { recommendation: F
       )}
     </div>
   )
-}
-
-function formatProgramPlanContext(plan: FuelingPrescription['plan']): string | null {
-  if (!plan) return null
-
-  const parts = [
-    plan.sport ? fuelingSportLabel(plan.sport) : null,
-    plan.distanceKm ? `${plan.distanceKm.toLocaleString('sv-SE', { maximumFractionDigits: 1 })} km` : null,
-    formatFuelingTargetIntensity(plan),
-    plan.raceDate ? format(new Date(plan.raceDate), 'd MMM yyyy', { locale: sv }) : null,
-  ].filter(Boolean)
-
-  return parts.length > 0 ? parts.join(' · ') : null
 }
 
 function MetricTile({
