@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessClient } from '@/lib/auth-utils'
 import { getFuelingFeedbackSummary } from '@/lib/fueling/feedback-summary'
 import { buildFuelingProgressSummary } from '@/lib/fueling/progress-summary'
+import { sortFuelingPlansForDisplay } from '@/lib/fueling/plan-ordering'
 import { logger } from '@/lib/logger'
 
 export async function GET(
@@ -17,20 +18,28 @@ export async function GET(
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-    const [summary, latestPlan, recentLogs] = await Promise.all([
+    const [summary, latestPlans, recentLogs] = await Promise.all([
       getFuelingFeedbackSummary(prisma, clientId, 6),
-      prisma.raceFuelingPlan.findFirst({
+      prisma.raceFuelingPlan.findMany({
         where: { clientId, status: { not: 'ARCHIVED' } },
-        orderBy: [{ raceDate: 'asc' }, { createdAt: 'desc' }],
+        orderBy: { updatedAt: 'desc' },
+        take: 50,
         select: {
           id: true,
           name: true,
+          sport: true,
+          distanceKm: true,
+          targetSpeedKmh: true,
+          targetPowerWatts: true,
+          targetPaceMinKm: true,
           recommendedCarbsGPerHour: true,
           recommendedCarbsTotalG: true,
           raceDate: true,
           status: true,
           coachNotes: true,
           athleteNotes: true,
+          createdAt: true,
+          updatedAt: true,
           workoutPrescriptions: {
             orderBy: {
               workout: {
@@ -102,6 +111,7 @@ export async function GET(
       }),
     ])
 
+    const latestPlan = sortFuelingPlansForDisplay(latestPlans)[0] ?? null
     const latestPlanSummary = latestPlan
       ? toLatestPlanSummary(latestPlan)
       : null
