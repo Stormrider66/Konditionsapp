@@ -60,4 +60,20 @@ describe('race fueling estimates', () => {
     expect(estimate.carbohydrateDemandPerHour).toBe(110)
     expect(estimate.recommendedCarbsPerHour).toBeGreaterThanOrEqual(60)
   })
+
+  it('uses metabolic stages for duration-only race goals when available', () => {
+    const estimate = estimateRaceFueling(
+      {
+        sport: 'RUNNING',
+        durationMinutes: 210,
+      },
+      metabolicStages,
+      { weightKg: 75 }
+    )
+
+    expect(estimate.confidence).toBe('HIGH')
+    expect(estimate.sourceStage?.sequence).toBe(1)
+    expect(estimate.carbohydrateDemandPerHour).not.toBe(90)
+    expect(estimate.warningsSv).not.toContain('Ingen exakt matchning mot testets intensitet hittades, så rekommendationen blir mer generell.')
+  })
 })

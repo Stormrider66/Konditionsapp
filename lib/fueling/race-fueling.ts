@@ -74,9 +74,11 @@ export function estimateRaceFueling(
   const assumptionsSv: string[] = []
   const warningsSv: string[] = []
 
-  const stageEstimate = target.value != null
-    ? interpolateOxidationAtIntensity(sortedStages, target.value, target.kind, athlete.weightKg)
-    : null
+  const stageEstimate = target.kind === 'duration'
+    ? interpolateOxidationAtIntensity(sortedStages, 0, target.kind, athlete.weightKg)
+    : target.value != null
+      ? interpolateOxidationAtIntensity(sortedStages, target.value, target.kind, athlete.weightKg)
+      : null
 
   if (!stageEstimate && sortedStages.length > 0) {
     warningsSv.push('Ingen exakt matchning mot testets intensitet hittades, så rekommendationen blir mer generell.')
