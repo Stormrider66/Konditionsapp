@@ -28,6 +28,7 @@ import {
   normalizeRaceFuelingProductItems,
   summarizeRaceFuelingProductItems,
 } from '@/lib/fueling/product-plan'
+import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
 
 type FuelingStatus = 'NO_DATA' | 'READY_TO_PROGRESS' | 'HOLD' | 'REDUCE' | 'ON_TRACK'
 
@@ -44,6 +45,11 @@ interface FuelingFeedbackSummary {
 
 interface FuelingPlanSummary {
   name: string | null
+  sport?: string | null
+  distanceKm?: number | null
+  targetSpeedKmh?: number | null
+  targetPowerWatts?: number | null
+  targetPaceMinKm?: number | null
   recommendedCarbsGPerHour: number | null
   raceDate: string | null
   fuelingProgress?: FuelingProgressSummary | null
@@ -164,6 +170,7 @@ export function FuelingTrainingProgressCard({
   const target = summary?.averagePlannedCarbsGPerHour ?? data?.latestPlan?.recommendedCarbsGPerHour ?? null
   const latestLog = data?.recentLogs[0] ?? null
   const hasRacePlan = Boolean(data?.latestPlan)
+  const planContext = formatFuelingPlanContext(data?.latestPlan, { includeRaceDate: true })
   const trend = buildAthleteFuelingTrend(data?.recentLogs ?? [], target)
   const recommendation = data
     ? buildFuelingCoachingRecommendation({
@@ -238,6 +245,16 @@ export function FuelingTrainingProgressCard({
 
             {data?.latestPlan?.fuelingProgress && (
               <AthleteFuelingProgressBox progress={data.latestPlan.fuelingProgress} />
+            )}
+
+            {planContext && (
+              <div className="rounded-lg border bg-white p-3 dark:bg-slate-950/40 dark:border-white/10">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Aktiv raceplan</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                  {data?.latestPlan?.name ?? 'Nästa tävling'}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">{planContext}</p>
+              </div>
             )}
 
             {recommendation && (
