@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
+import { normalizeRaceFuelingProductPlan, retargetRaceFuelingProductPlan } from '@/lib/fueling/product-plan'
 import { logger } from '@/lib/logger'
 
 const productPlanSchema = z.object({
@@ -159,6 +160,7 @@ export async function PATCH(
         durationMinutes: true,
         estimatedCarbDemandGPerHour: true,
         recommendedCarbsGPerHour: true,
+        productPlan: true,
       },
     })
     if (!existing) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
@@ -175,6 +177,14 @@ export async function PATCH(
     const nextTotal = nextCarbsPerHour != null && nextDurationMinutes != null
       ? Math.round(nextCarbsPerHour * (nextDurationMinutes / 60))
       : null
+    const existingProductPlan = normalizeRaceFuelingProductPlan(existing.productPlan)
+    const shouldRetargetProductPlan =
+      body.productPlan === undefined &&
+      existingProductPlan &&
+      (body.recommendedCarbsGPerHour !== undefined || body.durationMinutes !== undefined)
+    const retargetedProductPlan = shouldRetargetProductPlan
+      ? retargetRaceFuelingProductPlan(existingProductPlan, nextTotal)
+      : null
 
     const plan = await prisma.raceFuelingPlan.update({
       where: { id },
@@ -189,7 +199,9 @@ export async function PATCH(
         coachNotes: body.coachNotes === undefined ? undefined : body.coachNotes,
         athleteNotes: body.athleteNotes === undefined ? undefined : body.athleteNotes,
         productPlan: body.productPlan === undefined
-          ? undefined
+          ? retargetedProductPlan
+            ? retargetedProductPlan as unknown as Prisma.InputJsonValue
+            : undefined
           : body.productPlan === null
             ? Prisma.JsonNull
             : body.productPlan as Prisma.InputJsonValue,

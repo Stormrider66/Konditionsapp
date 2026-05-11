@@ -52,6 +52,21 @@ export function summarizeRaceFuelingProductPlan(plan: RaceFuelingProductPlan): s
   return summarizeRaceFuelingProductItems(plan.items)
 }
 
+export function retargetRaceFuelingProductPlan(
+  plan: RaceFuelingProductPlan,
+  targetCarbsG: number | null
+): RaceFuelingProductPlan {
+  const differenceG = targetCarbsG != null ? plan.totalCarbsG - targetCarbsG : null
+
+  return {
+    ...plan,
+    targetCarbsG,
+    differenceG,
+    marginLabel: getProductPlanMarginLabel(differenceG),
+    updatedAt: new Date().toISOString(),
+  }
+}
+
 export function normalizeRaceFuelingProductItems(value: unknown): RaceFuelingProductPlanItem[] {
   if (!Array.isArray(value)) return []
   return value.map(normalizeProductPlanItem).filter((item): item is RaceFuelingProductPlanItem => item !== null)
@@ -128,6 +143,13 @@ function buildTimingSlots(durationMinutes: number): number[] {
     slots.push(minute)
   }
   return slots.slice(0, 18)
+}
+
+function getProductPlanMarginLabel(differenceG: number | null): string {
+  if (differenceG == null) return '-'
+  if (differenceG >= 20) return 'God'
+  if (differenceG >= 0) return 'Tight'
+  return 'Saknas'
 }
 
 function normalizeProductPlanItem(value: unknown): RaceFuelingProductPlanItem | null {

@@ -4,6 +4,7 @@ import {
   buildRaceFuelingProductTiming,
   normalizeRaceFuelingProductItems,
   normalizeRaceFuelingProductPlan,
+  retargetRaceFuelingProductPlan,
   summarizeRaceFuelingProductItems,
   summarizeRaceFuelingProductPlan,
 } from './product-plan'
@@ -80,5 +81,24 @@ describe('normalizeRaceFuelingProductPlan', () => {
       { label: 'Gel', count: 3, carbsPerItemG: 25, totalCarbsG: 75 },
       { label: 'Sportdryck', count: 1, carbsPerItemG: 40, totalCarbsG: 40 },
     ])
+  })
+
+  it('retargets a stored product plan when race totals change', () => {
+    const plan = normalizeRaceFuelingProductPlan({
+      version: 1,
+      targetCarbsG: 180,
+      totalCarbsG: 190,
+      differenceG: 10,
+      marginLabel: 'Tight',
+      items: [{ label: 'Gel', count: 6, carbsPerItemG: 25, totalCarbsG: 150 }],
+    })
+
+    const retargeted = retargetRaceFuelingProductPlan(plan!, 220)
+
+    expect(retargeted.targetCarbsG).toBe(220)
+    expect(retargeted.differenceG).toBe(-30)
+    expect(retargeted.marginLabel).toBe('Saknas')
+    expect(retargeted.items).toEqual(plan?.items)
+    expect(retargeted.updatedAt).toBeTruthy()
   })
 })
