@@ -11,7 +11,6 @@ import {
   Minus,
   Star,
   Target,
-  Flame,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -163,7 +162,7 @@ export function NutritionScore({ dailyData, goals, className, variant = 'default
           </EmptyTitle>
         </EmptyHeader>
         <EmptyContent>
-          <p className={isGlass ? 'text-slate-400' : 'text-muted-foreground'}>
+          <p className={isGlass ? 'text-slate-500 dark:text-slate-400' : 'text-muted-foreground'}>
             Börja logga måltider för att se din poäng.
           </p>
         </EmptyContent>
@@ -178,8 +177,8 @@ export function NutritionScore({ dailyData, goals, className, variant = 'default
   const Title = isGlass ? GlassCardTitle : CardTitle
   const Description = isGlass ? GlassCardDescription : CardDescription
   const Content = isGlass ? GlassCardContent : CardContent
-  const mutedText = isGlass ? 'text-slate-400' : 'text-muted-foreground'
-  const mainText = isGlass ? 'text-white' : ''
+  const mutedText = isGlass ? 'text-slate-500 dark:text-slate-400' : 'text-muted-foreground'
+  const mainText = isGlass ? 'text-slate-950 dark:text-white' : ''
 
   return (
     <Wrapper className={className}>
