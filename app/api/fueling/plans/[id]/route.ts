@@ -169,8 +169,12 @@ export async function PATCH(
     if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const body = updatePlanSchema.parse(await request.json())
-    const nextCarbsPerHour = body.recommendedCarbsGPerHour ?? existing.recommendedCarbsGPerHour
-    const nextDurationMinutes = body.durationMinutes ?? existing.durationMinutes
+    const nextCarbsPerHour = body.recommendedCarbsGPerHour === undefined
+      ? existing.recommendedCarbsGPerHour
+      : body.recommendedCarbsGPerHour
+    const nextDurationMinutes = body.durationMinutes === undefined
+      ? existing.durationMinutes
+      : body.durationMinutes
     const nextDemandTotal = existing.estimatedCarbDemandGPerHour != null && nextDurationMinutes != null
       ? Math.round(existing.estimatedCarbDemandGPerHour * (nextDurationMinutes / 60))
       : null
