@@ -403,7 +403,7 @@ function PlanGrid({
   onApply,
   onArchive,
   onRestore,
-  emptyText = 'Ingen raceplan sparad ännu. Skapa en från en testrapport när målet är satt.',
+  emptyText = 'Ingen raceplan sparad ännu. Skapa en plan när mål, distans eller tävlingstid är satt.',
 }: {
   plans: RaceFuelingPlanSummary[]
   detailBasePath: string
