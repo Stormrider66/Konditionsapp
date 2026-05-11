@@ -31,6 +31,7 @@ import {
   normalizeRaceFuelingProductItems,
   summarizeRaceFuelingProductItems,
 } from '@/lib/fueling/product-plan'
+import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
 
 type FuelingStatus = 'NO_DATA' | 'READY_TO_PROGRESS' | 'HOLD' | 'REDUCE' | 'ON_TRACK'
 
@@ -48,6 +49,11 @@ interface FuelingFeedbackSummary {
 interface FuelingPlanSummary {
   id: string
   name: string | null
+  sport: string | null
+  distanceKm: number | null
+  targetSpeedKmh: number | null
+  targetPowerWatts: number | null
+  targetPaceMinKm: number | null
   recommendedCarbsGPerHour: number | null
   recommendedCarbsTotalG: number | null
   raceDate: string | null
@@ -180,6 +186,7 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
         raceTargetGPerHour: data.latestPlan?.recommendedCarbsGPerHour,
       })
     : null
+  const planContext = formatFuelingPlanContext(data?.latestPlan, { includeRaceDate: true })
 
   async function savePlanAdjustments() {
     const plan = data?.latestPlan
@@ -278,9 +285,14 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
             {data?.latestPlan && (
               <div className="rounded-lg border p-3 space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-muted-foreground">
-                    Raceplan: <span className="font-medium text-slate-700 dark:text-slate-200">{data.latestPlan.name ?? 'Nästa tävling'}</span>
-                  </p>
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">
+                      Raceplan: <span className="font-medium text-slate-700 dark:text-slate-200">{data.latestPlan.name ?? 'Nästa tävling'}</span>
+                    </p>
+                    {planContext && (
+                      <p className="mt-1 truncate text-xs text-muted-foreground">{planContext}</p>
+                    )}
+                  </div>
                   <Badge variant="outline" className="text-[10px]">
                     {data.latestPlan.status === 'APPROVED' ? 'Godkänd' : data.latestPlan.status === 'ARCHIVED' ? 'Arkiverad' : 'Utkast'}
                   </Badge>
