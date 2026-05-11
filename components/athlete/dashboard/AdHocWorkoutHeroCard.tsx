@@ -5,6 +5,8 @@ import { Camera, Flame, Heart, MapPin, MessageSquare, Mic, Route, Sparkles, Time
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { DashboardVisualLayer } from './DashboardVisualLayer'
+import { getWorkoutVisual } from './dashboard-visuals'
 import type { DashboardAdHocWorkout } from '@/types/dashboard-items'
 
 interface AdHocWorkoutHeroCardProps {
@@ -61,11 +63,16 @@ export function AdHocWorkoutHeroCard({ workout, athleteName, basePath = '' }: Ad
   const distanceLabel = formatDistance(workout.summary.distanceKm)
   const feelingLabel = workout.summary.feeling ? FEELING_LABELS[workout.summary.feeling] : null
   const titleName = athleteName ? `${athleteName}, passet är registrerat` : 'Passet är registrerat'
+  const visual = getWorkoutVisual({
+    type: workout.parsedType,
+    intensity: workout.summary.intensity,
+    name: workout.workoutName,
+  })
 
   return (
-    <GlassCard className="lg:col-span-2 rounded-2xl group overflow-hidden transition-all">
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10 pointer-events-none" />
-      <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl transition-colors duration-700 group-hover:bg-emerald-500/15 pointer-events-none" />
+    <GlassCard className="lg:col-span-2 rounded-2xl group overflow-hidden bg-slate-950 text-white ring-white/10 transition-all">
+      <DashboardVisualLayer visual={visual} priority />
+      <div className={`absolute -top-24 -right-24 h-48 w-48 rounded-full ${visual.glowClass} opacity-0 blur-3xl transition-opacity duration-700 group-hover:opacity-100 pointer-events-none`} />
 
       <div className="relative z-10 flex h-full min-h-[280px] flex-col justify-between p-6 md:min-h-[300px] md:p-8">
         <div>

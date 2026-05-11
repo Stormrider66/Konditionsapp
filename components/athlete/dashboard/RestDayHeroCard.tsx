@@ -8,23 +8,23 @@
  * - Explains how rest improves performance
  * - Preview of next workout (if available)
  * - Recovery tips based on readiness
- * - Calming color scheme (blues/teals)
+ * - Calming sport-aware image background
  * - AI WOD (Workout of the Day) generation button
  */
 
 import Link from 'next/link'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useSyncExternalStore } from 'react'
 import { Moon, Sunrise, Heart, Battery, Calendar, ChevronRight, Sparkles, Zap, Activity, Timer, Route } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { WODGeneratorModal, WODPreviewScreen } from '@/components/athlete/wod'
+import { DashboardVisualLayer } from './DashboardVisualLayer'
+import { getRestDayVisual } from './dashboard-visuals'
 import type { WODResponse } from '@/types/wod'
 import type { DashboardRecentActivitySummary } from '@/types/dashboard-recent-activity'
 import {
   DashboardItem,
-  getItemName,
-  getItemDate,
   getAssignmentRoute,
   getAssignmentTypeLabel,
   getAssignmentTypeIcon,
@@ -93,6 +93,10 @@ const OPEN_DAY_MESSAGES = [
     icon: Zap,
   },
 ]
+
+const subscribeToHydration = () => () => {}
+const getHydratedSnapshot = () => true
+const getServerHydratedSnapshot = () => false
 
 // Get message based on readiness (deterministic to avoid hydration mismatch)
 function getRecoveryMessage(readinessScore: number | null) {
@@ -224,6 +228,29 @@ function getOpenDayMessage(readinessScore: number | null) {
   return OPEN_DAY_MESSAGES[0]
 }
 
+function renderMessageIcon(icon: typeof RECOVERY_MESSAGES[number]['icon'], className: string) {
+  switch (icon) {
+    case Moon:
+      return <Moon className={className} />
+    case Heart:
+      return <Heart className={className} />
+    case Battery:
+      return <Battery className={className} />
+    case Sparkles:
+      return <Sparkles className={className} />
+    case Zap:
+      return <Zap className={className} />
+    default:
+      return <Activity className={className} />
+  }
+}
+
+function renderBadgeIcon(hasRecentActivity: boolean, mode: RestDayHeroCardProps['mode'], className: string) {
+  if (hasRecentActivity) return <Activity className={className} />
+  if (mode === 'rest-day') return <Sunrise className={className} />
+  return <Sparkles className={className} />
+}
+
 function getSportAwareOpenDayHint(sportType: string | undefined, readinessScore: number | null): string {
   if (readinessScore !== null && readinessScore < 5) {
     return 'Din status talar för låg belastning idag. Välj rörlighet, lätt cirkulation eller teknik med låg stress.'
@@ -329,7 +356,6 @@ function formatIntensity(intensity: string): string {
 export function RestDayHeroCard({
   nextItem,
   readinessScore,
-  athleteName,
   wodRemainingCount = 3,
   wodIsUnlimited = false,
   basePath = '',
@@ -342,10 +368,7 @@ export function RestDayHeroCard({
     [mode, readinessScore]
   )
   const hasRecentActivity = !!recentActivity
-  const MessageIcon = hasRecentActivity ? getRecentActivityIcon(recentActivity.type) : message.icon
   const badgeLabel = hasRecentActivity ? 'Senaste pass' : mode === 'rest-day' ? 'Vilodag' : 'Öppen dag'
-  const badgeIcon = hasRecentActivity ? Activity : mode === 'rest-day' ? Sunrise : Sparkles
-  const BadgeIcon = badgeIcon
   const description = hasRecentActivity
     ? buildRecentActivityDescription(recentActivity)
     : mode === 'rest-day'
@@ -356,19 +379,26 @@ export function RestDayHeroCard({
     : mode === 'open-day'
       ? getSportAwareOpenDayHint(sportType, readinessScore)
       : getSportAwareRestDayHint(sportType, readinessScore)
+  const visual = getRestDayVisual({
+    mode,
+    sportType,
+    recentActivityType: recentActivity?.type,
+  })
 
-  // Relative date labels (client-only to avoid SSR/client timezone mismatch)
-  const [relativeDateLabel, setRelativeDateLabel] = useState<string | null>(null)
-  useEffect(() => {
-    if (nextItem) {
-      const date = nextItem.kind === 'program'
-        ? nextItem.workout.dayDate
-        : nextItem.kind === 'assignment'
-          ? nextItem.assignedDate
-          : nextItem.createdAt
-      setRelativeDateLabel(getRelativeDateLabel(date))
-    }
-  }, [nextItem])
+  const isHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    getHydratedSnapshot,
+    getServerHydratedSnapshot
+  )
+  const relativeDateLabel = useMemo(() => {
+    if (!isHydrated || !nextItem) return null
+    const date = nextItem.kind === 'program'
+      ? nextItem.workout.dayDate
+      : nextItem.kind === 'assignment'
+        ? nextItem.assignedDate
+        : nextItem.createdAt
+    return getRelativeDateLabel(date)
+  }, [isHydrated, nextItem])
 
   // WOD state
   const [showWODModal, setShowWODModal] = useState(false)
@@ -414,31 +444,32 @@ export function RestDayHeroCard({
   }
 
   return (
-    <GlassCard className="lg:col-span-2 rounded-2xl group overflow-hidden transition-all">
-      {/* Calming gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-teal-500/5 pointer-events-none" />
+    <GlassCard className="lg:col-span-2 rounded-2xl group overflow-hidden bg-slate-950 text-white ring-white/10 transition-all">
+      <DashboardVisualLayer visual={visual} priority />
 
       {/* Subtle animated glow */}
-      <div className="absolute -top-24 -right-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl group-hover:bg-cyan-500/15 transition-colors duration-700 pointer-events-none" />
+      <div className={`absolute -top-24 -right-24 w-48 h-48 ${visual.glowClass} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none`} />
 
       <div className="p-6 md:p-8 relative z-10 flex flex-col h-full justify-between min-h-[280px] md:min-h-[300px]">
         <div>
           {/* Rest Day Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/20 text-cyan-700 dark:text-cyan-400 text-xs font-bold uppercase tracking-wider mb-4 transition-colors">
-            <BadgeIcon className="w-3 h-3" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-300/20 text-cyan-200 text-xs font-bold uppercase tracking-wider mb-4 backdrop-blur transition-colors">
+            {renderBadgeIcon(hasRecentActivity, mode, 'w-3 h-3')}
             {badgeLabel}
           </div>
 
           {/* Title with Icon */}
           <div className="flex items-start gap-4 mb-3">
-            <div className="p-3 rounded-xl bg-cyan-100 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/20 transition-colors">
-              <MessageIcon className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
+            <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-300/20 backdrop-blur transition-colors">
+              {hasRecentActivity
+                ? <Activity className="w-6 h-6 text-cyan-200" />
+                : renderMessageIcon(message.icon, 'w-6 h-6 text-cyan-200')}
             </div>
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 transition-colors">
                 {hasRecentActivity ? buildRecentActivityTitle(recentActivity) : message.title}
               </h2>
-              <p className="text-slate-600 dark:text-slate-400 max-w-md text-sm md:text-base transition-colors">
+              <p className="text-slate-200 max-w-md text-sm md:text-base transition-colors">
                 {description}
               </p>
             </div>
@@ -446,14 +477,14 @@ export function RestDayHeroCard({
 
           {recentActivity && (
             <div className="mb-4 flex flex-wrap gap-2">
-              <Badge variant="secondary" className="bg-white/60 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+              <Badge variant="secondary" className="bg-white/10 text-slate-200 hover:bg-white/15">
                 {formatRecentActivitySource(recentActivity.source)}
               </Badge>
-              <Badge variant="secondary" className="bg-white/60 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+              <Badge variant="secondary" className="bg-white/10 text-slate-200 hover:bg-white/15">
                 {formatRecentActivityDate(recentActivity.date)}
               </Badge>
               {recentActivity.deviceModel ? (
-                <Badge variant="secondary" className="bg-white/60 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                <Badge variant="secondary" className="bg-white/10 text-slate-200 hover:bg-white/15">
                   {recentActivity.deviceModel}
                 </Badge>
               ) : null}
@@ -463,44 +494,44 @@ export function RestDayHeroCard({
           {recentActivity && (
             <div className="grid grid-cols-2 gap-3 lg:max-w-xl">
               {recentActivity.durationMinutes ? (
-                <div className="rounded-xl border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className="rounded-xl border border-white/10 bg-white/10 p-3 backdrop-blur">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300/70">
                     Längd
                   </div>
-                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
+                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-white">
                     <Timer className="h-4 w-4 text-cyan-500" />
                     {recentActivity.durationMinutes} min
                   </div>
                 </div>
               ) : null}
               {recentActivity.distanceKm ? (
-                <div className="rounded-xl border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className="rounded-xl border border-white/10 bg-white/10 p-3 backdrop-blur">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300/70">
                     Distans
                   </div>
-                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
+                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-white">
                     <Route className="h-4 w-4 text-cyan-500" />
                     {recentActivity.distanceKm} km
                   </div>
                 </div>
               ) : null}
               {recentActivity.avgHR ? (
-                <div className="rounded-xl border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className="rounded-xl border border-white/10 bg-white/10 p-3 backdrop-blur">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300/70">
                     Puls
                   </div>
-                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
+                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-white">
                     <Heart className="h-4 w-4 text-cyan-500" />
                     {recentActivity.avgHR} bpm
                   </div>
                 </div>
               ) : null}
               {recentActivity.tss ? (
-                <div className="rounded-xl border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className="rounded-xl border border-white/10 bg-white/10 p-3 backdrop-blur">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300/70">
                     Belastning
                   </div>
-                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
+                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-white">
                     <Zap className="h-4 w-4 text-cyan-500" />
                     {recentActivity.tss} TSS
                   </div>
@@ -510,9 +541,9 @@ export function RestDayHeroCard({
           )}
 
           {/* Recovery Tip */}
-          <div className="mt-4 p-3 rounded-lg bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 transition-colors">
-            <p className="text-sm text-slate-700 dark:text-slate-300 flex items-start gap-2">
-              <Sparkles className="w-4 h-4 text-cyan-500 dark:text-cyan-400 mt-0.5 flex-shrink-0" />
+          <div className="mt-4 p-3 rounded-lg bg-white/10 border border-white/10 backdrop-blur transition-colors">
+            <p className="text-sm text-slate-200 flex items-start gap-2">
+              <Sparkles className="w-4 h-4 text-cyan-300 mt-0.5 flex-shrink-0" />
               <span>{contextualHint}</span>
             </p>
           </div>
@@ -537,36 +568,36 @@ export function RestDayHeroCard({
 
         {/* Next Workout Preview */}
         {nextItem && nextItem.kind === 'program' && (
-          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
-            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2 transition-colors">
+          <div className="mt-6 pt-6 border-t border-white/10 transition-colors">
+            <h3 className="text-sm font-medium text-slate-300/80 mb-3 flex items-center gap-2 transition-colors">
               <Calendar className="w-4 h-4" />
               Nästa pass
             </h3>
 
             <Link href={`${basePath}/athlete/workouts/${nextItem.workout.id}`}>
-              <div className="group/next p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 hover:border-orange-500/30 dark:hover:border-orange-500/30 hover:bg-slate-100 dark:hover:bg-slate-900/70 transition-all cursor-pointer">
+              <div className="group/next p-4 rounded-xl bg-white/10 border border-white/10 backdrop-blur hover:border-orange-300/30 hover:bg-white/15 transition-all cursor-pointer">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="text-xs text-orange-600 dark:text-orange-400 font-medium transition-colors">
+                      <span className="text-xs text-orange-300 font-medium transition-colors">
                         {relativeDateLabel || formatNextWorkoutDate(nextItem.workout.dayDate)}
                       </span>
                       <span className={`px-2 py-0.5 rounded text-xs border ${getIntensityBadgeStyle(nextItem.workout.intensity)}`}>
                         {formatIntensity(nextItem.workout.intensity)}
                       </span>
                     </div>
-                    <h4 className="font-semibold text-slate-900 dark:text-white truncate group-hover/next:text-orange-600 dark:group-hover/next:text-orange-400 transition-colors">
+                    <h4 className="font-semibold text-white truncate group-hover/next:text-orange-200 transition-colors">
                       {nextItem.workout.name}
                     </h4>
-                    <p className="text-sm text-slate-500 truncate">
+                    <p className="text-sm text-slate-300 truncate">
                       {nextItem.workout.programName}
                     </p>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-slate-400 dark:text-slate-600 group-hover/next:text-orange-500 dark:group-hover/next:text-orange-400 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
+                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover/next:text-orange-200 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
                 </div>
 
                 {/* Duration/Distance preview */}
-                <div className="flex gap-4 mt-2 text-xs text-slate-500">
+                <div className="flex gap-4 mt-2 text-xs text-slate-300">
                   {nextItem.workout.duration && (
                     <span>{nextItem.workout.duration} min</span>
                   )}
@@ -584,18 +615,18 @@ export function RestDayHeroCard({
           const NextTypeIcon = getAssignmentTypeIcon(nextItem.assignmentType)
           const nextBadgeStyle = getAssignmentTypeBadgeStyle(nextItem.assignmentType)
           return (
-            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
-              <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2 transition-colors">
+            <div className="mt-6 pt-6 border-t border-white/10 transition-colors">
+              <h3 className="text-sm font-medium text-slate-300/80 mb-3 flex items-center gap-2 transition-colors">
                 <Calendar className="w-4 h-4" />
                 Nästa pass
               </h3>
 
               <Link href={getAssignmentRoute(nextItem, basePath)}>
-                <div className="group/next p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 hover:border-orange-500/30 dark:hover:border-orange-500/30 hover:bg-slate-100 dark:hover:bg-slate-900/70 transition-all cursor-pointer">
+                <div className="group/next p-4 rounded-xl bg-white/10 border border-white/10 backdrop-blur hover:border-orange-300/30 hover:bg-white/15 transition-all cursor-pointer">
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="text-xs text-orange-600 dark:text-orange-400 font-medium transition-colors">
+                        <span className="text-xs text-orange-300 font-medium transition-colors">
                           {relativeDateLabel || formatNextWorkoutDate(nextItem.assignedDate)}
                         </span>
                         <span className={`px-2 py-0.5 rounded text-xs border inline-flex items-center gap-1 ${nextBadgeStyle}`}>
@@ -603,15 +634,15 @@ export function RestDayHeroCard({
                           {getAssignmentTypeLabel(nextItem.assignmentType)}
                         </span>
                       </div>
-                      <h4 className="font-semibold text-slate-900 dark:text-white truncate group-hover/next:text-orange-600 dark:group-hover/next:text-orange-400 transition-colors">
+                      <h4 className="font-semibold text-white truncate group-hover/next:text-orange-200 transition-colors">
                         {nextItem.name}
                       </h4>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-400 dark:text-slate-600 group-hover/next:text-orange-500 dark:group-hover/next:text-orange-400 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover/next:text-orange-200 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
                   </div>
 
                   {/* Duration preview */}
-                  <div className="flex gap-4 mt-2 text-xs text-slate-500">
+                  <div className="flex gap-4 mt-2 text-xs text-slate-300">
                     {nextItem.duration && (
                       <span>{nextItem.duration} min</span>
                     )}
@@ -624,18 +655,18 @@ export function RestDayHeroCard({
 
         {/* Next WOD Preview */}
         {nextItem && nextItem.kind === 'wod' && (
-          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
-            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2 transition-colors">
+          <div className="mt-6 pt-6 border-t border-white/10 transition-colors">
+            <h3 className="text-sm font-medium text-slate-300/80 mb-3 flex items-center gap-2 transition-colors">
               <Calendar className="w-4 h-4" />
               Nästa pass
             </h3>
 
             <Link href={getWODRoute(nextItem, basePath)}>
-              <div className="group/next p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 hover:bg-slate-100 dark:hover:bg-slate-900/70 transition-all cursor-pointer">
+              <div className="group/next p-4 rounded-xl bg-white/10 border border-white/10 backdrop-blur hover:border-emerald-300/30 hover:bg-white/15 transition-all cursor-pointer">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium transition-colors">
+                      <span className="text-xs text-emerald-300 font-medium transition-colors">
                         {relativeDateLabel || formatNextWorkoutDate(nextItem.createdAt)}
                       </span>
                       <span className="px-2 py-0.5 rounded text-xs border bg-emerald-500/10 border-emerald-500/20 text-emerald-400 inline-flex items-center gap-1">
@@ -643,17 +674,17 @@ export function RestDayHeroCard({
                         AI-Pass
                       </span>
                     </div>
-                    <h4 className="font-semibold text-slate-900 dark:text-white truncate group-hover/next:text-emerald-600 dark:group-hover/next:text-emerald-400 transition-colors">
+                    <h4 className="font-semibold text-white truncate group-hover/next:text-emerald-200 transition-colors">
                       {nextItem.title}
                     </h4>
-                    <p className="text-sm text-slate-500 truncate">
+                    <p className="text-sm text-slate-300 truncate">
                       {getWODModeLabel(nextItem.mode)}
                     </p>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-slate-400 dark:text-slate-600 group-hover/next:text-emerald-500 dark:group-hover/next:text-emerald-400 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
+                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover/next:text-emerald-200 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
                 </div>
 
-                <div className="flex gap-4 mt-2 text-xs text-slate-500">
+                <div className="flex gap-4 mt-2 text-xs text-slate-300">
                   <span>{nextItem.requestedDuration} min</span>
                 </div>
               </div>
@@ -663,14 +694,14 @@ export function RestDayHeroCard({
 
         {/* No upcoming workouts */}
         {!nextItem && (
-          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
-            <p className="text-sm text-slate-500 text-center">
+          <div className="mt-6 pt-6 border-t border-white/10 transition-colors">
+            <p className="text-sm text-slate-300 text-center">
               Inga kommande pass schemalagda
             </p>
             <Link href={`${basePath}/athlete/calendar`}>
               <Button
                 variant="outline"
-                className="w-full mt-3 border-slate-200 dark:border-white/20 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-all"
+                className="w-full mt-3 border-white/20 bg-white/5 text-white hover:bg-white/10 hover:border-white/30 transition-all"
               >
                 <Calendar className="w-4 h-4 mr-2" />
                 Visa kalender
@@ -690,14 +721,6 @@ export function RestDayHeroCard({
       />
     </GlassCard>
   )
-}
-
-function getRecentActivityIcon(type: string) {
-  const normalized = type.toUpperCase()
-  if (normalized.includes('RUN')) return Activity
-  if (normalized.includes('CYCLE') || normalized.includes('BIKE')) return Activity
-  if (normalized.includes('SWIM')) return Activity
-  return Activity
 }
 
 function buildRecentActivityTitle(activity: DashboardRecentActivitySummary): string {

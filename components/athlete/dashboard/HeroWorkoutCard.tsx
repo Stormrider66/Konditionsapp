@@ -5,19 +5,20 @@
  *
  * Features:
  * - AI-generated or rule-based focus points (title, description, category badge)
- * - Exercise imagery with muscle highlighting
+ * - Contextual sport imagery with dark readable overlays
  * - Metrics row: Duration, Volume, Intensity
  * - GlassCard styling with hover effects
  */
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { Activity, Flame, Timer, Dumbbell, Play, Zap, Route, TrendingUp, Clock, MapPin, X, CheckCircle2, Utensils } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { generateSimpleFocus, type WorkoutFocus } from '@/lib/hero-card'
 import { ModificationBanner } from '@/components/athlete/workouts/ModificationBanner'
+import { DashboardVisualLayer } from './DashboardVisualLayer'
+import { getWorkoutVisual } from './dashboard-visuals'
 import { useMemo } from 'react'
 
 export interface WorkoutModification {
@@ -34,141 +35,6 @@ interface HeroWorkoutCardProps {
   modification?: WorkoutModification
   basePath?: string
   onRemove?: () => void
-}
-
-// Map category/pillar to image paths
-const CATEGORY_IMAGES: Record<string, string[]> = {
-  'STYRKA NEDRE KROPP': [
-    '/images/posterior-chain/marklyft-1.png',
-    '/images/posterior-chain/romanian-deadlift-1.png',
-    '/images/posterior-chain/hip-thrust-med-skivstang-1.png',
-  ],
-  'POSTERIOR_CHAIN': [
-    '/images/posterior-chain/marklyft-1.png',
-    '/images/posterior-chain/kettlebell-swing-1.png',
-    '/images/posterior-chain/romanian-deadlift-1.png',
-  ],
-  'QUAD-DOMINANT': [
-    '/images/knee-dominance/knaboj-1.png',
-    '/images/knee-dominance/front-squat-1.png',
-    '/images/knee-dominance/goblet-squat-1.png',
-  ],
-  'KNEE_DOMINANCE': [
-    '/images/knee-dominance/knaboj-1.png',
-    '/images/knee-dominance/front-squat-1.png',
-    '/images/knee-dominance/lunge-1.png',
-  ],
-  'BALANS & STABILITET': [
-    '/images/unilateral/bulgarisk-utfallsboj-1.png',
-    '/images/unilateral/enbenig-rumansk-marklyft-1.png',
-    '/images/unilateral/step-ups-med-knadrive-1.png',
-  ],
-  'UNILATERAL': [
-    '/images/unilateral/bulgarisk-utfallsboj-1.png',
-    '/images/unilateral/enbenig-rumansk-marklyft-1.png',
-    '/images/unilateral/step-ups-med-knadrive-1.png',
-  ],
-  'CORE STABILITET': [
-    '/images/core/plank-1.png',
-    '/images/core/dead-bug-1.png',
-    '/images/core/pallof-press-1.png',
-  ],
-  'CORE': [
-    '/images/core/plank-1.png',
-    '/images/core/farmers-carry-1.png',
-    '/images/core/russian-twist-1.png',
-  ],
-  'ANTI_ROTATION_CORE': [
-    '/images/core/pallof-press-1.png',
-    '/images/core/dead-bug-1.png',
-    '/images/core/plank-1.png',
-  ],
-  'ÖVERKROPP': [
-    '/images/upper-body/bankpress-1.png',
-    '/images/upper-body/pull-up-1.png',
-    '/images/upper-body/push-up-1.png',
-  ],
-  'UPPER_BODY': [
-    '/images/upper-body/bankpress-1.png',
-    '/images/upper-body/pull-up-1.png',
-    '/images/upper-body/bent-over-row-1.png',
-  ],
-  'FOT & VRIST': [
-    '/images/foot-ankle/tahavningar-raka-ben-1.png',
-    '/images/foot-ankle/pogo-jumps-1.png',
-    '/images/foot-ankle/tahavningar-bojda-ben-1.png',
-  ],
-  'FOOT_ANKLE': [
-    '/images/foot-ankle/tahavningar-raka-ben-1.png',
-    '/images/foot-ankle/pogo-jumps-1.png',
-    '/images/foot-ankle/tahavningar-bojda-ben-1.png',
-  ],
-  'EXPLOSIVITET': [
-    '/images/posterior-chain/box-jump-1.png',
-    '/images/posterior-chain/bred-hopp-max-1.png',
-    '/images/knee-dominance/hoppsquat-1.png',
-  ],
-  'STYRKA': [
-    '/images/knee-dominance/knaboj-1.png',
-    '/images/posterior-chain/marklyft-1.png',
-    '/images/upper-body/bankpress-1.png',
-  ],
-  'LÖPNING': [
-    '/images/foot-ankle/running-1.png',
-    '/images/foot-ankle/skipping-1.png',
-    '/images/foot-ankle/pogo-jumps-1.png',
-  ],
-  'RUNNING': [
-    '/images/foot-ankle/running-1.png',
-    '/images/foot-ankle/skipping-1.png',
-    '/images/foot-ankle/lateral-hops-1.png',
-  ],
-  'CARDIO': [
-    '/images/posterior-chain/skierg-1.png',
-    '/images/posterior-chain/row-calories-1.png',
-    '/images/foot-ankle/assault-bike-calories-1.png',
-  ],
-  'HYROX': [
-    '/images/posterior-chain/sled-push-hyrox-1.png',
-    '/images/posterior-chain/wall-balls-hyrox-1.png',
-    '/images/knee-dominance/sandbag-lunges-hyrox-1.png',
-    '/images/core/farmers-carry-hyrox-1.png',
-  ],
-  'SIMNING': [
-    '/images/foot-ankle/swimming-1.png',
-  ],
-  'SWIMMING': [
-    '/images/foot-ankle/swimming-1.png',
-  ],
-  'ÅTERHÄMTNING': [
-    '/images/core/bird-dog-1.png',
-    '/images/core/dead-bug-1.png',
-    '/images/foot-ankle/toe-yoga-1.png',
-  ],
-  'RECOVERY': [
-    '/images/core/bird-dog-1.png',
-    '/images/core/dead-bug-1.png',
-    '/images/foot-ankle/toe-yoga-1.png',
-  ],
-  'POWER': [
-    '/images/posterior-chain/thruster-1.png',
-    '/images/posterior-chain/hang-power-snatch-1.png',
-    '/images/posterior-chain/box-jump-1.png',
-  ],
-  'OLYMPIC': [
-    '/images/posterior-chain/hang-power-snatch-1.png',
-    '/images/posterior-chain/sandbag-clean-1.png',
-    '/images/knee-dominance/squat-snatch-1.png',
-  ],
-}
-
-// Get a random image for a category
-function getCategoryImage(category: string): string | null {
-  const images = CATEGORY_IMAGES[category] || CATEGORY_IMAGES['STYRKA']
-  if (!images || images.length === 0) return null
-  // Use a consistent image based on category name hash
-  const index = category.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % images.length
-  return images[index]
 }
 
 // Format intensity for display
@@ -197,19 +63,18 @@ function getIntensityColor(intensity: string): string {
   return colors[intensity] || 'text-orange-400'
 }
 
-// Get badge icon based on workout type
-function getBadgeIcon(type: string) {
+function renderBadgeIcon(type: string, className: string) {
   switch (type) {
     case 'RUNNING':
-      return Route
+      return <Route className={className} />
     case 'STRENGTH':
-      return Dumbbell
+      return <Dumbbell className={className} />
     case 'PLYOMETRIC':
-      return Zap
+      return <Zap className={className} />
     case 'CORE':
-      return Activity
+      return <Activity className={className} />
     default:
-      return Flame
+      return <Flame className={className} />
   }
 }
 
@@ -289,7 +154,7 @@ function formatVolume(volume: number): string {
   return `${Math.round(volume)} kg`
 }
 
-export function HeroWorkoutCard({ workout, athleteName, modification, basePath = '', onRemove }: HeroWorkoutCardProps) {
+export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove }: HeroWorkoutCardProps) {
   // Generate focus if not already set
   const focus: WorkoutFocus = useMemo(() => {
     if (workout.heroTitle && workout.heroDescription && workout.heroCategory) {
@@ -315,23 +180,30 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
     [workout.segments, workout.duration, workout.distance]
   )
 
-  const categoryImage = getCategoryImage(focus.category)
+  const visual = getWorkoutVisual({
+    type: workout.type,
+    intensity: workout.intensity,
+    category: focus.category,
+    imageKey: focus.imageKey,
+    name: workout.name,
+  })
   const volume = estimateVolume(workout.segments)
   const completedLog = workout.logs?.[0]
   const isCompleted = !!completedLog?.completed
-  const BadgeIcon = getBadgeIcon(workout.type)
   const completedHighlights = useMemo(() => getCompletedHighlights(completedLog), [completedLog])
   const completedAtLabel = completedLog?.completedAt
     ? new Date(completedLog.completedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
     : null
 
   return (
-    <GlassCard className="lg:col-span-2 rounded-2xl group transition-all">
+    <GlassCard className="lg:col-span-2 rounded-2xl group bg-slate-950 text-white ring-white/10 transition-all">
+      <DashboardVisualLayer visual={visual} priority />
+
       {/* Remove button */}
       {!isCompleted && onRemove && (
         <button
           onClick={onRemove}
-          className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-black/10 dark:bg-white/10 text-slate-600 dark:text-slate-300 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-black/20 dark:hover:bg-white/20 transition-all"
+          className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-white/10 text-slate-200 opacity-100 backdrop-blur sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white/20 transition-all"
           aria-label="Ta bort pass"
         >
           <X className="h-4 w-4" />
@@ -339,23 +211,7 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
       )}
 
       {/* Hover gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-
-      {/* Background exercise image */}
-      {categoryImage && (
-        <div className="absolute top-0 right-0 p-6 md:p-8 w-1/2 h-full hidden md:block opacity-20 dark:opacity-40 mix-blend-multiply dark:mix-blend-screen pointer-events-none transition-opacity">
-          <div className="relative w-full h-full">
-            <Image
-              src={categoryImage}
-              alt={focus.title}
-              fill
-              style={{ objectFit: 'contain', objectPosition: 'right center' }}
-              className="dark:drop-shadow-[0_0_15px_rgba(255,100,0,0.3)] grayscale-[20%] dark:grayscale-0"
-              priority
-            />
-          </div>
-        </div>
-      )}
+      <div className={`absolute -right-24 -top-24 h-56 w-56 rounded-full ${visual.glowClass} opacity-0 blur-3xl transition-opacity duration-700 group-hover:opacity-100 pointer-events-none`} />
 
       <div className="p-6 md:p-8 relative z-10 flex flex-col h-full justify-between min-h-[280px] md:min-h-[300px]">
         {/* Modification Banner (Gap 4 fix) */}
@@ -365,33 +221,33 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
 
         <div>
           {/* Category Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 text-orange-700 dark:text-orange-400 text-xs font-bold uppercase tracking-wider mb-4 transition-colors">
-            <BadgeIcon className="w-3 h-3" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-orange-200 text-xs font-bold uppercase tracking-wider mb-4 backdrop-blur transition-colors">
+            {renderBadgeIcon(workout.type, 'w-3 h-3')}
             {focus.category}
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2 max-w-md transition-colors">
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 max-w-md transition-colors">
             {focus.title}
           </h2>
 
           {/* Description */}
-          <p className="text-slate-600 dark:text-slate-400 max-w-sm text-sm md:text-base transition-colors">
+          <p className="text-slate-200 max-w-sm text-sm md:text-base transition-colors">
             {focus.description}
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-medium text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-slate-100 backdrop-blur">
               {formatWorkoutTypeLabel(workout.type)}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-medium text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-slate-100 backdrop-blur">
               {formatIntensity(workout.intensity)}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-medium text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-slate-100 backdrop-blur">
               {workout.programName}
             </span>
             {workout.fuelingPrescription && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-medium text-orange-700 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-300">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-300/20 bg-orange-500/10 px-3 py-1 text-xs font-medium text-orange-200 backdrop-blur">
                 <Utensils className="h-3 w-3" />
                 {formatFuelingPrescription(workout.fuelingPrescription)}
               </span>
@@ -400,15 +256,15 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
 
           {/* Scheduling info */}
           {(workout.startTime || workout.locationName || workout.location?.name) && (
-            <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-slate-600 dark:text-slate-400">
+            <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-slate-300">
               {workout.startTime && (
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-200 backdrop-blur">
                   <Clock className="h-3.5 w-3.5" />
                   {workout.startTime}
                 </span>
               )}
               {(workout.locationName || workout.location?.name) && (
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400">
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-200 backdrop-blur">
                   <MapPin className="h-3.5 w-3.5" />
                   {workout.locationName || workout.location?.name}
                 </span>
@@ -418,15 +274,15 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
 
           {/* Completed badge */}
           {isCompleted && (
-            <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10">
+            <div className="mt-4 rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-4 backdrop-blur">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                <div className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-200">
                   <CheckCircle2 className="h-4 w-4" />
                   Slutfört
-                  {completedAtLabel ? <span className="text-emerald-600/80 dark:text-emerald-300/70">{completedAtLabel}</span> : null}
+                  {completedAtLabel ? <span className="text-emerald-200/70">{completedAtLabel}</span> : null}
                 </div>
                 {completedLog?.notes ? (
-                  <span className="text-xs text-emerald-700/80 dark:text-emerald-200/80">
+                  <span className="text-xs text-emerald-100/80">
                     {completedLog.notes}
                   </span>
                 ) : null}
@@ -437,16 +293,16 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
                   {completedHighlights.map((highlight) => (
                     <div
                       key={highlight.label}
-                      className="rounded-xl border border-emerald-200/80 bg-white/75 p-3 dark:border-white/10 dark:bg-white/5"
+                      className="rounded-xl border border-white/10 bg-white/10 p-3"
                     >
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700/70 dark:text-emerald-300/70">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-200/70">
                         {highlight.label}
                       </div>
-                      <div className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
+                      <div className="mt-1 text-lg font-semibold text-white">
                         {highlight.value}
                       </div>
                       {highlight.subvalue ? (
-                        <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{highlight.subvalue}</div>
+                        <div className="mt-0.5 text-xs text-slate-300">{highlight.subvalue}</div>
                       ) : null}
                     </div>
                   ))}
@@ -460,9 +316,9 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 md:gap-6 mt-6 md:mt-8">
           {calculatedTotals.duration && (
             <div>
-              <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Längd</div>
-              <div className="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 transition-colors">
-                <Timer className="w-4 h-4 md:w-5 md:h-5 text-orange-600 dark:text-orange-500" />
+              <div className="text-slate-300/70 text-xs uppercase tracking-wider mb-1">Längd</div>
+              <div className="text-lg md:text-xl font-bold text-white flex items-center gap-2 transition-colors">
+                <Timer className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
                 {calculatedTotals.duration} min
               </div>
             </div>
@@ -470,9 +326,9 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
 
           {volume && (
             <div>
-              <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Volym</div>
-              <div className="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 transition-colors">
-                <Dumbbell className="w-4 h-4 md:w-5 md:h-5 text-orange-600 dark:text-orange-500" />
+              <div className="text-slate-300/70 text-xs uppercase tracking-wider mb-1">Volym</div>
+              <div className="text-lg md:text-xl font-bold text-white flex items-center gap-2 transition-colors">
+                <Dumbbell className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
                 {formatVolume(volume)}
               </div>
             </div>
@@ -480,16 +336,16 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
 
           {calculatedTotals.distance && !volume && (
             <div>
-              <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Distans</div>
-              <div className="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 transition-colors">
-                <Route className="w-4 h-4 md:w-5 md:h-5 text-orange-600 dark:text-orange-500" />
+              <div className="text-slate-300/70 text-xs uppercase tracking-wider mb-1">Distans</div>
+              <div className="text-lg md:text-xl font-bold text-white flex items-center gap-2 transition-colors">
+                <Route className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
                 {calculatedTotals.distance} km
               </div>
             </div>
           )}
 
           <div>
-            <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Intensitet</div>
+            <div className="text-slate-300/70 text-xs uppercase tracking-wider mb-1">Intensitet</div>
             <div className={`text-lg md:text-xl font-bold flex items-center gap-2 ${getIntensityColor(workout.intensity)}`}>
               <Activity className="w-4 h-4 md:w-5 md:h-5" />
               {formatIntensity(workout.intensity)}
@@ -503,7 +359,7 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
             <Link href={`${basePath}/athlete/workouts/${workout.id}`}>
               <Button
                 variant="outline"
-                className="w-full sm:w-auto min-h-[48px] border-slate-200 dark:border-white/20 text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/30 transition-all"
+                className="w-full sm:w-auto min-h-[48px] border-white/20 bg-white/5 text-white hover:bg-white/10 hover:border-white/30 transition-all"
               >
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Visa detaljer
@@ -511,7 +367,7 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
             </Link>
           ) : (
             <Link href={`${basePath}/athlete/workouts/${workout.id}/log`}>
-              <Button className="w-full sm:w-auto min-h-[48px] bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 dark:shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0 transition-all">
+              <Button className="w-full sm:w-auto min-h-[48px] bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 border-0 transition-all">
                 <Play className="w-4 h-4 mr-2" />
                 Starta pass
               </Button>

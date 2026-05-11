@@ -4,17 +4,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
-import { CalendarDays, Clock, MapPin, Calendar, ChevronRight, Timer, Sparkles, Utensils } from 'lucide-react'
+import { CalendarDays, Clock, MapPin, Calendar, ChevronRight, Timer, Sparkles, Utensils, Dumbbell, Heart, Flame, Zap } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
+import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { DashboardVisualRail } from '@/components/athlete/dashboard/DashboardVisualLayer'
+import { getDashboardItemVisual } from '@/components/athlete/dashboard/dashboard-visuals'
 import {
   DashboardItem,
   getAssignmentRoute,
   getAssignmentTypeLabel,
-  getAssignmentTypeIcon,
   getAssignmentTypeBadgeStyle,
   getWODRoute,
   getWODModeLabel,
@@ -28,7 +30,22 @@ interface UpcomingWorkoutsProps {
   basePath?: string
 }
 
+function renderAssignmentTypeIcon(type: Extract<DashboardItem, { kind: 'assignment' }>['assignmentType'], className: string) {
+  switch (type) {
+    case 'strength':
+      return <Dumbbell className={className} />
+    case 'cardio':
+      return <Heart className={className} />
+    case 'hybrid':
+      return <Flame className={className} />
+    case 'agility':
+      return <Zap className={className} />
+  }
+}
+
 function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: DashboardItem; theme: typeof MINIMALIST_WHITE_THEME, variant?: 'default' | 'glass', basePath?: string }) {
+  const visual = getDashboardItemVisual(item)
+
   // WOD items
   if (item.kind === 'wod') {
     const route = getWODRoute(item, basePath)
@@ -36,8 +53,9 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
 
     if (variant === 'glass') {
       return (
-        <div className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-black/20 hover:bg-white/5 transition-colors">
-          <div className="flex-1 min-w-0">
+        <div className="relative flex items-center justify-between overflow-hidden rounded-lg border border-white/10 bg-slate-950/80 p-3 transition-colors hover:bg-slate-900/80">
+          <DashboardVisualRail visual={visual} />
+          <div className="relative z-10 flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium text-sm text-white truncate">
                 {item.title}
@@ -55,7 +73,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
               <span>• {item.requestedDuration} min</span>
             </div>
           </div>
-          <Link href={route}>
+          <Link href={route} className="relative z-10">
             <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white hover:bg-white/10">
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -98,14 +116,14 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
   }
 
   if (item.kind === 'assignment') {
-    const TypeIcon = getAssignmentTypeIcon(item.assignmentType)
     const badgeStyle = getAssignmentTypeBadgeStyle(item.assignmentType)
     const route = getAssignmentRoute(item, basePath)
 
     if (variant === 'glass') {
       return (
-        <div className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-black/20 hover:bg-white/5 transition-colors">
-          <div className="flex-1 min-w-0">
+        <div className="relative flex items-center justify-between overflow-hidden rounded-lg border border-white/10 bg-slate-950/80 p-3 transition-colors hover:bg-slate-900/80">
+          <DashboardVisualRail visual={visual} />
+          <div className="relative z-10 flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium text-sm text-white truncate">
                 {item.name}
@@ -116,7 +134,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
             </div>
             <div className="flex items-center gap-3 text-xs text-slate-400">
               <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-xs ${badgeStyle}`}>
-                <TypeIcon className="h-3 w-3" />
+                {renderAssignmentTypeIcon(item.assignmentType, 'h-3 w-3')}
                 {getAssignmentTypeLabel(item.assignmentType)}
               </span>
               {item.startTime && (
@@ -134,7 +152,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
               {item.duration && <span>• {item.duration} min</span>}
             </div>
           </div>
-          <Link href={route}>
+          <Link href={route} className="relative z-10">
             <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white hover:bg-white/10">
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -160,7 +178,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
             {item.name}
           </span>
           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs ${badgeStyle}`}>
-            <TypeIcon className="h-3 w-3" />
+            {renderAssignmentTypeIcon(item.assignmentType, 'h-3 w-3')}
             {getAssignmentTypeLabel(item.assignmentType)}
           </span>
         </div>
@@ -188,8 +206,9 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
   const fuelingPrescription = workout.fuelingPrescription
   if (variant === 'glass') {
     return (
-      <div className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-black/20 hover:bg-white/5 transition-colors">
-        <div className="flex-1 min-w-0">
+      <div className="relative flex items-center justify-between overflow-hidden rounded-lg border border-white/10 bg-slate-950/80 p-3 transition-colors hover:bg-slate-900/80">
+        <DashboardVisualRail visual={visual} />
+        <div className="relative z-10 flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="font-medium text-sm text-white truncate">
               {workout.name}
@@ -221,7 +240,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
             )}
           </div>
         </div>
-        <Link href={`${basePath}/athlete/workouts/${workout.id}/log`}>
+        <Link href={`${basePath}/athlete/workouts/${workout.id}/log`} className="relative z-10">
           <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white hover:bg-white/10">
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -312,9 +331,9 @@ export function UpcomingWorkouts({ items, className, variant = 'default', basePa
   if (items.length === 0) {
     if (variant === 'glass') {
       return (
-        <GlassCard className={className}>
+        <GlassCard className={cn('bg-slate-950/80 text-white ring-white/10', className)}>
           <GlassCardHeader>
-            <GlassCardTitle className="flex items-center gap-2">
+            <GlassCardTitle className="flex items-center gap-2 text-white">
               <Calendar className="h-5 w-5 text-blue-400" />
               Kommande pass
             </GlassCardTitle>
@@ -356,9 +375,9 @@ export function UpcomingWorkouts({ items, className, variant = 'default', basePa
 
   if (variant === 'glass') {
     return (
-      <GlassCard className={className}>
+      <GlassCard className={cn('bg-slate-950/80 text-white ring-white/10', className)}>
         <GlassCardHeader>
-          <GlassCardTitle className="flex items-center gap-2">
+          <GlassCardTitle className="flex items-center gap-2 text-white">
             <Calendar className="h-5 w-5 text-blue-400" />
             Kommande pass
           </GlassCardTitle>
