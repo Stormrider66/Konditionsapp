@@ -134,6 +134,61 @@ export async function getAccessibleTeam(
   })
 }
 
+export async function getAccessibleOrganization(
+  userId: string,
+  organizationId: string,
+  businessSlug?: string
+) {
+  const businessOwnerIds = await getBusinessTeamOwnerIds(userId, businessSlug)
+  const ownerIds = businessOwnerIds.length ? businessOwnerIds : [userId]
+
+  const organization = await prisma.organization.findFirst({
+    where: {
+      id: organizationId,
+      userId: { in: ownerIds },
+    },
+    include: {
+      teams: {
+        select: {
+          members: {
+            select: { businessId: true },
+          },
+        },
+      },
+    },
+  })
+
+  if (!organization) return null
+  if (!businessSlug) return organization
+
+  const membership = await getBusinessMembership(userId, businessSlug)
+  if (!membership) return null
+
+  if (organization.id === `${membership.business.slug}-org`) return organization
+  if (organization.name === membership.business.name) return organization
+
+  const memberBusinessIds = organization.teams.flatMap((team) =>
+    team.members.map((member) => member.businessId).filter(Boolean)
+  )
+
+  if (memberBusinessIds.some((businessId) => businessId === membership.businessId)) {
+    return organization
+  }
+
+  if (memberBusinessIds.some((businessId) => businessId !== membership.businessId)) {
+    return null
+  }
+
+  const ownerBusinessCount = await prisma.businessMember.count({
+    where: {
+      userId: organization.userId,
+      isActive: true,
+    },
+  })
+
+  return ownerBusinessCount <= 1 ? organization : null
+}
+
 export async function getWritableTeam(
   userId: string,
   teamId: string,

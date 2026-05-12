@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import {
+  getAccessibleOrganization,
   getAccessibleTeamWhere,
   getBusinessTeamOwnerIds,
 } from '@/lib/coach/team-access'
@@ -85,15 +86,9 @@ export async function POST(request: NextRequest) {
     let organizationId = data.organizationId || null
     let teamOwnerId = user.id
 
-    // If organizationId is provided, verify it exists and belongs to user
+    // If organizationId is provided, verify it belongs to the active business scope.
     if (organizationId) {
-      const org = await prisma.organization.findFirst({
-        where: {
-          id: organizationId,
-          userId: { in: businessOwnerIds.length ? businessOwnerIds : [user.id] },
-        },
-        select: { id: true, userId: true },
-      })
+      const org = await getAccessibleOrganization(user.id, organizationId, scope.businessSlug)
       if (!org) {
         return NextResponse.json(
           {

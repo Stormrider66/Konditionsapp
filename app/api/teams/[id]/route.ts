@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
-import { getAccessibleTeam, getBusinessTeamOwnerIds } from '@/lib/coach/team-access'
+import { getAccessibleOrganization, getAccessibleTeam } from '@/lib/coach/team-access'
 
 type RouteParams = {
   params: Promise<{
@@ -113,15 +113,9 @@ export async function PUT(
 
     const data = validation.data
 
-    // If organizationId is provided, verify it exists and belongs to user
+    // If organizationId is provided, verify it belongs to the active business scope.
     if (data.organizationId) {
-      const businessOwnerIds = await getBusinessTeamOwnerIds(user.id, scope.businessSlug)
-      const org = await prisma.organization.findFirst({
-        where: {
-          id: data.organizationId,
-          userId: { in: businessOwnerIds.length ? businessOwnerIds : [user.id] },
-        },
-      })
+      const org = await getAccessibleOrganization(user.id, data.organizationId, scope.businessSlug)
       if (!org) {
         return NextResponse.json(
           {
