@@ -29,6 +29,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { TeamDashboardClient } from '@/components/coach/teams/TeamDashboardClient'
+import { TeamDayPrintButton } from '@/components/coach/teams/TeamDayPrintButton'
 import { TeamLeaderboard } from '@/components/coach/leaderboards'
 import { AddPlayersDialog } from '@/components/coach/teams/AddPlayersDialog'
 import { TeamRosterTable } from '@/components/coach/teams/TeamRosterTable'
@@ -531,6 +532,11 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         </div>
 
         <div className="flex items-center gap-2">
+          <TeamDayPrintButton
+            teamId={teamId}
+            teamName={team.name}
+            coachBasePath={`/${businessSlug}/coach`}
+          />
           <AddPlayersDialog
             teamId={teamId}
             teamName={team.name}

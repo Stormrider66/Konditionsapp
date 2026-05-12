@@ -91,12 +91,14 @@ async function fetchBroadcasts({
   businessSlug,
   date,
   organizationId,
+  teamId,
   ids,
 }: {
   userId: string
   businessSlug?: string
   date: Date
   organizationId?: string | null
+  teamId?: string | null
   ids?: string[]
 }) {
   const accessibleTeamWhere = await getAccessibleTeamWhere(userId, businessSlug)
@@ -109,6 +111,7 @@ async function fetchBroadcasts({
         AND: [
           accessibleTeamWhere,
           ...(organizationId ? [{ organizationId }] : []),
+          ...(teamId ? [{ id: teamId }] : []),
         ],
       },
     },
@@ -154,12 +157,14 @@ export async function getOrganizationDayPrintItems({
   businessSlug,
   date,
   organizationId,
+  teamId,
   ids,
 }: {
   userId: string
   businessSlug?: string
   date: string
   organizationId?: string | null
+  teamId?: string | null
   ids?: string[]
 }): Promise<DayPrintWorkoutItem[]> {
   const parsedDate = parseDateOnly(date)
@@ -169,6 +174,7 @@ export async function getOrganizationDayPrintItems({
     businessSlug,
     date: parsedDate,
     organizationId,
+    teamId,
     ids,
   })
 

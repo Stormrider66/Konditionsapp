@@ -13,6 +13,7 @@ interface PageProps {
   searchParams: Promise<{
     date?: string
     organizationId?: string
+    teamId?: string
     items?: string
   }>
 }
@@ -53,6 +54,7 @@ export default async function OrganizationDayPrintPage({ params, searchParams }:
     businessSlug,
     date: query.date,
     organizationId: query.organizationId || null,
+    teamId: query.teamId || null,
     ids: Array.from(selection.keys()),
   })
 

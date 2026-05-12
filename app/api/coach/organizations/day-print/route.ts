@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date')
     const organizationId = searchParams.get('organizationId')
+    const teamId = searchParams.get('teamId')
 
     if (!date) {
       return NextResponse.json(
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
       businessSlug: scope.businessSlug,
       date,
       organizationId: organizationId || null,
+      teamId: teamId || null,
     })
 
     return NextResponse.json({ success: true, data: items })
