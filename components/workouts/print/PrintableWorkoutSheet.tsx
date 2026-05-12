@@ -1,7 +1,9 @@
 'use client'
 
+import Image from 'next/image'
 import { Printer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext'
 import type { PrintableWorkout } from '@/lib/workout-print/normalize'
 
 interface PrintableWorkoutSheetProps {
@@ -15,21 +17,24 @@ function getWorkoutTotals(workout: PrintableWorkout) {
 }
 
 export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
+  const branding = useBusinessBrandingOptional()
   const printedDate = new Date().toLocaleDateString('sv-SE', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   })
   const { sectionCount, exerciseCount } = getWorkoutTotals(workout)
-  const showFeedbackBoxes = exerciseCount <= 12
+  const businessName = branding?.businessName || 'Trainomics'
+  const brandInitial = businessName.trim().charAt(0).toUpperCase() || 'T'
+  const brandColor = branding?.primaryColor || '#0f172a'
 
   return (
-    <div className="min-h-screen bg-slate-100 py-6 print:min-h-0 print:bg-white print:py-0">
+    <div className="workout-print-root min-h-screen bg-slate-100 py-6 print:min-h-0 print:bg-white print:py-0">
       <style jsx global>{`
         @media print {
           @page {
-            size: A4;
-            margin: 8mm;
+            size: A4 portrait;
+            margin: 6mm;
           }
           html,
           body {
@@ -38,8 +43,23 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
+          body * {
+            visibility: hidden !important;
+          }
+          .workout-print-root,
+          .workout-print-root * {
+            visibility: visible !important;
+          }
+          .workout-print-root {
+            left: 0 !important;
+            margin: 0 !important;
+            position: absolute !important;
+            top: 0 !important;
+            width: 100% !important;
+          }
           .print-hidden {
             display: none !important;
+            visibility: hidden !important;
           }
           .print-sheet {
             box-shadow: none !important;
@@ -77,7 +97,7 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
       <div className="print-hidden mx-auto mb-4 flex max-w-4xl items-center justify-between px-4">
         <div>
           <p className="text-sm font-medium text-slate-900">Förhandsgranskning</p>
-          <p className="text-xs text-slate-500">Skriv ut eller spara som PDF från utskriftsdialogen.</p>
+          <p className="text-xs text-slate-500">Stäng av sidhuvud och sidfot i utskriftsdialogen för ren PDF.</p>
         </div>
         <Button onClick={() => window.print()} className="gap-2">
           <Printer className="h-4 w-4" />
@@ -90,14 +110,25 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
           <div className="flex items-start justify-between gap-6">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-950 text-sm font-bold text-white print:h-8 print:w-8">
-                  T
-                </div>
+                {branding?.logoUrl ? (
+                  <Image
+                    src={branding.logoUrl}
+                    alt={`${businessName} logo`}
+                    width={40}
+                    height={40}
+                    unoptimized
+                    className="h-10 w-10 shrink-0 rounded-md object-contain print:h-8 print:w-8"
+                  />
+                ) : (
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-sm font-bold text-white print:h-8 print:w-8"
+                    style={{ backgroundColor: brandColor }}
+                  >
+                    {brandInitial}
+                  </div>
+                )}
                 <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 print-small">
-                    Trainomics workout sheet
-                  </p>
-                  <h1 className="mt-1 text-3xl font-bold leading-tight text-slate-950 print:text-[20pt]">
+                  <h1 className="text-3xl font-bold leading-tight text-slate-950 print:text-[20pt]">
                     {workout.title}
                   </h1>
                 </div>
@@ -205,18 +236,10 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
           )}
         </div>
 
-        {showFeedbackBoxes && (
-          <footer className="print-avoid-break mt-6 grid grid-cols-1 gap-4 border-t border-slate-300 pt-4 text-sm sm:grid-cols-2 print:mt-3 print:gap-3 print:pt-2">
-            <div>
-              <p className="font-semibold text-slate-900 print-small">Coachanteckningar</p>
-              <div className="mt-2 h-16 rounded-md border border-dashed border-slate-300 print:h-10" />
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900 print-small">Resultat / feedback</p>
-              <div className="mt-2 h-16 rounded-md border border-dashed border-slate-300 print:h-10" />
-            </div>
-          </footer>
-        )}
+        <footer className="print-avoid-break mt-6 border-t border-slate-300 pt-4 text-sm print:mt-3 print:pt-2">
+          <p className="font-semibold text-slate-900 print-small">Coachanteckningar</p>
+          <div className="mt-2 h-20 rounded-md border border-dashed border-slate-300 print:h-14" />
+        </footer>
       </main>
     </div>
   )
