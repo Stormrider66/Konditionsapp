@@ -6,5 +6,5 @@ interface BusinessAthleteFuelingPlanPageProps {
 
 export default async function BusinessAthleteFuelingPlanPage({ params }: BusinessAthleteFuelingPlanPageProps) {
   const { businessSlug, id } = await params
-  return <RaceFuelingPlanDetail planId={id} backHref={`/${businessSlug}/athlete/dashboard`} />
+  return <RaceFuelingPlanDetail planId={id} backHref={`/${businessSlug}/athlete/fueling`} />
 }
