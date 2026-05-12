@@ -92,6 +92,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [printDialogOpen, setPrintDialogOpen] = useState(false)
+  const [printOrganizationId, setPrintOrganizationId] = useState<string | null>(null)
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [orgToDelete, setOrgToDelete] = useState<Organization | null>(null)
@@ -145,6 +146,11 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
       resetForm()
     }
     setDialogOpen(true)
+  }
+
+  const handleOpenPrintDialog = (organizationId?: string) => {
+    setPrintOrganizationId(organizationId || null)
+    setPrintDialogOpen(true)
   }
 
   const handleCloseDialog = () => {
@@ -254,11 +260,11 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button variant="outline" onClick={() => setPrintDialogOpen(true)}>
+          <Button onClick={() => handleOpenPrintDialog()}>
             <Printer className="mr-2 h-4 w-4" />
-            Skriv ut dagsprogram
+            Skriv ut dagens program
           </Button>
-          <Button onClick={() => handleOpenDialog()}>
+          <Button variant="outline" onClick={() => handleOpenDialog()}>
             <Plus className="mr-2 h-4 w-4" />
             Ny organisation
           </Button>
@@ -270,6 +276,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
         onOpenChange={setPrintDialogOpen}
         organizations={organizations}
         basePath={basePath}
+        selectedOrganizationId={printOrganizationId}
       />
 
       {/* Stats */}
@@ -341,6 +348,14 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleOpenPrintDialog(org.id)}
+                      title="Skriv ut dagens program"
+                    >
+                      <Printer className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(org)}>
                       <Edit2 className="h-4 w-4" />
                     </Button>

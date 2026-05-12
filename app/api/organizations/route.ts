@@ -22,10 +22,32 @@ export async function GET(request: NextRequest) {
     const user = await requireCoach()
     const scope = getRequestedBusinessScope(request)
     const ownerIds = await getBusinessTeamOwnerIds(user.id, scope.businessSlug)
+    const otherBusinessOrganizations = scope.businessSlug
+      ? await prisma.business.findMany({
+          where: {
+            isActive: true,
+            slug: { not: scope.businessSlug },
+          },
+          select: {
+            name: true,
+            slug: true,
+          },
+        })
+      : []
 
     const organizations = await prisma.organization.findMany({
       where: {
         userId: { in: ownerIds.length ? ownerIds : [user.id] },
+        ...(otherBusinessOrganizations.length > 0
+          ? {
+              NOT: {
+                OR: otherBusinessOrganizations.flatMap((business) => [
+                  { id: `${business.slug}-org` },
+                  { name: business.name },
+                ]),
+              },
+            }
+          : {}),
       },
       include: {
         teams: {

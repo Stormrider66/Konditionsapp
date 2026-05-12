@@ -36,6 +36,7 @@ interface OrganizationDayPrintDialogProps {
   onOpenChange: (open: boolean) => void
   organizations: Organization[]
   basePath: string
+  selectedOrganizationId?: string | null
 }
 
 function getTodayDateValue() {
@@ -56,6 +57,7 @@ export function OrganizationDayPrintDialog({
   onOpenChange,
   organizations,
   basePath,
+  selectedOrganizationId,
 }: OrganizationDayPrintDialogProps) {
   const [date, setDate] = useState(getTodayDateValue)
   const [organizationId, setOrganizationId] = useState('all')
@@ -68,6 +70,13 @@ export function OrganizationDayPrintDialog({
     [items, copiesById]
   )
   const totalCopies = selectedItems.reduce((sum, item) => sum + (copiesById[item.id] || 0), 0)
+
+  useEffect(() => {
+    if (!open) return
+    queueMicrotask(() => {
+      setOrganizationId(selectedOrganizationId || 'all')
+    })
+  }, [open, selectedOrganizationId])
 
   useEffect(() => {
     if (!open) return
