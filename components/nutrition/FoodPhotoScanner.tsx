@@ -189,51 +189,6 @@ const normalizeImageToJpeg = async (file: File) => {
   }
 }
 
-/**
- * Compress an image file to a base64 data URL suitable for JSON payloads.
- * Resizes to max 1024px on the longest side and uses 0.75 JPEG quality
- * to keep the base64 payload under ~1MB (avoiding Vercel body size limits).
- */
-const compressImageForRefine = (file: File, timeoutMs = 15000): Promise<string | null> =>
-  new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(null), timeoutMs)
-
-    const reader = new FileReader()
-    reader.onerror = () => { clearTimeout(timer); resolve(null) }
-    reader.onabort = () => { clearTimeout(timer); resolve(null) }
-    reader.onload = () => {
-      if (typeof reader.result !== 'string') { clearTimeout(timer); resolve(null); return }
-
-      const img = new Image()
-      img.onerror = () => { clearTimeout(timer); resolve(null) }
-      img.onload = () => {
-        try {
-          const MAX_DIM = 1024
-          let { naturalWidth: w, naturalHeight: h } = img
-          if (w > MAX_DIM || h > MAX_DIM) {
-            const scale = MAX_DIM / Math.max(w, h)
-            w = Math.round(w * scale)
-            h = Math.round(h * scale)
-          }
-          const canvas = document.createElement('canvas')
-          canvas.width = w
-          canvas.height = h
-          const ctx = canvas.getContext('2d')
-          if (!ctx) { clearTimeout(timer); resolve(null); return }
-          ctx.drawImage(img, 0, 0, w, h)
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.75)
-          clearTimeout(timer)
-          resolve(dataUrl)
-        } catch {
-          clearTimeout(timer)
-          resolve(null)
-        }
-      }
-      img.src = reader.result
-    }
-    reader.readAsDataURL(file)
-  })
-
 export function FoodPhotoScanner({
   onMealSaved,
   onClose,
@@ -821,33 +776,12 @@ export function FoodPhotoScanner({
         notes: notes ? notes.split('\n') : [],
       }
 
-      // Compress the image for the JSON payload to avoid exceeding Vercel's
-      // body size limit (~4.5MB). The original file can be 3-8MB, which becomes
-      // 4-10MB as base64 in JSON. We resize to 1024px and use lower quality.
-      let imageBase64: string | undefined
-      let imageMimeType: string | undefined
-      if (imageFile) {
-        try {
-          const compressedDataUrl = await compressImageForRefine(imageFile)
-          if (compressedDataUrl) {
-            const base64Part = compressedDataUrl.split(',')[1]
-            if (base64Part) {
-              imageBase64 = base64Part
-              imageMimeType = 'image/jpeg'
-            }
-          }
-        } catch {
-          // Fall back to text-only refine if the image cannot be compressed.
-        }
-      }
-
-      // Wrap fetch so we can retry without the image on *either* a network
-      // error (TypeError: "Failed to fetch" on flaky mobile connections) or a
-      // non-ok response. The first attempt uses a 90s timeout; the text-only
-      // retry gets a fresh timeout.
-      const postRefine = async (includeImage: boolean): Promise<Response> => {
+      // Corrections are text-first: the current item list already contains the
+      // image-derived context, and avoiding another multimodal pass keeps mobile
+      // updates from sitting behind a long spinner.
+      const postRefine = async (): Promise<Response> => {
         const controller = new AbortController()
-        const timer = setTimeout(() => controller.abort(), 90000)
+        const timer = setTimeout(() => controller.abort(), 40000)
         try {
           return await fetch('/api/ai/food-scan/refine', {
             method: 'POST',
@@ -855,9 +789,6 @@ export function FoodPhotoScanner({
             body: JSON.stringify({
               originalAnalysis,
               refinementText: refinementText.trim(),
-              ...(includeImage && imageBase64
-                ? { imageBase64, imageMimeType }
-                : {}),
             }),
             signal: controller.signal,
           })
@@ -866,58 +797,47 @@ export function FoodPhotoScanner({
         }
       }
 
-      let response: Response | null = null
-      let networkError: unknown = null
       try {
-        response = await postRefine(Boolean(imageBase64))
-      } catch (err) {
-        networkError = err
-      }
+        const response = await postRefine()
 
-      // Retry without the image on network failure or non-ok response when
-      // the first attempt carried an image.
-      if (imageBase64 && (networkError || !response?.ok)) {
-        try {
-          response = await postRefine(false)
-          networkError = null
-        } catch (err) {
-          networkError = err
+        if (!response.ok) {
+          const data = await response.json().catch(() => null)
+          throw new Error(data?.error || 'Kunde inte uppdatera analysen')
         }
-      }
 
-      if (networkError || !response) {
-        const isAbort = networkError instanceof DOMException && networkError.name === 'AbortError'
+        const data = await response.json()
+        const result: FoodPhotoAnalysisResult = data.result
+
+        // For refinements, use the returned items even if success is false —
+        // we already know food exists from the original analysis.
+        if (!result.success && (!result.items || result.items.length === 0)) {
+          setError('Kunde inte uppdatera analysen utifrån korrigeringen. Försök beskriva ändringen mer exakt.')
+          return
+        }
+
+        if (data.enhancedMode != null) setEnhancedMode(data.enhancedMode)
+        setItems(result.items.map(createEditableFoodItem))
+        setMealDescription(result.mealDescription)
+        setConfidence(result.confidence)
+        setNotes(result.notes?.join('\n') ?? '')
+        setRefinementText('')
+        setRecipeSaveMessage(null)
+        setRecipeSaveError(null)
+        refinedRef.current = true
+      } catch (err) {
+        const isAbort =
+          typeof err === 'object' &&
+          err !== null &&
+          'name' in err &&
+          err.name === 'AbortError'
         throw new Error(
           isAbort
-            ? 'Uppdateringen tog för lång tid. Kontrollera din anslutning och försök igen.'
-            : 'Kunde inte nå servern. Kontrollera din anslutning och försök igen.'
+            ? 'Uppdateringen tog för lång tid. Försök igen med en kortare korrigering.'
+            : err instanceof Error
+              ? err.message
+              : 'Kunde inte nå servern. Kontrollera din anslutning och försök igen.'
         )
       }
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => null)
-        throw new Error(data?.error || 'Kunde inte uppdatera analysen')
-      }
-
-      const data = await response.json()
-      const result: FoodPhotoAnalysisResult = data.result
-
-      // For refinements, use the returned items even if success is false —
-      // we already know food exists from the original analysis.
-      if (!result.success && (!result.items || result.items.length === 0)) {
-        setError('Kunde inte uppdatera analysen utifrån korrigeringen. Försök beskriva ändringen mer exakt.')
-        return
-      }
-
-      if (data.enhancedMode != null) setEnhancedMode(data.enhancedMode)
-      setItems(result.items.map(createEditableFoodItem))
-      setMealDescription(result.mealDescription)
-      setConfidence(result.confidence)
-      setNotes(result.notes?.join('\n') ?? '')
-      setRefinementText('')
-      setRecipeSaveMessage(null)
-      setRecipeSaveError(null)
-      refinedRef.current = true
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kunde inte uppdatera analysen')
     } finally {

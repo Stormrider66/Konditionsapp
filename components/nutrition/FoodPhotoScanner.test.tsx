@@ -278,7 +278,7 @@ describe('FoodPhotoScanner', () => {
     })
   })
 
-  it('re-sends the normalized image file during refine and updates the review state', async () => {
+  it('updates the review state through the fast text-only refine path', async () => {
     const user = userEvent.setup()
 
     const { container } = render(<FoodPhotoScanner />)
@@ -302,8 +302,8 @@ describe('FoodPhotoScanner', () => {
     await waitFor(() => {
       expect(refineRequestBody).not.toBeNull()
       expect(refineRequestBody?.refinementText).toBe('portionen var större')
-      expect(refineRequestBody?.imageBase64).toBe('ZmFrZQ==')
-      expect(refineRequestBody?.imageMimeType).toBe('image/jpeg')
+      expect(refineRequestBody).not.toHaveProperty('imageBase64')
+      expect(refineRequestBody).not.toHaveProperty('imageMimeType')
       expect(screen.getByDisplayValue('Morot')).toBeInTheDocument()
       expect(screen.getByDisplayValue('4 st')).toBeInTheDocument()
     })

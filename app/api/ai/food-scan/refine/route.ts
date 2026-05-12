@@ -21,7 +21,24 @@ import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-
 import { withGoogleLogging } from '@/lib/ai/google'
 import { withAiContext } from '@/lib/ai/usage-logger'
 
+export const runtime = 'nodejs'
 export const maxDuration = 120
+export const dynamic = 'force-dynamic'
+
+const REFINE_TIMEOUT_MS = 35_000
+const REFINE_MAX_OUTPUT_TOKENS = 4_096
+
+function createTimeoutSignal(timeoutMs: number): AbortSignal {
+  const timeout = (AbortSignal as typeof AbortSignal & {
+    timeout?: (ms: number) => AbortSignal
+  }).timeout
+
+  if (timeout) return timeout(timeoutMs)
+
+  const controller = new AbortController()
+  setTimeout(() => controller.abort(), timeoutMs)
+  return controller.signal
+}
 
 export async function POST(request: NextRequest) {
   let logContext:
@@ -137,6 +154,14 @@ Returnera en komplett uppdaterad analys med alla matvaro — inte bara de ändra
 UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, fleromättat), kolhydratfördelning (socker, komplexa kolhydrater), proteinkvalitet (isCompleteProtein) och proteinkälla (proteinSource: ANIMAL, PLANT, MIXED eller UNKNOWN) per matvara och i totals.` : ''}`,
     })
 
+    requestLogger.info('Food scan refine started', {
+      businessId: keyContext.businessId,
+      hadImageContext: Boolean(imageBase64 && mimeForGemini),
+      itemCount: Array.isArray(originalAnalysis?.items) ? originalAnalysis.items.length : null,
+      keyOwnerId: keyContext.keyOwnerId,
+      refinementTextLength: String(refinementText).length,
+    })
+
     const result = await withAiContext(
       { userId: user.id, category: 'food_scan_refine' },
       () =>
@@ -144,6 +169,9 @@ UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, flerom�
           model: withGoogleLogging(google(GEMINI_MODELS.FLASH)),
           schema: FoodPhotoAnalysisSchema,
           messages: [{ role: 'user', content }],
+          temperature: 0.1,
+          maxOutputTokens: REFINE_MAX_OUTPUT_TOKENS,
+          abortSignal: createTimeoutSignal(REFINE_TIMEOUT_MS),
         }),
     )
 
@@ -176,8 +204,19 @@ UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, flerom�
 
     // Surface a more helpful message when possible
     const errMsg = error instanceof Error ? error.message : ''
+    const isAbortError =
+      typeof error === 'object' &&
+      error !== null &&
+      'name' in error &&
+      error.name === 'AbortError'
     let userMessage = 'Kunde inte uppdatera analysen'
-    if (errMsg.includes('timed out') || errMsg.includes('timeout') || errMsg.includes('TIMEOUT')) {
+    if (
+      isAbortError ||
+      errMsg.includes('abort') ||
+      errMsg.includes('timed out') ||
+      errMsg.includes('timeout') ||
+      errMsg.includes('TIMEOUT')
+    ) {
       userMessage = 'Uppdateringen tog för lång tid. Försök igen eller beskriv ändringen kortare.'
     } else if (errMsg.includes('quota') || errMsg.includes('429') || errMsg.includes('rate')) {
       userMessage = 'AI-tjänsten är tillfälligt överbelastad. Försök igen om en stund.'
