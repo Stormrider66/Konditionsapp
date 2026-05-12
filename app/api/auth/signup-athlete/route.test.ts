@@ -238,6 +238,43 @@ describe('signup-athlete route', () => {
     expect(body.redirectUrl).toBe('/star-by-thomson/athlete/onboarding')
   })
 
+  it('rejects selected club businesses during public athlete signup', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null)
+    mockPrisma.business.findFirst.mockResolvedValue(null)
+
+    const request = new NextRequest('http://localhost/api/auth/signup-athlete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: 'clubathlete@example.com',
+        password: 'password123',
+        name: 'Club Athlete',
+        businessId: '11111111-1111-4111-8111-111111111111',
+      }),
+    })
+
+    const response = await POST(request)
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body.error).toBe('Selected business was not found')
+    expect(mockPrisma.business.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: '11111111-1111-4111-8111-111111111111',
+        isActive: true,
+        type: { in: ['GYM'] },
+      },
+      select: {
+        id: true,
+        slug: true,
+        type: true,
+      },
+    })
+    expect(mockSignUp).not.toHaveBeenCalled()
+  })
+
   it('accepts BASIC as a legacy alias for STANDARD during signup', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null)
     mockSignUp.mockResolvedValue({

@@ -1,13 +1,14 @@
 /**
  * Public Business Search API
  *
- * GET /api/businesses/search?q=term - Search active businesses (GYM/CLUB only)
+ * GET /api/businesses/search?q=term - Search active businesses that allow public signup
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { PUBLIC_JOINABLE_BUSINESS_TYPES } from '@/lib/business-registration'
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     const businesses = await prisma.business.findMany({
       where: {
         isActive: true,
-        type: { in: ['GYM', 'CLUB'] },
+        type: { in: PUBLIC_JOINABLE_BUSINESS_TYPES },
         OR: [
           { name: { contains: q, mode: 'insensitive' } },
           { city: { contains: q, mode: 'insensitive' } },

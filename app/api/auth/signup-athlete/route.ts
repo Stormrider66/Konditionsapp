@@ -20,6 +20,7 @@ import { rateLimitJsonResponse, getRequestIp } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
 import { createCheckoutSession } from '@/lib/payments/stripe'
 import { getTierFeatures } from '@/lib/auth/tier-utils'
+import { PUBLIC_JOINABLE_BUSINESS_TYPES } from '@/lib/business-registration'
 
 const athleteTierSchema = z.string().optional().transform((value) => {
   const normalized = value?.toUpperCase()
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
         where: {
           id: businessId,
           isActive: true,
-          type: { in: ['GYM', 'CLUB'] },
+          type: { in: PUBLIC_JOINABLE_BUSINESS_TYPES },
         },
         select: {
           id: true,

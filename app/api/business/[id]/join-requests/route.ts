@@ -11,6 +11,7 @@ import { requireCoach, requireBusinessMembership } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import { sendJoinRequestNotification } from '@/lib/email'
+import { isPublicJoinableBusinessType } from '@/lib/business-registration'
 
 type RouteParams = {
   params: Promise<{ id: string }>
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const user = await requireCoach()
     const { id: businessId } = await params
 
-    // Verify business exists and is a GYM or CLUB
+    // Verify business exists and allows public join requests.
     const business = await prisma.business.findUnique({
       where: { id: businessId },
       include: {
@@ -38,6 +39,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (!business || !business.isActive) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    }
+
+    if (!isPublicJoinableBusinessType(business.type)) {
+      return NextResponse.json(
+        { error: 'This business is invite-only' },
+        { status: 403 }
+      )
     }
 
     // Check user isn't already a member
