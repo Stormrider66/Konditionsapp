@@ -96,6 +96,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
   const [appliedCount, setAppliedCount] = useState<number | null>(null)
   const [editableNotes, setEditableNotes] = useState('')
   const [notesState, setNotesState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [notesError, setNotesError] = useState<string | null>(null)
   const [planName, setPlanName] = useState('')
   const [planRaceDate, setPlanRaceDate] = useState('')
   const [planDistanceKm, setPlanDistanceKm] = useState('')
@@ -103,6 +104,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
   const [planCarbsPerHour, setPlanCarbsPerHour] = useState('')
   const [planStatus, setPlanStatus] = useState('DRAFT')
   const [planSaveState, setPlanSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [planSaveError, setPlanSaveError] = useState<string | null>(null)
   const [gelCount, setGelCount] = useState('')
   const [gelCarbs, setGelCarbs] = useState('25')
   const [bottleCount, setBottleCount] = useState('')
@@ -110,6 +112,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
   const [chewCount, setChewCount] = useState('')
   const [chewCarbs, setChewCarbs] = useState('20')
   const [productPlanSaveState, setProductPlanSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [productPlanSaveError, setProductPlanSaveError] = useState<string | null>(null)
 
   const loadPlan = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
@@ -180,6 +183,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
 
   async function saveNotes() {
     setNotesState('saving')
+    setNotesError(null)
     try {
       const response = await fetch(`/api/fueling/plans/${planId}`, {
         method: 'PATCH',
@@ -188,21 +192,23 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
           [noteMode === 'coach' ? 'coachNotes' : 'athleteNotes']: editableNotes || null,
         }),
       })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const body = await response.json()
+      if (!response.ok) throw new Error(extractApiErrorMessage(body) ?? 'Kunde inte spara.')
       setPlan((current) => current ? {
         ...current,
         coachNotes: body.plan.coachNotes,
         athleteNotes: body.plan.athleteNotes,
       } : current)
       setNotesState('saved')
-    } catch {
+    } catch (err) {
       setNotesState('error')
+      setNotesError(err instanceof Error ? err.message : 'Kunde inte spara.')
     }
   }
 
   async function savePlanSettings() {
     setPlanSaveState('saving')
+    setPlanSaveError(null)
     try {
       const response = await fetch(`/api/fueling/plans/${planId}`, {
         method: 'PATCH',
@@ -216,17 +222,19 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
           status: planStatus,
         }),
       })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const body = await response.json()
+      if (!response.ok) throw new Error(extractApiErrorMessage(body) ?? 'Kunde inte spara planen.')
       setPlan((current) => current ? { ...current, ...body.plan } : current)
       setPlanSaveState('saved')
-    } catch {
+    } catch (err) {
       setPlanSaveState('error')
+      setPlanSaveError(err instanceof Error ? err.message : 'Kunde inte spara planen.')
     }
   }
 
   async function saveProductPlan() {
     setProductPlanSaveState('saving')
+    setProductPlanSaveError(null)
     const nextProductPlan = toStoredProductPlan(productPlan)
 
     try {
@@ -235,11 +243,13 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productPlan: nextProductPlan }),
       })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const body = await response.json()
+      if (!response.ok) throw new Error(extractApiErrorMessage(body) ?? 'Kunde inte spara produktplan.')
       setPlan((current) => current ? { ...current, productPlan: nextProductPlan } : current)
       setProductPlanSaveState('saved')
-    } catch {
+    } catch (err) {
       setProductPlanSaveState('error')
+      setProductPlanSaveError(err instanceof Error ? err.message : 'Kunde inte spara produktplan.')
     }
   }
 
@@ -392,6 +402,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
                 onChange={(event) => {
                   setPlanName(event.target.value)
                   setPlanSaveState('idle')
+                  setPlanSaveError(null)
                 }}
               />
             </label>
@@ -403,6 +414,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
                 onChange={(event) => {
                   setPlanStatus(event.target.value)
                   setPlanSaveState('idle')
+                  setPlanSaveError(null)
                 }}
               >
                 <option value="DRAFT">Utkast</option>
@@ -419,6 +431,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
                 onChange={(event) => {
                   setPlanRaceDate(event.target.value)
                   setPlanSaveState('idle')
+                  setPlanSaveError(null)
                 }}
               />
             </label>
@@ -434,6 +447,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
                 onChange={(event) => {
                   setPlanDistanceKm(event.target.value)
                   setPlanSaveState('idle')
+                  setPlanSaveError(null)
                 }}
               />
             </label>
@@ -448,6 +462,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
                 onChange={(event) => {
                   setPlanDurationMinutes(event.target.value)
                   setPlanSaveState('idle')
+                  setPlanSaveError(null)
                 }}
               />
             </label>
@@ -463,6 +478,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
                 onChange={(event) => {
                   setPlanCarbsPerHour(event.target.value)
                   setPlanSaveState('idle')
+                  setPlanSaveError(null)
                 }}
               />
             </label>
@@ -472,7 +488,9 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
               {planSaveState === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {planSaveState === 'saved' ? 'Plan sparad' : 'Spara plan'}
             </Button>
-            {planSaveState === 'error' && <span className="text-xs text-destructive">Kunde inte spara planen.</span>}
+            {planSaveState === 'error' && (
+              <span className="text-xs text-destructive">{planSaveError ?? 'Kunde inte spara planen.'}</span>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -535,6 +553,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
                 onChange={(event) => {
                   setEditableNotes(event.target.value)
                   setNotesState('idle')
+                  setNotesError(null)
                 }}
                 placeholder={editableNotePlaceholder}
                 className="min-h-[120px]"
@@ -544,7 +563,9 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
                   {notesState === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   {notesState === 'saved' ? 'Sparat' : 'Spara'}
                 </Button>
-                {notesState === 'error' && <span className="text-xs text-destructive">Kunde inte spara.</span>}
+                {notesState === 'error' && (
+                  <span className="text-xs text-destructive">{notesError ?? 'Kunde inte spara.'}</span>
+                )}
               </div>
             </div>
             {isCoachMode && <NoteBlock title="Atlet" value={plan.athleteNotes} />}
@@ -621,10 +642,12 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
               onCountChange={(value) => {
                 setGelCount(value)
                 setProductPlanSaveState('idle')
+                setProductPlanSaveError(null)
               }}
               onCarbsChange={(value) => {
                 setGelCarbs(value)
                 setProductPlanSaveState('idle')
+                setProductPlanSaveError(null)
               }}
             />
             <ProductInput
@@ -635,10 +658,12 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
               onCountChange={(value) => {
                 setBottleCount(value)
                 setProductPlanSaveState('idle')
+                setProductPlanSaveError(null)
               }}
               onCarbsChange={(value) => {
                 setBottleCarbs(value)
                 setProductPlanSaveState('idle')
+                setProductPlanSaveError(null)
               }}
             />
             <ProductInput
@@ -649,10 +674,12 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
               onCountChange={(value) => {
                 setChewCount(value)
                 setProductPlanSaveState('idle')
+                setProductPlanSaveError(null)
               }}
               onCarbsChange={(value) => {
                 setChewCarbs(value)
                 setProductPlanSaveState('idle')
+                setProductPlanSaveError(null)
               }}
             />
           </div>
@@ -704,6 +731,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
                 setBottleCount(raceDayPlan?.bottleMixCount ? String(raceDayPlan.bottleMixCount) : '')
                 setChewCount('')
                 setProductPlanSaveState('idle')
+                setProductPlanSaveError(null)
               }}
             >
               Använd standardförslag
@@ -729,7 +757,9 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
             >
               Lägg i anteckning
             </Button>
-            {productPlanSaveState === 'error' && <span className="text-xs text-destructive">Kunde inte spara produktplan.</span>}
+            {productPlanSaveState === 'error' && (
+              <span className="text-xs text-destructive">{productPlanSaveError ?? 'Kunde inte spara produktplan.'}</span>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -1297,6 +1327,14 @@ function SyncResultNotice({ count }: { count: number }) {
       </p>
     </div>
   )
+}
+
+function extractApiErrorMessage(body: unknown): string | null {
+  if (!body || typeof body !== 'object') return null
+  const record = body as { details?: Array<{ message?: unknown }>; error?: unknown }
+  const detailMessage = record.details?.find((detail) => typeof detail.message === 'string')?.message
+  if (typeof detailMessage === 'string') return detailMessage
+  return typeof record.error === 'string' ? record.error : null
 }
 
 function confidenceLabel(confidence: string): string {
