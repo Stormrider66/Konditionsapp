@@ -77,20 +77,32 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
       const pageWidth = 210
       const pageHeight = 297
       const margin = 6
-      const imgWidth = pageWidth - margin * 2
+      const maxImgWidth = pageWidth - margin * 2
+      const maxImgHeight = pageHeight - margin * 2
+      const imgWidth = maxImgWidth
       const imgHeight = (canvas.height * imgWidth) / canvas.width
       const imgData = canvas.toDataURL('image/jpeg', 0.96)
+      const onePageScale = Math.min(1, maxImgHeight / imgHeight)
 
-      let heightLeft = imgHeight
-      let position = margin
-      pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, '', 'FAST')
-      heightLeft -= pageHeight - margin * 2
+      if (onePageScale >= 0.68) {
+        const fittedWidth = imgWidth * onePageScale
+        const fittedHeight = imgHeight * onePageScale
+        const x = (pageWidth - fittedWidth) / 2
+        const y = margin
 
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight + margin
-        pdf.addPage()
+        pdf.addImage(imgData, 'JPEG', x, y, fittedWidth, fittedHeight, '', 'FAST')
+      } else {
+        let heightLeft = imgHeight
+        let position = margin
         pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, '', 'FAST')
-        heightLeft -= pageHeight - margin * 2
+        heightLeft -= maxImgHeight
+
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight + margin
+          pdf.addPage()
+          pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, '', 'FAST')
+          heightLeft -= maxImgHeight
+        }
       }
 
       pdf.setProperties({
