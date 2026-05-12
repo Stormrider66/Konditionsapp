@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FUELING_SPORT_OPTIONS, fuelingSportLabel } from '@/lib/fueling/sport-labels'
 import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
+import { buildFuelingSyncResultCopy } from '@/lib/fueling/sync-result'
 
 interface RaceFuelingPlanSummary {
   id: string
@@ -460,6 +461,9 @@ function PlanCard({
   onRestore?: (id: string) => void
 }) {
   const planContext = formatFuelingPlanContext(plan, { includeRaceDate: true })
+  const syncCopy = applyResult?.planId === plan.id
+    ? buildFuelingSyncResultCopy(applyResult.count)
+    : null
 
   return (
     <Card>
@@ -507,7 +511,7 @@ function PlanCard({
                   disabled={applyingId === plan.id}
                 >
                   {applyingId === plan.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                  {applyResult?.planId === plan.id ? `${applyResult.count} pass` : 'Synka pass'}
+                  {syncCopy ? syncCopy.buttonLabelSv : 'Synka pass'}
                 </Button>
               )}
               {onArchive && (
@@ -533,6 +537,16 @@ function PlanCard({
                 </Button>
               )}
             </div>
+            {syncCopy && (
+              <div className={`rounded-md border p-2 text-xs ${
+                syncCopy.tone === 'success'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-900/10 dark:text-emerald-100'
+                  : 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-100'
+              }`}>
+                <p className="font-medium">{syncCopy.titleSv}</p>
+                <p className="mt-1 opacity-80">{syncCopy.bodySv}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
   )

@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
 import { ArrowLeft, CalendarDays, CheckCircle2, ClipboardCheck, FlaskConical, Loader2, PackageCheck, Printer, Save, TrendingUp, Utensils } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -20,8 +18,8 @@ import {
 import { buildFuelingCoachingRecommendation } from '@/lib/fueling/coaching-recommendation'
 import { buildFuelingBuildUpPlan, type FuelingBuildUpPlan } from '@/lib/fueling/build-up-plan'
 import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
-import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
-import { formatFuelingTargetIntensity } from '@/lib/fueling/target-intensity'
+import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
+import { buildFuelingSyncResultCopy } from '@/lib/fueling/sync-result'
 
 interface RaceDayPlan {
   carbsPerHour: number
@@ -301,7 +299,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
     raceTargetGPerHour: plan.recommendedCarbsGPerHour,
   })
   const storedProductPlan = normalizeRaceFuelingProductPlan(plan.productPlan)
-  const targetIntensity = formatFuelingTargetIntensity(plan)
+  const planContext = formatFuelingPlanContext(plan, { includeRaceDate: true })
   const productPlan = buildProductPlan({
     targetCarbs: raceDayPlan?.totalCarbs ?? plan.recommendedCarbsTotalG,
     gelCount,
@@ -334,14 +332,11 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
             <Badge variant="outline">{confidenceLabel(plan.confidence)}</Badge>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <span>{sportLabel(plan.sport)}</span>
-            {plan.distanceKm && <span>{formatDistance(plan.distanceKm)}</span>}
             {plan.durationMinutes && <span>{formatDuration(plan.durationMinutes)}</span>}
-            {targetIntensity && <span>{targetIntensity}</span>}
-            {plan.raceDate && (
+            {planContext && (
               <span className="inline-flex items-center gap-1">
                 <CalendarDays className="h-4 w-4" />
-                {format(new Date(plan.raceDate), 'd MMM yyyy', { locale: sv })}
+                {planContext}
               </span>
             )}
           </div>
@@ -367,6 +362,10 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
 
       {applyState === 'error' && (
         <p className="text-sm text-destructive">Kunde inte uppdatera kommande pass.</p>
+      )}
+
+      {applyState === 'applied' && (
+        <SyncResultNotice count={appliedCount ?? 0} />
       )}
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -1256,24 +1255,33 @@ function toDateInputValue(value: string): string {
   return date.toISOString().slice(0, 10)
 }
 
-function formatDistance(distanceKm: number): string {
-  if (Math.abs(distanceKm - 42.195) < 0.1) return 'Marathon'
-  if (Math.abs(distanceKm - 21.0975) < 0.1) return 'Halvmarathon'
-  return `${distanceKm.toLocaleString('sv-SE', { maximumFractionDigits: 1 })} km`
-}
-
 function statusLabel(status: string): string {
   if (status === 'APPROVED') return 'Godkänd'
   if (status === 'ARCHIVED') return 'Arkiverad'
   return 'Utkast'
 }
 
+function SyncResultNotice({ count }: { count: number }) {
+  const copy = buildFuelingSyncResultCopy(count)
+  const hasUpdates = copy.tone === 'success'
+  return (
+    <div className={`rounded-lg border p-3 text-sm ${
+      hasUpdates
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-900/10 dark:text-emerald-100'
+        : 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-100'
+    }`}>
+      <p className="font-medium">
+        {copy.titleSv}
+      </p>
+      <p className="mt-1 text-xs opacity-80">
+        {copy.bodySv}
+      </p>
+    </div>
+  )
+}
+
 function confidenceLabel(confidence: string): string {
   if (confidence === 'HIGH') return 'Hög säkerhet'
   if (confidence === 'MEDIUM') return 'Medel säkerhet'
   return 'Låg säkerhet'
-}
-
-function sportLabel(sport: string): string {
-  return fuelingSportLabel(sport)
 }

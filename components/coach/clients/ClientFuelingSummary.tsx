@@ -32,6 +32,7 @@ import {
   summarizeRaceFuelingProductItems,
 } from '@/lib/fueling/product-plan'
 import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
+import { buildFuelingSyncResultCopy } from '@/lib/fueling/sync-result'
 
 type FuelingStatus = 'NO_DATA' | 'READY_TO_PROGRESS' | 'HOLD' | 'REDUCE' | 'ON_TRACK'
 
@@ -187,6 +188,9 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
       })
     : null
   const planContext = formatFuelingPlanContext(data?.latestPlan, { includeRaceDate: true })
+  const syncCopy = applyState === 'applied'
+    ? buildFuelingSyncResultCopy(appliedCount ?? 0)
+    : null
 
   async function savePlanAdjustments() {
     const plan = data?.latestPlan
@@ -357,13 +361,23 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
                   >
                     {applyState === 'applying'
                       ? 'Uppdaterar...'
-                      : applyState === 'applied'
-                        ? `${appliedCount ?? 0} pass`
+                      : syncCopy
+                        ? syncCopy.buttonLabelSv
                         : 'Uppdatera pass'}
                   </Button>
                 </div>
                 {saveState === 'error' && <span className="text-xs text-destructive">Kunde inte spara.</span>}
                 {applyState === 'error' && <span className="text-xs text-destructive">Kunde inte uppdatera pass.</span>}
+                {syncCopy && (
+                  <div className={`rounded-md border p-2 text-xs ${
+                    syncCopy.tone === 'success'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-900/10 dark:text-emerald-100'
+                      : 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-100'
+                  }`}>
+                    <p className="font-medium">{syncCopy.titleSv}</p>
+                    <p className="mt-1 opacity-80">{syncCopy.bodySv}</p>
+                  </div>
+                )}
               </div>
             )}
 
