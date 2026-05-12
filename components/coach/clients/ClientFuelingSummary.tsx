@@ -232,6 +232,12 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
     }
   }
 
+  function markPlanEdited() {
+    setSaveState('idle')
+    setApplyState('idle')
+    setAppliedCount(null)
+  }
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -316,7 +322,10 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
                       max={150}
                       type="number"
                       value={targetCarbs}
-                      onChange={(event) => setTargetCarbs(event.target.value)}
+                      onChange={(event) => {
+                        setTargetCarbs(event.target.value)
+                        markPlanEdited()
+                      }}
                     />
                   </label>
                   <label className="text-xs text-muted-foreground">
@@ -324,7 +333,10 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
                     <select
                       className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
                       value={planStatus}
-                      onChange={(event) => setPlanStatus(event.target.value)}
+                      onChange={(event) => {
+                        setPlanStatus(event.target.value)
+                        markPlanEdited()
+                      }}
                     >
                       <option value="DRAFT">Utkast</option>
                       <option value="APPROVED">Godkänd</option>
@@ -336,7 +348,10 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
                   className="min-h-[64px]"
                   placeholder="Coachanteckning till planen..."
                   value={coachNotes}
-                  onChange={(event) => setCoachNotes(event.target.value)}
+                  onChange={(event) => {
+                    setCoachNotes(event.target.value)
+                    markPlanEdited()
+                  }}
                 />
                 {data.latestPlan.athleteNotes && (
                   <div className="rounded-md bg-slate-50 p-2 text-xs text-muted-foreground dark:bg-slate-800/60">
