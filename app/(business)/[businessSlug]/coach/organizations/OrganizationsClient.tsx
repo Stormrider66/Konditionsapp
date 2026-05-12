@@ -5,7 +5,7 @@
  * Business-scoped Organizations Page Client
  */
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { OrganizationDayPrintDialog } from '@/components/coach/organizations/OrganizationDayPrintDialog'
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 import {
   Select,
   SelectContent,
@@ -103,11 +104,14 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [sportType, setSportType] = useState('')
+  const businessHeaders = useMemo(() => getBusinessScopeHeaders(basePath), [basePath])
 
   const fetchOrganizations = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/organizations')
+      const response = await fetch('/api/organizations', {
+        headers: businessHeaders || undefined,
+      })
       const result = await response.json()
 
       if (result.success) {
@@ -121,7 +125,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [businessHeaders])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -171,7 +175,10 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
 
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...businessHeaders,
+        },
         body: JSON.stringify({
           name: name.trim(),
           description: description.trim() || undefined,
@@ -215,6 +222,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
     try {
       const response = await fetch(`/api/organizations/${orgToDelete.id}`, {
         method: 'DELETE',
+        headers: businessHeaders || undefined,
       })
 
       const result = await response.json()
