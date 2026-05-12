@@ -123,7 +123,7 @@ export async function GET(
     if (!plan) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
 
     const hasAccess = await canAccessClient(user.id, plan.clientId)
-    if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!hasAccess) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
 
     return NextResponse.json({
       success: true,
@@ -166,7 +166,7 @@ export async function PATCH(
     if (!existing) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
 
     const hasAccess = await canAccessClient(user.id, existing.clientId)
-    if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!hasAccess) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
 
     const body = updatePlanSchema.parse(await request.json())
     const nextCarbsPerHour = body.recommendedCarbsGPerHour === undefined

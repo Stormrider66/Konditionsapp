@@ -20,7 +20,7 @@ export async function POST(
     if (!plan) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
 
     const hasAccess = await canAccessClient(user.id, plan.clientId)
-    if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!hasAccess) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
 
     const updatedCount = await refreshFuelingPrescriptionsForActivePrograms(prisma, plan.clientId, plan.id)
     return NextResponse.json({ success: true, updatedCount })
