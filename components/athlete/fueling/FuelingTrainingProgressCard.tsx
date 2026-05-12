@@ -322,7 +322,7 @@ function AthleteFuelingProgressBox({ progress }: { progress: FuelingProgressSumm
           <p className="mt-1 text-xs text-muted-foreground">
             {isSynced
               ? `${progress.linkedWorkoutCount} pass kopplade och ${progress.loggedWorkoutCount} loggade.`
-              : 'När coachen synkar planen får du tydliga carb-mål på långpassen.'}
+              : 'När planen synkas får du tydliga carb-mål på långpassen.'}
           </p>
         </div>
         {progress.buildUpWeeks && (
