@@ -11,13 +11,15 @@ interface PrintableWorkoutSheetProps {
   workout: PrintableWorkout
 }
 
+type PdfOrientation = 'portrait' | 'landscape'
+
 function getWorkoutTotals(workout: PrintableWorkout) {
   const sectionCount = workout.sections.length
   const exerciseCount = workout.sections.reduce((total, section) => total + section.items.length, 0)
   return { sectionCount, exerciseCount }
 }
 
-function buildPdfFilename(title: string) {
+function buildPdfFilename(title: string, orientation: PdfOrientation) {
   const safeTitle = title
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -25,13 +27,14 @@ function buildPdfFilename(title: string) {
     .trim()
     .replace(/\s+/g, '_')
     .slice(0, 60) || 'workout'
-  return `${safeTitle}.pdf`
+  return orientation === 'landscape' ? `${safeTitle}_liggande.pdf` : `${safeTitle}.pdf`
 }
 
 export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
   const branding = useBusinessBrandingOptional()
   const sheetRef = useRef<HTMLElement | null>(null)
   const [isExportingPdf, setIsExportingPdf] = useState(false)
+  const [pdfOrientation, setPdfOrientation] = useState<PdfOrientation>('portrait')
   const printedDate = new Date().toLocaleDateString('sv-SE', {
     year: 'numeric',
     month: 'long',
@@ -51,31 +54,33 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
         import('jspdf'),
         import('html2canvas-pro'),
       ])
+      const isLandscape = pdfOrientation === 'landscape'
+      const captureWidth = isLandscape ? 1200 : 900
       const canvas = await html2canvas(sheetRef.current, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
-        windowWidth: 900,
+        windowWidth: captureWidth,
         onclone: (clonedDoc) => {
           const clonedSheet = clonedDoc.querySelector('[data-workout-pdf-sheet]')
           if (clonedSheet instanceof HTMLElement) {
             clonedSheet.style.boxShadow = 'none'
             clonedSheet.style.border = '0'
             clonedSheet.style.maxWidth = 'none'
-            clonedSheet.style.width = '900px'
+            clonedSheet.style.width = `${captureWidth}px`
           }
         },
       })
 
       const pdf = new jsPDF({
-        orientation: 'portrait',
+        orientation: pdfOrientation,
         unit: 'mm',
         format: 'a4',
         compress: true,
       })
-      const pageWidth = 210
-      const pageHeight = 297
+      const pageWidth = isLandscape ? 297 : 210
+      const pageHeight = isLandscape ? 210 : 297
       const margin = 6
       const maxImgWidth = pageWidth - margin * 2
       const maxImgHeight = pageHeight - margin * 2
@@ -111,7 +116,7 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
         author: businessName,
         creator: businessName,
       })
-      pdf.save(buildPdfFilename(workout.title))
+      pdf.save(buildPdfFilename(workout.title, pdfOrientation))
     } finally {
       setIsExportingPdf(false)
     }
@@ -183,12 +188,34 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
         }
       `}</style>
 
-      <div className="print-hidden mx-auto mb-4 flex max-w-4xl items-center justify-between px-4">
+      <div className="print-hidden mx-auto mb-4 flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4">
         <div>
           <p className="text-sm font-medium text-slate-900">Förhandsgranskning</p>
           <p className="text-xs text-slate-500">Använd ren PDF om webbläsaren lägger till adress, datum eller sidnummer.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center rounded-md border border-slate-200 bg-white p-1 text-sm shadow-sm" aria-label="PDF-layout">
+            <Button
+              type="button"
+              variant={pdfOrientation === 'portrait' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-8 px-3"
+              aria-pressed={pdfOrientation === 'portrait'}
+              onClick={() => setPdfOrientation('portrait')}
+            >
+              Stående
+            </Button>
+            <Button
+              type="button"
+              variant={pdfOrientation === 'landscape' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-8 px-3"
+              aria-pressed={pdfOrientation === 'landscape'}
+              onClick={() => setPdfOrientation('landscape')}
+            >
+              Liggande
+            </Button>
+          </div>
           <Button
             type="button"
             variant="outline"
