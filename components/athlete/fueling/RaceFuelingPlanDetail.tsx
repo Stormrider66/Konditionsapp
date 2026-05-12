@@ -618,24 +618,42 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
               count={gelCount}
               carbs={gelCarbs}
               suggestedCount={raceDayPlan?.gelEquivalentCount ?? null}
-              onCountChange={setGelCount}
-              onCarbsChange={setGelCarbs}
+              onCountChange={(value) => {
+                setGelCount(value)
+                setProductPlanSaveState('idle')
+              }}
+              onCarbsChange={(value) => {
+                setGelCarbs(value)
+                setProductPlanSaveState('idle')
+              }}
             />
             <ProductInput
               label="Flaskor sportdryck"
               count={bottleCount}
               carbs={bottleCarbs}
               suggestedCount={raceDayPlan?.bottleMixCount ?? null}
-              onCountChange={setBottleCount}
-              onCarbsChange={setBottleCarbs}
+              onCountChange={(value) => {
+                setBottleCount(value)
+                setProductPlanSaveState('idle')
+              }}
+              onCarbsChange={(value) => {
+                setBottleCarbs(value)
+                setProductPlanSaveState('idle')
+              }}
             />
             <ProductInput
               label="Chews / bars"
               count={chewCount}
               carbs={chewCarbs}
               suggestedCount={null}
-              onCountChange={setChewCount}
-              onCarbsChange={setChewCarbs}
+              onCountChange={(value) => {
+                setChewCount(value)
+                setProductPlanSaveState('idle')
+              }}
+              onCarbsChange={(value) => {
+                setChewCarbs(value)
+                setProductPlanSaveState('idle')
+              }}
             />
           </div>
 
@@ -685,6 +703,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
                 setGelCount(raceDayPlan?.gelEquivalentCount ? String(raceDayPlan.gelEquivalentCount) : '')
                 setBottleCount(raceDayPlan?.bottleMixCount ? String(raceDayPlan.bottleMixCount) : '')
                 setChewCount('')
+                setProductPlanSaveState('idle')
               }}
             >
               Använd standardförslag
