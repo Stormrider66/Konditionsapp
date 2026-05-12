@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { OrganizationDayPrintDialog } from '@/components/coach/organizations/OrganizationDayPrintDialog'
 import {
   Select,
   SelectContent,
@@ -48,6 +49,7 @@ import {
   Loader2,
   ChevronRight,
   Trophy,
+  Printer,
 } from 'lucide-react'
 
 interface Team {
@@ -89,6 +91,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [printDialogOpen, setPrintDialogOpen] = useState(false)
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [orgToDelete, setOrgToDelete] = useState<Organization | null>(null)
@@ -120,7 +123,9 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
   }, [])
 
   useEffect(() => {
-    fetchOrganizations()
+    queueMicrotask(() => {
+      void fetchOrganizations()
+    })
   }, [fetchOrganizations])
 
   const resetForm = () => {
@@ -248,11 +253,24 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
             Hantera klubbar och föreningar med flera lag
           </p>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="mr-2 h-4 w-4" />
-          Ny organisation
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button variant="outline" onClick={() => setPrintDialogOpen(true)}>
+            <Printer className="mr-2 h-4 w-4" />
+            Skriv ut dagsprogram
+          </Button>
+          <Button onClick={() => handleOpenDialog()}>
+            <Plus className="mr-2 h-4 w-4" />
+            Ny organisation
+          </Button>
+        </div>
       </div>
+
+      <OrganizationDayPrintDialog
+        open={printDialogOpen}
+        onOpenChange={setPrintDialogOpen}
+        organizations={organizations}
+        basePath={basePath}
+      />
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3 mb-8">

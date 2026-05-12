@@ -21,6 +21,10 @@ export interface PrintableWorkout {
   durationLabel?: string | null
   dateLabel?: string | null
   athleteName?: string | null
+  teamName?: string | null
+  organizationName?: string | null
+  scheduleLabel?: string | null
+  assignmentNotes?: string | null
   tags?: string[]
   sections: PrintableWorkoutSection[]
 }
@@ -346,4 +350,3 @@ export function normalizePrintableWorkout(
     })),
   }
 }
-
