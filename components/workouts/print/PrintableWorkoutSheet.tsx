@@ -1,7 +1,8 @@
 'use client'
 
+import { useRef, useState } from 'react'
 import Image from 'next/image'
-import { Printer } from 'lucide-react'
+import { Download, Loader2, Printer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext'
 import type { PrintableWorkout } from '@/lib/workout-print/normalize'
@@ -16,8 +17,21 @@ function getWorkoutTotals(workout: PrintableWorkout) {
   return { sectionCount, exerciseCount }
 }
 
+function buildPdfFilename(title: string) {
+  const safeTitle = title
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '_')
+    .slice(0, 60) || 'workout'
+  return `${safeTitle}.pdf`
+}
+
 export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
   const branding = useBusinessBrandingOptional()
+  const sheetRef = useRef<HTMLElement | null>(null)
+  const [isExportingPdf, setIsExportingPdf] = useState(false)
   const printedDate = new Date().toLocaleDateString('sv-SE', {
     year: 'numeric',
     month: 'long',
@@ -27,6 +41,69 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
   const businessName = branding?.businessName || 'Trainomics'
   const brandInitial = businessName.trim().charAt(0).toUpperCase() || 'T'
   const brandColor = branding?.primaryColor || '#0f172a'
+
+  const handleDownloadPdf = async () => {
+    if (!sheetRef.current) return
+
+    setIsExportingPdf(true)
+    try {
+      const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas-pro'),
+      ])
+      const canvas = await html2canvas(sheetRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: 900,
+        onclone: (clonedDoc) => {
+          const clonedSheet = clonedDoc.querySelector('[data-workout-pdf-sheet]')
+          if (clonedSheet instanceof HTMLElement) {
+            clonedSheet.style.boxShadow = 'none'
+            clonedSheet.style.border = '0'
+            clonedSheet.style.maxWidth = 'none'
+            clonedSheet.style.width = '900px'
+          }
+        },
+      })
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true,
+      })
+      const pageWidth = 210
+      const pageHeight = 297
+      const margin = 6
+      const imgWidth = pageWidth - margin * 2
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+      const imgData = canvas.toDataURL('image/jpeg', 0.96)
+
+      let heightLeft = imgHeight
+      let position = margin
+      pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, '', 'FAST')
+      heightLeft -= pageHeight - margin * 2
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + margin
+        pdf.addPage()
+        pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, '', 'FAST')
+        heightLeft -= pageHeight - margin * 2
+      }
+
+      pdf.setProperties({
+        title: workout.title,
+        subject: 'Workout sheet',
+        author: businessName,
+        creator: businessName,
+      })
+      pdf.save(buildPdfFilename(workout.title))
+    } finally {
+      setIsExportingPdf(false)
+    }
+  }
 
   return (
     <div className="workout-print-root min-h-screen bg-slate-100 py-6 print:min-h-0 print:bg-white print:py-0">
@@ -97,15 +174,31 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
       <div className="print-hidden mx-auto mb-4 flex max-w-4xl items-center justify-between px-4">
         <div>
           <p className="text-sm font-medium text-slate-900">Förhandsgranskning</p>
-          <p className="text-xs text-slate-500">Stäng av sidhuvud och sidfot i utskriftsdialogen för ren PDF.</p>
+          <p className="text-xs text-slate-500">Använd ren PDF om webbläsaren lägger till adress, datum eller sidnummer.</p>
         </div>
-        <Button onClick={() => window.print()} className="gap-2">
-          <Printer className="h-4 w-4" />
-          Skriv ut
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleDownloadPdf}
+            disabled={isExportingPdf}
+            className="gap-2"
+          >
+            {isExportingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Ren PDF
+          </Button>
+          <Button onClick={() => window.print()} className="gap-2">
+            <Printer className="h-4 w-4" />
+            Skriv ut
+          </Button>
+        </div>
       </div>
 
-      <main className="print-sheet mx-auto max-w-4xl rounded-lg border bg-white p-8 shadow-sm">
+      <main
+        ref={sheetRef}
+        data-workout-pdf-sheet
+        className="print-sheet mx-auto max-w-4xl rounded-lg border bg-white p-8 shadow-sm"
+      >
         <header className="print-avoid-break border-b border-slate-300 pb-5 print:pb-3">
           <div className="flex items-start justify-between gap-6">
             <div className="min-w-0 flex-1">
