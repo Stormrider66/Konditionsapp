@@ -8,7 +8,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
+import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
@@ -24,24 +25,20 @@ const teamAssignWorkoutSchema = z.object({
     message: 'Invalid date format',
   }),
   notes: z.string().max(500).optional(),
+  includeAthleteIds: z.array(z.string().uuid()).optional(),
   excludeAthleteIds: z.array(z.string().uuid()).optional(),
+  startTime: z.string().max(10).optional(),
+  endTime: z.string().max(10).optional(),
+  locationId: z.string().uuid().optional(),
+  locationName: z.string().max(120).optional(),
+  responsibleCoachId: z.string().uuid().optional(),
 })
 
 // POST /api/teams/[id]/assign-workout
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
+    const user = await requireCoach()
+    const scope = getRequestedBusinessScope(request)
     const { id: teamId } = await context.params
     const body = await request.json()
 
@@ -58,15 +55,31 @@ export async function POST(request: NextRequest, context: RouteContext) {
       )
     }
 
-    const { workoutType, workoutId, assignedDate, notes, excludeAthleteIds } = validation.data
+    const {
+      workoutType,
+      workoutId,
+      assignedDate,
+      notes,
+      includeAthleteIds,
+      excludeAthleteIds,
+      startTime,
+      endTime,
+      locationId,
+      locationName,
+      responsibleCoachId,
+    } = validation.data
     const date = new Date(assignedDate)
 
-    // Verify team exists and user owns it
-    const team = await prisma.team.findFirst({
-      where: {
-        id: teamId,
-        userId: user.id,
-      },
+    const accessibleTeam = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
+    if (!accessibleTeam) {
+      return NextResponse.json(
+        { success: false, error: 'Team not found or unauthorized' },
+        { status: 404 }
+      )
+    }
+
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
       include: {
         members: {
           select: {
@@ -84,10 +97,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       )
     }
 
-    // Filter out excluded athletes
-    const eligibleMembers = team.members.filter(
-      (member) => !excludeAthleteIds?.includes(member.id)
-    )
+    const includeSet = includeAthleteIds ? new Set(includeAthleteIds) : null
+    const excludeSet = new Set(excludeAthleteIds ?? [])
+    const eligibleMembers = team.members.filter((member) => {
+      if (includeSet && !includeSet.has(member.id)) return false
+      return !excludeSet.has(member.id)
+    })
 
     if (eligibleMembers.length === 0) {
       return NextResponse.json(
@@ -100,7 +115,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
     let workoutName = ''
     if (workoutType === 'strength') {
       const session = await prisma.strengthSession.findFirst({
-        where: { id: workoutId, coachId: user.id },
+        where: {
+          id: workoutId,
+          OR: [{ coachId: user.id }, { isPublic: true }],
+        },
         select: { name: true },
       })
       if (!session) {
@@ -112,7 +130,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
       workoutName = session.name
     } else if (workoutType === 'cardio') {
       const session = await prisma.cardioSession.findFirst({
-        where: { id: workoutId, coachId: user.id },
+        where: {
+          id: workoutId,
+          OR: [{ coachId: user.id }, { isPublic: true }],
+        },
         select: { name: true },
       })
       if (!session) {
@@ -124,7 +145,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
       workoutName = session.name
     } else if (workoutType === 'hybrid') {
       const workout = await prisma.hybridWorkout.findFirst({
-        where: { id: workoutId, coachId: user.id },
+        where: {
+          id: workoutId,
+          OR: [{ coachId: user.id }, { isPublic: true }, { coachId: null }],
+        },
         select: { name: true },
       })
       if (!workout) {
@@ -148,6 +172,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
           hybridWorkoutId: workoutType === 'hybrid' ? workoutId : null,
           assignedDate: date,
           notes: notes || null,
+          startTime: startTime || null,
+          endTime: endTime || null,
+          locationId: locationId || null,
+          locationName: locationName || null,
           totalAssigned: eligibleMembers.length,
           totalCompleted: 0,
         },
@@ -162,6 +190,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
             assignedDate: date,
             assignedBy: user.id,
             notes: notes || null,
+            startTime: startTime || null,
+            endTime: endTime || null,
+            locationId: locationId || null,
+            locationName: locationName || null,
+            scheduledBy: startTime ? user.id : null,
+            responsibleCoachId: responsibleCoachId || null,
             status: 'PENDING',
             teamBroadcastId: broadcast.id,
           })),
@@ -175,6 +209,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
             assignedDate: date,
             assignedBy: user.id,
             notes: notes || null,
+            startTime: startTime || null,
+            endTime: endTime || null,
+            locationId: locationId || null,
+            locationName: locationName || null,
+            scheduledBy: startTime ? user.id : null,
+            responsibleCoachId: responsibleCoachId || null,
             status: 'PENDING',
             teamBroadcastId: broadcast.id,
           })),
@@ -188,6 +228,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
             assignedDate: date,
             assignedBy: user.id,
             notes: notes || null,
+            startTime: startTime || null,
+            endTime: endTime || null,
+            locationId: locationId || null,
+            locationName: locationName || null,
+            scheduledBy: startTime ? user.id : null,
+            responsibleCoachId: responsibleCoachId || null,
             status: 'PENDING',
             teamBroadcastId: broadcast.id,
           })),
