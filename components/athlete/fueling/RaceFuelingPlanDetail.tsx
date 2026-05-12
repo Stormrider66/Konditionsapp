@@ -20,6 +20,7 @@ import { buildFuelingBuildUpPlan, type FuelingBuildUpPlan } from '@/lib/fueling/
 import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
 import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
 import { buildFuelingSyncResultCopy } from '@/lib/fueling/sync-result'
+import { extractApiErrorMessage } from '@/lib/fueling/api-error'
 
 interface RaceDayPlan {
   carbsPerHour: number
@@ -1327,14 +1328,6 @@ function SyncResultNotice({ count }: { count: number }) {
       </p>
     </div>
   )
-}
-
-function extractApiErrorMessage(body: unknown): string | null {
-  if (!body || typeof body !== 'object') return null
-  const record = body as { details?: Array<{ message?: unknown }>; error?: unknown }
-  const detailMessage = record.details?.find((detail) => typeof detail.message === 'string')?.message
-  if (typeof detailMessage === 'string') return detailMessage
-  return typeof record.error === 'string' ? record.error : null
 }
 
 function confidenceLabel(confidence: string): string {

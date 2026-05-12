@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FUELING_SPORT_OPTIONS, fuelingSportLabel } from '@/lib/fueling/sport-labels'
 import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
 import { buildFuelingSyncResultCopy } from '@/lib/fueling/sync-result'
+import { extractApiErrorMessage } from '@/lib/fueling/api-error'
 
 interface RaceFuelingPlanSummary {
   id: string
@@ -614,14 +615,6 @@ function statusLabel(status: string): string {
 function parseOptionalNumber(value: string): number | undefined {
   const parsed = Number(value)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
-}
-
-function extractApiErrorMessage(body: unknown): string | null {
-  if (!body || typeof body !== 'object') return null
-  const record = body as { details?: Array<{ message?: unknown }>; error?: unknown }
-  const detailMessage = record.details?.find((detail) => typeof detail.message === 'string')?.message
-  if (typeof detailMessage === 'string') return detailMessage
-  return typeof record.error === 'string' ? record.error : null
 }
 
 function sportLabel(sport: string): string {
