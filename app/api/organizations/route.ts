@@ -22,11 +22,33 @@ export async function GET(request: NextRequest) {
     const user = await requireCoach()
     const scope = getRequestedBusinessScope(request)
     const ownerIds = await getBusinessTeamOwnerIds(user.id, scope.businessSlug)
-    const otherBusinessOrganizations = scope.businessSlug
+    const currentBusiness = scope.businessSlug
+      ? await prisma.business.findUnique({
+          where: { slug: scope.businessSlug },
+          select: { id: true, name: true, slug: true },
+        })
+      : null
+    const ownerMemberships = currentBusiness
+      ? await prisma.businessMember.findMany({
+          where: {
+            userId: { in: ownerIds.length ? ownerIds : [user.id] },
+            isActive: true,
+          },
+          select: {
+            userId: true,
+            businessId: true,
+          },
+        })
+      : []
+    const ownerBusinessCounts = ownerMemberships.reduce<Record<string, number>>((acc, membership) => {
+      acc[membership.userId] = (acc[membership.userId] || 0) + 1
+      return acc
+    }, {})
+    const otherBusinessOrganizations = currentBusiness
       ? await prisma.business.findMany({
           where: {
             isActive: true,
-            slug: { not: scope.businessSlug },
+            slug: { not: currentBusiness.slug },
           },
           select: {
             name: true,
@@ -55,15 +77,27 @@ export async function GET(request: NextRequest) {
             members: true,
           },
         },
-      },
+        },
       orderBy: {
         createdAt: 'desc',
       },
     })
+    const scopedOrganizations = currentBusiness
+      ? organizations.filter((organization) => {
+          if (organization.id === `${currentBusiness.slug}-org`) return true
+          if (organization.name === currentBusiness.name) return true
+
+          const teamMembers = organization.teams.flatMap((team) => team.members)
+          if (teamMembers.some((member) => member.businessId === currentBusiness.id)) return true
+          if (teamMembers.some((member) => member.businessId && member.businessId !== currentBusiness.id)) return false
+
+          return (ownerBusinessCounts[organization.userId] || 0) <= 1
+        })
+      : organizations
 
     return NextResponse.json({
       success: true,
-      data: organizations,
+      data: scopedOrganizations,
     })
   } catch (error) {
     logger.error('Error fetching organizations', {}, error)
