@@ -52,6 +52,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
   const [raceDate, setRaceDate] = useState('')
   const [gutTolerance, setGutTolerance] = useState('')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const estimate = useMemo<RaceFuelingEstimate | null>(() => {
     const selectedStage = usableStages.find((stage) => stage.sequence === selectedStageSequence) ?? usableStages[0]
@@ -97,6 +98,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
   async function savePlan() {
     if (!selectedStage || !selectedDistance || !canSavePlan) return
     setSaveStatus('saving')
+    setSaveError(null)
     try {
       const response = await fetch('/api/fueling/plans', {
         method: 'POST',
@@ -116,9 +118,12 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
         }),
       })
 
-      setSaveStatus(response.ok ? 'saved' : 'error')
-    } catch {
+      const body = await response.json()
+      if (!response.ok) throw new Error(extractApiErrorMessage(body) ?? 'Kunde inte spara planen.')
+      setSaveStatus('saved')
+    } catch (err) {
       setSaveStatus('error')
+      setSaveError(err instanceof Error ? err.message : 'Kunde inte spara planen.')
     }
   }
 
@@ -149,7 +154,9 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
             </span>
           )}
           {saveStatus === 'error' && (
-            <span className="print:hidden text-xs text-red-600">Kunde inte spara planen.</span>
+            <span className="print:hidden max-w-52 text-right text-xs text-red-600">
+              {saveError ?? 'Kunde inte spara planen.'}
+            </span>
           )}
         </div>
       </div>
@@ -163,6 +170,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
             onChange={(event) => {
               setSelectedDistanceIndex(Number(event.target.value))
               setSaveStatus('idle')
+              setSaveError(null)
             }}
           >
             {options.map((option, index) => (
@@ -179,6 +187,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
             onChange={(event) => {
               setSelectedStageSequence(Number(event.target.value))
               setSaveStatus('idle')
+              setSaveError(null)
             }}
           >
             {usableStages.map((stage) => (
@@ -206,6 +215,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
               onChange={(event) => {
                 setCustomDistanceKm(event.target.value)
                 setSaveStatus('idle')
+                setSaveError(null)
               }}
               placeholder="Ex. 30"
             />
@@ -222,6 +232,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
               onChange={(event) => {
                 setCustomDurationMinutes(event.target.value)
                 setSaveStatus('idle')
+                setSaveError(null)
               }}
               placeholder="Behövs om fart/pace saknas"
             />
@@ -239,6 +250,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
             onChange={(event) => {
               setRaceDate(event.target.value)
               setSaveStatus('idle')
+              setSaveError(null)
             }}
           />
         </label>
@@ -255,6 +267,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
             onChange={(event) => {
               setGutTolerance(event.target.value)
               setSaveStatus('idle')
+              setSaveError(null)
             }}
             placeholder="Ex. 60"
           />
@@ -358,6 +371,14 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
       </div>
     </section>
   )
+}
+
+function extractApiErrorMessage(body: unknown): string | null {
+  if (!body || typeof body !== 'object') return null
+  const record = body as { details?: Array<{ message?: unknown }>; error?: unknown }
+  const detailMessage = record.details?.find((detail) => typeof detail.message === 'string')?.message
+  if (typeof detailMessage === 'string') return detailMessage
+  return typeof record.error === 'string' ? record.error : null
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
