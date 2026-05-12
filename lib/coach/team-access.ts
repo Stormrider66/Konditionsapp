@@ -5,6 +5,10 @@ import { getStaffPermissions } from '@/lib/permissions/assistant-coach'
 const BUSINESS_WIDE_ROLES = ['OWNER', 'ADMIN', 'COACH'] as const
 const TEAM_SCOPED_ROLES = ['PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO'] as const
 
+function isBusinessWideRole(role: string): role is (typeof BUSINESS_WIDE_ROLES)[number] {
+  return BUSINESS_WIDE_ROLES.some((businessRole) => businessRole === role)
+}
+
 export async function getPrimaryBusinessMembership(userId: string) {
   return prisma.businessMember.findFirst({
     where: { userId, isActive: true },
@@ -36,7 +40,7 @@ export async function getBusinessMembership(userId: string, businessSlug?: strin
 export async function getBusinessTeamOwnerIds(userId: string, businessSlug?: string) {
   const membership = await getBusinessMembership(userId, businessSlug)
 
-  if (!membership || !BUSINESS_WIDE_ROLES.includes(membership.role as any)) {
+  if (!membership || !isBusinessWideRole(membership.role)) {
     return []
   }
 
@@ -56,7 +60,7 @@ async function getBusinessOrganizationIds(userId: string, businessSlug?: string)
   if (!businessSlug) return []
 
   const membership = await getBusinessMembership(userId, businessSlug)
-  if (!membership || !BUSINESS_WIDE_ROLES.includes(membership.role as any)) {
+  if (!membership || !isBusinessWideRole(membership.role)) {
     return []
   }
 
@@ -75,6 +79,31 @@ async function getBusinessOrganizationIds(userId: string, businessSlug?: string)
   })
 
   return organizations.map((organization) => organization.id)
+}
+
+export async function ensureBusinessOrganization(userId: string, businessSlug: string) {
+  const membership = await getBusinessMembership(userId, businessSlug)
+  if (!membership || !isBusinessWideRole(membership.role)) {
+    return null
+  }
+
+  const ownerIds = await getBusinessTeamOwnerIds(userId, businessSlug)
+  const organizationOwnerId = ownerIds.includes(userId) ? userId : ownerIds[0]
+  if (!organizationOwnerId) return null
+
+  return prisma.organization.upsert({
+    where: { id: `${membership.business.slug}-org` },
+    update: {
+      name: membership.business.name,
+    },
+    create: {
+      id: `${membership.business.slug}-org`,
+      userId: organizationOwnerId,
+      name: membership.business.name,
+      description: `${membership.business.name} workspace`,
+    },
+    select: { id: true, userId: true },
+  })
 }
 
 export async function getAccessibleTeamWhere(

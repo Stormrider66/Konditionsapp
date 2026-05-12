@@ -5,9 +5,9 @@ import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import {
+  ensureBusinessOrganization,
   getAccessibleOrganization,
   getAccessibleTeamWhere,
-  getBusinessTeamOwnerIds,
 } from '@/lib/coach/team-access'
 
 // Validation schema for team creation
@@ -65,7 +65,6 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach()
     const scope = getRequestedBusinessScope(request)
-    const businessOwnerIds = await getBusinessTeamOwnerIds(user.id, scope.businessSlug)
 
     const body = await request.json()
 
@@ -100,16 +99,7 @@ export async function POST(request: NextRequest) {
       }
       teamOwnerId = org.userId
     } else if (scope.businessSlug) {
-      const businessOrg = await prisma.organization.findFirst({
-        where: {
-          userId: { in: businessOwnerIds.length ? businessOwnerIds : [user.id] },
-          OR: [
-            { id: `${scope.businessSlug}-org` },
-            { name: { equals: scope.businessSlug, mode: 'insensitive' } },
-          ],
-        },
-        select: { id: true, userId: true },
-      })
+      const businessOrg = await ensureBusinessOrganization(user.id, scope.businessSlug)
 
       if (businessOrg) {
         organizationId = businessOrg.id
