@@ -79,6 +79,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createForm, setCreateForm] = useState<CreatePlanFormState>(EMPTY_CREATE_FORM)
   const [createState, setCreateState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [createError, setCreateError] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [applyingId, setApplyingId] = useState<string | null>(null)
   const [applyResult, setApplyResult] = useState<{ planId: string; count: number } | null>(null)
@@ -164,6 +165,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
   async function createPlan() {
     if (!canCreatePlan) return
     setCreateState('saving')
+    setCreateError(null)
     setError(null)
 
     try {
@@ -184,8 +186,8 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
         }),
       })
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const body = await response.json()
+      if (!response.ok) throw new Error(extractApiErrorMessage(body) ?? `HTTP ${response.status}`)
       setCreateState('saved')
       setCreateForm(EMPTY_CREATE_FORM)
       setShowCreateForm(false)
@@ -195,14 +197,16 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
       } else {
         await loadPlans(undefined, false)
       }
-    } catch {
+    } catch (err) {
       setCreateState('error')
+      setCreateError(err instanceof Error ? err.message : 'Kunde inte skapa planen.')
     }
   }
 
   function updateCreateForm(field: keyof CreatePlanFormState, value: string) {
     setCreateForm((current) => ({ ...current, [field]: value }))
     setCreateState('idle')
+    setCreateError(null)
   }
 
   return (
@@ -347,7 +351,9 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
               </Button>
               <Button variant="ghost" onClick={() => setShowCreateForm(false)}>Avbryt</Button>
               {!canCreatePlan && <span className="text-xs text-muted-foreground">Ange förväntad tid, eller distans tillsammans med målfart.</span>}
-              {createState === 'error' && <span className="text-xs text-destructive">Kunde inte skapa planen.</span>}
+              {createState === 'error' && (
+                <span className="text-xs text-destructive">{createError ?? 'Kunde inte skapa planen.'}</span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -608,6 +614,14 @@ function statusLabel(status: string): string {
 function parseOptionalNumber(value: string): number | undefined {
   const parsed = Number(value)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
+}
+
+function extractApiErrorMessage(body: unknown): string | null {
+  if (!body || typeof body !== 'object') return null
+  const record = body as { details?: Array<{ message?: unknown }>; error?: unknown }
+  const detailMessage = record.details?.find((detail) => typeof detail.message === 'string')?.message
+  if (typeof detailMessage === 'string') return detailMessage
+  return typeof record.error === 'string' ? record.error : null
 }
 
 function sportLabel(sport: string): string {
