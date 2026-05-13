@@ -13,6 +13,12 @@ function getScheduledWorkoutSource(event: Row) {
       sourceName: strengthAssignment.session?.name ?? null,
       status: strengthAssignment.status,
       assignedDate: strengthAssignment.assignedDate,
+      completedAt: strengthAssignment.completedAt,
+      isCompleted: strengthAssignment.status === 'COMPLETED' || !!strengthAssignment.completedAt,
+      resultSummary: {
+        duration: strengthAssignment.duration,
+        rpe: strengthAssignment.rpe,
+      },
     }
   }
 
@@ -25,6 +31,13 @@ function getScheduledWorkoutSource(event: Row) {
       sourceName: cardioAssignment.session?.name ?? null,
       status: cardioAssignment.status,
       assignedDate: cardioAssignment.assignedDate,
+      completedAt: cardioAssignment.completedAt,
+      isCompleted: cardioAssignment.status === 'COMPLETED' || !!cardioAssignment.completedAt,
+      resultSummary: {
+        actualDuration: cardioAssignment.actualDuration,
+        actualDistance: cardioAssignment.actualDistance,
+        avgHeartRate: cardioAssignment.avgHeartRate,
+      },
     }
   }
 
@@ -37,6 +50,9 @@ function getScheduledWorkoutSource(event: Row) {
       sourceName: hybridAssignment.workout?.name ?? null,
       status: hybridAssignment.status,
       assignedDate: hybridAssignment.assignedDate,
+      completedAt: hybridAssignment.completedAt,
+      resultId: hybridAssignment.resultId,
+      isCompleted: hybridAssignment.status === 'COMPLETED' || !!hybridAssignment.completedAt,
     }
   }
 
@@ -49,6 +65,8 @@ function getScheduledWorkoutSource(event: Row) {
       sourceName: agilityAssignment.workout?.name ?? null,
       status: agilityAssignment.status,
       assignedDate: agilityAssignment.assignedDate,
+      completedAt: agilityAssignment.completedAt,
+      isCompleted: agilityAssignment.status === 'COMPLETED' || !!agilityAssignment.completedAt,
     }
   }
 
@@ -77,7 +95,10 @@ export function serializeWorkout(
     metadata: {
       workoutType: workout.type,
       ...(itemsMode === 'light'
-        ? {}
+        ? {
+            isCompleted: Array.isArray(w.logs) && w.logs.length > 0 && w.logs[0].completed,
+            completedAt: Array.isArray(w.logs) ? (w.logs[0]?.completedAt ?? null) : null,
+          }
         : {
             intensity: w.intensity,
             duration: w.duration,
@@ -88,6 +109,7 @@ export function serializeWorkout(
             weekNumber: w.day.week.weekNumber,
             segmentCount: w.segments.length,
             isCompleted: w.logs.length > 0 && w.logs[0].completed,
+            completedAt: w.logs[0]?.completedAt ?? null,
           }),
       dayNumber: workout.day.dayNumber,
       order: workout.order,

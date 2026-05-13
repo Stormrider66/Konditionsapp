@@ -21,6 +21,13 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   Clock,
   MapPin,
   Activity,
@@ -38,6 +45,8 @@ import {
   Trash2,
   Trophy,
   Beaker,
+  Eye,
+  Loader2,
 } from 'lucide-react'
 import {
   UnifiedCalendarItem,
@@ -51,6 +60,56 @@ import { toast } from 'sonner'
 import { formatDistanceValue, formatDurationMinutes, formatWorkoutTypeLabel, formatIntensityLabel, formatFieldTestType, formatAdHocInputType, formatAdHocTypeLabel, formatRaceDistanceLabel } from './formatters'
 import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton'
 import type { PrintableWorkoutKind } from '@/lib/workout-print/normalize'
+
+type ScheduledWorkoutSource = {
+  kind?: string
+  sourceId?: string
+  sourceName?: string | null
+  assignmentId?: string
+  status?: string
+  completedAt?: string | Date | null
+  isCompleted?: boolean
+  resultSummary?: Record<string, unknown> | null
+}
+
+type ScheduledWorkoutResult = {
+  kind: string
+  title: string
+  athleteName: string
+  status: string
+  completedAt: string | null
+  metrics: Array<{ label: string; value: string }>
+  notes: string | null
+  details: unknown
+  original: unknown
+}
+
+function formatScheduledStatus(status?: string) {
+  const labels: Record<string, string> = {
+    PENDING: 'Planerat',
+    SCHEDULED: 'Påbörjat',
+    COMPLETED: 'Registrerat',
+    SKIPPED: 'Missat',
+    MODIFIED: 'Ändrat',
+    ASSIGNED: 'Tilldelat',
+    IN_PROGRESS: 'Påbörjat',
+  }
+  return status ? labels[status] || status : 'Planerat'
+}
+
+function formatResultDate(value?: string | Date | null) {
+  if (!value) return null
+  return format(new Date(value), 'd MMM HH:mm', { locale: sv })
+}
+
+function safePreview(value: unknown) {
+  if (!value) return null
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch {
+    return String(value)
+  }
+}
 
 export interface WODItemProps {
   wod: UnifiedCalendarItem
@@ -265,30 +324,32 @@ export function CalendarEventItem({
   const router = useRouter()
   const pathname = usePathname()
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isResultOpen, setIsResultOpen] = useState(false)
+  const [isLoadingResult, setIsLoadingResult] = useState(false)
+  const [workoutResult, setWorkoutResult] = useState<ScheduledWorkoutResult | null>(null)
   const meta = event.metadata
   const eventType = (meta.eventType as string) || 'EXTERNAL_EVENT'
   const trainingImpact = (meta.trainingImpact as string) || 'NORMAL'
   const isReadOnly = meta.isReadOnly as boolean
-  const scheduledWorkoutSource = meta.scheduledWorkoutSource as
-    | {
-        kind?: string
-        sourceId?: string
-        sourceName?: string | null
-        assignmentId?: string
-        status?: string
-      }
-    | null
-    | undefined
+  const scheduledWorkoutSource = meta.scheduledWorkoutSource as ScheduledWorkoutSource | null | undefined
   const canEditScheduledWorkoutSource = ['strength', 'cardio', 'hybrid'].includes(
     scheduledWorkoutSource?.kind || ''
   )
   const canPrintScheduledWorkoutSource = ['strength', 'cardio', 'hybrid', 'agility'].includes(
     scheduledWorkoutSource?.kind || ''
   )
+  const hasRegisteredWorkout = Boolean(
+    scheduledWorkoutSource?.isCompleted ||
+    scheduledWorkoutSource?.completedAt ||
+    scheduledWorkoutSource?.status === 'COMPLETED'
+  )
   const config = EVENT_TYPE_CONFIG[eventType as keyof typeof EVENT_TYPE_CONFIG]
   const impactConfig = IMPACT_CONFIG[trainingImpact as keyof typeof IMPACT_CONFIG]
   const sourceName = scheduledWorkoutSource?.sourceName?.trim()
   const shouldShowSourceName = !!sourceName && !event.title.includes(sourceName)
+  const completedLabel = formatResultDate(scheduledWorkoutSource?.completedAt)
+  const originalPreview = safePreview(workoutResult?.original)
+  const detailsPreview = safePreview(workoutResult?.details)
 
   const openScheduledWorkout = () => {
     const kind = scheduledWorkoutSource?.kind
@@ -341,6 +402,37 @@ export function CalendarEventItem({
     }
   }
 
+  const handleOpenResult = async () => {
+    const kind = scheduledWorkoutSource?.kind
+    const assignmentId = scheduledWorkoutSource?.assignmentId
+    if (!kind || !assignmentId) return
+
+    setIsResultOpen(true)
+    if (workoutResult) return
+
+    setIsLoadingResult(true)
+    try {
+      const params = new URLSearchParams({ kind, assignmentId })
+      const response = await fetch(`/api/calendar/workout-result?${params.toString()}`)
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        toast.error('Kunde inte hämta resultat', {
+          description: data.error || `HTTP ${response.status}`,
+        })
+        return
+      }
+      const data = (await response.json()) as ScheduledWorkoutResult
+      setWorkoutResult(data)
+    } catch (error) {
+      console.error('Failed to fetch workout result:', error)
+      toast.error('Kunde inte hämta resultat', {
+        description: 'Nätverksfel — försök igen.',
+      })
+    } finally {
+      setIsLoadingResult(false)
+    }
+  }
+
   return (
     <div
       className={cn(
@@ -367,6 +459,19 @@ export function CalendarEventItem({
               >
                 {impactConfig?.labelSv}
               </Badge>
+              {scheduledWorkoutSource?.assignmentId && (
+                <Badge
+                  variant={hasRegisteredWorkout ? 'default' : 'outline'}
+                  className={cn(
+                    'text-xs shrink-0',
+                    hasRegisteredWorkout
+                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      : 'text-slate-600 border-slate-300 bg-white/70'
+                  )}
+                >
+                  {hasRegisteredWorkout ? 'Registrerat' : formatScheduledStatus(scheduledWorkoutSource.status)}
+                </Badge>
+              )}
               {shouldShowSourceName && (
                 <span className="min-w-0 max-w-full truncate text-xs text-muted-foreground">
                   {sourceName}
@@ -382,6 +487,11 @@ export function CalendarEventItem({
             {event.endDate && event.endDate !== event.date && (
               <div className="text-xs text-muted-foreground mt-1">
                 Till: {format(new Date(event.endDate as string), 'd MMM', { locale: sv })}
+              </div>
+            )}
+            {hasRegisteredWorkout && completedLabel && (
+              <div className="text-xs text-emerald-700 mt-1">
+                Registrerat {completedLabel}
               </div>
             )}
           </div>
@@ -406,6 +516,12 @@ export function CalendarEventItem({
               size="sm"
               className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold"
             />
+          )}
+          {scheduledWorkoutSource?.assignmentId && hasRegisteredWorkout && (
+            <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={handleOpenResult}>
+              <Eye className="h-3 w-3 shrink-0 mr-1" />
+              Visa resultat
+            </Button>
           )}
           <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={onEdit}>
             <Edit className="h-3 w-3 shrink-0 mr-1" />
@@ -439,6 +555,85 @@ export function CalendarEventItem({
           </AlertDialog>
         </div>
       )}
+
+      <Dialog open={isResultOpen} onOpenChange={setIsResultOpen}>
+        <DialogContent className={cn('max-w-2xl', isGlass ? 'bg-slate-900 border-white/10 text-white' : '')}>
+          <DialogHeader>
+            <DialogTitle className={isGlass ? 'text-white' : ''}>
+              {workoutResult?.title || sourceName || event.title}
+            </DialogTitle>
+            <DialogDescription className={isGlass ? 'text-slate-400' : ''}>
+              {workoutResult?.athleteName ? `${workoutResult.athleteName} · ` : ''}
+              {workoutResult?.completedAt
+                ? `Registrerat ${formatResultDate(workoutResult.completedAt)}`
+                : 'Registrerat pass'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {isLoadingResult ? (
+            <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Hämtar resultat
+            </div>
+          ) : workoutResult ? (
+            <div className="space-y-5">
+              {workoutResult.metrics.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {workoutResult.metrics.map((item) => (
+                    <div
+                      key={`${item.label}-${item.value}`}
+                      className={cn(
+                        'rounded-lg border p-3',
+                        isGlass ? 'bg-white/5 border-white/10' : 'bg-slate-50'
+                      )}
+                    >
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                        {item.label}
+                      </p>
+                      <p className="text-lg font-bold">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {workoutResult.notes && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">
+                    Kommentar
+                  </p>
+                  <p className={cn('text-sm rounded-lg border p-3 whitespace-pre-wrap', isGlass ? 'bg-white/5 border-white/10 text-slate-200' : 'bg-white')}>
+                    {workoutResult.notes}
+                  </p>
+                </div>
+              )}
+
+              {detailsPreview && detailsPreview !== '[]' && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">
+                    Detaljer
+                  </p>
+                  <pre className={cn('max-h-48 overflow-auto rounded-lg border p-3 text-xs whitespace-pre-wrap', isGlass ? 'bg-black/30 border-white/10 text-slate-300' : 'bg-slate-50')}>
+                    {detailsPreview}
+                  </pre>
+                </div>
+              )}
+
+              {originalPreview && (
+                <details className="group">
+                  <summary className="cursor-pointer text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    Originaldata
+                  </summary>
+                  <pre className={cn('mt-2 max-h-48 overflow-auto rounded-lg border p-3 text-xs whitespace-pre-wrap', isGlass ? 'bg-black/30 border-white/10 text-slate-300' : 'bg-slate-50')}>
+                    {originalPreview}
+                  </pre>
+                </details>
+              )}
+            </div>
+          ) : (
+            <p className="py-6 text-sm text-muted-foreground">Inget resultat hittades.</p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {isReadOnly && (
         <div className="text-[10px] font-medium text-slate-500 mt-2 flex items-center gap-1">
