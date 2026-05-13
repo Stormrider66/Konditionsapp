@@ -47,6 +47,7 @@ import {
   Beaker,
   Eye,
   Loader2,
+  ThumbsUp,
 } from 'lucide-react'
 import {
   UnifiedCalendarItem,
@@ -311,20 +312,24 @@ export function RaceItem({ race, isSelected, onClick, isGlass = false }: RaceIte
 }
 
 export interface CalendarEventItemProps {
+  clientId?: string
   event: UnifiedCalendarItem
   isSelected: boolean
   onClick: () => void
   onEdit: () => void
   onDeleted: () => void
+  isCoachView?: boolean
   isGlass?: boolean
 }
 
 export function CalendarEventItem({
+  clientId,
   event,
   isSelected,
   onClick,
   onEdit,
   onDeleted,
+  isCoachView = false,
   isGlass = false,
 }: CalendarEventItemProps) {
   const router = useRouter()
@@ -332,6 +337,7 @@ export function CalendarEventItem({
   const [isDeleting, setIsDeleting] = useState(false)
   const [isResultOpen, setIsResultOpen] = useState(false)
   const [isLoadingResult, setIsLoadingResult] = useState(false)
+  const [isSendingPraise, setIsSendingPraise] = useState(false)
   const [workoutResult, setWorkoutResult] = useState<ScheduledWorkoutResult | null>(null)
   const meta = event.metadata
   const eventType = (meta.eventType as string) || 'EXTERNAL_EVENT'
@@ -356,6 +362,13 @@ export function CalendarEventItem({
   const completedLabel = formatResultDate(scheduledWorkoutSource?.completedAt)
   const originalPreview = safePreview(workoutResult?.original)
   const detailSections = Array.isArray(workoutResult?.details) ? workoutResult.details : []
+  const canSendPraise = Boolean(
+    isCoachView &&
+      clientId &&
+      scheduledWorkoutSource?.kind &&
+      scheduledWorkoutSource?.assignmentId &&
+      hasRegisteredWorkout
+  )
 
   const openScheduledWorkout = () => {
     const kind = scheduledWorkoutSource?.kind
@@ -436,6 +449,43 @@ export function CalendarEventItem({
       })
     } finally {
       setIsLoadingResult(false)
+    }
+  }
+
+  const handleSendPraise = async () => {
+    const kind = scheduledWorkoutSource?.kind
+    const assignmentId = scheduledWorkoutSource?.assignmentId
+    if (!clientId || !kind || !assignmentId) return
+
+    setIsSendingPraise(true)
+    try {
+      const response = await fetch('/api/calendar/workout-praise', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId,
+          kind,
+          assignmentId,
+          message: `Bra jobbat med ${sourceName || event.title}!`,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        toast.error('Kunde inte skicka hälsning', {
+          description: data.error || `HTTP ${response.status}`,
+        })
+        return
+      }
+
+      toast.success('Hälsning skickad till atleten')
+    } catch (error) {
+      console.error('Failed to send workout praise:', error)
+      toast.error('Kunde inte skicka hälsning', {
+        description: 'Nätverksfel — försök igen.',
+      })
+    } finally {
+      setIsSendingPraise(false)
     }
   }
 
@@ -527,6 +577,22 @@ export function CalendarEventItem({
             <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={handleOpenResult}>
               <Eye className="h-3 w-3 shrink-0 mr-1" />
               Visa resultat
+            </Button>
+          )}
+          {canSendPraise && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200"
+              onClick={handleSendPraise}
+              disabled={isSendingPraise}
+            >
+              {isSendingPraise ? (
+                <Loader2 className="h-3 w-3 shrink-0 mr-1 animate-spin" />
+              ) : (
+                <ThumbsUp className="h-3 w-3 shrink-0 mr-1" />
+              )}
+              Bra jobbat
             </Button>
           )}
           <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={onEdit}>

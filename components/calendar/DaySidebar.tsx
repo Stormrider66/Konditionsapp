@@ -247,11 +247,13 @@ export function DaySidebar({
                     {events.map((event) => (
                       <CalendarEventItem
                         key={event.id}
+                        clientId={clientId}
                         event={event}
                         isSelected={selectedItem?.id === event.id}
                         onClick={() => onItemClick(event)}
                         onEdit={() => onEditEvent(event)}
                         onDeleted={onEventDeleted}
+                        isCoachView={isCoachView}
                         isGlass={true}
                       />
                     ))}
@@ -467,11 +469,13 @@ export function DaySidebar({
                   {events.map((event) => (
                     <CalendarEventItem
                       key={event.id}
+                      clientId={clientId}
                       event={event}
                       isSelected={selectedItem?.id === event.id}
                       onClick={() => onItemClick(event)}
                       onEdit={() => onEditEvent(event)}
                       onDeleted={onEventDeleted}
+                      isCoachView={isCoachView}
                     />
                   ))}
                 </div>
@@ -575,4 +579,3 @@ export function DaySidebar({
 // Sub-components for different item types
 
 // ── WOD Item ──────────────────────────────────────────────────────────────
-

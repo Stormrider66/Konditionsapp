@@ -19,6 +19,7 @@ import {
   isToday,
 } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UnifiedCalendarItem, DayData, EVENT_TYPE_CONFIG, WORKOUT_TYPE_COLORS } from './types'
 
@@ -175,10 +176,7 @@ interface DayCellProps {
 
 function DayCell({ day, isSelected, onClick, onItemClick }: DayCellProps) {
   const maxIndicators = 4
-  const completedCount = day.items.filter((item) =>
-    (item.type === 'WORKOUT' || item.type === 'AD_HOC' || item.type === 'RACE') &&
-    Boolean(item.metadata.isCompleted)
-  ).length
+  const completedCount = day.items.filter(isCompletedCalendarItem).length
   const richDetailCount = day.items.filter((item) => hasRichDetails(item)).length
 
   // Get unique event indicators
@@ -251,8 +249,12 @@ function DayCell({ day, isSelected, onClick, onItemClick }: DayCellProps) {
 
         <div className="flex items-center gap-1">
           {completedCount > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 font-bold">
-              {completedCount} klar
+            <span
+              className="inline-flex min-w-5 h-5 items-center justify-center gap-0.5 rounded-full bg-emerald-500 px-1.5 text-[10px] font-bold text-white shadow-sm"
+              title={`${completedCount} genomförda pass`}
+            >
+              <Check className="h-3 w-3" />
+              {completedCount > 1 ? completedCount : null}
             </span>
           )}
           {richDetailCount > 0 && (
@@ -293,7 +295,7 @@ function DayCell({ day, isSelected, onClick, onItemClick }: DayCellProps) {
         <div className="hidden md:block mt-1">
           {day.items.slice(0, 2).map((item) => (
             (() => {
-              const isCompleted = Boolean(item.metadata.isCompleted)
+              const isCompleted = isCompletedCalendarItem(item)
               const preview = getMonthPreview(item)
 
               return (
@@ -338,18 +340,36 @@ function DayCell({ day, isSelected, onClick, onItemClick }: DayCellProps) {
 
 function hasRichDetails(item: UnifiedCalendarItem): boolean {
   if (item.type === 'WORKOUT') {
-    return Boolean(item.metadata.isCompleted)
+    return isCompletedCalendarItem(item)
   }
   if (item.type === 'AD_HOC') {
-    return Boolean(item.metadata.isCompleted)
+    return isCompletedCalendarItem(item)
   }
   if (item.type === 'RACE') {
     return Boolean(item.metadata.isCompleted || item.metadata.actualTime)
+  }
+  if (item.type === 'CALENDAR_EVENT') {
+    return isCompletedCalendarItem(item)
   }
   if (item.type === 'FIELD_TEST') {
     return true
   }
   return false
+}
+
+function isCompletedCalendarItem(item: UnifiedCalendarItem): boolean {
+  const scheduledWorkoutSource = item.metadata.scheduledWorkoutSource as {
+    isCompleted?: boolean
+    completedAt?: string | Date | null
+    status?: string
+  } | undefined
+
+  return Boolean(
+    item.metadata.isCompleted ||
+      scheduledWorkoutSource?.isCompleted ||
+      scheduledWorkoutSource?.completedAt ||
+      scheduledWorkoutSource?.status === 'COMPLETED'
+  )
 }
 
 function getMonthPreview(item: UnifiedCalendarItem): string | null {
