@@ -328,6 +328,8 @@ export async function generateCheckInPrompt(
     const response = await generateAIResponse(coachUserId, prompt, {
       maxTokens: 400,
       temperature: 0.7,
+      clientId: workout.athleteId,
+      category: 'athlete_post_workout_checkin',
     })
 
     const jsonMatch = response.match(/\{[\s\S]*\}/)

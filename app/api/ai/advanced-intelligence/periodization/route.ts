@@ -9,6 +9,8 @@ import { logger } from '@/lib/logger'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { canAccessClient, canAccessProgram, getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { withAiContext } from '@/lib/ai/usage-logger'
 
 /**
  * GET /api/ai/advanced-intelligence/periodization
@@ -71,12 +73,18 @@ export async function GET(req: NextRequest) {
     // Use Deep Think for complex AI-powered analysis
     if (useDeepThink) {
       try {
-        const deepThinkAnalysis = await analyzeWithDeepThink({
-          clientId,
-          programId,
-          coachUserId: user.id,
-          methodology,
-        })
+        const allowanceDenied = await requireAiAllowance(clientId)
+        if (allowanceDenied) return allowanceDenied
+
+        const deepThinkAnalysis = await withAiContext(
+          { userId: user.id, clientId, category: 'athlete_deep_think_periodization' },
+          () => analyzeWithDeepThink({
+            clientId,
+            programId,
+            coachUserId: user.id,
+            methodology,
+          }),
+        )
 
         return NextResponse.json({
           success: true,

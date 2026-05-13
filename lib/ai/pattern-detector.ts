@@ -311,6 +311,7 @@ TONALITET: Omsorgsfull, professionell, handlingsorienterad.`
 
 export async function generatePatternAnalysis(
   coachUserId: string,
+  clientId: string,
   athleteName: string,
   patterns: DetectedPattern[],
   recentCheckIns: CheckInData[]
@@ -327,6 +328,8 @@ export async function generatePatternAnalysis(
     const response = await generateAIResponse(coachUserId, prompt, {
       maxTokens: 500,
       temperature: 0.7,
+      clientId,
+      category: 'athlete_pattern_analysis',
     })
 
     const jsonMatch = response.match(/\{[\s\S]*\}/)
@@ -381,6 +384,7 @@ export async function createPatternAlert(
 
   const analysis = await generatePatternAnalysis(
     coachUserId,
+    clientId,
     client.name.split(' ')[0],
     patterns,
     recentCheckIns

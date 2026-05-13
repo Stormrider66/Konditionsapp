@@ -12,10 +12,14 @@ import { generateText } from 'ai'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resolveModel, type AvailableKeys } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { withAiContext } from '@/lib/ai/usage-logger'
 
 export interface GenerateOptions {
   maxTokens?: number
   temperature?: number
+  clientId?: string | null
+  category?: string
 }
 
 /**
@@ -34,7 +38,19 @@ export async function generateAIResponse(
   prompt: string,
   options: GenerateOptions = {}
 ): Promise<string> {
-  const { maxTokens = 1000, temperature = 0.7 } = options
+  const {
+    maxTokens = 1000,
+    temperature = 0.7,
+    clientId = null,
+    category = 'background_ai_response',
+  } = options
+
+  if (clientId) {
+    const allowanceDenied = await requireAiAllowance(clientId)
+    if (allowanceDenied) {
+      throw new Error('AI allowance exhausted')
+    }
+  }
 
   // Get user's API keys
   const userKeys = await getResolvedAiKeys(userId)
@@ -43,12 +59,15 @@ export async function generateAIResponse(
   const resolved = resolveModel(userKeys, 'fast')
   if (resolved) {
     try {
-      const result = await generateText({
-        model: createModelInstance(resolved),
-        prompt,
-        maxOutputTokens: maxTokens,
-        temperature,
-      })
+      const result = await withAiContext(
+        { userId, clientId, category },
+        () => generateText({
+          model: createModelInstance(resolved),
+          prompt,
+          maxOutputTokens: maxTokens,
+          temperature,
+        }),
+      )
       return result.text
     } catch (error) {
       console.warn(`AI generation failed with ${resolved.provider}:`, error)
@@ -65,12 +84,15 @@ export async function generateAIResponse(
   const envResolved = resolveModel(envKeys, 'fast')
   if (envResolved) {
     try {
-      const result = await generateText({
-        model: createModelInstance(envResolved),
-        prompt,
-        maxOutputTokens: maxTokens,
-        temperature,
-      })
+      const result = await withAiContext(
+        { userId, clientId, category },
+        () => generateText({
+          model: createModelInstance(envResolved),
+          prompt,
+          maxOutputTokens: maxTokens,
+          temperature,
+        }),
+      )
       return result.text
     } catch (error) {
       console.warn(`Environment AI generation failed with ${envResolved.provider}:`, error)

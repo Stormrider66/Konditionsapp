@@ -8,9 +8,9 @@
  */
 
 import { generateText } from 'ai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { prisma } from '@/lib/prisma';
 import { GEMINI_MODELS, getGeminiThinkingOptions } from '@/lib/ai/gemini-config';
+import { createModelInstance } from '@/lib/ai/create-model';
 import { decryptSecret } from '@/lib/crypto/secretbox';
 import type {
   PeriodizationAnalysis,
@@ -167,14 +167,18 @@ export async function analyzeWithDeepThink(
 
   const contextString = buildDeepThinkContext(contextData);
 
-  // Initialize Gemini with Deep Think
-  const google = createGoogleGenerativeAI({
+  const modelId = GEMINI_MODELS.VIDEO_ANALYSIS;
+  const model = createModelInstance({
+    provider: 'google',
+    modelId,
     apiKey: googleKey,
+    displayName: modelId,
+    supportsVision: false,
   });
 
   // Use Gemini 3.1 Pro with high thinkingLevel for complex reasoning
   const result = await generateText({
-    model: google(GEMINI_MODELS.VIDEO_ANALYSIS),
+    model,
     prompt: buildDeepThinkPrompt(contextString),
     maxOutputTokens: 8192,
     // Enable deep thinking mode for complex multi-week periodization analysis

@@ -295,6 +295,7 @@ async function processRace(
       classification: race.classification,
       athleteName: race.client.name.split(' ')[0],
       coachUserId: race.client.userId,
+      clientId: race.clientId,
     }
 
     const content = await generateMentalPrepContent(context, prepType, daysUntilRace)

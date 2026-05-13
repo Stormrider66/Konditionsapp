@@ -20,6 +20,7 @@ export interface MentalPrepContext {
   classification: string // "A", "B", "C"
   athleteName: string
   coachUserId: string
+  clientId?: string
 }
 
 export interface MentalPrepContent {
@@ -81,6 +82,8 @@ Skriv ENDAST visualiseringstexten, ingen introduktion eller avslutning.`
   const mainContent = await generateAIResponse(ctx.coachUserId, prompt, {
     maxTokens: 800,
     temperature: 0.7,
+    clientId: ctx.clientId,
+    category: 'athlete_mental_prep',
   })
 
   // Extract preview (first 2-3 sentences)
@@ -135,6 +138,8 @@ Håll texten mellan 250-350 ord.`
   const mainContent = await generateAIResponse(ctx.coachUserId, prompt, {
     maxTokens: 900,
     temperature: 0.7,
+    clientId: ctx.clientId,
+    category: 'athlete_mental_prep',
   })
 
   const sentences = mainContent.split(/(?<=[.!?])\s+/)
@@ -197,6 +202,8 @@ Tonen ska vara varm, stöttande och energigivande.`
   const mainContent = await generateAIResponse(ctx.coachUserId, prompt, {
     maxTokens: 800,
     temperature: 0.8,
+    clientId: ctx.clientId,
+    category: 'athlete_mental_prep',
   })
 
   const sentences = mainContent.split(/(?<=[.!?])\s+/)

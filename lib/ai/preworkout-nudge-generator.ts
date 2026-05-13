@@ -384,6 +384,8 @@ export async function generatePreWorkoutNudge(
     const response = await generateAIResponse(coachUserId, prompt, {
       maxTokens: 500,
       temperature: 0.7,
+      clientId,
+      category: 'athlete_preworkout_nudge',
     })
 
     // Parse JSON from response

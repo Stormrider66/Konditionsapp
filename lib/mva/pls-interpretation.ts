@@ -47,6 +47,7 @@ Var konkret, undvik generella uttalanden. Fokusera på praktiska insikter som en
     const response = await generateAIResponse(coachUserId, prompt, {
       maxTokens: 800,
       temperature: 0.5,
+      category: 'coach_pls_insight',
     })
 
     // Extract JSON from response
