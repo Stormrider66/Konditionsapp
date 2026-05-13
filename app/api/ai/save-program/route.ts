@@ -16,6 +16,7 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
 import type { MergedProgram } from '@/lib/ai/program-generator'
 import { createFuelingPrescriptionsForProgram } from '@/lib/fueling/workout-prescriptions'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 type ProgramType = 'MAIN' | 'COMPLEMENTARY';
 type ExistingProgramAction = 'KEEP' | 'DEACTIVATE' | 'REPLACE';
@@ -315,14 +316,18 @@ export async function POST(request: NextRequest) {
 
     // Fire-and-forget infographic generation (don't await, don't block response)
     if (parsedProgram) {
-      generateProgramInfographic({
-        programId: savedProgram.id,
-        programData: parsedProgramToInfographicData(parsedProgram),
-        coachId: coachUserId,
-        locale: request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en',
-      }).catch((err) => {
-        logger.warn('Background infographic generation failed', { programId: savedProgram.id }, err)
-      })
+      const infographicAllowanceDenied = await requireAiAllowance(clientId)
+      if (!infographicAllowanceDenied) {
+        generateProgramInfographic({
+          programId: savedProgram.id,
+          programData: parsedProgramToInfographicData(parsedProgram),
+          coachId: coachUserId,
+          clientId,
+          locale: request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en',
+        }).catch((err) => {
+          logger.warn('Background infographic generation failed', { programId: savedProgram.id }, err)
+        })
+      }
     }
 
     // Return the saved program with summary

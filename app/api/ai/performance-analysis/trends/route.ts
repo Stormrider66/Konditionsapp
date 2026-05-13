@@ -10,6 +10,8 @@ import { prisma } from '@/lib/prisma'
 import { analyzeTrends } from '@/lib/ai/performance-analysis'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { withAiContext } from '@/lib/ai/usage-logger'
 
 const requestSchema = z.object({
   clientId: z.string().uuid(),
@@ -40,6 +42,9 @@ export async function POST(req: NextRequest) {
         { status: 404 }
       )
     }
+
+    const allowanceDenied = await requireAiAllowance(clientId)
+    if (allowanceDenied) return allowanceDenied
 
     // Check test count
     const testCount = await prisma.test.count({
@@ -79,7 +84,10 @@ export async function POST(req: NextRequest) {
 
     // Perform trend analysis
     const startTime = Date.now()
-    const result = await analyzeTrends(clientId, { months, metrics, userId: user.id })
+    const result = await withAiContext(
+      { userId: user.id, clientId, category: 'performance_analysis' },
+      () => analyzeTrends(clientId, { months, metrics, userId: user.id }),
+    )
 
     if (!result) {
       return NextResponse.json(
@@ -89,19 +97,6 @@ export async function POST(req: NextRequest) {
     }
 
     const duration = Date.now() - startTime
-
-    // Log usage
-    await prisma.aIUsageLog.create({
-      data: {
-        userId: user.id,
-        category: 'performance_analysis',
-        provider: result.modelUsed?.startsWith('gemini') ? 'GOOGLE' : result.modelUsed?.startsWith('gpt') ? 'OPENAI' : 'ANTHROPIC',
-        model: result.modelUsed ?? 'unknown',
-        inputTokens: Math.floor((result.tokensUsed ?? 0) * 0.7),
-        outputTokens: Math.floor((result.tokensUsed ?? 0) * 0.3),
-        estimatedCost: (result.tokensUsed ?? 0) * 0.000003,
-      },
-    })
 
     logger.info('Trend analysis completed', {
       userId: user.id,

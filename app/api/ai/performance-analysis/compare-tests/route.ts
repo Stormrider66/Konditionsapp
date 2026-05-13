@@ -10,6 +10,8 @@ import { prisma } from '@/lib/prisma'
 import { compareTests } from '@/lib/ai/performance-analysis'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { withAiContext } from '@/lib/ai/usage-logger'
 
 const requestSchema = z.object({
   currentTestId: z.string().uuid(),
@@ -64,6 +66,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const clientId = tests[0].clientId
+    const allowanceDenied = await requireAiAllowance(clientId)
+    if (allowanceDenied) return allowanceDenied
+
     // Check AI budget
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -85,10 +91,13 @@ export async function POST(req: NextRequest) {
 
     // Perform comparison
     const startTime = Date.now()
-    const result = await compareTests(currentTestId, previousTestId, {
-      includeTrainingCorrelation,
-      userId: user.id,
-    })
+    const result = await withAiContext(
+      { userId: user.id, clientId, category: 'performance_analysis' },
+      () => compareTests(currentTestId, previousTestId, {
+        includeTrainingCorrelation,
+        userId: user.id,
+      }),
+    )
 
     if (!result) {
       return NextResponse.json(
@@ -98,19 +107,6 @@ export async function POST(req: NextRequest) {
     }
 
     const duration = Date.now() - startTime
-
-    // Log usage
-    await prisma.aIUsageLog.create({
-      data: {
-        userId: user.id,
-        category: 'performance_analysis',
-        provider: result.modelUsed?.startsWith('gemini') ? 'GOOGLE' : result.modelUsed?.startsWith('gpt') ? 'OPENAI' : 'ANTHROPIC',
-        model: result.modelUsed ?? 'unknown',
-        inputTokens: Math.floor((result.tokensUsed ?? 0) * 0.7),
-        outputTokens: Math.floor((result.tokensUsed ?? 0) * 0.3),
-        estimatedCost: (result.tokensUsed ?? 0) * 0.000003,
-      },
-    })
 
     logger.info('Test comparison completed', {
       userId: user.id,

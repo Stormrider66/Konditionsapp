@@ -10,6 +10,8 @@ import { prisma } from '@/lib/prisma'
 import { analyzeTest } from '@/lib/ai/performance-analysis'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { withAiContext } from '@/lib/ai/usage-logger'
 
 const requestSchema = z.object({
   testId: z.string().uuid(),
@@ -50,6 +52,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const allowanceDenied = await requireAiAllowance(test.clientId)
+    if (allowanceDenied) return allowanceDenied
+
     // Check AI budget (simple check - could be more sophisticated)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -71,12 +76,15 @@ export async function POST(req: NextRequest) {
 
     // Perform analysis
     const startTime = Date.now()
-    const result = await analyzeTest(testId, {
-      includePredictions,
-      includeRecommendations,
-      trainingLookbackWeeks,
-      userId: user.id,
-    })
+    const result = await withAiContext(
+      { userId: user.id, clientId: test.clientId, category: 'performance_analysis' },
+      () => analyzeTest(testId, {
+        includePredictions,
+        includeRecommendations,
+        trainingLookbackWeeks,
+        userId: user.id,
+      }),
+    )
 
     if (!result) {
       return NextResponse.json(
@@ -86,19 +94,6 @@ export async function POST(req: NextRequest) {
     }
 
     const duration = Date.now() - startTime
-
-    // Log usage
-    await prisma.aIUsageLog.create({
-      data: {
-        userId: user.id,
-        category: 'performance_analysis',
-        provider: result.modelUsed?.startsWith('gemini') ? 'GOOGLE' : result.modelUsed?.startsWith('gpt') ? 'OPENAI' : 'ANTHROPIC',
-        model: result.modelUsed ?? 'unknown',
-        inputTokens: Math.floor((result.tokensUsed ?? 0) * 0.7), // Approximate split
-        outputTokens: Math.floor((result.tokensUsed ?? 0) * 0.3),
-        estimatedCost: (result.tokensUsed ?? 0) * 0.000002, // Gemini pricing
-      },
-    })
 
     logger.info('Test analysis completed', {
       userId: user.id,
