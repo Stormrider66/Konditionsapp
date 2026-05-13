@@ -101,15 +101,19 @@ export async function lookupOrGenerateExercise(
         },
       })
 
+      const outputTokens =
+        (response.usageMetadata?.candidatesTokenCount ?? 0) +
+        (response.usageMetadata?.thoughtsTokenCount ?? 0)
+
       logAiUsage({
         provider: 'GOOGLE',
         model,
         inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-        outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+        outputTokens,
         estimatedCost: estimateImageCostUsd(
           model,
           response.usageMetadata?.promptTokenCount ?? 0,
-          response.usageMetadata?.candidatesTokenCount ?? 0,
+          outputTokens,
         ),
         userId: coachId,
         category: 'image_generation_exercise',

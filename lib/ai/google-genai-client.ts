@@ -8,8 +8,7 @@
  * newer Gemini models, while keeping the rest of the app on Vercel SDK.
  */
 
-import { GoogleGenAI } from '@google/genai';
-import { GEMINI_MODELS } from './gemini-config';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { logAiUsage } from './usage-logger';
 
 /**
@@ -75,7 +74,16 @@ export interface GenerateContentConfig {
   maxOutputTokens?: number;
   /** Temperature for response randomness (0-2, default: 1) */
   temperature?: number;
+  /** Gemini 3 thinking level. Lower levels reduce billed thinking tokens. */
+  thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high';
 }
+
+const GENAI_THINKING_LEVEL: Record<NonNullable<GenerateContentConfig['thinkingLevel']>, ThinkingLevel> = {
+  minimal: ThinkingLevel.MINIMAL,
+  low: ThinkingLevel.LOW,
+  medium: ThinkingLevel.MEDIUM,
+  high: ThinkingLevel.HIGH,
+};
 
 /**
  * Generate content with video/audio analysis.
@@ -99,11 +107,16 @@ export async function generateContent(
     config: config ? {
       maxOutputTokens: config.maxOutputTokens,
       temperature: config.temperature,
+      thinkingConfig: config.thinkingLevel
+        ? { thinkingLevel: GENAI_THINKING_LEVEL[config.thinkingLevel] }
+        : undefined,
     } : undefined,
   });
 
   const inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
-  const outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
+  const outputTokens =
+    (response.usageMetadata?.candidatesTokenCount ?? 0) +
+    (response.usageMetadata?.thoughtsTokenCount ?? 0);
   logAiUsage({
     provider: 'GOOGLE',
     model,
@@ -119,7 +132,7 @@ export async function generateContent(
     usage: response.usageMetadata
       ? {
           inputTokens: response.usageMetadata.promptTokenCount,
-          outputTokens: response.usageMetadata.candidatesTokenCount,
+          outputTokens,
         }
       : undefined,
   };
@@ -153,7 +166,9 @@ export async function generateStructuredContent<T>(
   });
 
   const inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
-  const outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
+  const outputTokens =
+    (response.usageMetadata?.candidatesTokenCount ?? 0) +
+    (response.usageMetadata?.thoughtsTokenCount ?? 0);
   logAiUsage({
     provider: 'GOOGLE',
     model,
@@ -185,7 +200,7 @@ export async function generateStructuredContent<T>(
     usage: response.usageMetadata
       ? {
           inputTokens: response.usageMetadata.promptTokenCount,
-          outputTokens: response.usageMetadata.candidatesTokenCount,
+          outputTokens,
         }
       : undefined,
   };
@@ -534,7 +549,7 @@ export function getGeminiModelId(task: 'video' | 'audio' | 'chat'): string {
  * Convert a Zod schema to JSON Schema format for Gemini.
  * Gemini requires JSON Schema format for structured output.
  */
-export function zodToJsonSchema(zodSchema: { _def: { shape?: () => Record<string, unknown> } }): object {
+export function zodToJsonSchema(_zodSchema: { _def: { shape?: () => Record<string, unknown> } }): object {
   // For complex schemas, we need to convert Zod to JSON Schema
   // This is a simplified version - for production, use zod-to-json-schema library
   // For now, we'll rely on the prompt to guide the output format

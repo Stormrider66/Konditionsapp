@@ -12,7 +12,7 @@ import { generateObject } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
+import { GEMINI_MODELS, getGeminiThinkingOptions } from '@/lib/ai/gemini-config'
 import { FoodPhotoAnalysisSchema } from '@/lib/validations/gemini-schemas'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
@@ -169,6 +169,7 @@ UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, flerom�
           model: withGoogleLogging(google(GEMINI_MODELS.FLASH)),
           schema: FoodPhotoAnalysisSchema,
           messages: [{ role: 'user', content }],
+          providerOptions: getGeminiThinkingOptions('quick'),
           temperature: 0.1,
           maxOutputTokens: REFINE_MAX_OUTPUT_TOKENS,
           abortSignal: createTimeoutSignal(REFINE_TIMEOUT_MS),

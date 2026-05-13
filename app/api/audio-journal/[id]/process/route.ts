@@ -192,7 +192,7 @@ Gissa inte värden som inte nämndes.`;
         () => generateContent(client, modelId, [
           createText(prompt),
           createInlineData(base64, mimeType),
-        ]),
+        ], { thinkingLevel: 'low' }),
       );
 
       // Parse the response

@@ -10,8 +10,8 @@
  *     and by `google-genai-client.ts` for the direct `@google/genai` path.
  *
  * Logging is fire-and-forget: a DB write failure must never break a user
- * request. Calls without a resolvable userId are dropped (the `AIUsageLog`
- * FK is non-nullable) but still emit a warn so we can spot the gap.
+ * request. Calls without a resolvable userId are stored as unattributed and
+ * emit a warn so we can spot the gap.
  */
 import { AsyncLocalStorage } from 'node:async_hooks'
 import type { LanguageModelV2Middleware, LanguageModelV2StreamPart, LanguageModelV2Usage } from '@ai-sdk/provider'
@@ -70,9 +70,9 @@ export interface LogAiUsageParams {
 
 /**
  * Fire-and-forget write to AIUsageLog. Falls back to AsyncLocalStorage
- * context for any field not provided. Drops the row silently when no
- * userId is resolvable (the schema FK requires one); always emits a warn
- * if output tokens cross the runaway threshold.
+ * context for any field not provided. Stores unattributed rows when no userId
+ * is resolvable; always emits a warn if output tokens cross the runaway
+ * threshold.
  */
 export function logAiUsage(params: LogAiUsageParams): void {
   const ctx = getAiContext()
@@ -153,7 +153,9 @@ export function usageLoggingMiddleware(provider: AiProviderTag): LanguageModelV2
           provider,
           model: model.modelId,
           inputTokens: result.usage?.inputTokens ?? 0,
-          outputTokens: result.usage?.outputTokens ?? 0,
+          outputTokens:
+            (result.usage?.outputTokens ?? 0) +
+            (result.usage?.reasoningTokens ?? 0),
         })
       } catch (err) {
         logger.error('[ai-usage] middleware wrapGenerate logging error', {}, err)
@@ -180,7 +182,9 @@ export function usageLoggingMiddleware(provider: AiProviderTag): LanguageModelV2
                 provider,
                 model: model.modelId,
                 inputTokens: finalUsage.inputTokens ?? 0,
-                outputTokens: finalUsage.outputTokens ?? 0,
+                outputTokens:
+                  (finalUsage.outputTokens ?? 0) +
+                  (finalUsage.reasoningTokens ?? 0),
               })
             } catch (err) {
               logger.error('[ai-usage] middleware wrapStream logging error', {}, err)

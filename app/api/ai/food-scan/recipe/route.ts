@@ -19,7 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateObject } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
-import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
+import { GEMINI_MODELS, getGeminiThinkingOptions } from '@/lib/ai/gemini-config'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
@@ -135,6 +135,7 @@ VIKTIGT:
         generateObject({
           model: withGoogleLogging(google(GEMINI_MODELS.FLASH)),
           schema: recipeSchema,
+          providerOptions: getGeminiThinkingOptions('quick'),
           messages: [
             {
               role: 'user',

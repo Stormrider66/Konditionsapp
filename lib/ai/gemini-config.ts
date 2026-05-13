@@ -299,18 +299,17 @@ export const GEMINI_SAFETY_SETTINGS = [
 ] as const;
 
 /**
- * Thinking Mode configuration for Gemini 3.1 Pro.
+ * Thinking Mode configuration for Gemini 3 models.
  *
  * thinkingLevel options:
- * - 'DISABLED': No extended thinking (fastest, cheapest)
- * - 'LOW': Quick reasoning for simple decisions
- * - 'MEDIUM': Balanced reasoning for most tasks (default)
- * - 'HIGH': Deep reasoning for complex multi-step analysis
+ * - 'minimal': Lowest-cost setting for simple generation where quality risk is low
+ * - 'low': Quick reasoning for simple decisions
+ * - 'medium': Balanced reasoning for most tasks
+ * - 'high': Deep reasoning for complex multi-step analysis
  *
- * thinkingBudget: Maximum tokens the model can use for internal reasoning
- * (not counted against output tokens, but affects latency and cost)
+ * Thinking tokens are billed as output tokens, so keep routine tasks on low.
  */
-export type ThinkingLevel = 'DISABLED' | 'LOW' | 'MEDIUM' | 'HIGH';
+export type ThinkingLevel = 'minimal' | 'low' | 'medium' | 'high';
 
 export interface ThinkingConfig {
   thinkingLevel: ThinkingLevel;
@@ -318,54 +317,48 @@ export interface ThinkingConfig {
 }
 
 export const THINKING_PRESETS: Record<string, ThinkingConfig> = {
-  /** Fast responses, no extended thinking */
-  disabled: {
-    thinkingLevel: 'DISABLED',
+  /** Lowest-cost responses for very simple tasks */
+  minimal: {
+    thinkingLevel: 'minimal',
   },
   /** Quick reasoning for simple tasks */
   quick: {
-    thinkingLevel: 'LOW',
-    thinkingBudget: 5000,
+    thinkingLevel: 'low',
   },
   /** Balanced reasoning for most tasks */
   standard: {
-    thinkingLevel: 'MEDIUM',
-    thinkingBudget: 10000,
+    thinkingLevel: 'medium',
   },
   /** Deep reasoning for complex periodization, injury analysis */
   deep: {
-    thinkingLevel: 'HIGH',
-    thinkingBudget: 20000,
+    thinkingLevel: 'high',
   },
   /** Maximum reasoning for career-scale analysis */
   maximum: {
-    thinkingLevel: 'HIGH',
-    thinkingBudget: 50000,
+    thinkingLevel: 'high',
   },
 };
 
 /**
  * Get provider options for Gemini with thinking mode.
  *
- * Note: thinkingConfig is a Gemini 3.1 Pro feature. When the SDK fully supports it,
- * these options will be passed to the model. For now, we return the configuration
- * structure that can be extended.
- *
  * @param preset - Thinking preset name or custom config
- * @returns Provider options object for Vercel AI SDK (currently experimental)
+ * @returns Provider options object for Vercel AI SDK
  */
 export function getGeminiThinkingOptions(
   preset: keyof typeof THINKING_PRESETS | ThinkingConfig = 'standard'
 ) {
   const config = typeof preset === 'string' ? THINKING_PRESETS[preset] : preset;
+  const thinkingLevel = config.thinkingLevel === 'minimal' ? 'low' : config.thinkingLevel;
 
-  // Return undefined for now as Vercel AI SDK may not yet support thinkingConfig
-  // The configuration is ready for when SDK support is added
-  // Store config for future use (suppressing unused warning)
-  void config;
-
-  // Return undefined until SDK supports providerOptions.google.thinkingConfig
-  return undefined;
+  return {
+    google: {
+      thinkingConfig: {
+        thinkingLevel,
+        ...(config.thinkingBudget !== undefined ? { thinkingBudget: config.thinkingBudget } : {}),
+      },
+    },
+  };
 }
 
 /**

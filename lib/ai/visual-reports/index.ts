@@ -96,15 +96,19 @@ export async function generateVisualReport(
     },
   })
 
+  const outputTokens =
+    (response.usageMetadata?.candidatesTokenCount ?? 0) +
+    (response.usageMetadata?.thoughtsTokenCount ?? 0)
+
   logAiUsage({
     provider: 'GOOGLE',
     model: selectedModel,
     inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-    outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+    outputTokens,
     estimatedCost: estimateImageCostUsd(
       selectedModel,
       response.usageMetadata?.promptTokenCount ?? 0,
-      response.usageMetadata?.candidatesTokenCount ?? 0,
+      outputTokens,
     ),
     userId: coachId,
     category: `visual_report_${reportType}`,

@@ -12,7 +12,7 @@ import { generateObject } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { GEMINI_MODELS, GEMINI_PRICING } from '@/lib/ai/gemini-config'
+import { GEMINI_MODELS, GEMINI_PRICING, getGeminiThinkingOptions } from '@/lib/ai/gemini-config'
 import { FoodPhotoAnalysisSchema } from '@/lib/validations/gemini-schemas'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
@@ -224,6 +224,7 @@ export async function POST(request: NextRequest) {
     const firstPass = await generateObject({
       model: google(modelName),
       schema: FoodPhotoAnalysisSchema,
+      providerOptions: getGeminiThinkingOptions('quick'),
       messages: [
         {
           role: 'user',
@@ -243,7 +244,9 @@ export async function POST(request: NextRequest) {
     let memoryCorrectionHintsIncluded = false
 
     let inputTokens = firstPass.usage?.inputTokens ?? 0
-    let outputTokens = firstPass.usage?.outputTokens ?? 0
+    let outputTokens =
+      (firstPass.usage?.outputTokens ?? 0) +
+      (firstPass.usage?.reasoningTokens ?? 0)
 
     // Second pass — only when first-pass confidence is low and memory is on
     const shouldRetryWithMemory =
@@ -274,6 +277,7 @@ export async function POST(request: NextRequest) {
           const secondPass = await generateObject({
             model: google(modelName),
             schema: FoodPhotoAnalysisSchema,
+            providerOptions: getGeminiThinkingOptions('quick'),
             messages: [
               {
                 role: 'user',
@@ -294,7 +298,9 @@ export async function POST(request: NextRequest) {
           }
 
           inputTokens += secondPass.usage?.inputTokens ?? 0
-          outputTokens += secondPass.usage?.outputTokens ?? 0
+          outputTokens +=
+            (secondPass.usage?.outputTokens ?? 0) +
+            (secondPass.usage?.reasoningTokens ?? 0)
         } catch (err) {
           logger.warn('Food scan pass 2 failed; falling back to pass 1', {
             error: err instanceof Error ? err.message : String(err),

@@ -40,7 +40,7 @@ export async function POST(
     const { id: conversationId } = await params
 
     const body: SendMessageRequest = await request.json()
-    const { content, contextDocuments = [], webSearchEnabled = false } = body
+    const { content, contextDocuments = [] } = body
 
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
       return NextResponse.json(
@@ -259,6 +259,9 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
                 ],
                 generationConfig: {
                   maxOutputTokens: 4096,
+                  thinkingConfig: {
+                    thinkingLevel: 'low',
+                  },
                 },
               }),
             }
@@ -273,7 +276,9 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
           assistantResponse =
             data.candidates?.[0]?.content?.parts?.[0]?.text || ''
           inputTokens = data.usageMetadata?.promptTokenCount || 0
-          outputTokens = data.usageMetadata?.candidatesTokenCount || 0
+          outputTokens =
+            (data.usageMetadata?.candidatesTokenCount || 0) +
+            (data.usageMetadata?.thoughtsTokenCount || 0)
 
           logAiUsage({
             provider: 'GOOGLE',

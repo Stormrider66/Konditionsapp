@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
           'Transkribera denna korta ljudinspelning till svensk text. Inspelningen handlar om mat och näring — användaren korrigerar eller lägger till information om en måltid. Returnera BARA den transkriberade texten, inget annat.'
         ),
         createInlineData(base64, audioFile.type),
-      ]),
+      ], { thinkingLevel: 'low' }),
     )
 
     return NextResponse.json({

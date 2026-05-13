@@ -10,6 +10,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { resolveModel, type AvailableKeys } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
+import { getGeminiThinkingOptions } from '@/lib/ai/gemini-config'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 
 const SWEDISH_DAYS = ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag']
@@ -503,6 +504,9 @@ export async function generateMorningBriefing(
       model: createModelInstance(resolved),
       prompt,
       maxOutputTokens: 1200,
+      providerOptions: resolved.provider === 'google'
+        ? getGeminiThinkingOptions('quick')
+        : undefined,
     })
 
     const textContent = response.text
