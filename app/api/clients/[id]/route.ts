@@ -52,6 +52,7 @@ export async function GET(
           select: {
             id: true,
             userId: true,
+            createdAt: true,
             user: {
               select: {
                 email: true,
@@ -73,16 +74,29 @@ export async function GET(
       )
     }
 
+    const authStatusPromise = client.athleteAccount
+      ? getAthletePortalStatus(client.athleteAccount.userId)
+      : Promise.resolve(null)
+
     // Also fetch tests for this client
-    const tests = await prisma.test.findMany({
-      where: { clientId: id },
-      include: { testStages: { orderBy: { sequence: "asc" } } },
-    })
+    const [tests, athletePortalStatus] = await Promise.all([
+      prisma.test.findMany({
+        where: { clientId: id },
+        include: { testStages: { orderBy: { sequence: "asc" } } },
+      }),
+      authStatusPromise,
+    ])
 
     return NextResponse.json({
       success: true,
       data: {
         ...client,
+        athleteAccount: client.athleteAccount
+          ? {
+              ...client.athleteAccount,
+              authStatus: athletePortalStatus,
+            }
+          : null,
         tests,
       },
     })
@@ -95,6 +109,51 @@ export async function GET(
       },
       { status: 500 }
     )
+  }
+}
+
+async function getAthletePortalStatus(userId: string) {
+  const [lastPasswordReset, lastLogin, authUserResult] = await Promise.all([
+    prisma.authEvent.findFirst({
+      where: { userId, eventType: 'PASSWORD_RESET' },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    }),
+    prisma.authEvent.findFirst({
+      where: { userId, eventType: 'LOGIN_SUCCESS' },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    }),
+    getSupabaseAuthUser(userId),
+  ])
+
+  const authUser = authUserResult?.data?.user ?? null
+  const authLastSignInAt = authUser?.last_sign_in_at ? new Date(authUser.last_sign_in_at) : null
+  const lastSignInAt = authLastSignInAt ?? lastLogin?.createdAt ?? null
+  const passwordUpdatedAt = lastPasswordReset?.createdAt ?? null
+  const hasLoggedIn = !!lastSignInAt
+  const bannedUntil = (authUser as { banned_until?: string | null } | null)?.banned_until
+  const hasSetPasswordAndLoggedIn = !!(
+    passwordUpdatedAt &&
+    lastSignInAt &&
+    lastSignInAt >= passwordUpdatedAt
+  )
+
+  return {
+    isActive: !!authUser && !bannedUntil && hasLoggedIn,
+    hasLoggedIn,
+    hasSetPasswordAndLoggedIn,
+    lastSignInAt: lastSignInAt?.toISOString() ?? null,
+    passwordUpdatedAt: passwordUpdatedAt?.toISOString() ?? null,
+  }
+}
+
+async function getSupabaseAuthUser(userId: string) {
+  try {
+    return await createAdminSupabaseClient().auth.admin.getUserById(userId)
+  } catch (error) {
+    logger.warn('Unable to fetch athlete auth status', { userId }, error)
+    return null
   }
 }
 

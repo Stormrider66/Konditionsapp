@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
+import { logAuthEventClient } from '@/lib/auth/log-auth-event-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
@@ -110,6 +111,14 @@ export default function ResetPasswordPage() {
         })
         return
       }
+
+      const { data: userData } = await supabase.auth.getUser()
+      logAuthEventClient({
+        eventType: 'PASSWORD_RESET',
+        userId: userData.user?.id,
+        email: userData.user?.email,
+        metadata: { source: 'reset_password_page' },
+      })
 
       setIsSuccess(true)
       toast({

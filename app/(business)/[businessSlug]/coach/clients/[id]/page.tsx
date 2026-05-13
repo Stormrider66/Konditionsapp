@@ -32,7 +32,7 @@ import { RecentTestsCard } from '@/components/coach/clients/RecentTestsCard'
 import { SportProfileEditor } from '@/components/coach/clients/SportProfileEditor'
 import { ReadinessDashboard } from '@/components/athlete/ReadinessDashboard'
 import { RaceFuelingCard } from '@/components/athlete/fueling/RaceFuelingCard'
-import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, ExternalLink, Loader2, UserPlus, ClipboardList } from 'lucide-react'
+import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, ExternalLink, Loader2, UserPlus, ClipboardList, CheckCircle2, KeyRound, CircleAlert } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import {
@@ -43,6 +43,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { SearchInput } from '@/components/ui/search-input'
 import {
   AlertDialog,
@@ -58,7 +59,21 @@ import { useToast } from '@/hooks/use-toast'
 
 interface ClientWithTests extends Client {
   tests?: Test[]
-  athleteAccount?: unknown
+  athleteAccount?: {
+    id: string
+    userId: string
+    user?: {
+      email: string
+      createdAt: string | Date
+    }
+    authStatus?: {
+      isActive: boolean
+      hasLoggedIn: boolean
+      hasSetPasswordAndLoggedIn: boolean
+      lastSignInAt: string | null
+      passwordUpdatedAt: string | null
+    } | null
+  } | null
   team?: Team | null
 }
 
@@ -153,7 +168,11 @@ export default function BusinessClientDetailPage() {
   const fetchClient = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/clients/${id}`)
+      const params = new URLSearchParams()
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const response = await fetch(`/api/clients/${id}${params.size ? `?${params}` : ''}`, {
+        headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
+      })
       const result = await response.json()
 
       if (result.success) {
@@ -167,7 +186,7 @@ export default function BusinessClientDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [id, businessSlug])
 
   const fetchPrograms = useCallback(async () => {
     try {
@@ -390,7 +409,10 @@ export default function BusinessClientDetailPage() {
     <>
       <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6 mb-4 sm:mb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-          <h2 className="text-lg sm:text-xl font-semibold dark:text-white">Personuppgifter</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-semibold dark:text-white">Personuppgifter</h2>
+            <AthletePortalStatusBadge athleteAccount={client.athleteAccount} />
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <CreateAthleteAccountDialog
               clientId={id}
@@ -1096,5 +1118,39 @@ export default function BusinessClientDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  )
+}
+
+function AthletePortalStatusBadge({
+  athleteAccount,
+}: {
+  athleteAccount: ClientWithTests['athleteAccount']
+}) {
+  if (!athleteAccount) return null
+
+  const status = athleteAccount.authStatus
+  if (status?.hasSetPasswordAndLoggedIn) {
+    return (
+      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800">
+        <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+        Aktiv - lösenord klart
+      </Badge>
+    )
+  }
+
+  if (status?.hasLoggedIn || status?.isActive) {
+    return (
+      <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50 dark:text-blue-300 dark:border-blue-800 dark:bg-blue-900/20">
+        <KeyRound className="h-3.5 w-3.5 mr-1" />
+        Aktiv
+      </Badge>
+    )
+  }
+
+  return (
+    <Badge variant="outline" className="text-amber-700 border-amber-200 bg-amber-50 dark:text-amber-300 dark:border-amber-800 dark:bg-amber-900/20">
+      <CircleAlert className="h-3.5 w-3.5 mr-1" />
+      Inte inloggad än
+    </Badge>
   )
 }
