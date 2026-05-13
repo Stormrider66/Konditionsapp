@@ -49,7 +49,7 @@ export function TeamDashboardLayout({
       ),
     },
     { key: 'team-roster-grid', node: <TeamRosterGrid basePath={basePath} compact /> },
-    { key: 'coach-ai-assistant', node: <CoachAIAssistantPanel /> },
+    { key: 'coach-ai-assistant', node: <CoachAIAssistantPanel basePath={basePath} /> },
   ])
 
   return (

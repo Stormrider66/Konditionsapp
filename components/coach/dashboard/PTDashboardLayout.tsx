@@ -68,7 +68,7 @@ export function PTDashboardLayout({
   // Left column widgets
   const leftWidgets = sortByOrder([
     { key: 'todays-appointments', node: <TodaysAppointmentsCard basePath={basePath} variant="default" /> },
-    { key: 'coach-ai-assistant', node: <CoachAIAssistantPanel /> },
+    { key: 'coach-ai-assistant', node: <CoachAIAssistantPanel basePath={basePath} /> },
   ])
 
   // Right column widgets

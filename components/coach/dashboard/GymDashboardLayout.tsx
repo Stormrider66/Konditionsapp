@@ -38,7 +38,7 @@ export function GymDashboardLayout({
     { key: 'social-media', node: <SocialMediaCard basePath={basePath} /> },
     { key: 'competitions', node: <CompetitionCard basePath={basePath} /> },
     { key: 'strength-pr-feed', node: <StrengthPRFeed recentPRs={[]} /> },
-    { key: 'coach-ai-assistant', node: <CoachAIAssistantPanel /> },
+    { key: 'coach-ai-assistant', node: <CoachAIAssistantPanel basePath={basePath} /> },
   ]).filter(w => isVisible(w.key))
 
   const quickActions = isVisible('coach-quick-actions') ? (

@@ -7,7 +7,7 @@
  * Displays readiness drops, missed check-ins, missed workouts, pain mentions, and high ACWR.
  */
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import useSWR from 'swr'
 import {
   GlassCard,
@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
@@ -30,9 +30,7 @@ import {
   Activity,
   RefreshCw,
   Loader2,
-  Bell,
   CheckCircle2,
-  ChevronRight,
 } from 'lucide-react'
 import { AthleteAttentionCard } from './AthleteAttentionCard'
 
@@ -68,27 +66,22 @@ interface AlertsResponse {
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
-const alertTypeIcons: Record<string, React.ReactNode> = {
-  READINESS_DROP: <TrendingDown className="h-4 w-4" />,
-  MISSED_CHECKINS: <Calendar className="h-4 w-4" />,
-  MISSED_WORKOUTS: <Activity className="h-4 w-4" />,
-  PAIN_MENTION: <MessageSquare className="h-4 w-4" />,
-  HIGH_ACWR: <AlertTriangle className="h-4 w-4" />,
+interface CoachAIAssistantPanelProps {
+  basePath?: string
 }
 
-const alertTypeLabels: Record<string, string> = {
-  READINESS_DROP: 'Readiness',
-  MISSED_CHECKINS: 'Check-ins',
-  MISSED_WORKOUTS: 'Träning',
-  PAIN_MENTION: 'Smärta',
-  HIGH_ACWR: 'ACWR',
-}
-
-export function CoachAIAssistantPanel() {
+export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) {
   const [activeTab, setActiveTab] = useState('all')
+  const businessSlug = basePath?.split('/').filter(Boolean)[0]
+  const alertsUrl = useMemo(() => {
+    const params = new URLSearchParams()
+    if (businessSlug) params.set('businessSlug', businessSlug)
+    const query = params.toString()
+    return query ? `/api/coach/alerts?${query}` : '/api/coach/alerts'
+  }, [businessSlug])
 
   const { data, error, isLoading, mutate } = useSWR<AlertsResponse>(
-    '/api/coach/alerts',
+    alertsUrl,
     fetcher,
     { refreshInterval: 60000 } // Refresh every minute
   )
@@ -100,7 +93,7 @@ export function CoachAIAssistantPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'dismiss' }),
       })
-      mutate()
+      await mutate()
     } catch (error) {
       console.error('Error dismissing alert:', error)
     }
@@ -113,7 +106,7 @@ export function CoachAIAssistantPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'action', note }),
       })
-      mutate()
+      await mutate()
     } catch (error) {
       console.error('Error actioning alert:', error)
     }
@@ -126,7 +119,7 @@ export function CoachAIAssistantPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'resolve' }),
       })
-      mutate()
+      await mutate()
     } catch (error) {
       console.error('Error resolving alert:', error)
     }

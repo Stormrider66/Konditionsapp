@@ -6,11 +6,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireCoach } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
+import { getBusinessMembership } from '@/lib/coach/team-access'
 
 export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach()
+    const scope = getRequestedBusinessScope(request)
+    const membership = await getBusinessMembership(user.id, scope.businessSlug)
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || 'ACTIVE'
@@ -22,6 +25,11 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {
       coachId: user.id,
     }
+    const clientWhere = membership?.businessId
+      ? { businessId: membership.businessId }
+      : { userId: user.id }
+
+    where.client = clientWhere
 
     if (status !== 'all') {
       where.status = status
@@ -80,6 +88,7 @@ export async function GET(request: NextRequest) {
       by: ['alertType', 'severity'],
       where: {
         coachId: user.id,
+        client: clientWhere,
         status: 'ACTIVE',
         OR: [
           { expiresAt: null },
