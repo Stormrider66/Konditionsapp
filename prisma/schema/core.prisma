@@ -503,6 +503,9 @@ model Client {
 
   // AI Studio relations
   aiConversations  AIConversation[]  @relation("AthleteConversations")
+  aiUsageLogs      AIUsageLog[]      @relation("ClientAIUsageLogs")
+  aiAllowanceAccount AIAllowanceAccount?
+  aiTopUpPurchases AITopUpPurchase[]
   videoAnalyses    VideoAnalysis[]   @relation("AthleteVideoAnalyses")
   bodyCompositions BodyComposition[] @relation("ClientBodyComposition")
   aiGeneratedWODs  AIGeneratedWOD[]  @relation("ClientWODs")

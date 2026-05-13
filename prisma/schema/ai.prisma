@@ -537,8 +537,9 @@ model AIUsageBudget {
 
 /// AI usage logging for cost tracking
 model AIUsageLog {
-  id     String  @id @default(uuid())
-  userId String?
+  id       String  @id @default(uuid())
+  userId   String?
+  clientId String?
 
   category String // "research", "chat", "embedding"
   provider String // "GEMINI", "OPENAI", "ANTHROPIC"
@@ -552,14 +553,71 @@ model AIUsageLog {
   researchSessionId String?
   conversationId    String?
 
-  user User? @relation("UserAIUsageLogs", fields: [userId], references: [id], onDelete: SetNull)
+  user   User?   @relation("UserAIUsageLogs", fields: [userId], references: [id], onDelete: SetNull)
+  client Client? @relation("ClientAIUsageLogs", fields: [clientId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([clientId])
+  @@index([clientId, createdAt])
   @@index([category])
   @@index([provider])
   @@index([createdAt])
+}
+
+/// Monthly AI credit account for direct athlete subscriptions. Amounts are SEK
+/// cost budgets, not customer-facing token counts, so provider price changes
+/// can be absorbed centrally.
+model AIAllowanceAccount {
+  id       String @id @default(uuid())
+  clientId String @unique
+
+  periodStart DateTime
+  periodEnd   DateTime
+
+  includedBudgetSek Float @default(0)
+  includedUsedSek   Float @default(0)
+  topUpBalanceSek   Float @default(0)
+  hardCapSek        Float @default(0)
+
+  status      String    @default("ACTIVE") // ACTIVE, PAUSED
+  lastResetAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([periodEnd])
+  @@index([status])
+}
+
+/// Purchased AI credit packs. Credits are stored in SEK so billing, caps, and
+/// provider reconciliation use one shared unit.
+model AITopUpPurchase {
+  id       String @id @default(uuid())
+  clientId String
+
+  stripePaymentIntentId   String? @unique
+  stripeCheckoutSessionId String? @unique
+
+  amountPaidSek       Float
+  creditsSek          Float
+  creditsRemainingSek Float
+  currency            String @default("SEK")
+
+  status    String    @default("PENDING") // PENDING, ACTIVE, CONSUMED, EXPIRED, REFUNDED
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([status])
+  @@index([expiresAt])
 }
 
 /// Imported cloud provider billing rows used to reconcile app-estimated AI

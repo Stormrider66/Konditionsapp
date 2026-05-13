@@ -18,6 +18,7 @@ import type { LanguageModelV2Middleware, LanguageModelV2StreamPart, LanguageMode
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { GEMINI_PRICING } from './gemini-config'
+import { recordAiUsageDebit, usdToSek } from './billing/allowance'
 
 export type AiProviderTag = 'GOOGLE' | 'ANTHROPIC' | 'OPENAI'
 
@@ -26,6 +27,7 @@ const HIGH_OUTPUT_WARN_THRESHOLD = 10_000
 
 export interface AiUsageContext {
   userId?: string | null
+  clientId?: string | null
   /** e.g. 'chat', 'briefing', 'food_scan', 'operator_agent', 'image_generation' */
   category: string
   conversationId?: string | null
@@ -57,6 +59,7 @@ export function estimateImageCostUsd(model: string, inputTokens: number, outputT
 
 export interface LogAiUsageParams {
   userId?: string | null
+  clientId?: string | null
   category?: string
   provider: AiProviderTag
   model: string
@@ -77,6 +80,7 @@ export interface LogAiUsageParams {
 export function logAiUsage(params: LogAiUsageParams): void {
   const ctx = getAiContext()
   const userId = params.userId ?? ctx?.userId ?? null
+  const clientId = params.clientId ?? ctx?.clientId ?? null
   const category = params.category ?? ctx?.category ?? 'unknown'
   const conversationId = params.conversationId ?? ctx?.conversationId ?? null
   const researchSessionId = params.researchSessionId ?? ctx?.researchSessionId ?? null
@@ -97,6 +101,7 @@ export function logAiUsage(params: LogAiUsageParams): void {
       outputTokens,
       estimatedCost,
       userId: userId ?? '(none)',
+      clientId: clientId ?? '(none)',
     })
   }
 
@@ -115,6 +120,7 @@ export function logAiUsage(params: LogAiUsageParams): void {
     .create({
       data: {
         userId,
+        clientId,
         category,
         provider: params.provider,
         model: params.model,
@@ -125,10 +131,28 @@ export function logAiUsage(params: LogAiUsageParams): void {
         researchSessionId,
       },
     })
+    .then(() => {
+      if (!clientId || estimatedCost <= 0) return null
+      return recordAiUsageDebit({
+        clientId,
+        costSek: usdToSek(estimatedCost),
+      })
+    })
+    .then((result) => {
+      if (!result || result.debit.allowed) return
+      logger.warn('[ai-usage] AI allowance exceeded after usage was logged', {
+        category,
+        provider: params.provider,
+        model: params.model,
+        clientId,
+        costSek: result.debit.costSek,
+        remainingSek: result.debit.remainingSek,
+      })
+    })
     .catch((err) => {
       logger.error(
-        '[ai-usage] failed to write AIUsageLog',
-        { category, provider: params.provider, model: params.model },
+        '[ai-usage] failed to write AIUsageLog or debit allowance',
+        { category, provider: params.provider, model: params.model, clientId },
         err,
       )
     })

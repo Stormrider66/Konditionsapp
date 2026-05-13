@@ -18,6 +18,13 @@ export const ATHLETE_LEGACY_AI_CHAT_LIMITS: Record<AthletePlanTier, number> = {
   ELITE: -1,
 }
 
+export const ATHLETE_AI_ALLOWANCE_SEK: Record<AthletePlanTier, number> = {
+  FREE: 3,
+  STANDARD: 30,
+  PRO: 75,
+  ELITE: 150,
+}
+
 export const ATHLETE_PLAN_COPY: Record<
   AthletePlanTier,
   {
