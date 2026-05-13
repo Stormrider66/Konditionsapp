@@ -83,6 +83,7 @@ interface Props {
   teamId: string
   teamName: string
   teamPath: string
+  businessSlug?: string
 }
 
 const ACCEPTED_FILE_EXTENSIONS =
@@ -101,9 +102,10 @@ const INTENT_OPTIONS: { value: ModelIntent; label: string; hint: string }[] = [
   { value: 'powerful', label: 'Kraftfull (bäst kvalitet)', hint: 'För röriga scan-PDF:er, handskriven whiteboard eller svårlästa foton.' },
 ]
 
-export function ImportRosterClient({ teamId, teamName, teamPath }: Props) {
+export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }: Props) {
   const { toast } = useToast()
   const router = useRouter()
+  const resolvedBusinessSlug = businessSlug ?? teamPath.split('/').filter(Boolean)[0]
 
   const [tab, setTab] = useState<'paste' | 'upload'>('paste')
   const [pastedText, setPastedText] = useState('')
@@ -177,12 +179,16 @@ export function ImportRosterClient({ teamId, teamName, teamPath }: Props) {
         form.append('intent', intent)
         response = await fetch(`/api/coach/teams/${teamId}/import-parse`, {
           method: 'POST',
+          headers: resolvedBusinessSlug ? { 'x-business-slug': resolvedBusinessSlug } : {},
           body: form,
         })
       } else {
         response = await fetch(`/api/coach/teams/${teamId}/import-parse`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(resolvedBusinessSlug ? { 'x-business-slug': resolvedBusinessSlug } : {}),
+          },
           body: JSON.stringify({ text: pastedText, intent }),
         })
       }
@@ -243,7 +249,10 @@ export function ImportRosterClient({ teamId, teamName, teamPath }: Props) {
       }))
       const res = await fetch(`/api/coach/teams/${teamId}/members/bulk`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(resolvedBusinessSlug ? { 'x-business-slug': resolvedBusinessSlug } : {}),
+        },
         body: JSON.stringify({ rows: payload }),
       })
       const data = await res.json()

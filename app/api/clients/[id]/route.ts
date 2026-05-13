@@ -5,7 +5,7 @@ import { clientSchema, type ClientFormData } from '@/lib/validations/schemas'
 import { getCurrentUser, getRequestedBusinessScope } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
-import { getBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
+import { getAccessibleTeam, getBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 
@@ -39,11 +39,19 @@ export async function GET(
     const coachIds = membership
       ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
       : [user.id]
-    const client = await prisma.client.findFirst({
+    let client = await prisma.client.findFirst({
       where: {
         id,
         ...(membership
-          ? { userId: { in: coachIds }, businessId: membership.businessId }
+          ? {
+              userId: { in: coachIds },
+              OR: [
+                { businessId: membership.businessId },
+                ...(scope.businessSlug
+                  ? [{ team: { organization: { id: `${scope.businessSlug}-org` } } }]
+                  : []),
+              ],
+            }
           : { userId: user.id }),
       },
       include: {
@@ -64,6 +72,36 @@ export async function GET(
       },
     })
 
+    if (!client && membership && scope.businessSlug) {
+      const candidate = await prisma.client.findFirst({
+        where: {
+          id,
+          userId: { in: coachIds },
+          teamId: { not: null },
+        },
+        include: {
+          team: true,
+          athleteAccount: {
+            select: {
+              id: true,
+              userId: true,
+              createdAt: true,
+              user: {
+                select: {
+                  email: true,
+                  createdAt: true,
+                }
+              }
+            }
+          }
+        },
+      })
+
+      if (candidate?.teamId && await getAccessibleTeam(user.id, candidate.teamId, scope.businessSlug)) {
+        client = candidate
+      }
+    }
+
     if (!client) {
       return NextResponse.json(
         {
@@ -72,6 +110,31 @@ export async function GET(
         },
         { status: 404 }
       )
+    }
+
+    // Recover rows created through older roster-import paths that attached the
+    // player to the correct business team but did not stamp client.businessId.
+    if (membership && client.businessId !== membership.businessId) {
+      client = await prisma.client.update({
+        where: { id: client.id },
+        data: { businessId: membership.businessId },
+        include: {
+          team: true,
+          athleteAccount: {
+            select: {
+              id: true,
+              userId: true,
+              createdAt: true,
+              user: {
+                select: {
+                  email: true,
+                  createdAt: true,
+                }
+              }
+            }
+          }
+        },
+      })
     }
 
     const authStatusPromise = client.athleteAccount

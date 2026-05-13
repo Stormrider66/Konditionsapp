@@ -21,7 +21,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
@@ -61,8 +61,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const { teamId } = await context.params
+    const scope = getRequestedBusinessScope(request)
 
-    const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
+    const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'roster')
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
     }

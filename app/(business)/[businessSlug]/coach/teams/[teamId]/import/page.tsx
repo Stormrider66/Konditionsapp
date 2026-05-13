@@ -43,6 +43,7 @@ export default async function ImportRosterPage({ params }: PageProps) {
         teamId={team.id}
         teamName={team.name}
         teamPath={teamPath}
+        businessSlug={businessSlug}
       />
     </div>
   )
