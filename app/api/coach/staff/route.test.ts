@@ -5,6 +5,7 @@ const mockBusinessMemberFindMany = vi.hoisted(() => vi.fn())
 const mockTeamFindMany = vi.hoisted(() => vi.fn())
 const mockTeamCoachAssignmentCreate = vi.hoisted(() => vi.fn())
 const mockRequireCoach = vi.hoisted(() => vi.fn())
+const mockGetRequestedBusinessScope = vi.hoisted(() => vi.fn())
 const mockGetStaffRolePreview = vi.hoisted(() => vi.fn())
 const mockGetStaffPermissions = vi.hoisted(() => vi.fn())
 const mockInviteUserToBusiness = vi.hoisted(() => vi.fn())
@@ -26,6 +27,7 @@ vi.mock('@/lib/prisma', () => ({
 
 vi.mock('@/lib/auth-utils', () => ({
   requireCoach: mockRequireCoach,
+  getRequestedBusinessScope: mockGetRequestedBusinessScope,
 }))
 
 vi.mock('@/lib/permissions/role-preview-server', () => ({
@@ -63,6 +65,7 @@ describe('POST /api/coach/staff', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRequireCoach.mockResolvedValue({ id: 'owner-1', role: 'COACH' })
+    mockGetRequestedBusinessScope.mockReturnValue({})
     mockGetStaffRolePreview.mockResolvedValue(null)
     mockGetStaffPermissions.mockResolvedValue({ canInviteStaff: true })
     mockBusinessMemberFindFirst.mockResolvedValue({

@@ -64,9 +64,10 @@ const TEAM_SCOPED_ROLES = ['PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO']
 interface StaffManagementProps {
   teams: Team[]
   businessType: BusinessType | string
+  businessSlug?: string
 }
 
-export function StaffManagement({ teams, businessType }: StaffManagementProps) {
+export function StaffManagement({ teams, businessType, businessSlug }: StaffManagementProps) {
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [loading, setLoading] = useState(true)
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -81,7 +82,11 @@ export function StaffManagement({ teams, businessType }: StaffManagementProps) {
 
   const fetchStaff = useCallback(async () => {
     try {
-      const res = await fetch('/api/coach/staff')
+      const params = new URLSearchParams()
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const res = await fetch(`/api/coach/staff${params.size ? `?${params}` : ''}`, {
+        headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
+      })
       if (res.ok) {
         const data = await res.json()
         setStaff(data.staff || [])
@@ -91,12 +96,17 @@ export function StaffManagement({ teams, businessType }: StaffManagementProps) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [businessSlug])
 
   const handleRemove = async (memberId: string, name: string) => {
     if (!confirm(`Ta bort ${name} från personalen?`)) return
     try {
-      const res = await fetch(`/api/coach/staff/${memberId}`, { method: 'DELETE' })
+      const params = new URLSearchParams()
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const res = await fetch(`/api/coach/staff/${memberId}${params.size ? `?${params}` : ''}`, {
+        method: 'DELETE',
+        headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
+      })
       if (res.ok) {
         setStaff((prev) => prev.filter((m) => m.id !== memberId))
         toast.success(`${name} borttagen`)
@@ -121,9 +131,14 @@ export function StaffManagement({ teams, businessType }: StaffManagementProps) {
 
     setInviting(true)
     try {
-      const res = await fetch('/api/coach/staff', {
+      const params = new URLSearchParams()
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const res = await fetch(`/api/coach/staff${params.size ? `?${params}` : ''}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
+        },
         body: JSON.stringify({
           name: invName.trim(),
           email: invEmail.trim(),

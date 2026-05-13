@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { getStaffPermissions } from '@/lib/permissions/assistant-coach'
 import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
@@ -14,11 +14,12 @@ interface RouteContext {
   params: Promise<{ memberId: string }>
 }
 
-export async function DELETE(_req: NextRequest, context: RouteContext) {
+export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
+    const scope = getRequestedBusinessScope(req)
     const previewRole = await getStaffRolePreview(user.id)
-    const permissions = await getStaffPermissions(user.id, undefined, { roleOverride: previewRole })
+    const permissions = await getStaffPermissions(user.id, scope.businessSlug, { roleOverride: previewRole })
 
     if (!permissions.canInviteStaff) {
       return NextResponse.json({ error: 'Ingen behörighet' }, { status: 403 })
@@ -29,7 +30,7 @@ export async function DELETE(_req: NextRequest, context: RouteContext) {
     // Get the member to deactivate
     const member = await prisma.businessMember.findUnique({
       where: { id: memberId },
-      select: { userId: true, role: true },
+      select: { userId: true, role: true, businessId: true },
     })
 
     if (!member) {
@@ -44,6 +45,22 @@ export async function DELETE(_req: NextRequest, context: RouteContext) {
     // Can't remove yourself
     if (member.userId === user.id) {
       return NextResponse.json({ error: 'Kan inte ta bort dig själv' }, { status: 400 })
+    }
+
+    if (scope.businessSlug) {
+      const requesterMembership = await prisma.businessMember.findFirst({
+        where: {
+          userId: user.id,
+          businessId: member.businessId,
+          isActive: true,
+          business: { slug: scope.businessSlug, isActive: true },
+        },
+        select: { id: true },
+      })
+
+      if (!requesterMembership) {
+        return NextResponse.json({ error: 'Medlem hittades inte' }, { status: 404 })
+      }
     }
 
     // Deactivate the member

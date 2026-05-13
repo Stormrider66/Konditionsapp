@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { inviteUserToBusiness } from '@/lib/invite-utils'
 import {
@@ -32,19 +32,27 @@ function uniqueTeamIds(teamIds: string[] | undefined) {
   return Array.from(new Set(teamIds ?? []))
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const user = await requireCoach()
+    const scope = getRequestedBusinessScope(req)
     const previewRole = await getStaffRolePreview(user.id)
-    const permissions = await getStaffPermissions(user.id, undefined, { roleOverride: previewRole })
+    const permissions = await getStaffPermissions(user.id, scope.businessSlug, { roleOverride: previewRole })
 
     if (!permissions.canInviteStaff) {
       return NextResponse.json({ error: 'Ingen behörighet' }, { status: 403 })
     }
 
     const membership = await prisma.businessMember.findFirst({
-      where: { userId: user.id, isActive: true },
+      where: {
+        userId: user.id,
+        isActive: true,
+        ...(scope.businessSlug
+          ? { business: { slug: scope.businessSlug, isActive: true } }
+          : {}),
+      },
       select: { businessId: true, business: { select: { type: true } } },
+      orderBy: { createdAt: 'asc' },
     })
 
     if (!membership) {
@@ -68,7 +76,15 @@ export async function GET() {
     const memberUserIds = members.map((m) => m.userId)
     const allAssignments = memberUserIds.length
       ? await prisma.teamCoachAssignment.findMany({
-          where: { userId: { in: memberUserIds } },
+          where: {
+            userId: { in: memberUserIds },
+            team: {
+              OR: [
+                { members: { some: { businessId: membership.businessId } } },
+                ...(scope.businessSlug ? [{ organization: { id: `${scope.businessSlug}-org` } }] : []),
+              ],
+            },
+          },
           include: { team: { select: { id: true, name: true } } },
         })
       : []
@@ -108,16 +124,24 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireCoach()
+    const scope = getRequestedBusinessScope(req)
     const previewRole = await getStaffRolePreview(user.id)
-    const permissions = await getStaffPermissions(user.id, undefined, { roleOverride: previewRole })
+    const permissions = await getStaffPermissions(user.id, scope.businessSlug, { roleOverride: previewRole })
 
     if (!permissions.canInviteStaff) {
       return NextResponse.json({ error: 'Ingen behörighet att bjuda in personal' }, { status: 403 })
     }
 
     const membership = await prisma.businessMember.findFirst({
-      where: { userId: user.id, isActive: true },
+      where: {
+        userId: user.id,
+        isActive: true,
+        ...(scope.businessSlug
+          ? { business: { slug: scope.businessSlug, isActive: true } }
+          : {}),
+      },
       select: { businessId: true, business: { select: { type: true } } },
+      orderBy: { createdAt: 'asc' },
     })
 
     if (!membership) {
