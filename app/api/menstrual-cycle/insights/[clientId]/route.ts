@@ -15,6 +15,9 @@ import { CycleInsightsSchema } from '@/lib/validations/gemini-schemas';
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
 import { getResolvedAiKeys } from '@/lib/user-api-keys';
 import { logError } from '@/lib/logger-console'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { withGoogleLogging } from '@/lib/ai/google'
+import { withAiContext } from '@/lib/ai/usage-logger'
 
 export async function GET(
   request: NextRequest,
@@ -25,15 +28,18 @@ export async function GET(
 
     // Verify access - try as athlete (or coach in athlete mode) first
     let isAthlete = false;
+    let actorUserId: string | null = null;
     const resolved = await resolveAthleteClientId();
     if (resolved) {
       if (resolved.clientId !== clientId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
       }
       isAthlete = true;
+      actorUserId = resolved.user.id;
     } else {
       // Try as coach viewing a specific client
       const user = await requireCoach();
+      actorUserId = user.id;
       const hasAccess = await canAccessClient(user.id, clientId)
       if (!hasAccess) {
         return NextResponse.json({ error: 'Client not found' }, { status: 404 });
@@ -94,7 +100,9 @@ export async function GET(
     const resolvedKeys = await getResolvedAiKeys(client.userId);
     const googleKey = resolvedKeys.googleKey;
 
-    if (googleKey && allLogs.length >= 10) {
+    const aiAllowanceDenied = await requireAiAllowance(clientId)
+
+    if (!aiAllowanceDenied && googleKey && allLogs.length >= 10) {
       try {
         const google = createGoogleGenerativeAI({
           apiKey: googleKey,
@@ -116,11 +124,14 @@ export async function GET(
           recentLogs: allLogs.slice(-14), // Last 14 logs
         });
 
-        const result = await generateObject({
-          model: google(GEMINI_MODELS.FLASH), // Use Flash for quick insights
-          schema: CycleInsightsSchema,
-          prompt,
-        });
+        const result = await withAiContext(
+          { userId: actorUserId, clientId, category: 'menstrual_cycle_insights' },
+          () => generateObject({
+            model: withGoogleLogging(google(GEMINI_MODELS.FLASH)), // Use Flash for quick insights
+            schema: CycleInsightsSchema,
+            prompt,
+          }),
+        );
 
         aiInsights = result.object;
       } catch (error) {
