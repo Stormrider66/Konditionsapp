@@ -14,6 +14,8 @@ import { getTierFeatures } from '@/lib/auth/tier-utils';
 import { calculateAndRecordRevenueShare } from '@/lib/coach/revenue-share';
 import { sendPaymentFailedEmail } from '@/lib/email';
 import { logger } from '@/lib/logger';
+import { getOrCreateAiAllowanceAccount, roundSek } from '@/lib/ai/billing/allowance';
+import { getAiTopUpPack } from '@/lib/ai/billing/top-up-packs';
 
 // Lazy initialize Stripe client to avoid build-time errors
 let _stripe: Stripe | null = null;
@@ -219,6 +221,76 @@ export async function createCheckoutSession(
 }
 
 /**
+ * Create a one-time checkout session for athlete AI credit top-ups.
+ */
+export async function createAiTopUpCheckoutSession(
+  clientId: string,
+  packId: string,
+  successUrl: string,
+  cancelUrl: string
+): Promise<string> {
+  const pack = getAiTopUpPack(packId);
+  if (!pack) {
+    throw new Error(`Unknown AI top-up pack: ${packId}`);
+  }
+
+  const customerId = await getOrCreateStripeCustomer(clientId);
+  const amountPaidSek = roundSek(pack.amountSek);
+  const creditsSek = roundSek(pack.creditsSek);
+
+  const session = await stripe().checkout.sessions.create({
+    customer: customerId,
+    mode: 'payment',
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price_data: {
+          currency: 'sek',
+          product_data: {
+            name: `${pack.name} krediter`,
+            description: pack.description,
+          },
+          unit_amount: Math.round(amountPaidSek * 100),
+        },
+        quantity: 1,
+      },
+    ],
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    metadata: {
+      type: 'ai_top_up',
+      clientId,
+      packId: pack.id,
+      amountPaidSek: String(amountPaidSek),
+      creditsSek: String(creditsSek),
+    },
+    payment_intent_data: {
+      metadata: {
+        type: 'ai_top_up',
+        clientId,
+        packId: pack.id,
+        amountPaidSek: String(amountPaidSek),
+        creditsSek: String(creditsSek),
+      },
+    },
+  });
+
+  await prisma.aITopUpPurchase.create({
+    data: {
+      clientId,
+      stripeCheckoutSessionId: session.id,
+      amountPaidSek,
+      creditsSek,
+      creditsRemainingSek: creditsSek,
+      status: 'PENDING',
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  return session.url!;
+}
+
+/**
  * Create a billing portal session for managing subscription
  */
 export async function createBillingPortalSession(
@@ -274,6 +346,10 @@ export async function handleStripeWebhook(
 async function handleCheckoutComplete(
   session: Stripe.Checkout.Session
 ): Promise<{ handled: boolean; message: string }> {
+  if (session.metadata?.type === 'ai_top_up') {
+    return handleAiTopUpCheckoutComplete(session);
+  }
+
   const { clientId, tier, cycle, businessId } = session.metadata || {};
 
   if (!clientId || !tier) {
@@ -309,6 +385,76 @@ async function handleCheckoutComplete(
   });
 
   return { handled: true, message: `Subscription created for client ${clientId}` };
+}
+
+async function handleAiTopUpCheckoutComplete(
+  session: Stripe.Checkout.Session
+): Promise<{ handled: boolean; message: string }> {
+  const { clientId, creditsSek, amountPaidSek } = session.metadata || {};
+
+  if (!clientId || !creditsSek || !amountPaidSek) {
+    return { handled: false, message: 'Missing AI top-up metadata in checkout session' };
+  }
+
+  const parsedCreditsSek = roundSek(Number(creditsSek));
+  const parsedAmountPaidSek = roundSek(Number(amountPaidSek));
+
+  if (!Number.isFinite(parsedCreditsSek) || parsedCreditsSek <= 0) {
+    return { handled: false, message: 'Invalid AI top-up credit amount' };
+  }
+
+  const paymentIntentId =
+    typeof session.payment_intent === 'string'
+      ? session.payment_intent
+      : session.payment_intent?.id ?? null;
+
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.aITopUpPurchase.findUnique({
+      where: { stripeCheckoutSessionId: session.id },
+      select: { id: true, status: true },
+    });
+
+    if (existing?.status === 'ACTIVE') {
+      return;
+    }
+
+    await getOrCreateAiAllowanceAccount(clientId, new Date(), tx);
+
+    if (existing) {
+      await tx.aITopUpPurchase.update({
+        where: { id: existing.id },
+        data: {
+          stripePaymentIntentId: paymentIntentId,
+          amountPaidSek: parsedAmountPaidSek,
+          creditsSek: parsedCreditsSek,
+          creditsRemainingSek: parsedCreditsSek,
+          status: 'ACTIVE',
+        },
+      });
+    } else {
+      await tx.aITopUpPurchase.create({
+        data: {
+          clientId,
+          stripeCheckoutSessionId: session.id,
+          stripePaymentIntentId: paymentIntentId,
+          amountPaidSek: parsedAmountPaidSek,
+          creditsSek: parsedCreditsSek,
+          creditsRemainingSek: parsedCreditsSek,
+          status: 'ACTIVE',
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        },
+      });
+    }
+
+    await tx.aIAllowanceAccount.update({
+      where: { clientId },
+      data: {
+        topUpBalanceSek: { increment: parsedCreditsSek },
+      },
+    });
+  });
+
+  return { handled: true, message: `AI top-up activated for client ${clientId}` };
 }
 
 /**

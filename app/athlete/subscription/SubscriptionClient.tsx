@@ -36,6 +36,7 @@ import {
   ATHLETE_PLAN_PRICING,
   type AthletePlanTier,
 } from '@/lib/subscription/athlete-plans'
+import { AI_TOP_UP_PACKS } from '@/lib/ai/billing/top-up-packs'
 
 interface Subscription {
   id: string
@@ -202,6 +203,38 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
     }
   }
 
+  const handleAiTopUp = async (packId: string) => {
+    setIsLoading(packId)
+    try {
+      const response = await fetch('/api/payments/ai-top-up', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packId }),
+      })
+
+      const data = await response.json()
+      const checkoutUrl = data.url || data.checkoutUrl
+
+      if (checkoutUrl) {
+        window.location.assign(checkoutUrl)
+      } else {
+        toast({
+          title: 'Fel',
+          description: data.error || 'Kunde inte starta betalning',
+          variant: 'destructive',
+        })
+      }
+    } catch (_error) {
+      toast({
+        title: 'Fel',
+        description: 'Kunde inte starta betalning',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(null)
+    }
+  }
+
   const getPrice = (tier: typeof TIERS[0]) => {
     if (billingCycle === 'YEARLY' && tier.yearlyPrice) {
       return tier.yearlyPrice
@@ -350,8 +383,31 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
                 </span>{' '}
                 i AI-krediter.
               </p>
-              <div className="rounded-lg bg-emerald-50 p-3 text-emerald-800">
-                Extra påfyllning kommer här som nästa betalsteg. Tills dess är uppgradering till Pro den enklaste vägen för tung AI-användning.
+              <div className="space-y-2">
+                {AI_TOP_UP_PACKS.map((pack) => (
+                  <div
+                    key={pack.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border bg-white p-3"
+                  >
+                    <div>
+                      <p className="font-medium text-foreground">{pack.creditsSek} SEK krediter</p>
+                      <p className="text-xs">{pack.description}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0"
+                      disabled={isLoading === pack.id}
+                      onClick={() => handleAiTopUp(pack.id)}
+                    >
+                      {isLoading === pack.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        `${pack.amountSek} kr`
+                      )}
+                    </Button>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>

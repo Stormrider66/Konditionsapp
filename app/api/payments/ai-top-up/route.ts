@@ -1,0 +1,59 @@
+/**
+ * POST /api/payments/ai-top-up - Create Stripe checkout session for AI credit packs
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
+import { createAiTopUpCheckoutSession } from '@/lib/payments/stripe'
+
+const topUpCheckoutSchema = z.object({
+  packId: z.string().min(1),
+})
+
+export async function POST(request: NextRequest) {
+  try {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { user, clientId } = resolved
+    const rateLimited = await rateLimitJsonResponse('payments:athlete:ai-top-up', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
+    const body = await request.json()
+    const { packId } = topUpCheckoutSchema.parse(body)
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
+    const successUrl = `${baseUrl}/athlete/subscription?aiTopUp=success`
+    const cancelUrl = `${baseUrl}/athlete/subscription?aiTopUp=cancelled`
+
+    const checkoutUrl = await createAiTopUpCheckoutSession(clientId, packId, successUrl, cancelUrl)
+
+    return NextResponse.json({
+      success: true,
+      checkoutUrl,
+      url: checkoutUrl,
+    })
+  } catch (error) {
+    logger.error('Create AI top-up checkout error', {}, error)
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: error.errors },
+        { status: 400 },
+      )
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to create AI credit checkout' },
+      { status: 500 },
+    )
+  }
+}
