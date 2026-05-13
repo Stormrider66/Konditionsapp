@@ -19,6 +19,11 @@ import type {
   LiveVoiceSessionConfig,
 } from '@/lib/ai/live-voice-coaching/types'
 import { estimateLiveSessionCost } from '@/lib/ai/gemini-config'
+import {
+  getAiAllowanceUpgradeMessage,
+  isAiAllowanceExhaustedError,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors'
 
 interface FocusModeSegment {
   type: string
@@ -277,6 +282,8 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
+        const allowanceError = parseAiAllowanceError(data)
+        if (allowanceError) throw allowanceError
         throw new Error(data.error || `Failed to initialize (${res.status})`)
       }
 
@@ -370,7 +377,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Connection failed'
-      setError(message)
+      setError(isAiAllowanceExhaustedError(err) ? `${message} ${getAiAllowanceUpgradeMessage()}` : message)
       setStatus('error')
     }
   }, [assignmentId, status, handleToolCall, enableCamera])

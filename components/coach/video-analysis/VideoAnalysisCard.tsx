@@ -51,6 +51,11 @@ import { sv } from 'date-fns/locale'
 import { PoseAnalyzer, PoseFrame } from './PoseAnalyzer'
 import { SkiingTechniqueDashboard } from './SkiingTechniqueDashboard'
 import { HyroxStationDashboard } from './HyroxStationDashboard'
+import {
+  getAiAllowanceUpgradeMessage,
+  isAiAllowanceExhaustedError,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors'
 // Context loading removed to prevent infinite render loops
 
 interface Issue {
@@ -432,10 +437,12 @@ export function VideoAnalysisCard({
         method: 'POST',
       })
 
-      const data = await response.json()
+      const data = await response.json().catch(() => null)
 
       if (!response.ok) {
-        throw new Error(data.error || 'Analys misslyckades')
+        const allowanceError = parseAiAllowanceError(data)
+        if (allowanceError) throw allowanceError
+        throw new Error(data?.error || 'Analys misslyckades')
       }
 
       toast({
@@ -445,9 +452,10 @@ export function VideoAnalysisCard({
 
       onAnalysisComplete()
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Okänt fel'
       toast({
         title: 'Analys misslyckades',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        description: isAiAllowanceExhaustedError(error) ? `${message} ${getAiAllowanceUpgradeMessage()}` : message,
         variant: 'destructive',
       })
     } finally {

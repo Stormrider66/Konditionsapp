@@ -14,6 +14,10 @@ import {
 } from '@/components/ui/select'
 import { Download, ImageIcon, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  getAiAllowanceUpgradeMessage,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors'
 
 export interface VisualReportCardProps {
   clientId: string
@@ -99,15 +103,19 @@ export function VisualReportCard({
       })
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to generate')
+        const data = await res.json().catch(() => null)
+        const allowanceError = parseAiAllowanceError(data)
+        if (allowanceError) {
+          throw new Error(`${allowanceError.message} ${getAiAllowanceUpgradeMessage()}`)
+        }
+        throw new Error(data?.error || 'Failed to generate')
       }
 
       const data = await res.json()
       setUrl(data.report.imageUrl)
       toast.success(t('success'))
-    } catch {
-      toast.error(t('error'))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('error'))
     } finally {
       setIsGenerating(false)
     }

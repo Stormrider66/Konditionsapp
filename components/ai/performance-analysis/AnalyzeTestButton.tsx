@@ -38,6 +38,11 @@ import type {
   PerformanceAnalysisResult,
   TestComparisonResult,
 } from '@/lib/ai/performance-analysis/types'
+import {
+  getAiAllowanceUpgradeMessage,
+  isAiAllowanceExhaustedError,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors'
 
 interface AnalyzeTestButtonProps {
   testId: string
@@ -93,14 +98,17 @@ export function AnalyzeTestButton({
       }
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to analyze')
+        const data = await response.json().catch(() => null)
+        const allowanceError = parseAiAllowanceError(data)
+        if (allowanceError) throw allowanceError
+        throw new Error(data?.error || 'Failed to analyze')
       }
 
       const data = await response.json()
       setResult(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      const message = err instanceof Error ? err.message : 'Ett fel uppstod'
+      setError(isAiAllowanceExhaustedError(err) ? `${message} ${getAiAllowanceUpgradeMessage()}` : message)
     } finally {
       setIsLoading(false)
     }

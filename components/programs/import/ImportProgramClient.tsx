@@ -55,6 +55,11 @@ import {
   extractExerciseNames,
   type ExerciseMappings,
 } from '@/lib/ai/program-exercise-resolver'
+import {
+  getAiAllowanceUpgradeMessage,
+  isAiAllowanceExhaustedError,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors'
 
 interface ClientOption {
   id: string
@@ -281,6 +286,8 @@ export function ImportProgramClient({
 
       const data = await response.json()
       if (!response.ok || !data?.success) {
+        const allowanceError = parseAiAllowanceError(data)
+        if (allowanceError) throw allowanceError
         throw new Error(data?.error || 'Kunde inte tolka programmet')
       }
 
@@ -302,10 +309,11 @@ export function ImportProgramClient({
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Okänt fel'
-      setParseError(msg)
+      const description = isAiAllowanceExhaustedError(e) ? `${msg} ${getAiAllowanceUpgradeMessage()}` : msg
+      setParseError(description)
       toast({
         title: 'Import misslyckades',
-        description: msg,
+        description,
         variant: 'destructive',
       })
     } finally {
@@ -390,6 +398,8 @@ export function ImportProgramClient({
       }
       const data = await response.json()
       if (!response.ok || !data?.success) {
+        const allowanceError = parseAiAllowanceError(data)
+        if (allowanceError) throw allowanceError
         throw new Error(data?.error || 'Kunde inte tolka programmet')
       }
       const typedData = data as ParseResponse
@@ -402,10 +412,11 @@ export function ImportProgramClient({
       })
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Okänt fel'
-      setParseError(msg)
+      const description = isAiAllowanceExhaustedError(e) ? `${msg} ${getAiAllowanceUpgradeMessage()}` : msg
+      setParseError(description)
       toast({
         title: 'Omkörningen misslyckades',
-        description: msg,
+        description,
         variant: 'destructive',
       })
     } finally {

@@ -26,6 +26,11 @@ import { Badge } from '@/components/ui/badge';
 import { Camera, Loader2, CheckCircle, AlertTriangle, RotateCcw, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { LactateMeterOCRResult } from '@/lib/validations/gemini-schemas';
+import {
+  getAiAllowanceUpgradeMessage,
+  isAiAllowanceExhaustedError,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors';
 
 interface LactateScanButtonProps {
   /** Called when a lactate value is successfully extracted */
@@ -111,8 +116,10 @@ export function LactateScanButton({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Kunde inte analysera bilden');
+        const errorData = await response.json().catch(() => null);
+        const allowanceError = parseAiAllowanceError(errorData);
+        if (allowanceError) throw allowanceError;
+        throw new Error(errorData?.error || 'Kunde inte analysera bilden');
       }
 
       const data = await response.json();
@@ -127,10 +134,14 @@ export function LactateScanButton({
       }
     } catch (err) {
       console.error('Lactate OCR error:', err);
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod');
+      const message = err instanceof Error ? err.message : 'Ett fel uppstod';
+      const description = isAiAllowanceExhaustedError(err)
+        ? `${message} ${getAiAllowanceUpgradeMessage()}`
+        : message;
+      setError(description);
       toast({
         title: 'Kunde inte läsa av mätaren',
-        description: err instanceof Error ? err.message : 'Försök igen med bättre belysning',
+        description,
         variant: 'destructive',
       });
     } finally {

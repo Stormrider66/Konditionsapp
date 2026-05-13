@@ -46,6 +46,10 @@ import {
   Crown,
   Search,
 } from 'lucide-react'
+import {
+  getAiAllowanceUpgradeMessage,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors'
 
 // ============================================
 // Types
@@ -248,7 +252,12 @@ export function DeepResearchPanel({
       const data = await response.json()
 
       if (!response.ok) {
-        if (response.status === 402) {
+        const allowanceError = parseAiAllowanceError(data)
+        if (allowanceError) {
+          const message = `${allowanceError.message} ${getAiAllowanceUpgradeMessage()}`
+          setError(message)
+          setBudgetWarning(message)
+        } else if (response.status === 402) {
           setError(`Budget exceeded: ${data.message}`)
           setBudgetWarning(data.message)
         } else {

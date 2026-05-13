@@ -35,6 +35,11 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from 'lucide-react';
+import {
+  getAiAllowanceUpgradeMessage,
+  isAiAllowanceExhaustedError,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors';
 
 interface AudioRecorderProps {
   clientId: string;
@@ -286,6 +291,9 @@ export function AudioRecorder({
       });
 
       if (!processResponse.ok) {
+        const data = await processResponse.json().catch(() => null);
+        const allowanceError = parseAiAllowanceError(data);
+        if (allowanceError) throw allowanceError;
         throw new Error('AI-bearbetning misslyckades');
       }
 
@@ -297,7 +305,8 @@ export function AudioRecorder({
       onRecordingComplete?.(processResult.extracted);
     } catch (err) {
       console.error('Upload/process error:', err);
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod');
+      const message = err instanceof Error ? err.message : 'Ett fel uppstod';
+      setError(isAiAllowanceExhaustedError(err) ? `${message} ${getAiAllowanceUpgradeMessage()}` : message);
       setState('error');
     }
   };

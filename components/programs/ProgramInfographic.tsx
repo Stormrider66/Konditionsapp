@@ -14,6 +14,10 @@ import {
 } from '@/components/ui/select'
 import { Download, ImageIcon, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  getAiAllowanceUpgradeMessage,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors'
 
 interface ProgramInfographicProps {
   programId: string
@@ -51,6 +55,10 @@ export function ProgramInfographic({
 
       if (!res.ok) {
         const data = await res.json().catch(() => null)
+        const allowanceError = parseAiAllowanceError(data)
+        if (allowanceError) {
+          throw new Error(`${allowanceError.message} ${getAiAllowanceUpgradeMessage()}`)
+        }
         const serverError = data?.error || `HTTP ${res.status}`
         throw new Error(serverError)
       }

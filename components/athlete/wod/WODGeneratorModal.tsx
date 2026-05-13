@@ -48,6 +48,11 @@ import { WOD_LABELS } from '@/types/wod'
 import type { ModelIntent } from '@/types/ai-models'
 import { INTENT_TIER_LABELS } from '@/types/ai-models'
 import { cn } from '@/lib/utils'
+import {
+  getAiAllowanceUpgradeMessage,
+  isAiAllowanceExhaustedError,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { emitWorkoutLogged } from '@/lib/events/workout-events'
 
@@ -364,10 +369,12 @@ export function WODGeneratorModal({
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        const errorMsg = errorData.details
+        const errorData = await response.json().catch(() => null)
+        const allowanceError = parseAiAllowanceError(errorData)
+        if (allowanceError) throw allowanceError
+        const errorMsg = errorData?.details
           ? `${errorData.error}: ${errorData.details}`
-          : errorData.error || errorData.reason || 'Failed to generate WOD'
+          : errorData?.error || errorData?.reason || 'Failed to generate WOD'
         throw new Error(errorMsg)
       }
 
@@ -377,7 +384,8 @@ export function WODGeneratorModal({
       handleOpenChange(false)
     } catch (err) {
       console.error('WOD generation error:', err)
-      setError(err instanceof Error ? err.message : 'Något gick fel')
+      const message = err instanceof Error ? err.message : 'Något gick fel'
+      setError(isAiAllowanceExhaustedError(err) ? `${message} ${getAiAllowanceUpgradeMessage()}` : message)
       setStep('workoutType') // Go back to start
     } finally {
       setIsGenerating(false)

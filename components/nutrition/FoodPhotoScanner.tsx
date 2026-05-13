@@ -53,6 +53,11 @@ import {
   type NutrientDensity,
 } from '@/lib/nutrition/food-scan-recalculation'
 import { guessDefaultMealType } from '@/lib/nutrition/guess-meal-type'
+import {
+  getAiAllowanceUpgradeMessage,
+  isAiAllowanceExhaustedError,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors'
 
 type Step = 'CAPTURE' | 'ANALYZING' | 'REVIEW' | 'SAVING' | 'DONE'
 
@@ -445,6 +450,12 @@ export function FoodPhotoScanner({
 
       if (!response.ok) {
         const data = await response.json().catch(() => null)
+        const allowanceError = parseAiAllowanceError(data)
+        if (allowanceError) {
+          setError(`${allowanceError.message} ${getAiAllowanceUpgradeMessage()}`)
+          setStep('CAPTURE')
+          return
+        }
         setError(data?.error || 'Kunde inte analysera bilden. Försök igen.')
         setStep('CAPTURE')
         return
@@ -802,6 +813,8 @@ export function FoodPhotoScanner({
 
         if (!response.ok) {
           const data = await response.json().catch(() => null)
+          const allowanceError = parseAiAllowanceError(data)
+          if (allowanceError) throw allowanceError
           throw new Error(data?.error || 'Kunde inte uppdatera analysen')
         }
 
@@ -839,7 +852,8 @@ export function FoodPhotoScanner({
         )
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kunde inte uppdatera analysen')
+      const message = err instanceof Error ? err.message : 'Kunde inte uppdatera analysen'
+      setError(isAiAllowanceExhaustedError(err) ? `${message} ${getAiAllowanceUpgradeMessage()}` : message)
     } finally {
       setIsRefining(false)
     }
@@ -894,8 +908,10 @@ export function FoodPhotoScanner({
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Kunde inte transkribera')
+        const data = await response.json().catch(() => null)
+        const allowanceError = parseAiAllowanceError(data)
+        if (allowanceError) throw allowanceError
+        throw new Error(data?.error || 'Kunde inte transkribera')
       }
 
       const data = await response.json()
@@ -903,7 +919,8 @@ export function FoodPhotoScanner({
         setRefinementText((prev) => (prev ? `${prev} ${data.text}` : data.text))
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kunde inte transkribera ljudet')
+      const message = err instanceof Error ? err.message : 'Kunde inte transkribera ljudet'
+      setError(isAiAllowanceExhaustedError(err) ? `${message} ${getAiAllowanceUpgradeMessage()}` : message)
     } finally {
       setIsTranscribing(false)
     }
