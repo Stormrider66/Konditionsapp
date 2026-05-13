@@ -30,21 +30,17 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const filter = req.nextUrl.searchParams.get('filter') ?? 'all'
     const membership = await getBusinessMembership(user.id, scope.businessSlug)
 
+    const workspaceWhere = membership?.businessId
+      ? { businessId: membership.businessId }
+      : { userId: team.userId }
+
     const where =
       filter === 'unassigned'
         ? {
+            ...workspaceWhere,
             teamId: null,
-            OR: [
-              { userId: team.userId },
-              ...(membership?.businessId ? [{ businessId: membership.businessId }] : []),
-            ],
           }
-        : {
-            OR: [
-              { userId: team.userId },
-              ...(membership?.businessId ? [{ businessId: membership.businessId }] : []),
-            ],
-          }
+        : workspaceWhere
 
     const clients = await prisma.client.findMany({
       where,
@@ -92,14 +88,17 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     const membership = await getBusinessMembership(user.id, scope.businessSlug)
 
-    // Only allow moving clients from the same coach/business workspace.
+    // Only allow moving clients from the same business workspace.
+    // In business-scoped routes, coach ownership alone is too broad because one coach
+    // can belong to several businesses.
+    const workspaceWhere = membership?.businessId
+      ? { businessId: membership.businessId }
+      : { userId: team.userId }
+
     const owned = await prisma.client.findMany({
       where: {
+        ...workspaceWhere,
         id: { in: ids },
-        OR: [
-          { userId: team.userId },
-          ...(membership?.businessId ? [{ businessId: membership.businessId }] : []),
-        ],
       },
       select: { id: true },
     })

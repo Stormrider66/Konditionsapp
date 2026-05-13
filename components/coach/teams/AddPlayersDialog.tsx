@@ -92,20 +92,24 @@ export function AddPlayersDialog({
   useEffect(() => {
     if (!open) return
     let cancelled = false
-    setLoadingClients(true)
-    fetch(`/api/coach/teams/${teamId}/members?filter=${filter}`, {
-      headers: businessHeaders,
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (!cancelled) setClients(Array.isArray(d.clients) ? d.clients : [])
-      })
-      .catch(() => {
+
+    async function loadClients() {
+      setLoadingClients(true)
+      try {
+        const response = await fetch(`/api/coach/teams/${teamId}/members?filter=${filter}`, {
+          headers: businessHeaders,
+        })
+        const data = await response.json()
+        if (!cancelled) setClients(Array.isArray(data.clients) ? data.clients : [])
+      } catch {
         if (!cancelled) setClients([])
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoadingClients(false)
-      })
+      }
+    }
+
+    void loadClients()
+
     return () => {
       cancelled = true
     }
