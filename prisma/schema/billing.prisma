@@ -19,7 +19,7 @@ enum SubscriptionStatus {
 enum AthleteSubscriptionTier {
   FREE // View reports only - no AI access
   STANDARD // Basic AI chat (50 msg/month), workout logging, daily check-in
-  PRO // Full AI agent, unlimited AI, video analysis, Strava/Garmin sync
+  PRO // Full AI agent, larger AI allowance, video analysis, Strava/Garmin sync
   ELITE // Everything in PRO + assigned real PT/coach (custom pricing per business)
 }
 
@@ -198,7 +198,7 @@ model AthleteSubscription {
   // Feature flags (cached for performance)
   aiChatEnabled         Boolean @default(false)
   aiChatMessagesUsed    Int     @default(0)
-  aiChatMessagesLimit   Int     @default(0) // 0 = disabled, -1 = unlimited
+  aiChatMessagesLimit   Int     @default(0) // Legacy message cap until shared AI credits replace it
   videoAnalysisEnabled  Boolean @default(false)
   garminEnabled         Boolean @default(false)
   stravaEnabled         Boolean @default(false)

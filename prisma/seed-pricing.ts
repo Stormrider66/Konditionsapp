@@ -127,11 +127,11 @@ async function main() {
         'All Free features',
         'Workout logging',
         'Daily check-in',
-        'AI chat (50 messages/month)',
+        'AI credits for daily use',
         'Progress tracking',
       ],
       monthlyPriceCents: 19900, // 199 SEK
-      yearlyPriceCents: 179000, // 1790 SEK
+      yearlyPriceCents: 199000, // 1990 SEK
       currency: 'SEK',
       maxAthletes: 0,
       aiChatLimit: 50,
@@ -142,20 +142,20 @@ async function main() {
       tierType: 'ATHLETE',
       tierName: 'PRO',
       displayName: 'Pro',
-      description: 'Full AI agent and integrations',
+      description: 'Larger AI allowance and integrations',
       features: [
         'All Standard features',
-        'Unlimited AI chat',
+        'Larger AI credit allowance',
         'AI training agent',
         'Video analysis',
         'Strava & Garmin sync',
         'Advanced analytics',
       ],
       monthlyPriceCents: 39900, // 399 SEK
-      yearlyPriceCents: 359000, // 3590 SEK
+      yearlyPriceCents: 399000, // 3990 SEK
       currency: 'SEK',
       maxAthletes: 0,
-      aiChatLimit: -1, // Unlimited
+      aiChatLimit: 500, // Legacy message cap until AI credits launch
       isActive: true,
       sortOrder: 2,
     },

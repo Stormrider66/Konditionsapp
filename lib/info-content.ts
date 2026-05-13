@@ -260,7 +260,7 @@ export const INFO_CONTENT: Record<string, InfoEntry> = {
     key: 'subscriptionTiers',
     title: 'Prenumerationsnivåer',
     short: 'Funktioner låses upp baserat på prenumerationsnivå: Free, Basic, Pro, Enterprise.',
-    detailed: 'Coach: FREE (1 atlet, test) → BASIC (5 atleter, AI-chatt) → PRO (50 atleter, video, RAG) → ENTERPRISE (obegränsat, API). Atlet: FREE (grundvy) → STANDARD (WOD, AI-chatt) → PRO (avancerad analys, obegränsad AI). Alla nya konton får 14 dagars provperiod på Pro-nivå.',
+    detailed: 'Coach: FREE (1 atlet, test) → BASIC (5 atleter, AI-chatt) → PRO (50 atleter, video, RAG) → ENTERPRISE (obegränsat, API). Atlet: FREE (grundvy) → STANDARD (WOD och AI-krediter för daglig användning) → PRO (avancerad analys och större AI-kreditpott). Alla nya konton får 14 dagars provperiod.',
     roles: ['COACH'],
     tier: 2,
   },

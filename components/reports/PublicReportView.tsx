@@ -7,7 +7,7 @@
  * signup CTAs and upgrade prompts.
  */
 
-import { TestCalculations } from '@/types';
+import { Client, Test, TestCalculations } from '@/types';
 import { ReportTemplate } from './ReportTemplate';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,8 +17,8 @@ import Link from 'next/link';
 
 // Use generic types to avoid Prisma null/undefined mismatches
 interface PublicReportViewProps {
-  client: any;
-  test: any;
+  client: unknown;
+  test: unknown;
   calculations: TestCalculations;
   testLeader: string;
   location: string;
@@ -30,7 +30,7 @@ export function PublicReportView({
   test,
   calculations,
   testLeader,
-  location,
+  location: _location,
   organization,
 }: PublicReportViewProps) {
   return (
@@ -53,8 +53,8 @@ export function PublicReportView({
       {/* Report Content */}
       <div className="py-8 px-4">
         <ReportTemplate
-          client={client}
-          test={test}
+          client={client as Client}
+          test={test as Test}
           calculations={calculations}
           testLeader={testLeader}
           organization={organization}
@@ -161,7 +161,7 @@ export function PublicReportView({
                   <FeatureItem included>Allt i Standard</FeatureItem>
                   <FeatureItem included>
                     <MessageCircle className="h-4 w-4 inline mr-1" />
-                    Obegränsad AI-coaching
+                    Större AI-kreditpott
                   </FeatureItem>
                   <FeatureItem included>
                     <Video className="h-4 w-4 inline mr-1" />

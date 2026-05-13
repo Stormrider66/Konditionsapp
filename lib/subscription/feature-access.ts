@@ -4,6 +4,7 @@
 import type { AthleteSubscription, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { ATHLETE_LEGACY_AI_CHAT_LIMITS } from '@/lib/subscription/athlete-plans'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
@@ -42,7 +43,7 @@ export interface CoachSubscriptionStatus {
 // Tier feature limits configuration
 export const ATHLETE_TIER_FEATURES = {
   FREE: {
-    ai_chat: { enabled: true, limit: 10 }, // 10 messages per month
+    ai_chat: { enabled: true, limit: ATHLETE_LEGACY_AI_CHAT_LIMITS.FREE },
     video_analysis: { enabled: false },
     strava: { enabled: false },
     garmin: { enabled: false },
@@ -56,7 +57,7 @@ export const ATHLETE_TIER_FEATURES = {
     live_voice_coaching: { enabled: false },
   },
   STANDARD: {
-    ai_chat: { enabled: true, limit: 50 }, // 50 messages per month
+    ai_chat: { enabled: true, limit: ATHLETE_LEGACY_AI_CHAT_LIMITS.STANDARD },
     video_analysis: { enabled: false },
     strava: { enabled: true },
     garmin: { enabled: true },
@@ -70,7 +71,7 @@ export const ATHLETE_TIER_FEATURES = {
     live_voice_coaching: { enabled: false },
   },
   PRO: {
-    ai_chat: { enabled: true, limit: -1 }, // Unlimited
+    ai_chat: { enabled: true, limit: ATHLETE_LEGACY_AI_CHAT_LIMITS.PRO },
     video_analysis: { enabled: true },
     strava: { enabled: true },
     garmin: { enabled: true },
@@ -84,7 +85,7 @@ export const ATHLETE_TIER_FEATURES = {
     live_voice_coaching: { enabled: true },
   },
   ELITE: {
-    ai_chat: { enabled: true, limit: -1 }, // Unlimited
+    ai_chat: { enabled: true, limit: ATHLETE_LEGACY_AI_CHAT_LIMITS.ELITE },
     video_analysis: { enabled: true },
     strava: { enabled: true },
     garmin: { enabled: true },
@@ -119,7 +120,7 @@ export const COACH_TIER_FEATURES = {
   },
 } as const
 
-const FREE_AI_CHAT_MESSAGE_LIMIT = 10
+const FREE_AI_CHAT_MESSAGE_LIMIT = ATHLETE_LEGACY_AI_CHAT_LIMITS.FREE
 
 function needsLegacyFreeAiChatRepair(subscription: AthleteSubscription): boolean {
   return (

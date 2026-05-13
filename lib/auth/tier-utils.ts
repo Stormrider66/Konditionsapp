@@ -8,12 +8,13 @@
 import { prisma } from '@/lib/prisma';
 import { AthleteSubscriptionTier, SubscriptionStatus } from '@prisma/client';
 import { checkAthleteFeatureAccess, getAthleteSubscriptionWithRepairs } from '@/lib/subscription/feature-access';
+import { ATHLETE_LEGACY_AI_CHAT_LIMITS } from '@/lib/subscription/athlete-plans';
 
 // Feature access configuration by tier
 const TIER_FEATURES = {
   FREE: {
     aiChatEnabled: true,
-    aiChatMessagesLimit: 10,
+    aiChatMessagesLimit: ATHLETE_LEGACY_AI_CHAT_LIMITS.FREE,
     videoAnalysisEnabled: false,
     garminEnabled: false,
     stravaEnabled: false,
@@ -22,7 +23,7 @@ const TIER_FEATURES = {
   },
   STANDARD: {
     aiChatEnabled: true,
-    aiChatMessagesLimit: 50, // per month
+    aiChatMessagesLimit: ATHLETE_LEGACY_AI_CHAT_LIMITS.STANDARD,
     videoAnalysisEnabled: false,
     garminEnabled: true, // basic sync
     stravaEnabled: true, // basic sync
@@ -31,7 +32,7 @@ const TIER_FEATURES = {
   },
   PRO: {
     aiChatEnabled: true,
-    aiChatMessagesLimit: -1, // unlimited
+    aiChatMessagesLimit: ATHLETE_LEGACY_AI_CHAT_LIMITS.PRO,
     videoAnalysisEnabled: true,
     garminEnabled: true,
     stravaEnabled: true,
@@ -40,7 +41,7 @@ const TIER_FEATURES = {
   },
   ELITE: {
     aiChatEnabled: true,
-    aiChatMessagesLimit: -1, // unlimited
+    aiChatMessagesLimit: ATHLETE_LEGACY_AI_CHAT_LIMITS.ELITE,
     videoAnalysisEnabled: true,
     garminEnabled: true,
     stravaEnabled: true,

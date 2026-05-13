@@ -14,7 +14,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast'
 import { TrialBadge } from '@/components/ui/TrialBadge'
 import { AIChatUsageMeter } from '@/components/athlete/AIChatUsageMeter'
-import { Progress } from '@/components/ui/progress'
 import {
   ChevronLeft,
   CreditCard,
@@ -26,10 +25,10 @@ import {
   MessageSquare,
   Video,
   Watch,
-  Clock,
   AlertTriangle,
   Lock,
 } from 'lucide-react'
+import { ATHLETE_PLAN_COPY, ATHLETE_PLAN_PRICING } from '@/lib/subscription/athlete-plans'
 
 interface Subscription {
   id: string
@@ -69,48 +68,32 @@ interface SubscriptionStatus {
 const TIERS = [
   {
     id: 'FREE',
-    name: 'Gratis',
-    price: 0,
-    description: 'Grundläggande funktioner',
-    features: [
-      'Visa testrapporter',
-      'Grundläggande profil',
-      'Träningshistorik',
-    ],
+    name: ATHLETE_PLAN_COPY.FREE.nameSv,
+    price: ATHLETE_PLAN_PRICING.FREE.monthlySek,
+    yearlyPrice: ATHLETE_PLAN_PRICING.FREE.yearlySek,
+    description: ATHLETE_PLAN_COPY.FREE.descriptionSv,
+    features: ATHLETE_PLAN_COPY.FREE.featuresSv,
     icon: Star,
     color: 'gray',
   },
   {
     id: 'STANDARD',
-    name: 'Standard',
-    price: 199,
-    yearlyPrice: 1990,
-    description: 'För aktiva atleter',
-    features: [
-      'Allt i Gratis',
-      'Daglig incheckning',
-      'Träningsloggning',
-      'AI-chatt (50 meddelanden/månad)',
-      'Strava/Garmin-synk',
-    ],
+    name: ATHLETE_PLAN_COPY.STANDARD.nameSv,
+    price: ATHLETE_PLAN_PRICING.STANDARD.monthlySek,
+    yearlyPrice: ATHLETE_PLAN_PRICING.STANDARD.yearlySek,
+    description: ATHLETE_PLAN_COPY.STANDARD.descriptionSv,
+    features: ATHLETE_PLAN_COPY.STANDARD.featuresSv,
     icon: Zap,
     color: 'blue',
     popular: true,
   },
   {
     id: 'PRO',
-    name: 'Pro',
-    price: 399,
-    yearlyPrice: 3990,
-    description: 'Maximal träningsoptimering',
-    features: [
-      'Allt i Standard',
-      'Obegränsad AI-chatt',
-      'Videoanalys',
-      'AI-agent (autonom)',
-      'Full integration',
-      'Programjusteringar med AI',
-    ],
+    name: ATHLETE_PLAN_COPY.PRO.nameSv,
+    price: ATHLETE_PLAN_PRICING.PRO.monthlySek,
+    yearlyPrice: ATHLETE_PLAN_PRICING.PRO.yearlySek,
+    description: ATHLETE_PLAN_COPY.PRO.descriptionSv,
+    features: ATHLETE_PLAN_COPY.PRO.featuresSv,
     icon: Crown,
     color: 'purple',
   },
@@ -121,7 +104,6 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
   const [isLoading, setIsLoading] = useState<string | null>(null)
   const [billingCycle, setBillingCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY')
   const [status, setStatus] = useState<SubscriptionStatus | null>(null)
-  const [isLoadingStatus, setIsLoadingStatus] = useState(true)
 
   const currentTier = subscription?.tier || 'FREE'
 
@@ -136,11 +118,9 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
         }
       } catch (error) {
         console.error('Failed to fetch subscription status:', error)
-      } finally {
-        setIsLoadingStatus(false)
       }
     }
-    fetchStatus()
+    void fetchStatus()
   }, [])
 
   const handleUpgrade = async (tierId: string) => {
@@ -160,8 +140,9 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
 
       const data = await response.json()
 
-      if (data.url) {
-        window.location.href = data.url
+      const checkoutUrl = data.url || data.checkoutUrl
+      if (checkoutUrl) {
+        window.location.assign(checkoutUrl)
       } else {
         toast({
           title: 'Fel',
@@ -169,7 +150,7 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Fel',
         description: 'Kunde inte starta betalning',
@@ -192,7 +173,7 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
       const data = await response.json()
 
       if (data.url) {
-        window.location.href = data.url
+        window.location.assign(data.url)
       } else {
         toast({
           title: 'Fel',
@@ -200,7 +181,7 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Fel',
         description: 'Kunde inte öppna kundportalen',

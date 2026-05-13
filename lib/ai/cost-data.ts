@@ -4,7 +4,7 @@
  * Feature cost estimates, usage profiles, and athlete tier comparisons.
  */
 
-import { AI_MODELS, type AIModelConfig } from '@/types/ai-models'
+import type { AIModelConfig } from '@/types/ai-models'
 
 // ─── Feature Cost Estimates ──────────────────────────────────────────────────
 
@@ -155,7 +155,7 @@ export interface TierFeature {
 }
 
 export const ATHLETE_TIER_FEATURES: TierFeature[] = [
-  { name: 'AI-chatt', free: '10 meddelanden/mån', standard: '50 meddelanden/mån', pro: 'Obegränsat' },
+  { name: 'AI-krediter', free: 'Begränsad test', standard: 'Daglig användning', pro: 'Större kreditpott' },
   { name: 'Dagliga pass (WOD)', free: false, standard: true, pro: true },
   { name: 'Programgenerering', free: false, standard: false, pro: true },
   { name: 'Nutritionsplanering', free: false, standard: false, pro: true },

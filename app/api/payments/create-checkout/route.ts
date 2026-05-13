@@ -6,18 +6,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveAthleteClientId } from '@/lib/auth-utils';
-import { prisma } from '@/lib/prisma';
 import { createCheckoutSession, BillingCycle } from '@/lib/payments/stripe';
 import { AthleteSubscriptionTier } from '@prisma/client';
 import { z } from 'zod';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
-
-const checkoutSchema = z.object({
-  tier: z.enum(['STANDARD', 'PRO', 'ELITE']),
-  cycle: z.enum(['MONTHLY', 'YEARLY']).default('MONTHLY'),
-  businessId: z.string().uuid().optional(),
-});
+import { normalizeAthleteCheckoutRequest } from '@/lib/payments/athlete-checkout-request'
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,7 +28,7 @@ export async function POST(request: NextRequest) {
     if (rateLimited) return rateLimited
 
     const body = await request.json();
-    const { tier, cycle, businessId } = checkoutSchema.parse(body);
+    const { tier, cycle, businessId } = normalizeAthleteCheckoutRequest(body);
 
     // Build success and cancel URLs
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
@@ -54,6 +48,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       checkoutUrl,
+      url: checkoutUrl,
     });
   } catch (error) {
     logger.error('Create checkout error', {}, error)
