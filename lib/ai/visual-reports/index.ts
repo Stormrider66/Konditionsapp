@@ -111,6 +111,7 @@ export async function generateVisualReport(
       outputTokens,
     ),
     userId: coachId,
+    clientId,
     category: `visual_report_${reportType}`,
   })
 

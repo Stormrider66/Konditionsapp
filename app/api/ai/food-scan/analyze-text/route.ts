@@ -21,6 +21,7 @@ import { logger } from '@/lib/logger'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 import { withGoogleLogging } from '@/lib/ai/google'
 import { withAiContext } from '@/lib/ai/usage-logger'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { z } from 'zod'
 
 export const maxDuration = 120
@@ -40,6 +41,9 @@ export async function POST(request: NextRequest) {
 
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
     if (denied) return denied
+
+    const allowanceDenied = await requireAiAllowance(clientId)
+    if (allowanceDenied) return allowanceDenied
 
     const rateLimited = await rateLimitJsonResponse('ai:food-scan-text', user.id, {
       limit: 10,
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
     const google = createGoogleGenerativeAI({ apiKey: googleKey })
 
     const result = await withAiContext(
-      { userId: user.id, category: 'food_scan_text' },
+      { userId: user.id, clientId, category: 'food_scan_text' },
       () =>
         generateObject({
           model: withGoogleLogging(google(GEMINI_MODELS.FLASH)),

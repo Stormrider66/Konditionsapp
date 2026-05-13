@@ -86,6 +86,10 @@ export function previewAiAllowanceDebit(
   }
 }
 
+export function hasAiAllowanceRemaining(balance: AllowanceBalance): boolean {
+  return getRemainingAiBalanceSek(balance) > 0
+}
+
 export async function getOrCreateAiAllowanceAccount(
   clientId: string,
   now = new Date(),
@@ -166,7 +170,23 @@ export async function recordAiUsageDebit(params: {
     const debit = previewAiAllowanceDebit(account, params.costSek)
 
     if (!debit.allowed) {
-      return { account, debit }
+      const includedRemaining = Math.max(0, account.includedBudgetSek - account.includedUsedSek)
+      const exhaustedDebit: AllowanceDebitResult = {
+        ...debit,
+        includedDebitSek: roundSek(includedRemaining),
+        topUpDebitSek: roundSek(Math.max(0, account.topUpBalanceSek)),
+        includedUsedSek: account.includedBudgetSek,
+        topUpBalanceSek: 0,
+        remainingSek: 0,
+      }
+      const exhausted = await tx.aIAllowanceAccount.update({
+        where: { clientId: params.clientId },
+        data: {
+          includedUsedSek: exhaustedDebit.includedUsedSek,
+          topUpBalanceSek: 0,
+        },
+      })
+      return { account: exhausted, debit: exhaustedDebit }
     }
 
     const updated = await tx.aIAllowanceAccount.update({

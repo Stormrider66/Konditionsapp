@@ -202,7 +202,9 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
       )
     }
 
-    await withAiContext({ userId: user.id, category: 'chat', conversationId }, async () => {
+    await withAiContext(
+      { userId: user.id, clientId: conversation.athleteId, category: 'chat', conversationId },
+      async () => {
       // Call AI based on provider
       if (conversation.provider === 'ANTHROPIC' && decryptedKeys.anthropicKey) {
         try {

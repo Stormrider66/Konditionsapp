@@ -19,6 +19,8 @@ import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 import { buildFoodMemoryContext } from '@/lib/nutrition/build-memory-context'
+import { logAiUsage } from '@/lib/ai/usage-logger'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import {
   calibratePortions,
   fetchPortionStats,
@@ -114,6 +116,9 @@ export async function POST(request: NextRequest) {
     // Subscription gate (athlete-level, reuse nutrition_planning feature)
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
     if (denied) return denied
+
+    const allowanceDenied = await requireAiAllowance(clientId)
+    if (allowanceDenied) return allowanceDenied
 
     // Rate limit: 10 requests per 60 seconds
     const rateLimited = await rateLimitJsonResponse('ai:food-scan', user.id, {
@@ -332,21 +337,16 @@ export async function POST(request: NextRequest) {
 
     // Log cost (fire-and-forget; do not block the response on logging failure)
     const estimatedCost = estimateFoodScanCost(modelName, inputTokens, outputTokens)
-    prisma.aIUsageLog
-      .create({
-        data: {
-          userId: user.id,
-          category: memoryUsed ? 'food_scan_memory' : 'food_scan',
-          provider: 'GOOGLE',
-          model: modelName,
-          inputTokens,
-          outputTokens,
-          estimatedCost,
-        },
-      })
-      .catch((err) => {
-        logger.error('Failed to log food-scan usage', {}, err as Error)
-      })
+    logAiUsage({
+      userId: user.id,
+      clientId,
+      category: memoryUsed ? 'food_scan_memory' : 'food_scan',
+      provider: 'GOOGLE',
+      model: modelName,
+      inputTokens,
+      outputTokens,
+      estimatedCost,
+    })
 
     if (process.env.NODE_ENV !== 'production') {
       logger.debug('Food scan result', {

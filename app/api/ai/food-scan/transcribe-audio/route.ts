@@ -20,6 +20,7 @@ import {
 import { logger } from '@/lib/logger'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 import { withAiContext } from '@/lib/ai/usage-logger'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -37,6 +38,9 @@ export async function POST(request: NextRequest) {
 
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
     if (denied) return denied
+
+    const allowanceDenied = await requireAiAllowance(clientId)
+    if (allowanceDenied) return allowanceDenied
 
     const rateLimited = await rateLimitJsonResponse('ai:food-scan-transcribe', user.id, {
       limit: 10,
@@ -97,7 +101,7 @@ export async function POST(request: NextRequest) {
     const modelId = getGeminiModelId('audio')
 
     const result = await withAiContext(
-      { userId: user.id, category: 'food_scan_audio_transcription' },
+      { userId: user.id, clientId, category: 'food_scan_audio_transcription' },
       () => generateContent(genaiClient, modelId, [
         createText(
           'Transkribera denna korta ljudinspelning till svensk text. Inspelningen handlar om mat och näring — användaren korrigerar eller lägger till information om en måltid. Returnera BARA den transkriberade texten, inget annat.'

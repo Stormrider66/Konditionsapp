@@ -3,6 +3,7 @@ import {
   getAthleteAiAllowanceSek,
   getCurrentAllowancePeriod,
   getRemainingAiBalanceSek,
+  hasAiAllowanceRemaining,
   previewAiAllowanceDebit,
   usdToSek,
 } from '@/lib/ai/billing/allowance'
@@ -61,5 +62,21 @@ describe('AI allowance billing helpers', () => {
     expect(result.includedUsedSek).toBe(29)
     expect(result.topUpBalanceSek).toBe(0.5)
     expect(result.remainingSek).toBe(1.5)
+  })
+
+  it('reports whether a hard-capped account can start another AI call', () => {
+    expect(hasAiAllowanceRemaining({
+      includedBudgetSek: 30,
+      includedUsedSek: 30,
+      topUpBalanceSek: 0,
+      hardCapSek: 30,
+    })).toBe(false)
+
+    expect(hasAiAllowanceRemaining({
+      includedBudgetSek: 30,
+      includedUsedSek: 30,
+      topUpBalanceSek: 1,
+      hardCapSek: 30,
+    })).toBe(true)
   })
 })
