@@ -53,7 +53,7 @@ interface StatCardProps {
 
 function StatCard({ icon: Icon, label, value, brandColor }: StatCardProps) {
   return (
-    <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2 print:px-2 print:py-1.5">
+    <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left print:px-2 print:py-1.5">
       <div
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md print:h-6 print:w-6"
         style={{ backgroundColor: `${brandColor}1a`, color: brandColor }}
@@ -67,6 +67,7 @@ function StatCard({ icon: Icon, label, value, brandColor }: StatCardProps) {
     </div>
   )
 }
+
 
 function buildPdfFilename(title: string, orientation: PdfOrientation) {
   const safeTitle = title
@@ -104,94 +105,92 @@ export function PrintableWorkoutDocument({ workout, sheetRef, footer }: Printabl
       className="print-sheet mx-auto max-w-4xl rounded-lg border bg-white p-8 shadow-sm"
     >
       <header className="print-avoid-break border-b border-slate-300 pb-5 print:pb-3">
-        <div className="flex items-start justify-between gap-6">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start gap-4">
-              {branding?.logoUrl ? (
-                <Image
-                  src={branding.logoUrl}
-                  alt={`${businessName} logo`}
-                  width={44}
-                  height={44}
-                  unoptimized
-                  className="h-11 w-11 shrink-0 rounded-lg object-contain shadow-sm ring-1 ring-slate-200 print:h-9 print:w-9"
-                />
-              ) : (
-                <div
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-base font-bold text-white shadow-sm ring-1 ring-black/5 print:h-9 print:w-9 print:text-sm"
-                  style={{ backgroundColor: brandColor }}
-                >
-                  {brandInitial}
-                </div>
-              )}
-              <div
-                className="min-w-0 flex-1 border-l-[3px] pl-3 print:pl-2"
-                style={{ borderColor: brandColor }}
-              >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500 print-small">
-                  Träningspass · {workout.kindLabel}
-                </p>
-                <h1 className="mt-1 text-3xl font-bold leading-tight text-slate-950 print:text-[20pt]">
-                  {workout.title}
-                </h1>
-              </div>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6 print:gap-4">
+          {branding?.logoUrl ? (
+            <Image
+              src={branding.logoUrl}
+              alt={`${businessName} logo`}
+              width={44}
+              height={44}
+              unoptimized
+              className="h-11 w-11 shrink-0 justify-self-start rounded-lg object-contain shadow-sm ring-1 ring-slate-200 print:h-9 print:w-9"
+            />
+          ) : (
+            <div
+              className="flex h-11 w-11 shrink-0 items-center justify-center justify-self-start rounded-lg text-base font-bold text-white shadow-sm ring-1 ring-black/5 print:h-9 print:w-9 print:text-sm"
+              style={{ backgroundColor: brandColor }}
+            >
+              {brandInitial}
             </div>
-            <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 print:mt-3 print:grid-cols-4">
-              <StatCard icon={Dumbbell} label="Typ" value={workout.kindLabel} brandColor={brandColor} />
-              <StatCard
-                icon={Clock}
-                label="Tid"
-                value={workout.durationLabel || '—'}
-                brandColor={brandColor}
-              />
-              <StatCard
-                icon={ListChecks}
-                label="Moment"
-                value={String(exerciseCount)}
-                brandColor={brandColor}
-              />
-              <StatCard
-                icon={Layers}
-                label="Sektioner"
-                value={String(sectionCount)}
-                brandColor={brandColor}
-              />
-            </div>
+          )}
+          <div className="min-w-0 text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500 print-small">
+              Träningspass · {workout.kindLabel}
+            </p>
+            <h1 className="mt-1 text-3xl font-bold leading-tight text-slate-950 print:text-[20pt]">
+              {workout.title}
+            </h1>
+            <div
+              className="mx-auto mt-2 h-[3px] w-12 rounded-full print:mt-1.5 print:h-[2px] print:w-10"
+              style={{ backgroundColor: brandColor }}
+            />
           </div>
-          <div className="shrink-0 border-l border-slate-200 pl-5 text-right text-xs text-slate-500 print:pl-3">
+          <div className="shrink-0 justify-self-end text-right text-xs text-slate-500">
             <p className="font-semibold uppercase tracking-wide">Utskriven</p>
             <p className="mt-1 text-slate-900">{printedDate}</p>
             {workout.dateLabel && (
               <>
-                <p className="mt-3 font-semibold uppercase tracking-wide">Planerat</p>
+                <p className="mt-2 font-semibold uppercase tracking-wide">Planerat</p>
                 <p className="mt-1 max-w-32 text-slate-900">{workout.dateLabel}</p>
               </>
             )}
             {workout.scheduleLabel && (
               <>
-                <p className="mt-3 font-semibold uppercase tracking-wide">Tid/plats</p>
+                <p className="mt-2 font-semibold uppercase tracking-wide">Tid/plats</p>
                 <p className="mt-1 max-w-32 text-slate-900">{workout.scheduleLabel}</p>
               </>
             )}
             {workout.organizationName && (
               <>
-                <p className="mt-3 font-semibold uppercase tracking-wide">Organisation</p>
+                <p className="mt-2 font-semibold uppercase tracking-wide">Organisation</p>
                 <p className="mt-1 max-w-32 text-slate-900">{workout.organizationName}</p>
               </>
             )}
             {workout.teamName && (
               <>
-                <p className="mt-3 font-semibold uppercase tracking-wide">Lag</p>
+                <p className="mt-2 font-semibold uppercase tracking-wide">Lag</p>
                 <p className="mt-1 max-w-32 text-slate-900">{workout.teamName}</p>
               </>
             )}
             {workout.athleteName && (
               <>
-                <p className="mt-3 font-semibold uppercase tracking-wide">Aktiv</p>
+                <p className="mt-2 font-semibold uppercase tracking-wide">Aktiv</p>
                 <p className="mt-1 max-w-32 text-slate-900">{workout.athleteName}</p>
               </>
             )}
           </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 print:mt-3 print:grid-cols-4">
+          <StatCard icon={Dumbbell} label="Typ" value={workout.kindLabel} brandColor={brandColor} />
+          <StatCard
+            icon={Clock}
+            label="Tid"
+            value={workout.durationLabel || '—'}
+            brandColor={brandColor}
+          />
+          <StatCard
+            icon={ListChecks}
+            label="Moment"
+            value={String(exerciseCount)}
+            brandColor={brandColor}
+          />
+          <StatCard
+            icon={Layers}
+            label="Sektioner"
+            value={String(sectionCount)}
+            brandColor={brandColor}
+          />
         </div>
 
         {workout.description && (
@@ -291,30 +290,7 @@ export function PrintableWorkoutDocument({ workout, sheetRef, footer }: Printabl
         )}
       </div>
 
-      {footer ?? (
-        <footer className="print-avoid-break mt-6 border-t border-slate-300 pt-4 text-sm print:mt-3 print:pt-2">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span
-                className="inline-block h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: brandColor }}
-              />
-              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-900 print-small">
-                Coachanteckningar
-              </p>
-            </div>
-            <p className="text-[10px] uppercase tracking-wide text-slate-400 print-small">
-              Plats för noteringar
-            </p>
-          </div>
-          <div className="mt-3 print:mt-2">
-            <div className="h-7 border-b border-slate-300 print:h-5" />
-            <div className="h-7 border-b border-slate-300 print:h-5" />
-            <div className="h-7 border-b border-slate-300 print:h-5" />
-            <div className="h-7 print:h-5" />
-          </div>
-        </footer>
-      )}
+      {footer}
     </main>
   )
 }
