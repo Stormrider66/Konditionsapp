@@ -102,7 +102,12 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
 
   const fetchRoster = useCallback(async () => {
     try {
-      const res = await fetch('/api/coach/pt-roster')
+      const businessSlug = basePath.split('/').filter(Boolean)[0]
+      const params = new URLSearchParams()
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const res = await fetch(`/api/coach/pt-roster${params.size ? `?${params.toString()}` : ''}`, {
+        headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
+      })
       if (res.ok) {
         const data = await res.json()
         setRoster(data.roster || [])
@@ -112,7 +117,7 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [basePath])
 
   useEffect(() => {
     fetchRoster()

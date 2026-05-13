@@ -2,6 +2,7 @@
 import { Suspense } from 'react';
 import { requireCoach } from '@/lib/auth-utils';
 import { validateBusinessMembership } from '@/lib/business-context';
+import { getCoachScopedIds } from '@/lib/coach/scoping';
 import { notFound } from 'next/navigation';
 import { MonitoringCharts } from '@/components/coach/dashboards/MonitoringCharts';
 import { MonitoringHeader } from '@/components/coach/monitoring/MonitoringHeader';
@@ -27,8 +28,12 @@ export default async function BusinessMonitoringPage({ params, searchParams }: B
     notFound();
   }
 
+  const coachIds = await getCoachScopedIds(user.id, membership.businessId, membership.role);
   const clients = await prisma.client.findMany({
-    where: { userId: user.id },
+    where: {
+      userId: { in: coachIds },
+      businessId: membership.businessId
+    },
     select: {
       id: true,
       name: true
@@ -36,7 +41,10 @@ export default async function BusinessMonitoringPage({ params, searchParams }: B
     orderBy: { name: 'asc' }
   });
 
-  const selectedAthleteId = resolvedParams.athleteId || (clients.length > 0 ? clients[0].id : null);
+  const requestedAthleteId = resolvedParams.athleteId ?? null;
+  const selectedAthleteId: string | null = requestedAthleteId && clients.some((client) => client.id === requestedAthleteId)
+    ? requestedAthleteId
+    : (clients.length > 0 ? clients[0].id : null);
 
   return (
     <div className="container mx-auto py-8">

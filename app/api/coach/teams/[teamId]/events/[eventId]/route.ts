@@ -8,6 +8,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
+import { getRequestedBusinessScope } from '@/lib/auth/current-user'
+import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
@@ -29,14 +31,13 @@ const updateEventSchema = z.object({
   })).optional(),
 })
 
-export async function GET(_req: NextRequest, context: RouteContext) {
+export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const { teamId, eventId } = await context.params
+    const scope = getRequestedBusinessScope(req)
 
-    const team = await prisma.team.findFirst({
-      where: { id: teamId, userId: user.id },
-    })
+    const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
 
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
@@ -67,10 +68,9 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const { teamId, eventId } = await context.params
+    const scope = getRequestedBusinessScope(req)
 
-    const team = await prisma.team.findFirst({
-      where: { id: teamId, userId: user.id },
-    })
+    const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
 
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
@@ -96,6 +96,15 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     if (parsed.data.allDay !== undefined) updateData.allDay = parsed.data.allDay
     if (parsed.data.attendance !== undefined) updateData.attendance = JSON.parse(JSON.stringify(parsed.data.attendance))
 
+    const existingEvent = await prisma.teamEvent.findFirst({
+      where: { id: eventId, teamId },
+      select: { id: true },
+    })
+
+    if (!existingEvent) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
+
     const event = await prisma.teamEvent.update({
       where: { id: eventId },
       data: updateData,
@@ -113,20 +122,19 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
   }
 }
 
-export async function DELETE(_req: NextRequest, context: RouteContext) {
+export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const { teamId, eventId } = await context.params
+    const scope = getRequestedBusinessScope(req)
 
-    const team = await prisma.team.findFirst({
-      where: { id: teamId, userId: user.id },
-    })
+    const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
 
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
     }
 
-    await prisma.teamEvent.delete({ where: { id: eventId } })
+    await prisma.teamEvent.deleteMany({ where: { id: eventId, teamId } })
 
     return NextResponse.json({ success: true })
   } catch (error) {

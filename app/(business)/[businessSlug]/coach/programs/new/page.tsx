@@ -2,6 +2,7 @@
 import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { ProgramWizard } from '@/components/programs/wizard/ProgramWizard'
@@ -26,11 +27,13 @@ export default async function BusinessNewProgramPage({ params }: PageProps) {
   }
 
   const basePath = `/${businessSlug}/coach`
+  const coachIds = await getCoachScopedIds(user.id, membership.businessId, membership.role)
 
   // Fetch ALL clients with their tests AND sport profiles
   const clients = await prisma.client.findMany({
     where: {
-      userId: user.id,
+      userId: { in: coachIds },
+      businessId: membership.businessId,
     },
     include: {
       tests: {

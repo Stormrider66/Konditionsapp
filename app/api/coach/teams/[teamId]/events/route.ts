@@ -7,6 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
+import { getRequestedBusinessScope } from '@/lib/auth/current-user'
+import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
@@ -35,11 +37,10 @@ export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const { teamId } = await context.params
+    const scope = getRequestedBusinessScope(req)
 
-    // Verify coach owns this team
-    const team = await prisma.team.findFirst({
-      where: { id: teamId, userId: user.id },
-    })
+    // Verify coach can access this team in the requested business.
+    const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
 
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
@@ -78,10 +79,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const { teamId } = await context.params
+    const scope = getRequestedBusinessScope(req)
 
-    const team = await prisma.team.findFirst({
-      where: { id: teamId, userId: user.id },
-    })
+    const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
 
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })

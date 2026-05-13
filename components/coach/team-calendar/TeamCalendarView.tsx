@@ -94,7 +94,10 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
         from: weekStartIso,
         to: weekEndIso,
       })
-      const res = await fetch(`/api/coach/teams/${teamId}/events?${params}`)
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const res = await fetch(`/api/coach/teams/${teamId}/events?${params}`, {
+        headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
+      })
       if (res.ok) {
         const data = await res.json()
         setEvents(data.events || [])
@@ -104,7 +107,7 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
     } finally {
       setLoading(false)
     }
-  }, [teamId, weekStartIso, weekEndIso])
+  }, [teamId, businessSlug, weekStartIso, weekEndIso])
 
   useEffect(() => {
     fetchEvents()
@@ -125,7 +128,12 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
   const handleDelete = async (eventId: string) => {
     if (!confirm('Ta bort händelse?')) return
     try {
-      const res = await fetch(`/api/coach/teams/${teamId}/events/${eventId}`, { method: 'DELETE' })
+      const params = new URLSearchParams()
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const res = await fetch(`/api/coach/teams/${teamId}/events/${eventId}${params.size ? `?${params}` : ''}`, {
+        method: 'DELETE',
+        headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
+      })
       if (res.ok) {
         setEvents((prev) => prev.filter((e) => e.id !== eventId))
         toast.success('Händelse borttagen')
@@ -136,7 +144,9 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
   }
 
   const handleExport = () => {
-    window.open(`/api/coach/teams/${teamId}/events/export`, '_blank')
+    const params = new URLSearchParams()
+    if (businessSlug) params.set('businessSlug', businessSlug)
+    window.open(`/api/coach/teams/${teamId}/events/export${params.size ? `?${params}` : ''}`, '_blank')
   }
 
   const today = new Date()
@@ -164,7 +174,7 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
             <Download className="h-3.5 w-3.5 mr-1.5" />
             Exportera .ics
           </Button>
-          <CreateEventDialog teamId={teamId} onCreated={fetchEvents} />
+          <CreateEventDialog teamId={teamId} businessSlug={businessSlug} onCreated={fetchEvents} />
         </div>
       </div>
 

@@ -107,13 +107,17 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 interface AgentPerformanceMetricsProps {
   timeRange?: '7d' | '30d' | '90d'
+  basePath?: string
 }
 
-export function AgentPerformanceMetrics({ timeRange: initialRange = '30d' }: AgentPerformanceMetricsProps) {
+export function AgentPerformanceMetrics({ timeRange: initialRange = '30d', basePath = '' }: AgentPerformanceMetricsProps) {
   const [timeRange, setTimeRange] = useState(initialRange)
+  const businessSlug = basePath.split('/').filter(Boolean)[0]
+  const params = new URLSearchParams({ range: timeRange })
+  if (businessSlug) params.set('businessSlug', businessSlug)
 
   const { data, isLoading, error, mutate } = useSWR<MetricsData>(
-    `/api/coach/agent/metrics?range=${timeRange}`,
+    `/api/coach/agent/metrics?${params}`,
     fetcher,
     { refreshInterval: 300000 } // 5 minutes
   )

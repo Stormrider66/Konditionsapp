@@ -12,10 +12,17 @@ export const metadata: Metadata = {
   description: 'AI agent performance metrics and accuracy statistics',
 }
 
-export default function AgentMetricsPage() {
+interface Props {
+  params: Promise<{ businessSlug: string }>
+}
+
+export default async function AgentMetricsPage({ params }: Props) {
+  const { businessSlug } = await params
+  const basePath = `/${businessSlug}`
+
   return (
     <div className="container max-w-6xl py-8">
-      <AgentPerformanceMetrics />
+      <AgentPerformanceMetrics basePath={basePath} />
     </div>
   )
 }

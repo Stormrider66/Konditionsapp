@@ -6,6 +6,7 @@ import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
+import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Timer } from 'lucide-react'
@@ -29,8 +30,9 @@ export default async function IntervalSessionsPage({ params, searchParams }: Pag
     notFound()
   }
 
+  const teamWhere = await getAccessibleTeamWhere(user.id, businessSlug)
   const teams = await prisma.team.findMany({
-    where: { userId: user.id },
+    where: teamWhere,
     select: { id: true, name: true },
     orderBy: { name: 'asc' },
   })

@@ -4,12 +4,15 @@
  * Get summary of pending agent actions for dashboard widget
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { getRequestedBusinessScope } from '@/lib/auth/current-user'
+import type { Prisma } from '@prisma/client'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const scope = getRequestedBusinessScope(request)
     const supabase = await createClient()
     const {
       data: { user },
@@ -19,30 +22,37 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const clientWhere: Prisma.ClientWhereInput = {
+      userId: user.id,
+      ...(scope.businessSlug
+        ? { business: { slug: scope.businessSlug, isActive: true } }
+        : {}),
+    }
+
     // Get counts
     const [proposed, accepted, rejected, autoApplied] = await Promise.all([
       prisma.agentAction.count({
         where: {
-          client: { userId: user.id },
+          client: clientWhere,
           status: 'PROPOSED',
           OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
         },
       }),
       prisma.agentAction.count({
-        where: { client: { userId: user.id }, status: 'ACCEPTED' },
+        where: { client: clientWhere, status: 'ACCEPTED' },
       }),
       prisma.agentAction.count({
-        where: { client: { userId: user.id }, status: 'REJECTED' },
+        where: { client: clientWhere, status: 'REJECTED' },
       }),
       prisma.agentAction.count({
-        where: { client: { userId: user.id }, status: 'AUTO_APPLIED' },
+        where: { client: clientWhere, status: 'AUTO_APPLIED' },
       }),
     ])
 
     // Get recent pending actions
     const recentActions = await prisma.agentAction.findMany({
       where: {
-        client: { userId: user.id },
+        client: clientWhere,
         status: 'PROPOSED',
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },

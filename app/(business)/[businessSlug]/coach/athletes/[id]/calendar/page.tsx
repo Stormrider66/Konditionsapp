@@ -38,6 +38,7 @@ export default async function BusinessAthleteCalendarPage({
     where: {
       id,
       userId: { in: scopedIds },
+      businessId: membership.businessId,
     },
     select: {
       id: true,

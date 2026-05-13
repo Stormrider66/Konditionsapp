@@ -1,30 +1,42 @@
-import { NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import { NextRequest, NextResponse } from 'next/server'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { subDays, startOfWeek, endOfWeek } from 'date-fns'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 
 type EngagementLevel = 'ACTIVE' | 'MODERATE' | 'INACTIVE' | 'NEW'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach()
     const now = new Date()
     const weekStart = startOfWeek(now, { weekStartsOn: 1 })
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
 
-    // Get first active business membership + role for scoping
+    const scope = getRequestedBusinessScope(request)
+
+    // Get active business membership + role for scoping. Business-scoped dashboards
+    // pass businessSlug so coaches in multiple businesses do not fall back to the
+    // first membership.
     const membership = await prisma.businessMember.findFirst({
       where: {
         userId: user.id,
         isActive: true,
+        ...(scope.businessSlug
+          ? { business: { slug: scope.businessSlug, isActive: true } }
+          : {}),
       },
       select: { businessId: true, role: true },
+      orderBy: { createdAt: 'asc' },
     })
 
     const coachIds = membership
       ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
       : [user.id]
+    const clientWhere = {
+      userId: { in: coachIds },
+      ...(membership ? { businessId: membership.businessId } : {}),
+    }
 
     const sevenDaysAgo = subDays(now, 7)
 
@@ -47,7 +59,7 @@ export async function GET() {
     ] = await Promise.all([
       // 1. Clients with sport profile
       prisma.client.findMany({
-        where: { userId: { in: coachIds } },
+        where: clientWhere,
         select: {
           id: true,
           name: true,
@@ -58,7 +70,7 @@ export async function GET() {
       // 2. Latest DailyMetrics per client — readiness
       prisma.dailyMetrics.findMany({
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           date: { gte: subDays(now, 2) },
         },
         select: {
@@ -74,7 +86,7 @@ export async function GET() {
       // 3. Latest TrainingLoad per client — ACWR
       prisma.trainingLoad.findMany({
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           date: { gte: subDays(now, 7) },
         },
         select: {
@@ -90,7 +102,7 @@ export async function GET() {
       prisma.injuryAssessment.groupBy({
         by: ['clientId'],
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           status: { in: ['ACTIVE', 'MONITORING'] },
           resolved: false,
         },
@@ -102,7 +114,7 @@ export async function GET() {
         by: ['athleteId'],
         where: {
           workout: {
-            day: { week: { program: { coachId: { in: coachIds } } } },
+            day: { week: { program: { coachId: { in: coachIds }, client: clientWhere } } },
           },
           completed: true,
         },
@@ -114,7 +126,7 @@ export async function GET() {
         by: ['athleteId'],
         where: {
           workout: {
-            day: { week: { program: { coachId: { in: coachIds } } } },
+            day: { week: { program: { coachId: { in: coachIds }, client: clientWhere } } },
           },
           completed: true,
           coachFeedback: null,
@@ -126,7 +138,7 @@ export async function GET() {
       // 7. Weekly training summary — current week compliance
       prisma.weeklyTrainingSummary.findMany({
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           weekStart: { gte: weekStart },
           weekEnd: { lte: weekEnd },
         },
@@ -142,6 +154,7 @@ export async function GET() {
       prisma.coachAlert.findMany({
         where: {
           coachId: user.id,
+          client: clientWhere,
           status: 'ACTIVE',
         },
         select: {
@@ -154,6 +167,7 @@ export async function GET() {
       prisma.trainingProgram.findMany({
         where: {
           coachId: { in: coachIds },
+          client: clientWhere,
           isActive: true,
           startDate: { lte: now },
           endDate: { gte: now },
@@ -170,7 +184,7 @@ export async function GET() {
       prisma.stravaActivity.groupBy({
         by: ['clientId'],
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
         },
         _max: { startDate: true },
         _count: { id: true },
@@ -180,7 +194,7 @@ export async function GET() {
       prisma.garminActivity.groupBy({
         by: ['clientId'],
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
         },
         _max: { startDate: true },
         _count: { id: true },
@@ -189,7 +203,7 @@ export async function GET() {
       // 12. Integration tokens — which clients have Strava/Garmin connected
       prisma.integrationToken.findMany({
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           type: { in: ['STRAVA', 'GARMIN'] },
           syncEnabled: true,
         },
@@ -203,7 +217,7 @@ export async function GET() {
       prisma.stravaActivity.groupBy({
         by: ['clientId'],
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           startDate: { gte: sevenDaysAgo },
         },
         _count: { id: true },
@@ -213,7 +227,7 @@ export async function GET() {
       prisma.garminActivity.groupBy({
         by: ['clientId'],
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           startDate: { gte: sevenDaysAgo },
         },
         _count: { id: true },

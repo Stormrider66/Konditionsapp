@@ -7,6 +7,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { getRequestedBusinessScope } from '@/lib/auth/current-user'
+import type { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,6 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams
+    const scope = getRequestedBusinessScope(request)
     const range = searchParams.get('range') || '30d'
 
     // Calculate date range
@@ -27,10 +30,17 @@ export async function GET(request: NextRequest) {
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - days)
 
+    const clientWhere: Prisma.ClientWhereInput = {
+      userId: user.id,
+      ...(scope.businessSlug
+        ? { business: { slug: scope.businessSlug, isActive: true } }
+        : {}),
+    }
+
     // Get all actions for coach's athletes in range
     const actions = await prisma.agentAction.findMany({
       where: {
-        client: { userId: user.id },
+        client: clientWhere,
         createdAt: { gte: startDate },
       },
       include: {

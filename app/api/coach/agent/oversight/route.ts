@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
+import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { safeParseInt } from '@/lib/utils/parse'
 import type { AgentActionStatus, Prisma } from '@prisma/client'
 
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams
+    const scope = getRequestedBusinessScope(request)
     const clientId = searchParams.get('clientId')
     const status = searchParams.get('status') || 'PROPOSED'
     const limit = safeParseInt(searchParams.get('limit'), 50, 1, 100)
@@ -37,9 +39,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not a coach' }, { status: 403 })
     }
 
+    const clientWhere: Prisma.ClientWhereInput = {
+      userId: user.id,
+      ...(scope.businessSlug
+        ? { business: { slug: scope.businessSlug, isActive: true } }
+        : {}),
+    }
+
     // Build where clause
     const where: Prisma.AgentActionWhereInput = {
-      client: { userId: user.id }, // Only actions for coach's athletes
+      client: clientWhere, // Only actions for coach's athletes in this business
       status: status === 'all'
         ? { in: ['PROPOSED', 'ACCEPTED', 'REJECTED', 'AUTO_APPLIED'] as AgentActionStatus[] }
         : status as AgentActionStatus,
@@ -47,7 +56,11 @@ export async function GET(request: NextRequest) {
 
     if (clientId) {
       const hasAccess = await canAccessClient(user.id, clientId)
-      if (!hasAccess) {
+      const inBusiness = await prisma.client.findFirst({
+        where: { ...clientWhere, id: clientId },
+        select: { id: true },
+      })
+      if (!hasAccess || !inBusiness) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
       where.clientId = clientId
@@ -104,19 +117,19 @@ export async function GET(request: NextRequest) {
     const [proposed, accepted, rejected, autoApplied] = await Promise.all([
       prisma.agentAction.count({
         where: {
-          client: { userId: user.id },
+          client: clientWhere,
           status: 'PROPOSED',
           OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
         },
       }),
       prisma.agentAction.count({
-        where: { client: { userId: user.id }, status: 'ACCEPTED' },
+        where: { client: clientWhere, status: 'ACCEPTED' },
       }),
       prisma.agentAction.count({
-        where: { client: { userId: user.id }, status: 'REJECTED' },
+        where: { client: clientWhere, status: 'REJECTED' },
       }),
       prisma.agentAction.count({
-        where: { client: { userId: user.id }, status: 'AUTO_APPLIED' },
+        where: { client: clientWhere, status: 'AUTO_APPLIED' },
       }),
     ])
 

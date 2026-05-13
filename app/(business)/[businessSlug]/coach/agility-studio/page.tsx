@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation'
 import AgilityStudioClient from '@/components/agility-studio/AgilityStudioClient'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { prisma } from '@/lib/prisma'
 
 export const metadata: Metadata = {
@@ -18,7 +19,13 @@ interface PageProps {
   params: Promise<{ businessSlug: string }>
 }
 
-async function getInitialData(userId: string) {
+async function getInitialData(userId: string, businessId: string, memberRole: string) {
+  const coachIds = await getCoachScopedIds(userId, businessId, memberRole)
+  const athleteWhere = {
+    userId: { in: coachIds },
+    businessId,
+  }
+
   const [drills, workouts, athletes, timingSessions] = await Promise.all([
     // Get system drills and coach's custom drills
     prisma.agilityDrill.findMany({
@@ -56,7 +63,7 @@ async function getInitialData(userId: string) {
     }),
     // Get coach's athletes
     prisma.client.findMany({
-      where: { userId },
+      where: athleteWhere,
       orderBy: { name: 'asc' },
       select: { id: true, name: true, email: true, teamId: true }
     }),
@@ -83,7 +90,7 @@ export default async function AgilityStudioPage({ params }: PageProps) {
     notFound()
   }
 
-  const initialData = await getInitialData(user.id)
+  const initialData = await getInitialData(user.id, membership.businessId, membership.role)
 
   return (
     <div className="min-h-screen bg-background">

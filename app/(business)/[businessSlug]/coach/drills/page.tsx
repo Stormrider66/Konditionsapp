@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
+import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DrillCreator } from '@/components/coach/drills/DrillCreator'
@@ -22,8 +23,9 @@ export default async function DrillsPage({ params }: PageProps) {
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
 
+  const teamWhere = await getAccessibleTeamWhere(user.id, businessSlug)
   const teams = await prisma.team.findMany({
-    where: { userId: user.id },
+    where: teamWhere,
     select: { id: true, name: true },
     orderBy: { name: 'asc' },
   })

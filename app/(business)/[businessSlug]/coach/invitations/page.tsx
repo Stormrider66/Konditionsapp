@@ -38,7 +38,10 @@ export default async function BusinessInvitationsPage({ params }: PageProps) {
 
   const usedClients = usedClientIds.length > 0
     ? await prisma.client.findMany({
-        where: { id: { in: usedClientIds } },
+        where: {
+          id: { in: usedClientIds },
+          businessId: membership.businessId,
+        },
         select: { id: true, name: true },
       })
     : []

@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import { NextRequest, NextResponse } from 'next/server'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { subDays, startOfWeek, endOfWeek } from 'date-fns'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach()
     const now = new Date()
@@ -14,18 +14,30 @@ export async function GET() {
     const sixtyDaysAgo = subDays(now, 60)
     const thirtyDaysAgo = subDays(now, 30)
 
-    // Get first active business membership + role for scoping
+    const scope = getRequestedBusinessScope(request)
+
+    // Get active business membership + role for scoping. Business-scoped dashboards
+    // pass businessSlug so coaches in multiple businesses do not fall back to the
+    // first membership.
     const membership = await prisma.businessMember.findFirst({
       where: {
         userId: user.id,
         isActive: true,
+        ...(scope.businessSlug
+          ? { business: { slug: scope.businessSlug, isActive: true } }
+          : {}),
       },
       select: { businessId: true, role: true },
+      orderBy: { createdAt: 'asc' },
     })
 
     const coachIds = membership
       ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
       : [user.id]
+    const clientWhere = {
+      userId: { in: coachIds },
+      ...(membership ? { businessId: membership.businessId } : {}),
+    }
 
     // 8 parallel queries
     const [
@@ -40,7 +52,7 @@ export async function GET() {
     ] = await Promise.all([
       // 1. Clients with sport profile
       prisma.client.findMany({
-        where: { userId: { in: coachIds } },
+        where: clientWhere,
         select: {
           id: true,
           name: true,
@@ -51,7 +63,7 @@ export async function GET() {
       // 2. ProgressionTracking — latest per client+exercise (last 30 days)
       prisma.progressionTracking.findMany({
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           date: { gte: thirtyDaysAgo },
         },
         select: {
@@ -70,7 +82,7 @@ export async function GET() {
       // 3. OneRepMaxHistory — last 7 days (PRs feed + per-client PR flag)
       prisma.oneRepMaxHistory.findMany({
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           date: { gte: sevenDaysAgo },
         },
         select: {
@@ -89,7 +101,7 @@ export async function GET() {
       // 4. OneRepMaxHistory — previous records (8-60 days ago) for delta calculations
       prisma.oneRepMaxHistory.findMany({
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           date: { gte: sixtyDaysAgo, lt: subDays(now, 7) },
         },
         select: {
@@ -103,7 +115,7 @@ export async function GET() {
       // 5. StrengthSessionAssignment — this week by client
       prisma.strengthSessionAssignment.findMany({
         where: {
-          athlete: { userId: { in: coachIds } },
+          athlete: clientWhere,
           assignedDate: { gte: weekStart, lte: weekEnd },
         },
         select: {
@@ -115,7 +127,7 @@ export async function GET() {
       // 6. BodyComposition — last 2 per client (for deltas)
       prisma.bodyComposition.findMany({
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
         },
         select: {
           clientId: true,
@@ -132,7 +144,7 @@ export async function GET() {
       prisma.injuryAssessment.groupBy({
         by: ['clientId'],
         where: {
-          client: { userId: { in: coachIds } },
+          client: clientWhere,
           status: { in: ['ACTIVE', 'MONITORING'] },
           resolved: false,
         },
@@ -143,7 +155,7 @@ export async function GET() {
       prisma.strengthSessionAssignment.groupBy({
         by: ['athleteId'],
         where: {
-          athlete: { userId: { in: coachIds } },
+          athlete: clientWhere,
           status: 'COMPLETED',
         },
         _max: { completedAt: true },

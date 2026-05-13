@@ -2,6 +2,7 @@
 import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { prisma } from '@/lib/prisma'
 import { AIStudioClient } from '@/components/ai-studio/AIStudioClient'
 
@@ -27,10 +28,14 @@ export default async function BusinessAIStudioPage({ params, searchParams }: Pag
 
   const basePath = `/${businessSlug}/coach`
   const queryParams = await searchParams
+  const coachIds = await getCoachScopedIds(user.id, membership.businessId, membership.role)
 
   // Fetch coach's clients for athlete selection
   const clients = await prisma.client.findMany({
-    where: { userId: user.id },
+    where: {
+      userId: { in: coachIds },
+      businessId: membership.businessId,
+    },
     select: {
       id: true,
       name: true,
@@ -88,11 +93,7 @@ export default async function BusinessAIStudioPage({ params, searchParams }: Pag
   if (!effectiveKeyStatus.anthropic && !effectiveKeyStatus.google && !effectiveKeyStatus.openai) {
     const businessAiKeys = await prisma.businessAiKeys.findFirst({
       where: {
-        business: {
-          members: {
-            some: { userId: user.id, isActive: true },
-          },
-        },
+        businessId: membership.businessId,
       },
       select: {
         anthropicKeyValid: true,
@@ -116,6 +117,10 @@ export default async function BusinessAIStudioPage({ params, searchParams }: Pag
     where: {
       coachId: user.id,
       status: 'ACTIVE',
+      OR: [
+        { athleteId: null },
+        { athlete: { businessId: membership.businessId } },
+      ],
     },
     select: {
       id: true,
@@ -136,6 +141,9 @@ export default async function BusinessAIStudioPage({ params, searchParams }: Pag
   })
 
   const hasApiKeys = !!(effectiveKeyStatus.anthropic || effectiveKeyStatus.google || effectiveKeyStatus.openai)
+  const initialClientId = clients.some((client) => client.id === queryParams.clientId)
+    ? queryParams.clientId
+    : undefined
 
   // Find the user's default model or fallback to system default
   const defaultModelId = apiKeys?.defaultModelId
@@ -152,7 +160,7 @@ export default async function BusinessAIStudioPage({ params, searchParams }: Pag
       apiKeyStatus={effectiveKeyStatus}
       defaultModel={defaultModel || null}
       initialMode={queryParams.mode}
-      initialClientId={queryParams.clientId}
+      initialClientId={initialClientId}
       basePath={basePath}
     />
   )

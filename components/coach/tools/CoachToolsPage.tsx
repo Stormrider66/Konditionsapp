@@ -9,7 +9,10 @@
  */
 
 import { requireCoach } from '@/lib/auth-utils';
+import { notFound } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { validateBusinessMembership } from '@/lib/business-context';
+import { getCoachScopedIds } from '@/lib/coach/scoping';
 import { VDOTCalculator } from '@/components/coach/calculators/VDOTCalculator';
 import { EnvironmentalCalculator } from '@/components/coach/calculators/EnvironmentalCalculator';
 import { WorkoutConverter } from '@/components/coach/cross-training/WorkoutConverter';
@@ -18,12 +21,28 @@ import { GoalZoneWizard } from '@/components/coach/goal-based/GoalZoneWizard';
 import { prisma } from '@/lib/prisma';
 import { Calculator, Thermometer, Activity, AlertTriangle, Target } from 'lucide-react';
 
-export default async function CoachToolsPage() {
+interface CoachToolsPageProps {
+  businessSlug?: string;
+}
+
+export default async function CoachToolsPage({ businessSlug }: CoachToolsPageProps = {}) {
   const user = await requireCoach();
+  const membership = businessSlug
+    ? await validateBusinessMembership(user.id, businessSlug)
+    : null;
+  if (businessSlug && !membership) {
+    notFound();
+  }
+  const coachIds = membership
+    ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
+    : [user.id];
 
   // Fetch athletes for injury assessment and cross-training converter
   const clients = await prisma.client.findMany({
-    where: { userId: user.id },
+    where: {
+      userId: { in: coachIds },
+      ...(membership ? { businessId: membership.businessId } : {}),
+    },
     select: {
       id: true,
       name: true

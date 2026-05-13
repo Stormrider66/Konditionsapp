@@ -1,3 +1,11 @@
 // app/(business)/[businessSlug]/coach/tests/new/page.tsx
-// Re-export the tests new page
-export { default } from '@/components/coach/tests/NewFieldTestPage'
+import NewFieldTestPage from '@/components/coach/tests/NewFieldTestPage'
+
+interface PageProps {
+  params: Promise<{ businessSlug: string }>
+}
+
+export default async function BusinessNewFieldTestPage({ params }: PageProps) {
+  const { businessSlug } = await params
+  return <NewFieldTestPage businessSlug={businessSlug} />
+}

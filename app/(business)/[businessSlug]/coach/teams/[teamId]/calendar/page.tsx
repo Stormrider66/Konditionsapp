@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
-import { prisma } from '@/lib/prisma'
+import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { TeamCalendarView } from '@/components/coach/team-calendar/TeamCalendarView'
 import { ManageAssistantsDialog } from '@/components/coach/team-calendar/ManageAssistantsDialog'
 import { Button } from '@/components/ui/button'
@@ -22,10 +22,7 @@ export default async function TeamCalendarPage({ params }: PageProps) {
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
 
-  const team = await prisma.team.findFirst({
-    where: { id: teamId, userId: user.id },
-    select: { id: true, name: true },
-  })
+  const team = await getAccessibleTeam(user.id, teamId, businessSlug)
 
   if (!team) notFound()
 

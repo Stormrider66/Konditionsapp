@@ -34,7 +34,10 @@ export default async function BusinessCoachOnboardingPage({ params }: PageProps)
 
   // Get client count to show in welcome
   const clientsCount = await prisma.client.count({
-    where: { userId: user.id },
+    where: {
+      userId: user.id,
+      businessId: membership.businessId,
+    },
   })
 
   return (

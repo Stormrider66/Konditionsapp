@@ -35,10 +35,11 @@ const EVENT_TYPES = [
 
 interface CreateEventDialogProps {
   teamId: string
+  businessSlug?: string
   onCreated: () => void
 }
 
-export function CreateEventDialog({ teamId, onCreated }: CreateEventDialogProps) {
+export function CreateEventDialog({ teamId, businessSlug, onCreated }: CreateEventDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -67,9 +68,14 @@ export function CreateEventDialog({ teamId, onCreated }: CreateEventDialogProps)
         ? `${startDate}T${endTime}:00`
         : undefined
 
-      const res = await fetch(`/api/coach/teams/${teamId}/events`, {
+      const params = new URLSearchParams()
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const res = await fetch(`/api/coach/teams/${teamId}/events${params.size ? `?${params}` : ''}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
+        },
         body: JSON.stringify({
           title: title.trim(),
           type,

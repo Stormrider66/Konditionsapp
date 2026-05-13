@@ -8,15 +8,34 @@
  */
 
 import { requireCoach } from '@/lib/auth-utils';
+import { notFound } from 'next/navigation';
+import { validateBusinessMembership } from '@/lib/business-context';
+import { getCoachScopedIds } from '@/lib/coach/scoping';
 import { FieldTestForm } from '@/components/coach/tests/FieldTestForm';
 import { prisma } from '@/lib/prisma';
 
-export default async function NewFieldTestPage() {
+interface NewFieldTestPageProps {
+  businessSlug?: string;
+}
+
+export default async function NewFieldTestPage({ businessSlug }: NewFieldTestPageProps = {}) {
   const user = await requireCoach();
+  const membership = businessSlug
+    ? await validateBusinessMembership(user.id, businessSlug)
+    : null;
+  if (businessSlug && !membership) {
+    notFound();
+  }
+  const coachIds = membership
+    ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
+    : [user.id];
 
   // Fetch athletes for this coach
   const clients = await prisma.client.findMany({
-    where: { userId: user.id },
+    where: {
+      userId: { in: coachIds },
+      ...(membership ? { businessId: membership.businessId } : {}),
+    },
     select: {
       id: true,
       name: true

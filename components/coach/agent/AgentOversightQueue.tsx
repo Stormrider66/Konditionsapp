@@ -66,6 +66,7 @@ export function AgentOversightQueue({
   clientId,
   compact = false,
 }: AgentOversightQueueProps) {
+  const businessSlug = basePath.split('/').filter(Boolean)[0]
   const [searchQuery, setSearchQuery] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
@@ -75,6 +76,7 @@ export function AgentOversightQueue({
 
   const queryParams = new URLSearchParams()
   if (clientId) queryParams.set('clientId', clientId)
+  if (businessSlug) queryParams.set('businessSlug', businessSlug)
 
   const { data, error, isLoading, mutate } = useSWR<OversightResponse>(
     `/api/coach/agent/oversight?${queryParams.toString()}`,
@@ -86,9 +88,14 @@ export function AgentOversightQueue({
     async (actionId: string, notes?: string) => {
       setProcessingId(actionId)
       try {
-        const response = await fetch(`/api/coach/agent/oversight/${actionId}/approve`, {
+        const actionParams = new URLSearchParams()
+        if (businessSlug) actionParams.set('businessSlug', businessSlug)
+        const response = await fetch(`/api/coach/agent/oversight/${actionId}/approve${actionParams.size ? `?${actionParams}` : ''}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
+          },
           body: JSON.stringify({ notes }),
         })
 
@@ -103,16 +110,21 @@ export function AgentOversightQueue({
         setProcessingId(null)
       }
     },
-    [mutate]
+    [mutate, businessSlug]
   )
 
   const handleReject = useCallback(
     async (actionId: string, reason?: string) => {
       setProcessingId(actionId)
       try {
-        const response = await fetch(`/api/coach/agent/oversight/${actionId}/reject`, {
+        const actionParams = new URLSearchParams()
+        if (businessSlug) actionParams.set('businessSlug', businessSlug)
+        const response = await fetch(`/api/coach/agent/oversight/${actionId}/reject${actionParams.size ? `?${actionParams}` : ''}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
+          },
           body: JSON.stringify({ reason }),
         })
 
@@ -127,7 +139,7 @@ export function AgentOversightQueue({
         setProcessingId(null)
       }
     },
-    [mutate]
+    [mutate, businessSlug]
   )
 
   const handleModify = useCallback(
@@ -139,9 +151,14 @@ export function AgentOversightQueue({
     }) => {
       setProcessingId(actionId)
       try {
-        const response = await fetch(`/api/coach/agent/oversight/${actionId}/modify`, {
+        const actionParams = new URLSearchParams()
+        if (businessSlug) actionParams.set('businessSlug', businessSlug)
+        const response = await fetch(`/api/coach/agent/oversight/${actionId}/modify${actionParams.size ? `?${actionParams}` : ''}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
+          },
           body: JSON.stringify(modifications),
         })
 
@@ -156,7 +173,7 @@ export function AgentOversightQueue({
         setProcessingId(null)
       }
     },
-    [mutate]
+    [mutate, businessSlug]
   )
 
   const openModifyDialog = useCallback((action: OversightAction) => {

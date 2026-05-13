@@ -41,8 +41,11 @@ interface AgentOversightSummaryCardProps {
 }
 
 export function AgentOversightSummaryCard({ basePath = '' }: AgentOversightSummaryCardProps) {
+  const businessSlug = basePath.split('/').filter(Boolean)[0]
+  const params = new URLSearchParams()
+  if (businessSlug) params.set('businessSlug', businessSlug)
   const { data, isLoading, error } = useSWR<OversightSummary>(
-    '/api/coach/agent/oversight/summary',
+    `/api/coach/agent/oversight/summary${params.size ? `?${params}` : ''}`,
     fetcher,
     { refreshInterval: 60000 }
   )

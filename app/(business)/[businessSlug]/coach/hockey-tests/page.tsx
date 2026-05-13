@@ -38,18 +38,13 @@ export default async function HockeyTestsPage({ params }: PageProps) {
 
   const clients = await prisma.client.findMany({
     where: permissions.isTeamScoped
-      ? { teamId: { in: permissions.assignedTeamIds } }
+      ? {
+          teamId: { in: permissions.assignedTeamIds },
+          businessId: membership.businessId,
+        }
       : {
-          OR: [
-            {
-              businessId: membership.businessId,
-              userId: { in: coachIds },
-            },
-            {
-              userId: user.id,
-              teamId: null,
-            },
-          ],
+          businessId: membership.businessId,
+          userId: { in: coachIds },
         },
     select: { id: true, name: true, teamId: true },
     orderBy: { name: 'asc' },

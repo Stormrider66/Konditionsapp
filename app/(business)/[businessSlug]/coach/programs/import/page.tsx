@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
@@ -20,9 +21,13 @@ export default async function ImportProgramPage({ params }: PageProps) {
   if (!membership) notFound()
 
   const basePath = `/${businessSlug}/coach`
+  const coachIds = await getCoachScopedIds(user.id, membership.businessId, membership.role)
 
   const clients = await prisma.client.findMany({
-    where: { userId: user.id },
+    where: {
+      userId: { in: coachIds },
+      businessId: membership.businessId,
+    },
     select: { id: true, name: true },
     orderBy: { name: 'asc' },
   })

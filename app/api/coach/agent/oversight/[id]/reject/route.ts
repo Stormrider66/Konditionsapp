@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { rejectAction } from '@/lib/agent/execution'
 import { logAgentAudit } from '@/lib/agent/gdpr/audit-logger'
 
@@ -25,6 +26,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const scope = getRequestedBusinessScope(request)
     const body = await request.json().catch(() => ({}))
     const { reason } = body
 
@@ -39,7 +41,12 @@ export async function POST(
     const action = await prisma.agentAction.findFirst({
       where: {
         id,
-        client: { userId: user.id },
+        client: {
+          userId: user.id,
+          ...(scope.businessSlug
+            ? { business: { slug: scope.businessSlug, isActive: true } }
+            : {}),
+        },
       },
       include: {
         client: { select: { id: true, name: true } },

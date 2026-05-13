@@ -6,6 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
+import { getRequestedBusinessScope } from '@/lib/auth/current-user'
+import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 
 interface RouteContext {
@@ -20,15 +22,13 @@ function escapeICalText(text: string): string {
   return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
 }
 
-export async function GET(_req: NextRequest, context: RouteContext) {
+export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const { teamId } = await context.params
+    const scope = getRequestedBusinessScope(req)
 
-    const team = await prisma.team.findFirst({
-      where: { id: teamId, userId: user.id },
-      select: { id: true, name: true },
-    })
+    const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
 
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
