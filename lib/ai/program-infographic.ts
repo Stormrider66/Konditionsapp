@@ -26,6 +26,7 @@ export interface GenerateInfographicOptions {
   programId: string
   programData: InfographicProgramData
   coachId: string
+  clientId?: string | null
   locale: string
   model?: string
 }
@@ -99,7 +100,7 @@ Design requirements:
 export async function generateProgramInfographic(
   options: GenerateInfographicOptions
 ): Promise<string> {
-  const { programId, programData, coachId, locale, model } = options
+  const { programId, programData, coachId, clientId, locale, model } = options
   const selectedModel = model || GEMINI_MODELS.IMAGE_GENERATION
 
   const apiKey = await resolveGoogleApiKey(coachId)
@@ -141,6 +142,7 @@ export async function generateProgramInfographic(
       outputTokens,
     ),
     userId: coachId,
+    clientId,
     category: 'image_generation_program',
   })
 

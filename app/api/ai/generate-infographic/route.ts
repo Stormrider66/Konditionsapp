@@ -16,6 +16,7 @@ import {
   ALLOWED_IMAGE_MODELS,
 } from '@/lib/ai/program-infographic'
 import { logger } from '@/lib/logger'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
     // Verify coach has access to this program
     const program = await prisma.trainingProgram.findFirst({
       where: { id: programId, coachId: user.id },
-      select: { id: true },
+      select: { id: true, clientId: true },
     })
 
     if (!program) {
@@ -56,6 +57,9 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       )
     }
+
+    const allowanceDenied = await requireAiAllowance(program.clientId)
+    if (allowanceDenied) return allowanceDenied
 
     const programData = await reconstructProgramForInfographic(programId)
     if (!programData) {
@@ -71,6 +75,7 @@ export async function POST(request: NextRequest) {
       programId,
       programData,
       coachId: user.id,
+      clientId: program.clientId,
       locale,
       model,
     })

@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       select: {
         id: true,
         coachId: true,
+        athleteId: true,
         provider: true,
         externalJobId: true,
         startedAt: true,
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
 
         // Handle poll result
         if (pollResult.status === 'COMPLETED') {
-          await handleCompletion(session.id, session.coachId, session.provider, pollResult)
+          await handleCompletion(session.id, session.coachId, session.athleteId, session.provider, pollResult)
           results.push({ sessionId: session.id, status: 'COMPLETED' })
         } else if (pollResult.status === 'FAILED') {
           await handleError(session.id, pollResult.error || 'Research failed')
@@ -155,6 +156,7 @@ export async function POST(request: NextRequest) {
 async function handleCompletion(
   sessionId: string,
   coachId: string,
+  athleteId: string | null,
   provider: DeepResearchProvider,
   pollResult: {
     report?: string
@@ -226,6 +228,7 @@ async function handleCompletion(
   // Log usage for budget tracking
   await logUsage({
     userId: coachId,
+    clientId: athleteId,
     category: 'research',
     provider: provider,
     model: getModelForProvider(provider),

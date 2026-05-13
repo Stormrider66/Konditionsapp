@@ -32,6 +32,7 @@ import { buildChatContext } from '@/lib/ai/chat/context-builder'
 import { buildCoachSystemPrompt } from '@/lib/ai/chat/system-prompt'
 import { resolveAiModel, getMaxOutputTokens } from '@/lib/ai/chat/model-selector'
 import { buildOnFinishHandler } from '@/lib/ai/chat/on-finish'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 // Allow longer execution time for AI streaming responses (60 seconds)
 export const maxDuration = 60
@@ -152,6 +153,9 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         logger.warn('Error fetching training program dates for calendar context', {}, error)
       }
+
+      const allowanceDenied = await requireAiAllowance(athleteClientId)
+      if (allowanceDenied) return allowanceDenied
     } else {
       const user = await requireCoach()
       userId = user.id
@@ -313,6 +317,7 @@ export async function POST(request: NextRequest) {
         athleteClientId,
         apiKeyUserId,
         effectiveBusinessId,
+        usageLoggedByMiddleware: modelResult.usageLoggedByMiddleware,
       }),
     })
 

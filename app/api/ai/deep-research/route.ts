@@ -16,6 +16,7 @@ import { createProvider, PROVIDER_COST_ESTIMATES, ResearchConfig } from '@/lib/a
 import { checkBudget, logUsage } from '@/lib/ai/deep-research/budget-manager'
 import { searchSimilarChunks, hasEmbeddingKeys, type EmbeddingKeys } from '@/lib/ai/embeddings'
 import { DeepResearchProvider, DeepResearchStatus } from '@prisma/client'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 // ============================================
 // Validation Schemas
@@ -110,6 +111,9 @@ export async function POST(request: NextRequest) {
           { status: 403 }
         )
       }
+
+      const allowanceDenied = await requireAiAllowance(athleteId)
+      if (allowanceDenied) return allowanceDenied
     }
 
     // Verify documents belong to coach (if provided)

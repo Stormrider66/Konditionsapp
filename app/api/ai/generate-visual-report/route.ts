@@ -11,6 +11,7 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { generateVisualReport, ALLOWED_IMAGE_MODELS } from '@/lib/ai/visual-reports'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 const requestSchema = z.object({
   reportType: z.enum(['progression', 'training-summary', 'test-report', 'program']),
@@ -60,6 +61,9 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       )
     }
+
+    const allowanceDenied = await requireAiAllowance(clientId)
+    if (allowanceDenied) return allowanceDenied
 
     const locale = request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en'
 

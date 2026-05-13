@@ -26,7 +26,7 @@ export interface ResolveAiModelInput {
 }
 
 export type ResolveAiModelResult =
-  | { ok: true; aiModel: unknown }
+  | { ok: true; aiModel: unknown; usageLoggedByMiddleware: boolean }
   | { ok: false; errorMessage: string }
 
 /**
@@ -55,7 +55,7 @@ export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult
         provider: resolved.provider,
         model: resolved.modelId,
       })
-      return { ok: true, aiModel: createModelInstance(resolved) }
+      return { ok: true, aiModel: createModelInstance(resolved), usageLoggedByMiddleware: true }
     }
     return { ok: false, errorMessage: 'Ingen AI API-nyckel konfigurerad.' }
   }
@@ -65,7 +65,7 @@ export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult
       apiKey: healthyKeys.anthropicKey,
       fetch: wrapAiFetch('anthropic'),
     })
-    return { ok: true, aiModel: anthropic(model || 'claude-sonnet-4-6') }
+    return { ok: true, aiModel: anthropic(model || 'claude-sonnet-4-6'), usageLoggedByMiddleware: false }
   }
 
   if (provider === 'GOOGLE' && healthyKeys.googleKey) {
@@ -77,7 +77,7 @@ export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult
     if (deepThinkEnabled) {
       logger.info('Using Gemini Deep Think mode', { model: geminiModel })
     }
-    return { ok: true, aiModel: google(geminiModel) }
+    return { ok: true, aiModel: google(geminiModel), usageLoggedByMiddleware: false }
   }
 
   if (provider === 'OPENAI' && healthyKeys.openaiKey) {
@@ -85,7 +85,7 @@ export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult
       apiKey: healthyKeys.openaiKey,
       fetch: wrapAiFetch('openai'),
     })
-    return { ok: true, aiModel: openai(model || 'gpt-5.5') }
+    return { ok: true, aiModel: openai(model || 'gpt-5.5'), usageLoggedByMiddleware: false }
   }
 
   // No healthy key for the requested provider — try any healthy provider.
@@ -96,7 +96,7 @@ export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult
       fallbackProvider: fallback.provider,
       fallbackModel: fallback.modelId,
     })
-    return { ok: true, aiModel: createModelInstance(fallback) }
+    return { ok: true, aiModel: createModelInstance(fallback), usageLoggedByMiddleware: true }
   }
 
   return {

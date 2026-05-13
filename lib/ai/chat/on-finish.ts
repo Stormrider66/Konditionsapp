@@ -3,6 +3,7 @@ import { logger } from '@/lib/logger'
 import { incrementAIChatUsage } from '@/lib/subscription/feature-access'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { extractMemoriesFromConversation, saveMemories } from '@/lib/ai/memory-extractor'
+import { logAiUsage, type AiProviderTag } from '@/lib/ai/usage-logger'
 import type { ChatRequestMessage } from './types'
 import { getMessageContent } from './message-format'
 
@@ -21,6 +22,7 @@ export interface BuildOnFinishInput {
   athleteClientId?: string
   apiKeyUserId: string
   effectiveBusinessId: string | null
+  usageLoggedByMiddleware: boolean
 }
 
 /**
@@ -40,6 +42,7 @@ export function buildOnFinishHandler(input: BuildOnFinishInput) {
     athleteClientId,
     apiKeyUserId,
     effectiveBusinessId,
+    usageLoggedByMiddleware,
   } = input
 
   return async ({
@@ -64,6 +67,19 @@ export function buildOnFinishHandler(input: BuildOnFinishInput) {
         model,
         maxOutputTokens,
         outputTokens: usage?.outputTokens,
+      })
+    }
+
+    if (!usageLoggedByMiddleware) {
+      logAiUsage({
+        userId: apiKeyUserId,
+        clientId: athleteClientId,
+        category: isAthleteChat ? 'athlete_chat' : 'coach_chat',
+        provider: provider as AiProviderTag,
+        model,
+        inputTokens: usage?.inputTokens ?? 0,
+        outputTokens: usage?.outputTokens ?? 0,
+        conversationId,
       })
     }
 

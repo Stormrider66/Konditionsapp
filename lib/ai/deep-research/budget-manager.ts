@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { recordAiUsageDebit, usdToSek } from '@/lib/ai/billing/allowance'
 
 // ============================================
 // Types
@@ -35,6 +36,7 @@ export interface BudgetStatus {
 
 export interface UsageLogParams {
   userId: string
+  clientId?: string | null
   category: 'research' | 'chat' | 'embedding'
   provider: string
   model: string
@@ -153,6 +155,7 @@ export async function logUsage(params: UsageLogParams): Promise<void> {
     prisma.aIUsageLog.create({
       data: {
         userId: params.userId,
+        clientId: params.clientId,
         category: params.category,
         provider: params.provider,
         model: params.model,
@@ -176,6 +179,13 @@ export async function logUsage(params: UsageLogParams): Promise<void> {
       },
     }),
   ])
+
+  if (params.clientId && params.estimatedCost > 0) {
+    await recordAiUsageDebit({
+      clientId: params.clientId,
+      costSek: usdToSek(params.estimatedCost),
+    })
+  }
 }
 
 // ============================================
