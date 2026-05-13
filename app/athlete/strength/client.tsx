@@ -157,7 +157,7 @@ export function AthleteStrengthClient({
                     key={assignment.id}
                     className="cursor-pointer hover:border-blue-300 dark:hover:border-blue-500/50 transition-all duration-300 group hover:shadow-lg dark:border-white/5 border-slate-200"
                     onClick={() =>
-                      router.push(`${basePath}/athlete/workout/${assignment.sessionId}`)
+                      router.push(`${basePath}/athlete/workout/${assignment.id}`)
                     }
                   >
                     <GlassCardContent className="p-5">

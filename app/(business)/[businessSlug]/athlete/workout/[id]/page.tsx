@@ -8,19 +8,20 @@ interface PageProps {
 }
 
 export default async function BusinessAthleteWorkoutPage({ params }: PageProps) {
-  const { businessSlug, id: sessionId } = await params
+  const { businessSlug, id } = await params
   const { clientId } = await requireAthleteOrCoachInAthleteMode()
   // Business membership is already validated by the parent layout
 
-  const assignment = await prisma.strengthSessionAssignment.findFirst({
+  const assignmentById = await prisma.strengthSessionAssignment.findFirst({
     where: {
+      id,
       athleteId: clientId,
-      sessionId,
       status: { not: 'SKIPPED' },
     },
-    orderBy: { assignedDate: 'desc' },
     select: { id: true },
   })
+
+  const assignment = assignmentById ?? await findBestAssignmentForSession(id, clientId)
 
   if (!assignment) notFound()
 
@@ -30,4 +31,32 @@ export default async function BusinessAthleteWorkoutPage({ params }: PageProps) 
       fallbackRoute={`/${businessSlug}/athlete/dashboard`}
     />
   )
+}
+
+async function findBestAssignmentForSession(sessionId: string, clientId: string) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const pastOrToday = await prisma.strengthSessionAssignment.findFirst({
+    where: {
+      athleteId: clientId,
+      sessionId,
+      status: { not: 'SKIPPED' },
+      assignedDate: { lte: today },
+    },
+    orderBy: { assignedDate: 'desc' },
+    select: { id: true },
+  })
+
+  if (pastOrToday) return pastOrToday
+
+  return prisma.strengthSessionAssignment.findFirst({
+    where: {
+      athleteId: clientId,
+      sessionId,
+      status: { not: 'SKIPPED' },
+    },
+    orderBy: { assignedDate: 'asc' },
+    select: { id: true },
+  })
 }
