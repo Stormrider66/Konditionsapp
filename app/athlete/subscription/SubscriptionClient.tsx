@@ -27,8 +27,15 @@ import {
   Watch,
   AlertTriangle,
   Lock,
+  Coins,
 } from 'lucide-react'
-import { ATHLETE_PLAN_COPY, ATHLETE_PLAN_PRICING } from '@/lib/subscription/athlete-plans'
+import { AICreditStatusCard } from '@/components/athlete/ai/AICreditStatusCard'
+import {
+  ATHLETE_AI_ALLOWANCE_SEK,
+  ATHLETE_PLAN_COPY,
+  ATHLETE_PLAN_PRICING,
+  type AthletePlanTier,
+} from '@/lib/subscription/athlete-plans'
 
 interface Subscription {
   id: string
@@ -73,6 +80,7 @@ const TIERS = [
     yearlyPrice: ATHLETE_PLAN_PRICING.FREE.yearlySek,
     description: ATHLETE_PLAN_COPY.FREE.descriptionSv,
     features: ATHLETE_PLAN_COPY.FREE.featuresSv,
+    aiAllowanceSek: ATHLETE_AI_ALLOWANCE_SEK.FREE,
     icon: Star,
     color: 'gray',
   },
@@ -83,6 +91,7 @@ const TIERS = [
     yearlyPrice: ATHLETE_PLAN_PRICING.STANDARD.yearlySek,
     description: ATHLETE_PLAN_COPY.STANDARD.descriptionSv,
     features: ATHLETE_PLAN_COPY.STANDARD.featuresSv,
+    aiAllowanceSek: ATHLETE_AI_ALLOWANCE_SEK.STANDARD,
     icon: Zap,
     color: 'blue',
     popular: true,
@@ -94,6 +103,7 @@ const TIERS = [
     yearlyPrice: ATHLETE_PLAN_PRICING.PRO.yearlySek,
     description: ATHLETE_PLAN_COPY.PRO.descriptionSv,
     features: ATHLETE_PLAN_COPY.PRO.featuresSv,
+    aiAllowanceSek: ATHLETE_AI_ALLOWANCE_SEK.PRO,
     icon: Crown,
     color: 'purple',
   },
@@ -200,6 +210,7 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
   }
 
   const isTrialExpired = status?.status === 'EXPIRED' && subscription?.status === 'TRIAL'
+  const currentPlanCopy = ATHLETE_PLAN_COPY[currentTier as AthletePlanTier] ?? ATHLETE_PLAN_COPY.FREE
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -315,6 +326,37 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
           )}
         </Card>
 
+        {/* AI Credits */}
+        <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-4">
+          <AICreditStatusCard basePath={basePath} />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Coins className="h-5 w-5 text-emerald-600" />
+                Så fungerar AI-krediter
+              </CardTitle>
+              <CardDescription>
+                Din plan avgör hur mycket tung AI-användning som ingår varje månad.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <p>
+                Mat-skanner, videoanalys, röstcoach, programimport och rapportbilder använder AI-krediter.
+              </p>
+              <p>
+                {currentPlanCopy.nameSv} inkluderar{' '}
+                <span className="font-semibold text-foreground">
+                  {ATHLETE_AI_ALLOWANCE_SEK[currentTier as AthletePlanTier] ?? ATHLETE_AI_ALLOWANCE_SEK.FREE} SEK/mån
+                </span>{' '}
+                i AI-krediter.
+              </p>
+              <div className="rounded-lg bg-emerald-50 p-3 text-emerald-800">
+                Extra påfyllning kommer här som nästa betalsteg. Tills dess är uppgradering till Pro den enklaste vägen för tung AI-användning.
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Billing Cycle Toggle */}
         <div className="flex justify-center" id="plans">
           <div className="bg-white rounded-lg p-1 border inline-flex">
@@ -395,6 +437,10 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
                   </div>
 
                   <ul className="text-sm text-left space-y-2 mb-6">
+                    <li className="flex items-start gap-2 rounded-lg bg-emerald-50 p-2 text-emerald-800">
+                      <Coins className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                      <span>{tier.aiAllowanceSek} SEK AI-krediter/mån ingår</span>
+                    </li>
                     {tier.features.map((feature, i) => (
                       <li key={i} className="flex items-start gap-2">
                         <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
