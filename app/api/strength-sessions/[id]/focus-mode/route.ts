@@ -48,6 +48,10 @@ interface SetLogSummary {
   rpe?: number
   meanVelocity?: number
   peakVelocity?: number
+  meanPower?: number
+  peakPower?: number
+  meanTime?: number
+  peakTime?: number
   estimated1RM?: number
   velocityZone?: string
   completedAt: Date
@@ -264,6 +268,10 @@ export async function GET(
         rpe: log.rpe ?? undefined,
         meanVelocity: log.meanVelocity ?? undefined,
         peakVelocity: log.peakVelocity ?? undefined,
+        meanPower: log.meanPower ?? undefined,
+        peakPower: log.peakPower ?? undefined,
+        meanTime: log.meanTime ?? undefined,
+        peakTime: log.peakTime ?? undefined,
         estimated1RM: log.estimated1RM ?? undefined,
         velocityZone: log.velocityZone ?? undefined,
         completedAt: log.completedAt,

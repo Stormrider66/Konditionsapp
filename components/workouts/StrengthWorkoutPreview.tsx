@@ -87,6 +87,8 @@ export function StrengthWorkoutPreview({
       peakVelocity: json.data.setLog.peakVelocity ?? undefined,
       meanPower: json.data.setLog.meanPower ?? undefined,
       peakPower: json.data.setLog.peakPower ?? undefined,
+      meanTime: json.data.setLog.meanTime ?? undefined,
+      peakTime: json.data.setLog.peakTime ?? undefined,
       estimated1RM: json.data.estimated1RM,
       velocityZone: json.data.velocityZone,
       completedAt: json.data.setLog.completedAt,

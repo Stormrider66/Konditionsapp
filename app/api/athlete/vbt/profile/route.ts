@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { calculateLoadVelocityProfile, getExerciseMVT } from '@/lib/integrations/vbt';
+import { calculateLoadVelocityProfile } from '@/lib/integrations/vbt';
 import { logError } from '@/lib/logger-console'
 
 // GET query schema
@@ -137,25 +137,55 @@ export async function POST(request: NextRequest) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysBack);
 
-    const measurements = await prisma.vBTMeasurement.findMany({
-      where: {
-        exerciseId,
-        session: {
-          clientId,
-          sessionDate: { gte: startDate },
+    const [vbtMeasurements, loggedSetMeasurements] = await Promise.all([
+      prisma.vBTMeasurement.findMany({
+        where: {
+          exerciseId,
+          session: {
+            clientId,
+            sessionDate: { gte: startDate },
+          },
+          load: { not: null },
+          meanVelocity: { not: null },
         },
-        load: { not: null },
-        meanVelocity: { not: null },
-      },
-      select: {
-        load: true,
-        meanVelocity: true,
-        session: { select: { sessionDate: true } },
-      },
-      orderBy: {
-        session: { sessionDate: 'desc' },
-      },
-    });
+        select: {
+          load: true,
+          meanVelocity: true,
+          session: { select: { sessionDate: true } },
+        },
+        orderBy: {
+          session: { sessionDate: 'desc' },
+        },
+      }),
+      prisma.setLog.findMany({
+        where: {
+          exerciseId,
+          assignment: { athleteId: clientId },
+          weight: { gt: 0 },
+          meanVelocity: { not: null },
+          completedAt: { gte: startDate },
+        },
+        select: {
+          weight: true,
+          meanVelocity: true,
+          completedAt: true,
+        },
+        orderBy: { completedAt: 'desc' },
+      }),
+    ]);
+
+    const measurements = [
+      ...vbtMeasurements.map((m) => ({
+        load: m.load!,
+        velocity: m.meanVelocity!,
+        measuredAt: m.session.sessionDate,
+      })),
+      ...loggedSetMeasurements.map((m) => ({
+        load: m.weight,
+        velocity: m.meanVelocity!,
+        measuredAt: m.completedAt,
+      })),
+    ].sort((a, b) => b.measuredAt.getTime() - a.measuredAt.getTime());
 
     if (measurements.length < 2) {
       return NextResponse.json(
@@ -169,8 +199,8 @@ export async function POST(request: NextRequest) {
 
     // Calculate profile
     const dataPoints = measurements.map((m) => ({
-      load: m.load!,
-      velocity: m.meanVelocity!,
+      load: m.load,
+      velocity: m.velocity,
     }));
 
     const profile = calculateLoadVelocityProfile(
@@ -179,7 +209,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Get most recent measurement date
-    const lastMeasurementAt = measurements[0]?.session?.sessionDate || new Date();
+    const lastMeasurementAt = measurements[0]?.measuredAt || new Date();
 
     // Calculate load range
     const minLoad = Math.min(...profile.dataPoints.map((p) => p.load));

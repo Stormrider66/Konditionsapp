@@ -536,6 +536,8 @@ model SetLog {
   peakVelocity Float? // m/s
   meanPower    Float? // watts
   peakPower    Float? // watts
+  meanTime     Float? // seconds
+  peakTime     Float? // seconds
 
   // Timing
   restTaken Int? // seconds of rest taken after this set

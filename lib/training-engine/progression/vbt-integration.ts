@@ -13,13 +13,9 @@
 import { prisma } from '@/lib/prisma';
 import {
   calculateLoadVelocityProfile,
-  predictVelocity,
   getRecommendedLoad,
-  getVelocityZone,
-  VELOCITY_ZONES,
   type LoadVelocityProfileResult,
 } from '@/lib/integrations/vbt';
-import { estimate1RMWithConfidence } from './rm-estimation';
 
 // ============================================
 // Types
@@ -60,6 +56,82 @@ export interface VBTVelocityTrend {
   interpretation: string;
 }
 
+type VelocityMeasurementPoint = {
+  load: number;
+  meanVelocity: number;
+  measuredAt: Date;
+};
+
+async function getVelocityMeasurementsForExercise(
+  clientId: string,
+  exerciseId: string,
+  options: {
+    from?: Date;
+    to?: Date;
+    take?: number;
+  } = {}
+): Promise<VelocityMeasurementPoint[]> {
+  const { from, to, take = 100 } = options;
+  const dateFilter = {
+    ...(from ? { gte: from } : {}),
+    ...(to ? { lt: to } : {}),
+  };
+
+  const [vbtMeasurements, loggedSets] = await Promise.all([
+    prisma.vBTMeasurement.findMany({
+      where: {
+        session: {
+          clientId,
+          ...(Object.keys(dateFilter).length > 0 ? { sessionDate: dateFilter } : {}),
+        },
+        exerciseId,
+        meanVelocity: { not: null },
+        load: { not: null },
+      },
+      select: {
+        load: true,
+        meanVelocity: true,
+        session: { select: { sessionDate: true } },
+      },
+      orderBy: {
+        session: { sessionDate: 'desc' },
+      },
+      take,
+    }),
+    prisma.setLog.findMany({
+      where: {
+        assignment: { athleteId: clientId },
+        exerciseId,
+        weight: { gt: 0 },
+        meanVelocity: { not: null },
+        ...(Object.keys(dateFilter).length > 0 ? { completedAt: dateFilter } : {}),
+      },
+      select: {
+        weight: true,
+        meanVelocity: true,
+        completedAt: true,
+      },
+      orderBy: { completedAt: 'desc' },
+      take,
+    }),
+  ]);
+
+  return [
+    ...vbtMeasurements.map((m) => ({
+      load: m.load!,
+      meanVelocity: m.meanVelocity!,
+      measuredAt: m.session.sessionDate,
+    })),
+    ...loggedSets.map((m) => ({
+      load: m.weight,
+      meanVelocity: m.meanVelocity!,
+      measuredAt: m.completedAt,
+    })),
+  ]
+    .sort((a, b) => b.measuredAt.getTime() - a.measuredAt.getTime())
+    .slice(0, take);
+}
+
 // ============================================
 // Core Functions
 // ============================================
@@ -72,27 +144,13 @@ export async function getVBTProgressionData(
   exerciseId: string,
   exerciseName: string
 ): Promise<VBTProgressionData> {
-  // Get VBT measurements for this exercise (last 30 days)
+  // Get VBT measurements for this exercise (last 30 days), including
+  // manually logged set speed from assigned strength workouts.
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const vbtMeasurements = await prisma.vBTMeasurement.findMany({
-    where: {
-      session: {
-        clientId,
-      },
-      exerciseId,
-      meanVelocity: { not: null },
-      load: { not: null },
-    },
-    orderBy: {
-      session: { sessionDate: 'desc' },
-    },
-    include: {
-      session: {
-        select: { sessionDate: true },
-      },
-    },
+  const velocityMeasurements = await getVelocityMeasurementsForExercise(clientId, exerciseId, {
+    from: thirtyDaysAgo,
     take: 100,
   });
 
@@ -110,13 +168,11 @@ export async function getVBTProgressionData(
   let vbtConfidence: 'HIGH' | 'MEDIUM' | 'LOW' | null = null;
   let loadVelocityProfile: LoadVelocityProfileResult | null = null;
 
-  if (vbtMeasurements.length >= 3) {
-    const dataPoints = vbtMeasurements
-      .filter((m) => m.meanVelocity !== null && m.load !== null)
-      .map((m) => ({
-        load: m.load!,
-        velocity: m.meanVelocity!,
-      }));
+  if (velocityMeasurements.length >= 3) {
+    const dataPoints = velocityMeasurements.map((m) => ({
+      load: m.load,
+      velocity: m.meanVelocity,
+    }));
 
     loadVelocityProfile = calculateLoadVelocityProfile(dataPoints, exerciseName);
 
@@ -207,37 +263,15 @@ async function calculateVelocityTrend(
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  // Get measurements from last 7 days
-  const recentMeasurements = await prisma.vBTMeasurement.findMany({
-    where: {
-      session: {
-        clientId,
-        sessionDate: { gte: sevenDaysAgo },
-      },
-      exerciseId,
-      meanVelocity: { not: null },
-      load: { not: null },
-    },
-    include: {
-      session: { select: { sessionDate: true } },
-    },
-  });
-
-  // Get measurements from 7-14 days ago
-  const previousMeasurements = await prisma.vBTMeasurement.findMany({
-    where: {
-      session: {
-        clientId,
-        sessionDate: { gte: fourteenDaysAgo, lt: sevenDaysAgo },
-      },
-      exerciseId,
-      meanVelocity: { not: null },
-      load: { not: null },
-    },
-    include: {
-      session: { select: { sessionDate: true } },
-    },
-  });
+  // Include uploaded VBT files and manual set velocity entered during
+  // assigned strength sessions.
+  const [recentMeasurements, previousMeasurements] = await Promise.all([
+    getVelocityMeasurementsForExercise(clientId, exerciseId, { from: sevenDaysAgo }),
+    getVelocityMeasurementsForExercise(clientId, exerciseId, {
+      from: fourteenDaysAgo,
+      to: sevenDaysAgo,
+    }),
+  ]);
 
   if (recentMeasurements.length < 3 || previousMeasurements.length < 3) {
     return null;
@@ -245,11 +279,11 @@ async function calculateVelocityTrend(
 
   // Calculate average velocity at comparable loads
   const recentAvgVelocity =
-    recentMeasurements.reduce((sum, m) => sum + (m.meanVelocity || 0), 0) /
+    recentMeasurements.reduce((sum, m) => sum + m.meanVelocity, 0) /
     recentMeasurements.length;
 
   const previousAvgVelocity =
-    previousMeasurements.reduce((sum, m) => sum + (m.meanVelocity || 0), 0) /
+    previousMeasurements.reduce((sum, m) => sum + m.meanVelocity, 0) /
     previousMeasurements.length;
 
   const percentChange =
@@ -344,43 +378,117 @@ export async function getVBTProgressionSummary(
     lastSessionDate: Date | null;
   }>;
 }> {
-  // Get all VBT sessions for client
-  const sessions = await prisma.vBTSession.findMany({
-    where: { clientId },
-    select: { id: true, sessionDate: true },
-  });
+  const [sessions, manualStrengthSessionCount, vbtExerciseStats, loggedSetStats] =
+    await Promise.all([
+      prisma.vBTSession.findMany({
+        where: { clientId },
+        select: { id: true, sessionDate: true },
+      }),
+      prisma.strengthSessionAssignment.count({
+        where: {
+          athleteId: clientId,
+          setLogs: {
+            some: {
+              weight: { gt: 0 },
+              meanVelocity: { not: null },
+            },
+          },
+        },
+      }),
+      prisma.vBTMeasurement.groupBy({
+        by: ['exerciseId', 'exerciseName'],
+        where: {
+          session: { clientId },
+          exerciseId: { not: null },
+        },
+        _count: { id: true },
+        _max: { createdAt: true },
+      }),
+      prisma.setLog.groupBy({
+        by: ['exerciseId'],
+        where: {
+          assignment: { athleteId: clientId },
+          weight: { gt: 0 },
+          meanVelocity: { not: null },
+        },
+        _count: { id: true },
+        _max: { completedAt: true },
+      }),
+    ]);
 
-  // Get unique exercises with VBT data
-  const exerciseStats = await prisma.vBTMeasurement.groupBy({
-    by: ['exerciseId', 'exerciseName'],
-    where: {
-      session: { clientId },
-      exerciseId: { not: null },
-    },
-    _count: { id: true },
-    _max: { createdAt: true },
-  });
+  const loggedExerciseIds = loggedSetStats.map((stat) => stat.exerciseId);
+  const loggedExercises = loggedExerciseIds.length > 0
+    ? await prisma.exercise.findMany({
+        where: { id: { in: loggedExerciseIds } },
+        select: { id: true, name: true, nameSv: true },
+      })
+    : [];
+  const loggedExerciseNames = new Map(
+    loggedExercises.map((exercise) => [
+      exercise.id,
+      exercise.nameSv || exercise.name,
+    ])
+  );
+
+  const exerciseStatsById = new Map<string, {
+    exerciseId: string;
+    exerciseName: string;
+    count: number;
+    lastSessionDate: Date | null;
+  }>();
+
+  for (const stat of vbtExerciseStats) {
+    if (!stat.exerciseId) continue;
+    exerciseStatsById.set(stat.exerciseId, {
+      exerciseId: stat.exerciseId,
+      exerciseName: stat.exerciseName,
+      count: stat._count.id,
+      lastSessionDate: stat._max.createdAt,
+    });
+  }
+
+  for (const stat of loggedSetStats) {
+    const existing = exerciseStatsById.get(stat.exerciseId);
+    const lastSessionDate =
+      existing?.lastSessionDate && stat._max.completedAt
+        ? existing.lastSessionDate > stat._max.completedAt
+          ? existing.lastSessionDate
+          : stat._max.completedAt
+        : existing?.lastSessionDate ?? stat._max.completedAt ?? null;
+
+    exerciseStatsById.set(stat.exerciseId, {
+      exerciseId: stat.exerciseId,
+      exerciseName:
+        existing?.exerciseName ??
+        loggedExerciseNames.get(stat.exerciseId) ??
+        'Strength exercise',
+      count: (existing?.count ?? 0) + stat._count.id,
+      lastSessionDate,
+    });
+  }
+
+  const exerciseStats = Array.from(exerciseStatsById.values())
+    .sort((a, b) => b.count - a.count);
 
   // Get progression data for each exercise
   const exerciseSummaries = await Promise.all(
     exerciseStats
-      .filter((e) => e.exerciseId)
       .slice(0, 20) // Limit to top 20 exercises
       .map(async (e) => {
         const progressionData = await getVBTProgressionData(
           clientId,
-          e.exerciseId!,
+          e.exerciseId,
           e.exerciseName
         );
 
         return {
-          exerciseId: e.exerciseId!,
+          exerciseId: e.exerciseId,
           exerciseName: e.exerciseName,
           vbt1RM: progressionData.vbt1RM,
           repBased1RM: progressionData.repBased1RM,
           recommended1RM: progressionData.recommended1RM,
           velocityTrend: progressionData.velocityTrend,
-          lastSessionDate: e._max.createdAt,
+          lastSessionDate: e.lastSessionDate,
         };
       })
   );
@@ -406,8 +514,8 @@ export async function getVBTProgressionSummary(
   }
 
   return {
-    exercisesWithVBT: exerciseStats.filter((e) => e.exerciseId).length,
-    totalVBTSessions: sessions.length,
+    exercisesWithVBT: exerciseStats.length,
+    totalVBTSessions: sessions.length + manualStrengthSessionCount,
     avgVelocityTrend,
     exerciseSummaries,
   };
@@ -467,9 +575,6 @@ export async function updateProgressionWithVBT(
       const totalSets = new Set(exerciseMeasurements.map((m) => m.setNumber)).size;
       const totalReps = exerciseMeasurements.length;
       const maxLoad = Math.max(...exerciseMeasurements.map((m) => m.load || 0));
-      const avgVelocity =
-        exerciseMeasurements.reduce((sum, m) => sum + (m.meanVelocity || 0), 0) /
-        exerciseMeasurements.length;
 
       // Create or update progression tracking record
       await prisma.progressionTracking.create({

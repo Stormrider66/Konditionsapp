@@ -12,6 +12,8 @@ export interface PreviewSetLog {
   peakVelocity?: number
   meanPower?: number
   peakPower?: number
+  meanTime?: number
+  peakTime?: number
   estimated1RM?: number
   velocityZone?: string
   completedAt?: Date | string

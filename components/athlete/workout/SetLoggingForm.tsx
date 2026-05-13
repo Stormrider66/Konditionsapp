@@ -80,6 +80,8 @@ export function SetLoggingForm({
   const [peakVelocity, setPeakVelocity] = useState<string>('')
   const [meanPower, setMeanPower] = useState<string>('')
   const [peakPower, setPeakPower] = useState<string>('')
+  const [meanTime, setMeanTime] = useState<string>('')
+  const [peakTime, setPeakTime] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
 
@@ -114,6 +116,8 @@ export function SetLoggingForm({
       if (peakVelocity) data.peakVelocity = parseFloat(peakVelocity)
       if (meanPower) data.meanPower = parseFloat(meanPower)
       if (peakPower) data.peakPower = parseFloat(peakPower)
+      if (meanTime) data.meanTime = parseFloat(meanTime)
+      if (peakTime) data.peakTime = parseFloat(peakTime)
 
       await onSubmit(data)
       setIsSuccess(true)
@@ -366,7 +370,7 @@ export function SetLoggingForm({
           className="flex w-full items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground"
         >
           <Gauge className="h-4 w-4 text-muted-foreground" />
-          Hastighet / kraft
+          Hastighet / kraft / tid
           <ChevronDown
             className={`ml-auto h-4 w-4 text-muted-foreground transition-transform ${
               showVBT ? 'rotate-180' : ''
@@ -443,6 +447,44 @@ export function SetLoggingForm({
                     onChange={(e) => setPeakPower(e.target.value)}
                     placeholder="520"
                     inputMode="numeric"
+                    disabled={disabled}
+                    className="h-10 bg-muted/40 text-center font-semibold text-foreground"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-baseline justify-between">
+                <Label className="text-sm font-medium text-foreground">Tid</Label>
+                <span className="text-xs text-muted-foreground">s</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Medel
+                  </span>
+                  <Input
+                    type="number"
+                    value={meanTime}
+                    onChange={(e) => setMeanTime(e.target.value)}
+                    placeholder="1.8"
+                    step="0.01"
+                    inputMode="decimal"
+                    disabled={disabled}
+                    className="h-10 bg-muted/40 text-center font-semibold text-foreground"
+                  />
+                </div>
+                <div>
+                  <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Topp
+                  </span>
+                  <Input
+                    type="number"
+                    value={peakTime}
+                    onChange={(e) => setPeakTime(e.target.value)}
+                    placeholder="2.1"
+                    step="0.01"
+                    inputMode="decimal"
                     disabled={disabled}
                     className="h-10 bg-muted/40 text-center font-semibold text-foreground"
                   />

@@ -44,6 +44,11 @@ function parseTargetReps(reps: number | string): number {
   return match ? parseInt(match[1], 10) : 8
 }
 
+function formatLoggedMetric(value: number | undefined, unit: string, decimals: number) {
+  if (value == null || !Number.isFinite(value)) return null
+  return `${value.toFixed(decimals)} ${unit}`
+}
+
 export function ExerciseLogSheet({
   open,
   onOpenChange,
@@ -229,13 +234,27 @@ export function ExerciseLogSheet({
                   {localLogs.map((log) => (
                     <li
                       key={log.id}
-                      className="flex items-center justify-between px-3 py-2 text-sm"
+                      className="flex flex-col gap-1 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <span className="font-medium">Set {log.setNumber}</span>
-                      <span className="tabular-nums text-muted-foreground">
-                        {log.weight} kg × {log.repsCompleted}
-                        {log.rpe != null ? ` · RPE ${log.rpe}` : ''}
-                      </span>
+                      <div className="flex items-center justify-between gap-3 sm:block">
+                        <span className="font-medium">Set {log.setNumber}</span>
+                        <span className="tabular-nums text-muted-foreground sm:hidden">
+                          {log.weight} kg × {log.repsCompleted}
+                          {log.rpe != null ? ` · RPE ${log.rpe}` : ''}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+                        <span className="hidden tabular-nums text-muted-foreground sm:inline">
+                          {log.weight} kg × {log.repsCompleted}
+                          {log.rpe != null ? ` · RPE ${log.rpe}` : ''}
+                        </span>
+                        <LoggedSetMetric label="MV" value={formatLoggedMetric(log.meanVelocity, 'm/s', 2)} />
+                        <LoggedSetMetric label="PV" value={formatLoggedMetric(log.peakVelocity, 'm/s', 2)} />
+                        <LoggedSetMetric label="MP" value={formatLoggedMetric(log.meanPower, 'W', 0)} />
+                        <LoggedSetMetric label="PP" value={formatLoggedMetric(log.peakPower, 'W', 0)} />
+                        <LoggedSetMetric label="MT" value={formatLoggedMetric(log.meanTime, 's', 2)} />
+                        <LoggedSetMetric label="PT" value={formatLoggedMetric(log.peakTime, 's', 2)} />
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -413,6 +432,15 @@ export function ExerciseLogSheet({
         </div>
       </SheetContent>
     </Sheet>
+  )
+}
+
+function LoggedSetMetric({ label, value }: { label: string; value: string | null }) {
+  if (!value) return null
+  return (
+    <span className="rounded border bg-muted/50 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+      {label} {value}
+    </span>
   )
 }
 

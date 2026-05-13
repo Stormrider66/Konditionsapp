@@ -43,6 +43,18 @@ function metric(label: string, value?: string | number | null): Metric | null {
   return { label, value: String(value) }
 }
 
+function formatNumber(value?: number | null, decimals = 1) {
+  if (value === undefined || value === null || !Number.isFinite(value)) return null
+  return value.toFixed(decimals)
+}
+
+function maxNumber(values: Array<number | null | undefined>) {
+  const numbers = values.filter((value): value is number => (
+    typeof value === 'number' && Number.isFinite(value)
+  ))
+  return numbers.length > 0 ? Math.max(...numbers) : null
+}
+
 function compactMetrics(metrics: Array<Metric | null>) {
   return metrics.filter((item): item is Metric => Boolean(item))
 }
@@ -117,6 +129,14 @@ function buildStrengthDetails(setLogs: Array<{
   repsCompleted: number
   repsTarget: number | null
   rpe: number | null
+  meanVelocity: number | null
+  peakVelocity: number | null
+  meanPower: number | null
+  peakPower: number | null
+  meanTime: number | null
+  peakTime: number | null
+  estimated1RM: number | null
+  velocityZone: string | null
   notes: string | null
   exercise: { name: string; nameSv: string | null }
 }>): DetailSection[] {
@@ -127,6 +147,14 @@ function buildStrengthDetails(setLogs: Array<{
       metric('Vikt', `${setLog.weight} kg`),
       metric('Reps', setLog.repsTarget ? `${setLog.repsCompleted}/${setLog.repsTarget}` : setLog.repsCompleted),
       metric('RPE', setLog.rpe ? `${setLog.rpe}/10` : null),
+      metric('e1RM', formatNumber(setLog.estimated1RM, 1) ? `${formatNumber(setLog.estimated1RM, 1)} kg` : null),
+      metric('Zon', setLog.velocityZone),
+      metric('Medelhastighet', formatNumber(setLog.meanVelocity, 2) ? `${formatNumber(setLog.meanVelocity, 2)} m/s` : null),
+      metric('Topphastighet', formatNumber(setLog.peakVelocity, 2) ? `${formatNumber(setLog.peakVelocity, 2)} m/s` : null),
+      metric('Medeleffekt', formatNumber(setLog.meanPower, 0) ? `${formatNumber(setLog.meanPower, 0)} W` : null),
+      metric('Toppeffekt', formatNumber(setLog.peakPower, 0) ? `${formatNumber(setLog.peakPower, 0)} W` : null),
+      metric('Medeltid', formatNumber(setLog.meanTime, 2) ? `${formatNumber(setLog.meanTime, 2)} s` : null),
+      metric('Topptid', formatNumber(setLog.peakTime, 2) ? `${formatNumber(setLog.peakTime, 2)} s` : null),
       metric('Notering', setLog.notes),
     ]
   )))
@@ -216,10 +244,17 @@ export async function GET(request: NextRequest) {
     const accessError = await assertAssignmentAccess(user.id, assignment.athleteId)
     if (accessError) return accessError
 
+    const bestEstimated1RM = maxNumber(assignment.setLogs.map((setLog) => setLog.estimated1RM))
+    const bestPeakPower = maxNumber(assignment.setLogs.map((setLog) => setLog.peakPower))
+    const bestMeanVelocity = maxNumber(assignment.setLogs.map((setLog) => setLog.meanVelocity))
+
     const metrics = compactMetrics([
       metric('Tid', assignment.duration ? `${assignment.duration} min` : null),
       metric('RPE', assignment.rpe ? `${assignment.rpe}/10` : null),
       metric('Set loggade', assignment.setLogs.length || null),
+      metric('Bästa e1RM', formatNumber(bestEstimated1RM, 1) ? `${formatNumber(bestEstimated1RM, 1)} kg` : null),
+      metric('Toppeffekt', formatNumber(bestPeakPower, 0) ? `${formatNumber(bestPeakPower, 0)} W` : null),
+      metric('Bästa hastighet', formatNumber(bestMeanVelocity, 2) ? `${formatNumber(bestMeanVelocity, 2)} m/s` : null),
     ])
 
     return NextResponse.json({
