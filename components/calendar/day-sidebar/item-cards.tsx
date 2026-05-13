@@ -80,7 +80,13 @@ type ScheduledWorkoutResult = {
   completedAt: string | null
   metrics: Array<{ label: string; value: string }>
   notes: string | null
-  details: unknown
+  details: Array<{
+    title: string
+    rows: Array<{
+      label: string
+      values: Array<{ label: string; value: string }>
+    }>
+  }>
   original: unknown
 }
 
@@ -349,7 +355,7 @@ export function CalendarEventItem({
   const shouldShowSourceName = !!sourceName && !event.title.includes(sourceName)
   const completedLabel = formatResultDate(scheduledWorkoutSource?.completedAt)
   const originalPreview = safePreview(workoutResult?.original)
-  const detailsPreview = safePreview(workoutResult?.details)
+  const detailSections = Array.isArray(workoutResult?.details) ? workoutResult.details : []
 
   const openScheduledWorkout = () => {
     const kind = scheduledWorkoutSource?.kind
@@ -607,14 +613,42 @@ export function CalendarEventItem({
                 </div>
               )}
 
-              {detailsPreview && detailsPreview !== '[]' && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">
-                    Detaljer
-                  </p>
-                  <pre className={cn('max-h-48 overflow-auto rounded-lg border p-3 text-xs whitespace-pre-wrap', isGlass ? 'bg-black/30 border-white/10 text-slate-300' : 'bg-slate-50')}>
-                    {detailsPreview}
-                  </pre>
+              {detailSections.length > 0 && (
+                <div className="space-y-3">
+                  {detailSections.map((section) => (
+                    <div key={section.title}>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">
+                        {section.title}
+                      </p>
+                      <div className="space-y-2">
+                        {section.rows.map((row) => (
+                          <div
+                            key={row.label}
+                            className={cn(
+                              'rounded-lg border p-3',
+                              isGlass ? 'bg-white/5 border-white/10' : 'bg-slate-50'
+                            )}
+                          >
+                            <p className="text-sm font-semibold mb-2">{row.label}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {row.values.map((item) => (
+                                <span
+                                  key={`${row.label}-${item.label}`}
+                                  className={cn(
+                                    'inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs',
+                                    isGlass ? 'border-white/10 bg-black/20 text-slate-200' : 'bg-white'
+                                  )}
+                                >
+                                  <span className="text-muted-foreground">{item.label}:</span>
+                                  <span className="font-semibold">{item.value}</span>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 

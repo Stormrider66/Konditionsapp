@@ -13,6 +13,16 @@ type Metric = {
   value: string
 }
 
+type DetailRow = {
+  label: string
+  values: Metric[]
+}
+
+type DetailSection = {
+  title: string
+  rows: DetailRow[]
+}
+
 function formatSecondsToMinutes(seconds?: number | null) {
   if (!seconds || seconds <= 0) return null
   return `${Math.round(seconds / 60)} min`
@@ -35,6 +45,92 @@ function metric(label: string, value?: string | number | null): Metric | null {
 
 function compactMetrics(metrics: Array<Metric | null>) {
   return metrics.filter((item): item is Metric => Boolean(item))
+}
+
+function row(label: string, values: Array<Metric | null>): DetailRow | null {
+  const compacted = compactMetrics(values)
+  if (compacted.length === 0) return null
+  return { label, values: compacted }
+}
+
+function compactRows(rows: Array<DetailRow | null>) {
+  return rows.filter((item): item is DetailRow => Boolean(item))
+}
+
+function formatPace(seconds?: number | null) {
+  if (!seconds || seconds <= 0) return null
+  const minutes = Math.floor(seconds / 60)
+  const rest = Math.round(seconds % 60)
+  return `${minutes}:${String(rest).padStart(2, '0')}/km`
+}
+
+function formatSegmentType(type?: string | null) {
+  const labels: Record<string, string> = {
+    WARMUP: 'Uppvärmning',
+    COOLDOWN: 'Nedvarvning',
+    INTERVAL: 'Intervall',
+    STEADY: 'Jämn fart',
+    RECOVERY: 'Återhämtning',
+    HILL: 'Backe',
+    DRILLS: 'Övningar',
+    REST: 'Vila',
+  }
+  return type ? labels[type] || type : 'Del'
+}
+
+function buildCardioDetails(segmentLogs?: Array<{
+  segmentIndex: number
+  segmentType: string
+  plannedDuration: number | null
+  plannedDistance: number | null
+  plannedPace: number | null
+  plannedZone: number | null
+  actualDuration: number | null
+  actualDistance: number | null
+  actualPace: number | null
+  actualAvgHR: number | null
+  actualMaxHR: number | null
+  completed: boolean
+  skipped: boolean
+  notes: string | null
+}> | null): DetailSection[] {
+  if (!segmentLogs?.length) return []
+  const rows = compactRows(segmentLogs.map((segment) => row(
+    `${segment.segmentIndex + 1}. ${formatSegmentType(segment.segmentType)}`,
+    [
+      metric('Status', segment.skipped ? 'Hoppad över' : segment.completed ? 'Klar' : 'Ej klar'),
+      metric('Tid', formatSecondsToMinutes(segment.actualDuration ?? segment.plannedDuration)),
+      metric('Distans', formatDistanceKm(segment.actualDistance ?? segment.plannedDistance)),
+      metric('Tempo', formatPace(segment.actualPace ?? segment.plannedPace)),
+      metric('Zon', segment.plannedZone ? `Zon ${segment.plannedZone}` : null),
+      metric('Snittpuls', segment.actualAvgHR),
+      metric('Maxpuls', segment.actualMaxHR),
+      metric('Notering', segment.notes),
+    ]
+  )))
+  return rows.length > 0 ? [{ title: 'Delar', rows }] : []
+}
+
+function buildStrengthDetails(setLogs: Array<{
+  setNumber: number
+  weight: number
+  repsCompleted: number
+  repsTarget: number | null
+  rpe: number | null
+  notes: string | null
+  exercise: { name: string; nameSv: string | null }
+}>): DetailSection[] {
+  if (setLogs.length === 0) return []
+  const rows = compactRows(setLogs.map((setLog) => row(
+    `${setLog.exercise.nameSv || setLog.exercise.name} · set ${setLog.setNumber}`,
+    [
+      metric('Vikt', `${setLog.weight} kg`),
+      metric('Reps', setLog.repsTarget ? `${setLog.repsCompleted}/${setLog.repsTarget}` : setLog.repsCompleted),
+      metric('RPE', setLog.rpe ? `${setLog.rpe}/10` : null),
+      metric('Notering', setLog.notes),
+    ]
+  )))
+  return rows.length > 0 ? [{ title: 'Set', rows }] : []
 }
 
 async function assertAssignmentAccess(userId: string, athleteId: string) {
@@ -98,7 +194,7 @@ export async function GET(request: NextRequest) {
       completedAt,
       metrics,
       notes: log?.notes ?? null,
-      details: log?.segmentLogs ?? assignment.actualSegments ?? null,
+      details: buildCardioDetails(log?.segmentLogs),
       original: log ?? assignment,
     })
   }
@@ -134,7 +230,7 @@ export async function GET(request: NextRequest) {
       completedAt: assignment.completedAt,
       metrics,
       notes: assignment.notes,
-      details: assignment.setLogs.length > 0 ? assignment.setLogs : assignment.actualExercises,
+      details: buildStrengthDetails(assignment.setLogs),
       original: assignment,
     })
   }
@@ -181,7 +277,7 @@ export async function GET(request: NextRequest) {
       completedAt: result?.completedAt ?? log?.completedAt ?? assignment.completedAt,
       metrics,
       notes: result?.notes ?? log?.notes ?? assignment.notes,
-      details: result?.movementSplits ?? log?.roundLogs ?? null,
+      details: [],
       original: result ?? log ?? assignment,
     })
   }
@@ -216,7 +312,7 @@ export async function GET(request: NextRequest) {
     completedAt: result?.completedAt ?? assignment.completedAt,
     metrics,
     notes: result?.notes ?? assignment.notes,
-    details: result?.drillResults ?? null,
+    details: [],
     original: result ?? assignment,
   })
 }
