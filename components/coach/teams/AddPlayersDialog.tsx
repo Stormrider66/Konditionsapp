@@ -89,6 +89,12 @@ export function AddPlayersDialog({
     return headers
   }, [businessSlug])
 
+  const memberPickerUrl = useMemo(() => {
+    const params = new URLSearchParams({ filter })
+    if (businessSlug) params.set('businessSlug', businessSlug)
+    return `/api/coach/teams/${teamId}/members?${params.toString()}`
+  }, [businessSlug, filter, teamId])
+
   useEffect(() => {
     if (!open) return
     let cancelled = false
@@ -96,7 +102,7 @@ export function AddPlayersDialog({
     async function loadClients() {
       setLoadingClients(true)
       try {
-        const response = await fetch(`/api/coach/teams/${teamId}/members?filter=${filter}`, {
+        const response = await fetch(memberPickerUrl, {
           headers: businessHeaders,
         })
         const data = await response.json()
@@ -113,7 +119,7 @@ export function AddPlayersDialog({
     return () => {
       cancelled = true
     }
-  }, [open, teamId, filter, businessHeaders])
+  }, [open, memberPickerUrl, businessHeaders])
 
   const handleOpenChange = (next: boolean) => {
     if (next) setSelected(new Set())

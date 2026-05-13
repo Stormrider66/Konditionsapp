@@ -105,10 +105,12 @@ export interface RequestedBusinessScope {
 }
 
 export function getRequestedBusinessScope(
-  request: { headers: Headers }
+  request: { headers: Headers; nextUrl?: { searchParams: URLSearchParams } }
 ): RequestedBusinessScope {
   const businessId = request.headers.get('x-business-id')?.trim()
-  const businessSlug = request.headers.get('x-business-slug')?.trim()
+  const businessSlug =
+    request.headers.get('x-business-slug')?.trim() ||
+    request.nextUrl?.searchParams.get('businessSlug')?.trim()
   return {
     ...(businessId ? { businessId } : {}),
     ...(businessSlug ? { businessSlug } : {}),
