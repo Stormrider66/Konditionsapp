@@ -124,16 +124,9 @@ export function PrintableWorkoutDocument({ workout, sheetRef, footer }: Printabl
             </div>
           )}
           <div className="min-w-0 text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500 print-small">
-              Träningspass · {workout.kindLabel}
-            </p>
-            <h1 className="mt-1 text-3xl font-bold leading-tight text-slate-950 print:text-[20pt]">
+            <h1 className="text-3xl font-bold leading-tight text-slate-950 print:text-[20pt]">
               {workout.title}
             </h1>
-            <div
-              className="mx-auto mt-2 h-[3px] w-12 rounded-full print:mt-1.5 print:h-[2px] print:w-10"
-              style={{ backgroundColor: brandColor }}
-            />
           </div>
           <div className="shrink-0 justify-self-end text-right text-xs text-slate-500">
             <p className="font-semibold uppercase tracking-wide">Utskriven</p>
