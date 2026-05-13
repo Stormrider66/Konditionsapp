@@ -25,6 +25,7 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { getResolvedProviderKey, getPlatformAiKeyOwnerId } from '@/lib/user-api-keys'
 import { withAiContext } from '@/lib/ai/usage-logger'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 export const maxDuration = 300
 
@@ -81,6 +82,9 @@ export async function POST(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
       }
     }
+
+    const allowanceDenied = await requireAiAllowance(audioJournal.clientId)
+    if (allowanceDenied) return allowanceDenied
 
     // Resolve Google API key using full fallback chain (user → business → platform admin)
     let keyOwnerId = audioJournal.client.userId
@@ -188,7 +192,7 @@ Gissa inte värden som inte nämndes.`;
 
       // Call Gemini with audio
       const result = await withAiContext(
-        { userId: user.id, category: 'audio_journal_process' },
+        { userId: user.id, clientId: audioJournal.clientId, category: 'audio_journal_process' },
         () => generateContent(client, modelId, [
           createText(prompt),
           createInlineData(base64, mimeType),

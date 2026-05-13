@@ -32,6 +32,8 @@ import { getModelById, getDefaultModel, AI_MODELS, resolveModel, isModelIntent }
 import { createModelInstance } from '@/lib/ai/create-model'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { logAiUsage, withAiContext, type AiProviderTag } from '@/lib/ai/usage-logger'
 
 // Allow up to 30 seconds for AI generation
 export const maxDuration = 30
@@ -57,6 +59,9 @@ export async function POST(request: NextRequest) {
       windowSeconds: 60,
     })
     if (rateLimited) return rateLimited
+
+    const allowanceDenied = await requireAiAllowance(clientId)
+    if (allowanceDenied) return allowanceDenied
 
     // Get request body
     const body: RequestBody = await request.json()
@@ -150,6 +155,8 @@ export async function POST(request: NextRequest) {
     // Determine which model to use
     let model: LanguageModel
     let modelName = 'unknown'
+    let providerTag: AiProviderTag = 'GOOGLE'
+    let modelIsAutoInstrumented = false
 
     // Intent-based resolution (new athlete flow)
     if (requestedIntent && isModelIntent(requestedIntent)) {
@@ -162,6 +169,13 @@ export async function POST(request: NextRequest) {
       }
       model = createModelInstance(resolved) as LanguageModel
       modelName = resolved.modelId
+      modelIsAutoInstrumented = true
+      providerTag =
+        resolved.provider === 'anthropic'
+          ? 'ANTHROPIC'
+          : resolved.provider === 'openai'
+          ? 'OPENAI'
+          : 'GOOGLE'
       logger.debug('WOD generation model resolved via intent', {
         intent: requestedIntent,
         provider: resolved.provider,
@@ -198,6 +212,12 @@ export async function POST(request: NextRequest) {
       }
 
       modelName = selectedModelConfig.modelId
+      providerTag =
+        selectedModelConfig.provider === 'anthropic'
+          ? 'ANTHROPIC'
+          : selectedModelConfig.provider === 'openai'
+          ? 'OPENAI'
+          : 'GOOGLE'
 
       logger.debug('WOD generation model selected', {
         requestedModelId: requestedModelId || undefined,
@@ -230,11 +250,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate workout
-    const { text: responseText, usage } = await generateText({
-      model,
-      prompt,
-      maxOutputTokens: 4000,
-    })
+    const { text: responseText, usage } = await withAiContext(
+      { userId: user.id, clientId, category: 'wod_generation' },
+      () => generateText({
+        model,
+        prompt,
+        maxOutputTokens: 4000,
+      }),
+    )
+
+    if (modelIsAutoInstrumented) {
+      // Intent-based calls use createModelInstance, which is already instrumented.
+    } else {
+      logAiUsage({
+        userId: user.id,
+        clientId,
+        category: 'wod_generation',
+        provider: providerTag,
+        model: modelName,
+        inputTokens: usage?.inputTokens ?? 0,
+        outputTokens: usage?.outputTokens ?? 0,
+      })
+    }
 
     // Parse JSON from response (avoid logging the raw response)
     logger.debug('WOD AI response received', {

@@ -12,6 +12,8 @@ import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { resolveModel } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
 import { generateText } from 'ai'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { withAiContext } from '@/lib/ai/usage-logger'
 import {
   buildNutritionContext,
   generateNutritionPlan,
@@ -68,6 +70,9 @@ export async function POST(req: NextRequest) {
     // Subscription gate
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
     if (denied) return denied
+
+    const allowanceDenied = await requireAiAllowance(clientId)
+    if (allowanceDenied) return allowanceDenied
 
     // Get API keys for the user
     const apiKeys = await getResolvedAiKeys(user.id)
@@ -154,11 +159,14 @@ export async function POST(req: NextRequest) {
     })
 
     // Call AI
-    const aiResponse = await generateText({
-      model: createModelInstance(resolved),
-      prompt,
-      maxOutputTokens: 4000,
-    })
+    const aiResponse = await withAiContext(
+      { userId: user.id, clientId, category: 'nutrition_plan' },
+      () => generateText({
+        model: createModelInstance(resolved),
+        prompt,
+        maxOutputTokens: 4000,
+      }),
+    )
 
     const aiContent = aiResponse.text || ''
 

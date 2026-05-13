@@ -16,6 +16,7 @@ import {
   fetchAsBase64,
   createInlineData,
   createText,
+  type AiCallMeta,
 } from '@/lib/ai/google-genai-client'
 import { getModelById } from '@/types/ai-models'
 import {
@@ -32,6 +33,7 @@ import { logger } from '@/lib/logger'
 import { downloadAsBase64 } from '@/lib/storage/supabase-storage-server'
 import { isHttpUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage'
 import { getResolvedProviderKey, getPlatformAiKeyOwnerId } from '@/lib/user-api-keys'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 export const maxDuration = 120
 
@@ -140,6 +142,9 @@ export async function POST(
       })
     }
 
+    const allowanceDenied = await requireAiAllowance(clientId)
+    if (allowanceDenied) return allowanceDenied
+
     // Resolve Google API key using full fallback chain (user → business → platform admin)
     const googleKey = await getResolvedProviderKey(coachId, 'google')
 
@@ -178,6 +183,11 @@ export async function POST(
 
       // Get exercise library for matching
       const exerciseLibrary = await getExerciseLibrary()
+      const aiMeta: AiCallMeta = {
+        userId: user.id,
+        clientId,
+        category: `adhoc_workout_${String(adHocWorkout.inputType).toLowerCase()}`,
+      }
 
       let parsedWorkout: ParsedWorkout
 
@@ -192,7 +202,8 @@ export async function POST(
             client,
             modelId,
             adHocWorkout.rawInputText,
-            exerciseLibrary
+            exerciseLibrary,
+            aiMeta,
           )
           break
         }
@@ -206,7 +217,8 @@ export async function POST(
             client,
             modelId,
             adHocWorkout.rawInputUrl,
-            exerciseLibrary
+            exerciseLibrary,
+            aiMeta,
           )
           break
         }
@@ -219,7 +231,8 @@ export async function POST(
             client,
             modelId,
             adHocWorkout.rawInputUrl,
-            exerciseLibrary
+            exerciseLibrary,
+            aiMeta,
           )
           break
         }
@@ -306,14 +319,15 @@ async function parseFromText(
   client: ReturnType<typeof createGoogleGenAIClient>,
   modelId: string,
   text: string,
-  exerciseLibrary: Awaited<ReturnType<typeof getExerciseLibrary>>
+  exerciseLibrary: Awaited<ReturnType<typeof getExerciseLibrary>>,
+  meta: AiCallMeta,
 ): Promise<ParsedWorkout> {
   const prompt = buildTextParsingPrompt(text, exerciseLibrary)
 
   const response = await generateContent(client, modelId, [createText(prompt)], {
     maxOutputTokens: 4096,
     temperature: 0.3,
-  })
+  }, meta)
 
   return parseAIResponse(response.text)
 }
@@ -322,7 +336,8 @@ async function parseFromImage(
   client: ReturnType<typeof createGoogleGenAIClient>,
   modelId: string,
   imageUrl: string,
-  exerciseLibrary: Awaited<ReturnType<typeof getExerciseLibrary>>
+  exerciseLibrary: Awaited<ReturnType<typeof getExerciseLibrary>>,
+  meta: AiCallMeta,
 ): Promise<ParsedWorkout> {
   const prompt = buildImageParsingPrompt(exerciseLibrary)
 
@@ -356,7 +371,8 @@ async function parseFromImage(
     {
       maxOutputTokens: 4096,
       temperature: 0.3,
-    }
+    },
+    meta,
   )
 
   return parseAIResponse(response.text)
@@ -366,7 +382,8 @@ async function parseFromVoice(
   client: ReturnType<typeof createGoogleGenAIClient>,
   modelId: string,
   audioUrl: string,
-  exerciseLibrary: Awaited<ReturnType<typeof getExerciseLibrary>>
+  exerciseLibrary: Awaited<ReturnType<typeof getExerciseLibrary>>,
+  meta: AiCallMeta,
 ): Promise<ParsedWorkout> {
   // Fetch audio as base64
   let base64Data: string
@@ -401,7 +418,8 @@ async function parseFromVoice(
     {
       maxOutputTokens: 2048,
       temperature: 0.1,
-    }
+    },
+    { ...meta, category: 'adhoc_workout_voice_transcription' },
   )
 
   const transcription = transcriptionResponse.text.trim()
@@ -411,7 +429,7 @@ async function parseFromVoice(
   const parsingResponse = await generateContent(client, modelId, [createText(parsingPrompt)], {
     maxOutputTokens: 4096,
     temperature: 0.3,
-  })
+  }, { ...meta, category: 'adhoc_workout_voice_parse' })
 
   const parsed = parseAIResponse(parsingResponse.text)
 
