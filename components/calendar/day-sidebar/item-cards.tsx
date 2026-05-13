@@ -563,8 +563,8 @@ export function CalendarEventItem({
       )}
 
       <Dialog open={isResultOpen} onOpenChange={setIsResultOpen}>
-        <DialogContent className={cn('max-w-2xl', isGlass ? 'bg-slate-900 border-white/10 text-white' : '')}>
-          <DialogHeader>
+        <DialogContent className={cn('max-w-2xl max-h-[88vh] overflow-hidden flex flex-col', isGlass ? 'bg-slate-900 border-white/10 text-white' : '')}>
+          <DialogHeader className="shrink-0">
             <DialogTitle className={isGlass ? 'text-white' : ''}>
               {workoutResult?.title || sourceName || event.title}
             </DialogTitle>
@@ -577,12 +577,12 @@ export function CalendarEventItem({
           </DialogHeader>
 
           {isLoadingResult ? (
-            <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground shrink-0">
               <Loader2 className="h-4 w-4 animate-spin" />
               Hämtar resultat
             </div>
           ) : workoutResult ? (
-            <div className="space-y-5">
+            <div className="min-h-0 overflow-y-auto pr-2 space-y-5">
               {workoutResult.metrics.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {workoutResult.metrics.map((item) => (
