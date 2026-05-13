@@ -62,6 +62,7 @@ import {
   Pencil,
   Check,
   LifeBuoy,
+  Coins,
 } from 'lucide-react';
 import { useTranslations } from '@/i18n/client';
 import { ContractsTable } from '@/components/admin/contracts/ContractsTable';
@@ -74,6 +75,7 @@ import { OperatorAgentsPanel } from '@/components/admin/operator-agents/Operator
 import { WeeklyReportsPanel } from '@/components/admin/operator-agents/WeeklyReportsPanel';
 import { SupportTicketsPanel } from '@/components/admin/support/SupportTicketsPanel';
 import { UnitEconomicsPanel } from '@/components/admin/economics/UnitEconomicsPanel';
+import { AICostOverviewPanel } from '@/components/admin/economics/AICostOverviewPanel';
 import {
   LineChart,
   Line,
@@ -490,6 +492,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
               <TrendingUp className="h-3 w-3" />
               Unit Economics
             </TabsTrigger>
+            <TabsTrigger value="ai-costs" className="flex items-center gap-1 whitespace-nowrap">
+              <Coins className="h-3 w-3" />
+              AI Costs
+            </TabsTrigger>
             <TabsTrigger value="contracts" className="flex items-center gap-1 whitespace-nowrap">
               <FileText className="h-3 w-3" />
               Contracts
@@ -732,6 +738,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
 
         <TabsContent value="unit-economics">
           <UnitEconomicsPanel range={range} />
+        </TabsContent>
+
+        <TabsContent value="ai-costs">
+          <AICostOverviewPanel range={range} />
         </TabsContent>
 
         {/* Users Tab */}
