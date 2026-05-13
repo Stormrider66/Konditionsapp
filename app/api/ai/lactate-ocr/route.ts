@@ -23,6 +23,9 @@ import { decryptSecret } from '@/lib/crypto/secretbox';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { requireCoachFeatureAccess, requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
+import { withGoogleLogging } from '@/lib/ai/google'
+import { withAiContext } from '@/lib/ai/usage-logger'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 export async function POST(request: NextRequest) {
   try {
@@ -105,6 +108,9 @@ export async function POST(request: NextRequest) {
       const athleteDenied = await requireFeatureAccess(clientId, 'lactate_ocr')
       if (athleteDenied) return athleteDenied
 
+      const allowanceDenied = await requireAiAllowance(clientId)
+      if (allowanceDenied) return allowanceDenied
+
       const client = await prisma.client.findUnique({
         where: { id: clientId },
         select: { name: true },
@@ -118,21 +124,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Use generateObject for structured OCR output
-    const result = await generateObject({
-      model: google(GEMINI_MODELS.VIDEO_ANALYSIS),
-      schema: LactateMeterOCRSchema,
-      providerOptions: getGeminiThinkingOptions('quick'), // Quick thinking for OCR
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              image: `data:${imageFile.type};base64,${base64}`,
-            },
-            {
-              type: 'text',
-              text: `Du är en expert på att läsa av laktatmätare. Analysera denna bild och extrahera laktatvärdet.
+    const result = await withAiContext(
+      { userId: user.id, clientId, category: 'lactate_ocr' },
+      () => generateObject({
+        model: withGoogleLogging(google(GEMINI_MODELS.VIDEO_ANALYSIS)),
+        schema: LactateMeterOCRSchema,
+        providerOptions: getGeminiThinkingOptions('quick'), // Quick thinking for OCR
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: `data:${imageFile.type};base64,${base64}`,
+              },
+              {
+                type: 'text',
+                text: `Du är en expert på att läsa av laktatmätare. Analysera denna bild och extrahera laktatvärdet.
 ${contextInfo}
 
 VIKTIGT:
@@ -147,11 +155,12 @@ Typiska laktatvärden:
 - Aerob tröskel: 2.0-2.5 mmol/L
 - Anaerob tröskel: 3.5-5.0 mmol/L
 - Maximal ansträngning: 8-20+ mmol/L`,
-            },
-          ],
-        },
-      ],
-    });
+              },
+            ],
+          },
+        ],
+      }),
+    );
 
     // Debug logging (avoid logging health metrics in production)
     if (process.env.NODE_ENV !== 'production') {

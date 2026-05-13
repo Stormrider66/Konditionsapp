@@ -25,6 +25,9 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireCoachFeatureAccess, requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { getResolvedGoogleKey } from '@/lib/user-api-keys'
 import { logger } from '@/lib/logger'
+import { withGoogleLogging } from '@/lib/ai/google'
+import { withAiContext } from '@/lib/ai/usage-logger'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
 const DOCUMENT_TYPES = ['application/pdf', 'text/csv']
@@ -282,6 +285,9 @@ export async function POST(request: NextRequest) {
         callerUserId: user.id,
       })
       if (athleteDenied) return athleteDenied
+
+      const allowanceDenied = await requireAiAllowance(clientId)
+      if (allowanceDenied) return allowanceDenied
     }
 
     // Get Google API key
@@ -296,6 +302,11 @@ export async function POST(request: NextRequest) {
     // Initialize Gemini
     const google = createGoogleGenerativeAI({ apiKey: googleKey })
     const prompt = buildPrompt(testType, category, files.length)
+    const aiContext = {
+      userId: user.id,
+      clientId,
+      category: `test_import_${category}`,
+    }
 
     let result
     const file = files[0]
@@ -321,8 +332,8 @@ export async function POST(request: NextRequest) {
       // user's API key, so stick with the GA Pro for multi-image.
       const imageModel = files.length > 1 ? GEMINI_MODELS.PRO : GEMINI_MODELS.FLASH
 
-      result = await generateObject({
-        model: google(imageModel),
+      result = await withAiContext(aiContext, () => generateObject({
+        model: withGoogleLogging(google(imageModel)),
         schema: TestImportResultSchema,
         messages: [
           {
@@ -333,15 +344,15 @@ export async function POST(request: NextRequest) {
             ],
           },
         ],
-      })
+      }))
     } else if (category === 'document') {
       // For PDFs and CSVs: extract text and send as text prompt
       const arrayBuffer = await file.arrayBuffer()
 
       if (file.type === 'text/csv') {
         const text = new TextDecoder('utf-8').decode(arrayBuffer)
-        result = await generateObject({
-          model: google(GEMINI_MODELS.FLASH),
+        result = await withAiContext(aiContext, () => generateObject({
+          model: withGoogleLogging(google(GEMINI_MODELS.FLASH)),
           schema: TestImportResultSchema,
           messages: [
             {
@@ -354,12 +365,12 @@ export async function POST(request: NextRequest) {
               ],
             },
           ],
-        })
+        }))
       } else {
         // PDF: send as file part to Gemini (it handles PDFs natively)
         const base64 = Buffer.from(arrayBuffer).toString('base64')
-        result = await generateObject({
-          model: google(GEMINI_MODELS.FLASH),
+        result = await withAiContext(aiContext, () => generateObject({
+          model: withGoogleLogging(google(GEMINI_MODELS.FLASH)),
           schema: TestImportResultSchema,
           messages: [
             {
@@ -374,15 +385,15 @@ export async function POST(request: NextRequest) {
               ],
             },
           ],
-        })
+        }))
       }
     } else {
       // Audio: send as inline data to Gemini multimodal
       const arrayBuffer = await file.arrayBuffer()
       const base64 = Buffer.from(arrayBuffer).toString('base64')
 
-      result = await generateObject({
-        model: google(GEMINI_MODELS.FLASH),
+      result = await withAiContext(aiContext, () => generateObject({
+        model: withGoogleLogging(google(GEMINI_MODELS.FLASH)),
         schema: TestImportResultSchema,
         messages: [
           {
@@ -397,7 +408,7 @@ export async function POST(request: NextRequest) {
             ],
           },
         ],
-      })
+      }))
     }
 
     // Log extraction summary in prod too — helps debug "metabolic data
