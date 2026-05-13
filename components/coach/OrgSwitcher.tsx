@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
 import { Building2, ChevronDown, CalendarDays, Check } from 'lucide-react'
 import {
   DropdownMenu,
@@ -42,7 +41,6 @@ function labelFor(role: string, businessType: string): string {
 }
 
 export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
-  const pathname = usePathname()
   const [businesses, setBusinesses] = useState<BusinessEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -60,7 +58,7 @@ export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
         setIsLoading(false)
       }
     }
-    fetchBusinesses()
+    void fetchBusinesses()
   }, [])
 
   // Don't render if user only has one business or still loading
@@ -73,14 +71,10 @@ export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
   const displayBiz = current || businesses[0]
   const currentRole = labelFor(displayBiz.role, displayBiz.type)
 
-  // When switching orgs, preserve the sub-path if possible
+  // Organisation switches should land on that organisation's stable home.
+  // Preserving deep paths like team/client ids can point to records that only
+  // exist in the previous organisation.
   const getOrgHref = (slug: string) => {
-    // Extract the path after /{currentSlug}/ (e.g. /coach/dashboard)
-    const prefix = `/${currentSlug}/`
-    if (pathname.startsWith(prefix)) {
-      const subPath = pathname.slice(prefix.length)
-      return `/${slug}/${subPath}`
-    }
     return `/${slug}/coach/dashboard`
   }
 
