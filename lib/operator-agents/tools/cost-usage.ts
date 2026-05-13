@@ -75,7 +75,7 @@ export async function getTopSpenders(days: number = 7): Promise<OperatorToolResu
     })
 
     // Get user names for the top spenders
-    const userIds = logs.map(l => l.userId)
+    const userIds = logs.map(l => l.userId).filter((id): id is string => Boolean(id))
     const users = await prisma.user.findMany({
       where: { id: { in: userIds } },
       select: { id: true, name: true, email: true, role: true },
@@ -86,10 +86,10 @@ export async function getTopSpenders(days: number = 7): Promise<OperatorToolResu
       success: true,
       data: {
         topSpenders: logs.map(l => ({
-          userId: l.userId,
-          name: userMap.get(l.userId)?.name || 'Unknown',
-          email: userMap.get(l.userId)?.email,
-          role: userMap.get(l.userId)?.role,
+          userId: l.userId ?? 'unattributed',
+          name: l.userId ? userMap.get(l.userId)?.name || 'Unknown' : 'Unattributed',
+          email: l.userId ? userMap.get(l.userId)?.email : undefined,
+          role: l.userId ? userMap.get(l.userId)?.role : 'UNKNOWN',
           totalCostUsd: Math.round((l._sum.estimatedCost || 0) * 1000) / 1000,
           totalTokens: (l._sum.inputTokens || 0) + (l._sum.outputTokens || 0),
         })),

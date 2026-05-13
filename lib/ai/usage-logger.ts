@@ -48,6 +48,13 @@ export function estimateCostUsd(model: string, inputTokens: number, outputTokens
   return (inputTokens / 1000) * pricing.input + (outputTokens / 1000) * pricing.output
 }
 
+export function estimateImageCostUsd(model: string, inputTokens: number, outputTokens: number): number {
+  const pricing = GEMINI_PRICING[model]
+  if (!pricing) return 0
+  const outputRate = pricing.imageOutput ?? pricing.output
+  return (inputTokens / 1000) * pricing.input + (outputTokens / 1000) * outputRate
+}
+
 export interface LogAiUsageParams {
   userId?: string | null
   category?: string
@@ -94,16 +101,14 @@ export function logAiUsage(params: LogAiUsageParams): void {
   }
 
   if (!userId) {
-    // No FK target — log a debug breadcrumb so we know the gap exists, but
-    // don't try to write (and don't spam at warn level for every cron call).
-    logger.debug('[ai-usage] dropping log: no userId in context', {
+    logger.warn('[ai-usage] logging unattributed AI usage', {
       category,
       provider: params.provider,
       model: params.model,
       inputTokens,
       outputTokens,
+      estimatedCost,
     })
-    return
   }
 
   prisma.aIUsageLog

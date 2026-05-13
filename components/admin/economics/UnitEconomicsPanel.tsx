@@ -132,6 +132,7 @@ export function UnitEconomicsPanel({ range }: UnitEconomicsPanelProps) {
               <CostLine label="Athlete platform MRR" value={summary.revenue.athletePlatformMrrSek} positive />
               <CostLine label="Enterprise MRR" value={summary.revenue.enterpriseMrrSek} positive />
               <CostLine label="Direct monthly cost" value={summary.costs.directCostSek} />
+              <CostLine label="Provider invoice adjustment" value={summary.costs.providerInvoiceAdjustmentSekMonthlyized} />
               <CostLine label="AI cost per revenue account" value={summary.usage.aiCostPerActiveRevenueAccountSek} />
               <CostLine label="Support load" value={summary.costs.supportCostSekMonthlyized} />
             </div>
@@ -192,6 +193,46 @@ export function UnitEconomicsPanel({ range }: UnitEconomicsPanelProps) {
       </Card>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Provider Reconciliation</CardTitle>
+            <CardDescription>Imported Google billing compared with internal AI estimates.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <CostLine label="Google invoice" value={summary.providerCosts.invoiceGoogleCostSek} positive />
+              <CostLine label="Google estimate" value={summary.providerCosts.estimatedGoogleCostSek} />
+              <CostLine label="Uncovered gap" value={summary.providerCosts.invoiceAdjustmentSek} />
+              <CostLine label="Coverage" value={summary.providerCosts.invoiceCoveragePercent} suffix="%" />
+            </div>
+
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>SKU</TableHead>
+                  <TableHead className="text-right">Cost</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {summary.providerCosts.bySku.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-center text-muted-foreground">
+                      No provider invoice rows imported for this period.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  summary.providerCosts.bySku.map((sku) => (
+                    <TableRow key={`${sku.provider}-${sku.skuDescription}`}>
+                      <TableCell className="text-sm">{sku.skuDescription}</TableCell>
+                      <TableCell className="text-right">{formatSek(sku.costSek)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Top AI Cost Users</CardTitle>
@@ -299,12 +340,22 @@ function MarginRow({
   );
 }
 
-function CostLine({ label, value, positive = false }: { label: string; value: number; positive?: boolean }) {
+function CostLine({
+  label,
+  value,
+  positive = false,
+  suffix,
+}: {
+  label: string;
+  value: number;
+  positive?: boolean;
+  suffix?: string;
+}) {
   return (
     <div className="rounded-lg border p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={positive ? 'text-lg font-semibold text-emerald-700' : 'text-lg font-semibold'}>
-        {formatSek(value)}
+        {suffix ? `${value.toLocaleString('sv-SE')}${suffix}` : formatSek(value)}
       </p>
     </div>
   );

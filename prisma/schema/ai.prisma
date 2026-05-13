@@ -537,8 +537,8 @@ model AIUsageBudget {
 
 /// AI usage logging for cost tracking
 model AIUsageLog {
-  id     String @id @default(uuid())
-  userId String
+  id     String  @id @default(uuid())
+  userId String?
 
   category String // "research", "chat", "embedding"
   provider String // "GEMINI", "OPENAI", "ANTHROPIC"
@@ -552,7 +552,7 @@ model AIUsageLog {
   researchSessionId String?
   conversationId    String?
 
-  user User @relation("UserAIUsageLogs", fields: [userId], references: [id], onDelete: Cascade)
+  user User? @relation("UserAIUsageLogs", fields: [userId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
@@ -560,6 +560,39 @@ model AIUsageLog {
   @@index([category])
   @@index([provider])
   @@index([createdAt])
+}
+
+/// Imported cloud provider billing rows used to reconcile app-estimated AI
+/// costs against provider invoices. Store SKU-level rows where possible.
+model AIProviderBillingImport {
+  id String @id @default(uuid())
+
+  provider String // GOOGLE, OPENAI, ANTHROPIC, etc.
+  source   String @default("manual_csv")
+
+  periodStart DateTime
+  periodEnd   DateTime
+
+  serviceDescription String
+  serviceId          String?
+  skuDescription     String?
+  skuId              String?
+
+  usageAmount Float?
+  usageUnit   String?
+  costSek     Float
+  subtotalSek Float?
+  taxSek      Float?
+
+  raw Json?
+
+  importedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([provider, periodStart, periodEnd, serviceDescription, skuId, skuDescription])
+  @@index([provider, periodStart, periodEnd])
+  @@index([serviceDescription])
+  @@index([skuId])
 }
 
 // ==================== CONVERSATIONAL MEMORY SYSTEM ====================

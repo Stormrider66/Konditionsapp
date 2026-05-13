@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import {
@@ -9,6 +8,7 @@ import {
   createText,
   getGeminiModelId,
 } from '@/lib/ai/google-genai-client'
+import { withAiContext } from '@/lib/ai/usage-logger'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 
 export const maxDuration = 120
@@ -180,11 +180,14 @@ export async function POST(request: NextRequest) {
     })
 
     // Send to Gemini with increased token limit for detailed JSON response
-    const result = await generateContent(
-      client,
-      modelId,
-      [createText(prompt)],
-      { maxOutputTokens: 4096 } // Ensure we get complete JSON response
+    const result = await withAiContext(
+      { userId: user.id, category: 'video_pose_analysis' },
+      () => generateContent(
+        client,
+        modelId,
+        [createText(prompt)],
+        { maxOutputTokens: 4096 } // Ensure we get complete JSON response
+      )
     )
 
     logger.debug('Pose data analysis: response received', { length: result.text.length })
@@ -268,7 +271,7 @@ interface PromptParams {
 }
 
 function buildAnalysisPrompt(params: PromptParams): string {
-  const { exerciseContext, videoType, angleSummary, goodCount, warningCount, criticalCount, score, frameCount, sampleFrames, hasRangeData, angleRanges, cameraAngle } = params
+  const { exerciseContext, videoType, angleSummary, frameCount, sampleFrames, hasRangeData, angleRanges, cameraAngle } = params
 
   // Build asymmetry analysis for running gait
   let asymmetryNote = ''

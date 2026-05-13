@@ -24,6 +24,7 @@ import { downloadAsBase64 } from '@/lib/storage/supabase-storage-server';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { getResolvedProviderKey, getPlatformAiKeyOwnerId } from '@/lib/user-api-keys'
+import { withAiContext } from '@/lib/ai/usage-logger'
 
 export const maxDuration = 300
 
@@ -186,10 +187,13 @@ Gissa inte värden som inte nämndes.`;
       const mimeType = audioJournal.mimeType || fetched.mimeType || 'audio/mpeg'
 
       // Call Gemini with audio
-      const result = await generateContent(client, modelId, [
-        createText(prompt),
-        createInlineData(base64, mimeType),
-      ]);
+      const result = await withAiContext(
+        { userId: user.id, category: 'audio_journal_process' },
+        () => generateContent(client, modelId, [
+          createText(prompt),
+          createInlineData(base64, mimeType),
+        ]),
+      );
 
       // Parse the response
       let extracted: AudioExtractionResult;

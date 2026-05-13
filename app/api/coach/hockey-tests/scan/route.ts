@@ -16,6 +16,7 @@ import {
   createGoogleGenAIClient,
   generateContent,
 } from '@/lib/ai/google-genai-client'
+import { withAiContext } from '@/lib/ai/usage-logger'
 import { logger } from '@/lib/logger'
 
 const HOCKEY_TEST_SCAN_PROMPT = `Du är expert på att läsa fysiska testresultat för ishockeyspelare.
@@ -86,13 +87,16 @@ export async function POST(req: NextRequest) {
 
     const client = createGoogleGenAIClient(googleKey)
 
-    const result = await generateContent(
-      client,
-      'gemini-2.5-pro-preview-06-05',
-      [
-        { text: HOCKEY_TEST_SCAN_PROMPT },
-        { inlineData: { mimeType: file.type || 'image/jpeg', data: base64 } },
-      ],
+    const result = await withAiContext(
+      { userId: user.id, category: 'hockey_test_scan' },
+      () => generateContent(
+        client,
+        'gemini-2.5-pro-preview-06-05',
+        [
+          { text: HOCKEY_TEST_SCAN_PROMPT },
+          { inlineData: { mimeType: file.type || 'image/jpeg', data: base64 } },
+        ],
+      )
     )
 
     if (!result.text) {

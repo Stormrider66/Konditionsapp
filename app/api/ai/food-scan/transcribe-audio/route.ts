@@ -8,7 +8,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
-import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import {
@@ -20,6 +19,7 @@ import {
 } from '@/lib/ai/google-genai-client'
 import { logger } from '@/lib/logger'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
+import { withAiContext } from '@/lib/ai/usage-logger'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -96,12 +96,15 @@ export async function POST(request: NextRequest) {
     const genaiClient = createGoogleGenAIClient(googleKey)
     const modelId = getGeminiModelId('audio')
 
-    const result = await generateContent(genaiClient, modelId, [
-      createText(
-        'Transkribera denna korta ljudinspelning till svensk text. Inspelningen handlar om mat och näring — användaren korrigerar eller lägger till information om en måltid. Returnera BARA den transkriberade texten, inget annat.'
-      ),
-      createInlineData(base64, audioFile.type),
-    ])
+    const result = await withAiContext(
+      { userId: user.id, category: 'food_scan_audio_transcription' },
+      () => generateContent(genaiClient, modelId, [
+        createText(
+          'Transkribera denna korta ljudinspelning till svensk text. Inspelningen handlar om mat och näring — användaren korrigerar eller lägger till information om en måltid. Returnera BARA den transkriberade texten, inget annat.'
+        ),
+        createInlineData(base64, audioFile.type),
+      ]),
+    )
 
     return NextResponse.json({
       success: true,

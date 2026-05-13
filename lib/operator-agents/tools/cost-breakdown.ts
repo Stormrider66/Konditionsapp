@@ -73,8 +73,9 @@ export async function getTopSpendingUsers(days: number = 30, limit: number = 10)
     })
 
     // Enrich with user + subscription data
+    const userIds = grouped.map(g => g.userId).filter((id): id is string => Boolean(id))
     const users = await prisma.user.findMany({
-      where: { id: { in: grouped.map(g => g.userId) } },
+      where: { id: { in: userIds } },
       select: {
         id: true,
         name: true,
@@ -93,11 +94,11 @@ export async function getTopSpendingUsers(days: number = 30, limit: number = 10)
     const userMap = new Map(users.map(u => [u.id, u]))
 
     const topSpenders = grouped.map(g => {
-      const user = userMap.get(g.userId)
+      const user = g.userId ? userMap.get(g.userId) : null
       const cost = g._sum.estimatedCost || 0
       return {
-        userId: g.userId,
-        name: user?.name || 'Unknown',
+        userId: g.userId ?? 'unattributed',
+        name: user?.name || (g.userId ? 'Unknown' : 'Unattributed'),
         email: user?.email,
         role: user?.role,
         tier: user?.clients[0]?.athleteSubscription?.tier || 'N/A',
@@ -132,7 +133,7 @@ export async function getCostBreakdownByBusiness(days: number = 30): Promise<Ope
     })
 
     // Map each user to their business (via Client.businessId)
-    const userIds = grouped.map(g => g.userId)
+    const userIds = grouped.map(g => g.userId).filter((id): id is string => Boolean(id))
     const clients = await prisma.client.findMany({
       where: { userId: { in: userIds } },
       select: { userId: true, businessId: true, name: true },
@@ -147,21 +148,21 @@ export async function getCostBreakdownByBusiness(days: number = 30): Promise<Ope
     const noBusiness = { cost: 0, tokens: 0, userCount: new Set<string>() }
 
     for (const g of grouped) {
-      const businessId = userToBusiness.get(g.userId)
+      const businessId = g.userId ? userToBusiness.get(g.userId) : null
       const cost = g._sum.estimatedCost || 0
       const tokens = (g._sum.inputTokens || 0) + (g._sum.outputTokens || 0)
 
       if (!businessId) {
         noBusiness.cost += cost
         noBusiness.tokens += tokens
-        noBusiness.userCount.add(g.userId)
+        noBusiness.userCount.add(g.userId ?? 'unattributed')
       } else {
         if (!byBusiness[businessId]) {
           byBusiness[businessId] = { cost: 0, tokens: 0, userCount: new Set() }
         }
         byBusiness[businessId].cost += cost
         byBusiness[businessId].tokens += tokens
-        byBusiness[businessId].userCount.add(g.userId)
+        byBusiness[businessId].userCount.add(g.userId ?? 'unattributed')
       }
     }
 
@@ -314,7 +315,7 @@ export async function getRevenueVsCost(days: number = 30): Promise<OperatorToolR
     const periodFraction = days / 30
 
     // Enrich with subscription info
-    const userIds = grouped.map(g => g.userId)
+    const userIds = grouped.map(g => g.userId).filter((id): id is string => Boolean(id))
     const users = await prisma.user.findMany({
       where: { id: { in: userIds } },
       select: {
@@ -351,7 +352,7 @@ export async function getRevenueVsCost(days: number = 30): Promise<OperatorToolR
     let totalRevenue = 0
 
     for (const g of grouped) {
-      const user = userMap.get(g.userId)
+      const user = g.userId ? userMap.get(g.userId) : null
       const tier = user?.clients[0]?.athleteSubscription?.tier || 'FREE'
       const status = user?.clients[0]?.athleteSubscription?.status
       const cost = g._sum.estimatedCost || 0
@@ -371,8 +372,8 @@ export async function getRevenueVsCost(days: number = 30): Promise<OperatorToolR
       else marginStatus = 'PROFITABLE'
 
       entries.push({
-        userId: g.userId,
-        name: user?.name || 'Unknown',
+        userId: g.userId ?? 'unattributed',
+        name: user?.name || (g.userId ? 'Unknown' : 'Unattributed'),
         role: user?.role,
         tier,
         costUsd: Math.round(cost * 1000) / 1000,

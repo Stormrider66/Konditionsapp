@@ -87,7 +87,7 @@ export const GEMINI_CAPABILITIES = {
  * Cost estimates per 1K tokens (USD).
  * Based on provider pricing as of December 2025.
  */
-export const GEMINI_PRICING: Record<string, { input: number; output: number }> = {
+export const GEMINI_PRICING: Record<string, { input: number; output: number; imageOutput?: number }> = {
   // Google Gemini models
   'gemini-3.1-pro-preview': {
     input: 0.002, // $2.00 per 1M input tokens
@@ -108,10 +108,12 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number }> =
   'gemini-2.5-flash-image': {
     input: 0.0005,
     output: 0.003,
+    imageOutput: 0.03, // $30.00 per 1M image output tokens
   },
   'gemini-3-pro-image-preview': {
     input: 0.002,
     output: 0.012,
+    imageOutput: 0.067, // Approx. $0.134 per 2K image = $67 per 1M image output tokens
   },
   // Google embedding models (output cost is 0 — embeddings are input-only)
   'gemini-embedding-2-preview': {

@@ -12,7 +12,7 @@ import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
 import { PROGRAM_INFOGRAPHICS_BUCKET } from '@/lib/storage/supabase-storage'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
-import { logAiUsage } from '@/lib/ai/usage-logger'
+import { estimateImageCostUsd, logAiUsage } from '@/lib/ai/usage-logger'
 import type { ParsedProgram } from '@/lib/ai/program-parser'
 
 export const ALLOWED_IMAGE_MODELS = [
@@ -131,6 +131,11 @@ export async function generateProgramInfographic(
     model: selectedModel,
     inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
     outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+    estimatedCost: estimateImageCostUsd(
+      selectedModel,
+      response.usageMetadata?.promptTokenCount ?? 0,
+      response.usageMetadata?.candidatesTokenCount ?? 0,
+    ),
     userId: coachId,
     category: 'image_generation_program',
   })

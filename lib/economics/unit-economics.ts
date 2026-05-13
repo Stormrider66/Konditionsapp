@@ -36,6 +36,7 @@ export interface UnitEconomicsSummary {
   costs: {
     aiCostSekMonthlyized: number;
     operatorAgentCostSekMonthlyized: number;
+    providerInvoiceAdjustmentSekMonthlyized: number;
     paymentFeesSek: number;
     fixedInfraSek: number;
     variableInfraSek: number;
@@ -69,6 +70,15 @@ export interface UnitEconomicsSummary {
     supportTicketsThisPeriod: number;
     unresolvedSupportTickets: number;
   };
+  providerCosts: {
+    estimatedAiCostSek: number;
+    estimatedGoogleCostSek: number;
+    invoiceGoogleCostSek: number;
+    invoiceAdjustmentSek: number;
+    invoiceCoveragePercent: number;
+    importedRows: number;
+    bySku: UnitEconomicsProviderSku[];
+  };
   segments: UnitEconomicsSegment[];
   topAiCostUsers: UnitEconomicsTopUser[];
   dataGaps: string[];
@@ -92,6 +102,13 @@ export interface UnitEconomicsTopUser {
   segment: string;
   aiCostSek: number;
   tokens: number;
+}
+
+export interface UnitEconomicsProviderSku {
+  provider: string;
+  serviceDescription: string;
+  skuDescription: string;
+  costSek: number;
 }
 
 export async function getUnitEconomicsSummary(
@@ -129,6 +146,7 @@ export async function getUnitEconomicsSummary(
     newPaidAthleteSubscriptions,
     cancelledCoachSubscriptions,
     cancelledAthleteSubscriptions,
+    providerBillingRows,
   ] = await Promise.all([
     prisma.pricingTier.findMany({ where: { isActive: true } }),
     prisma.subscription.findMany({
@@ -153,6 +171,9 @@ export async function getUnitEconomicsSummary(
       where: { createdAt: { gte: startDate, lte: endDate } },
       select: {
         userId: true,
+        provider: true,
+        model: true,
+        category: true,
         estimatedCost: true,
         inputTokens: true,
         outputTokens: true,
@@ -172,7 +193,7 @@ export async function getUnitEconomicsSummary(
     }),
     prisma.operatorAgentRun.findMany({
       where: { createdAt: { gte: startDate, lte: endDate } },
-      select: { costUsd: true },
+      select: { modelUsed: true, costUsd: true },
     }),
     prisma.supportTicket.count({ where: { createdAt: { gte: startDate, lte: endDate } } }),
     prisma.supportTicket.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
@@ -204,6 +225,20 @@ export async function getUnitEconomicsSummary(
         tier: { not: 'FREE' },
         status: { in: ['CANCELLED', 'EXPIRED'] },
         updatedAt: { gte: startDate, lte: endDate },
+      },
+    }),
+    prisma.aIProviderBillingImport.findMany({
+      where: {
+        periodStart: { lte: endDate },
+        periodEnd: { gte: startDate },
+      },
+      select: {
+        provider: true,
+        periodStart: true,
+        periodEnd: true,
+        serviceDescription: true,
+        skuDescription: true,
+        costSek: true,
       },
     }),
   ]);
@@ -247,10 +282,29 @@ export async function getUnitEconomicsSummary(
 
   const aiCostUsd = aiUsageLogs.reduce((sum, log) => sum + log.estimatedCost, 0);
   const aiCostSek = aiCostUsd * resolvedAssumptions.usdToSek;
+  const operatorAgentCostUsd = operatorRuns.reduce((sum, run) => sum + run.costUsd, 0);
+  const operatorAgentCostSek = operatorAgentCostUsd * resolvedAssumptions.usdToSek;
+  const estimatedGoogleCostSek =
+    aiUsageLogs
+      .filter((log) => log.provider === 'GOOGLE')
+      .reduce((sum, log) => sum + log.estimatedCost, 0) * resolvedAssumptions.usdToSek +
+    operatorRuns
+      .filter((run) => (run.modelUsed ?? '').toLowerCase().includes('gemini'))
+      .reduce((sum, run) => sum + run.costUsd, 0) * resolvedAssumptions.usdToSek;
+  const proratedProviderBillingRows = providerBillingRows.map((row) => ({
+    ...row,
+    costSek: prorateCostForRange(row.costSek, row.periodStart, row.periodEnd, startDate, endDate),
+  }));
+  const invoiceGoogleCostSek = proratedProviderBillingRows
+    .filter((row) => row.provider === 'GOOGLE' && row.serviceDescription.toLowerCase().includes('gemini'))
+    .reduce((sum, row) => sum + row.costSek, 0);
+  const providerInvoiceAdjustmentSek =
+    invoiceGoogleCostSek > 0 ? Math.max(0, invoiceGoogleCostSek - estimatedGoogleCostSek) : 0;
   const aiCostSekMonthlyized = monthlyize(aiCostSek);
   const operatorAgentCostSekMonthlyized = monthlyize(
-    operatorRuns.reduce((sum, run) => sum + run.costUsd, 0) * resolvedAssumptions.usdToSek
+    operatorAgentCostSek
   );
+  const providerInvoiceAdjustmentSekMonthlyized = monthlyize(providerInvoiceAdjustmentSek);
 
   const paymentFeeBaseAccounts = coachSubscriptions.length + athleteSubscriptions.length;
   const paymentFeesSek =
@@ -270,6 +324,7 @@ export async function getUnitEconomicsSummary(
   const directCostSek =
     aiCostSekMonthlyized +
     operatorAgentCostSekMonthlyized +
+    providerInvoiceAdjustmentSekMonthlyized +
     paymentFeesSek +
     resolvedAssumptions.fixedInfraSekPerMonth +
     variableInfraSek;
@@ -312,6 +367,7 @@ export async function getUnitEconomicsSummary(
     costs: {
       aiCostSekMonthlyized: roundSek(aiCostSekMonthlyized),
       operatorAgentCostSekMonthlyized: roundSek(operatorAgentCostSekMonthlyized),
+      providerInvoiceAdjustmentSekMonthlyized: roundSek(providerInvoiceAdjustmentSekMonthlyized),
       paymentFeesSek: roundSek(paymentFeesSek),
       fixedInfraSek: roundSek(resolvedAssumptions.fixedInfraSekPerMonth),
       variableInfraSek: roundSek(variableInfraSek),
@@ -350,6 +406,26 @@ export async function getUnitEconomicsSummary(
       supportTicketsThisPeriod,
       unresolvedSupportTickets,
     },
+    providerCosts: {
+      estimatedAiCostSek: roundSek(aiCostSek + operatorAgentCostSek),
+      estimatedGoogleCostSek: roundSek(estimatedGoogleCostSek),
+      invoiceGoogleCostSek: roundSek(invoiceGoogleCostSek),
+      invoiceAdjustmentSek: roundSek(providerInvoiceAdjustmentSek),
+      invoiceCoveragePercent: invoiceGoogleCostSek > 0
+        ? Math.round((estimatedGoogleCostSek / invoiceGoogleCostSek) * 1000) / 10
+        : 0,
+      importedRows: providerBillingRows.length,
+      bySku: proratedProviderBillingRows
+        .filter((row) => row.provider === 'GOOGLE')
+        .map((row) => ({
+          provider: row.provider,
+          serviceDescription: row.serviceDescription,
+          skuDescription: row.skuDescription ?? 'Unspecified SKU',
+          costSek: roundSek(row.costSek),
+        }))
+        .sort((a, b) => b.costSek - a.costSek)
+        .slice(0, 10),
+    },
     segments,
     topAiCostUsers,
     dataGaps: [
@@ -357,6 +433,9 @@ export async function getUnitEconomicsSummary(
       'Infrastructure and support costs are assumptions until Vercel, Supabase, Resend, storage, and founder/support time are imported as real monthly expenses.',
       'Onboarding time is estimated from new paid customers; add a tracked onboarding workflow to replace this with actual time spent.',
       'Enterprise contracts in non-SEK currencies are excluded from MRR until currency conversion is added.',
+      providerBillingRows.length === 0
+        ? 'No provider invoice rows are imported for this period yet, so AI cost is still based only on internal estimates.'
+        : 'Provider invoice rows are imported for this period; any invoice gap is added as a reconciliation adjustment.',
     ],
   };
 }
@@ -383,13 +462,16 @@ function buildSegments({
   enterpriseMrrSek: number;
   enterpriseCount: number;
   aiUsageLogs: Array<{
-    userId: string;
+    userId: string | null;
+    provider: string;
+    model: string;
+    category: string;
     estimatedCost: number;
     user: {
       role: string;
       subscription: { tier: string } | null;
       clients: Array<{ athleteSubscription: { tier: string } | null }>;
-    };
+    } | null;
   }>;
   usdToSek: number;
   monthlyize: (value: number) => number;
@@ -446,7 +528,7 @@ function buildSegments({
 
 function buildTopAiCostUsers(
   logs: Array<{
-    userId: string;
+    userId: string | null;
     estimatedCost: number;
     inputTokens: number;
     outputTokens: number;
@@ -456,15 +538,16 @@ function buildTopAiCostUsers(
       role: string;
       subscription: { tier: string } | null;
       clients: Array<{ athleteSubscription: { tier: string } | null }>;
-    };
+    } | null;
   }>,
   usdToSek: number
 ): UnitEconomicsTopUser[] {
   const users = new Map<string, UnitEconomicsTopUser>();
 
   for (const log of logs) {
-    const existing = users.get(log.userId) ?? {
-      userId: log.userId,
+    const userKey = log.userId ?? 'unattributed';
+    const existing = users.get(userKey) ?? {
+      userId: userKey,
       name: log.user?.name ?? 'Unknown',
       email: log.user?.email ?? '',
       role: log.user?.role ?? 'UNKNOWN',
@@ -475,7 +558,7 @@ function buildTopAiCostUsers(
 
     existing.aiCostSek += log.estimatedCost * usdToSek;
     existing.tokens += log.inputTokens + log.outputTokens;
-    users.set(log.userId, existing);
+    users.set(userKey, existing);
   }
 
   return Array.from(users.values())
@@ -522,4 +605,22 @@ function roundSek(value: number): number {
 function percent(total: number, part: number): number {
   if (total <= 0) return 0;
   return Math.round((part / total) * 1000) / 10;
+}
+
+function prorateCostForRange(
+  cost: number,
+  rowStart: Date,
+  rowEnd: Date,
+  rangeStart: Date,
+  rangeEnd: Date,
+): number {
+  const rowStartMs = rowStart.getTime();
+  const rowEndMs = rowEnd.getTime();
+  const overlapStart = Math.max(rowStartMs, rangeStart.getTime());
+  const overlapEnd = Math.min(rowEndMs, rangeEnd.getTime());
+  const rowDuration = rowEndMs - rowStartMs;
+  const overlapDuration = overlapEnd - overlapStart;
+
+  if (rowDuration <= 0 || overlapDuration <= 0) return 0;
+  return cost * Math.min(1, overlapDuration / rowDuration);
 }

@@ -4,7 +4,7 @@ import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
-import { logAiUsage } from '@/lib/ai/usage-logger'
+import { estimateImageCostUsd, logAiUsage } from '@/lib/ai/usage-logger'
 
 const EXERCISE_IMAGES_BUCKET = 'exercise-images'
 
@@ -69,7 +69,7 @@ export async function lookupOrGenerateExercise(
   try {
     const keys = await getResolvedAiKeys(coachId)
     if (keys.googleKey) apiKey = keys.googleKey
-  } catch (err) {
+  } catch (_err) {
     logger.warn('Failed to get coach API keys, falling back to env', { coachId })
   }
 
@@ -106,6 +106,11 @@ export async function lookupOrGenerateExercise(
         model,
         inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
         outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+        estimatedCost: estimateImageCostUsd(
+          model,
+          response.usageMetadata?.promptTokenCount ?? 0,
+          response.usageMetadata?.candidatesTokenCount ?? 0,
+        ),
         userId: coachId,
         category: 'image_generation_exercise',
       })

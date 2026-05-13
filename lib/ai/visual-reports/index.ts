@@ -19,7 +19,7 @@ import {
   gatherProgramData,
 } from './data-gatherers'
 import { logger } from '@/lib/logger'
-import { logAiUsage } from '@/lib/ai/usage-logger'
+import { estimateImageCostUsd, logAiUsage } from '@/lib/ai/usage-logger'
 import type { GenerateVisualReportOptions, VisualReportResult } from './types'
 
 export { ALLOWED_IMAGE_MODELS } from '@/lib/ai/program-infographic'
@@ -101,6 +101,11 @@ export async function generateVisualReport(
     model: selectedModel,
     inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
     outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+    estimatedCost: estimateImageCostUsd(
+      selectedModel,
+      response.usageMetadata?.promptTokenCount ?? 0,
+      response.usageMetadata?.candidatesTokenCount ?? 0,
+    ),
     userId: coachId,
     category: `visual_report_${reportType}`,
   })
