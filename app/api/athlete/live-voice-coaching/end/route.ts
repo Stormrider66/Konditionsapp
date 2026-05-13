@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { estimateLiveSessionCost } from '@/lib/ai/gemini-config'
 import { generateSessionSummary } from '@/lib/ai/live-voice-coaching/session-summarizer'
+import { logAiUsage } from '@/lib/ai/usage-logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
 
     // Validate body
     const body = await request.json()
@@ -69,6 +70,16 @@ export async function POST(request: Request) {
 
     // Calculate cost
     const cost = estimateLiveSessionCost(durationSeconds, audioInputSeconds, audioOutputSeconds)
+    logAiUsage({
+      userId: user.id,
+      clientId,
+      category: 'live_voice_coaching',
+      provider: 'GOOGLE',
+      model: session.modelUsed,
+      inputTokens: 0,
+      outputTokens: 0,
+      estimatedCost: cost.totalCost,
+    })
 
     // Save transcripts if provided
     if (transcripts && transcripts.length > 0) {

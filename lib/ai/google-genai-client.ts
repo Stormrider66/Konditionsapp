@@ -20,6 +20,7 @@ import { logAiUsage } from './usage-logger';
  */
 export interface AiCallMeta {
   userId?: string | null;
+  clientId?: string | null;
   category?: string;
   conversationId?: string | null;
 }
@@ -123,6 +124,7 @@ export async function generateContent(
     inputTokens,
     outputTokens,
     userId: meta?.userId,
+    clientId: meta?.clientId,
     category: meta?.category,
     conversationId: meta?.conversationId,
   });
@@ -175,6 +177,7 @@ export async function generateStructuredContent<T>(
     inputTokens,
     outputTokens,
     userId: meta?.userId,
+    clientId: meta?.clientId,
     category: meta?.category,
     conversationId: meta?.conversationId,
   });
@@ -605,6 +608,7 @@ export async function embedContent(
     inputTokens,
     outputTokens: 0,
     userId: meta?.userId,
+    clientId: meta?.clientId,
     category: meta?.category ?? 'embedding',
   });
 

@@ -91,7 +91,13 @@ Respond ONLY with valid JSON.`
     const result = await generateContent(
       client,
       GEMINI_MODELS.FLASH,
-      [{ text: prompt }]
+      [{ text: prompt }],
+      undefined,
+      {
+        userId: session.keyOwnerId,
+        clientId,
+        category: 'live_voice_summary',
+      },
     )
 
     let analysis: {

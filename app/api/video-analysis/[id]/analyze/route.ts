@@ -21,6 +21,7 @@ import { logger } from '@/lib/logger'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { createGoogleGenAIClient, getGeminiModelId } from '@/lib/ai/google-genai-client'
 import { withAiContext } from '@/lib/ai/usage-logger'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { isSkiingVideoType } from '@/lib/ai/skiing-prompts'
 import { isHyroxVideoType } from '@/lib/ai/hyrox-prompts'
 import { analyzeGeneric } from '@/lib/video-analysis/analyzers/generic'
@@ -67,6 +68,11 @@ export async function POST(
       return NextResponse.json({ error: 'Analysis not found' }, { status: 404 })
     }
 
+    if (analysis.athleteId) {
+      const allowanceDenied = await requireAiAllowance(analysis.athleteId)
+      if (allowanceDenied) return allowanceDenied
+    }
+
     const apiKeys = await prisma.userApiKey.findUnique({
       where: { userId: user.id },
       include: { defaultModel: true },
@@ -100,24 +106,24 @@ export async function POST(
 
       if (analysis.videoType === 'RUNNING_GAIT') {
         return await withAiContext(
-          { userId: user.id, category: 'video_analysis_running_gait' },
+          { userId: user.id, clientId: analysis.athleteId, category: 'video_analysis_running_gait' },
           () => analyzeRunningGait(id, analysis, client, modelId),
         )
       }
       if (isSkiingVideoType(analysis.videoType)) {
         return await withAiContext(
-          { userId: user.id, category: 'video_analysis_skiing' },
+          { userId: user.id, clientId: analysis.athleteId, category: 'video_analysis_skiing' },
           () => analyzeSkiingTechnique(id, analysis, client, modelId),
         )
       }
       if (isHyroxVideoType(analysis.videoType)) {
         return await withAiContext(
-          { userId: user.id, category: 'video_analysis_hyrox' },
+          { userId: user.id, clientId: analysis.athleteId, category: 'video_analysis_hyrox' },
           () => analyzeHyroxStation(id, analysis, client, modelId),
         )
       }
       return await withAiContext(
-        { userId: user.id, category: 'video_analysis_generic' },
+        { userId: user.id, clientId: analysis.athleteId, category: 'video_analysis_generic' },
         () => analyzeGeneric(id, analysis, client, modelId),
       )
     } catch (aiError) {
