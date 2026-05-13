@@ -3,7 +3,7 @@ import { logger } from '@/lib/logger'
 import { incrementAIChatUsage } from '@/lib/subscription/feature-access'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { extractMemoriesFromConversation, saveMemories } from '@/lib/ai/memory-extractor'
-import { logAiUsage, type AiProviderTag } from '@/lib/ai/usage-logger'
+import { logAiUsage, withAiContext, type AiProviderTag } from '@/lib/ai/usage-logger'
 import type { ChatRequestMessage } from './types'
 import { getMessageContent } from './message-format'
 
@@ -147,9 +147,17 @@ export function buildOnFinishHandler(input: BuildOnFinishInput) {
                 { role: 'user' as const, content: getMessageContent(lastUserMessage) },
                 { role: 'assistant' as const, content: text },
               ]
-              const extractedMemories = await extractMemoriesFromConversation(
-                conversationForMemory,
-                apiKeys
+              const extractedMemories = await withAiContext(
+                {
+                  userId: apiKeyUserId,
+                  clientId: athleteClientId,
+                  category: 'athlete_memory_extraction',
+                  conversationId,
+                },
+                () => extractMemoriesFromConversation(
+                  conversationForMemory,
+                  apiKeys
+                )
               )
               if (extractedMemories.length > 0) {
                 const savedCount = await saveMemories(athleteClientId, extractedMemories)

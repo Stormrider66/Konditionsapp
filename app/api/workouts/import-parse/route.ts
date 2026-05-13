@@ -36,6 +36,7 @@ import {
   isModelIntent,
 } from '@/types/ai-models'
 import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
+import { withAiContext } from '@/lib/ai/usage-logger'
 import { generateText } from 'ai'
 import { createHash } from 'node:crypto'
 import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
@@ -211,34 +212,40 @@ export async function POST(request: NextRequest) {
           ? 64_000
           : 16_000
       const tempField = generationTuning(resolved.modelId, { temperature: 0.1 })
-      const result =
-        normalized.kind === 'image' && normalized.imageBuffer
-          ? await generateText({
-              model,
-              system: systemPrompt,
-              messages: [
-                {
-                  role: 'user',
-                  content: [
-                    { type: 'text', text: prompt },
-                    {
-                      type: 'image',
-                      image: normalized.imageBuffer,
-                      mediaType: normalized.imageMimeType || 'image/png',
-                    },
-                  ],
-                },
-              ],
-              ...tempField,
-              maxOutputTokens: MAX_OUTPUT_TOKENS,
-            })
-          : await generateText({
-              model,
-              system: systemPrompt,
-              prompt,
-              ...tempField,
-              maxOutputTokens: MAX_OUTPUT_TOKENS,
-            })
+      const result = await withAiContext(
+        {
+          userId: callerUserId,
+          category: 'coach_workout_import_parse',
+        },
+        () =>
+          normalized.kind === 'image' && normalized.imageBuffer
+            ? generateText({
+                model,
+                system: systemPrompt,
+                messages: [
+                  {
+                    role: 'user',
+                    content: [
+                      { type: 'text', text: prompt },
+                      {
+                        type: 'image',
+                        image: normalized.imageBuffer,
+                        mediaType: normalized.imageMimeType || 'image/png',
+                      },
+                    ],
+                  },
+                ],
+                ...tempField,
+                maxOutputTokens: MAX_OUTPUT_TOKENS,
+              })
+            : generateText({
+                model,
+                system: systemPrompt,
+                prompt,
+                ...tempField,
+                maxOutputTokens: MAX_OUTPUT_TOKENS,
+              })
+      )
       aiOutput = result.text
       logger.info('workout import-parse model output excerpt', {
         provider: resolved.provider,
@@ -466,4 +473,3 @@ async function resolveDrillNames(
     return { name, bestMatch, candidates: scored }
   })
 }
-

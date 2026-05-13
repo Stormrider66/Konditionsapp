@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
       mimeType,
       user.id,
       membership?.businessId,
+      { userId: user.id, category: 'coach_drill_clipboard_analysis' },
     )
 
     return NextResponse.json(result)

@@ -11,6 +11,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { canAccessClient, requireCoach } from '@/lib/auth-utils';
 import { generateChartFromQuery, type GenerateChartRequest } from '@/lib/ai/generative-charts';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { withAiContext } from '@/lib/ai/usage-logger'
 import { logger } from '@/lib/logger'
 
 interface RequestBody {
@@ -57,6 +59,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const allowanceDenied = await requireAiAllowance(clientId)
+    if (allowanceDenied) return allowanceDenied
+
     // Build request
     const chartRequest: GenerateChartRequest = {
       coachUserId: user.id,
@@ -73,7 +78,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate chart
-    const result = await generateChartFromQuery(chartRequest);
+    const result = await withAiContext(
+      { userId: user.id, clientId, category: 'athlete_generative_chart' },
+      () => generateChartFromQuery(chartRequest),
+    );
 
     if (!result.success) {
       return NextResponse.json(

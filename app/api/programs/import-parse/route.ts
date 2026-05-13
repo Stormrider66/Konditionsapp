@@ -33,6 +33,8 @@ import {
   isModelIntent,
 } from '@/types/ai-models'
 import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
+import { withAiContext } from '@/lib/ai/usage-logger'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { generateText } from 'ai'
 import { createHash } from 'node:crypto'
 import { parseAIProgram } from '@/lib/ai/program-parser'
@@ -255,6 +257,10 @@ export async function POST(request: NextRequest) {
       aiOutput = cached.payload.aiOutput
       cacheHit = true
     } else {
+      if (athleteClientId) {
+        const allowanceDenied = await requireAiAllowance(athleteClientId)
+        if (allowanceDenied) return allowanceDenied
+      }
       // The AI SDK defaults are conservative (often 4096) and a rich program
       // JSON is well past that. Set the budget high enough that a 2-week,
       // 30-exercise strength program can't get truncated mid-JSON. Actual
@@ -271,34 +277,41 @@ export async function POST(request: NextRequest) {
       // models) reject the temperature parameter outright. generationTuning
       // strips it for those and passes through for everything else.
       const tempField = generationTuning(resolved.modelId, { temperature: 0.1 })
-      const result =
-        normalized.kind === 'image' && normalized.imageBuffer
-          ? await generateText({
-              model,
-              system: SYSTEM_PROMPT,
-              messages: [
-                {
-                  role: 'user',
-                  content: [
-                    { type: 'text', text: prompt },
-                    {
-                      type: 'image',
-                      image: normalized.imageBuffer,
-                      mediaType: normalized.imageMimeType || 'image/png',
-                    },
-                  ],
-                },
-              ],
-              ...tempField,
-              maxOutputTokens: MAX_OUTPUT_TOKENS,
-            })
-          : await generateText({
-              model,
-              system: SYSTEM_PROMPT,
-              prompt,
-              ...tempField,
-              maxOutputTokens: MAX_OUTPUT_TOKENS,
-            })
+      const result = await withAiContext(
+        {
+          userId: callerUserId,
+          clientId: athleteClientId,
+          category: athleteClientId ? 'athlete_program_import_parse' : 'coach_program_import_parse',
+        },
+        () =>
+          normalized.kind === 'image' && normalized.imageBuffer
+            ? generateText({
+                model,
+                system: SYSTEM_PROMPT,
+                messages: [
+                  {
+                    role: 'user',
+                    content: [
+                      { type: 'text', text: prompt },
+                      {
+                        type: 'image',
+                        image: normalized.imageBuffer,
+                        mediaType: normalized.imageMimeType || 'image/png',
+                      },
+                    ],
+                  },
+                ],
+                ...tempField,
+                maxOutputTokens: MAX_OUTPUT_TOKENS,
+              })
+            : generateText({
+                model,
+                system: SYSTEM_PROMPT,
+                prompt,
+                ...tempField,
+                maxOutputTokens: MAX_OUTPUT_TOKENS,
+              })
+      )
       aiOutput = result.text
       // Diagnostic trace: log a short excerpt so we can see how the model
       // shaped its output (or didn't). Truncated to keep log lines sane.

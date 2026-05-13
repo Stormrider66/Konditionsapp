@@ -3,6 +3,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resolveModel } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
+import { withAiContext } from '@/lib/ai/usage-logger'
 import { generateText } from 'ai'
 
 /**
@@ -70,12 +71,15 @@ Regler:
 
     const userPrompt = buildUserPrompt(topic, context)
 
-    const result = await generateText({
-      model,
-      system: systemPrompt,
-      prompt: userPrompt,
-      maxOutputTokens: 500,
-    })
+    const result = await withAiContext(
+      { userId: user.id, category: 'coach_social_caption_generation' },
+      () => generateText({
+        model,
+        system: systemPrompt,
+        prompt: userPrompt,
+        maxOutputTokens: 500,
+      }),
+    )
 
     return NextResponse.json({
       caption: result.text.trim(),

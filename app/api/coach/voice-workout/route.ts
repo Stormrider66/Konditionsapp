@@ -150,7 +150,8 @@ export async function POST(request: NextRequest) {
         base64Data,
         audioFile.type,
         user.id,
-        googleKey
+        googleKey,
+        { userId: user.id, category: 'coach_voice_workout_parse' },
       )
 
       // Build preview for coach review

@@ -28,6 +28,7 @@ import { logger } from '@/lib/logger'
 import { getWritableTeam } from '@/lib/coach/team-access'
 import { resolveExtractionModel, resolveVisionModel, type ModelIntent, isModelIntent } from '@/types/ai-models'
 import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
+import { withAiContext } from '@/lib/ai/usage-logger'
 import { generateText } from 'ai'
 
 export const runtime = 'nodejs'
@@ -163,31 +164,37 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const model = createModelInstance(resolved)
 
-    const { text: aiOutput } =
-      normalized.kind === 'image'
-        ? await generateText({
-            model,
-            system: SYSTEM_PROMPT,
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'image', image: normalized.image.dataUri },
-                  {
-                    type: 'text',
-                    text: buildImagePromptText(team.sportType ?? null, normalized.filename),
-                  },
-                ],
-              },
-            ],
-            ...generationTuning(resolved.modelId, { temperature: 0.1 }),
-          })
-        : await generateText({
-            model,
-            system: SYSTEM_PROMPT,
-            prompt: buildTextPrompt(normalized, team.sportType ?? null),
-            ...generationTuning(resolved.modelId, { temperature: 0.1 }),
-          })
+    const { text: aiOutput } = await withAiContext(
+      {
+        userId: user.id,
+        category: 'coach_team_roster_import_parse',
+      },
+      () =>
+        normalized.kind === 'image'
+          ? generateText({
+              model,
+              system: SYSTEM_PROMPT,
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'image', image: normalized.image.dataUri },
+                    {
+                      type: 'text',
+                      text: buildImagePromptText(team.sportType ?? null, normalized.filename),
+                    },
+                  ],
+                },
+              ],
+              ...generationTuning(resolved.modelId, { temperature: 0.1 }),
+            })
+          : generateText({
+              model,
+              system: SYSTEM_PROMPT,
+              prompt: buildTextPrompt(normalized, team.sportType ?? null),
+              ...generationTuning(resolved.modelId, { temperature: 0.1 }),
+            })
+    )
 
     const parsedRows = safeParseRoster(aiOutput)
 

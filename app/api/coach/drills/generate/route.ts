@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
       sportType || 'ICE_HOCKEY',
       user.id,
       membership?.businessId,
+      { userId: user.id, category: 'coach_drill_text_generation' },
     )
 
     return NextResponse.json(result)

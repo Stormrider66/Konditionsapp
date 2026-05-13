@@ -8,6 +8,7 @@
 import {
   createGoogleGenAIClient,
   generateContent,
+  type AiCallMeta,
 } from '@/lib/ai/google-genai-client'
 import { getResolvedGoogleKey } from '@/lib/user-api-keys'
 import { logger } from '@/lib/logger'
@@ -105,6 +106,7 @@ export async function generateDrillFromText(
   sportType: string,
   userId: string,
   businessId?: string,
+  meta?: AiCallMeta,
 ): Promise<TextDrillResult> {
   const googleKey = await getResolvedGoogleKey(userId, { businessId })
 
@@ -122,6 +124,12 @@ export async function generateDrillFromText(
       { text: systemPrompt },
       { text: `Coach's drill description:\n\n${prompt}` },
     ],
+    undefined,
+    {
+      ...meta,
+      userId: meta?.userId ?? userId,
+      category: meta?.category ?? 'coach_drill_text_generation',
+    },
   )
 
   if (!result.text) {

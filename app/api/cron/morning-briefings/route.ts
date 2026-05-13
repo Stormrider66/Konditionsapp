@@ -14,6 +14,7 @@ import { createMorningBriefing } from '@/lib/ai/briefing-generator'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { logger } from '@/lib/logger'
 import { withAiContext } from '@/lib/ai/usage-logger'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 export const maxDuration = 300
 
@@ -209,8 +210,20 @@ async function processAthleteBriefing(athlete: BriefingCandidate): Promise<Proce
       return 'skipped'
     }
 
+    const allowanceDenied = await requireAiAllowance(athlete.clientId)
+    if (allowanceDenied) {
+      logger.info('Skipping morning briefing because AI allowance is exhausted', {
+        clientId: athlete.clientId,
+      })
+      return 'skipped'
+    }
+
     const briefingId = await withAiContext(
-      { userId: athlete.coachUserId, category: 'briefing' },
+      {
+        userId: athlete.coachUserId,
+        clientId: athlete.clientId,
+        category: 'athlete_morning_briefing',
+      },
       () => createMorningBriefing(athlete.clientId, apiKeys),
     )
     return briefingId ? 'created' : 'error'

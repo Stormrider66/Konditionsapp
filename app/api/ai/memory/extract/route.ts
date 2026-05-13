@@ -14,6 +14,8 @@ import {
   saveMemories,
 } from '@/lib/ai/memory-extractor'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { withAiContext } from '@/lib/ai/usage-logger'
 
 interface ExtractRequest {
   clientId: string
@@ -77,10 +79,16 @@ export async function POST(request: Request) {
       )
     }
 
+    const allowanceDenied = await requireAiAllowance(clientId)
+    if (allowanceDenied) return allowanceDenied
+
     // Extract memories from conversation
-    const extractedMemories = await extractMemoriesFromConversation(
-      messages,
-      apiKeys
+    const extractedMemories = await withAiContext(
+      { userId: user.id, clientId, category: 'athlete_memory_extraction' },
+      () => extractMemoriesFromConversation(
+        messages,
+        apiKeys
+      )
     )
 
     // Save memories to database

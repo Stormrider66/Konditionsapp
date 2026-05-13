@@ -13,6 +13,7 @@ import {
   createInlineData,
   createText,
   getGeminiModelId,
+  type AiCallMeta,
 } from '@/lib/ai/google-genai-client'
 import type {
   VoiceWorkoutIntent,
@@ -88,7 +89,8 @@ export async function parseVoiceWorkoutIntent(
   audioBase64: string,
   mimeType: string,
   coachId: string,
-  googleApiKey: string
+  googleApiKey: string,
+  meta?: AiCallMeta
 ): Promise<{ intent: VoiceWorkoutIntent; modelUsed: string }> {
   const client = createGoogleGenAIClient(googleApiKey)
   const modelId = getGeminiModelId('audio')
@@ -100,7 +102,11 @@ export async function parseVoiceWorkoutIntent(
   const result = await generateContent(client, modelId, [
     createText(prompt),
     createInlineData(audioBase64, mimeType),
-  ])
+  ], undefined, {
+    ...meta,
+    userId: meta?.userId ?? coachId,
+    category: meta?.category ?? 'coach_voice_workout_parse',
+  })
 
   // Parse the raw intent from AI response
   let rawIntent: ParsedIntentRaw
@@ -160,7 +166,8 @@ export async function parseVoiceWorkoutIntent(
 export async function transcribeVoiceAudio(
   audioBase64: string,
   mimeType: string,
-  googleApiKey: string
+  googleApiKey: string,
+  meta?: AiCallMeta
 ): Promise<{ transcription: string; modelUsed: string }> {
   const client = createGoogleGenAIClient(googleApiKey)
   const modelId = getGeminiModelId('audio')
@@ -171,7 +178,10 @@ Returnera endast transkriptionen, ingen annan text.`
   const result = await generateContent(client, modelId, [
     createText(prompt),
     createInlineData(audioBase64, mimeType),
-  ])
+  ], undefined, {
+    ...meta,
+    category: meta?.category ?? 'coach_voice_workout_transcription',
+  })
 
   return {
     transcription: result.text.trim(),

@@ -8,6 +8,7 @@
 import {
   createGoogleGenAIClient,
   generateContent,
+  type AiCallMeta,
 } from '@/lib/ai/google-genai-client'
 import { getResolvedGoogleKey } from '@/lib/user-api-keys'
 import { logger } from '@/lib/logger'
@@ -58,6 +59,7 @@ export async function analyzeClipboardPhoto(
   mimeType: string,
   userId: string,
   businessId?: string,
+  meta?: AiCallMeta,
 ): Promise<DrillAnalysisResult> {
   const googleKey = await getResolvedGoogleKey(userId, { businessId })
 
@@ -74,6 +76,12 @@ export async function analyzeClipboardPhoto(
       { text: DRILL_ANALYSIS_PROMPT },
       { inlineData: { mimeType, data: imageBase64 } },
     ],
+    undefined,
+    {
+      ...meta,
+      userId: meta?.userId ?? userId,
+      category: meta?.category ?? 'coach_drill_clipboard_analysis',
+    },
   )
 
   if (!result.text) {

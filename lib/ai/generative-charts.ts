@@ -10,10 +10,10 @@
  */
 
 import { generateObject } from 'ai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
+import { createModelInstance } from '@/lib/ai/create-model';
 import { decryptSecret } from '@/lib/crypto/secretbox';
 
 // Zod schema for chart configurations
@@ -130,15 +130,19 @@ export async function generateChartFromQuery(
     };
   }
 
-  // Initialize Gemini
-  const google = createGoogleGenerativeAI({
+  const modelId = GEMINI_MODELS.FLASH
+  const model = createModelInstance({
+    provider: 'google',
+    modelId,
     apiKey: googleKey,
+    displayName: modelId,
+    supportsVision: false,
   });
 
   try {
     // Use generateObject for structured output
     const result = await generateObject({
-      model: google(GEMINI_MODELS.FLASH), // Use Flash for speed
+      model,
       schema: ChartConfigSchema,
       prompt: buildChartPrompt(query, athleteData),
     });
