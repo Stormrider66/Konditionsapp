@@ -10,6 +10,7 @@ import { UpcomingWorkouts } from '@/components/athlete/UpcomingWorkouts'
 import { IntegratedRecentActivity } from '@/components/athlete/IntegratedRecentActivity'
 import { ActivePrograms } from '@/components/athlete/ActivePrograms'
 import { AISuggestionsBanner } from '@/components/athlete/ai/AISuggestionsBanner'
+import { AICreditStatusCard } from '@/components/athlete/ai/AICreditStatusCard'
 import { CyclingDashboard } from '@/components/athlete/CyclingDashboard'
 import { SkiingDashboard } from '@/components/athlete/SkiingDashboard'
 import { SwimmingDashboard } from '@/components/athlete/SwimmingDashboard'
@@ -125,6 +126,7 @@ export default async function AthleteDashboardPage() {
             sessionHref={`${basePath}/athlete/nutrition`}
             sessionLabel="Koststatistik"
           />
+          <AICreditStatusCard basePath={basePath} compact />
         </div>
         <NutritionFocusDashboard clientId={clientId} basePath={basePath} />
       </div>
@@ -651,6 +653,7 @@ export default async function AthleteDashboardPage() {
           }
           sessionLabel={firstActionableItem ? 'Starta pass' : 'Hitta pass'}
         />
+        <AICreditStatusCard basePath={basePath} compact />
       </div>
 
       {/* Main Grid - Hero Card + Readiness Panel */}

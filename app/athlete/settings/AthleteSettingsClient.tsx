@@ -18,6 +18,7 @@ import { IntensityTargetsEditor } from '@/components/athlete/settings/IntensityT
 import { MacroSplitEditor } from '@/components/athlete/settings/MacroSplitEditor'
 import { LocationSettings } from '@/components/athlete/settings/LocationSettings'
 import { AIContextSettings } from '@/components/athlete/settings/AIContextSettings'
+import { AICreditStatusCard } from '@/components/athlete/ai/AICreditStatusCard'
 import { ProfileSettings } from '@/components/settings/ProfileSettings'
 import { PasswordChangeForm } from '@/components/settings/PasswordChangeForm'
 import type { SportProfile } from '@prisma/client'
@@ -203,6 +204,8 @@ export function AthleteSettingsClient({
             </div>
           </Link>
         </div>
+
+        <AICreditStatusCard basePath={basePath} />
 
         {/* AI Profile Settings */}
         <div className="space-y-4">
