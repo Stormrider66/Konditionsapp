@@ -131,7 +131,7 @@ export function ProtocolBuilder({ onSaved }: ProtocolBuilderProps) {
         <CardContent className="space-y-3">
           <div className="space-y-1">
             <Label>Namn</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="t.ex. SAIK Försäsongstest 2026" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="t.ex. Försäsongstest 2026" />
           </div>
           <div className="space-y-1">
             <Label>Beskrivning (valfritt)</Label>

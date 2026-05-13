@@ -581,10 +581,10 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         <CardHeader>
           <CardTitle className="flex items-center gap-2 dark:text-white">
             <CheckCircle2 className="h-5 w-5 text-cyan-600" />
-            Pilotberedskap
+            Lagberedskap
           </CardTitle>
           <CardDescription>
-            Snabb kontroll inför ett Skellefteå-liknande utvecklingspilot: roster, profiler, portal och testdata.
+            Snabb kontroll inför lagstart: roster, profiler, portal och testdata.
           </CardDescription>
         </CardHeader>
         <CardContent>
