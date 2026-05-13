@@ -254,11 +254,11 @@ Purpose: Monetize heavy users without forcing everyone into a higher subscriptio
 
 Tasks:
 
-- Add top-up products/prices in Stripe.
-- Add checkout route for one-time AI credit purchases.
-- Add webhook handling for successful top-up payment.
-- Add `AITopUpPurchase` or ledger entry on payment success.
-- Add idempotency by Stripe event/payment intent id.
+- Add top-up products/prices in Stripe. Shipped with dynamic Checkout price data in `315656a0`; no manual Stripe price IDs required yet.
+- Add checkout route for one-time AI credit purchases. Shipped in `315656a0`.
+- Add webhook handling for successful top-up payment. Shipped in `315656a0`.
+- Add `AITopUpPurchase` or ledger entry on payment success. Shipped in `315656a0`.
+- Add idempotency by Stripe event/payment intent id. Shipped via existing `StripeWebhookEvent` dedupe plus purchase status check in `315656a0`.
 
 Acceptance criteria:
 
@@ -345,9 +345,15 @@ Second chunk:
 
 Third chunk:
 
-1. Add AI allowance UI meter.
-2. Add top-up checkout.
-3. Add webhook crediting.
+1. Add AI allowance UI meter. Shipped in `bc4e5b51`.
+2. Add top-up checkout. Shipped in `315656a0`.
+3. Add webhook crediting. Shipped in `315656a0`.
+
+Additional shipped chunks:
+
+- Admin AI cost overview by feature/provider/model. Shipped in `ea38e14c`.
+- Athlete-facing AI credit exhaustion messages across high-cost AI flows. Shipped in `6b67bf55`.
+- Athlete subscription page AI credit explanation and tier allowances. Shipped in `4b5528c3`.
 
 ## Open Decisions
 
