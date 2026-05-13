@@ -2,7 +2,21 @@
 
 import { useRef, useState, type ReactNode, type Ref } from 'react'
 import Image from 'next/image'
-import { Download, Loader2, Printer } from 'lucide-react'
+import {
+  Activity,
+  Clock,
+  Download,
+  Dumbbell,
+  Flame,
+  Layers,
+  ListChecks,
+  Loader2,
+  Printer,
+  Target,
+  Wind,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext'
 import type { PrintableWorkout } from '@/lib/workout-print/normalize'
@@ -17,6 +31,41 @@ function getWorkoutTotals(workout: PrintableWorkout) {
   const sectionCount = workout.sections.length
   const exerciseCount = workout.sections.reduce((total, section) => total + section.items.length, 0)
   return { sectionCount, exerciseCount }
+}
+
+function getSectionIcon(title: string): LucideIcon {
+  const t = title.toLowerCase()
+  if (t.includes('uppvärm') || t.includes('warmup') || t.includes('warm up')) return Flame
+  if (t.includes('nedvarv') || t.includes('cooldown') || t.includes('cool down')) return Wind
+  if (t.includes('core')) return Target
+  if (t.includes('metcon')) return Zap
+  if (t.includes('styrka') || t.includes('huvudpass') || t.includes('main') || t.includes('strength')) return Dumbbell
+  if (t.includes('intervall') || t.includes('interval') || t.includes('passupp')) return Activity
+  return ListChecks
+}
+
+interface StatCardProps {
+  icon: LucideIcon
+  label: string
+  value: string
+  brandColor: string
+}
+
+function StatCard({ icon: Icon, label, value, brandColor }: StatCardProps) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2 print:px-2 print:py-1.5">
+      <div
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md print:h-6 print:w-6"
+        style={{ backgroundColor: `${brandColor}1a`, color: brandColor }}
+      >
+        <Icon className="h-3.5 w-3.5 print:h-3 print:w-3" strokeWidth={2.25} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-500 print-small">{label}</p>
+        <p className="truncate text-sm font-bold leading-tight text-slate-950 print-small">{value}</p>
+      </div>
+    </div>
+  )
 }
 
 function buildPdfFilename(title: string, orientation: PdfOrientation) {
@@ -57,49 +106,56 @@ export function PrintableWorkoutDocument({ workout, sheetRef, footer }: Printabl
       <header className="print-avoid-break border-b border-slate-300 pb-5 print:pb-3">
         <div className="flex items-start justify-between gap-6">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3">
+            <div className="flex items-start gap-4">
               {branding?.logoUrl ? (
                 <Image
                   src={branding.logoUrl}
                   alt={`${businessName} logo`}
-                  width={40}
-                  height={40}
+                  width={44}
+                  height={44}
                   unoptimized
-                  className="h-10 w-10 shrink-0 rounded-md object-contain print:h-8 print:w-8"
+                  className="h-11 w-11 shrink-0 rounded-lg object-contain shadow-sm ring-1 ring-slate-200 print:h-9 print:w-9"
                 />
               ) : (
                 <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-sm font-bold text-white print:h-8 print:w-8"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-base font-bold text-white shadow-sm ring-1 ring-black/5 print:h-9 print:w-9 print:text-sm"
                   style={{ backgroundColor: brandColor }}
                 >
                   {brandInitial}
                 </div>
               )}
-              <div className="min-w-0">
-                <h1 className="text-3xl font-bold leading-tight text-slate-950 print:text-[20pt]">
+              <div
+                className="min-w-0 flex-1 border-l-[3px] pl-3 print:pl-2"
+                style={{ borderColor: brandColor }}
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500 print-small">
+                  Träningspass · {workout.kindLabel}
+                </p>
+                <h1 className="mt-1 text-3xl font-bold leading-tight text-slate-950 print:text-[20pt]">
                   {workout.title}
                 </h1>
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-2 text-sm text-slate-700 sm:grid-cols-4 print:mt-3 print:grid-cols-4">
-              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 print:px-2 print:py-1">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 print-small">Typ</p>
-                <p className="font-semibold text-slate-950">{workout.kindLabel}</p>
-              </div>
-              {workout.durationLabel && (
-                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 print:px-2 print:py-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 print-small">Tid</p>
-                  <p className="font-semibold text-slate-950">{workout.durationLabel}</p>
-                </div>
-              )}
-              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 print:px-2 print:py-1">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 print-small">Innehåll</p>
-                <p className="font-semibold text-slate-950">{exerciseCount} moment</p>
-              </div>
-              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 print:px-2 print:py-1">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 print-small">Sektioner</p>
-                <p className="font-semibold text-slate-950">{sectionCount}</p>
-              </div>
+            <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 print:mt-3 print:grid-cols-4">
+              <StatCard icon={Dumbbell} label="Typ" value={workout.kindLabel} brandColor={brandColor} />
+              <StatCard
+                icon={Clock}
+                label="Tid"
+                value={workout.durationLabel || '—'}
+                brandColor={brandColor}
+              />
+              <StatCard
+                icon={ListChecks}
+                label="Moment"
+                value={String(exerciseCount)}
+                brandColor={brandColor}
+              />
+              <StatCard
+                icon={Layers}
+                label="Sektioner"
+                value={String(sectionCount)}
+                brandColor={brandColor}
+              />
             </div>
           </div>
           <div className="shrink-0 border-l border-slate-200 pl-5 text-right text-xs text-slate-500 print:pl-3">
@@ -165,53 +221,98 @@ export function PrintableWorkoutDocument({ workout, sheetRef, footer }: Printabl
         {workout.sections.length === 0 ? (
           <p className="text-sm text-slate-500">Det finns inget detaljerat passinnehåll att skriva ut ännu.</p>
         ) : (
-          workout.sections.map((section) => (
-            <section key={section.title} className="print-section print-avoid-break">
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-slate-950 px-3 py-2 text-white print:px-2 print:py-1.5">
-                <h2 className="text-sm font-bold uppercase tracking-wide">{section.title}</h2>
-                {section.subtitle && <p className="text-xs text-slate-200 print-small">{section.subtitle}</p>}
-              </div>
-              {section.notes && (
-                <p className="whitespace-pre-wrap border-x border-b border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 print:px-2 print:py-1 print-small">
-                  {section.notes}
-                </p>
-              )}
-              <div className="divide-y divide-slate-200 border-x border-b border-slate-200">
-                <div className="hidden grid-cols-[32px_minmax(0,1.2fr)_minmax(150px,0.95fr)_minmax(0,1fr)] gap-3 bg-slate-50 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:grid print:grid print:px-2 print:py-1 print-small">
-                  <span>#</span>
-                  <span>Moment</span>
-                  <span>Dosering</span>
-                  <span>Instruktion</span>
-                </div>
-                {section.items.map((item, index) => (
-                  <div
-                    key={`${item.title}-${index}`}
-                    className="print-row print-avoid-break grid gap-2 px-3 py-3 text-sm sm:grid-cols-[32px_minmax(0,1.2fr)_minmax(150px,0.95fr)_minmax(0,1fr)] sm:gap-3 print:px-2"
-                  >
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white print:h-5 print:w-5 print:text-[7pt]">
-                      {index + 1}
-                    </div>
-                    <h3 className="print-row-title min-w-0 font-semibold leading-snug text-slate-950">
-                      {item.title}
-                    </h3>
-                    <p className="min-w-0 text-sm leading-5 text-slate-700 print-small">
-                      {item.details.length > 0 ? item.details.join(' · ') : '-'}
-                    </p>
-                    <p className="min-w-0 whitespace-pre-wrap text-sm leading-5 text-slate-600 print-small">
-                      {item.notes || ' '}
-                    </p>
+          workout.sections.map((section) => {
+            const SectionIcon = getSectionIcon(section.title)
+            return (
+              <section key={section.title} className="print-section print-avoid-break">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-md bg-slate-950 px-3 py-2 text-white print:px-2 print:py-1.5">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/10 ring-1 ring-white/15 print:h-5 print:w-5">
+                      <SectionIcon className="h-3.5 w-3.5 print:h-3 print:w-3" strokeWidth={2.25} />
+                    </span>
+                    <h2 className="text-sm font-bold uppercase tracking-[0.18em]">{section.title}</h2>
+                    {section.subtitle && (
+                      <p className="truncate text-xs text-slate-300 print-small">· {section.subtitle}</p>
+                    )}
                   </div>
-                ))}
-              </div>
-            </section>
-          ))
+                  <span className="shrink-0 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white print-small">
+                    {section.items.length} moment
+                  </span>
+                </div>
+                {section.notes && (
+                  <p className="whitespace-pre-wrap border-x border-b border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 print:px-2 print:py-1 print-small">
+                    {section.notes}
+                  </p>
+                )}
+                <div className="divide-y divide-slate-200 rounded-b-md border-x border-b border-slate-200">
+                  <div className="hidden grid-cols-[32px_minmax(0,1.2fr)_minmax(150px,0.95fr)_minmax(0,1fr)] gap-3 bg-slate-50 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:grid print:grid print:px-2 print:py-1 print-small">
+                    <span>#</span>
+                    <span>Moment</span>
+                    <span>Dosering</span>
+                    <span>Instruktion</span>
+                  </div>
+                  {section.items.map((item, index) => (
+                    <div
+                      key={`${item.title}-${index}`}
+                      className="print-row print-avoid-break grid gap-2 px-3 py-3 text-sm sm:grid-cols-[32px_minmax(0,1.2fr)_minmax(150px,0.95fr)_minmax(0,1fr)] sm:gap-3 print:px-2"
+                    >
+                      <div
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm print:h-5 print:w-5 print:text-[7pt] print:shadow-none"
+                        style={{ backgroundColor: brandColor }}
+                      >
+                        {index + 1}
+                      </div>
+                      <h3 className="print-row-title min-w-0 font-semibold leading-snug text-slate-950">
+                        {item.title}
+                      </h3>
+                      <div className="flex min-w-0 flex-wrap items-start gap-1">
+                        {item.details.length > 0 ? (
+                          item.details.map((detail, detailIndex) => (
+                            <span
+                              key={detailIndex}
+                              className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs font-medium text-slate-700 print-small"
+                            >
+                              {detail}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-sm text-slate-400">—</span>
+                        )}
+                      </div>
+                      <p className="min-w-0 whitespace-pre-wrap text-sm leading-5 text-slate-600 print-small">
+                        {item.notes || ' '}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )
+          })
         )}
       </div>
 
       {footer ?? (
         <footer className="print-avoid-break mt-6 border-t border-slate-300 pt-4 text-sm print:mt-3 print:pt-2">
-          <p className="font-semibold text-slate-900 print-small">Coachanteckningar</p>
-          <div className="mt-2 h-20 rounded-md border border-dashed border-slate-300 print:h-14" />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: brandColor }}
+              />
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-900 print-small">
+                Coachanteckningar
+              </p>
+            </div>
+            <p className="text-[10px] uppercase tracking-wide text-slate-400 print-small">
+              Plats för noteringar
+            </p>
+          </div>
+          <div className="mt-3 print:mt-2">
+            <div className="h-7 border-b border-slate-300 print:h-5" />
+            <div className="h-7 border-b border-slate-300 print:h-5" />
+            <div className="h-7 border-b border-slate-300 print:h-5" />
+            <div className="h-7 print:h-5" />
+          </div>
         </footer>
       )}
     </main>
