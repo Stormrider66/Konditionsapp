@@ -73,6 +73,7 @@ import { AthleteIntegrityHealthPanel } from '@/components/admin/data-health/Athl
 import { OperatorAgentsPanel } from '@/components/admin/operator-agents/OperatorAgentsPanel';
 import { WeeklyReportsPanel } from '@/components/admin/operator-agents/WeeklyReportsPanel';
 import { SupportTicketsPanel } from '@/components/admin/support/SupportTicketsPanel';
+import { UnitEconomicsPanel } from '@/components/admin/economics/UnitEconomicsPanel';
 import {
   LineChart,
   Line,
@@ -485,6 +486,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
               <CreditCard className="h-3 w-3" />
               Pricing
             </TabsTrigger>
+            <TabsTrigger value="unit-economics" className="flex items-center gap-1 whitespace-nowrap">
+              <TrendingUp className="h-3 w-3" />
+              Unit Economics
+            </TabsTrigger>
             <TabsTrigger value="contracts" className="flex items-center gap-1 whitespace-nowrap">
               <FileText className="h-3 w-3" />
               Contracts
@@ -723,6 +728,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
               </div>
             </>
           )}
+        </TabsContent>
+
+        <TabsContent value="unit-economics">
+          <UnitEconomicsPanel range={range} />
         </TabsContent>
 
         {/* Users Tab */}
