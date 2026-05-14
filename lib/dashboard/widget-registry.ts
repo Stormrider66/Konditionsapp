@@ -426,6 +426,24 @@ const COACH_WIDGETS: WidgetDefinition[] = [
 
   // --- Team mode ---
   {
+    key: 'team-quick-access',
+    name: 'Lagsnabbval',
+    description: 'Snabb åtkomst till lag med beredskap, pass och flaggor',
+    category: 'coach-team',
+    audience: ['coach-team'],
+    defaultVisible: true,
+    defaultOrder: 20,
+  },
+  {
+    key: 'team-pulse-panel',
+    name: 'Lagpuls',
+    description: 'Samlad beredskap, skadeflaggor och uppföljningar',
+    category: 'coach-team',
+    audience: ['coach-team'],
+    defaultVisible: true,
+    defaultOrder: 70,
+  },
+  {
     key: 'today-timeline',
     name: 'Dagens tidslinje',
     description: 'Tidslinje över lagets dag',
@@ -442,6 +460,15 @@ const COACH_WIDGETS: WidgetDefinition[] = [
     audience: ['coach-team'],
     defaultVisible: true,
     defaultOrder: 100,
+  },
+  {
+    key: 'team-tests-activity',
+    name: 'Tester och lagaktivitet',
+    description: 'Kommande lagtester och senaste tilldelade lagpass',
+    category: 'coach-team',
+    audience: ['coach-team'],
+    defaultVisible: true,
+    defaultOrder: 105,
   },
 
   // --- Gym mode ---

@@ -30,42 +30,59 @@ interface CoachQuickActionsProps {
 
 export function CoachQuickActions({ mode, basePath, pendingFeedbackCount }: CoachQuickActionsProps) {
   if (mode === 'TEAM') {
+    const actions = [
+      {
+        href: `${basePath}/coach/interval-sessions`,
+        label: 'Skapa pass',
+        icon: Timer,
+        className: 'bg-teal-50 text-teal-700 border-teal-200/70 hover:bg-teal-100 dark:bg-teal-950/25 dark:text-teal-300 dark:border-teal-800/40 dark:hover:bg-teal-950/40',
+      },
+      {
+        href: `${basePath}/coach/test`,
+        label: 'Boka test',
+        icon: ClipboardList,
+        className: 'bg-cyan-50 text-cyan-700 border-cyan-200/70 hover:bg-cyan-100 dark:bg-cyan-950/25 dark:text-cyan-300 dark:border-cyan-800/40 dark:hover:bg-cyan-950/40',
+      },
+      {
+        href: `${basePath}/coach/messages`,
+        label: 'Meddelande',
+        icon: MessageSquare,
+        className: 'bg-blue-50 text-blue-700 border-blue-200/70 hover:bg-blue-100 dark:bg-blue-950/25 dark:text-blue-300 dark:border-blue-800/40 dark:hover:bg-blue-950/40',
+      },
+      {
+        href: `${basePath}/coach/programs/new`,
+        label: 'Program',
+        icon: Target,
+        className: 'bg-green-50 text-green-700 border-green-200/70 hover:bg-green-100 dark:bg-green-950/25 dark:text-green-300 dark:border-green-800/40 dark:hover:bg-green-950/40',
+      },
+      {
+        href: `${basePath}/coach/clients/new`,
+        label: 'Ny atlet',
+        icon: UserPlus,
+        className: 'bg-emerald-50 text-emerald-700 border-emerald-200/70 hover:bg-emerald-100 dark:bg-emerald-950/25 dark:text-emerald-300 dark:border-emerald-800/40 dark:hover:bg-emerald-950/40',
+      },
+      {
+        href: `${basePath}/coach/teams`,
+        label: 'Trupp',
+        icon: Users,
+        className: 'bg-slate-50 text-slate-700 border-slate-200/70 hover:bg-slate-100 dark:bg-white/5 dark:text-slate-300 dark:border-white/10 dark:hover:bg-white/10',
+      },
+    ]
+
     return (
       <GlassCard>
         <GlassCardHeader className="pb-3">
-          <GlassCardTitle className="text-base">Snabblänkar</GlassCardTitle>
+          <GlassCardTitle className="text-base">Snabba åtgärder</GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent className="grid grid-cols-2 gap-2">
-          <Link href={`${basePath}/coach/clients/new`} className="block">
-            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200/60 dark:border-emerald-800/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition text-center">
-              <UserPlus className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-xs text-emerald-700 dark:text-emerald-300">Ny atlet</span>
-            </div>
-          </Link>
-          <Link href={`${basePath}/coach/interval-sessions`} className="block">
-            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
-              <Timer className="h-5 w-5 text-teal-500" />
-              <span className="text-xs dark:text-slate-300">Lagsession</span>
-            </div>
-          </Link>
-          <Link href={`${basePath}/coach/test`} className="block">
-            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
-              <ClipboardList className="h-5 w-5 text-cyan-500" />
-              <span className="text-xs dark:text-slate-300">Lagtest</span>
-            </div>
-          </Link>
-          <Link href={`${basePath}/coach/teams`} className="block">
-            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
-              <Users className="h-5 w-5 text-blue-500" />
-              <span className="text-xs dark:text-slate-300">Trupp</span>
-            </div>
-          </Link>
-          <Link href={`${basePath}/coach/programs/new`} className="block">
-            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
-              <Target className="h-5 w-5 text-green-500" />
-              <span className="text-xs dark:text-slate-300">Program</span>
-            </div>
-          </Link>
+          {actions.map(action => (
+            <Link key={action.href} href={action.href} className="block">
+              <div className={`flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition ${action.className}`}>
+                <action.icon className="h-5 w-5" />
+                <span className="text-xs font-medium">{action.label}</span>
+              </div>
+            </Link>
+          ))}
           {pendingFeedbackCount > 0 && (
             <Link href={`${basePath}/coach/clients`} className="block col-span-2">
               <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition text-center">

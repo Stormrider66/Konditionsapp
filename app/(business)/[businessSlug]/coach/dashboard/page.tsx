@@ -55,6 +55,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     activeProgramsCount,
     recentLogs,
     activeInjuries,
+    activeInjuriesByClient,
     recentTests,
     upcomingEvents,
     athletesWithReadiness,
@@ -128,6 +129,17 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
         status: { in: ['ACTIVE', 'MONITORING'] },
         resolved: false,
       },
+    }),
+
+    // Active injuries grouped by athlete for team pulse summaries
+    prisma.injuryAssessment.groupBy({
+      by: ['clientId'],
+      where: {
+        client: clientWhere,
+        status: { in: ['ACTIVE', 'MONITORING'] },
+        resolved: false,
+      },
+      _count: { id: true },
     }),
 
     // Recent tests (last 30 days)
@@ -265,6 +277,8 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
   const highReadiness = readinessScores.filter(s => s >= 70).length
   const mediumReadiness = readinessScores.filter(s => s >= 40 && s < 70).length
   const lowReadiness = readinessScores.filter(s => s < 40).length
+  const readinessByAthlete = uniqueAthleteReadiness
+  const injuriesByAthlete = new Map(activeInjuriesByClient.map(i => [i.clientId, i._count.id]))
 
   // Training load per athlete
   const loadByAthlete = new Map<string, { name: string; load: number }>()
@@ -308,6 +322,163 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
       activeAssignments,
       prsThisWeek,
       plateauCount: plateauData.length,
+    }
+  }
+
+  let teamDashboardData:
+    | {
+        teams: Array<{
+          id: string
+          name: string
+          sportType: string | null
+          athleteCount: number
+          sessionsToday: number
+          readiness: { high: number; medium: number; low: number; total: number }
+          injuryCount: number
+          attentionCount: number
+        }>
+        upcomingTests: Array<{
+          id: string
+          teamId: string
+          teamName: string
+          title: string
+          startDate: string
+          type: string
+        }>
+        recentActivity: Array<{
+          id: string
+          teamName: string
+          title: string
+          assignedDate: string
+          completed: number
+          total: number
+        }>
+      }
+    | undefined
+
+  if (mode === 'TEAM') {
+    const teamCards = await prisma.team.findMany({
+      where: teamWhere,
+      select: {
+        id: true,
+        name: true,
+        sportType: true,
+        members: { select: { id: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 12,
+    })
+
+    const teamIds = teamCards.map(team => team.id)
+    const todayStart = startOfDay(now)
+    const tomorrowStart = startOfDay(addDays(now, 1))
+    const upcomingTestEnd = endOfDay(addDays(now, 14))
+
+    const [todayTeamEvents, todayBroadcasts, upcomingTestEvents, recentBroadcasts] = teamIds.length > 0
+      ? await Promise.all([
+          prisma.teamEvent.groupBy({
+            by: ['teamId'],
+            where: {
+              teamId: { in: teamIds },
+              startDate: { gte: todayStart, lt: tomorrowStart },
+            },
+            _count: { id: true },
+          }),
+          prisma.teamWorkoutBroadcast.groupBy({
+            by: ['teamId'],
+            where: {
+              teamId: { in: teamIds },
+              assignedDate: { gte: todayStart, lt: tomorrowStart },
+            },
+            _count: { id: true },
+          }),
+          prisma.teamEvent.findMany({
+            where: {
+              teamId: { in: teamIds },
+              type: 'TEST',
+              startDate: { gte: todayStart, lte: upcomingTestEnd },
+            },
+            select: {
+              id: true,
+              teamId: true,
+              title: true,
+              type: true,
+              startDate: true,
+              team: { select: { name: true } },
+            },
+            orderBy: { startDate: 'asc' },
+            take: 5,
+          }),
+          prisma.teamWorkoutBroadcast.findMany({
+            where: { teamId: { in: teamIds } },
+            select: {
+              id: true,
+              assignedDate: true,
+              totalAssigned: true,
+              totalCompleted: true,
+              team: { select: { name: true } },
+              strengthSession: { select: { name: true } },
+              cardioSession: { select: { name: true } },
+              hybridWorkout: { select: { name: true } },
+              agilityWorkout: { select: { name: true } },
+            },
+            orderBy: { assignedDate: 'desc' },
+            take: 5,
+          }),
+        ])
+      : [[], [], [], []]
+
+    const eventCountByTeam = new Map(todayTeamEvents.map(row => [row.teamId, row._count.id]))
+    const broadcastCountByTeam = new Map(todayBroadcasts.map(row => [row.teamId, row._count.id]))
+
+    teamDashboardData = {
+      teams: teamCards.map(team => {
+        const readiness = { high: 0, medium: 0, low: 0, total: 0 }
+        let injuryCount = 0
+
+        for (const member of team.members) {
+          const score = readinessByAthlete.get(member.id)
+          if (score !== undefined) {
+            readiness.total += 1
+            if (score >= 70) readiness.high += 1
+            else if (score >= 40) readiness.medium += 1
+            else readiness.low += 1
+          }
+          injuryCount += injuriesByAthlete.get(member.id) ?? 0
+        }
+
+        return {
+          id: team.id,
+          name: team.name,
+          sportType: team.sportType,
+          athleteCount: team.members.length,
+          sessionsToday: (eventCountByTeam.get(team.id) ?? 0) + (broadcastCountByTeam.get(team.id) ?? 0),
+          readiness,
+          injuryCount,
+          attentionCount: readiness.low + injuryCount,
+        }
+      }),
+      upcomingTests: upcomingTestEvents.map(event => ({
+        id: event.id,
+        teamId: event.teamId,
+        teamName: event.team.name,
+        title: event.title,
+        startDate: event.startDate.toISOString(),
+        type: event.type,
+      })),
+      recentActivity: recentBroadcasts.map(broadcast => ({
+        id: broadcast.id,
+        teamName: broadcast.team.name,
+        title:
+          broadcast.strengthSession?.name ??
+          broadcast.cardioSession?.name ??
+          broadcast.hybridWorkout?.name ??
+          broadcast.agilityWorkout?.name ??
+          'Tilldelat pass',
+        assignedDate: broadcast.assignedDate.toISOString(),
+        completed: broadcast.totalCompleted,
+        total: broadcast.totalAssigned,
+      })),
     }
   }
 
@@ -362,6 +533,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
               low: lowReadiness,
               total: readinessScores.length,
             }}
+            teamDashboardData={teamDashboardData}
             visible={visible}
             orderMap={orderMap}
           />

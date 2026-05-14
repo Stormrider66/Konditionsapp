@@ -4,6 +4,38 @@ import { CoachAIAssistantPanel } from '@/components/coach/CoachAIAssistantPanel'
 import { CoachQuickActions } from '@/components/coach/dashboard/CoachQuickActions'
 import { TeamRosterGrid } from '@/components/coach/dashboard/TeamRosterGrid'
 import { TodayTimeline } from '@/components/coach/dashboard/TodayTimeline'
+import { TeamQuickAccess } from '@/components/coach/dashboard/TeamQuickAccess'
+import { TeamPulsePanel } from '@/components/coach/dashboard/TeamPulsePanel'
+import { TeamTestsAndActivity } from '@/components/coach/dashboard/TeamTestsAndActivity'
+
+export interface TeamDashboardData {
+  teams: Array<{
+    id: string
+    name: string
+    sportType: string | null
+    athleteCount: number
+    sessionsToday: number
+    readiness: { high: number; medium: number; low: number; total: number }
+    injuryCount: number
+    attentionCount: number
+  }>
+  upcomingTests: Array<{
+    id: string
+    teamId: string
+    teamName: string
+    title: string
+    startDate: string
+    type: string
+  }>
+  recentActivity: Array<{
+    id: string
+    teamName: string
+    title: string
+    assignedDate: string
+    completed: number
+    total: number
+  }>
+}
 
 interface TeamDashboardLayoutProps {
   basePath: string
@@ -14,6 +46,7 @@ interface TeamDashboardLayoutProps {
     low: number
     total: number
   }
+  teamDashboardData?: TeamDashboardData
   visible?: Set<string>
   orderMap?: Map<string, number>
 }
@@ -22,6 +55,7 @@ export function TeamDashboardLayout({
   basePath,
   pendingFeedbackCount,
   readinessDistribution,
+  teamDashboardData,
   visible,
   orderMap,
 }: TeamDashboardLayoutProps) {
@@ -32,8 +66,22 @@ export function TeamDashboardLayout({
 
   const leftWidgets = sortByOrder([
     {
+      key: 'team-quick-access',
+      node: <TeamQuickAccess basePath={basePath} teams={teamDashboardData?.teams ?? []} />,
+    },
+    {
       key: 'today-timeline',
       node: <TodayTimeline basePath={basePath} readinessDistribution={readinessDistribution} />,
+    },
+    {
+      key: 'team-tests-activity',
+      node: (
+        <TeamTestsAndActivity
+          basePath={basePath}
+          upcomingTests={teamDashboardData?.upcomingTests ?? []}
+          recentActivity={teamDashboardData?.recentActivity ?? []}
+        />
+      ),
     },
   ])
 
@@ -44,6 +92,17 @@ export function TeamDashboardLayout({
         <CoachQuickActions
           mode="TEAM"
           basePath={basePath}
+          pendingFeedbackCount={pendingFeedbackCount}
+        />
+      ),
+    },
+    {
+      key: 'team-pulse-panel',
+      node: (
+        <TeamPulsePanel
+          basePath={basePath}
+          teams={teamDashboardData?.teams ?? []}
+          readinessDistribution={readinessDistribution}
           pendingFeedbackCount={pendingFeedbackCount}
         />
       ),
