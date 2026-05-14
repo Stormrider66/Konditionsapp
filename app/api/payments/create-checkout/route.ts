@@ -28,20 +28,22 @@ export async function POST(request: NextRequest) {
     if (rateLimited) return rateLimited
 
     const body = await request.json();
-    const { tier, cycle, businessId } = normalizeAthleteCheckoutRequest(body);
+    const { tier, cycle, businessId, returnPath } = normalizeAthleteCheckoutRequest(body);
 
     // Build success and cancel URLs
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
-    const successUrl = `${baseUrl}/athlete/subscription?success=true`;
-    const cancelUrl = `${baseUrl}/athlete/subscription?cancelled=true`;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin || 'https://trainomics.app';
+    const successUrl = new URL(returnPath, baseUrl);
+    successUrl.searchParams.set('success', 'true');
+    const cancelUrl = new URL(returnPath, baseUrl);
+    cancelUrl.searchParams.set('cancelled', 'true');
 
     // Create checkout session
     const checkoutUrl = await createCheckoutSession(
       clientId,
       tier as AthleteSubscriptionTier,
       cycle as BillingCycle,
-      successUrl,
-      cancelUrl,
+      successUrl.toString(),
+      cancelUrl.toString(),
       businessId
     );
 

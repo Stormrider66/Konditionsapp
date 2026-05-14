@@ -53,6 +53,17 @@ export default async function BusinessSubscriptionPage({ params }: BusinessSubsc
   }
 
   const subscription = athleteAccount.client.athleteSubscription
+  const business = await prisma.business.findUnique({
+    where: { id: membership.businessId },
+    select: {
+      id: true,
+      name: true,
+      elitePriceMonthly: true,
+      elitePriceYearly: true,
+      eliteDescription: true,
+      eliteAiAllowanceSek: true,
+    },
+  })
 
   // Serialize subscription for client component (convert Date to string)
   const serializedSubscription = subscription
@@ -77,6 +88,16 @@ export default async function BusinessSubscriptionPage({ params }: BusinessSubsc
       clientId={athleteAccount.clientId}
       subscription={serializedSubscription}
       basePath={basePath}
+      eliteOffer={business
+        ? {
+            businessId: business.id,
+            businessName: business.name,
+            monthlySek: business.elitePriceMonthly ? business.elitePriceMonthly / 100 : null,
+            yearlySek: business.elitePriceYearly ? business.elitePriceYearly / 100 : null,
+            description: business.eliteDescription,
+            aiAllowanceSek: business.eliteAiAllowanceSek,
+          }
+        : null}
     />
   )
 }

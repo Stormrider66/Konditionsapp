@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { TrialBadge } from '@/components/ui/TrialBadge'
-import { AIChatUsageMeter } from '@/components/athlete/AIChatUsageMeter'
 import {
   ChevronLeft,
   CreditCard,
@@ -22,7 +21,6 @@ import {
   Crown,
   Zap,
   Star,
-  MessageSquare,
   Video,
   Watch,
   AlertTriangle,
@@ -57,6 +55,16 @@ interface SubscriptionClientProps {
   clientId: string
   subscription: Subscription | null
   basePath?: string
+  eliteOffer?: EliteOffer | null
+}
+
+interface EliteOffer {
+  businessId: string
+  businessName: string
+  monthlySek: number | null
+  yearlySek: number | null
+  description: string | null
+  aiAllowanceSek: number | null
 }
 
 interface SubscriptionStatus {
@@ -73,7 +81,7 @@ interface SubscriptionStatus {
   }
 }
 
-const TIERS = [
+const SELF_SERVE_TIERS = [
   {
     id: 'FREE',
     name: ATHLETE_PLAN_COPY.FREE.nameSv,
@@ -110,7 +118,12 @@ const TIERS = [
   },
 ]
 
-export function SubscriptionClient({ clientId, subscription, basePath = '' }: SubscriptionClientProps) {
+export function SubscriptionClient({
+  clientId,
+  subscription,
+  basePath = '',
+  eliteOffer = null,
+}: SubscriptionClientProps) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState<string | null>(null)
   const [billingCycle, setBillingCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY')
@@ -162,6 +175,8 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
           clientId,
           tier: tierId,
           billingCycle,
+          businessId: tierId === 'ELITE' ? eliteOffer?.businessId : undefined,
+          returnPath: `${basePath}/athlete/subscription`,
         }),
       })
 
@@ -254,7 +269,7 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
     }
   }
 
-  const getPrice = (tier: typeof TIERS[0]) => {
+  const getPrice = (tier: typeof SELF_SERVE_TIERS[0]) => {
     if (billingCycle === 'YEARLY' && tier.yearlyPrice) {
       return tier.yearlyPrice
     }
@@ -263,6 +278,8 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
 
   const isTrialExpired = status?.status === 'EXPIRED' && subscription?.status === 'TRIAL'
   const currentPlanCopy = ATHLETE_PLAN_COPY[currentTier as AthletePlanTier] ?? ATHLETE_PLAN_COPY.FREE
+  const elitePrice = billingCycle === 'YEARLY' ? eliteOffer?.yearlySek : eliteOffer?.monthlySek
+  const eliteCheckoutEnabled = Boolean(eliteOffer?.businessId && elitePrice)
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -344,34 +361,19 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
           {/* Usage & Features */}
           {status && (currentTier !== 'FREE' || status.trialActive) && (
             <CardContent className="border-t pt-6">
-              <div className="grid sm:grid-cols-2 gap-6">
-                {/* AI Chat Usage */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <MessageSquare className="h-4 w-4" />
-                    AI-chatt
-                  </div>
-                  <AIChatUsageMeter
-                    used={status.features.aiChat.used}
-                    limit={status.features.aiChat.limit === -1 ? undefined : status.features.aiChat.limit}
+              <div className="space-y-3">
+                <div className="text-sm font-medium">Planfunktioner</div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <FeatureStatus
+                    icon={<Video className="h-4 w-4" />}
+                    label="Videoanalys"
+                    enabled={status.features.videoAnalysis.enabled}
                   />
-                </div>
-
-                {/* Feature Status */}
-                <div className="space-y-3">
-                  <div className="text-sm font-medium">Funktioner</div>
-                  <div className="space-y-2">
-                    <FeatureStatus
-                      icon={<Video className="h-4 w-4" />}
-                      label="Videoanalys"
-                      enabled={status.features.videoAnalysis.enabled}
-                    />
-                    <FeatureStatus
-                      icon={<Watch className="h-4 w-4" />}
-                      label="Strava/Garmin"
-                      enabled={status.features.strava.enabled || status.features.garmin.enabled}
-                    />
-                  </div>
+                  <FeatureStatus
+                    icon={<Watch className="h-4 w-4" />}
+                    label="Strava/Garmin"
+                    enabled={status.features.strava.enabled || status.features.garmin.enabled}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -467,8 +469,8 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
         </div>
 
         {/* Tier Cards */}
-        <div className="grid md:grid-cols-3 gap-4">
-          {TIERS.map((tier) => {
+        <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+          {SELF_SERVE_TIERS.map((tier) => {
             const isActive = currentTier === tier.id
             const Icon = tier.icon
             const price = getPrice(tier)
@@ -562,6 +564,77 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
               </Card>
             )
           })}
+
+          <Card className={`relative ${currentTier === 'ELITE' ? 'border-amber-500 ring-2 ring-amber-500' : ''}`}>
+            <CardHeader className="text-center pb-2">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 bg-amber-100">
+                <Crown className="h-6 w-6 text-amber-700" />
+              </div>
+              <CardTitle>{ATHLETE_PLAN_COPY.ELITE.nameSv}</CardTitle>
+              <CardDescription>
+                {eliteOffer?.businessName
+                  ? `Coach/PT via ${eliteOffer.businessName}`
+                  : ATHLETE_PLAN_COPY.ELITE.descriptionSv}
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="text-center">
+              <div className="mb-4">
+                {elitePrice ? (
+                  <>
+                    <span className="text-3xl font-bold">{elitePrice}</span>
+                    <span className="text-muted-foreground">
+                      {' '}
+                      SEK/{billingCycle === 'MONTHLY' ? 'mån' : 'år'}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-3xl font-bold">Custom</span>
+                )}
+              </div>
+
+              <ul className="text-sm text-left space-y-2 mb-6">
+                <li className="flex items-start gap-2 rounded-lg bg-amber-50 p-2 text-amber-900">
+                  <Coins className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <span>
+                    {eliteOffer?.aiAllowanceSek
+                      ? `${eliteOffer.aiAllowanceSek} SEK AI-krediter/mån ingår`
+                      : 'Custom AI-krediter sätts med coach/PT'}
+                  </span>
+                </li>
+                {(eliteOffer?.description
+                  ? [eliteOffer.description, ...ATHLETE_PLAN_COPY.ELITE.featuresSv]
+                  : ATHLETE_PLAN_COPY.ELITE.featuresSv
+                ).map((feature, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {currentTier === 'ELITE' ? (
+                <Button variant="outline" className="w-full" disabled>
+                  Nuvarande plan
+                </Button>
+              ) : eliteCheckoutEnabled ? (
+                <Button
+                  className="w-full bg-amber-600 hover:bg-amber-700"
+                  onClick={() => handleUpgrade('ELITE')}
+                  disabled={isLoading === 'ELITE'}
+                >
+                  {isLoading === 'ELITE' ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : null}
+                  Välj Elite
+                </Button>
+              ) : (
+                <Button variant="outline" className="w-full" disabled>
+                  Kontakta coach/PT
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

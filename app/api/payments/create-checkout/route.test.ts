@@ -93,6 +93,47 @@ describe('athlete create checkout route', () => {
     )
   })
 
+  it('keeps checkout return URLs inside the current business subscription page', async () => {
+    const request = new NextRequest('http://localhost/api/payments/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tier: 'PRO',
+        billingCycle: 'MONTHLY',
+        returnPath: '/demo-business/athlete/subscription',
+      }),
+    })
+
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    expect(mockCreateCheckoutSession).toHaveBeenCalledWith(
+      'client-1',
+      'PRO',
+      'MONTHLY',
+      'https://app.example.test/demo-business/athlete/subscription?success=true',
+      'https://app.example.test/demo-business/athlete/subscription?cancelled=true',
+      undefined,
+    )
+  })
+
+  it('rejects external checkout return paths', async () => {
+    const request = new NextRequest('http://localhost/api/payments/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tier: 'PRO',
+        billingCycle: 'MONTHLY',
+        returnPath: '//evil.example/athlete/subscription',
+      }),
+    })
+
+    const response = await POST(request)
+
+    expect(response.status).toBe(400)
+    expect(mockCreateCheckoutSession).not.toHaveBeenCalled()
+  })
+
   it('rejects invalid checkout requests before calling Stripe', async () => {
     const request = new NextRequest('http://localhost/api/payments/create-checkout', {
       method: 'POST',

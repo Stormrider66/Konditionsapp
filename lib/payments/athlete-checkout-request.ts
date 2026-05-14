@@ -5,12 +5,17 @@ export const athleteCheckoutSchema = z.object({
   cycle: z.enum(['MONTHLY', 'YEARLY']).optional(),
   billingCycle: z.enum(['MONTHLY', 'YEARLY']).optional(),
   businessId: z.string().uuid().optional(),
+  returnPath: z.string()
+    .max(200)
+    .refine((value) => value.startsWith('/') && !value.startsWith('//'), 'returnPath must be a relative path')
+    .optional(),
 })
 
 export type NormalizedAthleteCheckoutRequest = {
   tier: 'STANDARD' | 'PRO' | 'ELITE'
   cycle: 'MONTHLY' | 'YEARLY'
   businessId?: string
+  returnPath: string
 }
 
 export function normalizeAthleteCheckoutRequest(input: unknown): NormalizedAthleteCheckoutRequest {
@@ -19,5 +24,6 @@ export function normalizeAthleteCheckoutRequest(input: unknown): NormalizedAthle
     tier: parsed.tier,
     cycle: parsed.cycle ?? parsed.billingCycle ?? 'MONTHLY',
     businessId: parsed.businessId,
+    returnPath: parsed.returnPath ?? '/athlete/subscription',
   }
 }
