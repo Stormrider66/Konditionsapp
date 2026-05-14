@@ -49,6 +49,7 @@ Use this before pushing the AI allowance/top-up work to production.
   - `TRAINOMICS_QA_BASE_URL`
   - `TRAINOMICS_QA_ATHLETE_EMAIL` / `TRAINOMICS_QA_ATHLETE_PASSWORD`
   - `TRAINOMICS_QA_ADMIN_EMAIL` / `TRAINOMICS_QA_ADMIN_PASSWORD`
+  - Optional business admin check: `TRAINOMICS_QA_BUSINESS_ADMIN_EMAIL` / `TRAINOMICS_QA_BUSINESS_ADMIN_PASSWORD` / `TRAINOMICS_QA_BUSINESS_SLUG`
 - Food scanner blocks cleanly when AI credits are exhausted.
 - Video analysis blocks cleanly when AI credits are exhausted.
 - Live voice coach blocks cleanly when AI credits are exhausted.
@@ -59,6 +60,11 @@ Use this before pushing the AI allowance/top-up work to production.
 - Blocked flows show upgrade/top-up language, not token/provider wording.
 - Platform admin can set a per-athlete AI allowance override.
 - Business admin can set Elite AI allowance.
+- QA evidence screenshots are written to `test-results/ai-billing-qa/`:
+  - Athlete subscription and top-up UI.
+  - Admin AI cost monitoring, including provider invoice reconciliation.
+  - Platform admin AI allowance override column.
+  - Business Elite AI allowance settings when business admin credentials are provided.
 
 ## Monitoring First Week
 
