@@ -335,6 +335,8 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
           sessionsToday: number
           readiness: { high: number; medium: number; low: number; total: number }
           injuryCount: number
+          unreadMessageCount: number
+          missedWorkoutCount: number
           attentionCount: number
         }>
         upcomingTests: Array<{
@@ -373,6 +375,79 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     const todayStart = startOfDay(now)
     const tomorrowStart = startOfDay(addDays(now, 1))
     const upcomingTestEnd = endOfDay(addDays(now, 14))
+
+    const memberIdsByTeam = new Map(teamCards.map(team => [team.id, team.members.map(member => member.id)]))
+    const allTeamMemberIds = teamCards.flatMap(team => team.members.map(member => member.id))
+
+    const [teamMemberAccounts, missedStrength, missedCardio, missedHybrid] = allTeamMemberIds.length > 0
+      ? await Promise.all([
+          prisma.client.findMany({
+            where: { id: { in: allTeamMemberIds } },
+            select: {
+              id: true,
+              teamId: true,
+              athleteAccount: { select: { userId: true } },
+            },
+          }),
+          prisma.strengthSessionAssignment.groupBy({
+            by: ['athleteId'],
+            where: {
+              athleteId: { in: allTeamMemberIds },
+              assignedDate: { lt: todayStart },
+              status: { in: ['PENDING', 'SCHEDULED', 'MODIFIED'] },
+            },
+            _count: { id: true },
+          }),
+          prisma.cardioSessionAssignment.groupBy({
+            by: ['athleteId'],
+            where: {
+              athleteId: { in: allTeamMemberIds },
+              assignedDate: { lt: todayStart },
+              status: { in: ['PENDING', 'SCHEDULED', 'MODIFIED'] },
+            },
+            _count: { id: true },
+          }),
+          prisma.hybridWorkoutAssignment.groupBy({
+            by: ['athleteId'],
+            where: {
+              athleteId: { in: allTeamMemberIds },
+              assignedDate: { lt: todayStart },
+              status: { in: ['PENDING', 'SCHEDULED', 'MODIFIED'] },
+            },
+            _count: { id: true },
+          }),
+        ])
+      : [[], [], [], []]
+
+    const athleteUserIdsByTeam = new Map<string, string[]>()
+    for (const account of teamMemberAccounts) {
+      if (!account.teamId || !account.athleteAccount?.userId) continue
+      const current = athleteUserIdsByTeam.get(account.teamId) ?? []
+      current.push(account.athleteAccount.userId)
+      athleteUserIdsByTeam.set(account.teamId, current)
+    }
+
+    const allAthleteUserIds = Array.from(
+      new Set(Array.from(athleteUserIdsByTeam.values()).flat())
+    )
+
+    const unreadMessages = allAthleteUserIds.length > 0
+      ? await prisma.message.groupBy({
+          by: ['senderId'],
+          where: {
+            senderId: { in: allAthleteUserIds },
+            receiverId: user.id,
+            isRead: false,
+          },
+          _count: { id: true },
+        })
+      : []
+
+    const unreadBySender = new Map(unreadMessages.map(row => [row.senderId, row._count.id]))
+    const missedByAthlete = new Map<string, number>()
+    for (const row of [...missedStrength, ...missedCardio, ...missedHybrid]) {
+      missedByAthlete.set(row.athleteId, (missedByAthlete.get(row.athleteId) ?? 0) + row._count.id)
+    }
 
     const [todayTeamEvents, todayBroadcasts, upcomingTestEvents, recentBroadcasts] = teamIds.length > 0
       ? await Promise.all([
@@ -447,6 +522,15 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
           injuryCount += injuriesByAthlete.get(member.id) ?? 0
         }
 
+        const unreadMessageCount = (athleteUserIdsByTeam.get(team.id) ?? []).reduce(
+          (sum, athleteUserId) => sum + (unreadBySender.get(athleteUserId) ?? 0),
+          0
+        )
+        const missedWorkoutCount = (memberIdsByTeam.get(team.id) ?? []).reduce(
+          (sum, athleteId) => sum + (missedByAthlete.get(athleteId) ?? 0),
+          0
+        )
+
         return {
           id: team.id,
           name: team.name,
@@ -455,7 +539,9 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
           sessionsToday: (eventCountByTeam.get(team.id) ?? 0) + (broadcastCountByTeam.get(team.id) ?? 0),
           readiness,
           injuryCount,
-          attentionCount: readiness.low + injuryCount,
+          unreadMessageCount,
+          missedWorkoutCount,
+          attentionCount: readiness.low + injuryCount + missedWorkoutCount,
         }
       }),
       upcomingTests: upcomingTestEvents.map(event => ({

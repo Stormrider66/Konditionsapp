@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { AlertTriangle, ArrowRight, HeartPulse, MessageSquare, ShieldAlert } from 'lucide-react'
+import { AlertTriangle, ArrowRight, HeartPulse, MessageSquare, ShieldAlert, UserX } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -34,6 +34,8 @@ export function TeamPulsePanel({
 }: TeamPulsePanelProps) {
   const injuredTeams = teams.filter(team => team.injuryCount > 0)
   const lowReadinessTeams = teams.filter(team => team.readiness.low > 0)
+  const missedWorkoutTeams = teams.filter(team => team.missedWorkoutCount > 0)
+  const unreadMessageCount = teams.reduce((sum, team) => sum + team.unreadMessageCount, 0)
   const topAttentionTeams = [...teams]
     .filter(team => team.attentionCount > 0)
     .sort((a, b) => b.attentionCount - a.attentionCount)
@@ -78,9 +80,23 @@ export function TeamPulsePanel({
             </span>
             <Badge variant={lowReadinessTeams.length > 0 ? 'default' : 'secondary'}>{lowReadinessTeams.length}</Badge>
           </div>
-          <Link href={`${basePath}/coach/clients`} className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2 transition hover:bg-muted dark:bg-white/5 dark:hover:bg-white/10">
+          <div className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2 dark:bg-white/5">
+            <span className="flex items-center gap-2 text-sm dark:text-slate-200">
+              <UserX className="h-4 w-4 text-orange-500" />
+              Lag med missade pass
+            </span>
+            <Badge variant={missedWorkoutTeams.length > 0 ? 'default' : 'secondary'}>{missedWorkoutTeams.length}</Badge>
+          </div>
+          <Link href={`${basePath}/coach/messages`} className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2 transition hover:bg-muted dark:bg-white/5 dark:hover:bg-white/10">
             <span className="flex items-center gap-2 text-sm dark:text-slate-200">
               <MessageSquare className="h-4 w-4 text-blue-500" />
+              Olästa lagmeddelanden
+            </span>
+            <Badge variant={unreadMessageCount > 0 ? 'default' : 'secondary'}>{unreadMessageCount}</Badge>
+          </Link>
+          <Link href={`${basePath}/coach/clients`} className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2 transition hover:bg-muted dark:bg-white/5 dark:hover:bg-white/10">
+            <span className="flex items-center gap-2 text-sm dark:text-slate-200">
+              <MessageSquare className="h-4 w-4 text-violet-500" />
               Pass utan feedback
             </span>
             <Badge variant={pendingFeedbackCount > 0 ? 'default' : 'secondary'}>{pendingFeedbackCount}</Badge>
@@ -94,7 +110,7 @@ export function TeamPulsePanel({
               <Link key={team.id} href={`${basePath}/coach/teams/${team.id}`} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition hover:bg-muted/40 dark:border-white/10 dark:hover:bg-white/5">
                 <span className="truncate font-medium dark:text-slate-200">{team.name}</span>
                 <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {team.attentionCount} flaggor
+                  {team.attentionCount} saker
                   <ArrowRight className="h-3 w-3" />
                 </span>
               </Link>

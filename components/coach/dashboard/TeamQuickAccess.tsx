@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, CalendarDays, HeartPulse, Users } from 'lucide-react'
+import { ArrowRight, CalendarDays, ClipboardList, HeartPulse, MessageSquare, Timer, Users } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,6 +13,10 @@ import {
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
 import type { TeamDashboardData } from '@/components/coach/dashboard/TeamDashboardLayout'
+import {
+  TeamCoachActionDialog,
+  type TeamCoachAction,
+} from '@/components/coach/dashboard/TeamCoachActionDialog'
 
 type TeamSummary = TeamDashboardData['teams'][number]
 
@@ -41,40 +46,50 @@ function readinessTone(team: TeamSummary) {
 }
 
 export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: TeamSummary[] }) {
+  const [activeAction, setActiveAction] = useState<TeamCoachAction | null>(null)
+  const [activeTeamId, setActiveTeamId] = useState<string | undefined>()
+
+  function openAction(action: TeamCoachAction, teamId: string) {
+    setActiveTeamId(teamId)
+    setActiveAction(action)
+  }
+
   return (
-    <GlassCard>
-      <GlassCardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <GlassCardTitle className="text-base flex items-center gap-2">
-            <Users className="h-4 w-4 text-blue-500" />
-            Mina lag
-          </GlassCardTitle>
-          <Link href={`${basePath}/coach/teams`}>
-            <Button variant="ghost" size="sm" className="h-8 text-xs">
-              Alla lag <ArrowRight className="h-3 w-3 ml-1" />
-            </Button>
-          </Link>
-        </div>
-      </GlassCardHeader>
-      <GlassCardContent>
-        {teams.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-6 text-center dark:border-white/10">
-            <p className="text-sm font-medium dark:text-slate-200">Inga lag ännu</p>
-            <p className="text-xs text-muted-foreground mt-1">Skapa ett lag för snabb åtkomst här.</p>
-            <Link href={`${basePath}/coach/teams`} className="inline-flex mt-4">
-              <Button size="sm" variant="outline">Hantera lag</Button>
+    <>
+      <GlassCard>
+        <GlassCardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <GlassCardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4 text-blue-500" />
+              Mina lag
+            </GlassCardTitle>
+            <Link href={`${basePath}/coach/teams`}>
+              <Button variant="ghost" size="sm" className="h-8 text-xs">
+                Alla lag <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
             </Link>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {teams.map(team => (
-              <Link key={team.id} href={`${basePath}/coach/teams/${team.id}`} className="block">
+        </GlassCardHeader>
+        <GlassCardContent>
+          {teams.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-6 text-center dark:border-white/10">
+              <p className="text-sm font-medium dark:text-slate-200">Inga lag ännu</p>
+              <p className="text-xs text-muted-foreground mt-1">Skapa ett lag för snabb åtkomst här.</p>
+              <Link href={`${basePath}/coach/teams`} className="inline-flex mt-4">
+                <Button size="sm" variant="outline">Hantera lag</Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              {teams.map(team => (
                 <div
+                  key={team.id}
                   className={cn(
                     'h-full rounded-lg border p-3 transition hover:-translate-y-0.5 hover:shadow-sm',
                     readinessTone(team),
                   )}
                 >
+                  <Link href={`${basePath}/coach/teams/${team.id}`} className="block">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold dark:text-slate-100">{team.name}</p>
@@ -103,6 +118,7 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
                       {team.readiness.low}/{team.readiness.total}
                     </span>
                   </div>
+                  </Link>
 
                   <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
                     {team.readiness.total > 0 ? (
@@ -115,12 +131,43 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
                       <span className="w-full bg-slate-300 dark:bg-slate-700" />
                     )}
                   </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                    <span className="rounded-md bg-white/70 px-2 py-1 text-muted-foreground dark:bg-white/5">
+                      {team.missedWorkoutCount} missade
+                    </span>
+                    <span className="rounded-md bg-white/70 px-2 py-1 text-muted-foreground dark:bg-white/5">
+                      {team.unreadMessageCount} olästa
+                    </span>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-3 gap-1.5">
+                    <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => openAction('workout', team.id)}>
+                      <Timer className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => openAction('test', team.id)}>
+                      <ClipboardList className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => openAction('message', team.id)}>
+                      <MessageSquare className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </GlassCardContent>
-    </GlassCard>
+              ))}
+            </div>
+          )}
+        </GlassCardContent>
+      </GlassCard>
+      <TeamCoachActionDialog
+        action={activeAction}
+        basePath={basePath}
+        teams={teams}
+        initialTeamId={activeTeamId}
+        open={activeAction !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setActiveAction(null)
+        }}
+      />
+    </>
   )
 }

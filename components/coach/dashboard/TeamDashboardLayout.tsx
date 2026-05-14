@@ -17,6 +17,8 @@ export interface TeamDashboardData {
     sessionsToday: number
     readiness: { high: number; medium: number; low: number; total: number }
     injuryCount: number
+    unreadMessageCount: number
+    missedWorkoutCount: number
     attentionCount: number
   }>
   upcomingTests: Array<{
@@ -93,6 +95,7 @@ export function TeamDashboardLayout({
           mode="TEAM"
           basePath={basePath}
           pendingFeedbackCount={pendingFeedbackCount}
+          teams={teamDashboardData?.teams ?? []}
         />
       ),
     },

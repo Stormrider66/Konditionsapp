@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import {
   GlassCard,
@@ -21,30 +22,52 @@ import {
 } from 'lucide-react'
 import { VoiceWorkoutButton } from '@/components/coach/voice-workout'
 import type { DashboardMode } from '@/lib/coach/dashboard-mode'
+import {
+  TeamCoachActionDialog,
+  type TeamCoachAction,
+} from '@/components/coach/dashboard/TeamCoachActionDialog'
+import type { TeamDashboardData } from '@/components/coach/dashboard/TeamDashboardLayout'
 
 interface CoachQuickActionsProps {
   mode: DashboardMode
   basePath: string
   pendingFeedbackCount: number
+  teams?: TeamDashboardData['teams']
 }
 
-export function CoachQuickActions({ mode, basePath, pendingFeedbackCount }: CoachQuickActionsProps) {
+type TeamQuickActionItem =
+  | {
+      action: TeamCoachAction
+      label: string
+      icon: typeof Timer
+      className: string
+    }
+  | {
+      href: string
+      label: string
+      icon: typeof Timer
+      className: string
+    }
+
+export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams = [] }: CoachQuickActionsProps) {
+  const [activeAction, setActiveAction] = useState<TeamCoachAction | null>(null)
+
   if (mode === 'TEAM') {
-    const actions = [
+    const actions: TeamQuickActionItem[] = [
       {
-        href: `${basePath}/coach/interval-sessions`,
+        action: 'workout' as const,
         label: 'Skapa pass',
         icon: Timer,
         className: 'bg-teal-50 text-teal-700 border-teal-200/70 hover:bg-teal-100 dark:bg-teal-950/25 dark:text-teal-300 dark:border-teal-800/40 dark:hover:bg-teal-950/40',
       },
       {
-        href: `${basePath}/coach/test`,
+        action: 'test' as const,
         label: 'Boka test',
         icon: ClipboardList,
         className: 'bg-cyan-50 text-cyan-700 border-cyan-200/70 hover:bg-cyan-100 dark:bg-cyan-950/25 dark:text-cyan-300 dark:border-cyan-800/40 dark:hover:bg-cyan-950/40',
       },
       {
-        href: `${basePath}/coach/messages`,
+        action: 'message' as const,
         label: 'Meddelande',
         icon: MessageSquare,
         className: 'bg-blue-50 text-blue-700 border-blue-200/70 hover:bg-blue-100 dark:bg-blue-950/25 dark:text-blue-300 dark:border-blue-800/40 dark:hover:bg-blue-950/40',
@@ -70,34 +93,62 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount }: Coac
     ]
 
     return (
-      <GlassCard>
-        <GlassCardHeader className="pb-3">
-          <GlassCardTitle className="text-base">Snabba åtgärder</GlassCardTitle>
-        </GlassCardHeader>
-        <GlassCardContent className="grid grid-cols-2 gap-2">
-          {actions.map(action => (
-            <Link key={action.href} href={action.href} className="block">
-              <div className={`flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition ${action.className}`}>
-                <action.icon className="h-5 w-5" />
-                <span className="text-xs font-medium">{action.label}</span>
-              </div>
-            </Link>
-          ))}
-          {pendingFeedbackCount > 0 && (
-            <Link href={`${basePath}/coach/clients`} className="block col-span-2">
-              <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition text-center">
-                <MessageSquare className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                <span className="text-xs text-amber-700 dark:text-amber-300">
-                  Granska pass
-                </span>
-                <Badge variant="outline" className="text-[10px] h-5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700">
-                  {pendingFeedbackCount}
-                </Badge>
-              </div>
-            </Link>
-          )}
-        </GlassCardContent>
-      </GlassCard>
+      <>
+        <GlassCard>
+          <GlassCardHeader className="pb-3">
+            <GlassCardTitle className="text-base">Snabba åtgärder</GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent className="grid grid-cols-2 gap-2">
+            {actions.map(action => {
+              const Icon = action.icon
+              if ('href' in action) {
+                return (
+                  <Link key={action.href} href={action.href} className="block">
+                    <div className={`flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition ${action.className}`}>
+                      <Icon className="h-5 w-5" />
+                      <span className="text-xs font-medium">{action.label}</span>
+                    </div>
+                  </Link>
+                )
+              }
+
+              return (
+                <button
+                  key={action.action}
+                  type="button"
+                  onClick={() => setActiveAction(action.action)}
+                  className={`flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition ${action.className}`}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="text-xs font-medium">{action.label}</span>
+                </button>
+              )
+            })}
+            {pendingFeedbackCount > 0 && (
+              <Link href={`${basePath}/coach/clients`} className="block col-span-2">
+                <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition text-center">
+                  <MessageSquare className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  <span className="text-xs text-amber-700 dark:text-amber-300">
+                    Granska pass
+                  </span>
+                  <Badge variant="outline" className="text-[10px] h-5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700">
+                    {pendingFeedbackCount}
+                  </Badge>
+                </div>
+              </Link>
+            )}
+          </GlassCardContent>
+        </GlassCard>
+        <TeamCoachActionDialog
+          action={activeAction}
+          basePath={basePath}
+          teams={teams}
+          open={activeAction !== null}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) setActiveAction(null)
+          }}
+        />
+      </>
     )
   }
 
