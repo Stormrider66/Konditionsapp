@@ -282,6 +282,7 @@ Tasks:
   - assigned coach/PT
 - Ensure checkout requires business context for Elite.
 - Add admin view for Elite subscribers and their AI usage. Shipped in AI Costs margin/risk view in `4e3d99d1`.
+- Add tests for Elite allowance admin settings and platform overrides. Shipped in `c0390d0e`.
 
 Acceptance criteria:
 
@@ -301,6 +302,9 @@ Dashboards/checks:
 - Heavy users list.
 - Google invoice vs app-estimated cost.
 - Top-up conversion rate. Shipped in `053d1795`.
+- Food scanner share of total AI spend. Shipped in AI Costs feature mix in `c1e49b87`.
+- Voice/video/program/research share of AI spend. Shipped in AI Costs feature mix in `c1e49b87`.
+- Monthly AI allowance reset. Shipped in `95a01ad2`; expired accounts reset to current tier/business/override allowance while preserving top-up balances.
 - Food scanner quality complaints after lower thinking setting.
 
 Rollout:
@@ -353,6 +357,7 @@ Third chunk:
 Additional shipped chunks:
 
 - Admin AI cost overview by feature/provider/model. Shipped in `ea38e14c`.
+- Admin AI cost overview now highlights food scanner share, other heavy AI share, top single driver, and recent top-up purchases. Shipped in `c1e49b87`.
 - Athlete-facing AI credit exhaustion messages across high-cost AI flows. Shipped in `6b67bf55`.
 - Athlete subscription page AI credit explanation and tier allowances. Shipped in `4b5528c3`.
 
