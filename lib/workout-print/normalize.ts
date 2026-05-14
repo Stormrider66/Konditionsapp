@@ -232,6 +232,7 @@ function normalizeHybridSection(title: string, data: unknown): PrintableWorkoutS
           formatDuration(asNumber(block.intervalSeconds)),
           formatDuration(asNumber(block.workSeconds)) ? `arbete ${formatDuration(asNumber(block.workSeconds))}` : undefined,
           formatDuration(asNumber(block.restSeconds)) ? `vila ${formatDuration(asNumber(block.restSeconds))}` : undefined,
+          formatDuration(asNumber(block.restAfterSeconds)) ? `vila efter ${formatDuration(asNumber(block.restAfterSeconds))}` : undefined,
           ...asArray(block.movements).map(formatHybridMovementSummary),
         ]),
         notes: asString(block.notes),
