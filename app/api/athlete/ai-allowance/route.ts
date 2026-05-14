@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { getAiAllowanceStatus } from '@/lib/ai/billing/allowance'
+import { getAiAllowanceStatus, getAiAllowanceUsageSummary } from '@/lib/ai/billing/allowance'
 import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
@@ -55,6 +55,7 @@ export async function GET() {
         hardCapSek: account.hardCapSek,
         remainingSek,
         status: account.status,
+        usage: getAiAllowanceUsageSummary(account),
       },
       recentTopUps: recentTopUps.map((purchase) => ({
         id: purchase.id,

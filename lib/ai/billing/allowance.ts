@@ -29,6 +29,14 @@ export interface AllowanceDebitResult extends AllowanceBalance {
   remainingSek: number
 }
 
+export type AiAllowanceAlertLevel = 'HEALTHY' | 'NOTICE' | 'LOW' | 'EXHAUSTED'
+
+export interface AiAllowanceUsageSummary {
+  includedUsedPercent: number
+  totalUsedPercent: number
+  alertLevel: AiAllowanceAlertLevel
+}
+
 type PrismaTransaction = Prisma.TransactionClient
 
 export function getAiSekPerUsd(): number {
@@ -136,6 +144,35 @@ export function previewAiAllowanceDebit(
 
 export function hasAiAllowanceRemaining(balance: AllowanceBalance): boolean {
   return getRemainingAiBalanceSek(balance) > 0
+}
+
+export function getAiAllowanceUsageSummary(balance: AllowanceBalance): AiAllowanceUsageSummary {
+  const includedBudgetSek = Math.max(0, balance.includedBudgetSek)
+  const includedUsedSek = Math.max(0, balance.includedUsedSek)
+  const topUpBalanceSek = Math.max(0, balance.topUpBalanceSek)
+  const remainingSek = getRemainingAiBalanceSek(balance)
+  const totalBudgetSek = roundSek(includedBudgetSek + topUpBalanceSek)
+  const includedUsedPercent = includedBudgetSek > 0
+    ? Math.min(100, Math.round((includedUsedSek / includedBudgetSek) * 100))
+    : remainingSek > 0 ? 0 : 100
+  const totalUsedPercent = totalBudgetSek > 0
+    ? Math.min(100, Math.round(((totalBudgetSek - remainingSek) / totalBudgetSek) * 100))
+    : 100
+
+  let alertLevel: AiAllowanceAlertLevel = 'HEALTHY'
+  if (remainingSek <= 0) {
+    alertLevel = 'EXHAUSTED'
+  } else if (includedUsedPercent >= 90) {
+    alertLevel = 'LOW'
+  } else if (includedUsedPercent >= 80) {
+    alertLevel = 'NOTICE'
+  }
+
+  return {
+    includedUsedPercent,
+    totalUsedPercent,
+    alertLevel,
+  }
 }
 
 export async function getOrCreateAiAllowanceAccount(

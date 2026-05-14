@@ -23,6 +23,11 @@ interface AllowancePayload {
     hardCapSek: number
     remainingSek: number
     status: string
+    usage: {
+      includedUsedPercent: number
+      totalUsedPercent: number
+      alertLevel: 'HEALTHY' | 'NOTICE' | 'LOW' | 'EXHAUSTED'
+    }
   }
   recentTopUps: Array<{
     id: string
@@ -40,8 +45,6 @@ interface AICreditStatusCardProps {
   className?: string
   compact?: boolean
 }
-
-const LOW_BALANCE_THRESHOLD = 0.2
 
 function formatSek(value: number): string {
   if (!Number.isFinite(value)) return '0 kr'
@@ -111,15 +114,16 @@ export function AICreditStatusCard({
   const status = useMemo(() => {
     if (!data) return { tone: 'neutral' as const, label: 'AI-krediter' }
     const allowance = data.allowance
-    const budget = Math.max(allowance.includedBudgetSek + allowance.topUpBalanceSek, 0)
     const remaining = Math.max(allowance.remainingSek, 0)
-    const ratio = budget > 0 ? remaining / budget : 0
 
-    if (remaining <= 0 || allowance.status !== 'ACTIVE') {
+    if (remaining <= 0 || allowance.status !== 'ACTIVE' || allowance.usage.alertLevel === 'EXHAUSTED') {
       return { tone: 'empty' as const, label: 'Slut på AI-krediter' }
     }
-    if (ratio <= LOW_BALANCE_THRESHOLD) {
+    if (allowance.usage.alertLevel === 'LOW') {
       return { tone: 'low' as const, label: 'Lågt saldo' }
+    }
+    if (allowance.usage.alertLevel === 'NOTICE') {
+      return { tone: 'watch' as const, label: 'AI-krediter' }
     }
     return { tone: 'healthy' as const, label: 'AI-krediter' }
   }, [data])
@@ -170,7 +174,7 @@ export function AICreditStatusCard({
         'rounded-2xl border p-4 shadow-sm backdrop-blur-md transition-colors',
         status.tone === 'empty'
           ? 'border-red-200 bg-red-50/90 dark:border-red-500/30 dark:bg-red-950/30'
-          : status.tone === 'low'
+          : status.tone === 'low' || status.tone === 'watch'
             ? 'border-amber-200 bg-amber-50/90 dark:border-amber-500/30 dark:bg-amber-950/30'
             : 'border-slate-200/70 bg-white/70 dark:border-white/10 dark:bg-white/5',
         className,
@@ -184,7 +188,7 @@ export function AICreditStatusCard({
               'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border',
               status.tone === 'empty'
                 ? 'border-red-200 bg-red-100 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300'
-                : status.tone === 'low'
+                : status.tone === 'low' || status.tone === 'watch'
                   ? 'border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
                   : 'border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300',
             )}
@@ -226,6 +230,24 @@ export function AICreditStatusCard({
 
       {!compact && (
         <div className="mt-4 space-y-3">
+          {allowance.usage.alertLevel !== 'HEALTHY' && (
+            <div className={cn(
+              'flex items-start gap-2 rounded-xl p-3 text-xs',
+              status.tone === 'empty'
+                ? 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-200'
+                : 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200',
+            )}>
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>
+                {allowance.usage.alertLevel === 'EXHAUSTED'
+                  ? 'AI-krediterna är slut för perioden. Fyll på eller uppgradera för att fortsätta med tyngre AI-funktioner.'
+                  : allowance.usage.alertLevel === 'LOW'
+                    ? 'Du har använt över 90% av månadens AI-krediter. Fyll på i tid om du använder mat-skanner, videoanalys eller röstcoach ofta.'
+                    : 'Du har använt över 80% av månadens AI-krediter. Håll koll om du planerar fler AI-tunga pass den här perioden.'}
+              </p>
+            </div>
+          )}
+
           <div className="flex items-start gap-2 rounded-xl bg-slate-950/[0.03] p-3 text-xs text-slate-600 dark:bg-white/[0.04] dark:text-slate-300">
             <Coins className="mt-0.5 h-4 w-4 shrink-0" />
             <p>

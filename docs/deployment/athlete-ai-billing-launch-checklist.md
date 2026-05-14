@@ -53,6 +53,7 @@ Use this before pushing the AI allowance/top-up work to production.
 - Video analysis blocks cleanly when AI credits are exhausted.
 - Live voice coach blocks cleanly when AI credits are exhausted.
 - Subscription page shows included credits, top-up balance, reset date, and top-up packs.
+- Athlete AI credit card warns at 80%, 90%, and exhausted states.
 - Blocked flows show upgrade/top-up language, not token/provider wording.
 - Platform admin can set a per-athlete AI allowance override.
 - Business admin can set Elite AI allowance.

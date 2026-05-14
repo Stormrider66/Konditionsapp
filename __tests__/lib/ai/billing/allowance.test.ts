@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   getAthleteAiAllowanceSek,
+  getAiAllowanceUsageSummary,
   getCurrentAllowancePeriod,
   getRemainingAiBalanceSek,
   hasAiAllowanceRemaining,
@@ -128,6 +129,51 @@ describe('AI allowance billing helpers', () => {
       topUpBalanceSek: 1,
       hardCapSek: 30,
     })).toBe(true)
+  })
+
+  it('summarizes included allowance alert thresholds', () => {
+    expect(getAiAllowanceUsageSummary({
+      includedBudgetSek: 30,
+      includedUsedSek: 20,
+      topUpBalanceSek: 0,
+      hardCapSek: 30,
+    })).toMatchObject({
+      includedUsedPercent: 67,
+      totalUsedPercent: 67,
+      alertLevel: 'HEALTHY',
+    })
+
+    expect(getAiAllowanceUsageSummary({
+      includedBudgetSek: 30,
+      includedUsedSek: 24,
+      topUpBalanceSek: 0,
+      hardCapSek: 30,
+    })).toMatchObject({
+      includedUsedPercent: 80,
+      alertLevel: 'NOTICE',
+    })
+
+    expect(getAiAllowanceUsageSummary({
+      includedBudgetSek: 30,
+      includedUsedSek: 27,
+      topUpBalanceSek: 5,
+      hardCapSek: 30,
+    })).toMatchObject({
+      includedUsedPercent: 90,
+      totalUsedPercent: 77,
+      alertLevel: 'LOW',
+    })
+
+    expect(getAiAllowanceUsageSummary({
+      includedBudgetSek: 30,
+      includedUsedSek: 30,
+      topUpBalanceSek: 0,
+      hardCapSek: 30,
+    })).toMatchObject({
+      includedUsedPercent: 100,
+      totalUsedPercent: 100,
+      alertLevel: 'EXHAUSTED',
+    })
   })
 
   it('resets expired monthly accounts to their configured allowance while preserving top-ups', async () => {
