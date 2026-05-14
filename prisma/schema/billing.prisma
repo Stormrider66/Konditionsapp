@@ -187,8 +187,9 @@ model AthleteSubscription {
   billingCycle         String? // "MONTHLY" | "YEARLY"
 
   // Revenue sharing (if paymentSource = BUSINESS)
-  businessId          String?
-  revenueSharePercent Float? // Platform's share (e.g., 20 = 20%)
+  businessId           String?
+  revenueSharePercent  Float? // Platform's share (e.g., 20 = 20%)
+  customAiAllowanceSek Float? // null = use business/tier default
 
   // Coach marketplace - assigned coach (independent of business)
   assignedCoachId            String? // Coach user ID from marketplace connection

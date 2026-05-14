@@ -133,7 +133,7 @@ export async function createCheckoutSession(
   // Check if business has Stripe Connect for revenue sharing
   let applicationFeePercent: number | undefined;
   let stripeAccount: string | undefined;
-  let business: { name: string; stripeConnectAccountId: string | null; stripeConnectStatus: string | null; defaultRevenueShare: number; elitePriceMonthly: number | null; elitePriceYearly: number | null; eliteDescription: string | null } | null = null;
+  let business: { name: string; stripeConnectAccountId: string | null; stripeConnectStatus: string | null; defaultRevenueShare: number; elitePriceMonthly: number | null; elitePriceYearly: number | null; eliteDescription: string | null; eliteAiAllowanceSek: number | null } | null = null;
 
   if (businessId) {
     business = await prisma.business.findUnique({
@@ -369,6 +369,7 @@ async function handleCheckoutComplete(
       billingCycle: cycle || 'MONTHLY',
       businessId: businessId || null,
       paymentSource: businessId ? 'BUSINESS' : 'DIRECT',
+      customAiAllowanceSek: null,
       ...features,
     },
     create: {
@@ -380,6 +381,7 @@ async function handleCheckoutComplete(
       billingCycle: cycle || 'MONTHLY',
       businessId: businessId || null,
       paymentSource: businessId ? 'BUSINESS' : 'DIRECT',
+      customAiAllowanceSek: null,
       ...features,
     },
   });

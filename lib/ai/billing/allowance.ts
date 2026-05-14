@@ -54,6 +54,26 @@ export function getAthleteAiAllowanceSek(tier: AthleteSubscriptionTier | Athlete
   return ATHLETE_AI_ALLOWANCE_SEK[tier as AthletePlanTier] ?? ATHLETE_AI_ALLOWANCE_SEK.FREE
 }
 
+function resolveConfiguredAiAllowanceSek(params: {
+  tier?: AthleteSubscriptionTier | AthletePlanTier | null
+  customAiAllowanceSek?: number | null
+  businessEliteAiAllowanceSek?: number | null
+}): number {
+  if (params.customAiAllowanceSek !== null && params.customAiAllowanceSek !== undefined) {
+    return Math.max(0, roundSek(params.customAiAllowanceSek))
+  }
+
+  if (
+    params.tier === 'ELITE' &&
+    params.businessEliteAiAllowanceSek !== null &&
+    params.businessEliteAiAllowanceSek !== undefined
+  ) {
+    return Math.max(0, roundSek(params.businessEliteAiAllowanceSek))
+  }
+
+  return getAthleteAiAllowanceSek(params.tier)
+}
+
 export function getRemainingAiBalanceSek(balance: AllowanceBalance): number {
   const includedRemaining = Math.max(0, balance.includedBudgetSek - balance.includedUsedSek)
   return roundSek(includedRemaining + Math.max(0, balance.topUpBalanceSek))
@@ -100,7 +120,15 @@ export async function getOrCreateAiAllowanceAccount(
     select: {
       id: true,
       athleteSubscription: {
-        select: { tier: true },
+        select: {
+          tier: true,
+          customAiAllowanceSek: true,
+          business: {
+            select: {
+              eliteAiAllowanceSek: true,
+            },
+          },
+        },
       },
     },
   })
@@ -109,7 +137,11 @@ export async function getOrCreateAiAllowanceAccount(
     throw new Error(`Client not found: ${clientId}`)
   }
 
-  const tierAllowanceSek = getAthleteAiAllowanceSek(client.athleteSubscription?.tier)
+  const tierAllowanceSek = resolveConfiguredAiAllowanceSek({
+    tier: client.athleteSubscription?.tier,
+    customAiAllowanceSek: client.athleteSubscription?.customAiAllowanceSek,
+    businessEliteAiAllowanceSek: client.athleteSubscription?.business?.eliteAiAllowanceSek,
+  })
   const period = getCurrentAllowancePeriod(now)
   const existing = await tx.aIAllowanceAccount.findUnique({ where: { clientId } })
 

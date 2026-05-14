@@ -3,6 +3,11 @@ import { requireAdmin } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { usdToSek } from '@/lib/ai/billing/allowance'
+import {
+  ATHLETE_AI_ALLOWANCE_SEK,
+  ATHLETE_PLAN_PRICING,
+  type AthletePlanTier,
+} from '@/lib/subscription/athlete-plans'
 
 interface CostBucket {
   key: string
@@ -45,6 +50,7 @@ export async function GET(request: NextRequest) {
     const providerBuckets = new Map<string, CostBucket>()
     const modelBuckets = new Map<string, CostBucket>()
     const dailyBuckets = new Map<string, { date: string; calls: number; costUsd: number; costSek: number }>()
+    const clientBuckets = new Map<string, { calls: number; costUsd: number; inputTokens: number; outputTokens: number }>()
 
     let totalCostUsd = 0
     let totalInputTokens = 0
@@ -68,6 +74,17 @@ export async function GET(request: NextRequest) {
       if (hasClient) {
         athleteLinkedCalls += 1
         athleteLinkedCostUsd += costUsd
+        const clientBucket = clientBuckets.get(log.clientId!) ?? {
+          calls: 0,
+          costUsd: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+        }
+        clientBucket.calls += 1
+        clientBucket.costUsd += costUsd
+        clientBucket.inputTokens += inputTokens
+        clientBucket.outputTokens += outputTokens
+        clientBuckets.set(log.clientId!, clientBucket)
       }
 
       if (!hasUser && !hasClient) {
@@ -88,6 +105,7 @@ export async function GET(request: NextRequest) {
     }
 
     const totalCostSek = usdToSek(totalCostUsd)
+    const margin = await buildAthleteMarginOverview(clientBuckets)
     const data = {
       period: {
         start: startDate.toISOString(),
@@ -116,6 +134,7 @@ export async function GET(request: NextRequest) {
         costUsd: normalizeMoney(day.costUsd),
         costSek: roundSek(day.costSek),
       })),
+      margin,
     }
 
     return NextResponse.json({ success: true, data })
@@ -126,6 +145,134 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     )
   }
+}
+
+async function buildAthleteMarginOverview(
+  clientBuckets: Map<string, { calls: number; costUsd: number; inputTokens: number; outputTokens: number }>,
+) {
+  const clientIds = Array.from(clientBuckets.keys())
+  if (clientIds.length === 0) {
+    return {
+      byTier: [],
+      riskUsers: [],
+    }
+  }
+
+  const clients = await prisma.client.findMany({
+    where: { id: { in: clientIds } },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      athleteSubscription: {
+        select: {
+          tier: true,
+          customAiAllowanceSek: true,
+          business: {
+            select: {
+              name: true,
+              elitePriceMonthly: true,
+              eliteAiAllowanceSek: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  const clientMap = new Map(clients.map((client) => [client.id, client]))
+  const tierBuckets = new Map<string, {
+    tier: string
+    athletes: Set<string>
+    calls: number
+    costSek: number
+    monthlyRevenueSek: number
+    includedAllowanceSek: number
+  }>()
+
+  const riskUsers = clientIds.map((clientId) => {
+    const usage = clientBuckets.get(clientId)!
+    const client = clientMap.get(clientId)
+    const subscription = client?.athleteSubscription
+    const tier = subscription?.tier ?? 'FREE'
+    const monthlyRevenueSek = getMonthlyRevenueSek(tier as AthletePlanTier, subscription?.business?.elitePriceMonthly)
+    const costSek = usdToSek(usage.costUsd)
+    const allowanceSek = subscription?.customAiAllowanceSek
+      ?? (tier === 'ELITE' ? subscription?.business?.eliteAiAllowanceSek : null)
+      ?? getDefaultMonthlyAllowanceSek(tier as AthletePlanTier)
+    const costToRevenuePercent = monthlyRevenueSek > 0
+      ? Math.round((costSek / monthlyRevenueSek) * 100)
+      : null
+    const allowanceUsedPercent = allowanceSek > 0
+      ? Math.round((costSek / allowanceSek) * 100)
+      : null
+
+    const tierBucket = tierBuckets.get(tier) ?? {
+      tier,
+      athletes: new Set<string>(),
+      calls: 0,
+      costSek: 0,
+      monthlyRevenueSek: 0,
+      includedAllowanceSek: 0,
+    }
+    tierBucket.athletes.add(clientId)
+    tierBucket.calls += usage.calls
+    tierBucket.costSek += costSek
+    tierBucket.monthlyRevenueSek += monthlyRevenueSek
+    tierBucket.includedAllowanceSek += allowanceSek
+    tierBuckets.set(tier, tierBucket)
+
+    return {
+      clientId,
+      name: client?.name ?? 'Unknown athlete',
+      email: client?.email ?? null,
+      tier,
+      businessName: subscription?.business?.name ?? null,
+      calls: usage.calls,
+      costSek: roundSek(costSek),
+      monthlyRevenueSek,
+      includedAllowanceSek: roundSek(allowanceSek),
+      costToRevenuePercent,
+      allowanceUsedPercent,
+    }
+  })
+    .sort((a, b) => {
+      const aRisk = a.costToRevenuePercent ?? a.allowanceUsedPercent ?? 0
+      const bRisk = b.costToRevenuePercent ?? b.allowanceUsedPercent ?? 0
+      return bRisk - aRisk || b.costSek - a.costSek
+    })
+    .slice(0, 12)
+
+  const byTier = Array.from(tierBuckets.values())
+    .map((bucket) => ({
+      tier: bucket.tier,
+      athletes: bucket.athletes.size,
+      calls: bucket.calls,
+      costSek: roundSek(bucket.costSek),
+      monthlyRevenueSek: roundSek(bucket.monthlyRevenueSek),
+      includedAllowanceSek: roundSek(bucket.includedAllowanceSek),
+      costToRevenuePercent: bucket.monthlyRevenueSek > 0
+        ? Math.round((bucket.costSek / bucket.monthlyRevenueSek) * 100)
+        : null,
+      averageCostPerAthleteSek: bucket.athletes.size > 0
+        ? roundSek(bucket.costSek / bucket.athletes.size)
+        : 0,
+    }))
+    .sort((a, b) => b.costSek - a.costSek)
+
+  return { byTier, riskUsers }
+}
+
+function getMonthlyRevenueSek(tier: AthletePlanTier, elitePriceMonthlyOre: number | null | undefined): number {
+  if (tier === 'ELITE') return elitePriceMonthlyOre ? Math.round(elitePriceMonthlyOre / 100) : 0
+  if (tier === 'FREE') return ATHLETE_PLAN_PRICING.FREE.monthlySek
+  if (tier === 'STANDARD') return ATHLETE_PLAN_PRICING.STANDARD.monthlySek
+  if (tier === 'PRO') return ATHLETE_PLAN_PRICING.PRO.monthlySek
+  return 0
+}
+
+function getDefaultMonthlyAllowanceSek(tier: AthletePlanTier): number {
+  return ATHLETE_AI_ALLOWANCE_SEK[tier] ?? 0
 }
 
 function addToBucket(

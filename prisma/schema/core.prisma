@@ -704,6 +704,7 @@ model Business {
   elitePriceMonthly Int? // null = ELITE not offered by this business
   elitePriceYearly  Int? // null = no yearly option
   eliteDescription  String? @db.Text // PT can describe what's included
+  eliteAiAllowanceSek Float? // null = use platform ELITE default
 
   // Branding (Tier 0: all businesses)
   logoUrl      String?

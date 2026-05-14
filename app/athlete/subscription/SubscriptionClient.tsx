@@ -377,11 +377,19 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
                 Mat-skanner, videoanalys, röstcoach, programimport och rapportbilder använder AI-krediter.
               </p>
               <p>
-                {currentPlanCopy.nameSv} inkluderar{' '}
-                <span className="font-semibold text-foreground">
-                  {ATHLETE_AI_ALLOWANCE_SEK[currentTier as AthletePlanTier] ?? ATHLETE_AI_ALLOWANCE_SEK.FREE} SEK/mån
-                </span>{' '}
-                i AI-krediter.
+                {currentTier === 'ELITE' ? (
+                  <>
+                    Elite har en anpassad AI-kreditpott som sätts tillsammans med din coach eller PT.
+                  </>
+                ) : (
+                  <>
+                    {currentPlanCopy.nameSv} inkluderar{' '}
+                    <span className="font-semibold text-foreground">
+                      {ATHLETE_AI_ALLOWANCE_SEK[currentTier as AthletePlanTier] ?? ATHLETE_AI_ALLOWANCE_SEK.FREE} SEK/mån
+                    </span>{' '}
+                    i AI-krediter.
+                  </>
+                )}
               </p>
               <div className="space-y-2">
                 {AI_TOP_UP_PACKS.map((pack) => (

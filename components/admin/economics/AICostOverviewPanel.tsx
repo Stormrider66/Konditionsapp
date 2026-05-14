@@ -54,6 +54,31 @@ interface AICostOverview {
   byProvider: CostBucket[]
   byModel: CostBucket[]
   daily: Array<{ date: string; calls: number; costSek: number }>
+  margin: {
+    byTier: Array<{
+      tier: string
+      athletes: number
+      calls: number
+      costSek: number
+      monthlyRevenueSek: number
+      includedAllowanceSek: number
+      costToRevenuePercent: number | null
+      averageCostPerAthleteSek: number
+    }>
+    riskUsers: Array<{
+      clientId: string
+      name: string
+      email: string | null
+      tier: string
+      businessName: string | null
+      calls: number
+      costSek: number
+      monthlyRevenueSek: number
+      includedAllowanceSek: number
+      costToRevenuePercent: number | null
+      allowanceUsedPercent: number | null
+    }>
+  }
 }
 
 export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
@@ -152,6 +177,102 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
           </AlertDescription>
         </Alert>
       )}
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Tier Margin Check</CardTitle>
+            <CardDescription>
+              Athlete-linked AI spend compared with current monthly plan revenue and included AI allowance.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tier</TableHead>
+                  <TableHead className="text-right">Athletes</TableHead>
+                  <TableHead className="text-right">Spend</TableHead>
+                  <TableHead className="text-right">Revenue</TableHead>
+                  <TableHead className="text-right">Spend / revenue</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {overview.margin.byTier.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      No athlete-linked AI usage in this period.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  overview.margin.byTier.map((tier) => (
+                    <TableRow key={tier.tier}>
+                      <TableCell>
+                        <div className="font-medium">{tier.tier}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Avg {formatSek(tier.averageCostPerAthleteSek)} / athlete
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">{tier.athletes.toLocaleString('sv-SE')}</TableCell>
+                      <TableCell className="text-right">{formatSek(tier.costSek)}</TableCell>
+                      <TableCell className="text-right">{formatSek(tier.monthlyRevenueSek)}</TableCell>
+                      <TableCell className="text-right">
+                        <RiskBadge value={tier.costToRevenuePercent} />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Margin Risk Users</CardTitle>
+            <CardDescription>
+              Users whose logged AI cost is high relative to subscription revenue or included allowance.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Athlete</TableHead>
+                  <TableHead className="text-right">Spend</TableHead>
+                  <TableHead className="text-right">Allowance</TableHead>
+                  <TableHead className="text-right">Risk</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {overview.margin.riskUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      No risk users in this period.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  overview.margin.riskUsers.map((user) => (
+                    <TableRow key={user.clientId}>
+                      <TableCell>
+                        <div className="font-medium">{user.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {[user.tier, user.businessName].filter(Boolean).join(' · ')}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">{formatSek(user.costSek)}</TableCell>
+                      <TableCell className="text-right">{formatSek(user.includedAllowanceSek)}</TableCell>
+                      <TableCell className="text-right">
+                        <RiskBadge value={user.costToRevenuePercent ?? user.allowanceUsedPercent} />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <Card className="xl:col-span-2">
@@ -293,6 +414,24 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
         </Card>
       </div>
     </div>
+  )
+}
+
+function RiskBadge({ value }: { value: number | null }) {
+  if (value === null) {
+    return <Badge variant="outline">No revenue</Badge>
+  }
+
+  const className = value >= 50
+    ? 'border-red-200 bg-red-50 text-red-700'
+    : value >= 25
+      ? 'border-amber-200 bg-amber-50 text-amber-700'
+      : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+
+  return (
+    <Badge variant="outline" className={className}>
+      {value}%
+    </Badge>
   )
 }
 

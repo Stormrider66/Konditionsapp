@@ -19,6 +19,7 @@ const elitePricingSchema = z.object({
   elitePriceMonthly: z.number().positive('Monthly price must be positive').nullable(),
   elitePriceYearly: z.number().positive('Yearly price must be positive').nullable().optional(),
   eliteDescription: z.string().max(1000).nullable().optional(),
+  eliteAiAllowanceSek: z.number().min(0, 'AI allowance cannot be negative').nullable().optional(),
 }).refine(
   (data) => {
     if (data.elitePriceMonthly && data.elitePriceYearly) {
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         elitePriceMonthly: true,
         elitePriceYearly: true,
         eliteDescription: true,
+        eliteAiAllowanceSek: true,
       },
     })
 
@@ -53,6 +55,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       elitePriceMonthly: business.elitePriceMonthly ? business.elitePriceMonthly / 100 : null, // öre → kr
       elitePriceYearly: business.elitePriceYearly ? business.elitePriceYearly / 100 : null,
       eliteDescription: business.eliteDescription,
+      eliteAiAllowanceSek: business.eliteAiAllowanceSek,
       enabled: business.elitePriceMonthly !== null,
     })
   } catch (error) {
@@ -80,6 +83,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         elitePriceMonthly: data.elitePriceMonthly ? Math.round(data.elitePriceMonthly * 100) : null, // kr → öre
         elitePriceYearly: data.elitePriceYearly ? Math.round(data.elitePriceYearly * 100) : null,
         eliteDescription: data.eliteDescription ?? null,
+        eliteAiAllowanceSek: data.eliteAiAllowanceSek ?? null,
       },
     })
 
