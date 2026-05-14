@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
     }
 
     const totalCostSek = usdToSek(totalCostUsd)
-    const margin = await buildAthleteMarginOverview(clientBuckets)
+    const margin = await buildAthleteMarginOverview(clientBuckets, topUpPurchases)
     const topUps = buildTopUpOverview(topUpPurchases)
     const byCategory = sortBuckets(categoryBuckets).map(finalizeBucket)
     const featureMix = buildFeatureMixOverview(byCategory, logs.length, totalCostSek)
@@ -205,6 +205,11 @@ function buildTopUpOverview(purchases: Array<{
 
 async function buildAthleteMarginOverview(
   clientBuckets: Map<string, { calls: number; costUsd: number; inputTokens: number; outputTokens: number }>,
+  topUpPurchases: Array<{
+    clientId: string
+    amountPaidSek: number
+    status: string
+  }> = [],
 ) {
   const clientIds = Array.from(clientBuckets.keys())
   if (clientIds.length === 0) {
@@ -237,6 +242,19 @@ async function buildAthleteMarginOverview(
   })
 
   const clientMap = new Map(clients.map((client) => [client.id, client]))
+  const activeTopUpBuyerIds = new Set(
+    topUpPurchases
+      .filter((purchase) => purchase.status === 'ACTIVE')
+      .map((purchase) => purchase.clientId),
+  )
+  const topUpRevenueByClient = new Map<string, number>()
+  for (const purchase of topUpPurchases) {
+    if (purchase.status !== 'ACTIVE') continue
+    topUpRevenueByClient.set(
+      purchase.clientId,
+      roundSek((topUpRevenueByClient.get(purchase.clientId) ?? 0) + purchase.amountPaidSek),
+    )
+  }
   const tierBuckets = new Map<string, {
     tier: string
     athletes: Set<string>
@@ -262,6 +280,14 @@ async function buildAthleteMarginOverview(
     const allowanceUsedPercent = allowanceSek > 0
       ? Math.round((costSek / allowanceSek) * 100)
       : null
+    const hasActiveTopUp = activeTopUpBuyerIds.has(clientId)
+    const topUpRevenueSek = topUpRevenueByClient.get(clientId) ?? 0
+    const recommendation = buildRiskRecommendation({
+      tier,
+      hasActiveTopUp,
+      costToRevenuePercent,
+      allowanceUsedPercent,
+    })
 
     const tierBucket = tierBuckets.get(tier) ?? {
       tier,
@@ -290,6 +316,9 @@ async function buildAthleteMarginOverview(
       includedAllowanceSek: roundSek(allowanceSek),
       costToRevenuePercent,
       allowanceUsedPercent,
+      hasActiveTopUp,
+      topUpRevenueSek,
+      recommendation,
     }
   })
     .sort((a, b) => {
@@ -317,6 +346,68 @@ async function buildAthleteMarginOverview(
     .sort((a, b) => b.costSek - a.costSek)
 
   return { byTier, riskUsers }
+}
+
+function buildRiskRecommendation(params: {
+  tier: string
+  hasActiveTopUp: boolean
+  costToRevenuePercent: number | null
+  allowanceUsedPercent: number | null
+}) {
+  const costToRevenue = params.costToRevenuePercent ?? 0
+  const allowanceUsed = params.allowanceUsedPercent ?? 0
+
+  if (params.tier === 'FREE') {
+    return {
+      action: 'UPGRADE',
+      label: 'Move to paid tier',
+      priority: 'HIGH',
+      reason: 'Free user is consuming billable AI. Convert to Standard/Pro before widening access.',
+    }
+  }
+
+  if (params.tier === 'STANDARD' && (allowanceUsed >= 90 || costToRevenue >= 15)) {
+    return {
+      action: 'UPGRADE',
+      label: 'Recommend Pro',
+      priority: allowanceUsed >= 100 || costToRevenue >= 25 ? 'HIGH' : 'MEDIUM',
+      reason: 'Standard usage is near the included allowance or margin target.',
+    }
+  }
+
+  if (!params.hasActiveTopUp && allowanceUsed >= 70) {
+    return {
+      action: 'TOP_UP',
+      label: 'Prompt top-up',
+      priority: allowanceUsed >= 90 ? 'HIGH' : 'MEDIUM',
+      reason: 'User is approaching the included AI allowance and has not bought extra credits.',
+    }
+  }
+
+  if (params.tier === 'ELITE' && (allowanceUsed >= 85 || costToRevenue >= 20)) {
+    return {
+      action: 'REVIEW_ELITE',
+      label: 'Review Elite terms',
+      priority: allowanceUsed >= 100 || costToRevenue >= 35 ? 'HIGH' : 'MEDIUM',
+      reason: 'Elite AI use may need a higher custom allowance or service pricing.',
+    }
+  }
+
+  if (params.hasActiveTopUp) {
+    return {
+      action: 'MONETIZED',
+      label: 'Already monetized',
+      priority: 'LOW',
+      reason: 'This user has active top-up purchases in the selected period.',
+    }
+  }
+
+  return {
+    action: 'MONITOR',
+    label: 'Monitor',
+    priority: costToRevenue >= 10 || allowanceUsed >= 50 ? 'MEDIUM' : 'LOW',
+    reason: 'Usage is visible but does not currently require a billing action.',
+  }
 }
 
 function buildFeatureMixOverview(

@@ -107,6 +107,14 @@ interface AICostOverview {
       includedAllowanceSek: number
       costToRevenuePercent: number | null
       allowanceUsedPercent: number | null
+      hasActiveTopUp: boolean
+      topUpRevenueSek: number
+      recommendation: {
+        action: string
+        label: string
+        priority: 'HIGH' | 'MEDIUM' | 'LOW'
+        reason: string
+      }
     }>
   }
 }
@@ -377,17 +385,18 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
           <CardContent>
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Athlete</TableHead>
-                  <TableHead className="text-right">Spend</TableHead>
-                  <TableHead className="text-right">Allowance</TableHead>
-                  <TableHead className="text-right">Risk</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {overview.margin.riskUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    <TableHead>Athlete</TableHead>
+                    <TableHead className="text-right">Spend</TableHead>
+                    <TableHead className="text-right">Allowance</TableHead>
+                    <TableHead className="text-right">Risk</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {overview.margin.riskUsers.length === 0 ? (
+                    <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
                       No risk users in this period.
                     </TableCell>
                   </TableRow>
@@ -404,6 +413,21 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
                       <TableCell className="text-right">{formatSek(user.includedAllowanceSek)}</TableCell>
                       <TableCell className="text-right">
                         <RiskBadge value={user.costToRevenuePercent ?? user.allowanceUsedPercent} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <ActionBadge priority={user.recommendation.priority}>
+                            {user.recommendation.label}
+                          </ActionBadge>
+                          <span className="text-xs text-muted-foreground">
+                            {user.recommendation.reason}
+                          </span>
+                          {user.hasActiveTopUp && (
+                            <span className="text-xs text-muted-foreground">
+                              Top-ups: {formatSek(user.topUpRevenueSek)}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -601,6 +625,26 @@ function RiskBadge({ value }: { value: number | null }) {
   return (
     <Badge variant="outline" className={className}>
       {value}%
+    </Badge>
+  )
+}
+
+function ActionBadge({
+  priority,
+  children,
+}: {
+  priority: 'HIGH' | 'MEDIUM' | 'LOW'
+  children: ReactNode
+}) {
+  const className = priority === 'HIGH'
+    ? 'border-red-200 bg-red-50 text-red-700'
+    : priority === 'MEDIUM'
+      ? 'border-amber-200 bg-amber-50 text-amber-700'
+      : 'border-slate-200 bg-slate-50 text-slate-700'
+
+  return (
+    <Badge variant="outline" className={className}>
+      {children}
     </Badge>
   )
 }

@@ -120,6 +120,72 @@ describe('admin AI costs route', () => {
       createdAt: '2026-05-14T09:00:00.000Z',
     })
   })
+
+  it('adds billing action recommendations for margin risk users', async () => {
+    mockPrisma.aIUsageLog.findMany.mockResolvedValue([
+      usageLog({ category: 'food_scan', estimatedCost: 3, clientId: 'client-standard' }),
+      usageLog({ category: 'video_analysis', estimatedCost: 2, clientId: 'client-pro' }),
+    ])
+    mockPrisma.aITopUpPurchase.findMany.mockResolvedValue([
+      {
+        clientId: 'client-pro',
+        amountPaidSek: 119,
+        creditsSek: 100,
+        creditsRemainingSek: 80,
+        status: 'ACTIVE',
+        createdAt: new Date('2026-05-14T09:00:00Z'),
+      },
+    ])
+    mockPrisma.client.findMany.mockResolvedValue([
+      {
+        id: 'client-standard',
+        name: 'Standard Heavy',
+        email: 'standard@example.com',
+        athleteSubscription: {
+          tier: 'STANDARD',
+          customAiAllowanceSek: null,
+          business: null,
+        },
+      },
+      {
+        id: 'client-pro',
+        name: 'Pro Topup',
+        email: 'pro@example.com',
+        athleteSubscription: {
+          tier: 'PRO',
+          customAiAllowanceSek: null,
+          business: null,
+        },
+      },
+    ])
+
+    const response = await GET(new NextRequest('http://localhost/api/admin/ai-costs?days=7'))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.data.margin.riskUsers[0]).toMatchObject({
+      clientId: 'client-standard',
+      tier: 'STANDARD',
+      costSek: 30,
+      includedAllowanceSek: 30,
+      allowanceUsedPercent: 100,
+      recommendation: {
+        action: 'UPGRADE',
+        label: 'Recommend Pro',
+        priority: 'HIGH',
+      },
+    })
+    expect(body.data.margin.riskUsers[1]).toMatchObject({
+      clientId: 'client-pro',
+      hasActiveTopUp: true,
+      topUpRevenueSek: 119,
+      recommendation: {
+        action: 'MONETIZED',
+        label: 'Already monetized',
+        priority: 'LOW',
+      },
+    })
+  })
 })
 
 function usageLog(overrides: {
