@@ -15,7 +15,7 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireCoachFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
 import { canAccessAthlete } from '@/lib/auth/athlete-access'
-import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK, requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import {
   calculatePhases,
   estimateGenerationMinutes,
@@ -69,7 +69,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 
-      const allowanceDenied = await requireAiAllowance(programContext.athleteId)
+      const allowanceDenied = await requireAiAllowance(programContext.athleteId, {
+        minimumRemainingSek: AI_ALLOWANCE_MINIMUM_REMAINING_SEK.longRunning,
+      })
       if (allowanceDenied) return allowanceDenied
     }
 

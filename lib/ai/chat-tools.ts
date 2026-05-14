@@ -20,7 +20,7 @@ import {
 import { resolveModel } from '@/types/ai-models'
 import { logger } from '@/lib/logger'
 import { lookupOrGenerateExercise } from '@/lib/ai/exercise-generator'
-import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK, requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 /** Capabilities that control which tools are available */
 export interface ChatToolCapabilities {
@@ -792,7 +792,9 @@ export function createChatTools(
             }
           }
 
-          const allowanceDenied = await requireAiAllowance(clientId)
+          const allowanceDenied = await requireAiAllowance(clientId, {
+            minimumRemainingSek: AI_ALLOWANCE_MINIMUM_REMAINING_SEK.longRunning,
+          })
           if (allowanceDenied) {
             const body = await allowanceDenied.json().catch(() => null)
             return {

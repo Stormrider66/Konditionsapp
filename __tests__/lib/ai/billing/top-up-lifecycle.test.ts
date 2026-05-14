@@ -62,13 +62,22 @@ describe('AI top-up lifecycle', () => {
       topUpBalanceSek: 12,
       hardCapSek: 30,
     })
-    tx.aIAllowanceAccount.update.mockImplementation(async ({ data }) => ({
-      clientId: 'client-1',
-      includedBudgetSek: data.includedBudgetSek ?? 30,
-      includedUsedSek: data.includedUsedSek ?? 28,
-      topUpBalanceSek: typeof data.topUpBalanceSek === 'number' ? data.topUpBalanceSek : 7,
-      hardCapSek: data.hardCapSek ?? 30,
-    }))
+    tx.aIAllowanceAccount.update.mockImplementation(async ({ data }) => {
+      const includedUsedSek = typeof data.includedUsedSek === 'object'
+        ? 28 + (data.includedUsedSek.increment ?? 0)
+        : data.includedUsedSek ?? 28
+      const topUpBalanceSek = typeof data.topUpBalanceSek === 'object'
+        ? 12 - (data.topUpBalanceSek.decrement ?? 0)
+        : typeof data.topUpBalanceSek === 'number' ? data.topUpBalanceSek : 7
+
+      return {
+        clientId: 'client-1',
+        includedBudgetSek: data.includedBudgetSek ?? 30,
+        includedUsedSek,
+        topUpBalanceSek,
+        hardCapSek: data.hardCapSek ?? 30,
+      }
+    })
     tx.aITopUpPurchase.findMany.mockResolvedValue([])
     tx.aITopUpPurchase.update.mockResolvedValue({})
   })
@@ -156,9 +165,13 @@ describe('AI top-up lifecycle', () => {
     expect(tx.aIAllowanceAccount.update).toHaveBeenLastCalledWith({
       where: { clientId: 'client-1' },
       data: {
-        includedUsedSek: 30,
-        topUpBalanceSek: 7,
+        includedUsedSek: { increment: 2 },
+        topUpBalanceSek: { decrement: 5 },
       },
     })
+    expect(mockTransaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      { isolationLevel: 'Serializable' },
+    )
   })
 })

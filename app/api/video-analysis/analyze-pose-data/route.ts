@@ -10,7 +10,7 @@ import {
 } from '@/lib/ai/google-genai-client'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
-import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK, requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 export const maxDuration = 120
 
@@ -91,7 +91,9 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const allowanceDenied = await requireAiAllowance(clientId)
+      const allowanceDenied = await requireAiAllowance(clientId, {
+        minimumRemainingSek: AI_ALLOWANCE_MINIMUM_REMAINING_SEK.richAnalysis,
+      })
       if (allowanceDenied) return allowanceDenied
     }
 

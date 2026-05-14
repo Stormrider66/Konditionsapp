@@ -1,4 +1,4 @@
-import type { AIAllowanceAccount, Prisma, AthleteSubscriptionTier } from '@prisma/client'
+import { Prisma, type AIAllowanceAccount, type AthleteSubscriptionTier } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import {
   ATHLETE_AI_ALLOWANCE_SEK,
@@ -8,6 +8,7 @@ import {
 
 const DEFAULT_SEK_PER_USD = 10.5
 const TOP_UP_EXPIRY_DAYS = 180
+const MAX_DEBIT_TRANSACTION_RETRIES = 3
 
 export interface AllowancePeriod {
   periodStart: Date
@@ -410,46 +411,62 @@ async function spendAiTopUpPurchaseCredits(
   }
 }
 
+function isRetryableDebitTransactionError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034'
+}
+
 export async function recordAiUsageDebit(params: {
   clientId: string
   costSek: number
   now?: Date
 }) {
-  return prisma.$transaction(async (tx) => {
-    const account = await getOrCreateAiAllowanceAccount(params.clientId, params.now ?? new Date(), tx)
-    const debit = previewAiAllowanceDebit(account, params.costSek)
+  for (let attempt = 1; attempt <= MAX_DEBIT_TRANSACTION_RETRIES; attempt += 1) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const account = await getOrCreateAiAllowanceAccount(params.clientId, params.now ?? new Date(), tx)
+        const debit = previewAiAllowanceDebit(account, params.costSek)
 
-    if (!debit.allowed) {
-      const includedRemaining = Math.max(0, account.includedBudgetSek - account.includedUsedSek)
-      const exhaustedDebit: AllowanceDebitResult = {
-        ...debit,
-        includedDebitSek: roundSek(includedRemaining),
-        topUpDebitSek: roundSek(Math.max(0, account.topUpBalanceSek)),
-        includedUsedSek: account.includedBudgetSek,
-        topUpBalanceSek: 0,
-        remainingSek: 0,
-      }
-      const exhausted = await tx.aIAllowanceAccount.update({
-        where: { clientId: params.clientId },
-        data: {
-          includedUsedSek: exhaustedDebit.includedUsedSek,
-          topUpBalanceSek: 0,
-        },
+        if (!debit.allowed) {
+          const includedRemaining = Math.max(0, account.includedBudgetSek - account.includedUsedSek)
+          const exhaustedDebit: AllowanceDebitResult = {
+            ...debit,
+            includedDebitSek: roundSek(includedRemaining),
+            topUpDebitSek: roundSek(Math.max(0, account.topUpBalanceSek)),
+            includedUsedSek: account.includedBudgetSek,
+            topUpBalanceSek: 0,
+            remainingSek: 0,
+          }
+          const exhausted = await tx.aIAllowanceAccount.update({
+            where: { clientId: params.clientId },
+            data: {
+              includedUsedSek: exhaustedDebit.includedUsedSek,
+              topUpBalanceSek: 0,
+            },
+          })
+          await spendAiTopUpPurchaseCredits(params.clientId, exhaustedDebit.topUpDebitSek, tx)
+          return { account: exhausted, debit: exhaustedDebit }
+        }
+
+        await spendAiTopUpPurchaseCredits(params.clientId, debit.topUpDebitSek, tx)
+
+        const updated = await tx.aIAllowanceAccount.update({
+          where: { clientId: params.clientId },
+          data: {
+            includedUsedSek: { increment: debit.includedDebitSek },
+            topUpBalanceSek: { decrement: debit.topUpDebitSek },
+          },
+        })
+
+        return { account: updated, debit }
+      }, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
       })
-      await spendAiTopUpPurchaseCredits(params.clientId, exhaustedDebit.topUpDebitSek, tx)
-      return { account: exhausted, debit: exhaustedDebit }
+    } catch (error) {
+      if (attempt >= MAX_DEBIT_TRANSACTION_RETRIES || !isRetryableDebitTransactionError(error)) {
+        throw error
+      }
     }
+  }
 
-    await spendAiTopUpPurchaseCredits(params.clientId, debit.topUpDebitSek, tx)
-
-    const updated = await tx.aIAllowanceAccount.update({
-      where: { clientId: params.clientId },
-      data: {
-        includedUsedSek: debit.includedUsedSek,
-        topUpBalanceSek: debit.topUpBalanceSek,
-      },
-    })
-
-    return { account: updated, debit }
-  })
+  throw new Error('AI allowance debit failed after retrying transaction conflicts')
 }

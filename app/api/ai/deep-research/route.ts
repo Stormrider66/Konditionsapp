@@ -16,7 +16,7 @@ import { createProvider, PROVIDER_COST_ESTIMATES, ResearchConfig } from '@/lib/a
 import { checkBudget, logUsage } from '@/lib/ai/deep-research/budget-manager'
 import { searchSimilarChunks, hasEmbeddingKeys, type EmbeddingKeys } from '@/lib/ai/embeddings'
 import { DeepResearchProvider, DeepResearchStatus } from '@prisma/client'
-import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK, requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 // ============================================
 // Validation Schemas
@@ -112,7 +112,9 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const allowanceDenied = await requireAiAllowance(athleteId)
+      const allowanceDenied = await requireAiAllowance(athleteId, {
+        minimumRemainingSek: AI_ALLOWANCE_MINIMUM_REMAINING_SEK.longRunning,
+      })
       if (allowanceDenied) return allowanceDenied
     }
 

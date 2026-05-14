@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
-import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK, requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
@@ -55,7 +55,9 @@ export async function POST(request: Request) {
     })
     if (denied) return denied
 
-    const allowanceDenied = await requireAiAllowance(clientId)
+    const allowanceDenied = await requireAiAllowance(clientId, {
+      minimumRemainingSek: AI_ALLOWANCE_MINIMUM_REMAINING_SEK.richAnalysis,
+    })
     if (allowanceDenied) return allowanceDenied
 
     // Validate body

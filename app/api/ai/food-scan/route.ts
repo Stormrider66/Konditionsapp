@@ -20,7 +20,7 @@ import { logger } from '@/lib/logger'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 import { buildFoodMemoryContext } from '@/lib/nutrition/build-memory-context'
 import { logAiUsage } from '@/lib/ai/usage-logger'
-import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK, requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import {
   calibratePortions,
   fetchPortionStats,
@@ -117,7 +117,9 @@ export async function POST(request: NextRequest) {
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
     if (denied) return denied
 
-    const allowanceDenied = await requireAiAllowance(clientId)
+    const allowanceDenied = await requireAiAllowance(clientId, {
+      minimumRemainingSek: AI_ALLOWANCE_MINIMUM_REMAINING_SEK.foodScan,
+    })
     if (allowanceDenied) return allowanceDenied
 
     // Rate limit: 10 requests per 60 seconds

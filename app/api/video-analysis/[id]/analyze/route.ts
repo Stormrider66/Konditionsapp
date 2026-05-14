@@ -21,7 +21,7 @@ import { logger } from '@/lib/logger'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { createGoogleGenAIClient, getGeminiModelId } from '@/lib/ai/google-genai-client'
 import { withAiContext } from '@/lib/ai/usage-logger'
-import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK, requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { isSkiingVideoType } from '@/lib/ai/skiing-prompts'
 import { isHyroxVideoType } from '@/lib/ai/hyrox-prompts'
 import { analyzeGeneric } from '@/lib/video-analysis/analyzers/generic'
@@ -69,7 +69,9 @@ export async function POST(
     }
 
     if (analysis.athleteId) {
-      const allowanceDenied = await requireAiAllowance(analysis.athleteId)
+      const allowanceDenied = await requireAiAllowance(analysis.athleteId, {
+        minimumRemainingSek: AI_ALLOWANCE_MINIMUM_REMAINING_SEK.richAnalysis,
+      })
       if (allowanceDenied) return allowanceDenied
     }
 
