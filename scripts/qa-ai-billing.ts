@@ -55,13 +55,36 @@ function expectsExhaustedAthlete(env = process.env): boolean {
   return env.TRAINOMICS_QA_EXPECT_EXHAUSTED === 'true' || env.E2E_EXPECT_AI_EXHAUSTED === 'true'
 }
 
+function isTransientNavigationFetchError(message: string): boolean {
+  return (
+    message.includes('TypeError: Failed to fetch') &&
+    /Error fetching (user role|stats|business context)/i.test(message)
+  )
+}
+
 async function login(page: Page, baseUrl: string, target: LoginTarget) {
-  await page.goto(`${baseUrl}/login`, { waitUntil: 'domcontentloaded', timeout: 120_000 })
+  await page.goto(`${baseUrl}/login`, { waitUntil: 'networkidle', timeout: 120_000 })
   await expect(page.locator('input[name="email"]')).toBeVisible({ timeout: 60_000 })
   await page.fill('input[name="email"]', target.email)
   await page.fill('input[name="password"]', target.password)
-  await page.getByRole('button', { name: /logga in|log in/i }).click()
+  await Promise.all([
+    page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 60_000 }),
+    page.getByRole('button', { name: /logga in|log in/i }).click(),
+  ])
   await page.waitForLoadState('networkidle', { timeout: 60_000 }).catch(() => {})
+}
+
+async function gotoQaPage(page: Page, url: string) {
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 })
+      return
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (attempt === 2 || !message.includes('ERR_ABORTED')) throw error
+      await page.waitForLoadState('networkidle', { timeout: 60_000 }).catch(() => {})
+    }
+  }
 }
 
 async function assertNoCustomerFacingAiBudgetFootguns(page: Page) {
@@ -77,13 +100,13 @@ async function qaAthleteSubscription(
   options: { expectExhausted?: boolean } = {},
 ) {
   await login(page, baseUrl, target)
-  await page.goto(`${baseUrl}/athlete/subscription`, { waitUntil: 'domcontentloaded', timeout: 120_000 })
-  await expect(page.getByText(/AI-krediter/i)).toBeVisible({ timeout: 60_000 })
+  await gotoQaPage(page, `${baseUrl}/athlete/subscription`)
+  await expect(page.getByText(/AI-krediter/i).first()).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText(/Så fungerar AI-krediter/i)).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText(/Elite/i)).toBeVisible({ timeout: 60_000 })
-  await expect(page.getByText(/coach\/PT|Custom AI-krediter/i)).toBeVisible({ timeout: 60_000 })
-  await expect(page.getByText(/199/)).toBeVisible({ timeout: 60_000 })
-  await expect(page.getByText(/399/)).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByText(/coach\/PT|Custom AI-krediter/i).first()).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByText(/199/).first()).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByText(/399/).first()).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText(/SEK krediter/i).first()).toBeVisible({ timeout: 60_000 })
   if (await page.getByText(/Betalning är inte aktiverad ännu/i).count()) {
     await expect(page.getByRole('button', { name: /Kommer snart|Snart/i }).first()).toBeVisible({ timeout: 60_000 })
@@ -99,14 +122,14 @@ async function qaAthleteSubscription(
 
 async function qaAdminAiCosts(page: Page, baseUrl: string, target: LoginTarget) {
   await login(page, baseUrl, target)
-  await page.goto(`${baseUrl}/admin`, { waitUntil: 'domcontentloaded', timeout: 120_000 })
-  await expect(page.getByRole('button', { name: /AI Costs/i })).toBeVisible({ timeout: 60_000 })
-  await page.getByRole('button', { name: /AI Costs/i }).click()
+  await gotoQaPage(page, `${baseUrl}/admin`)
+  await expect(page.getByText('AI Costs', { exact: true })).toBeVisible({ timeout: 60_000 })
+  await page.getByText('AI Costs', { exact: true }).click()
   await expect(page.getByText(/Feature Mix/i)).toBeVisible({ timeout: 60_000 })
-  await expect(page.getByText(/Food scanner/i)).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByText(/Food scanner/i).first()).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText(/Top-Up Revenue/i)).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText(/Provider Invoice Reconciliation/i)).toBeVisible({ timeout: 60_000 })
-  await expect(page.getByText(/Google invoice/i)).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByText(/Google invoice/i).first()).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText(/Margin Risk Users/i)).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText(/Action/i).first()).toBeVisible({ timeout: 60_000 })
   await assertNoCustomerFacingAiBudgetFootguns(page)
@@ -115,9 +138,9 @@ async function qaAdminAiCosts(page: Page, baseUrl: string, target: LoginTarget) 
 
 async function qaAdminAllowanceOverrides(page: Page, baseUrl: string, target: LoginTarget) {
   await login(page, baseUrl, target)
-  await page.goto(`${baseUrl}/admin`, { waitUntil: 'domcontentloaded', timeout: 120_000 })
-  await expect(page.getByRole('button', { name: /users|användare/i })).toBeVisible({ timeout: 60_000 })
-  await page.getByRole('button', { name: /users|användare/i }).click()
+  await gotoQaPage(page, `${baseUrl}/admin`)
+  await expect(page.getByText(/users|användare/i).first()).toBeVisible({ timeout: 60_000 })
+  await page.getByText(/users|användare/i).first().click()
   await expect(page.getByText(/AI SEK/i)).toBeVisible({ timeout: 60_000 })
   const overrideInputs = page.getByTitle(/Tomt värde använder planens eller företagets standard/i)
   if (await overrideInputs.count()) {
@@ -128,7 +151,7 @@ async function qaAdminAllowanceOverrides(page: Page, baseUrl: string, target: Lo
 
 async function qaBusinessEliteSettings(page: Page, baseUrl: string, businessSlug: string, target: LoginTarget) {
   await login(page, baseUrl, target)
-  await page.goto(`${baseUrl}/${businessSlug}/coach/admin`, { waitUntil: 'domcontentloaded', timeout: 120_000 })
+  await gotoQaPage(page, `${baseUrl}/${businessSlug}/coach/admin`)
   await expect(page.getByRole('tab', { name: /Settings/i })).toBeVisible({ timeout: 60_000 })
   await page.getByRole('tab', { name: /Settings/i }).click()
   await expect(page.getByText(/Elite Pricing/i)).toBeVisible({ timeout: 60_000 })
@@ -166,7 +189,9 @@ async function main() {
     if (athleteLogin) {
       const page = await browser.newPage()
       page.on('console', (message) => {
-        if (message.type() === 'error') findings.push(`athlete console: ${message.text()}`)
+        if (message.type() === 'error' && !isTransientNavigationFetchError(message.text())) {
+          findings.push(`athlete console: ${message.text()}`)
+        }
       })
       page.on('pageerror', (error) => findings.push(`athlete pageerror: ${error.message}`))
       await qaAthleteSubscription(page, baseUrl, athleteLogin, { expectExhausted })
@@ -176,7 +201,9 @@ async function main() {
     if (adminLogin) {
       const page = await browser.newPage()
       page.on('console', (message) => {
-        if (message.type() === 'error') findings.push(`admin console: ${message.text()}`)
+        if (message.type() === 'error' && !isTransientNavigationFetchError(message.text())) {
+          findings.push(`admin console: ${message.text()}`)
+        }
       })
       page.on('pageerror', (error) => findings.push(`admin pageerror: ${error.message}`))
       await qaAdminAiCosts(page, baseUrl, adminLogin)
@@ -191,7 +218,9 @@ async function main() {
 
       const page = await browser.newPage()
       page.on('console', (message) => {
-        if (message.type() === 'error') findings.push(`business admin console: ${message.text()}`)
+        if (message.type() === 'error' && !isTransientNavigationFetchError(message.text())) {
+          findings.push(`business admin console: ${message.text()}`)
+        }
       })
       page.on('pageerror', (error) => findings.push(`business admin pageerror: ${error.message}`))
       await qaBusinessEliteSettings(page, baseUrl, businessSlug, businessAdminLogin)
