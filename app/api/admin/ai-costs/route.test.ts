@@ -51,34 +51,36 @@ describe('admin AI costs route', () => {
     mockPrisma.aIUsageLog.findMany.mockResolvedValue([
       usageLog({ category: 'food_scan', estimatedCost: 1, clientId: 'client-1' }),
       usageLog({ category: 'food_scan_memory', estimatedCost: 0.5, clientId: 'client-1' }),
-      usageLog({ category: 'video_analysis', estimatedCost: 0.25, clientId: 'client-2' }),
-      usageLog({ category: 'live_voice_coach', estimatedCost: 0.25, clientId: 'client-2' }),
+      usageLog({ category: 'food_scan_text', estimatedCost: 0.1, clientId: 'client-1' }),
+      usageLog({ category: 'video_analysis_generic', estimatedCost: 0.25, clientId: 'client-2' }),
+      usageLog({ category: 'live_voice_coaching', estimatedCost: 0.25, clientId: 'client-2' }),
+      usageLog({ category: 'live_voice_summary', estimatedCost: 0.1, clientId: 'client-2' }),
     ])
 
     const response = await GET(new NextRequest('http://localhost/api/admin/ai-costs?days=7'))
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(body.data.totals.costSek).toBe(20)
+    expect(body.data.totals.costSek).toBe(22)
     expect(body.data.featureMix.foodScanner).toMatchObject({
-      calls: 2,
-      costSek: 15,
-      athleteLinkedCalls: 2,
-      athleteLinkedCostSek: 15,
-      costSharePercent: 75,
+      calls: 3,
+      costSek: 16,
+      athleteLinkedCalls: 3,
+      athleteLinkedCostSek: 16,
+      costSharePercent: 73,
       callSharePercent: 50,
     })
     expect(body.data.featureMix.heavyInteractive).toMatchObject({
-      calls: 2,
-      costSek: 5,
-      costSharePercent: 25,
+      calls: 3,
+      costSek: 6,
+      costSharePercent: 27,
       callSharePercent: 50,
     })
     expect(body.data.featureMix.topCategory).toMatchObject({
       key: 'food_scan',
       label: 'Food scanner',
       costSek: 10,
-      costSharePercent: 50,
+      costSharePercent: 45,
     })
   })
 
