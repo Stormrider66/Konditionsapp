@@ -25,6 +25,8 @@ export const ATHLETE_AI_ALLOWANCE_SEK: Record<AthletePlanTier, number> = {
   ELITE: 150,
 }
 
+export const ATHLETE_TRIAL_AI_ALLOWANCE_SEK = 15
+
 export const ATHLETE_PLAN_COPY: Record<
   AthletePlanTier,
   {

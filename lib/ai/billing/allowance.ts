@@ -2,6 +2,7 @@ import type { Prisma, AthleteSubscriptionTier } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import {
   ATHLETE_AI_ALLOWANCE_SEK,
+  ATHLETE_TRIAL_AI_ALLOWANCE_SEK,
   type AthletePlanTier,
 } from '@/lib/subscription/athlete-plans'
 
@@ -56,11 +57,18 @@ export function getAthleteAiAllowanceSek(tier: AthleteSubscriptionTier | Athlete
 
 export function resolveConfiguredAiAllowanceSek(params: {
   tier?: AthleteSubscriptionTier | AthletePlanTier | null
+  status?: string | null
+  trialEndsAt?: Date | string | null
   customAiAllowanceSek?: number | null
   businessEliteAiAllowanceSek?: number | null
+  now?: Date
 }): number {
   if (params.customAiAllowanceSek !== null && params.customAiAllowanceSek !== undefined) {
     return Math.max(0, roundSek(params.customAiAllowanceSek))
+  }
+
+  if (isActiveTrialAllowance(params)) {
+    return ATHLETE_TRIAL_AI_ALLOWANCE_SEK
   }
 
   if (
@@ -72,6 +80,21 @@ export function resolveConfiguredAiAllowanceSek(params: {
   }
 
   return getAthleteAiAllowanceSek(params.tier)
+}
+
+function isActiveTrialAllowance(params: {
+  status?: string | null
+  trialEndsAt?: Date | string | null
+  now?: Date
+}): boolean {
+  if (params.status !== 'TRIAL') return false
+  if (!params.trialEndsAt) return true
+
+  const trialEndsAt = params.trialEndsAt instanceof Date
+    ? params.trialEndsAt
+    : new Date(params.trialEndsAt)
+
+  return Number.isFinite(trialEndsAt.getTime()) && trialEndsAt > (params.now ?? new Date())
 }
 
 export function getRemainingAiBalanceSek(balance: AllowanceBalance): number {
@@ -122,6 +145,8 @@ export async function getOrCreateAiAllowanceAccount(
       athleteSubscription: {
         select: {
           tier: true,
+          status: true,
+          trialEndsAt: true,
           customAiAllowanceSek: true,
           business: {
             select: {
@@ -139,8 +164,11 @@ export async function getOrCreateAiAllowanceAccount(
 
   const tierAllowanceSek = resolveConfiguredAiAllowanceSek({
     tier: client.athleteSubscription?.tier,
+    status: client.athleteSubscription?.status,
+    trialEndsAt: client.athleteSubscription?.trialEndsAt,
     customAiAllowanceSek: client.athleteSubscription?.customAiAllowanceSek,
     businessEliteAiAllowanceSek: client.athleteSubscription?.business?.eliteAiAllowanceSek,
+    now,
   })
   const period = getCurrentAllowancePeriod(now)
   const existing = await tx.aIAllowanceAccount.findUnique({ where: { clientId } })
@@ -208,6 +236,8 @@ export async function resetExpiredAiAllowanceAccounts(
           athleteSubscription: {
             select: {
               tier: true,
+              status: true,
+              trialEndsAt: true,
               customAiAllowanceSek: true,
               business: {
                 select: {
@@ -225,8 +255,11 @@ export async function resetExpiredAiAllowanceAccounts(
     const subscription = account.client.athleteSubscription
     const allowanceSek = resolveConfiguredAiAllowanceSek({
       tier: subscription?.tier,
+      status: subscription?.status,
+      trialEndsAt: subscription?.trialEndsAt,
       customAiAllowanceSek: subscription?.customAiAllowanceSek,
       businessEliteAiAllowanceSek: subscription?.business?.eliteAiAllowanceSek,
+      now,
     })
 
     return tx.aIAllowanceAccount.update({

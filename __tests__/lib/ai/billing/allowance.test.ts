@@ -53,6 +53,32 @@ describe('AI allowance billing helpers', () => {
     })).toBe(75)
   })
 
+  it('uses a smaller active trial allowance unless an explicit override exists', () => {
+    const now = new Date('2026-05-14T08:00:00.000Z')
+
+    expect(resolveConfiguredAiAllowanceSek({
+      tier: 'STANDARD',
+      status: 'TRIAL',
+      trialEndsAt: new Date('2026-05-20T08:00:00.000Z'),
+      now,
+    })).toBe(15)
+
+    expect(resolveConfiguredAiAllowanceSek({
+      tier: 'STANDARD',
+      status: 'TRIAL',
+      trialEndsAt: new Date('2026-05-20T08:00:00.000Z'),
+      customAiAllowanceSek: 45,
+      now,
+    })).toBe(45)
+
+    expect(resolveConfiguredAiAllowanceSek({
+      tier: 'STANDARD',
+      status: 'TRIAL',
+      trialEndsAt: new Date('2026-05-01T08:00:00.000Z'),
+      now,
+    })).toBe(30)
+  })
+
   it('spends included credits before top-up balance', () => {
     const result = previewAiAllowanceDebit(
       {
@@ -113,6 +139,8 @@ describe('AI allowance billing helpers', () => {
             client: {
               athleteSubscription: {
                 tier: 'ELITE',
+                status: 'ACTIVE',
+                trialEndsAt: null,
                 customAiAllowanceSek: null,
                 business: {
                   eliteAiAllowanceSek: 240,
@@ -125,6 +153,8 @@ describe('AI allowance billing helpers', () => {
             client: {
               athleteSubscription: {
                 tier: 'STANDARD',
+                status: 'ACTIVE',
+                trialEndsAt: null,
                 customAiAllowanceSek: 55,
                 business: null,
               },
