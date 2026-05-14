@@ -7,12 +7,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { startOfDay } from 'date-fns'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { inferCompleteProtein, inferProteinSource, normalizeProteinSource } from '@/lib/nutrition/protein-quality'
 
 const RANGE_DAYS: Record<string, number> = {
+  '1d': 1,
   '7d': 7,
   '30d': 30,
   '90d': 90,
@@ -28,7 +30,9 @@ export async function GET(request: NextRequest) {
 
     const range = request.nextUrl.searchParams.get('range') || '30d'
     const days = RANGE_DAYS[range] || 30
-    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    const startDate = range === '1d'
+      ? startOfDay(new Date())
+      : new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 
     // Parallel queries
     const [meals, nutritionGoal, workoutLogs] = await Promise.all([

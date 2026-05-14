@@ -1,6 +1,6 @@
 'use client'
 
-import { Beef, Droplets, Leaf, Scale } from 'lucide-react'
+import { AlertTriangle, Beef, Droplets, Leaf, Scale } from 'lucide-react'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 
 export interface NutritionQuality {
@@ -95,6 +95,9 @@ export function NutritionQualityCard({ quality }: NutritionQualityCardProps) {
   const protein = quality.protein
   const fat = quality.fat
   const completeGap = protein.targetCompletePercent - protein.completePercentOfKnown
+  const lowProteinCoverage = protein.knownQualityCoveragePercent < 50
+  const lowFatCoverage = fat.knownBreakdownCoveragePercent < 50
+  const hasLowCoverage = lowProteinCoverage || lowFatCoverage
 
   return (
     <GlassCard>
@@ -105,6 +108,15 @@ export function NutritionQualityCard({ quality }: NutritionQualityCardProps) {
         </GlassCardTitle>
       </GlassCardHeader>
       <GlassCardContent className="space-y-5">
+        {hasLowCoverage && (
+          <div className="flex gap-2 rounded-lg border border-amber-400/20 bg-amber-400/10 p-3 text-xs text-amber-100">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+            <p>
+              Låg datatäckning. Största delen av protein/fett kunde inte klassificeras, så kvaliteten ska tolkas försiktigt.
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="rounded-lg bg-white/5 p-3">
             <div className="flex items-center gap-2 text-xs text-slate-400">
@@ -147,8 +159,8 @@ export function NutritionQualityCard({ quality }: NutritionQualityCardProps) {
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-300">Andel fullvärdigt protein</span>
-            <span className={completeGap <= 0 ? 'text-emerald-400' : 'text-amber-400'}>
-              {completeGap <= 0 ? 'Mål uppnått' : `${completeGap}% kvar till mål`}
+            <span className={lowProteinCoverage ? 'text-amber-300' : completeGap <= 0 ? 'text-emerald-400' : 'text-amber-400'}>
+              {lowProteinCoverage ? 'Låg säkerhet' : completeGap <= 0 ? 'Mål uppnått' : `${completeGap}% kvar till mål`}
             </span>
           </div>
           <div className="relative pt-1">

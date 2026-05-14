@@ -79,6 +79,7 @@ interface NutritionStatsPageProps {
 }
 
 const RANGE_OPTIONS = [
+  { value: '1d', label: '1 dag' },
   { value: '7d', label: '7 dagar' },
   { value: '30d', label: '30 dagar' },
   { value: '90d', label: '90 dagar' },
@@ -163,7 +164,7 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
         <p className="text-sm text-slate-400">
           {data.summary.totalDaysLogged} dagar loggade &middot; {data.summary.totalMeals} måltider
         </p>
-        <div className="flex gap-1 bg-white/5 rounded-lg p-1">
+        <div className="flex flex-wrap justify-end gap-1 bg-white/5 rounded-lg p-1">
           {RANGE_OPTIONS.map((opt) => (
             <Button
               key={opt.value}
