@@ -272,15 +272,16 @@ Purpose: Keep Elite as a service package, not just a larger AI tier.
 
 Tasks:
 
-- Keep Elite tied to business/coach/PT configuration.
+- Keep Elite tied to business/coach/PT configuration. Shipped in existing Elite checkout guard and preserved through this implementation.
 - Allow business owner/admin to set:
-  - monthly price
-  - yearly price
-  - description
-  - included AI allowance
+  - monthly price. Shipped in existing Elite pricing and surfaced in business settings in `e80f4eac`.
+  - yearly price. Shipped in existing Elite pricing and surfaced in business settings in `e80f4eac`.
+  - description. Shipped in existing Elite pricing and surfaced in business settings in `e80f4eac`.
+  - included AI allowance. Shipped at business level in `4e3d99d1` and surfaced in `e80f4eac`.
+  - per-athlete allowance override. Shipped for platform admins in `c3673895`.
   - assigned coach/PT
 - Ensure checkout requires business context for Elite.
-- Add admin view for Elite subscribers and their AI usage.
+- Add admin view for Elite subscribers and their AI usage. Shipped in AI Costs margin/risk view in `4e3d99d1`.
 
 Acceptance criteria:
 
@@ -299,7 +300,7 @@ Dashboards/checks:
 - AI usage by category.
 - Heavy users list.
 - Google invoice vs app-estimated cost.
-- Top-up conversion rate.
+- Top-up conversion rate. Shipped in `053d1795`.
 - Food scanner quality complaints after lower thinking setting.
 
 Rollout:
@@ -361,5 +362,5 @@ Additional shipped chunks:
 - Exact Pro included AI allowance.
 - Whether Pro should have a small grace buffer before hard cap.
 - Top-up credit expiry period.
-- Whether Elite allowance is business-level default only or configurable per athlete.
+- Whether Elite allowance is business-level default only or configurable per athlete. Decided: both; business default plus platform-admin per-athlete override.
 - Whether trial users receive Standard allowance or a smaller trial-only allowance.
