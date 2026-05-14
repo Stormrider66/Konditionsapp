@@ -12,6 +12,7 @@ import { canAccessAthlete } from '@/lib/auth/athlete-access';
 import { HybridScoreType, ScalingLevel } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
 import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
+import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -125,6 +126,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       difficulty,
       movementSplits,
       videoUrl,
+      allowFutureCompletion,
     } = body;
 
     // Determine which athlete this result is for
@@ -166,6 +168,27 @@ export async function POST(request: NextRequest, context: RouteContext) {
         { error: 'Workout not found' },
         { status: 404 }
       );
+    }
+
+    const scheduledAssignment = await prisma.hybridWorkoutAssignment.findFirst({
+      where: {
+        workoutId: id,
+        athleteId,
+        status: { not: 'COMPLETED' },
+      },
+      orderBy: { assignedDate: 'asc' },
+      select: { assignedDate: true },
+    })
+
+    if (scheduledAssignment) {
+      const warning = getFutureWorkoutCompletionWarning({
+        assignedDate: scheduledAssignment.assignedDate,
+        allowFutureCompletion,
+      })
+
+      if (warning) {
+        return NextResponse.json({ success: false, ...warning }, { status: 409 })
+      }
     }
 
     // Check if this is a PR

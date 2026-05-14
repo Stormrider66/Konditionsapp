@@ -52,6 +52,10 @@ import { toast } from 'sonner';
 import { WorkoutTimer } from './WorkoutTimer';
 import { useWorkoutThemeOptional } from '@/lib/themes/ThemeProvider';
 import { MINIMALIST_WHITE_THEME } from '@/lib/themes/definitions';
+import {
+  confirmFutureCompletion,
+  readFutureCompletionWarning,
+} from '@/lib/workouts/future-completion-client';
 
 interface HybridMovement {
   id: string;
@@ -599,11 +603,25 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
         scoreData.customModifications = modifications;
       }
 
-      const response = await fetch(`/api/hybrid-workouts/${workout.id}/results`, {
+      let response = await fetch(`/api/hybrid-workouts/${workout.id}/results`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(scoreData),
       });
+
+      const futureWarning = await readFutureCompletionWarning(response);
+      if (futureWarning) {
+        if (!confirmFutureCompletion(futureWarning)) {
+          setLoading(false);
+          return;
+        }
+
+        response = await fetch(`/api/hybrid-workouts/${workout.id}/results`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...scoreData, allowFutureCompletion: true }),
+        });
+      }
 
       const data = await response.json();
 

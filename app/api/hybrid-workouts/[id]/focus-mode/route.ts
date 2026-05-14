@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
+import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 
 interface HybridMovementData {
   id: string
@@ -337,6 +338,7 @@ export async function PUT(
       notes,
       scalingLevel,
       scalingNotes,
+      allowFutureCompletion,
     } = body
 
     // Get assignment
@@ -357,6 +359,17 @@ export async function PUT(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
       )
+    }
+
+    if (status === 'COMPLETED') {
+      const warning = getFutureWorkoutCompletionWarning({
+        assignedDate: assignment.assignedDate,
+        allowFutureCompletion,
+      })
+
+      if (warning) {
+        return NextResponse.json({ success: false, ...warning }, { status: 409 })
+      }
     }
 
     // Find the workout log

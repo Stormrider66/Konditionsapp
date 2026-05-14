@@ -23,6 +23,10 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { CardioSessionCard } from './CardioSessionCard'
 import { CardioWorkoutPreview } from '@/components/workouts/CardioWorkoutPreview'
+import {
+  confirmFutureCompletion,
+  readFutureCompletionWarning,
+} from '@/lib/workouts/future-completion-client'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS'
 
@@ -218,15 +222,28 @@ export function AthleteCardioClient({
     if (!selectedAssignment) return
 
     try {
-      await fetch(`/api/cardio-sessions/${selectedAssignment.id}/focus-mode`, {
+      const completionPayload = {
+        status: 'COMPLETED',
+        sessionRPE: data.sessionRPE,
+        notes: data.notes,
+      }
+      let response = await fetch(`/api/cardio-sessions/${selectedAssignment.id}/focus-mode`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'COMPLETED',
-          sessionRPE: data.sessionRPE,
-          notes: data.notes,
-        }),
+        body: JSON.stringify(completionPayload),
       })
+
+      const futureWarning = await readFutureCompletionWarning(response)
+      if (futureWarning) {
+        if (!confirmFutureCompletion(futureWarning)) return
+        response = await fetch(`/api/cardio-sessions/${selectedAssignment.id}/focus-mode`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...completionPayload, allowFutureCompletion: true }),
+        })
+      }
+
+      if (!response.ok) throw new Error('Failed to complete session')
 
       toast({
         title: 'Pass slutfört!',

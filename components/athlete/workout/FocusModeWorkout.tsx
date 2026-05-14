@@ -46,6 +46,10 @@ import { ExerciseHeader } from '@/components/themed/ExerciseHeader'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { Player } from '@remotion/player'
 import { ExerciseAnimation } from '@/remotion/exercises/ExerciseAnimation'
+import {
+  confirmFutureCompletion,
+  readFutureCompletionWarning,
+} from '@/lib/workouts/future-completion-client'
 
 interface FocusModeExercise {
   id: string
@@ -329,14 +333,27 @@ export function FocusModeWorkout({
   const handleComplete = async () => {
     setIsCompleting(true)
     try {
-      await fetch(`/api/strength-sessions/${assignmentId}/focus-mode`, {
+      const completionPayload = {
+        status: 'COMPLETED',
+        rpe: sessionRPE,
+      }
+      let response = await fetch(`/api/strength-sessions/${assignmentId}/focus-mode`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'COMPLETED',
-          rpe: sessionRPE,
-        }),
+        body: JSON.stringify(completionPayload),
       })
+
+      const futureWarning = await readFutureCompletionWarning(response)
+      if (futureWarning) {
+        if (!confirmFutureCompletion(futureWarning)) return
+        response = await fetch(`/api/strength-sessions/${assignmentId}/focus-mode`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...completionPayload, allowFutureCompletion: true }),
+        })
+      }
+
+      if (!response.ok) throw new Error('Failed to complete workout')
 
       setShowCompleteDialog(false)
       if (onClose) {

@@ -29,6 +29,10 @@ import {
   Trophy,
 } from 'lucide-react'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
+import {
+  confirmFutureCompletion,
+  readFutureCompletionWarning,
+} from '@/lib/workouts/future-completion-client'
 
 interface SetLogSummary {
   id: string
@@ -465,14 +469,27 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
   const handleComplete = async () => {
     setIsCompleting(true)
     try {
-      await fetch(`/api/strength-sessions/${assignmentId}/focus-mode`, {
+      const completionPayload = {
+        status: 'COMPLETED',
+        rpe: sessionRpe,
+      }
+      let res = await fetch(`/api/strength-sessions/${assignmentId}/focus-mode`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'COMPLETED',
-          rpe: sessionRpe,
-        }),
+        body: JSON.stringify(completionPayload),
       })
+
+      const futureWarning = await readFutureCompletionWarning(res)
+      if (futureWarning) {
+        if (!confirmFutureCompletion(futureWarning)) return
+        res = await fetch(`/api/strength-sessions/${assignmentId}/focus-mode`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...completionPayload, allowFutureCompletion: true }),
+        })
+      }
+
+      if (!res.ok) throw new Error('Failed to complete session')
       onComplete?.()
       onClose()
     } catch {

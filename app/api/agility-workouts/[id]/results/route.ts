@@ -8,6 +8,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 
 const drillResultSchema = z.object({
   drillId: z.string().uuid(),
@@ -20,7 +21,9 @@ const submitResultSchema = z.object({
   totalDuration: z.number().int().min(0).optional(),
   perceivedEffort: z.number().int().min(1).max(10).optional(),
   notes: z.string().optional(),
-  drillResults: z.array(drillResultSchema).optional()
+  drillResults: z.array(drillResultSchema).optional(),
+  assignmentId: z.string().uuid().optional(),
+  allowFutureCompletion: z.boolean().optional()
 })
 
 interface RouteParams {
@@ -117,6 +120,36 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const body = await request.json()
     const validatedData = submitResultSchema.parse(body)
+
+    const assignment = validatedData.assignmentId
+      ? await prisma.agilityWorkoutAssignment.findUnique({
+          where: { id: validatedData.assignmentId },
+          select: { id: true, workoutId: true, athleteId: true, assignedDate: true }
+        })
+      : await prisma.agilityWorkoutAssignment.findFirst({
+          where: {
+            workoutId: id,
+            athleteId: clientId,
+            status: { not: 'COMPLETED' }
+          },
+          orderBy: { assignedDate: 'asc' },
+          select: { id: true, workoutId: true, athleteId: true, assignedDate: true }
+        })
+
+    if (assignment) {
+      if (assignment.workoutId !== id || assignment.athleteId !== clientId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+
+      const warning = getFutureWorkoutCompletionWarning({
+        assignedDate: assignment.assignedDate,
+        allowFutureCompletion: validatedData.allowFutureCompletion,
+      })
+
+      if (warning) {
+        return NextResponse.json({ success: false, ...warning }, { status: 409 })
+      }
+    }
 
     // Create result
     const result = await prisma.agilityWorkoutResult.create({

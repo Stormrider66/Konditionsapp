@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import type { CardioSegmentType } from '@prisma/client'
 import { logError } from '@/lib/logger-console'
+import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 
 interface CardioSegmentData {
   id: string
@@ -507,6 +508,7 @@ export async function PUT(
       actualDistance,
       avgHeartRate,
       maxHeartRate,
+      allowFutureCompletion,
     } = body
 
     // Get assignment
@@ -527,6 +529,17 @@ export async function PUT(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
       )
+    }
+
+    if (status === 'COMPLETED') {
+      const warning = getFutureWorkoutCompletionWarning({
+        assignedDate: assignment.assignedDate,
+        allowFutureCompletion,
+      })
+
+      if (warning) {
+        return NextResponse.json({ success: false, ...warning }, { status: 409 })
+      }
     }
 
     // Find the session log

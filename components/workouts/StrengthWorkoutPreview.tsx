@@ -18,6 +18,10 @@ import type {
 import { FocusModeWorkout } from '@/components/athlete/workout/FocusModeWorkout'
 import { HeadlessVoiceCoach } from '@/components/athlete/workout/HeadlessVoiceCoach'
 import { AudioCaptureManager } from '@/lib/ai/live-voice-coaching/audio-capture'
+import {
+  confirmFutureCompletion,
+  readFutureCompletionWarning,
+} from '@/lib/workouts/future-completion-client'
 
 interface FocusModeApiResponse {
   success: boolean
@@ -133,16 +137,28 @@ export function StrengthWorkoutPreview({
           1,
           Math.round((Date.now() - (startedAtRef.current ?? Date.now())) / 60000),
         )
-      const res = await fetch(`/api/strength-sessions/${assignmentId}/focus-mode`, {
+      const completionPayload = {
+        status: 'COMPLETED',
+        rpe: payload.rpe,
+        duration: durationMinutes,
+        notes: payload.notes,
+      }
+      let res = await fetch(`/api/strength-sessions/${assignmentId}/focus-mode`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'COMPLETED',
-          rpe: payload.rpe,
-          duration: durationMinutes,
-          notes: payload.notes,
-        }),
+        body: JSON.stringify(completionPayload),
       })
+
+      const futureWarning = await readFutureCompletionWarning(res)
+      if (futureWarning) {
+        if (!confirmFutureCompletion(futureWarning)) return
+        res = await fetch(`/api/strength-sessions/${assignmentId}/focus-mode`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...completionPayload, allowFutureCompletion: true }),
+        })
+      }
+
       if (!res.ok) throw new Error('Failed to complete session')
       setShowCompleteDialog(false)
       onCompleted?.()

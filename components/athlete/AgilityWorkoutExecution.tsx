@@ -35,6 +35,10 @@ import {
   X
 } from 'lucide-react'
 import type { AgilityWorkout, AgilityWorkoutDrill, AgilityDrill } from '@/types'
+import {
+  confirmFutureCompletion,
+  readFutureCompletionWarning,
+} from '@/lib/workouts/future-completion-client'
 
 interface WorkoutDrillWithDetails extends AgilityWorkoutDrill {
   drill: AgilityDrill
@@ -170,18 +174,29 @@ export function AgilityWorkoutExecution({
       const endTime = new Date()
       const totalDuration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
 
-      const response = await fetch(`/api/agility-workouts/${workout.id}/results`, {
+      const completionPayload = {
+        athleteId: clientId,
+        assignmentId,
+        totalDuration,
+        perceivedEffort,
+        notes: workoutNotes || undefined,
+        drillResults: Object.values(drillResults)
+      }
+      let response = await fetch(`/api/agility-workouts/${workout.id}/results`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          athleteId: clientId,
-          assignmentId,
-          totalDuration,
-          perceivedEffort,
-          notes: workoutNotes || undefined,
-          drillResults: Object.values(drillResults)
-        })
+        body: JSON.stringify(completionPayload)
       })
+
+      const futureWarning = await readFutureCompletionWarning(response)
+      if (futureWarning) {
+        if (!confirmFutureCompletion(futureWarning)) return
+        response = await fetch(`/api/agility-workouts/${workout.id}/results`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...completionPayload, allowFutureCompletion: true })
+        })
+      }
 
       if (!response.ok) throw new Error('Failed to save workout result')
 

@@ -12,6 +12,10 @@ import type {
   PreviewWorkoutData,
 } from './types'
 import { HybridFocusModeWorkout } from '@/components/athlete/hybrid/HybridFocusModeWorkout'
+import {
+  confirmFutureCompletion,
+  readFutureCompletionWarning,
+} from '@/lib/workouts/future-completion-client'
 
 interface HybridFocusMovement {
   id: string
@@ -211,15 +215,28 @@ export function HybridWorkoutPreview({
   async function handleComplete(payload: CompleteSessionPayload) {
     setIsCompleting(true)
     try {
-      await fetch(`/api/hybrid-workouts/${assignmentId}/focus-mode`, {
+      const completionPayload = {
+        status: 'COMPLETED',
+        sessionRPE: payload.rpe,
+        notes: payload.notes,
+      }
+      let res = await fetch(`/api/hybrid-workouts/${assignmentId}/focus-mode`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'COMPLETED',
-          sessionRPE: payload.rpe,
-          notes: payload.notes,
-        }),
+        body: JSON.stringify(completionPayload),
       })
+
+      const futureWarning = await readFutureCompletionWarning(res)
+      if (futureWarning) {
+        if (!confirmFutureCompletion(futureWarning)) return
+        res = await fetch(`/api/hybrid-workouts/${assignmentId}/focus-mode`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...completionPayload, allowFutureCompletion: true }),
+        })
+      }
+
+      if (!res.ok) throw new Error('Failed to complete session')
       setShowCompleteDialog(false)
       onCompleted?.()
       onClose()

@@ -14,6 +14,10 @@ import type {
 } from './types'
 import { AgilityWorkoutExecution } from '@/components/athlete/AgilityWorkoutExecution'
 import type { AgilityWorkout, AgilityWorkoutDrill, AgilityDrill } from '@/types'
+import {
+  confirmFutureCompletion,
+  readFutureCompletionWarning,
+} from '@/lib/workouts/future-completion-client'
 
 type DrillWithDetails = AgilityWorkoutDrill & { drill: AgilityDrill }
 
@@ -126,17 +130,30 @@ export function AgilityWorkoutPreview({
     }
     setIsCompleting(true)
     try {
-      await fetch(`/api/agility-workouts/${workout.id}/results`, {
+      const completionPayload = {
+        totalDuration: (payload.duration ?? 0) * 60,
+        perceivedEffort: payload.rpe ?? 5,
+        notes: payload.notes,
+        drillResults: [],
+        assignmentId,
+      }
+      let res = await fetch(`/api/agility-workouts/${workout.id}/results`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          totalDuration: (payload.duration ?? 0) * 60,
-          perceivedEffort: payload.rpe ?? 5,
-          notes: payload.notes,
-          drillResults: [],
-          assignmentId,
-        }),
+        body: JSON.stringify(completionPayload),
       })
+
+      const futureWarning = await readFutureCompletionWarning(res)
+      if (futureWarning) {
+        if (!confirmFutureCompletion(futureWarning)) return
+        res = await fetch(`/api/agility-workouts/${workout.id}/results`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...completionPayload, allowFutureCompletion: true }),
+        })
+      }
+
+      if (!res.ok) throw new Error('Failed to complete session')
       setShowCompleteDialog(false)
       window.history.back()
     } finally {
