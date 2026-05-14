@@ -53,6 +53,9 @@ Use this before pushing the AI allowance/top-up work to production.
   - `TRAINOMICS_QA_ADMIN_EMAIL` / `TRAINOMICS_QA_ADMIN_PASSWORD`
   - Optional business admin check: `TRAINOMICS_QA_BUSINESS_ADMIN_EMAIL` / `TRAINOMICS_QA_BUSINESS_ADMIN_PASSWORD` / `TRAINOMICS_QA_BUSINESS_SLUG`
 - Food scanner blocks cleanly when AI credits are exhausted.
+- To prepare a seeded QA athlete for exhausted-credit smoke testing, run:
+  - Dry run: `npm run qa:ai-billing:prepare-smoke -- --email=<athlete-email> --budget=0.25 --remaining=0`
+  - Apply: `npm run qa:ai-billing:prepare-smoke -- --email=<athlete-email> --budget=0.25 --remaining=0 --apply`
 - Video analysis blocks cleanly when AI credits are exhausted.
 - Live voice coach blocks cleanly when AI credits are exhausted.
 - WOD generation blocks cleanly when AI credits are exhausted.
