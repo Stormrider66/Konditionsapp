@@ -15,7 +15,7 @@ export async function GET() {
     }
 
     const { clientId } = resolved
-    const [{ account, remainingSek }, subscription] = await Promise.all([
+    const [{ account, remainingSek }, subscription, recentTopUps] = await Promise.all([
       getAiAllowanceStatus(clientId),
       prisma.athleteSubscription.findUnique({
         where: { clientId },
@@ -23,6 +23,20 @@ export async function GET() {
           tier: true,
           status: true,
           billingCycle: true,
+        },
+      }),
+      prisma.aITopUpPurchase.findMany({
+        where: { clientId },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+        select: {
+          id: true,
+          amountPaidSek: true,
+          creditsSek: true,
+          creditsRemainingSek: true,
+          status: true,
+          expiresAt: true,
+          createdAt: true,
         },
       }),
     ])
@@ -42,6 +56,15 @@ export async function GET() {
         remainingSek,
         status: account.status,
       },
+      recentTopUps: recentTopUps.map((purchase) => ({
+        id: purchase.id,
+        amountPaidSek: purchase.amountPaidSek,
+        creditsSek: purchase.creditsSek,
+        creditsRemainingSek: purchase.creditsRemainingSek,
+        status: purchase.status,
+        expiresAt: purchase.expiresAt,
+        createdAt: purchase.createdAt,
+      })),
     })
   } catch (error) {
     logger.error('Failed to fetch athlete AI allowance', {}, error)

@@ -24,6 +24,15 @@ interface AllowancePayload {
     remainingSek: number
     status: string
   }
+  recentTopUps: Array<{
+    id: string
+    amountPaidSek: number
+    creditsSek: number
+    creditsRemainingSek: number
+    status: string
+    expiresAt: string | null
+    createdAt: string
+  }>
 }
 
 interface AICreditStatusCardProps {
@@ -44,6 +53,12 @@ function formatSek(value: number): string {
 function formatPeriodEnd(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return 'nästa månad'
+  return date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+}
+
+function formatShortDate(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
   return date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
 }
 
@@ -210,12 +225,35 @@ export function AICreditStatusCard({
       </div>
 
       {!compact && (
-        <div className="mt-4 flex items-start gap-2 rounded-xl bg-slate-950/[0.03] p-3 text-xs text-slate-600 dark:bg-white/[0.04] dark:text-slate-300">
-          <Coins className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>
-            AI-krediter används av mat-skanner, videoanalys, röstcoach, programimport och andra tyngre AI-funktioner.
-            {allowance.topUpBalanceSek > 0 ? ` Extra saldo: ${formatSek(allowance.topUpBalanceSek)}.` : ''}
-          </p>
+        <div className="mt-4 space-y-3">
+          <div className="flex items-start gap-2 rounded-xl bg-slate-950/[0.03] p-3 text-xs text-slate-600 dark:bg-white/[0.04] dark:text-slate-300">
+            <Coins className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              AI-krediter används av mat-skanner, videoanalys, röstcoach, programimport och andra tyngre AI-funktioner.
+              {allowance.topUpBalanceSek > 0 ? ` Extra saldo: ${formatSek(allowance.topUpBalanceSek)}.` : ''}
+            </p>
+          </div>
+
+          {data.recentTopUps.length > 0 && (
+            <div className="rounded-xl border border-slate-200/70 bg-white/60 p-3 text-xs dark:border-white/10 dark:bg-white/5">
+              <p className="mb-2 font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Senaste påfyllningar
+              </p>
+              <div className="space-y-2">
+                {data.recentTopUps.map((purchase) => (
+                  <div key={purchase.id} className="flex items-center justify-between gap-3 text-slate-700 dark:text-slate-200">
+                    <div>
+                      <p className="font-semibold">{formatSek(purchase.creditsSek)} krediter</p>
+                      <p className="text-slate-500 dark:text-slate-400">
+                        {formatShortDate(purchase.createdAt)} · {purchase.status.toLowerCase()}
+                      </p>
+                    </div>
+                    <span className="font-semibold">{formatSek(purchase.creditsRemainingSek)} kvar</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

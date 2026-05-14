@@ -134,6 +134,22 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
     void fetchStatus()
   }, [])
 
+  useEffect(() => {
+    const result = new URLSearchParams(window.location.search).get('aiTopUp')
+    if (result === 'success') {
+      toast({
+        title: 'AI-krediter påfyllda',
+        description: 'Betalningen är mottagen. Saldot uppdateras så snart Stripe-bekräftelsen är behandlad.',
+      })
+    }
+    if (result === 'cancelled') {
+      toast({
+        title: 'Påfyllning avbruten',
+        description: 'Ingen betalning drogs och inga AI-krediter lades till.',
+      })
+    }
+  }, [toast])
+
   const handleUpgrade = async (tierId: string) => {
     if (tierId === 'FREE') return
 
