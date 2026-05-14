@@ -11,6 +11,7 @@
 
 import React, { useState, useRef, useCallback, useEffect, useId } from 'react'
 import { useRouter } from 'next/navigation'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -54,6 +55,7 @@ import {
 } from '@/lib/nutrition/food-scan-recalculation'
 import { guessDefaultMealType } from '@/lib/nutrition/guess-meal-type'
 import {
+  type AiAllowanceExhaustedError,
   getAiAllowanceUpgradeMessage,
   isAiAllowanceExhaustedError,
   parseAiAllowanceError,
@@ -202,12 +204,35 @@ export function FoodPhotoScanner({
   redirectPathOnSave,
 }: FoodPhotoScannerProps) {
   const router = useRouter()
+  const basePath = useBasePath()
   const fileInputId = useId()
   const cameraInputId = useId()
   const [step, setStep] = useState<Step>('CAPTURE')
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<{
+    label: string
+    url: string
+  } | null>(null)
+
+  const clearError = useCallback(() => {
+    setError(null)
+    setAiAllowanceAction(null)
+  }, [])
+
+  const showError = useCallback((message: string) => {
+    setError(message)
+    setAiAllowanceAction(null)
+  }, [])
+
+  const showAiAllowanceError = useCallback((allowanceError: AiAllowanceExhaustedError) => {
+    setError(`${allowanceError.message} ${getAiAllowanceUpgradeMessage(allowanceError)}`)
+    setAiAllowanceAction({
+      label: allowanceError.actionLabel,
+      url: allowanceError.actionUrl,
+    })
+  }, [])
 
   // Review state
   const [items, setItems] = useState<EditableFoodItem[]>([])
@@ -395,31 +420,31 @@ export function FoodPhotoScanner({
     if (!file) return
 
     if (!file.type.startsWith('image/')) {
-      setError('Vänligen välj en bildfil')
+      showError('Vänligen välj en bildfil')
       event.target.value = ''
       return
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      setError('Bilden får inte vara större än 10MB')
+      showError('Bilden får inte vara större än 10MB')
       event.target.value = ''
       return
     }
 
-    setError(null)
+    clearError()
     clearSessionStorage()
     const requestId = selectionRequestIdRef.current + 1
     selectionRequestIdRef.current = requestId
     setSelectedImage(file)
     void normalizeSelectedImage(file, requestId)
     event.target.value = ''
-  }, [normalizeSelectedImage, setSelectedImage, clearSessionStorage])
+  }, [normalizeSelectedImage, setSelectedImage, clearSessionStorage, clearError, showError])
 
   const handleAnalyze = async () => {
     if (!imageFile) return
 
     setStep('ANALYZING')
-    setError(null)
+    clearError()
 
     try {
       const formData = new FormData()
@@ -437,13 +462,13 @@ export function FoodPhotoScanner({
       })
 
       if (response.status === 429) {
-        setError('För många förfrågningar. Försök igen om en stund.')
+        showError('För många förfrågningar. Försök igen om en stund.')
         setStep('CAPTURE')
         return
       }
 
       if (response.status === 401) {
-        setError('Du behöver aktivera atletläge för att skanna mat. Gå till inställningar och aktivera atletläge.')
+        showError('Du behöver aktivera atletläge för att skanna mat. Gå till inställningar och aktivera atletläge.')
         setStep('CAPTURE')
         return
       }
@@ -452,11 +477,11 @@ export function FoodPhotoScanner({
         const data = await response.json().catch(() => null)
         const allowanceError = parseAiAllowanceError(data)
         if (allowanceError) {
-          setError(`${allowanceError.message} ${getAiAllowanceUpgradeMessage()}`)
+          showAiAllowanceError(allowanceError)
           setStep('CAPTURE')
           return
         }
-        setError(data?.error || 'Kunde inte analysera bilden. Försök igen.')
+        showError(data?.error || 'Kunde inte analysera bilden. Försök igen.')
         setStep('CAPTURE')
         return
       }
@@ -465,7 +490,7 @@ export function FoodPhotoScanner({
       const result: FoodPhotoAnalysisResult = data.result
 
       if (!result.success) {
-        setError('Kunde inte identifiera mat. Försök ta en ny bild.')
+        showError('Kunde inte identifiera mat. Försök ta en ny bild.')
         setStep('CAPTURE')
         return
       }
@@ -495,7 +520,7 @@ export function FoodPhotoScanner({
 
       setStep('REVIEW')
     } catch {
-      setError('Ett nätverksfel uppstod. Kontrollera din anslutning och försök igen.')
+      showError('Ett nätverksfel uppstod. Kontrollera din anslutning och försök igen.')
       setStep('CAPTURE')
     }
   }
@@ -504,7 +529,7 @@ export function FoodPhotoScanner({
     if (items.length === 0) return
 
     setStep('SAVING')
-    setError(null)
+    clearError()
 
     const totals = calculateFoodTotals(items)
 
@@ -604,7 +629,7 @@ export function FoodPhotoScanner({
 
       setStep('DONE')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kunde inte spara måltiden')
+      showError(err instanceof Error ? err.message : 'Kunde inte spara måltiden')
       setStep('REVIEW')
     }
   }
@@ -652,7 +677,7 @@ export function FoodPhotoScanner({
     setImagePreview(null)
     setImageFile(null)
     setItems([])
-    setError(null)
+    clearError()
     setMealDescription('')
     setNotes('')
     setConfidence(0)
@@ -686,7 +711,7 @@ export function FoodPhotoScanner({
   }, [])
 
   const handleOpenCamera = async () => {
-    setError(null)
+    clearError()
     setTorchOn(false)
     setTorchSupported(false)
     try {
@@ -773,7 +798,7 @@ export function FoodPhotoScanner({
     if (!refinementText.trim()) return
 
     setIsRefining(true)
-    setError(null)
+    clearError()
 
     try {
       // Build original analysis from current items state.
@@ -824,7 +849,7 @@ export function FoodPhotoScanner({
         // For refinements, use the returned items even if success is false —
         // we already know food exists from the original analysis.
         if (!result.success && (!result.items || result.items.length === 0)) {
-          setError('Kunde inte uppdatera analysen utifrån korrigeringen. Försök beskriva ändringen mer exakt.')
+          showError('Kunde inte uppdatera analysen utifrån korrigeringen. Försök beskriva ändringen mer exakt.')
           return
         }
 
@@ -853,7 +878,11 @@ export function FoodPhotoScanner({
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Kunde inte uppdatera analysen'
-      setError(isAiAllowanceExhaustedError(err) ? `${message} ${getAiAllowanceUpgradeMessage()}` : message)
+      if (isAiAllowanceExhaustedError(err)) {
+        showAiAllowanceError(err)
+      } else {
+        showError(message)
+      }
     } finally {
       setIsRefining(false)
     }
@@ -883,7 +912,7 @@ export function FoodPhotoScanner({
       mediaRecorder.start()
       setIsRecording(true)
     } catch {
-      setError('Kunde inte starta mikrofonen. Kontrollera behörigheter.')
+      showError('Kunde inte starta mikrofonen. Kontrollera behörigheter.')
     }
   }
 
@@ -920,7 +949,11 @@ export function FoodPhotoScanner({
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Kunde inte transkribera ljudet'
-      setError(isAiAllowanceExhaustedError(err) ? `${message} ${getAiAllowanceUpgradeMessage()}` : message)
+      if (isAiAllowanceExhaustedError(err)) {
+        showAiAllowanceError(err)
+      } else {
+        showError(message)
+      }
     } finally {
       setIsTranscribing(false)
     }
@@ -979,6 +1012,9 @@ export function FoodPhotoScanner({
     totals.sugarGrams != null ||
     totals.complexCarbsGrams != null
   const hasSelectedImage = Boolean(imageFile)
+  const aiAllowanceActionHref = aiAllowanceAction
+    ? `${basePath}${aiAllowanceAction.url}`
+    : null
 
   return (
     <div className="flex flex-col gap-4 pb-4">
@@ -1265,7 +1301,20 @@ export function FoodPhotoScanner({
             {error && (
               <div className="flex items-start gap-2 p-2 rounded-lg bg-red-950/30 border border-red-500/20">
                 <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-red-300">{error}</p>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <p className="text-xs text-red-300">{error}</p>
+                  {aiAllowanceActionHref && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20"
+                      onClick={() => router.push(aiAllowanceActionHref)}
+                    >
+                      {aiAllowanceAction?.label ?? 'Hantera AI-krediter'}
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -1597,7 +1646,20 @@ export function FoodPhotoScanner({
       {error && step !== 'ANALYZING' && (
         <div className="flex items-start gap-2 p-3 rounded-lg bg-red-950/30 border border-red-500/20">
           <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-300">{error}</p>
+          <div className="min-w-0 flex-1 space-y-2">
+            <p className="text-sm text-red-300">{error}</p>
+            {aiAllowanceActionHref && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20"
+                onClick={() => router.push(aiAllowanceActionHref)}
+              >
+                {aiAllowanceAction?.label ?? 'Hantera AI-krediter'}
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </div>

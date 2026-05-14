@@ -240,6 +240,37 @@ describe('FoodPhotoScanner', () => {
     ).toBeInTheDocument()
   })
 
+  it('links athletes to AI credit management when food scanning is capped', async () => {
+    const user = userEvent.setup()
+    vi.mocked(fetch).mockImplementationOnce(async () => ({
+      ok: false,
+      status: 402,
+      json: async () => ({
+        error: 'Dina AI-krediter är slut för den här månaden.',
+        code: 'AI_ALLOWANCE_EXHAUSTED',
+        remainingSek: 0,
+        upgradeMessage: 'Uppgradera din plan eller fyll på AI-krediter för att fortsätta.',
+        actionLabel: 'Hantera AI-krediter',
+        actionUrl: '/athlete/subscription',
+      }),
+    } as Response))
+
+    const { container } = render(<FoodPhotoScanner />)
+
+    const fileInput = container.querySelector('input[type="file"]:not([capture])')
+    expect(fileInput).not.toBeNull()
+
+    const file = new File(['image'], 'meal.png', { type: 'image/png' })
+    fireEvent.change(fileInput as HTMLInputElement, {
+      target: { files: [file] },
+    })
+
+    await user.click(await screen.findByRole('button', { name: /analysera måltid/i }))
+    await user.click(await screen.findByRole('button', { name: /hantera ai-krediter/i }))
+
+    expect(pushMock).toHaveBeenCalledWith('/athlete/subscription')
+  })
+
   it('saves reviewed food scan items as a recipe', async () => {
     const user = userEvent.setup()
 
