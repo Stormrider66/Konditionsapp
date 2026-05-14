@@ -25,6 +25,7 @@ const updateUserSchema = z.object({
   role: z.enum(['COACH', 'ATHLETE', 'ADMIN']).optional(),
   adminRole: z.enum(['SUPER_ADMIN', 'ADMIN', 'SUPPORT']).nullable().optional(),
   tier: z.enum(['FREE', 'BASIC', 'STANDARD', 'PRO', 'ELITE', 'ENTERPRISE']).optional(),
+  customAiAllowanceSek: z.number().min(0).nullable().optional(),
 });
 
 function isCoachTier(tier: string): tier is CoachTierValue {
@@ -243,6 +244,7 @@ export async function GET(request: NextRequest) {
                       tier: true,
                       status: true,
                       trialEndsAt: true,
+                      customAiAllowanceSek: true,
                     },
                   },
                 },
@@ -281,6 +283,7 @@ export async function GET(request: NextRequest) {
                   status: user.athleteAccount.client.athleteSubscription.status,
                   maxAthletes: null,
                   stripeCurrentPeriodEnd: user.athleteAccount.client.athleteSubscription.trialEndsAt,
+                  customAiAllowanceSek: user.athleteAccount.client.athleteSubscription.customAiAllowanceSek,
                 }
               : null
             : user.subscription,
@@ -326,7 +329,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { userId, email, role, adminRole, tier } = validation.data;
+    const { userId, email, role, adminRole, tier, customAiAllowanceSek } = validation.data;
 
     // Handle email change (Supabase Auth + Prisma)
     if (email) {
@@ -376,7 +379,7 @@ export async function PUT(request: NextRequest) {
       });
 
       // If only email was changed, return early
-      if (!role && adminRole === undefined && !tier) {
+      if (!role && adminRole === undefined && !tier && customAiAllowanceSek === undefined) {
         const updatedUser = await prisma.user.findUnique({
           where: { id: userId },
           select: { id: true, email: true, name: true, role: true },
@@ -405,7 +408,7 @@ export async function PUT(request: NextRequest) {
             clientId: true,
             client: {
               select: {
-                athleteSubscription: { select: { tier: true } },
+                athleteSubscription: { select: { tier: true, customAiAllowanceSek: true } },
               },
             },
           },
@@ -438,6 +441,13 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    if (customAiAllowanceSek !== undefined && nextRole !== 'ATHLETE') {
+      return NextResponse.json(
+        { success: false, error: 'AI allowance overrides are only available for athletes' },
+        { status: 400 }
+      );
+    }
+
     const oldTier = nextRole === 'ATHLETE'
       ? targetUser.athleteAccount?.client?.athleteSubscription?.tier
       : targetUser.subscription?.tier;
@@ -460,6 +470,13 @@ export async function PUT(request: NextRequest) {
               paymentSource: 'DIRECT',
               ...getAthleteSubscriptionUpdateData(tier),
             },
+          });
+        }
+
+        if (customAiAllowanceSek !== undefined) {
+          await tx.athleteSubscription.update({
+            where: { clientId },
+            data: { customAiAllowanceSek },
           });
         }
       } else if (role || tier) {

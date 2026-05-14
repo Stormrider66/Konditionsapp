@@ -150,6 +150,7 @@ interface User {
     tier: string;
     status: string;
     maxAthletes: number | null;
+    customAiAllowanceSek?: number | null;
   } | null;
   clientsCount: number;
   businesses: UserBusiness[];
@@ -373,6 +374,33 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
       }
     } catch (error) {
       console.error('Error updating user:', error);
+    }
+  };
+
+  const updateAthleteAiAllowance = async (targetUserId: string, value: string) => {
+    const trimmed = value.trim().replace(',', '.');
+    const customAiAllowanceSek = trimmed === '' ? null : Number(trimmed);
+
+    if (customAiAllowanceSek !== null && (!Number.isFinite(customAiAllowanceSek) || customAiAllowanceSek < 0)) {
+      alert('Ange ett positivt belopp eller lämna tomt för standard.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: targetUserId, customAiAllowanceSek }),
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        fetchUsers();
+      } else {
+        alert(result.error || 'Kunde inte uppdatera AI-krediter');
+      }
+    } catch (error) {
+      console.error('Error updating athlete AI allowance:', error);
+      alert('Ett fel uppstod vid uppdatering av AI-krediter');
     }
   };
 
@@ -806,6 +834,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                           <TableHead>{t('role')}</TableHead>
                           <TableHead>Platform</TableHead>
                           <TableHead>{t('tier')}</TableHead>
+                          <TableHead>AI SEK</TableHead>
                           <TableHead>{t('clients')}</TableHead>
                           <TableHead>Företag</TableHead>
                           <TableHead>{t('joined')}</TableHead>
@@ -918,6 +947,31 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                   ))}
                                 </SelectContent>
                               </Select>
+                            </TableCell>
+                            <TableCell>
+                              {user.role === 'ATHLETE' ? (
+                                <Input
+                                  defaultValue={user.subscription?.customAiAllowanceSek ?? ''}
+                                  placeholder="Auto"
+                                  className="h-8 w-[88px] text-sm"
+                                  inputMode="decimal"
+                                  onBlur={(event) => {
+                                    const nextValue = event.currentTarget.value;
+                                    const currentValue = user.subscription?.customAiAllowanceSek?.toString() ?? '';
+                                    if (nextValue.trim().replace(',', '.') !== currentValue) {
+                                      updateAthleteAiAllowance(user.id, nextValue);
+                                    }
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                      event.currentTarget.blur();
+                                    }
+                                  }}
+                                  title="Tomt värde använder planens eller företagets standard"
+                                />
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
                             </TableCell>
                             <TableCell>{user.clientsCount}</TableCell>
                             <TableCell>
