@@ -176,7 +176,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
           isGlass ? "space-y-6" : "space-y-4"
         )}>
           {isGlass ? (
-            <GlassCard className="border-white/5 bg-white/[0.02]">
+            <GlassCard className="border-slate-200 bg-white dark:border-white/5 dark:bg-white/[0.02]">
               <GlassCardHeader>
                 <GlassCardTitle className="text-lg font-black italic uppercase tracking-tight">Resultat</GlassCardTitle>
               </GlassCardHeader>
@@ -194,9 +194,9 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                     { label: 'BMR', value: result.measurement.bmrKcal, unit: 'kcal' },
                     { label: 'FFMI', value: result.measurement.ffmi, unit: '', category: result.analysis?.ffmiCategory },
                   ].map((item, idx) => item.value ? (
-                    <div key={idx} className="bg-white/5 border border-white/5 p-4 rounded-xl">
+                    <div key={idx} className="bg-slate-100 border border-slate-200 p-4 rounded-xl dark:bg-white/5 dark:border-white/5">
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{item.label}</p>
-                      <p className="text-xl font-black text-white">{item.value}{item.unit}</p>
+                      <p className="text-xl font-black text-slate-900 dark:text-white">{item.value}{item.unit}</p>
                       {item.category && (
                         <p className="text-[10px] font-bold text-blue-400 mt-1 uppercase tracking-tight">{item.category}</p>
                       )}
@@ -205,11 +205,11 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                 </div>
 
                 {result.analysis?.recommendations?.length > 0 && (
-                  <div className="pt-6 border-t border-white/5">
+                  <div className="pt-6 border-t border-slate-200 dark:border-white/5">
                     <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Rekommendationer</h4>
                     <ul className="space-y-3">
                       {result.analysis.recommendations.map((rec: string, i: number) => (
-                        <li key={i} className="flex items-start gap-3 text-sm text-slate-300">
+                        <li key={i} className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-300">
                           <div className="h-1.5 w-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
                           <span>{rec}</span>
                         </li>
@@ -320,7 +320,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
           variant={isGlass ? "ghost" : "outline"}
           className={cn(
             "w-full rounded-xl",
-            isGlass ? "text-slate-400 hover:text-white hover:bg-white/5" : ""
+            isGlass ? "text-slate-600 hover:text-slate-950 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5" : ""
           )}
         >
           Registrera ny mätning
@@ -355,7 +355,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
             id="date"
             type="date"
             {...register('date')}
-            className={cn(isGlass && "bg-black/40 border-white/10 text-white rounded-xl focus:ring-orange-500/20")}
+            className={cn(isGlass && "bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white")}
           />
           {errors.date && (
             <p className="text-sm text-red-500 font-bold">{errors.date.message}</p>
@@ -368,12 +368,12 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
             value={watch('measurementTime') ?? undefined}
             onValueChange={(value) => setValue('measurementTime', value)}
           >
-            <SelectTrigger className={cn(isGlass && "bg-black/40 border-white/10 text-white rounded-xl focus:ring-orange-500/20")}>
+            <SelectTrigger className={cn(isGlass && "bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white")}>
               <SelectValue placeholder="Välj tidpunkt" />
             </SelectTrigger>
-            <SelectContent className={cn(isGlass && "bg-[#111] border-white/10 text-white")}>
+            <SelectContent className={cn(isGlass && "bg-white border-slate-200 text-slate-900 dark:bg-[#111] dark:border-white/10 dark:text-white")}>
               {MEASUREMENT_TIMES.map((time) => (
-                <SelectItem key={time.value} value={time.value} className={cn(isGlass && "hover:bg-white/5 focus:bg-white/5")}>
+                <SelectItem key={time.value} value={time.value} className={cn(isGlass && "hover:bg-slate-100 focus:bg-slate-100 dark:hover:bg-white/5 dark:focus:bg-white/5")}>
                   {time.label}
                 </SelectItem>
               ))}
@@ -384,8 +384,8 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
 
       {isGlass ? (
         <div className="space-y-6">
-          <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">Grundmätningar</h3>
+          <div className="bg-slate-50 border border-slate-200 p-6 rounded-2xl dark:bg-white/[0.02] dark:border-white/5">
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-600 mb-6 dark:text-slate-400">Grundmätningar</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
               {[
                 { id: 'weight', label: 'Vikt (kg)', step: '0.1', placeholder: '72.5' },
@@ -400,7 +400,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                     step={field.step}
                     placeholder={field.placeholder}
                     {...register(field.id as any, { valueAsNumber: true })}
-                    className="bg-black/40 border-white/10 text-white rounded-xl focus:ring-orange-500/20"
+                    className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white"
                   />
                   {errors[field.id as keyof BioimpedanceFormData] && (
                     <p className="text-[10px] text-red-500 font-bold uppercase tracking-tight">{(errors as any)[field.id].message}</p>
@@ -410,8 +410,8 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
             </div>
           </div>
 
-          <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">Detaljerade mätningar</h3>
+          <div className="bg-slate-50 border border-slate-200 p-6 rounded-2xl dark:bg-white/[0.02] dark:border-white/5">
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-600 mb-6 dark:text-slate-400">Detaljerade mätningar</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="visceralFat" className="text-[10px] font-black uppercase tracking-widest text-slate-500">Visceralt fett (1-59)</Label>
@@ -420,7 +420,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                   type="number"
                   placeholder="8"
                   {...register('visceralFat', { valueAsNumber: true })}
-                  className="bg-black/40 border-white/10 text-white rounded-xl focus:ring-orange-500/20"
+                  className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white"
                 />
               </div>
               <div className="space-y-2">
@@ -431,7 +431,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                   step="0.1"
                   placeholder="3.2"
                   {...register('boneMass', { valueAsNumber: true })}
-                  className="bg-black/40 border-white/10 text-white rounded-xl focus:ring-orange-500/20"
+                  className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white"
                 />
               </div>
               <div className="space-y-2">
@@ -441,7 +441,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                   type="number"
                   placeholder="1800"
                   {...register('bmr', { valueAsNumber: true })}
-                  className="bg-black/40 border-white/10 text-white rounded-xl focus:ring-orange-500/20"
+                  className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white"
                 />
               </div>
               <div className="space-y-2">
@@ -451,7 +451,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                   type="text"
                   placeholder="Valfria anteckningar"
                   {...register('notes')}
-                  className="bg-black/40 border-white/10 text-white rounded-xl focus:ring-orange-500/20"
+                  className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white"
                 />
               </div>
               <div className="space-y-2">
@@ -460,12 +460,12 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                   value={watch('deviceBrand') ?? undefined}
                   onValueChange={(value) => setValue('deviceBrand', value)}
                 >
-                  <SelectTrigger className="bg-black/40 border-white/10 text-white rounded-xl focus:ring-orange-500/20">
+                  <SelectTrigger className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white">
                     <SelectValue placeholder="Välj märke" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#111] border-white/10 text-white">
+                  <SelectContent className="bg-white border-slate-200 text-slate-900 dark:bg-[#111] dark:border-white/10 dark:text-white">
                     {DEVICE_BRANDS.map((brand) => (
-                      <SelectItem key={brand.value} value={brand.value} className="hover:bg-white/5 focus:bg-white/5">
+                      <SelectItem key={brand.value} value={brand.value} className="hover:bg-slate-100 focus:bg-slate-100 dark:hover:bg-white/5 dark:focus:bg-white/5">
                         {brand.label}
                       </SelectItem>
                     ))}
@@ -475,8 +475,8 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
             </div>
           </div>
 
-          <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">Vattenmätningar</h3>
+          <div className="bg-slate-50 border border-slate-200 p-6 rounded-2xl dark:bg-white/[0.02] dark:border-white/5">
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-600 mb-6 dark:text-slate-400">Vattenmätningar</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
                 { id: 'waterPercent', label: 'Totalt vatten (%)', helper: '' },
@@ -491,7 +491,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                     step="0.1"
                     placeholder="55.0"
                     {...register(field.id as any, { valueAsNumber: true })}
-                    className="bg-black/40 border-white/10 text-white rounded-xl focus:ring-orange-500/20"
+                    className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white"
                   />
                   {field.helper && <p className="text-[10px] text-slate-600 font-bold uppercase tracking-tight">{field.helper}</p>}
                 </div>
@@ -657,7 +657,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
           className={cn(
             "flex min-h-[80px] w-full rounded-md border px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
             isGlass
-              ? "bg-black/40 border-white/10 text-white placeholder:text-slate-600 focus:ring-orange-500/20"
+              ? "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white dark:placeholder:text-slate-600"
               : "border-input bg-background"
           )}
         />
@@ -671,7 +671,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
             size="lg"
             className={cn(
               "flex-1 rounded-xl",
-              isGlass ? "text-slate-400 hover:text-white hover:bg-white/5 h-12 text-xs font-black uppercase tracking-widest" : ""
+              isGlass ? "text-slate-600 hover:text-slate-950 hover:bg-slate-100 h-12 text-xs font-black uppercase tracking-widest dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5" : ""
             )}
             onClick={onCancel}
           >

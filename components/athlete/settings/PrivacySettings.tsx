@@ -169,7 +169,7 @@ export function PrivacySettings() {
   return (
     <div className="space-y-6">
       {/* Coach status */}
-      <Card className="bg-white/5 border-white/10">
+      <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
         <CardContent className="p-4 flex items-center gap-3">
           <div className="p-2 bg-cyan-500/10 rounded-lg">
             <Users className="h-5 w-5 text-cyan-400" />
@@ -177,7 +177,7 @@ export function PrivacySettings() {
           <div className="flex-1">
             {hasCoach ? (
               <>
-                <p className="text-sm font-medium text-white">
+                <p className="text-sm font-medium text-slate-900 dark:text-white">
                   Din coach: {coachName}
                 </p>
                 <p className="text-xs text-slate-500">
@@ -186,7 +186,7 @@ export function PrivacySettings() {
               </>
             ) : (
               <>
-                <p className="text-sm font-medium text-slate-400">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
                   Ingen aktiv coach
                 </p>
                 <p className="text-xs text-slate-500">
@@ -203,7 +203,7 @@ export function PrivacySettings() {
         <Button
           variant="outline"
           size="sm"
-          className="gap-2 bg-white/5 border-white/10 hover:bg-white/10 text-slate-300"
+          className="gap-2 bg-white border-slate-200 hover:bg-slate-100 text-slate-700 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 dark:text-slate-300"
           onClick={handleShareAll}
           disabled={saving}
         >
@@ -213,7 +213,7 @@ export function PrivacySettings() {
         <Button
           variant="outline"
           size="sm"
-          className="gap-2 bg-white/5 border-white/10 hover:bg-white/10 text-slate-300"
+          className="gap-2 bg-white border-slate-200 hover:bg-slate-100 text-slate-700 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 dark:text-slate-300"
           onClick={handleShareNone}
           disabled={saving}
         >
@@ -223,13 +223,13 @@ export function PrivacySettings() {
       </div>
 
       {/* Permission toggles */}
-      <Card className="bg-white/5 border-white/10">
+      <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2 text-white">
+          <CardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
             <Shield className="h-4 w-4 text-cyan-400" />
             Delningsinställningar
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-slate-600 dark:text-slate-400">
             Välj vilken information din coach får se
           </CardDescription>
         </CardHeader>
@@ -242,7 +242,7 @@ export function PrivacySettings() {
               }`}
             >
               <div className="space-y-0.5 flex-1 mr-4">
-                <p className="text-sm font-medium text-white">{perm.label}</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">{perm.label}</p>
                 <p className="text-xs text-slate-500">{perm.description}</p>
               </div>
               <Switch

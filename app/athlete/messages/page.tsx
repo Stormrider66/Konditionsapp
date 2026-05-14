@@ -192,14 +192,14 @@ export default function AthleteMessagesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#050505]">
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-[#050505]">
         <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-200 pb-20 selection:bg-orange-500/30 font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 selection:bg-orange-500/30 font-sans dark:bg-[#050505] dark:text-slate-200">
       {/* Background Decorative Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/10 blur-[120px] rounded-full" />
@@ -213,26 +213,26 @@ export default function AthleteMessagesPage() {
               <div className="p-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 shadow-[0_0_15px_rgba(249,115,22,0.1)]">
                 <MessageSquare className="h-6 w-6 text-orange-400" />
               </div>
-              <h1 className="text-4xl font-black tracking-tight text-white uppercase italic">
+              <h1 className="text-4xl font-black tracking-tight text-slate-950 uppercase italic dark:text-white">
                 Meddelanden
               </h1>
             </div>
-            <p className="text-slate-400 font-medium ml-1">
+            <p className="text-slate-600 font-medium ml-1 dark:text-slate-400">
               Direktkontakt med din huvudcoach
             </p>
           </div>
         </div>
 
-        <GlassCard className="border-white/5 bg-black/40 backdrop-blur-2xl shadow-2xl overflow-hidden ring-1 ring-white/10">
+        <GlassCard className="border-slate-200 bg-white/80 backdrop-blur-2xl shadow-sm overflow-hidden ring-1 ring-slate-900/5 dark:border-white/5 dark:bg-black/40 dark:shadow-2xl dark:ring-white/10">
           {coachInfo ? (
             <>
-              <GlassCardHeader className="border-b border-white/5 bg-white/[0.02] p-6">
+              <GlassCardHeader className="border-b border-slate-200 bg-slate-50 p-6 dark:border-white/5 dark:bg-white/[0.02]">
                 <div className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center border border-blue-500/30">
                     <User className="h-6 w-6 text-blue-400" />
                   </div>
                   <div>
-                    <GlassCardTitle className="text-xl font-black italic tracking-tight text-white">{coachInfo.name}</GlassCardTitle>
+                    <GlassCardTitle className="text-xl font-black italic tracking-tight text-slate-950 dark:text-white">{coachInfo.name}</GlassCardTitle>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-0.5">{coachInfo.email}</p>
                   </div>
                 </div>
@@ -242,10 +242,10 @@ export default function AthleteMessagesPage() {
                 <ScrollArea className="h-[550px] p-6">
                   {messages.length === 0 ? (
                     <div className="text-center py-24">
-                      <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 dark:bg-white/5">
                         <MessageSquare className="h-10 w-10 text-slate-600" />
                       </div>
-                      <p className="text-slate-400 font-bold uppercase tracking-wider text-sm">Inga meddelanden ännu</p>
+                      <p className="text-slate-600 font-bold uppercase tracking-wider text-sm dark:text-slate-400">Inga meddelanden ännu</p>
                       <p className="text-slate-500 text-xs mt-2">Börja konversationen genom att skicka ett meddelande nedan</p>
                     </div>
                   ) : (
@@ -265,7 +265,7 @@ export default function AthleteMessagesPage() {
                                   "max-w-[85%] sm:max-w-[75%] rounded-2xl p-4 shadow-xl transition-all duration-300",
                                   isAthlete
                                     ? 'bg-gradient-to-br from-orange-600 to-orange-700 text-white rounded-tr-none border border-orange-500/30'
-                                    : 'bg-white/5 backdrop-blur-md text-slate-200 rounded-tl-none border border-white/10'
+                                    : 'bg-white backdrop-blur-md text-slate-800 rounded-tl-none border border-slate-200 dark:bg-white/5 dark:text-slate-200 dark:border-white/10'
                                 )}
                               >
                                 {!isAthlete && (
@@ -277,7 +277,7 @@ export default function AthleteMessagesPage() {
                                 {msg.relatedWorkout && (
                                   <div className={cn(
                                     "flex items-center gap-2 p-2 rounded-lg mb-3 text-xs font-bold",
-                                    isAthlete ? 'bg-black/20 text-orange-100' : 'bg-white/5 text-blue-400'
+                                    isAthlete ? 'bg-black/20 text-orange-100' : 'bg-slate-100 text-blue-600 dark:bg-white/5 dark:text-blue-400'
                                   )}>
                                     <Dumbbell className="h-3 w-3" />
                                     <span>Referens: {msg.relatedWorkout.name}</span>
@@ -314,7 +314,7 @@ export default function AthleteMessagesPage() {
                 </ScrollArea>
 
                 {/* Reply Form */}
-                <div className="p-6 bg-white/[0.02] border-t border-white/5">
+                <div className="p-6 bg-slate-50 border-t border-slate-200 dark:bg-white/[0.02] dark:border-white/5">
                   <div className="relative group">
                     <Textarea
                       placeholder="Skriv ett meddelande..."
@@ -323,7 +323,7 @@ export default function AthleteMessagesPage() {
                       rows={3}
                       maxLength={1000}
                       disabled={sending}
-                      className="bg-black/40 border-white/10 text-white placeholder:text-slate-600 focus:ring-orange-500/20 focus:border-orange-500/50 resize-none rounded-xl pr-12 transition-all duration-300"
+                      className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-orange-500/20 focus:border-orange-500/50 resize-none rounded-xl pr-12 transition-all duration-300 dark:bg-black/40 dark:border-white/10 dark:text-white dark:placeholder:text-slate-600"
                     />
                     <div className="absolute bottom-3 right-3 flex items-center gap-2">
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">
@@ -361,10 +361,10 @@ export default function AthleteMessagesPage() {
             </>
           ) : (
             <GlassCardContent className="flex flex-col items-center justify-center py-32 text-center">
-              <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-8">
+              <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-8 dark:bg-white/5">
                 <ShieldAlert className="h-10 w-10 text-slate-600" />
               </div>
-              <h3 className="text-2xl font-black italic tracking-tight text-white mb-2 uppercase">Ingen coach kopplad</h3>
+              <h3 className="text-2xl font-black italic tracking-tight text-slate-950 mb-2 uppercase dark:text-white">Ingen coach kopplad</h3>
               <p className="text-slate-500 max-w-sm text-sm font-medium">
                 Du behöver en tilldelad coach för att kunna använda meddelandefunktionen.
               </p>

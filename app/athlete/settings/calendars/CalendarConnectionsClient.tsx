@@ -313,7 +313,7 @@ export function CalendarConnectionsClient({
       )}
 
       {/* Add Connection Card */}
-      <GlassCard className="border-white/5 shadow-xl shadow-black/50 overflow-hidden relative group">
+      <GlassCard className="border-slate-200 shadow-sm overflow-hidden relative group dark:border-white/5 dark:shadow-xl dark:shadow-black/50">
         <div className="absolute top-0 right-0 w-32 h-32 bg-orange-600/5 blur-3xl group-hover:bg-orange-600/10 transition-colors" />
         <GlassCardHeader className="flex flex-row items-center justify-between pb-6">
           <div className="space-y-1">
@@ -329,7 +329,7 @@ export function CalendarConnectionsClient({
                 Lägg till
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[#0a0a0a] border-white/10 text-white max-w-md rounded-3xl backdrop-blur-xl">
+            <DialogContent className="bg-white border-slate-200 text-slate-900 max-w-md rounded-3xl backdrop-blur-xl dark:bg-[#0a0a0a] dark:border-white/10 dark:text-white">
               <DialogHeader>
                 <DialogTitle className="text-2xl font-black italic uppercase tracking-tight">Anslut <span className="text-orange-400">Kalender</span></DialogTitle>
                 <DialogDescription className="text-slate-400">
@@ -349,16 +349,16 @@ export function CalendarConnectionsClient({
                       }))
                     }
                   >
-                    <SelectTrigger className="bg-black/40 border-white/10 text-white rounded-xl focus:ring-orange-500/20">
+                    <SelectTrigger className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#111] border-white/10 text-white">
-                      <SelectItem value="ICAL_URL" className="focus:bg-white/5">iCal URL (Standard)</SelectItem>
+                    <SelectContent className="bg-white border-slate-200 text-slate-900 dark:bg-[#111] dark:border-white/10 dark:text-white">
+                      <SelectItem value="ICAL_URL" className="focus:bg-slate-100 dark:focus:bg-white/5">iCal URL (Standard)</SelectItem>
                       {googleConfigured && (
-                        <SelectItem value="GOOGLE" className="focus:bg-white/5">Google Calendar</SelectItem>
+                        <SelectItem value="GOOGLE" className="focus:bg-slate-100 dark:focus:bg-white/5">Google Calendar</SelectItem>
                       )}
                       {outlookConfigured && (
-                        <SelectItem value="OUTLOOK" className="focus:bg-white/5">Microsoft Outlook</SelectItem>
+                        <SelectItem value="OUTLOOK" className="focus:bg-slate-100 dark:focus:bg-white/5">Microsoft Outlook</SelectItem>
                       )}
                     </SelectContent>
                   </Select>
@@ -375,7 +375,7 @@ export function CalendarConnectionsClient({
                       }))
                     }
                     placeholder="t.ex. Arbetskalender"
-                    className="bg-black/40 border-white/10 text-white rounded-xl focus:ring-orange-500/20"
+                    className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white"
                   />
                 </div>
 
@@ -392,7 +392,7 @@ export function CalendarConnectionsClient({
                       }
                       placeholder="https://..."
                       type="url"
-                      className="bg-black/40 border-white/10 text-white rounded-xl focus:ring-orange-500/20"
+                      className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white"
                     />
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">
                       Hitta din iCal-URL i kalenderinställningarna.
@@ -412,14 +412,14 @@ export function CalendarConnectionsClient({
                         }))
                       }
                     >
-                      <SelectTrigger className="bg-black/40 border-white/10 text-white rounded-xl focus:ring-orange-500/20">
+                      <SelectTrigger className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#111] border-white/10 text-white">
-                        <SelectItem value="EXTERNAL_EVENT" className="focus:bg-white/5">Externa händelser</SelectItem>
-                        <SelectItem value="WORK_BLOCKER" className="focus:bg-white/5">Arbetsblockerare</SelectItem>
-                        <SelectItem value="PERSONAL_BLOCKER" className="focus:bg-white/5">Personliga händelser</SelectItem>
-                        <SelectItem value="TRAVEL" className="focus:bg-white/5">Resor</SelectItem>
+                      <SelectContent className="bg-white border-slate-200 text-slate-900 dark:bg-[#111] dark:border-white/10 dark:text-white">
+                        <SelectItem value="EXTERNAL_EVENT" className="focus:bg-slate-100 dark:focus:bg-white/5">Externa händelser</SelectItem>
+                        <SelectItem value="WORK_BLOCKER" className="focus:bg-slate-100 dark:focus:bg-white/5">Arbetsblockerare</SelectItem>
+                        <SelectItem value="PERSONAL_BLOCKER" className="focus:bg-slate-100 dark:focus:bg-white/5">Personliga händelser</SelectItem>
+                        <SelectItem value="TRAVEL" className="focus:bg-slate-100 dark:focus:bg-white/5">Resor</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -435,14 +435,14 @@ export function CalendarConnectionsClient({
                         }))
                       }
                     >
-                      <SelectTrigger className="bg-black/40 border-white/10 text-white rounded-xl focus:ring-orange-500/20">
+                      <SelectTrigger className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#111] border-white/10 text-white">
-                        <SelectItem value="NORMAL" className="focus:bg-white/5">Normal</SelectItem>
-                        <SelectItem value="MODIFIED" className="focus:bg-white/5">Modifierad</SelectItem>
-                        <SelectItem value="REDUCED" className="focus:bg-white/5">Reducerad</SelectItem>
-                        <SelectItem value="NO_TRAINING" className="focus:bg-white/5">Ingen träning</SelectItem>
+                      <SelectContent className="bg-white border-slate-200 text-slate-900 dark:bg-[#111] dark:border-white/10 dark:text-white">
+                        <SelectItem value="NORMAL" className="focus:bg-slate-100 dark:focus:bg-white/5">Normal</SelectItem>
+                        <SelectItem value="MODIFIED" className="focus:bg-slate-100 dark:focus:bg-white/5">Modifierad</SelectItem>
+                        <SelectItem value="REDUCED" className="focus:bg-slate-100 dark:focus:bg-white/5">Reducerad</SelectItem>
+                        <SelectItem value="NO_TRAINING" className="focus:bg-slate-100 dark:focus:bg-white/5">Ingen träning</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -450,7 +450,7 @@ export function CalendarConnectionsClient({
               </div>
 
               <DialogFooter className="gap-2 sm:gap-0">
-                <Button variant="ghost" onClick={() => setShowAddDialog(false)} className="text-slate-400 font-bold uppercase tracking-widest text-[10px] hover:text-white hover:bg-white/5">
+                <Button variant="ghost" onClick={() => setShowAddDialog(false)} className="text-slate-600 font-bold uppercase tracking-widest text-[10px] hover:text-slate-950 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5">
                   Avbryt
                 </Button>
                 <Button onClick={handleAddConnection} disabled={isAdding} className="bg-orange-600 hover:bg-orange-500 text-white font-black uppercase tracking-widest text-[10px] h-11 px-6 rounded-xl shadow-lg shadow-orange-600/20">
@@ -465,7 +465,7 @@ export function CalendarConnectionsClient({
 
       {/* Existing Connections */}
       {connections.length === 0 ? (
-        <GlassCard className="border-white/5 border-dashed bg-transparent">
+        <GlassCard className="border-slate-200 border-dashed bg-transparent dark:border-white/5">
           <GlassCardContent className="py-20 text-center">
             <Calendar className="h-16 w-16 mx-auto mb-4 text-slate-700 opacity-50" />
             <p className="text-slate-500 font-black uppercase tracking-widest">Inga kalendrar anslutna ännu</p>
@@ -476,7 +476,7 @@ export function CalendarConnectionsClient({
         <div className="grid grid-cols-1 gap-6">
           <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">Dina anslutningar</h2>
           {connections.map((connection) => (
-            <GlassCard key={connection.id} className="border-white/5 hover:border-white/10 transition-colors group">
+            <GlassCard key={connection.id} className="border-slate-200 hover:border-slate-300 transition-colors group dark:border-white/5 dark:hover:border-white/10">
               <GlassCardContent className="pt-6">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                   <div className="flex items-center gap-5">
@@ -491,7 +491,7 @@ export function CalendarConnectionsClient({
                     </div>
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-lg font-black text-white italic tracking-tight">{connection.calendarName}</h3>
+                        <h3 className="text-lg font-black text-slate-900 italic tracking-tight dark:text-white">{connection.calendarName}</h3>
                         {connection.syncEnabled ? (
                           <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 text-[8px] font-black uppercase tracking-widest border border-green-500/20">
                             <ShieldCheck className="h-2.5 w-2.5" />
@@ -527,7 +527,7 @@ export function CalendarConnectionsClient({
                     <Button
                       variant="ghost"
                       size="lg"
-                      className="flex-1 md:flex-none h-12 px-6 rounded-xl bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-blue-600 transition-all group/btn"
+                      className="flex-1 md:flex-none h-12 px-6 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-white hover:bg-blue-600 transition-all group/btn dark:bg-white/5 dark:border-white/5 dark:text-slate-400"
                       onClick={() => handleSync(connection.id)}
                       disabled={syncingId === connection.id || !connection.syncEnabled}
                     >
@@ -541,7 +541,7 @@ export function CalendarConnectionsClient({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-12 w-12 rounded-xl bg-white/5 border border-white/5 text-slate-600 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                      className="h-12 w-12 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-red-500 hover:bg-red-500/10 transition-all dark:bg-white/5 dark:border-white/5 dark:text-slate-600"
                       onClick={() => handleDelete(connection.id)}
                       disabled={deletingId === connection.id}
                     >
@@ -560,30 +560,30 @@ export function CalendarConnectionsClient({
       )}
 
       {/* Help Section */}
-      <GlassCard className="bg-blue-500/[0.02] border-blue-500/10">
+      <GlassCard className="bg-blue-50 border-blue-100 dark:bg-blue-500/[0.02] dark:border-blue-500/10">
         <GlassCardContent className="py-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-blue-500/10 rounded-lg">
               <ExternalLink className="h-5 w-5 text-blue-400" />
             </div>
-            <h3 className="text-sm font-black uppercase tracking-widest text-blue-300">Hur hittar jag min iCal-URL?</h3>
+            <h3 className="text-sm font-black uppercase tracking-widest text-blue-700 dark:text-blue-300">Hur hittar jag min iCal-URL?</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Google Calendar</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Google Calendar</p>
               <p className="text-xs text-slate-500 leading-relaxed font-medium">
                 Inställningar → Kalenderinställningar → Integrera kalender → <span className="text-blue-400 font-bold italic">Hemlig adress i iCal-format</span>
               </p>
             </div>
             <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Outlook</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Outlook</p>
               <p className="text-xs text-slate-500 leading-relaxed font-medium">
                 Inställningar → Kalender → Delade kalendrar → Publicera en kalender → <span className="text-blue-400 font-bold italic">Välj iCal-format</span>
               </p>
             </div>
             <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Apple iCloud</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Apple iCloud</p>
               <p className="text-xs text-slate-500 leading-relaxed font-medium">
                 iCloud.com → Kalender → Dela kalender → <span className="text-blue-400 font-bold italic">Offentlig kalender</span> (ersätt webcal:// med https://)
               </p>

@@ -87,7 +87,7 @@ export default async function BusinessCalendarConnectionsPage({ params }: Busine
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 text-slate-900 relative overflow-hidden dark:bg-[#050505] dark:text-white">
       {/* Background blobs */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] -z-10" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-orange-600/10 rounded-full blur-[120px] -z-10" />
@@ -95,7 +95,7 @@ export default async function BusinessCalendarConnectionsPage({ params }: Busine
       <div className="container mx-auto py-12 px-4 max-w-4xl relative z-10">
         <div className="flex items-center justify-between mb-12">
           <Link href={`${basePath}/athlete/calendar`}>
-            <Button variant="ghost" className="text-slate-400 hover:text-white hover:bg-white/5 group">
+            <Button variant="ghost" className="text-slate-600 hover:text-slate-950 hover:bg-slate-100 group dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5">
               <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
               TILLBAKA TILL KALENDERN
             </Button>
@@ -107,10 +107,10 @@ export default async function BusinessCalendarConnectionsPage({ params }: Busine
             <CalendarIcon className="h-8 w-8 text-orange-400" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tighter mb-1">
+            <h1 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tighter mb-1 text-slate-950 dark:text-white">
               Kalender<span className="text-orange-400">anslutningar</span>
             </h1>
-            <p className="text-slate-400 font-medium max-w-2xl">
+            <p className="text-slate-600 font-medium max-w-2xl dark:text-slate-400">
               Anslut dina externa kalendrar för att se arbete, privata händelser och andra blockerare
               tillsammans med ditt träningsschema.
             </p>
