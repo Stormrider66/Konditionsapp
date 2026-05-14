@@ -240,6 +240,45 @@ describe('FoodPhotoScanner', () => {
     ).toBeInTheDocument()
   })
 
+  it('opens the inline camera before using the native picker when browser camera is available', async () => {
+    const user = userEvent.setup()
+    const nativePickerClick = vi.spyOn(HTMLInputElement.prototype, 'click')
+    const originalMediaDevices = navigator.mediaDevices
+    const videoTrack = {
+      stop: vi.fn(),
+      getCapabilities: vi.fn(() => ({})),
+      applyConstraints: vi.fn(),
+    }
+    const stream = {
+      getTracks: vi.fn(() => [videoTrack]),
+      getVideoTracks: vi.fn(() => [videoTrack]),
+    } as unknown as MediaStream
+    const getUserMedia = vi.fn(async () => stream)
+
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia },
+    })
+
+    try {
+      const { container } = render(<FoodPhotoScanner />)
+
+      await user.click(screen.getByRole('button', { name: /^kamera$/i }))
+
+      await waitFor(() => {
+        expect(getUserMedia).toHaveBeenCalled()
+        expect(container.querySelector('video')).not.toBeNull()
+      })
+      expect(nativePickerClick).not.toHaveBeenCalled()
+    } finally {
+      nativePickerClick.mockRestore()
+      Object.defineProperty(navigator, 'mediaDevices', {
+        configurable: true,
+        value: originalMediaDevices,
+      })
+    }
+  })
+
   it('links athletes to AI credit management when food scanning is capped', async () => {
     const user = userEvent.setup()
     vi.mocked(fetch).mockImplementationOnce(async () => ({

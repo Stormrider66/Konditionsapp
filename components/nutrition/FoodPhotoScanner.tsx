@@ -98,11 +98,6 @@ const makeSuggestedRecipeName = (mealDescription: string, items: EditableFoodIte
   return (names || 'Skannat recept').slice(0, 80)
 }
 
-function shouldUseNativeCameraCapture() {
-  if (typeof window === 'undefined') return false
-  return window.matchMedia?.('(pointer: coarse)').matches || !navigator.mediaDevices?.getUserMedia
-}
-
 const foodItemsToRecipeItems = (items: EditableFoodItem[]) =>
   items
     .filter((item) => item.name.trim().length > 0 && item.estimatedGrams > 0)
@@ -270,6 +265,7 @@ export function FoodPhotoScanner({
 
   // Inline camera state
   const [showInlineCamera, setShowInlineCamera] = useState(false)
+  const [showNativeCameraFallback, setShowNativeCameraFallback] = useState(false)
   const [torchOn, setTorchOn] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -390,6 +386,7 @@ export function FoodPhotoScanner({
       if (!file || !file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) return
 
       clearSessionStorage()
+      setShowNativeCameraFallback(false)
       const requestId = selectionRequestIdRef.current + 1
       selectionRequestIdRef.current = requestId
       setSelectedImage(file)
@@ -448,6 +445,7 @@ export function FoodPhotoScanner({
     }
 
     clearError()
+    setShowNativeCameraFallback(false)
     clearSessionStorage()
     const requestId = selectionRequestIdRef.current + 1
     selectionRequestIdRef.current = requestId
@@ -717,6 +715,7 @@ export function FoodPhotoScanner({
     if (cameraInputRef.current) cameraInputRef.current.value = ''
     stopCameraStream()
     setShowInlineCamera(false)
+    setShowNativeCameraFallback(false)
   }
 
   const stopCameraStream = useCallback(() => {
@@ -728,11 +727,13 @@ export function FoodPhotoScanner({
 
   const handleOpenCamera = async () => {
     clearError()
+    setShowNativeCameraFallback(false)
     setTorchOn(false)
     setTorchSupported(false)
     saveStateToSessionStorage()
 
-    if (shouldUseNativeCameraCapture()) {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setShowNativeCameraFallback(true)
       cameraInputRef.current?.click()
       return
     }
@@ -765,8 +766,8 @@ export function FoodPhotoScanner({
         }
       })
     } catch {
-      // Camera not available (denied or desktop) — fall back to native file input
-      cameraInputRef.current?.click()
+      setShowNativeCameraFallback(true)
+      showError('Kameran kunde inte öppnas i webbläsaren. Tryck på Öppna kamera-app eller välj en bild.')
     }
   }
 
@@ -796,6 +797,7 @@ export function FoodPhotoScanner({
     stopCameraStream()
     setShowInlineCamera(false)
     setTorchOn(false)
+    setShowNativeCameraFallback(false)
 
     canvas.toBlob(
       (blob) => {
@@ -814,6 +816,7 @@ export function FoodPhotoScanner({
   const handleCloseCamera = () => {
     stopCameraStream()
     setShowInlineCamera(false)
+    setShowNativeCameraFallback(false)
     setTorchOn(false)
   }
 
@@ -1172,6 +1175,18 @@ export function FoodPhotoScanner({
                       </label>
                     </Button>
                   </div>
+                  {showNativeCameraFallback && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full gap-2 bg-white/5 border-white/10 text-white hover:bg-white/10 cursor-pointer"
+                    >
+                      <label htmlFor={cameraInputId} role="button" tabIndex={0}>
+                        <Camera className="h-4 w-4" />
+                        <span>Öppna kamera-app</span>
+                      </label>
+                    </Button>
+                  )}
                   {/* Hidden native file input as fallback for camera + gallery picker */}
                   <input
                     id={cameraInputId}
