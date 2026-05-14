@@ -121,6 +121,9 @@ export async function GET(request: NextRequest) {
     const totalCostSek = usdToSek(totalCostUsd)
     const margin = await buildAthleteMarginOverview(clientBuckets)
     const topUps = buildTopUpOverview(topUpPurchases)
+    const byCategory = sortBuckets(categoryBuckets).map(finalizeBucket)
+    const featureMix = buildFeatureMixOverview(byCategory, logs.length, totalCostSek)
+
     const data = {
       period: {
         start: startDate.toISOString(),
@@ -141,7 +144,8 @@ export async function GET(request: NextRequest) {
         unattributedCostSek: usdToSek(unattributedCostUsd),
         averageCostSek: logs.length > 0 ? roundSek(totalCostSek / logs.length) : 0,
       },
-      byCategory: sortBuckets(categoryBuckets).map(finalizeBucket),
+      featureMix,
+      byCategory,
       byProvider: sortBuckets(providerBuckets).map(finalizeBucket),
       byModel: sortBuckets(modelBuckets).slice(0, 12).map(finalizeBucket),
       daily: Array.from(dailyBuckets.values()).map((day) => ({
@@ -315,6 +319,72 @@ async function buildAthleteMarginOverview(
   return { byTier, riskUsers }
 }
 
+function buildFeatureMixOverview(
+  byCategory: Array<ReturnType<typeof finalizeBucket>>,
+  totalCalls: number,
+  totalCostSek: number,
+) {
+  const foodScanner = summarizeCategories(byCategory, ['food_scan', 'food_scan_memory'])
+  const heavyInteractive = summarizeCategories(byCategory, [
+    'live_voice_coach',
+    'voice_workout_summary',
+    'video_analysis',
+    'program_generation',
+    'program_phase_generation',
+    'deep_research',
+    'report_generation',
+  ])
+  const topCategory = byCategory[0] ?? null
+
+  return {
+    foodScanner: {
+      ...foodScanner,
+      costSharePercent: percentage(foodScanner.costSek, totalCostSek),
+      callSharePercent: percentage(foodScanner.calls, totalCalls),
+    },
+    heavyInteractive: {
+      ...heavyInteractive,
+      costSharePercent: percentage(heavyInteractive.costSek, totalCostSek),
+      callSharePercent: percentage(heavyInteractive.calls, totalCalls),
+    },
+    topCategory: topCategory
+      ? {
+          key: topCategory.key,
+          label: topCategory.label,
+          calls: topCategory.calls,
+          costSek: topCategory.costSek,
+          costSharePercent: percentage(topCategory.costSek, totalCostSek),
+          callSharePercent: percentage(topCategory.calls, totalCalls),
+        }
+      : null,
+  }
+}
+
+function summarizeCategories(
+  byCategory: Array<ReturnType<typeof finalizeBucket>>,
+  categoryKeys: string[],
+) {
+  const keySet = new Set(categoryKeys)
+  const buckets = byCategory.filter((bucket) => keySet.has(bucket.key))
+  const calls = buckets.reduce((sum, bucket) => sum + bucket.calls, 0)
+  const costSek = roundSek(buckets.reduce((sum, bucket) => sum + bucket.costSek, 0))
+  const athleteLinkedCalls = buckets.reduce((sum, bucket) => sum + bucket.athleteLinkedCalls, 0)
+  const athleteLinkedCostSek = roundSek(buckets.reduce((sum, bucket) => sum + bucket.athleteLinkedCostSek, 0))
+
+  return {
+    calls,
+    costSek,
+    athleteLinkedCalls,
+    athleteLinkedCostSek,
+    categories: buckets.map((bucket) => ({
+      key: bucket.key,
+      label: bucket.label,
+      calls: bucket.calls,
+      costSek: bucket.costSek,
+    })),
+  }
+}
+
 function getMonthlyRevenueSek(tier: AthletePlanTier, elitePriceMonthlyOre: number | null | undefined): number {
   if (tier === 'ELITE') return elitePriceMonthlyOre ? Math.round(elitePriceMonthlyOre / 100) : 0
   if (tier === 'FREE') return ATHLETE_PLAN_PRICING.FREE.monthlySek
@@ -398,6 +468,11 @@ function normalizeMoney(value: number): number {
 
 function roundSek(value: number): number {
   return Math.round(value * 100) / 100
+}
+
+function percentage(part: number, total: number): number {
+  if (total <= 0) return 0
+  return Math.round((part / total) * 100)
 }
 
 function formatProvider(provider: string): string {

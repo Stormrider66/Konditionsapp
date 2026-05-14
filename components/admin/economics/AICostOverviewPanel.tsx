@@ -50,6 +50,18 @@ interface AICostOverview {
     unattributedCostSek: number
     averageCostSek: number
   }
+  featureMix: {
+    foodScanner: FeatureMixBucket
+    heavyInteractive: FeatureMixBucket
+    topCategory: {
+      key: string
+      label: string
+      calls: number
+      costSek: number
+      costSharePercent: number
+      callSharePercent: number
+    } | null
+  }
   byCategory: CostBucket[]
   byProvider: CostBucket[]
   byModel: CostBucket[]
@@ -97,6 +109,21 @@ interface AICostOverview {
       allowanceUsedPercent: number | null
     }>
   }
+}
+
+interface FeatureMixBucket {
+  calls: number
+  costSek: number
+  athleteLinkedCalls: number
+  athleteLinkedCostSek: number
+  costSharePercent: number
+  callSharePercent: number
+  categories: Array<{
+    key: string
+    label: string
+    calls: number
+    costSek: number
+  }>
 }
 
 export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
@@ -190,11 +217,46 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
           <Bot className="h-4 w-4" />
           <AlertTitle>Top AI cost driver: {topCategory.label}</AlertTitle>
           <AlertDescription>
-            {formatSek(topCategory.costSek)} across {topCategory.calls.toLocaleString('sv-SE')} calls in the last {overview.period.days} days.
+            {formatSek(topCategory.costSek)} across {topCategory.calls.toLocaleString('sv-SE')} calls in the last {overview.period.days} days
+            {overview.featureMix.topCategory ? ` (${overview.featureMix.topCategory.costSharePercent}% of spend).` : '.'}
             Use this as the first place to tune prompts, model choice, caching, or tier policy.
           </AlertDescription>
         </Alert>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Feature Mix</CardTitle>
+          <CardDescription>
+            Quick answer to what is driving spend, with food scanner grouped together with its memory pass.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <FeatureMixStat
+              label="Food scanner"
+              bucket={overview.featureMix.foodScanner}
+              detail="Food scan + memory pass"
+            />
+            <FeatureMixStat
+              label="Voice/video/programs"
+              bucket={overview.featureMix.heavyInteractive}
+              detail="Guided coach, video, reports, research"
+            />
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Top single feature</p>
+              <p className="text-lg font-semibold">
+                {overview.featureMix.topCategory?.label ?? 'No usage'}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {overview.featureMix.topCategory
+                  ? `${overview.featureMix.topCategory.costSharePercent}% of spend · ${overview.featureMix.topCategory.callSharePercent}% of calls`
+                  : 'Nothing logged in this period'}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -224,6 +286,35 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
               <p className="text-lg font-semibold">{formatSek(overview.topUps.creditsRemainingSek)}</p>
             </div>
           </div>
+          {overview.topUps.recent.length > 0 && (
+            <div className="mt-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Recent top-up</TableHead>
+                    <TableHead className="text-right">Paid</TableHead>
+                    <TableHead className="text-right">Credits</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {overview.topUps.recent.map((purchase) => (
+                    <TableRow key={`${purchase.clientId}-${purchase.createdAt}`}>
+                      <TableCell>
+                        <div className="font-medium">{formatDate(purchase.createdAt)}</div>
+                        <div className="text-xs text-muted-foreground">{purchase.clientId}</div>
+                      </TableCell>
+                      <TableCell className="text-right">{formatSek(purchase.amountPaidSek)}</TableCell>
+                      <TableCell className="text-right">{formatSek(purchase.creditsSek)}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant="outline">{purchase.status}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -475,6 +566,27 @@ function TopUpStat({ label, value }: { label: string; value: string }) {
   )
 }
 
+function FeatureMixStat({
+  label,
+  bucket,
+  detail,
+}: {
+  label: string
+  bucket: FeatureMixBucket
+  detail: string
+}) {
+  return (
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-lg font-semibold">{formatSek(bucket.costSek)}</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {bucket.costSharePercent}% of spend · {bucket.callSharePercent}% of calls
+      </p>
+      <p className="mt-2 text-xs text-muted-foreground">{detail}</p>
+    </div>
+  )
+}
+
 function RiskBadge({ value }: { value: number | null }) {
   if (value === null) {
     return <Badge variant="outline">No revenue</Badge>
@@ -531,4 +643,13 @@ function formatNumber(value: number): string {
     notation: value >= 100_000 ? 'compact' : 'standard',
     maximumFractionDigits: 1,
   }).format(value)
+}
+
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat('sv-SE', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
 }
