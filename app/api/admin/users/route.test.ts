@@ -25,6 +25,7 @@ const mockPrisma = vi.hoisted(() => ({
     findUnique: vi.fn(),
     create: vi.fn(),
     upsert: vi.fn(),
+    update: vi.fn(),
   },
   athleteAccount: {
     findUnique: vi.fn(),
@@ -138,6 +139,7 @@ describe('admin users route', () => {
               tier: 'FREE',
               status: 'ACTIVE',
               trialEndsAt: null,
+              customAiAllowanceSek: 42,
             },
           },
         },
@@ -158,6 +160,7 @@ describe('admin users route', () => {
       status: 'ACTIVE',
       maxAthletes: null,
       stripeCurrentPeriodEnd: null,
+      customAiAllowanceSek: 42,
     })
   })
 
@@ -239,5 +242,85 @@ describe('admin users route', () => {
       status: 'ACTIVE',
       maxAthletes: null,
     })
+  })
+
+  it('PUT updates athlete custom AI allowance override', async () => {
+    mockPrisma.athleteAccount.findUnique.mockResolvedValue({ clientId: 'client-1' })
+    mockPrisma.athleteSubscription.findUnique.mockResolvedValue({ id: 'sub-1' })
+    mockPrisma.athleteSubscription.update.mockResolvedValue({})
+
+    mockPrisma.user.findUnique
+      .mockResolvedValueOnce({
+        role: 'ATHLETE',
+        adminRole: null,
+        selfAthleteClientId: null,
+        subscription: { tier: 'PRO' },
+        athleteAccount: {
+          clientId: 'client-1',
+          client: {
+            athleteSubscription: { tier: 'ELITE', customAiAllowanceSek: null },
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        id: 'user-1',
+        email: 'athlete@example.com',
+        name: 'Athlete User',
+        role: 'ATHLETE',
+        subscription: null,
+        athleteAccount: {
+          client: {
+            athleteSubscription: { tier: 'ELITE', status: 'ACTIVE' },
+          },
+        },
+      })
+
+    const request = new NextRequest('http://localhost/api/admin/users', {
+      method: 'PUT',
+      body: JSON.stringify({
+        userId: '11111111-1111-4111-8111-111111111111',
+        customAiAllowanceSek: 225,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const response = await PUT(request)
+
+    expect(response.status).toBe(200)
+    expect(mockPrisma.athleteSubscription.update).toHaveBeenCalledWith({
+      where: { clientId: 'client-1' },
+      data: { customAiAllowanceSek: 225 },
+    })
+    expect(mockPrisma.athleteSubscription.upsert).not.toHaveBeenCalled()
+  })
+
+  it('PUT rejects custom AI allowance overrides for non-athletes', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      role: 'COACH',
+      adminRole: null,
+      selfAthleteClientId: null,
+      subscription: { tier: 'PRO' },
+      athleteAccount: null,
+    })
+
+    const request = new NextRequest('http://localhost/api/admin/users', {
+      method: 'PUT',
+      body: JSON.stringify({
+        userId: '11111111-1111-4111-8111-111111111111',
+        customAiAllowanceSek: 225,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const response = await PUT(request)
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body.error).toBe('AI allowance overrides are only available for athletes')
+    expect(mockPrisma.athleteSubscription.update).not.toHaveBeenCalled()
   })
 })
