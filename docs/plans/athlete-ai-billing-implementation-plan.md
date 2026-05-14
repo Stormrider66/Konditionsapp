@@ -367,7 +367,8 @@ Additional shipped chunks:
 - Athlete subscription page AI credit explanation and tier allowances. Shipped in `4b5528c3`.
 - Deployment checklist for AI billing launch. Shipped: `docs/deployment/athlete-ai-billing-launch-checklist.md`.
 - High-cost AI guard tests now cover food scan, WOD, live voice coaching, and video analysis, and the readiness preflight requires those tests.
-- Admin AI cost feature mix now includes actual live voice and video-analysis log categories plus food scanner companion calls.
+- Admin AI cost feature mix now includes actual live voice, video-analysis, WOD, audio journal, ad-hoc workout, and food scanner companion log categories.
+- Top-up lifecycle tests now cover expiry, oldest-credit spending, and exhausting included plus top-up balances without going negative.
 
 ## Open Decisions
 
