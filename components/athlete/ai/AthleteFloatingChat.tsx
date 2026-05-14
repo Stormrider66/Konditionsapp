@@ -47,6 +47,10 @@ import { AIChatUsageMeter, AIChatUsageCompact } from '@/components/athlete/AICha
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import Link from 'next/link'
 import { useFloatingChatDrag } from '@/components/ai-studio/useFloatingChatDrag'
+import {
+  getAiAllowanceUpgradeMessage,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors'
 
 interface AthleteFloatingChatProps {
   clientId: string
@@ -98,6 +102,7 @@ export function AthleteFloatingChat({
     code: string
     message: string
     upgradeUrl?: string
+    actionLabel?: string
   } | null>(null)
 
   // GDPR consent state
@@ -294,6 +299,20 @@ export function AthleteFloatingChat({
     } else {
       setKnowledgeSkills([])
     }
+
+    if (!response.ok) {
+      const body = await response.clone().json().catch(() => null)
+      const allowanceError = parseAiAllowanceError(body)
+      if (allowanceError) {
+        setSubscriptionError({
+          code: allowanceError.code,
+          message: `${allowanceError.message} ${getAiAllowanceUpgradeMessage(allowanceError)}`,
+          upgradeUrl: allowanceError.actionUrl,
+          actionLabel: allowanceError.actionLabel,
+        })
+      }
+    }
+
     return response
   }, [])
 
@@ -324,6 +343,10 @@ export function AthleteFloatingChat({
           message: 'Du har nått din månadsgräns för AI-chatt.',
           upgradeUrl: '/athlete/subscription',
         })
+        return
+      }
+
+      if (errorMessage.includes('AI_ALLOWANCE_EXHAUSTED') || errorMessage.includes('402')) {
         return
       }
 
@@ -747,9 +770,9 @@ export function AthleteFloatingChat({
                 />
               </div>
             )}
-            <Link href={subscriptionError.upgradeUrl || '/athlete/subscription'}>
+            <Link href={`${basePath}${subscriptionError.upgradeUrl || '/athlete/subscription'}`}>
               <Button className="bg-amber-600 hover:bg-amber-700">
-                Uppgradera prenumeration
+                {subscriptionError.actionLabel || 'Uppgradera prenumeration'}
               </Button>
             </Link>
           </div>
