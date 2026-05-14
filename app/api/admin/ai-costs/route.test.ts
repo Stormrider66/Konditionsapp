@@ -10,6 +10,9 @@ const mockPrisma = vi.hoisted(() => ({
   aITopUpPurchase: {
     findMany: vi.fn(),
   },
+  aIProviderBillingImport: {
+    findMany: vi.fn(),
+  },
   client: {
     findMany: vi.fn(),
   },
@@ -41,6 +44,7 @@ describe('admin AI costs route', () => {
     mockRequireAdmin.mockResolvedValue({ id: 'admin-1' })
     mockPrisma.client.findMany.mockResolvedValue([])
     mockPrisma.aITopUpPurchase.findMany.mockResolvedValue([])
+    mockPrisma.aIProviderBillingImport.findMany.mockResolvedValue([])
   })
 
   it('returns feature mix shares for food scanner and other heavy AI surfaces', async () => {
@@ -184,6 +188,54 @@ describe('admin AI costs route', () => {
         label: 'Already monetized',
         priority: 'LOW',
       },
+    })
+  })
+
+  it('reconciles app estimates against imported provider invoices', async () => {
+    mockPrisma.aIUsageLog.findMany.mockResolvedValue([
+      usageLog({ category: 'food_scan', estimatedCost: 1, clientId: 'client-1' }),
+      usageLog({ category: 'chat', estimatedCost: 0.5, clientId: 'client-1' }),
+    ])
+    mockPrisma.aIProviderBillingImport.findMany.mockResolvedValue([
+      {
+        provider: 'GOOGLE',
+        serviceDescription: 'Gemini API',
+        skuDescription: 'Generate content token count',
+        costSek: 60,
+        periodStart: new Date('2026-05-01T00:00:00Z'),
+        periodEnd: new Date('2026-06-01T00:00:00Z'),
+      },
+      {
+        provider: 'OPENAI',
+        serviceDescription: 'OpenAI API',
+        skuDescription: 'Responses API',
+        costSek: 10,
+        periodStart: new Date('2026-05-01T00:00:00Z'),
+        periodEnd: new Date('2026-06-01T00:00:00Z'),
+      },
+    ])
+
+    const response = await GET(new NextRequest('http://localhost/api/admin/ai-costs?days=30'))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.data.reconciliation).toMatchObject({
+      importedRows: 2,
+      googleEstimatedSek: 15,
+      googleCoveragePercent: expect.any(Number),
+    })
+    expect(body.data.reconciliation.googleInvoiceSek).toBeGreaterThan(0)
+    expect(body.data.reconciliation.googleGapSek).toBeGreaterThanOrEqual(0)
+    expect(body.data.reconciliation.byProvider[0]).toMatchObject({
+      provider: 'GOOGLE',
+      label: 'Google',
+      estimatedSek: 15,
+      rows: 1,
+    })
+    expect(body.data.reconciliation.topRows[0]).toMatchObject({
+      provider: 'GOOGLE',
+      serviceDescription: 'Gemini API',
+      skuDescription: 'Generate content token count',
     })
   })
 })

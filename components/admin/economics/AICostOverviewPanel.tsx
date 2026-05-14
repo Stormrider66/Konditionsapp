@@ -84,6 +84,32 @@ interface AICostOverview {
       createdAt: string
     }>
   }
+  reconciliation: {
+    totalInvoiceSek: number
+    totalEstimatedSek: number
+    totalGapSek: number
+    totalCoveragePercent: number | null
+    googleInvoiceSek: number
+    googleEstimatedSek: number
+    googleGapSek: number
+    googleCoveragePercent: number | null
+    importedRows: number
+    byProvider: Array<{
+      provider: string
+      label: string
+      invoiceSek: number
+      estimatedSek: number
+      gapSek: number
+      coveragePercent: number | null
+      rows: number
+    }>
+    topRows: Array<{
+      provider: string
+      serviceDescription: string
+      skuDescription: string | null
+      costSek: number
+    }>
+  }
   margin: {
     byTier: Array<{
       tier: string
@@ -317,6 +343,86 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
                       <TableCell className="text-right">
                         <Badge variant="outline">{purchase.status}</Badge>
                       </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Provider Invoice Reconciliation</CardTitle>
+          <CardDescription>
+            Imported provider billing rows compared with internal logged estimates for the same period.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <TopUpStat label="Google invoice" value={formatSek(overview.reconciliation.googleInvoiceSek)} />
+            <TopUpStat label="Google estimate" value={formatSek(overview.reconciliation.googleEstimatedSek)} />
+            <TopUpStat label="Google gap" value={formatSek(overview.reconciliation.googleGapSek)} />
+            <TopUpStat
+              label="Coverage"
+              value={overview.reconciliation.googleCoveragePercent === null
+                ? 'No invoice'
+                : `${overview.reconciliation.googleCoveragePercent}%`}
+            />
+          </div>
+
+          {overview.reconciliation.importedRows === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              No provider invoice rows are imported for this period yet.
+            </p>
+          ) : (
+            <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Provider</TableHead>
+                    <TableHead className="text-right">Invoice</TableHead>
+                    <TableHead className="text-right">Estimate</TableHead>
+                    <TableHead className="text-right">Gap</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {overview.reconciliation.byProvider.map((provider) => (
+                    <TableRow key={provider.provider}>
+                      <TableCell>
+                        <div className="font-medium">{provider.label}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {provider.rows.toLocaleString('sv-SE')} imported rows
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">{formatSek(provider.invoiceSek)}</TableCell>
+                      <TableCell className="text-right">{formatSek(provider.estimatedSek)}</TableCell>
+                      <TableCell className="text-right">
+                        <InvoiceGapBadge value={provider.gapSek} coverage={provider.coveragePercent} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Largest invoice rows</TableHead>
+                    <TableHead className="text-right">Cost</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {overview.reconciliation.topRows.map((row) => (
+                    <TableRow key={`${row.provider}-${row.serviceDescription}-${row.skuDescription ?? 'sku'}`}>
+                      <TableCell>
+                        <div className="font-medium">{row.serviceDescription}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {[row.provider, row.skuDescription].filter(Boolean).join(' · ')}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">{formatSek(row.costSek)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -626,6 +732,31 @@ function RiskBadge({ value }: { value: number | null }) {
     <Badge variant="outline" className={className}>
       {value}%
     </Badge>
+  )
+}
+
+function InvoiceGapBadge({
+  value,
+  coverage,
+}: {
+  value: number
+  coverage: number | null
+}) {
+  const className = value > 10
+    ? 'border-red-200 bg-red-50 text-red-700'
+    : value > 0
+      ? 'border-amber-200 bg-amber-50 text-amber-700'
+      : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <Badge variant="outline" className={className}>
+        {formatSek(value)}
+      </Badge>
+      <span className="text-xs text-muted-foreground">
+        {coverage === null ? 'No invoice' : `${coverage}% covered`}
+      </span>
+    </div>
   )
 }
 

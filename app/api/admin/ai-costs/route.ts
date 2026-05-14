@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     const now = new Date()
     const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
 
-    const [logs, topUpPurchases] = await Promise.all([
+    const [logs, topUpPurchases, providerBillingRows] = await Promise.all([
       prisma.aIUsageLog.findMany({
         where: { createdAt: { gte: startDate } },
         select: {
@@ -57,6 +57,21 @@ export async function GET(request: NextRequest) {
           createdAt: true,
         },
         orderBy: { createdAt: 'desc' },
+      }),
+      prisma.aIProviderBillingImport.findMany({
+        where: {
+          periodStart: { lt: now },
+          periodEnd: { gt: startDate },
+        },
+        select: {
+          provider: true,
+          serviceDescription: true,
+          skuDescription: true,
+          costSek: true,
+          periodStart: true,
+          periodEnd: true,
+        },
+        orderBy: { costSek: 'desc' },
       }),
     ])
 
@@ -123,6 +138,12 @@ export async function GET(request: NextRequest) {
     const topUps = buildTopUpOverview(topUpPurchases)
     const byCategory = sortBuckets(categoryBuckets).map(finalizeBucket)
     const featureMix = buildFeatureMixOverview(byCategory, logs.length, totalCostSek)
+    const reconciliation = buildProviderReconciliation({
+      providerBillingRows,
+      providerBuckets,
+      rangeStart: startDate,
+      rangeEnd: now,
+    })
 
     const data = {
       period: {
@@ -155,6 +176,7 @@ export async function GET(request: NextRequest) {
       })),
       margin,
       topUps,
+      reconciliation,
     }
 
     return NextResponse.json({ success: true, data })
@@ -164,6 +186,103 @@ export async function GET(request: NextRequest) {
       { success: false, error: 'Failed to fetch AI cost overview' },
       { status: 500 },
     )
+  }
+}
+
+function buildProviderReconciliation(params: {
+  providerBillingRows: Array<{
+    provider: string
+    serviceDescription: string
+    skuDescription: string | null
+    costSek: number
+    periodStart: Date
+    periodEnd: Date
+  }>
+  providerBuckets: Map<string, CostBucket>
+  rangeStart: Date
+  rangeEnd: Date
+}) {
+  const invoiceByProvider = new Map<string, {
+    provider: string
+    invoiceSek: number
+    rows: number
+  }>()
+
+  const proratedRows = params.providerBillingRows.map((row) => ({
+    ...row,
+    proratedCostSek: prorateCostForRange(
+      row.costSek,
+      row.periodStart,
+      row.periodEnd,
+      params.rangeStart,
+      params.rangeEnd,
+    ),
+  }))
+
+  for (const row of proratedRows) {
+    const provider = normalizeProviderKey(row.provider)
+    const current = invoiceByProvider.get(provider) ?? {
+      provider,
+      invoiceSek: 0,
+      rows: 0,
+    }
+    current.invoiceSek += row.proratedCostSek
+    current.rows += 1
+    invoiceByProvider.set(provider, current)
+  }
+
+  const estimatedByProvider = new Map<string, number>()
+  for (const bucket of params.providerBuckets.values()) {
+    estimatedByProvider.set(normalizeProviderKey(bucket.key), bucket.costSek)
+  }
+
+  const providerKeys = new Set([
+    ...Array.from(invoiceByProvider.keys()),
+    ...Array.from(estimatedByProvider.keys()),
+  ])
+  const byProvider = Array.from(providerKeys)
+    .map((provider) => {
+      const invoiceSek = roundSek(invoiceByProvider.get(provider)?.invoiceSek ?? 0)
+      const estimatedSek = roundSek(estimatedByProvider.get(provider) ?? 0)
+      const gapSek = roundSek(invoiceSek - estimatedSek)
+      return {
+        provider,
+        label: formatProvider(provider),
+        invoiceSek,
+        estimatedSek,
+        gapSek,
+        coveragePercent: invoiceSek > 0 ? Math.round((estimatedSek / invoiceSek) * 1000) / 10 : null,
+        rows: invoiceByProvider.get(provider)?.rows ?? 0,
+      }
+    })
+    .sort((a, b) => b.invoiceSek - a.invoiceSek || b.estimatedSek - a.estimatedSek)
+
+  const googleInvoiceSek = byProvider.find((provider) => provider.provider === 'GOOGLE')?.invoiceSek ?? 0
+  const googleEstimatedSek = byProvider.find((provider) => provider.provider === 'GOOGLE')?.estimatedSek ?? 0
+  const totalInvoiceSek = roundSek(byProvider.reduce((sum, provider) => sum + provider.invoiceSek, 0))
+  const totalEstimatedSek = roundSek(byProvider.reduce((sum, provider) => sum + provider.estimatedSek, 0))
+
+  return {
+    totalInvoiceSek,
+    totalEstimatedSek,
+    totalGapSek: roundSek(totalInvoiceSek - totalEstimatedSek),
+    totalCoveragePercent: totalInvoiceSek > 0 ? Math.round((totalEstimatedSek / totalInvoiceSek) * 1000) / 10 : null,
+    googleInvoiceSek: roundSek(googleInvoiceSek),
+    googleEstimatedSek: roundSek(googleEstimatedSek),
+    googleGapSek: roundSek(googleInvoiceSek - googleEstimatedSek),
+    googleCoveragePercent: googleInvoiceSek > 0 ? Math.round((googleEstimatedSek / googleInvoiceSek) * 1000) / 10 : null,
+    importedRows: params.providerBillingRows.length,
+    byProvider,
+    topRows: proratedRows
+      .filter((row) => row.proratedCostSek > 0)
+      .sort((a, b) => b.proratedCostSek - a.proratedCostSek)
+      .slice(0, 8)
+      .map((row) => ({
+        provider: normalizeProviderKey(row.provider),
+        serviceDescription: row.serviceDescription,
+        skuDescription: row.skuDescription,
+        costSek: roundSek(row.proratedCostSek),
+      })),
   }
 }
 
@@ -564,6 +683,28 @@ function roundSek(value: number): number {
 function percentage(part: number, total: number): number {
   if (total <= 0) return 0
   return Math.round((part / total) * 100)
+}
+
+function prorateCostForRange(
+  cost: number,
+  rowStart: Date,
+  rowEnd: Date,
+  rangeStart: Date,
+  rangeEnd: Date,
+): number {
+  const rowStartMs = rowStart.getTime()
+  const rowEndMs = rowEnd.getTime()
+  const overlapStart = Math.max(rowStartMs, rangeStart.getTime())
+  const overlapEnd = Math.min(rowEndMs, rangeEnd.getTime())
+  const rowDuration = rowEndMs - rowStartMs
+  const overlapDuration = overlapEnd - overlapStart
+
+  if (rowDuration <= 0 || overlapDuration <= 0) return 0
+  return cost * Math.min(1, overlapDuration / rowDuration)
+}
+
+function normalizeProviderKey(provider: string): string {
+  return (provider || 'UNKNOWN').toUpperCase()
 }
 
 function formatProvider(provider: string): string {
