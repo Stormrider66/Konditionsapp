@@ -1156,6 +1156,7 @@ export function VideoAnalysisCard({
           </DialogHeader>
           <PoseAnalyzer
             videoUrl={analysis.videoUrl}
+            clientId={analysis.athlete?.id}
             videoType={analysis.videoType as 'STRENGTH' | 'RUNNING_GAIT' | 'SPORT_SPECIFIC'}
             exerciseName={analysis.exercise?.name}
             exerciseNameSv={analysis.exercise?.nameSv || undefined}

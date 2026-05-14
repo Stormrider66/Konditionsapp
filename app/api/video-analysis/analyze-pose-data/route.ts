@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import {
@@ -10,6 +10,7 @@ import {
 } from '@/lib/ai/google-genai-client'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 export const maxDuration = 120
 
@@ -43,6 +44,7 @@ interface PoseFrame {
 }
 
 interface AnalyzePoseDataRequest {
+  clientId?: string
   videoType: 'STRENGTH' | 'RUNNING_GAIT' | 'SPORT_SPECIFIC'
   exerciseName?: string
   exerciseNameSv?: string
@@ -55,11 +57,8 @@ interface AnalyzePoseDataRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth check
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -80,19 +79,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get user's API key (with fallback to business keys / platform admin)
-    const resolvedKeys = await getResolvedAiKeys(user.id)
-    const googleKey = resolvedKeys.googleKey
-
-    if (!googleKey) {
-      return NextResponse.json(
-        { error: 'Google API key not configured. Go to Settings to add your API key.' },
-        { status: 400 }
-      )
-    }
-
     const body: AnalyzePoseDataRequest = await request.json()
-    const { videoType, exerciseName, exerciseNameSv, angles, angleRanges, frames, frameCount, cameraAngle } = body
+    const { clientId, videoType, exerciseName, exerciseNameSv, angles, angleRanges, frames, frameCount, cameraAngle } = body
+
+    if (clientId) {
+      const hasAccess = await canAccessClient(user.id, clientId)
+      if (!hasAccess) {
+        return NextResponse.json(
+          { error: 'Client not found or access denied' },
+          { status: 404 }
+        )
+      }
+
+      const allowanceDenied = await requireAiAllowance(clientId)
+      if (allowanceDenied) return allowanceDenied
+    }
 
     if (Array.isArray(frames) && frames.length > MAX_FRAMES) {
       return NextResponse.json(
@@ -110,6 +111,17 @@ export async function POST(request: NextRequest) {
     if (!angles || angles.length === 0) {
       return NextResponse.json(
         { error: 'No pose data provided' },
+        { status: 400 }
+      )
+    }
+
+    // Get user's API key (with fallback to business keys / platform admin)
+    const resolvedKeys = await getResolvedAiKeys(user.id)
+    const googleKey = resolvedKeys.googleKey
+
+    if (!googleKey) {
+      return NextResponse.json(
+        { error: 'Google API key not configured. Go to Settings to add your API key.' },
         { status: 400 }
       )
     }
@@ -181,7 +193,7 @@ export async function POST(request: NextRequest) {
 
     // Send to Gemini with increased token limit for detailed JSON response
     const result = await withAiContext(
-      { userId: user.id, category: 'video_pose_analysis' },
+      { userId: user.id, clientId, category: 'video_pose_analysis' },
       () => generateContent(
         client,
         modelId,

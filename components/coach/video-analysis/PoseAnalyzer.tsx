@@ -31,6 +31,16 @@ import {
   MousePointer,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import {
+  type AiAllowanceExhaustedError,
+  getAiAllowanceUpgradeMessage,
+  isAiAllowanceExhaustedError,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors'
+import {
+  AiAllowanceBlockedAction,
+  type AiAllowanceAction,
+} from '@/components/athlete/ai/AiAllowanceBlockedAction'
 // FormFeedbackPanel removed - redundant with Gemini AI pose analysis
 
 // BlazePose landmark indices
@@ -77,6 +87,7 @@ interface AIAnalysisData {
 
 interface PoseAnalyzerProps {
   videoUrl: string
+  clientId?: string
   videoType: 'STRENGTH' | 'RUNNING_GAIT' | 'SPORT_SPECIFIC'
   exerciseName?: string
   exerciseNameSv?: string
@@ -93,6 +104,7 @@ interface PoseAnalyzerProps {
 
 export function PoseAnalyzer({
   videoUrl,
+  clientId,
   videoType,
   exerciseName,
   exerciseNameSv,
@@ -109,6 +121,7 @@ export function PoseAnalyzer({
   const [progress, setProgress] = useState(0)
   const [poseLoaded, setPoseLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null)
   const [frames, setFrames] = useState<PoseFrame[]>([])
   const [currentAngles, setCurrentAngles] = useState<JointAngle[]>([])
   const [angleRanges, setAngleRanges] = useState<Map<string, AngleRange>>(new Map())
@@ -141,6 +154,21 @@ export function PoseAnalyzer({
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const [videoReady, setVideoReady] = useState(false)
   const [videoError, setVideoError] = useState(false)
+
+  const clearError = () => {
+    setError(null)
+    setAiAllowanceAction(null)
+  }
+
+  const showAiAllowanceError = (allowanceError: AiAllowanceExhaustedError) => {
+    const description = `${allowanceError.message} ${getAiAllowanceUpgradeMessage(allowanceError)}`
+    setError(description)
+    setAiAllowanceAction({
+      label: allowanceError.actionLabel,
+      url: allowanceError.actionUrl,
+    })
+    return description
+  }
 
   // Fetch video as blob to bypass CORS restrictions on signed URLs
   useEffect(() => {
@@ -427,6 +455,7 @@ export function PoseAnalyzer({
 
     setIsAnalyzingWithAI(true)
     setAiPoseAnalysis(null)
+    clearError()
 
     try {
       // Convert angleRanges Map to array with full range data (min/max/avg)
@@ -444,6 +473,7 @@ export function PoseAnalyzer({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          clientId,
           videoType,
           exerciseName,
           exerciseNameSv,
@@ -458,6 +488,8 @@ export function PoseAnalyzer({
       const data = await response.json()
 
       if (!response.ok) {
+        const allowanceError = parseAiAllowanceError(data)
+        if (allowanceError) throw allowanceError
         throw new Error(data.error || 'AI-analysen misslyckades')
       }
 
@@ -474,9 +506,16 @@ export function PoseAnalyzer({
       })
     } catch (err) {
       console.error('Gemini analysis error:', err)
+      const description = isAiAllowanceExhaustedError(err)
+        ? showAiAllowanceError(err)
+        : err instanceof Error ? err.message : 'Kunde inte analysera med AI'
+      if (!isAiAllowanceExhaustedError(err)) {
+        setError(description)
+        setAiAllowanceAction(null)
+      }
       toast({
         title: 'Analysfel',
-        description: err instanceof Error ? err.message : 'Kunde inte analysera med AI',
+        description,
         variant: 'destructive',
       })
     } finally {
@@ -1308,8 +1347,9 @@ export function PoseAnalyzer({
 
           {/* Error */}
           {error && (
-            <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm">
-              {error}
+            <div className="space-y-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              <p>{error}</p>
+              <AiAllowanceBlockedAction action={aiAllowanceAction} tone="red" />
             </div>
           )}
         </CardContent>
