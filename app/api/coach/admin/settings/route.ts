@@ -16,6 +16,18 @@ const updateSettingsSchema = z.object({
   country: z.string().max(100).optional().nullable(),
   logoUrl: z.string().url().optional().nullable(),
   primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().nullable(),
+  elitePriceMonthly: z.number().positive().optional().nullable(),
+  elitePriceYearly: z.number().positive().optional().nullable(),
+  eliteDescription: z.string().max(1000).optional().nullable(),
+  eliteAiAllowanceSek: z.number().min(0).optional().nullable(),
+}).refine((data) => {
+  if (data.elitePriceMonthly && data.elitePriceYearly) {
+    return data.elitePriceYearly < data.elitePriceMonthly * 12
+  }
+  return true
+}, {
+  message: 'Yearly Elite price must be lower than 12 monthly payments',
+  path: ['elitePriceYearly'],
 })
 
 // GET /api/coach/admin/settings - Get business settings
@@ -77,6 +89,10 @@ export async function GET(request: NextRequest) {
         country: business.country,
         logoUrl: business.logoUrl,
         primaryColor: business.primaryColor,
+        elitePriceMonthly: business.elitePriceMonthly ? business.elitePriceMonthly / 100 : null,
+        elitePriceYearly: business.elitePriceYearly ? business.elitePriceYearly / 100 : null,
+        eliteDescription: business.eliteDescription,
+        eliteAiAllowanceSek: business.eliteAiAllowanceSek,
         isActive: business.isActive,
         defaultRevenueShare: business.defaultRevenueShare,
         createdAt: business.createdAt,
@@ -114,6 +130,18 @@ export async function PUT(request: NextRequest) {
         country: validatedData.country,
         logoUrl: validatedData.logoUrl,
         primaryColor: validatedData.primaryColor,
+        elitePriceMonthly: validatedData.elitePriceMonthly === undefined
+          ? undefined
+          : validatedData.elitePriceMonthly === null
+            ? null
+            : Math.round(validatedData.elitePriceMonthly * 100),
+        elitePriceYearly: validatedData.elitePriceYearly === undefined
+          ? undefined
+          : validatedData.elitePriceYearly === null
+            ? null
+            : Math.round(validatedData.elitePriceYearly * 100),
+        eliteDescription: validatedData.eliteDescription,
+        eliteAiAllowanceSek: validatedData.eliteAiAllowanceSek,
       },
       select: {
         id: true,
@@ -129,6 +157,10 @@ export async function PUT(request: NextRequest) {
         country: true,
         logoUrl: true,
         primaryColor: true,
+        elitePriceMonthly: true,
+        elitePriceYearly: true,
+        eliteDescription: true,
+        eliteAiAllowanceSek: true,
         isActive: true,
         defaultRevenueShare: true,
         updatedAt: true,

@@ -14,6 +14,7 @@ import {
   MapPin,
   FileText,
   Save,
+  Crown,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
@@ -63,6 +64,10 @@ interface BusinessSettings {
   primaryColor: string | null
   isActive: boolean
   defaultRevenueShare: number
+  elitePriceMonthly: number | null
+  elitePriceYearly: number | null
+  eliteDescription: string | null
+  eliteAiAllowanceSek: number | null
   createdAt: string
   updatedAt: string
   locations: BusinessLocation[]
@@ -86,6 +91,10 @@ export function BusinessSettingsTab() {
     city: '',
     postalCode: '',
     country: '',
+    elitePriceMonthly: '',
+    elitePriceYearly: '',
+    eliteDescription: '',
+    eliteAiAllowanceSek: '',
   })
 
   const fetchSettings = useCallback(async () => {
@@ -108,6 +117,10 @@ export function BusinessSettingsTab() {
         city: result.data.city || '',
         postalCode: result.data.postalCode || '',
         country: result.data.country || '',
+        elitePriceMonthly: result.data.elitePriceMonthly?.toString() || '',
+        elitePriceYearly: result.data.elitePriceYearly?.toString() || '',
+        eliteDescription: result.data.eliteDescription || '',
+        eliteAiAllowanceSek: result.data.eliteAiAllowanceSek?.toString() || '',
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings')
@@ -142,6 +155,10 @@ export function BusinessSettingsTab() {
           city: formData.city || null,
           postalCode: formData.postalCode || null,
           country: formData.country || null,
+          elitePriceMonthly: parseNullableNumber(formData.elitePriceMonthly),
+          elitePriceYearly: parseNullableNumber(formData.elitePriceYearly),
+          eliteDescription: formData.eliteDescription || null,
+          eliteAiAllowanceSek: parseNullableNumber(formData.eliteAiAllowanceSek),
         }),
       })
 
@@ -168,6 +185,13 @@ export function BusinessSettingsTab() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount)
+  }
+
+  const parseNullableNumber = (value: string) => {
+    const normalized = value.trim().replace(',', '.')
+    if (!normalized) return null
+    const parsed = Number(normalized)
+    return Number.isFinite(parsed) ? parsed : null
   }
 
   const getContractStatusBadge = (status: string) => {
@@ -307,6 +331,74 @@ export function BusinessSettingsTab() {
                 onChange={(e) => setFormData((prev) => ({ ...prev, country: e.target.value }))}
               />
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Elite Pricing */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Crown className="h-5 w-5 text-amber-600" />
+            <CardTitle className="text-lg">Elite Pricing</CardTitle>
+          </div>
+          <CardDescription>
+            Configure the custom Elite offer for athletes who buy training with a coach or PT attached.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="elitePriceMonthly">Monthly price (SEK)</Label>
+              <Input
+                id="elitePriceMonthly"
+                type="number"
+                min="0"
+                inputMode="decimal"
+                value={formData.elitePriceMonthly}
+                onChange={(e) => setFormData((prev) => ({ ...prev, elitePriceMonthly: e.target.value }))}
+                placeholder="799"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="elitePriceYearly">Yearly price (SEK)</Label>
+              <Input
+                id="elitePriceYearly"
+                type="number"
+                min="0"
+                inputMode="decimal"
+                value={formData.elitePriceYearly}
+                onChange={(e) => setFormData((prev) => ({ ...prev, elitePriceYearly: e.target.value }))}
+                placeholder="7990"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="eliteAiAllowanceSek">Included AI credits / month</Label>
+              <Input
+                id="eliteAiAllowanceSek"
+                type="number"
+                min="0"
+                inputMode="decimal"
+                value={formData.eliteAiAllowanceSek}
+                onChange={(e) => setFormData((prev) => ({ ...prev, eliteAiAllowanceSek: e.target.value }))}
+                placeholder="150"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="eliteDescription">Elite description</Label>
+            <Textarea
+              id="eliteDescription"
+              value={formData.eliteDescription}
+              onChange={(e) => setFormData((prev) => ({ ...prev, eliteDescription: e.target.value }))}
+              rows={3}
+              placeholder="Premium training with assigned coach/PT, custom follow-up, and a larger AI credit allowance."
+            />
+          </div>
+
+          <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
+            Leave the monthly price empty to disable self-serve Elite checkout for this business. If AI credits are empty, Elite uses the platform default.
           </div>
         </CardContent>
       </Card>
