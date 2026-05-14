@@ -191,7 +191,12 @@ function normalizeCardioSegment(segment: Record<string, unknown>, index: number)
 
 function normalizeHybridMovement(movement: Record<string, unknown>): PrintableWorkoutItem {
   const exercise = isRecord(movement.exercise) ? movement.exercise : {}
-  const title = asString(exercise.nameSv) || asString(exercise.name) || asString(movement.name) || 'Rörelse'
+  const title =
+    asString(movement.exerciseName) ||
+    asString(exercise.nameSv) ||
+    asString(exercise.name) ||
+    asString(movement.name) ||
+    'Rörelse'
   return {
     title,
     details: joinDetails([
