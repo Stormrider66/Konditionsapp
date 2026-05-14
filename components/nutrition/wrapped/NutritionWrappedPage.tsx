@@ -143,10 +143,10 @@ export function NutritionWrappedPage() {
 
   if (!stats) {
     return (
-      <Card className="bg-white/5 border-white/10">
+      <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
         <CardContent className="p-8 text-center">
           <Sparkles className="h-10 w-10 text-slate-500 mx-auto mb-3" />
-          <p className="text-slate-300 font-medium">Ingen kostsammanfattning ännu</p>
+          <p className="text-slate-700 font-medium dark:text-slate-300">Ingen kostsammanfattning ännu</p>
           <p className="text-xs text-slate-500 mt-1">
             Börja logga mat med fotoskannern så skapar vi din första sammanfattning
           </p>
@@ -160,7 +160,7 @@ export function NutritionWrappedPage() {
       {/* Period selector */}
       {availablePeriods.length > 0 && (
         <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
-          <SelectTrigger className="w-full bg-white/5 border-white/10 text-white">
+          <SelectTrigger className="w-full bg-white border-slate-200 text-slate-900 dark:bg-white/5 dark:border-white/10 dark:text-white">
             <SelectValue placeholder="Välj period" />
           </SelectTrigger>
           <SelectContent>
@@ -212,14 +212,14 @@ export function NutritionWrappedPage() {
         <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20">
           <CardContent className="p-4 text-center">
             <Trophy className="h-6 w-6 text-purple-400 mx-auto mb-1" />
-            <p className="text-2xl font-bold text-white">{stats.longestStreak}</p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.longestStreak}</p>
             <p className="text-xs text-slate-400">Längsta svit (dagar)</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20">
           <CardContent className="p-4 text-center">
             <Sparkles className="h-6 w-6 text-amber-400 mx-auto mb-1" />
-            <p className="text-2xl font-bold text-white">{stats.uniqueFoodItems}</p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.uniqueFoodItems}</p>
             <p className="text-xs text-slate-400">Unika livsmedel</p>
           </CardContent>
         </Card>
@@ -227,9 +227,9 @@ export function NutritionWrappedPage() {
 
       {/* Top Foods */}
       {stats.topFoods.length > 0 && (
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-300 flex items-center gap-2">
+            <CardTitle className="text-sm text-slate-700 flex items-center gap-2 dark:text-slate-300">
               <TrendingUp className="h-4 w-4 text-cyan-400" />
               Dina favoritmat
             </CardTitle>
@@ -238,11 +238,11 @@ export function NutritionWrappedPage() {
             <div className="space-y-2">
               {stats.topFoods.slice(0, 5).map((food, i) => (
                 <div key={food.name} className="flex items-center gap-3">
-                  <span className={`text-lg font-black ${i === 0 ? 'text-amber-400' : i === 1 ? 'text-slate-300' : i === 2 ? 'text-amber-600' : 'text-slate-500'}`}>
+                  <span className={`text-lg font-black ${i === 0 ? 'text-amber-400' : i === 1 ? 'text-slate-500 dark:text-slate-300' : i === 2 ? 'text-amber-600' : 'text-slate-500'}`}>
                     {i + 1}
                   </span>
                   <div className="flex-1">
-                    <p className="text-sm text-white">{food.name}</p>
+                    <p className="text-sm text-slate-900 dark:text-white">{food.name}</p>
                     <p className="text-[10px] text-slate-500">
                       {Math.round(food.totalGrams / 1000 * 10) / 10} kg totalt
                     </p>
@@ -257,7 +257,7 @@ export function NutritionWrappedPage() {
 
       {/* Protein sources */}
       {stats.proteinSources.length > 0 && (
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-blue-400">
               Dina proteinkällor
@@ -268,10 +268,10 @@ export function NutritionWrappedPage() {
               {stats.proteinSources.map((source) => (
                 <div key={source.name} className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-300">{source.name}</span>
+                    <span className="text-slate-700 dark:text-slate-300">{source.name}</span>
                     <span className="text-slate-400">{source.percent}%</span>
                   </div>
-                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden dark:bg-white/5">
                     <div
                       className="h-full rounded-full bg-blue-400 transition-all duration-700"
                       style={{ width: `${source.percent}%` }}
@@ -286,18 +286,18 @@ export function NutritionWrappedPage() {
 
       {/* Meal type distribution */}
       {stats.mealTypeDistribution.length > 0 && (
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-300">Måltidsfördelning</CardTitle>
+            <CardTitle className="text-sm text-slate-700 dark:text-slate-300">Måltidsfördelning</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-2">
               {stats.mealTypeDistribution.map((mt) => (
-                <div key={mt.mealType} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                <div key={mt.mealType} className="flex items-center justify-between p-2 bg-slate-100 rounded-lg dark:bg-white/5">
                   <span className="text-xs text-slate-400">
                     {MEAL_TYPE_LABELS[mt.mealType] || mt.mealType}
                   </span>
-                  <span className="text-xs font-medium text-white">{mt.count}</span>
+                  <span className="text-xs font-medium text-slate-900 dark:text-white">{mt.count}</span>
                 </div>
               ))}
             </div>
@@ -307,16 +307,16 @@ export function NutritionWrappedPage() {
 
       {/* Category breakdown */}
       {stats.categoryBreakdown.length > 0 && (
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-300">Livsmedelskategorier</CardTitle>
+            <CardTitle className="text-sm text-slate-700 dark:text-slate-300">Livsmedelskategorier</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {stats.categoryBreakdown.map((cat) => (
                 <span
                   key={cat.category}
-                  className="px-2.5 py-1 bg-white/5 rounded-full text-xs text-slate-300 border border-white/10"
+                  className="px-2.5 py-1 bg-slate-100 rounded-full text-xs text-slate-700 border border-slate-200 dark:bg-white/5 dark:text-slate-300 dark:border-white/10"
                 >
                   {CATEGORY_LABELS[cat.category] || cat.category} ({cat.count})
                 </span>
@@ -330,7 +330,7 @@ export function NutritionWrappedPage() {
       {stats.funFacts.length > 0 && (
         <Card className="bg-gradient-to-br from-cyan-500/10 to-emerald-500/10 border-cyan-500/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-cyan-300 flex items-center gap-2">
+            <CardTitle className="text-sm text-cyan-700 flex items-center gap-2 dark:text-cyan-300">
               <Sparkles className="h-4 w-4" />
               Visste du att...
             </CardTitle>
@@ -338,7 +338,7 @@ export function NutritionWrappedPage() {
           <CardContent>
             <div className="space-y-2">
               {stats.funFacts.map((fact, i) => (
-                <p key={i} className="text-sm text-slate-300">
+                <p key={i} className="text-sm text-slate-700 dark:text-slate-300">
                   {fact}
                 </p>
               ))}
@@ -348,14 +348,14 @@ export function NutritionWrappedPage() {
       )}
 
       {/* Macro totals */}
-      <Card className="bg-white/5 border-white/10">
+      <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-slate-300">Totalt konsumerat</CardTitle>
+          <CardTitle className="text-sm text-slate-700 dark:text-slate-300">Totalt konsumerat</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-4 gap-3 text-center">
             <div>
-              <p className="text-lg font-bold text-white">
+              <p className="text-lg font-bold text-slate-900 dark:text-white">
                 {(stats.totalCalories / 1000).toFixed(0)}k
               </p>
               <p className="text-[10px] text-slate-500">kcal</p>
@@ -394,7 +394,7 @@ function StatCard({
     <Card className={`${bg} border`}>
       <CardContent className="p-4">
         <div className="flex items-center gap-2 mb-1">{icon}</div>
-        <p className="text-2xl font-bold text-white">{value}</p>
+        <p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
         <p className="text-xs text-slate-400">{label}</p>
       </CardContent>
     </Card>

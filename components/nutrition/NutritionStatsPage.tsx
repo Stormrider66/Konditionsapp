@@ -147,7 +147,7 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
       <GlassCard>
         <GlassCardContent className="p-8">
           <div className="flex flex-col items-center justify-center text-center space-y-3">
-            <p className="text-slate-300 font-medium">Ingen kostdata hittades</p>
+            <p className="text-slate-700 dark:text-slate-300 font-medium">Ingen kostdata hittades</p>
             <p className="text-sm text-slate-500">
               Logga måltider för att se statistik och trender.
             </p>
@@ -161,10 +161,10 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
     <div className="space-y-6">
       {/* Range selector */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-slate-600 dark:text-slate-400">
           {data.summary.totalDaysLogged} dagar loggade &middot; {data.summary.totalMeals} måltider
         </p>
-        <div className="flex flex-wrap justify-end gap-1 bg-white/5 rounded-lg p-1">
+        <div className="flex flex-wrap justify-end gap-1 bg-slate-100 dark:bg-white/5 rounded-lg p-1">
           {RANGE_OPTIONS.map((opt) => (
             <Button
               key={opt.value}
@@ -172,8 +172,8 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
               size="sm"
               className={`text-xs px-3 h-7 rounded-md ${
                 range === opt.value
-                  ? 'bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-cyan-500/20 text-cyan-700 hover:bg-cyan-500/30 dark:text-cyan-300'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5'
               }`}
               onClick={() => setRange(opt.value)}
             >
@@ -191,8 +191,8 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
               <Apple className="h-5 w-5 text-emerald-400" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-white">Mathistorik</p>
-              <p className="text-xs text-slate-500">Se dina mest ätna livsmedel och näringskällor</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">Mathistorik</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Se dina mest ätna livsmedel och näringskällor</p>
             </div>
             <span className="text-xs text-slate-500">&rarr;</span>
           </GlassCardContent>
@@ -207,8 +207,8 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
               <Sparkles className="h-5 w-5 text-cyan-400" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-white">Kostsammanfattning</p>
-              <p className="text-xs text-slate-500">Din wrapped — månads- och årsöversikt</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">Kostsammanfattning</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Din wrapped — månads- och årsöversikt</p>
             </div>
             <span className="text-xs text-slate-500">&rarr;</span>
           </GlassCardContent>

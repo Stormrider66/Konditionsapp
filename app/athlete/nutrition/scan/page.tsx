@@ -20,7 +20,7 @@ export default function NutritionScanPage() {
     : 'Tillbaka till dashboard'
 
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-200 pb-20 selection:bg-cyan-500/30">
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 selection:bg-cyan-500/30 dark:bg-[#050505] dark:text-slate-200">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-500/5 blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[35%] h-[35%] bg-emerald-500/5 blur-[100px] rounded-full" />
@@ -28,7 +28,7 @@ export default function NutritionScanPage() {
 
       <div className="container mx-auto py-8 px-4 max-w-2xl relative z-10">
         <Link href={backHref}>
-          <Button variant="ghost" size="sm" className="gap-2 mb-6 text-slate-400 hover:text-white hover:bg-white/5 rounded-full px-4">
+          <Button variant="ghost" size="sm" className="gap-2 mb-6 text-slate-600 hover:text-slate-950 hover:bg-slate-100 rounded-full px-4 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5">
             <ArrowLeft className="h-4 w-4" />
             {backLabel}
           </Button>
@@ -39,7 +39,7 @@ export default function NutritionScanPage() {
             <Camera className="h-7 w-7 text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-3xl font-black italic uppercase tracking-tight text-white leading-none">
+            <h1 className="text-3xl font-black italic uppercase tracking-tight text-slate-950 leading-none dark:text-white">
               Fota din mat
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">
@@ -48,7 +48,7 @@ export default function NutritionScanPage() {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4 shadow-[0_0_40px_rgba(15,23,42,0.45)] backdrop-blur">
+        <div className="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/70 dark:shadow-[0_0_40px_rgba(15,23,42,0.45)]">
           <FoodPhotoScanner redirectPathOnSave={backHref} />
         </div>
       </div>

@@ -176,7 +176,7 @@ export function FoodHistoryPage() {
     <div className="space-y-6">
       {/* Controls */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex gap-1 bg-white/5 rounded-lg p-1 flex-1">
+        <div className="flex gap-1 bg-slate-100 dark:bg-white/5 rounded-lg p-1 flex-1">
           {VIEWS.map((v) => {
             const Icon = v.icon
             return (
@@ -185,8 +185,8 @@ export function FoodHistoryPage() {
                 onClick={() => setView(v.value)}
                 className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
                   view === v.value
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-cyan-500/20 text-cyan-700 border border-cyan-500/30 dark:text-cyan-300'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5'
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -196,7 +196,7 @@ export function FoodHistoryPage() {
           })}
         </div>
         <Select value={range} onValueChange={setRange}>
-          <SelectTrigger className="w-[200px] bg-white/5 border-white/10 text-white">
+          <SelectTrigger className="w-[200px] bg-white border-slate-200 text-slate-900 dark:bg-white/5 dark:border-white/10 dark:text-white">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -219,34 +219,34 @@ export function FoodHistoryPage() {
           {view === 'top-foods' && topFoodsData && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <Card className="bg-white/5 border-white/10">
+                <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
                   <CardContent className="p-4 text-center">
-                    <p className="text-2xl font-bold text-white">{topFoodsData.totalUniqueItems}</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{topFoodsData.totalUniqueItems}</p>
                     <p className="text-xs text-slate-400">Unika livsmedel</p>
                   </CardContent>
                 </Card>
-                <Card className="bg-white/5 border-white/10">
+                <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
                   <CardContent className="p-4 text-center">
-                    <p className="text-2xl font-bold text-white">{topFoodsData.totalItemCount}</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{topFoodsData.totalItemCount}</p>
                     <p className="text-xs text-slate-400">Totalt loggade</p>
                   </CardContent>
                 </Card>
               </div>
 
               {topFoodsData.topFoods.length === 0 ? (
-                <Card className="bg-white/5 border-white/10">
+                <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
                   <CardContent className="p-8 text-center">
                     <UtensilsCrossed className="h-8 w-8 text-slate-500 mx-auto mb-3" />
-                    <p className="text-slate-400">Ingen mathistorik ännu</p>
+                    <p className="text-slate-600 dark:text-slate-400">Ingen mathistorik ännu</p>
                     <p className="text-xs text-slate-500 mt-1">
                       Skanna din mat med fotofunktionen så börjar vi spara vad du äter
                     </p>
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="bg-white/5 border-white/10">
+                <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-slate-300">
+                    <CardTitle className="text-sm text-slate-700 dark:text-slate-300">
                       Mest ätna livsmedel
                     </CardTitle>
                   </CardHeader>
@@ -267,10 +267,10 @@ export function FoodHistoryPage() {
                           />
                           <Tooltip
                             contentStyle={{
-                              backgroundColor: '#1e293b',
-                              border: '1px solid rgba(255,255,255,0.1)',
+                              backgroundColor: 'hsl(var(--popover))',
+                              border: '1px solid hsl(var(--border))',
                               borderRadius: '8px',
-                              color: '#e2e8f0',
+                              color: 'hsl(var(--popover-foreground))',
                             }}
                             formatter={(value: number, _name: string, entry: { payload?: TopFood }) => {
                               const item = entry.payload
@@ -295,7 +295,7 @@ export function FoodHistoryPage() {
                       {topFoodsData.topFoods.map((food, i) => (
                         <div
                           key={food.normalizedName}
-                          className="flex items-center gap-3 p-2 rounded-lg bg-white/5"
+                          className="flex items-center gap-3 p-2 rounded-lg bg-slate-100 dark:bg-white/5"
                         >
                           <span className="text-xs font-bold text-slate-500 w-6 text-right">
                             {i + 1}
@@ -309,7 +309,7 @@ export function FoodHistoryPage() {
                             }}
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white truncate">{food.name}</p>
+                            <p className="text-sm text-slate-900 truncate dark:text-white">{food.name}</p>
                             <p className="text-[10px] text-slate-500">
                               {food.category || 'Okategoriserad'} · {Math.round(food.totalGrams)}g totalt
                             </p>
@@ -361,15 +361,15 @@ export function FoodHistoryPage() {
             <>
             <div className="space-y-3">
               {timelineData.length === 0 ? (
-                <Card className="bg-white/5 border-white/10">
+                <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
                   <CardContent className="p-8 text-center">
                     <UtensilsCrossed className="h-8 w-8 text-slate-500 mx-auto mb-3" />
-                    <p className="text-slate-400">Ingen mathistorik ännu</p>
+                    <p className="text-slate-600 dark:text-slate-400">Ingen mathistorik ännu</p>
                   </CardContent>
                 </Card>
               ) : (
                 timelineData.map((meal) => (
-                  <Card key={meal.id} className="bg-white/5 border-white/10 group">
+                  <Card key={meal.id} className="bg-white border-slate-200 group dark:bg-white/5 dark:border-white/10">
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -398,7 +398,7 @@ export function FoodHistoryPage() {
                                 ? meal.items.reduce((s, i) => s + i.fatGrams, 0)
                                 : null,
                             })}
-                            className="p-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="p-1 rounded hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity dark:hover:bg-white/10"
                             title="Redigera"
                           >
                             <Pencil className="h-3.5 w-3.5 text-slate-400 hover:text-cyan-400" />
@@ -406,7 +406,7 @@ export function FoodHistoryPage() {
                           <button
                             onClick={() => handleDeleteMeal(meal.id)}
                             disabled={deletingMealId === meal.id}
-                            className="p-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="p-1 rounded hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity dark:hover:bg-white/10"
                             title="Ta bort"
                           >
                             <Trash2 className="h-3.5 w-3.5 text-slate-400 hover:text-red-400" />
@@ -432,7 +432,7 @@ export function FoodHistoryPage() {
                                       : CATEGORY_COLORS.OTHER,
                                   }}
                                 />
-                                <span className="text-slate-300">{item.name}</span>
+                                <span className="text-slate-700 dark:text-slate-300">{item.name}</span>
                                 <span className="text-slate-600">
                                   {item.portionDescription || `${Math.round(item.estimatedGrams)}g`}
                                 </span>
@@ -447,7 +447,7 @@ export function FoodHistoryPage() {
                         <p className="text-xs text-slate-500">{meal.description}</p>
                       )}
                       {meal.calories != null && (
-                        <div className="mt-2 pt-2 border-t border-white/5 text-xs text-slate-400">
+                        <div className="mt-2 pt-2 border-t border-slate-200 text-xs text-slate-600 dark:border-white/5 dark:text-slate-400">
                           Totalt: {meal.calories} kcal
                         </div>
                       )}
@@ -491,7 +491,7 @@ function NutrientSourceCard({
 }) {
   if (sources.length === 0) {
     return (
-      <Card className="bg-white/5 border-white/10">
+      <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
         <CardHeader className="pb-2">
           <CardTitle className={`text-sm ${color}`}>{title}</CardTitle>
         </CardHeader>
@@ -503,7 +503,7 @@ function NutrientSourceCard({
   }
 
   return (
-    <Card className="bg-white/5 border-white/10">
+    <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
       <CardHeader className="pb-2">
         <CardTitle className={`text-sm ${color}`}>
           {title}
@@ -517,12 +517,12 @@ function NutrientSourceCard({
           {sources.map((source) => (
             <div key={source.name} className="space-y-1">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-300">{source.name}</span>
-                <span className="text-slate-400">
+                <span className="text-slate-700 dark:text-slate-300">{source.name}</span>
+                <span className="text-slate-600 dark:text-slate-400">
                   {source.totalGrams}g ({source.percent}%)
                 </span>
               </div>
-              <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden dark:bg-white/5">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{

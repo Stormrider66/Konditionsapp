@@ -22,7 +22,7 @@ export function ProteinTimingCard({ timing }: ProteinTimingCardProps) {
   return (
     <GlassCard>
       <GlassCardHeader className="pb-2">
-        <GlassCardTitle className="text-base text-cyan-400">Protein: träning vs vila</GlassCardTitle>
+        <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400">Protein: träning vs vila</GlassCardTitle>
       </GlassCardHeader>
       <GlassCardContent>
         <div className="grid grid-cols-2 gap-4">
@@ -31,20 +31,20 @@ export function ProteinTimingCard({ timing }: ProteinTimingCardProps) {
             <p className="text-2xl font-bold text-blue-400">
               {timing.avgWorkoutDayProtein !== null ? `${timing.avgWorkoutDayProtein}g` : '-'}
             </p>
-            <p className="text-xs text-slate-400 mt-1">Träningsdagar</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Träningsdagar</p>
             <p className="text-[10px] text-slate-500">({timing.workoutDays} dagar)</p>
           </div>
-          <div className="flex flex-col items-center p-4 bg-slate-500/5 rounded-xl border border-slate-500/10">
+          <div className="flex flex-col items-center p-4 bg-slate-100 dark:bg-slate-500/5 rounded-xl border border-slate-200 dark:border-slate-500/10">
             <Moon className="h-5 w-5 text-slate-400 mb-2" />
-            <p className="text-2xl font-bold text-slate-300">
+            <p className="text-2xl font-bold text-slate-700 dark:text-slate-300">
               {timing.avgRestDayProtein !== null ? `${timing.avgRestDayProtein}g` : '-'}
             </p>
-            <p className="text-xs text-slate-400 mt-1">Vilodagar</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Vilodagar</p>
             <p className="text-[10px] text-slate-500">({timing.restDays} dagar)</p>
           </div>
         </div>
         {diff !== null && (
-          <p className="text-xs text-center text-slate-400 mt-3">
+          <p className="text-xs text-center text-slate-600 dark:text-slate-400 mt-3">
             {diff > 0 ? (
               <span className="text-green-400">+{diff}g protein på träningsdagar</span>
             ) : diff < 0 ? (

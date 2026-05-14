@@ -25,6 +25,15 @@ const MEAL_TYPE_LABELS: Record<string, string> = {
 }
 
 export function MealFrequencyChart({ distribution }: MealFrequencyChartProps) {
+  const axisColor = 'hsl(var(--muted-foreground))'
+  const gridColor = 'hsl(var(--border))'
+  const tooltipStyle = {
+    backgroundColor: 'hsl(var(--popover))',
+    border: '1px solid hsl(var(--border))',
+    borderRadius: '8px',
+    color: 'hsl(var(--popover-foreground))',
+    fontSize: 12,
+  }
   const data = distribution.map((d) => ({
     name: MEAL_TYPE_LABELS[d.mealType] || d.mealType,
     count: d.count,
@@ -34,33 +43,27 @@ export function MealFrequencyChart({ distribution }: MealFrequencyChartProps) {
   return (
     <GlassCard>
       <GlassCardHeader className="pb-2">
-        <GlassCardTitle className="text-base text-cyan-400">Måltidstyper</GlassCardTitle>
+        <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400">Måltidstyper</GlassCardTitle>
       </GlassCardHeader>
       <GlassCardContent>
         <div className="h-52">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} layout="vertical" margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.7} />
               <XAxis
                 type="number"
-                stroke="rgba(255,255,255,0.3)"
-                tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
+                stroke={axisColor}
+                tick={{ fill: axisColor, fontSize: 11 }}
               />
               <YAxis
                 dataKey="name"
                 type="category"
                 width={70}
-                stroke="rgba(255,255,255,0.3)"
-                tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+                stroke={axisColor}
+                tick={{ fill: axisColor, fontSize: 10 }}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: 'rgba(15,23,42,0.95)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: 12,
-                }}
+                contentStyle={tooltipStyle}
                 formatter={(value: number, name: string) => {
                   if (name === 'count') return [value, 'Antal']
                   return [`${value} kcal`, 'Snitt kcal']

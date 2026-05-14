@@ -34,6 +34,15 @@ function formatDateLabel(dateStr: string): string {
 }
 
 export function CalorieTrendChart({ dailyTotals }: CalorieTrendChartProps) {
+  const axisColor = 'hsl(var(--muted-foreground))'
+  const gridColor = 'hsl(var(--border))'
+  const tooltipStyle = {
+    backgroundColor: 'hsl(var(--popover))',
+    border: '1px solid hsl(var(--border))',
+    borderRadius: '8px',
+    color: 'hsl(var(--popover-foreground))',
+    fontSize: 12,
+  }
   const chartData = useMemo(() => {
     // Calculate 7-day moving average
     return dailyTotals.map((day, i) => {
@@ -59,12 +68,12 @@ export function CalorieTrendChart({ dailyTotals }: CalorieTrendChartProps) {
     <GlassCard>
       <GlassCardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <GlassCardTitle className="text-base text-cyan-400 flex items-center gap-2">
+          <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400 flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
             Kalorier per dag
           </GlassCardTitle>
-          <span className="text-sm text-slate-400">
-            Snitt: <span className="text-white font-medium">{avgCalories} kcal</span>
+          <span className="text-sm text-slate-500 dark:text-slate-400">
+            Snitt: <span className="text-slate-900 dark:text-white font-medium">{avgCalories} kcal</span>
           </span>
         </div>
       </GlassCardHeader>
@@ -72,26 +81,18 @@ export function CalorieTrendChart({ dailyTotals }: CalorieTrendChartProps) {
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.7} />
               <XAxis
                 dataKey="date"
-                stroke="rgba(255,255,255,0.3)"
-                tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
+                stroke={axisColor}
+                tick={{ fill: axisColor, fontSize: 11 }}
                 interval="preserveStartEnd"
               />
               <YAxis
-                stroke="rgba(255,255,255,0.3)"
-                tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
+                stroke={axisColor}
+                tick={{ fill: axisColor, fontSize: 11 }}
               />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'rgba(15,23,42,0.95)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: 12,
-                }}
-              />
+              <Tooltip contentStyle={tooltipStyle} />
               <Bar
                 dataKey="calories"
                 fill="rgba(6,182,212,0.4)"

@@ -62,10 +62,10 @@ function formatGrams(value: number): string {
 function ProgressMarker({ percent }: { percent: number }) {
   return (
     <div
-      className="absolute top-0 h-full w-px bg-white/80"
+      className="absolute top-0 h-full w-px bg-slate-700/70 dark:bg-white/80"
       style={{ left: `${Math.min(100, Math.max(0, percent))}%` }}
     >
-      <span className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-slate-400">
+      <span className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-slate-500 dark:text-slate-400">
         {percent}% mål
       </span>
     </div>
@@ -78,7 +78,7 @@ function SegmentedBar({
   segments: { label: string; percent: number; color: string }[]
 }) {
   return (
-    <div className="h-3 overflow-hidden rounded-full bg-white/5 flex">
+    <div className="h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-white/5 flex">
       {segments.map((segment) => (
         <div
           key={segment.label}
@@ -102,14 +102,14 @@ export function NutritionQualityCard({ quality }: NutritionQualityCardProps) {
   return (
     <GlassCard>
       <GlassCardHeader className="pb-2">
-        <GlassCardTitle className="text-base text-cyan-400 flex items-center gap-2">
+        <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400 flex items-center gap-2">
           <Scale className="h-4 w-4" />
           Fett & proteinkvalitet
         </GlassCardTitle>
       </GlassCardHeader>
       <GlassCardContent className="space-y-5">
         {hasLowCoverage && (
-          <div className="flex gap-2 rounded-lg border border-amber-400/20 bg-amber-400/10 p-3 text-xs text-amber-100">
+          <div className="flex gap-2 rounded-lg border border-amber-400/30 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
             <p>
               Låg datatäckning. Största delen av protein/fett kunde inte klassificeras, så kvaliteten ska tolkas försiktigt.
@@ -118,36 +118,36 @@ export function NutritionQualityCard({ quality }: NutritionQualityCardProps) {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="rounded-lg bg-white/5 p-3">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="rounded-lg bg-slate-100 p-3 dark:bg-white/5">
+            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
               <Beef className="h-4 w-4 text-blue-400" />
               Fullvärdigt protein
             </div>
-            <p className="mt-1 text-2xl font-bold text-white">
+            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
               {protein.completePercentOfKnown}%
             </p>
             <p className="text-[11px] text-slate-500">
               {formatGrams(protein.completeGrams)} av känt protein
             </p>
           </div>
-          <div className="rounded-lg bg-white/5 p-3">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="rounded-lg bg-slate-100 p-3 dark:bg-white/5">
+            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
               <Leaf className="h-4 w-4 text-lime-400" />
               Växtbaserat protein
             </div>
-            <p className="mt-1 text-2xl font-bold text-white">
+            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
               {protein.sourceDistribution.plantPercent}%
             </p>
             <p className="text-[11px] text-slate-500">
               {formatGrams(protein.sourceDistribution.plantGrams)} totalt
             </p>
           </div>
-          <div className="rounded-lg bg-white/5 p-3">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="rounded-lg bg-slate-100 p-3 dark:bg-white/5">
+            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
               <Droplets className="h-4 w-4 text-emerald-400" />
               Fettfördelning
             </div>
-            <p className="mt-1 text-2xl font-bold text-white">
+            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
               {fat.knownBreakdownCoveragePercent}%
             </p>
             <p className="text-[11px] text-slate-500">
@@ -158,13 +158,13 @@ export function NutritionQualityCard({ quality }: NutritionQualityCardProps) {
 
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-300">Andel fullvärdigt protein</span>
+            <span className="text-slate-700 dark:text-slate-300">Andel fullvärdigt protein</span>
             <span className={lowProteinCoverage ? 'text-amber-300' : completeGap <= 0 ? 'text-emerald-400' : 'text-amber-400'}>
               {lowProteinCoverage ? 'Låg säkerhet' : completeGap <= 0 ? 'Mål uppnått' : `${completeGap}% kvar till mål`}
             </span>
           </div>
           <div className="relative pt-1">
-            <div className="h-3 rounded-full bg-white/5 overflow-hidden">
+            <div className="h-3 rounded-full bg-slate-100 dark:bg-white/5 overflow-hidden">
               <div
                 className="h-full rounded-full bg-blue-400"
                 style={{ width: `${Math.min(100, protein.completePercentOfKnown)}%` }}
@@ -180,7 +180,7 @@ export function NutritionQualityCard({ quality }: NutritionQualityCardProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-300">Proteinkälla</span>
+              <span className="text-slate-700 dark:text-slate-300">Proteinkälla</span>
               <span className="text-slate-500">{formatGrams(protein.totalGrams)} totalt</span>
             </div>
             <SegmentedBar
@@ -205,7 +205,7 @@ export function NutritionQualityCard({ quality }: NutritionQualityCardProps) {
                   : protein.sourceDistribution.unknownPercent
                 return (
                   <div key={segment.key} className="flex items-center justify-between gap-2 text-[11px]">
-                    <span className="flex items-center gap-1.5 text-slate-400">
+                    <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
                       <span className={`h-2 w-2 rounded-full ${segment.color}`} />
                       {segment.label}
                     </span>
@@ -218,7 +218,7 @@ export function NutritionQualityCard({ quality }: NutritionQualityCardProps) {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-300">Fettyp</span>
+              <span className="text-slate-700 dark:text-slate-300">Fettyp</span>
               <span className="text-slate-500">{formatGrams(fat.totalGrams)} totalt</span>
             </div>
             <SegmentedBar
@@ -243,7 +243,7 @@ export function NutritionQualityCard({ quality }: NutritionQualityCardProps) {
                   : fat.otherPercent
                 return (
                   <div key={segment.key} className="flex items-center justify-between gap-2 text-[11px]">
-                    <span className="flex items-center gap-1.5 text-slate-400">
+                    <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
                       <span className={`h-2 w-2 rounded-full ${segment.color}`} />
                       {segment.label}
                     </span>

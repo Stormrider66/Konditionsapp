@@ -20,6 +20,13 @@ const COLORS = {
 }
 
 export function MacroPieChart({ macroRatio }: MacroPieChartProps) {
+  const tooltipStyle = {
+    backgroundColor: 'hsl(var(--popover))',
+    border: '1px solid hsl(var(--border))',
+    borderRadius: '8px',
+    color: 'hsl(var(--popover-foreground))',
+    fontSize: 12,
+  }
   const data = [
     { name: 'Protein', value: macroRatio.proteinPercent, color: COLORS.protein },
     { name: 'Kolhydrater', value: macroRatio.carbsPercent, color: COLORS.carbs },
@@ -29,7 +36,7 @@ export function MacroPieChart({ macroRatio }: MacroPieChartProps) {
   return (
     <GlassCard>
       <GlassCardHeader className="pb-2">
-        <GlassCardTitle className="text-base text-cyan-400">Makrofördelning</GlassCardTitle>
+        <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400">Makrofördelning</GlassCardTitle>
       </GlassCardHeader>
       <GlassCardContent>
         <div className="h-52">
@@ -49,18 +56,12 @@ export function MacroPieChart({ macroRatio }: MacroPieChartProps) {
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{
-                  backgroundColor: 'rgba(15,23,42,0.95)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: 12,
-                }}
+                contentStyle={tooltipStyle}
                 formatter={(value: number) => [`${value}%`, '']}
               />
               <Legend
                 formatter={(value) => (
-                  <span className="text-xs text-slate-300">{value}</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-300">{value}</span>
                 )}
               />
             </PieChart>

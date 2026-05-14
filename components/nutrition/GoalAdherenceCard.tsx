@@ -36,7 +36,7 @@ export function GoalAdherenceCard({ adherence }: GoalAdherenceCardProps) {
   return (
     <GlassCard>
       <GlassCardHeader className="pb-2">
-        <GlassCardTitle className="text-base text-cyan-400">Konsekvens</GlassCardTitle>
+        <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400">Konsekvens</GlassCardTitle>
         <p className="text-xs text-slate-500">Andel dagar inom ±10% av snitt</p>
       </GlassCardHeader>
       <GlassCardContent>
@@ -46,12 +46,12 @@ export function GoalAdherenceCard({ adherence }: GoalAdherenceCardProps) {
             return (
               <div key={macro.key} className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400">{macro.label}</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-400">{macro.label}</span>
                   <span className={`text-xs font-medium ${getTextColor(value)}`}>
                     {value}%
                   </span>
                 </div>
-                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="h-2 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${getBarColor(value)}`}
                     style={{ width: `${Math.min(value, 100)}%` }}
