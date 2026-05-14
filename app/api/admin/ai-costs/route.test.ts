@@ -53,34 +53,46 @@ describe('admin AI costs route', () => {
       usageLog({ category: 'food_scan_memory', estimatedCost: 0.5, clientId: 'client-1' }),
       usageLog({ category: 'food_scan_text', estimatedCost: 0.1, clientId: 'client-1' }),
       usageLog({ category: 'video_analysis_generic', estimatedCost: 0.25, clientId: 'client-2' }),
+      usageLog({ category: 'video_pose_analysis', estimatedCost: 0.1, clientId: 'client-2' }),
       usageLog({ category: 'live_voice_coaching', estimatedCost: 0.25, clientId: 'client-2' }),
       usageLog({ category: 'live_voice_summary', estimatedCost: 0.1, clientId: 'client-2' }),
+      usageLog({ category: 'audio_journal_process', estimatedCost: 0.1, clientId: 'client-2' }),
+      usageLog({ category: 'adhoc_workout_voice_parse', estimatedCost: 0.1, clientId: 'client-2' }),
+      usageLog({ category: 'wod_generation', estimatedCost: 0.1, clientId: 'client-2' }),
     ])
 
     const response = await GET(new NextRequest('http://localhost/api/admin/ai-costs?days=7'))
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(body.data.totals.costSek).toBe(22)
+    expect(body.data.totals.costSek).toBe(26)
     expect(body.data.featureMix.foodScanner).toMatchObject({
       calls: 3,
       costSek: 16,
       athleteLinkedCalls: 3,
       athleteLinkedCostSek: 16,
-      costSharePercent: 73,
-      callSharePercent: 50,
+      costSharePercent: 62,
+      callSharePercent: 30,
     })
     expect(body.data.featureMix.heavyInteractive).toMatchObject({
-      calls: 3,
-      costSek: 6,
-      costSharePercent: 27,
-      callSharePercent: 50,
+      calls: 7,
+      costSek: 10,
+      costSharePercent: 38,
+      callSharePercent: 70,
     })
+    expect(body.data.featureMix.heavyInteractive.categories).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'video_pose_analysis', label: 'Video pose analysis' }),
+        expect.objectContaining({ key: 'audio_journal_process', label: 'Audio journal' }),
+        expect.objectContaining({ key: 'adhoc_workout_voice_parse', label: 'Ad-hoc workout voice parse' }),
+        expect.objectContaining({ key: 'wod_generation', label: 'WOD generation' }),
+      ])
+    )
     expect(body.data.featureMix.topCategory).toMatchObject({
       key: 'food_scan',
       label: 'Food scanner',
       costSek: 10,
-      costSharePercent: 45,
+      costSharePercent: 38,
     })
   })
 
