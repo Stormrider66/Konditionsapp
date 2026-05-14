@@ -58,7 +58,7 @@ function expectsExhaustedAthlete(env = process.env): boolean {
 function isTransientNavigationFetchError(message: string): boolean {
   return (
     message.includes('TypeError: Failed to fetch') &&
-    /Error fetching (user role|stats|business context)/i.test(message)
+    /Error fetching (user role|stats|business context|athlete business context)/i.test(message)
   )
 }
 
