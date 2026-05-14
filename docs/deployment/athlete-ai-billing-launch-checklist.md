@@ -56,6 +56,7 @@ Use this before pushing the AI allowance/top-up work to production.
 - To prepare a seeded QA athlete for exhausted-credit smoke testing, run:
   - Dry run: `npm run qa:ai-billing:prepare-smoke -- --email=<athlete-email> --budget=0.25 --remaining=0`
   - Apply: `npm run qa:ai-billing:prepare-smoke -- --email=<athlete-email> --budget=0.25 --remaining=0 --apply`
+  - Then run browser QA with `TRAINOMICS_QA_EXPECT_EXHAUSTED=true npm run qa:ai-billing` to assert the exhausted-credit UI.
 - Video analysis blocks cleanly when AI credits are exhausted.
 - Live voice coach blocks cleanly when AI credits are exhausted.
 - WOD generation blocks cleanly when AI credits are exhausted.

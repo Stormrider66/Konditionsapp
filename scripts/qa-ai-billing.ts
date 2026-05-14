@@ -51,6 +51,10 @@ function readLogin(prefix: string, fallbackPrefix?: string): LoginTarget | null 
   return { email, password }
 }
 
+function expectsExhaustedAthlete(env = process.env): boolean {
+  return env.TRAINOMICS_QA_EXPECT_EXHAUSTED === 'true' || env.E2E_EXPECT_AI_EXHAUSTED === 'true'
+}
+
 async function login(page: Page, baseUrl: string, target: LoginTarget) {
   await page.goto(`${baseUrl}/login`, { waitUntil: 'domcontentloaded', timeout: 120_000 })
   await expect(page.locator('input[name="email"]')).toBeVisible({ timeout: 60_000 })
@@ -66,7 +70,12 @@ async function assertNoCustomerFacingAiBudgetFootguns(page: Page) {
   expect(body).not.toMatch(/token-budget|token budget|tokens är/i)
 }
 
-async function qaAthleteSubscription(page: Page, baseUrl: string, target: LoginTarget) {
+async function qaAthleteSubscription(
+  page: Page,
+  baseUrl: string,
+  target: LoginTarget,
+  options: { expectExhausted?: boolean } = {},
+) {
   await login(page, baseUrl, target)
   await page.goto(`${baseUrl}/athlete/subscription`, { waitUntil: 'domcontentloaded', timeout: 120_000 })
   await expect(page.getByText(/AI-krediter/i)).toBeVisible({ timeout: 60_000 })
@@ -78,6 +87,11 @@ async function qaAthleteSubscription(page: Page, baseUrl: string, target: LoginT
   await expect(page.getByText(/SEK krediter/i).first()).toBeVisible({ timeout: 60_000 })
   if (await page.getByText(/Betalning är inte aktiverad ännu/i).count()) {
     await expect(page.getByRole('button', { name: /Kommer snart|Snart/i }).first()).toBeVisible({ timeout: 60_000 })
+  }
+  if (options.expectExhausted) {
+    await expect(page.getByText(/Slut på AI-krediter/i)).toBeVisible({ timeout: 60_000 })
+    await expect(page.getByText(/AI-krediterna är slut för perioden/i)).toBeVisible({ timeout: 60_000 })
+    await expect(page.getByText(/0 kr kvar/i).first()).toBeVisible({ timeout: 60_000 })
   }
   await assertNoCustomerFacingAiBudgetFootguns(page)
   await page.screenshot({ path: path.join(evidenceDir, 'athlete-subscription.png'), fullPage: true })
@@ -131,6 +145,7 @@ async function main() {
   const adminLogin = readLogin('TRAINOMICS_QA_ADMIN', 'E2E_ADMIN')
   const businessAdminLogin = readLogin('TRAINOMICS_QA_BUSINESS_ADMIN', 'E2E_BUSINESS_ADMIN')
   const businessSlug = process.env.TRAINOMICS_QA_BUSINESS_SLUG ?? process.env.E2E_BUSINESS_SLUG
+  const expectExhausted = expectsExhaustedAthlete()
 
   if (!athleteLogin && !adminLogin && !businessAdminLogin) {
     throw new Error(
@@ -154,7 +169,7 @@ async function main() {
         if (message.type() === 'error') findings.push(`athlete console: ${message.text()}`)
       })
       page.on('pageerror', (error) => findings.push(`athlete pageerror: ${error.message}`))
-      await qaAthleteSubscription(page, baseUrl, athleteLogin)
+      await qaAthleteSubscription(page, baseUrl, athleteLogin, { expectExhausted })
       await page.close()
     }
 
