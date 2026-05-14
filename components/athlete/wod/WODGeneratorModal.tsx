@@ -8,7 +8,6 @@
  */
 
 import { useState, useCallback, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
@@ -57,7 +56,7 @@ import {
 } from '@/lib/ai/billing/client-errors'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { emitWorkoutLogged } from '@/lib/events/workout-events'
-import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
 
 interface WODGeneratorModalProps {
   open: boolean
@@ -211,8 +210,6 @@ export function WODGeneratorModal({
   remainingWODs,
   isUnlimited,
 }: WODGeneratorModalProps) {
-  const router = useRouter()
-  const basePath = useBasePath()
   const [step, setStep] = useState<Step>('workoutType')
   const [selectedWorkoutType, setSelectedWorkoutType] = useState<WODWorkoutType>('strength')
   const [selectedMode, setSelectedMode] = useState<WODMode>('structured')
@@ -220,10 +217,7 @@ export function WODGeneratorModal({
   const [selectedEquipment, setSelectedEquipment] = useState<WODEquipment[]>(['none'])
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [aiAllowanceAction, setAiAllowanceAction] = useState<{
-    label: string
-    url: string
-  } | null>(null)
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null)
 
   // Gym location selector state
   const [locations, setLocations] = useState<LocationOption[]>([])
@@ -431,9 +425,6 @@ export function WODGeneratorModal({
   }
 
   const canProceed = step !== 'generating'
-  const aiAllowanceActionHref = aiAllowanceAction
-    ? `${basePath}${aiAllowanceAction.url}`
-    : null
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -460,17 +451,7 @@ export function WODGeneratorModal({
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <div className="min-w-0 flex-1 space-y-2">
               <p>{error}</p>
-              {aiAllowanceActionHref && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="border-red-200 bg-white text-red-700 hover:bg-red-50 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-100 dark:hover:bg-red-500/20"
-                  onClick={() => router.push(aiAllowanceActionHref)}
-                >
-                  {aiAllowanceAction?.label ?? 'Hantera AI-krediter'}
-                </Button>
-              )}
+              <AiAllowanceBlockedAction action={aiAllowanceAction} tone="red" />
             </div>
           </div>
         )}

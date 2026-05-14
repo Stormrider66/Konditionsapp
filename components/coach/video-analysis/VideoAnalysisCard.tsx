@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -21,7 +20,6 @@ import {
 } from '@/components/ui/accordion'
 import { useToast } from '@/hooks/use-toast'
 import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext'
-import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { PLATFORM_NAME } from '@/lib/branding/types'
 import { escapeHtml } from '@/lib/sanitize'
 import {
@@ -59,6 +57,7 @@ import {
   isAiAllowanceExhaustedError,
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors'
+import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
 // Context loading removed to prevent infinite render loops
 
 interface Issue {
@@ -297,8 +296,6 @@ export function VideoAnalysisCard({
   onDelete,
   onAnalysisComplete,
 }: VideoAnalysisCardProps) {
-  const router = useRouter()
-  const basePath = useBasePath()
   const { toast } = useToast()
   const branding = useBusinessBrandingOptional()
   const printBrandName = branding?.hasWhiteLabel && branding.hidePlatformBranding ? branding.businessName : PLATFORM_NAME
@@ -308,10 +305,7 @@ export function VideoAnalysisCard({
   const [showResultsDialog, setShowResultsDialog] = useState(false)
   const [showPoseDialog, setShowPoseDialog] = useState(false)
   const [isSavingPose, setIsSavingPose] = useState(false)
-  const [aiAllowanceAction, setAiAllowanceAction] = useState<{
-    label: string
-    url: string
-  } | null>(null)
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null)
   const [poseAnalysisData, setPoseAnalysisData] = useState<Record<string, unknown> | null>(null)
   // Use ref to avoid stale closure issues when saving
   const poseAnalysisDataRef = useRef<Record<string, unknown> | null>(null)
@@ -570,9 +564,6 @@ export function VideoAnalysisCard({
 
   const issues = analysis.issuesDetected as Issue[] | null
   const recommendations = analysis.recommendations as Recommendation[] | null
-  const aiAllowanceActionHref = aiAllowanceAction
-    ? `${basePath}${aiAllowanceAction.url}`
-    : null
 
   // Print handler for the results dialog
   const handlePrintResults = () => {
@@ -811,22 +802,10 @@ export function VideoAnalysisCard({
           )}
 
           {/* Actions */}
-          {aiAllowanceActionHref && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-100">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <span>AI-krediterna är slut för perioden.</span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="border-amber-300 bg-white/70 text-amber-950 hover:bg-white dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-100 dark:hover:bg-amber-500/20"
-                  onClick={() => router.push(aiAllowanceActionHref)}
-                >
-                  {aiAllowanceAction?.label ?? 'Hantera AI-krediter'}
-                </Button>
-              </div>
-            </div>
-          )}
+          <AiAllowanceBlockedAction
+            action={aiAllowanceAction}
+            variant="banner"
+          />
 
           <div className="flex gap-2 pt-2">
             {analysis.status === 'PENDING' && (

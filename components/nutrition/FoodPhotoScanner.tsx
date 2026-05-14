@@ -11,7 +11,6 @@
 
 import React, { useState, useRef, useCallback, useEffect, useId } from 'react'
 import { useRouter } from 'next/navigation'
-import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -60,6 +59,7 @@ import {
   isAiAllowanceExhaustedError,
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors'
+import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
 
 type Step = 'CAPTURE' | 'ANALYZING' | 'REVIEW' | 'SAVING' | 'DONE'
 
@@ -204,17 +204,13 @@ export function FoodPhotoScanner({
   redirectPathOnSave,
 }: FoodPhotoScannerProps) {
   const router = useRouter()
-  const basePath = useBasePath()
   const fileInputId = useId()
   const cameraInputId = useId()
   const [step, setStep] = useState<Step>('CAPTURE')
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [aiAllowanceAction, setAiAllowanceAction] = useState<{
-    label: string
-    url: string
-  } | null>(null)
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null)
 
   const clearError = useCallback(() => {
     setError(null)
@@ -1012,10 +1008,6 @@ export function FoodPhotoScanner({
     totals.sugarGrams != null ||
     totals.complexCarbsGrams != null
   const hasSelectedImage = Boolean(imageFile)
-  const aiAllowanceActionHref = aiAllowanceAction
-    ? `${basePath}${aiAllowanceAction.url}`
-    : null
-
   return (
     <div className="flex flex-col gap-4 pb-4">
       {/* CAPTURE step */}
@@ -1303,17 +1295,11 @@ export function FoodPhotoScanner({
                 <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
                 <div className="min-w-0 flex-1 space-y-2">
                   <p className="text-xs text-red-300">{error}</p>
-                  {aiAllowanceActionHref && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-8 border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20"
-                      onClick={() => router.push(aiAllowanceActionHref)}
-                    >
-                      {aiAllowanceAction?.label ?? 'Hantera AI-krediter'}
-                    </Button>
-                  )}
+                  <AiAllowanceBlockedAction
+                    action={aiAllowanceAction}
+                    tone="red"
+                    className="h-8 border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20"
+                  />
                 </div>
               </div>
             )}
@@ -1648,17 +1634,11 @@ export function FoodPhotoScanner({
           <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
           <div className="min-w-0 flex-1 space-y-2">
             <p className="text-sm text-red-300">{error}</p>
-            {aiAllowanceActionHref && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20"
-                onClick={() => router.push(aiAllowanceActionHref)}
-              >
-                {aiAllowanceAction?.label ?? 'Hantera AI-krediter'}
-              </Button>
-            )}
+            <AiAllowanceBlockedAction
+              action={aiAllowanceAction}
+              tone="red"
+              className="border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20"
+            />
           </div>
         </div>
       )}

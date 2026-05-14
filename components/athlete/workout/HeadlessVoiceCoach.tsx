@@ -8,13 +8,12 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Mic, MicOff, Radio, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
-import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { AiAllowanceBlockedAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
 
 interface HeadlessVoiceCoachProps {
   assignmentId: string
@@ -35,8 +34,6 @@ export function HeadlessVoiceCoach({
   workoutType,
   onClose,
 }: HeadlessVoiceCoachProps) {
-  const router = useRouter()
-  const basePath = useBasePath()
   const [segments, setSegments] = useState<WorkoutSegment[]>([])
   const [mounted, setMounted] = useState(false)
 
@@ -154,9 +151,6 @@ export function HeadlessVoiceCoach({
 
   const isActive = liveCoach.status === 'connected'
   const isConnecting = liveCoach.status === 'connecting'
-  const aiAllowanceActionHref = liveCoach.aiAllowanceAction
-    ? `${basePath}${liveCoach.aiAllowanceAction.url}`
-    : null
 
   const pill = (
     <div className="fixed bottom-6 left-4 right-4 z-[60] flex justify-center pointer-events-none">
@@ -194,17 +188,10 @@ export function HeadlessVoiceCoach({
           )}
         </div>
 
-        {aiAllowanceActionHref && (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-8 shrink-0 border-amber-400/30 bg-amber-500/10 text-amber-100 hover:bg-amber-500/20"
-            onClick={() => router.push(aiAllowanceActionHref)}
-          >
-            {liveCoach.aiAllowanceAction?.label ?? 'Hantera AI-krediter'}
-          </Button>
-        )}
+        <AiAllowanceBlockedAction
+          action={liveCoach.aiAllowanceAction}
+          className="h-8 shrink-0 border-amber-400/30 bg-amber-500/10 text-amber-100 hover:bg-amber-500/20"
+        />
 
         {/* Mute toggle */}
         {isActive && (
