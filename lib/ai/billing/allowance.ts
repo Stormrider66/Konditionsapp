@@ -1,4 +1,4 @@
-import type { Prisma, AthleteSubscriptionTier } from '@prisma/client'
+import type { AIAllowanceAccount, Prisma, AthleteSubscriptionTier } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import {
   ATHLETE_AI_ALLOWANCE_SEK,
@@ -7,6 +7,7 @@ import {
 } from '@/lib/subscription/athlete-plans'
 
 const DEFAULT_SEK_PER_USD = 10.5
+const TOP_UP_EXPIRY_DAYS = 180
 
 export interface AllowancePeriod {
   periodStart: Date
@@ -42,6 +43,10 @@ export function usdToSek(usd: number, sekPerUsd = getAiSekPerUsd()): number {
 
 export function roundSek(amount: number): number {
   return Math.round(amount * 100) / 100
+}
+
+export function getAiTopUpExpiresAt(now = new Date()): Date {
+  return new Date(now.getTime() + TOP_UP_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
 }
 
 export function getCurrentAllowancePeriod(now = new Date()): AllowancePeriod {
@@ -185,6 +190,8 @@ export async function getOrCreateAiAllowanceAccount(
     })
   }
 
+  const activeAccount = await expireAiTopUpCreditsForClient(clientId, now, tx, existing)
+
   if (existing.periodEnd <= now) {
     return tx.aIAllowanceAccount.update({
       where: { clientId },
@@ -199,7 +206,7 @@ export async function getOrCreateAiAllowanceAccount(
     })
   }
 
-  if (existing.includedBudgetSek !== tierAllowanceSek || existing.hardCapSek !== tierAllowanceSek) {
+  if (activeAccount.includedBudgetSek !== tierAllowanceSek || activeAccount.hardCapSek !== tierAllowanceSek) {
     return tx.aIAllowanceAccount.update({
       where: { clientId },
       data: {
@@ -209,7 +216,7 @@ export async function getOrCreateAiAllowanceAccount(
     })
   }
 
-  return existing
+  return activeAccount
 }
 
 export async function getAiAllowanceStatus(clientId: string, now = new Date()) {
@@ -282,6 +289,90 @@ export async function resetExpiredAiAllowanceAccounts(
   }
 }
 
+export async function expireAiTopUpCreditsForClient(
+  clientId: string,
+  now = new Date(),
+  tx: PrismaTransaction = prisma,
+  account?: AIAllowanceAccount | null,
+): Promise<AIAllowanceAccount> {
+  const expiredPurchases = await tx.aITopUpPurchase.findMany({
+    where: {
+      clientId,
+      status: 'ACTIVE',
+      creditsRemainingSek: { gt: 0 },
+      expiresAt: { lte: now },
+    },
+    select: {
+      id: true,
+      creditsRemainingSek: true,
+    },
+  })
+
+  if (expiredPurchases.length === 0) return account ?? tx.aIAllowanceAccount.findUniqueOrThrow({ where: { clientId } })
+
+  const expiredCreditsSek = roundSek(
+    expiredPurchases.reduce((sum, purchase) => sum + Math.max(0, purchase.creditsRemainingSek), 0),
+  )
+
+  await Promise.all(expiredPurchases.map((purchase) => tx.aITopUpPurchase.update({
+    where: { id: purchase.id },
+    data: {
+      creditsRemainingSek: 0,
+      status: 'EXPIRED',
+    },
+  })))
+
+  const currentAccount = account ?? await tx.aIAllowanceAccount.findUniqueOrThrow({ where: { clientId } })
+  return tx.aIAllowanceAccount.update({
+    where: { clientId },
+    data: {
+      topUpBalanceSek: roundSek(Math.max(0, currentAccount.topUpBalanceSek - expiredCreditsSek)),
+    },
+  })
+}
+
+async function spendAiTopUpPurchaseCredits(
+  clientId: string,
+  amountSek: number,
+  tx: PrismaTransaction,
+) {
+  let remainingToSpend = roundSek(Math.max(0, amountSek))
+  if (remainingToSpend <= 0) return
+
+  const purchases = await tx.aITopUpPurchase.findMany({
+    where: {
+      clientId,
+      status: 'ACTIVE',
+      creditsRemainingSek: { gt: 0 },
+    },
+    select: {
+      id: true,
+      creditsRemainingSek: true,
+    },
+    orderBy: [
+      { expiresAt: 'asc' },
+      { createdAt: 'asc' },
+    ],
+  })
+
+  for (const purchase of purchases) {
+    if (remainingToSpend <= 0) break
+
+    const debit = roundSek(Math.min(purchase.creditsRemainingSek, remainingToSpend))
+    const remainingPurchaseCredits = roundSek(Math.max(0, purchase.creditsRemainingSek - debit))
+
+    await tx.aITopUpPurchase.update({
+      where: { id: purchase.id },
+      data: {
+        creditsRemainingSek: remainingPurchaseCredits,
+        status: remainingPurchaseCredits <= 0 ? 'CONSUMED' : 'ACTIVE',
+      },
+    })
+
+    remainingToSpend = roundSek(remainingToSpend - debit)
+  }
+}
+
 export async function recordAiUsageDebit(params: {
   clientId: string
   costSek: number
@@ -308,8 +399,11 @@ export async function recordAiUsageDebit(params: {
           topUpBalanceSek: 0,
         },
       })
+      await spendAiTopUpPurchaseCredits(params.clientId, exhaustedDebit.topUpDebitSek, tx)
       return { account: exhausted, debit: exhaustedDebit }
     }
+
+    await spendAiTopUpPurchaseCredits(params.clientId, debit.topUpDebitSek, tx)
 
     const updated = await tx.aIAllowanceAccount.update({
       where: { clientId: params.clientId },

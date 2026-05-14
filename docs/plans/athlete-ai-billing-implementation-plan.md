@@ -259,6 +259,7 @@ Tasks:
 - Add webhook handling for successful top-up payment. Shipped in `315656a0`.
 - Add `AITopUpPurchase` or ledger entry on payment success. Shipped in `315656a0`.
 - Add idempotency by Stripe event/payment intent id. Shipped via existing `StripeWebhookEvent` dedupe plus purchase status check in `315656a0`.
+- Expire top-up credits after 180 days and spend the oldest active purchase balances first. Shipped; expired credits are removed from the allowance balance before use.
 
 Acceptance criteria:
 
@@ -306,6 +307,7 @@ Dashboards/checks:
 - Voice/video/program/research share of AI spend. Shipped in AI Costs feature mix in `c1e49b87`.
 - Monthly AI allowance reset. Shipped in `95a01ad2`; expired accounts reset to current tier/business/override allowance while preserving top-up balances.
 - Trial AI allowance. Decided and shipped in `6cbf31f0`: active trials receive a smaller 15 SEK AI allowance unless a platform admin has set an explicit per-athlete override.
+- Top-up credit expiry and purchase-balance lifecycle. Shipped: top-ups expire after 180 days, expired credits are removed from usable balance, and spending decrements oldest purchases first.
 - Food scanner quality complaints after lower thinking setting.
 
 Rollout:
@@ -367,6 +369,6 @@ Additional shipped chunks:
 - Exact Standard included AI allowance.
 - Exact Pro included AI allowance.
 - Whether Pro should have a small grace buffer before hard cap.
-- Top-up credit expiry period.
+- Top-up credit expiry period. Decided: 180 days.
 - Whether Elite allowance is business-level default only or configurable per athlete. Decided: both; business default plus platform-admin per-athlete override.
 - Whether trial users receive Standard allowance or a smaller trial-only allowance. Decided: smaller trial-only allowance, 15 SEK.

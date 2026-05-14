@@ -14,7 +14,7 @@ import { getTierFeatures } from '@/lib/auth/tier-utils';
 import { calculateAndRecordRevenueShare } from '@/lib/coach/revenue-share';
 import { sendPaymentFailedEmail } from '@/lib/email';
 import { logger } from '@/lib/logger';
-import { getOrCreateAiAllowanceAccount, roundSek } from '@/lib/ai/billing/allowance';
+import { getAiTopUpExpiresAt, getOrCreateAiAllowanceAccount, roundSek } from '@/lib/ai/billing/allowance';
 import { getAiTopUpPack } from '@/lib/ai/billing/top-up-packs';
 
 // Lazy initialize Stripe client to avoid build-time errors
@@ -283,7 +283,7 @@ export async function createAiTopUpCheckoutSession(
       creditsSek,
       creditsRemainingSek: creditsSek,
       status: 'PENDING',
-      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      expiresAt: getAiTopUpExpiresAt(),
     },
   });
 
@@ -443,7 +443,7 @@ async function handleAiTopUpCheckoutComplete(
           creditsSek: parsedCreditsSek,
           creditsRemainingSek: parsedCreditsSek,
           status: 'ACTIVE',
-          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          expiresAt: getAiTopUpExpiresAt(),
         },
       });
     }
