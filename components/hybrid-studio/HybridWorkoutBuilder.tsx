@@ -155,6 +155,32 @@ const formatOptions = [
 const DEFAULT_EMOM_INTERVAL_SECONDS = 60;
 const DEFAULT_EMOM_ROUNDS = 10;
 
+const equipmentTypeAliases: Record<string, string[]> = {
+  machine_ski: ['skierg', 'ski_erg', 'concept2_skierg'],
+  machine_row: ['rowing', 'rower', 'row_intervals', 'row_steady_state', 'concept2_row'],
+  machine_bike: ['bikeerg', 'cycling_intervals', 'cycling_steady_state', 'wattbike'],
+  assault_bike: ['assault_bike', 'airbike_intervals', 'airbike_steady_state', 'echo_bike'],
+  running: ['treadmill_run', 'curved_treadmill_run', 'treadmill_walk', 'incline_walking'],
+};
+
+function expandEquipmentTypes(types: string[]) {
+  const normalized = new Set<string>();
+
+  types.forEach((type) => {
+    const key = type.toLowerCase();
+    normalized.add(key);
+    equipmentTypeAliases[key]?.forEach((alias) => normalized.add(alias));
+
+    Object.entries(equipmentTypeAliases).forEach(([canonical, aliases]) => {
+      if (aliases.includes(key)) {
+        normalized.add(canonical);
+      }
+    });
+  });
+
+  return normalized;
+}
+
 const categoryLabels: Record<string, string> = {
   OLYMPIC_LIFT: 'Tyngdlyftning',
   POWERLIFTING: 'Styrkelyft',
@@ -576,7 +602,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
 
   async function fetchExercises() {
     try {
-      const response = await fetch('/api/hybrid-movements?limit=200');
+      const response = await fetch('/api/hybrid-movements?limit=1000');
       if (response.ok) {
         const data = await response.json();
         setExercises(data.movements || []);
@@ -783,7 +809,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
     ? searchFilteredExercises.filter(ex => {
         if (!ex.equipmentTypes || ex.equipmentTypes.length === 0) return true
         if (ex.equipmentTypes.some(t => ['BODYWEIGHT', 'RUNNING'].includes(t.toUpperCase()))) return true
-        const normalizedTypes = new Set(locationEquipmentTypes.map(t => t.toLowerCase()))
+        const normalizedTypes = expandEquipmentTypes(locationEquipmentTypes)
         return ex.equipmentTypes.some(t => normalizedTypes.has(t.toLowerCase()))
       })
     : searchFilteredExercises;
