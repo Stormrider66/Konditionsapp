@@ -11,6 +11,10 @@ import { createAiTopUpCheckoutSession } from '@/lib/payments/stripe'
 
 const topUpCheckoutSchema = z.object({
   packId: z.string().min(1),
+  returnPath: z.string()
+    .max(200)
+    .refine((value) => value.startsWith('/') && !value.startsWith('//'), 'returnPath must be a relative path')
+    .optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -28,13 +32,20 @@ export async function POST(request: NextRequest) {
     if (rateLimited) return rateLimited
 
     const body = await request.json()
-    const { packId } = topUpCheckoutSchema.parse(body)
+    const { packId, returnPath = '/athlete/subscription' } = topUpCheckoutSchema.parse(body)
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
-    const successUrl = `${baseUrl}/athlete/subscription?aiTopUp=success`
-    const cancelUrl = `${baseUrl}/athlete/subscription?aiTopUp=cancelled`
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin || 'https://trainomics.app'
+    const successUrl = new URL(returnPath, baseUrl)
+    successUrl.searchParams.set('aiTopUp', 'success')
+    const cancelUrl = new URL(returnPath, baseUrl)
+    cancelUrl.searchParams.set('aiTopUp', 'cancelled')
 
-    const checkoutUrl = await createAiTopUpCheckoutSession(clientId, packId, successUrl, cancelUrl)
+    const checkoutUrl = await createAiTopUpCheckoutSession(
+      clientId,
+      packId,
+      successUrl.toString(),
+      cancelUrl.toString(),
+    )
 
     return NextResponse.json({
       success: true,

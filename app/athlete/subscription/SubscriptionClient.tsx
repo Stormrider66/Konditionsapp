@@ -225,7 +225,10 @@ export function SubscriptionClient({ clientId, subscription, basePath = '' }: Su
       const response = await fetch('/api/payments/ai-top-up', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packId }),
+        body: JSON.stringify({
+          packId,
+          returnPath: `${basePath}/athlete/subscription`,
+        }),
       })
 
       const data = await response.json()
