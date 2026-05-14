@@ -361,6 +361,7 @@ export function CardioFocusModeWorkout({
               isMuted={liveCoach.isMuted}
               transcript={liveCoach.transcript}
               error={liveCoach.error}
+              aiAllowanceAction={liveCoach.aiAllowanceAction}
               supported={liveCoach.supported}
               onConnect={liveCoach.connect}
               onDisconnect={liveCoach.disconnect}

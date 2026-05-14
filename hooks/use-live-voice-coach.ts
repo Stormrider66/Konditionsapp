@@ -20,6 +20,7 @@ import type {
 } from '@/lib/ai/live-voice-coaching/types'
 import { estimateLiveSessionCost } from '@/lib/ai/gemini-config'
 import {
+  type AiAllowanceExhaustedError,
   getAiAllowanceUpgradeMessage,
   isAiAllowanceExhaustedError,
   parseAiAllowanceError,
@@ -65,6 +66,10 @@ export interface UseLiveVoiceCoachReturn {
   transcript: string | null
   estimatedCostUsd: number
   error: string | null
+  aiAllowanceAction: {
+    label: string
+    url: string
+  } | null
   connect: () => Promise<void>
   disconnect: () => void
   toggleMute: () => void
@@ -91,6 +96,10 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
   const [isMuted, setIsMuted] = useState(false)
   const [transcript, setTranscript] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<{
+    label: string
+    url: string
+  } | null>(null)
 
   const clientRef = useRef<GeminiLiveVoiceClient | null>(null)
   const captureRef = useRef<AudioCaptureManager | null>(null)
@@ -125,6 +134,14 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
   }
 
   const supported = typeof window !== 'undefined' && AudioCaptureManager.isSupported()
+
+  const setAiAllowanceError = useCallback((allowanceError: AiAllowanceExhaustedError) => {
+    setError(`${allowanceError.message} ${getAiAllowanceUpgradeMessage(allowanceError)}`)
+    setAiAllowanceAction({
+      label: allowanceError.actionLabel,
+      url: allowanceError.actionUrl,
+    })
+  }, [])
 
   const estimatedCostUsd = clientRef.current
     ? estimateLiveSessionCost(
@@ -270,6 +287,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
 
     setStatus('connecting')
     setError(null)
+    setAiAllowanceAction(null)
     transcriptsRef.current = []
 
     try {
@@ -377,10 +395,15 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Connection failed'
-      setError(isAiAllowanceExhaustedError(err) ? `${message} ${getAiAllowanceUpgradeMessage()}` : message)
+      if (isAiAllowanceExhaustedError(err)) {
+        setAiAllowanceError(err)
+      } else {
+        setError(message)
+        setAiAllowanceAction(null)
+      }
       setStatus('error')
     }
-  }, [assignmentId, status, handleToolCall, enableCamera])
+  }, [assignmentId, status, handleToolCall, enableCamera, setAiAllowanceError, workoutType])
 
   const disconnect = useCallback(() => {
     const sessionId = sessionIdRef.current
@@ -402,6 +425,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     setIsListening(false)
     setIsSpeaking(false)
     setStatus('ended')
+    setAiAllowanceAction(null)
 
     // Report session end with transcripts
     if (sessionId && duration > 0) {
@@ -475,6 +499,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     transcript,
     estimatedCostUsd,
     error,
+    aiAllowanceAction,
     connect,
     disconnect,
     toggleMute,

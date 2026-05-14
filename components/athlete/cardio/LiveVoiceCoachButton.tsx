@@ -8,9 +8,11 @@
  */
 
 import { Mic, MicOff, Radio, Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { LiveVoiceStatus } from '@/lib/ai/live-voice-coaching/types'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface LiveVoiceCoachButtonProps {
   status: LiveVoiceStatus
@@ -19,6 +21,10 @@ interface LiveVoiceCoachButtonProps {
   isMuted: boolean
   transcript: string | null
   error: string | null
+  aiAllowanceAction?: {
+    label: string
+    url: string
+  } | null
   supported: boolean
   onConnect: () => void
   onDisconnect: () => void
@@ -32,15 +38,20 @@ export function LiveVoiceCoachButton({
   isMuted,
   transcript,
   error,
+  aiAllowanceAction,
   supported,
   onConnect,
   onDisconnect,
   onToggleMute,
 }: LiveVoiceCoachButtonProps) {
+  const router = useRouter()
+  const basePath = useBasePath()
+
   if (!supported) return null
 
   const isActive = status === 'connected'
   const isConnecting = status === 'connecting'
+  const aiAllowanceActionHref = aiAllowanceAction ? `${basePath}${aiAllowanceAction.url}` : null
 
   return (
     <div className="flex items-center gap-2">
@@ -109,6 +120,18 @@ export function LiveVoiceCoachButton({
           />
         )}
       </Button>
+
+      {aiAllowanceActionHref && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-8 whitespace-nowrap border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-100 dark:hover:bg-amber-500/20"
+          onClick={() => router.push(aiAllowanceActionHref)}
+        >
+          {aiAllowanceAction?.label ?? 'Hantera AI-krediter'}
+        </Button>
+      )}
     </div>
   )
 }

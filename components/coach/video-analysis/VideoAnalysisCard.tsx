@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +21,7 @@ import {
 } from '@/components/ui/accordion'
 import { useToast } from '@/hooks/use-toast'
 import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { PLATFORM_NAME } from '@/lib/branding/types'
 import { escapeHtml } from '@/lib/sanitize'
 import {
@@ -52,6 +54,7 @@ import { PoseAnalyzer, PoseFrame } from './PoseAnalyzer'
 import { SkiingTechniqueDashboard } from './SkiingTechniqueDashboard'
 import { HyroxStationDashboard } from './HyroxStationDashboard'
 import {
+  type AiAllowanceExhaustedError,
   getAiAllowanceUpgradeMessage,
   isAiAllowanceExhaustedError,
   parseAiAllowanceError,
@@ -294,6 +297,8 @@ export function VideoAnalysisCard({
   onDelete,
   onAnalysisComplete,
 }: VideoAnalysisCardProps) {
+  const router = useRouter()
+  const basePath = useBasePath()
   const { toast } = useToast()
   const branding = useBusinessBrandingOptional()
   const printBrandName = branding?.hasWhiteLabel && branding.hidePlatformBranding ? branding.businessName : PLATFORM_NAME
@@ -303,6 +308,10 @@ export function VideoAnalysisCard({
   const [showResultsDialog, setShowResultsDialog] = useState(false)
   const [showPoseDialog, setShowPoseDialog] = useState(false)
   const [isSavingPose, setIsSavingPose] = useState(false)
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<{
+    label: string
+    url: string
+  } | null>(null)
   const [poseAnalysisData, setPoseAnalysisData] = useState<Record<string, unknown> | null>(null)
   // Use ref to avoid stale closure issues when saving
   const poseAnalysisDataRef = useRef<Record<string, unknown> | null>(null)
@@ -317,6 +326,18 @@ export function VideoAnalysisCard({
   const typeInfo = VIDEO_TYPE_INFO[analysis.videoType as keyof typeof VIDEO_TYPE_INFO] || VIDEO_TYPE_INFO.SPORT_SPECIFIC
   const statusInfo = STATUS_INFO[analysis.status as keyof typeof STATUS_INFO] || STATUS_INFO.PENDING
   const TypeIcon = typeInfo.icon
+
+  const showAiAllowanceToast = (allowanceError: AiAllowanceExhaustedError) => {
+    setAiAllowanceAction({
+      label: allowanceError.actionLabel,
+      url: allowanceError.actionUrl,
+    })
+    toast({
+      title: 'AI-krediter slut',
+      description: `${allowanceError.message} ${getAiAllowanceUpgradeMessage(allowanceError)}`,
+      variant: 'destructive',
+    })
+  }
 
   // Callback to receive pose analysis data from PoseAnalyzer
   const handlePoseAnalysisUpdate = (data: Record<string, unknown>) => {
@@ -432,6 +453,7 @@ export function VideoAnalysisCard({
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true)
+    setAiAllowanceAction(null)
     try {
       const response = await fetch(`/api/video-analysis/${analysis.id}/analyze`, {
         method: 'POST',
@@ -453,9 +475,13 @@ export function VideoAnalysisCard({
       onAnalysisComplete()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Okänt fel'
+      if (isAiAllowanceExhaustedError(error)) {
+        showAiAllowanceToast(error)
+        return
+      }
       toast({
         title: 'Analys misslyckades',
-        description: isAiAllowanceExhaustedError(error) ? `${message} ${getAiAllowanceUpgradeMessage()}` : message,
+        description: message,
         variant: 'destructive',
       })
     } finally {
@@ -544,6 +570,9 @@ export function VideoAnalysisCard({
 
   const issues = analysis.issuesDetected as Issue[] | null
   const recommendations = analysis.recommendations as Recommendation[] | null
+  const aiAllowanceActionHref = aiAllowanceAction
+    ? `${basePath}${aiAllowanceAction.url}`
+    : null
 
   // Print handler for the results dialog
   const handlePrintResults = () => {
@@ -782,6 +811,23 @@ export function VideoAnalysisCard({
           )}
 
           {/* Actions */}
+          {aiAllowanceActionHref && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-100">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <span>AI-krediterna är slut för perioden.</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-300 bg-white/70 text-amber-950 hover:bg-white dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-100 dark:hover:bg-amber-500/20"
+                  onClick={() => router.push(aiAllowanceActionHref)}
+                >
+                  {aiAllowanceAction?.label ?? 'Hantera AI-krediter'}
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2 pt-2">
             {analysis.status === 'PENDING' && (
               <Button
