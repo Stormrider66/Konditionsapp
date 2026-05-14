@@ -29,6 +29,7 @@ Use this before pushing the AI allowance/top-up work to production.
 ## Database
 
 - Apply Prisma migrations before enabling billing UI broadly.
+- Run `npm run qa:ai-billing-readiness` before deploy. It verifies AI billing schema markers, required migrations, reset crons, and non-Stripe/Stripe env readiness.
 - Confirm these tables/columns exist:
   - `AIUsageLog.clientId`
   - `AIAllowanceAccount`
