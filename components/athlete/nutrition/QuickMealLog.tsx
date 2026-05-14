@@ -40,6 +40,11 @@ import {
 import { MealType } from '@prisma/client'
 import { cn } from '@/lib/utils'
 import { guessDefaultMealType } from '@/lib/nutrition/guess-meal-type'
+import {
+  getAiAllowanceUpgradeMessage,
+  isAiAllowanceExhaustedError,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors'
 
 export interface EditMealData {
   id: string
@@ -527,6 +532,8 @@ export function QuickMealLog({
 
       if (!res.ok) {
         const body = await res.json().catch(() => null)
+        const allowanceError = parseAiAllowanceError(body)
+        if (allowanceError) throw allowanceError
         throw new Error(body?.error || 'Kunde inte analysera måltiden')
       }
 
@@ -553,7 +560,13 @@ export function QuickMealLog({
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'AI-analys misslyckades')
+      if (isAiAllowanceExhaustedError(err)) {
+        setError(`${err.message} ${getAiAllowanceUpgradeMessage(err)}`)
+      } else {
+        const message = err instanceof Error ? err.message : 'AI-analys misslyckades'
+        setError(`${message}. Du kan fortfarande logga måltiden utan AI eller fylla i makron manuellt.`)
+        setShowMacros(true)
+      }
     } finally {
       setIsAnalyzing(false)
     }

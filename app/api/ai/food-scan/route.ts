@@ -161,6 +161,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (normalizedType === 'image/heic' || normalizedType === 'image/heif') {
+      return NextResponse.json(
+        { error: 'Bilden är i HEIC/HEIF-format och kunde inte konverteras i webbläsaren. Ta om bilden eller välj JPEG/PNG/WebP.' },
+        { status: 400 }
+      )
+    }
+
     // Validate file size (max 10MB)
     if (imageFile.size > 10 * 1024 * 1024) {
       return NextResponse.json(
@@ -207,12 +214,10 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await imageFile.arrayBuffer()
     const base64 = Buffer.from(arrayBuffer).toString('base64')
 
-    // Use normalized MIME type for the data URL sent to Gemini.
-    // Gemini supports JPEG, PNG, WebP, GIF — for HEIC/HEIF we still send
-    // the base64 and let Gemini attempt it (better than blocking the user).
-    const mimeForGemini = normalizedType === 'image/heic' || normalizedType === 'image/heif'
-      ? 'image/jpeg' // Best-effort: HEIC bytes may still work as Gemini does internal conversion
-      : normalizedType
+    // Use normalized MIME type for the data URL sent to Gemini. HEIC/HEIF
+    // should have been converted client-side; if not, we fail above instead
+    // of labelling HEIC bytes as JPEG and causing a generic model error.
+    const mimeForGemini = normalizedType
 
     const google = createGoogleGenerativeAI({ apiKey: googleKey })
     const modelName = GEMINI_MODELS.FLASH

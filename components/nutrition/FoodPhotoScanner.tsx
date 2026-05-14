@@ -42,6 +42,7 @@ import {
 } from 'lucide-react'
 
 const SESSION_KEY = 'food-scanner-state'
+const MAX_NORMALIZED_IMAGE_DIMENSION = 1600
 import type { FoodPhotoAnalysisResult } from '@/lib/validations/gemini-schemas'
 import {
   calculateFoodTotals,
@@ -95,6 +96,11 @@ const makeSuggestedRecipeName = (mealDescription: string, items: EditableFoodIte
     .join(', ')
 
   return (names || 'Skannat recept').slice(0, 80)
+}
+
+function shouldUseNativeCameraCapture() {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia?.('(pointer: coarse)').matches || !navigator.mediaDevices?.getUserMedia
 }
 
 const foodItemsToRecipeItems = (items: EditableFoodItem[]) =>
@@ -161,8 +167,12 @@ const normalizeImageToJpeg = async (file: File) => {
       img.onload = () => {
         try {
           const canvas = document.createElement('canvas')
-          canvas.width = img.naturalWidth
-          canvas.height = img.naturalHeight
+          const maxDimension = Math.max(img.naturalWidth, img.naturalHeight)
+          const scale = maxDimension > MAX_NORMALIZED_IMAGE_DIMENSION
+            ? MAX_NORMALIZED_IMAGE_DIMENSION / maxDimension
+            : 1
+          canvas.width = Math.max(1, Math.round(img.naturalWidth * scale))
+          canvas.height = Math.max(1, Math.round(img.naturalHeight * scale))
 
           const ctx = canvas.getContext('2d')
           if (!ctx) {
@@ -170,7 +180,7 @@ const normalizeImageToJpeg = async (file: File) => {
             return
           }
 
-          ctx.drawImage(img, 0, 0)
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
           canvas.toBlob(
             (blob) => {
               if (!blob) {
@@ -337,7 +347,17 @@ export function FoodPhotoScanner({
     }
 
     setImageFile(normalizedFile)
-  }, [])
+    if (previewUrlRef.current) {
+      revokePreviewUrl()
+      try {
+        const previewUrl = URL.createObjectURL(normalizedFile)
+        previewUrlRef.current = previewUrl
+        setImagePreview(previewUrl)
+      } catch {
+        setImagePreview(null)
+      }
+    }
+  }, [revokePreviewUrl])
 
   const setSelectedImage = useCallback((file: File) => {
     setImageFile(file)
@@ -710,6 +730,13 @@ export function FoodPhotoScanner({
     clearError()
     setTorchOn(false)
     setTorchSupported(false)
+    saveStateToSessionStorage()
+
+    if (shouldUseNativeCameraCapture()) {
+      cameraInputRef.current?.click()
+      return
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
@@ -1090,7 +1117,7 @@ export function FoodPhotoScanner({
                     autoPlay
                     playsInline
                     muted
-                    className="w-full h-auto max-h-80 object-cover"
+                    className="w-full h-auto max-h-80 object-contain"
                   />
                   <div className="absolute bottom-0 inset-x-0 flex items-center justify-center gap-4 p-4 bg-gradient-to-t from-black/70">
                     <Button
