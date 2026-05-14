@@ -174,4 +174,50 @@ describe('AI top-up lifecycle', () => {
       { isolationLevel: 'Serializable' },
     )
   })
+
+  it('exhausts included and top-up balances without going negative when usage exceeds remaining credits', async () => {
+    tx.aITopUpPurchase.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { id: 'topup-old', creditsRemainingSek: 4 },
+        { id: 'topup-new', creditsRemainingSek: 8 },
+      ])
+
+    const result = await recordAiUsageDebit({
+      clientId: 'client-1',
+      costSek: 25,
+      now: new Date('2026-05-14T00:00:00.000Z'),
+    })
+
+    expect(result.debit).toMatchObject({
+      allowed: false,
+      costSek: 25,
+      includedDebitSek: 2,
+      topUpDebitSek: 12,
+      includedUsedSek: 30,
+      topUpBalanceSek: 0,
+      remainingSek: 0,
+    })
+    expect(tx.aIAllowanceAccount.update).toHaveBeenLastCalledWith({
+      where: { clientId: 'client-1' },
+      data: {
+        includedUsedSek: 30,
+        topUpBalanceSek: 0,
+      },
+    })
+    expect(tx.aITopUpPurchase.update).toHaveBeenCalledWith({
+      where: { id: 'topup-old' },
+      data: {
+        creditsRemainingSek: 0,
+        status: 'CONSUMED',
+      },
+    })
+    expect(tx.aITopUpPurchase.update).toHaveBeenCalledWith({
+      where: { id: 'topup-new' },
+      data: {
+        creditsRemainingSek: 0,
+        status: 'CONSUMED',
+      },
+    })
+  })
 })
