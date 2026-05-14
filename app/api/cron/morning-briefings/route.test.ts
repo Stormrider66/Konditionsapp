@@ -3,6 +3,8 @@ import { NextRequest } from 'next/server'
 
 const mockCreateMorningBriefing = vi.hoisted(() => vi.fn())
 const mockGetResolvedAiKeys = vi.hoisted(() => vi.fn())
+const mockRequireAiAllowance = vi.hoisted(() => vi.fn())
+const mockWithAiContext = vi.hoisted(() => vi.fn())
 
 const mockPrisma = vi.hoisted(() => ({
   aINotificationPreferences: {
@@ -28,6 +30,14 @@ vi.mock('@/lib/user-api-keys', () => ({
   getResolvedAiKeys: mockGetResolvedAiKeys,
 }))
 
+vi.mock('@/lib/ai/billing/require-ai-allowance', () => ({
+  requireAiAllowance: mockRequireAiAllowance,
+}))
+
+vi.mock('@/lib/ai/usage-logger', () => ({
+  withAiContext: mockWithAiContext,
+}))
+
 vi.mock('@/lib/logger', () => ({
   logger: {
     error: vi.fn(),
@@ -45,6 +55,8 @@ describe('morning-briefings cron route', () => {
     mockPrisma.client.findMany.mockResolvedValue([])
     mockPrisma.aIBriefing.findFirst.mockResolvedValue(null)
     mockGetResolvedAiKeys.mockResolvedValue({ openaiKey: 'key', anthropicKey: null, googleKey: null })
+    mockRequireAiAllowance.mockResolvedValue(null)
+    mockWithAiContext.mockImplementation((_context: unknown, fn: () => unknown) => fn())
     mockCreateMorningBriefing.mockResolvedValue('briefing-1')
   })
 

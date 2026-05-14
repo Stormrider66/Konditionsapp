@@ -133,7 +133,7 @@ describe('signup-athlete route', () => {
         status: 'ACTIVE',
         paymentSource: 'DIRECT',
         aiChatEnabled: true,
-        aiChatMessagesLimit: -1,
+        aiChatMessagesLimit: 500,
         videoAnalysisEnabled: true,
         garminEnabled: true,
         stravaEnabled: true,
