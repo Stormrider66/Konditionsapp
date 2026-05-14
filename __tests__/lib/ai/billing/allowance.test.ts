@@ -5,6 +5,7 @@ import {
   getRemainingAiBalanceSek,
   hasAiAllowanceRemaining,
   previewAiAllowanceDebit,
+  resolveConfiguredAiAllowanceSek,
   usdToSek,
 } from '@/lib/ai/billing/allowance'
 
@@ -27,6 +28,28 @@ describe('AI allowance billing helpers', () => {
     expect(getAthleteAiAllowanceSek('PRO')).toBe(75)
     expect(getAthleteAiAllowanceSek('ELITE')).toBe(150)
     expect(getAthleteAiAllowanceSek(null)).toBe(3)
+  })
+
+  it('prioritizes athlete and business custom allowances before tier defaults', () => {
+    expect(resolveConfiguredAiAllowanceSek({
+      tier: 'ELITE',
+      customAiAllowanceSek: 240,
+      businessEliteAiAllowanceSek: 180,
+    })).toBe(240)
+
+    expect(resolveConfiguredAiAllowanceSek({
+      tier: 'ELITE',
+      businessEliteAiAllowanceSek: 180,
+    })).toBe(180)
+
+    expect(resolveConfiguredAiAllowanceSek({
+      tier: 'ELITE',
+    })).toBe(150)
+
+    expect(resolveConfiguredAiAllowanceSek({
+      tier: 'PRO',
+      businessEliteAiAllowanceSek: 180,
+    })).toBe(75)
   })
 
   it('spends included credits before top-up balance', () => {

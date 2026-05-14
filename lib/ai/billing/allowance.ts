@@ -54,7 +54,7 @@ export function getAthleteAiAllowanceSek(tier: AthleteSubscriptionTier | Athlete
   return ATHLETE_AI_ALLOWANCE_SEK[tier as AthletePlanTier] ?? ATHLETE_AI_ALLOWANCE_SEK.FREE
 }
 
-function resolveConfiguredAiAllowanceSek(params: {
+export function resolveConfiguredAiAllowanceSek(params: {
   tier?: AthleteSubscriptionTier | AthletePlanTier | null
   customAiAllowanceSek?: number | null
   businessEliteAiAllowanceSek?: number | null
