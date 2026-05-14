@@ -59,16 +59,17 @@ Target internal AI cost as a percent of subscription revenue:
 - Pro: 10-20%, target 40-80 SEK/month.
 - Elite: custom, based on coach/PT margin and promised service level.
 
-Initial allowance proposal:
+Launch allowance values:
 
 | Tier | Internal Monthly AI Budget | User-Facing Language |
 | --- | ---: | --- |
-| Free | 0-5 SEK | Limited AI trial |
-| Standard | 25-35 SEK | AI credits for daily use |
-| Pro | 60-90 SEK | Larger AI credits for advanced use |
-| Elite | Custom | Included AI support, set by coach/PT package |
+| Free | 3 SEK | Limited AI trial |
+| Trial | 15 SEK | Limited trial AI credits |
+| Standard | 30 SEK | AI credits for daily use |
+| Pro | 75 SEK | Larger AI credits for advanced use |
+| Elite | 150 SEK default, configurable | Included AI support, set by coach/PT package |
 
-Final limits should be adjusted after 1-2 weeks of post-thinking-control usage data.
+These should be adjusted after 1-2 weeks of post-thinking-control usage data.
 
 ### Top-Ups
 
@@ -365,12 +366,12 @@ Additional shipped chunks:
 - Athlete-facing AI credit exhaustion messages across high-cost AI flows. Shipped in `6b67bf55`.
 - Athlete subscription page AI credit explanation and tier allowances. Shipped in `4b5528c3`.
 - Deployment checklist for AI billing launch. Shipped: `docs/deployment/athlete-ai-billing-launch-checklist.md`.
+- High-cost AI guard tests now cover food scan, WOD, live voice coaching, and video analysis, and the readiness preflight requires those tests.
+- Admin AI cost feature mix now includes actual live voice and video-analysis log categories plus food scanner companion calls.
 
 ## Open Decisions
 
-- Exact Standard included AI allowance.
-- Exact Pro included AI allowance.
-- Whether Pro should have a small grace buffer before hard cap.
+- Whether Pro should have a small grace buffer before hard cap. Current launch behavior is hard cap.
 - Top-up credit expiry period. Decided: 180 days.
 - Whether Elite allowance is business-level default only or configurable per athlete. Decided: both; business default plus platform-admin per-athlete override.
 - Whether trial users receive Standard allowance or a smaller trial-only allowance. Decided: smaller trial-only allowance, 15 SEK.
