@@ -58,6 +58,16 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { ModelIntent } from '@/types/ai-models'
 import type { WorkoutImportType, ParsedWorkoutImport } from '@/lib/ai/workout-parser'
+import {
+  type AiAllowanceExhaustedError,
+  getAiAllowanceUpgradeMessage,
+  isAiAllowanceExhaustedError,
+  parseAiAllowanceError,
+} from '@/lib/ai/billing/client-errors'
+import {
+  AiAllowanceBlockedAction,
+  type AiAllowanceAction,
+} from '@/components/athlete/ai/AiAllowanceBlockedAction'
 
 interface Candidate {
   id: string
@@ -180,6 +190,7 @@ export function ImportWorkoutDialog({
   const [parsing, setParsing] = useState(false)
   const [parseResult, setParseResult] = useState<ParseResponse | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null)
   const [fixingFormat, setFixingFormat] = useState(false)
 
   const [mappings, setMappings] = useState<Record<string, string>>({})
@@ -201,16 +212,31 @@ export function ImportWorkoutDialog({
 
   const hasInput = tab === 'upload' ? !!file : pastedText.trim().length > 0
 
+  const clearParseError = useCallback(() => {
+    setParseError(null)
+    setAiAllowanceAction(null)
+  }, [])
+
+  const showAiAllowanceError = (allowanceError: AiAllowanceExhaustedError) => {
+    const description = `${allowanceError.message} ${getAiAllowanceUpgradeMessage(allowanceError)}`
+    setParseError(description)
+    setAiAllowanceAction({
+      label: allowanceError.actionLabel,
+      url: allowanceError.actionUrl,
+    })
+    return description
+  }
+
   const reset = useCallback(() => {
     setTab('paste')
     setPastedText('')
     setFile(null)
     setParsing(false)
     setParseResult(null)
-    setParseError(null)
+    clearParseError()
     setMappings({})
     setSkipped(new Set())
-  }, [])
+  }, [clearParseError])
 
   const handleClose = (next: boolean) => {
     if (!next) reset()
@@ -256,6 +282,8 @@ export function ImportWorkoutDialog({
     }
     const data = await response.json()
     if (!response.ok || !data?.success) {
+      const allowanceError = parseAiAllowanceError(data)
+      if (allowanceError) throw allowanceError
       throw new Error(data?.error || 'Kunde inte tolka passet')
     }
     return data as ParseResponse
@@ -273,14 +301,18 @@ export function ImportWorkoutDialog({
 
   const handleParse = async () => {
     setParsing(true)
-    setParseError(null)
+    clearParseError()
     setParseResult(null)
     try {
       applyParseResult(await runParse())
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Okänt fel'
-      setParseError(msg)
-      toast.error('Import misslyckades', { description: msg })
+      const description = isAiAllowanceExhaustedError(e) ? showAiAllowanceError(e) : msg
+      if (!isAiAllowanceExhaustedError(e)) {
+        setParseError(description)
+        setAiAllowanceAction(null)
+      }
+      toast.error('Import misslyckades', { description })
     } finally {
       setParsing(false)
     }
@@ -294,6 +326,7 @@ export function ImportWorkoutDialog({
   const handleFixFormat = async () => {
     if (fixingFormat) return
     setFixingFormat(true)
+    clearParseError()
     try {
       const next = await runParse('powerful')
       applyParseResult(next)
@@ -302,7 +335,12 @@ export function ImportWorkoutDialog({
       })
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Okänt fel'
-      toast.error('Omkörningen misslyckades', { description: msg })
+      const description = isAiAllowanceExhaustedError(e) ? showAiAllowanceError(e) : msg
+      if (!isAiAllowanceExhaustedError(e)) {
+        setParseError(description)
+        setAiAllowanceAction(null)
+      }
+      toast.error('Omkörningen misslyckades', { description })
     } finally {
       setFixingFormat(false)
     }
@@ -535,7 +573,10 @@ export function ImportWorkoutDialog({
             {parseError && (
               <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded">
                 <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
-                <div className="text-sm text-red-700">{parseError}</div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="text-sm text-red-700">{parseError}</div>
+                  <AiAllowanceBlockedAction action={aiAllowanceAction} tone="red" />
+                </div>
               </div>
             )}
           </div>
