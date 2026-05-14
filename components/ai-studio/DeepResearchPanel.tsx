@@ -50,6 +50,7 @@ import {
   getAiAllowanceUpgradeMessage,
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors'
+import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
 
 // ============================================
 // Types
@@ -189,6 +190,7 @@ export function DeepResearchPanel({
 
   // Budget state
   const [budgetWarning, setBudgetWarning] = useState<string | null>(null)
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null)
 
   // Update athlete when prop changes
   useEffect(() => {
@@ -236,6 +238,7 @@ export function DeepResearchPanel({
     setProgress(0)
     setProgressMessage('Starting research...')
     setBudgetWarning(null)
+    setAiAllowanceAction(null)
 
     try {
       const response = await fetch('/api/ai/deep-research', {
@@ -254,9 +257,13 @@ export function DeepResearchPanel({
       if (!response.ok) {
         const allowanceError = parseAiAllowanceError(data)
         if (allowanceError) {
-          const message = `${allowanceError.message} ${getAiAllowanceUpgradeMessage()}`
+          const message = `${allowanceError.message} ${getAiAllowanceUpgradeMessage(allowanceError)}`
           setError(message)
-          setBudgetWarning(message)
+          setBudgetWarning(null)
+          setAiAllowanceAction({
+            label: allowanceError.actionLabel,
+            url: allowanceError.actionUrl,
+          })
         } else if (response.status === 402) {
           setError(`Budget exceeded: ${data.message}`)
           setBudgetWarning(data.message)
@@ -390,6 +397,7 @@ export function DeepResearchPanel({
     setError(null)
     setSessionId(null)
     setBudgetWarning(null)
+    setAiAllowanceAction(null)
   }
 
   return (
@@ -541,6 +549,7 @@ export function DeepResearchPanel({
                 <div>
                   <p className="text-sm font-medium text-yellow-600">Budget Warning</p>
                   <p className="text-xs text-yellow-600/80">{budgetWarning}</p>
+                  <AiAllowanceBlockedAction action={aiAllowanceAction} className="mt-2" />
                 </div>
               </div>
             )}
@@ -552,6 +561,7 @@ export function DeepResearchPanel({
                 <div>
                   <p className="text-sm font-medium text-destructive">Error</p>
                   <p className="text-xs text-destructive/80">{error}</p>
+                  <AiAllowanceBlockedAction action={aiAllowanceAction} tone="red" className="mt-2" />
                 </div>
               </div>
             )}

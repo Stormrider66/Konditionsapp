@@ -27,10 +27,12 @@ import { Camera, Loader2, CheckCircle, AlertTriangle, RotateCcw, Zap } from 'luc
 import { useToast } from '@/hooks/use-toast';
 import type { LactateMeterOCRResult } from '@/lib/validations/gemini-schemas';
 import {
+  type AiAllowanceExhaustedError,
   getAiAllowanceUpgradeMessage,
   isAiAllowanceExhaustedError,
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors';
+import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction';
 
 interface LactateScanButtonProps {
   /** Called when a lactate value is successfully extracted */
@@ -68,6 +70,22 @@ export function LactateScanButton({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [result, setResult] = useState<LactateMeterOCRResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null);
+
+  const clearError = () => {
+    setError(null);
+    setAiAllowanceAction(null);
+  };
+
+  const showAiAllowanceError = (allowanceError: AiAllowanceExhaustedError) => {
+    const description = `${allowanceError.message} ${getAiAllowanceUpgradeMessage(allowanceError)}`;
+    setError(description);
+    setAiAllowanceAction({
+      label: allowanceError.actionLabel,
+      url: allowanceError.actionUrl,
+    });
+    return description;
+  };
 
   function handleClick() {
     // On mobile, directly open camera
@@ -84,7 +102,7 @@ export function LactateScanButton({
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     setIsOpen(true);
-    setError(null);
+    clearError();
     setResult(null);
 
     // Process the image
@@ -98,7 +116,7 @@ export function LactateScanButton({
 
   async function processImage(file: File) {
     setIsProcessing(true);
-    setError(null);
+    clearError();
 
     try {
       const formData = new FormData();
@@ -136,9 +154,12 @@ export function LactateScanButton({
       console.error('Lactate OCR error:', err);
       const message = err instanceof Error ? err.message : 'Ett fel uppstod';
       const description = isAiAllowanceExhaustedError(err)
-        ? `${message} ${getAiAllowanceUpgradeMessage()}`
+        ? showAiAllowanceError(err)
         : message;
-      setError(description);
+      if (!isAiAllowanceExhaustedError(err)) {
+        setError(description);
+        setAiAllowanceAction(null);
+      }
       toast({
         title: 'Kunde inte läsa av mätaren',
         description,
@@ -167,7 +188,7 @@ export function LactateScanButton({
   function handleRetake() {
     setPreviewUrl(null);
     setResult(null);
-    setError(null);
+    clearError();
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
@@ -177,7 +198,7 @@ export function LactateScanButton({
     setIsOpen(false);
     setPreviewUrl(null);
     setResult(null);
-    setError(null);
+    clearError();
   }
 
   return (
@@ -243,7 +264,10 @@ export function LactateScanButton({
             {error && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription className="space-y-3">
+                  <p>{error}</p>
+                  <AiAllowanceBlockedAction action={aiAllowanceAction} tone="red" />
+                </AlertDescription>
               </Alert>
             )}
 

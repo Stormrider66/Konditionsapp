@@ -56,10 +56,15 @@ import {
   type ExerciseMappings,
 } from '@/lib/ai/program-exercise-resolver'
 import {
+  type AiAllowanceExhaustedError,
   getAiAllowanceUpgradeMessage,
   isAiAllowanceExhaustedError,
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors'
+import {
+  AiAllowanceBlockedAction,
+  type AiAllowanceAction,
+} from '@/components/athlete/ai/AiAllowanceBlockedAction'
 
 interface ClientOption {
   id: string
@@ -171,6 +176,7 @@ export function ImportProgramClient({
   const [parsing, setParsing] = useState(false)
   const [parseResult, setParseResult] = useState<ParseResponse | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null)
   const [fixingFormat, setFixingFormat] = useState(false)
 
   // Exercise mapping state (Phase 2). `mappings[name] = exerciseId`. Includes
@@ -257,9 +263,24 @@ export function ImportProgramClient({
 
   const hasInput = tab === 'upload' ? !!file : pastedText.trim().length > 0
 
+  const clearParseError = () => {
+    setParseError(null)
+    setAiAllowanceAction(null)
+  }
+
+  const showAiAllowanceError = (allowanceError: AiAllowanceExhaustedError) => {
+    const description = `${allowanceError.message} ${getAiAllowanceUpgradeMessage(allowanceError)}`
+    setParseError(description)
+    setAiAllowanceAction({
+      label: allowanceError.actionLabel,
+      url: allowanceError.actionUrl,
+    })
+    return description
+  }
+
   const handleParse = async () => {
     setParsing(true)
-    setParseError(null)
+    clearParseError()
     setParseResult(null)
     try {
       let response: Response
@@ -309,8 +330,11 @@ export function ImportProgramClient({
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Okänt fel'
-      const description = isAiAllowanceExhaustedError(e) ? `${msg} ${getAiAllowanceUpgradeMessage()}` : msg
-      setParseError(description)
+      const description = isAiAllowanceExhaustedError(e) ? showAiAllowanceError(e) : msg
+      if (!isAiAllowanceExhaustedError(e)) {
+        setParseError(description)
+        setAiAllowanceAction(null)
+      }
       toast({
         title: 'Import misslyckades',
         description,
@@ -373,7 +397,7 @@ export function ImportProgramClient({
   const handleFixFormat = async () => {
     if (!hasInput) return
     setFixingFormat(true)
-    setParseError(null)
+    clearParseError()
     try {
       let response: Response
       if (tab === 'upload' && file) {
@@ -412,8 +436,11 @@ export function ImportProgramClient({
       })
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Okänt fel'
-      const description = isAiAllowanceExhaustedError(e) ? `${msg} ${getAiAllowanceUpgradeMessage()}` : msg
-      setParseError(description)
+      const description = isAiAllowanceExhaustedError(e) ? showAiAllowanceError(e) : msg
+      if (!isAiAllowanceExhaustedError(e)) {
+        setParseError(description)
+        setAiAllowanceAction(null)
+      }
       toast({
         title: 'Omkörningen misslyckades',
         description,
@@ -426,7 +453,7 @@ export function ImportProgramClient({
 
   const handleReset = () => {
     setParseResult(null)
-    setParseError(null)
+    clearParseError()
     setPastedText('')
     setFile(null)
     setResolutions([])
@@ -646,7 +673,10 @@ export function ImportProgramClient({
             {parseError && (
               <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded">
                 <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
-                <div className="text-sm text-red-700">{parseError}</div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="text-sm text-red-700">{parseError}</div>
+                  <AiAllowanceBlockedAction action={aiAllowanceAction} tone="red" />
+                </div>
               </div>
             )}
           </CardContent>
