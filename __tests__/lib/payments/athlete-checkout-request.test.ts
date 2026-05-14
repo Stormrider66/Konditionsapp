@@ -12,6 +12,7 @@ describe('normalizeAthleteCheckoutRequest', () => {
       tier: 'STANDARD',
       cycle: 'YEARLY',
       businessId: undefined,
+      returnPath: '/athlete/subscription',
     })
   })
 
@@ -25,6 +26,7 @@ describe('normalizeAthleteCheckoutRequest', () => {
       tier: 'PRO',
       cycle: 'MONTHLY',
       businessId: undefined,
+      returnPath: '/athlete/subscription',
     })
   })
 
