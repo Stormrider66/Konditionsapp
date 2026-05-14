@@ -305,6 +305,7 @@ Dashboards/checks:
 - Food scanner share of total AI spend. Shipped in AI Costs feature mix in `c1e49b87`.
 - Voice/video/program/research share of AI spend. Shipped in AI Costs feature mix in `c1e49b87`.
 - Monthly AI allowance reset. Shipped in `95a01ad2`; expired accounts reset to current tier/business/override allowance while preserving top-up balances.
+- Trial AI allowance. Decided and shipped in `6cbf31f0`: active trials receive a smaller 15 SEK AI allowance unless a platform admin has set an explicit per-athlete override.
 - Food scanner quality complaints after lower thinking setting.
 
 Rollout:
@@ -368,4 +369,4 @@ Additional shipped chunks:
 - Whether Pro should have a small grace buffer before hard cap.
 - Top-up credit expiry period.
 - Whether Elite allowance is business-level default only or configurable per athlete. Decided: both; business default plus platform-admin per-athlete override.
-- Whether trial users receive Standard allowance or a smaller trial-only allowance.
+- Whether trial users receive Standard allowance or a smaller trial-only allowance. Decided: smaller trial-only allowance, 15 SEK.
