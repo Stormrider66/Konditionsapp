@@ -88,6 +88,7 @@ export default async function BusinessSubscriptionPage({ params }: BusinessSubsc
       clientId={athleteAccount.clientId}
       subscription={serializedSubscription}
       basePath={basePath}
+      billingEnabled={Boolean(process.env.STRIPE_SECRET_KEY)}
       eliteOffer={business
         ? {
             businessId: business.id,

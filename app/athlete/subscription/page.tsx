@@ -64,6 +64,7 @@ export default async function SubscriptionPage() {
     <SubscriptionClient
       clientId={athleteAccount.clientId}
       subscription={serializedSubscription}
+      billingEnabled={Boolean(process.env.STRIPE_SECRET_KEY)}
     />
   )
 }

@@ -25,6 +25,13 @@ export async function POST(request: NextRequest) {
     }
 
     const { user, clientId } = resolved
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return NextResponse.json(
+        { error: 'Billing is not enabled yet', code: 'BILLING_DISABLED' },
+        { status: 503 },
+      )
+    }
+
     const rateLimited = await rateLimitJsonResponse('payments:athlete:ai-top-up', user.id, {
       limit: 10,
       windowSeconds: 60,

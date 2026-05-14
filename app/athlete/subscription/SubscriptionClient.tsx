@@ -56,6 +56,7 @@ interface SubscriptionClientProps {
   subscription: Subscription | null
   basePath?: string
   eliteOffer?: EliteOffer | null
+  billingEnabled?: boolean
 }
 
 interface EliteOffer {
@@ -123,6 +124,7 @@ export function SubscriptionClient({
   subscription,
   basePath = '',
   eliteOffer = null,
+  billingEnabled = true,
 }: SubscriptionClientProps) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState<string | null>(null)
@@ -165,6 +167,13 @@ export function SubscriptionClient({
 
   const handleUpgrade = async (tierId: string) => {
     if (tierId === 'FREE') return
+    if (!billingEnabled) {
+      toast({
+        title: 'Betalning är inte aktiverad ännu',
+        description: 'Prenumerationer öppnas så snart betalningsflödet är klart.',
+      })
+      return
+    }
 
     setIsLoading(tierId)
     try {
@@ -204,6 +213,14 @@ export function SubscriptionClient({
   }
 
   const handleManageSubscription = async () => {
+    if (!billingEnabled) {
+      toast({
+        title: 'Betalning är inte aktiverad ännu',
+        description: 'Kundportalen öppnas när Stripe är aktiverat.',
+      })
+      return
+    }
+
     setIsLoading('manage')
     try {
       const response = await fetch('/api/payments/portal', {
@@ -235,6 +252,14 @@ export function SubscriptionClient({
   }
 
   const handleAiTopUp = async (packId: string) => {
+    if (!billingEnabled) {
+      toast({
+        title: 'Påfyllning kommer snart',
+        description: 'AI-krediter visas redan här, men köp aktiveras först när Stripe är klart.',
+      })
+      return
+    }
+
     setIsLoading(packId)
     try {
       const response = await fetch('/api/payments/ai-top-up', {
@@ -426,11 +451,13 @@ export function SubscriptionClient({
                       size="sm"
                       variant="outline"
                       className="shrink-0"
-                      disabled={isLoading === pack.id}
+                      disabled={!billingEnabled || isLoading === pack.id}
                       onClick={() => handleAiTopUp(pack.id)}
                     >
                       {isLoading === pack.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : !billingEnabled ? (
+                        'Snart'
                       ) : (
                         `${pack.amountSek} kr`
                       )}
@@ -438,6 +465,11 @@ export function SubscriptionClient({
                   </div>
                 ))}
               </div>
+              {!billingEnabled && (
+                <p className="rounded-lg bg-slate-100 p-3 text-xs text-slate-600">
+                  Betalning är inte aktiverad ännu. Månadskrediter och användningsgränser fungerar, men uppgradering och extra köp öppnas senare.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -550,14 +582,14 @@ export function SubscriptionClient({
                           : 'bg-purple-600 hover:bg-purple-700'
                       }`}
                       onClick={() => handleUpgrade(tier.id)}
-                      disabled={isLoading === tier.id}
+                      disabled={!billingEnabled || isLoading === tier.id}
                     >
                       {isLoading === tier.id ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       ) : null}
                       {status?.trialActive && currentTier === tier.id
                         ? 'Aktivera nu'
-                        : 'Uppgradera'}
+                        : billingEnabled ? 'Uppgradera' : 'Kommer snart'}
                     </Button>
                   )}
                 </CardContent>
@@ -621,12 +653,12 @@ export function SubscriptionClient({
                 <Button
                   className="w-full bg-amber-600 hover:bg-amber-700"
                   onClick={() => handleUpgrade('ELITE')}
-                  disabled={isLoading === 'ELITE'}
+                  disabled={!billingEnabled || isLoading === 'ELITE'}
                 >
                   {isLoading === 'ELITE' ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : null}
-                  Välj Elite
+                  {billingEnabled ? 'Välj Elite' : 'Kommer snart'}
                 </Button>
               ) : (
                 <Button variant="outline" className="w-full" disabled>

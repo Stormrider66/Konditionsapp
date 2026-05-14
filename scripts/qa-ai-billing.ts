@@ -76,6 +76,9 @@ async function qaAthleteSubscription(page: Page, baseUrl: string, target: LoginT
   await expect(page.getByText(/199/)).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText(/399/)).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText(/SEK krediter/i).first()).toBeVisible({ timeout: 60_000 })
+  if (await page.getByText(/Betalning är inte aktiverad ännu/i).count()) {
+    await expect(page.getByRole('button', { name: /Kommer snart|Snart/i }).first()).toBeVisible({ timeout: 60_000 })
+  }
   await assertNoCustomerFacingAiBudgetFootguns(page)
   await page.screenshot({ path: path.join(evidenceDir, 'athlete-subscription.png'), fullPage: true })
 }

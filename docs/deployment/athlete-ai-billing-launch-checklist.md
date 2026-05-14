@@ -14,6 +14,7 @@ Use this before pushing the AI allowance/top-up work to production.
 
 ## Stripe
 
+- If Stripe is not enabled yet, leave `STRIPE_SECRET_KEY` unset. The subscription page will show AI credits and plans, but upgrade/top-up buttons stay disabled with "Kommer snart"/"Snart" copy, and payment APIs return `BILLING_DISABLED`.
 - Athlete Standard monthly/yearly prices exist and match 199 SEK/month and 1990 SEK/year.
 - Athlete Pro monthly/yearly prices exist and match 399 SEK/month and 3990 SEK/year.
 - `STRIPE_ATHLETE_STANDARD_MONTHLY`, `STRIPE_ATHLETE_STANDARD_YEARLY`, `STRIPE_ATHLETE_PRO_MONTHLY`, and `STRIPE_ATHLETE_PRO_YEARLY` point to the active Stripe prices.

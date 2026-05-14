@@ -32,12 +32,35 @@ describe('athlete create checkout route', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.NEXT_PUBLIC_APP_URL = 'https://app.example.test'
+    process.env.STRIPE_SECRET_KEY = 'sk_test_mock'
     mockResolveAthleteClientId.mockResolvedValue({
       user: { id: 'user-1' },
       clientId: 'client-1',
     })
     mockRateLimitJsonResponse.mockResolvedValue(null)
     mockCreateCheckoutSession.mockResolvedValue('https://stripe.example.test/checkout')
+  })
+
+  it('returns a clear disabled response when Stripe is not configured', async () => {
+    delete process.env.STRIPE_SECRET_KEY
+    const request = new NextRequest('http://localhost/api/payments/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tier: 'STANDARD',
+        billingCycle: 'MONTHLY',
+      }),
+    })
+
+    const response = await POST(request)
+    const body = await response.json()
+
+    expect(response.status).toBe(503)
+    expect(body).toMatchObject({
+      code: 'BILLING_DISABLED',
+      error: 'Billing is not enabled yet',
+    })
+    expect(mockCreateCheckoutSession).not.toHaveBeenCalled()
   })
 
   it('accepts billingCycle and returns both checkoutUrl and url', async () => {
