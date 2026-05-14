@@ -135,7 +135,7 @@ export const PAGE_CONTEXT_REGISTRY: Record<string, PageContextConfig> = {
   },
   'coach/settings/ai': {
     pageTitle: 'AI-inställningar',
-    description: 'Konfigurera AI-modeller, API-nycklar och token-budgetar.',
+    description: 'Konfigurera AI-modeller, API-nycklar och AI-kostnadsbudgetar.',
     concepts: ['aiModels', 'tokenBudget', 'ragDocuments'],
   },
   'coach/documents': {

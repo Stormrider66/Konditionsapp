@@ -211,7 +211,7 @@ export function AIBudgetSettings({
             AI Budget Settings
           </DialogTitle>
           <DialogDescription>
-            Set monthly spending limits for AI features. Leave empty for unlimited.
+            Set monthly spending limits for AI features. Leave empty to use the workspace default.
           </DialogDescription>
         </DialogHeader>
 
