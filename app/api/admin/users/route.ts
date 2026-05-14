@@ -12,6 +12,10 @@ import { ATHLETE_TIER_FEATURES } from '@/lib/subscription/feature-access';
 import { z } from 'zod';
 import { ensureAthleteClientDefaultsTx } from '@/lib/user-provisioning';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+import {
+  getCurrentAllowancePeriod,
+  resolveConfiguredAiAllowanceSek,
+} from '@/lib/ai/billing/allowance';
 
 const COACH_TIER_VALUES = ['FREE', 'BASIC', 'PRO', 'ENTERPRISE'] as const;
 const ATHLETE_TIER_VALUES = ['FREE', 'STANDARD', 'PRO', 'ELITE'] as const;
@@ -60,6 +64,70 @@ function getAthleteSubscriptionUpdateData(tier: AthleteTierValue) {
     workoutLoggingEnabled: tier !== 'FREE',
     dailyCheckInEnabled: tier !== 'FREE',
   };
+}
+
+function getEffectiveAiAllowanceSek(subscription: {
+  tier?: AthleteTierValue | null
+  status?: string | null
+  trialEndsAt?: Date | string | null
+  customAiAllowanceSek?: number | null
+  business?: { eliteAiAllowanceSek?: number | null } | null
+} | null | undefined): number | null {
+  if (!subscription) return null;
+
+  return resolveConfiguredAiAllowanceSek({
+    tier: subscription.tier,
+    status: subscription.status,
+    trialEndsAt: subscription.trialEndsAt,
+    customAiAllowanceSek: subscription.customAiAllowanceSek,
+    businessEliteAiAllowanceSek: subscription.business?.eliteAiAllowanceSek,
+  });
+}
+
+async function syncCurrentAiAllowanceBudgetTx(
+  tx: Prisma.TransactionClient,
+  clientId: string,
+): Promise<void> {
+  const subscription = await tx.athleteSubscription.findUnique({
+    where: { clientId },
+    select: {
+      tier: true,
+      status: true,
+      trialEndsAt: true,
+      customAiAllowanceSek: true,
+      business: {
+        select: {
+          eliteAiAllowanceSek: true,
+        },
+      },
+    },
+  });
+
+  if (!subscription) return;
+
+  const now = new Date();
+  const period = getCurrentAllowancePeriod(now);
+  const includedBudgetSek = resolveConfiguredAiAllowanceSek({
+    tier: subscription.tier,
+    status: subscription.status,
+    trialEndsAt: subscription.trialEndsAt,
+    customAiAllowanceSek: subscription.customAiAllowanceSek,
+    businessEliteAiAllowanceSek: subscription.business?.eliteAiAllowanceSek,
+    now,
+  });
+
+  await tx.aIAllowanceAccount.updateMany({
+    where: {
+      clientId,
+      periodEnd: { gt: now },
+    },
+    data: {
+      periodStart: period.periodStart,
+      periodEnd: period.periodEnd,
+      includedBudgetSek,
+      hardCapSek: includedBudgetSek,
+    },
+  });
 }
 
 async function ensureAthleteRoleDependenciesTx(
@@ -245,6 +313,19 @@ export async function GET(request: NextRequest) {
                       status: true,
                       trialEndsAt: true,
                       customAiAllowanceSek: true,
+                      business: {
+                        select: {
+                          eliteAiAllowanceSek: true,
+                        },
+                      },
+                    },
+                  },
+                  aiAllowanceAccount: {
+                    select: {
+                      includedBudgetSek: true,
+                      includedUsedSek: true,
+                      topUpBalanceSek: true,
+                      periodEnd: true,
                     },
                   },
                 },
@@ -284,6 +365,9 @@ export async function GET(request: NextRequest) {
                   maxAthletes: null,
                   stripeCurrentPeriodEnd: user.athleteAccount.client.athleteSubscription.trialEndsAt,
                   customAiAllowanceSek: user.athleteAccount.client.athleteSubscription.customAiAllowanceSek,
+                  effectiveAiAllowanceSek: getEffectiveAiAllowanceSek(user.athleteAccount.client.athleteSubscription),
+                  businessEliteAiAllowanceSek: user.athleteAccount.client.athleteSubscription.business?.eliteAiAllowanceSek ?? null,
+                  aiAllowanceAccount: user.athleteAccount.client.aiAllowanceAccount ?? null,
                 }
               : null
             : user.subscription,
@@ -478,6 +562,10 @@ export async function PUT(request: NextRequest) {
             where: { clientId },
             data: { customAiAllowanceSek },
           });
+        }
+
+        if ((tier && isAthleteTier(tier)) || customAiAllowanceSek !== undefined) {
+          await syncCurrentAiAllowanceBudgetTx(tx, clientId);
         }
       } else if (role || tier) {
         await ensureCoachRoleDependenciesTx(

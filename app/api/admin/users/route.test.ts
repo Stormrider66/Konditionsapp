@@ -27,6 +27,9 @@ const mockPrisma = vi.hoisted(() => ({
     upsert: vi.fn(),
     update: vi.fn(),
   },
+  aIAllowanceAccount: {
+    updateMany: vi.fn(),
+  },
   athleteAccount: {
     findUnique: vi.fn(),
     create: vi.fn(),
@@ -113,6 +116,7 @@ describe('admin users route', () => {
     mockGetUserAgentFromRequest.mockReturnValue('vitest')
     mockEnsureAthleteClientDefaultsTx.mockResolvedValue(undefined)
     mockPrisma.$transaction.mockImplementation(async (callback: (tx: typeof mockPrisma) => Promise<unknown>) => callback(mockPrisma as any))
+    mockPrisma.aIAllowanceAccount.updateMany.mockResolvedValue({ count: 0 })
   })
 
   it('GET returns athlete subscription tier for athlete users', async () => {
@@ -140,6 +144,15 @@ describe('admin users route', () => {
               status: 'ACTIVE',
               trialEndsAt: null,
               customAiAllowanceSek: 42,
+              business: {
+                eliteAiAllowanceSek: null,
+              },
+            },
+            aiAllowanceAccount: {
+              includedBudgetSek: 42,
+              includedUsedSek: 10,
+              topUpBalanceSek: 5,
+              periodEnd: new Date('2026-06-01T00:00:00Z'),
             },
           },
         },
@@ -161,12 +174,28 @@ describe('admin users route', () => {
       maxAthletes: null,
       stripeCurrentPeriodEnd: null,
       customAiAllowanceSek: 42,
+      effectiveAiAllowanceSek: 42,
+      businessEliteAiAllowanceSek: null,
+      aiAllowanceAccount: {
+        includedBudgetSek: 42,
+        includedUsedSek: 10,
+        topUpBalanceSek: 5,
+        periodEnd: '2026-06-01T00:00:00.000Z',
+      },
     })
   })
 
   it('PUT updates athlete subscription for athlete tiers', async () => {
     mockPrisma.athleteAccount.findUnique.mockResolvedValue({ clientId: 'client-1' })
-    mockPrisma.athleteSubscription.findUnique.mockResolvedValue({ id: 'sub-1' })
+    mockPrisma.athleteSubscription.findUnique
+      .mockResolvedValueOnce({ id: 'sub-1' })
+      .mockResolvedValueOnce({
+        tier: 'STANDARD',
+        status: 'ACTIVE',
+        trialEndsAt: null,
+        customAiAllowanceSek: null,
+        business: null,
+      })
 
     mockPrisma.user.findUnique
       .mockResolvedValueOnce({
@@ -237,6 +266,16 @@ describe('admin users route', () => {
       },
     })
     expect(mockPrisma.subscription.upsert).not.toHaveBeenCalled()
+    expect(mockPrisma.aIAllowanceAccount.updateMany).toHaveBeenCalledWith({
+      where: {
+        clientId: 'client-1',
+        periodEnd: { gt: expect.any(Date) },
+      },
+      data: expect.objectContaining({
+        includedBudgetSek: 30,
+        hardCapSek: 30,
+      }),
+    })
     expect(body.data.subscription).toEqual({
       tier: 'STANDARD',
       status: 'ACTIVE',
@@ -246,7 +285,15 @@ describe('admin users route', () => {
 
   it('PUT updates athlete custom AI allowance override', async () => {
     mockPrisma.athleteAccount.findUnique.mockResolvedValue({ clientId: 'client-1' })
-    mockPrisma.athleteSubscription.findUnique.mockResolvedValue({ id: 'sub-1' })
+    mockPrisma.athleteSubscription.findUnique
+      .mockResolvedValueOnce({ id: 'sub-1' })
+      .mockResolvedValueOnce({
+        tier: 'ELITE',
+        status: 'ACTIVE',
+        trialEndsAt: null,
+        customAiAllowanceSek: 225,
+        business: { eliteAiAllowanceSek: 180 },
+      })
     mockPrisma.athleteSubscription.update.mockResolvedValue({})
 
     mockPrisma.user.findUnique
@@ -292,6 +339,16 @@ describe('admin users route', () => {
     expect(mockPrisma.athleteSubscription.update).toHaveBeenCalledWith({
       where: { clientId: 'client-1' },
       data: { customAiAllowanceSek: 225 },
+    })
+    expect(mockPrisma.aIAllowanceAccount.updateMany).toHaveBeenCalledWith({
+      where: {
+        clientId: 'client-1',
+        periodEnd: { gt: expect.any(Date) },
+      },
+      data: expect.objectContaining({
+        includedBudgetSek: 225,
+        hardCapSek: 225,
+      }),
     })
     expect(mockPrisma.athleteSubscription.upsert).not.toHaveBeenCalled()
   })

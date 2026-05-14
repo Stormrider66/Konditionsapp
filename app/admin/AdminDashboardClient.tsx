@@ -151,6 +151,14 @@ interface User {
     status: string;
     maxAthletes: number | null;
     customAiAllowanceSek?: number | null;
+    effectiveAiAllowanceSek?: number | null;
+    businessEliteAiAllowanceSek?: number | null;
+    aiAllowanceAccount?: {
+      includedBudgetSek: number;
+      includedUsedSek: number;
+      topUpBalanceSek: number;
+      periodEnd: string;
+    } | null;
   } | null;
   clientsCount: number;
   businesses: UserBusiness[];
@@ -950,25 +958,39 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                             </TableCell>
                             <TableCell>
                               {user.role === 'ATHLETE' ? (
-                                <Input
-                                  defaultValue={user.subscription?.customAiAllowanceSek ?? ''}
-                                  placeholder="Auto"
-                                  className="h-8 w-[88px] text-sm"
-                                  inputMode="decimal"
-                                  onBlur={(event) => {
-                                    const nextValue = event.currentTarget.value;
-                                    const currentValue = user.subscription?.customAiAllowanceSek?.toString() ?? '';
-                                    if (nextValue.trim().replace(',', '.') !== currentValue) {
-                                      updateAthleteAiAllowance(user.id, nextValue);
-                                    }
-                                  }}
-                                  onKeyDown={(event) => {
-                                    if (event.key === 'Enter') {
-                                      event.currentTarget.blur();
-                                    }
-                                  }}
-                                  title="Tomt värde använder planens eller företagets standard"
-                                />
+                                <div className="min-w-[160px] space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      defaultValue={user.subscription?.customAiAllowanceSek ?? ''}
+                                      placeholder="Auto"
+                                      className="h-8 w-[88px] text-sm"
+                                      inputMode="decimal"
+                                      onBlur={(event) => {
+                                        const nextValue = event.currentTarget.value;
+                                        const currentValue = user.subscription?.customAiAllowanceSek?.toString() ?? '';
+                                        if (nextValue.trim().replace(',', '.') !== currentValue) {
+                                          updateAthleteAiAllowance(user.id, nextValue);
+                                        }
+                                      }}
+                                      onKeyDown={(event) => {
+                                        if (event.key === 'Enter') {
+                                          event.currentTarget.blur();
+                                        }
+                                      }}
+                                      title="Tomt värde använder planens eller företagets standard"
+                                    />
+                                    <span className="text-xs font-medium text-muted-foreground">
+                                      {user.subscription?.effectiveAiAllowanceSek ?? '-'} SEK
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] leading-tight text-muted-foreground">
+                                    Effektiv månadsgräns
+                                    {user.subscription?.businessEliteAiAllowanceSek !== null &&
+                                    user.subscription?.businessEliteAiAllowanceSek !== undefined
+                                      ? `, Elite default ${user.subscription.businessEliteAiAllowanceSek} SEK`
+                                      : ''}
+                                  </p>
+                                </div>
                               ) : (
                                 <span className="text-muted-foreground text-sm">-</span>
                               )}
