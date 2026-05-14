@@ -361,8 +361,10 @@ Additional shipped chunks:
 
 - Admin AI cost overview by feature/provider/model. Shipped in `ea38e14c`.
 - Admin AI cost overview now highlights food scanner share, other heavy AI share, top single driver, and recent top-up purchases. Shipped in `c1e49b87`.
+- Admin AI cost overview now recommends actions for heavy users: upgrade, top-up, Elite review, already monetized, or monitor. Shipped in `7431afd3`.
 - Athlete-facing AI credit exhaustion messages across high-cost AI flows. Shipped in `6b67bf55`.
 - Athlete subscription page AI credit explanation and tier allowances. Shipped in `4b5528c3`.
+- Deployment checklist for AI billing launch. Shipped: `docs/deployment/athlete-ai-billing-launch-checklist.md`.
 
 ## Open Decisions
 
