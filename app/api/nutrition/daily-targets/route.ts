@@ -15,7 +15,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { startOfDay, endOfDay, eachDayOfInterval, isValid, parseISO } from 'date-fns'
 import { calculateDailyTargets } from '@/lib/nutrition-timing'
 import { getCompletedWorkoutContextsForDay } from '@/lib/nutrition-timing/completed-workouts'
-import type { WorkoutContext } from '@/lib/nutrition-timing'
+import type { NutritionGoalInput, WorkoutContext } from '@/lib/nutrition-timing'
 import type { WorkoutIntensity, WorkoutType } from '@prisma/client'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
@@ -70,6 +70,7 @@ export async function GET(request: NextRequest) {
       include: {
         athleteAccount: { select: { userId: true } },
         nutritionGoal: true,
+        sportProfile: { select: { lifestyleActivity: true } },
       },
     })
     if (!client?.athleteAccount?.userId) {
@@ -78,14 +79,25 @@ export async function GET(request: NextRequest) {
 
     const athleteUserId = client.athleteAccount.userId
     const weightKg = client.weight ?? 70
-    const goalType = client.nutritionGoal?.goalType
+    const nutritionGoal: Pick<
+      NutritionGoalInput,
+      'goalType' | 'macroProfile' | 'customProteinPercent' | 'customCarbsPercent' | 'customFatPercent'
+    > | undefined = client.nutritionGoal
+      ? {
+          goalType: client.nutritionGoal.goalType as NutritionGoalInput['goalType'],
+          macroProfile: client.nutritionGoal.macroProfile as NutritionGoalInput['macroProfile'],
+          customProteinPercent: client.nutritionGoal.customProteinPercent ?? undefined,
+          customCarbsPercent: client.nutritionGoal.customCarbsPercent ?? undefined,
+          customFatPercent: client.nutritionGoal.customFatPercent ?? undefined,
+        }
+      : undefined
 
     const bodyComposition = await prisma.bodyComposition.findFirst({
       where: { clientId: client.id },
       orderBy: { measurementDate: 'desc' },
       select: { bmrKcal: true },
     })
-    const bmrKcal = bodyComposition?.bmrKcal ?? undefined
+    const bmrKcal = client.nutritionGoal?.customBmrKcal ?? bodyComposition?.bmrKcal ?? undefined
 
     const rangeStart = startOfDay(days[0])
     const rangeEnd = endOfDay(days[days.length - 1])
@@ -243,7 +255,13 @@ export async function GET(request: NextRequest) {
       }
       workoutsForDay.push(...(completedMap[key] || []))
 
-      const daily = calculateDailyTargets(weightKg, workoutsForDay, goalType, bmrKcal)
+      const daily = calculateDailyTargets(
+        weightKg,
+        workoutsForDay,
+        nutritionGoal,
+        bmrKcal,
+        client.sportProfile?.lifestyleActivity
+      )
       return {
         date: key,
         caloriesKcal: daily.caloriesKcal,

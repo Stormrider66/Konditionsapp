@@ -1,4 +1,4 @@
-import { generateDailyGuidance } from '@/lib/nutrition-timing'
+import { calculateDailyTargets, generateDailyGuidance } from '@/lib/nutrition-timing'
 import type { GuidanceGeneratorInput, WorkoutContext } from '@/lib/nutrition-timing'
 
 function createInput(todaysWorkouts: WorkoutContext[]): GuidanceGeneratorInput {
@@ -165,6 +165,43 @@ describe('generateDailyGuidance', () => {
       expect(inputs[0]).toBeLessThan(inputs[1])
       expect(inputs[1]).toBeLessThan(inputs[2])
       expect(inputs[2]).toBeLessThan(inputs[3])
+    })
+  })
+
+  describe('macro profile baseline', () => {
+    it('uses the selected balanced 40/30/30 split for rest-day baseline targets', () => {
+      const t = calculateDailyTargets(
+        70,
+        [],
+        {
+          goalType: 'MAINTAIN',
+          macroProfile: 'BALANCED',
+        },
+        1600
+      )
+
+      const macroCalories = t.carbsG * 4 + t.proteinG * 4 + t.fatG * 9
+      expect(Math.round((t.carbsG * 4 / macroCalories) * 100)).toBe(40)
+      expect(Math.round((t.proteinG * 4 / macroCalories) * 100)).toBe(30)
+      expect(Math.round((t.fatG * 9 / macroCalories) * 100)).toBe(30)
+      expect(t.proteinG).toBeGreaterThan(150)
+      expect(t.carbsG).toBeLessThan(230)
+      expect(t.baselineKcal + t.lifestyleAdjustmentKcal + t.workoutAdjustmentKcal).toBe(t.caloriesKcal)
+    })
+
+    it('keeps workout fueling as a visible carb-heavy adjustment on top of the baseline profile', () => {
+      const rest = calculateDailyTargets(70, [], { goalType: 'MAINTAIN', macroProfile: 'BALANCED' }, 1600)
+      const training = calculateDailyTargets(
+        70,
+        [createWorkout({ intensity: 'THRESHOLD', duration: 60 })],
+        { goalType: 'MAINTAIN', macroProfile: 'BALANCED' },
+        1600
+      )
+
+      expect(training.baselineCarbsG).toBe(rest.baselineCarbsG)
+      expect(training.baselineProteinG).toBe(rest.baselineProteinG)
+      expect(training.workoutAdjustmentCarbsG).toBeGreaterThan(training.workoutAdjustmentProteinG)
+      expect(training.carbsG).toBeGreaterThan(rest.carbsG)
     })
   })
 })

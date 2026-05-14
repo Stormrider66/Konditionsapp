@@ -19,6 +19,8 @@ import type {
   DailyNutritionGuidance,
   DailyMacroTargets,
   LifestyleActivity,
+  MacroProfile,
+  NutritionGoalInput,
   NutritionGuidance,
   NutritionTip,
   GuidanceGeneratorInput,
@@ -81,7 +83,7 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
   const targets = calculateDailyTargets(
     weightKg,
     todaysWorkouts,
-    goalType,
+    goal ?? goalType,
     bodyComposition?.bmrKcal,
     sportProfile?.lifestyleActivity
   )
@@ -191,10 +193,62 @@ export const NEAT_FACTORS: Record<LifestyleActivity, number> = {
   VERY_ACTIVE: 1.30,       // physical labor (~12k+ steps)
 }
 
+type DailyTargetGoalInput = Pick<
+  NutritionGoalInput,
+  'goalType' | 'macroProfile' | 'customProteinPercent' | 'customCarbsPercent' | 'customFatPercent'
+>
+
+const MACRO_PROFILE_RATIOS: Record<Exclude<MacroProfile, 'CUSTOM'>, { carbs: number; protein: number; fat: number }> = {
+  BALANCED: { carbs: 0.40, protein: 0.30, fat: 0.30 },
+  HIGH_PROTEIN: { carbs: 0.35, protein: 0.40, fat: 0.25 },
+  LOW_CARB: { carbs: 0.20, protein: 0.35, fat: 0.45 },
+  ENDURANCE: { carbs: 0.55, protein: 0.20, fat: 0.25 },
+  STRENGTH: { carbs: 0.40, protein: 0.35, fat: 0.25 },
+  KETO: { carbs: 0.05, protein: 0.25, fat: 0.70 },
+}
+
+function getGoalType(goal?: DailyTargetGoalInput | string): string | undefined {
+  return typeof goal === 'string' ? goal : goal?.goalType
+}
+
+function getMacroRatios(goal?: DailyTargetGoalInput | string): { carbs: number; protein: number; fat: number } | null {
+  if (!goal || typeof goal === 'string') return null
+
+  if (
+    goal.macroProfile === 'CUSTOM' &&
+    goal.customCarbsPercent != null &&
+    goal.customProteinPercent != null &&
+    goal.customFatPercent != null
+  ) {
+    const total = goal.customCarbsPercent + goal.customProteinPercent + goal.customFatPercent
+    if (total > 0) {
+      return {
+        carbs: goal.customCarbsPercent / total,
+        protein: goal.customProteinPercent / total,
+        fat: goal.customFatPercent / total,
+      }
+    }
+  }
+
+  if (goal.macroProfile && goal.macroProfile !== 'CUSTOM') {
+    return MACRO_PROFILE_RATIOS[goal.macroProfile] ?? null
+  }
+
+  return null
+}
+
+function distributeCaloriesByMacros(caloriesKcal: number, ratios: { carbs: number; protein: number; fat: number }) {
+  return {
+    carbsG: (caloriesKcal * ratios.carbs) / 4,
+    proteinG: (caloriesKcal * ratios.protein) / 4,
+    fatG: (caloriesKcal * ratios.fat) / 9,
+  }
+}
+
 export function calculateDailyTargets(
   weightKg: number,
   workouts: WorkoutContext[],
-  goalType?: string,
+  goal?: DailyTargetGoalInput | string,
   bmrKcal?: number,
   lifestyleActivity: LifestyleActivity = 'SEDENTARY'
 ): DailyMacroTargets {
@@ -209,6 +263,7 @@ export function calculateDailyTargets(
 
   // Goal-based adjustment applies to baseline only; workout-driven needs are
   // defended (deficit on rest, maintenance-or-above on training).
+  const goalType = getGoalType(goal)
   if (goalType === 'WEIGHT_LOSS') {
     baselineCarbsG *= 0.85
     baselineFatG *= 0.85
@@ -220,7 +275,15 @@ export function calculateDailyTargets(
     baselineFatG *= 0.90
   }
 
-  const baselineKcalRaw = baselineCarbsG * 4 + baselineProteinG * 4 + baselineFatG * 9
+  let baselineKcalRaw = baselineCarbsG * 4 + baselineProteinG * 4 + baselineFatG * 9
+  const macroRatios = getMacroRatios(goal)
+  if (macroRatios) {
+    const baselineMacros = distributeCaloriesByMacros(baselineKcalRaw, macroRatios)
+    baselineCarbsG = Math.round(baselineMacros.carbsG)
+    baselineProteinG = Math.round(baselineMacros.proteinG)
+    baselineFatG = Math.round(baselineMacros.fatG)
+    baselineKcalRaw = baselineCarbsG * 4 + baselineProteinG * 4 + baselineFatG * 9
+  }
 
   // 1b. NEAT / lifestyle adjustment — multiplies energy macros (carbs + fat)
   // on top of the baseline. Protein is a structural target and stays per-kg
