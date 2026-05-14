@@ -212,6 +212,11 @@ function normalizeHybridMovement(movement: Record<string, unknown>): PrintableWo
   }
 }
 
+function formatHybridMovementSummary(movement: Record<string, unknown>): string {
+  const item = normalizeHybridMovement(movement)
+  return [item.title, item.details.join(', ')].filter(Boolean).join(' ')
+}
+
 function normalizeHybridSection(title: string, data: unknown): PrintableWorkoutSection | null {
   if (!isRecord(data)) return null
   const blocks = asArray(data.blocks)
@@ -227,7 +232,7 @@ function normalizeHybridSection(title: string, data: unknown): PrintableWorkoutS
           formatDuration(asNumber(block.intervalSeconds)),
           formatDuration(asNumber(block.workSeconds)) ? `arbete ${formatDuration(asNumber(block.workSeconds))}` : undefined,
           formatDuration(asNumber(block.restSeconds)) ? `vila ${formatDuration(asNumber(block.restSeconds))}` : undefined,
-          ...asArray(block.movements).map((movement) => normalizeHybridMovement(movement).title),
+          ...asArray(block.movements).map(formatHybridMovementSummary),
         ]),
         notes: asString(block.notes),
       })),
