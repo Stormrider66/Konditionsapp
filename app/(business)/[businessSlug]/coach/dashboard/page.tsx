@@ -14,6 +14,8 @@ import { DashboardModeIndicator } from '@/components/coach/dashboard/DashboardMo
 import { PTDashboardLayout } from '@/components/coach/dashboard/PTDashboardLayout'
 import { TeamDashboardLayout } from '@/components/coach/dashboard/TeamDashboardLayout'
 import { GymDashboardLayout } from '@/components/coach/dashboard/GymDashboardLayout'
+import { CoachCommandCenter } from '@/components/coach/dashboard/CoachCommandCenter'
+import { getCoachCommandCenterData } from '@/lib/coach/command-center'
 import type { SportType } from '@/types'
 
 interface BusinessDashboardPageProps {
@@ -572,6 +574,15 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
   const resolvedWidgets = await resolveCoachWidgets({ userId: user.id, mode })
   const visible = visibleKeys(resolvedWidgets)
   const orderMap = new Map(resolvedWidgets.map(w => [w.key, w.order]))
+  const commandCenterData = visible.has('coach-command-center')
+    ? await getCoachCommandCenterData({
+      userId: user.id,
+      businessId: membership.businessId,
+      coachIds,
+      basePath,
+      now,
+    })
+    : null
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -587,6 +598,10 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
           </div>
           <DashboardModeIndicator mode={mode} basePath={basePath} />
         </div>
+
+        {commandCenterData && (
+          <CoachCommandCenter data={commandCenterData} />
+        )}
 
         {/* Key Stats - 4 cards */}
         {visible.has('dashboard-stat-cards') && (

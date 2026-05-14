@@ -348,6 +348,16 @@ const ATHLETE_WIDGETS: WidgetDefinition[] = [
 // COACH WIDGETS
 // ---------------------------------------------------------------------------
 const COACH_WIDGETS: WidgetDefinition[] = [
+  {
+    key: 'coach-command-center',
+    name: 'Coach Command Center',
+    description: 'Prioriterad arbetskö med förklarade AI-rekommendationer',
+    category: 'ai-insights',
+    audience: ['coach-pt', 'coach-team', 'coach-gym'],
+    defaultVisible: true,
+    defaultOrder: 5,
+  },
+
   // --- Stat cards (top of page) ---
   {
     key: 'dashboard-stat-cards',
