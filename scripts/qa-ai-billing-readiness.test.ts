@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
 const {
+  REQUIRED_GUARD_TESTS,
   REQUIRED_MIGRATIONS,
   REQUIRED_SCHEMA_MARKERS,
   checkAiBillingReadiness,
@@ -36,6 +37,7 @@ function passingOptions(overrides: Partial<Parameters<typeof checkAiBillingReadi
     vercelConfig: { crons: requiredCrons },
     fileExists: (relativePath: string) => (
       REQUIRED_MIGRATIONS.includes(relativePath) ||
+      REQUIRED_GUARD_TESTS.includes(relativePath) ||
       requiredCrons.some((cron) => relativePath === `app/${cron.path.replace(/^\/api\//, 'api/')}/route.ts`)
     ),
     markerExists: (relativePath: string, marker: string) => (
@@ -57,6 +59,23 @@ describe('qa-ai-billing-readiness', () => {
     expect(result.notes).toEqual([
       'Stripe is not enabled. Athlete subscription and top-up payment APIs should return BILLING_DISABLED, while AI credit caps still run.',
     ])
+  })
+
+  it('requires high-cost AI allowance guard tests', () => {
+    const missingGuardTest = 'app/api/ai/wod/route.test.ts'
+    const result = checkAiBillingReadiness(passingOptions({
+      fileExists: (relativePath: string) => (
+        relativePath !== missingGuardTest &&
+        (
+          REQUIRED_MIGRATIONS.includes(relativePath) ||
+          REQUIRED_GUARD_TESTS.includes(relativePath) ||
+          requiredCrons.some((cron) => relativePath === `app/${cron.path.replace(/^\/api\//, 'api/')}/route.ts`)
+        )
+      ),
+    }))
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toContain(`Missing high-cost AI allowance guard test: ${missingGuardTest}`)
   })
 
   it('requires Stripe details only when Stripe is enabled', () => {
@@ -85,6 +104,7 @@ describe('qa-ai-billing-readiness', () => {
         relativePath !== 'prisma/migrations/20260514_ai_billing_rls/migration.sql' &&
         (
           REQUIRED_MIGRATIONS.includes(relativePath) ||
+          REQUIRED_GUARD_TESTS.includes(relativePath) ||
           requiredCrons.some((cron) => relativePath === `app/${cron.path.replace(/^\/api\//, 'api/')}/route.ts`)
         )
       ),

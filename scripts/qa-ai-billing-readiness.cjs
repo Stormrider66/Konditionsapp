@@ -18,6 +18,13 @@ const REQUIRED_MIGRATIONS = [
   'prisma/migrations/20260514_ai_billing_rls/migration.sql',
 ]
 
+const REQUIRED_GUARD_TESTS = [
+  'app/api/ai/food-scan/route.test.ts',
+  'app/api/ai/wod/route.test.ts',
+  'app/api/athlete/live-voice-coaching/init/route.test.ts',
+  'app/api/video-analysis/[id]/analyze/route.test.ts',
+]
+
 const REQUIRED_NON_STRIPE_ENV = [
   'NEXT_PUBLIC_SUPABASE_URL',
   'NEXT_PUBLIC_SUPABASE_ANON_KEY',
@@ -52,6 +59,12 @@ function checkAiBillingReadiness({
   for (const migration of REQUIRED_MIGRATIONS) {
     if (!fileExists(migration)) {
       errors.push(`Missing AI billing migration: ${migration}`)
+    }
+  }
+
+  for (const guardTest of REQUIRED_GUARD_TESTS) {
+    if (!fileExists(guardTest)) {
+      errors.push(`Missing high-cost AI allowance guard test: ${guardTest}`)
     }
   }
 
@@ -126,6 +139,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  REQUIRED_GUARD_TESTS,
   REQUIRED_MIGRATIONS,
   REQUIRED_NON_STRIPE_ENV,
   REQUIRED_SCHEMA_MARKERS,
