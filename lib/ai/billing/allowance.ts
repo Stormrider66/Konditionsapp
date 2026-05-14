@@ -192,6 +192,63 @@ export async function getAiAllowanceStatus(clientId: string, now = new Date()) {
   }
 }
 
+export async function resetExpiredAiAllowanceAccounts(
+  now = new Date(),
+  tx: PrismaTransaction = prisma,
+) {
+  const period = getCurrentAllowancePeriod(now)
+  const expiredAccounts = await tx.aIAllowanceAccount.findMany({
+    where: {
+      periodEnd: { lte: now },
+    },
+    select: {
+      clientId: true,
+      client: {
+        select: {
+          athleteSubscription: {
+            select: {
+              tier: true,
+              customAiAllowanceSek: true,
+              business: {
+                select: {
+                  eliteAiAllowanceSek: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+
+  await Promise.all(expiredAccounts.map((account) => {
+    const subscription = account.client.athleteSubscription
+    const allowanceSek = resolveConfiguredAiAllowanceSek({
+      tier: subscription?.tier,
+      customAiAllowanceSek: subscription?.customAiAllowanceSek,
+      businessEliteAiAllowanceSek: subscription?.business?.eliteAiAllowanceSek,
+    })
+
+    return tx.aIAllowanceAccount.update({
+      where: { clientId: account.clientId },
+      data: {
+        ...period,
+        includedBudgetSek: allowanceSek,
+        includedUsedSek: 0,
+        hardCapSek: allowanceSek,
+        lastResetAt: now,
+        status: 'ACTIVE',
+      },
+    })
+  }))
+
+  return {
+    resetCount: expiredAccounts.length,
+    periodStart: period.periodStart,
+    periodEnd: period.periodEnd,
+  }
+}
+
 export async function recordAiUsageDebit(params: {
   clientId: string
   costSek: number

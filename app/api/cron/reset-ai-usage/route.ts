@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { resetExpiredAiAllowanceAccounts } from '@/lib/ai/billing/allowance'
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,23 +37,30 @@ export async function POST(request: NextRequest) {
 
     const now = new Date()
 
-    // Reset all AI chat message counters
-    const result = await prisma.athleteSubscription.updateMany({
-      where: {
-        aiChatMessagesUsed: { gt: 0 },
-      },
-      data: {
-        aiChatMessagesUsed: 0,
-      },
-    })
+    const [legacyMessageResult, allowanceResult] = await Promise.all([
+      prisma.athleteSubscription.updateMany({
+        where: {
+          aiChatMessagesUsed: { gt: 0 },
+        },
+        data: {
+          aiChatMessagesUsed: 0,
+        },
+      }),
+      resetExpiredAiAllowanceAccounts(now),
+    ])
 
     logger.info('AI usage reset complete', {
-      resetCount: result.count,
+      legacyMessageResetCount: legacyMessageResult.count,
+      allowanceResetCount: allowanceResult.resetCount,
     })
 
     return NextResponse.json({
       success: true,
-      resetCount: result.count,
+      resetCount: legacyMessageResult.count,
+      legacyMessageResetCount: legacyMessageResult.count,
+      allowanceResetCount: allowanceResult.resetCount,
+      allowancePeriodStart: allowanceResult.periodStart.toISOString(),
+      allowancePeriodEnd: allowanceResult.periodEnd.toISOString(),
       timestamp: now.toISOString(),
     })
   } catch (error) {

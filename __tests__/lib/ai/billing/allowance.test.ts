@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   getAthleteAiAllowanceSek,
   getCurrentAllowancePeriod,
   getRemainingAiBalanceSek,
   hasAiAllowanceRemaining,
   previewAiAllowanceDebit,
+  resetExpiredAiAllowanceAccounts,
   resolveConfiguredAiAllowanceSek,
   usdToSek,
 } from '@/lib/ai/billing/allowance'
@@ -101,5 +102,66 @@ describe('AI allowance billing helpers', () => {
       topUpBalanceSek: 1,
       hardCapSek: 30,
     })).toBe(true)
+  })
+
+  it('resets expired monthly accounts to their configured allowance while preserving top-ups', async () => {
+    const tx = {
+      aIAllowanceAccount: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            clientId: 'client-elite',
+            client: {
+              athleteSubscription: {
+                tier: 'ELITE',
+                customAiAllowanceSek: null,
+                business: {
+                  eliteAiAllowanceSek: 240,
+                },
+              },
+            },
+          },
+          {
+            clientId: 'client-standard-override',
+            client: {
+              athleteSubscription: {
+                tier: 'STANDARD',
+                customAiAllowanceSek: 55,
+                business: null,
+              },
+            },
+          },
+        ]),
+        update: vi.fn().mockResolvedValue({}),
+      },
+    }
+
+    const result = await resetExpiredAiAllowanceAccounts(new Date('2026-06-01T00:10:00.000Z'), tx as any)
+
+    expect(result).toMatchObject({
+      resetCount: 2,
+      periodStart: new Date('2026-06-01T00:00:00.000Z'),
+      periodEnd: new Date('2026-07-01T00:00:00.000Z'),
+    })
+    expect(tx.aIAllowanceAccount.update).toHaveBeenCalledWith({
+      where: { clientId: 'client-elite' },
+      data: expect.objectContaining({
+        includedBudgetSek: 240,
+        includedUsedSek: 0,
+        hardCapSek: 240,
+        status: 'ACTIVE',
+      }),
+    })
+    expect(tx.aIAllowanceAccount.update).toHaveBeenCalledWith({
+      where: { clientId: 'client-standard-override' },
+      data: expect.objectContaining({
+        includedBudgetSek: 55,
+        includedUsedSek: 0,
+        hardCapSek: 55,
+        status: 'ACTIVE',
+      }),
+    })
+    expect(tx.aIAllowanceAccount.update).not.toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ topUpBalanceSek: expect.any(Number) }),
+    }))
   })
 })
