@@ -54,6 +54,24 @@ interface AICostOverview {
   byProvider: CostBucket[]
   byModel: CostBucket[]
   daily: Array<{ date: string; calls: number; costSek: number }>
+  topUps: {
+    purchases: number
+    activePurchases: number
+    pendingPurchases: number
+    refundedPurchases: number
+    activeBuyers: number
+    revenueSek: number
+    creditsSoldSek: number
+    creditsRemainingSek: number
+    conversionPercent: number
+    recent: Array<{
+      clientId: string
+      amountPaidSek: number
+      creditsSek: number
+      status: string
+      createdAt: string
+    }>
+  }
   margin: {
     byTier: Array<{
       tier: string
@@ -177,6 +195,37 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
           </AlertDescription>
         </Alert>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Top-Up Revenue</CardTitle>
+          <CardDescription>
+            Extra AI credit purchases in this period, useful for validating whether heavy users monetize instead of only consuming allowance.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <TopUpStat label="Revenue" value={formatSek(overview.topUps.revenueSek)} />
+            <TopUpStat label="Credits sold" value={formatSek(overview.topUps.creditsSoldSek)} />
+            <TopUpStat label="Buyers" value={overview.topUps.activeBuyers.toLocaleString('sv-SE')} />
+            <TopUpStat label="Conversion" value={`${overview.topUps.conversionPercent}%`} />
+          </div>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Active purchases</p>
+              <p className="text-lg font-semibold">{overview.topUps.activePurchases.toLocaleString('sv-SE')}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Pending checkouts</p>
+              <p className="text-lg font-semibold">{overview.topUps.pendingPurchases.toLocaleString('sv-SE')}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Unused top-up credits</p>
+              <p className="text-lg font-semibold">{formatSek(overview.topUps.creditsRemainingSek)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <Card>
@@ -413,6 +462,15 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
           </CardContent>
         </Card>
       </div>
+    </div>
+  )
+}
+
+function TopUpStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-lg font-semibold">{value}</p>
     </div>
   )
 }

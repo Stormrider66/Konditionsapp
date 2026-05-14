@@ -30,21 +30,35 @@ export async function GET(request: NextRequest) {
     const now = new Date()
     const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
 
-    const logs = await prisma.aIUsageLog.findMany({
-      where: { createdAt: { gte: startDate } },
-      select: {
-        category: true,
-        provider: true,
-        model: true,
-        inputTokens: true,
-        outputTokens: true,
-        estimatedCost: true,
-        clientId: true,
-        userId: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'asc' },
-    })
+    const [logs, topUpPurchases] = await Promise.all([
+      prisma.aIUsageLog.findMany({
+        where: { createdAt: { gte: startDate } },
+        select: {
+          category: true,
+          provider: true,
+          model: true,
+          inputTokens: true,
+          outputTokens: true,
+          estimatedCost: true,
+          clientId: true,
+          userId: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      prisma.aITopUpPurchase.findMany({
+        where: { createdAt: { gte: startDate } },
+        select: {
+          clientId: true,
+          amountPaidSek: true,
+          creditsSek: true,
+          creditsRemainingSek: true,
+          status: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ])
 
     const categoryBuckets = new Map<string, CostBucket>()
     const providerBuckets = new Map<string, CostBucket>()
@@ -106,6 +120,7 @@ export async function GET(request: NextRequest) {
 
     const totalCostSek = usdToSek(totalCostUsd)
     const margin = await buildAthleteMarginOverview(clientBuckets)
+    const topUps = buildTopUpOverview(topUpPurchases)
     const data = {
       period: {
         start: startDate.toISOString(),
@@ -135,6 +150,7 @@ export async function GET(request: NextRequest) {
         costSek: roundSek(day.costSek),
       })),
       margin,
+      topUps,
     }
 
     return NextResponse.json({ success: true, data })
@@ -144,6 +160,42 @@ export async function GET(request: NextRequest) {
       { success: false, error: 'Failed to fetch AI cost overview' },
       { status: 500 },
     )
+  }
+}
+
+function buildTopUpOverview(purchases: Array<{
+  clientId: string
+  amountPaidSek: number
+  creditsSek: number
+  creditsRemainingSek: number
+  status: string
+  createdAt: Date
+}>) {
+  const activePurchases = purchases.filter((purchase) => purchase.status === 'ACTIVE')
+  const activeBuyerIds = new Set(activePurchases.map((purchase) => purchase.clientId))
+  const totalRevenueSek = activePurchases.reduce((sum, purchase) => sum + purchase.amountPaidSek, 0)
+  const creditsSoldSek = activePurchases.reduce((sum, purchase) => sum + purchase.creditsSek, 0)
+  const creditsRemainingSek = activePurchases.reduce((sum, purchase) => sum + purchase.creditsRemainingSek, 0)
+
+  return {
+    purchases: purchases.length,
+    activePurchases: activePurchases.length,
+    pendingPurchases: purchases.filter((purchase) => purchase.status === 'PENDING').length,
+    refundedPurchases: purchases.filter((purchase) => purchase.status === 'REFUNDED').length,
+    activeBuyers: activeBuyerIds.size,
+    revenueSek: roundSek(totalRevenueSek),
+    creditsSoldSek: roundSek(creditsSoldSek),
+    creditsRemainingSek: roundSek(creditsRemainingSek),
+    conversionPercent: purchases.length > 0
+      ? Math.round((activePurchases.length / purchases.length) * 100)
+      : 0,
+    recent: purchases.slice(0, 8).map((purchase) => ({
+      clientId: purchase.clientId,
+      amountPaidSek: purchase.amountPaidSek,
+      creditsSek: purchase.creditsSek,
+      status: purchase.status,
+      createdAt: purchase.createdAt.toISOString(),
+    })),
   }
 }
 
