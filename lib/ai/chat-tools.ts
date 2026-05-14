@@ -20,6 +20,7 @@ import {
 import { resolveModel } from '@/types/ai-models'
 import { logger } from '@/lib/logger'
 import { lookupOrGenerateExercise } from '@/lib/ai/exercise-generator'
+import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 /** Capabilities that control which tools are available */
 export interface ChatToolCapabilities {
@@ -788,6 +789,19 @@ export function createChatTools(
               success: false,
               error: access.reason || 'Programgenerering kräver en STANDARD- eller PRO-prenumeration.',
               code: access.code,
+            }
+          }
+
+          const allowanceDenied = await requireAiAllowance(clientId)
+          if (allowanceDenied) {
+            const body = await allowanceDenied.json().catch(() => null)
+            return {
+              success: false,
+              ...(body && typeof body === 'object' ? body : {}),
+              error:
+                body && typeof body === 'object' && typeof (body as { error?: unknown }).error === 'string'
+                  ? (body as { error: string }).error
+                  : 'Dina AI-krediter är slut för den här månaden.',
             }
           }
 

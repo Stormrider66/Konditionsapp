@@ -51,6 +51,7 @@ import {
   getAiAllowanceUpgradeMessage,
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors'
+import { AiAllowanceBlockedAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
 
 interface AthleteFloatingChatProps {
   clientId: string
@@ -978,6 +979,10 @@ export function AthleteFloatingChat({
                 part => part.type === 'tool-generateTrainingProgram' && part.state === 'output-available' && part.output?.success
               )
               const programResult = programToolPart ? programToolPart.output : null
+              const programErrorPart = (message.parts as any[])?.find( // eslint-disable-line
+                part => part.type === 'tool-generateTrainingProgram' && part.state === 'output-available' && part.output && !part.output.success
+              )
+              const programError = programErrorPart ? programErrorPart.output : null
 
               return (
                 <div key={`${message.id}-${index}`}>
@@ -1034,6 +1039,33 @@ export function AthleteFloatingChat({
                         }}
                       />
                     )
+                  )}
+                  {programError && (
+                    <div className="my-2 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-500/30 dark:bg-red-500/10">
+                      <div className="flex items-start gap-2">
+                        <Lock className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-300" />
+                        <div className="min-w-0 space-y-2">
+                          <p className="text-sm font-semibold text-red-900 dark:text-red-100">
+                            Programgenereringen kunde inte startas
+                          </p>
+                          <p className="text-xs text-red-700 dark:text-red-200">
+                            {programError.error || 'Försök igen senare.'}
+                            {programError.upgradeMessage ? ` ${programError.upgradeMessage}` : ''}
+                          </p>
+                          <AiAllowanceBlockedAction
+                            action={
+                              programError.actionUrl
+                                ? {
+                                    label: programError.actionLabel || 'Hantera AI-krediter',
+                                    url: programError.actionUrl,
+                                  }
+                                : null
+                            }
+                            tone="red"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               )
