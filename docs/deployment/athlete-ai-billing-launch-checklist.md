@@ -45,6 +45,10 @@ Use this before pushing the AI allowance/top-up work to production.
 
 ## Product Checks
 
+- Run `npm run qa:ai-billing` against preview with at least one seeded athlete login and one admin login:
+  - `TRAINOMICS_QA_BASE_URL`
+  - `TRAINOMICS_QA_ATHLETE_EMAIL` / `TRAINOMICS_QA_ATHLETE_PASSWORD`
+  - `TRAINOMICS_QA_ADMIN_EMAIL` / `TRAINOMICS_QA_ADMIN_PASSWORD`
 - Food scanner blocks cleanly when AI credits are exhausted.
 - Video analysis blocks cleanly when AI credits are exhausted.
 - Live voice coach blocks cleanly when AI credits are exhausted.
