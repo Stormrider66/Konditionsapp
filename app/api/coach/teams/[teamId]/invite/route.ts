@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
+import { resolveHockeyBetaSubscriptionInput } from '@/lib/hockey-beta'
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
@@ -78,6 +79,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const body = await req.json().catch(() => ({}))
     const maxUses = body.maxUses || 50
     const expiresInDays = body.expiresInDays || 30
+    const betaSubscriptionInput = await resolveHockeyBetaSubscriptionInput({
+      businessId: membership?.businessId,
+      teamId: team.id,
+      fallbackTier: 'FREE',
+    })
 
     const invite = await prisma.invitation.create({
       data: {
@@ -90,6 +96,13 @@ export async function POST(req: NextRequest, context: RouteContext) {
         metadata: {
           teamId: team.id,
           teamName: team.name,
+          ...(betaSubscriptionInput.betaApplied
+            ? {
+                athleteTier: betaSubscriptionInput.tier,
+                trialDays: betaSubscriptionInput.trialDays,
+                hockeyBeta: true,
+              }
+            : {}),
         },
       },
     })

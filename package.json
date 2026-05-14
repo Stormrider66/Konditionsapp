@@ -25,6 +25,7 @@
     "qa:ai-billing": "tsx --tsconfig tsconfig.scripts.json scripts/qa-ai-billing.ts",
     "qa:ai-billing:prepare-smoke": "tsx --tsconfig tsconfig.scripts.json scripts/prepare-ai-billing-smoke.ts",
     "qa:team-dashboard": "node scripts/qa-team-dashboard.cjs",
+    "configure:hockey-beta": "tsx --tsconfig tsconfig.scripts.json scripts/configure-hockey-beta.ts",
     "load:k6:auth": "node scripts/grab-auth-cookie.cjs",
     "load:k6:smoke": "node load-tests/k6/run.cjs smoke",
     "load:k6:baseline": "node load-tests/k6/run.cjs baseline",

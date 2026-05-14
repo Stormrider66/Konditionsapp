@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
 import { ATHLETE_TIER_FEATURES } from '@/lib/subscription/feature-access'
+import { resolveHockeyBetaSubscriptionInput } from '@/lib/hockey-beta'
 import type { AthleteAccount, Client, User } from '@prisma/client'
 
 const COACH_CREATED_ATHLETE_TRIAL_DAYS = 14
@@ -50,6 +51,7 @@ export function getAthleteSubscriptionDataForTier(
     status: trialDays > 0 ? ('TRIAL' as const) : ('ACTIVE' as const),
     paymentSource: options?.businessId ? ('BUSINESS' as const) : ('DIRECT' as const),
     businessId: options?.businessId ?? null,
+    customAiAllowanceSek: null as number | null,
     trialEndsAt:
       trialDays > 0 ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000) : null,
     aiChatEnabled: features.ai_chat.enabled,
@@ -144,6 +146,24 @@ export async function createAthleteAccountForClient(
       return { success: false, error: `Failed to create athlete account: ${authError?.message}` }
     }
 
+    const betaSubscriptionInput = await resolveHockeyBetaSubscriptionInput({
+      businessId: client.businessId,
+      teamId: client.teamId,
+      requestedTier: options?.tier,
+      requestedTrialDays: options?.trialDays,
+      fallbackTier: 'STANDARD',
+    })
+    const subscriptionData = getAthleteSubscriptionDataForTier(betaSubscriptionInput.tier, {
+      trialDays: betaSubscriptionInput.trialDays,
+      businessId: client.businessId ?? undefined,
+    })
+    if (betaSubscriptionInput.aiChatMessagesLimitOverride !== undefined) {
+      subscriptionData.aiChatMessagesLimit = betaSubscriptionInput.aiChatMessagesLimitOverride
+    }
+    if (betaSubscriptionInput.customAiAllowanceSekOverride !== undefined) {
+      subscriptionData.customAiAllowanceSek = betaSubscriptionInput.customAiAllowanceSekOverride
+    }
+
     // Wrap all DB operations in a transaction to prevent partial state
     let athleteAccount
     try {
@@ -185,10 +205,7 @@ export async function createAthleteAccountForClient(
           await tx.athleteSubscription.create({
             data: {
               clientId,
-              ...getAthleteSubscriptionDataForTier(options?.tier ?? 'STANDARD', {
-                trialDays: options?.trialDays,
-                businessId: client.businessId ?? undefined,
-              }),
+              ...subscriptionData,
             },
           })
         }

@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import { getAthleteSubscriptionDataForTier, type AthleteTier } from '@/lib/athlete-account-utils'
+import { resolveHockeyBetaSubscriptionInput } from '@/lib/hockey-beta'
 
 const VALID_ATHLETE_TIERS: readonly AthleteTier[] = ['FREE', 'STANDARD', 'PRO', 'ELITE']
 
@@ -89,12 +90,29 @@ export async function POST(req: NextRequest, context: RouteContext) {
       | { teamId?: string; teamName?: string; athleteTier?: string; trialDays?: number }
       | null
     const teamId = meta?.teamId
-    const inviteTier: AthleteTier =
+    const requestedTier: AthleteTier | undefined =
       meta?.athleteTier && (VALID_ATHLETE_TIERS as readonly string[]).includes(meta.athleteTier)
         ? (meta.athleteTier as AthleteTier)
-        : 'FREE'
+        : undefined
     const inviteTrialDays =
       typeof meta?.trialDays === 'number' && meta.trialDays >= 0 ? meta.trialDays : undefined
+    const betaSubscriptionInput = await resolveHockeyBetaSubscriptionInput({
+      businessId: invite.businessId,
+      teamId,
+      requestedTier,
+      requestedTrialDays: inviteTrialDays,
+      fallbackTier: 'FREE',
+    })
+    const subscriptionData = getAthleteSubscriptionDataForTier(betaSubscriptionInput.tier, {
+      trialDays: betaSubscriptionInput.trialDays,
+      businessId: invite.businessId ?? undefined,
+    })
+    if (betaSubscriptionInput.aiChatMessagesLimitOverride !== undefined) {
+      subscriptionData.aiChatMessagesLimit = betaSubscriptionInput.aiChatMessagesLimitOverride
+    }
+    if (betaSubscriptionInput.customAiAllowanceSekOverride !== undefined) {
+      subscriptionData.customAiAllowanceSek = betaSubscriptionInput.customAiAllowanceSekOverride
+    }
 
     // Get team to find the coach (userId)
     let coachUserId: string | null = null
@@ -166,10 +184,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       await tx.athleteSubscription.create({
         data: {
           clientId: client.id,
-          ...getAthleteSubscriptionDataForTier(inviteTier, {
-            trialDays: inviteTrialDays,
-            businessId: invite.businessId ?? undefined,
-          }),
+          ...subscriptionData,
         },
       })
 
