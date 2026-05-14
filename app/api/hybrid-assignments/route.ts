@@ -127,6 +127,7 @@ export async function POST(request: NextRequest) {
       endTime,
       locationId,
       locationName,
+      responsibleCoachId,
       createCalendarEvent = true,
     } = body;
 
@@ -208,6 +209,7 @@ export async function POST(request: NextRequest) {
             locationId: locationId || null,
             locationName: resolvedLocationName || null,
             scheduledBy: startTime ? user.id : null,
+            responsibleCoachId: responsibleCoachId || null,
           },
           create: {
             workoutId,
@@ -223,6 +225,7 @@ export async function POST(request: NextRequest) {
             locationId: locationId || null,
             locationName: resolvedLocationName || null,
             scheduledBy: startTime ? user.id : null,
+            responsibleCoachId: responsibleCoachId || null,
           },
         })
       )
@@ -252,6 +255,7 @@ export async function POST(request: NextRequest) {
               allDay: !startTime,
               startTime: startTime || undefined,
               endTime: endTime || undefined,
+              trainingImpact: 'NORMAL',
               createdById: user.id,
             },
           });
