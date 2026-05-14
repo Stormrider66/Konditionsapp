@@ -150,16 +150,20 @@ For athletes registered directly (not via coach):
 
 **Usage Limits (to ensure profitability):**
 
-| Tier | AI Messages/Month | Estimated Max Cost | Subscription | Margin |
-|------|-------------------|-------------------|--------------|--------|
-| STANDARD | 50 | ~1 kr ($0.10) | 199 kr | 198 kr |
-| PRO | 500 | ~10 kr ($1.00) | 399 kr | 389 kr |
+| Tier | Included AI Credits | Subscription | Margin Guardrail |
+|------|---------------------|--------------|------------------|
+| FREE | 3 kr/month | 0 kr | Trial/sample use only |
+| STANDARD | 30 kr/month | 199 kr | AI cost should stay below ~15% of revenue |
+| PRO | 75 kr/month | 399 kr | AI cost should stay below ~19% of revenue |
+| ELITE | 150 kr/month default, configurable | Custom | Reviewed per contract |
 
 **Cost calculation assumptions:**
-- Average message: ~1,000 input tokens + 500 output tokens
+- Credits are SEK-denominated internal cost credits, not message counts.
+- All heavy AI features debit the same allowance: food scanner, video analysis, voice coach, program generation, WOD generation, document import, research, and chat.
+- Top-up credits can be bought separately, are spent after included monthly credits, and expire after 180 days.
+- Average lightweight text interaction: ~1,000 input tokens + 500 output tokens
 - **Default model: Gemini 3.1 Flash Lite** ($0.25/$1.50 per M tokens) for background, **Gemini 3 Flash** ($0.50/$3.00) for interactive
-- Per message cost: ~$0.0002-0.0005
-- 500 messages × $0.002 = ~$1 typical cost
+- Food photo and video analysis are expected to dominate direct athlete AI spend, so allowance and admin margin monitoring are based on actual logged provider cost rather than message volume.
 
 **Smart Model Routing:**
 | Task | Model | Why |
@@ -174,9 +178,9 @@ This routing strategy keeps costs minimal for 90%+ of interactions while reservi
 
 **Safety mechanisms:**
 - Hard limits enforced at tier boundaries
-- Automatic switch to cheaper models (Haiku) when approaching limits
-- Usage alerts at 80% of monthly allowance
-- Graceful degradation (reduced response length) near limits
+- Athlete warning states at 80%, 90%, and exhausted included monthly credits
+- Paid top-ups for heavy users before broad tier changes
+- Admin margin-risk view for users near allowance or revenue guardrails
 
 ### 4.3 AI Model Pricing Reference (January 2026)
 
@@ -210,10 +214,11 @@ This routing strategy keeps costs minimal for 90%+ of interactions while reservi
 ### 4.4 AI Budget Management System
 
 The platform includes comprehensive AI cost tracking:
-- Monthly budget limits per user (USD)
-- Per-category limits (research, chat, embedding)
+- Monthly AI allowance per athlete (SEK-denominated internal credits)
+- Optional top-up balance with purchase-level expiry tracking
+- Per-feature usage categories such as food scan, video analysis, voice coach, chat, research, and embeddings
 - Usage logging by provider and model
-- Alert thresholds (default: 80% of budget)
+- Alert thresholds at 80%, 90%, and exhausted allowance
 - Monthly automatic reset
 
 ---
