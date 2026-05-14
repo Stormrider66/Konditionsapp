@@ -36,10 +36,12 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import {
+  type AiAllowanceExhaustedError,
   getAiAllowanceUpgradeMessage,
   isAiAllowanceExhaustedError,
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors';
+import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction';
 
 interface AudioRecorderProps {
   clientId: string;
@@ -85,6 +87,7 @@ export function AudioRecorder({
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null);
   const [result, setResult] = useState<AudioJournalResult | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -94,6 +97,19 @@ export function AudioRecorder({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationRef = useRef<number | null>(null);
+
+  const clearError = () => {
+    setError(null);
+    setAiAllowanceAction(null);
+  };
+
+  const showAiAllowanceError = (allowanceError: AiAllowanceExhaustedError) => {
+    setError(`${allowanceError.message} ${getAiAllowanceUpgradeMessage(allowanceError)}`);
+    setAiAllowanceAction({
+      label: allowanceError.actionLabel,
+      url: allowanceError.actionUrl,
+    });
+  };
 
   // Cleanup on unmount
   useEffect(() => {
@@ -155,7 +171,7 @@ export function AudioRecorder({
   // Start recording
   const startRecording = async () => {
     try {
-      setError(null);
+      clearError();
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       // Setup audio analyser for visualization
@@ -215,6 +231,7 @@ export function AudioRecorder({
     } catch (err) {
       console.error('Error accessing microphone:', err);
       setError('Kunde inte komma åt mikrofonen. Kontrollera att du har gett tillstånd.');
+      setAiAllowanceAction(null);
       setState('error');
     }
   };
@@ -306,7 +323,12 @@ export function AudioRecorder({
     } catch (err) {
       console.error('Upload/process error:', err);
       const message = err instanceof Error ? err.message : 'Ett fel uppstod';
-      setError(isAiAllowanceExhaustedError(err) ? `${message} ${getAiAllowanceUpgradeMessage()}` : message);
+      if (isAiAllowanceExhaustedError(err)) {
+        showAiAllowanceError(err);
+      } else {
+        setError(message);
+        setAiAllowanceAction(null);
+      }
       setState('error');
     }
   };
@@ -336,7 +358,14 @@ export function AudioRecorder({
           {error && (
             <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex gap-3 text-red-400 text-sm animate-in fade-in slide-in-from-top-1">
               <AlertTriangle className="h-5 w-5 shrink-0" />
-              <p>{error}</p>
+              <div className="min-w-0 flex-1 space-y-2">
+                <p>{error}</p>
+                <AiAllowanceBlockedAction
+                  action={aiAllowanceAction}
+                  tone="red"
+                  className="border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20"
+                />
+              </div>
             </div>
           )}
 
@@ -544,7 +573,10 @@ export function AudioRecorder({
         {error && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription className="space-y-3">
+              <p>{error}</p>
+              <AiAllowanceBlockedAction action={aiAllowanceAction} tone="red" />
+            </AlertDescription>
           </Alert>
         )}
 

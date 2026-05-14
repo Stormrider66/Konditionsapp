@@ -39,10 +39,12 @@ import type {
   TestComparisonResult,
 } from '@/lib/ai/performance-analysis/types'
 import {
+  type AiAllowanceExhaustedError,
   getAiAllowanceUpgradeMessage,
   isAiAllowanceExhaustedError,
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors'
+import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
 
 interface AnalyzeTestButtonProps {
   testId: string
@@ -61,12 +63,22 @@ export function AnalyzeTestButton({
   const [analysisType, setAnalysisType] = useState<'single' | 'compare' | 'trends' | null>(null)
   const [result, setResult] = useState<PerformanceAnalysisResult | TestComparisonResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+  const showAiAllowanceError = (allowanceError: AiAllowanceExhaustedError) => {
+    setError(`${allowanceError.message} ${getAiAllowanceUpgradeMessage(allowanceError)}`)
+    setAiAllowanceAction({
+      label: allowanceError.actionLabel,
+      url: allowanceError.actionUrl,
+    })
+  }
 
   const handleAnalyze = async (type: 'single' | 'compare' | 'trends') => {
     setIsLoading(true)
     setAnalysisType(type)
     setError(null)
+    setAiAllowanceAction(null)
     setIsDialogOpen(true)
 
     try {
@@ -108,7 +120,12 @@ export function AnalyzeTestButton({
       setResult(data)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Ett fel uppstod'
-      setError(isAiAllowanceExhaustedError(err) ? `${message} ${getAiAllowanceUpgradeMessage()}` : message)
+      if (isAiAllowanceExhaustedError(err)) {
+        showAiAllowanceError(err)
+      } else {
+        setError(message)
+        setAiAllowanceAction(null)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -172,7 +189,10 @@ export function AnalyzeTestButton({
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Analysfel</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription className="space-y-3">
+                <p>{error}</p>
+                <AiAllowanceBlockedAction action={aiAllowanceAction} tone="red" />
+              </AlertDescription>
             </Alert>
           )}
 

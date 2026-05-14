@@ -15,9 +15,9 @@ import {
 import { Download, ImageIcon, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-  getAiAllowanceUpgradeMessage,
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors'
+import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
 
 interface ProgramInfographicProps {
   programId: string
@@ -43,9 +43,11 @@ export function ProgramInfographic({
     infographicModel || 'gemini-2.5-flash-image'
   )
   const [isGenerating, setIsGenerating] = useState(false)
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null)
 
   const handleGenerate = async () => {
     setIsGenerating(true)
+    setAiAllowanceAction(null)
     try {
       const res = await fetch('/api/ai/generate-infographic', {
         method: 'POST',
@@ -57,7 +59,11 @@ export function ProgramInfographic({
         const data = await res.json().catch(() => null)
         const allowanceError = parseAiAllowanceError(data)
         if (allowanceError) {
-          throw new Error(`${allowanceError.message} ${getAiAllowanceUpgradeMessage()}`)
+          setAiAllowanceAction({
+            label: allowanceError.actionLabel,
+            url: allowanceError.actionUrl,
+          })
+          throw new Error(allowanceError.message)
         }
         const serverError = data?.error || `HTTP ${res.status}`
         throw new Error(serverError)
@@ -152,6 +158,13 @@ export function ProgramInfographic({
             </Button>
           )}
         </div>
+
+        <AiAllowanceBlockedAction
+          action={aiAllowanceAction}
+          variant="banner"
+          tone="amber"
+          className="mb-4"
+        />
 
         {url ? (
           <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800">

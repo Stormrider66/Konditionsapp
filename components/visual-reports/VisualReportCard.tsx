@@ -15,9 +15,9 @@ import {
 import { Download, ImageIcon, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-  getAiAllowanceUpgradeMessage,
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors'
+import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
 
 export interface VisualReportCardProps {
   clientId: string
@@ -63,6 +63,7 @@ export function VisualReportCard({
   )
   const [isGenerating, setIsGenerating] = useState(false)
   const [hasFetched, setHasFetched] = useState(!!existingReport)
+  const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null)
 
   // Fetch existing report if not provided as prop
   useEffect(() => {
@@ -89,6 +90,7 @@ export function VisualReportCard({
 
   const handleGenerate = async () => {
     setIsGenerating(true)
+    setAiAllowanceAction(null)
     try {
       const body: Record<string, unknown> = { reportType, clientId, model }
       if (testId) body.testId = testId
@@ -106,7 +108,11 @@ export function VisualReportCard({
         const data = await res.json().catch(() => null)
         const allowanceError = parseAiAllowanceError(data)
         if (allowanceError) {
-          throw new Error(`${allowanceError.message} ${getAiAllowanceUpgradeMessage()}`)
+          setAiAllowanceAction({
+            label: allowanceError.actionLabel,
+            url: allowanceError.actionUrl,
+          })
+          throw new Error(allowanceError.message)
         }
         throw new Error(data?.error || 'Failed to generate')
       }
@@ -200,6 +206,13 @@ export function VisualReportCard({
             </Button>
           )}
         </div>
+
+        <AiAllowanceBlockedAction
+          action={aiAllowanceAction}
+          variant="banner"
+          tone="amber"
+          className="mb-4"
+        />
 
         {url ? (
           <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800">
