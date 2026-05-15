@@ -81,6 +81,18 @@ function buildEmailTags(metadata?: SendEmailMetadata): EmailTag[] | undefined {
   return tags.length > 0 ? tags : undefined;
 }
 
+function buildEmailHeaders(baseUrl: string, metadata?: SendEmailMetadata): Record<string, string> | undefined {
+  // One-to-one invites are transactional account-access emails, not mailing-list
+  // traffic. Adding unsubscribe headers here gives mailbox providers extra list
+  // heuristics to apply without giving the recipient a meaningful preference.
+  if (metadata?.category === 'invite') return undefined;
+
+  return {
+    'List-Unsubscribe': `<mailto:unsubscribe@trainomics.app?subject=unsubscribe>, <${baseUrl}/unsubscribe>`,
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+  };
+}
+
 // ==================== CORE SEND FUNCTION ====================
 async function sendEmailInternal(
   to: string,
@@ -120,10 +132,7 @@ async function sendEmailInternal(
       subject,
       html,
       text: htmlToPlainText(html),
-      headers: {
-        'List-Unsubscribe': `<mailto:unsubscribe@trainomics.app?subject=unsubscribe>, <${baseUrl}/unsubscribe>`,
-        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-      },
+      headers: buildEmailHeaders(baseUrl, metadata),
       tags: buildEmailTags(metadata),
     });
 
