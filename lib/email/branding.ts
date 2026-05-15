@@ -100,10 +100,11 @@ export async function resolveEmailBranding(
     //      everywhere as spam — so this only kicks in once Resend confirms
     //      the domain.
     //
-    // Path A also gets a more personal display name: "Henrik – Star by
-    // Thomson" instead of just "Star by Thomson". Recipient instantly sees
-    // both who sent it and the business context, which reduces "is this
-    // spam?" friction without compromising deliverability.
+    // Path A intentionally keeps a stable business/platform display name.
+    // A personal-looking display name on a shared noreply mailbox can trigger
+    // impersonation heuristics in Outlook/Gmail, especially when testing by
+    // sending to yourself. The human sender still gets Reply-To, and Path B
+    // below still sends as the staff member when their domain is verified.
     if (options?.senderUserId) {
       const sender = await prisma.user.findUnique({
         where: { id: options.senderUserId },
@@ -125,12 +126,6 @@ export async function resolveEmailBranding(
           const display = senderHumanName || senderName
           senderName = display
           fromAddress = `${display} <${sender.email}>`
-        } else if (senderHumanName) {
-          // Path A: keep the noreply mailbox but make the display name
-          // person + business so recipients see who sent it.
-          const display = `${senderHumanName} – ${senderName}`
-          senderName = display
-          fromAddress = `${display} <noreply@${sendingDomain}>`
         }
       }
     }
