@@ -516,7 +516,7 @@ export default function BusinessClientDetailPage() {
               onAccountCreated={fetchClient}
             />
             <Link href={`${basePath}/clients/${id}/profile`}>
-              <Button variant="default" size="sm">
+              <Button variant="outline" size="sm">
                 <UserCircle className="w-4 h-4 sm:mr-2" />
                 <span className="hidden sm:inline">Fullständig profil</span>
               </Button>
