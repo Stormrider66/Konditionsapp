@@ -48,6 +48,7 @@ import {
   Camera,
   Check,
   ChevronDown,
+  ClipboardList,
   Dumbbell,
   Heart,
   HeartPulse,
@@ -141,6 +142,10 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
       source: 'team-roster',
     })
     router.push(`/${businessSlug}/coach/${path}?${params.toString()}`)
+  }
+
+  const pushPlayerTab = (clientId: string, tab: 'calendar' | 'programs') => {
+    router.push(`/${businessSlug}/coach/clients/${clientId}?tab=${tab}`)
   }
 
   const saveField = async (
@@ -299,6 +304,7 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
           <TableHead className="w-40">Position</TableHead>
           <TableHead className="min-w-48">Status</TableHead>
           <TableHead className="hidden md:table-cell">E-post</TableHead>
+          <TableHead className="w-24 text-right">Planera</TableHead>
           <TableHead className="w-12"></TableHead>
         </TableRow>
       </TableHeader>
@@ -345,6 +351,30 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
                 saving={savingId === m.id}
                 onSave={(v) => saveField(m.id, 'email', v)}
               />
+            </TableCell>
+            <TableCell>
+              <div className="flex items-center justify-end gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => pushPlayerTab(m.id, 'calendar')}
+                  aria-label={`Öppna kalender för ${m.name}`}
+                  title="Öppna spelarkalender"
+                >
+                  <CalendarDays className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => pushPlayerTab(m.id, 'programs')}
+                  aria-label={`Öppna program för ${m.name}`}
+                  title="Öppna spelarprogram"
+                >
+                  <ClipboardList className="h-4 w-4" />
+                </Button>
+              </div>
             </TableCell>
             <TableCell>
               <Button

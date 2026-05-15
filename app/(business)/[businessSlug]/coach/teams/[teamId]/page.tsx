@@ -622,7 +622,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
             </CardTitle>
             <CardDescription>
               Klicka på tröjnummer eller position för att redigera. Lägg till saknad e-post direkt i listan.
-              Importera större listor via Excel/text/PDF.
+              Använd radknapparna för snabb planering. Importera större listor via Excel/text/PDF.
             </CardDescription>
           </CardHeader>
           <CardContent>
