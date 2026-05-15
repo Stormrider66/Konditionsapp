@@ -30,6 +30,18 @@ interface CreateAthleteAccountDialogProps {
 
 type InviteMethod = 'sms' | 'whatsapp' | 'email'
 
+function normalizeSmsRecipient(phone?: string | null) {
+  if (!phone) return ''
+  const trimmed = phone.trim()
+  const hasInternationalPrefix = trimmed.startsWith('+')
+  const digits = trimmed.replace(/\D/g, '')
+
+  if (!digits) return ''
+  if (hasInternationalPrefix) return `+${digits}`
+  if (digits.startsWith('00')) return `+${digits.slice(2)}`
+  return digits
+}
+
 interface CreatedAccountInfo {
   email: string
   mode: 'created' | 'invited'
@@ -54,7 +66,7 @@ export function CreateAthleteAccountDialog({
   const [createdAccount, setCreatedAccount] = useState<CreatedAccountInfo | null>(null)
 
   const openSms = (text: string) => {
-    const recipient = clientPhone?.replace(/\s+/g, '') || ''
+    const recipient = normalizeSmsRecipient(clientPhone)
     window.location.href = `sms:${recipient}?&body=${encodeURIComponent(text)}`
   }
 
