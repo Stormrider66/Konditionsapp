@@ -838,14 +838,14 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                       <TableHeader>
                         <TableRow>
                           <TableHead>{t('name')}</TableHead>
-                          <TableHead>{t('email')}</TableHead>
-                          <TableHead>{t('role')}</TableHead>
-                          <TableHead>Platform</TableHead>
-                          <TableHead>{t('tier')}</TableHead>
-                          <TableHead>AI SEK</TableHead>
-                          <TableHead>{t('clients')}</TableHead>
+                          <TableHead className="min-w-[220px]">{t('email')}</TableHead>
+                          <TableHead className="w-[112px]">{t('role')}</TableHead>
+                          <TableHead className="w-[136px]">Platform</TableHead>
+                          <TableHead className="w-[128px]">{t('tier')}</TableHead>
+                          <TableHead className="w-[150px]">AI SEK</TableHead>
+                          <TableHead className="w-[72px]">{t('clients')}</TableHead>
                           <TableHead>Företag</TableHead>
-                          <TableHead>{t('joined')}</TableHead>
+                          <TableHead className="w-[104px] whitespace-nowrap">{t('joined')}</TableHead>
                           <TableHead className="sticky right-0 z-10 w-[56px] bg-background text-right">
                             <span className="sr-only">Åtgärder</span>
                           </TableHead>
@@ -915,7 +915,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                 value={user.role}
                                 onValueChange={(v) => updateUserRole(user.id, v)}
                               >
-                                <SelectTrigger className="w-[100px] h-8">
+                                <SelectTrigger className="w-[104px] h-8">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -930,7 +930,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                 value={user.adminRole || 'NONE'}
                                 onValueChange={(v) => updateAdminRole(user.id, v === 'NONE' ? null : v)}
                               >
-                                <SelectTrigger className="w-[130px] h-8">
+                                <SelectTrigger className="w-[118px] h-8">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -946,7 +946,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                 value={user.subscription?.tier || 'FREE'}
                                 onValueChange={(v) => updateUserTier(user.id, v)}
                               >
-                                <SelectTrigger className="w-[120px] h-8">
+                                <SelectTrigger className="w-[112px] h-8">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -960,12 +960,12 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                             </TableCell>
                             <TableCell>
                               {user.role === 'ATHLETE' ? (
-                                <div className="min-w-[160px] space-y-1">
+                                <div className="min-w-[140px] space-y-1">
                                   <div className="flex items-center gap-2">
                                     <Input
                                       defaultValue={user.subscription?.customAiAllowanceSek ?? ''}
                                       placeholder="Auto"
-                                      className="h-8 w-[88px] text-sm"
+                                      className="h-8 w-[76px] text-sm"
                                       inputMode="decimal"
                                       onBlur={(event) => {
                                         const nextValue = event.currentTarget.value;
@@ -1022,7 +1022,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                 </button>
                               </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="whitespace-nowrap tabular-nums">
                               {format(new Date(user.createdAt), 'yyyy-MM-dd')}
                             </TableCell>
                             <TableCell className="sticky right-0 z-10 bg-background text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]">
