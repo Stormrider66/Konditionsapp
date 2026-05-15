@@ -15,27 +15,34 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, UserPlus, Mail, Check, AlertCircle } from 'lucide-react'
+import { Loader2, UserPlus, Mail, Check, AlertCircle, MessageCircle, Smartphone, Copy } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface CreateAthleteAccountDialogProps {
   clientId: string
   clientName: string
   clientEmail?: string | null
+  clientPhone?: string | null
   hasExistingAccount?: boolean
   onAccountCreated?: () => void
   trigger?: React.ReactNode
 }
 
+type InviteMethod = 'sms' | 'whatsapp' | 'email'
+
 interface CreatedAccountInfo {
   email: string
   mode: 'created' | 'invited'
+  inviteUrl?: string
+  inviteText?: string
+  method: InviteMethod
 }
 
 export function CreateAthleteAccountDialog({
   clientId,
   clientName,
   clientEmail,
+  clientPhone,
   hasExistingAccount = false,
   onAccountCreated,
   trigger,
@@ -46,7 +53,31 @@ export function CreateAthleteAccountDialog({
   const [email, setEmail] = useState(clientEmail || '')
   const [createdAccount, setCreatedAccount] = useState<CreatedAccountInfo | null>(null)
 
-  const handleSubmit = async () => {
+  const openSms = (text: string) => {
+    const recipient = clientPhone?.replace(/\s+/g, '') || ''
+    window.location.href = `sms:${recipient}?&body=${encodeURIComponent(text)}`
+  }
+
+  const openWhatsApp = (text: string) => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer')
+  }
+
+  const copyInvite = async (text?: string) => {
+    if (!text) return
+    await navigator.clipboard.writeText(text)
+    toast({
+      title: 'Inbjudan kopierad',
+      description: 'Texten är redo att klistras in i valfri kanal.',
+    })
+  }
+
+  const shareInvite = (method: InviteMethod, text?: string) => {
+    if (!text) return
+    if (method === 'sms') openSms(text)
+    if (method === 'whatsapp') openWhatsApp(text)
+  }
+
+  const handleSubmit = async (method: InviteMethod) => {
     if (!email) {
       toast({
         title: 'E-post krävs',
@@ -63,7 +94,9 @@ export function CreateAthleteAccountDialog({
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: hasExistingAccount ? undefined : JSON.stringify({ clientId, email }),
+          body: hasExistingAccount
+            ? JSON.stringify({ deliveryMethod: method })
+            : JSON.stringify({ clientId, email, deliveryMethod: method }),
         }
       )
 
@@ -73,10 +106,22 @@ export function CreateAthleteAccountDialog({
         setCreatedAccount({
           email: data.email || email,
           mode: hasExistingAccount ? 'invited' : 'created',
+          inviteUrl: data.inviteUrl,
+          inviteText: data.inviteText,
+          method,
         })
+        if (method === 'sms' || method === 'whatsapp') {
+          shareInvite(method, data.inviteText)
+        }
         toast({
-          title: hasExistingAccount ? 'Inbjudan skickad!' : 'Atletkonto skapat!',
-          description: data.message || `En inbjudan har skickats till ${email}`,
+          title: method === 'email'
+            ? (hasExistingAccount ? 'Inbjudan skickad!' : 'Atletkonto skapat!')
+            : (hasExistingAccount ? 'Inbjudningslänk skapad!' : 'Atletkonto skapat!'),
+          description: data.message || (
+            method === 'email'
+              ? `En inbjudan har skickats till ${email}`
+              : 'Dela texten via SMS eller WhatsApp.'
+          ),
         })
         onAccountCreated?.()
       } else {
@@ -140,9 +185,13 @@ export function CreateAthleteAccountDialog({
             <Alert className="bg-green-50 border-green-200">
               <Check className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                {createdAccount.mode === 'created'
-                  ? 'Atletkontot har skapats och inbjudan har skickats.'
-                  : 'Inbjudan har skickats.'}
+                {createdAccount.method === 'email'
+                  ? createdAccount.mode === 'created'
+                    ? 'Atletkontot har skapats och inbjudan har skickats via e-post.'
+                    : 'Inbjudan har skickats via e-post.'
+                  : createdAccount.mode === 'created'
+                    ? 'Atletkontot har skapats. Dela inbjudan via SMS eller WhatsApp.'
+                    : 'Inbjudningslänken är redo att delas.'}
               </AlertDescription>
             </Alert>
 
@@ -151,6 +200,14 @@ export function CreateAthleteAccountDialog({
                 <Label className="text-xs text-gray-500">E-post</Label>
                 <p className="font-medium">{createdAccount.email}</p>
               </div>
+              {createdAccount.inviteText && (
+                <div>
+                  <Label className="text-xs text-gray-500">Inbjudningstext</Label>
+                  <p className="mt-1 whitespace-pre-line rounded-md border bg-white p-3 text-sm">
+                    {createdAccount.inviteText}
+                  </p>
+                </div>
+              )}
             </div>
 
             <p className="text-sm text-gray-500">
@@ -158,9 +215,27 @@ export function CreateAthleteAccountDialog({
             </p>
 
             <DialogFooter>
-              <Button onClick={handleClose} className="w-full">
-                Stäng
-              </Button>
+              <div className="grid w-full gap-2 sm:grid-cols-2">
+                {createdAccount.inviteText && (
+                  <>
+                    <Button variant="outline" onClick={() => openSms(createdAccount.inviteText!)}>
+                      <Smartphone className="w-4 h-4 mr-2" />
+                      SMS
+                    </Button>
+                    <Button variant="outline" onClick={() => openWhatsApp(createdAccount.inviteText!)}>
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      WhatsApp
+                    </Button>
+                    <Button variant="outline" onClick={() => copyInvite(createdAccount.inviteText)}>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Kopiera
+                    </Button>
+                  </>
+                )}
+                <Button onClick={handleClose}>
+                  Stäng
+                </Button>
+              </div>
             </DialogFooter>
           </div>
         ) : (
@@ -189,33 +264,45 @@ export function CreateAthleteAccountDialog({
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {hasExistingAccount
-                  ? 'Atletens användarkonto synkas mot profilens e-post innan inbjudan skickas.'
-                  : `Detta skapar ett nytt användarkonto kopplat till klienten ${clientName}. Atleten får tillgång till sin träningsdata, program och kan logga pass.`}
+                Välj hur coachen vill dela inbjudan. SMS och WhatsApp öppnar en färdig text med säker länk, så atleten slipper leta i skräppost.
               </AlertDescription>
             </Alert>
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="flex-col gap-2 sm:flex-col sm:gap-2">
               <Button variant="outline" onClick={handleClose} disabled={isLoading}>
                 Avbryt
               </Button>
-              <Button onClick={handleSubmit} disabled={isLoading || !email}>
-                {isLoading ? (
-                  <>
+              <div className="grid w-full gap-2 sm:grid-cols-3">
+                <Button onClick={() => handleSubmit('sms')} disabled={isLoading || !email}>
+                  {isLoading ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {hasExistingAccount ? 'Skickar...' : 'Skapar...'}
-                  </>
-                ) : (
-                  <>
-                    {hasExistingAccount ? (
+                  ) : (
+                    <Smartphone className="w-4 h-4 mr-2" />
+                  )}
+                  SMS
+                </Button>
+                <Button onClick={() => handleSubmit('whatsapp')} disabled={isLoading || !email} variant="outline">
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                  )}
+                  WhatsApp
+                </Button>
+                <Button onClick={() => handleSubmit('email')} disabled={isLoading || !email} variant="outline">
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Skickar...
+                    </>
+                  ) : (
+                    <>
                       <Mail className="w-4 h-4 mr-2" />
-                    ) : (
-                      <UserPlus className="w-4 h-4 mr-2" />
-                    )}
-                    {hasExistingAccount ? 'Skicka inbjudan' : 'Skapa och bjud in'}
-                  </>
-                )}
-              </Button>
+                      E-post
+                    </>
+                  )}
+                </Button>
+              </div>
             </DialogFooter>
           </div>
         )}

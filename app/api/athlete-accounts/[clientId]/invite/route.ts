@@ -10,7 +10,11 @@ type RouteParams = {
 // POST /api/athlete-accounts/[clientId]/invite
 // Resend access for an existing athlete account. The client profile email is
 // the source of truth and is synced to Prisma User + Supabase Auth first.
-export async function POST(_request: NextRequest, { params }: RouteParams) {
+function shouldSendEmail(value: unknown): boolean {
+  return value !== 'sms' && value !== 'whatsapp' && value !== 'link'
+}
+
+export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const coach = await requireCoach()
     const { clientId } = await params
@@ -23,7 +27,10 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const result = await sendAthletePlatformInvite(clientId, coach.id)
+    const body = await request.json().catch(() => ({}))
+    const result = await sendAthletePlatformInvite(clientId, coach.id, {
+      sendEmail: shouldSendEmail(body.deliveryMethod),
+    })
     if (!result.success) {
       return NextResponse.json(
         { success: false, error: result.error || 'Kunde inte skicka inbjudan' },
@@ -36,11 +43,16 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       emailSent: result.emailSent,
       emailPaused: result.emailPaused ?? false,
       email: result.email,
+      inviteUrl: result.inviteUrl,
+      inviteText: result.inviteText,
+      businessName: result.businessName,
       syncedEmail: result.syncedEmail,
       syncedName: result.syncedName,
       message: result.emailPaused
         ? `Utgående e-post är pausad. Skicka inloggningslänk manuellt till ${result.email}.`
-        : `Inbjudan skickad till ${result.email}`,
+        : result.emailSent
+          ? `Inbjudan skickad till ${result.email}`
+          : 'Dela inbjudningslänken via SMS eller WhatsApp.',
     })
   } catch (error) {
     return handleApiError(error, 'POST /api/athlete-accounts/[clientId]/invite')

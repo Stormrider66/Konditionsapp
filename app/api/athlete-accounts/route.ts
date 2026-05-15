@@ -12,6 +12,10 @@ function isValidAthleteTier(value: unknown): value is AthleteTier {
   return typeof value === 'string' && (VALID_ATHLETE_TIERS as readonly string[]).includes(value)
 }
 
+function shouldSendEmail(value: unknown): boolean {
+  return value !== 'sms' && value !== 'whatsapp' && value !== 'link'
+}
+
 /**
  * POST /api/athlete-accounts
  * Create a new athlete account for a client
@@ -39,7 +43,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const body: CreateAthleteAccountDTO & { tier?: string; trialDays?: number } = await request.json()
+    const body: CreateAthleteAccountDTO & {
+      tier?: string
+      trialDays?: number
+      deliveryMethod?: string
+    } = await request.json()
     const { clientId, email, notificationPrefs } = body
 
     // Validate required fields
@@ -121,7 +129,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const inviteResult = await sendAthletePlatformInvite(clientId, coach.id)
+    const inviteResult = await sendAthletePlatformInvite(clientId, coach.id, {
+      sendEmail: shouldSendEmail(body.deliveryMethod),
+    })
 
     return NextResponse.json(
       {
@@ -129,10 +139,15 @@ export async function POST(request: NextRequest) {
         emailSent: inviteResult.emailSent ?? false,
         emailPaused: inviteResult.emailPaused ?? false,
         email: profileEmail,
+        inviteUrl: inviteResult.inviteUrl,
+        inviteText: inviteResult.inviteText,
+        businessName: inviteResult.businessName,
         message: inviteResult.emailPaused
           ? `Atletkonto skapat, men utgående e-post är pausad. Skicka inloggningslänk manuellt till ${profileEmail}.`
           : inviteResult.success
-            ? `Atletkonto skapat och inbjudan skickad till ${profileEmail}.`
+            ? inviteResult.emailSent
+              ? `Atletkonto skapat och inbjudan skickad till ${profileEmail}.`
+              : 'Atletkonto skapat. Dela inbjudningslänken via SMS eller WhatsApp.'
             : `Atletkonto skapat, men inbjudan kunde inte skickas: ${inviteResult.error}`,
       },
       { status: 201 }

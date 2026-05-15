@@ -13,6 +13,9 @@ export interface SendAthletePlatformInviteResult {
   emailSent?: boolean
   emailPaused?: boolean
   email?: string
+  inviteUrl?: string
+  inviteText?: string
+  businessName?: string
   syncedEmail?: boolean
   syncedName?: boolean
   error?: string
@@ -154,6 +157,7 @@ export async function syncAthleteAccountIdentityFromProfile(
 export async function sendAthletePlatformInvite(
   clientId: string,
   coachUserId: string,
+  options?: { sendEmail?: boolean },
 ): Promise<SendAthletePlatformInviteResult> {
   const syncResult = await syncAthleteAccountIdentityFromProfile(clientId)
   if (!syncResult.success) return syncResult
@@ -218,9 +222,18 @@ export async function sendAthletePlatformInvite(
   const branding = await resolveEmailBranding(client.businessId ?? null, {
     senderUserId: coachUserId,
   })
+  const coach = await prisma.user.findUnique({
+    where: { id: coachUserId },
+    select: { name: true },
+  })
 
   const safeFirstName = escapeHtml(client.name.split(' ')[0] || client.name)
   const businessName = client.business?.name || branding.senderName
+  const coachFirstName = coach?.name?.trim().split(/\s+/)[0]
+  const inviteText = `Hej! Jag har bjudit in dig till ${businessName} i Trainomics.
+
+Klicka här för att skapa lösenord och komma igång:
+${inviteUrl}${coachFirstName ? `\n\n/${coachFirstName}` : ''}`
   const safeBusinessName = escapeHtml(businessName)
   const body = `
     <h2 style="color: #333; margin-top: 0;">Hej ${safeFirstName},</h2>
@@ -236,6 +249,19 @@ export async function sendAthletePlatformInvite(
       Med vänliga hälsningar,<br/><strong>${escapeHtml(branding.senderName)}</strong>
     </p>
   `
+
+  if (options?.sendEmail === false) {
+    return {
+      success: true,
+      emailSent: false,
+      email,
+      inviteUrl,
+      inviteText,
+      businessName,
+      syncedEmail: syncResult.syncedEmail,
+      syncedName: syncResult.syncedName,
+    }
+  }
 
   const sent = await sendGenericEmail({
     to: email,
@@ -257,6 +283,9 @@ export async function sendAthletePlatformInvite(
     return {
       success: false,
       email,
+      inviteUrl,
+      inviteText,
+      businessName,
       error: 'Kunde inte skicka inbjudan via e-post',
     }
   }
@@ -267,6 +296,9 @@ export async function sendAthletePlatformInvite(
       emailSent: false,
       emailPaused: true,
       email,
+      inviteUrl,
+      inviteText,
+      businessName,
       syncedEmail: syncResult.syncedEmail,
       syncedName: syncResult.syncedName,
       error: 'Utgående e-post är pausad',
@@ -277,6 +309,9 @@ export async function sendAthletePlatformInvite(
     success: true,
     emailSent: true,
     email,
+    inviteUrl,
+    inviteText,
+    businessName,
     syncedEmail: syncResult.syncedEmail,
     syncedName: syncResult.syncedName,
   }

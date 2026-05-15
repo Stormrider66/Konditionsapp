@@ -329,6 +329,7 @@ export default function BusinessClientsPage() {
                                   clientId={client.id}
                                   clientName={client.name}
                                   clientEmail={client.email}
+                                  clientPhone={client.phone}
                                   hasExistingAccount
                                   onAccountCreated={fetchClients}
                                   trigger={
@@ -345,6 +346,7 @@ export default function BusinessClientsPage() {
                                   clientId={client.id}
                                   clientName={client.name}
                                   clientEmail={client.email}
+                                  clientPhone={client.phone}
                                   hasExistingAccount={false}
                                   onAccountCreated={fetchClients}
                                   trigger={
@@ -466,6 +468,7 @@ export default function BusinessClientsPage() {
                                 clientId={client.id}
                                 clientName={client.name}
                                 clientEmail={client.email}
+                                clientPhone={client.phone}
                                 hasExistingAccount
                                 onAccountCreated={fetchClients}
                                 trigger={
@@ -481,6 +484,7 @@ export default function BusinessClientsPage() {
                               clientId={client.id}
                               clientName={client.name}
                               clientEmail={client.email}
+                              clientPhone={client.phone}
                               hasExistingAccount={false}
                               onAccountCreated={fetchClients}
                               trigger={
@@ -527,6 +531,7 @@ export default function BusinessClientsPage() {
                                     clientId={client.id}
                                     clientName={client.name}
                                     clientEmail={client.email}
+                                    clientPhone={client.phone}
                                     hasExistingAccount
                                     onAccountCreated={fetchClients}
                                     trigger={
@@ -543,6 +548,7 @@ export default function BusinessClientsPage() {
                                     clientId={client.id}
                                     clientName={client.name}
                                     clientEmail={client.email}
+                                    clientPhone={client.phone}
                                     hasExistingAccount={false}
                                     onAccountCreated={fetchClients}
                                     trigger={

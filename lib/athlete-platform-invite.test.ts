@@ -3,6 +3,7 @@ import { DEFAULT_EMAIL_BRANDING } from './email/email-branding-types'
 
 const mockClientFindUnique = vi.hoisted(() => vi.fn())
 const mockUserFindFirst = vi.hoisted(() => vi.fn())
+const mockUserFindUnique = vi.hoisted(() => vi.fn())
 const mockUserUpdate = vi.hoisted(() => vi.fn())
 const mockGenerateLink = vi.hoisted(() => vi.fn())
 const mockUpdateUserById = vi.hoisted(() => vi.fn())
@@ -13,6 +14,7 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     client: { findUnique: mockClientFindUnique },
     user: {
+      findUnique: mockUserFindUnique,
       findFirst: mockUserFindFirst,
       update: mockUserUpdate,
     },
@@ -80,6 +82,7 @@ describe('sendAthletePlatformInvite', () => {
       error: null,
     })
     mockResolveEmailBranding.mockResolvedValue(DEFAULT_EMAIL_BRANDING)
+    mockUserFindUnique.mockResolvedValue({ name: 'Coach Carter' })
   })
 
   it('reports paused outbound email without claiming the invite was sent', async () => {

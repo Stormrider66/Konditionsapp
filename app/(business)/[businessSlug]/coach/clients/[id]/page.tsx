@@ -512,6 +512,7 @@ export default function BusinessClientDetailPage() {
               clientId={id}
               clientName={client.name}
               clientEmail={client.email}
+              clientPhone={client.phone}
               hasExistingAccount={!!client.athleteAccount}
               onAccountCreated={fetchClient}
             />
@@ -727,6 +728,7 @@ export default function BusinessClientDetailPage() {
           clientId={id}
           clientName={client.name}
           clientEmail={client.email}
+          clientPhone={client.phone}
           hasExistingAccount={false}
           onAccountCreated={fetchClient}
           trigger={
@@ -790,6 +792,7 @@ export default function BusinessClientDetailPage() {
               clientId={id}
               clientName={client.name}
               clientEmail={client.email}
+              clientPhone={client.phone}
               hasExistingAccount={false}
               onAccountCreated={fetchClient}
               trigger={
