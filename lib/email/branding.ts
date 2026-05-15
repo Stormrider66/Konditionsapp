@@ -8,6 +8,7 @@ import { resolveBusinessBrandingById } from '@/lib/branding/resolve-branding'
 import { PLATFORM_NAME } from '@/lib/branding/types'
 import {
   DEFAULT_EMAIL_BRANDING,
+  PLATFORM_FROM_EMAIL,
   PLATFORM_REPLY_TO,
   PLATFORM_SENDING_DOMAIN,
 } from './email-branding-types'
@@ -77,7 +78,12 @@ export async function resolveEmailBranding(
         ? branding.customEmailDomain
         : PLATFORM_SENDING_DOMAIN
 
-    let fromAddress = `${senderName} <noreply@${sendingDomain}>`
+    const defaultFromEmail =
+      sendingDomain === PLATFORM_SENDING_DOMAIN
+        ? PLATFORM_FROM_EMAIL
+        : `noreply@${sendingDomain}`
+
+    let fromAddress = `${senderName} <${defaultFromEmail}>`
     // Only honor the business's reply-to once it's verified — until the
     // customer clicks the confirmation link we keep routing replies to
     // platform support so a typo can't dead-letter them.

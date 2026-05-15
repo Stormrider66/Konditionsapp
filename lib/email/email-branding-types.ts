@@ -11,7 +11,7 @@ export interface EmailBranding {
   /**
    * Fully-formed RFC 5322 From: header — e.g. `MyGym <noreply@mygym.com>` when
    * the business has a verified custom email domain, otherwise
-   * `MyGym <noreply@trainomics.app>`. Always pass this through to Resend.
+   * `MyGym <support@trainomics.app>`. Always pass this through to Resend.
    */
   fromAddress: string
   /**
@@ -39,6 +39,9 @@ export interface EmailBranding {
 /** Platform-default reply-to. Used when a business hasn't set their own. */
 export const PLATFORM_REPLY_TO = 'support@trainomics.app'
 
+/** Platform From mailbox. Avoid noreply on shared-domain transactional email. */
+export const PLATFORM_FROM_EMAIL = 'support@trainomics.app'
+
 /** Platform-default sending domain. Override only when a business has a verified custom email domain. */
 export const PLATFORM_SENDING_DOMAIN = 'trainomics.app'
 
@@ -46,7 +49,7 @@ export const PLATFORM_SENDING_DOMAIN = 'trainomics.app'
 export const DEFAULT_EMAIL_BRANDING: EmailBranding = {
   platformName: PLATFORM_NAME,
   senderName: PLATFORM_NAME,
-  fromAddress: `${PLATFORM_NAME} <noreply@${PLATFORM_SENDING_DOMAIN}>`,
+  fromAddress: `${PLATFORM_NAME} <${PLATFORM_FROM_EMAIL}>`,
   sendingDomain: PLATFORM_SENDING_DOMAIN,
   replyTo: PLATFORM_REPLY_TO,
   logoUrl: null,

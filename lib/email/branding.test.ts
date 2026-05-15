@@ -43,7 +43,7 @@ describe('resolveEmailBranding — per-user sender override', () => {
     mockResolveBranding.mockResolvedValue(mockBusiness)
   })
 
-  it('falls back to noreply@<sending-domain> when no senderUserId is given', async () => {
+  it('falls back to the sending domain default mailbox when no senderUserId is given', async () => {
     const branding = await resolveEmailBranding('biz-1')
     expect(branding.fromAddress).toBe('Star by Thomson <noreply@thomsons.se>')
     expect(branding.replyTo).toBe('support@trainomics.app')
@@ -67,7 +67,7 @@ describe('resolveEmailBranding — per-user sender override', () => {
     // The custom email domain is verified for thomsons.se, but Henrik's
     // personal Trainomics account uses gmail.com. We can't put gmail in
     // the From: header (DMARC), and we avoid personalising the display name
-    // on a noreply mailbox because Outlook can treat that as impersonation.
+    // on a shared mailbox because Outlook can treat that as impersonation.
     // Replies still route to him.
     mockUserFindUnique.mockResolvedValue({
       email: 'henrik@gmail.com',
@@ -81,7 +81,7 @@ describe('resolveEmailBranding — per-user sender override', () => {
   })
 
   it('still routes Reply-To to the user when the custom domain is not verified yet (path A in pure form)', async () => {
-    // No verified sending domain → mail goes from noreply@trainomics.app with
+    // No verified sending domain → mail goes from support@trainomics.app with
     // a stable business display name. Reply-To still routes to the staff
     // member because Reply-To doesn't need DKIM.
     mockResolveBranding.mockResolvedValue({
@@ -96,7 +96,7 @@ describe('resolveEmailBranding — per-user sender override', () => {
     const branding = await resolveEmailBranding('biz-1', { senderUserId: 'user-henrik' })
 
     // Falls back to platform sending domain — Resend hasn't verified theirs yet.
-    expect(branding.fromAddress).toBe('Star by Thomson <noreply@trainomics.app>')
+    expect(branding.fromAddress).toBe('Star by Thomson <support@trainomics.app>')
     // Reply-To still goes to the staff member — Reply-To doesn't need DKIM.
     expect(branding.replyTo).toBe('starhenrik@thomsons.se')
   })
@@ -113,7 +113,7 @@ describe('resolveEmailBranding — per-user sender override', () => {
 
     const branding = await resolveEmailBranding('biz-1', { senderUserId: 'user-noname' })
 
-    expect(branding.fromAddress).toBe('Star by Thomson <noreply@trainomics.app>')
+    expect(branding.fromAddress).toBe('Star by Thomson <support@trainomics.app>')
     expect(branding.replyTo).toBe('noname@thomsons.se')
   })
 
@@ -141,7 +141,7 @@ describe('resolveEmailBranding — per-user sender override', () => {
       expect(displayPart).not.toContain(ch)
     }
     // The actual sender mailbox is still the platform default.
-    expect(branding.fromAddress).toContain('<noreply@trainomics.app>')
+    expect(branding.fromAddress).toContain('<support@trainomics.app>')
   })
 
   it('matches the email domain case-insensitively', async () => {
