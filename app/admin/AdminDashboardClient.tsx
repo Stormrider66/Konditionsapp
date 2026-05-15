@@ -846,7 +846,9 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                           <TableHead>{t('clients')}</TableHead>
                           <TableHead>Företag</TableHead>
                           <TableHead>{t('joined')}</TableHead>
-                          <TableHead></TableHead>
+                          <TableHead className="sticky right-0 z-10 w-[56px] bg-background text-right">
+                            <span className="sr-only">Åtgärder</span>
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1023,7 +1025,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                             <TableCell>
                               {format(new Date(user.createdAt), 'yyyy-MM-dd')}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="sticky right-0 z-10 bg-background text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]">
                               <Button
                                 variant="ghost"
                                 size="icon"
