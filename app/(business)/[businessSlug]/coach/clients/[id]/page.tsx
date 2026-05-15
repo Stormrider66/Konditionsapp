@@ -9,6 +9,7 @@ import { sv } from 'date-fns/locale'
 import type { Client, Team, Test, TestType, TrainingZone } from '@/types'
 import { ProgressionChart } from '@/components/charts/ProgressionChart'
 import { SportSpecificAthleteView } from '@/components/coach/sport-views'
+import { HockeyAthleteView } from '@/components/coach/sport-views/HockeyAthleteView'
 import { VisualReportCard } from '@/components/visual-reports/VisualReportCard'
 import { PaceValidationDashboard } from '@/components/coach/pace-zones/PaceValidationDashboard'
 import { AIContextButton } from '@/components/ai-studio/AIContextButton'
@@ -35,6 +36,7 @@ import { RaceFuelingCard } from '@/components/athlete/fueling/RaceFuelingCard'
 import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, ExternalLink, Loader2, UserPlus, ClipboardList, CheckCircle2, KeyRound, CircleAlert } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
+import type { HockeySettings } from '@/components/onboarding/HockeyOnboarding'
 import {
   Select,
   SelectContent,
@@ -75,6 +77,7 @@ interface ClientWithTests extends Client {
     } | null
   } | null
   team?: Team | null
+  position?: string | null
 }
 
 interface ProgramSummary {
@@ -92,6 +95,7 @@ interface SportProfileSummary {
   id: string
   primarySport: string
   secondarySports: string[]
+  hockeySettings?: Record<string, unknown>
   [key: string]: unknown
 }
 
@@ -101,6 +105,89 @@ interface ThresholdSummary {
 
 type SortField = 'date' | 'type' | 'vo2max' | 'status'
 type SortDirection = 'asc' | 'desc'
+
+const DEFAULT_PLAYER_HOCKEY_SETTINGS: HockeySettings = {
+  position: 'center',
+  teamName: '',
+  leagueLevel: 'recreational',
+  seasonPhase: 'in_season',
+  averageIceTimeMinutes: null,
+  shiftsPerGame: null,
+  yearsPlaying: 0,
+  playStyle: 'two_way',
+  strengthFocus: [],
+  weaknesses: [],
+  injuryHistory: [],
+  weeklyOffIceSessions: 3,
+  hasAccessToIce: true,
+  hasAccessToGym: true,
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function normalizeHockeyPosition(position?: string | null): HockeySettings['position'] {
+  const normalized = position?.trim().toLowerCase() ?? ''
+  if (['goalie', 'målvakt', 'malvakt', 'keeper'].some((value) => normalized.includes(value))) return 'goalie'
+  if (normalized === 'd' || ['defense', 'defence', 'back'].some((value) => normalized.includes(value))) return 'defense'
+  if (['wing', 'forward', 'lw', 'rw', 'ytter'].some((value) => normalized.includes(value))) return 'wing'
+  return 'center'
+}
+
+function normalizeHockeyLeagueLevel(value?: string | null, teamName?: string | null): HockeySettings['leagueLevel'] {
+  const normalizedValue = value?.trim().toLowerCase() ?? ''
+  const validLevels = new Set<HockeySettings['leagueLevel']>([
+    'recreational',
+    'junior',
+    'division_3',
+    'division_2',
+    'division_1',
+    'shl',
+    'hockeyallsvenskan',
+    'hockeyettan',
+  ])
+  if (validLevels.has(normalizedValue as HockeySettings['leagueLevel'])) {
+    return normalizedValue as HockeySettings['leagueLevel']
+  }
+
+  const normalized = teamName?.trim().toLowerCase() ?? ''
+  if (/shl/.test(normalized)) return 'shl'
+  if (/allsvenskan/.test(normalized)) return 'hockeyallsvenskan'
+  if (/ettan|division 1|div 1/.test(normalized)) return 'hockeyettan'
+  if (/j20|u20|j18|u18|junior/.test(normalized)) return 'junior'
+  return 'recreational'
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function buildHockeySettings(
+  client: ClientWithTests,
+  sportProfile: SportProfileSummary | null,
+): HockeySettings {
+  const stored = isRecord(sportProfile?.hockeySettings) ? sportProfile.hockeySettings : {}
+  const teamName = typeof stored.teamName === 'string' && stored.teamName.trim()
+    ? stored.teamName
+    : client.team?.name ?? ''
+
+  return {
+    ...DEFAULT_PLAYER_HOCKEY_SETTINGS,
+    ...(stored as Partial<HockeySettings>),
+    position: typeof stored.position === 'string'
+      ? normalizeHockeyPosition(stored.position)
+      : normalizeHockeyPosition(client.position),
+    teamName,
+    leagueLevel: normalizeHockeyLeagueLevel(
+      typeof stored.leagueLevel === 'string' ? stored.leagueLevel : null,
+      teamName,
+    ),
+    strengthFocus: stringArray(stored.strengthFocus),
+    weaknesses: stringArray(stored.weaknesses),
+    injuryHistory: stringArray(stored.injuryHistory),
+  }
+}
 
 export default function BusinessClientDetailPage() {
   const params = useParams()
@@ -405,6 +492,13 @@ export default function BusinessClientDetailPage() {
     )
   }
 
+  const isHockeyAthlete = client.team?.sportType === 'TEAM_ICE_HOCKEY'
+    || sportProfile?.primarySport === 'TEAM_ICE_HOCKEY'
+    || sportProfile?.secondarySports?.includes('TEAM_ICE_HOCKEY') === true
+  const hockeySettings = isHockeyAthlete
+    ? buildHockeySettings(client, sportProfile)
+    : null
+
   const overviewContent = (
     <>
       <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6 mb-4 sm:mb-6">
@@ -582,11 +676,7 @@ export default function BusinessClientDetailPage() {
     </div>
   )
 
-  // Composed analysis tab. Top-down ordering matches "what does the
-  // coach decide today?" → snapshot first (load + readiness), then
-  // PRs (drives % of 1RM resolution), then long-running progression
-  // trends, then a quick-jump to the full logs view.
-  const analysisContent = client.athleteAccount ? (
+  const genericAnalysisContent = client.athleteAccount ? (
     <div className="space-y-4 sm:space-y-6">
       <div className="grid gap-4 lg:grid-cols-3">
         <ClientLoadSummary clientId={id} />
@@ -649,6 +739,73 @@ export default function BusinessClientDetailPage() {
       </div>
     </div>
   )
+
+  const hockeyAnalysisContent = hockeySettings ? (
+    <div className="space-y-4 sm:space-y-6">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ClientLoadSummary clientId={id} />
+        <ReadinessDashboard clientId={id} />
+      </div>
+
+      <HockeyAthleteView
+        clientId={id}
+        clientName={client.name}
+        settings={hockeySettings}
+      />
+
+      <PendingPRFeedSingle clientId={id} />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <VBTProgressionWidget clientId={id} />
+        <RecentTestsCard
+          clientId={id}
+          testsHref={`${basePath}/clients/${id}?tab=tests`}
+        />
+      </div>
+
+      <StrengthPRTable clientId={id} clientName={client.name} />
+
+      <ProgressionDashboard clientId={id} clientName={client.name} />
+
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1">
+            <h3 className="font-semibold text-sm flex items-center gap-2 dark:text-white">
+              <ClipboardList className="h-4 w-4 text-blue-500" />
+              Hockeyloggar och passfeedback
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Hela loggvyn med passkommentarer, utförandegrad och belastning inför nästa is- eller gymblock.
+            </p>
+          </div>
+          {client.athleteAccount ? (
+            <Link href={`${basePath}/athletes/${id}/logs`}>
+              <Button size="sm" variant="outline" className="w-full sm:w-auto">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Öppna loggvyn
+              </Button>
+            </Link>
+          ) : (
+            <CreateAthleteAccountDialog
+              clientId={id}
+              clientName={client.name}
+              clientEmail={client.email}
+              hasExistingAccount={false}
+              onAccountCreated={fetchClient}
+              trigger={
+                <Button size="sm" variant="outline" className="w-full sm:w-auto">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Skapa atletkonto
+                </Button>
+              }
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  ) : null
+
+  const analysisContent = hockeyAnalysisContent ?? genericAnalysisContent
 
   const programsContent = (
     <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">

@@ -37,7 +37,7 @@ import { toast } from 'sonner'
 interface HockeyAthleteViewProps {
   clientId: string
   clientName: string
-  settings?: Record<string, unknown>
+  settings?: HockeySettings | Record<string, unknown>
 }
 
 interface HockeyTestSummary {
