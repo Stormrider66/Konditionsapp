@@ -5,7 +5,7 @@
  * Tries lab test first, then falls back to field test.
  */
 
-import { requireCoach } from '@/lib/auth-utils';
+import { canAccessClient, requireCoach } from '@/lib/auth-utils';
 import { TestResultsDisplay } from '@/components/coach/tests/TestResultsDisplay';
 import { ReportTemplate } from '@/components/reports/ReportTemplate';
 import { PDFExportButton } from '@/components/reports/PDFExportButton';
@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Edit2 } from 'lucide-react';
 import { performAllCalculations } from '@/lib/calculations';
 import { logger } from '@/lib/logger';
-import type { TestCalculations, Threshold, TrainingZone, Test, Client } from '@/types';
+import type { TestCalculations, Threshold, TrainingZone } from '@/types';
 
 interface TestPageProps {
   params: Promise<{
@@ -38,11 +38,18 @@ export default async function TestDetailPage({ params }: TestPageProps) {
     where: { id: testId },
     include: {
       testStages: { orderBy: { sequence: 'asc' } },
-      client: true,
+      client: {
+        include: {
+          business: { select: { slug: true } },
+        },
+      },
     },
   });
 
-  if (labTest && labTest.userId === user.id) {
+  const hasLabTestAccess = labTest ? await canAccessClient(user.id, labTest.clientId) : false;
+  const matchesBusinessContext = !businessSlug || labTest?.client.business?.slug === businessSlug;
+
+  if (labTest && hasLabTestAccess && matchesBusinessContext) {
     const client = labTest.client;
 
     // Re-compute all calculations from raw testStages data
@@ -149,14 +156,19 @@ export default async function TestDetailPage({ params }: TestPageProps) {
     include: {
       client: {
         select: {
+          id: true,
           name: true,
           userId: true,
+          business: { select: { slug: true } },
         },
       },
     },
   });
 
-  if (!fieldTest || fieldTest.client.userId !== user.id) {
+  const hasFieldTestAccess = fieldTest ? await canAccessClient(user.id, fieldTest.clientId) : false;
+  const fieldTestMatchesBusinessContext = !businessSlug || fieldTest?.client.business?.slug === businessSlug;
+
+  if (!fieldTest || !hasFieldTestAccess || !fieldTestMatchesBusinessContext) {
     notFound();
   }
 

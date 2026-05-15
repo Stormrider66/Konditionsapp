@@ -3,8 +3,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { performAllCalculations, ManualThresholdOverrides } from '@/lib/calculations'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import type { Test, Client } from '@/types'
 import { logDebug } from '@/lib/logger-console'
 
@@ -37,14 +39,18 @@ export async function POST(
 
     const { id } = await params
     const test = await prisma.test.findUnique({
-      where: { id, userId: user.id },
+      where: { id },
       include: {
         testStages: { orderBy: { sequence: "asc" } },
         client: true,
       },
     })
 
-    if (!test) {
+    const canRecalculate = test
+      ? (await canAccessCoachPlatform(user.id)) && (await canAccessClient(user.id, test.clientId))
+      : false
+
+    if (!test || !canRecalculate) {
       return NextResponse.json(
         {
           success: false,
@@ -97,7 +103,7 @@ export async function POST(
     logDebug('  anaerobicThreshold:', JSON.stringify(calculations.anaerobicThreshold))
 
     // Update the test with fresh calculations
-    const updatedTest = await prisma.test.update({
+    await prisma.test.update({
       where: { id },
       data: {
         vo2max: calculations.vo2max,

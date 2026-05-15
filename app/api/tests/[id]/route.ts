@@ -3,10 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { performAllCalculations, ManualThresholdOverrides } from '@/lib/calculations'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { triggerTrialAfterTest } from '@/lib/subscription/trial-trigger'
-import type { TestStatus, Threshold, TrainingZone, Test, Client, TestStage } from '@/types'
+import type { Test, Client, TestStage } from '@/types'
 
 type RouteParams = {
   params: Promise<{
@@ -37,14 +39,14 @@ export async function GET(
 
     const { id } = await params
     const test = await prisma.test.findUnique({
-      where: { id, userId: user.id },
+      where: { id },
       include: {
         testStages: { orderBy: { sequence: "asc" } },
         client: true,
       },
     })
 
-    if (!test) {
+    if (!test || !(await canAccessClient(user.id, test.clientId))) {
       return NextResponse.json(
         {
           success: false,
@@ -144,9 +146,14 @@ export async function PUT(
     // Check ownership before updating
     const existingTest = await prisma.test.findUnique({
       where: { id },
+      select: { clientId: true },
     })
 
-    if (!existingTest || existingTest.userId !== user.id) {
+    const canModify = existingTest
+      ? (await canAccessCoachPlatform(user.id)) && (await canAccessClient(user.id, existingTest.clientId))
+      : false
+
+    if (!existingTest || !canModify) {
       return NextResponse.json(
         {
           success: false,
@@ -219,9 +226,14 @@ export async function PATCH(
     // Check ownership before updating
     const existingTest = await prisma.test.findUnique({
       where: { id },
+      select: { clientId: true },
     })
 
-    if (!existingTest || existingTest.userId !== user.id) {
+    const canModify = existingTest
+      ? (await canAccessCoachPlatform(user.id)) && (await canAccessClient(user.id, existingTest.clientId))
+      : false
+
+    if (!existingTest || !canModify) {
       return NextResponse.json(
         {
           success: false,
@@ -370,9 +382,14 @@ export async function DELETE(
     // Check ownership before deleting
     const existingTest = await prisma.test.findUnique({
       where: { id },
+      select: { clientId: true },
     })
 
-    if (!existingTest || existingTest.userId !== user.id) {
+    const canModify = existingTest
+      ? (await canAccessCoachPlatform(user.id)) && (await canAccessClient(user.id, existingTest.clientId))
+      : false
+
+    if (!existingTest || !canModify) {
       return NextResponse.json(
         {
           success: false,
