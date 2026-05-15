@@ -4,6 +4,7 @@
 import 'server-only';
 
 import { Resend } from 'resend';
+import type { CreateEmailOptions } from 'resend';
 import { logger } from '@/lib/logger';
 import {
   EmailLocale,
@@ -19,6 +20,16 @@ import { PLATFORM_REPLY_TO, DEFAULT_EMAIL_BRANDING } from './email-branding-type
 import { PLATFORM_NAME } from '@/lib/branding/types';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+type EmailTag = NonNullable<CreateEmailOptions['tags']>[number];
+
+export interface SendEmailMetadata {
+  category?: string;
+  emailType?: string;
+  businessId?: string | null;
+  invitationId?: string | null;
+  targetId?: string | null;
+}
 
 /** Strip HTML tags and decode common entities to produce a plain-text fallback */
 function htmlToPlainText(html: string): string {
@@ -45,12 +56,38 @@ export interface SendEmailResult {
   paused?: boolean;
 }
 
+function sanitizeTagValue(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const cleaned = value.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 256);
+  return cleaned.length > 0 ? cleaned : null;
+}
+
+function buildEmailTags(metadata?: SendEmailMetadata): EmailTag[] | undefined {
+  if (!metadata) return undefined;
+
+  const pairs: Array<[string, string | null | undefined]> = [
+    ['category', metadata.category],
+    ['email_type', metadata.emailType],
+    ['business_id', metadata.businessId],
+    ['invitation_id', metadata.invitationId],
+    ['target_id', metadata.targetId],
+  ];
+
+  const tags = pairs.flatMap(([name, value]) => {
+    const sanitized = sanitizeTagValue(value);
+    return sanitized ? [{ name, value: sanitized }] : [];
+  });
+
+  return tags.length > 0 ? tags : undefined;
+}
+
 // ==================== CORE SEND FUNCTION ====================
 async function sendEmailInternal(
   to: string,
   subject: string,
   html: string,
-  branding?: EmailBranding
+  branding?: EmailBranding,
+  metadata?: SendEmailMetadata
 ): Promise<SendEmailResult> {
   try {
     // Kill switch: set EMAILS_PAUSED=true to suppress all outbound email
@@ -87,6 +124,7 @@ async function sendEmailInternal(
         'List-Unsubscribe': `<mailto:unsubscribe@trainomics.app?subject=unsubscribe>, <${baseUrl}/unsubscribe>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
       },
+      tags: buildEmailTags(metadata),
     });
 
     if (error) {
@@ -379,7 +417,8 @@ export async function sendCoachInviteEmail(
   recipientName: string,
   businessName: string,
   setPasswordUrl: string,
-  branding?: EmailBranding
+  branding?: EmailBranding,
+  metadata?: SendEmailMetadata
 ): Promise<SendEmailResult> {
   const br = branding;
   const platformName = br?.platformName || PLATFORM_NAME;
@@ -399,7 +438,17 @@ export async function sendCoachInviteEmail(
       <p>Med vänliga hälsningar,<br/>${platformName}</p>
     </div>
   `;
-  return sendEmailInternal(to, subject, html, branding);
+  return sendEmailInternal(
+    to,
+    subject,
+    html,
+    branding,
+    {
+      category: 'invite',
+      emailType: 'coach_invite',
+      ...metadata,
+    },
+  );
 }
 
 // ==================== PASSWORD RESET EMAIL ====================
@@ -445,13 +494,15 @@ export async function sendGenericEmail({
   subject,
   html,
   branding,
+  metadata,
 }: {
   to: string;
   subject: string;
   html: string;
   branding?: EmailBranding;
+  metadata?: SendEmailMetadata;
 }): Promise<SendEmailResult> {
-  return sendEmailInternal(to, subject, html, branding);
+  return sendEmailInternal(to, subject, html, branding, metadata);
 }
 
 // Alias for backward compatibility

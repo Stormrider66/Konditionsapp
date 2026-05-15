@@ -110,6 +110,17 @@ isn't being read — re-check step 2.
   for the first month. Look for `disposition=quarantine|reject` on real
   Trainomics mail (means we mis-aligned something) or `count > 0` from IPs we
   don't recognize (means someone is spoofing us).
+- **Invite delivery evidence**: invite emails are tagged before sending
+  (`category=invite`, plus an `email_type` and business/target identifiers).
+  The Resend webhook stores email lifecycle events in `EmailDeliveryEvent`, so
+  "didn't receive the invite" can be checked against `email.delivered`,
+  `email.delivery_delayed`, `email.bounced`, `email.complained`,
+  `email.failed`, and `email.suppressed` instead of guessing.
+- **Resend webhook subscriptions**: keep both domain events and email delivery
+  events enabled for `https://trainomics.app/api/webhooks/resend`. At minimum:
+  `domain.created`, `domain.updated`, `domain.deleted`, `email.sent`,
+  `email.delivered`, `email.delivery_delayed`, `email.bounced`,
+  `email.complained`, `email.failed`, and `email.suppressed`.
 - **List-Unsubscribe header**: already set in `lib/email/index.ts` and the four
   direct Resend callers. Don't drop it — Gmail's bulk-sender rules require it
   for any mailing list.

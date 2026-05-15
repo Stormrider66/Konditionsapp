@@ -1,19 +1,21 @@
 // app/api/webhooks/resend/route.ts
 //
-// Receives Resend webhooks for `domain.*` events. Important for keeping
-// `Business.customEmailVerified` honest after the customer publishes their
-// DKIM/SPF records — without this, our DB stays "verified=false" until the
-// coach clicks "Uppdatera status" in the UI, OR stays "verified=true" forever
-// even if Resend later flips the domain back to unverified (e.g. customer
-// deletes a CNAME at their registrar).
+// Receives Resend webhooks for `domain.*` and `email.*` events. Domain events
+// keep `Business.customEmailVerified` honest after the customer publishes their
+// DKIM/SPF records. Email lifecycle events give us an evidence trail when an
+// invite is reported as missing, bounced, delayed, or complained about.
 //
 // Setup:
 //   1. In Resend dashboard → Webhooks → Add endpoint
 //      https://trainomics.app/api/webhooks/resend
-//      Subscribed events: domain.created, domain.updated, domain.deleted
+//      Subscribed events:
+//      - domain.created, domain.updated, domain.deleted
+//      - email.sent, email.delivered, email.delivery_delayed,
+//        email.bounced, email.complained, email.failed, email.suppressed
 //   2. Copy the signing secret → set RESEND_WEBHOOK_SECRET in Vercel env.
 //   3. Resend signs payloads with svix; we verify before trusting anything.
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { Webhook, WebhookVerificationError } from 'svix'
 
 import { prisma } from '@/lib/prisma'
@@ -25,9 +27,31 @@ interface ResendDomainEventData {
   status?: string
 }
 
+interface ResendEmailEventData {
+  email_id?: string
+  created_at?: string
+  from?: string
+  to?: string[]
+  subject?: string
+  tags?: Record<string, string>
+  bounce?: {
+    message?: string
+    subType?: string
+    type?: string
+  }
+  failed?: {
+    reason?: string
+  }
+  suppressed?: {
+    message?: string
+    type?: string
+  }
+}
+
 interface ResendWebhookEvent {
   type: string
-  data: ResendDomainEventData
+  created_at?: string
+  data: ResendDomainEventData | ResendEmailEventData
 }
 
 const SIGNATURE_HEADERS = [
@@ -44,6 +68,96 @@ function readSignatureHeaders(req: NextRequest): Record<string, string> | null {
     out[name] = value
   }
   return out
+}
+
+function asEmailData(data: ResendWebhookEvent['data']): ResendEmailEventData {
+  return data as ResendEmailEventData
+}
+
+function asDomainData(data: ResendWebhookEvent['data']): ResendDomainEventData {
+  return data as ResendDomainEventData
+}
+
+function eventDate(value: string | undefined): Date {
+  if (!value) return new Date()
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed
+}
+
+function failureReason(data: ResendEmailEventData): string | null {
+  return (
+    data.bounce?.message ||
+    data.failed?.reason ||
+    data.suppressed?.message ||
+    data.bounce?.type ||
+    data.suppressed?.type ||
+    null
+  )
+}
+
+async function handleEmailEvent(event: ResendWebhookEvent) {
+  const data = asEmailData(event.data)
+  const emailId = data.email_id
+
+  if (!emailId) {
+    logger.warn('Resend email event missing data.email_id', { type: event.type })
+    return
+  }
+
+  const tags = data.tags || {}
+  const eventCreatedAt = eventDate(data.created_at || event.created_at)
+
+  await prisma.emailDeliveryEvent.upsert({
+    where: {
+      resendEmailId_eventType_eventCreatedAt: {
+        resendEmailId: emailId,
+        eventType: event.type,
+        eventCreatedAt,
+      },
+    },
+    create: {
+      resendEmailId: emailId,
+      eventType: event.type,
+      eventCreatedAt,
+      from: data.from,
+      to: data.to || [],
+      subject: data.subject,
+      category: tags.category,
+      emailType: tags.email_type,
+      businessId: tags.business_id,
+      invitationId: tags.invitation_id,
+      targetId: tags.target_id,
+      reason: failureReason(data),
+      payload: event as unknown as Prisma.InputJsonValue,
+    },
+    update: {
+      from: data.from,
+      to: data.to || [],
+      subject: data.subject,
+      category: tags.category,
+      emailType: tags.email_type,
+      businessId: tags.business_id,
+      invitationId: tags.invitation_id,
+      targetId: tags.target_id,
+      reason: failureReason(data),
+      payload: event as unknown as Prisma.InputJsonValue,
+    },
+  })
+
+  if (
+    tags.category === 'invite' &&
+    ['email.bounced', 'email.complained', 'email.failed', 'email.suppressed'].includes(event.type)
+  ) {
+    logger.warn('Invite email deliverability event needs attention', {
+      type: event.type,
+      emailId,
+      emailType: tags.email_type,
+      businessId: tags.business_id,
+      invitationId: tags.invitation_id,
+      targetId: tags.target_id,
+      reason: failureReason(data),
+    })
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -79,13 +193,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Verification error' }, { status: 500 })
   }
 
-  // Only domain.* events affect us. Everything else is ack'd silently so
-  // Resend doesn't keep retrying.
+  if (event.type?.startsWith('email.')) {
+    await handleEmailEvent(event)
+    return NextResponse.json({ received: true })
+  }
+
+  // Only domain.* and email.* events affect us. Everything else is ack'd
+  // silently so Resend doesn't keep retrying.
   if (!event.type?.startsWith('domain.')) {
     return NextResponse.json({ received: true })
   }
 
-  const domainId = event.data?.id
+  const domainData = asDomainData(event.data)
+  const domainId = domainData?.id
   if (!domainId) {
     logger.warn('Resend domain event missing data.id', { type: event.type })
     return NextResponse.json({ received: true })
@@ -109,7 +229,7 @@ export async function POST(request: NextRequest) {
   // Map Resend's domain status → our boolean. We trust Resend's
   // `data.status` over the event type because the type can lag the actual
   // state (e.g. `domain.updated` fires for any change, not just verification).
-  const status = event.data.status
+  const status = domainData.status
   const verified = status === 'verified' || status === 'partially_verified'
 
   if (event.type === 'domain.deleted') {

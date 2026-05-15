@@ -211,6 +211,12 @@ export async function sendTestResultInvite(
     subject,
     html,
     branding,
+    metadata: {
+      category: 'invite',
+      emailType: 'test_result_invite',
+      businessId: test.client.businessId,
+      targetId: opts.testId,
+    },
   }).catch((err) => {
     logger.error('Test invite: send failed', { testId: opts.testId }, err)
     return { success: false }

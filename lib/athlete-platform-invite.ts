@@ -242,6 +242,12 @@ export async function sendAthletePlatformInvite(
     subject: `Inbjudan till ${businessName} i Trainomics`,
     html: emailLayout(branding, 'Välkommen till Trainomics', body),
     branding,
+    metadata: {
+      category: 'invite',
+      emailType: 'athlete_platform_invite',
+      businessId: client.businessId,
+      targetId: clientId,
+    },
   }).catch((error) => {
     logger.error('Athlete platform invite: email send failed', { clientId, email }, error)
     return { success: false, error: 'Email send failed', paused: false }

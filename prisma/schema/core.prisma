@@ -1183,6 +1183,42 @@ model Invitation {
   @@index([expiresAt])
 }
 
+/// Resend delivery lifecycle events for outbound email.
+/// Used first for invite deliverability, but kept generic so other important
+/// transactional emails can opt into the same evidence trail.
+model EmailDeliveryEvent {
+  id             String   @id @default(uuid())
+  resendEmailId  String
+  eventType      String
+  eventCreatedAt DateTime
+
+  // Email envelope/context from Resend.
+  from    String?
+  to      String[]
+  subject String?
+
+  // App-level tags attached at send time.
+  category     String?
+  emailType    String?
+  businessId   String?
+  invitationId String?
+  targetId     String?
+
+  reason  String?
+  payload Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([resendEmailId, eventType, eventCreatedAt])
+  @@index([resendEmailId])
+  @@index([eventType, eventCreatedAt])
+  @@index([category, emailType])
+  @@index([businessId, eventCreatedAt])
+  @@index([invitationId])
+  @@index([targetId])
+}
+
 // ==================== ATHLETE ACCOUNTS ====================
 
 // Links a Client to an Athlete User account (1-to-1)

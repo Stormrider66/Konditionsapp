@@ -145,6 +145,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             </div>
           `,
           branding: emailBranding,
+          metadata: {
+            category: 'invite',
+            emailType: 'business_claim_invite',
+            businessId: id,
+            invitationId: invitation.id,
+          },
         })
       } catch (emailError) {
         logError('Failed to send invitation email:', emailError)

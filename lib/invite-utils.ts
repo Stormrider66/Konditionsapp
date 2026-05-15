@@ -170,6 +170,9 @@ export async function inviteUserToBusiness({
       business.name,
       setPasswordUrl,
       emailBranding,
+      {
+        businessId,
+      },
     ).catch((emailErr) => {
       logger.error('Invite: failed to send invite email', { email }, emailErr)
       return { success: false, error: 'Email send failed' }
