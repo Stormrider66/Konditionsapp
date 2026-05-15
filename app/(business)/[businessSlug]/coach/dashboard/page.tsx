@@ -599,10 +599,6 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
           <DashboardModeIndicator mode={mode} basePath={basePath} />
         </div>
 
-        {commandCenterData && (
-          <CoachCommandCenter data={commandCenterData} />
-        )}
-
         {/* Key Stats - 4 cards */}
         {visible.has('dashboard-stat-cards') && (
           <DashboardStatCards
@@ -655,6 +651,10 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
             visible={visible}
             orderMap={orderMap}
           />
+        )}
+
+        {commandCenterData && (
+          <CoachCommandCenter data={commandCenterData} />
         )}
       </div>
     </div>

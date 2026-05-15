@@ -1,9 +1,14 @@
+'use client'
+
 import Link from 'next/link'
+import { useState } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
   Bot,
   CalendarClock,
+  ChevronDown,
+  ChevronUp,
   CheckCircle2,
   ClipboardCheck,
   Dumbbell,
@@ -32,6 +37,7 @@ import type {
 
 interface CoachCommandCenterProps {
   data: CoachCommandCenterData
+  defaultExpanded?: boolean
 }
 
 const priorityConfig: Record<CommandCenterPriority, { label: string; className: string }> = {
@@ -70,34 +76,54 @@ const evidenceTone = {
   neutral: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-200',
 }
 
-export function CoachCommandCenter({ data }: CoachCommandCenterProps) {
+export function CoachCommandCenter({
+  data,
+  defaultExpanded = false,
+}: CoachCommandCenterProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded)
   const hasQueue = data.queueItems.length > 0
 
   return (
-    <GlassCard gradient className="mb-6 rounded-lg">
+    <GlassCard gradient className="mt-8 rounded-lg">
       <GlassCardHeader className="pb-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-3">
             <div className="rounded-lg bg-cyan-100 p-2 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-200">
               <ClipboardCheck className="h-5 w-5" />
             </div>
             <div>
-              <GlassCardTitle className="text-xl">Coach Command Center</GlassCardTitle>
+              <GlassCardTitle className="text-base">Coach Command Center</GlassCardTitle>
               <GlassCardDescription>
-                Prioritized work queue with evidence-backed AI recommendations.
+                {expanded
+                  ? 'Prioritized work queue with evidence-backed AI recommendations.'
+                  : 'Collapsed so your main dashboard stays first.'}
               </GlassCardDescription>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <MetricPill label="Urgent" value={data.summary.urgentCount} tone="risk" />
-            <MetricPill label="Review" value={data.summary.reviewCount} tone="watch" />
-            <MetricPill label="Stable" value={data.summary.stableCount} tone="good" />
-            <MetricPill label="Alerts" value={data.summary.activeAlerts} tone="neutral" />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="grid grid-cols-4 gap-2">
+              <MetricPill label="Urgent" value={data.summary.urgentCount} tone="risk" compact />
+              <MetricPill label="Review" value={data.summary.reviewCount} tone="watch" compact />
+              <MetricPill label="Stable" value={data.summary.stableCount} tone="good" compact />
+              <MetricPill label="Alerts" value={data.summary.activeAlerts} tone="neutral" compact />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setExpanded(value => !value)}
+              className="h-9 justify-between gap-2 text-xs sm:w-[132px]"
+              aria-expanded={expanded}
+            >
+              {expanded ? 'Hide queue' : 'Show queue'}
+              {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </Button>
           </div>
         </div>
       </GlassCardHeader>
 
+      {expanded && (
       <GlassCardContent>
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-5">
           <section className="xl:col-span-3">
@@ -196,6 +222,7 @@ export function CoachCommandCenter({ data }: CoachCommandCenterProps) {
           </section>
         </div>
       </GlassCardContent>
+      )}
     </GlassCard>
   )
 }
@@ -204,10 +231,12 @@ function MetricPill({
   label,
   value,
   tone,
+  compact = false,
 }: {
   label: string
   value: number
   tone: 'risk' | 'watch' | 'good' | 'neutral'
+  compact?: boolean
 }) {
   const className = {
     risk: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-200',
@@ -217,8 +246,8 @@ function MetricPill({
   }[tone]
 
   return (
-    <div className={cn('rounded-lg px-3 py-2 text-center', className)}>
-      <div className="text-lg font-bold leading-none">{value}</div>
+    <div className={cn('rounded-lg px-3 py-2 text-center', compact && 'min-w-[62px] px-2 py-1.5', className)}>
+      <div className={cn('text-lg font-bold leading-none', compact && 'text-sm')}>{value}</div>
       <div className="mt-1 text-[11px] font-medium">{label}</div>
     </div>
   )
