@@ -58,6 +58,7 @@ export interface HockeyTestReportData {
   threeJumpRight: number | null
   beepTestLevel: number | null
   beepTestShuttle: number | null
+  wingate30sAveragePower: number | null
   vo2Max: number | null
   lt1SpeedKmh: number | null
   lt1HeartRate: number | null
@@ -348,6 +349,7 @@ export function generateHockeyTestReportPDF(test: HockeyTestReportData): Blob {
     metric('3-step best', threeJumpBest, 'cm', 0),
     metric('3-step asymmetry', threeJumpAsymmetry, '%', 1),
     metric('Beep score', beepScore, '', 1),
+    metric('Wingate 30 s', test.wingate30sAveragePower, 'W', 0),
   ])
   if (diagnosticRows.length > 0) {
     y = sectionTitle(pdf, 'Coach diagnostics', y)

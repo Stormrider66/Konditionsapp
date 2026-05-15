@@ -146,6 +146,7 @@ const PATHWAY_MILESTONE_LABELS: Record<string, string> = {
   backSquat1RM: 'back squat',
   powerClean1RM: 'power clean',
   vo2Max: 'VO2max',
+  wingate30sAveragePower: 'Wingate 30 s',
   lt2SpeedKmh: 'LT2 speed',
 }
 
@@ -245,6 +246,7 @@ function toSummary(
     threeJumpRight: test.threeJumpRight,
     threeJumpBest: bestOf([test.threeJumpLeft, test.threeJumpRight]),
     beepScore: round(beepScore, 1),
+    wingate30sAveragePower: round(test.wingate30sAveragePower, 0),
     vo2Max: round(test.vo2Max, 1),
     lt1SpeedKmh: round(test.lt1SpeedKmh, 1),
     lt1HeartRate: test.lt1HeartRate,
@@ -617,6 +619,7 @@ async function loadTests(clientId: string) {
       threeJumpRight: true,
       beepTestLevel: true,
       beepTestShuttle: true,
+      wingate30sAveragePower: true,
       vo2Max: true,
       lt1SpeedKmh: true,
       lt1HeartRate: true,

@@ -141,6 +141,7 @@ export interface HockeyPhysicalTestSummary {
   threeJumpRight: number | null
   beepTestLevel: number | null
   beepTestShuttle: number | null
+  wingate30sAveragePower: number | null
   backSquat1RM: number | null
   powerClean1RM: number | null
   benchPress1RM: number | null

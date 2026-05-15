@@ -292,6 +292,7 @@ const PHYSICAL_METRICS = [
   { key: 'sprint0to30Kmh', label: '0-30 fart', unit: 'km/h', decimals: 1 },
   { key: 'agilityBest', label: '5-10-5', unit: 's', decimals: 2 },
   { key: 'beepScore', label: 'Beep', unit: '', decimals: 1 },
+  { key: 'wingate30sAveragePower', label: 'Wingate 30 s', unit: 'W', decimals: 0 },
   { key: 'vo2Max', label: 'VO2max', unit: 'ml/kg/min', decimals: 1 },
   { key: 'lt1SpeedKmh', label: 'LT1 fart', unit: 'km/h', decimals: 1 },
   { key: 'lt1HeartRate', label: 'LT1 puls', unit: 'bpm', decimals: 0 },
@@ -415,7 +416,7 @@ function metricFocus(metricKey: string): { title: string; description: string } 
       description: 'Prioritera korta isaccelerationer, broms/omstart och 5-10-5-kvalitet med full återhämtning.',
     }
   }
-  if (['muscleLabWkg', 'standingLongJump', 'threeJumpBest'].includes(metricKey)) {
+  if (['muscleLabWkg', 'wingate30sAveragePower', 'standingLongJump', 'threeJumpBest'].includes(metricKey)) {
     return {
       title: 'Explosiv underkroppskraft',
       description: 'Kör ett power-block med hopp, loaded squat jump och hastighetsstyrda kontrastpar.',

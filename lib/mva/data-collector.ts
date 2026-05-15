@@ -198,6 +198,7 @@ export async function collectTeamData(teamId: string): Promise<AthleteDataBundle
               threeJumpRight: true,
               beepTestLevel: true,
               beepTestShuttle: true,
+              wingate30sAveragePower: true,
               backSquat1RM: true,
               powerClean1RM: true,
               benchPress1RM: true,

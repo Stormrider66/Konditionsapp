@@ -53,7 +53,7 @@ function metricFocus(metricKey: string): { title: string; description: string } 
       description: 'Planera korta isaccelerationer, 5-10-5-teknik och full återhämtning mellan kvalitetsreps.',
     }
   }
-  if (['muscleLabWkg', 'standingLongJump', 'threeJumpBest'].includes(metricKey)) {
+  if (['muscleLabWkg', 'wingate30sAveragePower', 'standingLongJump', 'threeJumpBest'].includes(metricKey)) {
     return {
       title: 'Explosiv underkroppskraft',
       description: 'Lägg in power-block med hopp, loaded jump squat och kontrastpar där hastigheten styr belastningen.',

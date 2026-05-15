@@ -55,6 +55,7 @@ interface HockeyTest {
   threeJumpRight: number | null
   beepTestLevel: number | null
   beepTestShuttle: number | null
+  wingate30sAveragePower: number | null
   vo2Max: number | null
   lt1SpeedKmh: number | null
   lt1HeartRate: number | null
@@ -492,7 +493,7 @@ export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProp
                     )}
 
                     {/* Endurance tests */}
-                    {(test.beepTestLevel || endurance || test.vo2Max || test.lt1SpeedKmh || test.lt2SpeedKmh) && (
+                    {(test.beepTestLevel || endurance || test.wingate30sAveragePower || test.vo2Max || test.lt1SpeedKmh || test.lt2SpeedKmh) && (
                       <div>
                         <div className="mb-2 flex flex-wrap items-center gap-2">
                           <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><Activity className="h-3 w-3" /> Uthållighet</p>
@@ -506,6 +507,7 @@ export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProp
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                           <TestValue label="Beep nivå" value={test.beepTestLevel} unit="" decimals={1} />
                           <TestValue label="Beep shuttle" value={test.beepTestShuttle} unit="" decimals={0} />
+                          <TestValue label="Wingate 30 s" value={test.wingate30sAveragePower} unit="W" decimals={0} />
                           <TestValue label="VO2max" value={test.vo2Max} unit="ml/kg/min" decimals={1} />
                           <TestValue label="Maxpuls" value={test.maxHeartRate} unit="bpm" decimals={0} />
                           <TestValue label="Max laktat" value={test.maxLactate} unit="mmol/L" decimals={1} />

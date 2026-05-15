@@ -61,7 +61,7 @@ export const PAGE_CONTEXT_REGISTRY: Record<string, PageContextConfig> = {
   },
   'coach/hockey-tests': {
     pageTitle: 'Hockey testcockpit',
-    description: 'Hockeyspecifik testinmatning för is-sprint, 5-10-5, 7x40 m, MuscleLab/VBT, styrka, hopp, grepp, beep test och VO2max/ramp med LT1, LT2, laktat, maxpuls och ramptid. Resultaten sparas till HockeyPhysicalTest och används i spelarprofil, teammatris, rapporter, normer, pathway och SIMCA-export.',
+    description: 'Hockeyspecifik testinmatning för is-sprint, 5-10-5, 7x40 m, MuscleLab/VBT, Wingate 30 s, styrka, hopp, grepp, beep test och VO2max/ramp med LT1, LT2, laktat, maxpuls och ramptid. Resultaten sparas till HockeyPhysicalTest och används i spelarprofil, teammatris, rapporter, normer, pathway och SIMCA-export.',
     concepts: ['vo2max', 'trainingZones', 'wattsPerKg', 'oneRM'],
     cards: [
       { id: 'hockey-ice-tests', title: 'Is-tester' },

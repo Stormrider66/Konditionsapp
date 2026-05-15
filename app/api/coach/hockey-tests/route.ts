@@ -55,6 +55,7 @@ const createTestSchema = z.object({
   // Endurance
   beepTestLevel: z.number().positive().optional(),
   beepTestShuttle: z.number().int().positive().optional(),
+  wingate30sAveragePower: z.number().positive().optional(),
   vo2Max: z.number().positive().optional(),
   lt1SpeedKmh: z.number().positive().optional(),
   lt1HeartRate: z.number().int().positive().optional(),
@@ -240,6 +241,7 @@ export async function POST(req: NextRequest) {
       threeJumpRight: parsed.data.threeJumpRight,
       beepTestLevel: parsed.data.beepTestLevel,
       beepTestShuttle: parsed.data.beepTestShuttle,
+      wingate30sAveragePower: parsed.data.wingate30sAveragePower,
       vo2Max: aerobicData.vo2Max,
       lt1SpeedKmh: aerobicData.lt1SpeedKmh,
       lt1HeartRate: aerobicData.lt1HeartRate,

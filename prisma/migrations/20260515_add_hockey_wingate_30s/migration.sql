@@ -1,0 +1,2 @@
+ALTER TABLE "HockeyPhysicalTest"
+  ADD COLUMN IF NOT EXISTS "wingate30sAveragePower" DOUBLE PRECISION;

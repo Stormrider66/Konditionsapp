@@ -1057,6 +1057,9 @@ model HockeyPhysicalTest {
   beepTestLevel   Float?
   beepTestShuttle Int?
 
+  // Wingate 30-second anaerobic test
+  wingate30sAveragePower Float? // W, average power across 30 seconds
+
   // VO2max / ramp lab test
   vo2Max          Float? // ml/kg/min
   lt1SpeedKmh     Float?

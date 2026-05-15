@@ -90,6 +90,7 @@ const HOCKEY_METRICS: HockeyMetric[] = [
   { key: 'standingLongJump', label: 'Längdhopp', unit: 'cm' },
   { key: 'threeJumpBest', label: '3-steg bäst', unit: 'cm' },
   { key: 'beepScore', label: 'Beep', unit: 'nivå' },
+  { key: 'wingate30sAveragePower', label: 'Wingate 30 s', unit: 'W' },
   { key: 'vo2Max', label: 'VO2max', unit: 'ml/kg/min' },
   { key: 'lt1SpeedKmh', label: 'LT1 fart', unit: 'km/h' },
   { key: 'lt1HeartRate', label: 'LT1 puls', unit: 'bpm' },
@@ -144,6 +145,7 @@ type HockeyTestForSummary = {
   threeJumpRight: number | null
   beepTestLevel: number | null
   beepTestShuttle: number | null
+  wingate30sAveragePower: number | null
   vo2Max: number | null
   lt1SpeedKmh: number | null
   lt1HeartRate: number | null
@@ -305,6 +307,7 @@ function metricValuesForTest(test: HockeyTestForSummary | undefined): HockeyMetr
     standingLongJump: test?.standingLongJump ?? null,
     threeJumpBest: bestOf([test?.threeJumpLeft, test?.threeJumpRight]),
     beepScore: round(beepScore, 1),
+    wingate30sAveragePower: round(test?.wingate30sAveragePower ?? null, 0),
     vo2Max: round(test?.vo2Max ?? null, 1),
     lt1SpeedKmh: round(test?.lt1SpeedKmh ?? null, 1),
     lt1HeartRate: test?.lt1HeartRate ?? null,
@@ -563,6 +566,7 @@ export async function GET(
         threeJumpRight: true,
         beepTestLevel: true,
         beepTestShuttle: true,
+        wingate30sAveragePower: true,
         vo2Max: true,
         lt1SpeedKmh: true,
         lt1HeartRate: true,

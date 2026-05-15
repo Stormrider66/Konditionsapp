@@ -137,6 +137,7 @@ const CORE_METRICS = [
   'powerClean1RM',
   'standingLongJump',
   'threeJumpBest',
+  'wingate30sAveragePower',
   'sprint10m',
   'agilityBest',
   'endurance7x40Score',

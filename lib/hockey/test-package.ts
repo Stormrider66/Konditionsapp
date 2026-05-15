@@ -11,6 +11,7 @@ export type HockeyTestMetricKey =
   | 'threeJumpLeft'
   | 'threeJumpRight'
   | 'beepTestLevel'
+  | 'wingate30sAveragePower'
   | 'vo2Max'
   | 'lt1SpeedKmh'
   | 'lt1HeartRate'
@@ -61,6 +62,7 @@ export const HOCKEY_TEST_METRIC_KEYS = new Set<HockeyTestMetricKey>([
   'threeJumpLeft',
   'threeJumpRight',
   'beepTestLevel',
+  'wingate30sAveragePower',
   'vo2Max',
   'lt1SpeedKmh',
   'lt1HeartRate',
@@ -158,6 +160,25 @@ export const DEFAULT_HOCKEY_TEST_PACKAGE: HockeyTestPackage = {
       enabled: true,
     },
     {
+      id: 'beep-test',
+      metricKey: 'beepTestLevel',
+      label: 'Beep test',
+      unit: 'nivå',
+      category: 'endurance',
+      aliases: ['beep', 'beep test', 'bleep test', 'multi-stage fitness test', 'multistage fitness test'],
+      enabled: true,
+    },
+    {
+      id: 'wingate-30s-average-power',
+      metricKey: 'wingate30sAveragePower',
+      label: 'Wingate 30 sek',
+      unit: 'W',
+      category: 'power',
+      aliases: ['wingate', 'wingate 30s', 'wingate 30 sek', '30 second wingate', '30s sprint'],
+      enabled: true,
+      notes: 'Ange snitteffekt över 30 sekunder.',
+    },
+    {
       id: 'vo2max',
       metricKey: 'vo2Max',
       label: 'VO2max',
@@ -230,16 +251,27 @@ function normalizeItem(value: unknown): HockeyTestPackageItem | null {
   }
 }
 
+function addMissingDefaultItems(items: HockeyTestPackageItem[]) {
+  if (items.length === 0) return DEFAULT_HOCKEY_TEST_PACKAGE.items
+  const existingMetricKeys = new Set(items.map((item) => item.metricKey))
+  const existingIds = new Set(items.map((item) => item.id))
+  const missingDefaults = DEFAULT_HOCKEY_TEST_PACKAGE.items.filter((item) => (
+    !existingMetricKeys.has(item.metricKey) && !existingIds.has(item.id)
+  ))
+  return [...items, ...missingDefaults]
+}
+
 export function normalizeHockeyTestPackage(value: unknown): HockeyTestPackage {
   if (!isRecord(value)) return DEFAULT_HOCKEY_TEST_PACKAGE
   const items = Array.isArray(value.items)
     ? value.items.map(normalizeItem).filter((item): item is HockeyTestPackageItem => item !== null)
     : []
+  const itemsWithDefaults = addMissingDefaultItems(items)
 
   return {
     version: 1,
     name: typeof value.name === 'string' && value.name ? value.name : DEFAULT_HOCKEY_TEST_PACKAGE.name,
-    items: items.length > 0 ? items : DEFAULT_HOCKEY_TEST_PACKAGE.items,
+    items: itemsWithDefaults,
   }
 }
 

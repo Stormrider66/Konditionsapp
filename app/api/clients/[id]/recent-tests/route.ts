@@ -57,6 +57,7 @@ function formatHockeySummary(test: {
   agility505Right: number | null
   beepTestLevel: number | null
   beepTestShuttle: number | null
+  wingate30sAveragePower: number | null
 }): string | null {
   const parts: string[] = []
   const muscleLabWkg = numberFromJson(test.muscleLabMaxima, 'maxAveragePowerPerBodyMass')
@@ -74,6 +75,7 @@ function formatHockeySummary(test: {
   if (test.beepTestLevel != null) {
     parts.push(`Beep ${test.beepTestLevel}${test.beepTestShuttle ? `.${test.beepTestShuttle}` : ''}`)
   }
+  if (test.wingate30sAveragePower != null) parts.push(`Wingate ${test.wingate30sAveragePower.toFixed(0)} W`)
 
   return parts.length > 0 ? parts.slice(0, 3).join(' · ') : null
 }
@@ -126,6 +128,7 @@ export async function GET(
           agility505Right: true,
           beepTestLevel: true,
           beepTestShuttle: true,
+          wingate30sAveragePower: true,
         },
       }),
       prisma.customTestResult.findMany({
