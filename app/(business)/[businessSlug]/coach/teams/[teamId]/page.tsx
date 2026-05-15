@@ -621,7 +621,8 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
               Spelare ({team.members.length})
             </CardTitle>
             <CardDescription>
-              Klicka på tröjnummer eller position för att redigera. Importera större listor via Excel/text/PDF.
+              Klicka på tröjnummer eller position för att redigera. Lägg till saknad e-post direkt i listan.
+              Importera större listor via Excel/text/PDF.
             </CardDescription>
           </CardHeader>
           <CardContent>

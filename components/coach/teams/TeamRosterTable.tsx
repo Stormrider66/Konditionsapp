@@ -46,11 +46,13 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   CalendarDays,
   Camera,
+  Check,
   ChevronDown,
   Dumbbell,
   Heart,
   HeartPulse,
   Loader2,
+  MailPlus,
   Plus,
   ShieldAlert,
   Tags,
@@ -143,9 +145,9 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
 
   const saveField = async (
     clientId: string,
-    field: 'jerseyNumber' | 'position',
+    field: 'jerseyNumber' | 'position' | 'email',
     value: string
-  ) => {
+  ): Promise<boolean> => {
     setSavingId(clientId)
 
     let payload: Record<string, unknown>
@@ -156,12 +158,27 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
         if (!Number.isInteger(n) || n < 0 || n > 999) {
           toast({ title: 'Ogiltigt tröjnummer (0-999)', variant: 'destructive' })
           setSavingId(null)
-          return
+          return false
         }
         payload = { jerseyNumber: n }
       }
     } else {
-      payload = { position: value === '' ? null : value }
+      if (field === 'position') {
+        payload = { position: value === '' ? null : value }
+      } else {
+        const email = value.trim().toLowerCase()
+        if (!email) {
+          toast({ title: 'Ange en e-postadress', variant: 'destructive' })
+          setSavingId(null)
+          return false
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          toast({ title: 'Ogiltig e-postadress', variant: 'destructive' })
+          setSavingId(null)
+          return false
+        }
+        payload = { email }
+      }
     }
 
     try {
@@ -172,13 +189,16 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Sparning misslyckades')
+      if (field === 'email') toast({ title: 'E-post sparad' })
       router.refresh()
+      return true
     } catch (e) {
       toast({
         title: 'Kunde inte spara',
         description: e instanceof Error ? e.message : 'Okänt fel',
         variant: 'destructive',
       })
+      return false
     } finally {
       setSavingId(null)
     }
@@ -319,8 +339,12 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
             <TableCell>
               <RosterStatusBadges member={m} />
             </TableCell>
-            <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
-              {m.email ?? '—'}
+            <TableCell className="hidden md:table-cell text-sm">
+              <RosterEmailCell
+                value={m.email}
+                saving={savingId === m.id}
+                onSave={(v) => saveField(m.id, 'email', v)}
+              />
             </TableCell>
             <TableCell>
               <Button
@@ -849,5 +873,109 @@ function RosterTextCell({
       }}
       className="h-8"
     />
+  )
+}
+
+function RosterEmailCell({
+  value,
+  saving,
+  onSave,
+}: {
+  value: string | null
+  saving: boolean
+  onSave: (v: string) => Promise<boolean>
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [editing, setEditing] = useState(false)
+  const [buffer, setBuffer] = useState('')
+  const [optimisticValue, setOptimisticValue] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus()
+  }, [editing])
+
+  const displayValue = value ?? optimisticValue
+
+  if (displayValue) {
+    return <span className="text-muted-foreground">{displayValue}</span>
+  }
+
+  if (!editing) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 px-2 text-xs"
+        onClick={() => {
+          setBuffer('')
+          setEditing(true)
+        }}
+      >
+        <MailPlus className="mr-1.5 h-3.5 w-3.5" />
+        Lägg till
+      </Button>
+    )
+  }
+
+  const save = async () => {
+    const next = buffer.trim()
+    if (!next) return
+    const saved = await onSave(next)
+    if (saved) {
+      setOptimisticValue(next.toLowerCase())
+      setEditing(false)
+      setBuffer('')
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <Input
+        ref={inputRef}
+        type="email"
+        value={buffer}
+        disabled={saving}
+        placeholder="namn@example.com"
+        onChange={(event) => setBuffer(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') void save()
+          if (event.key === 'Escape') {
+            setEditing(false)
+            setBuffer('')
+          }
+        }}
+        className="h-8 w-56"
+      />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8"
+        disabled={saving || !buffer.trim()}
+        onClick={() => void save()}
+        aria-label="Spara e-postadress"
+      >
+        {saving ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Check className="h-4 w-4 text-emerald-600" />
+        )}
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8"
+        disabled={saving}
+        onClick={() => {
+          setEditing(false)
+          setBuffer('')
+        }}
+        aria-label="Avbryt e-post"
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
   )
 }

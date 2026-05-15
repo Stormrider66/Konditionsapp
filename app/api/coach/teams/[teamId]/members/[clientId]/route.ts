@@ -1,7 +1,7 @@
 /**
  * Single Team Member API
  *
- * PATCH  — update roster fields (jerseyNumber, position, photoUrl)
+ * PATCH  — update roster fields (jerseyNumber, position, photoUrl, email)
  * DELETE — detach client from the team (nulls Client.teamId). Does NOT
  *          disconnect the coach or delete the client.
  */
@@ -11,10 +11,18 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { canAccessClientInTeam, getWritableTeam } from '@/lib/coach/team-access'
+import { z } from 'zod'
 
 interface RouteContext {
   params: Promise<{ teamId: string; clientId: string }>
 }
+
+const emailSchema = z
+  .string()
+  .trim()
+  .email()
+  .max(254)
+  .transform((email) => email.toLowerCase())
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
@@ -28,7 +36,12 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     if (!team || !canAccessClient) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const body = await req.json().catch(() => ({}))
-    const data: { jerseyNumber?: number | null; position?: string | null; photoUrl?: string | null } = {}
+    const data: {
+      jerseyNumber?: number | null
+      position?: string | null
+      photoUrl?: string | null
+      email?: string | null
+    } = {}
 
     if ('jerseyNumber' in body) {
       const n = body.jerseyNumber
@@ -48,9 +61,96 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       else if (typeof u === 'string' && u.length <= 2048) data.photoUrl = u
       else return NextResponse.json({ error: 'photoUrl invalid' }, { status: 400 })
     }
+    if ('email' in body) {
+      const e = body.email
+      if (e === null || e === '') {
+        data.email = null
+      } else if (typeof e === 'string') {
+        const parsedEmail = emailSchema.safeParse(e)
+        if (!parsedEmail.success) {
+          return NextResponse.json({ error: 'Ogiltig e-postadress' }, { status: 400 })
+        }
+        data.email = parsedEmail.data
+      } else {
+        return NextResponse.json({ error: 'email invalid' }, { status: 400 })
+      }
+    }
 
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: 'No valid fields' }, { status: 400 })
+    }
+
+    if ('email' in data) {
+      const currentClient = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: {
+          id: true,
+          userId: true,
+          businessId: true,
+          athleteAccount: {
+            select: {
+              userId: true,
+              user: { select: { email: true } },
+            },
+          },
+        },
+      })
+
+      if (!currentClient) {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      }
+
+      if (!data.email && currentClient.athleteAccount) {
+        return NextResponse.json(
+          { error: 'Spelaren har ett aktivt atletkonto och måste ha en e-postadress' },
+          { status: 400 }
+        )
+      }
+
+      if (data.email) {
+        const athleteAccountEmail = currentClient.athleteAccount?.user.email.toLowerCase()
+        if (athleteAccountEmail && athleteAccountEmail !== data.email) {
+          return NextResponse.json(
+            { error: 'Uppdatera e-post via spelarprofilen för spelare med aktivt atletkonto' },
+            { status: 400 }
+          )
+        }
+
+        const duplicateClient = await prisma.client.findFirst({
+          where: {
+            id: { not: clientId },
+            email: { equals: data.email, mode: 'insensitive' },
+            ...(currentClient.businessId
+              ? { businessId: currentClient.businessId }
+              : { userId: currentClient.userId }),
+          },
+          select: { id: true },
+        })
+
+        if (duplicateClient) {
+          return NextResponse.json(
+            { error: 'En spelare med denna e-postadress finns redan' },
+            { status: 409 }
+          )
+        }
+
+        const duplicateUser = await prisma.user.findFirst({
+          where: {
+            email: { equals: data.email, mode: 'insensitive' },
+            ...(currentClient.athleteAccount
+              ? { id: { not: currentClient.athleteAccount.userId } }
+              : {}),
+          },
+          select: { id: true },
+        })
+
+        if (duplicateUser) {
+          return NextResponse.json(
+            { error: 'E-postadressen används redan av en annan användare' },
+            { status: 409 }
+          )
+        }
+      }
     }
 
     const updated = await prisma.client.update({
@@ -59,6 +159,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       select: {
         id: true,
         name: true,
+        email: true,
         jerseyNumber: true,
         position: true,
         photoUrl: true,
