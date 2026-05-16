@@ -6,19 +6,16 @@ import { usePathname } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
 import { SportType } from '@prisma/client'
 import {
-  Menu, X, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, CalendarDays, Dumbbell,
-  ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard, Video, Settings,
-  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship, Bell, Gift, BarChart3, Shield, Building2
+  Menu, X, Users, User as UserIcon, Users2, MessageSquare, Calendar, CalendarDays, Dumbbell,
+  ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, LayoutDashboard, Video, Settings,
+  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship, Gift, BarChart3, Shield, Building2
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { NotificationBell } from '@/components/calendar/NotificationsPanel'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { UserNav } from './UserNav'
@@ -27,26 +24,25 @@ import { useTranslations } from '@/i18n/client'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { getAthleteTestsHref, getAthleteTestsNavMeta } from '@/lib/athlete-tests/navigation'
 
-// Sport icons and labels
-const SPORT_DISPLAY: Record<SportType, { icon: string; label: string; labelSv: string }> = {
-  RUNNING: { icon: '🏃', label: 'Running', labelSv: 'Löpning' },
-  CYCLING: { icon: '🚴', label: 'Cycling', labelSv: 'Cykling' },
-  SKIING: { icon: '⛷️', label: 'Cross-Country Skiing', labelSv: 'Längdskidåkning' },
-  TRIATHLON: { icon: '🏊', label: 'Triathlon', labelSv: 'Triathlon' },
-  HYROX: { icon: '💪', label: 'HYROX', labelSv: 'HYROX' },
-  GENERAL_FITNESS: { icon: '🏋️', label: 'General Fitness', labelSv: 'Allmän Fitness' },
-  FUNCTIONAL_FITNESS: { icon: '🔥', label: 'Functional Fitness', labelSv: 'Funktionell Fitness' },
-  SWIMMING: { icon: '🏊‍♂️', label: 'Swimming', labelSv: 'Simning' },
-  STRENGTH: { icon: '🏋️', label: 'Strength Training', labelSv: 'Styrketräning' },
-  TEAM_FOOTBALL: { icon: '⚽', label: 'Football', labelSv: 'Fotboll' },
-  TEAM_ICE_HOCKEY: { icon: '🏒', label: 'Ice Hockey', labelSv: 'Ishockey' },
-  TEAM_HANDBALL: { icon: '🤾', label: 'Handball', labelSv: 'Handboll' },
-  TEAM_FLOORBALL: { icon: '🏑', label: 'Floorball', labelSv: 'Innebandy' },
-  TEAM_BASKETBALL: { icon: '🏀', label: 'Basketball', labelSv: 'Basket' },
-  TEAM_VOLLEYBALL: { icon: '🏐', label: 'Volleyball', labelSv: 'Volleyboll' },
-  TENNIS: { icon: '🎾', label: 'Tennis', labelSv: 'Tennis' },
-  PADEL: { icon: '🎾', label: 'Padel', labelSv: 'Padel' },
-  NUTRITION: { icon: '🥗', label: 'Nutrition', labelSv: 'Kost' },
+const SPORT_DISPLAY: Record<SportType, { icon: string; labelKey: string }> = {
+  RUNNING: { icon: '🏃', labelKey: 'running' },
+  CYCLING: { icon: '🚴', labelKey: 'cycling' },
+  SKIING: { icon: '⛷️', labelKey: 'skiing' },
+  TRIATHLON: { icon: '🏊', labelKey: 'triathlon' },
+  HYROX: { icon: '💪', labelKey: 'hyrox' },
+  GENERAL_FITNESS: { icon: '🏋️', labelKey: 'generalFitness' },
+  FUNCTIONAL_FITNESS: { icon: '🔥', labelKey: 'functionalFitness' },
+  SWIMMING: { icon: '🏊‍♂️', labelKey: 'swimming' },
+  STRENGTH: { icon: '🏋️', labelKey: 'strength' },
+  TEAM_FOOTBALL: { icon: '⚽', labelKey: 'football' },
+  TEAM_ICE_HOCKEY: { icon: '🏒', labelKey: 'iceHockey' },
+  TEAM_HANDBALL: { icon: '🤾', labelKey: 'handball' },
+  TEAM_FLOORBALL: { icon: '🏑', labelKey: 'floorball' },
+  TEAM_BASKETBALL: { icon: '🏀', labelKey: 'basketball' },
+  TEAM_VOLLEYBALL: { icon: '🏐', labelKey: 'volleyball' },
+  TENNIS: { icon: '🎾', labelKey: 'tennis' },
+  PADEL: { icon: '🎾', labelKey: 'padel' },
+  NUTRITION: { icon: '🥗', labelKey: 'nutrition' },
 }
 
 interface SportProfile {
@@ -137,41 +133,41 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
 
   // Simplified main navigation for coaches (desktop header)
   const mainNavLinks = [
-    { href: coachHref('/dashboard'), label: 'Dashboard', icon: LayoutDashboard },
-    { href: coachHref('/calendar'), label: 'Kalender', icon: CalendarDays },
-    { href: coachHref('/clients'), label: 'Atleter', icon: Users },
-    { href: coachHref('/programs'), label: 'Program', icon: FileStack },
+    { href: coachHref('/dashboard'), label: t('mobile.dashboard'), icon: LayoutDashboard },
+    { href: coachHref('/calendar'), label: t('mobile.calendar'), icon: CalendarDays },
+    { href: coachHref('/clients'), label: t('mobile.athletes'), icon: Users },
+    { href: coachHref('/programs'), label: t('mobile.programs'), icon: FileStack },
   ]
 
   // Grouped navigation for dropdown menus
   const navGroups = {
     tools: {
-      label: 'Verktyg',
+      label: t('mobile.tools'),
       icon: Wrench,
       items: [
-        { href: coachHref('/test'), label: 'Nytt Test', icon: TestTube },
-        { href: coachHref('/ai-studio'), label: 'AI Studio', icon: Sparkles },
-        { href: coachHref('/ai-canvas'), label: 'AI Canvas', icon: Brain },
-        { href: coachHref('/hybrid-studio'), label: 'Hybrid Studio', icon: Flame },
-        { href: coachHref('/strength'), label: 'Strength Studio', icon: Dumbbell },
-        { href: coachHref('/cardio'), label: 'Cardio Studio', icon: Heart },
-        { href: coachHref('/ergometer-tests'), label: 'Ergometertester', icon: Gauge },
-        { href: coachHref('/video-analysis'), label: 'Videoanalys', icon: Video },
-        { href: coachHref('/monitoring'), label: 'Monitorering', icon: Activity },
-        { href: coachHref('/live-hr'), label: 'Live HR', icon: Heart },
+        { href: coachHref('/test'), label: t('mobile.newTest'), icon: TestTube },
+        { href: coachHref('/ai-studio'), label: t('mobile.aiStudio'), icon: Sparkles },
+        { href: coachHref('/ai-canvas'), label: t('mobile.aiCanvas'), icon: Brain },
+        { href: coachHref('/hybrid-studio'), label: t('mobile.hybridStudio'), icon: Flame },
+        { href: coachHref('/strength'), label: t('mobile.strengthStudio'), icon: Dumbbell },
+        { href: coachHref('/cardio'), label: t('mobile.cardioStudio'), icon: Heart },
+        { href: coachHref('/ergometer-tests'), label: t('mobile.ergometerTests'), icon: Gauge },
+        { href: coachHref('/video-analysis'), label: t('mobile.videoAnalysis'), icon: Video },
+        { href: coachHref('/monitoring'), label: t('mobile.monitoring'), icon: Activity },
+        { href: coachHref('/live-hr'), label: t('mobile.liveHr'), icon: Heart },
       ],
     },
     more: {
-      label: 'Mer',
+      label: t('mobile.more'),
       icon: Menu,
       items: [
-        { href: coachHref('/analytics'), label: 'Analys', icon: BarChart3 },
-        { href: coachHref('/teams'), label: 'Lag', icon: Users2 },
-        { href: coachHref('/organizations'), label: 'Organisationer', icon: Building2 },
-        { href: coachHref('/documents'), label: 'Dokument', icon: FileStack },
-        { href: coachHref('/messages'), label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
-        { href: coachHref('/referrals'), label: 'Värvningar', icon: Gift },
-        { href: coachHref('/settings/ai'), label: 'Inställningar', icon: Settings },
+        { href: coachHref('/analytics'), label: t('mobile.analytics'), icon: BarChart3 },
+        { href: coachHref('/teams'), label: t('mobile.teams'), icon: Users2 },
+        { href: coachHref('/organizations'), label: t('mobile.organizations'), icon: Building2 },
+        { href: coachHref('/documents'), label: t('mobile.documents'), icon: FileStack },
+        { href: coachHref('/messages'), label: t('mobile.messages'), icon: MessageSquare, badge: unreadCount },
+        { href: coachHref('/referrals'), label: t('mobile.referrals'), icon: Gift },
+        { href: coachHref('/settings/ai'), label: t('mobile.settings'), icon: Settings },
         // Business admin for OWNER/ADMIN members
         ...(isBusinessAdmin ? [{ href: coachHref('/admin'), label: 'Admin', icon: Shield }] : []),
         // Platform admin only for ADMIN role users
@@ -182,27 +178,27 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
 
   // Mobile navigation - flat list with all items
   const mobileNavLinks = [
-    { href: coachHref('/dashboard'), label: 'Dashboard', icon: LayoutDashboard },
-    { href: coachHref('/calendar'), label: 'Kalender', icon: CalendarDays },
-    { href: coachHref('/clients'), label: 'Atleter', icon: Users },
-    { href: coachHref('/programs'), label: 'Program', icon: FileStack },
-    { href: coachHref('/test'), label: 'Nytt Test', icon: TestTube },
-    { href: coachHref('/ai-studio'), label: 'AI Studio', icon: Sparkles },
-    { href: coachHref('/ai-canvas'), label: 'AI Canvas', icon: Brain },
-    { href: coachHref('/hybrid-studio'), label: 'Hybrid Studio', icon: Flame },
-    { href: coachHref('/strength'), label: 'Strength Studio', icon: Dumbbell },
-    { href: coachHref('/cardio'), label: 'Cardio Studio', icon: Heart },
-    { href: coachHref('/ergometer-tests'), label: 'Ergometertester', icon: Gauge },
-    { href: coachHref('/video-analysis'), label: 'Videoanalys', icon: Video },
-    { href: coachHref('/monitoring'), label: 'Monitorering', icon: Activity },
-    { href: coachHref('/live-hr'), label: 'Live HR', icon: Heart },
-    { href: coachHref('/analytics'), label: 'Analys', icon: BarChart3 },
-    { href: coachHref('/teams'), label: 'Lag', icon: Users2 },
-    { href: coachHref('/organizations'), label: 'Organisationer', icon: Building2 },
-    { href: coachHref('/documents'), label: 'Dokument', icon: FileStack },
-    { href: coachHref('/messages'), label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
-    { href: coachHref('/referrals'), label: 'Värvningar', icon: Gift },
-    { href: coachHref('/settings/ai'), label: 'Inställningar', icon: Settings },
+    { href: coachHref('/dashboard'), label: t('mobile.dashboard'), icon: LayoutDashboard },
+    { href: coachHref('/calendar'), label: t('mobile.calendar'), icon: CalendarDays },
+    { href: coachHref('/clients'), label: t('mobile.athletes'), icon: Users },
+    { href: coachHref('/programs'), label: t('mobile.programs'), icon: FileStack },
+    { href: coachHref('/test'), label: t('mobile.newTest'), icon: TestTube },
+    { href: coachHref('/ai-studio'), label: t('mobile.aiStudio'), icon: Sparkles },
+    { href: coachHref('/ai-canvas'), label: t('mobile.aiCanvas'), icon: Brain },
+    { href: coachHref('/hybrid-studio'), label: t('mobile.hybridStudio'), icon: Flame },
+    { href: coachHref('/strength'), label: t('mobile.strengthStudio'), icon: Dumbbell },
+    { href: coachHref('/cardio'), label: t('mobile.cardioStudio'), icon: Heart },
+    { href: coachHref('/ergometer-tests'), label: t('mobile.ergometerTests'), icon: Gauge },
+    { href: coachHref('/video-analysis'), label: t('mobile.videoAnalysis'), icon: Video },
+    { href: coachHref('/monitoring'), label: t('mobile.monitoring'), icon: Activity },
+    { href: coachHref('/live-hr'), label: t('mobile.liveHr'), icon: Heart },
+    { href: coachHref('/analytics'), label: t('mobile.analytics'), icon: BarChart3 },
+    { href: coachHref('/teams'), label: t('mobile.teams'), icon: Users2 },
+    { href: coachHref('/organizations'), label: t('mobile.organizations'), icon: Building2 },
+    { href: coachHref('/documents'), label: t('mobile.documents'), icon: FileStack },
+    { href: coachHref('/messages'), label: t('mobile.messages'), icon: MessageSquare, badge: unreadCount },
+    { href: coachHref('/referrals'), label: t('mobile.referrals'), icon: Gift },
+    { href: coachHref('/settings/ai'), label: t('mobile.settings'), icon: Settings },
     // Business admin for OWNER/ADMIN members
     ...(isBusinessAdmin ? [{ href: coachHref('/admin'), label: 'Admin', icon: Shield }] : []),
     // Platform admin only for ADMIN role users
@@ -211,43 +207,42 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
 
   // Existing rendering code still expects these groups separately.
   const baseNavLinks = mainNavLinks
-  const coachNavLinks = [] as typeof mainNavLinks
 
   // Athlete main navigation (desktop header - always visible)
   const athleteMainNavLinks = [
-    { href: `${basePath}/athlete/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
-    { href: `${basePath}/athlete/check-in`, label: 'Check-in', icon: CheckCircle },
-    { href: `${basePath}/athlete/calendar`, label: 'Kalender', icon: Calendar },
+    { href: `${basePath}/athlete/dashboard`, label: t('mobile.dashboard'), icon: LayoutDashboard },
+    { href: `${basePath}/athlete/check-in`, label: t('mobile.checkIn'), icon: CheckCircle },
+    { href: `${basePath}/athlete/calendar`, label: t('mobile.calendar'), icon: Calendar },
   ]
 
   // Athlete grouped navigation for dropdowns
   const athleteNavGroups = {
     training: {
-      label: 'Träning',
+      label: t('mobile.training'),
       icon: Activity,
       items: [
-        { href: `${basePath}/athlete/history`, label: 'Historik', icon: TrendingUp },
-        { href: `${basePath}/athlete/programs`, label: 'Program', icon: Calendar },
-        { href: `${basePath}/athlete/strength`, label: 'Styrketräning', icon: Dumbbell },
-        { href: `${basePath}/athlete/cardio`, label: 'Cardio Pass', icon: Heart },
-        { href: `${basePath}/athlete/hybrid`, label: 'Hybrid Pass', icon: Flame },
-        { href: `${basePath}/athlete/vbt`, label: 'VBT Data', icon: Gauge },
-        { href: `${basePath}/athlete/ergometer`, label: 'Ergometer', icon: Activity },
-        { href: `${basePath}/athlete/concept2`, label: 'Concept2', icon: Ship },
-        { href: `${basePath}/athlete/video-analysis`, label: 'Videoanalys', icon: Video },
+        { href: `${basePath}/athlete/history`, label: t('mobile.history'), icon: TrendingUp },
+        { href: `${basePath}/athlete/programs`, label: t('mobile.programs'), icon: Calendar },
+        { href: `${basePath}/athlete/strength`, label: t('mobile.strengthTraining'), icon: Dumbbell },
+        { href: `${basePath}/athlete/cardio`, label: t('mobile.cardioWorkout'), icon: Heart },
+        { href: `${basePath}/athlete/hybrid`, label: t('mobile.hybridWorkout'), icon: Flame },
+        { href: `${basePath}/athlete/vbt`, label: t('mobile.vbtData'), icon: Gauge },
+        { href: `${basePath}/athlete/ergometer`, label: t('mobile.ergometer'), icon: Activity },
+        { href: `${basePath}/athlete/concept2`, label: t('mobile.concept2'), icon: Ship },
+        { href: `${basePath}/athlete/video-analysis`, label: t('mobile.videoAnalysis'), icon: Video },
       ],
     },
     more: {
-      label: 'Mer',
+      label: t('mobile.more'),
       icon: Menu,
       items: [
-        { href: `${basePath}/athlete/profile`, label: 'Min Profil', icon: UserIcon },
-        { href: athleteTestsHref, label: 'Tester & Rapporter', icon: FlaskConical },
-        { href: `${basePath}/athlete/lactate/new`, label: 'Laktattest', icon: Droplet },
-        { href: `${basePath}/athlete/messages`, label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
-        { href: `${basePath}/athlete/settings`, label: 'Inställningar', icon: Settings },
+        { href: `${basePath}/athlete/profile`, label: t('mobile.myProfile'), icon: UserIcon },
+        { href: athleteTestsHref, label: t('mobile.testsAndReports'), icon: FlaskConical },
+        { href: `${basePath}/athlete/lactate/new`, label: t('mobile.lactateTest'), icon: Droplet },
+        { href: `${basePath}/athlete/messages`, label: t('mobile.messages'), icon: MessageSquare, badge: unreadCount },
+        { href: `${basePath}/athlete/settings`, label: t('mobile.settings'), icon: Settings },
         ...(needsOnboarding
-          ? [{ href: `${basePath}/athlete/onboarding`, label: 'Sportprofil', icon: UserIcon }]
+          ? [{ href: `${basePath}/athlete/onboarding`, label: t('mobile.sportProfile'), icon: UserIcon }]
           : []),
       ],
     },
@@ -256,35 +251,35 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
   // Athlete mobile navigation - flat list with all items
   const athleteNavLinks = [
     // Dashboard & Overview
-    { href: `${basePath}/athlete/dashboard`, label: 'Dashboard', icon: LayoutDashboard, description: 'Översikt & idag' },
-    { href: `${basePath}/athlete/check-in`, label: 'Check-in', icon: CheckCircle, description: 'Daglig readiness', highlight: true },
-    { href: `${basePath}/athlete/calendar`, label: 'Kalender', icon: Calendar, description: 'Träning, tävlingar & händelser' },
+    { href: `${basePath}/athlete/dashboard`, label: t('mobile.dashboard'), icon: LayoutDashboard, description: t('mobile.descriptions.dashboard') },
+    { href: `${basePath}/athlete/check-in`, label: t('mobile.checkIn'), icon: CheckCircle, description: t('mobile.descriptions.checkIn'), highlight: true },
+    { href: `${basePath}/athlete/calendar`, label: t('mobile.calendar'), icon: Calendar, description: t('mobile.descriptions.calendar') },
 
     // Training & History
-    { href: `${basePath}/athlete/history`, label: 'Historik', icon: TrendingUp, description: 'Träningshistorik' },
-    { href: `${basePath}/athlete/programs`, label: 'Program', icon: ClipboardList, description: 'Dina träningsprogram' },
-    { href: `${basePath}/athlete/strength`, label: 'Styrketräning', icon: Dumbbell, description: 'Styrkepass & mallar' },
-    { href: `${basePath}/athlete/cardio`, label: 'Cardio Pass', icon: Heart, description: 'Löpning, cykling & kondition' },
-    { href: `${basePath}/athlete/hybrid`, label: 'Hybrid Pass', icon: Flame, description: 'AMRAP, EMOM & CrossFit' },
-    { href: `${basePath}/athlete/vbt`, label: 'VBT Data', icon: Gauge, description: 'Hastighetsbaserad styrketräning' },
-    { href: `${basePath}/athlete/ergometer`, label: 'Ergometer', icon: Activity, description: 'Rodd, SkiErg, Wattbike & Air Bike' },
-    { href: `${basePath}/athlete/concept2`, label: 'Concept2', icon: Ship, description: 'RowErg, SkiErg & BikeErg' },
-    { href: `${basePath}/athlete/video-analysis`, label: 'Videoanalys', icon: Video, description: 'Teknikanalys & feedback' },
+    { href: `${basePath}/athlete/history`, label: t('mobile.history'), icon: TrendingUp, description: t('mobile.descriptions.history') },
+    { href: `${basePath}/athlete/programs`, label: t('mobile.programs'), icon: ClipboardList, description: t('mobile.descriptions.programs') },
+    { href: `${basePath}/athlete/strength`, label: t('mobile.strengthTraining'), icon: Dumbbell, description: t('mobile.descriptions.strengthTraining') },
+    { href: `${basePath}/athlete/cardio`, label: t('mobile.cardioWorkout'), icon: Heart, description: t('mobile.descriptions.cardioWorkout') },
+    { href: `${basePath}/athlete/hybrid`, label: t('mobile.hybridWorkout'), icon: Flame, description: t('mobile.descriptions.hybridWorkout') },
+    { href: `${basePath}/athlete/vbt`, label: t('mobile.vbtData'), icon: Gauge, description: t('mobile.descriptions.vbtData') },
+    { href: `${basePath}/athlete/ergometer`, label: t('mobile.ergometer'), icon: Activity, description: t('mobile.descriptions.ergometer') },
+    { href: `${basePath}/athlete/concept2`, label: t('mobile.concept2'), icon: Ship, description: t('mobile.descriptions.concept2') },
+    { href: `${basePath}/athlete/video-analysis`, label: t('mobile.videoAnalysis'), icon: Video, description: t('mobile.descriptions.videoAnalysis') },
 
     // Tests & Data
     { href: athleteTestsHref, label: athleteTestsMeta.label, icon: FlaskConical, description: athleteTestsMeta.description },
-    { href: `${basePath}/athlete/lactate/new`, label: 'Laktattest', icon: Droplet, description: 'Rapportera laktat' },
+    { href: `${basePath}/athlete/lactate/new`, label: t('mobile.lactateTest'), icon: Droplet, description: t('mobile.descriptions.lactateTest') },
 
     // Communication
-    { href: `${basePath}/athlete/messages`, label: 'Meddelanden', icon: MessageSquare, badge: unreadCount, description: 'Chatta med coach' },
+    { href: `${basePath}/athlete/messages`, label: t('mobile.messages'), icon: MessageSquare, badge: unreadCount, description: t('mobile.descriptions.messages') },
 
     // Settings & Profile
-    { href: `${basePath}/athlete/settings`, label: 'Inställningar', icon: Settings, description: 'Tema & inställningar' },
-    { href: `${basePath}/athlete/profile`, label: 'Min Profil', icon: UserIcon, description: 'Fysiologi, prestanda & mål' },
+    { href: `${basePath}/athlete/settings`, label: t('mobile.settings'), icon: Settings, description: t('mobile.descriptions.settings') },
+    { href: `${basePath}/athlete/profile`, label: t('mobile.myProfile'), icon: UserIcon, description: t('mobile.descriptions.myProfile') },
 
     // Sport Profile (only show if needs onboarding)
     ...(needsOnboarding
-      ? [{ href: `${basePath}/athlete/onboarding`, label: 'Sportprofil', icon: UserIcon, description: 'Slutför din profil', highlight: true }]
+      ? [{ href: `${basePath}/athlete/onboarding`, label: t('mobile.sportProfile'), icon: UserIcon, description: t('mobile.descriptions.sportProfile'), highlight: true }]
       : []),
   ]
 
@@ -324,7 +319,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
                 {userRole === 'ATHLETE' && sportDisplay && (
                   <p className="text-xs text-white/80 flex items-center gap-1">
                     <span>{sportDisplay.icon}</span>
-                    <span>{sportDisplay.labelSv}</span>
+                    <span>{tSports(sportDisplay.labelKey)}</span>
                   </p>
                 )}
               </div>
@@ -445,7 +440,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
                     <DropdownMenuTrigger asChild>
                       <button className="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm hover:bg-white/10 relative">
                         <Menu className="w-4 h-4" />
-                        <span className="font-medium">Mer</span>
+                        <span className="font-medium">{t('mobile.more')}</span>
                         <ChevronDown className="w-3 h-3" />
                         {unreadCount > 0 && (
                           <Badge
@@ -529,7 +524,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
                     <DropdownMenuTrigger asChild>
                       <button className="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm hover:bg-white/10 relative">
                         <Menu className="w-4 h-4" />
-                        <span className="font-medium">Mer</span>
+                        <span className="font-medium">{t('mobile.more')}</span>
                         <ChevronDown className="w-3 h-3" />
                         {unreadCount > 0 && (
                           <Badge
