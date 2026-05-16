@@ -179,6 +179,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
         test: { href: `${basePath}/coach/test`, label: 'Nytt Test', icon: Activity },
         testOverview: { href: `${basePath}/coach/test-overview`, label: 'Testöversikt', icon: BarChart3 },
         aiStudio: { href: `${basePath}/coach/ai-studio`, label: 'AI Studio', icon: Sparkles },
+        aiCanvas: { href: `${basePath}/coach/ai-canvas`, label: 'AI Canvas', icon: FileStack },
         hybrid: { href: `${basePath}/coach/hybrid-studio`, label: 'Hybrid Studio', icon: Flame },
         strength: { href: `${basePath}/coach/strength`, label: 'Strength Studio', icon: Dumbbell },
         cardio: { href: `${basePath}/coach/cardio`, label: 'Cardio Studio', icon: Heart },
@@ -214,17 +215,17 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
         PT: [
             allToolItems.test, allToolItems.testOverview, allToolItems.strength, allToolItems.cardio,
             allToolItems.hybrid, allToolItems.agility,
-            allToolItems.intervals, allToolItems.aiStudio,
+            allToolItems.intervals, allToolItems.aiStudio, allToolItems.aiCanvas,
         ],
         TEAM: [
             allToolItems.test, allToolItems.testOverview, allToolItems.strength, allToolItems.cardio,
             allToolItems.hybrid, allToolItems.agility, allToolItems.intervals,
             allToolItems.drills, allToolItems.hockeyTests, allToolItems.testProtocols,
-            allToolItems.monitoring, allToolItems.liveHR,
+            allToolItems.monitoring, allToolItems.liveHR, allToolItems.aiCanvas,
         ],
         GYM: [
             allToolItems.test, allToolItems.testOverview, allToolItems.strength, allToolItems.cardio,
-            allToolItems.hybrid, allToolItems.ergometer, allToolItems.aiStudio,
+            allToolItems.hybrid, allToolItems.ergometer, allToolItems.aiStudio, allToolItems.aiCanvas,
         ],
     }
 
@@ -251,6 +252,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     if (staffRole === 'ASSISTANT_COACH') {
         // Assistants: no AI, no video, no ergometer
         hiddenToolHrefs.add(allToolItems.aiStudio.href)
+        hiddenToolHrefs.add(allToolItems.aiCanvas.href)
         hiddenToolHrefs.add(allToolItems.ergometer.href)
         hiddenToolHrefs.add(allToolItems.video.href)
         hiddenMoreHrefs.add(allMoreItems.settings.href)
@@ -265,6 +267,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     } else if (staffRole === 'PHYSIO') {
         // Physio: limited to medical tools
         hiddenToolHrefs.add(allToolItems.aiStudio.href)
+        hiddenToolHrefs.add(allToolItems.aiCanvas.href)
         hiddenToolHrefs.add(allToolItems.strength.href)
         hiddenToolHrefs.add(allToolItems.cardio.href)
         hiddenToolHrefs.add(allToolItems.hybrid.href)

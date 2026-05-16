@@ -151,6 +151,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
       items: [
         { href: coachHref('/test'), label: 'Nytt Test', icon: TestTube },
         { href: coachHref('/ai-studio'), label: 'AI Studio', icon: Sparkles },
+        { href: coachHref('/ai-canvas'), label: 'AI Canvas', icon: Brain },
         { href: coachHref('/hybrid-studio'), label: 'Hybrid Studio', icon: Flame },
         { href: coachHref('/strength'), label: 'Strength Studio', icon: Dumbbell },
         { href: coachHref('/cardio'), label: 'Cardio Studio', icon: Heart },
@@ -187,6 +188,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     { href: coachHref('/programs'), label: 'Program', icon: FileStack },
     { href: coachHref('/test'), label: 'Nytt Test', icon: TestTube },
     { href: coachHref('/ai-studio'), label: 'AI Studio', icon: Sparkles },
+    { href: coachHref('/ai-canvas'), label: 'AI Canvas', icon: Brain },
     { href: coachHref('/hybrid-studio'), label: 'Hybrid Studio', icon: Flame },
     { href: coachHref('/strength'), label: 'Strength Studio', icon: Dumbbell },
     { href: coachHref('/cardio'), label: 'Cardio Studio', icon: Heart },
