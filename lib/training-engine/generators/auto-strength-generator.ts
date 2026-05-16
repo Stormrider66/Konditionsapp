@@ -7,7 +7,7 @@
  * - Training goal (strength, power, injury prevention, running economy)
  * - Available equipment
  * - Session duration constraints
- * - Section preferences (warmup, core, cooldown)
+ * - Section preferences (warmup, prehab, core, cooldown)
  */
 
 import type { StrengthPhase, BiomechanicalPillar, ProgressionLevel } from '@prisma/client'
@@ -23,8 +23,11 @@ export interface AutoGenerateParams {
   timePerSession: number // minutes
   athleteLevel: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE'
   includeWarmup: boolean
+  includePrehab?: boolean
   includeCore: boolean
   includeCooldown: boolean
+  sport?: string | null
+  riskBodyParts?: string[]
   // Optional: Recent exercises to avoid
   recentExerciseIds?: string[]
   // Optional: 1RM data for loading calculations
@@ -174,6 +177,65 @@ const COOLDOWN_EXERCISES: Record<string, {
   },
 }
 
+// Stability / prehab templates used when the library does not contain enough
+// matching sport-specific exercises yet. IDs are stable pseudo-ids so the
+// builder can still render and the coach can replace them from the library.
+const PREHAB_EXERCISES: Record<string, {
+  name: string
+  nameSv: string
+  sets: number
+  reps: string
+  restSeconds: number
+  notes?: string
+  tags: string[]
+}> = {
+  'prehab-groin-1': {
+    name: 'Copenhagen Plank',
+    nameSv: 'Copenhagen plank',
+    sets: 2,
+    reps: '20-30s each side',
+    restSeconds: 45,
+    notes: 'Ljumske/adduktor. Håll smärta max 0-3/10.',
+    tags: ['groin', 'adductor', 'hip', 'hockey'],
+  },
+  'prehab-hip-1': {
+    name: '90-90 Hip Bridge',
+    nameSv: '90-90 höftbrygga',
+    sets: 2,
+    reps: '8-10',
+    restSeconds: 30,
+    notes: 'Säte och bäckenkontroll före tyngre benarbete.',
+    tags: ['hip', 'glute', 'groin', 'hockey'],
+  },
+  'prehab-trunk-1': {
+    name: 'Dead Bug with Lateral Band',
+    nameSv: 'Dead bug med sidoband',
+    sets: 2,
+    reps: '8 each side',
+    restSeconds: 30,
+    notes: 'Anti-rotation och revbenskontroll.',
+    tags: ['trunk', 'core', 'shoulder'],
+  },
+  'prehab-shoulder-1': {
+    name: 'Band Pull-Apart to External Rotation',
+    nameSv: 'Band pull-apart till utrotation',
+    sets: 2,
+    reps: '12-15',
+    restSeconds: 30,
+    notes: 'Rotatorkuff och skulderbladskontroll.',
+    tags: ['shoulder', 'upper body', 'hockey'],
+  },
+  'prehab-ankle-1': {
+    name: 'Single-Leg Calf Raise Iso Hold',
+    nameSv: 'Enbens tåhävning isohåll',
+    sets: 2,
+    reps: '20-30s each side',
+    restSeconds: 30,
+    notes: 'Fot/ankelstyvhet och kontroll.',
+    tags: ['ankle', 'foot', 'calf', 'hockey'],
+  },
+}
+
 // Goal-specific exercise emphasis
 const GOAL_EXERCISE_WEIGHTS: Record<string, {
   posteriorChain: number
@@ -226,18 +288,23 @@ export async function generateStrengthSession(
     athleteLevel,
     equipmentAvailable,
     includeWarmup,
+    includePrehab,
     includeCore,
     includeCooldown,
+    sport,
+    riskBodyParts = [],
     recentExerciseIds = [],
     oneRmData = {},
   } = params
 
   const phaseProtocol = STRENGTH_PHASES[phase]
   const goalWeights = GOAL_EXERCISE_WEIGHTS[goal]
+  const shouldIncludePrehab = includePrehab ?? shouldAutoIncludePrehab(goal, sport, riskBodyParts)
 
   // Calculate available time for main exercises
   let mainExerciseTime = timePerSession
   if (includeWarmup) mainExerciseTime -= 8 // 8 min warmup
+  if (shouldIncludePrehab) mainExerciseTime -= 6 // 6 min stability/prehab
   if (includeCooldown) mainExerciseTime -= 7 // 7 min cooldown
   if (includeCore) mainExerciseTime -= 5 // 5 min core
 
@@ -270,7 +337,29 @@ export async function generateStrengthSession(
   sections.push(mainSection)
   allExercises.push(...mainExercises)
 
-  // 3. Generate core section
+  // 3. Generate stability / prehab section
+  if (shouldIncludePrehab) {
+    const prehabExercises = selectPrehabExercises({
+      exerciseLibrary,
+      athleteLevel,
+      goal,
+      sport,
+      riskBodyParts,
+    })
+
+    if (prehabExercises.length > 0) {
+      const prehabSection: GeneratedSection = {
+        type: 'PREHAB',
+        exercises: prehabExercises,
+        notes: prehabSectionNotes(goal, sport, riskBodyParts),
+        duration: 6,
+      }
+      sections.push(prehabSection)
+      allExercises.push(...prehabExercises)
+    }
+  }
+
+  // 4. Generate core section
   if (includeCore) {
     const coreExercises = selectCoreExercises({
       exerciseLibrary,
@@ -289,7 +378,7 @@ export async function generateStrengthSession(
     allExercises.push(...coreExercises)
   }
 
-  // 4. Generate cooldown section
+  // 5. Generate cooldown section
   if (includeCooldown) {
     const cooldownSection = generateCooldownSection()
     sections.push(cooldownSection)
@@ -325,7 +414,8 @@ export async function generateStrengthSession(
     'running-economy': 'löpekonomi',
   }
 
-  const rationale = `${totalExercises} övningar valda för ${goalLabels[goal] || goal}. Pillarfördelning: ${pillarSummary}. Fas: ${phase.replace(/_/g, ' ').toLowerCase()} med ${phaseProtocol.reps.min}-${phaseProtocol.reps.max} reps @ ${phaseProtocol.intensity.min}-${phaseProtocol.intensity.max}% 1RM.`
+  const prehabSummary = shouldIncludePrehab ? ' Prehab-sektion tillagd för ledkontroll, vävnadskapacitet och riskområden.' : ''
+  const rationale = `${totalExercises} övningar valda för ${goalLabels[goal] || goal}. Pillarfördelning: ${pillarSummary}. Fas: ${phase.replace(/_/g, ' ').toLowerCase()} med ${phaseProtocol.reps.min}-${phaseProtocol.reps.max} reps @ ${phaseProtocol.intensity.min}-${phaseProtocol.intensity.max}% 1RM.${prehabSummary}`
 
   return {
     name: sessionName,
@@ -411,6 +501,112 @@ interface ExerciseFromLibrary {
   equipment?: string | null
   category?: string | null
   isPlyometric?: boolean
+  isRehabExercise?: boolean
+  targetBodyParts?: string[] | null
+}
+
+function isHockeySport(sport?: string | null): boolean {
+  return /hockey|ishockey|ice_hockey|team_ice_hockey/i.test(sport || '')
+}
+
+function shouldAutoIncludePrehab(
+  goal: AutoGenerateParams['goal'],
+  sport?: string | null,
+  riskBodyParts: string[] = []
+): boolean {
+  return goal === 'injury-prevention' || isHockeySport(sport) || riskBodyParts.length > 0
+}
+
+function normalizedBodyPartSet(parts: string[] = []): Set<string> {
+  const mapped = parts.flatMap((part) => {
+    const value = part.toLowerCase()
+    const aliases = [value]
+    if (/ljumske|groin|adductor/.test(value)) aliases.push('groin', 'adductor')
+    if (/höft|hoft|hip/.test(value)) aliases.push('hip')
+    if (/axel|shoulder|rotator/.test(value)) aliases.push('shoulder')
+    if (/fot|ankle|achilles|vad|calf/.test(value)) aliases.push('ankle', 'foot', 'calf')
+    if (/bål|bal|trunk|core|rygg|back/.test(value)) aliases.push('trunk', 'core')
+    return aliases
+  })
+  return new Set(mapped)
+}
+
+function selectPrehabExercises(params: {
+  exerciseLibrary: ExerciseFromLibrary[]
+  athleteLevel: string
+  goal: string
+  sport?: string | null
+  riskBodyParts?: string[]
+}): GeneratedExercise[] {
+  const { exerciseLibrary, goal, sport, riskBodyParts = [] } = params
+  const riskParts = normalizedBodyPartSet(riskBodyParts)
+  const hockey = isHockeySport(sport)
+  const wantedCount = goal === 'injury-prevention' || hockey ? 3 : 2
+
+  const scored = exerciseLibrary
+    .filter((ex) =>
+      ex.isRehabExercise ||
+      ex.category === 'CORE' ||
+      ex.biomechanicalPillar === 'ANTI_ROTATION_CORE' ||
+      ex.biomechanicalPillar === 'FOOT_ANKLE'
+    )
+    .map((ex) => {
+      const haystack = [
+        ex.name,
+        ex.nameSv || '',
+        ...(ex.targetBodyParts || []),
+      ].join(' ').toLowerCase()
+      let score = ex.isRehabExercise ? 4 : 0
+      if (hockey && /copenhagen|köpenhamn|ljumske|groin|adductor|hip|höft|shoulder|axel|ankle|fot|calf|vad|kbox|flywheel/.test(haystack)) score += 3
+      for (const part of riskParts) {
+        if (haystack.includes(part)) score += 5
+      }
+      if (ex.biomechanicalPillar === 'ANTI_ROTATION_CORE') score += 1
+      if (ex.biomechanicalPillar === 'FOOT_ANKLE') score += 1
+      return { ex, score }
+    })
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+
+  const selected = scored.slice(0, wantedCount).map(({ ex }) => ({
+    exerciseId: ex.id,
+    exerciseName: ex.nameSv || ex.name,
+    sets: 2,
+    reps: ex.biomechanicalPillar === 'ANTI_ROTATION_CORE' ? '8-12 each side' : '10-15',
+    restSeconds: 45,
+    notes: 'Stabilitet/prehab: kontroll före belastning.',
+    section: 'PREHAB' as const,
+  }))
+
+  if (selected.length >= wantedCount) return selected
+
+  const fallbackParts = riskParts.size > 0 ? riskParts : normalizedBodyPartSet(hockey ? ['groin', 'hip', 'shoulder', 'ankle'] : ['trunk', 'hip'])
+  const fallback = Object.entries(PREHAB_EXERCISES)
+    .filter(([, ex]) => ex.tags.some((tag) => fallbackParts.has(tag)) || selected.length === 0)
+    .slice(0, wantedCount - selected.length)
+    .map(([id, ex]) => ({
+      exerciseId: id,
+      exerciseName: ex.nameSv,
+      sets: ex.sets,
+      reps: ex.reps,
+      restSeconds: ex.restSeconds,
+      notes: ex.notes,
+      section: 'PREHAB' as const,
+    }))
+
+  return [...selected, ...fallback]
+}
+
+function prehabSectionNotes(goal: string, sport?: string | null, riskBodyParts: string[] = []): string {
+  const focus = riskBodyParts.length > 0
+    ? ` Fokus: ${riskBodyParts.join(', ')}.`
+    : isHockeySport(sport)
+      ? ' Hockeyfokus: ljumske, höft, axel och fot/ankel.'
+      : ''
+  const base = goal === 'injury-prevention'
+    ? 'Skadeförebyggande kontrollblock före huvudlyften.'
+    : 'Stabilitetsblock före tyngre arbete.'
+  return `${base}${focus}`
 }
 
 /**

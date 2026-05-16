@@ -215,6 +215,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
     // Convert generated session to editable format for SectionWorkoutBuilder
     const warmupSection = session.sections.find((s) => s.type === 'WARMUP')
     const mainSection = session.sections.find((s) => s.type === 'MAIN')
+    const prehabSection = session.sections.find((s) => s.type === 'PREHAB')
     const coreSection = session.sections.find((s) => s.type === 'CORE')
     const cooldownSection = session.sections.find((s) => s.type === 'COOLDOWN')
 
@@ -240,6 +241,20 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
               exerciseName: e.exerciseName,
               sets: e.sets,
               reps: e.reps,
+              notes: e.notes,
+            })),
+        }
+        : undefined,
+      prehabData: prehabSection
+        ? {
+            notes: prehabSection.notes,
+            duration: prehabSection.duration,
+            exercises: prehabSection.exercises.map((e) => ({
+              exerciseId: e.exerciseId,
+              exerciseName: e.exerciseName,
+              sets: e.sets,
+              reps: e.reps,
+              restSeconds: e.restSeconds,
               notes: e.notes,
             })),
           }
@@ -284,6 +299,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
     const converted = sessions.map((session) => {
       const warmupSection = session.sections.find((s) => s.type === 'WARMUP')
       const mainSection = session.sections.find((s) => s.type === 'MAIN')
+      const prehabSection = session.sections.find((s) => s.type === 'PREHAB')
       const coreSection = session.sections.find((s) => s.type === 'CORE')
       const cooldownSection = session.sections.find((s) => s.type === 'COOLDOWN')
 
@@ -309,6 +325,20 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
                 exerciseName: e.exerciseName,
                 sets: e.sets,
                 reps: e.reps,
+                notes: e.notes,
+              })),
+          }
+          : undefined,
+        prehabData: prehabSection
+          ? {
+              notes: prehabSection.notes,
+              duration: prehabSection.duration,
+              exercises: prehabSection.exercises.map((e) => ({
+                exerciseId: e.exerciseId,
+                exerciseName: e.exerciseName,
+                sets: e.sets,
+                reps: e.reps,
+                restSeconds: e.restSeconds,
                 notes: e.notes,
               })),
             }

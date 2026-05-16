@@ -237,6 +237,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
         equipmentAvailable: z.array(z.string()).default(['barbell', 'dumbbell', 'bodyweight']).describe('Tillgänglig utrustning: barbell, dumbbell, kettlebell, bodyweight, cable, machine, bands, box'),
         mode: z.enum(['single', 'weekly']).default('single').describe('single=enskilt pass, weekly=veckoprogram med A/B/C variation'),
         includeWarmup: z.boolean().default(true),
+        includePrehab: z.boolean().optional().describe('Inkludera separat stabilitet/prehab-sektion. Om utelämnad aktiveras den automatiskt för hockey, skadeförebyggande mål eller aktiva riskområden.'),
         includeCore: z.boolean().default(true),
         includeCooldown: z.boolean().default(true),
       }),
@@ -252,6 +253,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
             equipmentAvailable,
             mode,
             includeWarmup,
+            includePrehab,
             includeCore,
             includeCooldown,
           } = params
@@ -264,6 +266,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
           let restrictedExerciseIds: string[] = []
           let restrictionTypes: string[] = []
           let restrictedBodyParts: string[] = []
+          let athleteSport: string | null = null
 
           if (clientId) {
             const twoWeeksAgo = new Date()
@@ -289,6 +292,14 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
                 acc[rm.exerciseId] = rm.oneRepMax
                 return acc
               }, {} as Record<string, number>)
+            } catch { /* skip */ }
+
+            try {
+              const sportProfile = await prisma.sportProfile.findFirst({
+                where: { clientId },
+                select: { primarySport: true },
+              })
+              athleteSport = sportProfile?.primarySport || null
             } catch { /* skip */ }
 
             try {
@@ -319,6 +330,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
               progressionLevel: true,
               equipment: true,
               category: true,
+              isRehabExercise: true,
               targetBodyParts: true,
               contraindications: true,
             },
@@ -349,8 +361,11 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
             equipmentAvailable,
             athleteLevel,
             includeWarmup,
+            includePrehab: includePrehab ?? undefined,
             includeCore,
             includeCooldown,
+            sport: athleteSport,
+            riskBodyParts: restrictedBodyParts,
             recentExerciseIds,
             oneRmData,
           }

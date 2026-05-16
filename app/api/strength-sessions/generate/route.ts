@@ -21,6 +21,7 @@ interface GenerateRequestBody {
   timePerSession: number
   athleteLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE'
   includeWarmup?: boolean
+  includePrehab?: boolean
   includeCore?: boolean
   includeCooldown?: boolean
   mode?: 'single' | 'weekly'
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
       timePerSession = 45,
       athleteLevel = 'INTERMEDIATE',
       includeWarmup = true,
+      includePrehab,
       includeCore = true,
       includeCooldown = true,
       mode = 'single',
@@ -61,6 +63,7 @@ export async function POST(request: NextRequest) {
     let restrictedExerciseIds: string[] = []
     let restrictedBodyParts: string[] = []
     let restrictionTypes: string[] = []
+    let athleteSport: string | null = null
 
     if (clientId) {
       // Get exercises from last 2 weeks
@@ -102,6 +105,16 @@ export async function POST(request: NextRequest) {
 
       // Get active training restrictions
       try {
+        const sportProfile = await prisma.sportProfile.findFirst({
+          where: { clientId },
+          select: { primarySport: true },
+        })
+        athleteSport = sportProfile?.primarySport || null
+      } catch {
+        // Sport profile not available — skip
+      }
+
+      try {
         const restrictions = await prisma.trainingRestriction.findMany({
           where: {
             clientId,
@@ -139,6 +152,7 @@ export async function POST(request: NextRequest) {
         progressionLevel: true,
         equipment: true,
         category: true,
+        isRehabExercise: true,
         targetBodyParts: true,
         contraindications: true,
       },
@@ -199,8 +213,11 @@ export async function POST(request: NextRequest) {
       timePerSession,
       athleteLevel,
       includeWarmup,
+      includePrehab: includePrehab ?? undefined,
       includeCore,
       includeCooldown,
+      sport: athleteSport,
+      riskBodyParts: restrictedBodyParts,
       recentExerciseIds,
       oneRmData,
     }

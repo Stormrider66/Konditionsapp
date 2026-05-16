@@ -24,6 +24,8 @@ const mockExerciseLibrary = [
   { id: 'uni2', name: 'Step Up', nameSv: 'Steguppstigning', biomechanicalPillar: 'UNILATERAL' as const, progressionLevel: 'LEVEL_2' as const, equipment: 'dumbbell', category: 'STRENGTH', isPlyometric: false },
   { id: 'core1', name: 'Plank', nameSv: 'Planka', biomechanicalPillar: 'ANTI_ROTATION_CORE' as const, progressionLevel: 'LEVEL_1' as const, equipment: 'bodyweight', category: 'CORE', isPlyometric: false },
   { id: 'core2', name: 'Dead Bug', nameSv: 'Död insekt', biomechanicalPillar: 'ANTI_ROTATION_CORE' as const, progressionLevel: 'LEVEL_1' as const, equipment: 'bodyweight', category: 'CORE', isPlyometric: false },
+  { id: 'prehab1', name: 'Copenhagen Plank', nameSv: 'Copenhagen plank', biomechanicalPillar: 'ANTI_ROTATION_CORE' as const, progressionLevel: 'LEVEL_2' as const, equipment: 'bodyweight', category: 'CORE', isPlyometric: false, isRehabExercise: true, targetBodyParts: ['groin', 'adductor'] },
+  { id: 'prehab2', name: 'Single Leg Calf Iso', nameSv: 'Enbens tåhävning isohåll', biomechanicalPillar: 'FOOT_ANKLE' as const, progressionLevel: 'LEVEL_1' as const, equipment: 'bodyweight', category: 'STRENGTH', isPlyometric: false, isRehabExercise: true, targetBodyParts: ['ankle', 'calf'] },
   { id: 'plyo1', name: 'Box Jump', nameSv: 'Lådhopp', biomechanicalPillar: 'KNEE_DOMINANCE' as const, progressionLevel: 'LEVEL_3' as const, equipment: 'box', category: 'PLYOMETRIC', isPlyometric: true },
 ]
 
@@ -88,6 +90,24 @@ describe('generateStrengthSession', () => {
 
     const coreSection = session.sections.find((s) => s.type === 'CORE')
     expect(coreSection).toBeDefined()
+  })
+
+  it('includes prehab section for hockey athletes', async () => {
+    const params = { ...baseParams, sport: 'TEAM_ICE_HOCKEY', includePrehab: undefined }
+    const session = await generateStrengthSession(params, mockExerciseLibrary)
+
+    const prehabSection = session.sections.find((s) => s.type === 'PREHAB')
+    expect(prehabSection).toBeDefined()
+    expect(prehabSection!.exercises.length).toBeGreaterThan(0)
+    expect(session.rationale).toContain('Prehab-sektion')
+  })
+
+  it('targets restricted body parts in prehab selection', async () => {
+    const params = { ...baseParams, includePrehab: true, riskBodyParts: ['groin'] }
+    const session = await generateStrengthSession(params, mockExerciseLibrary)
+
+    const prehabExercises = session.exercises.filter((e) => e.section === 'PREHAB')
+    expect(prehabExercises.map((e) => e.exerciseId)).toContain('prehab1')
   })
 
   it('avoids recently used exercises', async () => {
