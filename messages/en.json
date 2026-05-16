@@ -826,6 +826,18 @@
     "recentActivity": "Recent activity",
     "workoutsLoggedLast7Days": "Workouts logged in the last 7 days",
     "noWorkoutsLoggedYet": "No workouts logged yet",
+    "dashboardSignals": {
+      "assignedWorkout": "Assigned workout",
+      "logsNeedingFeedback": "{count} completed workouts are waiting for coach feedback",
+      "lowReadiness": "{count} athletes have low readiness",
+      "activeInjuries": "{count} active injury cases need monitoring",
+      "highLoadAthletes": "{count} athletes have high weekly load",
+      "upcomingEvents": "{count} calendar events are scheduled in the next 7 days",
+      "recentTests": "{count} tests were completed in the last 30 days",
+      "gymPlateaus": "{count} strength progressions show a plateau signal",
+      "teamsWithAttention": "{count} teams have at least one attention signal",
+      "none": "No urgent aggregated dashboard signals found"
+    },
     "weeklySummary": "Weekly summary",
     "completedWorkouts": "Completed workouts",
     "feedbackGiven": "Feedback given",

@@ -826,6 +826,18 @@
     "recentActivity": "Senaste aktiviteten",
     "workoutsLoggedLast7Days": "Pass loggade senaste 7 dagarna",
     "noWorkoutsLoggedYet": "Inga pass loggade ännu",
+    "dashboardSignals": {
+      "assignedWorkout": "Tilldelat pass",
+      "logsNeedingFeedback": "{count} genomförda pass väntar på coachfeedback",
+      "lowReadiness": "{count} atleter har låg beredskap",
+      "activeInjuries": "{count} aktiva skadeärenden behöver bevakning",
+      "highLoadAthletes": "{count} atleter har hög veckobelastning",
+      "upcomingEvents": "{count} kalenderhändelser ligger kommande 7 dagar",
+      "recentTests": "{count} tester är genomförda senaste 30 dagarna",
+      "gymPlateaus": "{count} styrkeprogressioner visar platåsignal",
+      "teamsWithAttention": "{count} lag har minst en uppmärksamhetssignal",
+      "none": "Inga akuta aggregerade dashboard-signaler hittades"
+    },
     "weeklySummary": "Veckans sammanfattning",
     "completedWorkouts": "Slutförda pass",
     "feedbackGiven": "Feedback given",

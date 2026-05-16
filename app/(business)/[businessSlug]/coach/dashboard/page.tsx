@@ -29,7 +29,6 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
   const { businessSlug } = await params
   const t = await getTranslations('coach')
   const tNav = await getTranslations('nav')
-  const tCommon = await getTranslations('common')
   const locale = await getLocale()
   const dateLocale = locale === 'sv' ? sv : enUS
   const user = await requireCoach()
@@ -565,7 +564,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
           broadcast.cardioSession?.name ??
           broadcast.hybridWorkout?.name ??
           broadcast.agilityWorkout?.name ??
-          'Tilldelat pass',
+          t('dashboardSignals.assignedWorkout'),
         assignedDate: broadcast.assignedDate.toISOString(),
         completed: broadcast.totalCompleted,
         total: broadcast.totalAssigned,
@@ -592,34 +591,34 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
 
   const dashboardSignals: string[] = []
   if (logsNeedingFeedback.length > 0) {
-    dashboardSignals.push(`${logsNeedingFeedback.length} genomförda pass väntar på coachfeedback`)
+    dashboardSignals.push(t('dashboardSignals.logsNeedingFeedback', { count: logsNeedingFeedback.length }))
   }
   if (lowReadiness > 0) {
-    dashboardSignals.push(`${lowReadiness} atleter har låg beredskap`)
+    dashboardSignals.push(t('dashboardSignals.lowReadiness', { count: lowReadiness }))
   }
   if (activeInjuries > 0) {
-    dashboardSignals.push(`${activeInjuries} aktiva skadeärenden behöver bevakning`)
+    dashboardSignals.push(t('dashboardSignals.activeInjuries', { count: activeInjuries }))
   }
   if (highLoadAthletes.length > 0) {
-    dashboardSignals.push(`${highLoadAthletes.length} atleter har hög veckobelastning`)
+    dashboardSignals.push(t('dashboardSignals.highLoadAthletes', { count: highLoadAthletes.length }))
   }
   if (upcomingEvents.length > 0) {
-    dashboardSignals.push(`${upcomingEvents.length} kalenderhändelser ligger kommande 7 dagar`)
+    dashboardSignals.push(t('dashboardSignals.upcomingEvents', { count: upcomingEvents.length }))
   }
   if (recentTests.length > 0) {
-    dashboardSignals.push(`${recentTests.length} tester är genomförda senaste 30 dagarna`)
+    dashboardSignals.push(t('dashboardSignals.recentTests', { count: recentTests.length }))
   }
   if (mode === 'GYM' && gymStats?.plateauCount) {
-    dashboardSignals.push(`${gymStats.plateauCount} styrkeprogressioner visar platåsignal`)
+    dashboardSignals.push(t('dashboardSignals.gymPlateaus', { count: gymStats.plateauCount }))
   }
   if (mode === 'TEAM' && teamDashboardData) {
     const teamsWithAttention = teamDashboardData.teams.filter(team => team.attentionCount > 0).length
     if (teamsWithAttention > 0) {
-      dashboardSignals.push(`${teamsWithAttention} lag har minst en uppmärksamhetssignal`)
+      dashboardSignals.push(t('dashboardSignals.teamsWithAttention', { count: teamsWithAttention }))
     }
   }
   if (dashboardSignals.length === 0) {
-    dashboardSignals.push('Inga akuta aggregerade dashboard-signaler hittades')
+    dashboardSignals.push(t('dashboardSignals.none'))
   }
 
   const dashboardAIContext: CoachDashboardAIContextData = {
