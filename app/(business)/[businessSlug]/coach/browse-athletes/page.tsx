@@ -19,7 +19,6 @@ export default async function BrowseAthletesPage({ params }: BrowseAthletesPageP
   return (
     <BrowseAthletesClient
       businessId={membership.businessId}
-      businessSlug={businessSlug}
     />
   )
 }

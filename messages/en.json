@@ -562,6 +562,41 @@
           "club": "Club",
           "library": "Saved"
         }
+      },
+      "workoutPrint": {
+        "preparing": "Preparing print view..."
+      },
+      "browseAthletes": {
+        "title": "Find athletes",
+        "description": "Manage incoming requests and invite athletes to your business.",
+        "availableTitle": "Available athletes",
+        "availableDescription": "Athletes without a coach. Send an invite so the athlete can accept or decline."
+      },
+      "monitoring": {
+        "title": "Athlete monitoring",
+        "description": "Track HRV, resting heart rate, wellbeing, and readiness",
+        "emptyTitle": "No athletes",
+        "emptyDescription": "You do not have any athletes yet. Create a client first.",
+        "zoneDistribution": "Heart rate zone distribution"
+      },
+      "aiSettings": {
+        "title": "AI settings",
+        "description": "Configure AI models and API keys for AI features.",
+        "defaultModel": "Default model",
+        "apiKeys": "API keys",
+        "byok": {
+          "title": "About BYOK (Bring Your Own Key)",
+          "description": "AI Studio uses a BYOK model where you provide your own API keys. This gives you full control over cost and usage. Your keys are stored encrypted and used only for your requests.",
+          "anthropic": "Best for complex training programs and reasoning",
+          "google": "Best for video analysis and multimodal input",
+          "openai": "Used for embeddings and document search"
+        },
+        "costs": {
+          "title": "Estimated costs",
+          "programGeneration": "Program generation (Claude): ~$0.15-0.30 per program",
+          "documentEmbedding": "Document embedding (OpenAI): ~$0.0001 per page",
+          "videoAnalysis": "Video analysis (Gemini): ~$0.20 per video"
+        }
       }
     },
     "dashboard": "Coach Dashboard",

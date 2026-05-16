@@ -7,11 +7,12 @@ import { notFound } from 'next/navigation';
 import { MonitoringCharts } from '@/components/coach/dashboards/MonitoringCharts';
 import { MonitoringHeader } from '@/components/coach/monitoring/MonitoringHeader';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { prisma } from '@/lib/prisma';
 import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart';
 import { WeeklyZoneSummary } from '@/components/athlete/WeeklyZoneSummary';
 import { YearlyTrainingOverview } from '@/components/athlete/YearlyTrainingOverview';
+import { getTranslations } from '@/i18n/server';
 
 interface BusinessMonitoringPageProps {
   params: Promise<{ businessSlug: string }>;
@@ -22,6 +23,7 @@ export default async function BusinessMonitoringPage({ params, searchParams }: B
   const { businessSlug } = await params;
   const user = await requireCoach();
   const resolvedParams = await searchParams;
+  const t = await getTranslations('coach.pages.monitoring');
 
   const membership = await validateBusinessMembership(user.id, businessSlug);
   if (!membership) {
@@ -51,16 +53,16 @@ export default async function BusinessMonitoringPage({ params, searchParams }: B
       {clients.length === 0 ? (
         <>
           <div className="mb-8">
-            <h1 className="text-3xl font-bold">Atletmonitorering</h1>
+            <h1 className="text-3xl font-bold">{t('title')}</h1>
             <p className="text-muted-foreground">
-              Följ HRV, vilopuls, välmående och beredskap
+              {t('description')}
             </p>
           </div>
           <Card>
             <CardHeader>
-              <CardTitle>Inga atleter</CardTitle>
+              <CardTitle>{t('emptyTitle')}</CardTitle>
               <CardDescription>
-                Du har inga atleter ännu. Skapa en klient först.
+                {t('emptyDescription')}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -79,7 +81,7 @@ export default async function BusinessMonitoringPage({ params, searchParams }: B
               </Suspense>
 
               <div className="mt-8">
-                <h2 className="text-2xl font-bold mb-4">Pulszonfördelning</h2>
+                <h2 className="text-2xl font-bold mb-4">{t('zoneDistribution')}</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                   <div className="lg:col-span-1">
                     <WeeklyZoneSummary clientId={selectedAthleteId} />
