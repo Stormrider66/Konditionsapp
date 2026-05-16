@@ -151,6 +151,7 @@ interface AthleteMessageDraft {
   athleteName: string
   content: string
   createdAt: string
+  sentAt?: string
 }
 
 interface CanvasTaskResponse {
@@ -160,6 +161,13 @@ interface CanvasTaskResponse {
     title: string
   }
   error?: string
+}
+
+interface CanvasSendMessageResponse {
+  success?: boolean
+  message?: string
+  error?: string
+  needsClarification?: boolean
 }
 
 interface CanvasAthleteOption {
@@ -533,6 +541,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
   const [isExporting, setIsExporting] = useState(false)
   const [athleteMessageDraft, setAthleteMessageDraft] = useState<AthleteMessageDraft | null>(null)
   const [regeneratingBlockId, setRegeneratingBlockId] = useState<string | null>(null)
+  const [isSendingDraft, setIsSendingDraft] = useState(false)
   const [contextSelection, setContextSelection] = useState<CanvasContextSelection>({
     scope: 'none',
     athleteId: '',
@@ -877,6 +886,59 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       setAssistantMessage(`Jag kopierade meddelandet till ${athleteMessageDraft.athleteName}. Det är fortfarande inte skickat.`)
     } catch {
       setAssistantMessage('Jag kunde inte kopiera meddelandet automatiskt. Markera texten och kopiera manuellt.')
+    }
+  }
+
+  const handleSendAthleteMessage = async () => {
+    if (!athleteMessageDraft) {
+      setAssistantMessage('Det finns inget meddelandeutkast att skicka ännu.')
+      return
+    }
+
+    if (athleteMessageDraft.sentAt) {
+      setAssistantMessage(`Meddelandet till ${athleteMessageDraft.athleteName} är redan skickat.`)
+      return
+    }
+
+    const confirmed = window.confirm(`Skicka meddelandet till ${athleteMessageDraft.athleteName}?`)
+    if (!confirmed) {
+      setAssistantMessage(`Jag skickade inte meddelandet till ${athleteMessageDraft.athleteName}.`)
+      return
+    }
+
+    setIsSendingDraft(true)
+    setAssistantMessage(`Jag skickar meddelandet till ${athleteMessageDraft.athleteName}...`)
+
+    try {
+      const response = await fetch('/api/ai/chat/actions/coach-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          actionType: 'sendCoachMessage',
+          businessSlug,
+          draft: {
+            recipientType: 'ATHLETE',
+            clientId: athleteMessageDraft.athleteId,
+            content: athleteMessageDraft.content,
+            subject: title === 'Untitled coach canvas' ? undefined : title,
+            teamTarget: 'ALL',
+          },
+        }),
+      })
+      const payload = (await response.json()) as CanvasSendMessageResponse
+
+      if (!response.ok || !payload.success) {
+        setAssistantMessage(payload.error || 'Jag kunde inte skicka meddelandet.')
+        return
+      }
+
+      const sentAt = new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+      setAthleteMessageDraft((current) => current ? { ...current, sentAt } : current)
+      setAssistantMessage(payload.message || `Meddelandet skickades till ${athleteMessageDraft.athleteName}.`)
+    } catch {
+      setAssistantMessage('Jag kunde inte nå meddelandefunktionen just nu. Försök igen om en stund.')
+    } finally {
+      setIsSendingDraft(false)
     }
   }
 
@@ -1387,7 +1449,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
                   </div>
                 </div>
                 <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
-                  Ej skickat
+                  {athleteMessageDraft.sentAt ? 'Skickat' : 'Ej skickat'}
                 </Badge>
               </div>
               <Textarea
@@ -1400,11 +1462,25 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
                 aria-label="Meddelandeutkast"
               />
               <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-500">
-                <span>{athleteMessageDraft.content.length}/1000 tecken</span>
-                <Button variant="outline" size="sm" onClick={handleCopyAthleteMessage} className="gap-2">
-                  <Copy className="h-4 w-4" />
-                  Kopiera
-                </Button>
+                <span>
+                  {athleteMessageDraft.content.length}/1000 tecken
+                  {athleteMessageDraft.sentAt ? ` · skickat ${athleteMessageDraft.sentAt}` : ''}
+                </span>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleCopyAthleteMessage} className="gap-2">
+                    <Copy className="h-4 w-4" />
+                    Kopiera
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSendAthleteMessage}
+                    disabled={isSendingDraft || Boolean(athleteMessageDraft.sentAt)}
+                    className="gap-2"
+                  >
+                    <Send className="h-4 w-4" />
+                    {isSendingDraft ? 'Skickar...' : athleteMessageDraft.sentAt ? 'Skickat' : 'Skicka'}
+                  </Button>
+                </div>
               </div>
             </div>
           )}
