@@ -107,6 +107,18 @@
     }
   },
   "reports": {
+    "pdf": {
+      "ariaLabel": "Exportera som PDF",
+      "export": "Exportera PDF",
+      "generating": "Genererar...",
+      "errorTitle": "Fel vid PDF-generering:",
+      "errorFallback": "Ett fel uppstod vid PDF-generering",
+      "progress": {
+        "preparing": "Förbereder rapport...",
+        "generatingPdf": "Genererar PDF...",
+        "done": "Klar!"
+      }
+    },
     "share": {
       "trigger": "Dela rapport",
       "title": "Dela testrapport",

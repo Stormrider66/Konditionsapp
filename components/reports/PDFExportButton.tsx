@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ReportData } from '@/types'
 import { generateAndDownloadPDF } from '@/lib/pdf-generator'
 import { Download, Loader2 } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 interface PDFExportButtonProps {
   reportData: ReportData
@@ -18,6 +19,7 @@ export function PDFExportButton({
   size = 'md',
   className = '',
 }: PDFExportButtonProps) {
+  const t = useTranslations('reports.pdf')
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState<string>('')
@@ -26,17 +28,17 @@ export function PDFExportButton({
     try {
       setIsGenerating(true)
       setError(null)
-      setProgress('Förbereder rapport...')
+      setProgress(t('progress.preparing'))
 
       // Vänta lite så användaren ser progress
       await new Promise(resolve => setTimeout(resolve, 300))
 
-      setProgress('Genererar PDF...')
+      setProgress(t('progress.generatingPdf'))
 
       // Generera och ladda ner PDF
       await generateAndDownloadPDF(reportData)
 
-      setProgress('Klar!')
+      setProgress(t('progress.done'))
 
       // Rensa progress efter en kort stund
       setTimeout(() => {
@@ -46,7 +48,7 @@ export function PDFExportButton({
 
     } catch (err) {
       console.error('Error generating PDF:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod vid PDF-generering')
+      setError(err instanceof Error ? err.message : t('errorFallback'))
       setIsGenerating(false)
       setProgress('')
     }
@@ -79,17 +81,17 @@ export function PDFExportButton({
         onClick={handleExportPDF}
         disabled={isGenerating}
         className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
-        aria-label="Exportera som PDF"
+        aria-label={t('ariaLabel')}
       >
         {isGenerating ? (
           <>
             <Loader2 className="animate-spin" size={iconSize[size]} />
-            <span>Genererar...</span>
+            <span>{t('generating')}</span>
           </>
         ) : (
           <>
             <Download size={iconSize[size]} />
-            <span>Exportera PDF</span>
+            <span>{t('export')}</span>
           </>
         )}
       </button>
@@ -104,7 +106,7 @@ export function PDFExportButton({
       {/* Error message */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
-          <p className="font-semibold">Fel vid PDF-generering:</p>
+          <p className="font-semibold">{t('errorTitle')}</p>
           <p>{error}</p>
         </div>
       )}

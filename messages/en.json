@@ -107,6 +107,18 @@
     }
   },
   "reports": {
+    "pdf": {
+      "ariaLabel": "Export as PDF",
+      "export": "Export PDF",
+      "generating": "Generating...",
+      "errorTitle": "PDF generation error:",
+      "errorFallback": "An error occurred while generating the PDF",
+      "progress": {
+        "preparing": "Preparing report...",
+        "generatingPdf": "Generating PDF...",
+        "done": "Done!"
+      }
+    },
     "share": {
       "trigger": "Share report",
       "title": "Share test report",
