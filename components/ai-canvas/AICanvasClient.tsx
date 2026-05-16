@@ -314,6 +314,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
           prompt: requestPrompt,
           templateId: selectedTemplate.id,
           contextSummary,
+          contextSelection,
         }),
       })
 
@@ -683,6 +684,11 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
                 <p className="text-xs leading-5 text-cyan-900">
                   {contextSummary || 'Ingen specifik kontext vald ännu.'}
                 </p>
+                {contextSummary && (
+                  <p className="mt-2 text-[11px] leading-4 text-cyan-800">
+                    När du skapar block hämtar AI Canvas en live-sammanfattning av de valda dataområdena.
+                  </p>
+                )}
               </div>
             </div>
           </div>

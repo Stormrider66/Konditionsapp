@@ -5,6 +5,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
+import { buildCanvasContextSummary } from '@/lib/ai-canvas/context-builder'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resolveModel } from '@/types/ai-models'
@@ -23,6 +24,13 @@ const requestSchema = z.object({
   prompt: z.string().trim().min(4).max(3000),
   templateId: templateSchema.default('blank'),
   contextSummary: z.string().trim().max(1200).optional(),
+  contextSelection: z.object({
+    scope: z.enum(['none', 'athlete', 'team']),
+    athleteId: z.string().optional(),
+    teamId: z.string().optional(),
+    dateRange: z.enum(['last7', 'last30', 'last90', 'next30']),
+    dataKeys: z.array(z.enum(['tests', 'sessions', 'programs', 'readiness', 'notes'])).max(5),
+  }).optional(),
 })
 
 const canvasBlockSchema = z.object({
@@ -55,7 +63,7 @@ Return structured Swedish coach-facing canvas blocks only. The blocks must help 
 
 Rules:
 - Do not claim you used live athlete, team, test, readiness, or program data unless it is included in the prompt.
-- If the request includes "Selected canvas context", treat it as user-selected context preferences, not as live metrics.
+- If the selected canvas context says it includes live read-only data, you may use those facts. Otherwise treat it as preferences only.
 - If data is missing, make that explicit in the content.
 - Keep recommendations coach-assistive, practical, and non-medical.
 - Do not say that you changed, saved, messaged, scheduled, or updated anything.
@@ -90,7 +98,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { businessSlug, prompt, templateId, contextSummary } = parsed.data
+    const { businessSlug, prompt, templateId, contextSummary, contextSelection } = parsed.data
     const membership = await validateBusinessMembership(user.id, businessSlug)
     if (!membership) {
       return NextResponse.json({ error: 'Business not found or access denied' }, { status: 404 })
@@ -107,6 +115,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const liveContextSummary = await buildCanvasContextSummary({
+      userId: user.id,
+      businessSlug,
+      businessId: membership.businessId,
+      role: membership.role,
+      selection: contextSelection,
+    })
+    const resolvedContextSummary = liveContextSummary || contextSummary
+
     const model = createModelInstance(resolved)
     const result = await withAiContext(
       { userId: user.id, category: 'coach_ai_canvas_generation' },
@@ -118,10 +135,12 @@ export async function POST(request: NextRequest) {
           `Template: ${templateId}`,
           `Template guidance: ${TEMPLATE_GUIDANCE[templateId]}`,
           '',
-          contextSummary ? `Selected canvas context:\n${contextSummary}\n` : '',
-          contextSummary
-            ? 'Important: this context identifies what the coach selected. It does not include live metrics yet.'
-            : '',
+          resolvedContextSummary ? `Selected canvas context:\n${resolvedContextSummary}\n` : '',
+          liveContextSummary
+            ? 'Important: this context includes live read-only platform data. Use the numbers carefully and say when data is missing.'
+            : contextSummary
+              ? 'Important: this context identifies what the coach selected. It does not include live metrics yet.'
+              : '',
           '',
           'Coach request:',
           prompt,
