@@ -213,6 +213,21 @@
         "primarySportRequired": "Primär sport krävs"
       }
     },
+    "physioSignup": {
+      "title": "Skapa fysiokonto",
+      "description": "Arbeta med rehab, restriktioner och återgång till träning",
+      "invitedTo": "Du har blivit inbjuden till {businessName}",
+      "inviteDescription": "Skapa ditt fysiokonto för att gå med i teamet",
+      "defaultTeamName": "ett team",
+      "createOwnAthleteProfile": "Skapa också min egen atletprofil",
+      "athleteProfileModeDescription": "Då kan du växla till athlete mode och använda plattformen från atletens perspektiv.",
+      "successTitle": "Konto skapat",
+      "successDescription": "Ditt fysioterapeutkonto är redo.",
+      "validation": {
+        "nameMinLength": "Namnet måste vara minst 2 tecken",
+        "athleteProfileRequired": "Alla fält för atletprofilen krävs"
+      }
+    },
     "claimBusiness": {
       "title": "Aktivera ditt konto",
       "description": "Skapa ditt konto för att ta över din verksamhet.",

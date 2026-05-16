@@ -213,6 +213,21 @@
         "primarySportRequired": "Primary sport is required"
       }
     },
+    "physioSignup": {
+      "title": "Create physiotherapist account",
+      "description": "Work with rehab, restrictions, and return to training",
+      "invitedTo": "You have been invited to {businessName}",
+      "inviteDescription": "Create your physiotherapist account to join the team",
+      "defaultTeamName": "a team",
+      "createOwnAthleteProfile": "Also create my own athlete profile",
+      "athleteProfileModeDescription": "This lets you switch to athlete mode and use the platform from the athlete's perspective.",
+      "successTitle": "Account created",
+      "successDescription": "Your physiotherapist account is ready.",
+      "validation": {
+        "nameMinLength": "Name must be at least 2 characters",
+        "athleteProfileRequired": "All athlete profile fields are required"
+      }
+    },
     "claimBusiness": {
       "title": "Activate your account",
       "description": "Create your account to take over your business.",
