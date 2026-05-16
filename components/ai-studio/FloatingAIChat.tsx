@@ -264,6 +264,10 @@ export function FloatingAIChat({
   const spokenAssistantMessageIdsRef = useRef<Set<string>>(new Set())
   const spokenAssistantNoticeIdsRef = useRef<Set<string>>(new Set())
   const voiceAutoSendTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const assistantAudioRef = useRef<HTMLAudioElement | null>(null)
+  const assistantAudioUrlRef = useRef<string | null>(null)
+  const assistantSpeechAbortRef = useRef<AbortController | null>(null)
+  const premiumVoiceUnavailableRef = useRef(false)
 
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
@@ -288,7 +292,10 @@ export function FloatingAIChat({
   const [isTranscribingVoice, setIsTranscribingVoice] = useState(false)
   const [isSpokenRepliesEnabled, setIsSpokenRepliesEnabled] = useState(false)
   const [isSpeechSupported, setIsSpeechSupported] = useState(false)
+  const [isBrowserSpeechSupported, setIsBrowserSpeechSupported] = useState(false)
   const [isSpeakingAssistant, setIsSpeakingAssistant] = useState(false)
+  const [isGeneratingAssistantAudio, setIsGeneratingAssistantAudio] = useState(false)
+  const [voicePlaybackStatus, setVoicePlaybackStatus] = useState<string | null>(null)
   const [isVoiceAutoSendEnabled, setIsVoiceAutoSendEnabled] = useState(false)
   const [isVoiceAutoSendPending, setIsVoiceAutoSendPending] = useState(false)
   const [isVoiceOperatorModeEnabled, setIsVoiceOperatorModeEnabled] = useState(false)
@@ -316,8 +323,11 @@ export function FloatingAIChat({
     if (typeof window === 'undefined') return
     const frame = window.requestAnimationFrame(() => {
       const savedVoiceOperatorMode = window.localStorage.getItem('floating-ai-voice-operator-mode') === 'true'
+      const canPlayAssistantAudio = 'Audio' in window || 'speechSynthesis' in window
       setIsVoiceAutoSendEnabled(window.localStorage.getItem('floating-ai-voice-auto-send') === 'true')
-      setIsVoiceOperatorModeEnabled(savedVoiceOperatorMode && 'speechSynthesis' in window)
+      setIsSpokenRepliesEnabled(window.localStorage.getItem('floating-ai-spoken-replies') === 'true')
+      setIsSpeechSupported(canPlayAssistantAudio)
+      setIsVoiceOperatorModeEnabled(savedVoiceOperatorMode && canPlayAssistantAudio)
     })
     return () => window.cancelAnimationFrame(frame)
   }, [])
@@ -327,13 +337,18 @@ export function FloatingAIChat({
       if (voiceAutoSendTimeoutRef.current) {
         clearTimeout(voiceAutoSendTimeoutRef.current)
       }
+      assistantSpeechAbortRef.current?.abort()
+      assistantAudioRef.current?.pause()
+      if (assistantAudioUrlRef.current) {
+        URL.revokeObjectURL(assistantAudioUrlRef.current)
+      }
     }
   }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return
     const frame = window.requestAnimationFrame(() => {
-      setIsSpeechSupported(true)
+      setIsBrowserSpeechSupported(true)
       setIsSpokenRepliesEnabled(window.localStorage.getItem('floating-ai-spoken-replies') === 'true')
     })
 
@@ -360,18 +375,31 @@ export function FloatingAIChat({
   }, [])
 
   const stopAssistantSpeech = useCallback(() => {
+    assistantSpeechAbortRef.current?.abort()
+    assistantSpeechAbortRef.current = null
+
+    if (assistantAudioRef.current) {
+      assistantAudioRef.current.pause()
+      assistantAudioRef.current.src = ''
+      assistantAudioRef.current = null
+    }
+    if (assistantAudioUrlRef.current) {
+      URL.revokeObjectURL(assistantAudioUrlRef.current)
+      assistantAudioUrlRef.current = null
+    }
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel()
     }
     setIsSpeakingAssistant(false)
+    setIsGeneratingAssistantAudio(false)
+    setVoicePlaybackStatus(null)
   }, [])
 
-  const speakAssistantReply = useCallback((text: string) => {
-    if (!isSpokenRepliesEnabled || !isSpeechSupported) return
-    if (typeof window === 'undefined' || !window.speechSynthesis) return
-
+  const speakBrowserAssistantReply = useCallback((text: string): boolean => {
+    if (!isBrowserSpeechSupported) return false
+    if (typeof window === 'undefined' || !window.speechSynthesis) return false
     const speakableText = getSpeakableAssistantText(text)
-    if (!speakableText) return
+    if (!speakableText) return false
 
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(speakableText)
@@ -380,11 +408,110 @@ export function FloatingAIChat({
     utterance.voice = voice
     utterance.rate = 1
     utterance.pitch = 1
-    utterance.onstart = () => setIsSpeakingAssistant(true)
-    utterance.onend = () => setIsSpeakingAssistant(false)
-    utterance.onerror = () => setIsSpeakingAssistant(false)
+    utterance.onstart = () => {
+      setIsSpeakingAssistant(true)
+      setVoicePlaybackStatus('Använder webbläsarens röst.')
+    }
+    utterance.onend = () => {
+      setIsSpeakingAssistant(false)
+      setVoicePlaybackStatus(null)
+    }
+    utterance.onerror = () => {
+      setIsSpeakingAssistant(false)
+      setVoicePlaybackStatus(null)
+    }
     window.speechSynthesis.speak(utterance)
-  }, [isSpeechSupported, isSpokenRepliesEnabled])
+    return true
+  }, [isBrowserSpeechSupported])
+
+  const playPremiumAssistantReply = useCallback(async (text: string): Promise<boolean> => {
+    if (premiumVoiceUnavailableRef.current) return false
+    if (typeof window === 'undefined' || !('Audio' in window)) return false
+
+    const speakableText = getSpeakableAssistantText(text).slice(0, 4096)
+    if (!speakableText) return false
+
+    stopAssistantSpeech()
+    const controller = new AbortController()
+    assistantSpeechAbortRef.current = controller
+    setIsGeneratingAssistantAudio(true)
+    setVoicePlaybackStatus('Skapar AI-röst...')
+
+    try {
+      const response = await fetch('/api/ai/chat/speech', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          text: speakableText,
+          isAthleteChat: isAthleteUser,
+          businessSlug: pathBusinessSlug,
+        }),
+      })
+
+      if (!response.ok) {
+        if ([400, 401, 403].includes(response.status)) {
+          premiumVoiceUnavailableRef.current = true
+        }
+        return false
+      }
+
+      const audioBlob = await response.blob()
+      const audioUrl = URL.createObjectURL(audioBlob)
+      const audio = new Audio(audioUrl)
+      assistantAudioRef.current = audio
+      assistantAudioUrlRef.current = audioUrl
+      audio.onplay = () => {
+        setIsGeneratingAssistantAudio(false)
+        setIsSpeakingAssistant(true)
+        setVoicePlaybackStatus('Spelar AI-röst...')
+      }
+      audio.onended = () => {
+        setIsSpeakingAssistant(false)
+        setVoicePlaybackStatus(null)
+        URL.revokeObjectURL(audioUrl)
+        if (assistantAudioUrlRef.current === audioUrl) assistantAudioUrlRef.current = null
+        if (assistantAudioRef.current === audio) assistantAudioRef.current = null
+      }
+      audio.onerror = () => {
+        setIsSpeakingAssistant(false)
+        setVoicePlaybackStatus(null)
+        URL.revokeObjectURL(audioUrl)
+        if (assistantAudioUrlRef.current === audioUrl) assistantAudioUrlRef.current = null
+        if (assistantAudioRef.current === audio) assistantAudioRef.current = null
+      }
+      await audio.play()
+      return true
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return true
+      return false
+    } finally {
+      if (assistantSpeechAbortRef.current === controller) {
+        assistantSpeechAbortRef.current = null
+      }
+      setIsGeneratingAssistantAudio(false)
+    }
+  }, [isAthleteUser, pathBusinessSlug, stopAssistantSpeech])
+
+  const speakAssistantReply = useCallback(async (text: string) => {
+    if (!isSpokenRepliesEnabled || !isSpeechSupported) return
+
+    const usedPremiumVoice = await playPremiumAssistantReply(text)
+    if (usedPremiumVoice) return
+
+    const usedBrowserVoice = speakBrowserAssistantReply(text)
+    if (usedBrowserVoice) {
+      setVoicePlaybackStatus(premiumVoiceUnavailableRef.current ? 'Använder webbläsarens röst.' : null)
+      return
+    }
+
+    setVoicePlaybackStatus('Röstsvar kunde inte spelas i den här webbläsaren.')
+  }, [
+    isSpeechSupported,
+    isSpokenRepliesEnabled,
+    playPremiumAssistantReply,
+    speakBrowserAssistantReply,
+  ])
 
   const toggleSpokenReplies = useCallback(() => {
     if (!isSpeechSupported) {
@@ -825,7 +952,7 @@ export function FloatingAIChat({
     const replyText = textContent || toolOnlyStatusMessage || ''
 
     spokenAssistantMessageIdsRef.current.add(lastMessage.id)
-    speakAssistantReply(replyText)
+    void speakAssistantReply(replyText)
   }, [isLoading, messages, speakAssistantReply])
 
   useEffect(() => {
@@ -834,7 +961,7 @@ export function FloatingAIChat({
     if (spokenAssistantNoticeIdsRef.current.has(latestNotice.id)) return
 
     spokenAssistantNoticeIdsRef.current.add(latestNotice.id)
-    speakAssistantReply(latestNotice.content)
+    void speakAssistantReply(latestNotice.content)
   }, [assistantNotices, speakAssistantReply])
 
   async function handlePublishProgram() {
@@ -1768,9 +1895,10 @@ export function FloatingAIChat({
               </Button>
             </div>
           )}
-          {isSpokenRepliesEnabled && isSpeakingAssistant && (
+          {isSpokenRepliesEnabled && (isGeneratingAssistantAudio || isSpeakingAssistant || voicePlaybackStatus) && (
             <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-              Läser upp svaret...
+              {voicePlaybackStatus || (isSpeakingAssistant ? 'Läser upp svaret...' : 'Skapar AI-röst...')}
+              <span className="ml-1">Rösten är AI-genererad.</span>
             </div>
           )}
         </div>
