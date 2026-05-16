@@ -48,6 +48,9 @@ import {
   type CoachFloatingChatEvent,
 } from '@/lib/events/coach-floating-chat'
 import { useAudioRecorder } from '@/hooks/use-audio-recorder'
+import { VoiceModesGuide } from './VoiceModesGuide'
+
+const COACH_VOICE_GUIDE_DISMISSED_KEY = 'floating-ai-voice-guide-dismissed'
 
 // Page context types for different page contexts
 export interface PageContext {
@@ -308,6 +311,7 @@ export function FloatingAIChat({
   const [isRealtimeVoiceConnecting, setIsRealtimeVoiceConnecting] = useState(false)
   const [isRealtimeVoiceActive, setIsRealtimeVoiceActive] = useState(false)
   const [realtimeVoiceStatus, setRealtimeVoiceStatus] = useState<string | null>(null)
+  const [showVoiceGuideCard, setShowVoiceGuideCard] = useState(false)
   const voiceRecordingPromiseRef = useRef<Promise<Blob> | null>(null)
   const addAssistantNotice = useCallback((content: string) => {
     setAssistantNotices((current) => [
@@ -337,6 +341,7 @@ export function FloatingAIChat({
       setIsSpokenRepliesEnabled(window.localStorage.getItem('floating-ai-spoken-replies') === 'true')
       setIsSpeechSupported(canPlayAssistantAudio)
       setIsVoiceOperatorModeEnabled(savedVoiceOperatorMode && canPlayAssistantAudio)
+      setShowVoiceGuideCard(window.localStorage.getItem(COACH_VOICE_GUIDE_DISMISSED_KEY) !== 'true')
     })
     return () => window.cancelAnimationFrame(frame)
   }, [])
@@ -581,6 +586,13 @@ export function FloatingAIChat({
     setIsVoiceAutoSendPending(false)
   }, [])
 
+  const dismissVoiceGuideCard = useCallback(() => {
+    setShowVoiceGuideCard(false)
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(COACH_VOICE_GUIDE_DISMISSED_KEY, 'true')
+    }
+  }, [])
+
   const toggleVoiceAutoSend = useCallback(() => {
     setIsVoiceAutoSendEnabled((current) => {
       const next = !current
@@ -635,6 +647,13 @@ export function FloatingAIChat({
     isVoiceOperatorModeEnabled,
     toast,
   ])
+
+  const startVoiceOperatorFromGuide = useCallback(() => {
+    dismissVoiceGuideCard()
+    if (!isVoiceOperatorModeEnabled) {
+      toggleVoiceOperatorMode()
+    }
+  }, [dismissVoiceGuideCard, isVoiceOperatorModeEnabled, toggleVoiceOperatorMode])
 
   // Track if context is available (data-rich or auto-context with concepts)
   const hasContext = !!pageContext && (
@@ -1685,6 +1704,7 @@ export function FloatingAIChat({
           {getProviderBadge()}
         </div>
         <div className="flex items-center gap-1">
+          <VoiceModesGuide />
           <Button
             variant="ghost"
             size="icon"
@@ -1870,6 +1890,14 @@ export function FloatingAIChat({
                 ? 'Kontext är inaktiverad. Klicka på knappen ovan för att aktivera.'
                 : 'Fråga mig om träningsprogram, testanalyser, eller andra frågor om dina atleter.'}
             </p>
+            {showVoiceGuideCard && (
+              <VoiceModesGuide
+                variant="card"
+                onDismiss={dismissVoiceGuideCard}
+                onStartVoiceOperator={startVoiceOperatorFromGuide}
+                className="mt-4 w-full max-w-[320px]"
+              />
+            )}
             {operatorContext && (
               <div className="mt-4 w-full rounded-lg border bg-muted/40 p-3 text-left">
                 <div className="mb-1 flex items-center gap-2 text-xs font-semibold">

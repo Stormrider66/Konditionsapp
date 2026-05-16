@@ -61,6 +61,7 @@ import {
 } from '@/lib/ai/billing/client-errors'
 import { AiAllowanceBlockedAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
 import { useAudioRecorder } from '@/hooks/use-audio-recorder'
+import { VoiceModesGuide } from '@/components/ai-studio/VoiceModesGuide'
 
 interface AthleteFloatingChatProps {
   clientId: string
@@ -80,6 +81,7 @@ interface IntentTierOption {
 const ATHLETE_VOICE_AUTO_SEND_KEY = 'athlete-floating-ai-voice-auto-send'
 const ATHLETE_SPOKEN_REPLIES_KEY = 'athlete-floating-ai-spoken-replies'
 const ATHLETE_VOICE_OPERATOR_KEY = 'athlete-floating-ai-voice-operator-mode'
+const ATHLETE_VOICE_GUIDE_DISMISSED_KEY = 'athlete-floating-ai-voice-guide-dismissed'
 
 function getVoiceFileExtension(mimeType: string): string {
   if (mimeType.includes('mp4') || mimeType.includes('m4a')) return 'm4a'
@@ -194,6 +196,7 @@ export function AthleteFloatingChat({
   const [isRealtimeVoiceConnecting, setIsRealtimeVoiceConnecting] = useState(false)
   const [isRealtimeVoiceActive, setIsRealtimeVoiceActive] = useState(false)
   const [realtimeVoiceStatus, setRealtimeVoiceStatus] = useState<string | null>(null)
+  const [showVoiceGuideCard, setShowVoiceGuideCard] = useState(false)
   const voiceRecordingPromiseRef = useRef<Promise<Blob> | null>(null)
   const addAssistantNotice = useCallback((content: string) => {
     setAssistantNotices((current) => [
@@ -227,6 +230,7 @@ export function AthleteFloatingChat({
       setIsSpokenRepliesEnabled(window.localStorage.getItem(ATHLETE_SPOKEN_REPLIES_KEY) === 'true')
       setIsSpeechSupported(canPlayAssistantAudio)
       setIsVoiceOperatorModeEnabled(savedVoiceOperatorMode && canPlayAssistantAudio)
+      setShowVoiceGuideCard(window.localStorage.getItem(ATHLETE_VOICE_GUIDE_DISMISSED_KEY) !== 'true')
     })
     return () => window.cancelAnimationFrame(frame)
   }, [])
@@ -470,6 +474,13 @@ export function AthleteFloatingChat({
     setIsVoiceAutoSendPending(false)
   }, [])
 
+  const dismissVoiceGuideCard = useCallback(() => {
+    setShowVoiceGuideCard(false)
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(ATHLETE_VOICE_GUIDE_DISMISSED_KEY, 'true')
+    }
+  }, [])
+
   const toggleVoiceAutoSend = useCallback(() => {
     setIsVoiceAutoSendEnabled((current) => {
       const next = !current
@@ -524,6 +535,13 @@ export function AthleteFloatingChat({
     isVoiceOperatorModeEnabled,
     toast,
   ])
+
+  const startVoiceOperatorFromGuide = useCallback(() => {
+    dismissVoiceGuideCard()
+    if (!isVoiceOperatorModeEnabled) {
+      toggleVoiceOperatorMode()
+    }
+  }, [dismissVoiceGuideCard, isVoiceOperatorModeEnabled, toggleVoiceOperatorMode])
 
   // Fetch AI config from coach
   useEffect(() => {
@@ -1632,6 +1650,7 @@ export function AthleteFloatingChat({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          <VoiceModesGuide />
           <Button
             variant="ghost"
             size="icon"
@@ -1776,6 +1795,14 @@ export function AthleteFloatingChat({
             <p className="text-sm text-muted-foreground max-w-[280px] mb-4">
               Jag är din AI-träningsassistent. Jag kan hjälpa dig förstå din träning, förklara pass och analysera dina data.
             </p>
+            {showVoiceGuideCard && (
+              <VoiceModesGuide
+                variant="card"
+                onDismiss={dismissVoiceGuideCard}
+                onStartVoiceOperator={startVoiceOperatorFromGuide}
+                className="mb-4 w-full max-w-[320px]"
+              />
+            )}
             {/* Quick prompts */}
             <div className="flex flex-wrap gap-2 justify-center max-w-[320px]">
               {ATHLETE_QUICK_PROMPTS.slice(0, 4).map((prompt) => (
