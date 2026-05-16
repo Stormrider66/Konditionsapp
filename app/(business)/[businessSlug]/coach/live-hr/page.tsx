@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Radio } from 'lucide-react'
 import { LiveHRSessionList } from '@/components/coach/live-hr/SessionList'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{
@@ -22,6 +23,7 @@ interface PageProps {
 export default async function BusinessLiveHRPage({ params }: PageProps) {
   const { businessSlug } = await params
   const user = await requireCoach()
+  const t = await getTranslations('coach.pages.liveHr')
 
   // Validate business membership
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -45,7 +47,7 @@ export default async function BusinessLiveHRPage({ params }: PageProps) {
           Live HR Streaming
         </h1>
         <p className="text-muted-foreground mt-1">
-          Övervaka atleters puls i realtid under träningspass
+          {t('description')}
         </p>
       </div>
 

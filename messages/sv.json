@@ -531,6 +531,39 @@
       "errorId": "Fel-ID: {digest}",
       "tryAgain": "Försök igen"
     },
+    "pages": {
+      "competitions": {
+        "title": "Utmaningar & Tävlingar",
+        "description": "Skapa utmaningar och tävlingar för att engagera dina medlemmar"
+      },
+      "liveHr": {
+        "description": "Övervaka atleters puls i realtid under träningspass"
+      },
+      "social": {
+        "title": "Sociala medier",
+        "description": "Skapa, hantera och publicera inlägg till dina sociala medier"
+      },
+      "staff": {
+        "title": "Personalhantering",
+        "description": "Bjud in och hantera tränare, fystränare och fysioterapeuter"
+      },
+      "community": {
+        "title": "Community",
+        "description": "Inlägg, nyheter och uppdateringar för dina medlemmar"
+      },
+      "drills": {
+        "title": "Taktiktavla",
+        "description": "Skapa och dela övningar med dina spelare",
+        "tabs": {
+          "create": "Skapa ny",
+          "draw": "Rita",
+          "templates": "Mallar",
+          "plan": "Planera",
+          "club": "Klubb",
+          "library": "Sparade"
+        }
+      }
+    },
     "dashboard": "Coach Dashboard",
     "myAthletes": "Mina atleter",
     "addAthlete": "Lägg till atlet",

@@ -5,6 +5,7 @@ import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { StaffManagement } from '@/components/coach/staff/StaffManagement'
 import { Users } from 'lucide-react'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -13,6 +14,7 @@ interface PageProps {
 export default async function StaffPage({ params }: PageProps) {
   const { businessSlug } = await params
   const user = await requireCoach()
+  const t = await getTranslations('coach.pages.staff')
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
@@ -29,10 +31,10 @@ export default async function StaffPage({ params }: PageProps) {
       <div className="mb-6">
         <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 dark:text-white">
           <Users className="h-5 w-5 sm:h-6 sm:w-6" />
-          Personalhantering
+          {t('title')}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Bjud in och hantera tränare, fystränare och fysioterapeuter
+          {t('description')}
         </p>
       </div>
 

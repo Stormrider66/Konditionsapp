@@ -11,6 +11,7 @@ import { DrillTemplatePage } from '@/components/coach/drills/DrillTemplatePage'
 import { PracticePlanner } from '@/components/coach/drills/PracticePlanner'
 import { ClubDrillLibrary } from '@/components/coach/drills/ClubDrillLibrary'
 import { ClipboardList } from 'lucide-react'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -19,6 +20,7 @@ interface PageProps {
 export default async function DrillsPage({ params }: PageProps) {
   const { businessSlug } = await params
   const user = await requireCoach()
+  const t = await getTranslations('coach.pages.drills')
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
@@ -35,21 +37,21 @@ export default async function DrillsPage({ params }: PageProps) {
       <div className="mb-6">
         <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 dark:text-white">
           <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6" />
-          Taktiktavla
+          {t('title')}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Skapa och dela övningar med dina spelare
+          {t('description')}
         </p>
       </div>
 
       <Tabs defaultValue="create" className="space-y-4">
         <TabsList className="flex-wrap h-auto gap-0.5">
-          <TabsTrigger value="create">Skapa ny</TabsTrigger>
-          <TabsTrigger value="draw">Rita</TabsTrigger>
-          <TabsTrigger value="templates">Mallar</TabsTrigger>
-          <TabsTrigger value="plan">Planera</TabsTrigger>
-          <TabsTrigger value="club">Klubb</TabsTrigger>
-          <TabsTrigger value="library">Sparade</TabsTrigger>
+          <TabsTrigger value="create">{t('tabs.create')}</TabsTrigger>
+          <TabsTrigger value="draw">{t('tabs.draw')}</TabsTrigger>
+          <TabsTrigger value="templates">{t('tabs.templates')}</TabsTrigger>
+          <TabsTrigger value="plan">{t('tabs.plan')}</TabsTrigger>
+          <TabsTrigger value="club">{t('tabs.club')}</TabsTrigger>
+          <TabsTrigger value="library">{t('tabs.library')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="create">

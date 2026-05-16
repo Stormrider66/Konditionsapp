@@ -531,6 +531,39 @@
       "errorId": "Error ID: {digest}",
       "tryAgain": "Try again"
     },
+    "pages": {
+      "competitions": {
+        "title": "Challenges & Competitions",
+        "description": "Create challenges and competitions to engage your members"
+      },
+      "liveHr": {
+        "description": "Monitor athletes' heart rate in real time during training sessions"
+      },
+      "social": {
+        "title": "Social media",
+        "description": "Create, manage, and publish posts to your social media channels"
+      },
+      "staff": {
+        "title": "Staff management",
+        "description": "Invite and manage coaches, strength coaches, and physiotherapists"
+      },
+      "community": {
+        "title": "Community",
+        "description": "Posts, news, and updates for your members"
+      },
+      "drills": {
+        "title": "Tactics board",
+        "description": "Create and share drills with your players",
+        "tabs": {
+          "create": "Create new",
+          "draw": "Draw",
+          "templates": "Templates",
+          "plan": "Plan",
+          "club": "Club",
+          "library": "Saved"
+        }
+      }
+    },
     "dashboard": "Coach Dashboard",
     "myAthletes": "My athletes",
     "addAthlete": "Add athlete",
