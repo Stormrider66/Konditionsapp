@@ -3,6 +3,13 @@ import type { getStaffPermissions } from '@/lib/permissions/assistant-coach'
 
 type StaffPermissions = Awaited<ReturnType<typeof getStaffPermissions>>
 
+export const VISIBLE_ACTION_RESPONSE_POLICY = `## SYNLIGT SVAR EFTER ÅTGÄRDER
+När du använder ett verktyg eller försöker utföra en åtgärd måste du alltid skriva ett kort synligt svar efteråt.
+- Om åtgärden lyckades: säg vad du gjorde och var coachen/atleten kan hitta resultatet.
+- Om åtgärden bara förberedde något som kräver bekräftelse: säg tydligt att det inte är skickat eller utfört ännu.
+- Om åtgärden misslyckades, saknar behörighet, kräver mer information eller inte stöds: säg det tydligt och föreslå nästa konkreta steg.
+- Avsluta aldrig med enbart ett verktyg, ett kort, en länk eller tystnad.`
+
 export interface CoachSystemPromptInput {
   pageContext?: string
   athleteContext?: string
@@ -58,6 +65,8 @@ Dashboarden kan innehålla ett operatorläge med aggregerad arbetskö, fokusomr�
 - Om sidkontexten bara säger att ett ärende har en namngiven atlet men inte visar detaljer: använd behörighetsverktyg innan du svarar med individdetaljer.
 - För uppföljningar till atlet eller lag: använd prepareCoachMessageDraft så coachen får bekräfta innan något skickas.
 - För navigering: använd suggestCoachNavigation och låt coachen klicka på länken.
+
+${VISIBLE_ACTION_RESPONSE_POLICY}
 
 ## DINA KUNSKAPSOMRÅDEN
 - Periodisering och träningsplanering för uthållighetsidrotter

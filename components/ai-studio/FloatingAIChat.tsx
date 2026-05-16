@@ -85,6 +85,16 @@ interface ToolOutputPart {
   output?: unknown
 }
 
+interface ToolStatusOutput {
+  success?: boolean
+  message?: string
+  error?: string
+  needsClarification?: boolean
+  title?: string
+  name?: string
+  athleteName?: string
+}
+
 interface CoachOperatorContext {
   status?: 'attention' | 'stable'
   tone?: 'risk' | 'watch' | 'steady'
@@ -107,6 +117,86 @@ function getCoachOperatorContext(pageContext?: PageContext): CoachOperatorContex
     }
   }
   return data.dashboard?.operator ?? null
+}
+
+function isToolStatusOutput(output: unknown): output is ToolStatusOutput {
+  return typeof output === 'object' && output !== null
+}
+
+function getFallbackActionMessage(toolName: string, output: ToolStatusOutput): string {
+  if (output.success === false) {
+    const error = output.error || output.message || 'Jag fick inget tydligt felmeddelande från systemet.'
+    if (output.needsClarification) {
+      return `${error} Välj rätt alternativ eller ge mig lite mer information så fortsätter jag.`
+    }
+    return `Jag kunde inte slutföra det: ${error}`
+  }
+
+  if (output.success === true) {
+    if (output.message) return output.message
+
+    switch (toolName) {
+      case 'createTodayWorkout':
+        return output.title
+          ? `Klart, jag har skapat passet "${output.title}".`
+          : 'Klart, jag har skapat passet.'
+      case 'logMeal':
+        return 'Klart, jag har loggat måltiden.'
+      case 'updateMeal':
+        return 'Klart, jag har uppdaterat måltiden.'
+      case 'deleteMeal':
+        return 'Klart, jag har tagit bort måltiden.'
+      case 'logDailyCheckIn':
+        return 'Klart, jag har sparat incheckningen.'
+      case 'reportInjury':
+        return 'Klart, jag har registrerat skaderapporten.'
+      case 'updateAthleteProfile':
+        return 'Klart, jag har uppdaterat profilen.'
+      case 'createCalendarEvent':
+        return 'Klart, jag har skapat kalenderhändelsen.'
+      case 'generateTrainingProgram':
+        return output.athleteName
+          ? `Klart, jag har startat programgenereringen för ${output.athleteName}.`
+          : 'Klart, jag har startat programgenereringen.'
+      case 'generateStrengthSession':
+      case 'createCardioSession':
+      case 'createHybridWorkout':
+      case 'createSportWorkout':
+      case 'modifyStrengthSession':
+        return output.name
+          ? `Klart, jag har sparat "${output.name}".`
+          : 'Klart, jag har sparat åtgärden.'
+      case 'prepareCoachMessageDraft':
+        return 'Jag har förberett ett meddelande. Det skickas först när du bekräftar i kortet nedan.'
+      case 'suggestCoachNavigation':
+        return 'Jag har förberett en genväg. Klicka på knappen nedan för att öppna den.'
+      default:
+        return 'Klart, jag har utfört åtgärden.'
+    }
+  }
+
+  return output.error || output.message || 'Jag försökte utföra åtgärden, men fick inget tydligt svar från systemet.'
+}
+
+function getToolOnlyStatusMessage(role: string, parts?: unknown[]): string | null {
+  if (role !== 'assistant') return null
+
+  const toolOutputs = (parts as ToolOutputPart[] | undefined)?.filter(
+    part => part.type.startsWith('tool-') && part.state === 'output-available'
+  )
+  if (!toolOutputs?.length) return null
+
+  const latestOutput = [...toolOutputs]
+    .reverse()
+    .find(part => isToolStatusOutput(part.output))
+  if (!latestOutput || !isToolStatusOutput(latestOutput.output)) {
+    return 'Jag försökte utföra åtgärden, men fick inget tydligt svar från systemet.'
+  }
+
+  return getFallbackActionMessage(
+    latestOutput.type.replace(/^tool-/, ''),
+    latestOutput.output
+  )
 }
 
 export function FloatingAIChat({
@@ -139,6 +229,11 @@ export function FloatingAIChat({
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
   const [isContextEnabled, setIsContextEnabled] = useState(true)
   const [isAthleteUser, setIsAthleteUser] = useState(false)
+  const [assistantNotices, setAssistantNotices] = useState<Array<{
+    id: string
+    content: string
+    createdAt: Date
+  }>>([])
 
   // GDPR: Track athlete consent status for coach chat
   const [athleteConsentStatus, setAthleteConsentStatus] = useState<'loading' | 'granted' | 'none' | null>(null)
@@ -419,6 +514,17 @@ export function FloatingAIChat({
   // Track auto-retrieved knowledge skills
   const [knowledgeSkills, setKnowledgeSkills] = useState<string[]>([])
 
+  const addAssistantNotice = useCallback((content: string) => {
+    setAssistantNotices((current) => [
+      ...current,
+      {
+        id: `assistant-notice-${Date.now()}-${current.length}`,
+        content,
+        createdAt: new Date(),
+      },
+    ].slice(-3))
+  }, [])
+
   // Custom fetch to capture X-Knowledge-Skills header from streaming response
   const skillCapturingFetch = useCallback(async (url: RequestInfo | URL, init?: RequestInit) => {
     const response = await fetch(url, init)
@@ -441,13 +547,13 @@ export function FloatingAIChat({
     sendMessage,
     status,
     setMessages,
-    error,
   } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/ai/chat',
       fetch: skillCapturingFetch,
     }),
     onError: (error) => {
+      addAssistantNotice(`Jag kunde inte slutföra förfrågan: ${error.message}`)
       toast({
         title: 'Kunde inte skicka meddelande',
         description: error.message,
@@ -461,7 +567,7 @@ export function FloatingAIChat({
   // Scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, assistantNotices])
 
   // Detect programs in assistant messages
   useEffect(() => {
@@ -571,7 +677,12 @@ export function FloatingAIChat({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!input.trim() || isLoading || !modelConfig) return
+    if (!input.trim() || isLoading) return
+    if (!modelConfig) {
+      addAssistantNotice('Jag kan inte skicka just nu eftersom AI-modellen inte är färdigladdad. Vänta några sekunder och försök igen.')
+      return
+    }
+    setAssistantNotices([])
 
     // Create conversation if none exists
     if (!conversationId) {
@@ -622,12 +733,14 @@ export function FloatingAIChat({
   function handleClose() {
     setIsOpen(false)
     setMessages([])
+    setAssistantNotices([])
     setConversationId(null)
     setInput('')
   }
 
   function handleNewChat() {
     setMessages([])
+    setAssistantNotices([])
     setConversationId(null)
     setInput('')
   }
@@ -940,7 +1053,7 @@ export function FloatingAIChat({
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4">
-        {messages.length === 0 ? (
+        {messages.length === 0 && assistantNotices.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <Sparkles className="h-10 w-10 text-muted-foreground mb-3" />
             <h3 className="font-medium mb-1">Hur kan jag hjälpa dig?</h3>
@@ -1034,6 +1147,9 @@ export function FloatingAIChat({
                 ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
                 .map((part) => part.text)
                 .join('') || ''
+              const toolOnlyStatusMessage = textContent || isLoading
+                ? null
+                : getToolOnlyStatusMessage(message.role, message.parts)
               const navigationToolPart = (message.parts as ToolOutputPart[] | undefined)?.find(
                 part => part.type === 'tool-suggestCoachNavigation' && part.state === 'output-available'
               )
@@ -1044,12 +1160,12 @@ export function FloatingAIChat({
               const actionResult = actionToolPart?.output as ChatActionResult | undefined
               return (
                 <div key={message.id}>
-                  {textContent && (
+                  {(textContent || toolOnlyStatusMessage) && (
                     <ChatMessage
                       message={{
                         id: message.id,
                         role: message.role as 'user' | 'assistant' | 'system',
-                        content: textContent,
+                        content: textContent || toolOnlyStatusMessage || '',
                         createdAt: new Date(),
                       }}
                       athleteId={athleteId}
@@ -1066,6 +1182,20 @@ export function FloatingAIChat({
                 </div>
               )
             })}
+            {assistantNotices.map((notice) => (
+              <ChatMessage
+                key={notice.id}
+                message={{
+                  id: notice.id,
+                  role: 'assistant',
+                  content: notice.content,
+                  createdAt: notice.createdAt,
+                }}
+                athleteId={athleteId}
+                athleteName={athleteName}
+                conversationId={conversationId}
+              />
+            ))}
             {isLoading && (
               <div className="flex gap-3">
                 <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">

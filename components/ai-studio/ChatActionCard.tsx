@@ -49,6 +49,7 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
   const { toast } = useToast()
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [sentCount, setSentCount] = useState<number | null>(null)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
   if (!result.action || result.action.type !== 'sendCoachMessage') return null
   const action = result.action
@@ -91,12 +92,14 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
 
       setSentCount(data.sent ?? action.recipientCount)
       setStatus('sent')
+      setStatusMessage(data.message || `Jag har skickat meddelandet till ${data.sent ?? action.recipientCount} mottagare.`)
       toast({
         title: 'Meddelande skickat',
         description: data.message || `Skickat till ${data.sent ?? action.recipientCount} mottagare.`,
       })
     } catch (error) {
       setStatus('error')
+      setStatusMessage(`Jag kunde inte skicka meddelandet: ${error instanceof Error ? error.message : 'Försök igen.'}`)
       toast({
         title: 'Kunde inte skicka meddelandet',
         description: error instanceof Error ? error.message : 'Försök igen.',
@@ -180,6 +183,19 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
           <p className="text-xs text-destructive">
             Något gick fel vid skickandet. Kontrollera mottagarna och försök igen.
           </p>
+        )}
+
+        {statusMessage && (
+          <div
+            className={cn(
+              'rounded-md px-3 py-2 text-xs',
+              isSent
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                : 'bg-destructive/10 text-destructive'
+            )}
+          >
+            {statusMessage}
+          </div>
         )}
 
         <div className="flex flex-wrap items-center gap-2">

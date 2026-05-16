@@ -29,7 +29,10 @@ import {
   type LowerProvider,
 } from '@/lib/ai/chat/providers'
 import { buildChatContext } from '@/lib/ai/chat/context-builder'
-import { buildCoachSystemPrompt } from '@/lib/ai/chat/system-prompt'
+import {
+  buildCoachSystemPrompt,
+  VISIBLE_ACTION_RESPONSE_POLICY,
+} from '@/lib/ai/chat/system-prompt'
 import { resolveAiModel, getMaxOutputTokens } from '@/lib/ai/chat/model-selector'
 import { buildOnFinishHandler } from '@/lib/ai/chat/on-finish'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
@@ -235,7 +238,7 @@ export async function POST(request: NextRequest) {
 
     // ── 6. System prompt ────────────────────────────────────────────
     const systemPrompt = isAthleteChat && context.athleteSystemPrompt
-      ? `${context.athleteSystemPrompt}\n${pageContext}\n`
+      ? `${context.athleteSystemPrompt}\n${VISIBLE_ACTION_RESPONSE_POLICY}\n${pageContext}\n`
       : buildCoachSystemPrompt({
           pageContext,
           athleteContext: context.athleteContext,
