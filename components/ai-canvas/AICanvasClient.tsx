@@ -47,6 +47,11 @@ type CanvasBlockType =
   | 'trend-summary'
 
 type CanvasTemplateId = 'blank' | 'athlete-review' | 'weekly-briefing' | 'team-risk' | 'program-notes'
+  | 'athlete-progress-report'
+  | 'team-monthly-report'
+  | 'program-audit'
+  | 'test-interpretation-report'
+  | 'return-to-training-plan'
 
 interface CanvasBlock {
   id: string
@@ -139,6 +144,7 @@ interface CanvasTemplate {
   description: string
   prompt: string
   icon: typeof FileText
+  group: 'workspace' | 'report'
 }
 
 const starterTemplates: CanvasTemplate[] = [
@@ -148,6 +154,7 @@ const starterTemplates: CanvasTemplate[] = [
     description: 'Börja fritt med en egen fråga eller idé.',
     prompt: '',
     icon: Plus,
+    group: 'workspace',
   },
   {
     id: 'athlete-review',
@@ -155,6 +162,7 @@ const starterTemplates: CanvasTemplate[] = [
     description: 'Skapa en tydlig statusrapport för en atlet.',
     prompt: 'Skapa en athlete review med nuläge, viktigaste observationer, risker och nästa steg.',
     icon: FileText,
+    group: 'workspace',
   },
   {
     id: 'weekly-briefing',
@@ -162,6 +170,7 @@ const starterTemplates: CanvasTemplate[] = [
     description: 'Sammanfatta veckan och vad coachen bör prioritera.',
     prompt: 'Skapa en weekly coach briefing med prioriteringar, uppföljningar och beslut.',
     icon: ClipboardList,
+    group: 'workspace',
   },
   {
     id: 'team-risk',
@@ -169,6 +178,7 @@ const starterTemplates: CanvasTemplate[] = [
     description: 'Identifiera uppföljningar, testbehov och risker.',
     prompt: 'Skapa en team risk scan med atleter att följa upp, dataluckor och rekommenderade åtgärder.',
     icon: BarChart3,
+    group: 'workspace',
   },
   {
     id: 'program-notes',
@@ -176,8 +186,57 @@ const starterTemplates: CanvasTemplate[] = [
     description: 'Bygg en arbetsyta för programidéer och träningsblock.',
     prompt: 'Skapa program planning notes för ett fyra veckors block med mål, nyckelpass och kontrollpunkter.',
     icon: ListChecks,
+    group: 'workspace',
+  },
+  {
+    id: 'athlete-progress-report',
+    name: 'Athlete progress report',
+    description: 'Polerad rapport för atletens utveckling, nuläge och nästa beslut.',
+    prompt:
+      'Skapa en professionell athlete progress report med executive summary, datadrivna observationer, utveckling, risker, rekommendationer och nästa steg.',
+    icon: FileText,
+    group: 'report',
+  },
+  {
+    id: 'team-monthly-report',
+    name: 'Team monthly report',
+    description: 'Månadsrapport för lagstatus, risker, trender och prioriteringar.',
+    prompt:
+      'Skapa en professionell team monthly report med sammanfattning, lagstatus, testläge, träningsgenomförande, readiness, risker och prioriteringar för nästa månad.',
+    icon: BarChart3,
+    group: 'report',
+  },
+  {
+    id: 'program-audit',
+    name: 'Program audit',
+    description: 'Granska ett program eller block och hitta justeringar.',
+    prompt:
+      'Skapa en program audit med syfte, programstatus, belastningsrisker, saknad data, föreslagna justeringar och coachbeslut.',
+    icon: ClipboardList,
+    group: 'report',
+  },
+  {
+    id: 'test-interpretation-report',
+    name: 'Test interpretation',
+    description: 'Tolka testdata och översätt den till praktiska träningsbeslut.',
+    prompt:
+      'Skapa en test interpretation report med testöversikt, viktigaste fysiologiska signaler, träningsimplikationer, dataluckor och rekommenderade nästa steg.',
+    icon: Sparkles,
+    group: 'report',
+  },
+  {
+    id: 'return-to-training-plan',
+    name: 'Return-to-training plan',
+    description: 'Strukturerad plan för försiktig återgång till träning.',
+    prompt:
+      'Skapa en return-to-training plan med nuläge, begränsningar, progression, kontrollpunkter, varningssignaler och tydliga coachåtgärder. Var försiktig och icke-medicinsk.',
+    icon: ListChecks,
+    group: 'report',
   },
 ]
+
+const workspaceTemplates = starterTemplates.filter((template) => template.group === 'workspace')
+const reportTemplates = starterTemplates.filter((template) => template.group === 'report')
 
 const initialBlocks: CanvasBlock[] = [
   {
@@ -496,7 +555,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                  Phase 1C
+                  Phase 4A
                 </Badge>
                 <Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-700">
                   Coach workspace
@@ -550,7 +609,37 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
               <h2 className="text-sm font-semibold text-slate-900">Startmallar</h2>
             </div>
             <div className="space-y-2">
-              {starterTemplates.map((template) => {
+              {workspaceTemplates.map((template) => {
+                const Icon = template.icon
+                const isSelected = selectedTemplateId === template.id
+                return (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => handleSelectTemplate(template)}
+                    className={cn(
+                      'w-full rounded-md border p-3 text-left transition hover:border-slate-300 hover:bg-slate-50',
+                      isSelected ? 'border-slate-900 bg-slate-50' : 'border-slate-200 bg-white'
+                    )}
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium text-slate-900">
+                      <Icon className="h-4 w-4 text-slate-600" />
+                      {template.name}
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-slate-500">{template.description}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <FileText className="h-4 w-4 text-indigo-700" />
+              <h2 className="text-sm font-semibold text-slate-900">Rapportmallar</h2>
+            </div>
+            <div className="space-y-2">
+              {reportTemplates.map((template) => {
                 const Icon = template.icon
                 const isSelected = selectedTemplateId === template.id
                 return (
