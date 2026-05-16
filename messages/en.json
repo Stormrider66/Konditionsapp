@@ -115,6 +115,38 @@
     "createCoachAccount": "Create a coach account",
     "referredBy": "Referred by {name}",
     "accountCreatedWithReferral": "Your account has been created with referral benefits!",
+    "signupChooser": {
+      "title": "Create your account",
+      "subtitle": "Choose the account type that fits you best",
+      "getStarted": "Get started",
+      "contactUs": "Contact us",
+      "roles": {
+        "athlete": {
+          "title": "Athlete",
+          "description": "Create an athlete account to log training, get AI coaching, and track your progress."
+        },
+        "coach": {
+          "title": "PT / Coach",
+          "description": "Manage your athletes, create training programs, and use advanced analytics tools."
+        },
+        "physio": {
+          "title": "Physiotherapist",
+          "description": "Work with rehab, restrictions, and return to training, and switch to athlete mode to see the athlete experience."
+        },
+        "gym": {
+          "title": "Gym",
+          "description": "Create a gym account with support for multiple coaches, team management, and custom branding."
+        },
+        "team": {
+          "title": "Team / Club",
+          "description": "Clubs and teams with an athlete portal, team management, and training programs."
+        },
+        "enterprise": {
+          "title": "Enterprise",
+          "description": "Tailored solutions for larger organizations with dedicated support."
+        }
+      }
+    },
     "claimBusiness": {
       "title": "Activate your account",
       "description": "Create your account to take over your business.",

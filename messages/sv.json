@@ -115,6 +115,38 @@
     "createCoachAccount": "Skapa ett tränarkonto",
     "referredBy": "Värvad av {name}",
     "accountCreatedWithReferral": "Ditt konto har skapats med värvningsförmåner!",
+    "signupChooser": {
+      "title": "Skapa ditt konto",
+      "subtitle": "Välj den kontotyp som passar dig bäst",
+      "getStarted": "Kom igång",
+      "contactUs": "Kontakta oss",
+      "roles": {
+        "athlete": {
+          "title": "Atlet",
+          "description": "Skapa ett atletkonto för att logga träning, få AI-coachning och följa din utveckling."
+        },
+        "coach": {
+          "title": "PT / Coach",
+          "description": "Hantera dina atleter, skapa träningsprogram och använd avancerade analysverktyg."
+        },
+        "physio": {
+          "title": "Fysioterapeut",
+          "description": "Arbeta med rehab, restriktioner och återgång till träning, och växla till athlete mode för att se atletupplevelsen."
+        },
+        "gym": {
+          "title": "Gym",
+          "description": "Skapa ett gymkonto med stöd för flera coacher, teamhantering och anpassad branding."
+        },
+        "team": {
+          "title": "Team / Förening",
+          "description": "Klubbar och föreningar med atletportal, laghantering och träningsprogram."
+        },
+        "enterprise": {
+          "title": "Enterprise",
+          "description": "Skräddarsydda lösningar för större organisationer med dedikerad support."
+        }
+      }
+    },
     "claimBusiness": {
       "title": "Aktivera ditt konto",
       "description": "Skapa ditt konto för att ta över din verksamhet.",

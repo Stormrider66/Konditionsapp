@@ -14,8 +14,6 @@ const ROLES = [
   {
     id: 'athlete',
     icon: User,
-    title: 'Atlet',
-    description: 'Skapa ett atletkonto för att logga träning, få AI-coachning och följa din utveckling.',
     href: '/signup/athlete',
     color: 'text-blue-600',
     bgColor: 'bg-blue-50',
@@ -24,8 +22,6 @@ const ROLES = [
   {
     id: 'coach',
     icon: Dumbbell,
-    title: 'PT / Coach',
-    description: 'Hantera dina atleter, skapa träningsprogram och använd avancerade analysverktyg.',
     href: '/signup/coach',
     color: 'text-green-600',
     bgColor: 'bg-green-50',
@@ -34,8 +30,6 @@ const ROLES = [
   {
     id: 'physio',
     icon: Stethoscope,
-    title: 'Fysioterapeut',
-    description: 'Arbeta med rehab, restriktioner och återgång till träning, och växla till athlete mode för att se atletupplevelsen.',
     href: '/signup/physio',
     color: 'text-emerald-600',
     bgColor: 'bg-emerald-50',
@@ -44,8 +38,6 @@ const ROLES = [
   {
     id: 'gym',
     icon: Building2,
-    title: 'Gym',
-    description: 'Skapa ett gymkonto med stöd för flera coacher, teamhantering och anpassad branding.',
     href: '/signup/gym',
     color: 'text-purple-600',
     bgColor: 'bg-purple-50',
@@ -54,8 +46,6 @@ const ROLES = [
   {
     id: 'team',
     icon: Users,
-    title: 'Team / Förening',
-    description: 'Klubbar och föreningar med atletportal, laghantering och träningsprogram.',
     href: '/signup/team',
     color: 'text-orange-600',
     bgColor: 'bg-orange-50',
@@ -64,13 +54,10 @@ const ROLES = [
   {
     id: 'enterprise',
     icon: Crown,
-    title: 'Enterprise',
-    description: 'Skräddarsydda lösningar för större organisationer med dedikerad support.',
     href: '/contact',
     color: 'text-amber-600',
     bgColor: 'bg-amber-50',
     borderHover: 'hover:border-amber-300',
-    cta: 'Kontakta oss',
   },
 ] as const
 
@@ -126,8 +113,8 @@ function RoleSelectorContent() {
 
       <div className="w-full max-w-4xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Skapa ditt konto</h1>
-          <p className="mt-2 text-gray-600">Välj den kontotyp som passar dig bäst</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('signupChooser.title')}</h1>
+          <p className="mt-2 text-gray-600">{t('signupChooser.subtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -147,13 +134,17 @@ function RoleSelectorContent() {
                     <div className={`w-14 h-14 ${role.bgColor} rounded-full flex items-center justify-center mb-4`}>
                       <Icon className={`h-7 w-7 ${role.color}`} />
                     </div>
-                    <h2 className="text-lg font-semibold text-gray-900 mb-2">{role.title}</h2>
-                    <p className="text-sm text-muted-foreground mb-4 flex-1">{role.description}</p>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                      {t(`signupChooser.roles.${role.id}.title`)}
+                    </h2>
+                    <p className="text-sm text-muted-foreground mb-4 flex-1">
+                      {t(`signupChooser.roles.${role.id}.description`)}
+                    </p>
                     <Button
                       variant={role.id === 'enterprise' ? 'outline' : 'default'}
                       className="w-full"
                     >
-                      {role.id === 'enterprise' ? 'Kontakta oss' : 'Kom igång'}
+                      {role.id === 'enterprise' ? t('signupChooser.contactUs') : t('signupChooser.getStarted')}
                     </Button>
                   </CardContent>
                 </Card>
@@ -176,10 +167,12 @@ function RoleSelectorContent() {
 }
 
 export default function SignupPage() {
+  const tCommon = useTranslations('common')
+
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="animate-pulse text-gray-400">Laddar...</div>
+        <div className="animate-pulse text-gray-400">{tCommon('loading')}</div>
       </div>
     }>
       <RoleSelectorContent />
