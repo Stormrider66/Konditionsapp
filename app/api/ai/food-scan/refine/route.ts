@@ -28,6 +28,7 @@ export const dynamic = 'force-dynamic'
 
 const REFINE_TIMEOUT_MS = 35_000
 const REFINE_MAX_OUTPUT_TOKENS = 4_096
+const REFINE_RETRY_DELAYS_MS = [600, 1_500]
 
 function createTimeoutSignal(timeoutMs: number): AbortSignal {
   const timeout = (AbortSignal as typeof AbortSignal & {
@@ -39,6 +40,53 @@ function createTimeoutSignal(timeoutMs: number): AbortSignal {
   const controller = new AbortController()
   setTimeout(() => controller.abort(), timeoutMs)
   return controller.signal
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function getErrorText(error: unknown): string {
+  if (error instanceof Error) {
+    const cause = error.cause instanceof Error ? ` ${error.cause.message}` : ''
+    return `${error.name} ${error.message}${cause}`.toLowerCase()
+  }
+
+  if (typeof error === 'object' && error !== null) {
+    const maybeStatus = 'status' in error ? String(error.status) : ''
+    const maybeStatusCode = 'statusCode' in error ? String(error.statusCode) : ''
+    const maybeCode = 'code' in error ? String(error.code) : ''
+    return `${maybeStatus} ${maybeStatusCode} ${maybeCode}`.toLowerCase()
+  }
+
+  return String(error ?? '').toLowerCase()
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    error.name === 'AbortError'
+  )
+}
+
+function isTransientAiError(error: unknown): boolean {
+  if (isAbortError(error)) return false
+
+  const text = getErrorText(error)
+  return (
+    text.includes('429') ||
+    text.includes('503') ||
+    text.includes('504') ||
+    text.includes('rate') ||
+    text.includes('resource_exhausted') ||
+    text.includes('overloaded') ||
+    text.includes('service unavailable') ||
+    text.includes('temporarily unavailable') ||
+    text.includes('try again') ||
+    text.includes('unavailable')
+  )
 }
 
 export async function POST(request: NextRequest) {
@@ -166,19 +214,41 @@ UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, flerom�
       refinementTextLength: String(refinementText).length,
     })
 
-    const result = await withAiContext(
-      { userId: user.id, clientId, category: 'food_scan_refine' },
-      () =>
-        generateObject({
-          model: withGoogleLogging(google(GEMINI_MODELS.FLASH)),
-          schema: FoodPhotoAnalysisSchema,
-          messages: [{ role: 'user', content }],
-          providerOptions: getGeminiThinkingOptions('quick'),
-          temperature: 0.1,
-          maxOutputTokens: REFINE_MAX_OUTPUT_TOKENS,
-          abortSignal: createTimeoutSignal(REFINE_TIMEOUT_MS),
-        }),
-    )
+    let result: Awaited<ReturnType<typeof generateObject<typeof FoodPhotoAnalysisSchema>>> | null = null
+    for (let attempt = 0; attempt <= REFINE_RETRY_DELAYS_MS.length; attempt += 1) {
+      try {
+        result = await withAiContext(
+          { userId: user.id, clientId, category: 'food_scan_refine' },
+          () =>
+            generateObject({
+              model: withGoogleLogging(google(GEMINI_MODELS.FLASH)),
+              schema: FoodPhotoAnalysisSchema,
+              messages: [{ role: 'user', content }],
+              providerOptions: getGeminiThinkingOptions('quick'),
+              temperature: 0.1,
+              maxOutputTokens: REFINE_MAX_OUTPUT_TOKENS,
+              abortSignal: createTimeoutSignal(REFINE_TIMEOUT_MS),
+            }),
+        )
+        break
+      } catch (error) {
+        const shouldRetry = attempt < REFINE_RETRY_DELAYS_MS.length && isTransientAiError(error)
+        requestLogger.warn('Food scan refine AI call failed', {
+          attempt: attempt + 1,
+          businessId: keyContext.businessId,
+          keyOwnerId: keyContext.keyOwnerId,
+          retrying: shouldRetry,
+          transient: isTransientAiError(error),
+        })
+
+        if (!shouldRetry) throw error
+        await sleep(REFINE_RETRY_DELAYS_MS[attempt])
+      }
+    }
+
+    if (!result) {
+      throw new Error('Food scan refinement did not return a result')
+    }
 
     if (!result.object.success) {
       requestLogger.warn('Food scan refine returned unsuccessful analysis', {
@@ -208,24 +278,26 @@ UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, flerom�
     }
 
     // Surface a more helpful message when possible
-    const errMsg = error instanceof Error ? error.message : ''
-    const isAbortError =
-      typeof error === 'object' &&
-      error !== null &&
-      'name' in error &&
-      error.name === 'AbortError'
+    const errMsg = getErrorText(error)
     let userMessage = 'Kunde inte uppdatera analysen'
     if (
-      isAbortError ||
+      isAbortError(error) ||
       errMsg.includes('abort') ||
       errMsg.includes('timed out') ||
-      errMsg.includes('timeout') ||
-      errMsg.includes('TIMEOUT')
+      errMsg.includes('timeout')
     ) {
       userMessage = 'Uppdateringen tog för lång tid. Försök igen eller beskriv ändringen kortare.'
-    } else if (errMsg.includes('quota') || errMsg.includes('429') || errMsg.includes('rate')) {
+    } else if (errMsg.includes('quota')) {
+      userMessage = 'AI-kvoten hos Gemini verkar vara tillfälligt slut. Försök igen om en stund.'
+    } else if (
+      errMsg.includes('429') ||
+      errMsg.includes('rate') ||
+      errMsg.includes('overloaded') ||
+      errMsg.includes('503') ||
+      errMsg.includes('unavailable')
+    ) {
       userMessage = 'AI-tjänsten är tillfälligt överbelastad. Försök igen om en stund.'
-    } else if (errMsg.includes('body') || errMsg.includes('too large') || errMsg.includes('ENTITY_TOO_LARGE')) {
+    } else if (errMsg.includes('body') || errMsg.includes('too large') || errMsg.includes('entity_too_large')) {
       userMessage = 'Bilden är för stor. Försök utan bild eller ta en ny bild.'
     }
 
