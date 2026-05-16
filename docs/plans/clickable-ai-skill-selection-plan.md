@@ -149,9 +149,9 @@ Recommended lightweight API:
 
 ### Phase 3: Floating Coach AI
 
-- Add picker and selected chips.
-- Send `selectedSkillIds` in chat body.
-- Show used skills after response.
+- Add picker and selected chips. Done in `components/ai-studio/FloatingAIChat.tsx`.
+- Send `selectedSkillIds` in chat body. Done for coach floating AI requests.
+- Show used skills after response. Existing `X-Knowledge-Skills` receipt remains visible under responses.
 
 ### Phase 4: AI Canvas
 

@@ -36,6 +36,7 @@ import {
 import { ChatMessage } from './ChatMessage'
 import { ChatNavigationCard, type ChatNavigationResult } from './ChatNavigationCard'
 import { ChatActionCard, type ChatActionResult } from './ChatActionCard'
+import { AISkillPicker } from '@/components/ai/AISkillPicker'
 import { cn } from '@/lib/utils'
 import { parseAIProgram, type ParseResult } from '@/lib/ai/program-parser'
 import { getInfoEntriesByKeys } from '@/lib/info-content'
@@ -1125,6 +1126,7 @@ export function FloatingAIChat({
 
   // Track auto-retrieved knowledge skills
   const [knowledgeSkills, setKnowledgeSkills] = useState<string[]>([])
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([])
 
   // Custom fetch to capture X-Knowledge-Skills header from streaming response
   const skillCapturingFetch = useCallback(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -1335,6 +1337,7 @@ export function FloatingAIChat({
         webSearchEnabled: false,
         pageContext: contextStringRef.current,
         businessSlug: pathBusinessSlug,
+        selectedSkillIds,
       },
     })
   }, [
@@ -1344,6 +1347,7 @@ export function FloatingAIChat({
     isLoading,
     modelConfig,
     pathBusinessSlug,
+    selectedSkillIds,
     sendMessage,
   ])
 
@@ -1481,6 +1485,7 @@ export function FloatingAIChat({
     setAssistantNotices([])
     setConversationId(null)
     setInput('')
+    setSelectedSkillIds([])
     spokenAssistantMessageIdsRef.current.clear()
     spokenAssistantNoticeIdsRef.current.clear()
   }
@@ -1493,6 +1498,7 @@ export function FloatingAIChat({
     setAssistantNotices([])
     setConversationId(null)
     setInput('')
+    setSelectedSkillIds([])
     spokenAssistantMessageIdsRef.current.clear()
     spokenAssistantNoticeIdsRef.current.clear()
   }
@@ -2155,6 +2161,17 @@ export function FloatingAIChat({
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-3 border-t">
         <div className="space-y-2">
+          {!isLoadingConfig && !isAthleteUser && (
+            <AISkillPicker
+              selectedSkillIds={selectedSkillIds}
+              onSelectedSkillIdsChange={setSelectedSkillIds}
+              disabled={isLoading}
+              side="top"
+              align="start"
+              triggerClassName="h-8 text-xs"
+              chipsClassName="max-w-full"
+            />
+          )}
           <div className="flex gap-2">
             <Textarea
               ref={textareaRef}
