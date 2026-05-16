@@ -14,7 +14,10 @@ import { prisma } from '@/lib/prisma'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { checkAthleteFeatureAccess } from '@/lib/subscription/feature-access'
-import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import {
+  AI_ALLOWANCE_MINIMUM_REMAINING_SEK,
+  requireAiAllowance,
+} from '@/lib/ai/billing/require-ai-allowance'
 import { getConsentStatus } from '@/lib/agent/gdpr/consent-manager'
 import { resolveAthleteProviderAllowlist } from '@/lib/ai/chat/providers'
 import {
@@ -116,7 +119,9 @@ async function resolveOpenAiKey(params: {
       })
     }
 
-    const allowanceDenied = await requireAiAllowance(resolved.clientId)
+    const allowanceDenied = await requireAiAllowance(resolved.clientId, {
+      minimumRemainingSek: AI_ALLOWANCE_MINIMUM_REMAINING_SEK.richAnalysis,
+    })
     if (allowanceDenied) throw allowanceDenied
 
     const clientRecord = await prisma.client.findUnique({

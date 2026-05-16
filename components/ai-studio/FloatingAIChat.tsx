@@ -49,6 +49,11 @@ import {
 } from '@/lib/events/coach-floating-chat'
 import { useAudioRecorder } from '@/hooks/use-audio-recorder'
 import { VoiceModesGuide } from './VoiceModesGuide'
+import {
+  addRealtimeUsageFromEvent,
+  createRealtimeVoiceUsageAccumulator,
+  hasRealtimeUsageTokens,
+} from '@/lib/ai/realtime-voice-client'
 
 const COACH_VOICE_GUIDE_DISMISSED_KEY = 'floating-ai-voice-guide-dismissed'
 
@@ -277,6 +282,9 @@ export function FloatingAIChat({
   const realtimeDataChannelRef = useRef<RTCDataChannel | null>(null)
   const realtimeMediaStreamRef = useRef<MediaStream | null>(null)
   const realtimeAudioRef = useRef<HTMLAudioElement | null>(null)
+  const realtimeStartedAtRef = useRef<number | null>(null)
+  const realtimeUsageRef = useRef(createRealtimeVoiceUsageAccumulator())
+  const realtimeUsageReportedRef = useRef(true)
 
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
@@ -413,7 +421,40 @@ export function FloatingAIChat({
     setVoicePlaybackStatus(null)
   }, [])
 
-  const stopRealtimeVoice = useCallback((statusMessage?: string) => {
+  const reportRealtimeVoiceUsage = useCallback((endReason: 'user_stopped' | 'disconnected' | 'error' | 'close' | 'new_chat') => {
+    const startedAt = realtimeStartedAtRef.current
+    if (!startedAt || realtimeUsageReportedRef.current) return
+
+    const durationSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000))
+    const usage = realtimeUsageRef.current
+    const tokenPayload = hasRealtimeUsageTokens(usage) ? usage : {}
+
+    realtimeUsageReportedRef.current = true
+    realtimeStartedAtRef.current = null
+    realtimeUsageRef.current = createRealtimeVoiceUsageAccumulator()
+
+    void fetch('/api/ai/chat/realtime-usage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        durationSeconds,
+        audioInputSeconds: Math.ceil(durationSeconds * 0.5),
+        audioOutputSeconds: Math.ceil(durationSeconds * 0.2),
+        isAthleteChat: isAthleteUser,
+        endReason,
+        ...tokenPayload,
+      }),
+    }).catch(() => {
+      // Usage logging is best-effort on the client; the server still guards session start.
+    })
+  }, [isAthleteUser])
+
+  const stopRealtimeVoice = useCallback((
+    statusMessage?: string,
+    endReason: 'user_stopped' | 'disconnected' | 'error' | 'close' | 'new_chat' = 'user_stopped'
+  ) => {
+    reportRealtimeVoiceUsage(endReason)
+
     const dataChannel = realtimeDataChannelRef.current
     realtimeDataChannelRef.current = null
     dataChannel?.close()
@@ -434,7 +475,11 @@ export function FloatingAIChat({
     setIsRealtimeVoiceConnecting(false)
     setIsRealtimeVoiceActive(false)
     setRealtimeVoiceStatus(statusMessage ?? null)
-  }, [])
+  }, [reportRealtimeVoiceUsage])
+
+  useEffect(() => {
+    return () => reportRealtimeVoiceUsage('close')
+  }, [reportRealtimeVoiceUsage])
 
   const speakBrowserAssistantReply = useCallback((text: string): boolean => {
     if (!isBrowserSpeechSupported) return false
@@ -965,12 +1010,17 @@ export function FloatingAIChat({
         if (!peer) return
         if (realtimePeerRef.current !== peer) return
         if (peer.connectionState === 'connected') {
+          if (!realtimeStartedAtRef.current) {
+            realtimeStartedAtRef.current = Date.now()
+            realtimeUsageReportedRef.current = false
+            realtimeUsageRef.current = createRealtimeVoiceUsageAccumulator()
+          }
           setIsRealtimeVoiceConnecting(false)
           setIsRealtimeVoiceActive(true)
           setRealtimeVoiceStatus('Live voice aktiv. Åtgärder kräver fortsatt bekräftelse i chatten.')
         }
         if (['failed', 'closed', 'disconnected'].includes(peer.connectionState)) {
-          stopRealtimeVoice('Live voice är frånkopplad.')
+          stopRealtimeVoice('Live voice är frånkopplad.', 'disconnected')
         }
       }
 
@@ -988,6 +1038,7 @@ export function FloatingAIChat({
       dataChannel.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as { type?: string; error?: { message?: string } }
+          addRealtimeUsageFromEvent(realtimeUsageRef.current, data)
           if (data.type === 'error') {
             const message = data.error?.message || 'Live voice fick ett okänt fel.'
             setRealtimeVoiceStatus(message)
@@ -1036,7 +1087,7 @@ export function FloatingAIChat({
       setRealtimeVoiceStatus('Ansluter live voice...')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Kunde inte starta live voice.'
-      stopRealtimeVoice(message)
+      stopRealtimeVoice(message, 'error')
       addAssistantNotice(`Jag kunde inte starta live voice: ${message}`)
       toast({
         title: 'Live voice kunde inte starta',
@@ -1058,7 +1109,7 @@ export function FloatingAIChat({
 
   const toggleRealtimeVoice = useCallback(() => {
     if (isRealtimeVoiceActive || isRealtimeVoiceConnecting) {
-      stopRealtimeVoice('Live voice är avstängd.')
+      stopRealtimeVoice('Live voice är avstängd.', 'user_stopped')
       return
     }
     void startRealtimeVoice()
@@ -1424,7 +1475,7 @@ export function FloatingAIChat({
   function handleClose() {
     stopAssistantSpeech()
     cancelVoiceAutoSend()
-    stopRealtimeVoice()
+    stopRealtimeVoice(undefined, 'close')
     setIsOpen(false)
     setMessages([])
     setAssistantNotices([])
@@ -1437,7 +1488,7 @@ export function FloatingAIChat({
   function handleNewChat() {
     stopAssistantSpeech()
     cancelVoiceAutoSend()
-    stopRealtimeVoice()
+    stopRealtimeVoice(undefined, 'new_chat')
     setMessages([])
     setAssistantNotices([])
     setConversationId(null)
@@ -1868,7 +1919,7 @@ export function FloatingAIChat({
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => stopRealtimeVoice('Live voice är avstängd.')}
+              onClick={() => stopRealtimeVoice('Live voice är avstängd.', 'user_stopped')}
               className="h-6 px-2 text-xs hover:bg-emerald-500/10"
             >
               Stoppa
