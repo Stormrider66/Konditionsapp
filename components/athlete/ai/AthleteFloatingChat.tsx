@@ -1369,11 +1369,12 @@ export function AthleteFloatingChat({
     if (!configReady) return null
 
     const tierLabel = INTENT_TIER_LABELS[selectedIntent]?.label || 'Balanserad'
+    const badgeClassName = 'shrink-0 border border-white/30 bg-white/95 text-[11px] font-semibold text-orange-700 shadow-sm'
 
     // Only 1 intent available → static badge
     if (availableIntents.length <= 1) {
       return (
-        <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800">
+        <Badge variant="secondary" className={badgeClassName}>
           {tierLabel}
         </Badge>
       )
@@ -1383,7 +1384,7 @@ export function AthleteFloatingChat({
     return (
       <Popover>
         <PopoverTrigger asChild>
-          <button className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors hover:opacity-80 bg-orange-100 text-orange-800">
+          <button className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 transition-colors hover:bg-white', badgeClassName)}>
             {tierLabel}
             <ChevronDown className="h-3 w-3" />
           </button>
@@ -1678,124 +1679,138 @@ export function AthleteFloatingChat({
       data-floating-chat-root
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
-        <div
-          onPointerDown={!isExpanded ? handlePanelDragStart : undefined}
-          className={cn(
-            'flex min-w-0 items-center gap-2 touch-none',
-            !isExpanded && 'cursor-grab active:cursor-grabbing'
-          )}
-        >
-          <Bot className="h-5 w-5 shrink-0 text-white" />
-          <span className="truncate font-semibold text-white">AI-assistent</span>
-          {renderModelBadge()}
-          {/* Usage meter - only show if there's a limit */}
-          {subscriptionStatus && subscriptionStatus.limit > 0 && subscriptionStatus.limit !== -1 && (
-            <Badge variant="secondary" className="text-xs bg-white/20 text-white">
-              <AIChatUsageCompact
-                used={subscriptionStatus.used}
-                limit={subscriptionStatus.limit}
-                className="text-white"
-              />
-            </Badge>
-          )}
+      <div className="border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
+        <div className="flex items-center justify-between gap-2 p-3 pb-2">
+          <div
+            onPointerDown={!isExpanded ? handlePanelDragStart : undefined}
+            className={cn(
+              'flex min-w-0 flex-1 items-center gap-2 touch-none',
+              !isExpanded && 'cursor-grab active:cursor-grabbing'
+            )}
+          >
+            <Bot className="h-5 w-5 shrink-0 text-white" />
+            <span className="truncate font-semibold text-white">AI-assistent</span>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleNewChat}
+              className="h-8 w-8 text-white hover:bg-white/20"
+              title="Ny konversation"
+              aria-label="Ny konversation"
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="h-8 w-8 text-white hover:bg-white/20"
+              title={isExpanded ? 'Minimera chatten' : 'Expandera chatten'}
+              aria-label={isExpanded ? 'Minimera chatten' : 'Expandera chatten'}
+            >
+              {isExpanded ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClose}
+              className="h-8 w-8 text-white hover:bg-white/20"
+              title="Stäng chatten"
+              aria-label="Stäng chatten"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <VoiceModesGuide />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleRealtimeVoice}
-            disabled={isTranscribingVoice || isVoiceRecording}
-            className={cn(
-              'h-8 w-8 text-white hover:bg-white/20',
-              (isRealtimeVoiceActive || isRealtimeVoiceConnecting) && 'bg-white/20 ring-1 ring-white/40'
+        <div className="flex items-center justify-between gap-2 px-3 pb-3">
+          <div className="flex min-w-0 items-center gap-2">
+            {renderModelBadge()}
+            {/* Usage meter - only show if there's a limit */}
+            {subscriptionStatus && subscriptionStatus.limit > 0 && subscriptionStatus.limit !== -1 && (
+              <Badge variant="secondary" className="shrink-0 border border-white/30 bg-white/95 text-[11px] font-semibold text-emerald-700 shadow-sm">
+                <AIChatUsageCompact
+                  used={subscriptionStatus.used}
+                  limit={subscriptionStatus.limit}
+                  className="text-emerald-700"
+                />
+              </Badge>
             )}
-            title={realtimeVoiceLabel}
-            aria-label={realtimeVoiceLabel}
-          >
-            {isRealtimeVoiceActive || isRealtimeVoiceConnecting ? (
-              <PhoneOff className="h-4 w-4" />
-            ) : (
-              <Radio className="h-4 w-4" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleVoiceOperatorMode}
-            className={cn(
-              'h-8 w-8 text-white hover:bg-white/20',
-              isVoiceOperatorModeEnabled && 'bg-white/20 ring-1 ring-white/40'
-            )}
-            title={voiceOperatorModeLabel}
-            aria-label={voiceOperatorModeLabel}
-          >
-            <Headphones className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleVoiceAutoSend}
-            className={cn(
-              'h-8 w-8 text-white hover:bg-white/20',
-              isVoiceAutoSendEnabled && 'bg-white/15'
-            )}
-            title={voiceAutoSendLabel}
-            aria-label={voiceAutoSendLabel}
-          >
-            <Zap className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSpokenReplies}
-            className={cn(
-              'h-8 w-8 text-white hover:bg-white/20',
-              isSpokenRepliesEnabled && 'bg-white/15'
-            )}
-            title={spokenRepliesLabel}
-            aria-label={spokenRepliesLabel}
-          >
-            {isSpokenRepliesEnabled ? (
-              <Volume2 className="h-4 w-4" />
-            ) : (
-              <VolumeX className="h-4 w-4" />
-            )}
-          </Button>
-          <MemoryIndicator
-            clientId={clientId}
-            onMemoryContextReady={setMemoryContext}
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNewChat}
-            className="h-8 w-8 text-white hover:bg-white/20"
-            title="Ny konversation"
-          >
-            <MessageSquare className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="h-8 w-8 text-white hover:bg-white/20"
-          >
-            {isExpanded ? (
-              <Minimize2 className="h-4 w-4" />
-            ) : (
-              <Maximize2 className="h-4 w-4" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleClose}
-            className="h-8 w-8 text-white hover:bg-white/20"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <VoiceModesGuide className="h-7 w-7" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleRealtimeVoice}
+              disabled={isTranscribingVoice || isVoiceRecording}
+              className={cn(
+                'h-7 w-7 text-white hover:bg-white/20',
+                (isRealtimeVoiceActive || isRealtimeVoiceConnecting) && 'bg-white/20 ring-1 ring-white/40'
+              )}
+              title={realtimeVoiceLabel}
+              aria-label={realtimeVoiceLabel}
+            >
+              {isRealtimeVoiceActive || isRealtimeVoiceConnecting ? (
+                <PhoneOff className="h-4 w-4" />
+              ) : (
+                <Radio className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleVoiceOperatorMode}
+              className={cn(
+                'h-7 w-7 text-white hover:bg-white/20',
+                isVoiceOperatorModeEnabled && 'bg-white/20 ring-1 ring-white/40'
+              )}
+              title={voiceOperatorModeLabel}
+              aria-label={voiceOperatorModeLabel}
+            >
+              <Headphones className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleVoiceAutoSend}
+              className={cn(
+                'h-7 w-7 text-white hover:bg-white/20',
+                isVoiceAutoSendEnabled && 'bg-white/15'
+              )}
+              title={voiceAutoSendLabel}
+              aria-label={voiceAutoSendLabel}
+            >
+              <Zap className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSpokenReplies}
+              className={cn(
+                'h-7 w-7 text-white hover:bg-white/20',
+                isSpokenRepliesEnabled && 'bg-white/15'
+              )}
+              title={spokenRepliesLabel}
+              aria-label={spokenRepliesLabel}
+            >
+              {isSpokenRepliesEnabled ? (
+                <Volume2 className="h-4 w-4" />
+              ) : (
+                <VolumeX className="h-4 w-4" />
+              )}
+            </Button>
+            <MemoryIndicator
+              clientId={clientId}
+              onMemoryContextReady={setMemoryContext}
+              className="h-7 w-7"
+            />
+          </div>
         </div>
       </div>
 

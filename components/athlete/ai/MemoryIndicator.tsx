@@ -25,6 +25,7 @@ interface Memory {
 interface MemoryIndicatorProps {
   clientId: string
   onMemoryContextReady?: (context: { memoryContent: string; summaryContent?: string }) => void
+  className?: string
 }
 
 // Memory type labels (Swedish)
@@ -53,7 +54,7 @@ const MEMORY_TYPE_COLORS: Record<string, string> = {
   PERSONAL_FACT: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
 }
 
-export function MemoryIndicator({ clientId, onMemoryContextReady }: MemoryIndicatorProps) {
+export function MemoryIndicator({ clientId, onMemoryContextReady, className }: MemoryIndicatorProps) {
   const { toast } = useToast()
   const [memories, setMemories] = useState<Memory[]>([])
   const [summary, setSummary] = useState<string | null>(null)
@@ -90,7 +91,7 @@ export function MemoryIndicator({ clientId, onMemoryContextReady }: MemoryIndica
       }
     }
 
-    fetchMemories()
+    void fetchMemories()
   }, [clientId, onMemoryContextReady])
 
   async function handleDeleteMemory(memoryId: string) {
@@ -135,9 +136,10 @@ export function MemoryIndicator({ clientId, onMemoryContextReady }: MemoryIndica
           variant="ghost"
           size="icon"
           className={cn(
-            'h-8 w-8 relative text-white hover:bg-white/20',
+            'relative text-white hover:bg-white/20',
             'after:absolute after:top-1 after:right-1 after:h-2 after:w-2',
-            'after:rounded-full after:bg-amber-400 after:animate-pulse'
+            'after:rounded-full after:bg-amber-400 after:animate-pulse',
+            className || 'h-8 w-8'
           )}
           title={`${memories.length} minnen lagrade`}
         >
