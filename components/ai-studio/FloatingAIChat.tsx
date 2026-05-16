@@ -35,6 +35,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { useFloatingChatDrag } from './useFloatingChatDrag'
+import {
+  COACH_FLOATING_CHAT_EVENT,
+  type CoachFloatingChatEvent,
+} from '@/lib/events/coach-floating-chat'
 
 // Page context types for different page contexts
 export interface PageContext {
@@ -81,6 +85,30 @@ interface ToolOutputPart {
   output?: unknown
 }
 
+interface CoachOperatorContext {
+  status?: 'attention' | 'stable'
+  tone?: 'risk' | 'watch' | 'steady'
+  headline?: string
+  summary?: {
+    urgentCount?: number
+    reviewCount?: number
+    queueCount?: number
+    activeAlerts?: number
+    recommendationCount?: number
+  }
+  focusAreas?: string[]
+}
+
+function getCoachOperatorContext(pageContext?: PageContext): CoachOperatorContext | null {
+  if (pageContext?.type !== 'coach-dashboard') return null
+  const data = pageContext.data as {
+    dashboard?: {
+      operator?: CoachOperatorContext
+    }
+  }
+  return data.dashboard?.operator ?? null
+}
+
 export function FloatingAIChat({
   athleteId,
   athleteName,
@@ -124,6 +152,8 @@ export function FloatingAIChat({
     Object.keys(pageContext.data || {}).length > 0 ||
     (pageContext.conceptKeys && pageContext.conceptKeys.length > 0)
   )
+  const operatorContext = useMemo(() => getCoachOperatorContext(pageContext), [pageContext])
+  const operatorAttentionCount = operatorContext?.summary?.urgentCount || operatorContext?.summary?.queueCount || 0
 
   // Fetch model configuration from unified AI config endpoint
   // Works for both coaches (uses own keys) and athletes (uses coach's keys)
@@ -518,6 +548,20 @@ export function FloatingAIChat({
     }
   }, [isOpen])
 
+  useEffect(() => {
+    function handleCoachChatIntent(event: Event) {
+      const detail = (event as CustomEvent<CoachFloatingChatEvent>).detail
+      if (!detail?.message) return
+      if (detail.open !== false) {
+        setIsOpen(true)
+      }
+      setInput(detail.message)
+    }
+
+    window.addEventListener(COACH_FLOATING_CHAT_EVENT, handleCoachChatIntent)
+    return () => window.removeEventListener(COACH_FLOATING_CHAT_EVENT, handleCoachChatIntent)
+  }, [])
+
   // Send initial message if provided
   useEffect(() => {
     if (isOpen && initialMessage && messages.length === 0) {
@@ -627,7 +671,17 @@ export function FloatingAIChat({
     }
 
     if (pageContext.type === 'coach-dashboard') {
+      const operatorPrompt: QuickPrompt | null = operatorContext
+        ? {
+            label: operatorAttentionCount > 0 ? 'Operatorbrief' : 'Veckosummering',
+            prompt: operatorAttentionCount > 0
+              ? 'Gör en proaktiv coach-operator brief från dashboardens arbetskö. Prioritera risker, feedback och nästa app-vy att öppna.'
+              : 'Gör en kort proaktiv veckosummering från coachdashboardens operatorläge och lyft vad jag bör bevaka härnäst.',
+          }
+        : null
+
       return [
+        ...(operatorPrompt ? [operatorPrompt] : []),
         {
           label: 'Sammanfatta',
           prompt: 'Sammanfatta coachdashboarden utifrån sidkontexten och prioritera de tre viktigaste nästa stegen.',
@@ -657,7 +711,7 @@ export function FloatingAIChat({
         prompt: 'Förklara de viktigaste begreppen på den här sidan kort och praktiskt.',
       },
     ]
-  }, [pageContext, hasContext, isContextEnabled])
+  }, [pageContext, hasContext, isContextEnabled, operatorContext, operatorAttentionCount])
 
   // Get provider color for badge
   function getProviderBadge() {
@@ -692,6 +746,11 @@ export function FloatingAIChat({
         size="icon"
       >
         <Sparkles className="h-6 w-6 text-white" />
+        {operatorAttentionCount > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-background bg-red-500 px-1 text-[10px] font-semibold text-white">
+            {operatorAttentionCount > 9 ? '9+' : operatorAttentionCount}
+          </span>
+        )}
       </Button>
     )
   }
@@ -892,6 +951,26 @@ export function FloatingAIChat({
                 ? 'Kontext är inaktiverad. Klicka på knappen ovan för att aktivera.'
                 : 'Fråga mig om träningsprogram, testanalyser, eller andra frågor om dina atleter.'}
             </p>
+            {operatorContext && (
+              <div className="mt-4 w-full rounded-lg border bg-muted/40 p-3 text-left">
+                <div className="mb-1 flex items-center gap-2 text-xs font-semibold">
+                  <Bot className="h-3.5 w-3.5 text-primary" />
+                  Coachoperator
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {operatorContext.headline || 'Dashboardens operatorläge är aktivt.'}
+                </p>
+                {operatorContext.focusAreas && operatorContext.focusAreas.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {operatorContext.focusAreas.slice(0, 3).map(area => (
+                      <Badge key={area} variant="secondary" className="text-[10px]">
+                        {area}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             {/* Quick prompts */}
             <div className="mt-4 flex flex-wrap gap-2 justify-center">
               {contextualQuickPrompts.map((quickPrompt) => (

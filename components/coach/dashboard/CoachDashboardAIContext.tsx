@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from 'react'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import type { PageContext } from '@/components/ai-studio/FloatingAIChat'
+import type { CoachOperatorAIContext } from '@/lib/coach/proactive-operator'
 
 export interface CoachDashboardAIContextData {
   mode: 'TEAM' | 'PT' | 'GYM'
@@ -55,6 +56,7 @@ export interface CoachDashboardAIContextData {
   }
   visibleWidgets: string[]
   signals: string[]
+  operator?: CoachOperatorAIContext
 }
 
 interface CoachDashboardAIContextProps {

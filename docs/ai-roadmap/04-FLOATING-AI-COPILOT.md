@@ -92,6 +92,8 @@ Success examples:
 
 ## Level 5: Semi-Autonomous Coach Operator
 
+Status: first proactive dashboard operator slice shipped on 2026-05-16
+
 The assistant monitors workflows and raises useful suggestions without waiting for every prompt.
 
 Scope:

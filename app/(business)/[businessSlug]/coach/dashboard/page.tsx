@@ -15,8 +15,10 @@ import { PTDashboardLayout } from '@/components/coach/dashboard/PTDashboardLayou
 import { TeamDashboardLayout } from '@/components/coach/dashboard/TeamDashboardLayout'
 import { GymDashboardLayout } from '@/components/coach/dashboard/GymDashboardLayout'
 import { CoachCommandCenter } from '@/components/coach/dashboard/CoachCommandCenter'
+import { CoachOperatorBrief } from '@/components/coach/dashboard/CoachOperatorBrief'
 import { CoachDashboardAIContext, type CoachDashboardAIContextData } from '@/components/coach/dashboard/CoachDashboardAIContext'
 import { getCoachCommandCenterData } from '@/lib/coach/command-center'
+import { buildCoachOperatorBriefData } from '@/lib/coach/proactive-operator'
 import type { SportType } from '@/types'
 
 interface BusinessDashboardPageProps {
@@ -584,6 +586,9 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
       now,
     })
     : null
+  const operatorBriefData = commandCenterData
+    ? buildCoachOperatorBriefData(commandCenterData)
+    : null
 
   const dashboardSignals: string[] = []
   if (logsNeedingFeedback.length > 0) {
@@ -666,6 +671,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
       : undefined,
     visibleWidgets: Array.from(visible),
     signals: dashboardSignals,
+    operator: operatorBriefData?.aiContext,
   }
 
   return (
@@ -703,6 +709,10 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
             gymStats={gymStats}
             t={t}
           />
+        )}
+
+        {operatorBriefData && (
+          <CoachOperatorBrief data={operatorBriefData} />
         )}
 
         {/* Conditional layout based on mode */}
