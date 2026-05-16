@@ -420,6 +420,27 @@ function looksLikeTestAction(value: string): boolean {
   return /test|retest|lt1|lt2|laktat|vo2|threshold|tröskel|fält/i.test(value)
 }
 
+function describeCanvasBlock(block: CanvasBlock): string {
+  const parts = [
+    `Typ: ${block.type}`,
+    block.title ? `Titel: ${block.title}` : null,
+    block.content ? `Innehåll: ${block.content}` : null,
+    block.items?.length ? `Punkter: ${block.items.join('; ')}` : null,
+    block.metrics?.length
+      ? `Mätvärden: ${block.metrics.map((metric) => `${metric.label} ${metric.value}`).join('; ')}`
+      : null,
+    block.risks?.length
+      ? `Risker: ${block.risks.map((risk) => `${risk.title} (${risk.priority}): ${risk.description}`).join('; ')}`
+      : null,
+    block.trends?.length
+      ? `Trender: ${block.trends.map((trend) => `${trend.label}: ${trend.value}`).join('; ')}`
+      : null,
+    block.columns?.length ? `Kolumner: ${block.columns.join(', ')}` : null,
+  ].filter(Boolean)
+
+  return parts.join('\n').slice(0, 3000)
+}
+
 interface AICanvasClientProps {
   businessSlug: string
   initialCanvases: SavedCanvasSummary[]
@@ -489,6 +510,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
   const [modelLabel, setModelLabel] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [athleteMessageDraft, setAthleteMessageDraft] = useState<AthleteMessageDraft | null>(null)
+  const [regeneratingBlockId, setRegeneratingBlockId] = useState<string | null>(null)
   const [contextSelection, setContextSelection] = useState<CanvasContextSelection>({
     scope: 'none',
     athleteId: '',
@@ -561,6 +583,51 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       setAssistantMessage('Jag kunde inte nå AI Canvas just nu. Kontrollera anslutningen och försök igen.')
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleRegenerateBlock = async (block: CanvasBlock) => {
+    setRegeneratingBlockId(block.id)
+    setAssistantMessage(`Jag förbättrar blocket "${block.title || block.type}"...`)
+
+    try {
+      const response = await fetch('/api/ai/canvas/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessSlug,
+          prompt: [
+            'Förbättra endast detta canvasblock.',
+            'Behåll samma ungefärliga syfte, men gör det tydligare, mer användbart och mer coachvänligt.',
+            'Returnera ett enda block om möjligt.',
+            '',
+            describeCanvasBlock(block),
+          ].join('\n'),
+          templateId: selectedTemplate.id,
+          contextSummary,
+          contextSelection,
+        }),
+      })
+      const payload = (await response.json()) as GenerateCanvasResponse
+
+      if (!response.ok || !payload.success || !payload.blocks?.length) {
+        setAssistantMessage(payload.error || 'Jag kunde inte förbättra blocket just nu.')
+        return
+      }
+
+      const improvedBlock = {
+        id: createId(payload.blocks[0].type),
+        source: 'ai' as const,
+        ...payload.blocks[0],
+      }
+      setBlocks((current) => current.map((item) => item.id === block.id ? improvedBlock : item))
+      setModelLabel(payload.model?.displayName ?? modelLabel)
+      setLastUpdated(new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
+      setAssistantMessage(`Jag förbättrade blocket "${improvedBlock.title || block.title || block.type}".`)
+    } catch {
+      setAssistantMessage('Jag kunde inte nå AI Canvas för att förbättra blocket just nu.')
+    } finally {
+      setRegeneratingBlockId(null)
     }
   }
 
@@ -1246,9 +1313,11 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
                 <CanvasBlockView
                   key={block.id}
                   block={block}
+                  onRegenerate={() => { void handleRegenerateBlock(block) }}
                   onCreateTask={(task) => { void handleCreateFollowUpTask(task) }}
                   onScheduleTest={handleScheduleTestAction}
                   isCreatingTask={isCreatingTask}
+                  isRegenerating={regeneratingBlockId === block.id}
                 />
               ))}
             </div>
@@ -1325,19 +1394,23 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
 
 function CanvasBlockView({
   block,
+  onRegenerate,
   onCreateTask,
   onScheduleTest,
   isCreatingTask,
+  isRegenerating,
 }: {
   block: CanvasBlock
+  onRegenerate: () => void
   onCreateTask: (task: { title: string; description?: string; priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT' }) => void
   onScheduleTest: (sourceLabel?: string) => void
   isCreatingTask: boolean
+  isRegenerating: boolean
 }) {
   if (block.type === 'metric-row') {
     return (
       <article className="rounded-lg border border-slate-200 bg-white p-4">
-        <BlockHeader icon={BarChart3} title={block.title ?? 'Mätvärden'} compact />
+        <BlockHeader icon={BarChart3} title={block.title ?? 'Mätvärden'} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
         <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {block.metrics?.map((metric) => (
             <div key={`${metric.label}-${metric.value}`} className={cn(
@@ -1360,7 +1433,7 @@ function CanvasBlockView({
   if (block.type === 'risk-list') {
     return (
       <article className="rounded-lg border border-slate-200 bg-white p-4">
-        <BlockHeader icon={AlertCircle} title={block.title ?? 'Risker'} compact />
+        <BlockHeader icon={AlertCircle} title={block.title ?? 'Risker'} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
         <div className="mt-3 space-y-2">
           {block.risks?.map((risk) => (
             <div key={`${risk.title}-${risk.description}`} className="rounded-md border border-slate-200 p-3">
@@ -1413,7 +1486,7 @@ function CanvasBlockView({
   if (block.type === 'trend-summary') {
     return (
       <article className="rounded-lg border border-slate-200 bg-white p-4">
-        <BlockHeader icon={TrendingUp} title={block.title ?? 'Trend'} compact />
+        <BlockHeader icon={TrendingUp} title={block.title ?? 'Trend'} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
         <div className="mt-3 space-y-2">
           {block.trends?.map((trend) => {
             const TrendIcon = trend.direction === 'down' ? TrendingDown : trend.direction === 'up' ? TrendingUp : BarChart3
@@ -1440,7 +1513,18 @@ function CanvasBlockView({
   if (block.type === 'heading') {
     return (
       <article className="rounded-lg border border-slate-200 bg-slate-950 p-5 text-white">
-        <h3 className="text-2xl font-semibold">{block.title}</h3>
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-2xl font-semibold">{block.title}</h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRegenerate}
+            disabled={isRegenerating}
+            className="shrink-0 border-slate-700 bg-slate-900 text-white hover:bg-slate-800"
+          >
+            {isRegenerating ? 'Förbättrar...' : 'Förbättra'}
+          </Button>
+        </div>
         {block.content && <p className="mt-2 text-sm leading-6 text-slate-300">{block.content}</p>}
       </article>
     )
@@ -1449,7 +1533,7 @@ function CanvasBlockView({
   if (block.type === 'table') {
     return (
       <article className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-        <BlockHeader icon={Table2} title={block.title ?? 'Tabell'} />
+        <BlockHeader icon={Table2} title={block.title ?? 'Tabell'} onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-slate-500">
@@ -1482,7 +1566,7 @@ function CanvasBlockView({
     const Icon = block.type === 'actions' ? ClipboardList : ListChecks
     return (
       <article className="rounded-lg border border-slate-200 bg-white p-4">
-        <BlockHeader icon={Icon} title={block.title ?? 'Lista'} compact />
+        <BlockHeader icon={Icon} title={block.title ?? 'Lista'} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
         <ul className="mt-3 space-y-2">
           {block.items?.map((item) => (
             <li key={item} className="rounded-md border border-slate-200 p-3">
@@ -1528,7 +1612,7 @@ function CanvasBlockView({
 
     return (
       <article className={cn('rounded-lg border p-4', toneClass)}>
-        <BlockHeader icon={Lightbulb} title={block.title ?? 'Insikt'} compact />
+        <BlockHeader icon={Lightbulb} title={block.title ?? 'Insikt'} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
         {block.content && <p className="mt-2 text-sm leading-6">{block.content}</p>}
       </article>
     )
@@ -1536,7 +1620,7 @@ function CanvasBlockView({
 
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4">
-      <BlockHeader icon={FileText} title={block.title ?? 'Text'} compact />
+      <BlockHeader icon={FileText} title={block.title ?? 'Text'} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
       {block.content && <p className="mt-2 text-sm leading-6 text-slate-700">{block.content}</p>}
     </article>
   )
@@ -1546,15 +1630,26 @@ function BlockHeader({
   icon: Icon,
   title,
   compact = false,
+  onRegenerate,
+  isRegenerating = false,
 }: {
   icon: typeof FileText
   title: string
   compact?: boolean
+  onRegenerate?: () => void
+  isRegenerating?: boolean
 }) {
   return (
-    <div className={cn('flex items-center gap-2', compact ? 'text-sm' : 'px-4 py-3')}>
-      <Icon className="h-4 w-4 text-slate-500" />
-      <h3 className="font-semibold text-slate-900">{title}</h3>
+    <div className={cn('flex items-center justify-between gap-3', compact ? 'text-sm' : 'px-4 py-3')}>
+      <div className="flex min-w-0 items-center gap-2">
+        <Icon className="h-4 w-4 shrink-0 text-slate-500" />
+        <h3 className="truncate font-semibold text-slate-900">{title}</h3>
+      </div>
+      {onRegenerate && (
+        <Button variant="outline" size="sm" onClick={onRegenerate} disabled={isRegenerating} className="shrink-0">
+          {isRegenerating ? 'Förbättrar...' : 'Förbättra'}
+        </Button>
+      )}
     </div>
   )
 }
