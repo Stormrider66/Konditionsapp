@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -13,34 +13,48 @@ import { Loader2, Building2, User, Mail, Lock, MapPin, Phone, Globe, Check } fro
 import { useTranslations } from '@/i18n/client'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
-const gymSchema = z.object({
-  businessName: z.string().min(2, 'Gym name is required'),
-  name: z.string().min(2, 'Contact person name is required'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string(),
-  city: z.string().optional(),
-  phone: z.string().optional(),
-  website: z.string().optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-})
-
-type GymFormData = z.infer<typeof gymSchema>
+type GymFormData = {
+  businessName: string
+  name: string
+  email: string
+  password: string
+  confirmPassword: string
+  city?: string
+  phone?: string
+  website?: string
+}
 
 const GYM_FEATURES = [
-  'Hantera flera coacher',
-  'Teamhantering och atletportal',
-  'Anpassad branding',
-  '14 dagars gratis provperiod',
-]
+  'multipleCoaches',
+  'teamManagement',
+  'customBranding',
+  'trial',
+] as const
 
 export default function GymSignupPage() {
   const t = useTranslations('auth')
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const gymSchema = useMemo(
+    () =>
+      z
+        .object({
+          businessName: z.string().min(2, t('gymSignup.validation.businessNameRequired')),
+          name: z.string().min(2, t('gymSignup.validation.contactNameRequired')),
+          email: z.string().email(t('invalidEmail')),
+          password: z.string().min(8, t('gymSignup.validation.passwordMinLength')),
+          confirmPassword: z.string(),
+          city: z.string().optional(),
+          phone: z.string().optional(),
+          website: z.string().optional(),
+        })
+        .refine((data) => data.password === data.confirmPassword, {
+          message: t('gymSignup.validation.passwordsDoNotMatch'),
+          path: ['confirmPassword'],
+        }),
+    [t]
+  )
 
   const {
     register,
@@ -81,8 +95,8 @@ export default function GymSignupPage() {
       }
 
       toast({
-        title: 'Gymkonto skapat!',
-        description: 'Välkommen! Du har nu en 14-dagars provperiod.',
+        title: t('gymSignup.successTitle'),
+        description: t('gymSignup.successDescription'),
       })
 
       router.push(result.redirectUrl || '/')
@@ -109,20 +123,20 @@ export default function GymSignupPage() {
           <div className="mx-auto w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-2">
             <Building2 className="h-6 w-6 text-purple-600" />
           </div>
-          <CardTitle className="text-2xl font-bold">Registrera ditt gym</CardTitle>
+          <CardTitle className="text-2xl font-bold">{t('gymSignup.title')}</CardTitle>
           <CardDescription>
-            Skapa ett gymkonto och kom igång direkt
+            {t('gymSignup.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {/* What's included */}
           <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-100">
-            <p className="text-sm font-medium text-purple-800 mb-2">Vad ingår</p>
+            <p className="text-sm font-medium text-purple-800 mb-2">{t('gymSignup.includedTitle')}</p>
             <ul className="space-y-1.5">
               {GYM_FEATURES.map((feature) => (
                 <li key={feature} className="flex items-center gap-2 text-sm text-purple-700">
                   <Check className="h-4 w-4 text-purple-500 shrink-0" />
-                  {feature}
+                  {t(`gymSignup.features.${feature}`)}
                 </li>
               ))}
             </ul>
@@ -132,7 +146,7 @@ export default function GymSignupPage() {
             <div className="space-y-2">
               <label htmlFor="businessName" className="text-sm font-medium flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                Gymnamn
+                {t('gymSignup.businessNameLabel')}
               </label>
               <input
                 id="businessName"
@@ -148,7 +162,7 @@ export default function GymSignupPage() {
             <div className="space-y-2">
               <label htmlFor="name" className="text-sm font-medium flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
-                Kontaktperson
+                {t('gymSignup.contactPersonLabel')}
               </label>
               <input
                 id="name"
@@ -181,7 +195,7 @@ export default function GymSignupPage() {
               <div className="space-y-2">
                 <label htmlFor="city" className="text-sm font-medium flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  Stad
+                  {t('gymSignup.cityLabel')}
                 </label>
                 <input
                   id="city"
@@ -195,7 +209,7 @@ export default function GymSignupPage() {
               <div className="space-y-2">
                 <label htmlFor="phone" className="text-sm font-medium flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  Telefon
+                  {t('gymSignup.phoneLabel')}
                 </label>
                 <input
                   id="phone"
@@ -211,7 +225,7 @@ export default function GymSignupPage() {
             <div className="space-y-2">
               <label htmlFor="website" className="text-sm font-medium flex items-center gap-2">
                 <Globe className="h-4 w-4 text-muted-foreground" />
-                Webbplats (valfritt)
+                {t('gymSignup.websiteLabel')}
               </label>
               <input
                 id="website"
@@ -259,10 +273,10 @@ export default function GymSignupPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Skapar gymkonto...
+                  {t('gymSignup.creatingAccount')}
                 </>
               ) : (
-                'Skapa gymkonto'
+                t('gymSignup.createAccount')
               )}
             </Button>
           </form>
@@ -276,7 +290,7 @@ export default function GymSignupPage() {
           </div>
           <div className="text-xs text-center text-muted-foreground">
             <Link href="/signup" className="text-blue-600 hover:underline">
-              Tillbaka till val av kontotyp
+              {t('signupChooser.backToAccountType')}
             </Link>
           </div>
         </CardFooter>

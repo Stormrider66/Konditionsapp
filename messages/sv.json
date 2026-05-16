@@ -120,6 +120,7 @@
       "subtitle": "Välj den kontotyp som passar dig bäst",
       "getStarted": "Kom igång",
       "contactUs": "Kontakta oss",
+      "backToAccountType": "Tillbaka till val av kontotyp",
       "roles": {
         "athlete": {
           "title": "Atlet",
@@ -145,6 +146,32 @@
           "title": "Enterprise",
           "description": "Skräddarsydda lösningar för större organisationer med dedikerad support."
         }
+      }
+    },
+    "gymSignup": {
+      "title": "Registrera ditt gym",
+      "description": "Skapa ett gymkonto och kom igång direkt",
+      "includedTitle": "Vad ingår",
+      "businessNameLabel": "Gymnamn",
+      "contactPersonLabel": "Kontaktperson",
+      "cityLabel": "Stad",
+      "phoneLabel": "Telefon",
+      "websiteLabel": "Webbplats (valfritt)",
+      "createAccount": "Skapa gymkonto",
+      "creatingAccount": "Skapar gymkonto...",
+      "successTitle": "Gymkonto skapat!",
+      "successDescription": "Välkommen! Du har nu en 14-dagars provperiod.",
+      "features": {
+        "multipleCoaches": "Hantera flera coacher",
+        "teamManagement": "Teamhantering och atletportal",
+        "customBranding": "Anpassad branding",
+        "trial": "14 dagars gratis provperiod"
+      },
+      "validation": {
+        "businessNameRequired": "Gymnamn krävs",
+        "contactNameRequired": "Kontaktpersonens namn krävs",
+        "passwordMinLength": "Lösenordet måste vara minst 8 tecken",
+        "passwordsDoNotMatch": "Lösenorden matchar inte"
       }
     },
     "claimBusiness": {

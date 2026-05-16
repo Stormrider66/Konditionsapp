@@ -120,6 +120,7 @@
       "subtitle": "Choose the account type that fits you best",
       "getStarted": "Get started",
       "contactUs": "Contact us",
+      "backToAccountType": "Back to account type selection",
       "roles": {
         "athlete": {
           "title": "Athlete",
@@ -145,6 +146,32 @@
           "title": "Enterprise",
           "description": "Tailored solutions for larger organizations with dedicated support."
         }
+      }
+    },
+    "gymSignup": {
+      "title": "Register your gym",
+      "description": "Create a gym account and get started right away",
+      "includedTitle": "What's included",
+      "businessNameLabel": "Gym name",
+      "contactPersonLabel": "Contact person",
+      "cityLabel": "City",
+      "phoneLabel": "Phone",
+      "websiteLabel": "Website (optional)",
+      "createAccount": "Create gym account",
+      "creatingAccount": "Creating gym account...",
+      "successTitle": "Gym account created!",
+      "successDescription": "Welcome! You now have a 14-day trial.",
+      "features": {
+        "multipleCoaches": "Manage multiple coaches",
+        "teamManagement": "Team management and athlete portal",
+        "customBranding": "Custom branding",
+        "trial": "14-day free trial"
+      },
+      "validation": {
+        "businessNameRequired": "Gym name is required",
+        "contactNameRequired": "Contact person name is required",
+        "passwordMinLength": "Password must be at least 8 characters",
+        "passwordsDoNotMatch": "Passwords do not match"
       }
     },
     "claimBusiness": {
