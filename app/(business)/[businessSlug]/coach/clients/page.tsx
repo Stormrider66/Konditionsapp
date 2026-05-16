@@ -1,11 +1,11 @@
 // app/(business)/[businessSlug]/coach/clients/page.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import type { Client, Team } from '@/types'
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/search-input'
@@ -52,28 +52,31 @@ import { useToast } from '@/hooks/use-toast'
 import { MoreVertical, UserPlus, Eye, Trash2, Phone, Mail, Download, UserCircle, Check } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientsToCSV } from '@/lib/utils/csv-export'
+import { useLocale, useTranslations } from '@/i18n/client'
+
+type RegistryClient = Client & {
+  athleteAccount?: unknown
+}
 
 export default function BusinessClientsPage() {
   const params = useParams()
   const businessSlug = params.businessSlug as string
   const basePath = `/${businessSlug}/coach/clients`
+  const t = useTranslations('coach.pages.clients')
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
 
-  const [clients, setClients] = useState<Client[]>([])
+  const [clients, setClients] = useState<RegistryClient[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [teamFilter, setTeamFilter] = useState<string>('all')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
+  const [clientToDelete, setClientToDelete] = useState<RegistryClient | null>(null)
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchClients()
-    fetchTeams()
-  }, [businessSlug])
-
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch('/api/clients', {
@@ -84,17 +87,17 @@ export default function BusinessClientsPage() {
       if (result.success) {
         setClients(result.data)
       } else {
-        setError(result.error || 'Failed to fetch clients')
+        setError(result.error || t('errors.fetchFailed'))
       }
     } catch (err) {
-      setError('Network error')
+      setError(t('errors.network'))
       console.error(err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [businessSlug, t])
 
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     try {
       const response = await fetch('/api/teams', {
         headers: { 'x-business-slug': businessSlug },
@@ -106,9 +109,16 @@ export default function BusinessClientsPage() {
     } catch (err) {
       console.error('Error fetching teams:', err)
     }
-  }
+  }, [businessSlug])
 
-  const handleDeleteClick = (client: Client) => {
+  useEffect(() => {
+    queueMicrotask(() => {
+      void fetchClients()
+      void fetchTeams()
+    })
+  }, [fetchClients, fetchTeams])
+
+  const handleDeleteClick = (client: RegistryClient) => {
     setClientToDelete(client)
     setDeleteDialogOpen(true)
   }
@@ -125,21 +135,21 @@ export default function BusinessClientsPage() {
       if (response.ok) {
         setClients(clients.filter((c) => c.id !== clientToDelete.id))
         toast({
-          title: 'Klient borttagen',
-          description: `${clientToDelete.name} har tagits bort från registret.`,
+          title: t('toasts.deletedTitle'),
+          description: t('toasts.deletedDescription', { name: clientToDelete.name }),
         })
       } else {
         toast({
-          title: 'Fel',
-          description: 'Kunde inte ta bort klienten.',
+          title: t('toasts.errorTitle'),
+          description: t('errors.deleteFailed'),
           variant: 'destructive',
         })
       }
     } catch (err) {
       console.error(err)
       toast({
-        title: 'Nätverksfel',
-        description: 'Något gick fel. Försök igen.',
+        title: t('toasts.networkErrorTitle'),
+        description: t('errors.retry'),
         variant: 'destructive',
       })
     } finally {
@@ -186,8 +196,8 @@ export default function BusinessClientsPage() {
   const handleExportCSV = () => {
     if (filteredClients.length === 0) {
       toast({
-        title: 'Ingen data att exportera',
-        description: 'Det finns inga klienter att exportera.',
+        title: t('toasts.noExportDataTitle'),
+        description: t('toasts.noExportDataDescription'),
         variant: 'destructive',
       })
       return
@@ -196,14 +206,14 @@ export default function BusinessClientsPage() {
     try {
       exportClientsToCSV(filteredClients)
       toast({
-        title: 'Export lyckades!',
-        description: `${filteredClients.length} klienter exporterades till CSV.`,
+        title: t('toasts.exportSuccessTitle'),
+        description: t('toasts.exportSuccessDescription', { count: filteredClients.length }),
       })
     } catch (error) {
       console.error('Export error:', error)
       toast({
-        title: 'Exportfel',
-        description: 'Kunde inte exportera klienter.',
+        title: t('toasts.exportErrorTitle'),
+        description: t('toasts.exportErrorDescription'),
         variant: 'destructive',
       })
     }
@@ -212,14 +222,14 @@ export default function BusinessClientsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 lg:py-12">
       <div className="mb-6">
-        <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">Klientregister</h2>
+        <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">{t('title')}</h2>
         <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm lg:text-base">
-          Hantera klienter och deras testhistorik
+          {t('description')}
         </p>
       </div>
       {error && (
         <Alert variant="destructive" className="mb-6">
-          <AlertDescription>Fel: {error}</AlertDescription>
+          <AlertDescription>{t('errors.inlinePrefix')} {error}</AlertDescription>
         </Alert>
       )}
 
@@ -227,17 +237,17 @@ export default function BusinessClientsPage() {
         <GlassCardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <GlassCardTitle>Alla klienter</GlassCardTitle>
+              <GlassCardTitle>{t('allClients')}</GlassCardTitle>
               {searchTerm && (
                 <p className="text-sm text-muted-foreground mt-1">
-                  Visar {filteredClients.length} av {clients.length} klienter
+                  {t('showingFiltered', { filtered: filteredClients.length, total: clients.length })}
                 </p>
               )}
             </div>
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
               <div className="flex-1 sm:flex-initial sm:min-w-[300px]">
                 <SearchInput
-                  placeholder="Sök namn, e-post eller telefon..."
+                  placeholder={t('searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onClear={() => setSearchTerm('')}
@@ -246,11 +256,11 @@ export default function BusinessClientsPage() {
               <div className="sm:min-w-[180px]">
                 <Select value={teamFilter} onValueChange={setTeamFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Filtrera lag" />
+                    <SelectValue placeholder={t('teamFilter.placeholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Alla lag</SelectItem>
-                    <SelectItem value="none">Inget lag</SelectItem>
+                    <SelectItem value="all">{t('teamFilter.all')}</SelectItem>
+                    <SelectItem value="none">{t('teamFilter.none')}</SelectItem>
                     {teams.map((team) => (
                       <SelectItem key={team.id} value={team.id}>
                         {team.name}
@@ -266,12 +276,12 @@ export default function BusinessClientsPage() {
                   className="w-full sm:w-auto"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Exportera CSV
+                  {t('actions.exportCsv')}
                 </Button>
                 <Link href={`${basePath}/new`} className="w-full sm:w-auto">
                   <Button className="w-full sm:w-auto">
                     <UserPlus className="w-4 h-4 mr-2" />
-                    Ny Klient
+                    {t('actions.newClient')}
                   </Button>
                 </Link>
               </div>
@@ -283,7 +293,7 @@ export default function BusinessClientsPage() {
             <LoadingTable />
           ) : filteredClients.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              {searchTerm ? 'Inga klienter matchade sökningen' : 'Inga klienter ännu'}
+              {searchTerm ? t('empty.noSearchResults') : t('empty.noClients')}
             </div>
           ) : (
             <>
@@ -300,7 +310,7 @@ export default function BusinessClientsPage() {
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-lg truncate dark:text-slate-100">{client.name}</h3>
                             <p className="text-sm text-muted-foreground">
-                              {calculateAge(client.birthDate)} år
+                              {t('ageYears', { age: calculateAge(client.birthDate) })}
                             </p>
                           </div>
                         </div>
@@ -314,16 +324,16 @@ export default function BusinessClientsPage() {
                             <DropdownMenuItem asChild>
                               <Link href={`${basePath}/${client.id}`} className="cursor-pointer">
                                 <Eye className="w-4 h-4 mr-2" />
-                                Visa
+                                {t('actions.view')}
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                               <Link href={`${basePath}/${client.id}/profile`} className="cursor-pointer">
                                 <UserCircle className="w-4 h-4 mr-2" />
-                                Fullständig profil
+                                {t('actions.fullProfile')}
                               </Link>
                             </DropdownMenuItem>
-                            {(client as any).athleteAccount ? (
+                            {client.athleteAccount ? (
                               <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
                                 <CreateAthleteAccountDialog
                                   clientId={client.id}
@@ -331,11 +341,13 @@ export default function BusinessClientsPage() {
                                   clientEmail={client.email}
                                   clientPhone={client.phone}
                                   hasExistingAccount
-                                  onAccountCreated={fetchClients}
+                                  onAccountCreated={() => {
+                                    void fetchClients()
+                                  }}
                                   trigger={
                                     <button className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer">
                                       <Mail className="w-4 h-4 mr-2" />
-                                      Skicka inbjudan
+                                      {t('actions.sendInvite')}
                                     </button>
                                   }
                                 />
@@ -348,11 +360,13 @@ export default function BusinessClientsPage() {
                                   clientEmail={client.email}
                                   clientPhone={client.phone}
                                   hasExistingAccount={false}
-                                  onAccountCreated={fetchClients}
+                                  onAccountCreated={() => {
+                                    void fetchClients()
+                                  }}
                                   trigger={
                                     <button className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer">
                                       <UserPlus className="w-4 h-4 mr-2" />
-                                      Skapa atletkonto
+                                      {t('actions.createAthleteAccount')}
                                     </button>
                                   }
                                 />
@@ -363,34 +377,34 @@ export default function BusinessClientsPage() {
                               className="text-red-600 focus:text-red-600"
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
-                              Ta bort
+                              {t('actions.delete')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Kön:</span>
+                          <span className="text-muted-foreground">{t('fields.gender')}:</span>
                           <Badge variant={client.gender === 'MALE' ? 'default' : 'secondary'}>
-                            {client.gender === 'MALE' ? 'Man' : 'Kvinna'}
+                            {client.gender === 'MALE' ? t('gender.male') : t('gender.female')}
                           </Badge>
                         </div>
                         {client.team && (
                           <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Lag:</span>
+                            <span className="text-muted-foreground">{t('fields.team')}:</span>
                             <Badge variant="outline">{client.team.name}</Badge>
                           </div>
                         )}
                         <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Atletkonto:</span>
-                          {(client as any).athleteAccount ? (
+                          <span className="text-muted-foreground">{t('fields.athleteAccount')}:</span>
+                          {client.athleteAccount ? (
                             <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200">
                               <Check className="w-3 h-3 mr-1" />
-                              Aktivt
+                              {t('account.active')}
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="text-gray-500">
-                              Saknas
+                              {t('account.missing')}
                             </Badge>
                           )}
                         </div>
@@ -407,7 +421,7 @@ export default function BusinessClientsPage() {
                           </div>
                         )}
                         <div className="text-muted-foreground text-xs pt-2 border-t">
-                          Uppdaterad: {format(new Date(client.updatedAt), 'PPP', { locale: sv })}
+                          {t('updatedAt', { date: format(new Date(client.updatedAt), 'PPP', { locale: dateLocale }) })}
                         </div>
                       </div>
                     </GlassCardContent>
@@ -420,14 +434,14 @@ export default function BusinessClientsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-slate-200 dark:border-white/10">
-                      <TableHead>Klient</TableHead>
-                      <TableHead>Ålder</TableHead>
-                      <TableHead>Kön</TableHead>
-                      <TableHead>Lag</TableHead>
-                      <TableHead>E-post</TableHead>
-                      <TableHead>Atletkonto</TableHead>
-                      <TableHead>Senast uppdaterad</TableHead>
-                      <TableHead className="text-right">Åtgärder</TableHead>
+                      <TableHead>{t('table.client')}</TableHead>
+                      <TableHead>{t('table.age')}</TableHead>
+                      <TableHead>{t('table.gender')}</TableHead>
+                      <TableHead>{t('table.team')}</TableHead>
+                      <TableHead>{t('table.email')}</TableHead>
+                      <TableHead>{t('table.athleteAccount')}</TableHead>
+                      <TableHead>{t('table.lastUpdated')}</TableHead>
+                      <TableHead className="text-right">{t('table.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -441,10 +455,10 @@ export default function BusinessClientsPage() {
                             <span className="font-medium dark:text-slate-100">{client.name}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="dark:text-slate-300">{calculateAge(client.birthDate)} år</TableCell>
+                        <TableCell className="dark:text-slate-300">{t('ageYears', { age: calculateAge(client.birthDate) })}</TableCell>
                         <TableCell>
                           <Badge variant={client.gender === 'MALE' ? 'default' : 'secondary'}>
-                            {client.gender === 'MALE' ? 'Man' : 'Kvinna'}
+                            {client.gender === 'MALE' ? t('gender.male') : t('gender.female')}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -458,11 +472,11 @@ export default function BusinessClientsPage() {
                           {client.email || '-'}
                         </TableCell>
                         <TableCell>
-                          {(client as any).athleteAccount ? (
+                          {client.athleteAccount ? (
                             <div className="flex items-center gap-2">
                               <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200">
                                 <Check className="w-3 h-3 mr-1" />
-                                Aktivt
+                                {t('account.active')}
                               </Badge>
                               <CreateAthleteAccountDialog
                                 clientId={client.id}
@@ -470,11 +484,13 @@ export default function BusinessClientsPage() {
                                 clientEmail={client.email}
                                 clientPhone={client.phone}
                                 hasExistingAccount
-                                onAccountCreated={fetchClients}
+                                onAccountCreated={() => {
+                                  void fetchClients()
+                                }}
                                 trigger={
                                   <Button variant="outline" size="sm" className="h-7 text-xs">
                                     <Mail className="w-3 h-3 mr-1" />
-                                    Bjud in
+                                    {t('actions.invite')}
                                   </Button>
                                 }
                               />
@@ -486,18 +502,20 @@ export default function BusinessClientsPage() {
                               clientEmail={client.email}
                               clientPhone={client.phone}
                               hasExistingAccount={false}
-                              onAccountCreated={fetchClients}
+                              onAccountCreated={() => {
+                                void fetchClients()
+                              }}
                               trigger={
                                 <Button variant="outline" size="sm" className="h-7 text-xs">
                                   <UserPlus className="w-3 h-3 mr-1" />
-                                  Skapa
+                                  {t('actions.create')}
                                 </Button>
                               }
                             />
                           )}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {format(new Date(client.updatedAt), 'PPP', { locale: sv })}
+                          {format(new Date(client.updatedAt), 'PPP', { locale: dateLocale })}
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -513,7 +531,7 @@ export default function BusinessClientsPage() {
                                   className="cursor-pointer"
                                 >
                                   <Eye className="w-4 h-4 mr-2" />
-                                  Visa
+                                  {t('actions.view')}
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
@@ -522,10 +540,10 @@ export default function BusinessClientsPage() {
                                   className="cursor-pointer"
                                 >
                                   <UserCircle className="w-4 h-4 mr-2" />
-                                  Fullständig profil
+                                  {t('actions.fullProfile')}
                                 </Link>
                               </DropdownMenuItem>
-                              {(client as any).athleteAccount ? (
+                              {client.athleteAccount ? (
                                 <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
                                   <CreateAthleteAccountDialog
                                     clientId={client.id}
@@ -533,11 +551,13 @@ export default function BusinessClientsPage() {
                                     clientEmail={client.email}
                                     clientPhone={client.phone}
                                     hasExistingAccount
-                                    onAccountCreated={fetchClients}
+                                    onAccountCreated={() => {
+                                      void fetchClients()
+                                    }}
                                     trigger={
                                       <button className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer">
                                         <Mail className="w-4 h-4 mr-2" />
-                                        Skicka inbjudan
+                                        {t('actions.sendInvite')}
                                       </button>
                                     }
                                   />
@@ -550,11 +570,13 @@ export default function BusinessClientsPage() {
                                     clientEmail={client.email}
                                     clientPhone={client.phone}
                                     hasExistingAccount={false}
-                                    onAccountCreated={fetchClients}
+                                    onAccountCreated={() => {
+                                      void fetchClients()
+                                    }}
                                     trigger={
                                       <button className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer">
                                         <UserPlus className="w-4 h-4 mr-2" />
-                                        Skapa atletkonto
+                                        {t('actions.createAthleteAccount')}
                                       </button>
                                     }
                                   />
@@ -565,7 +587,7 @@ export default function BusinessClientsPage() {
                                 className="text-red-600 focus:text-red-600"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
-                                Ta bort
+                                {t('actions.delete')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -583,8 +605,7 @@ export default function BusinessClientsPage() {
       <GlassCard className="mt-6 bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30">
         <GlassCardContent className="p-4">
           <p className="text-sm text-blue-800 dark:text-blue-300">
-            <strong>Tips:</strong> Klicka på en klient för att se deras testhistorik
-            och skapa nya tester.
+            <strong>{t('tips.prefix')}</strong> {t('tips.text')}
           </p>
         </GlassCardContent>
       </GlassCard>
@@ -593,18 +614,20 @@ export default function BusinessClientsPage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Är du säker?</DialogTitle>
+            <DialogTitle>{t('deleteDialog.title')}</DialogTitle>
             <DialogDescription>
-              Detta kommer ta bort <strong>{clientToDelete?.name}</strong> permanent från
-              registret. Denna åtgärd kan inte ångras.
+              {t.rich('deleteDialog.description', {
+                name: clientToDelete?.name ?? '',
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Avbryt
+              {t('actions.cancel')}
             </Button>
             <Button variant="destructive" onClick={handleDeleteConfirm}>
-              Ta bort
+              {t('actions.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

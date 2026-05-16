@@ -866,6 +866,86 @@
           "warning": "Lagen ({count} st) kommer att bli fristående men inte tas bort.",
           "cannotUndo": "Denna åtgärd kan inte ångras."
         }
+      },
+      "clients": {
+        "title": "Klientregister",
+        "description": "Hantera klienter och deras testhistorik",
+        "allClients": "Alla klienter",
+        "showingFiltered": "Visar {filtered} av {total} klienter",
+        "searchPlaceholder": "Sök namn, e-post eller telefon...",
+        "ageYears": "{age} år",
+        "updatedAt": "Uppdaterad: {date}",
+        "teamFilter": {
+          "placeholder": "Filtrera lag",
+          "all": "Alla lag",
+          "none": "Inget lag"
+        },
+        "actions": {
+          "exportCsv": "Exportera CSV",
+          "newClient": "Ny Klient",
+          "view": "Visa",
+          "fullProfile": "Fullständig profil",
+          "sendInvite": "Skicka inbjudan",
+          "createAthleteAccount": "Skapa atletkonto",
+          "delete": "Ta bort",
+          "invite": "Bjud in",
+          "create": "Skapa",
+          "cancel": "Avbryt"
+        },
+        "empty": {
+          "noSearchResults": "Inga klienter matchade sökningen",
+          "noClients": "Inga klienter ännu"
+        },
+        "fields": {
+          "gender": "Kön",
+          "team": "Lag",
+          "athleteAccount": "Atletkonto"
+        },
+        "gender": {
+          "male": "Man",
+          "female": "Kvinna"
+        },
+        "account": {
+          "active": "Aktivt",
+          "missing": "Saknas"
+        },
+        "table": {
+          "client": "Klient",
+          "age": "Ålder",
+          "gender": "Kön",
+          "team": "Lag",
+          "email": "E-post",
+          "athleteAccount": "Atletkonto",
+          "lastUpdated": "Senast uppdaterad",
+          "actions": "Åtgärder"
+        },
+        "tips": {
+          "prefix": "Tips:",
+          "text": "Klicka på en klient för att se deras testhistorik och skapa nya tester."
+        },
+        "deleteDialog": {
+          "title": "Är du säker?",
+          "description": "Detta kommer ta bort <strong>{name}</strong> permanent från registret. Denna åtgärd kan inte ångras."
+        },
+        "toasts": {
+          "deletedTitle": "Klient borttagen",
+          "deletedDescription": "{name} har tagits bort från registret.",
+          "errorTitle": "Fel",
+          "networkErrorTitle": "Nätverksfel",
+          "noExportDataTitle": "Ingen data att exportera",
+          "noExportDataDescription": "Det finns inga klienter att exportera.",
+          "exportSuccessTitle": "Export lyckades!",
+          "exportSuccessDescription": "{count} klienter exporterades till CSV.",
+          "exportErrorTitle": "Exportfel",
+          "exportErrorDescription": "Kunde inte exportera klienter."
+        },
+        "errors": {
+          "fetchFailed": "Kunde inte hämta klienter",
+          "network": "Nätverksfel",
+          "deleteFailed": "Kunde inte ta bort klienten.",
+          "retry": "Något gick fel. Försök igen.",
+          "inlinePrefix": "Fel:"
+        }
       }
     },
     "dashboard": "Coach Dashboard",

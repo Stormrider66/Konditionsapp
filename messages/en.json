@@ -866,6 +866,86 @@
           "warning": "The teams ({count}) will become standalone but will not be deleted.",
           "cannotUndo": "This action cannot be undone."
         }
+      },
+      "clients": {
+        "title": "Client registry",
+        "description": "Manage clients and their test history",
+        "allClients": "All clients",
+        "showingFiltered": "Showing {filtered} of {total} clients",
+        "searchPlaceholder": "Search name, email, or phone...",
+        "ageYears": "{age} years",
+        "updatedAt": "Updated: {date}",
+        "teamFilter": {
+          "placeholder": "Filter team",
+          "all": "All teams",
+          "none": "No team"
+        },
+        "actions": {
+          "exportCsv": "Export CSV",
+          "newClient": "New client",
+          "view": "View",
+          "fullProfile": "Full profile",
+          "sendInvite": "Send invite",
+          "createAthleteAccount": "Create athlete account",
+          "delete": "Delete",
+          "invite": "Invite",
+          "create": "Create",
+          "cancel": "Cancel"
+        },
+        "empty": {
+          "noSearchResults": "No clients matched the search",
+          "noClients": "No clients yet"
+        },
+        "fields": {
+          "gender": "Gender",
+          "team": "Team",
+          "athleteAccount": "Athlete account"
+        },
+        "gender": {
+          "male": "Male",
+          "female": "Female"
+        },
+        "account": {
+          "active": "Active",
+          "missing": "Missing"
+        },
+        "table": {
+          "client": "Client",
+          "age": "Age",
+          "gender": "Gender",
+          "team": "Team",
+          "email": "Email",
+          "athleteAccount": "Athlete account",
+          "lastUpdated": "Last updated",
+          "actions": "Actions"
+        },
+        "tips": {
+          "prefix": "Tip:",
+          "text": "Click a client to view their test history and create new tests."
+        },
+        "deleteDialog": {
+          "title": "Are you sure?",
+          "description": "This will permanently remove <strong>{name}</strong> from the registry. This action cannot be undone."
+        },
+        "toasts": {
+          "deletedTitle": "Client deleted",
+          "deletedDescription": "{name} has been removed from the registry.",
+          "errorTitle": "Error",
+          "networkErrorTitle": "Network error",
+          "noExportDataTitle": "No data to export",
+          "noExportDataDescription": "There are no clients to export.",
+          "exportSuccessTitle": "Export succeeded!",
+          "exportSuccessDescription": "{count} clients were exported to CSV.",
+          "exportErrorTitle": "Export error",
+          "exportErrorDescription": "Could not export clients."
+        },
+        "errors": {
+          "fetchFailed": "Could not fetch clients",
+          "network": "Network error",
+          "deleteFailed": "Could not delete the client.",
+          "retry": "Something went wrong. Try again.",
+          "inlinePrefix": "Error:"
+        }
       }
     },
     "dashboard": "Coach Dashboard",
