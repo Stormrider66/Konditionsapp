@@ -597,6 +597,31 @@
           "documentEmbedding": "Dokumentembedding (OpenAI): ~$0.0001 per sida",
           "videoAnalysis": "Videoanalys (Gemini): ~$0.20 per video"
         }
+      },
+      "onboardingWizard": {
+        "title": "Kom igång med {businessName}",
+        "description": "Skapa lag, bjud in personal och lägg till spelare"
+      },
+      "testOverview": {
+        "title": "Testöversikt",
+        "description": "Resultat, jämförelser och utveckling över tid"
+      },
+      "exerciseLibrary": {
+        "loading": "Laddar övningsbibliotek..."
+      },
+      "hockeyTests": {
+        "title": "Fysiska tester - Ishockey",
+        "description": "Hockeysession med MuscleLab, styrka, hopp, beep test och istester",
+        "testOverview": "Testöversikt",
+        "tabs": {
+          "new": "Nytt test",
+          "results": "Resultat"
+        }
+      },
+      "athleteCalendar": {
+        "backToAthlete": "Tillbaka till {athleteName}",
+        "title": "{athleteName}s kalender",
+        "description": "Hantera atletens träningspass, tävlingar och händelser"
       }
     },
     "dashboard": "Coach Dashboard",

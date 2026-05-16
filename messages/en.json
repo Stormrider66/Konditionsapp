@@ -597,6 +597,31 @@
           "documentEmbedding": "Document embedding (OpenAI): ~$0.0001 per page",
           "videoAnalysis": "Video analysis (Gemini): ~$0.20 per video"
         }
+      },
+      "onboardingWizard": {
+        "title": "Get started with {businessName}",
+        "description": "Create teams, invite staff, and add players"
+      },
+      "testOverview": {
+        "title": "Test overview",
+        "description": "Results, comparisons, and progress over time"
+      },
+      "exerciseLibrary": {
+        "loading": "Loading exercise library..."
+      },
+      "hockeyTests": {
+        "title": "Physical tests - Ice hockey",
+        "description": "Hockey session with MuscleLab, strength, jumps, beep test, and on-ice tests",
+        "testOverview": "Test overview",
+        "tabs": {
+          "new": "New test",
+          "results": "Results"
+        }
+      },
+      "athleteCalendar": {
+        "backToAthlete": "Back to {athleteName}",
+        "title": "{athleteName}'s calendar",
+        "description": "Manage the athlete's workouts, competitions, and events"
       }
     },
     "dashboard": "Coach Dashboard",

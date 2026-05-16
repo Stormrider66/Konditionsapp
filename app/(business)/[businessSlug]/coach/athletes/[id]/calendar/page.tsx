@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { UnifiedCalendar } from '@/components/calendar'
+import { getTranslations } from '@/i18n/server'
 
 interface BusinessAthleteCalendarPageProps {
   params: Promise<{
@@ -21,6 +22,7 @@ export default async function BusinessAthleteCalendarPage({
 }: BusinessAthleteCalendarPageProps) {
   const { businessSlug, id } = await params
   const user = await requireCoach()
+  const t = await getTranslations('coach.pages.athleteCalendar')
 
   // Validate business membership
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -56,12 +58,12 @@ export default async function BusinessAthleteCalendarPage({
         <Link href={`${basePath}/coach/clients/${client.id}`}>
           <Button variant="ghost" size="sm" className="mb-2">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Tillbaka till {client.name}
+            {t('backToAthlete', { athleteName: client.name })}
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">{client.name}s kalender</h1>
+        <h1 className="text-2xl font-bold">{t('title', { athleteName: client.name })}</h1>
         <p className="text-muted-foreground">
-          Hantera atletens träningspass, tävlingar och händelser
+          {t('description')}
         </p>
       </div>
 

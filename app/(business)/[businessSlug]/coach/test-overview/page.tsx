@@ -7,6 +7,7 @@ import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
 import { TestOverviewClient } from '@/components/coach/test-overview/TestOverviewClient'
 import { BarChart3 } from 'lucide-react'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -15,6 +16,7 @@ interface PageProps {
 export default async function TestOverviewPage({ params }: PageProps) {
   const { businessSlug } = await params
   const user = await requireCoach()
+  const t = await getTranslations('coach.pages.testOverview')
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
@@ -39,10 +41,10 @@ export default async function TestOverviewPage({ params }: PageProps) {
       <div className="mb-6">
         <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 dark:text-white">
           <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6" />
-          Testöversikt
+          {t('title')}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Resultat, jämförelser och utveckling över tid
+          {t('description')}
         </p>
       </div>
 

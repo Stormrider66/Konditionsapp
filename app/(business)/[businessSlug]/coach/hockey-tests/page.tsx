@@ -12,6 +12,7 @@ import { HockeyTestResults } from '@/components/coach/hockey-tests/HockeyTestRes
 import { Button } from '@/components/ui/button'
 import { BarChart3, FlaskConical, Shield } from 'lucide-react'
 import Link from 'next/link'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -20,6 +21,7 @@ interface PageProps {
 export default async function HockeyTestsPage({ params }: PageProps) {
   const { businessSlug } = await params
   const user = await requireCoach()
+  const t = await getTranslations('coach.pages.hockeyTests')
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
@@ -58,17 +60,17 @@ export default async function HockeyTestsPage({ params }: PageProps) {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 dark:text-white">
             <Shield className="h-5 w-5 sm:h-6 sm:w-6" />
-            Fysiska tester - Ishockey
+            {t('title')}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Hockeysession med MuscleLab, styrka, hopp, beep test och istester
+            {t('description')}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`/${businessSlug}/coach/test-overview`}>
             <Button variant="outline" size="sm">
               <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-              Testöversikt
+              {t('testOverview')}
             </Button>
           </Link>
           {teams[0] && (
@@ -84,8 +86,8 @@ export default async function HockeyTestsPage({ params }: PageProps) {
 
       <Tabs defaultValue={canRunTests ? 'new' : 'results'} className="space-y-4">
         <TabsList>
-          {canRunTests && <TabsTrigger value="new">Nytt test</TabsTrigger>}
-          <TabsTrigger value="results">Resultat</TabsTrigger>
+          {canRunTests && <TabsTrigger value="new">{t('tabs.new')}</TabsTrigger>}
+          <TabsTrigger value="results">{t('tabs.results')}</TabsTrigger>
         </TabsList>
 
         {canRunTests && (

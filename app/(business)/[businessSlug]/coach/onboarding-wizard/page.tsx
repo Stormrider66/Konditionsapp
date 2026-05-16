@@ -3,6 +3,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { ClubOnboardingWizard } from '@/components/coach/onboarding/ClubOnboardingWizard'
 import { Building2 } from 'lucide-react'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -11,6 +12,7 @@ interface PageProps {
 export default async function OnboardingWizardPage({ params }: PageProps) {
   const { businessSlug } = await params
   const user = await requireCoach()
+  const t = await getTranslations('coach.pages.onboardingWizard')
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
@@ -20,10 +22,10 @@ export default async function OnboardingWizardPage({ params }: PageProps) {
       <div className="text-center mb-8">
         <Building2 className="h-10 w-10 mx-auto mb-3 text-blue-600" />
         <h1 className="text-2xl font-bold dark:text-white">
-          Kom igång med {membership.business.name}
+          {t('title', { businessName: membership.business.name })}
         </h1>
         <p className="text-muted-foreground mt-1">
-          Skapa lag, bjud in personal och lägg till spelare
+          {t('description')}
         </p>
       </div>
 
