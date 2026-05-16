@@ -117,6 +117,43 @@ export async function listKnowledgeSkills(): Promise<KnowledgeSkillSummary[]> {
   }) as Promise<KnowledgeSkillSummary[]>
 }
 
+export async function resolveKnowledgeSkillsByIds(
+  skillIds: string[],
+  options: { maxSkills?: number } = {}
+): Promise<{ matched: MatchedSkill[]; missingIds: string[] }> {
+  const { maxSkills = 5 } = options
+  const uniqueIds = Array.from(new Set(skillIds.filter(Boolean))).slice(0, maxSkills)
+  if (uniqueIds.length === 0) {
+    return { matched: [], missingIds: [] }
+  }
+
+  const skills = await prisma.knowledgeSkill.findMany({
+    where: { id: { in: uniqueIds }, isActive: true },
+    select: {
+      id: true,
+      name: true,
+      nameEn: true,
+      description: true,
+      category: true,
+      keywords: true,
+      priority: true,
+      documentIds: true,
+      maxChunks: true,
+    },
+  }) as KnowledgeSkillSummary[]
+
+  const skillMap = new Map(skills.map((skill) => [skill.id, skill]))
+  const matched = uniqueIds
+    .map((id, index) => {
+      const skill = skillMap.get(id)
+      return skill ? toMatchedSkill(skill, uniqueIds.length - index, 'keyword') : null
+    })
+    .filter((skill): skill is MatchedSkill => Boolean(skill))
+  const missingIds = uniqueIds.filter((id) => !skillMap.has(id))
+
+  return { matched, missingIds }
+}
+
 export function formatKnowledgeSkillCatalog(skills: KnowledgeSkillSummary[]): string {
   const grouped = skills.reduce<Record<string, KnowledgeSkillSummary[]>>((acc, skill) => {
     if (!acc[skill.category]) acc[skill.category] = []

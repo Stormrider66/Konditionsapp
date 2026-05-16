@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
       businessSlug,
       isAthleteChat = false,
       memoryContext,
+      selectedSkillIds = [],
     } = body
 
     // ── 1. Auth + business scope + athlete capabilities ─────────────
@@ -234,6 +235,7 @@ export async function POST(request: NextRequest) {
       userId,
       calendarProgramStartDate,
       calendarProgramEndDate,
+      selectedSkillIds,
     })
 
     // ── 6. System prompt ────────────────────────────────────────────

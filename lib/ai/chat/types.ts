@@ -37,4 +37,6 @@ export interface ChatRequest {
   memoryContext?: MemoryContext
   /** Model-intent override (athlete chat). */
   intent?: string
+  /** Explicit knowledge skills selected by the user/UI. */
+  selectedSkillIds?: string[]
 }

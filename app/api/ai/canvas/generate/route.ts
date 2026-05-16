@@ -14,6 +14,7 @@ import {
   fetchSkillContext,
   hasExplicitKnowledgeSkillRequest,
   matchKnowledgeSkills,
+  resolveKnowledgeSkillsByIds,
   resolveRequestedKnowledgeSkills,
 } from '@/lib/ai/knowledge-skills'
 import { logger } from '@/lib/logger'
@@ -43,6 +44,7 @@ const requestSchema = z.object({
     dateRange: z.enum(['last7', 'last30', 'last90', 'next30']),
     dataKeys: z.array(z.enum(['tests', 'sessions', 'programs', 'readiness', 'notes'])).max(5),
   }).optional(),
+  selectedSkillIds: z.array(z.string().uuid()).max(5).optional(),
 })
 
 const canvasBlockSchema = z.object({
@@ -163,7 +165,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { businessSlug, prompt, templateId, contextSummary, contextSelection } = parsed.data
+    const {
+      businessSlug,
+      prompt,
+      templateId,
+      contextSummary,
+      contextSelection,
+      selectedSkillIds = [],
+    } = parsed.data
     const membership = await validateBusinessMembership(user.id, businessSlug)
     if (!membership) {
       return NextResponse.json({ error: 'Business not found or access denied' }, { status: 404 })
@@ -201,23 +210,38 @@ export async function POST(request: NextRequest) {
     }
     let skillContext = ''
     let skillsUsed: string[] = []
+    let missingSelectedSkillIds: string[] = []
     if (hasEmbeddingKeys(embeddingKeys)) {
       try {
-        const requestedSkills = hasExplicitKnowledgeSkillRequest(prompt)
+        const selectedSkills = selectedSkillIds.length > 0
+          ? await resolveKnowledgeSkillsByIds(selectedSkillIds, { maxSkills: 5 })
+          : { matched: [], missingIds: [] }
+        missingSelectedSkillIds = selectedSkills.missingIds
+        const requestedSkills = selectedSkills.matched.length === 0 && hasExplicitKnowledgeSkillRequest(prompt)
           ? await resolveRequestedKnowledgeSkills(prompt, { maxSkills: 5 })
           : []
-        const matchedSkills = requestedSkills.length > 0
-          ? requestedSkills
-          : await matchKnowledgeSkills(prompt, embeddingKeys, { maxSkills: 3 })
+        const matchedSkills = selectedSkills.matched.length > 0
+          ? selectedSkills.matched
+          : requestedSkills.length > 0
+            ? requestedSkills
+            : await matchKnowledgeSkills(prompt, embeddingKeys, { maxSkills: 3 })
         if (matchedSkills.length > 0) {
           const result = await fetchSkillContext(prompt, matchedSkills, embeddingKeys)
-          const requestedIntro = requestedSkills.length > 0
+          const selectedIntro = selectedSkills.matched.length > 0
+            ? `\n## SELECTED KNOWLEDGE SKILLS\n${selectedSkills.matched.map((skill) => `- ${skill.name}`).join('\n')}\n`
+            : ''
+          const requestedIntro = selectedSkills.matched.length === 0 && requestedSkills.length > 0
             ? `\n## REQUESTED KNOWLEDGE SKILLS\n${requestedSkills.map((skill) => `- ${skill.name}`).join('\n')}\n`
             : ''
-          skillContext = `${requestedIntro}${result.context}`
+          const missingIntro = missingSelectedSkillIds.length > 0
+            ? `\n## SELECTED KNOWLEDGE SKILLS THAT COULD NOT BE USED\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\nMention this visibly if relevant.\n`
+            : ''
+          skillContext = `${selectedIntro}${requestedIntro}${missingIntro}${result.context}`
           skillsUsed = result.skillsUsed.length > 0
             ? result.skillsUsed
             : matchedSkills.map((skill) => skill.name)
+        } else if (missingSelectedSkillIds.length > 0) {
+          skillContext = `\n## SELECTED KNOWLEDGE SKILLS THAT COULD NOT BE USED\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\nMention this visibly.\n`
         }
       } catch (error) {
         logger.warn('AI canvas skill retrieval failed', {}, error)
@@ -267,6 +291,9 @@ export async function POST(request: NextRequest) {
       skillsUsed.length > 0
         ? `Jag använde även ${skillsUsed.length} relevanta kunskapsskill${skillsUsed.length === 1 ? '' : 's'}.`
         : '',
+      missingSelectedSkillIds.length > 0
+        ? `Jag kunde inte använda ${missingSelectedSkillIds.length} vald${missingSelectedSkillIds.length === 1 ? '' : 'a'} skill${missingSelectedSkillIds.length === 1 ? '' : 's'}.`
+        : '',
     ].filter(Boolean)
 
     return NextResponse.json({
@@ -275,6 +302,7 @@ export async function POST(request: NextRequest) {
       assistantMessage: [validated.assistantMessage, ...assistantMessageAdditions].join(' '),
       blocks,
       skillsUsed,
+      missingSelectedSkillIds,
       model: {
         provider: resolved.provider,
         modelId: resolved.modelId,

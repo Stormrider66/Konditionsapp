@@ -11,6 +11,7 @@ import {
   isKnowledgeSkillCatalogRequest,
   listKnowledgeSkills,
   matchKnowledgeSkills,
+  resolveKnowledgeSkillsByIds,
   resolveRequestedKnowledgeSkills,
 } from '@/lib/ai/knowledge-skills'
 import { webSearch, formatSearchResultsForContext } from '@/lib/ai/web-search'
@@ -44,6 +45,7 @@ export interface BuildChatContextInput {
   userId: string
   calendarProgramStartDate?: Date
   calendarProgramEndDate?: Date
+  selectedSkillIds?: string[]
 }
 
 export interface ChatContextResult {
@@ -60,6 +62,7 @@ export interface ChatContextResult {
   coachVerifiedAthleteId?: string
   calendarProgramStartDate?: Date
   calendarProgramEndDate?: Date
+  missingSelectedSkillIds: string[]
 }
 
 /**
@@ -86,6 +89,7 @@ export async function buildChatContext(
     staffPermissions,
     apiKeyUserId,
     embeddingKeys,
+    selectedSkillIds = [],
   } = input
 
   let athleteContext = ''
@@ -211,6 +215,7 @@ export async function buildChatContext(
   // ── Knowledge skills ──
   let skillContext = ''
   let skillsUsed: string[] = []
+  let missingSelectedSkillIds: string[] = []
   const lastUserMsg = messages.filter((m) => m.role === 'user').pop()
   if (lastUserMsg) {
     try {
@@ -220,22 +225,36 @@ export async function buildChatContext(
         const skills = await listKnowledgeSkills()
         skillContext = formatKnowledgeSkillCatalog(skills)
       } else if (hasEmbeddingKeys(embeddingKeys)) {
-        const requested = hasExplicitKnowledgeSkillRequest(userContent)
+        const selected = selectedSkillIds.length > 0
+          ? await resolveKnowledgeSkillsByIds(selectedSkillIds, { maxSkills: 5 })
+          : { matched: [], missingIds: [] }
+        missingSelectedSkillIds = selected.missingIds
+        const requested = selected.matched.length === 0 && hasExplicitKnowledgeSkillRequest(userContent)
           ? await resolveRequestedKnowledgeSkills(userContent, { maxSkills: 5 })
           : []
-        const matched = requested.length > 0
-          ? requested
-          : await matchKnowledgeSkills(userContent, embeddingKeys, { maxSkills: 3 })
+        const matched = selected.matched.length > 0
+          ? selected.matched
+          : requested.length > 0
+            ? requested
+            : await matchKnowledgeSkills(userContent, embeddingKeys, { maxSkills: 3 })
 
         if (matched.length > 0) {
           const result = await fetchSkillContext(userContent, matched, embeddingKeys)
-          const requestedIntro = requested.length > 0
+          const selectedIntro = selected.matched.length > 0
+            ? `\n## ANVÄNDAREN VALDE DESSA KUNSKAPSSKILLS I UI\n${selected.matched.map((skill) => `- ${skill.name}`).join('\n')}\n`
+            : ''
+          const requestedIntro = selected.matched.length === 0 && requested.length > 0
             ? `\n## ANVÄNDAREN BAD UTTRYCKLIGEN OM DESSA KUNSKAPSSKILLS\n${requested.map((skill) => `- ${skill.name}`).join('\n')}\n`
             : ''
-          skillContext = `${requestedIntro}${result.context}`
+          const missingIntro = missingSelectedSkillIds.length > 0
+            ? `\n## VALDA KUNSKAPSSKILLS SOM INTE KUNDE ANVÄNDAS\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\nSäg synligt att dessa valda skills inte kunde användas om det är relevant för svaret.\n`
+            : ''
+          skillContext = `${selectedIntro}${requestedIntro}${missingIntro}${result.context}`
           skillsUsed = result.skillsUsed.length > 0
             ? result.skillsUsed
             : matched.map((skill) => skill.name)
+        } else if (missingSelectedSkillIds.length > 0) {
+          skillContext = `\n## VALDA KUNSKAPSSKILLS SOM INTE KUNDE ANVÄNDAS\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\nSäg synligt att dessa valda skills inte kunde användas.\n`
         }
       }
     } catch (error) {
@@ -321,5 +340,6 @@ ${c.content}
     coachVerifiedAthleteId,
     calendarProgramStartDate,
     calendarProgramEndDate,
+    missingSelectedSkillIds,
   }
 }
