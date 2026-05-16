@@ -946,6 +946,72 @@
           "retry": "Något gick fel. Försök igen.",
           "inlinePrefix": "Fel:"
         }
+      },
+      "calendarSettings": {
+        "backToSettings": "Tillbaka till inställningar",
+        "title": "Kalenderanslutningar",
+        "description": "Anslut externa kalendrar som Bokadirekt för att se bokningar på din dashboard",
+        "connectedCalendars": "Anslutna kalendrar",
+        "connectedDescription": "Kalendrar som synkroniseras med din dashboard",
+        "addCalendar": "Lägg till kalender",
+        "confirmDelete": "Är du säker på att du vill ta bort \"{calendarName}\"?",
+        "providerLabels": {
+          "icalUrl": "Annan kalender (iCal)"
+        },
+        "providerHelp": {
+          "bokadirekt": "Hitta din iCal-länk under Inställningar > Kalendersynkronisering i Bokadirekt",
+          "zoezi": "Kontakta Zoezi support för att få din kalender-URL",
+          "icalUrl": "Klistra in en iCal/ICS-länk från valfri kalender"
+        },
+        "dialog": {
+          "title": "Lägg till extern kalender",
+          "description": "Anslut en extern bokningskalender för att se bokningar på din dashboard"
+        },
+        "fields": {
+          "calendarType": "Kalendertyp",
+          "name": "Namn"
+        },
+        "placeholders": {
+          "name": "t.ex. Mina PT-bokningar"
+        },
+        "icalHelper": "Klistra in din kalenderlänk (slutar ofta på .ics)",
+        "actions": {
+          "cancel": "Avbryt",
+          "add": "Lägg till"
+        },
+        "empty": {
+          "title": "Inga kalendrar anslutna",
+          "description": "Klicka på \"Lägg till kalender\" för att komma igång"
+        },
+        "sync": {
+          "error": "Synkfel",
+          "syncedAt": "Synkad {date}",
+          "never": "Aldrig synkad",
+          "active": "Aktiv"
+        },
+        "help": {
+          "title": "Hur hittar jag min iCal-länk?",
+          "bokadirekt": {
+            "step1": "Logga in på business.bokadirekt.se",
+            "step2": "Gå till Inställningar → Kalendersynkronisering",
+            "step3": "Aktivera iCal-synkronisering och kopiera länken"
+          },
+          "zoezi": "Kontakta Zoezi support för att få din kalender-URL, eller kolla i inställningarna för export/synkronisering."
+        },
+        "toasts": {
+          "fetchFailed": "Kunde inte hämta kalenderanslutningar",
+          "fillAllFields": "Fyll i alla fält",
+          "added": "Kalender \"{calendarName}\" har lagts till",
+          "addFailed": "Kunde inte lägga till kalender",
+          "unexpectedError": "Något gick fel",
+          "syncEnabled": "Synkronisering aktiverad",
+          "syncPaused": "Synkronisering pausad",
+          "updateFailed": "Kunde inte uppdatera inställning",
+          "deleted": "Kalender borttagen",
+          "deleteFailed": "Kunde inte ta bort kalender",
+          "synced": "Kalender synkroniserad",
+          "syncFailed": "Synkronisering misslyckades"
+        }
       }
     },
     "dashboard": "Coach Dashboard",

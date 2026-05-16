@@ -946,6 +946,72 @@
           "retry": "Something went wrong. Try again.",
           "inlinePrefix": "Error:"
         }
+      },
+      "calendarSettings": {
+        "backToSettings": "Back to settings",
+        "title": "Calendar connections",
+        "description": "Connect external calendars like Bokadirekt to show bookings on your dashboard",
+        "connectedCalendars": "Connected calendars",
+        "connectedDescription": "Calendars synchronized with your dashboard",
+        "addCalendar": "Add calendar",
+        "confirmDelete": "Are you sure you want to delete \"{calendarName}\"?",
+        "providerLabels": {
+          "icalUrl": "Other calendar (iCal)"
+        },
+        "providerHelp": {
+          "bokadirekt": "Find your iCal link under Settings > Calendar sync in Bokadirekt",
+          "zoezi": "Contact Zoezi support to get your calendar URL",
+          "icalUrl": "Paste an iCal/ICS link from any calendar"
+        },
+        "dialog": {
+          "title": "Add external calendar",
+          "description": "Connect an external booking calendar to show bookings on your dashboard"
+        },
+        "fields": {
+          "calendarType": "Calendar type",
+          "name": "Name"
+        },
+        "placeholders": {
+          "name": "e.g. My PT bookings"
+        },
+        "icalHelper": "Paste your calendar link (often ends in .ics)",
+        "actions": {
+          "cancel": "Cancel",
+          "add": "Add"
+        },
+        "empty": {
+          "title": "No calendars connected",
+          "description": "Click \"Add calendar\" to get started"
+        },
+        "sync": {
+          "error": "Sync error",
+          "syncedAt": "Synced {date}",
+          "never": "Never synced",
+          "active": "Active"
+        },
+        "help": {
+          "title": "How do I find my iCal link?",
+          "bokadirekt": {
+            "step1": "Sign in to business.bokadirekt.se",
+            "step2": "Go to Settings > Calendar sync",
+            "step3": "Enable iCal sync and copy the link"
+          },
+          "zoezi": "Contact Zoezi support to get your calendar URL, or check the settings for export/sync."
+        },
+        "toasts": {
+          "fetchFailed": "Could not fetch calendar connections",
+          "fillAllFields": "Fill in all fields",
+          "added": "Calendar \"{calendarName}\" has been added",
+          "addFailed": "Could not add calendar",
+          "unexpectedError": "Something went wrong",
+          "syncEnabled": "Sync enabled",
+          "syncPaused": "Sync paused",
+          "updateFailed": "Could not update setting",
+          "deleted": "Calendar deleted",
+          "deleteFailed": "Could not delete calendar",
+          "synced": "Calendar synced",
+          "syncFailed": "Sync failed"
+        }
       }
     },
     "dashboard": "Coach Dashboard",

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -41,9 +41,10 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface CalendarConnection {
   id: string
@@ -66,16 +67,19 @@ const PROVIDER_LABELS: Record<string, string> = {
   APPLE: 'Apple iCloud',
   GOOGLE: 'Google Calendar',
   OUTLOOK: 'Outlook',
-  ICAL_URL: 'Annan kalender (iCal)',
+  ICAL_URL: 'providerLabels.icalUrl',
 }
 
 const PROVIDER_HELP: Record<string, string> = {
-  BOKADIREKT: 'Hitta din iCal-länk under Inställningar > Kalendersynkronisering i Bokadirekt',
-  ZOEZI: 'Kontakta Zoezi support för att få din kalender-URL',
-  ICAL_URL: 'Klistra in en iCal/ICS-länk från valfri kalender',
+  BOKADIREKT: 'providerHelp.bokadirekt',
+  ZOEZI: 'providerHelp.zoezi',
+  ICAL_URL: 'providerHelp.icalUrl',
 }
 
 export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSettingsClientProps) {
+  const t = useTranslations('coach.pages.calendarSettings')
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
   const [connections, setConnections] = useState<CalendarConnection[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -87,11 +91,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
   const [calendarName, setCalendarName] = useState('')
   const [icalUrl, setIcalUrl] = useState('')
 
-  useEffect(() => {
-    fetchConnections()
-  }, [])
-
-  async function fetchConnections() {
+  const fetchConnections = useCallback(async () => {
     try {
       const response = await fetch('/api/coach/calendar/external')
       if (response.ok) {
@@ -100,15 +100,21 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
       }
     } catch (error) {
       console.error('Failed to fetch connections:', error)
-      toast.error('Kunde inte hämta kalenderanslutningar')
+      toast.error(t('toasts.fetchFailed'))
     } finally {
       setLoading(false)
     }
-  }
+  }, [t])
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void fetchConnections()
+    })
+  }, [fetchConnections])
 
   async function handleAddConnection() {
     if (!calendarName.trim() || !icalUrl.trim()) {
-      toast.error('Fyll i alla fält')
+      toast.error(t('toasts.fillAllFields'))
       return
     }
 
@@ -126,19 +132,19 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
 
       if (response.ok) {
         const data = await response.json()
-        toast.success(`Kalender "${data.connection.calendarName}" har lagts till`)
+        toast.success(t('toasts.added', { calendarName: data.connection.calendarName }))
         setDialogOpen(false)
         setCalendarName('')
         setIcalUrl('')
         setProvider('BOKADIREKT')
-        fetchConnections()
+        void fetchConnections()
       } else {
         const error = await response.json()
-        toast.error(error.error || 'Kunde inte lägga till kalender')
+        toast.error(error.error || t('toasts.addFailed'))
       }
     } catch (error) {
       console.error('Failed to add connection:', error)
-      toast.error('Något gick fel')
+      toast.error(t('toasts.unexpectedError'))
     } finally {
       setSaving(false)
     }
@@ -156,16 +162,16 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
         setConnections(prev =>
           prev.map(c => (c.id === id ? { ...c, syncEnabled: enabled } : c))
         )
-        toast.success(enabled ? 'Synkronisering aktiverad' : 'Synkronisering pausad')
+        toast.success(enabled ? t('toasts.syncEnabled') : t('toasts.syncPaused'))
       }
     } catch (error) {
       console.error('Failed to toggle sync:', error)
-      toast.error('Kunde inte uppdatera inställning')
+      toast.error(t('toasts.updateFailed'))
     }
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Är du säker på att du vill ta bort "${name}"?`)) {
+    if (!confirm(t('confirmDelete', { calendarName: name }))) {
       return
     }
 
@@ -176,11 +182,11 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
 
       if (response.ok) {
         setConnections(prev => prev.filter(c => c.id !== id))
-        toast.success('Kalender borttagen')
+        toast.success(t('toasts.deleted'))
       }
     } catch (error) {
       console.error('Failed to delete connection:', error)
-      toast.error('Kunde inte ta bort kalender')
+      toast.error(t('toasts.deleteFailed'))
     }
   }
 
@@ -190,12 +196,12 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
     try {
       const response = await fetch('/api/coach/appointments/today')
       if (response.ok) {
-        toast.success('Kalender synkroniserad')
-        fetchConnections() // Refresh to get new lastSyncAt
+        toast.success(t('toasts.synced'))
+        void fetchConnections() // Refresh to get new lastSyncAt
       }
     } catch (error) {
       console.error('Failed to sync:', error)
-      toast.error('Synkronisering misslyckades')
+      toast.error(t('toasts.syncFailed'))
     } finally {
       setSyncing(null)
     }
@@ -209,11 +215,11 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
           className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-4"
         >
           <ArrowLeft className="h-4 w-4" />
-          Tillbaka till inställningar
+          {t('backToSettings')}
         </Link>
-        <h1 className="text-2xl font-bold">Kalenderanslutningar</h1>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
         <p className="text-muted-foreground">
-          Anslut externa kalendrar som Bokadirekt för att se bokningar på din dashboard
+          {t('description')}
         </p>
       </div>
 
@@ -223,30 +229,30 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
             <div>
               <GlassCardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Anslutna kalendrar
+                {t('connectedCalendars')}
               </GlassCardTitle>
               <GlassCardDescription>
-                Kalendrar som synkroniseras med din dashboard
+                {t('connectedDescription')}
               </GlassCardDescription>
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Lägg till kalender
+                  {t('addCalendar')}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Lägg till extern kalender</DialogTitle>
+                  <DialogTitle>{t('dialog.title')}</DialogTitle>
                   <DialogDescription>
-                    Anslut en extern bokningskalender för att se bokningar på din dashboard
+                    {t('dialog.description')}
                   </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label>Kalendertyp</Label>
+                    <Label>{t('fields.calendarType')}</Label>
                     <Select value={provider} onValueChange={setProvider}>
                       <SelectTrigger>
                         <SelectValue />
@@ -254,20 +260,20 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                       <SelectContent>
                         <SelectItem value="BOKADIREKT">Bokadirekt</SelectItem>
                         <SelectItem value="ZOEZI">Zoezi</SelectItem>
-                        <SelectItem value="ICAL_URL">Annan kalender (iCal)</SelectItem>
+                        <SelectItem value="ICAL_URL">{t('providerLabels.icalUrl')}</SelectItem>
                       </SelectContent>
                     </Select>
                     {PROVIDER_HELP[provider] && (
                       <p className="text-xs text-muted-foreground">
-                        {PROVIDER_HELP[provider]}
+                        {t(PROVIDER_HELP[provider])}
                       </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Namn</Label>
+                    <Label>{t('fields.name')}</Label>
                     <Input
-                      placeholder="t.ex. Mina PT-bokningar"
+                      placeholder={t('placeholders.name')}
                       value={calendarName}
                       onChange={e => setCalendarName(e.target.value)}
                     />
@@ -281,18 +287,18 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                       onChange={e => setIcalUrl(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Klistra in din kalenderlänk (slutar ofta på .ics)
+                      {t('icalHelper')}
                     </p>
                   </div>
                 </div>
 
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                    Avbryt
+                    {t('actions.cancel')}
                   </Button>
                   <Button onClick={handleAddConnection} disabled={saving}>
                     {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Lägg till
+                    {t('actions.add')}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -307,9 +313,9 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
           ) : connections.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>Inga kalendrar anslutna</p>
+              <p>{t('empty.title')}</p>
               <p className="text-sm mt-1">
-                Klicka på &quot;Lägg till kalender&quot; för att komma igång
+                {t('empty.description')}
               </p>
             </div>
           ) : (
@@ -337,7 +343,9 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                       <div className="flex items-center gap-2">
                         <p className="font-medium">{connection.calendarName}</p>
                         <Badge variant="secondary" className="text-xs">
-                          {PROVIDER_LABELS[connection.provider] || connection.provider}
+                          {PROVIDER_LABELS[connection.provider]?.startsWith('providerLabels.')
+                            ? t(PROVIDER_LABELS[connection.provider])
+                            : PROVIDER_LABELS[connection.provider] || connection.provider}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -346,17 +354,17 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                             {connection.lastSyncError ? (
                               <span className="flex items-center gap-1 text-red-500">
                                 <AlertCircle className="h-3 w-3" />
-                                Synkfel
+                                {t('sync.error')}
                               </span>
                             ) : (
                               <span className="flex items-center gap-1 text-green-600">
                                 <CheckCircle2 className="h-3 w-3" />
-                                Synkad {format(new Date(connection.lastSyncAt), 'd MMM HH:mm', { locale: sv })}
+                                {t('sync.syncedAt', { date: format(new Date(connection.lastSyncAt), 'd MMM HH:mm', { locale: dateLocale }) })}
                               </span>
                             )}
                           </>
                         ) : (
-                          <span>Aldrig synkad</span>
+                          <span>{t('sync.never')}</span>
                         )}
                       </div>
                     </div>
@@ -365,7 +373,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                       <Label htmlFor={`sync-${connection.id}`} className="text-xs text-muted-foreground">
-                        Aktiv
+                        {t('sync.active')}
                       </Label>
                       <Switch
                         id={`sync-${connection.id}`}
@@ -400,7 +408,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
       {/* Help section */}
       <GlassCard>
         <GlassCardHeader>
-          <GlassCardTitle className="text-base">Hur hittar jag min iCal-länk?</GlassCardTitle>
+          <GlassCardTitle className="text-base">{t('help.title')}</GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent className="space-y-4">
           <div>
@@ -409,9 +417,9 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
               <ExternalLink className="h-3 w-3" />
             </h4>
             <ol className="text-sm text-muted-foreground list-decimal list-inside mt-1 space-y-1">
-              <li>Logga in på business.bokadirekt.se</li>
-              <li>Gå till Inställningar → Kalendersynkronisering</li>
-              <li>Aktivera iCal-synkronisering och kopiera länken</li>
+              <li>{t('help.bokadirekt.step1')}</li>
+              <li>{t('help.bokadirekt.step2')}</li>
+              <li>{t('help.bokadirekt.step3')}</li>
             </ol>
           </div>
           <div>
@@ -420,8 +428,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
               <ExternalLink className="h-3 w-3" />
             </h4>
             <p className="text-sm text-muted-foreground mt-1">
-              Kontakta Zoezi support för att få din kalender-URL, eller kolla i inställningarna
-              för export/synkronisering.
+              {t('help.zoezi')}
             </p>
           </div>
         </GlassCardContent>
