@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { TeamForm } from '@/components/forms/TeamForm'
 import { Trash2, Edit2, Users, Plus, BarChart3, Building2, Calendar } from 'lucide-react'
 import type { Team } from '@/types'
+import { useTranslations } from '@/i18n/client'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,11 +41,11 @@ interface TeamWithPartialOrg {
 
 type ExtendedTeam = TeamWithPartialOrg
 
-const sportTypeLabels: Record<string, string> = {
-  TEAM_FOOTBALL: 'Fotboll',
-  TEAM_ICE_HOCKEY: 'Ishockey',
-  TEAM_HANDBALL: 'Handboll',
-  TEAM_FLOORBALL: 'Innebandy',
+const sportTypeLabelKeys: Record<string, string> = {
+  TEAM_FOOTBALL: 'sports.football',
+  TEAM_ICE_HOCKEY: 'sports.iceHockey',
+  TEAM_HANDBALL: 'sports.handball',
+  TEAM_FLOORBALL: 'sports.floorball',
 }
 
 function TeamCard({
@@ -58,6 +59,8 @@ function TeamCard({
   onEdit: () => void
   onDelete: () => void
 }) {
+  const t = useTranslations('coach.pages.teams')
+
   return (
     <Card className="hover:shadow-lg transition dark:bg-slate-900/50 dark:border-white/10">
       <CardHeader className="pb-2">
@@ -67,7 +70,7 @@ function TeamCard({
               <h3 className="text-lg font-semibold dark:text-white">{team.name}</h3>
               {team.sportType && (
                 <Badge variant="secondary" className="text-xs">
-                  {sportTypeLabels[team.sportType] || team.sportType}
+                  {sportTypeLabelKeys[team.sportType] ? t(sportTypeLabelKeys[team.sportType]) : team.sportType}
                 </Badge>
               )}
             </div>
@@ -77,23 +80,23 @@ function TeamCard({
           </div>
           <div className="flex gap-1">
             <Link href={`${basePath}/${team.id}/calendar`}>
-              <Button variant="ghost" size="sm" title="Kalender">
+              <Button variant="ghost" size="sm" title={t('tooltips.calendar')}>
                 <Calendar className="w-4 h-4" />
               </Button>
             </Link>
             <Link href={`${basePath}/${team.id}`}>
-              <Button variant="ghost" size="sm" title="Visa dashboard">
+              <Button variant="ghost" size="sm" title={t('tooltips.viewDashboard')}>
                 <BarChart3 className="w-4 h-4" />
               </Button>
             </Link>
-            <Button variant="ghost" size="sm" onClick={onEdit} title="Redigera lag">
+            <Button variant="ghost" size="sm" onClick={onEdit} title={t('tooltips.editTeam')}>
               <Edit2 className="w-4 h-4 text-blue-600" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={onDelete}
-              title="Ta bort lag"
+              title={t('tooltips.deleteTeam')}
             >
               <Trash2 className="w-4 h-4 text-red-600" />
             </Button>
@@ -106,13 +109,13 @@ function TeamCard({
             <Users className="w-4 h-4" />
             <span>
               {team.members && team.members.length > 0
-                ? `${team.members.length} spelare`
-                : 'Inga spelare'}
+                ? t('playerCount', { count: team.members.length })
+                : t('noPlayers')}
             </span>
           </div>
           {team.members && team.members.length > 0 && (
             <div className="pt-3 border-t dark:border-white/10">
-              <p className="text-xs font-medium text-muted-foreground mb-2">Spelare:</p>
+              <p className="text-xs font-medium text-muted-foreground mb-2">{t('playersLabel')}</p>
               <ul className="space-y-1">
                 {team.members.slice(0, 5).map((member) => (
                   <li key={member.id} className="text-sm dark:text-slate-300">
@@ -121,7 +124,7 @@ function TeamCard({
                 ))}
                 {team.members.length > 5 && (
                   <li className="text-sm text-muted-foreground italic">
-                    +{team.members.length - 5} till
+                    {t('morePlayers', { count: team.members.length - 5 })}
                   </li>
                 )}
               </ul>
@@ -130,7 +133,7 @@ function TeamCard({
           <Link href={`${basePath}/${team.id}`} className="block pt-2">
             <Button variant="outline" size="sm" className="w-full gap-2">
               <BarChart3 className="w-4 h-4" />
-              Visa dashboard
+              {t('viewDashboard')}
             </Button>
           </Link>
         </div>
@@ -152,6 +155,7 @@ export default function BusinessTeamsPage() {
   const [teamToDelete, setTeamToDelete] = useState<ExtendedTeam | null>(null)
   const [deleting, setDeleting] = useState(false)
   const { toast } = useToast()
+  const t = useTranslations('coach.pages.teams')
 
   const groupedTeams = useMemo(() => {
     const groups: Record<string, ExtendedTeam[]> = {}
@@ -186,25 +190,25 @@ export default function BusinessTeamsPage() {
         setTeams(result.data || [])
       } else {
         toast({
-          title: 'Fel',
-          description: 'Kunde inte hämta lag',
+          title: t('toasts.errorTitle'),
+          description: t('toasts.fetchFailed'),
           variant: 'destructive',
         })
       }
     } catch (error) {
       console.error('Error fetching teams:', error)
       toast({
-        title: 'Fel',
-        description: 'Nätverksfel vid hämtning av lag',
+        title: t('toasts.errorTitle'),
+        description: t('toasts.fetchNetworkFailed'),
         variant: 'destructive',
       })
     } finally {
       setLoading(false)
     }
-  }, [businessSlug, toast])
+  }, [businessSlug, t, toast])
 
   useEffect(() => {
-    fetchTeams()
+    void fetchTeams()
   }, [fetchTeams])
 
   const handleTeamSuccess = (team: Team) => {
@@ -238,17 +242,17 @@ export default function BusinessTeamsPage() {
       if (result.success) {
         setTeams(teams.filter((t) => t.id !== teamToDelete.id))
         toast({
-          title: 'Lag borttaget',
-          description: 'Laget har tagits bort',
+          title: t('toasts.deletedTitle'),
+          description: t('toasts.deletedDescription'),
         })
       } else {
-        throw new Error(result.error || 'Kunde inte ta bort laget')
+        throw new Error(result.error || t('toasts.deleteFailed'))
       }
     } catch (error) {
       console.error('Error deleting team:', error)
       toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Kunde inte ta bort laget',
+        title: t('toasts.errorTitle'),
+        description: error instanceof Error ? error.message : t('toasts.deleteFailed'),
         variant: 'destructive',
       })
     } finally {
@@ -275,10 +279,10 @@ export default function BusinessTeamsPage() {
       ) : (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            <h2 className="text-2xl font-bold dark:text-white">Mina lag</h2>
+            <h2 className="text-2xl font-bold dark:text-white">{t('title')}</h2>
             <Button onClick={() => setShowForm(true)} className="gap-2 w-full sm:w-auto">
               <Plus className="w-4 h-4" />
-              Nytt lag
+              {t('newTeam')}
             </Button>
           </div>
 
@@ -286,7 +290,7 @@ export default function BusinessTeamsPage() {
             <Link href={`/${businessSlug}/coach/organizations`}>
               <Button variant="outline" size="sm" className="gap-2">
                 <Building2 className="w-4 h-4" />
-                Organisationer
+                {t('organizations')}
               </Button>
             </Link>
           </div>
@@ -294,15 +298,15 @@ export default function BusinessTeamsPage() {
           {loading ? (
             <Card className="dark:bg-slate-900/50 dark:border-white/10">
               <CardContent className="p-12 text-center">
-                <p className="dark:text-slate-300">Laddar lag...</p>
+                <p className="dark:text-slate-300">{t('loading')}</p>
               </CardContent>
             </Card>
           ) : teams.length === 0 ? (
             <Card className="dark:bg-slate-900/50 dark:border-white/10">
               <CardContent className="p-12 text-center">
                 <Users className="w-12 h-12 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
-                <p className="text-gray-600 dark:text-slate-400 mb-4">Du har inte skapat några lag än</p>
-                <Button onClick={() => setShowForm(true)}>Skapa första laget</Button>
+                <p className="text-gray-600 dark:text-slate-400 mb-4">{t('emptyDescription')}</p>
+                <Button onClick={() => setShowForm(true)}>{t('createFirstTeam')}</Button>
               </CardContent>
             </Card>
           ) : (
@@ -313,7 +317,7 @@ export default function BusinessTeamsPage() {
                     <div className="flex items-center gap-2">
                       <Building2 className="w-5 h-5 text-muted-foreground" />
                       <h3 className="text-lg font-semibold dark:text-white">{orgName}</h3>
-                      <Badge variant="secondary">{orgTeams.length} lag</Badge>
+                      <Badge variant="secondary">{t('teamCount', { count: orgTeams.length })}</Badge>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {orgTeams.map((team) => (
@@ -337,8 +341,8 @@ export default function BusinessTeamsPage() {
                   {hasOrganizations && (
                     <div className="flex items-center gap-2">
                       <Users className="w-5 h-5 text-muted-foreground" />
-                      <h3 className="text-lg font-semibold dark:text-white">Fristående lag</h3>
-                      <Badge variant="outline">{groupedTeams.noOrg.length} lag</Badge>
+                      <h3 className="text-lg font-semibold dark:text-white">{t('standaloneTeams')}</h3>
+                      <Badge variant="outline">{t('teamCount', { count: groupedTeams.noOrg.length })}</Badge>
                     </div>
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -365,23 +369,22 @@ export default function BusinessTeamsPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Är du säker?</AlertDialogTitle>
+            <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Detta kommer att permanent ta bort laget &quot;{teamToDelete?.name}&quot;. Medlemmarna
-              kommer inte att tas bort, bara kopplingen till laget.
+              {t('deleteDialog.description', { teamName: teamToDelete?.name ?? '' })}
               <br />
               <br />
-              Denna åtgärd kan inte ångras.
+              {t('deleteDialog.cannotUndo')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t('deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               disabled={deleting}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
-              {deleting ? 'Tar bort...' : 'Ta bort'}
+              {deleting ? t('deleteDialog.deleting') : t('deleteDialog.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

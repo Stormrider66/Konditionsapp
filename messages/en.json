@@ -687,6 +687,49 @@
         "missingDate": "Choose a date from the organization page first.",
         "missingSelection": "Choose at least one team workout and number of copies before opening the print view.",
         "notFound": "The workout was no longer found, or you do not have access to the team."
+      },
+      "teams": {
+        "title": "My teams",
+        "newTeam": "New team",
+        "organizations": "Organizations",
+        "loading": "Loading teams...",
+        "emptyDescription": "You have not created any teams yet",
+        "createFirstTeam": "Create first team",
+        "standaloneTeams": "Standalone teams",
+        "teamCount": "{count} teams",
+        "playerCount": "{count} players",
+        "noPlayers": "No players",
+        "playersLabel": "Players:",
+        "morePlayers": "+{count} more",
+        "viewDashboard": "View dashboard",
+        "sports": {
+          "football": "Football",
+          "iceHockey": "Ice hockey",
+          "handball": "Handball",
+          "floorball": "Floorball"
+        },
+        "tooltips": {
+          "calendar": "Calendar",
+          "viewDashboard": "View dashboard",
+          "editTeam": "Edit team",
+          "deleteTeam": "Delete team"
+        },
+        "toasts": {
+          "errorTitle": "Error",
+          "fetchFailed": "Could not fetch teams",
+          "fetchNetworkFailed": "Network error while fetching teams",
+          "deletedTitle": "Team deleted",
+          "deletedDescription": "The team has been deleted",
+          "deleteFailed": "Could not delete the team"
+        },
+        "deleteDialog": {
+          "title": "Are you sure?",
+          "description": "This will permanently delete the team \"{teamName}\". Members will not be deleted, only their connection to the team.",
+          "cannotUndo": "This action cannot be undone.",
+          "cancel": "Cancel",
+          "deleting": "Deleting...",
+          "delete": "Delete"
+        }
       }
     },
     "dashboard": "Coach Dashboard",

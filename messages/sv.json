@@ -687,6 +687,49 @@
         "missingDate": "Välj ett datum från organisationssidan först.",
         "missingSelection": "Välj minst ett lagpass och antal kopior innan du öppnar utskriften.",
         "notFound": "Passet hittades inte längre, eller så saknar du åtkomst till laget."
+      },
+      "teams": {
+        "title": "Mina lag",
+        "newTeam": "Nytt lag",
+        "organizations": "Organisationer",
+        "loading": "Laddar lag...",
+        "emptyDescription": "Du har inte skapat några lag än",
+        "createFirstTeam": "Skapa första laget",
+        "standaloneTeams": "Fristående lag",
+        "teamCount": "{count} lag",
+        "playerCount": "{count} spelare",
+        "noPlayers": "Inga spelare",
+        "playersLabel": "Spelare:",
+        "morePlayers": "+{count} till",
+        "viewDashboard": "Visa dashboard",
+        "sports": {
+          "football": "Fotboll",
+          "iceHockey": "Ishockey",
+          "handball": "Handboll",
+          "floorball": "Innebandy"
+        },
+        "tooltips": {
+          "calendar": "Kalender",
+          "viewDashboard": "Visa dashboard",
+          "editTeam": "Redigera lag",
+          "deleteTeam": "Ta bort lag"
+        },
+        "toasts": {
+          "errorTitle": "Fel",
+          "fetchFailed": "Kunde inte hämta lag",
+          "fetchNetworkFailed": "Nätverksfel vid hämtning av lag",
+          "deletedTitle": "Lag borttaget",
+          "deletedDescription": "Laget har tagits bort",
+          "deleteFailed": "Kunde inte ta bort laget"
+        },
+        "deleteDialog": {
+          "title": "Är du säker?",
+          "description": "Detta kommer att permanent ta bort laget \"{teamName}\". Medlemmarna kommer inte att tas bort, bara kopplingen till laget.",
+          "cannotUndo": "Denna åtgärd kan inte ångras.",
+          "cancel": "Avbryt",
+          "deleting": "Tar bort...",
+          "delete": "Ta bort"
+        }
       }
     },
     "dashboard": "Coach Dashboard",
