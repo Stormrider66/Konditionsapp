@@ -24,6 +24,8 @@ import {
   BookOpen,
   Save,
   AlertTriangle,
+  Mic,
+  Square,
 } from 'lucide-react'
 import { ChatMessage } from './ChatMessage'
 import { ChatNavigationCard, type ChatNavigationResult } from './ChatNavigationCard'
@@ -39,6 +41,7 @@ import {
   COACH_FLOATING_CHAT_EVENT,
   type CoachFloatingChatEvent,
 } from '@/lib/events/coach-floating-chat'
+import { useAudioRecorder } from '@/hooks/use-audio-recorder'
 
 // Page context types for different page contexts
 export interface PageContext {
@@ -199,6 +202,20 @@ function getToolOnlyStatusMessage(role: string, parts?: unknown[]): string | nul
   )
 }
 
+function getVoiceFileExtension(mimeType: string): string {
+  if (mimeType.includes('mp4') || mimeType.includes('m4a')) return 'm4a'
+  if (mimeType.includes('ogg')) return 'ogg'
+  if (mimeType.includes('wav')) return 'wav'
+  if (mimeType.includes('mpeg') || mimeType.includes('mp3')) return 'mp3'
+  return 'webm'
+}
+
+function formatVoiceDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
+
 export function FloatingAIChat({
   athleteId,
   athleteName,
@@ -241,6 +258,16 @@ export function FloatingAIChat({
   // Program detection state
   const [detectedProgram, setDetectedProgram] = useState<ParseResult | null>(null)
   const [isPublishing, setIsPublishing] = useState(false)
+  const [isTranscribingVoice, setIsTranscribingVoice] = useState(false)
+  const voiceRecordingPromiseRef = useRef<Promise<Blob> | null>(null)
+  const {
+    isRecording: isVoiceRecording,
+    duration: voiceDuration,
+    startRecording,
+    stopRecording,
+    error: voiceRecorderError,
+    isSupported: isVoiceSupported,
+  } = useAudioRecorder()
 
   // Track if context is available (data-rich or auto-context with concepts)
   const hasContext = !!pageContext && (
@@ -668,6 +695,93 @@ export function FloatingAIChat({
     return () => window.removeEventListener(COACH_FLOATING_CHAT_EVENT, handleCoachChatIntent)
   }, [])
 
+  const transcribeVoiceBlob = useCallback(async (audioBlob: Blob): Promise<string> => {
+    setIsTranscribingVoice(true)
+    try {
+      const formData = new FormData()
+      const extension = getVoiceFileExtension(audioBlob.type)
+      formData.append('audio', audioBlob, `floating-chat-voice.${extension}`)
+      formData.append('isAthleteChat', String(isAthleteUser))
+      if (pathBusinessSlug) {
+        formData.append('businessSlug', pathBusinessSlug)
+      }
+
+      const response = await fetch('/api/ai/chat/transcribe-audio', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Kunde inte transkribera röstmeddelandet.')
+      }
+
+      const text = typeof data.text === 'string' ? data.text.trim() : ''
+      if (!text) {
+        throw new Error('Jag hörde inget tydligt i röstmeddelandet.')
+      }
+      return text
+    } finally {
+      setIsTranscribingVoice(false)
+    }
+  }, [isAthleteUser, pathBusinessSlug])
+
+  async function handleVoiceButtonClick() {
+    if (isVoiceRecording) {
+      stopRecording()
+      return
+    }
+
+    if (isTranscribingVoice || voiceRecordingPromiseRef.current) return
+
+    if (!isVoiceSupported) {
+      const message = 'Röstinmatning stöds inte i den här webbläsaren.'
+      addAssistantNotice(message)
+      toast({
+        title: 'Röstinmatning stöds inte',
+        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    let recordingPromise: Promise<Blob> | null = null
+    try {
+      recordingPromise = startRecording()
+      voiceRecordingPromiseRef.current = recordingPromise
+      const audioBlob = await recordingPromise
+      if (voiceRecordingPromiseRef.current !== recordingPromise) return
+      voiceRecordingPromiseRef.current = null
+
+      if (audioBlob.size === 0) {
+        throw new Error('Jag fick ingen ljuddata från mikrofonen.')
+      }
+
+      const transcript = await transcribeVoiceBlob(audioBlob)
+      setInput((current) => {
+        const trimmed = current.trim()
+        return trimmed ? `${trimmed}\n${transcript}` : transcript
+      })
+      textareaRef.current?.focus()
+      toast({
+        title: 'Röst transkriberad',
+        description: 'Texten ligger i meddelandefältet.',
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Kunde inte hantera röstmeddelandet.'
+      addAssistantNotice(`Jag kunde inte använda röstmeddelandet: ${message}`)
+      toast({
+        title: 'Kunde inte använda rösten',
+        description: message,
+        variant: 'destructive',
+      })
+    } finally {
+      if (voiceRecordingPromiseRef.current === recordingPromise) {
+        voiceRecordingPromiseRef.current = null
+      }
+    }
+  }
+
   // Send initial message if provided
   useEffect(() => {
     if (isOpen && initialMessage && messages.length === 0) {
@@ -845,6 +959,19 @@ export function FloatingAIChat({
       </Badge>
     )
   }
+
+  const voiceStatusMessage = isVoiceRecording
+    ? `Spelar in ${formatVoiceDuration(voiceDuration)}`
+    : isTranscribingVoice
+      ? 'Skriver ut röstmeddelandet...'
+      : voiceRecorderError
+        ? voiceRecorderError
+        : null
+  const voiceButtonLabel = isVoiceRecording
+    ? 'Stoppa inspelning'
+    : isTranscribingVoice
+      ? 'Transkriberar röst'
+      : 'Starta röstinmatning'
 
   // Floating button (always visible)
   if (!isOpen) {
@@ -1256,27 +1383,58 @@ export function FloatingAIChat({
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-3 border-t">
-        <div className="flex gap-2">
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Skriv ett meddelande..."
-            className="min-h-[44px] max-h-[120px] resize-none"
-            rows={1}
-          />
-          <Button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className="h-auto px-3"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Skriv ett meddelande..."
+              className="min-h-[44px] max-h-[120px] resize-none"
+              rows={1}
+            />
+            <Button
+              type="button"
+              variant={isVoiceRecording ? 'destructive' : 'outline'}
+              disabled={isTranscribingVoice}
+              onClick={() => { void handleVoiceButtonClick() }}
+              className="h-auto px-3"
+              title={voiceButtonLabel}
+              aria-label={voiceButtonLabel}
+            >
+              {isTranscribingVoice ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isVoiceRecording ? (
+                <Square className="h-4 w-4" />
+              ) : (
+                <Mic className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              type="submit"
+              disabled={!input.trim() || isLoading || isVoiceRecording || isTranscribingVoice}
+              className="h-auto px-3"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          {voiceStatusMessage && (
+            <div
+              className={cn(
+                'rounded-md px-3 py-2 text-xs',
+                voiceRecorderError && !isVoiceRecording && !isTranscribingVoice
+                  ? 'bg-destructive/10 text-destructive'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              {voiceStatusMessage}
+            </div>
+          )}
         </div>
       </form>
     </div>
