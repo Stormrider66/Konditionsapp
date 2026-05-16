@@ -7,6 +7,7 @@ import { ManageAssistantsDialog } from '@/components/coach/team-calendar/ManageA
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Calendar } from 'lucide-react'
 import Link from 'next/link'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{
@@ -18,6 +19,7 @@ interface PageProps {
 export default async function TeamCalendarPage({ params }: PageProps) {
   const { businessSlug, teamId } = await params
   const user = await requireCoach()
+  const t = await getTranslations('coach.pages.teamCalendar')
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
@@ -38,10 +40,10 @@ export default async function TeamCalendarPage({ params }: PageProps) {
           <div>
             <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 dark:text-white">
               <Calendar className="h-5 w-5 sm:h-6 sm:w-6" />
-              {team.name} - Kalender
+              {t('title', { teamName: team.name })}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Träningar, matcher och händelser
+              {t('description')}
             </p>
           </div>
         </div>

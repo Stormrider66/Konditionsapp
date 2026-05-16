@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Lock } from 'lucide-react'
+import { getTranslations } from '@/i18n/server'
 
 interface AnalysisPageProps {
   params: Promise<{
@@ -21,6 +22,7 @@ interface AnalysisPageProps {
 export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
   const { businessSlug, teamId } = await params
   const user = await requireCoach()
+  const t = await getTranslations('coach.pages.teamMultivariate')
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) {
@@ -44,21 +46,21 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
         <Link href={`/${businessSlug}/coach/teams/${teamId}`}>
           <Button variant="ghost" className="mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Tillbaka till lag
+            {t('backToTeam')}
           </Button>
         </Link>
 
         <Card className="max-w-lg mx-auto dark:bg-slate-900/50 dark:border-white/10">
           <CardHeader className="text-center">
             <Lock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <CardTitle className="dark:text-white">Multivariat analys</CardTitle>
+            <CardTitle className="dark:text-white">{t('title')}</CardTitle>
             <CardDescription>
-              PCA- och PLS-analys av lagets alla mätdata kräver PRO- eller ENTERPRISE-prenumeration.
+              {t('upgradeDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <Link href={`/${businessSlug}/coach/subscription`}>
-              <Button>Uppgradera till PRO</Button>
+              <Button>{t('upgradeCta')}</Button>
             </Link>
           </CardContent>
         </Card>
@@ -77,12 +79,12 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
       <Link href={`/${businessSlug}/coach/teams/${teamId}`}>
         <Button variant="ghost" className="mb-6">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka till lag
+          {t('backToTeam')}
         </Button>
       </Link>
 
       <div className="flex items-center gap-3 mb-8">
-        <h1 className="text-3xl font-bold dark:text-white">Multivariat analys</h1>
+        <h1 className="text-3xl font-bold dark:text-white">{t('title')}</h1>
         <Badge variant="secondary">{team.name}</Badge>
       </div>
 

@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { ExerciseAliasesClient } from '@/components/programs/import/ExerciseAliasesClient'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -15,6 +16,7 @@ interface PageProps {
 export default async function ExerciseAliasesPage({ params }: PageProps) {
   const { businessSlug } = await params
   const user = await requireCoach()
+  const t = await getTranslations('coach.pages.exerciseAliases')
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
@@ -51,18 +53,16 @@ export default async function ExerciseAliasesPage({ params }: PageProps) {
           className="mb-6 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka till inställningar
+          {t('backToSettings')}
         </Button>
       </Link>
 
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-white">
-          Övningskopplingar
+          {t('title')}
         </h1>
         <p className="text-slate-600 dark:text-slate-400">
-          När du kopplar ett importerat övningsnamn till rätt övning i
-          biblioteket sparas det här så att framtida importer känner igen samma
-          namn automatiskt. Rensa kopplingar du inte längre vill använda.
+          {t('description')}
         </p>
       </div>
 

@@ -651,6 +651,36 @@
       "gymPlatform": {
         "title": "Gymplattformar",
         "description": "Anslut ditt gym-system för att synka klasser, bokningar och PT-sessioner"
+      },
+      "exerciseAliases": {
+        "backToSettings": "Tillbaka till inställningar",
+        "title": "Övningskopplingar",
+        "description": "När du kopplar ett importerat övningsnamn till rätt övning i biblioteket sparas det här så att framtida importer känner igen samma namn automatiskt. Rensa kopplingar du inte längre vill använda."
+      },
+      "teamCalendar": {
+        "title": "{teamName} - Kalender",
+        "description": "Träningar, matcher och händelser"
+      },
+      "teamImport": {
+        "backToTeam": "Tillbaka till {teamName}",
+        "title": "Importera spelare",
+        "description": "Klistra in ett roster, ladda upp en Excel/CSV/PDF/text-fil, eller fota av en utskriven laguppställning eller whiteboard. AI tolkar innehållet och låter dig granska innan spelarna läggs till i {teamName}."
+      },
+      "teamTests": {
+        "backToTeam": "Tillbaka till lag",
+        "title": "Tester",
+        "description": "Importera testpass från en testtabell, eller granska tidigare loggade tester."
+      },
+      "teamMultivariate": {
+        "backToTeam": "Tillbaka till lag",
+        "title": "Multivariat analys",
+        "upgradeDescription": "PCA- och PLS-analys av lagets alla mätdata kräver PRO- eller ENTERPRISE-prenumeration.",
+        "upgradeCta": "Uppgradera till PRO"
+      },
+      "teamAnalysis": {
+        "backToTeam": "Tillbaka till lag",
+        "title": "Lagets analys",
+        "description": "Vem behöver uppmärksamhet idag? Belastning, aktivitet och PRs per atlet."
       }
     },
     "dashboard": "Coach Dashboard",

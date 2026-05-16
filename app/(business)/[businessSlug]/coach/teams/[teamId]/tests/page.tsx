@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Activity } from 'lucide-react'
 import { TeamTestsClient } from '@/components/coach/teams/TeamTestsClient'
+import { getTranslations } from '@/i18n/server'
 
 interface TestsPageProps {
   params: Promise<{
@@ -18,6 +19,7 @@ interface TestsPageProps {
 export default async function TeamTestsPage({ params }: TestsPageProps) {
   const { businessSlug, teamId } = await params
   const user = await requireCoach()
+  const t = await getTranslations('coach.pages.teamTests')
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) {
@@ -37,17 +39,17 @@ export default async function TeamTestsPage({ params }: TestsPageProps) {
       <Link href={`${basePath}/teams/${teamId}`}>
         <Button variant="ghost" className="mb-6">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka till lag
+          {t('backToTeam')}
         </Button>
       </Link>
 
       <div className="flex items-center gap-3 mb-2">
         <Activity className="h-6 w-6 text-purple-500" />
-        <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">Tester</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">{t('title')}</h1>
         <Badge variant="secondary">{team.name}</Badge>
       </div>
       <p className="text-sm text-muted-foreground mb-6">
-        Importera testpass från en testtabell, eller granska tidigare loggade tester.
+        {t('description')}
       </p>
 
       <TeamTestsClient teamId={teamId} teamName={team.name} basePath={basePath} />

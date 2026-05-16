@@ -651,6 +651,36 @@
       "gymPlatform": {
         "title": "Gym platforms",
         "description": "Connect your gym system to sync classes, bookings, and PT sessions"
+      },
+      "exerciseAliases": {
+        "backToSettings": "Back to settings",
+        "title": "Exercise aliases",
+        "description": "When you map an imported exercise name to the right exercise in the library, it is saved here so future imports recognize the same name automatically. Clear mappings you no longer want to use."
+      },
+      "teamCalendar": {
+        "title": "{teamName} - Calendar",
+        "description": "Practices, matches, and events"
+      },
+      "teamImport": {
+        "backToTeam": "Back to {teamName}",
+        "title": "Import players",
+        "description": "Paste a roster, upload an Excel/CSV/PDF/text file, or photograph a printed lineup or whiteboard. AI interprets the content and lets you review it before players are added to {teamName}."
+      },
+      "teamTests": {
+        "backToTeam": "Back to team",
+        "title": "Tests",
+        "description": "Import a test session from a test table, or review previously logged tests."
+      },
+      "teamMultivariate": {
+        "backToTeam": "Back to team",
+        "title": "Multivariate analysis",
+        "upgradeDescription": "PCA and PLS analysis of all team measurement data requires a PRO or ENTERPRISE subscription.",
+        "upgradeCta": "Upgrade to PRO"
+      },
+      "teamAnalysis": {
+        "backToTeam": "Back to team",
+        "title": "Team analysis",
+        "description": "Who needs attention today? Load, activity, and PRs per athlete."
       }
     },
     "dashboard": "Coach Dashboard",
