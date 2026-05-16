@@ -65,6 +65,7 @@ interface KnowledgeSkillAccessOptions {
 
 // Max total tokens of auto-retrieved content (~4 chars per token)
 const MAX_SKILL_CONTEXT_CHARS = 12000 // ~3000 tokens
+const SKILL_CONTEXT_MATCH_THRESHOLD = 0.68
 
 // Track whether skill embeddings have been backfilled this server lifecycle
 let skillEmbeddingsChecked = false
@@ -453,7 +454,7 @@ export async function fetchSkillContext(
 
   try {
     const chunks = await searchSystemChunks(query, keys, {
-      matchThreshold: 0.75,
+      matchThreshold: SKILL_CONTEXT_MATCH_THRESHOLD,
       matchCount: Math.min(totalMaxChunks, 9),
       documentIds: allDocIds,
     })

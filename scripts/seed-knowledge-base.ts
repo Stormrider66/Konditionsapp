@@ -258,6 +258,26 @@ const SKILL_DEFINITIONS: SkillDef[] = [
     maxChunks: 3,
   },
   {
+    name: 'Ishockey Offseason Performance',
+    nameEn: 'Ice Hockey Offseason Performance Programming',
+    category: 'SPORT_SPECIFIC',
+    keywords: [
+      'ishockey', 'hockey', 'ice hockey', 'offseason', 'sommarträning', 'summer training',
+      'preseason', 'hockey fys', 'hockey conditioning', 'hockey strength', 'kbox', 'flywheel',
+      'släde', 'sled', 'agility', 'skridsko', 'skating', 'rsa', 'repeated sprint',
+      'hockeybyten', 'prolog', '8x4', '10x3', '3-2-1', 'hybrid', 'ljumske', 'groin',
+      'axel', 'shoulder', 'return to skate',
+    ],
+    description: 'De-identifierad coachingguide för professionell ishockey-offseason: fasplanering, styrka, power, agility, repeated sprint ability, hybridkonditionering, prehab och return-to-skate.',
+    docFiles: [
+      { dir: 'knowledge-library', file: 'hockey-performance-programming.md' },
+      { dir: 'knowledge-library', file: 'team-sports-conditioning.md' },
+      { dir: 'knowledge-library', file: 'periodization-principles.md' },
+    ],
+    priority: 10,
+    maxChunks: 8,
+  },
+  {
     name: 'Näring för Uthållighet',
     nameEn: 'Nutrition for Endurance',
     category: 'NUTRITION',
