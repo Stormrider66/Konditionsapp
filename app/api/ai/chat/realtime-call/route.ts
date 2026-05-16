@@ -32,6 +32,16 @@ export const dynamic = 'force-dynamic'
 
 const REALTIME_MODEL = 'gpt-realtime'
 const REALTIME_VOICE = 'marin'
+const realtimeModeSchema = z.enum([
+  'coach_operator',
+  'athlete_support',
+  'pacing',
+  'form_cues',
+  'recovery',
+  'strength_logging',
+  'hyrox_pacing',
+])
+type RealtimeVoiceMode = z.infer<typeof realtimeModeSchema>
 
 function safetyIdentifier(userId: string): string {
   return createHash('sha256').update(`trainomics:${userId}`).digest('hex')
@@ -42,6 +52,7 @@ const requestSchema = z.object({
   isAthleteChat: z.boolean().optional().default(false),
   businessSlug: z.string().trim().min(1).max(120).optional(),
   pageContext: z.string().max(8000).optional().default(''),
+  mode: realtimeModeSchema.optional(),
 })
 
 async function resolveBusinessId(businessSlug?: string): Promise<string | null> {
@@ -53,7 +64,31 @@ async function resolveBusinessId(businessSlug?: string): Promise<string | null> 
   return business?.id ?? null
 }
 
-function buildRealtimeInstructions(pageContext: string, isAthleteChat: boolean): string {
+function buildModeInstructions(mode: RealtimeVoiceMode): string {
+  switch (mode) {
+    case 'pacing':
+      return 'Kuraterat läge: pacing. Fokusera på fart, puls, effekt, RPE, jämnhet och säkra justeringar. Ge korta cues.'
+    case 'form_cues':
+      return 'Kuraterat läge: teknikcues. Ge korta, generella rörelsecues. Diagnostisera inte skador och be användaren avbryta vid smärta.'
+    case 'recovery':
+      return 'Kuraterat läge: återhämtning. Fokusera på sömn, stress, lätt rörelse, readiness och när det är klokt att backa.'
+    case 'strength_logging':
+      return 'Kuraterat läge: styrkeloggning. Hjälp användaren prata igenom set, reps, vikt, RPE och nästa säkra steg. Skapa inte data direkt i live voice.'
+    case 'hyrox_pacing':
+      return 'Kuraterat läge: HYROX pacing. Fokusera på stationer, löpsegment, övergångar och energihantering med korta cues.'
+    case 'athlete_support':
+      return 'Kuraterat läge: atletstöd. Håll dig till pedagogisk, säker träningsförklaring och nästa rimliga steg.'
+    case 'coach_operator':
+    default:
+      return 'Kuraterat läge: coach operator. Hjälp coachen tänka, sammanfatta och välja nästa synliga åtgärd.'
+  }
+}
+
+function buildRealtimeInstructions(
+  pageContext: string,
+  isAthleteChat: boolean,
+  mode: RealtimeVoiceMode
+): string {
   const context = pageContext.trim()
   const roleInstructions = isAthleteChat
     ? [
@@ -71,7 +106,9 @@ function buildRealtimeInstructions(pageContext: string, isAthleteChat: boolean):
 
   return [
     ...roleInstructions,
+    buildModeInstructions(mode),
     'Du får inte påstå att du har navigerat, skickat, skapat, uppdaterat eller raderat något i appen under live voice-läget.',
+    'Du har inte tillgång till hela knowledge-skill-biblioteket i live voice. Håll dig till det kuraterade läget och be användaren använda textchatten om expertkunskap behöver väljas.',
     'Om du saknar åtkomst eller data, säg det tydligt i ord och föreslå ett säkert nästa steg.',
     context ? `Aktuell sidkontext:\n${context}` : '',
   ].filter(Boolean).join('\n\n')
@@ -212,8 +249,12 @@ export async function POST(request: NextRequest) {
     formData.set('sdp', parsed.data.sdp)
     formData.set('session', JSON.stringify({
       type: 'realtime',
-      model: REALTIME_MODEL,
-      instructions: buildRealtimeInstructions(parsed.data.pageContext, parsed.data.isAthleteChat),
+          model: REALTIME_MODEL,
+      instructions: buildRealtimeInstructions(
+        parsed.data.pageContext,
+        parsed.data.isAthleteChat,
+        parsed.data.mode ?? (parsed.data.isAthleteChat ? 'athlete_support' : 'coach_operator')
+      ),
       output_modalities: ['audio'],
       audio: {
         input: {
@@ -256,6 +297,7 @@ export async function POST(request: NextRequest) {
         'Cache-Control': 'no-store',
         'X-AI-Realtime-Provider': 'openai',
         'X-AI-Realtime-Model': REALTIME_MODEL,
+        'X-AI-Realtime-Mode': parsed.data.mode ?? (parsed.data.isAthleteChat ? 'athlete_support' : 'coach_operator'),
       },
     })
   } catch (error) {

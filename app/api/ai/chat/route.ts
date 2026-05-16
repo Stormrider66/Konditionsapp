@@ -36,6 +36,7 @@ import {
 import { resolveAiModel, getMaxOutputTokens } from '@/lib/ai/chat/model-selector'
 import { buildOnFinishHandler } from '@/lib/ai/chat/on-finish'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import type { KnowledgeSkillAccessMode } from '@/lib/ai/skill-access'
 
 // Allow longer execution time for AI streaming responses (60 seconds)
 export const maxDuration = 60
@@ -73,6 +74,7 @@ export async function POST(request: NextRequest) {
     let athleteCapabilities: AthleteCapabilities | undefined
     let staffPermissions: Awaited<ReturnType<typeof getStaffPermissions>> | undefined
     let athleteAllowedProviders: Set<LowerProvider> | null = null
+    let skillAccessMode: KnowledgeSkillAccessMode = 'full'
 
     let calendarProgramStartDate: Date | undefined
     let calendarProgramEndDate: Date | undefined
@@ -155,8 +157,10 @@ export async function POST(request: NextRequest) {
           subscriptionTier,
           isSelfCoached,
         }
+        skillAccessMode = isSelfCoached ? 'athlete_self_coached' : 'athlete_coached'
       } catch (error) {
         logger.warn('Error fetching training program dates for calendar context', {}, error)
+        skillAccessMode = 'athlete_self_coached'
       }
 
       const allowanceDenied = await requireAiAllowance(athleteClientId)
@@ -236,6 +240,7 @@ export async function POST(request: NextRequest) {
       calendarProgramStartDate,
       calendarProgramEndDate,
       selectedSkillIds,
+      skillAccessMode,
     })
 
     // ── 6. System prompt ────────────────────────────────────────────

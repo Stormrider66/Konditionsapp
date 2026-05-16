@@ -55,13 +55,23 @@ interface AISkillPickerProps {
 
 const CATEGORY_LABELS: Record<string, string> = {
   METHODOLOGY: 'Metodik',
+  PHYSIOLOGY: 'Fysiologi',
   TESTING: 'Tester',
   SPORT_SPECIFIC: 'Sportspecifikt',
+  PROGRAMMING: 'Programmering',
   RECOVERY: 'Återhämtning',
   NUTRITION: 'Nutrition',
   STRENGTH: 'Styrka',
   INJURY_PREVENTION: 'Skadeprevention',
-  RACE_DAY: 'Tävlingsdag',
+  PERFORMANCE: 'Prestation',
+  MONITORING: 'Monitorering',
+  YOUTH: 'Ungdom',
+  MASTERS: 'Masters',
+  PSYCHOLOGY: 'Mental träning',
+  MOBILITY: 'Mobilitet',
+  TEAM_SPORTS: 'Lagsport',
+  ANALYSIS: 'Analys',
+  PLATFORM: 'Plattform',
 }
 
 function getCategoryLabel(category: string): string {

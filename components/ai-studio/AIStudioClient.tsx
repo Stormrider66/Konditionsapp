@@ -150,6 +150,7 @@ interface Conversation {
   title: string | null
   modelUsed: string
   provider: AIProvider
+  selectedSkillIds?: string[]
   createdAt: Date
   updatedAt: Date
   athlete?: {
@@ -251,6 +252,26 @@ export function AIStudioClient({
 
   useEffect(() => {
     writePersistedSkillSelection(currentConversationId, selectedSkillIds)
+  }, [currentConversationId, selectedSkillIds])
+
+  useEffect(() => {
+    if (!currentConversationId) return
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => {
+      void fetch(`/api/ai/conversations/${currentConversationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({ selectedSkillIds }),
+      }).catch(() => {
+        // Local persistence remains as a fallback if the metadata update fails.
+      })
+    }, 350)
+
+    return () => {
+      window.clearTimeout(timeout)
+      controller.abort()
+    }
   }, [currentConversationId, selectedSkillIds])
 
   // Custom fetch to capture X-Knowledge-Skills header
@@ -596,6 +617,7 @@ ${messageContent}`
           provider: currentModel.provider,
           athleteId: selectedAthlete,
           contextDocuments: selectedDocuments,
+          selectedSkillIds,
           webSearchEnabled,
         }),
       })
@@ -669,7 +691,11 @@ ${messageContent}`
 
       setMessages(chatMessages)
       setCurrentConversationId(conversationId)
-      setSelectedSkillIds(readPersistedSkillSelection(conversationId))
+      setSelectedSkillIds(
+        Array.isArray(data.conversation.selectedSkillIds)
+          ? data.conversation.selectedSkillIds
+          : readPersistedSkillSelection(conversationId)
+      )
 
       // Set context from conversation
       if (data.conversation.athleteId) {

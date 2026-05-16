@@ -90,7 +90,7 @@ export async function PUT(
     const { id } = await params
 
     const body = await request.json()
-    const { title, status } = body
+    const { title, status, selectedSkillIds } = body
 
     // Verify ownership
     const existing = await prisma.aIConversation.findFirst({
@@ -112,6 +112,9 @@ export async function PUT(
       data: {
         ...(title !== undefined ? { title } : {}),
         ...(status !== undefined ? { status } : {}),
+        ...(Array.isArray(selectedSkillIds)
+          ? { selectedSkillIds: selectedSkillIds.filter((id): id is string => typeof id === 'string').slice(0, 5) }
+          : {}),
       },
     })
 

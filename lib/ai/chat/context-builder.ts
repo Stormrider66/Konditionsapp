@@ -20,6 +20,10 @@ import {
   type MemoryContext,
   type AthleteCapabilities,
 } from '@/lib/ai/athlete-prompts'
+import {
+  getAthleteSkillSafetyNote,
+  type KnowledgeSkillAccessMode,
+} from '@/lib/ai/skill-access'
 import type { getStaffPermissions } from '@/lib/permissions/assistant-coach'
 import type { ChatRequestMessage } from './types'
 import { getMessageContent } from './message-format'
@@ -46,6 +50,7 @@ export interface BuildChatContextInput {
   calendarProgramStartDate?: Date
   calendarProgramEndDate?: Date
   selectedSkillIds?: string[]
+  skillAccessMode?: KnowledgeSkillAccessMode
 }
 
 export interface ChatContextResult {
@@ -90,6 +95,9 @@ export async function buildChatContext(
     apiKeyUserId,
     embeddingKeys,
     selectedSkillIds = [],
+    skillAccessMode = isAthleteChat
+      ? (athleteCapabilities?.isSelfCoached ? 'athlete_self_coached' : 'athlete_coached')
+      : 'full',
   } = input
 
   let athleteContext = ''
@@ -222,21 +230,33 @@ export async function buildChatContext(
       const userContent = getMessageContent(lastUserMsg)
 
       if (isKnowledgeSkillCatalogRequest(userContent)) {
-        const skills = await listKnowledgeSkills()
+        const skills = await listKnowledgeSkills({ accessMode: skillAccessMode })
         skillContext = formatKnowledgeSkillCatalog(skills)
+        if (isAthleteChat) {
+          skillContext += `\n## ATLET-SÄKERHET FÖR KUNSKAPSSKILLS\n${getAthleteSkillSafetyNote(skillAccessMode)}\n`
+        }
       } else if (hasEmbeddingKeys(embeddingKeys)) {
         const selected = selectedSkillIds.length > 0
-          ? await resolveKnowledgeSkillsByIds(selectedSkillIds, { maxSkills: 5 })
+          ? await resolveKnowledgeSkillsByIds(selectedSkillIds, {
+              maxSkills: skillAccessMode === 'athlete_self_coached' ? 3 : 5,
+              accessMode: skillAccessMode,
+            })
           : { matched: [], missingIds: [] }
         missingSelectedSkillIds = selected.missingIds
         const requested = selected.matched.length === 0 && hasExplicitKnowledgeSkillRequest(userContent)
-          ? await resolveRequestedKnowledgeSkills(userContent, { maxSkills: 5 })
+          ? await resolveRequestedKnowledgeSkills(userContent, {
+              maxSkills: skillAccessMode === 'athlete_self_coached' ? 3 : 5,
+              accessMode: skillAccessMode,
+            })
           : []
         const matched = selected.matched.length > 0
           ? selected.matched
           : requested.length > 0
             ? requested
-            : await matchKnowledgeSkills(userContent, embeddingKeys, { maxSkills: 3 })
+            : await matchKnowledgeSkills(userContent, embeddingKeys, {
+                maxSkills: skillAccessMode === 'athlete_self_coached' ? 2 : 3,
+                accessMode: skillAccessMode,
+              })
 
         if (matched.length > 0) {
           const result = await fetchSkillContext(userContent, matched, embeddingKeys)
@@ -249,7 +269,10 @@ export async function buildChatContext(
           const missingIntro = missingSelectedSkillIds.length > 0
             ? `\n## VALDA KUNSKAPSSKILLS SOM INTE KUNDE ANVÄNDAS\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\nSäg synligt att dessa valda skills inte kunde användas om det är relevant för svaret.\n`
             : ''
-          skillContext = `${selectedIntro}${requestedIntro}${missingIntro}${result.context}`
+          const athleteSafetyIntro = isAthleteChat
+            ? `\n## ATLET-SÄKERHET FÖR KUNSKAPSSKILLS\n${getAthleteSkillSafetyNote(skillAccessMode)}\n`
+            : ''
+          skillContext = `${selectedIntro}${requestedIntro}${missingIntro}${athleteSafetyIntro}${result.context}`
           skillsUsed = result.skillsUsed.length > 0
             ? result.skillsUsed
             : matched.map((skill) => skill.name)

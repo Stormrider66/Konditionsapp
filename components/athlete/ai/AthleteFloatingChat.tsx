@@ -67,6 +67,7 @@ import {
   createRealtimeVoiceUsageAccumulator,
   hasRealtimeUsageTokens,
 } from '@/lib/ai/realtime-voice-client'
+import { AISkillPicker, type AISkillOption } from '@/components/ai/AISkillPicker'
 
 interface AthleteFloatingChatProps {
   clientId: string
@@ -87,6 +88,20 @@ const ATHLETE_VOICE_AUTO_SEND_KEY = 'athlete-floating-ai-voice-auto-send'
 const ATHLETE_SPOKEN_REPLIES_KEY = 'athlete-floating-ai-spoken-replies'
 const ATHLETE_VOICE_OPERATOR_KEY = 'athlete-floating-ai-voice-operator-mode'
 const ATHLETE_VOICE_GUIDE_DISMISSED_KEY = 'athlete-floating-ai-voice-guide-dismissed'
+
+function normalizeSkillName(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+}
+
+function hasExplicitSkillSelectionRequest(message: string): boolean {
+  const normalized = normalizeSkillName(message)
+  return /\b(anvand|use|pull|hamta|plocka|dra in|koppla in)\b/.test(normalized)
+    && /\b(skills?|kunskap|expert|metod|test|aterhamtning|nutrition|styrka)\b/.test(normalized)
+}
 
 function getVoiceFileExtension(mimeType: string): string {
   if (mimeType.includes('mp4') || mimeType.includes('m4a')) return 'm4a'
@@ -152,6 +167,7 @@ export function AthleteFloatingChat({
   const realtimeStartedAtRef = useRef<number | null>(null)
   const realtimeUsageRef = useRef(createRealtimeVoiceUsageAccumulator())
   const realtimeUsageReportedRef = useRef(true)
+  const pendingSkillSyncRequestRef = useRef(false)
 
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
@@ -159,6 +175,8 @@ export function AthleteFloatingChat({
   const [hasAIAccess, setHasAIAccess] = useState<boolean | null>(null)
   const [selectedIntent, setSelectedIntent] = useState<ModelIntent>('balanced')
   const [availableIntents, setAvailableIntents] = useState<IntentTierOption[]>([])
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([])
+  const [availableSkills, setAvailableSkills] = useState<AISkillOption[]>([])
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
   const [configReady, setConfigReady] = useState(false)
   const [memoryContext, setMemoryContext] = useState<MemoryContext | null>(null)
@@ -850,6 +868,7 @@ export function AthleteFloatingChat({
           sdp: offer.sdp,
           isAthleteChat: true,
           pageContext: pageContextRef.current,
+          mode: 'athlete_support',
         }),
       })
       const answerSdp = await response.text()
@@ -904,6 +923,51 @@ export function AthleteFloatingChat({
 
   // Track auto-retrieved knowledge skills
   const [knowledgeSkills, setKnowledgeSkills] = useState<string[]>([])
+
+  useEffect(() => {
+    let isMounted = true
+    const controller = new AbortController()
+
+    async function fetchAvailableSkills() {
+      try {
+        const response = await fetch('/api/ai/skills', { signal: controller.signal })
+        const payload = await response.json().catch(() => null) as {
+          success?: boolean
+          data?: { skills?: AISkillOption[] }
+        } | null
+        if (!isMounted || !payload?.success || !payload.data?.skills) return
+        setAvailableSkills(payload.data.skills)
+      } catch {
+        // The picker has its own loading/error state; this copy is only for voice/text sync.
+      }
+    }
+
+    if (hasAIAccess) void fetchAvailableSkills()
+
+    return () => {
+      isMounted = false
+      controller.abort()
+    }
+  }, [hasAIAccess])
+
+  useEffect(() => {
+    if (!pendingSkillSyncRequestRef.current || knowledgeSkills.length === 0 || availableSkills.length === 0) return
+
+    const idsByName = new Map<string, string>()
+    for (const skill of availableSkills) {
+      idsByName.set(normalizeSkillName(skill.name), skill.id)
+      if (skill.nameEn) idsByName.set(normalizeSkillName(skill.nameEn), skill.id)
+    }
+
+    const usedSkillIds = knowledgeSkills
+      .map((skillName) => idsByName.get(normalizeSkillName(skillName)))
+      .filter((id): id is string => Boolean(id))
+
+    if (usedSkillIds.length > 0) {
+      setSelectedSkillIds((current) => Array.from(new Set([...current, ...usedSkillIds])).slice(0, 5))
+      pendingSkillSyncRequestRef.current = false
+    }
+  }, [availableSkills, knowledgeSkills])
 
   // Custom fetch to capture X-Knowledge-Skills header
   const skillCapturingFetch = useCallback(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -1011,7 +1075,7 @@ export function AthleteFloatingChat({
 
       const mentalPrepPageContext = buildMentalPrepPageContext(mentalPrepContext!)
 
-      void sendMessage({ text: message }, {
+    void sendMessage({ text: message }, {
         body: {
           conversationId: convId,
           intent: selectedIntent,
@@ -1019,6 +1083,7 @@ export function AthleteFloatingChat({
           clientId,
           memoryContext: memoryContext || undefined,
           pageContext: mentalPrepPageContext,
+          selectedSkillIds,
         },
       })
 
@@ -1179,6 +1244,7 @@ export function AthleteFloatingChat({
     const combinedPageContext = [pageContextRef.current, mentalPrepPageCtx]
       .filter(Boolean)
       .join('\n')
+    pendingSkillSyncRequestRef.current = hasExplicitSkillSelectionRequest(messageContent)
 
     void sendMessage({ text: messageContent }, {
       body: {
@@ -1188,6 +1254,7 @@ export function AthleteFloatingChat({
         clientId,
         memoryContext: memoryContext || undefined,
         pageContext: combinedPageContext || undefined,
+        selectedSkillIds,
       },
     })
   }, [
@@ -1198,6 +1265,7 @@ export function AthleteFloatingChat({
     isLoading,
     memoryContext,
     selectedIntent,
+    selectedSkillIds,
     sendMessage,
   ])
 
@@ -1324,6 +1392,7 @@ export function AthleteFloatingChat({
     setMessages([])
     setAssistantNotices([])
     setConversationId(null)
+    setSelectedSkillIds([])
     setInput('')
     setMentalPrepContext(null)
     mentalPrepContextRef.current = null
@@ -1338,6 +1407,7 @@ export function AthleteFloatingChat({
     setMessages([])
     setAssistantNotices([])
     setConversationId(null)
+    setSelectedSkillIds([])
     setInput('')
     setMentalPrepContext(null)
     mentalPrepContextRef.current = null
@@ -2056,6 +2126,15 @@ export function AthleteFloatingChat({
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-3 border-t">
         <div className="space-y-2">
+          <AISkillPicker
+            selectedSkillIds={selectedSkillIds}
+            onSelectedSkillIdsChange={setSelectedSkillIds}
+            disabled={isLoading || isLoadingConfig}
+            side="top"
+            align="start"
+            triggerClassName="h-8 text-xs"
+            chipsClassName="max-w-full"
+          />
           <div className="flex gap-2">
             <Textarea
               ref={textareaRef}

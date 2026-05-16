@@ -168,18 +168,23 @@ Recommended lightweight API:
 
 ### Phase 6: Athlete Rules
 
-- Add safe subset filtering.
-- Gate by tier and self-coached/coached status.
+- Add safe subset filtering. Done with `lib/ai/skill-access.ts` and enforced by `/api/ai/skills` plus chat context resolution.
+- Gate by tier and self-coached/coached status. Done: athletes must have AI chat access, coached athletes get a broader educational subset, and self-coached athletes get a narrower subset with stricter prompt guardrails.
 
 ### Phase 7: Voice Polish
 
-- Keep spoken skill selection via natural language.
-- Sync spoken selections to visible chips later if useful.
+- Keep spoken skill selection via natural language. Done through the existing transcribe-to-chat path.
+- Sync spoken/text skill selections to visible chips. Done in athlete floating chat when the user explicitly asks to use/pull skills and the response reports used skills.
 
 ### Phase 8: Live Voice Safe Modes
 
-- Do not add full library.
-- Later add curated modes such as pacing, form cues, recovery, strength logging, and HYROX pacing.
+- Do not add full library. Done: realtime voice instructions explicitly avoid the full knowledge library.
+- Add curated modes such as pacing, form cues, recovery, strength logging, and HYROX pacing. Done in `/api/ai/chat/realtime-call` as constrained realtime modes, with coach/athlete defaults wired from floating chat.
+
+### Phase 9: Conversation Persistence
+
+- Persist AI Studio selected skills on the conversation record. Done with `AIConversation.selectedSkillIds`.
+- Keep local browser storage as a fallback for drafts and failed metadata updates.
 
 ## First Useful Milestone
 

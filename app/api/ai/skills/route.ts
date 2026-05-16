@@ -1,18 +1,45 @@
 import { NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import { requireCoach, resolveAthleteClientId } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 import { listKnowledgeSkills } from '@/lib/ai/knowledge-skills'
+import {
+  getKnowledgeSkillMaxSelectable,
+  type KnowledgeSkillAccessMode,
+} from '@/lib/ai/skill-access'
+import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    await requireCoach()
+    let accessMode: KnowledgeSkillAccessMode = 'full'
 
-    const skills = await listKnowledgeSkills()
+    const athleteResolved = await resolveAthleteClientId()
+    if (athleteResolved) {
+      const subscription = await prisma.athleteSubscription.findUnique({
+        where: { clientId: athleteResolved.clientId },
+        select: { tier: true, assignedCoachId: true, aiChatEnabled: true },
+      })
+
+      if (!athleteResolved.isCoachInAthleteMode) {
+        if (!subscription?.aiChatEnabled) {
+          return NextResponse.json(
+            { error: 'AI skills kräver aktiv AI-chatt.' },
+            { status: 403 }
+          )
+        }
+        accessMode = subscription?.assignedCoachId ? 'athlete_coached' : 'athlete_self_coached'
+      }
+    } else {
+      await requireCoach()
+    }
+
+    const skills = await listKnowledgeSkills({ accessMode })
+    const maxSelectable = getKnowledgeSkillMaxSelectable(accessMode)
 
     return NextResponse.json({
       success: true,
       data: {
-        maxSelectable: 5,
+        accessMode,
+        maxSelectable,
         skills: skills.map((skill) => ({
           id: skill.id,
           name: skill.name,

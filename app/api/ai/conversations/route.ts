@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { canAccessClient, requireCoach, resolveAthleteClientId, getCurrentUser } from '@/lib/auth-utils'
+import { canAccessClient, requireCoach, resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { AIProvider } from '@prisma/client'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
@@ -17,6 +17,7 @@ interface CreateConversationRequest {
   provider: string // Accept 'INTENT' as well as AIProvider values
   athleteId?: string
   contextDocuments?: string[]
+  selectedSkillIds?: string[]
   webSearchEnabled?: boolean
   title?: string
 }
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
         modelUsed: true,
         provider: true,
         contextDocuments: true,
+        selectedSkillIds: true,
         webSearchEnabled: true,
         totalTokensUsed: true,
         status: true,
@@ -95,6 +97,7 @@ export async function POST(request: NextRequest) {
       provider,
       athleteId,
       contextDocuments = [],
+      selectedSkillIds = [],
       webSearchEnabled = false,
       title,
     } = body
@@ -175,6 +178,7 @@ export async function POST(request: NextRequest) {
         modelUsed,
         provider: resolvedProvider,
         contextDocuments,
+        selectedSkillIds,
         webSearchEnabled,
         title: title || null,
         status: 'ACTIVE',

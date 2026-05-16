@@ -1,0 +1,2 @@
+ALTER TABLE "AIConversation"
+ADD COLUMN "selectedSkillIds" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

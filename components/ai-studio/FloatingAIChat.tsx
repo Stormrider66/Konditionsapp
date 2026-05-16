@@ -1070,6 +1070,7 @@ export function FloatingAIChat({
           isAthleteChat: isAthleteUser,
           businessSlug: pathBusinessSlug,
           pageContext: contextStringRef.current,
+          mode: isAthleteUser ? 'athlete_support' : 'coach_operator',
         }),
       })
       const answerSdp = await response.text()

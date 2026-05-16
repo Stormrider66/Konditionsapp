@@ -18,6 +18,11 @@ import {
   type EmbeddingKeys,
 } from '@/lib/ai/embeddings'
 import { logger } from '@/lib/logger'
+import type { KnowledgeCategory, Prisma } from '@prisma/client'
+import {
+  getAllowedKnowledgeSkillCategories,
+  type KnowledgeSkillAccessMode,
+} from '@/lib/ai/skill-access'
 
 export interface MatchedSkill {
   id: string
@@ -52,6 +57,10 @@ export interface KnowledgeSkillSummary {
   priority: number
   documentIds: string[]
   maxChunks: number
+}
+
+interface KnowledgeSkillAccessOptions {
+  accessMode?: KnowledgeSkillAccessMode
 }
 
 // Max total tokens of auto-retrieved content (~4 chars per token)
@@ -99,9 +108,23 @@ export function hasExplicitKnowledgeSkillRequest(query: string): boolean {
   return /\b(anvand|use|pull|hamta|plocka|dra in|koppla in|with|med)\b/.test(normalized)
 }
 
-export async function listKnowledgeSkills(): Promise<KnowledgeSkillSummary[]> {
+function buildSkillAccessWhere(
+  options: KnowledgeSkillAccessOptions = {}
+): Prisma.KnowledgeSkillWhereInput {
+  const allowedCategories = getAllowedKnowledgeSkillCategories(options.accessMode ?? 'full')
+  return {
+    isActive: true,
+    ...(allowedCategories
+      ? { category: { in: Array.from(allowedCategories) as KnowledgeCategory[] } }
+      : {}),
+  }
+}
+
+export async function listKnowledgeSkills(
+  options: KnowledgeSkillAccessOptions = {}
+): Promise<KnowledgeSkillSummary[]> {
   return prisma.knowledgeSkill.findMany({
-    where: { isActive: true },
+    where: buildSkillAccessWhere(options),
     orderBy: [{ category: 'asc' }, { priority: 'desc' }, { name: 'asc' }],
     select: {
       id: true,
@@ -119,7 +142,7 @@ export async function listKnowledgeSkills(): Promise<KnowledgeSkillSummary[]> {
 
 export async function resolveKnowledgeSkillsByIds(
   skillIds: string[],
-  options: { maxSkills?: number } = {}
+  options: { maxSkills?: number; accessMode?: KnowledgeSkillAccessMode } = {}
 ): Promise<{ matched: MatchedSkill[]; missingIds: string[] }> {
   const { maxSkills = 5 } = options
   const uniqueIds = Array.from(new Set(skillIds.filter(Boolean))).slice(0, maxSkills)
@@ -128,7 +151,7 @@ export async function resolveKnowledgeSkillsByIds(
   }
 
   const skills = await prisma.knowledgeSkill.findMany({
-    where: { id: { in: uniqueIds }, isActive: true },
+    where: { id: { in: uniqueIds }, ...buildSkillAccessWhere(options) },
     select: {
       id: true,
       name: true,
@@ -181,10 +204,10 @@ ${lines.join('\n\n')}
 
 export async function resolveRequestedKnowledgeSkills(
   query: string,
-  options: { maxSkills?: number } = {}
+  options: { maxSkills?: number; accessMode?: KnowledgeSkillAccessMode } = {}
 ): Promise<MatchedSkill[]> {
   const { maxSkills = 5 } = options
-  const skills = await listKnowledgeSkills()
+  const skills = await listKnowledgeSkills(options)
   const normalizedQuery = normalizeSkillText(query)
   const matches: MatchedSkill[] = []
 
@@ -269,13 +292,13 @@ async function ensureSkillEmbeddings(
 export async function matchKnowledgeSkills(
   query: string,
   keys: EmbeddingKeys,
-  options: { maxSkills?: number; keywordOnly?: boolean } = {}
+  options: { maxSkills?: number; keywordOnly?: boolean; accessMode?: KnowledgeSkillAccessMode } = {}
 ): Promise<MatchedSkill[]> {
   const { maxSkills = 3, keywordOnly = false } = options
 
   // Fetch all active skills
   const skills = await prisma.knowledgeSkill.findMany({
-    where: { isActive: true },
+    where: buildSkillAccessWhere(options),
     select: {
       id: true,
       name: true,
@@ -349,18 +372,34 @@ export async function matchKnowledgeSkills(
     const EMBEDDING_THRESHOLD = 0.80
 
     const vtype = await getVectorType()
-    const embeddingResults = await prisma.$queryRawUnsafe<{ id: string; similarity: number }[]>(
-      `SELECT id, 1 - ("${col}" <=> $1::${vtype}) as similarity
-       FROM "KnowledgeSkill"
-       WHERE "isActive" = true
-         AND "${col}" IS NOT NULL
-         AND 1 - ("${col}" <=> $1::${vtype}) > $2
-       ORDER BY "${col}" <=> $1::${vtype}
-       LIMIT $3`,
-      embeddingArray,
-      EMBEDDING_THRESHOLD,
-      maxSkills
-    )
+    const allowedCategories = getAllowedKnowledgeSkillCategories(options.accessMode ?? 'full')
+    const embeddingResults = allowedCategories
+      ? await prisma.$queryRawUnsafe<{ id: string; similarity: number }[]>(
+          `SELECT id, 1 - ("${col}" <=> $1::${vtype}) as similarity
+           FROM "KnowledgeSkill"
+           WHERE "isActive" = true
+             AND "category"::text = ANY($4)
+             AND "${col}" IS NOT NULL
+             AND 1 - ("${col}" <=> $1::${vtype}) > $2
+           ORDER BY "${col}" <=> $1::${vtype}
+           LIMIT $3`,
+          embeddingArray,
+          EMBEDDING_THRESHOLD,
+          maxSkills,
+          Array.from(allowedCategories)
+        )
+      : await prisma.$queryRawUnsafe<{ id: string; similarity: number }[]>(
+          `SELECT id, 1 - ("${col}" <=> $1::${vtype}) as similarity
+           FROM "KnowledgeSkill"
+           WHERE "isActive" = true
+             AND "${col}" IS NOT NULL
+             AND 1 - ("${col}" <=> $1::${vtype}) > $2
+           ORDER BY "${col}" <=> $1::${vtype}
+           LIMIT $3`,
+          embeddingArray,
+          EMBEDDING_THRESHOLD,
+          maxSkills
+        )
 
     // Merge embedding matches with keyword matches (deduplicating)
     const matchedIds = new Set(keywordMatches.map(m => m.id))

@@ -108,6 +108,7 @@ model AIConversation {
 
   // Context configuration
   contextDocuments    String[] @default([]) // Array of document IDs included
+  selectedSkillIds    String[] @default([]) // KnowledgeSkill IDs selected for this conversation
   athleteDataIncluded Json? // Which athlete data points are included
   webSearchEnabled    Boolean  @default(false)
 
