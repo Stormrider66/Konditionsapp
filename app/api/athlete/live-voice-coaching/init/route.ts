@@ -127,6 +127,7 @@ export async function POST(request: Request) {
       const sections = [
         { key: 'warmupData', section: 'WARMUP' },
         { key: 'exercises', section: 'MAIN' },
+        { key: 'prehabData', section: 'PREHAB' },
         { key: 'coreData', section: 'CORE' },
         { key: 'cooldownData', section: 'COOLDOWN' },
       ] as const

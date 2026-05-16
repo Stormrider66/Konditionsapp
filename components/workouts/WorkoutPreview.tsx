@@ -19,6 +19,7 @@ import {
   Heart,
   Play,
   RefreshCw,
+  ShieldCheck,
   Sparkles,
   Target,
   Timer,
@@ -38,6 +39,7 @@ const SECTION_CONFIG: Record<
 > = {
   WARMUP: { label: 'Uppvärmning', icon: Flame, accent: 'text-amber-500' },
   MAIN: { label: 'Huvudpass', icon: Dumbbell, accent: 'text-primary' },
+  PREHAB: { label: 'Prehab', icon: ShieldCheck, accent: 'text-teal-500' },
   CORE: { label: 'Core', icon: Target, accent: 'text-purple-500' },
   COOLDOWN: { label: 'Nedvarvning', icon: Timer, accent: 'text-emerald-500' },
 }

@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
           select: {
             exercises: true,
             warmupData: true,
+            prehabData: true,
             coreData: true,
             cooldownData: true,
           },
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
     }
     collect(assignment.session.exercises as unknown as SessionExerciseShape[] | null ?? undefined)
     collect((assignment.session.warmupData as unknown as SectionDataShape | null)?.exercises)
+    collect((assignment.session.prehabData as unknown as SectionDataShape | null)?.exercises)
     collect((assignment.session.coreData as unknown as SectionDataShape | null)?.exercises)
     collect((assignment.session.cooldownData as unknown as SectionDataShape | null)?.exercises)
 

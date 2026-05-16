@@ -176,6 +176,7 @@ export function toStrengthSessionData(
     phase: normalizeStrengthPhase(parsed.phase),
     exercises: parsed.exercises.map((e) => toMainExercise(e, mappings)),
     warmupData: parsed.warmupData ? toSectionData(parsed.warmupData, mappings) : undefined,
+    prehabData: parsed.prehabData ? toSectionData(parsed.prehabData, mappings) : undefined,
     coreData: parsed.coreData ? toSectionData(parsed.coreData, mappings) : undefined,
     cooldownData: parsed.cooldownData
       ? toSectionData(parsed.cooldownData, mappings)

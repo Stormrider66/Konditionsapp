@@ -187,6 +187,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             phase: (workoutData.strengthData.phase as StrengthPhase) || StrengthPhase.ANATOMICAL_ADAPTATION,
             exercises: workoutData.strengthData.exercises as object,
             warmupData: workoutData.strengthData.warmupData as object,
+            prehabData: workoutData.strengthData.prehabData as object,
             coreData: workoutData.strengthData.coreData as object,
             cooldownData: workoutData.strengthData.cooldownData as object,
             estimatedDuration: workoutData.strengthData.estimatedDuration,

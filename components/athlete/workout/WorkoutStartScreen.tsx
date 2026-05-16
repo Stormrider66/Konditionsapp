@@ -24,6 +24,7 @@ import {
   Clock,
   Dumbbell,
   Flame,
+  ShieldCheck,
   Target,
   Timer,
   ArrowLeft,
@@ -45,7 +46,7 @@ interface Exercise {
 }
 
 interface Section {
-  type: 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
+  type: 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
   name: string
   notes?: string
   duration?: number
@@ -98,6 +99,13 @@ const SECTION_CONFIG = {
     color: 'text-blue-600',
     bgColor: 'bg-blue-50',
     borderColor: 'border-blue-200',
+  },
+  PREHAB: {
+    label: 'Prehab',
+    icon: ShieldCheck,
+    color: 'text-teal-600',
+    bgColor: 'bg-teal-50',
+    borderColor: 'border-teal-200',
   },
   CORE: {
     label: 'Core',
@@ -218,7 +226,7 @@ export function WorkoutStartScreen({
     })
 
     // Always add mat for core/stretching
-    if (data.sections.some((s) => s.type === 'CORE' || s.type === 'COOLDOWN')) {
+    if (data.sections.some((s) => s.type === 'PREHAB' || s.type === 'CORE' || s.type === 'COOLDOWN')) {
       foundEquipment.add('Träningsmatta')
     }
 

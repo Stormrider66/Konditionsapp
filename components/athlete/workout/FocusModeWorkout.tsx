@@ -32,6 +32,7 @@ import {
   Timer,
   Flame,
   Target,
+  ShieldCheck,
   Loader2,
   Info,
   AlertCircle,
@@ -65,7 +66,7 @@ interface FocusModeExercise {
   tempo?: string
   restSeconds: number
   notes?: string
-  section: 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
+  section: 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
   orderIndex: number
   completedSets: number
   setLogs: {
@@ -96,7 +97,7 @@ interface WorkoutData {
     estimatedDuration?: number
   }
   sections: {
-    type: 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
+    type: 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
     name: string
     notes?: string
     duration?: number
@@ -140,6 +141,13 @@ const SECTION_CONFIG = {
     textColor: 'text-purple-500',
     bgColor: 'bg-purple-500/10',
     icon: Target,
+  },
+  PREHAB: {
+    label: 'Prehab',
+    color: 'bg-teal-500',
+    textColor: 'text-teal-500',
+    bgColor: 'bg-teal-500/10',
+    icon: ShieldCheck,
   },
   COOLDOWN: {
     label: 'Nedvarvning',

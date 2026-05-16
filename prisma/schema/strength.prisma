@@ -124,6 +124,7 @@ model StrengthSession {
 
   // Optional section data (JSON)
   warmupData   Json? // {notes?, duration?, exercises?: [{exerciseId, exerciseName, sets, reps, notes}]}
+  prehabData   Json? // {notes?, duration?, exercises?: [{exerciseId, exerciseName, sets, reps, restSeconds, notes}]}
   coreData     Json? // {notes?, duration?, exercises?: [{exerciseId, exerciseName, sets, reps, restSeconds, notes}]}
   cooldownData Json? // {notes?, duration?, exercises?: [{exerciseId, exerciseName, duration, notes}]}
 

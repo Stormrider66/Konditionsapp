@@ -106,7 +106,7 @@ interface FocusModeExercise {
   tempo?: string
   restSeconds: number
   notes?: string
-  section: 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
+  section: 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
   orderIndex: number
   // Completion tracking
   completedSets: number
@@ -174,6 +174,7 @@ export async function GET(
     // Parse exercise data from JSON
     const mainExercises = (session.exercises as unknown as SessionExercise[]) || []
     const warmupData = session.warmupData as unknown as SectionData | null
+    const prehabData = session.prehabData as unknown as SectionData | null
     const coreData = session.coreData as unknown as SectionData | null
     const cooldownData = session.cooldownData as unknown as SectionData | null
 
@@ -186,6 +187,7 @@ export async function GET(
     }
     mainExercises.forEach(collectIds)
     warmupData?.exercises?.forEach(collectIds)
+    prehabData?.exercises?.forEach(collectIds)
     coreData?.exercises?.forEach(collectIds)
     cooldownData?.exercises?.forEach(collectIds)
 
@@ -382,9 +384,10 @@ export async function GET(
       })
     }
 
-    // Add exercises in order: Warmup → Main → Core → Cooldown
+    // Add exercises in order: Warmup → Main → Prehab → Core → Cooldown
     addExercisesFromSection(warmupData?.exercises, 'WARMUP', 30)
     addExercisesFromSection(mainExercises, 'MAIN', 90)
+    addExercisesFromSection(prehabData?.exercises, 'PREHAB', 45)
     addExercisesFromSection(coreData?.exercises, 'CORE', 45)
     addExercisesFromSection(cooldownData?.exercises, 'COOLDOWN', 30)
 
@@ -424,6 +427,13 @@ export async function GET(
         type: 'MAIN' as const,
         name: 'Huvudpass',
         exerciseCount: focusModeExercises.filter((ex) => ex.section === 'MAIN').length,
+      },
+      {
+        type: 'PREHAB' as const,
+        name: 'Stabilitet / Prehab',
+        notes: prehabData?.notes,
+        duration: prehabData?.duration,
+        exerciseCount: focusModeExercises.filter((ex) => ex.section === 'PREHAB').length,
       },
       {
         type: 'CORE' as const,

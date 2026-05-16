@@ -23,6 +23,7 @@ import {
   Flame,
   Target,
   Sparkles,
+  ShieldCheck,
   Loader2,
   SkipForward,
   Link2,
@@ -80,7 +81,7 @@ interface FocusModeExercise {
   tempo?: string
   restSeconds: number
   notes?: string
-  section: 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
+  section: 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
   orderIndex: number
   completedSets: number
   setLogs: SetLogSummary[]
@@ -196,6 +197,7 @@ interface StrengthFocusModeProps {
 const SECTION_ICONS: Record<string, typeof Dumbbell> = {
   WARMUP: Flame,
   MAIN: Dumbbell,
+  PREHAB: ShieldCheck,
   CORE: Target,
   COOLDOWN: Sparkles,
 }
@@ -203,6 +205,7 @@ const SECTION_ICONS: Record<string, typeof Dumbbell> = {
 const SECTION_COLORS: Record<string, string> = {
   WARMUP: 'text-yellow-500',
   MAIN: 'text-blue-500',
+  PREHAB: 'text-teal-500',
   CORE: 'text-purple-500',
   COOLDOWN: 'text-green-500',
 }

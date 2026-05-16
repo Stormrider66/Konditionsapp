@@ -1606,6 +1606,7 @@ export interface StrengthSessionData {
   timingRelativeToRun?: string
   exercises: StrengthSessionExercise[]
   warmupData?: StrengthSessionSectionData
+  prehabData?: StrengthSessionSectionData
   coreData?: StrengthSessionSectionData
   cooldownData?: StrengthSessionSectionData
   totalSets?: number

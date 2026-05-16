@@ -40,11 +40,11 @@ export interface GeneratedExercise {
   restSeconds: number
   tempo?: string
   notes?: string
-  section: 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
+  section: 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
 }
 
 export interface GeneratedSection {
-  type: 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
+  type: 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
   exercises: GeneratedExercise[]
   notes?: string
   duration?: number

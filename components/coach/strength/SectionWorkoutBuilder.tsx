@@ -3,9 +3,10 @@
 /**
  * SectionWorkoutBuilder
  *
- * Enhanced workout builder with 4 collapsible sections:
+ * Enhanced workout builder with 5 collapsible sections:
  * - Warmup (dynamic stretches, activation, ramp-up sets)
  * - Main (primary strength exercises)
+ * - Stability / Prehab (joint control, tissue capacity, injury prevention)
  * - Core (core-specific exercises)
  * - Cooldown (stretching, mobility)
  */
@@ -83,13 +84,16 @@ import {
   Heart,
   Layers,
   Percent,
+  ShieldCheck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CustomExerciseCreator } from '@/components/coach/exercise-library/CustomExerciseCreator'
 import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton'
 
 // Types
-type SectionType = 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
+type SectionType = 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
+
+const SECTION_ORDER: SectionType[] = ['WARMUP', 'MAIN', 'PREHAB', 'CORE', 'COOLDOWN']
 
 type WeightUnit = 'kg' | 'percent'
 
@@ -225,6 +229,14 @@ const SECTION_DEFAULTS: Record<SectionType, Omit<SectionConfig, 'exercises' | 'e
     bgColor: 'bg-purple-50 border-purple-200',
     defaultRest: 45,
   },
+  PREHAB: {
+    type: 'PREHAB',
+    label: 'Stabilitet / Prehab',
+    icon: ShieldCheck,
+    color: 'text-teal-600',
+    bgColor: 'bg-teal-50 border-teal-200',
+    defaultRest: 45,
+  },
   COOLDOWN: {
     type: 'COOLDOWN',
     label: 'Nedvarvning',
@@ -280,6 +292,22 @@ interface SectionWorkoutBuilderProps {
         intensity?: string
       }>
     }
+    prehabData?: {
+      notes?: string
+      duration?: number
+      exercises?: Array<{
+        exerciseId: string
+        exerciseName: string
+        sets: number
+        reps: number | string
+        restSeconds?: number
+        notes?: string
+        kind?: ExerciseKind
+        durationSeconds?: number
+        distanceMeters?: number
+        intensity?: string
+      }>
+    }
     coreData?: {
       notes?: string
       duration?: number
@@ -325,6 +353,7 @@ export function SectionWorkoutBuilder({
   const [sections, setSections] = useState<Record<SectionType, SectionConfig>>({
     WARMUP: { ...SECTION_DEFAULTS.WARMUP, enabled: false, exercises: [] },
     MAIN: { ...SECTION_DEFAULTS.MAIN, enabled: true, exercises: [] },
+    PREHAB: { ...SECTION_DEFAULTS.PREHAB, enabled: false, exercises: [] },
     CORE: { ...SECTION_DEFAULTS.CORE, enabled: false, exercises: [] },
     COOLDOWN: { ...SECTION_DEFAULTS.COOLDOWN, enabled: false, exercises: [] },
   })
@@ -350,6 +379,7 @@ export function SectionWorkoutBuilder({
     const sectionToCategory: Record<SectionType, string> = {
       WARMUP: 'WARMUP',
       MAIN: 'ALL',
+      PREHAB: 'ALL',
       CORE: 'CORE',
       COOLDOWN: 'RECOVERY',
     }
@@ -427,6 +457,19 @@ export function SectionWorkoutBuilder({
         ...hydrateCardio(e),
       })) || []
 
+      // Load stability / prehab
+      const prehabExercises = initialData.prehabData?.exercises?.map((e) => ({
+        id: crypto.randomUUID(),
+        exerciseId: e.exerciseId,
+        name: e.exerciseName,
+        sets: e.sets,
+        reps: String(e.reps),
+        weight: '',
+        rest: e.restSeconds || 45,
+        notes: e.notes,
+        ...hydrateCardio(e),
+      })) || []
+
       // Load core
       const coreExercises = initialData.coreData?.exercises?.map((e) => ({
         id: crypto.randomUUID(),
@@ -466,6 +509,13 @@ export function SectionWorkoutBuilder({
           enabled: true,
           exercises: mainExercises,
         },
+        PREHAB: {
+          ...SECTION_DEFAULTS.PREHAB,
+          enabled: prehabExercises.length > 0,
+          exercises: prehabExercises,
+          notes: initialData.prehabData?.notes,
+          duration: initialData.prehabData?.duration,
+        },
         CORE: {
           ...SECTION_DEFAULTS.CORE,
           enabled: coreExercises.length > 0,
@@ -485,6 +535,7 @@ export function SectionWorkoutBuilder({
       // Expand sections that have exercises
       const toExpand = new Set<SectionType>(['MAIN'])
       if (warmupExercises.length > 0) toExpand.add('WARMUP')
+      if (prehabExercises.length > 0) toExpand.add('PREHAB')
       if (coreExercises.length > 0) toExpand.add('CORE')
       if (cooldownExercises.length > 0) toExpand.add('COOLDOWN')
       setExpandedSections(toExpand)
@@ -913,6 +964,23 @@ export function SectionWorkoutBuilder({
               notes: e.notes,
               ...cardioPayload(e),
             })),
+        }
+        : undefined
+
+      // Build stability / prehab data
+      const prehabData = sections.PREHAB.enabled && sections.PREHAB.exercises.length > 0
+        ? {
+            notes: sections.PREHAB.notes,
+            duration: sections.PREHAB.duration,
+            exercises: sections.PREHAB.exercises.map((e) => ({
+              exerciseId: e.exerciseId,
+              exerciseName: e.name,
+              sets: e.sets,
+              reps: parseInt(e.reps) || e.reps,
+              restSeconds: e.rest,
+              notes: e.notes,
+              ...cardioPayload(e),
+            })),
           }
         : undefined
 
@@ -952,9 +1020,10 @@ export function SectionWorkoutBuilder({
         description: description || undefined,
         phase: PHASE_MAP[phase] || 'ANATOMICAL_ADAPTATION',
         exercises: mainExercises,
-        warmupData,
-        coreData,
-        cooldownData,
+        warmupData: warmupData ?? null,
+        prehabData: prehabData ?? null,
+        coreData: coreData ?? null,
+        cooldownData: cooldownData ?? null,
         estimatedDuration: Math.round(estimatedDuration),
         totalSets,
         totalExercises,
@@ -1056,7 +1125,7 @@ export function SectionWorkoutBuilder({
         <Card>
           <CardContent className="py-4">
             <div className="flex flex-wrap gap-4">
-              {(['WARMUP', 'MAIN', 'CORE', 'COOLDOWN'] as SectionType[]).map((type) => {
+              {SECTION_ORDER.map((type) => {
                 const config = SECTION_DEFAULTS[type]
                 const section = sections[type]
                 const Icon = config.icon
@@ -1090,7 +1159,7 @@ export function SectionWorkoutBuilder({
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          {(['WARMUP', 'MAIN', 'CORE', 'COOLDOWN'] as SectionType[]).map((type) => {
+          {SECTION_ORDER.map((type) => {
             const section = sections[type]
             if (!section.enabled) return null
 
@@ -1256,7 +1325,7 @@ export function SectionWorkoutBuilder({
                   <SelectValue placeholder="Sektion" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(['WARMUP', 'MAIN', 'CORE', 'COOLDOWN'] as SectionType[])
+                  {SECTION_ORDER
                     .filter((t) => sections[t].enabled)
                     .map((t) => (
                       <SelectItem key={t} value={t}>
@@ -1381,6 +1450,12 @@ export function SectionWorkoutBuilder({
                   <Dumbbell className="h-3 w-3 mr-1" />
                   Huvudpass
                 </Badge>
+                {sections.PREHAB.enabled && (
+                  <Badge className="bg-teal-100 text-teal-800 text-xs">
+                    <ShieldCheck className="h-3 w-3 mr-1" />
+                    Prehab
+                  </Badge>
+                )}
                 {sections.CORE.enabled && (
                   <Badge className="bg-purple-100 text-purple-800 text-xs">
                     <Target className="h-3 w-3 mr-1" />

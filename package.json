@@ -51,6 +51,7 @@
     "qa:hockey-pilot-readiness": "node scripts/qa-hockey-pilot-readiness.cjs",
     "seed:skelleftea-hockey-demo": "tsx --tsconfig tsconfig.scripts.json scripts/seed-skelleftea-hockey-demo.ts",
     "seed:hockey-knowledge-skill": "tsx --tsconfig tsconfig.scripts.json scripts/seed-hockey-knowledge-skill.ts",
+    "seed:hockey-movements": "tsx --tsconfig tsconfig.scripts.json scripts/seed-hockey-movement-library.ts",
     "audit:athlete-integrity": "ts-node --project tsconfig.scripts.json --require tsconfig-paths/register scripts/audit-athlete-integrity.ts",
     "audit:rls-coverage": "tsx scripts/audit-rls-coverage.ts",
     "audit:legacy-routes": "ts-node --project tsconfig.scripts.json --require tsconfig-paths/register scripts/audit-legacy-routes.ts",

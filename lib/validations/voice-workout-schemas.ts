@@ -56,7 +56,7 @@ export const voiceWorkoutScheduleSchema = z.object({
  * Workout structure element
  */
 export const voiceWorkoutStructureSchema = z.object({
-  type: z.enum(['warmup', 'main', 'cooldown', 'interval', 'exercise', 'rest']),
+  type: z.enum(['warmup', 'main', 'prehab', 'cooldown', 'interval', 'exercise', 'rest']),
   duration: z.number().positive().optional(),
   zone: z.number().int().min(1).max(5).optional(),
   reps: z.number().int().positive().optional(),
@@ -123,7 +123,7 @@ export const strengthExerciseDataSchema = z.object({
   weight: z.string().optional(),
   restSeconds: z.number().nonnegative().optional(),
   notes: z.string().optional(),
-  section: z.enum(['WARMUP', 'MAIN', 'CORE', 'COOLDOWN']).optional(),
+  section: z.enum(['WARMUP', 'MAIN', 'PREHAB', 'CORE', 'COOLDOWN']).optional(),
 })
 
 /**
@@ -135,6 +135,13 @@ export const strengthSessionDataSchema = z.object({
   phase: z.string().optional(),
   exercises: z.array(strengthExerciseDataSchema),
   warmupData: z
+    .object({
+      notes: z.string().optional(),
+      duration: z.number().positive().optional(),
+      exercises: z.array(strengthExerciseDataSchema).optional(),
+    })
+    .optional(),
+  prehabData: z
     .object({
       notes: z.string().optional(),
       duration: z.number().positive().optional(),

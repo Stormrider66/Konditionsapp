@@ -42,6 +42,7 @@ export async function POST(
         description: true,
         exercises: true,
         warmupData: true,
+        prehabData: true,
         cooldownData: true,
       },
     })
@@ -53,6 +54,7 @@ export async function POST(
     // Parse exercises from JSON
     const mainExercises = (session.exercises as any[]) || []
     const warmupData = session.warmupData as { exercises?: any[] } | null
+    const prehabData = session.prehabData as { exercises?: any[] } | null
     const cooldownData = session.cooldownData as { exercises?: any[] } | null
 
     // Build Garmin workout
@@ -68,7 +70,10 @@ export async function POST(
         restSeconds: e.restSeconds,
         notes: e.notes,
       })),
-      warmupExercises: warmupData?.exercises?.map((e: any) => ({
+      warmupExercises: [
+        ...(warmupData?.exercises ?? []),
+        ...(prehabData?.exercises ?? []),
+      ].map((e: any) => ({
         exerciseId: e.exerciseId,
         exerciseName: e.exerciseName,
         sets: e.sets || 1,

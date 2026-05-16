@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
+import { Prisma } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
 
 interface RouteContext {
@@ -95,6 +96,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       timingRelativeToRun,
       estimatedDuration,
       exercises,
+      warmupData,
+      prehabData,
+      coreData,
+      cooldownData,
       tags,
       isPublic,
     } = body;
@@ -114,6 +119,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       0
     );
 
+    const sectionJson = (value: unknown) =>
+      value === null ? Prisma.DbNull : value || undefined
+
     const session = await prisma.strengthSession.update({
       where: { id },
       data: {
@@ -123,6 +131,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         timingRelativeToRun,
         estimatedDuration,
         exercises: exercises || [],
+        warmupData: sectionJson(warmupData),
+        prehabData: sectionJson(prehabData),
+        coreData: sectionJson(coreData),
+        cooldownData: sectionJson(cooldownData),
         totalSets,
         totalExercises,
         volumeLoad: volumeLoad > 0 ? volumeLoad : null,

@@ -1,4 +1,4 @@
-export type WorkoutSection = 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
+export type WorkoutSection = 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
 
 export type WorkoutKind = 'strength' | 'cardio' | 'hybrid' | 'agility'
 

@@ -363,6 +363,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
             for (const session of sessions) {
               const mainExercises = session.sections.find((s) => s.type === 'MAIN')?.exercises || []
               const warmupData = session.sections.find((s) => s.type === 'WARMUP')
+              const prehabData = session.sections.find((s) => s.type === 'PREHAB')
               const coreData = session.sections.find((s) => s.type === 'CORE')
               const cooldownData = session.sections.find((s) => s.type === 'COOLDOWN')
 
@@ -374,6 +375,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
                   estimatedDuration: session.estimatedDuration,
                   exercises: mainExercises as any,
                   warmupData: warmupData ? { exercises: warmupData.exercises, notes: warmupData.notes, duration: warmupData.duration } as any : undefined,
+                  prehabData: prehabData ? { exercises: prehabData.exercises, notes: prehabData.notes, duration: prehabData.duration } as any : undefined,
                   coreData: coreData ? { exercises: coreData.exercises, notes: coreData.notes, duration: coreData.duration } as any : undefined,
                   cooldownData: cooldownData ? { exercises: cooldownData.exercises, notes: cooldownData.notes, duration: cooldownData.duration } as any : undefined,
                   totalSets: session.totalSets,
@@ -408,6 +410,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
 
           const mainExercises = session.sections.find((s) => s.type === 'MAIN')?.exercises || []
           const warmupData = session.sections.find((s) => s.type === 'WARMUP')
+          const prehabData = session.sections.find((s) => s.type === 'PREHAB')
           const coreData = session.sections.find((s) => s.type === 'CORE')
           const cooldownData = session.sections.find((s) => s.type === 'COOLDOWN')
 
@@ -419,6 +422,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
               estimatedDuration: session.estimatedDuration,
               exercises: mainExercises as any,
               warmupData: warmupData ? { exercises: warmupData.exercises, notes: warmupData.notes, duration: warmupData.duration } as any : undefined,
+              prehabData: prehabData ? { exercises: prehabData.exercises, notes: prehabData.notes, duration: prehabData.duration } as any : undefined,
               coreData: coreData ? { exercises: coreData.exercises, notes: coreData.notes, duration: coreData.duration } as any : undefined,
               cooldownData: cooldownData ? { exercises: cooldownData.exercises, notes: cooldownData.notes, duration: cooldownData.duration } as any : undefined,
               totalSets: session.totalSets,
@@ -1360,6 +1364,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
               phase: true,
               exercises: true,
               warmupData: true,
+              prehabData: true,
               coreData: true,
               cooldownData: true,
               coachId: true,
@@ -1381,6 +1386,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
             phase: session.phase,
             exercises: session.exercises,
             warmupData: session.warmupData,
+            prehabData: session.prehabData,
             coreData: session.coreData,
             cooldownData: session.cooldownData,
           }, null, 2)
@@ -1435,6 +1441,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
               description: modified.description || session.description,
               exercises: modified.exercises || session.exercises,
               warmupData: modified.warmupData ?? session.warmupData,
+              prehabData: modified.prehabData ?? session.prehabData,
               coreData: modified.coreData ?? session.coreData,
               cooldownData: modified.cooldownData ?? session.cooldownData,
             },

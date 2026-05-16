@@ -275,6 +275,7 @@ export function normalizePrintableWorkout(
     const sections = [
       normalizeStrengthSection('Uppvärmning', workout.warmupData),
       normalizeStrengthSection('Huvudpass', {}, workout.exercises),
+      normalizeStrengthSection('Stabilitet / Prehab', workout.prehabData),
       normalizeStrengthSection('Core', workout.coreData),
       normalizeStrengthSection('Nedvarvning', workout.cooldownData),
     ].filter((section): section is PrintableWorkoutSection => !!section)

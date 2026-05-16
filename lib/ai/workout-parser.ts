@@ -70,6 +70,7 @@ export const StrengthWorkoutImportSchema = z.object({
   phase: z.string().optional(),
   exercises: z.array(StrengthExerciseSchema),
   warmupData: StrengthSectionSchema.optional(),
+  prehabData: StrengthSectionSchema.optional(),
   coreData: StrengthSectionSchema.optional(),
   cooldownData: StrengthSectionSchema.optional(),
   estimatedDuration: z.number().int().positive().optional(),
@@ -422,6 +423,7 @@ Output JSON matching:
     }
   ],
   "warmupData"?:   { "notes"?: string, "duration"?: number, "exercises"?: [ ...same shape... ] },
+  "prehabData"?:   { "notes"?: string, "duration"?: number, "exercises"?: [ ...same shape... ] },
   "coreData"?:     { "notes"?: string, "duration"?: number, "exercises"?: [ ...same shape... ] },
   "cooldownData"?: { "notes"?: string, "duration"?: number, "exercises"?: [ ...same shape... ] },
   "estimatedDuration"?: number,    // minutes
@@ -438,6 +440,7 @@ EXERCISE NAMES
 SECTION ROUTING
 - Dynamic stretches, mobility, ramp-up sets → warmupData.exercises.
 - The primary lifts (squat, bench, deadlift, OHP, rows, etc.) → exercises (the MAIN section).
+- Stability, prehab, groin/hip/shoulder/ankle control, Copenhagen, activation circuits → prehabData.exercises.
 - Plank, dead bug, anti-rotation, hollow holds, etc. → coreData.exercises.
 - Static stretches, foam rolling, breathing → cooldownData.exercises.
 
@@ -633,7 +636,7 @@ export function extractResolvableNames(
     case 'STRENGTH': {
       const all: string[] = []
       for (const e of parsed.exercises) if (e.exerciseName) all.push(e.exerciseName)
-      for (const sec of [parsed.warmupData, parsed.coreData, parsed.cooldownData]) {
+      for (const sec of [parsed.warmupData, parsed.prehabData, parsed.coreData, parsed.cooldownData]) {
         for (const e of sec?.exercises ?? []) if (e.exerciseName) all.push(e.exerciseName)
       }
       return all

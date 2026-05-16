@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
             estimatedDuration: true,
             exercises: true,
             warmupData: true,
+            prehabData: true,
             coreData: true,
             cooldownData: true,
             totalSets: true,
@@ -84,14 +85,16 @@ export async function GET(request: NextRequest) {
 
       // Count warmup/core/cooldown exercises
       const warmupData = assignment.session.warmupData as { exercises?: Array<{ sets: number }> } | null
+      const prehabData = assignment.session.prehabData as { exercises?: Array<{ sets: number }> } | null
       const coreData = assignment.session.coreData as { exercises?: Array<{ sets: number }> } | null
       const cooldownData = assignment.session.cooldownData as { exercises?: Array<{ sets: number }> } | null
 
       const warmupExercises = warmupData?.exercises?.length || 0
+      const prehabExercises = prehabData?.exercises?.length || 0
       const coreExercises = coreData?.exercises?.length || 0
       const cooldownExercises = cooldownData?.exercises?.length || 0
 
-      const totalExercises = totalMainExercises + warmupExercises + coreExercises + cooldownExercises
+      const totalExercises = totalMainExercises + warmupExercises + prehabExercises + coreExercises + cooldownExercises
 
       // Count logged sets for this assignment
       const completedSetsCount = assignment.setLogs.length
@@ -113,6 +116,7 @@ export async function GET(request: NextRequest) {
           totalExercises,
           totalSets: totalMainSets,
           hasWarmup: warmupExercises > 0,
+          hasPrehab: prehabExercises > 0,
           hasCore: coreExercises > 0,
           hasCooldown: cooldownExercises > 0,
         },

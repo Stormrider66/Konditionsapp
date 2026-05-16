@@ -19,6 +19,7 @@ import {
   Dumbbell,
   CheckCircle2,
   Flame,
+  ShieldCheck,
   Target,
   Timer,
   Calendar,
@@ -44,6 +45,7 @@ interface StrengthSessionCardProps {
       totalExercises: number
       totalSets: number
       hasWarmup: boolean
+      hasPrehab: boolean
       hasCore: boolean
       hasCooldown: boolean
     }
@@ -205,6 +207,12 @@ export function StrengthSessionCard({
               <Dumbbell className="h-3 w-3 mr-1 text-blue-500" />
               Huvudpass
             </Badge>
+            {session.hasPrehab && (
+              <Badge variant="outline" className="text-xs">
+                <ShieldCheck className="h-3 w-3 mr-1 text-teal-500" />
+                Prehab
+              </Badge>
+            )}
             {session.hasCore && (
               <Badge variant="outline" className="text-xs">
                 <Target className="h-3 w-3 mr-1 text-purple-500" />

@@ -31,7 +31,7 @@ export interface VoiceWorkoutSchedule {
  * Individual workout structure element (warmup, intervals, exercises, etc.)
  */
 export interface VoiceWorkoutStructure {
-  type: 'warmup' | 'main' | 'cooldown' | 'interval' | 'exercise' | 'rest'
+  type: 'warmup' | 'main' | 'prehab' | 'cooldown' | 'interval' | 'exercise' | 'rest'
   duration?: number      // minutes
   zone?: number          // 1-5 for cardio zones
   reps?: number          // for intervals (e.g., 5 x 3min)
@@ -98,7 +98,7 @@ export interface StrengthExerciseData {
   weight?: string      // "70kg", "bodyweight", "60-70%"
   restSeconds?: number
   notes?: string
-  section?: 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
+  section?: 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
 }
 
 /**
@@ -110,6 +110,11 @@ export interface StrengthSessionData {
   phase?: string       // ANATOMICAL_ADAPTATION, MAX_STRENGTH, etc.
   exercises: StrengthExerciseData[]
   warmupData?: {
+    notes?: string
+    duration?: number
+    exercises?: StrengthExerciseData[]
+  }
+  prehabData?: {
     notes?: string
     duration?: number
     exercises?: StrengthExerciseData[]

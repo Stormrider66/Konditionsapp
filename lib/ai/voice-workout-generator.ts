@@ -288,10 +288,11 @@ async function generateStrengthWorkout(
   // Build exercises from structure
   const exercises: StrengthExerciseData[] = []
   const warmupExercises: StrengthExerciseData[] = []
+  const prehabExercises: StrengthExerciseData[] = []
   const coreExercises: StrengthExerciseData[] = []
 
   for (const item of structure) {
-    if (item.type === 'exercise' && item.exerciseName) {
+    if ((item.type === 'exercise' || item.type === 'prehab') && item.exerciseName) {
       // Try to match exercise to library
       const matchedExercise = await matchExercise(item.exerciseName, coachId)
 
@@ -305,7 +306,10 @@ async function generateStrengthWorkout(
       }
 
       // Determine section based on position or exercise type
-      if (matchedExercise?.category === 'CORE') {
+      if (item.type === 'prehab') {
+        exercise.section = 'PREHAB'
+        prehabExercises.push(exercise)
+      } else if (matchedExercise?.category === 'CORE') {
         exercise.section = 'CORE'
         coreExercises.push(exercise)
       } else {
@@ -331,6 +335,7 @@ async function generateStrengthWorkout(
     phase: 'ANATOMICAL_ADAPTATION',
     exercises,
     warmupData: warmupExercises.length > 0 ? { exercises: warmupExercises } : undefined,
+    prehabData: prehabExercises.length > 0 ? { exercises: prehabExercises } : undefined,
     coreData: coreExercises.length > 0 ? { exercises: coreExercises } : undefined,
     estimatedDuration: intent.workout.duration || 45,
     tags: subtype ? [subtype] : [],

@@ -23,6 +23,7 @@ export async function GET() {
       select: {
         exercises: true,
         warmupData: true,
+        prehabData: true,
         coreData: true,
         cooldownData: true,
       },
@@ -42,8 +43,8 @@ export async function GET() {
         }
       }
 
-      // Section exercises (warmup, core, cooldown)
-      for (const sectionData of [session.warmupData, session.coreData, session.cooldownData]) {
+      // Section exercises (warmup, prehab, core, cooldown)
+      for (const sectionData of [session.warmupData, session.prehabData, session.coreData, session.cooldownData]) {
         const section = sectionData as { exercises?: any[] } | null
         if (section?.exercises && Array.isArray(section.exercises)) {
           for (const ex of section.exercises) {

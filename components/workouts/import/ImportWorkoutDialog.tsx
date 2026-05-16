@@ -712,6 +712,7 @@ function WorkoutSummary({ workout }: { workout: ParsedWorkoutImport }) {
     case 'STRENGTH': {
       const main = workout.exercises.length
       const warm = workout.warmupData?.exercises?.length ?? 0
+      const prehab = workout.prehabData?.exercises?.length ?? 0
       const core = workout.coreData?.exercises?.length ?? 0
       const cool = workout.cooldownData?.exercises?.length ?? 0
       return (
@@ -719,6 +720,7 @@ function WorkoutSummary({ workout }: { workout: ParsedWorkoutImport }) {
           <div className="text-muted-foreground">
             Fas: {workout.phase || '—'} · {main} huvudövningar
             {warm > 0 && ` · ${warm} uppvärmning`}
+            {prehab > 0 && ` · ${prehab} prehab`}
             {core > 0 && ` · ${core} core`}
             {cool > 0 && ` · ${cool} nedvarvning`}
           </div>
