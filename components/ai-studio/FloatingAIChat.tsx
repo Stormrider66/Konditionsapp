@@ -30,6 +30,8 @@ import {
   VolumeX,
   Zap,
   Headphones,
+  Radio,
+  PhoneOff,
 } from 'lucide-react'
 import { ChatMessage } from './ChatMessage'
 import { ChatNavigationCard, type ChatNavigationResult } from './ChatNavigationCard'
@@ -268,6 +270,10 @@ export function FloatingAIChat({
   const assistantAudioUrlRef = useRef<string | null>(null)
   const assistantSpeechAbortRef = useRef<AbortController | null>(null)
   const premiumVoiceUnavailableRef = useRef(false)
+  const realtimePeerRef = useRef<RTCPeerConnection | null>(null)
+  const realtimeDataChannelRef = useRef<RTCDataChannel | null>(null)
+  const realtimeMediaStreamRef = useRef<MediaStream | null>(null)
+  const realtimeAudioRef = useRef<HTMLAudioElement | null>(null)
 
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
@@ -299,6 +305,9 @@ export function FloatingAIChat({
   const [isVoiceAutoSendEnabled, setIsVoiceAutoSendEnabled] = useState(false)
   const [isVoiceAutoSendPending, setIsVoiceAutoSendPending] = useState(false)
   const [isVoiceOperatorModeEnabled, setIsVoiceOperatorModeEnabled] = useState(false)
+  const [isRealtimeVoiceConnecting, setIsRealtimeVoiceConnecting] = useState(false)
+  const [isRealtimeVoiceActive, setIsRealtimeVoiceActive] = useState(false)
+  const [realtimeVoiceStatus, setRealtimeVoiceStatus] = useState<string | null>(null)
   const voiceRecordingPromiseRef = useRef<Promise<Blob> | null>(null)
   const addAssistantNotice = useCallback((content: string) => {
     setAssistantNotices((current) => [
@@ -342,6 +351,10 @@ export function FloatingAIChat({
       if (assistantAudioUrlRef.current) {
         URL.revokeObjectURL(assistantAudioUrlRef.current)
       }
+      realtimeDataChannelRef.current?.close()
+      realtimePeerRef.current?.close()
+      realtimeMediaStreamRef.current?.getTracks().forEach((track) => track.stop())
+      realtimeAudioRef.current?.pause()
     }
   }, [])
 
@@ -393,6 +406,29 @@ export function FloatingAIChat({
     setIsSpeakingAssistant(false)
     setIsGeneratingAssistantAudio(false)
     setVoicePlaybackStatus(null)
+  }, [])
+
+  const stopRealtimeVoice = useCallback((statusMessage?: string) => {
+    const dataChannel = realtimeDataChannelRef.current
+    realtimeDataChannelRef.current = null
+    dataChannel?.close()
+
+    const peer = realtimePeerRef.current
+    realtimePeerRef.current = null
+    peer?.close()
+
+    const mediaStream = realtimeMediaStreamRef.current
+    realtimeMediaStreamRef.current = null
+    mediaStream?.getTracks().forEach((track) => track.stop())
+
+    if (realtimeAudioRef.current) {
+      realtimeAudioRef.current.pause()
+      realtimeAudioRef.current.srcObject = null
+      realtimeAudioRef.current = null
+    }
+    setIsRealtimeVoiceConnecting(false)
+    setIsRealtimeVoiceActive(false)
+    setRealtimeVoiceStatus(statusMessage ?? null)
   }, [])
 
   const speakBrowserAssistantReply = useCallback((text: string): boolean => {
@@ -866,6 +902,154 @@ export function FloatingAIChat({
     contextStringRef.current = buildPageContextString()
   }, [buildPageContextString])
 
+  const startRealtimeVoice = useCallback(async () => {
+    if (isRealtimeVoiceConnecting || isRealtimeVoiceActive) return
+    if (typeof window === 'undefined' || !window.RTCPeerConnection) {
+      const message = 'Live voice stöds inte i den här webbläsaren.'
+      addAssistantNotice(message)
+      toast({
+        title: 'Live voice stöds inte',
+        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      const message = 'Jag kan inte starta live voice eftersom mikrofonåtkomst saknas.'
+      addAssistantNotice(message)
+      toast({
+        title: 'Mikrofon saknas',
+        description: 'Tillåt mikrofonåtkomst och försök igen.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    stopAssistantSpeech()
+    cancelVoiceAutoSend()
+    setIsRealtimeVoiceConnecting(true)
+    setRealtimeVoiceStatus('Startar live voice...')
+
+    let peer: RTCPeerConnection | null = null
+    let mediaStream: MediaStream | null = null
+    try {
+      peer = new RTCPeerConnection()
+      realtimePeerRef.current = peer
+
+      const remoteAudio = new Audio()
+      remoteAudio.autoplay = true
+      realtimeAudioRef.current = remoteAudio
+      peer.ontrack = (event) => {
+        remoteAudio.srcObject = event.streams[0]
+      }
+      peer.onconnectionstatechange = () => {
+        if (!peer) return
+        if (realtimePeerRef.current !== peer) return
+        if (peer.connectionState === 'connected') {
+          setIsRealtimeVoiceConnecting(false)
+          setIsRealtimeVoiceActive(true)
+          setRealtimeVoiceStatus('Live voice aktiv. Åtgärder kräver fortsatt bekräftelse i chatten.')
+        }
+        if (['failed', 'closed', 'disconnected'].includes(peer.connectionState)) {
+          stopRealtimeVoice('Live voice är frånkopplad.')
+        }
+      }
+
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      realtimeMediaStreamRef.current = mediaStream
+      for (const track of mediaStream.getAudioTracks()) {
+        peer.addTrack(track, mediaStream)
+      }
+
+      const dataChannel = peer.createDataChannel('oai-events')
+      realtimeDataChannelRef.current = dataChannel
+      dataChannel.onopen = () => {
+        setRealtimeVoiceStatus('Live voice lyssnar.')
+      }
+      dataChannel.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as { type?: string; error?: { message?: string } }
+          if (data.type === 'error') {
+            const message = data.error?.message || 'Live voice fick ett okänt fel.'
+            setRealtimeVoiceStatus(message)
+            addAssistantNotice(`Live voice kunde inte fortsätta: ${message}`)
+          } else if (data.type === 'response.audio_transcript.done') {
+            setRealtimeVoiceStatus('Live voice svarade.')
+          } else if (data.type === 'input_audio_buffer.speech_started') {
+            setRealtimeVoiceStatus('Live voice lyssnar...')
+          } else if (data.type === 'input_audio_buffer.speech_stopped') {
+            setRealtimeVoiceStatus('Bearbetar live voice...')
+          }
+        } catch {
+          // Ignore non-JSON realtime diagnostics.
+        }
+      }
+
+      const offer = await peer.createOffer()
+      await peer.setLocalDescription(offer)
+      if (!offer.sdp) {
+        throw new Error('Kunde inte skapa WebRTC-offer.')
+      }
+
+      const response = await fetch('/api/ai/chat/realtime-call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sdp: offer.sdp,
+          isAthleteChat: isAthleteUser,
+          businessSlug: pathBusinessSlug,
+          pageContext: contextStringRef.current,
+        }),
+      })
+      const answerSdp = await response.text()
+      if (!response.ok) {
+        let message = 'Kunde inte starta OpenAI live voice.'
+        try {
+          const parsed = JSON.parse(answerSdp) as { error?: string }
+          message = parsed.error || message
+        } catch {
+          if (answerSdp.trim()) message = answerSdp.trim()
+        }
+        throw new Error(message)
+      }
+
+      await peer.setRemoteDescription({ type: 'answer', sdp: answerSdp })
+      setRealtimeVoiceStatus('Ansluter live voice...')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Kunde inte starta live voice.'
+      stopRealtimeVoice(message)
+      addAssistantNotice(`Jag kunde inte starta live voice: ${message}`)
+      toast({
+        title: 'Live voice kunde inte starta',
+        description: message,
+        variant: 'destructive',
+      })
+    }
+  }, [
+    addAssistantNotice,
+    cancelVoiceAutoSend,
+    isAthleteUser,
+    isRealtimeVoiceActive,
+    isRealtimeVoiceConnecting,
+    pathBusinessSlug,
+    stopAssistantSpeech,
+    stopRealtimeVoice,
+    toast,
+  ])
+
+  const toggleRealtimeVoice = useCallback(() => {
+    if (isRealtimeVoiceActive || isRealtimeVoiceConnecting) {
+      stopRealtimeVoice('Live voice är avstängd.')
+      return
+    }
+    void startRealtimeVoice()
+  }, [
+    isRealtimeVoiceActive,
+    isRealtimeVoiceConnecting,
+    startRealtimeVoice,
+    stopRealtimeVoice,
+  ])
+
   // Manual input state (AI SDK 5 no longer manages input state)
   const [input, setInput] = useState('')
 
@@ -1221,6 +1405,7 @@ export function FloatingAIChat({
   function handleClose() {
     stopAssistantSpeech()
     cancelVoiceAutoSend()
+    stopRealtimeVoice()
     setIsOpen(false)
     setMessages([])
     setAssistantNotices([])
@@ -1233,6 +1418,7 @@ export function FloatingAIChat({
   function handleNewChat() {
     stopAssistantSpeech()
     cancelVoiceAutoSend()
+    stopRealtimeVoice()
     setMessages([])
     setAssistantNotices([])
     setConversationId(null)
@@ -1363,6 +1549,9 @@ export function FloatingAIChat({
   const voiceOperatorModeLabel = isVoiceOperatorModeEnabled
     ? 'Stäng av voice operator'
     : 'Slå på voice operator'
+  const realtimeVoiceLabel = isRealtimeVoiceActive || isRealtimeVoiceConnecting
+    ? 'Stäng av live voice'
+    : 'Starta live voice'
 
   // Floating button (always visible)
   if (!isOpen) {
@@ -1499,6 +1688,24 @@ export function FloatingAIChat({
           <Button
             variant="ghost"
             size="icon"
+            onClick={toggleRealtimeVoice}
+            disabled={isTranscribingVoice || isVoiceRecording}
+            className={cn(
+              'h-8 w-8 text-white hover:bg-white/20',
+              (isRealtimeVoiceActive || isRealtimeVoiceConnecting) && 'bg-white/20 ring-1 ring-white/40'
+            )}
+            title={realtimeVoiceLabel}
+            aria-label={realtimeVoiceLabel}
+          >
+            {isRealtimeVoiceActive || isRealtimeVoiceConnecting ? (
+              <PhoneOff className="h-4 w-4" />
+            ) : (
+              <Radio className="h-4 w-4" />
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={toggleVoiceOperatorMode}
             className={cn(
               'h-8 w-8 text-white hover:bg-white/20',
@@ -1621,6 +1828,32 @@ export function FloatingAIChat({
           <span className="shrink-0 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium">
             Bekräftar åtgärder
           </span>
+        </div>
+      )}
+
+      {(isRealtimeVoiceActive || isRealtimeVoiceConnecting || realtimeVoiceStatus) && (
+        <div className="px-3 py-2 border-b bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            {isRealtimeVoiceConnecting ? (
+              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+            ) : (
+              <Radio className="h-3.5 w-3.5 shrink-0" />
+            )}
+            <span className="truncate">
+              {realtimeVoiceStatus || 'Live voice aktiv'}
+            </span>
+          </div>
+          {(isRealtimeVoiceActive || isRealtimeVoiceConnecting) && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => stopRealtimeVoice('Live voice är avstängd.')}
+              className="h-6 px-2 text-xs hover:bg-emerald-500/10"
+            >
+              Stoppa
+            </Button>
+          )}
         </div>
       )}
 
