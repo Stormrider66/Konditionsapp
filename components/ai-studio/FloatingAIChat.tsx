@@ -26,6 +26,8 @@ import {
   AlertTriangle,
   Mic,
   Square,
+  Volume2,
+  VolumeX,
 } from 'lucide-react'
 import { ChatMessage } from './ChatMessage'
 import { ChatNavigationCard, type ChatNavigationResult } from './ChatNavigationCard'
@@ -216,6 +218,25 @@ function formatVoiceDuration(seconds: number): string {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
 }
 
+function getMessageTextContent(parts?: unknown[]): string {
+  return parts
+    ?.filter((part): part is { type: 'text'; text: string } => {
+      return typeof part === 'object' && part !== null && (part as { type?: unknown }).type === 'text'
+    })
+    .map((part) => part.text)
+    .join('') || ''
+}
+
+function getSpeakableAssistantText(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[#*_~>|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 export function FloatingAIChat({
   athleteId,
   athleteName,
@@ -237,6 +258,8 @@ export function FloatingAIChat({
   } = useFloatingChatDrag()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const assistantSpeechVoiceRef = useRef<SpeechSynthesisVoice | null>(null)
+  const spokenAssistantMessageIdsRef = useRef<Set<string>>(new Set())
 
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
@@ -259,7 +282,20 @@ export function FloatingAIChat({
   const [detectedProgram, setDetectedProgram] = useState<ParseResult | null>(null)
   const [isPublishing, setIsPublishing] = useState(false)
   const [isTranscribingVoice, setIsTranscribingVoice] = useState(false)
+  const [isSpokenRepliesEnabled, setIsSpokenRepliesEnabled] = useState(false)
+  const [isSpeechSupported, setIsSpeechSupported] = useState(false)
+  const [isSpeakingAssistant, setIsSpeakingAssistant] = useState(false)
   const voiceRecordingPromiseRef = useRef<Promise<Blob> | null>(null)
+  const addAssistantNotice = useCallback((content: string) => {
+    setAssistantNotices((current) => [
+      ...current,
+      {
+        id: `assistant-notice-${Date.now()}-${current.length}`,
+        content,
+        createdAt: new Date(),
+      },
+    ].slice(-3))
+  }, [])
   const {
     isRecording: isVoiceRecording,
     duration: voiceDuration,
@@ -268,6 +304,82 @@ export function FloatingAIChat({
     error: voiceRecorderError,
     isSupported: isVoiceSupported,
   } = useAudioRecorder()
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
+    const frame = window.requestAnimationFrame(() => {
+      setIsSpeechSupported(true)
+      setIsSpokenRepliesEnabled(window.localStorage.getItem('floating-ai-spoken-replies') === 'true')
+    })
+
+    const pickVoice = () => {
+      const voices = window.speechSynthesis.getVoices()
+      const preferredVoice =
+        voices.find((voice) => voice.lang.toLowerCase().startsWith('sv') && /alva|klara|oskar/i.test(voice.name)) ||
+        voices.find((voice) => voice.lang.toLowerCase().startsWith('sv')) ||
+        voices.find((voice) => voice.lang.toLowerCase().startsWith('en') && /samantha|daniel/i.test(voice.name)) ||
+        voices.find((voice) => voice.lang.toLowerCase().startsWith('en')) ||
+        voices[0] ||
+        null
+
+      assistantSpeechVoiceRef.current = preferredVoice
+    }
+
+    pickVoice()
+    window.speechSynthesis.addEventListener('voiceschanged', pickVoice)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.speechSynthesis.removeEventListener('voiceschanged', pickVoice)
+      window.speechSynthesis.cancel()
+    }
+  }, [])
+
+  const stopAssistantSpeech = useCallback(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+    }
+    setIsSpeakingAssistant(false)
+  }, [])
+
+  const speakAssistantReply = useCallback((text: string) => {
+    if (!isSpokenRepliesEnabled || !isSpeechSupported) return
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
+
+    const speakableText = getSpeakableAssistantText(text)
+    if (!speakableText) return
+
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(speakableText)
+    const voice = assistantSpeechVoiceRef.current
+    utterance.lang = voice?.lang || 'sv-SE'
+    utterance.voice = voice
+    utterance.rate = 1
+    utterance.pitch = 1
+    utterance.onstart = () => setIsSpeakingAssistant(true)
+    utterance.onend = () => setIsSpeakingAssistant(false)
+    utterance.onerror = () => setIsSpeakingAssistant(false)
+    window.speechSynthesis.speak(utterance)
+  }, [isSpeechSupported, isSpokenRepliesEnabled])
+
+  const toggleSpokenReplies = useCallback(() => {
+    if (!isSpeechSupported) {
+      const message = 'Röstsvar stöds inte i den här webbläsaren.'
+      addAssistantNotice(message)
+      toast({
+        title: 'Röstsvar stöds inte',
+        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsSpokenRepliesEnabled((current) => {
+      const next = !current
+      window.localStorage.setItem('floating-ai-spoken-replies', String(next))
+      if (!next) stopAssistantSpeech()
+      return next
+    })
+  }, [addAssistantNotice, isSpeechSupported, stopAssistantSpeech, toast])
 
   // Track if context is available (data-rich or auto-context with concepts)
   const hasContext = !!pageContext && (
@@ -541,17 +653,6 @@ export function FloatingAIChat({
   // Track auto-retrieved knowledge skills
   const [knowledgeSkills, setKnowledgeSkills] = useState<string[]>([])
 
-  const addAssistantNotice = useCallback((content: string) => {
-    setAssistantNotices((current) => [
-      ...current,
-      {
-        id: `assistant-notice-${Date.now()}-${current.length}`,
-        content,
-        createdAt: new Date(),
-      },
-    ].slice(-3))
-  }, [])
-
   // Custom fetch to capture X-Knowledge-Skills header from streaming response
   const skillCapturingFetch = useCallback(async (url: RequestInfo | URL, init?: RequestInit) => {
     const response = await fetch(url, init)
@@ -602,10 +703,7 @@ export function FloatingAIChat({
     const lastMessage = messages[messages.length - 1]
     if (lastMessage.role !== 'assistant') return
 
-    const textContent = lastMessage.parts
-      ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
-      .map((part) => part.text)
-      .join('') || ''
+    const textContent = getMessageTextContent(lastMessage.parts)
 
     if (!textContent || textContent.length < 100) return
 
@@ -620,6 +718,23 @@ export function FloatingAIChat({
       setDetectedProgram(null)
     }
   }, [messages, isLoading])
+
+  useEffect(() => {
+    if (isLoading || !messages.length) return
+
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage.role !== 'assistant') return
+    if (spokenAssistantMessageIdsRef.current.has(lastMessage.id)) return
+
+    const textContent = getMessageTextContent(lastMessage.parts)
+    const toolOnlyStatusMessage = textContent
+      ? null
+      : getToolOnlyStatusMessage(lastMessage.role, lastMessage.parts)
+    const replyText = textContent || toolOnlyStatusMessage || ''
+
+    spokenAssistantMessageIdsRef.current.add(lastMessage.id)
+    speakAssistantReply(replyText)
+  }, [isLoading, messages, speakAssistantReply])
 
   async function handlePublishProgram() {
     if (!detectedProgram?.program) return
@@ -845,18 +960,22 @@ export function FloatingAIChat({
   }
 
   function handleClose() {
+    stopAssistantSpeech()
     setIsOpen(false)
     setMessages([])
     setAssistantNotices([])
     setConversationId(null)
     setInput('')
+    spokenAssistantMessageIdsRef.current.clear()
   }
 
   function handleNewChat() {
+    stopAssistantSpeech()
     setMessages([])
     setAssistantNotices([])
     setConversationId(null)
     setInput('')
+    spokenAssistantMessageIdsRef.current.clear()
   }
 
   // Get context label
@@ -972,6 +1091,9 @@ export function FloatingAIChat({
     : isTranscribingVoice
       ? 'Transkriberar röst'
       : 'Starta röstinmatning'
+  const spokenRepliesLabel = isSpokenRepliesEnabled
+    ? 'Stäng av röstsvar'
+    : 'Slå på röstsvar'
 
   // Floating button (always visible)
   if (!isOpen) {
@@ -1105,6 +1227,23 @@ export function FloatingAIChat({
           {getProviderBadge()}
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSpokenReplies}
+            className={cn(
+              'h-8 w-8 text-white hover:bg-white/20',
+              isSpokenRepliesEnabled && 'bg-white/15'
+            )}
+            title={spokenRepliesLabel}
+            aria-label={spokenRepliesLabel}
+          >
+            {isSpokenRepliesEnabled ? (
+              <Volume2 className="h-4 w-4" />
+            ) : (
+              <VolumeX className="h-4 w-4" />
+            )}
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -1270,10 +1409,7 @@ export function FloatingAIChat({
           <div className="space-y-4">
             {messages.map((message) => {
               // AI SDK 5: Extract text from message parts
-              const textContent = message.parts
-                ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
-                .map((part) => part.text)
-                .join('') || ''
+              const textContent = getMessageTextContent(message.parts)
               const toolOnlyStatusMessage = textContent || isLoading
                 ? null
                 : getToolOnlyStatusMessage(message.role, message.parts)
@@ -1433,6 +1569,11 @@ export function FloatingAIChat({
               )}
             >
               {voiceStatusMessage}
+            </div>
+          )}
+          {isSpokenRepliesEnabled && isSpeakingAssistant && (
+            <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+              Läser upp svaret...
             </div>
           )}
         </div>
