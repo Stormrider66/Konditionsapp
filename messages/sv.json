@@ -622,6 +622,35 @@
         "backToAthlete": "Tillbaka till {athleteName}",
         "title": "{athleteName}s kalender",
         "description": "Hantera atletens träningspass, tävlingar och händelser"
+      },
+      "programs": {
+        "title": "Träningsprogram",
+        "description": "Hantera och skapa träningsprogram för dina atleter",
+        "importProgram": "Importera program",
+        "createNew": "Skapa nytt program",
+        "athleteLimitReached": "Du har nått gränsen för antalet atleter i din prenumeration. Uppgradera för att skapa fler program."
+      },
+      "programImport": {
+        "backToPrograms": "Tillbaka till program",
+        "title": "Importera träningsprogram",
+        "description": "Släpp en Excel-fil, PDF eller klistra in text — AI:n tolkar programmet och lägger det i redigeraren innan du publicerar det till en atlet."
+      },
+      "programNew": {
+        "back": "Tillbaka",
+        "backToPrograms": "Tillbaka till program",
+        "noClientsTitle": "Inga klienter tillgängliga",
+        "noClientsDescription": "Du behöver skapa en klient innan du kan skapa ett träningsprogram.",
+        "createClient": "Skapa klient",
+        "title": "Skapa träningsprogram",
+        "description": "Välj sport, mål och datakälla för att generera ett personligt program",
+        "aiCanvas": {
+          "title": "Öppnat från AI Canvas",
+          "description": "Använd canvasens sammanhang som stöd när du väljer atlet, mål och datakälla. Inget program skapas förrän du bekräftar i guiden."
+        }
+      },
+      "gymPlatform": {
+        "title": "Gymplattformar",
+        "description": "Anslut ditt gym-system för att synka klasser, bokningar och PT-sessioner"
       }
     },
     "dashboard": "Coach Dashboard",

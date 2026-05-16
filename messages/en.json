@@ -622,6 +622,35 @@
         "backToAthlete": "Back to {athleteName}",
         "title": "{athleteName}'s calendar",
         "description": "Manage the athlete's workouts, competitions, and events"
+      },
+      "programs": {
+        "title": "Training programs",
+        "description": "Manage and create training programs for your athletes",
+        "importProgram": "Import program",
+        "createNew": "Create new program",
+        "athleteLimitReached": "You have reached the athlete limit for your subscription. Upgrade to create more programs."
+      },
+      "programImport": {
+        "backToPrograms": "Back to programs",
+        "title": "Import training program",
+        "description": "Drop an Excel file, PDF, or pasted text, and the AI will interpret the program and place it in the editor before you publish it to an athlete."
+      },
+      "programNew": {
+        "back": "Back",
+        "backToPrograms": "Back to programs",
+        "noClientsTitle": "No clients available",
+        "noClientsDescription": "You need to create a client before you can create a training program.",
+        "createClient": "Create client",
+        "title": "Create training program",
+        "description": "Choose sport, goal, and data source to generate a personalized program",
+        "aiCanvas": {
+          "title": "Opened from AI Canvas",
+          "description": "Use the canvas context as support when choosing athlete, goal, and data source. No program is created until you confirm in the wizard."
+        }
+      },
+      "gymPlatform": {
+        "title": "Gym platforms",
+        "description": "Connect your gym system to sync classes, bookings, and PT sessions"
       }
     },
     "dashboard": "Coach Dashboard",

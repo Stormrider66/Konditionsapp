@@ -1,5 +1,5 @@
 // app/(business)/[businessSlug]/coach/programs/page.tsx
-import { redirect, notFound } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
@@ -8,6 +8,9 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { PlusIcon, Upload } from 'lucide-react'
 import { ProgramsList } from '@/components/programs/ProgramsList'
+import { getTranslations } from '@/i18n/server'
+
+type ProgramsListPrograms = Parameters<typeof ProgramsList>[0]['programs']
 
 interface BusinessCoachProgramsPageProps {
   params: Promise<{ businessSlug: string }>
@@ -16,6 +19,7 @@ interface BusinessCoachProgramsPageProps {
 export default async function BusinessCoachProgramsPage({ params }: BusinessCoachProgramsPageProps) {
   const { businessSlug } = await params
   const user = await requireCoach()
+  const t = await getTranslations('coach.pages.programs')
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) {
@@ -78,9 +82,9 @@ export default async function BusinessCoachProgramsPage({ params }: BusinessCoac
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-slate-900 dark:text-white">Träningsprogram</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-slate-900 dark:text-white">{t('title')}</h1>
           <p className="text-slate-600 dark:text-slate-400">
-            Hantera och skapa träningsprogram för dina atleter
+            {t('description')}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 shrink-0">
@@ -92,13 +96,13 @@ export default async function BusinessCoachProgramsPage({ params }: BusinessCoac
               className="w-full sm:w-auto"
             >
               <Upload className="mr-2 h-5 w-5" />
-              Importera program
+              {t('importProgram')}
             </Button>
           </Link>
           <Link href={`${basePath}/coach/programs/new`}>
             <Button size="lg" disabled={!canCreateMore} className="w-full sm:w-auto">
               <PlusIcon className="mr-2 h-5 w-5" />
-              Skapa nytt program
+              {t('createNew')}
             </Button>
           </Link>
         </div>
@@ -107,13 +111,12 @@ export default async function BusinessCoachProgramsPage({ params }: BusinessCoac
       {!canCreateMore && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-lg p-4 mb-6">
           <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            Du har nått gränsen för antalet atleter i din prenumeration.
-            Uppgradera för att skapa fler program.
+            {t('athleteLimitReached')}
           </p>
         </div>
       )}
 
-      <ProgramsList programs={programs as any} />
+      <ProgramsList programs={programs as unknown as ProgramsListPrograms} />
     </div>
   )
 }
