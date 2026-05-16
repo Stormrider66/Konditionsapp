@@ -42,11 +42,141 @@ interface KnowledgeSkillRow {
   maxChunks: number
 }
 
+export interface KnowledgeSkillSummary {
+  id: string
+  name: string
+  nameEn: string | null
+  description: string
+  category: string
+  keywords: string[]
+  priority: number
+  documentIds: string[]
+  maxChunks: number
+}
+
 // Max total tokens of auto-retrieved content (~4 chars per token)
 const MAX_SKILL_CONTEXT_CHARS = 12000 // ~3000 tokens
 
 // Track whether skill embeddings have been backfilled this server lifecycle
 let skillEmbeddingsChecked = false
+
+function normalizeSkillText(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+function toMatchedSkill(
+  skill: KnowledgeSkillSummary | KnowledgeSkillRow,
+  score: number,
+  matchType: 'keyword' | 'embedding' = 'keyword'
+): MatchedSkill {
+  return {
+    id: skill.id,
+    name: skill.name,
+    nameEn: skill.nameEn,
+    category: skill.category,
+    documentIds: skill.documentIds,
+    maxChunks: skill.maxChunks,
+    score,
+    matchType,
+  }
+}
+
+export function isKnowledgeSkillCatalogRequest(query: string): boolean {
+  const normalized = normalizeSkillText(query)
+  const mentionsSkills =
+    /\b(ai\s*)?(skills?|kunskapsskills?|kunskapsomraden|expertkunskap|kunskaper)\b/.test(normalized)
+  const asksForList =
+    /\b(lista|list|visa|show|vilka|what|available|tillgangliga|har du|kan du anvanda)\b/.test(normalized)
+
+  return mentionsSkills && asksForList
+}
+
+export function hasExplicitKnowledgeSkillRequest(query: string): boolean {
+  const normalized = normalizeSkillText(query)
+  return /\b(anvand|use|pull|hamta|plocka|dra in|koppla in|with|med)\b/.test(normalized)
+}
+
+export async function listKnowledgeSkills(): Promise<KnowledgeSkillSummary[]> {
+  return prisma.knowledgeSkill.findMany({
+    where: { isActive: true },
+    orderBy: [{ category: 'asc' }, { priority: 'desc' }, { name: 'asc' }],
+    select: {
+      id: true,
+      name: true,
+      nameEn: true,
+      description: true,
+      category: true,
+      keywords: true,
+      priority: true,
+      documentIds: true,
+      maxChunks: true,
+    },
+  }) as Promise<KnowledgeSkillSummary[]>
+}
+
+export function formatKnowledgeSkillCatalog(skills: KnowledgeSkillSummary[]): string {
+  const grouped = skills.reduce<Record<string, KnowledgeSkillSummary[]>>((acc, skill) => {
+    if (!acc[skill.category]) acc[skill.category] = []
+    acc[skill.category].push(skill)
+    return acc
+  }, {})
+
+  const lines = Object.entries(grouped).map(([category, categorySkills]) => {
+    const skillLines = categorySkills.map((skill) => {
+      const englishName = skill.nameEn ? ` / ${skill.nameEn}` : ''
+      const keywords = skill.keywords.slice(0, 5).join(', ')
+      return `- ${skill.name}${englishName}${keywords ? ` (${keywords})` : ''}`
+    })
+    return `### ${category}\n${skillLines.join('\n')}`
+  })
+
+  return `
+## TILLGÄNGLIGA AI-KUNSKAPSSKILLS
+Användaren frågar vilka expertkunskaper du kan använda. Lista skills grupperat och säg att användaren kan be dig använda en eller flera, till exempel: "Använd Norsk Dubbeltröskelmetod och Laktattröskeltest".
+
+${lines.join('\n\n')}
+---
+`
+}
+
+export async function resolveRequestedKnowledgeSkills(
+  query: string,
+  options: { maxSkills?: number } = {}
+): Promise<MatchedSkill[]> {
+  const { maxSkills = 5 } = options
+  const skills = await listKnowledgeSkills()
+  const normalizedQuery = normalizeSkillText(query)
+  const matches: MatchedSkill[] = []
+
+  for (const skill of skills) {
+    const candidateTexts = [
+      skill.name,
+      skill.nameEn || '',
+      ...skill.keywords,
+    ].filter(Boolean)
+
+    const bestScore = candidateTexts.reduce((score, text) => {
+      const normalizedText = normalizeSkillText(text)
+      if (!normalizedText || !normalizedQuery.includes(normalizedText)) return score
+      const exactNameBonus =
+        normalizedText === normalizeSkillText(skill.name) ||
+        normalizedText === normalizeSkillText(skill.nameEn || '')
+          ? 10
+          : 0
+      return Math.max(score, normalizedText.length + skill.priority + exactNameBonus)
+    }, 0)
+
+    if (bestScore > 0) {
+      matches.push(toMatchedSkill(skill, bestScore, 'keyword'))
+    }
+  }
+
+  matches.sort((a, b) => b.score - a.score)
+  return matches.slice(0, maxSkills)
+}
 
 /**
  * Backfill embeddings for KnowledgeSkill rows that are missing them.

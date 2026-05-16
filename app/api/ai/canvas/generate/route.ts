@@ -10,7 +10,12 @@ import { withAiContext } from '@/lib/ai/usage-logger'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resolveModel } from '@/types/ai-models'
 import { hasEmbeddingKeys } from '@/lib/ai/embeddings'
-import { fetchSkillContext, matchKnowledgeSkills } from '@/lib/ai/knowledge-skills'
+import {
+  fetchSkillContext,
+  hasExplicitKnowledgeSkillRequest,
+  matchKnowledgeSkills,
+  resolveRequestedKnowledgeSkills,
+} from '@/lib/ai/knowledge-skills'
 import { logger } from '@/lib/logger'
 
 const templateSchema = z.enum([
@@ -198,11 +203,21 @@ export async function POST(request: NextRequest) {
     let skillsUsed: string[] = []
     if (hasEmbeddingKeys(embeddingKeys)) {
       try {
-        const matchedSkills = await matchKnowledgeSkills(prompt, embeddingKeys, { maxSkills: 3 })
+        const requestedSkills = hasExplicitKnowledgeSkillRequest(prompt)
+          ? await resolveRequestedKnowledgeSkills(prompt, { maxSkills: 5 })
+          : []
+        const matchedSkills = requestedSkills.length > 0
+          ? requestedSkills
+          : await matchKnowledgeSkills(prompt, embeddingKeys, { maxSkills: 3 })
         if (matchedSkills.length > 0) {
           const result = await fetchSkillContext(prompt, matchedSkills, embeddingKeys)
-          skillContext = result.context
-          skillsUsed = result.skillsUsed
+          const requestedIntro = requestedSkills.length > 0
+            ? `\n## REQUESTED KNOWLEDGE SKILLS\n${requestedSkills.map((skill) => `- ${skill.name}`).join('\n')}\n`
+            : ''
+          skillContext = `${requestedIntro}${result.context}`
+          skillsUsed = result.skillsUsed.length > 0
+            ? result.skillsUsed
+            : matchedSkills.map((skill) => skill.name)
         }
       } catch (error) {
         logger.warn('AI canvas skill retrieval failed', {}, error)

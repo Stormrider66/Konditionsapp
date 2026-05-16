@@ -4,7 +4,15 @@ import { searchSimilarChunks, hasEmbeddingKeys, type EmbeddingKeys } from '@/lib
 import { buildSportSpecificContext, type AthleteData } from '@/lib/ai/sport-context-builder'
 import { buildAthleteOwnContext } from '@/lib/ai/athlete-context-builder'
 import { buildCalendarContext } from '@/lib/ai/calendar-context-builder'
-import { matchKnowledgeSkills, fetchSkillContext } from '@/lib/ai/knowledge-skills'
+import {
+  fetchSkillContext,
+  formatKnowledgeSkillCatalog,
+  hasExplicitKnowledgeSkillRequest,
+  isKnowledgeSkillCatalogRequest,
+  listKnowledgeSkills,
+  matchKnowledgeSkills,
+  resolveRequestedKnowledgeSkills,
+} from '@/lib/ai/knowledge-skills'
 import { webSearch, formatSearchResultsForContext } from '@/lib/ai/web-search'
 import {
   buildAthleteSystemPrompt,
@@ -203,20 +211,35 @@ export async function buildChatContext(
   // ── Knowledge skills ──
   let skillContext = ''
   let skillsUsed: string[] = []
-  if (hasEmbeddingKeys(embeddingKeys)) {
-    const lastUserMsg = messages.filter((m) => m.role === 'user').pop()
-    if (lastUserMsg) {
-      try {
-        const userContent = getMessageContent(lastUserMsg)
-        const matched = await matchKnowledgeSkills(userContent, embeddingKeys, { maxSkills: 3 })
+  const lastUserMsg = messages.filter((m) => m.role === 'user').pop()
+  if (lastUserMsg) {
+    try {
+      const userContent = getMessageContent(lastUserMsg)
+
+      if (isKnowledgeSkillCatalogRequest(userContent)) {
+        const skills = await listKnowledgeSkills()
+        skillContext = formatKnowledgeSkillCatalog(skills)
+      } else if (hasEmbeddingKeys(embeddingKeys)) {
+        const requested = hasExplicitKnowledgeSkillRequest(userContent)
+          ? await resolveRequestedKnowledgeSkills(userContent, { maxSkills: 5 })
+          : []
+        const matched = requested.length > 0
+          ? requested
+          : await matchKnowledgeSkills(userContent, embeddingKeys, { maxSkills: 3 })
+
         if (matched.length > 0) {
           const result = await fetchSkillContext(userContent, matched, embeddingKeys)
-          skillContext = result.context
-          skillsUsed = result.skillsUsed
+          const requestedIntro = requested.length > 0
+            ? `\n## ANVÄNDAREN BAD UTTRYCKLIGEN OM DESSA KUNSKAPSSKILLS\n${requested.map((skill) => `- ${skill.name}`).join('\n')}\n`
+            : ''
+          skillContext = `${requestedIntro}${result.context}`
+          skillsUsed = result.skillsUsed.length > 0
+            ? result.skillsUsed
+            : matched.map((skill) => skill.name)
         }
-      } catch (error) {
-        logger.warn('Error fetching knowledge skills context', {}, error)
       }
+    } catch (error) {
+      logger.warn('Error fetching knowledge skills context', {}, error)
     }
   }
 
