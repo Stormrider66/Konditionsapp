@@ -8,7 +8,7 @@ The build should move in five useful levels. Each level must be valuable on its 
 
 ## Level 1: Smart Dashboard Helper
 
-Status: in progress
+Status: first slice shipped on 2026-05-16
 
 The assistant understands the current page, visible concepts, and dashboard summary signals. It can explain what the coach is seeing, summarize priorities, and suggest the next place to look.
 
@@ -33,6 +33,8 @@ Guardrails:
 - Keep recommendations concrete and tied to the available page context.
 
 ## Level 2: Data Finder
+
+Status: first read-tool slice shipped on 2026-05-16
 
 The assistant can answer targeted read questions by calling permission-aware tools.
 

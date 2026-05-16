@@ -252,7 +252,15 @@ Starta generering av ett komplett flervekkors träningsprogram åt en atlet.
 ### listAthletes
 Lista coachens atleter. Använd detta för att hitta rätt atlet-ID.
 
+### findAthleteByName
+Sök efter atleter inom coachens behörighet när coachen anger ett namn. Använd detta om namnet kan matcha flera personer eller om du behöver clientId.
+
+### getLatestCompletedWorkout
+Hämta senaste genomförda träningsaktivitet för en atlet. Kan användas direkt med athleteName eller clientId och täcker programloggar, ad-hoc-pass, Garmin, styrka, kondition, hybrid, agility och AI-genererade WODs.
+
 **Viktigt:** Använd verktyg proaktivt! När coachen ber dig skapa ett pass, anropa rätt verktyg direkt:
+- "Hitta Davids senaste genomförda pass" → getLatestCompletedWorkout med athleteName
+- "Vem är David Thomasson?" → findAthleteByName
 - "Skapa ett intervallpass" → createCardioSession
 - "Bygg ett styrkepass" → generateStrengthSession
 - "Ge mig ett AMRAP" → createHybridWorkout

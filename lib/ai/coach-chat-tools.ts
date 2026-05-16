@@ -18,7 +18,101 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resolveModel } from '@/types/ai-models'
 import { logger } from '@/lib/logger'
+import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import type { StrengthPhase } from '@prisma/client'
+
+type CoachToolClient = {
+  id: string
+  name: string
+  email: string | null
+  team: { id: string; name: string } | null
+  athleteAccount: { userId: string } | null
+}
+
+type CompletedWorkoutItem = {
+  source: string
+  id: string
+  date: Date | null
+  name: string
+  type: string
+  programName?: string
+  durationMinutes?: number | null
+  distanceKm?: number | null
+  rpe?: number | null
+  metrics: Record<string, unknown>
+}
+
+async function findAccessibleCoachClients(
+  coachUserId: string,
+  search: string,
+  limit = 5
+): Promise<CoachToolClient[]> {
+  const clients = await prisma.client.findMany({
+    where: {
+      name: { contains: search, mode: 'insensitive' },
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      team: { select: { id: true, name: true } },
+      athleteAccount: { select: { userId: true } },
+    },
+    orderBy: { name: 'asc' },
+    take: 25,
+  })
+
+  const accessible: CoachToolClient[] = []
+  for (const client of clients) {
+    const access = await canAccessAthlete(coachUserId, client.id)
+    if (!access.allowed) continue
+    accessible.push(client)
+    if (accessible.length >= limit) break
+  }
+  return accessible
+}
+
+async function getAccessibleCoachClientById(
+  coachUserId: string,
+  clientId: string
+): Promise<CoachToolClient | null> {
+  const access = await canAccessAthlete(coachUserId, clientId)
+  if (!access.allowed) return null
+
+  return prisma.client.findUnique({
+    where: { id: clientId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      team: { select: { id: true, name: true } },
+      athleteAccount: { select: { userId: true } },
+    },
+  })
+}
+
+function parseAdHocWorkoutSummary(parsedStructure: unknown) {
+  const parsed = parsedStructure as {
+    name?: string
+    type?: string
+    sport?: string
+    duration?: number
+    distance?: number
+    perceivedEffort?: number
+  } | null
+
+  if (!parsed || typeof parsed !== 'object') return {}
+  return {
+    name: parsed.name,
+    type: parsed.type === 'CARDIO' && parsed.sport ? parsed.sport : parsed.type,
+    duration: parsed.duration,
+    distance:
+      typeof parsed.distance === 'number'
+        ? (parsed.distance >= 100 ? parsed.distance / 1000 : parsed.distance)
+        : undefined,
+    perceivedEffort: parsed.perceivedEffort,
+  }
+}
 
 /**
  * Create all chat tools for a coach session.
@@ -273,6 +367,387 @@ export function createCoachChatTools(coachUserId: string) {
           }
         } catch {
           return { success: false, error: 'Kunde inte hämta atleter.' }
+        }
+      },
+    }),
+
+    findAthleteByName: tool({
+      description: 'Sök efter en atlet som coachen har behörighet till. Använd när coachen nämner en atlet vid namn och du behöver clientId innan du hämtar data eller skapar något.',
+      inputSchema: z.object({
+        name: z.string().min(2).describe('Namnet eller del av namnet att söka efter'),
+        limit: z.number().int().min(1).max(10).default(5).describe('Max antal träffar att returnera'),
+      }),
+      execute: async ({ name, limit }) => {
+        try {
+          const clients = await findAccessibleCoachClients(coachUserId, name, limit)
+          return {
+            success: true,
+            matchCount: clients.length,
+            athletes: clients.map((client) => ({
+              id: client.id,
+              name: client.name,
+              email: client.email,
+              team: client.team?.name ?? null,
+              hasLinkedAthleteAccount: Boolean(client.athleteAccount?.userId),
+            })),
+            message:
+              clients.length === 0
+                ? `Jag hittade ingen tillgänglig atlet som matchar "${name}".`
+                : clients.length === 1
+                  ? `Jag hittade ${clients[0].name}.`
+                  : `Jag hittade ${clients.length} möjliga atleter. Be coachen välja rätt clientId om namnet är otydligt.`,
+          }
+        } catch (error) {
+          logger.error('Error in findAthleteByName tool', { coachUserId, name }, error)
+          return { success: false, error: 'Kunde inte söka efter atleten.' }
+        }
+      },
+    }),
+
+    getLatestCompletedWorkout: tool({
+      description: 'Hämta den senaste genomförda träningsaktiviteten för en specifik atlet. Kan ta clientId direkt eller söka med athleteName. Täcker programloggar, ad-hoc-pass, Garmin, styrka, kondition, hybrid, agility och AI-genererade WODs.',
+      inputSchema: z.object({
+        clientId: z.string().optional().describe('Atletens clientId om det redan är känt'),
+        athleteName: z.string().optional().describe('Atletens namn om clientId inte är känt'),
+      }),
+      execute: async ({ clientId, athleteName }) => {
+        try {
+          let client: CoachToolClient | null = null
+          let candidates: CoachToolClient[] = []
+
+          if (clientId) {
+            client = await getAccessibleCoachClientById(coachUserId, clientId)
+            if (!client) {
+              return {
+                success: false,
+                error: 'Atleten hittades inte eller ligger utanför din behörighet.',
+              }
+            }
+          } else if (athleteName) {
+            candidates = await findAccessibleCoachClients(coachUserId, athleteName, 6)
+            const exactMatches = candidates.filter(
+              (candidate) => candidate.name.toLowerCase() === athleteName.toLowerCase()
+            )
+            if (exactMatches.length === 1) {
+              client = exactMatches[0]
+            } else if (candidates.length === 1) {
+              client = candidates[0]
+            } else {
+              return {
+                success: false,
+                needsClarification: candidates.length > 1,
+                error:
+                  candidates.length === 0
+                    ? `Jag hittade ingen tillgänglig atlet som matchar "${athleteName}".`
+                    : `Jag hittade flera möjliga atleter som matchar "${athleteName}".`,
+                candidates: candidates.map((candidate) => ({
+                  id: candidate.id,
+                  name: candidate.name,
+                  team: candidate.team?.name ?? null,
+                })),
+              }
+            }
+          } else {
+            return { success: false, error: 'Ange clientId eller athleteName.' }
+          }
+
+          const athleteUserId = client.athleteAccount?.userId
+          if (!athleteUserId) {
+            return {
+              success: false,
+              athlete: { id: client.id, name: client.name },
+              error: 'Atleten har inget länkat atletkonto ännu, så genomförda pass kan inte hämtas från historiken.',
+            }
+          }
+
+          const [
+            programLog,
+            adHocWorkout,
+            garminActivity,
+            strengthAssignment,
+            cardioAssignment,
+            hybridAssignment,
+            agilityAssignment,
+            completedWOD,
+          ] = await Promise.all([
+            prisma.workoutLog.findFirst({
+              where: {
+                athleteId: athleteUserId,
+                completed: true,
+                completedAt: { not: null },
+                workout: {
+                  day: {
+                    week: {
+                      program: { clientId: client.id },
+                    },
+                  },
+                },
+              },
+              include: {
+                workout: {
+                  select: {
+                    id: true,
+                    name: true,
+                    type: true,
+                    intensity: true,
+                    distance: true,
+                    duration: true,
+                    day: {
+                      select: {
+                        week: {
+                          select: {
+                            program: { select: { id: true, name: true } },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              orderBy: { completedAt: 'desc' },
+            }),
+            prisma.adHocWorkout.findFirst({
+              where: {
+                athleteId: client.id,
+                status: 'CONFIRMED',
+              },
+              select: {
+                id: true,
+                workoutDate: true,
+                workoutName: true,
+                parsedType: true,
+                parsedStructure: true,
+                inputType: true,
+              },
+              orderBy: { workoutDate: 'desc' },
+            }),
+            prisma.garminActivity.findFirst({
+              where: { clientId: client.id },
+              select: {
+                id: true,
+                name: true,
+                type: true,
+                mappedType: true,
+                startDate: true,
+                duration: true,
+                distance: true,
+                averageHeartrate: true,
+                maxHeartrate: true,
+                averageWatts: true,
+                tss: true,
+                deviceName: true,
+              },
+              orderBy: { startDate: 'desc' },
+            }),
+            prisma.strengthSessionAssignment.findFirst({
+              where: {
+                athleteId: client.id,
+                status: 'COMPLETED',
+                completedAt: { not: null },
+              },
+              select: {
+                id: true,
+                completedAt: true,
+                duration: true,
+                rpe: true,
+                session: { select: { name: true, phase: true } },
+              },
+              orderBy: { completedAt: 'desc' },
+            }),
+            prisma.cardioSessionAssignment.findFirst({
+              where: {
+                athleteId: client.id,
+                status: 'COMPLETED',
+                completedAt: { not: null },
+              },
+              select: {
+                id: true,
+                completedAt: true,
+                actualDuration: true,
+                actualDistance: true,
+                avgHeartRate: true,
+                session: { select: { name: true, sport: true } },
+              },
+              orderBy: { completedAt: 'desc' },
+            }),
+            prisma.hybridWorkoutAssignment.findFirst({
+              where: {
+                athleteId: client.id,
+                status: 'COMPLETED',
+                completedAt: { not: null },
+              },
+              select: {
+                id: true,
+                completedAt: true,
+                workout: { select: { name: true, format: true } },
+              },
+              orderBy: { completedAt: 'desc' },
+            }),
+            prisma.agilityWorkoutAssignment.findFirst({
+              where: {
+                athleteId: client.id,
+                status: 'COMPLETED',
+                completedAt: { not: null },
+              },
+              select: {
+                id: true,
+                completedAt: true,
+                workout: { select: { name: true } },
+              },
+              orderBy: { completedAt: 'desc' },
+            }),
+            prisma.aIGeneratedWOD.findFirst({
+              where: {
+                clientId: client.id,
+                status: 'COMPLETED',
+                completedAt: { not: null },
+              },
+              select: {
+                id: true,
+                title: true,
+                primarySport: true,
+                actualDuration: true,
+                requestedDuration: true,
+                sessionRPE: true,
+                completedAt: true,
+                source: true,
+              },
+              orderBy: { completedAt: 'desc' },
+            }),
+          ])
+
+          const adHocSummary = parseAdHocWorkoutSummary(adHocWorkout?.parsedStructure)
+          const completedItems = ([
+            programLog && {
+              source: 'program-log',
+              id: programLog.id,
+              date: programLog.completedAt,
+              name: programLog.workout.name,
+              type: programLog.workout.type,
+              programName: programLog.workout.day.week.program.name,
+              durationMinutes: programLog.duration ?? programLog.workout.duration,
+              distanceKm: programLog.distance ?? programLog.workout.distance,
+              rpe: programLog.perceivedEffort,
+              metrics: {
+                avgHR: programLog.avgHR,
+                maxHR: programLog.maxHR,
+                avgPower: programLog.avgPower,
+                tss: programLog.tss,
+                feeling: programLog.feeling,
+              },
+            },
+            adHocWorkout && {
+              source: 'ad-hoc',
+              id: adHocWorkout.id,
+              date: adHocWorkout.workoutDate,
+              name: adHocSummary.name ?? adHocWorkout.workoutName ?? 'Ad-hoc pass',
+              type: adHocSummary.type ?? adHocWorkout.parsedType ?? 'OTHER',
+              durationMinutes: adHocSummary.duration,
+              distanceKm: adHocSummary.distance,
+              rpe: adHocSummary.perceivedEffort,
+              metrics: { inputType: adHocWorkout.inputType },
+            },
+            garminActivity && {
+              source: 'garmin',
+              id: garminActivity.id,
+              date: garminActivity.startDate,
+              name: garminActivity.name ?? garminActivity.type,
+              type: garminActivity.mappedType ?? garminActivity.type,
+              durationMinutes: garminActivity.duration ? Math.round(garminActivity.duration / 60) : null,
+              distanceKm: garminActivity.distance ? garminActivity.distance / 1000 : null,
+              rpe: null,
+              metrics: {
+                avgHR: garminActivity.averageHeartrate,
+                maxHR: garminActivity.maxHeartrate,
+                avgPower: garminActivity.averageWatts,
+                tss: garminActivity.tss,
+                deviceName: garminActivity.deviceName,
+              },
+            },
+            strengthAssignment && {
+              source: 'strength-assignment',
+              id: strengthAssignment.id,
+              date: strengthAssignment.completedAt,
+              name: strengthAssignment.session.name,
+              type: 'STRENGTH',
+              durationMinutes: strengthAssignment.duration,
+              distanceKm: null,
+              rpe: strengthAssignment.rpe,
+              metrics: { phase: strengthAssignment.session.phase },
+            },
+            cardioAssignment && {
+              source: 'cardio-assignment',
+              id: cardioAssignment.id,
+              date: cardioAssignment.completedAt,
+              name: cardioAssignment.session.name,
+              type: cardioAssignment.session.sport,
+              durationMinutes: cardioAssignment.actualDuration ? Math.round(cardioAssignment.actualDuration / 60) : null,
+              distanceKm: cardioAssignment.actualDistance ? cardioAssignment.actualDistance / 1000 : null,
+              rpe: null,
+              metrics: { avgHR: cardioAssignment.avgHeartRate },
+            },
+            hybridAssignment && {
+              source: 'hybrid-assignment',
+              id: hybridAssignment.id,
+              date: hybridAssignment.completedAt,
+              name: hybridAssignment.workout.name,
+              type: 'HYBRID',
+              durationMinutes: null,
+              distanceKm: null,
+              rpe: null,
+              metrics: { format: hybridAssignment.workout.format },
+            },
+            agilityAssignment && {
+              source: 'agility-assignment',
+              id: agilityAssignment.id,
+              date: agilityAssignment.completedAt,
+              name: agilityAssignment.workout.name,
+              type: 'AGILITY',
+              durationMinutes: null,
+              distanceKm: null,
+              rpe: null,
+              metrics: {},
+            },
+            completedWOD && {
+              source: completedWOD.source === 'chat' ? 'ai-chat-wod' : 'wod',
+              id: completedWOD.id,
+              date: completedWOD.completedAt,
+              name: completedWOD.title,
+              type: completedWOD.primarySport ?? 'WOD',
+              durationMinutes: completedWOD.actualDuration ?? completedWOD.requestedDuration,
+              distanceKm: null,
+              rpe: completedWOD.sessionRPE,
+              metrics: {},
+            },
+          ] as Array<CompletedWorkoutItem | null | false>).filter(
+            (item): item is CompletedWorkoutItem => typeof item === 'object' && item !== null && Boolean(item.date)
+          )
+            .sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime())
+
+          const latestWorkout = completedItems[0] ?? null
+
+          if (!latestWorkout) {
+            return {
+              success: true,
+              athlete: { id: client.id, name: client.name, team: client.team?.name ?? null },
+              latestWorkout: null,
+              message: `${client.name} har inga genomförda pass i den tillgängliga historiken.`,
+            }
+          }
+
+          return {
+            success: true,
+            athlete: { id: client.id, name: client.name, team: client.team?.name ?? null },
+            latestWorkout: {
+              ...latestWorkout,
+              completedAt: latestWorkout.date?.toISOString(),
+            },
+            checkedSources: completedItems.length,
+            message: `${client.name}s senaste genomförda pass är "${latestWorkout.name}" (${latestWorkout.type}) från ${latestWorkout.date?.toISOString().slice(0, 10)}.`,
+          }
+        } catch (error) {
+          logger.error('Error in getLatestCompletedWorkout tool', { coachUserId, clientId, athleteName }, error)
+          return { success: false, error: 'Kunde inte hämta senaste genomförda pass.' }
         }
       },
     }),
