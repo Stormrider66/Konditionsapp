@@ -29,6 +29,7 @@ import {
   Volume2,
   VolumeX,
   Zap,
+  Headphones,
 } from 'lucide-react'
 import { ChatMessage } from './ChatMessage'
 import { ChatNavigationCard, type ChatNavigationResult } from './ChatNavigationCard'
@@ -261,6 +262,7 @@ export function FloatingAIChat({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const assistantSpeechVoiceRef = useRef<SpeechSynthesisVoice | null>(null)
   const spokenAssistantMessageIdsRef = useRef<Set<string>>(new Set())
+  const spokenAssistantNoticeIdsRef = useRef<Set<string>>(new Set())
   const voiceAutoSendTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [isOpen, setIsOpen] = useState(false)
@@ -289,6 +291,7 @@ export function FloatingAIChat({
   const [isSpeakingAssistant, setIsSpeakingAssistant] = useState(false)
   const [isVoiceAutoSendEnabled, setIsVoiceAutoSendEnabled] = useState(false)
   const [isVoiceAutoSendPending, setIsVoiceAutoSendPending] = useState(false)
+  const [isVoiceOperatorModeEnabled, setIsVoiceOperatorModeEnabled] = useState(false)
   const voiceRecordingPromiseRef = useRef<Promise<Blob> | null>(null)
   const addAssistantNotice = useCallback((content: string) => {
     setAssistantNotices((current) => [
@@ -312,7 +315,9 @@ export function FloatingAIChat({
   useEffect(() => {
     if (typeof window === 'undefined') return
     const frame = window.requestAnimationFrame(() => {
+      const savedVoiceOperatorMode = window.localStorage.getItem('floating-ai-voice-operator-mode') === 'true'
       setIsVoiceAutoSendEnabled(window.localStorage.getItem('floating-ai-voice-auto-send') === 'true')
+      setIsVoiceOperatorModeEnabled(savedVoiceOperatorMode && 'speechSynthesis' in window)
     })
     return () => window.cancelAnimationFrame(frame)
   }, [])
@@ -396,7 +401,11 @@ export function FloatingAIChat({
     setIsSpokenRepliesEnabled((current) => {
       const next = !current
       window.localStorage.setItem('floating-ai-spoken-replies', String(next))
-      if (!next) stopAssistantSpeech()
+      if (!next) {
+        stopAssistantSpeech()
+        setIsVoiceOperatorModeEnabled(false)
+        window.localStorage.setItem('floating-ai-voice-operator-mode', 'false')
+      }
       return next
     })
   }, [addAssistantNotice, isSpeechSupported, stopAssistantSpeech, toast])
@@ -413,10 +422,56 @@ export function FloatingAIChat({
     setIsVoiceAutoSendEnabled((current) => {
       const next = !current
       window.localStorage.setItem('floating-ai-voice-auto-send', String(next))
-      if (!next) cancelVoiceAutoSend()
+      if (!next) {
+        cancelVoiceAutoSend()
+        setIsVoiceOperatorModeEnabled(false)
+        window.localStorage.setItem('floating-ai-voice-operator-mode', 'false')
+      }
       return next
     })
   }, [cancelVoiceAutoSend])
+
+  const toggleVoiceOperatorMode = useCallback(() => {
+    if (!isVoiceOperatorModeEnabled && !isSpeechSupported) {
+      const message = 'Voice operator-läget behöver röstsvar, men den här webbläsaren stödjer inte uppläsning.'
+      addAssistantNotice(message)
+      toast({
+        title: 'Voice operator kan inte startas',
+        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const next = !isVoiceOperatorModeEnabled
+    setIsVoiceOperatorModeEnabled(next)
+    window.localStorage.setItem('floating-ai-voice-operator-mode', String(next))
+
+    if (next) {
+      setIsSpokenRepliesEnabled(true)
+      setIsVoiceAutoSendEnabled(true)
+      window.localStorage.setItem('floating-ai-spoken-replies', 'true')
+      window.localStorage.setItem('floating-ai-voice-auto-send', 'true')
+      addAssistantNotice('Voice operator-läget är aktivt. Jag lyssnar via mikrofonen, skickar efter en kort paus och säger mina svar högt. Åtgärder som skickar eller ändrar något kräver fortfarande bekräftelse.')
+      toast({
+        title: 'Voice operator aktiv',
+        description: 'Röstsvar och automatisk röstsändning är på.',
+      })
+    } else {
+      cancelVoiceAutoSend()
+      addAssistantNotice('Voice operator-läget är avstängt. Du kan fortfarande använda mikrofonen manuellt.')
+      toast({
+        title: 'Voice operator avstängd',
+        description: 'Röstinställningarna kan fortfarande styras separat.',
+      })
+    }
+  }, [
+    addAssistantNotice,
+    cancelVoiceAutoSend,
+    isSpeechSupported,
+    isVoiceOperatorModeEnabled,
+    toast,
+  ])
 
   // Track if context is available (data-rich or auto-context with concepts)
   const hasContext = !!pageContext && (
@@ -773,6 +828,15 @@ export function FloatingAIChat({
     speakAssistantReply(replyText)
   }, [isLoading, messages, speakAssistantReply])
 
+  useEffect(() => {
+    if (!assistantNotices.length) return
+    const latestNotice = assistantNotices[assistantNotices.length - 1]
+    if (spokenAssistantNoticeIdsRef.current.has(latestNotice.id)) return
+
+    spokenAssistantNoticeIdsRef.current.add(latestNotice.id)
+    speakAssistantReply(latestNotice.content)
+  }, [assistantNotices, speakAssistantReply])
+
   async function handlePublishProgram() {
     if (!detectedProgram?.program) return
     if (!athleteId) {
@@ -1036,6 +1100,7 @@ export function FloatingAIChat({
     setConversationId(null)
     setInput('')
     spokenAssistantMessageIdsRef.current.clear()
+    spokenAssistantNoticeIdsRef.current.clear()
   }
 
   function handleNewChat() {
@@ -1046,6 +1111,7 @@ export function FloatingAIChat({
     setConversationId(null)
     setInput('')
     spokenAssistantMessageIdsRef.current.clear()
+    spokenAssistantNoticeIdsRef.current.clear()
   }
 
   // Get context label
@@ -1167,6 +1233,9 @@ export function FloatingAIChat({
   const voiceAutoSendLabel = isVoiceAutoSendEnabled
     ? 'Stäng av automatisk röstsändning'
     : 'Slå på automatisk röstsändning'
+  const voiceOperatorModeLabel = isVoiceOperatorModeEnabled
+    ? 'Stäng av voice operator'
+    : 'Slå på voice operator'
 
   // Floating button (always visible)
   if (!isOpen) {
@@ -1303,6 +1372,19 @@ export function FloatingAIChat({
           <Button
             variant="ghost"
             size="icon"
+            onClick={toggleVoiceOperatorMode}
+            className={cn(
+              'h-8 w-8 text-white hover:bg-white/20',
+              isVoiceOperatorModeEnabled && 'bg-white/20 ring-1 ring-white/40'
+            )}
+            title={voiceOperatorModeLabel}
+            aria-label={voiceOperatorModeLabel}
+          >
+            <Headphones className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={toggleVoiceAutoSend}
             className={cn(
               'h-8 w-8 text-white hover:bg-white/20',
@@ -1400,6 +1482,18 @@ export function FloatingAIChat({
         <div className="px-3 py-2 border-b bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
           <span>Atletens samtycke saknas — AI-chatten kan inte använda atletdata</span>
+        </div>
+      )}
+
+      {isVoiceOperatorModeEnabled && (
+        <div className="px-3 py-2 border-b bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Headphones className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">Voice operator aktiv: mikrofon, auto-send och röstsvar är på</span>
+          </div>
+          <span className="shrink-0 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium">
+            Bekräftar åtgärder
+          </span>
         </div>
       )}
 
