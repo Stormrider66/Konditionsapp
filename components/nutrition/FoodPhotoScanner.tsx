@@ -61,6 +61,7 @@ import {
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors'
 import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
+import { cn } from '@/lib/utils'
 
 type Step = 'CAPTURE' | 'ANALYZING' | 'REVIEW' | 'SAVING' | 'DONE'
 
@@ -74,6 +75,15 @@ const MEAL_TYPE_LABELS: Record<string, string> = {
   DINNER: 'Middag',
   EVENING_SNACK: 'Kvällsmellanmål',
 }
+
+const scannerLabelClass = 'text-xs font-medium text-slate-600 dark:text-slate-400'
+const scannerMicroLabelClass = 'text-[10px] font-medium text-slate-600 dark:text-slate-400'
+const scannerControlClass =
+  'border-slate-200 bg-white text-slate-900 shadow-sm placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500'
+const scannerIconButtonClass =
+  'border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white'
+const scannerPanelClass =
+  'bg-slate-50 text-slate-700 ring-1 ring-slate-200 dark:bg-white/5 dark:text-slate-400 dark:ring-0'
 
 const roundTo = (value: number, decimals: number) => {
   const factor = 10 ** decimals
@@ -1046,12 +1056,12 @@ export function FoodPhotoScanner({
           {hasSelectedImage ? (
             <div className="space-y-3">
               {imagePreview ? (
-                <div className="relative rounded-lg overflow-hidden border border-white/10">
+                <div className="relative rounded-lg overflow-hidden border border-slate-200 bg-slate-100 dark:border-white/10 dark:bg-transparent">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={imagePreview}
                     alt="Förhandsgranskning"
-                    className="w-full h-auto max-h-64 object-contain bg-black/20"
+                    className="w-full h-auto max-h-64 object-contain bg-slate-100 dark:bg-black/20"
                   />
                   <Button
                     variant="secondary"
@@ -1063,15 +1073,15 @@ export function FoodPhotoScanner({
                   </Button>
                 </div>
               ) : (
-                <div className="rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-8 text-center">
-                  <Camera className="mx-auto h-7 w-7 text-slate-400" />
-                  <p className="mt-3 text-sm font-medium text-white">Bild vald</p>
-                  <p className="mt-1 text-xs text-slate-400">
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center dark:border-white/10 dark:bg-black/20">
+                  <Camera className="mx-auto h-7 w-7 text-slate-500 dark:text-slate-400" />
+                  <p className="mt-3 text-sm font-medium text-slate-900 dark:text-white">Bild vald</p>
+                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                     Förhandsgranskningen kunde inte visas, men du kan fortfarande analysera bilden.
                   </p>
                   <Button
                     variant="outline"
-                    className="mt-4 bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                    className="mt-4 border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                     onClick={handleReset}
                   >
                     Välj annan bild
@@ -1083,7 +1093,7 @@ export function FoodPhotoScanner({
                 <button
                   type="button"
                   onClick={() => setShowContextInput(!showContextInput)}
-                  className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+                  className="flex items-center gap-1.5 text-xs text-slate-600 transition-colors hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
                 >
                   {showContextInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                   {showContextInput ? 'Dölj kontext' : 'Lägg till kontext (valfritt)'}
@@ -1093,7 +1103,7 @@ export function FoodPhotoScanner({
                     value={userContext}
                     onChange={(e) => setUserContext(e.target.value)}
                     placeholder="T.ex. &quot;Köttet är 200g älgfärs&quot;, &quot;Riset är 150g kokt&quot;, &quot;Tillagat i olivolja&quot;"
-                    className="bg-white/5 border-white/10 text-white text-sm min-h-[60px] placeholder:text-slate-500"
+                    className={cn(scannerControlClass, 'text-sm min-h-[60px]')}
                   />
                 )}
                 {userContext.trim() && !showContextInput && (
@@ -1113,7 +1123,7 @@ export function FoodPhotoScanner({
           ) : (
             <div className="space-y-3">
               {showInlineCamera ? (
-                <div className="relative rounded-lg overflow-hidden border border-white/10 bg-black">
+                <div className="relative rounded-lg overflow-hidden border border-slate-200 bg-slate-100 dark:border-white/10 dark:bg-black">
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                   <video
                     ref={videoRef}
@@ -1179,7 +1189,7 @@ export function FoodPhotoScanner({
                     <Button
                       asChild
                       variant="outline"
-                      className="w-full gap-2 bg-white/5 border-white/10 text-white hover:bg-white/10 cursor-pointer"
+                      className="w-full gap-2 border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 cursor-pointer"
                     >
                       <label htmlFor={cameraInputId} role="button" tabIndex={0}>
                         <Camera className="h-4 w-4" />
@@ -1219,17 +1229,17 @@ export function FoodPhotoScanner({
       {step === 'ANALYZING' && (
         <div className="flex flex-col items-center justify-center py-8 space-y-4">
           {imagePreview && (
-            <div className="rounded-lg overflow-hidden border border-white/10 w-full max-h-40">
+            <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-100 w-full max-h-40 dark:border-white/10 dark:bg-transparent">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={imagePreview}
                 alt="Analyserar"
-                className="w-full h-auto max-h-40 object-contain bg-black/20"
+                className="w-full h-auto max-h-40 object-contain bg-slate-100 dark:bg-black/20"
               />
             </div>
           )}
           <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-          <p className="text-sm text-slate-300">Analyserar din måltid...</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">Analyserar din måltid...</p>
         </div>
       )}
 
@@ -1238,12 +1248,12 @@ export function FoodPhotoScanner({
         <div className="space-y-4">
           {/* Compact photo preview */}
           {imagePreview && (
-            <div className="rounded-lg overflow-hidden border border-white/10 max-h-32">
+            <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-100 max-h-32 dark:border-white/10 dark:bg-transparent">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={imagePreview}
                 alt="Måltid"
-                className="w-full h-auto max-h-32 object-contain bg-black/20"
+                className="w-full h-auto max-h-32 object-contain bg-slate-100 dark:bg-black/20"
               />
             </div>
           )}
@@ -1254,21 +1264,21 @@ export function FoodPhotoScanner({
               {confidence > 0 && (
                 <>
               <div className={`h-2 w-2 rounded-full ${confidence >= 0.7 ? 'bg-green-400' : confidence >= 0.4 ? 'bg-yellow-400' : 'bg-red-400'}`} />
-              <span className="text-slate-400">
+              <span className="text-slate-600 dark:text-slate-400">
                 Konfidensgrad: {Math.round(confidence * 100)}%
               </span>
                 </>
               )}
               {memoryUsed && (
                 <span
-                  className="rounded-full border border-violet-400/30 bg-violet-400/10 px-2 py-0.5 text-violet-300"
+                  className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-violet-700 dark:border-violet-400/30 dark:bg-violet-400/10 dark:text-violet-300"
                   title="Analysen använde din mathistorik för att förbättra träffsäkerheten"
                 >
                   Personaliserad
                 </span>
               )}
               {enhancedMode && (
-                <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-0.5 text-cyan-300">
+                <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-400/10 dark:text-cyan-300">
                   Detaljerad makroanalys aktiv
                 </span>
               )}
@@ -1277,20 +1287,25 @@ export function FoodPhotoScanner({
 
           {/* Inline refinement */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-400">Korrigera eller lägg till</label>
+            <label className={scannerLabelClass}>Korrigera eller lägg till</label>
             <div className="flex gap-2">
               <Textarea
                 value={refinementText}
                 onChange={(e) => setRefinementText(e.target.value)}
                 placeholder="T.ex. &quot;det finns också smör på brödet&quot; eller &quot;portionen var större&quot;"
-                className="bg-white/5 border-white/10 text-white text-sm min-h-[44px] max-h-[80px] flex-1"
+                className={cn(scannerControlClass, 'text-sm min-h-[44px] max-h-[80px] flex-1')}
                 disabled={isRefining || isTranscribing}
               />
               <div className="flex flex-col gap-1">
                 <Button
                   variant="outline"
                   size="icon"
-                  className={`h-[21px] w-10 ${isRecording ? 'bg-red-500/20 border-red-500/40 text-red-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'}`}
+                  className={cn(
+                    'h-[21px] w-10',
+                    isRecording
+                      ? 'border-red-300 bg-red-50 text-red-600 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-400'
+                      : scannerIconButtonClass
+                  )}
                   onClick={isRecording ? handleStopRecording : handleStartRecording}
                   disabled={isRefining || isTranscribing}
                   title={isRecording ? 'Stoppa inspelning' : 'Spela in röstkorrigering'}
@@ -1306,7 +1321,7 @@ export function FoodPhotoScanner({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-[21px] w-10 bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
+                  className={cn('h-[21px] w-10', scannerIconButtonClass)}
                   onClick={handleRefine}
                   disabled={!refinementText.trim() || isRefining}
                   title="Uppdatera analys"
@@ -1333,14 +1348,14 @@ export function FoodPhotoScanner({
 
             {/* Show refinement errors inline so they're visible */}
             {error && (
-              <div className="flex items-start gap-2 p-2 rounded-lg bg-red-950/30 border border-red-500/20">
+              <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-2 dark:border-red-500/20 dark:bg-red-950/30">
                 <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
                 <div className="min-w-0 flex-1 space-y-2">
-                  <p className="text-xs text-red-300">{error}</p>
+                  <p className="text-xs text-red-700 dark:text-red-300">{error}</p>
                   <AiAllowanceBlockedAction
                     action={aiAllowanceAction}
                     tone="red"
-                    className="h-8 border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20"
+                    className="h-8 border-red-200 bg-red-100 text-red-700 hover:bg-red-200 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-100 dark:hover:bg-red-500/20"
                   />
                 </div>
               </div>
@@ -1350,9 +1365,9 @@ export function FoodPhotoScanner({
           {/* Meal type and time */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-400">Måltidstyp</label>
+              <label className={scannerLabelClass}>Måltidstyp</label>
               <Select value={mealType} onValueChange={setMealType}>
-                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <SelectTrigger className={scannerControlClass}>
                   <SelectValue placeholder="Välj typ" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1365,12 +1380,12 @@ export function FoodPhotoScanner({
               </Select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-400">Tid</label>
+              <label className={scannerLabelClass}>Tid</label>
               <Input
                 type="time"
                 value={mealTime}
                 onChange={(e) => setMealTime(e.target.value)}
-                className="bg-white/5 border-white/10 text-white"
+                className={scannerControlClass}
               />
             </div>
           </div>
@@ -1378,14 +1393,14 @@ export function FoodPhotoScanner({
           {/* Food items list */}
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-xs font-medium text-slate-400">
+              <label className={scannerLabelClass}>
                 Identifierade livsmedel ({items.length})
               </label>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-8 shrink-0 gap-1.5 bg-white/5 border-white/10 px-2.5 text-xs text-white hover:bg-white/10"
+                className="h-8 shrink-0 gap-1.5 border-slate-200 bg-white px-2.5 text-xs text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                 onClick={handleSaveRecipe}
                 disabled={isSavingRecipe || foodItemsToRecipeItems(items).length === 0}
               >
@@ -1398,12 +1413,12 @@ export function FoodPhotoScanner({
               </Button>
             </div>
             {recipeSaveMessage && (
-              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
                 {recipeSaveMessage}
               </div>
             )}
             {recipeSaveError && (
-              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
                 {recipeSaveError}
               </div>
             )}
@@ -1416,7 +1431,7 @@ export function FoodPhotoScanner({
                         <Input
                           value={item.name}
                           onChange={(e) => updateItemText(index, 'name', e.target.value)}
-                          className="h-7 text-sm bg-white/5 border-white/10 text-white font-medium"
+                          className={cn(scannerControlClass, 'h-7 text-sm font-medium')}
                         />
                         <Button
                           variant="ghost"
@@ -1429,69 +1444,69 @@ export function FoodPhotoScanner({
                       </div>
                       <div className="grid grid-cols-2 gap-2 mt-2">
                         <div className="space-y-0.5">
-                          <label className="text-[10px] text-slate-500">Portion</label>
+                          <label className={scannerMicroLabelClass}>Portion</label>
                           <Input
                             value={item.portionDescription}
                             onChange={(e) => updateItemText(index, 'portionDescription', e.target.value)}
-                            className="h-7 text-xs bg-white/5 border-white/10 text-white"
+                            className={cn(scannerControlClass, 'h-7 text-xs')}
                           />
                         </div>
                         <div className="space-y-0.5">
-                          <label className="text-[10px] text-slate-500">Gram</label>
+                          <label className={scannerMicroLabelClass}>Gram</label>
                           <Input
                             type="number"
                             min="0"
                             step="1"
                             value={item.estimatedGrams}
                             onChange={(e) => updateItemNumber(index, 'estimatedGrams', Number(e.target.value))}
-                            className="h-7 text-xs bg-white/5 border-white/10 text-white"
+                            className={cn(scannerControlClass, 'h-7 text-xs')}
                           />
                         </div>
                       </div>
                       <div className="grid grid-cols-5 gap-2 mt-2">
                         <div className="space-y-0.5">
-                          <label className="text-[10px] text-slate-500">kcal</label>
+                          <label className={scannerMicroLabelClass}>kcal</label>
                           <Input
                             type="number"
                             value={item.calories}
                             onChange={(e) => updateItemNumber(index, 'calories', Number(e.target.value))}
-                            className="h-7 text-xs bg-white/5 border-white/10 text-white"
+                            className={cn(scannerControlClass, 'h-7 text-xs')}
                           />
                         </div>
                         <div className="space-y-0.5">
-                          <label className="text-[10px] text-slate-500">Protein</label>
+                          <label className={scannerMicroLabelClass}>Protein</label>
                           <Input
                             type="number"
                             value={item.proteinGrams}
                             onChange={(e) => updateItemNumber(index, 'proteinGrams', Number(e.target.value))}
-                            className="h-7 text-xs bg-white/5 border-white/10 text-white"
+                            className={cn(scannerControlClass, 'h-7 text-xs')}
                           />
                         </div>
                         <div className="space-y-0.5">
-                          <label className="text-[10px] text-slate-500">Kolhydr.</label>
+                          <label className={scannerMicroLabelClass}>Kolhydr.</label>
                           <Input
                             type="number"
                             value={item.carbsGrams}
                             onChange={(e) => updateItemNumber(index, 'carbsGrams', Number(e.target.value))}
-                            className="h-7 text-xs bg-white/5 border-white/10 text-white"
+                            className={cn(scannerControlClass, 'h-7 text-xs')}
                           />
                         </div>
                         <div className="space-y-0.5">
-                          <label className="text-[10px] text-slate-500">Fett</label>
+                          <label className={scannerMicroLabelClass}>Fett</label>
                           <Input
                             type="number"
                             value={item.fatGrams}
                             onChange={(e) => updateItemNumber(index, 'fatGrams', Number(e.target.value))}
-                            className="h-7 text-xs bg-white/5 border-white/10 text-white"
+                            className={cn(scannerControlClass, 'h-7 text-xs')}
                           />
                         </div>
                         <div className="space-y-0.5">
-                          <label className="text-[10px] text-slate-500">Fiber</label>
+                          <label className={scannerMicroLabelClass}>Fiber</label>
                           <Input
                             type="number"
                             value={item.fiberGrams}
                             onChange={(e) => updateItemNumber(index, 'fiberGrams', Number(e.target.value))}
-                            className="h-7 text-xs bg-white/5 border-white/10 text-white"
+                            className={cn(scannerControlClass, 'h-7 text-xs')}
                           />
                         </div>
                       </div>
@@ -1500,7 +1515,7 @@ export function FoodPhotoScanner({
                         <>
                           <button
                             type="button"
-                            className="flex items-center gap-1 mt-2 text-[10px] text-cyan-400 hover:text-cyan-300"
+                            className="flex items-center gap-1 mt-2 text-[10px] font-medium text-cyan-700 hover:text-cyan-800 dark:text-cyan-400 dark:hover:text-cyan-300"
                             onClick={() => setExpandedItems(prev => {
                               const next = new Set(prev)
                               if (next.has(index)) next.delete(index)
@@ -1512,20 +1527,20 @@ export function FoodPhotoScanner({
                             Detaljerad analys
                           </button>
                           {expandedItems.has(index) && (
-                            <div className="mt-1.5 p-2 rounded bg-white/5 space-y-1.5">
-                              <div className="text-[10px] text-slate-400">
+                            <div className={cn('mt-1.5 p-2 rounded space-y-1.5', scannerPanelClass)}>
+                              <div className="text-[10px]">
                                 <span className="font-medium">Fett:</span>{' '}
                                 {item.saturatedFatGrams != null || item.monounsaturatedFatGrams != null || item.polyunsaturatedFatGrams != null
                                   ? `${item.saturatedFatGrams?.toFixed(1) ?? '0.0'}g mättat, ${item.monounsaturatedFatGrams?.toFixed(1) ?? '0.0'}g enkelomättat, ${item.polyunsaturatedFatGrams?.toFixed(1) ?? '0.0'}g fleromättat`
                                   : 'Ingen detaljerad fettfördelning returnerades för denna matvara.'}
                               </div>
-                              <div className="text-[10px] text-slate-400">
+                              <div className="text-[10px]">
                                 <span className="font-medium">Kolhydrater:</span>{' '}
                                 {item.sugarGrams != null || item.complexCarbsGrams != null
                                   ? `${item.sugarGrams?.toFixed(1) ?? '0.0'}g socker, ${item.complexCarbsGrams?.toFixed(1) ?? '0.0'}g komplexa`
                                   : 'Ingen detaljerad kolhydratfördelning returnerades för denna matvara.'}
                               </div>
-                              <div className="text-[10px] text-slate-400">
+                              <div className="text-[10px]">
                                 <span className="font-medium">Protein:</span>{' '}
                                 {item.isCompleteProtein == null
                                   ? 'Proteinkvalitet ej specificerad av analysen.'
@@ -1549,30 +1564,30 @@ export function FoodPhotoScanner({
             <GlassCardContent className="p-3">
               <div className="grid grid-cols-5 gap-2 text-center">
                 <div>
-                  <p className="text-lg font-bold text-white">{Math.round(totals.calories)}</p>
-                  <p className="text-[10px] text-slate-400">kcal</p>
+                  <p className="text-lg font-bold text-slate-950 dark:text-white">{Math.round(totals.calories)}</p>
+                  <p className={scannerMicroLabelClass}>kcal</p>
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-blue-400">{Math.round(totals.proteinGrams)}g</p>
-                  <p className="text-[10px] text-slate-400">Protein</p>
+                  <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{Math.round(totals.proteinGrams)}g</p>
+                  <p className={scannerMicroLabelClass}>Protein</p>
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-amber-400">{Math.round(totals.carbsGrams)}g</p>
-                  <p className="text-[10px] text-slate-400">Kolhydr.</p>
+                  <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{Math.round(totals.carbsGrams)}g</p>
+                  <p className={scannerMicroLabelClass}>Kolhydr.</p>
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-rose-400">{Math.round(totals.fatGrams)}g</p>
-                  <p className="text-[10px] text-slate-400">Fett</p>
+                  <p className="text-lg font-bold text-rose-600 dark:text-rose-400">{Math.round(totals.fatGrams)}g</p>
+                  <p className={scannerMicroLabelClass}>Fett</p>
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-green-400">{Math.round(totals.fiberGrams)}g</p>
-                  <p className="text-[10px] text-slate-400">Fiber</p>
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">{Math.round(totals.fiberGrams)}g</p>
+                  <p className={scannerMicroLabelClass}>Fiber</p>
                 </div>
               </div>
               {enhancedMode && (
-                <div className="mt-3 rounded bg-white/5 p-2 text-[10px] text-slate-400 space-y-1.5">
+                <div className={cn('mt-3 rounded p-2 text-[10px] space-y-1.5', scannerPanelClass)}>
                   <div>
-                    <span className="font-medium text-slate-300">Detaljerad totalsammanfattning:</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300">Detaljerad totalsammanfattning:</span>
                   </div>
                   <div>
                     <span className="font-medium">Fett:</span>{' '}
@@ -1594,7 +1609,7 @@ export function FoodPhotoScanner({
           {/* Portion calibration indicator */}
           {portionSnapCount > 0 && (
             <p
-              className="text-[11px] text-violet-300/80 text-center"
+              className="text-center text-[11px] font-medium text-violet-700 dark:text-violet-300/80"
               title="Gemini och din tidigare mathistorik vägdes samman för att ge mer realistiska portionsstorlekar."
             >
               {portionSnapCount === 1
@@ -1605,12 +1620,12 @@ export function FoodPhotoScanner({
 
           {/* Notes */}
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-400">Anteckningar</label>
+            <label className={scannerLabelClass}>Anteckningar</label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Valfria anteckningar..."
-              className="bg-white/5 border-white/10 text-white text-sm min-h-[60px]"
+              className={cn(scannerControlClass, 'text-sm min-h-[60px]')}
             />
           </div>
 
@@ -1618,7 +1633,7 @@ export function FoodPhotoScanner({
           <div className="flex gap-2">
             <Button
               variant="outline"
-              className="flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-white"
+              className="flex-1 border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               onClick={handleReset}
             >
               <RotateCw className="h-4 w-4 mr-2" />
@@ -1639,7 +1654,7 @@ export function FoodPhotoScanner({
       {step === 'SAVING' && (
         <div className="flex flex-col items-center justify-center py-8 space-y-3">
           <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-          <p className="text-sm text-slate-300">Sparar måltid...</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">Sparar måltid...</p>
         </div>
       )}
 
@@ -1650,15 +1665,15 @@ export function FoodPhotoScanner({
             <Check className="h-8 w-8 text-green-400" />
           </div>
           <div className="text-center">
-            <p className="font-medium text-white">Måltid sparad!</p>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="font-medium text-slate-950 dark:text-white">Måltid sparad!</p>
+            <p className="text-sm text-slate-600 mt-1 dark:text-slate-400">
               {Math.round(totals.calories)} kcal registrerade
             </p>
           </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
-              className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
+              className="border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               onClick={handleReset}
             >
               Skanna en till
@@ -1672,14 +1687,14 @@ export function FoodPhotoScanner({
 
       {/* Error message */}
       {error && step !== 'ANALYZING' && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-red-950/30 border border-red-500/20">
+        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-500/20 dark:bg-red-950/30">
           <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
           <div className="min-w-0 flex-1 space-y-2">
-            <p className="text-sm text-red-300">{error}</p>
+            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
             <AiAllowanceBlockedAction
               action={aiAllowanceAction}
               tone="red"
-              className="border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20"
+              className="border-red-200 bg-red-100 text-red-700 hover:bg-red-200 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-100 dark:hover:bg-red-500/20"
             />
           </div>
         </div>
