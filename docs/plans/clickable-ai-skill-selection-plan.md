@@ -155,9 +155,9 @@ Recommended lightweight API:
 
 ### Phase 4: AI Canvas
 
-- Add picker to canvas controls.
-- Send selected skills for generation and block regeneration.
-- Show selected/used skill chips.
+- Add picker to canvas controls. Done in `components/ai-canvas/AICanvasClient.tsx`.
+- Send selected skills for generation and block regeneration. Done for `/api/ai/canvas/generate`.
+- Show selected/used skill chips. Selected chips live in the picker, and used skills are shown in the AI response panel.
 
 ### Phase 5: AI Studio
 

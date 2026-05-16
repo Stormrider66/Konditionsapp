@@ -52,6 +52,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { AISkillPicker } from '@/components/ai/AISkillPicker'
 import { canvasToMarkdown, slugifyCanvasFilename } from '@/lib/ai-canvas/markdown'
 import { cn } from '@/lib/utils'
 
@@ -117,6 +118,7 @@ interface GenerateCanvasResponse {
   assistantMessage?: string
   blocks?: Omit<CanvasBlock, 'id'>[]
   skillsUsed?: string[]
+  missingSelectedSkillIds?: string[]
   model?: {
     provider: string
     modelId: string
@@ -676,6 +678,8 @@ export function AICanvasClient({
   const [isCreatingTask, setIsCreatingTask] = useState(false)
   const [loadingCanvasId, setLoadingCanvasId] = useState<string | null>(null)
   const [modelLabel, setModelLabel] = useState<string | null>(null)
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([])
+  const [canvasSkillsUsed, setCanvasSkillsUsed] = useState<string[]>([])
   const [isExporting, setIsExporting] = useState(false)
   const [athleteMessageDraft, setAthleteMessageDraft] = useState<AthleteMessageDraft | null>(null)
   const [regeneratingBlockId, setRegeneratingBlockId] = useState<string | null>(null)
@@ -770,6 +774,7 @@ export function AICanvasClient({
           templateId: selectedTemplate.id,
           contextSummary,
           contextSelection,
+          selectedSkillIds,
         }),
       })
 
@@ -793,6 +798,7 @@ export function AICanvasClient({
       setTitle(payload.title || title)
       addActionReceipt('success', 'Canvas skapad', payload.assistantMessage || getAssistantMessage(requestPrompt, nextBlocks.length))
       setModelLabel(getCanvasModelLabel(payload.model, payload.skillsUsed, null))
+      setCanvasSkillsUsed(payload.skillsUsed || [])
       setLastUpdated(new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
     } catch {
       addActionReceipt('error', 'Canvas kunde inte skapas', 'Jag kunde inte nå AI Canvas just nu. Kontrollera anslutningen och försök igen.')
@@ -822,6 +828,7 @@ export function AICanvasClient({
           templateId: selectedTemplate.id,
           contextSummary,
           contextSelection,
+          selectedSkillIds,
         }),
       })
       const payload = (await response.json()) as GenerateCanvasResponse
@@ -838,6 +845,7 @@ export function AICanvasClient({
       }
       setBlocks((current) => current.map((item) => item.id === block.id ? improvedBlock : item))
       setModelLabel(getCanvasModelLabel(payload.model, payload.skillsUsed, modelLabel))
+      setCanvasSkillsUsed(payload.skillsUsed || [])
       setLastUpdated(new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
       addActionReceipt('success', 'Block förbättrat', `Jag förbättrade blocket "${improvedBlock.title || block.title || block.type}".`)
     } catch {
@@ -854,6 +862,8 @@ export function AICanvasClient({
     setTitle('Untitled coach canvas')
     setPrompt('')
     setSelectedTemplateId('blank')
+    setSelectedSkillIds([])
+    setCanvasSkillsUsed([])
     addActionReceipt('success', 'Canvas återställd', 'Jag återställde canvasen till startläget.')
     setLastUpdated('Återställd')
     setModelLabel(null)
@@ -937,6 +947,7 @@ export function AICanvasClient({
       setBlocks(payload.canvas.blocks)
       setLastUpdated(new Date(payload.canvas.updatedAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
       setModelLabel(null)
+      setCanvasSkillsUsed([])
       upsertSavedCanvas(payload.canvas)
       addActionReceipt('success', 'Canvas laddad', 'Jag laddade canvasen.')
     } catch {
@@ -1675,6 +1686,15 @@ export function AICanvasClient({
               placeholder="Ex: Skapa en progress report för David med nuläge, risker och nästa steg..."
               className="min-h-[130px] resize-none rounded-md border-slate-200 text-sm"
             />
+            <AISkillPicker
+              selectedSkillIds={selectedSkillIds}
+              onSelectedSkillIdsChange={setSelectedSkillIds}
+              disabled={isGenerating || regeneratingBlockId !== null}
+              side="bottom"
+              align="start"
+              triggerClassName="mt-3 h-8 text-xs"
+              chipsClassName="max-w-full"
+            />
             <div className="mt-3 flex gap-2">
               <Button onClick={handleGenerate} disabled={isGenerating} className="flex-1 gap-2">
                 {isGenerating ? <Wand2 className="h-4 w-4 animate-pulse" /> : <Send className="h-4 w-4" />}
@@ -1689,6 +1709,16 @@ export function AICanvasClient({
               <h2 className="text-sm font-semibold text-slate-900">AI svar</h2>
             </div>
             <p className="text-sm leading-6 text-slate-700">{assistantMessage}</p>
+            {canvasSkillsUsed.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-violet-600" />
+                {canvasSkillsUsed.map((skill) => (
+                  <Badge key={skill} variant="secondary" className="text-[11px] font-normal">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
