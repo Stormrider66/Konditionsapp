@@ -1012,6 +1012,82 @@
           "synced": "Kalender synkroniserad",
           "syncFailed": "Synkronisering misslyckades"
         }
+      },
+      "teamDetail": {
+        "backToTeams": "Tillbaka till lag",
+        "playerCount": "{count} spelare",
+        "unknownWorkout": "Okänt pass",
+        "sports": {
+          "football": "Fotboll",
+          "iceHockey": "Ishockey",
+          "handball": "Handboll",
+          "floorball": "Innebandy",
+          "running": "Löpning",
+          "cycling": "Cykling",
+          "skiing": "Skidåkning",
+          "swimming": "Simning",
+          "generalFitness": "Allmän träning",
+          "strength": "Styrka"
+        },
+        "workoutTypes": {
+          "strength": "Styrka",
+          "cardio": "Kondition"
+        },
+        "stats": {
+          "players": "Spelare",
+          "assignedWorkouts": "Tilldelade pass (30 dagar)",
+          "completedWorkouts": "Genomförda pass",
+          "completionRate": "Genomförandegrad"
+        },
+        "readiness": {
+          "title": "Lagberedskap",
+          "description": "Snabb kontroll inför lagstart: roster, profiler, portal och testdata.",
+          "ready": "Redo",
+          "pending": "Kvar",
+          "roster": "Roster",
+          "profiles": "Profiler",
+          "athletePortal": "Atletportal",
+          "testFlow": "Testflöde",
+          "completeFields": "Kompletta basfält",
+          "missingFields": "{count} behöver kompletteras",
+          "accountCount": "{active}/{total} konton",
+          "hockeyTests": "{count} hockeytester",
+          "runFirstHockeyTest": "Kör första hockeytestet"
+        },
+        "roster": {
+          "title": "Spelare ({count})",
+          "description": "Klicka på tröjnummer eller position för att redigera. Lägg till saknad e-post direkt i listan. Använd radknapparna för snabb planering. Importera större listor via Excel/text/PDF."
+        },
+        "recentWorkouts": {
+          "title": "Senaste lagpass",
+          "description": "Tilldelade pass de senaste 30 dagarna",
+          "empty": "Inga lagpass har tilldelats ännu.",
+          "workout": "Pass",
+          "date": "Datum",
+          "completed": "Genomfört"
+        },
+        "playerStats": {
+          "title": "Spelarstatistik",
+          "description": "Genomförandegrad per spelare (30 dagar)",
+          "empty": "Inga spelare i laget."
+        },
+        "quickLinks": {
+          "analysis": {
+            "title": "Lagets analys",
+            "description": "Belastning, aktivitet och PRs per atlet — vem behöver uppmärksamhet idag?",
+            "cta": "Öppna lagets analys"
+          },
+          "tests": {
+            "title": "Tester",
+            "description": "Logga ett testpass från en handskriven tabell — rader = atleter, kolumner = övningar.",
+            "cta": "Öppna tester"
+          },
+          "multivariate": {
+            "title": "Multivariat analys",
+            "description": "Hitta mönster med PCA och identifiera drivkrafter med PLS-regression",
+            "cta": "Öppna multivariat analys"
+          }
+        }
       }
     },
     "dashboard": "Coach Dashboard",

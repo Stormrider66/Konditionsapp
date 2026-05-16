@@ -1012,6 +1012,82 @@
           "synced": "Calendar synced",
           "syncFailed": "Sync failed"
         }
+      },
+      "teamDetail": {
+        "backToTeams": "Back to teams",
+        "playerCount": "{count} players",
+        "unknownWorkout": "Unknown workout",
+        "sports": {
+          "football": "Football",
+          "iceHockey": "Ice hockey",
+          "handball": "Handball",
+          "floorball": "Floorball",
+          "running": "Running",
+          "cycling": "Cycling",
+          "skiing": "Skiing",
+          "swimming": "Swimming",
+          "generalFitness": "General fitness",
+          "strength": "Strength"
+        },
+        "workoutTypes": {
+          "strength": "Strength",
+          "cardio": "Cardio"
+        },
+        "stats": {
+          "players": "Players",
+          "assignedWorkouts": "Assigned workouts (30 days)",
+          "completedWorkouts": "Completed workouts",
+          "completionRate": "Completion rate"
+        },
+        "readiness": {
+          "title": "Team readiness",
+          "description": "Quick check before team launch: roster, profiles, portal, and test data.",
+          "ready": "Ready",
+          "pending": "Remaining",
+          "roster": "Roster",
+          "profiles": "Profiles",
+          "athletePortal": "Athlete portal",
+          "testFlow": "Test flow",
+          "completeFields": "Core fields complete",
+          "missingFields": "{count} need completion",
+          "accountCount": "{active}/{total} accounts",
+          "hockeyTests": "{count} hockey tests",
+          "runFirstHockeyTest": "Run the first hockey test"
+        },
+        "roster": {
+          "title": "Players ({count})",
+          "description": "Click jersey number or position to edit. Add missing email directly in the list. Use row buttons for quick planning. Import larger rosters through Excel/text/PDF."
+        },
+        "recentWorkouts": {
+          "title": "Recent team workouts",
+          "description": "Assigned workouts from the last 30 days",
+          "empty": "No team workouts have been assigned yet.",
+          "workout": "Workout",
+          "date": "Date",
+          "completed": "Completed"
+        },
+        "playerStats": {
+          "title": "Player statistics",
+          "description": "Completion rate per player (30 days)",
+          "empty": "No players in the team."
+        },
+        "quickLinks": {
+          "analysis": {
+            "title": "Team analysis",
+            "description": "Load, activity, and PRs per athlete — who needs attention today?",
+            "cta": "Open team analysis"
+          },
+          "tests": {
+            "title": "Tests",
+            "description": "Log a test session from a handwritten table — rows = athletes, columns = exercises.",
+            "cta": "Open tests"
+          },
+          "multivariate": {
+            "title": "Multivariate analysis",
+            "description": "Find patterns with PCA and identify drivers with PLS regression",
+            "cta": "Open multivariate analysis"
+          }
+        }
       }
     },
     "dashboard": "Coach Dashboard",

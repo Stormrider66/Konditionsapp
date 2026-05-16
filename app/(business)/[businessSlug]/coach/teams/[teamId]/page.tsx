@@ -34,6 +34,7 @@ import { TeamLeaderboard } from '@/components/coach/leaderboards'
 import { AddPlayersDialog } from '@/components/coach/teams/AddPlayersDialog'
 import { TeamRosterTable } from '@/components/coach/teams/TeamRosterTable'
 import { AssignmentStatus } from '@prisma/client'
+import { getLocale, getTranslations } from '@/i18n/server'
 
 interface TeamPageProps {
   params: Promise<{
@@ -42,36 +43,40 @@ interface TeamPageProps {
   }>
 }
 
-const sportTypeLabels: Record<string, string> = {
-  TEAM_FOOTBALL: 'Fotboll',
-  TEAM_ICE_HOCKEY: 'Ishockey',
-  TEAM_HANDBALL: 'Handboll',
-  TEAM_FLOORBALL: 'Innebandy',
-  RUNNING: 'Löpning',
-  CYCLING: 'Cykling',
-  SKIING: 'Skidåkning',
-  SWIMMING: 'Simning',
+const sportTypeLabelKeys: Record<string, string> = {
+  TEAM_FOOTBALL: 'sports.football',
+  TEAM_ICE_HOCKEY: 'sports.iceHockey',
+  TEAM_HANDBALL: 'sports.handball',
+  TEAM_FLOORBALL: 'sports.floorball',
+  RUNNING: 'sports.running',
+  CYCLING: 'sports.cycling',
+  SKIING: 'sports.skiing',
+  SWIMMING: 'sports.swimming',
   TRIATHLON: 'Triathlon',
   HYROX: 'HYROX',
-  GENERAL_FITNESS: 'Allmän träning',
-  STRENGTH: 'Styrka',
+  GENERAL_FITNESS: 'sports.generalFitness',
+  STRENGTH: 'sports.strength',
 }
 
 function PilotReadinessItem({
   label,
   ready,
   detail,
+  readyLabel,
+  pendingLabel,
 }: {
   label: string
   ready: boolean
   detail: string
+  readyLabel: string
+  pendingLabel: string
 }) {
   return (
     <div className="rounded-md border bg-background/70 p-3 dark:bg-slate-950/40 dark:border-white/10">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium dark:text-slate-100">{label}</p>
         <Badge variant={ready ? 'default' : 'secondary'} className="text-[10px]">
-          {ready ? 'Redo' : 'Kvar'}
+          {ready ? readyLabel : pendingLabel}
         </Badge>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
@@ -81,6 +86,9 @@ function PilotReadinessItem({
 
 export default async function BusinessTeamDashboardPage({ params }: TeamPageProps) {
   const { businessSlug, teamId } = await params
+  const t = await getTranslations('coach.pages.teamDetail')
+  const locale = await getLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const user = await requireCoach()
 
   // Validate business membership
@@ -350,7 +358,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         broadcast.strengthSession?.name ||
         broadcast.cardioSession?.name ||
         broadcast.hybridWorkout?.name ||
-        'Okänt pass'
+        t('unknownWorkout')
 
       const workoutType = broadcast.strengthSessionId
         ? 'strength'
@@ -479,13 +487,13 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
       case 'strength':
         return (
           <Badge variant="outline" className="text-xs">
-            Styrka
+            {t('workoutTypes.strength')}
           </Badge>
         )
       case 'cardio':
         return (
           <Badge variant="outline" className="text-xs text-red-600 border-red-300">
-            Kondition
+            {t('workoutTypes.cardio')}
           </Badge>
         )
       case 'hybrid':
@@ -504,7 +512,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
       <Link href={basePath}>
         <Button variant="ghost" className="mb-6">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka till lag
+          {t('backToTeams')}
         </Button>
       </Link>
 
@@ -514,14 +522,14 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
             <h1 className="text-3xl font-bold dark:text-white">{team.name}</h1>
             {team.sportType && (
               <Badge variant="secondary" className="text-sm">
-                {sportTypeLabels[team.sportType] || team.sportType}
+                {sportTypeLabelKeys[team.sportType] ? t(sportTypeLabelKeys[team.sportType]) : team.sportType}
               </Badge>
             )}
           </div>
           <div className="flex items-center gap-4 text-muted-foreground">
             <span className="flex items-center gap-1">
               <Users className="h-4 w-4" />
-              {team.members.length} spelare
+              {t('playerCount', { count: team.members.length })}
             </span>
             {team.organization && (
               <span className="flex items-center gap-1">
@@ -550,25 +558,25 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
       <div className="grid gap-4 md:grid-cols-4 mb-8">
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardHeader className="pb-2">
-            <CardDescription>Spelare</CardDescription>
+            <CardDescription>{t('stats.players')}</CardDescription>
             <CardTitle className="text-2xl dark:text-white">{team.members.length}</CardTitle>
           </CardHeader>
         </Card>
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardHeader className="pb-2">
-            <CardDescription>Tilldelade pass (30 dagar)</CardDescription>
+            <CardDescription>{t('stats.assignedWorkouts')}</CardDescription>
             <CardTitle className="text-2xl dark:text-white">{totalWorkoutsAssigned}</CardTitle>
           </CardHeader>
         </Card>
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardHeader className="pb-2">
-            <CardDescription>Genomförda pass</CardDescription>
+            <CardDescription>{t('stats.completedWorkouts')}</CardDescription>
             <CardTitle className="text-2xl dark:text-white">{totalWorkoutsCompleted}</CardTitle>
           </CardHeader>
         </Card>
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardHeader className="pb-2">
-            <CardDescription>Genomförandegrad</CardDescription>
+            <CardDescription>{t('stats.completionRate')}</CardDescription>
             <CardTitle className="text-2xl flex items-center gap-2 dark:text-white">
               {overallCompletionRate}%
               <Progress value={overallCompletionRate} className="w-16 h-2" />
@@ -581,33 +589,41 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         <CardHeader>
           <CardTitle className="flex items-center gap-2 dark:text-white">
             <CheckCircle2 className="h-5 w-5 text-cyan-600" />
-            Lagberedskap
+            {t('readiness.title')}
           </CardTitle>
           <CardDescription>
-            Snabb kontroll inför lagstart: roster, profiler, portal och testdata.
+            {t('readiness.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <PilotReadinessItem
-              label="Roster"
+              label={t('readiness.roster')}
               ready={team.members.length > 0}
-              detail={`${team.members.length} spelare`}
+              detail={t('playerCount', { count: team.members.length })}
+              readyLabel={t('readiness.ready')}
+              pendingLabel={t('readiness.pending')}
             />
             <PilotReadinessItem
-              label="Profiler"
+              label={t('readiness.profiles')}
               ready={rosterReady}
-              detail={missingProfileCount === 0 ? 'Kompletta basfält' : `${missingProfileCount} behöver kompletteras`}
+              detail={missingProfileCount === 0 ? t('readiness.completeFields') : t('readiness.missingFields', { count: missingProfileCount })}
+              readyLabel={t('readiness.ready')}
+              pendingLabel={t('readiness.pending')}
             />
             <PilotReadinessItem
-              label="Atletportal"
+              label={t('readiness.athletePortal')}
               ready={athletePortalReady}
-              detail={`${athleteAccountCount}/${team.members.length} konton`}
+              detail={t('readiness.accountCount', { active: athleteAccountCount, total: team.members.length })}
+              readyLabel={t('readiness.ready')}
+              pendingLabel={t('readiness.pending')}
             />
             <PilotReadinessItem
-              label="Testflöde"
+              label={t('readiness.testFlow')}
               ready={hockeyTestCount > 0}
-              detail={hockeyTestCount > 0 ? `${hockeyTestCount} hockeytester` : 'Kör första hockeytestet'}
+              detail={hockeyTestCount > 0 ? t('readiness.hockeyTests', { count: hockeyTestCount }) : t('readiness.runFirstHockeyTest')}
+              readyLabel={t('readiness.ready')}
+              pendingLabel={t('readiness.pending')}
             />
           </div>
         </CardContent>
@@ -618,11 +634,10 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           <CardHeader>
             <CardTitle className="flex items-center gap-2 dark:text-white">
               <Users className="h-5 w-5" />
-              Spelare ({team.members.length})
+              {t('roster.title', { count: team.members.length })}
             </CardTitle>
             <CardDescription>
-              Klicka på tröjnummer eller position för att redigera. Lägg till saknad e-post direkt i listan.
-              Använd radknapparna för snabb planering. Importera större listor via Excel/text/PDF.
+              {t('roster.description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -640,22 +655,22 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           <CardHeader>
             <CardTitle className="flex items-center gap-2 dark:text-white">
               <Calendar className="h-5 w-5" />
-              Senaste lagpass
+              {t('recentWorkouts.title')}
             </CardTitle>
-            <CardDescription>Tilldelade pass de senaste 30 dagarna</CardDescription>
+            <CardDescription>{t('recentWorkouts.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {recentBroadcasts.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
-                Inga lagpass har tilldelats ännu.
+                {t('recentWorkouts.empty')}
               </p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Pass</TableHead>
-                    <TableHead>Datum</TableHead>
-                    <TableHead className="text-right">Genomfört</TableHead>
+                    <TableHead>{t('recentWorkouts.workout')}</TableHead>
+                    <TableHead>{t('recentWorkouts.date')}</TableHead>
+                    <TableHead className="text-right">{t('recentWorkouts.completed')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -669,7 +684,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
                         </div>
                       </TableCell>
                       <TableCell className="dark:text-slate-300">
-                        {new Date(broadcast.assignedDate).toLocaleDateString('sv-SE')}
+                        {new Date(broadcast.assignedDate).toLocaleDateString(dateLocale)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -696,14 +711,14 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           <CardHeader>
             <CardTitle className="flex items-center gap-2 dark:text-white">
               <TrendingUp className="h-5 w-5" />
-              Spelarstatistik
+              {t('playerStats.title')}
             </CardTitle>
-            <CardDescription>Genomförandegrad per spelare (30 dagar)</CardDescription>
+            <CardDescription>{t('playerStats.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {memberStats.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
-                Inga spelare i laget.
+                {t('playerStats.empty')}
               </p>
             ) : (
               <div className="space-y-4">
@@ -751,42 +766,42 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardHeader>
-            <CardTitle className="dark:text-white">Lagets analys</CardTitle>
+            <CardTitle className="dark:text-white">{t('quickLinks.analysis.title')}</CardTitle>
             <CardDescription>
-              Belastning, aktivitet och PRs per atlet — vem behöver uppmärksamhet idag?
+              {t('quickLinks.analysis.description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link href={`/${businessSlug}/coach/teams/${teamId}/analysis`}>
-              <Button>Öppna lagets analys</Button>
+              <Button>{t('quickLinks.analysis.cta')}</Button>
             </Link>
           </CardContent>
         </Card>
 
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardHeader>
-            <CardTitle className="dark:text-white">Tester</CardTitle>
+            <CardTitle className="dark:text-white">{t('quickLinks.tests.title')}</CardTitle>
             <CardDescription>
-              Logga ett testpass från en handskriven tabell — rader = atleter, kolumner = övningar.
+              {t('quickLinks.tests.description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link href={`/${businessSlug}/coach/teams/${teamId}/tests`}>
-              <Button variant="outline">Öppna tester</Button>
+              <Button variant="outline">{t('quickLinks.tests.cta')}</Button>
             </Link>
           </CardContent>
         </Card>
 
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardHeader>
-            <CardTitle className="dark:text-white">Multivariat analys</CardTitle>
+            <CardTitle className="dark:text-white">{t('quickLinks.multivariate.title')}</CardTitle>
             <CardDescription>
-              Hitta mönster med PCA och identifiera drivkrafter med PLS-regression
+              {t('quickLinks.multivariate.description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link href={`/${businessSlug}/coach/teams/${teamId}/multivariate`}>
-              <Button variant="outline">Öppna multivariat analys</Button>
+              <Button variant="outline">{t('quickLinks.multivariate.cta')}</Button>
             </Link>
           </CardContent>
         </Card>
