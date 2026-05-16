@@ -72,6 +72,8 @@ Success examples:
 
 ## Level 4: Action Assistant
 
+Status: first confirmed message-action slice shipped on 2026-05-16
+
 The assistant can prepare and perform coach actions, with confirmation for meaningful writes.
 
 Scope:

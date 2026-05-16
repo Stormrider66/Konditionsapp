@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { ChatMessage } from './ChatMessage'
 import { ChatNavigationCard, type ChatNavigationResult } from './ChatNavigationCard'
+import { ChatActionCard, type ChatActionResult } from './ChatActionCard'
 import { cn } from '@/lib/utils'
 import { parseAIProgram, type ParseResult } from '@/lib/ai/program-parser'
 import { getInfoEntriesByKeys } from '@/lib/info-content'
@@ -958,6 +959,10 @@ export function FloatingAIChat({
                 part => part.type === 'tool-suggestCoachNavigation' && part.state === 'output-available'
               )
               const navigationResult = navigationToolPart?.output as ChatNavigationResult | undefined
+              const actionToolPart = (message.parts as ToolOutputPart[] | undefined)?.find(
+                part => part.type === 'tool-prepareCoachMessageDraft' && part.state === 'output-available'
+              )
+              const actionResult = actionToolPart?.output as ChatActionResult | undefined
               return (
                 <div key={message.id}>
                   {textContent && (
@@ -975,6 +980,9 @@ export function FloatingAIChat({
                   )}
                   {navigationResult?.success && (
                     <ChatNavigationCard result={navigationResult} basePath={basePath} />
+                  )}
+                  {actionResult?.success && (
+                    <ChatActionCard result={actionResult} businessSlug={pathBusinessSlug} basePath={basePath} />
                   )}
                 </div>
               )

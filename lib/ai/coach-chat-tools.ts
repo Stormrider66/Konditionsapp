@@ -20,6 +20,7 @@ import { resolveModel } from '@/types/ai-models'
 import { logger } from '@/lib/logger'
 import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { getAccessibleTeam, getAccessibleTeamWhere } from '@/lib/coach/team-access'
+import { buildCoachMessageAction, prepareCoachMessageDraftInputSchema } from '@/lib/ai/coach-message-actions'
 import type { StrengthPhase } from '@prisma/client'
 
 type CoachToolClient = {
@@ -1062,6 +1063,19 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
             teamName,
           }, error)
           return { success: false, error: 'Kunde inte skapa navigeringen.' }
+        }
+      },
+    }),
+
+    prepareCoachMessageDraft: tool({
+      description: 'Förbered ett meddelande till en atlet, ett helt lag eller en filtrerad laggrupp. Verktyget skickar aldrig direkt utan returnerar ett bekräftelsekort som coachen måste klicka på.',
+      inputSchema: prepareCoachMessageDraftInputSchema,
+      execute: async (params) => {
+        try {
+          return await buildCoachMessageAction(coachUserId, params, businessSlug)
+        } catch (error) {
+          logger.error('Error in prepareCoachMessageDraft tool', { coachUserId, businessSlug }, error)
+          return { success: false, error: 'Kunde inte förbereda meddelandet.' }
         }
       },
     }),

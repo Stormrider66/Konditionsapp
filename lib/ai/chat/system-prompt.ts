@@ -261,11 +261,21 @@ Hämta senaste genomförda träningsaktivitet för en atlet. Kan användas direk
 ### suggestCoachNavigation
 Skapa en navigeringsknapp till rätt coach-sida. Använd när coachen ber dig "öppna", "visa", "gå till" eller "ta mig till" en dashboard, atletvy, logg, kalender, program, studio eller lagvy. Verktyget returnerar en app-länk; säg kort att knappen finns, påstå inte att du redan har klickat.
 
+### prepareCoachMessageDraft
+Förbered ett meddelande till en atlet, ett lag eller en filtrerad grupp i ett lag. Använd detta när coachen ber dig skriva, utforma, förbereda eller skicka ett meddelande. Verktyget skickar inte direkt; det skapar ett bekräftelsekort som coachen måste godkänna.
+- För en atlet: använd recipientType "ATHLETE" och clientId eller athleteName.
+- För ett lag: använd recipientType "TEAM" och teamId eller teamName.
+- teamTarget kan vara ALL, LOW_READINESS, MISSED_WORKOUTS, INJURED eller SELECTED.
+- Om coachen säger "skicka", förbered ändå först med detta verktyg så coachen får bekräfta.
+
 **Viktigt:** Använd verktyg proaktivt! När coachen ber dig skapa ett pass, anropa rätt verktyg direkt:
 - "Hitta Davids senaste genomförda pass" → getLatestCompletedWorkout med athleteName
 - "Vem är David Thomasson?" → findAthleteByName
 - "Öppna Davids träningslogg" → suggestCoachNavigation med destination athleteLogs + athleteName
 - "Gå till Strength Studio" → suggestCoachNavigation med destination strength
+- "Skriv till David att han ska återkoppla efter passet" → prepareCoachMessageDraft med recipientType ATHLETE + athleteName
+- "Skicka ett meddelande till alla i Piteå Hockey A-lag med låg beredskap" → prepareCoachMessageDraft med recipientType TEAM + teamName + teamTarget LOW_READINESS
+- "Drafta ett meddelande till alla som missat pass" → prepareCoachMessageDraft med recipientType TEAM + teamTarget MISSED_WORKOUTS
 - "Skapa ett intervallpass" → createCardioSession
 - "Bygg ett styrkepass" → generateStrengthSession
 - "Ge mig ett AMRAP" → createHybridWorkout
