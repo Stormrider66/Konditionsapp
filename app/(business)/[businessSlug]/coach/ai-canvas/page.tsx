@@ -18,5 +18,5 @@ export default async function BusinessAICanvasPage({ params }: PageProps) {
     notFound()
   }
 
-  return <AICanvasClient />
+  return <AICanvasClient businessSlug={businessSlug} />
 }

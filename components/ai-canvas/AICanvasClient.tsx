@@ -36,6 +36,29 @@ interface CanvasBlock {
   tone?: 'neutral' | 'positive' | 'warning'
 }
 
+interface GeneratedCanvasBlock {
+  type: CanvasBlockType
+  title?: string
+  content?: string
+  items?: string[]
+  columns?: string[]
+  rows?: string[][]
+  tone?: 'neutral' | 'positive' | 'warning'
+}
+
+interface GenerateCanvasResponse {
+  success?: boolean
+  title?: string
+  assistantMessage?: string
+  blocks?: GeneratedCanvasBlock[]
+  model?: {
+    provider: string
+    modelId: string
+    displayName: string
+  }
+  error?: string
+}
+
 interface CanvasTemplate {
   id: CanvasTemplateId
   name: string
@@ -113,143 +136,19 @@ function createId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-function buildBlocksFromPrompt(prompt: string, templateId: CanvasTemplateId): CanvasBlock[] {
-  const normalizedPrompt = prompt.trim()
-  const subject = normalizedPrompt || 'Ny canvas'
-
-  if (templateId === 'team-risk' || /risk|team|lag|uppfölj/i.test(subject)) {
-    return [
-      {
-        id: createId('heading'),
-        type: 'heading',
-        title: 'Team risk scan',
-        content: 'Ett första arbetsutkast för att hitta uppföljningar och dataluckor.',
-      },
-      {
-        id: createId('insight'),
-        type: 'insight',
-        title: 'Sammanfattning',
-        content:
-          'Jag har skapat en struktur för att separera akuta risker, saknad data och praktiska coachåtgärder. Koppla in teamdata i nästa fas för att fylla blocken automatiskt.',
-        tone: 'warning',
-      },
-      {
-        id: createId('table'),
-        type: 'table',
-        title: 'Risköversikt',
-        columns: ['Område', 'Signal', 'Nästa steg'],
-        rows: [
-          ['Tester', 'Flera atleter kan ha gammal testdata', 'Prioritera ny testbokning'],
-          ['Belastning', 'Missade pass behöver följas upp', 'Kontrollera senaste träningsvecka'],
-          ['Readiness', 'Låg trend bör bekräftas', 'Skicka kort check-in'],
-        ],
-      },
-      {
-        id: createId('actions'),
-        type: 'actions',
-        title: 'Föreslagna åtgärder',
-        items: ['Välj team och datumintervall', 'Generera med live-data i Phase 2', 'Skapa uppföljningslista'],
-      },
-    ]
-  }
-
-  if (templateId === 'program-notes' || /program|block|träning|plan/i.test(subject)) {
-    return [
-      {
-        id: createId('heading'),
-        type: 'heading',
-        title: 'Programplan',
-        content: 'Ett arbetsutkast för mål, nyckelpass och kontrollpunkter.',
-      },
-      {
-        id: createId('text'),
-        type: 'text',
-        title: 'Målbild',
-        content:
-          'Planen bör börja med tydligt syfte, nuläge, begränsningar och hur belastningen ska följas upp vecka för vecka.',
-      },
-      {
-        id: createId('checklist'),
-        type: 'checklist',
-        title: 'Blockstruktur',
-        items: [
-          'Definiera huvudmål för blocket',
-          'Placera 1-2 nyckelpass per vecka',
-          'Lägg in återhämtning och kontrollpunkter',
-          'Bestäm vad som ska justeras vid låg readiness',
-        ],
-      },
-    ]
-  }
-
-  if (templateId === 'weekly-briefing' || /brief|vecka|weekly/i.test(subject)) {
-    return [
-      {
-        id: createId('heading'),
-        type: 'heading',
-        title: 'Weekly coach briefing',
-        content: 'Ett kort beslutsunderlag för coachens kommande vecka.',
-      },
-      {
-        id: createId('table'),
-        type: 'table',
-        title: 'Prioriteringar',
-        columns: ['Prioritet', 'Varför', 'Coachbeslut'],
-        rows: [
-          ['Uppföljningar', 'Atleter med missade eller avvikande pass', 'Kontakta och justera vid behov'],
-          ['Tester', 'Testdata kan bli gammal', 'Planera testfönster'],
-          ['Program', 'Kommande belastning behöver kontrolleras', 'Granska nyckelpass'],
-        ],
-      },
-      {
-        id: createId('actions'),
-        type: 'actions',
-        title: 'Nästa drag',
-        items: ['Välj vilka atleter som ska följas upp', 'Förbered kort meddelande', 'Markera beslut för veckan'],
-      },
-    ]
-  }
-
-  return [
-    {
-      id: createId('heading'),
-      type: 'heading',
-      title: 'Athlete review',
-      content: normalizedPrompt || 'Ett första rapportutkast för atletens nuläge och nästa steg.',
-    },
-    {
-      id: createId('text'),
-      type: 'text',
-      title: 'Nuläge',
-      content:
-        'Jag har skapat ett rapportformat som kan fyllas med testdata, träningshistorik, readiness och coachanteckningar när datakopplingen aktiveras.',
-    },
-    {
-      id: createId('insight'),
-      type: 'insight',
-      title: 'Coachtolkning',
-      content:
-        'Fokusera på vad coachen behöver besluta: om atleten ska fortsätta enligt plan, justera belastning, boka test eller få en uppföljning.',
-      tone: 'neutral',
-    },
-    {
-      id: createId('checklist'),
-      type: 'checklist',
-      title: 'Rapportdelar',
-      items: ['Sammanfattning', 'Senaste utveckling', 'Risker eller dataluckor', 'Rekommenderade nästa steg'],
-    },
-  ]
-}
-
 function getAssistantMessage(prompt: string, blockCount: number): string {
   if (!prompt.trim()) {
     return 'Jag behöver en fråga eller mall för att skapa nya block. Välj gärna en mall eller skriv vad du vill bygga.'
   }
 
-  return `Jag skapade ${blockCount} canvasblock som ett första arbetsutkast. I den här versionen använder jag malllogik; live-data och riktig AI-generering kommer i nästa faser.`
+  return `Jag skapade ${blockCount} canvasblock som ett första arbetsutkast.`
 }
 
-export function AICanvasClient() {
+interface AICanvasClientProps {
+  businessSlug: string
+}
+
+export function AICanvasClient({ businessSlug }: AICanvasClientProps) {
   const [title, setTitle] = useState('Untitled coach canvas')
   const [prompt, setPrompt] = useState('')
   const [selectedTemplateId, setSelectedTemplateId] = useState<CanvasTemplateId>('blank')
@@ -258,6 +157,8 @@ export function AICanvasClient() {
     'Canvasen är redo. Välj en mall eller skriv vad du vill skapa.'
   )
   const [lastUpdated, setLastUpdated] = useState('Inte sparad än')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [modelLabel, setModelLabel] = useState<string | null>(null)
 
   const selectedTemplate = useMemo(
     () => starterTemplates.find((template) => template.id === selectedTemplateId) ?? starterTemplates[0],
@@ -274,11 +175,49 @@ export function AICanvasClient() {
     )
   }
 
-  const handleGenerate = () => {
-    const nextBlocks = buildBlocksFromPrompt(prompt || selectedTemplate.prompt, selectedTemplate.id)
-    setBlocks(nextBlocks)
-    setAssistantMessage(getAssistantMessage(prompt || selectedTemplate.prompt, nextBlocks.length))
-    setLastUpdated(new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
+  const handleGenerate = async () => {
+    const requestPrompt = (prompt || selectedTemplate.prompt).trim()
+    if (!requestPrompt) {
+      setAssistantMessage(getAssistantMessage('', 0))
+      return
+    }
+
+    setIsGenerating(true)
+    setAssistantMessage('Jag skapar strukturerade canvasblock...')
+
+    try {
+      const response = await fetch('/api/ai/canvas/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessSlug,
+          prompt: requestPrompt,
+          templateId: selectedTemplate.id,
+        }),
+      })
+
+      const payload = (await response.json()) as GenerateCanvasResponse
+
+      if (!response.ok || !payload.success || !payload.blocks) {
+        setAssistantMessage(payload.error || 'Jag kunde inte skapa canvasblock just nu.')
+        return
+      }
+
+      const nextBlocks = payload.blocks.map((block) => ({
+        id: createId(block.type),
+        ...block,
+      }))
+
+      setBlocks(nextBlocks)
+      setTitle(payload.title || title)
+      setAssistantMessage(payload.assistantMessage || getAssistantMessage(requestPrompt, nextBlocks.length))
+      setModelLabel(payload.model?.displayName ?? null)
+      setLastUpdated(new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
+    } catch {
+      setAssistantMessage('Jag kunde inte nå AI Canvas just nu. Kontrollera anslutningen och försök igen.')
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   const handleReset = () => {
@@ -287,6 +226,7 @@ export function AICanvasClient() {
     setSelectedTemplateId('blank')
     setAssistantMessage('Jag återställde canvasen till startläget.')
     setLastUpdated('Återställd')
+    setModelLabel(null)
   }
 
   return (
@@ -318,6 +258,12 @@ export function AICanvasClient() {
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
               <span>Senast uppdaterad: {lastUpdated}</span>
+              {modelLabel && (
+                <>
+                  <span className="text-slate-300">|</span>
+                  <span>{modelLabel}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -401,9 +347,9 @@ export function AICanvasClient() {
               className="min-h-[130px] resize-none rounded-md border-slate-200 text-sm"
             />
             <div className="mt-3 flex gap-2">
-              <Button onClick={handleGenerate} className="flex-1 gap-2">
-                <Send className="h-4 w-4" />
-                Skapa
+              <Button onClick={handleGenerate} disabled={isGenerating} className="flex-1 gap-2">
+                {isGenerating ? <Wand2 className="h-4 w-4 animate-pulse" /> : <Send className="h-4 w-4" />}
+                {isGenerating ? 'Skapar...' : 'Skapa'}
               </Button>
             </div>
           </div>
