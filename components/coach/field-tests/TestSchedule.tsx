@@ -50,9 +50,12 @@ import {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
-interface TestScheduleProps {}
+interface TestScheduleProps {
+  highlightedClientId?: string
+  sourceLabel?: string
+}
 
-export default function TestSchedule({}: TestScheduleProps) {
+export default function TestSchedule({ highlightedClientId, sourceLabel }: TestScheduleProps) {
   const { toast } = useToast()
 
   const [selectedWeeks, setSelectedWeeks] = useState<number>(12)
@@ -186,6 +189,9 @@ export default function TestSchedule({}: TestScheduleProps) {
   const dueSoonTests = recommendations?.filter((r) => r.status === 'DUE_SOON') || []
   const upcomingTests = recommendations?.filter((r) => r.status === 'UPCOMING') || []
   const noTests = recommendations?.filter((r) => r.status === 'NO_TEST') || []
+  const highlightedRecommendation = highlightedClientId
+    ? recommendations?.find((recommendation) => recommendation.client.id === highlightedClientId)
+    : null
 
   return (
     <div className="space-y-6">
@@ -219,6 +225,22 @@ export default function TestSchedule({}: TestScheduleProps) {
           </Button>
         </div>
       </div>
+
+      {highlightedClientId && (
+        <Alert className="border-blue-200 bg-blue-50">
+          <AlertCircle className="h-4 w-4 text-blue-700" />
+          <AlertDescription className="text-blue-950">
+            {highlightedRecommendation
+              ? (
+                  <>
+                    Öppnat från AI Canvas för <strong>{highlightedRecommendation.client.name}</strong>
+                    {sourceLabel ? `: ${sourceLabel}` : ''}. Välj testtyp i atletens rad för att schemalägga.
+                  </>
+                )
+              : 'Öppnat från AI Canvas. Atleten kunde inte matchas i listan just nu.'}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-4">
@@ -292,7 +314,10 @@ export default function TestSchedule({}: TestScheduleProps) {
             </TableHeader>
             <TableBody>
               {recommendations?.map((rec) => (
-                <TableRow key={rec.client.id}>
+                <TableRow
+                  key={rec.client.id}
+                  className={rec.client.id === highlightedClientId ? 'bg-blue-50/70' : undefined}
+                >
                   <TableCell className="font-semibold">{rec.client.name}</TableCell>
                   <TableCell>
                     {rec.lastTest

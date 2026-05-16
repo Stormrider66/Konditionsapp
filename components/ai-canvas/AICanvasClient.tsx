@@ -1005,7 +1005,11 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       return
     }
 
-    window.open(`/${businessSlug}/coach/field-tests/schedule`, '_blank', 'noopener,noreferrer')
+    const params = new URLSearchParams({
+      clientId: selectedAthlete.id,
+      source: sourceLabel || 'AI Canvas',
+    })
+    window.open(`/${businessSlug}/coach/field-tests/schedule?${params.toString()}`, '_blank', 'noopener,noreferrer')
     setAssistantMessage(
       sourceLabel
         ? `Jag öppnade testbokningen för uppföljningen "${sourceLabel}". Ingen bokning har skapats ännu.`
