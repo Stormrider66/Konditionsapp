@@ -9,6 +9,8 @@ import { buildCanvasAnalyticsBlocks, buildCanvasContextSummary } from '@/lib/ai-
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resolveModel } from '@/types/ai-models'
+import { hasEmbeddingKeys } from '@/lib/ai/embeddings'
+import { fetchSkillContext, matchKnowledgeSkills } from '@/lib/ai/knowledge-skills'
 import { logger } from '@/lib/logger'
 
 const templateSchema = z.enum([
@@ -188,6 +190,24 @@ export async function POST(request: NextRequest) {
       selection: contextSelection,
     })
     const resolvedContextSummary = liveContextSummary || contextSummary
+    const embeddingKeys = {
+      googleKey: keys.googleKey,
+      openaiKey: keys.openaiKey,
+    }
+    let skillContext = ''
+    let skillsUsed: string[] = []
+    if (hasEmbeddingKeys(embeddingKeys)) {
+      try {
+        const matchedSkills = await matchKnowledgeSkills(prompt, embeddingKeys, { maxSkills: 3 })
+        if (matchedSkills.length > 0) {
+          const result = await fetchSkillContext(prompt, matchedSkills, embeddingKeys)
+          skillContext = result.context
+          skillsUsed = result.skillsUsed
+        }
+      } catch (error) {
+        logger.warn('AI canvas skill retrieval failed', {}, error)
+      }
+    }
 
     const model = createModelInstance(resolved)
     const result = await withAiContext(
@@ -206,6 +226,10 @@ export async function POST(request: NextRequest) {
             : contextSummary
               ? 'Important: this context identifies what the coach selected. It does not include live metrics yet.'
               : '',
+          skillContext ? `Relevant expert knowledge:\n${skillContext}\n` : '',
+          skillContext
+            ? 'Important: the expert knowledge is supporting reference material. Use it when relevant, but do not pretend it contains live athlete data.'
+            : '',
           '',
           'Coach request:',
           prompt,
@@ -221,14 +245,21 @@ export async function POST(request: NextRequest) {
       ...analyticsBlocks,
       ...validated.blocks,
     ].slice(0, 10)
+    const assistantMessageAdditions = [
+      analyticsBlocks.length > 0
+        ? `Jag lade även till ${analyticsBlocks.length} datadrivna analysblock.`
+        : '',
+      skillsUsed.length > 0
+        ? `Jag använde även ${skillsUsed.length} relevanta kunskapsskill${skillsUsed.length === 1 ? '' : 's'}.`
+        : '',
+    ].filter(Boolean)
 
     return NextResponse.json({
       success: true,
       title: validated.title,
-      assistantMessage: analyticsBlocks.length > 0
-        ? `${validated.assistantMessage} Jag lade även till ${analyticsBlocks.length} datadrivna analysblock.`
-        : validated.assistantMessage,
+      assistantMessage: [validated.assistantMessage, ...assistantMessageAdditions].join(' '),
       blocks,
+      skillsUsed,
       model: {
         provider: resolved.provider,
         modelId: resolved.modelId,

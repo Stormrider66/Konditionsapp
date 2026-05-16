@@ -56,6 +56,7 @@ import {
   Monitor,
   Building2,
   Bot,
+  BrainCircuit,
   Plus,
   X,
   Trash2,
@@ -70,6 +71,7 @@ import { PricingTiersManager } from '@/components/admin/pricing/PricingTiersMana
 import { MonitoringDashboard } from '@/components/admin/monitoring/MonitoringDashboard';
 import { BusinessesTable } from '@/components/admin/businesses/BusinessesTable';
 import { AIModelsManager } from '@/components/admin/ai-models/AIModelsManager';
+import { AISkillAuditPanel } from '@/components/admin/ai-skills/AISkillAuditPanel';
 import { AthleteIntegrityHealthPanel } from '@/components/admin/data-health/AthleteIntegrityHealthPanel';
 import { OperatorAgentsPanel } from '@/components/admin/operator-agents/OperatorAgentsPanel';
 import { WeeklyReportsPanel } from '@/components/admin/operator-agents/WeeklyReportsPanel';
@@ -547,6 +549,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
             <TabsTrigger value="ai-models" className="flex items-center gap-1 whitespace-nowrap">
               <Bot className="h-3 w-3" />
               AI Models
+            </TabsTrigger>
+            <TabsTrigger value="ai-skills" className="flex items-center gap-1 whitespace-nowrap">
+              <BrainCircuit className="h-3 w-3" />
+              AI Skills
             </TabsTrigger>
             <TabsTrigger value="operator-agents" className="flex items-center gap-1 whitespace-nowrap">
               <Bot className="h-3 w-3" />
@@ -1100,6 +1106,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
         {/* AI Models Tab */}
         <TabsContent value="ai-models">
           <AIModelsManager />
+        </TabsContent>
+
+        <TabsContent value="ai-skills">
+          <AISkillAuditPanel />
         </TabsContent>
 
         {/* Operator Agents Tab */}

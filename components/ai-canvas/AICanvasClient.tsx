@@ -116,6 +116,7 @@ interface GenerateCanvasResponse {
   title?: string
   assistantMessage?: string
   blocks?: Omit<CanvasBlock, 'id'>[]
+  skillsUsed?: string[]
   model?: {
     provider: string
     modelId: string
@@ -496,6 +497,17 @@ function describeCanvasBlock(block: CanvasBlock): string {
   return parts.join('\n').slice(0, 3000)
 }
 
+function getCanvasModelLabel(
+  model: GenerateCanvasResponse['model'] | undefined,
+  skillsUsed: string[] | undefined,
+  fallback: string | null,
+): string | null {
+  if (!model?.displayName) return fallback
+  return skillsUsed?.length
+    ? `${model.displayName} | ${skillsUsed.length} skills`
+    : model.displayName
+}
+
 interface AICanvasClientProps {
   businessSlug: string
   initialCanvases: SavedCanvasSummary[]
@@ -780,7 +792,7 @@ export function AICanvasClient({
       setBlocks(nextBlocks)
       setTitle(payload.title || title)
       addActionReceipt('success', 'Canvas skapad', payload.assistantMessage || getAssistantMessage(requestPrompt, nextBlocks.length))
-      setModelLabel(payload.model?.displayName ?? null)
+      setModelLabel(getCanvasModelLabel(payload.model, payload.skillsUsed, null))
       setLastUpdated(new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
     } catch {
       addActionReceipt('error', 'Canvas kunde inte skapas', 'Jag kunde inte nå AI Canvas just nu. Kontrollera anslutningen och försök igen.')
@@ -825,7 +837,7 @@ export function AICanvasClient({
         ...payload.blocks[0],
       }
       setBlocks((current) => current.map((item) => item.id === block.id ? improvedBlock : item))
-      setModelLabel(payload.model?.displayName ?? modelLabel)
+      setModelLabel(getCanvasModelLabel(payload.model, payload.skillsUsed, modelLabel))
       setLastUpdated(new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
       addActionReceipt('success', 'Block förbättrat', `Jag förbättrade blocket "${improvedBlock.title || block.title || block.type}".`)
     } catch {
