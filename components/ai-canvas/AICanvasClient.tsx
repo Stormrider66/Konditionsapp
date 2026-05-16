@@ -14,6 +14,7 @@ import {
   FolderOpen,
   Lightbulb,
   ListChecks,
+  MessageSquareText,
   Plus,
   Printer,
   RotateCcw,
@@ -122,6 +123,13 @@ interface CanvasNoteResponse {
   success?: boolean
   athleteName?: string
   error?: string
+}
+
+interface AthleteMessageDraft {
+  athleteId: string
+  athleteName: string
+  content: string
+  createdAt: string
 }
 
 interface CanvasAthleteOption {
@@ -290,6 +298,73 @@ function getAssistantMessage(prompt: string, blockCount: number): string {
   return `Jag skapade ${blockCount} canvasblock som ett första arbetsutkast.`
 }
 
+function cleanDraftText(value: string): string {
+  return value
+    .replace(/\*\*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function truncateSentence(value: string, maxLength = 170): string {
+  const clean = cleanDraftText(value)
+  if (clean.length <= maxLength) return clean
+  return `${clean.slice(0, maxLength - 1).trim()}...`
+}
+
+function buildAthleteMessageDraft(athleteName: string, canvasTitle: string, blocks: CanvasBlock[]): string {
+  const insights: string[] = []
+  const nextSteps: string[] = []
+
+  for (const block of blocks) {
+    if ((block.type === 'insight' || block.type === 'text') && block.content) {
+      insights.push(truncateSentence(block.content))
+    }
+
+    if (block.type === 'metric-row') {
+      for (const metric of block.metrics || []) {
+        insights.push(`${metric.label}: ${metric.value}${metric.detail ? ` (${metric.detail})` : ''}`)
+      }
+    }
+
+    if (block.type === 'risk-list') {
+      for (const risk of block.risks || []) {
+        if (risk.priority === 'high' || risk.priority === 'medium') {
+          insights.push(`Vi följer upp ${risk.title.toLowerCase()}: ${truncateSentence(risk.description, 120)}`)
+        }
+      }
+    }
+
+    if (block.type === 'actions' || block.type === 'checklist') {
+      nextSteps.push(...(block.items || []).map((item) => truncateSentence(item, 120)))
+    }
+  }
+
+  const uniqueInsights = Array.from(new Set(insights.filter(Boolean))).slice(0, 3)
+  const uniqueNextSteps = Array.from(new Set(nextSteps.filter(Boolean))).slice(0, 3)
+  const titleLine = canvasTitle.trim() && canvasTitle !== 'Untitled coach canvas'
+    ? `Jag har gått igenom ${canvasTitle.trim().toLowerCase()}`
+    : 'Jag har gått igenom din senaste status'
+  const messageLines = [
+    `Hej ${athleteName.split(' ')[0]}!`,
+    '',
+    `${titleLine} och ville dela en kort sammanfattning.`,
+    '',
+    ...(
+      uniqueInsights.length > 0
+        ? ['Viktigast just nu:', ...uniqueInsights.map((item) => `- ${item}`), '']
+        : []
+    ),
+    ...(
+      uniqueNextSteps.length > 0
+        ? ['Nästa steg:', ...uniqueNextSteps.map((item) => `- ${item}`), '']
+        : ['Nästa steg är att vi stämmer av hur kroppen svarar och justerar planen vid behov.', '']
+    ),
+    'Svara gärna om något känns oklart eller om dagsformen har ändrats.',
+  ]
+
+  return messageLines.join('\n').slice(0, 1000)
+}
+
 interface AICanvasClientProps {
   businessSlug: string
   initialCanvases: SavedCanvasSummary[]
@@ -357,6 +432,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
   const [loadingCanvasId, setLoadingCanvasId] = useState<string | null>(null)
   const [modelLabel, setModelLabel] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
+  const [athleteMessageDraft, setAthleteMessageDraft] = useState<AthleteMessageDraft | null>(null)
   const [contextSelection, setContextSelection] = useState<CanvasContextSelection>({
     scope: 'none',
     athleteId: '',
@@ -441,6 +517,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
     setAssistantMessage('Jag återställde canvasen till startläget.')
     setLastUpdated('Återställd')
     setModelLabel(null)
+    setAthleteMessageDraft(null)
   }
 
   const updateContextDataKey = (key: CanvasContextDataKey, enabled: boolean) => {
@@ -628,6 +705,36 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
     }
   }
 
+  const handlePrepareAthleteMessage = () => {
+    if (contextSelection.scope !== 'athlete' || !selectedAthlete) {
+      setAssistantMessage('Välj en atlet i kontextpanelen först, så kan jag förbereda ett meddelande för granskning.')
+      return
+    }
+
+    const content = buildAthleteMessageDraft(selectedAthlete.name, title, blocks)
+    setAthleteMessageDraft({
+      athleteId: selectedAthlete.id,
+      athleteName: selectedAthlete.name,
+      content,
+      createdAt: new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }),
+    })
+    setAssistantMessage(`Jag förberedde ett meddelande till ${selectedAthlete.name}. Inget har skickats.`)
+  }
+
+  const handleCopyAthleteMessage = async () => {
+    if (!athleteMessageDraft) {
+      setAssistantMessage('Det finns inget förberett meddelande att kopiera ännu.')
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(athleteMessageDraft.content)
+      setAssistantMessage(`Jag kopierade meddelandet till ${athleteMessageDraft.athleteName}. Det är fortfarande inte skickat.`)
+    } catch {
+      setAssistantMessage('Jag kunde inte kopiera meddelandet automatiskt. Markera texten och kopiera manuellt.')
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <section className="border-b border-slate-200 bg-white print:border-none">
@@ -699,6 +806,10 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
             >
               <ClipboardList className="h-4 w-4" />
               Spara anteckning
+            </Button>
+            <Button variant="outline" size="sm" onClick={handlePrepareAthleteMessage} className="gap-2">
+              <MessageSquareText className="h-4 w-4" />
+              Förbered meddelande
             </Button>
           </div>
         </div>
@@ -998,6 +1109,41 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
             </div>
             <p className="text-sm leading-6 text-slate-700">{assistantMessage}</p>
           </div>
+
+          {athleteMessageDraft && (
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <MessageSquareText className="h-4 w-4 text-blue-700" />
+                  <div>
+                    <h2 className="text-sm font-semibold text-slate-900">Meddelandeutkast</h2>
+                    <p className="text-xs text-slate-500">
+                      {athleteMessageDraft.athleteName} · {athleteMessageDraft.createdAt}
+                    </p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+                  Ej skickat
+                </Badge>
+              </div>
+              <Textarea
+                value={athleteMessageDraft.content}
+                onChange={(event) => {
+                  const nextContent = event.target.value.slice(0, 1000)
+                  setAthleteMessageDraft((current) => current ? { ...current, content: nextContent } : current)
+                }}
+                className="min-h-[230px] resize-none rounded-md border-slate-200 text-sm leading-6"
+                aria-label="Meddelandeutkast"
+              />
+              <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-500">
+                <span>{athleteMessageDraft.content.length}/1000 tecken</span>
+                <Button variant="outline" size="sm" onClick={handleCopyAthleteMessage} className="gap-2">
+                  <Copy className="h-4 w-4" />
+                  Kopiera
+                </Button>
+              </div>
+            </div>
+          )}
         </aside>
       </section>
     </main>
