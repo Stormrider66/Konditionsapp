@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { OrganizationDayPrintDialog } from '@/components/coach/organizations/OrganizationDayPrintDialog'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
+import { useTranslations } from '@/i18n/client'
 import {
   Select,
   SelectContent,
@@ -69,19 +70,18 @@ interface Organization {
   updatedAt: string
 }
 
-// Sport type labels in Swedish
-const sportTypeLabels: Record<string, string> = {
-  TEAM_FOOTBALL: 'Fotboll',
-  TEAM_ICE_HOCKEY: 'Ishockey',
-  TEAM_HANDBALL: 'Handboll',
-  TEAM_FLOORBALL: 'Innebandy',
+const sportTypeLabelKeys: Record<string, string> = {
+  TEAM_FOOTBALL: 'sports.football',
+  TEAM_ICE_HOCKEY: 'sports.iceHockey',
+  TEAM_HANDBALL: 'sports.handball',
+  TEAM_FLOORBALL: 'sports.floorball',
 }
 
 const sportTypeOptions = [
-  { value: 'TEAM_FOOTBALL', label: 'Fotboll' },
-  { value: 'TEAM_ICE_HOCKEY', label: 'Ishockey' },
-  { value: 'TEAM_HANDBALL', label: 'Handboll' },
-  { value: 'TEAM_FLOORBALL', label: 'Innebandy' },
+  { value: 'TEAM_FOOTBALL', labelKey: 'sports.football' },
+  { value: 'TEAM_ICE_HOCKEY', labelKey: 'sports.iceHockey' },
+  { value: 'TEAM_HANDBALL', labelKey: 'sports.handball' },
+  { value: 'TEAM_FLOORBALL', labelKey: 'sports.floorball' },
 ]
 
 interface OrganizationsClientProps {
@@ -89,6 +89,7 @@ interface OrganizationsClientProps {
 }
 
 export default function OrganizationsClient({ basePath = '/coach' }: OrganizationsClientProps) {
+  const t = useTranslations('coach.pages.organizations')
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -117,15 +118,15 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
       if (result.success) {
         setOrganizations(result.data || [])
       } else {
-        toast.error('Kunde inte hämta organisationer')
+        toast.error(t('toasts.fetchFailed'))
       }
     } catch (error) {
       console.error('Error fetching organizations:', error)
-      toast.error('Nätverksfel vid hämtning av organisationer')
+      toast.error(t('toasts.fetchNetworkFailed'))
     } finally {
       setLoading(false)
     }
-  }, [businessHeaders])
+  }, [businessHeaders, t])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -164,7 +165,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
 
   const handleSave = async () => {
     if (!name.trim()) {
-      toast.error('Namn krävs')
+      toast.error(t('toasts.nameRequired'))
       return
     }
 
@@ -193,18 +194,18 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
           setOrganizations(
             organizations.map((o) => (o.id === editingOrg.id ? result.data : o))
           )
-          toast.success('Organisation uppdaterad')
+          toast.success(t('toasts.updated'))
         } else {
           setOrganizations([result.data, ...organizations])
-          toast.success('Organisation skapad')
+          toast.success(t('toasts.created'))
         }
         handleCloseDialog()
       } else {
-        toast.error(result.error || 'Kunde inte spara organisationen')
+        toast.error(result.error || t('toasts.saveFailed'))
       }
     } catch (error) {
       console.error('Error saving organization:', error)
-      toast.error('Ett oväntat fel inträffade')
+      toast.error(t('toasts.unexpectedError'))
     } finally {
       setSaving(false)
     }
@@ -229,13 +230,13 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
 
       if (result.success) {
         setOrganizations(organizations.filter((o) => o.id !== orgToDelete.id))
-        toast.success('Organisation borttagen')
+        toast.success(t('toasts.deleted'))
       } else {
-        toast.error(result.error || 'Kunde inte ta bort organisationen')
+        toast.error(result.error || t('toasts.deleteFailed'))
       }
     } catch (error) {
       console.error('Error deleting organization:', error)
-      toast.error('Ett oväntat fel inträffade')
+      toast.error(t('toasts.unexpectedError'))
     } finally {
       setDeleting(false)
       setDeleteDialogOpen(false)
@@ -261,20 +262,20 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2 dark:text-white">
             <Building2 className="h-8 w-8" />
-            Organisationer
+            {t('title')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Hantera klubbar och föreningar med flera lag
+            {t('description')}
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button onClick={() => handleOpenPrintDialog()}>
             <Printer className="mr-2 h-4 w-4" />
-            Skriv ut dagens program
+            {t('printToday')}
           </Button>
           <Button variant="outline" onClick={() => handleOpenDialog()}>
             <Plus className="mr-2 h-4 w-4" />
-            Ny organisation
+            {t('newOrganization')}
           </Button>
         </div>
       </div>
@@ -291,19 +292,19 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
       <div className="grid gap-4 md:grid-cols-3 mb-8">
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardHeader className="pb-2">
-            <CardDescription>Organisationer</CardDescription>
+            <CardDescription>{t('stats.organizations')}</CardDescription>
             <CardTitle className="text-2xl dark:text-white">{organizations.length}</CardTitle>
           </CardHeader>
         </Card>
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardHeader className="pb-2">
-            <CardDescription>Lag totalt</CardDescription>
+            <CardDescription>{t('stats.totalTeams')}</CardDescription>
             <CardTitle className="text-2xl dark:text-white">{totalTeams}</CardTitle>
           </CardHeader>
         </Card>
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardHeader className="pb-2">
-            <CardDescription>Spelare totalt</CardDescription>
+            <CardDescription>{t('stats.totalPlayers')}</CardDescription>
             <CardTitle className="text-2xl dark:text-white">{totalMembers}</CardTitle>
           </CardHeader>
         </Card>
@@ -314,20 +315,20 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardContent className="p-12 text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">Laddar organisationer...</p>
+            <p className="text-muted-foreground">{t('loading')}</p>
           </CardContent>
         </Card>
       ) : organizations.length === 0 ? (
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardContent className="p-12 text-center">
             <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2 dark:text-white">Inga organisationer ännu</h3>
+            <h3 className="text-lg font-medium mb-2 dark:text-white">{t('emptyTitle')}</h3>
             <p className="text-muted-foreground mb-4">
-              Skapa en organisation för att gruppera dina lag (t.ex. &quot;IFK Göteborg&quot; med U19, U21, Senior).
+              {t('emptyDescription')}
             </p>
             <Button onClick={() => handleOpenDialog()}>
               <Plus className="mr-2 h-4 w-4" />
-              Skapa första organisationen
+              {t('createFirst')}
             </Button>
           </CardContent>
         </Card>
@@ -346,7 +347,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
                         {org.name}
                         {org.sportType && (
                           <Badge variant="secondary" className="text-xs">
-                            {sportTypeLabels[org.sportType] || org.sportType}
+                            {sportTypeLabelKeys[org.sportType] ? t(sportTypeLabelKeys[org.sportType]) : org.sportType}
                           </Badge>
                         )}
                       </CardTitle>
@@ -360,7 +361,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
                       variant="ghost"
                       size="sm"
                       onClick={() => handleOpenPrintDialog(org.id)}
-                      title="Skriv ut dagens program"
+                      title={t('printToday')}
                     >
                       <Printer className="h-4 w-4" />
                     </Button>
@@ -382,7 +383,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
                 {org.teams && org.teams.length > 0 ? (
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground mb-3">
-                      {org.teams.length} lag
+                      {t('teamCount', { count: org.teams.length })}
                     </p>
                     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                       {org.teams.map((team) => (
@@ -395,7 +396,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
                             <Users className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium dark:text-slate-200">{team.name}</span>
                             <Badge variant="outline" className="text-xs">
-                              {team.members?.length || 0} spelare
+                              {t('playerCount', { count: team.members?.length || 0 })}
                             </Badge>
                           </div>
                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -405,11 +406,11 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    Inga lag i denna organisation.{' '}
+                    {t('noTeams.prefix')}{' '}
                     <Link href={`${basePath}/teams`} className="text-primary hover:underline">
-                      Gå till lag
+                      {t('noTeams.link')}
                     </Link>{' '}
-                    för att koppla lag till organisationen.
+                    {t('noTeams.suffix')}
                   </p>
                 )}
               </CardContent>
@@ -423,47 +424,47 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingOrg ? 'Redigera organisation' : 'Ny organisation'}
+              {editingOrg ? t('dialog.editTitle') : t('dialog.createTitle')}
             </DialogTitle>
             <DialogDescription>
               {editingOrg
-                ? 'Uppdatera organisationens uppgifter.'
-                : 'Skapa en organisation för att gruppera flera lag.'}
+                ? t('dialog.editDescription')
+                : t('dialog.createDescription')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Namn *</Label>
+              <Label htmlFor="name">{t('fields.name')} *</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="t.ex. IFK Göteborg"
+                placeholder={t('placeholders.name')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Beskrivning</Label>
+              <Label htmlFor="description">{t('fields.description')}</Label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Kort beskrivning av organisationen..."
+                placeholder={t('placeholders.description')}
                 rows={2}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sportType">Sport</Label>
+              <Label htmlFor="sportType">{t('fields.sport')}</Label>
               <Select value={sportType} onValueChange={setSportType}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj sport..." />
+                  <SelectValue placeholder={t('placeholders.sport')} />
                 </SelectTrigger>
                 <SelectContent>
                   {sportTypeOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      {t(option.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -473,18 +474,18 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
 
           <DialogFooter>
             <Button variant="outline" onClick={handleCloseDialog}>
-              Avbryt
+              {t('actions.cancel')}
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sparar...
+                  {t('actions.saving')}
                 </>
               ) : editingOrg ? (
-                'Spara ändringar'
+                t('actions.saveChanges')
               ) : (
-                'Skapa organisation'
+                t('actions.create')
               )}
             </Button>
           </DialogFooter>
@@ -495,30 +496,29 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Är du säker?</AlertDialogTitle>
+            <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Detta kommer att ta bort organisationen &quot;{orgToDelete?.name}&quot;.
+              {t('deleteDialog.description', { organizationName: orgToDelete?.name ?? '' })}
               {orgToDelete?.teams && orgToDelete.teams.length > 0 && (
                 <>
                   <br />
                   <br />
-                  <strong>Varning:</strong> Lagen ({orgToDelete.teams.length} st) kommer att bli
-                  fristående men inte tas bort.
+                  <strong>{t('deleteDialog.warningPrefix')}</strong> {t('deleteDialog.warning', { count: orgToDelete.teams.length })}
                 </>
               )}
               <br />
               <br />
-              Denna åtgärd kan inte ångras.
+              {t('deleteDialog.cannotUndo')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t('actions.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               disabled={deleting}
               className="bg-destructive hover:bg-destructive/90"
             >
-              {deleting ? 'Tar bort...' : 'Ta bort'}
+              {deleting ? t('actions.deleting') : t('actions.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

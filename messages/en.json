@@ -796,6 +796,76 @@
           "network": "Network error",
           "retry": "Something went wrong. Try again."
         }
+      },
+      "organizations": {
+        "title": "Organizations",
+        "description": "Manage clubs and associations with multiple teams",
+        "printToday": "Print today's program",
+        "newOrganization": "New organization",
+        "loading": "Loading organizations...",
+        "emptyTitle": "No organizations yet",
+        "emptyDescription": "Create an organization to group your teams (for example \"IFK Goteborg\" with U19, U21, Senior).",
+        "createFirst": "Create first organization",
+        "teamCount": "{count} teams",
+        "playerCount": "{count} players",
+        "stats": {
+          "organizations": "Organizations",
+          "totalTeams": "Total teams",
+          "totalPlayers": "Total players"
+        },
+        "sports": {
+          "football": "Football",
+          "iceHockey": "Ice hockey",
+          "handball": "Handball",
+          "floorball": "Floorball"
+        },
+        "noTeams": {
+          "prefix": "No teams in this organization.",
+          "link": "Go to teams",
+          "suffix": "to connect teams to the organization."
+        },
+        "dialog": {
+          "createTitle": "New organization",
+          "editTitle": "Edit organization",
+          "createDescription": "Create an organization to group multiple teams.",
+          "editDescription": "Update the organization's details."
+        },
+        "fields": {
+          "name": "Name",
+          "description": "Description",
+          "sport": "Sport"
+        },
+        "placeholders": {
+          "name": "e.g. IFK Goteborg",
+          "description": "Short description of the organization...",
+          "sport": "Select sport..."
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "saving": "Saving...",
+          "saveChanges": "Save changes",
+          "create": "Create organization",
+          "deleting": "Deleting...",
+          "delete": "Delete"
+        },
+        "toasts": {
+          "fetchFailed": "Could not fetch organizations",
+          "fetchNetworkFailed": "Network error while fetching organizations",
+          "nameRequired": "Name is required",
+          "updated": "Organization updated",
+          "created": "Organization created",
+          "saveFailed": "Could not save the organization",
+          "deleted": "Organization deleted",
+          "deleteFailed": "Could not delete the organization",
+          "unexpectedError": "An unexpected error occurred"
+        },
+        "deleteDialog": {
+          "title": "Are you sure?",
+          "description": "This will delete the organization \"{organizationName}\".",
+          "warningPrefix": "Warning:",
+          "warning": "The teams ({count}) will become standalone but will not be deleted.",
+          "cannotUndo": "This action cannot be undone."
+        }
       }
     },
     "dashboard": "Coach Dashboard",

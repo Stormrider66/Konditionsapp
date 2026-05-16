@@ -796,6 +796,76 @@
           "network": "Nätverksfel",
           "retry": "Något gick fel. Försök igen."
         }
+      },
+      "organizations": {
+        "title": "Organisationer",
+        "description": "Hantera klubbar och föreningar med flera lag",
+        "printToday": "Skriv ut dagens program",
+        "newOrganization": "Ny organisation",
+        "loading": "Laddar organisationer...",
+        "emptyTitle": "Inga organisationer ännu",
+        "emptyDescription": "Skapa en organisation för att gruppera dina lag (t.ex. \"IFK Göteborg\" med U19, U21, Senior).",
+        "createFirst": "Skapa första organisationen",
+        "teamCount": "{count} lag",
+        "playerCount": "{count} spelare",
+        "stats": {
+          "organizations": "Organisationer",
+          "totalTeams": "Lag totalt",
+          "totalPlayers": "Spelare totalt"
+        },
+        "sports": {
+          "football": "Fotboll",
+          "iceHockey": "Ishockey",
+          "handball": "Handboll",
+          "floorball": "Innebandy"
+        },
+        "noTeams": {
+          "prefix": "Inga lag i denna organisation.",
+          "link": "Gå till lag",
+          "suffix": "för att koppla lag till organisationen."
+        },
+        "dialog": {
+          "createTitle": "Ny organisation",
+          "editTitle": "Redigera organisation",
+          "createDescription": "Skapa en organisation för att gruppera flera lag.",
+          "editDescription": "Uppdatera organisationens uppgifter."
+        },
+        "fields": {
+          "name": "Namn",
+          "description": "Beskrivning",
+          "sport": "Sport"
+        },
+        "placeholders": {
+          "name": "t.ex. IFK Göteborg",
+          "description": "Kort beskrivning av organisationen...",
+          "sport": "Välj sport..."
+        },
+        "actions": {
+          "cancel": "Avbryt",
+          "saving": "Sparar...",
+          "saveChanges": "Spara ändringar",
+          "create": "Skapa organisation",
+          "deleting": "Tar bort...",
+          "delete": "Ta bort"
+        },
+        "toasts": {
+          "fetchFailed": "Kunde inte hämta organisationer",
+          "fetchNetworkFailed": "Nätverksfel vid hämtning av organisationer",
+          "nameRequired": "Namn krävs",
+          "updated": "Organisation uppdaterad",
+          "created": "Organisation skapad",
+          "saveFailed": "Kunde inte spara organisationen",
+          "deleted": "Organisation borttagen",
+          "deleteFailed": "Kunde inte ta bort organisationen",
+          "unexpectedError": "Ett oväntat fel inträffade"
+        },
+        "deleteDialog": {
+          "title": "Är du säker?",
+          "description": "Detta kommer att ta bort organisationen \"{organizationName}\".",
+          "warningPrefix": "Varning:",
+          "warning": "Lagen ({count} st) kommer att bli fristående men inte tas bort.",
+          "cannotUndo": "Denna åtgärd kan inte ångras."
+        }
       }
     },
     "dashboard": "Coach Dashboard",
