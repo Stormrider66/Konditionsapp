@@ -70,6 +70,40 @@ import { parseAIProgram } from '@/lib/ai/program-parser'
 import type { AIProvider } from '@prisma/client'
 import type { MergedProgram } from '@/lib/ai/program-generator'
 
+const AI_STUDIO_SKILL_SELECTION_PREFIX = 'ai-studio-selected-skills'
+
+function getSkillSelectionStorageKey(conversationId: string | null) {
+  return `${AI_STUDIO_SKILL_SELECTION_PREFIX}:${conversationId ?? 'draft'}`
+}
+
+function readPersistedSkillSelection(conversationId: string | null): string[] {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const stored = window.localStorage.getItem(getSkillSelectionStorageKey(conversationId))
+    if (!stored) return []
+    const parsed = JSON.parse(stored)
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+function writePersistedSkillSelection(conversationId: string | null, skillIds: string[]) {
+  if (typeof window === 'undefined') return
+
+  try {
+    const key = getSkillSelectionStorageKey(conversationId)
+    if (skillIds.length === 0) {
+      window.localStorage.removeItem(key)
+      return
+    }
+    window.localStorage.setItem(key, JSON.stringify(skillIds))
+  } catch {
+    // Local storage persistence is a convenience, not a critical path.
+  }
+}
+
 interface Client {
   id: string
   name: string
@@ -165,6 +199,7 @@ export function AIStudioClient({
   const [sidebarOpen, setSidebarOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true)
   const [selectedAthlete, setSelectedAthlete] = useState<string | null>(initialClientId || null)
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([])
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>(() => readPersistedSkillSelection(null))
   const [webSearchEnabled, setWebSearchEnabled] = useState(false)
   const [deepThinkEnabled, setDeepThinkEnabled] = useState(false)
   const [conversations, setConversations] = useState(initialConversations)
@@ -214,6 +249,10 @@ export function AIStudioClient({
   // Track auto-retrieved knowledge skills
   const [knowledgeSkills, setKnowledgeSkills] = useState<string[]>([])
 
+  useEffect(() => {
+    writePersistedSkillSelection(currentConversationId, selectedSkillIds)
+  }, [currentConversationId, selectedSkillIds])
+
   // Custom fetch to capture X-Knowledge-Skills header
   const skillCapturingFetch = useCallback(async (url: RequestInfo | URL, init?: RequestInit) => {
     const response = await fetch(url, init)
@@ -262,6 +301,7 @@ export function AIStudioClient({
     provider: currentModel?.provider,
     athleteId: selectedAthlete,
     documentIds: selectedDocuments,
+    selectedSkillIds,
     webSearchEnabled,
     deepThinkEnabled: deepThinkEnabled && currentModel?.provider === 'GOOGLE',
   })
@@ -567,6 +607,7 @@ ${messageContent}`
       }
 
       setCurrentConversationId(data.conversation.id)
+      writePersistedSkillSelection(data.conversation.id, selectedSkillIds)
       setConversations((prev) => [data.conversation, ...prev])
       return data.conversation.id
     } catch (error) {
@@ -628,6 +669,7 @@ ${messageContent}`
 
       setMessages(chatMessages)
       setCurrentConversationId(conversationId)
+      setSelectedSkillIds(readPersistedSkillSelection(conversationId))
 
       // Set context from conversation
       if (data.conversation.athleteId) {
@@ -652,6 +694,7 @@ ${messageContent}`
     setMessages([])
     setSelectedAthlete(null)
     setSelectedDocuments([])
+    setSelectedSkillIds(readPersistedSkillSelection(null))
     setWebSearchEnabled(false)
   }
 
@@ -800,9 +843,12 @@ ${messageContent}`
             selectedAthlete={selectedAthlete}
             selectedDocuments={selectedDocuments}
             webSearchEnabled={webSearchEnabled}
+            selectedSkillIds={selectedSkillIds}
             onAthleteChange={setSelectedAthlete}
             onDocumentsChange={setSelectedDocuments}
+            onSelectedSkillIdsChange={setSelectedSkillIds}
             onWebSearchChange={setWebSearchEnabled}
+            skillSelectionDisabled={isLoading}
           />
         </div>
       </div>

@@ -161,8 +161,10 @@ Recommended lightweight API:
 
 ### Phase 5: AI Studio
 
-- Add picker to AI Studio context controls.
-- Persist selections per active conversation.
+- Add picker to AI Studio context controls. Done in `components/ai-studio/ContextPanel.tsx`.
+- Persist selections per active conversation. Done in `components/ai-studio/AIStudioClient.tsx` using per-conversation local storage.
+- Send selected skills to `/api/ai/chat`. Done via the AI Studio chat body.
+- Show used skills in conversation metadata. Existing `X-Knowledge-Skills` receipt remains visible under responses.
 
 ### Phase 6: Athlete Rules
 

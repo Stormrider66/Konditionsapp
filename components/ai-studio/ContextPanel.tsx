@@ -25,6 +25,7 @@ import {
   User,
   FileText,
   Globe,
+  Sparkles,
   ChevronDown,
   Upload,
   FolderOpen,
@@ -55,6 +56,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { AISkillPicker } from '@/components/ai/AISkillPicker'
 
 interface Client {
   id: string
@@ -80,10 +82,13 @@ interface ContextPanelProps {
   documents: Document[]
   selectedAthlete: string | null
   selectedDocuments: string[]
+  selectedSkillIds: string[]
   webSearchEnabled: boolean
   onAthleteChange: (athleteId: string | null) => void
   onDocumentsChange: (documentIds: string[]) => void
+  onSelectedSkillIdsChange: (skillIds: string[]) => void
   onWebSearchChange: (enabled: boolean) => void
+  skillSelectionDisabled?: boolean
 }
 
 // Document category types
@@ -134,10 +139,13 @@ export function ContextPanel({
   documents,
   selectedAthlete,
   selectedDocuments,
+  selectedSkillIds,
   webSearchEnabled,
   onAthleteChange,
   onDocumentsChange,
+  onSelectedSkillIdsChange,
   onWebSearchChange,
+  skillSelectionDisabled = false,
 }: ContextPanelProps) {
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
@@ -146,6 +154,7 @@ export function ContextPanel({
   const [mounted, setMounted] = useState(false)
   const [athleteOpen, setAthleteOpen] = useState(true)
   const [documentsOpen, setDocumentsOpen] = useState(true)
+  const [skillsOpen, setSkillsOpen] = useState(true)
   const [searchOpen, setSearchOpen] = useState(true)
 
   // Prevent hydration mismatch with Radix UI IDs
@@ -754,6 +763,45 @@ export function ContextPanel({
           </Card>
         </Collapsible>
 
+        {/* AI Skills Selection */}
+        <Collapsible open={skillsOpen} onOpenChange={setSkillsOpen}>
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover:bg-muted/50 transition py-3">
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    AI skills
+                    {selectedSkillIds.length > 0 && (
+                      <Badge variant="secondary" className="ml-1">
+                        {selectedSkillIds.length}
+                      </Badge>
+                    )}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${
+                      skillsOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </CardTitle>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <AISkillPicker
+                  selectedSkillIds={selectedSkillIds}
+                  onSelectedSkillIdsChange={onSelectedSkillIdsChange}
+                  disabled={skillSelectionDisabled}
+                  side="right"
+                  align="start"
+                  triggerClassName="h-8 text-xs"
+                  chipsClassName="max-w-full"
+                />
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
         {/* Web Search Toggle */}
         <Collapsible open={searchOpen} onOpenChange={setSearchOpen}>
           <Card>
@@ -809,6 +857,10 @@ export function ContextPanel({
               <div className="flex justify-between">
                 <span>Valda dokument:</span>
                 <span className="font-medium">{selectedDocuments.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>AI skills:</span>
+                <span className="font-medium">{selectedSkillIds.length}</span>
               </div>
               <div className="flex justify-between">
                 <span>Webbsökning:</span>
