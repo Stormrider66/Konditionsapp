@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { canvasToMarkdown, slugifyCanvasFilename } from '@/lib/ai-canvas/markdown'
 import { cn } from '@/lib/utils'
 
 type CanvasBlockType =
@@ -114,6 +115,12 @@ interface SavedCanvasPayload extends SavedCanvasSummary {
 interface CanvasSaveResponse {
   success?: boolean
   canvas?: SavedCanvasPayload
+  error?: string
+}
+
+interface CanvasNoteResponse {
+  success?: boolean
+  athleteName?: string
   error?: string
 }
 
@@ -283,91 +290,6 @@ function getAssistantMessage(prompt: string, blockCount: number): string {
   return `Jag skapade ${blockCount} canvasblock som ett första arbetsutkast.`
 }
 
-function slugifyFilename(value: string): string {
-  return (
-    value
-      .toLowerCase()
-      .normalize('NFKD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 80) || 'ai-canvas'
-  )
-}
-
-function escapeMarkdownTableCell(value: string | undefined): string {
-  return (value || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>')
-}
-
-function canvasToMarkdown(title: string, blocks: CanvasBlock[]): string {
-  const lines = [
-    `# ${title.trim() || 'AI Canvas'}`,
-    '',
-    `_Exporterad ${new Date().toLocaleString('sv-SE')}_`,
-    '',
-  ]
-
-  for (const block of blocks) {
-    const blockTitle = block.title?.trim()
-
-    if (blockTitle && block.type !== 'heading') {
-      lines.push(`## ${blockTitle}`, '')
-    }
-
-    if (block.type === 'heading') {
-      lines.push(`## ${blockTitle || 'Sektion'}`)
-      if (block.content) lines.push('', block.content)
-    }
-
-    if (block.type === 'text' || block.type === 'insight') {
-      if (block.content) lines.push(block.content)
-    }
-
-    if (block.type === 'checklist' || block.type === 'actions') {
-      for (const item of block.items || []) {
-        lines.push(block.type === 'checklist' ? `- [ ] ${item}` : `- ${item}`)
-      }
-    }
-
-    if (block.type === 'table' && block.columns?.length) {
-      lines.push(
-        `| ${block.columns.map(escapeMarkdownTableCell).join(' | ')} |`,
-        `| ${block.columns.map(() => '---').join(' | ')} |`
-      )
-      for (const row of block.rows || []) {
-        lines.push(`| ${block.columns.map((_, index) => escapeMarkdownTableCell(row[index])).join(' | ')} |`)
-      }
-    }
-
-    if (block.type === 'metric-row') {
-      lines.push('| Mätvärde | Värde | Detalj |', '| --- | --- | --- |')
-      for (const metric of block.metrics || []) {
-        lines.push(
-          `| ${escapeMarkdownTableCell(metric.label)} | ${escapeMarkdownTableCell(metric.value)} | ${escapeMarkdownTableCell(metric.detail)} |`
-        )
-      }
-    }
-
-    if (block.type === 'risk-list') {
-      for (const risk of block.risks || []) {
-        const meta = risk.meta ? ` - ${risk.meta}` : ''
-        lines.push(`- **${risk.title}** (${risk.priority}): ${risk.description}${meta}`)
-      }
-    }
-
-    if (block.type === 'trend-summary') {
-      for (const trend of block.trends || []) {
-        const detail = trend.detail ? ` - ${trend.detail}` : ''
-        lines.push(`- **${trend.label}**: ${trend.value} (${trend.direction})${detail}`)
-      }
-    }
-
-    lines.push('')
-  }
-
-  return `${lines.join('\n').replace(/\n{3,}/g, '\n\n').trim()}\n`
-}
-
 interface AICanvasClientProps {
   businessSlug: string
   initialCanvases: SavedCanvasSummary[]
@@ -431,6 +353,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
   const [lastUpdated, setLastUpdated] = useState('Inte sparad än')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isSavingNote, setIsSavingNote] = useState(false)
   const [loadingCanvasId, setLoadingCanvasId] = useState<string | null>(null)
   const [modelLabel, setModelLabel] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
@@ -654,7 +577,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
       anchor.href = url
-      anchor.download = `${slugifyFilename(title || 'ai-canvas')}.md`
+      anchor.download = `${slugifyCanvasFilename(title || 'ai-canvas')}.md`
       document.body.appendChild(anchor)
       anchor.click()
       anchor.remove()
@@ -668,6 +591,41 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
   const handlePrintPdf = () => {
     setAssistantMessage('Jag öppnar utskrift. Välj Spara som PDF i dialogen.')
     window.setTimeout(() => window.print(), 50)
+  }
+
+  const handleSaveAthleteNote = async () => {
+    if (contextSelection.scope !== 'athlete' || !selectedAthlete) {
+      setAssistantMessage('Välj en atlet i kontextpanelen först, så kan jag spara canvasen som en intern coachanteckning.')
+      return
+    }
+
+    setIsSavingNote(true)
+    setAssistantMessage(`Jag sparar canvasen som intern anteckning för ${selectedAthlete.name}...`)
+
+    try {
+      const response = await fetch('/api/ai/canvas/note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessSlug,
+          athleteId: selectedAthlete.id,
+          title,
+          blocks,
+        }),
+      })
+      const payload = (await response.json()) as CanvasNoteResponse
+
+      if (!response.ok || !payload.success) {
+        setAssistantMessage(payload.error || 'Jag kunde inte spara canvasen som coachanteckning.')
+        return
+      }
+
+      setAssistantMessage(`Jag sparade canvasen som intern coachanteckning för ${payload.athleteName || selectedAthlete.name}.`)
+    } catch {
+      setAssistantMessage('Jag kunde inte nå anteckningsfunktionen just nu. Försök igen om en stund.')
+    } finally {
+      setIsSavingNote(false)
+    }
   }
 
   return (
@@ -731,6 +689,16 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
             <Button variant="outline" size="sm" onClick={handlePrintPdf} className="gap-2">
               <Printer className="h-4 w-4" />
               PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSaveAthleteNote}
+              disabled={isSavingNote}
+              className="gap-2"
+            >
+              <ClipboardList className="h-4 w-4" />
+              Spara anteckning
             </Button>
           </div>
         </div>
