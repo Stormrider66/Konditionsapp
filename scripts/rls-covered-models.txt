@@ -91,6 +91,7 @@ DataMoatConsent
 DeepResearchProgress
 DeepResearchSession
 DietaryPreferences
+EmailDeliveryEvent
 EnterpriseContract
 EnterpriseContractChange
 Equipment
