@@ -1582,9 +1582,9 @@ export function FloatingAIChat({
   function getProviderBadge() {
     if (!modelConfig) return null
     const colors = {
-      ANTHROPIC: 'bg-orange-500/20 text-orange-600 dark:text-orange-400',
-      GOOGLE: 'bg-blue-500/20 text-blue-600 dark:text-blue-400',
-      OPENAI: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+      ANTHROPIC: 'bg-white/95 text-orange-700 border-white/30',
+      GOOGLE: 'bg-white/95 text-blue-700 border-white/30',
+      OPENAI: 'bg-white/95 text-emerald-700 border-white/30',
     }
     const names = {
       ANTHROPIC: 'Claude',
@@ -1592,7 +1592,10 @@ export function FloatingAIChat({
       OPENAI: 'GPT',
     }
     return (
-      <Badge variant="secondary" className={cn('text-xs', colors[modelConfig.provider])}>
+      <Badge
+        variant="secondary"
+        className={cn('shrink-0 border text-[11px] font-semibold shadow-sm', colors[modelConfig.provider])}
+      >
         {names[modelConfig.provider]}
       </Badge>
     )
@@ -1742,110 +1745,123 @@ export function FloatingAIChat({
       data-floating-chat-root
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-lg">
-        <div
-          onPointerDown={!isExpanded ? handlePanelDragStart : undefined}
-          className={cn(
-            'flex items-center gap-2 touch-none',
-            !isExpanded && 'cursor-grab active:cursor-grabbing'
-          )}
-        >
-          <Bot className="h-5 w-5 text-white" />
-          <span className="font-semibold text-white">AI-assistent</span>
-          {getProviderBadge()}
+      <div className="border-b bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-lg">
+        <div className="flex items-center justify-between gap-2 p-3 pb-2">
+          <div
+            onPointerDown={!isExpanded ? handlePanelDragStart : undefined}
+            className={cn(
+              'flex min-w-0 flex-1 items-center gap-2 touch-none',
+              !isExpanded && 'cursor-grab active:cursor-grabbing'
+            )}
+          >
+            <Bot className="h-5 w-5 shrink-0 text-white" />
+            <span className="truncate font-semibold text-white">AI-assistent</span>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleNewChat}
+              className="h-8 w-8 text-white hover:bg-white/20"
+              title="Ny konversation"
+              aria-label="Ny konversation"
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="h-8 w-8 text-white hover:bg-white/20"
+              title={isExpanded ? 'Minimera chatten' : 'Expandera chatten'}
+              aria-label={isExpanded ? 'Minimera chatten' : 'Expandera chatten'}
+            >
+              {isExpanded ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClose}
+              className="h-8 w-8 text-white hover:bg-white/20"
+              title="Stäng chatten"
+              aria-label="Stäng chatten"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <VoiceModesGuide />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleRealtimeVoice}
-            disabled={isTranscribingVoice || isVoiceRecording}
-            className={cn(
-              'h-8 w-8 text-white hover:bg-white/20',
-              (isRealtimeVoiceActive || isRealtimeVoiceConnecting) && 'bg-white/20 ring-1 ring-white/40'
-            )}
-            title={realtimeVoiceLabel}
-            aria-label={realtimeVoiceLabel}
-          >
-            {isRealtimeVoiceActive || isRealtimeVoiceConnecting ? (
-              <PhoneOff className="h-4 w-4" />
-            ) : (
-              <Radio className="h-4 w-4" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleVoiceOperatorMode}
-            className={cn(
-              'h-8 w-8 text-white hover:bg-white/20',
-              isVoiceOperatorModeEnabled && 'bg-white/20 ring-1 ring-white/40'
-            )}
-            title={voiceOperatorModeLabel}
-            aria-label={voiceOperatorModeLabel}
-          >
-            <Headphones className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleVoiceAutoSend}
-            className={cn(
-              'h-8 w-8 text-white hover:bg-white/20',
-              isVoiceAutoSendEnabled && 'bg-white/15'
-            )}
-            title={voiceAutoSendLabel}
-            aria-label={voiceAutoSendLabel}
-          >
-            <Zap className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSpokenReplies}
-            className={cn(
-              'h-8 w-8 text-white hover:bg-white/20',
-              isSpokenRepliesEnabled && 'bg-white/15'
-            )}
-            title={spokenRepliesLabel}
-            aria-label={spokenRepliesLabel}
-          >
-            {isSpokenRepliesEnabled ? (
-              <Volume2 className="h-4 w-4" />
-            ) : (
-              <VolumeX className="h-4 w-4" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNewChat}
-            className="h-8 w-8 text-white hover:bg-white/20"
-            title="Ny konversation"
-          >
-            <MessageSquare className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="h-8 w-8 text-white hover:bg-white/20"
-          >
-            {isExpanded ? (
-              <Minimize2 className="h-4 w-4" />
-            ) : (
-              <Maximize2 className="h-4 w-4" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleClose}
-            className="h-8 w-8 text-white hover:bg-white/20"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center justify-between gap-2 px-3 pb-3">
+          <div className="flex min-w-0 items-center gap-2">
+            {getProviderBadge()}
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <VoiceModesGuide className="h-7 w-7" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleRealtimeVoice}
+              disabled={isTranscribingVoice || isVoiceRecording}
+              className={cn(
+                'h-7 w-7 text-white hover:bg-white/20',
+                (isRealtimeVoiceActive || isRealtimeVoiceConnecting) && 'bg-white/20 ring-1 ring-white/40'
+              )}
+              title={realtimeVoiceLabel}
+              aria-label={realtimeVoiceLabel}
+            >
+              {isRealtimeVoiceActive || isRealtimeVoiceConnecting ? (
+                <PhoneOff className="h-4 w-4" />
+              ) : (
+                <Radio className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleVoiceOperatorMode}
+              className={cn(
+                'h-7 w-7 text-white hover:bg-white/20',
+                isVoiceOperatorModeEnabled && 'bg-white/20 ring-1 ring-white/40'
+              )}
+              title={voiceOperatorModeLabel}
+              aria-label={voiceOperatorModeLabel}
+            >
+              <Headphones className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleVoiceAutoSend}
+              className={cn(
+                'h-7 w-7 text-white hover:bg-white/20',
+                isVoiceAutoSendEnabled && 'bg-white/15'
+              )}
+              title={voiceAutoSendLabel}
+              aria-label={voiceAutoSendLabel}
+            >
+              <Zap className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSpokenReplies}
+              className={cn(
+                'h-7 w-7 text-white hover:bg-white/20',
+                isSpokenRepliesEnabled && 'bg-white/15'
+              )}
+              title={spokenRepliesLabel}
+              aria-label={spokenRepliesLabel}
+            >
+              {isSpokenRepliesEnabled ? (
+                <Volume2 className="h-4 w-4" />
+              ) : (
+                <VolumeX className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 
