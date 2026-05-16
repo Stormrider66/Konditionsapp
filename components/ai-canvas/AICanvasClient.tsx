@@ -5,6 +5,7 @@ import {
   AlertCircle,
   Archive,
   BarChart3,
+  CalendarPlus,
   CheckCircle2,
   ClipboardList,
   Copy,
@@ -415,6 +416,10 @@ function buildFollowUpTaskDescription(
   return lines.join('\n\n').slice(0, 1200)
 }
 
+function looksLikeTestAction(value: string): boolean {
+  return /test|retest|lt1|lt2|laktat|vo2|threshold|tröskel|fält/i.test(value)
+}
+
 interface AICanvasClientProps {
   businessSlug: string
   initialCanvases: SavedCanvasSummary[]
@@ -802,7 +807,11 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
     setAssistantMessage('Välj en atlet eller ett lag i kontextpanelen först, så kan jag öppna rätt sida.')
   }
 
-  const handleCreateFollowUpTask = async () => {
+  const handleCreateFollowUpTask = async (override?: {
+    title?: string
+    description?: string
+    priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'
+  }) => {
     const subject =
       contextSelection.scope === 'athlete' && selectedAthlete
         ? { type: 'athlete' as const, name: selectedAthlete.name }
@@ -819,9 +828,9 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           businessSlug,
-          title: buildFollowUpTaskTitle(title, subject),
-          description: buildFollowUpTaskDescription(title, blocks, subject),
-          priority: blocks.some((block) => block.risks?.some((risk) => risk.priority === 'high')) ? 'HIGH' : 'NORMAL',
+          title: override?.title || buildFollowUpTaskTitle(title, subject),
+          description: override?.description || buildFollowUpTaskDescription(title, blocks, subject),
+          priority: override?.priority || (blocks.some((block) => block.risks?.some((risk) => risk.priority === 'high')) ? 'HIGH' : 'NORMAL'),
         }),
       })
       const payload = (await response.json()) as CanvasTaskResponse
@@ -837,6 +846,20 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
     } finally {
       setIsCreatingTask(false)
     }
+  }
+
+  const handleScheduleTestAction = (sourceLabel?: string) => {
+    if (contextSelection.scope !== 'athlete' || !selectedAthlete) {
+      setAssistantMessage('Välj en atlet i kontextpanelen först, så kan jag öppna testbokningen med rätt sammanhang.')
+      return
+    }
+
+    window.open(`/${businessSlug}/coach/field-tests/schedule`, '_blank', 'noopener,noreferrer')
+    setAssistantMessage(
+      sourceLabel
+        ? `Jag öppnade testbokningen för uppföljningen "${sourceLabel}". Ingen bokning har skapats ännu.`
+        : `Jag öppnade testbokningen för ${selectedAthlete.name}. Ingen bokning har skapats ännu.`
+    )
   }
 
   return (
@@ -934,7 +957,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleCreateFollowUpTask}
+                onClick={() => { void handleCreateFollowUpTask() }}
                 disabled={isCreatingTask}
                 className="justify-start gap-2"
               >
@@ -1220,7 +1243,13 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
             </div>
             <div className="space-y-3 p-4">
               {blocks.map((block) => (
-                <CanvasBlockView key={block.id} block={block} />
+                <CanvasBlockView
+                  key={block.id}
+                  block={block}
+                  onCreateTask={(task) => { void handleCreateFollowUpTask(task) }}
+                  onScheduleTest={handleScheduleTestAction}
+                  isCreatingTask={isCreatingTask}
+                />
               ))}
             </div>
           </div>
@@ -1294,7 +1323,17 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
   )
 }
 
-function CanvasBlockView({ block }: { block: CanvasBlock }) {
+function CanvasBlockView({
+  block,
+  onCreateTask,
+  onScheduleTest,
+  isCreatingTask,
+}: {
+  block: CanvasBlock
+  onCreateTask: (task: { title: string; description?: string; priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT' }) => void
+  onScheduleTest: (sourceLabel?: string) => void
+  isCreatingTask: boolean
+}) {
   if (block.type === 'metric-row') {
     return (
       <article className="rounded-lg border border-slate-200 bg-white p-4">
@@ -1342,6 +1381,28 @@ function CanvasBlockView({ block }: { block: CanvasBlock }) {
                 </Badge>
               </div>
               {risk.meta && <p className="mt-2 text-xs text-slate-500">{risk.meta}</p>}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onCreateTask({
+                    title: `Följ upp: ${risk.title}`.slice(0, 160),
+                    description: `${risk.description}${risk.meta ? `\n\n${risk.meta}` : ''}`,
+                    priority: risk.priority === 'high' ? 'HIGH' : risk.priority === 'medium' ? 'NORMAL' : 'LOW',
+                  })}
+                  disabled={isCreatingTask}
+                  className="gap-2"
+                >
+                  <ClipboardList className="h-4 w-4" />
+                  Skapa uppgift
+                </Button>
+                {looksLikeTestAction(`${risk.title} ${risk.description} ${risk.meta || ''}`) && (
+                  <Button variant="outline" size="sm" onClick={() => onScheduleTest(risk.title)} className="gap-2">
+                    <CalendarPlus className="h-4 w-4" />
+                    Boka test
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -1424,9 +1485,32 @@ function CanvasBlockView({ block }: { block: CanvasBlock }) {
         <BlockHeader icon={Icon} title={block.title ?? 'Lista'} compact />
         <ul className="mt-3 space-y-2">
           {block.items?.map((item) => (
-            <li key={item} className="flex gap-2 text-sm leading-6 text-slate-700">
-              <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
-              <span>{item}</span>
+            <li key={item} className="rounded-md border border-slate-200 p-3">
+              <div className="flex gap-2 text-sm leading-6 text-slate-700">
+                <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
+                <span>{item}</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2 pl-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onCreateTask({
+                    title: item.slice(0, 160),
+                    description: block.title ? `Från canvasblocket "${block.title}".` : 'Från AI Canvas.',
+                  })}
+                  disabled={isCreatingTask}
+                  className="gap-2"
+                >
+                  <ClipboardList className="h-4 w-4" />
+                  Skapa uppgift
+                </Button>
+                {looksLikeTestAction(item) && (
+                  <Button variant="outline" size="sm" onClick={() => onScheduleTest(item)} className="gap-2">
+                    <CalendarPlus className="h-4 w-4" />
+                    Boka test
+                  </Button>
+                )}
+              </div>
             </li>
           ))}
         </ul>
