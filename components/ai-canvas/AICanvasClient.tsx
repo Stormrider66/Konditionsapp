@@ -7,12 +7,15 @@ import {
   BarChart3,
   CheckCircle2,
   ClipboardList,
+  Copy,
+  Download,
   FileText,
   FilePlus2,
   FolderOpen,
   Lightbulb,
   ListChecks,
   Plus,
+  Printer,
   RotateCcw,
   Save,
   Send,
@@ -280,6 +283,91 @@ function getAssistantMessage(prompt: string, blockCount: number): string {
   return `Jag skapade ${blockCount} canvasblock som ett första arbetsutkast.`
 }
 
+function slugifyFilename(value: string): string {
+  return (
+    value
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80) || 'ai-canvas'
+  )
+}
+
+function escapeMarkdownTableCell(value: string | undefined): string {
+  return (value || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>')
+}
+
+function canvasToMarkdown(title: string, blocks: CanvasBlock[]): string {
+  const lines = [
+    `# ${title.trim() || 'AI Canvas'}`,
+    '',
+    `_Exporterad ${new Date().toLocaleString('sv-SE')}_`,
+    '',
+  ]
+
+  for (const block of blocks) {
+    const blockTitle = block.title?.trim()
+
+    if (blockTitle && block.type !== 'heading') {
+      lines.push(`## ${blockTitle}`, '')
+    }
+
+    if (block.type === 'heading') {
+      lines.push(`## ${blockTitle || 'Sektion'}`)
+      if (block.content) lines.push('', block.content)
+    }
+
+    if (block.type === 'text' || block.type === 'insight') {
+      if (block.content) lines.push(block.content)
+    }
+
+    if (block.type === 'checklist' || block.type === 'actions') {
+      for (const item of block.items || []) {
+        lines.push(block.type === 'checklist' ? `- [ ] ${item}` : `- ${item}`)
+      }
+    }
+
+    if (block.type === 'table' && block.columns?.length) {
+      lines.push(
+        `| ${block.columns.map(escapeMarkdownTableCell).join(' | ')} |`,
+        `| ${block.columns.map(() => '---').join(' | ')} |`
+      )
+      for (const row of block.rows || []) {
+        lines.push(`| ${block.columns.map((_, index) => escapeMarkdownTableCell(row[index])).join(' | ')} |`)
+      }
+    }
+
+    if (block.type === 'metric-row') {
+      lines.push('| Mätvärde | Värde | Detalj |', '| --- | --- | --- |')
+      for (const metric of block.metrics || []) {
+        lines.push(
+          `| ${escapeMarkdownTableCell(metric.label)} | ${escapeMarkdownTableCell(metric.value)} | ${escapeMarkdownTableCell(metric.detail)} |`
+        )
+      }
+    }
+
+    if (block.type === 'risk-list') {
+      for (const risk of block.risks || []) {
+        const meta = risk.meta ? ` - ${risk.meta}` : ''
+        lines.push(`- **${risk.title}** (${risk.priority}): ${risk.description}${meta}`)
+      }
+    }
+
+    if (block.type === 'trend-summary') {
+      for (const trend of block.trends || []) {
+        const detail = trend.detail ? ` - ${trend.detail}` : ''
+        lines.push(`- **${trend.label}**: ${trend.value} (${trend.direction})${detail}`)
+      }
+    }
+
+    lines.push('')
+  }
+
+  return `${lines.join('\n').replace(/\n{3,}/g, '\n\n').trim()}\n`
+}
+
 interface AICanvasClientProps {
   businessSlug: string
   initialCanvases: SavedCanvasSummary[]
@@ -345,6 +433,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
   const [isSaving, setIsSaving] = useState(false)
   const [loadingCanvasId, setLoadingCanvasId] = useState<string | null>(null)
   const [modelLabel, setModelLabel] = useState<string | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
   const [contextSelection, setContextSelection] = useState<CanvasContextSelection>({
     scope: 'none',
     athleteId: '',
@@ -547,9 +636,43 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
     }
   }
 
+  const handleCopyMarkdown = async () => {
+    const markdown = canvasToMarkdown(title, blocks)
+    try {
+      await navigator.clipboard.writeText(markdown)
+      setAssistantMessage('Jag kopierade canvasen som text.')
+    } catch {
+      setAssistantMessage('Jag kunde inte kopiera automatiskt. Markera texten och kopiera manuellt.')
+    }
+  }
+
+  const handleDownloadMarkdown = () => {
+    setIsExporting(true)
+    try {
+      const markdown = canvasToMarkdown(title, blocks)
+      const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `${slugifyFilename(title || 'ai-canvas')}.md`
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+      setAssistantMessage('Jag exporterade canvasen som markdown.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handlePrintPdf = () => {
+    setAssistantMessage('Jag öppnar utskrift. Välj Spara som PDF i dialogen.')
+    window.setTimeout(() => window.print(), 50)
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
-      <section className="border-b border-slate-200 bg-white">
+      <section className="border-b border-slate-200 bg-white print:border-none">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-3">
@@ -584,7 +707,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
               )}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 print:hidden">
             <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
               <FilePlus2 className="h-4 w-4" />
               Ny canvas
@@ -597,12 +720,24 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
               <Archive className="h-4 w-4" />
               Arkivera
             </Button>
+            <Button variant="outline" size="sm" onClick={handleCopyMarkdown} className="gap-2">
+              <Copy className="h-4 w-4" />
+              Kopiera
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleDownloadMarkdown} disabled={isExporting} className="gap-2">
+              <Download className="h-4 w-4" />
+              Markdown
+            </Button>
+            <Button variant="outline" size="sm" onClick={handlePrintPdf} className="gap-2">
+              <Printer className="h-4 w-4" />
+              PDF
+            </Button>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto grid w-full max-w-7xl gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:px-8">
-        <aside className="space-y-3">
+      <section className="mx-auto grid w-full max-w-7xl gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:px-8 print:block print:max-w-none print:px-0 print:py-0">
+        <aside className="space-y-3 print:hidden">
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-amber-600" />
@@ -846,9 +981,9 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
           </div>
         </aside>
 
-        <div className="space-y-4">
-          <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 p-4">
+        <div className="space-y-4 print:space-y-0">
+          <div className="rounded-lg border border-slate-200 bg-white shadow-sm print:rounded-none print:border-none print:shadow-none">
+            <div className="border-b border-slate-200 p-4 print:hidden">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-sm font-semibold text-slate-900">Canvas</h2>
@@ -868,7 +1003,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
           </div>
         </div>
 
-        <aside className="space-y-3">
+        <aside className="space-y-3 print:hidden">
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <Wand2 className="h-4 w-4 text-violet-600" />
