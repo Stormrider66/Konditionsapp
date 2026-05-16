@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -15,12 +15,10 @@ import { Loader2 } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
-const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-})
-
-type LoginFormData = z.infer<typeof loginSchema>
+type LoginFormData = {
+  email: string
+  password: string
+}
 
 export default function LoginPage() {
   const t = useTranslations('auth')
@@ -28,6 +26,14 @@ export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const loginSchema = useMemo(
+    () =>
+      z.object({
+        email: z.string().email(t('invalidEmail')),
+        password: z.string().min(6, t('passwordMinLength')),
+      }),
+    [t]
+  )
 
   const {
     register,
@@ -78,7 +84,7 @@ export default function LoginPage() {
         })
 
         toast({
-          title: 'Inloggning misslyckades',
+          title: t('loginFailed'),
           description: error.message,
           variant: 'destructive',
         })
@@ -93,13 +99,13 @@ export default function LoginPage() {
       })
 
       toast({
-        title: 'Välkommen!',
-        description: 'Du är nu inloggad.',
+        title: t('welcomeMessage'),
+        description: t('loggedInDescription'),
       })
 
       router.push('/')
       router.refresh()
-    } catch (error) {
+    } catch (_error) {
       logAuthEventClient({
         eventType: 'LOGIN_FAILURE',
         email: data.email,
@@ -107,8 +113,8 @@ export default function LoginPage() {
       })
 
       toast({
-        title: 'Ett fel uppstod',
-        description: 'Kunde inte logga in. Försök igen senare.',
+        title: t('errorOccurred'),
+        description: t('couldNotLoginLater'),
         variant: 'destructive',
       })
     } finally {
@@ -181,7 +187,7 @@ export default function LoginPage() {
                   href="/forgot-password"
                   className="text-xs text-blue-600 hover:underline"
                 >
-                  Glömt lösenord?
+                  {t('forgotPassword')}
                 </Link>
               </div>
             </div>
