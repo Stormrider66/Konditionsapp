@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -14,50 +14,63 @@ import { useTranslations } from '@/i18n/client'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
 const SPORTS = [
-  { value: 'RUNNING', label: 'Löpning' },
-  { value: 'CYCLING', label: 'Cykling' },
-  { value: 'SKIING', label: 'Längdskidåkning' },
-  { value: 'SWIMMING', label: 'Simning' },
-  { value: 'TRIATHLON', label: 'Triathlon' },
-  { value: 'TEAM_FOOTBALL', label: 'Fotboll' },
-  { value: 'TEAM_ICE_HOCKEY', label: 'Ishockey' },
-  { value: 'TEAM_HANDBALL', label: 'Handboll' },
-  { value: 'TEAM_FLOORBALL', label: 'Innebandy' },
-  { value: 'TEAM_BASKETBALL', label: 'Basket' },
-  { value: 'TEAM_VOLLEYBALL', label: 'Volleyboll' },
-  { value: 'HYROX', label: 'HYROX' },
-  { value: 'GENERAL_FITNESS', label: 'Allmän fitness' },
-  { value: 'TENNIS', label: 'Tennis' },
-  { value: 'PADEL', label: 'Padel' },
-]
+  'RUNNING',
+  'CYCLING',
+  'SKIING',
+  'SWIMMING',
+  'TRIATHLON',
+  'TEAM_FOOTBALL',
+  'TEAM_ICE_HOCKEY',
+  'TEAM_HANDBALL',
+  'TEAM_FLOORBALL',
+  'TEAM_BASKETBALL',
+  'TEAM_VOLLEYBALL',
+  'HYROX',
+  'GENERAL_FITNESS',
+  'TENNIS',
+  'PADEL',
+] as const
 
-const teamSchema = z.object({
-  businessName: z.string().min(2, 'Club name is required'),
-  primarySport: z.string().min(1, 'Primary sport is required'),
-  name: z.string().min(2, 'Contact person name is required'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string(),
-  city: z.string().optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-})
-
-type TeamFormData = z.infer<typeof teamSchema>
+type TeamFormData = {
+  businessName: string
+  primarySport: string
+  name: string
+  email: string
+  password: string
+  confirmPassword: string
+  city?: string
+}
 
 const TEAM_FEATURES = [
-  'Laghantering med atletportal',
-  'Träningsprogram för hela laget',
-  'Prestationsuppföljning',
-  '14 dagars gratis provperiod',
-]
+  'teamManagement',
+  'teamPrograms',
+  'performanceTracking',
+  'trial',
+] as const
 
 export default function TeamSignupPage() {
   const t = useTranslations('auth')
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const teamSchema = useMemo(
+    () =>
+      z
+        .object({
+          businessName: z.string().min(2, t('teamSignup.validation.businessNameRequired')),
+          primarySport: z.string().min(1, t('teamSignup.validation.primarySportRequired')),
+          name: z.string().min(2, t('gymSignup.validation.contactNameRequired')),
+          email: z.string().email(t('invalidEmail')),
+          password: z.string().min(8, t('gymSignup.validation.passwordMinLength')),
+          confirmPassword: z.string(),
+          city: z.string().optional(),
+        })
+        .refine((data) => data.password === data.confirmPassword, {
+          message: t('gymSignup.validation.passwordsDoNotMatch'),
+          path: ['confirmPassword'],
+        }),
+    [t]
+  )
 
   const {
     register,
@@ -97,8 +110,8 @@ export default function TeamSignupPage() {
       }
 
       toast({
-        title: 'Föreningskonto skapat!',
-        description: 'Välkommen! Du har nu en 14-dagars provperiod.',
+        title: t('teamSignup.successTitle'),
+        description: t('gymSignup.successDescription'),
       })
 
       router.push(result.redirectUrl || '/')
@@ -125,20 +138,20 @@ export default function TeamSignupPage() {
           <div className="mx-auto w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-2">
             <Users className="h-6 w-6 text-orange-600" />
           </div>
-          <CardTitle className="text-2xl font-bold">Registrera din förening</CardTitle>
+          <CardTitle className="text-2xl font-bold">{t('teamSignup.title')}</CardTitle>
           <CardDescription>
-            Skapa ett konto för ditt lag eller din förening
+            {t('teamSignup.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {/* What's included */}
           <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-100">
-            <p className="text-sm font-medium text-orange-800 mb-2">Vad ingår</p>
+            <p className="text-sm font-medium text-orange-800 mb-2">{t('gymSignup.includedTitle')}</p>
             <ul className="space-y-1.5">
               {TEAM_FEATURES.map((feature) => (
                 <li key={feature} className="flex items-center gap-2 text-sm text-orange-700">
                   <Check className="h-4 w-4 text-orange-500 shrink-0" />
-                  {feature}
+                  {t(`teamSignup.features.${feature}`)}
                 </li>
               ))}
             </ul>
@@ -148,13 +161,13 @@ export default function TeamSignupPage() {
             <div className="space-y-2">
               <label htmlFor="businessName" className="text-sm font-medium flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                Föreningsnamn
+                {t('teamSignup.businessNameLabel')}
               </label>
               <input
                 id="businessName"
                 type="text"
                 className={`flex h-10 w-full rounded-md border ${errors.businessName ? 'border-red-500' : 'border-input'} bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
-                placeholder="T.ex. IFK Löparna"
+                placeholder={t('teamSignup.businessNamePlaceholder')}
                 {...register('businessName')}
                 disabled={isLoading}
               />
@@ -164,7 +177,7 @@ export default function TeamSignupPage() {
             <div className="space-y-2">
               <label htmlFor="primarySport" className="text-sm font-medium flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-muted-foreground" />
-                Primär sport
+                {t('teamSignup.primarySportLabel')}
               </label>
               <select
                 id="primarySport"
@@ -172,9 +185,9 @@ export default function TeamSignupPage() {
                 {...register('primarySport')}
                 disabled={isLoading}
               >
-                <option value="">Välj sport</option>
+                <option value="">{t('teamSignup.selectSport')}</option>
                 {SPORTS.map((sport) => (
-                  <option key={sport.value} value={sport.value}>{sport.label}</option>
+                  <option key={sport} value={sport}>{t(`teamSignup.sports.${sport}`)}</option>
                 ))}
               </select>
               {errors.primarySport && <p className="text-sm text-red-500">{errors.primarySport.message}</p>}
@@ -183,7 +196,7 @@ export default function TeamSignupPage() {
             <div className="space-y-2">
               <label htmlFor="name" className="text-sm font-medium flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
-                Kontaktperson
+                {t('gymSignup.contactPersonLabel')}
               </label>
               <input
                 id="name"
@@ -215,7 +228,7 @@ export default function TeamSignupPage() {
             <div className="space-y-2">
               <label htmlFor="city" className="text-sm font-medium flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                Stad (valfritt)
+                {t('teamSignup.cityLabel')}
               </label>
               <input
                 id="city"
@@ -263,10 +276,10 @@ export default function TeamSignupPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Skapar föreningskonto...
+                  {t('teamSignup.creatingAccount')}
                 </>
               ) : (
-                'Skapa föreningskonto'
+                t('teamSignup.createAccount')
               )}
             </Button>
           </form>
@@ -280,7 +293,7 @@ export default function TeamSignupPage() {
           </div>
           <div className="text-xs text-center text-muted-foreground">
             <Link href="/signup" className="text-blue-600 hover:underline">
-              Tillbaka till val av kontotyp
+              {t('signupChooser.backToAccountType')}
             </Link>
           </div>
         </CardFooter>
