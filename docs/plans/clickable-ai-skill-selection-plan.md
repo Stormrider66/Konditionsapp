@@ -143,9 +143,9 @@ Recommended lightweight API:
 
 ### Phase 2: Reusable Picker
 
-- Build `AISkillPicker`.
-- Add lightweight list endpoint.
-- Keep the component presentational and reusable.
+- Build `AISkillPicker`. Done in `components/ai/AISkillPicker.tsx`.
+- Add lightweight list endpoint. Done in `/api/ai/skills`.
+- Keep the component presentational and reusable. The picker owns search/loading/chips, while parent surfaces own selected IDs.
 
 ### Phase 3: Floating Coach AI
 
