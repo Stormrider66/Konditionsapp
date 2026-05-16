@@ -188,6 +188,48 @@ model AIGeneratedProgram {
   @@index([isSaved])
 }
 
+/// Persistent AI Canvas documents for coach workspaces.
+model AICanvas {
+  id          String @id @default(uuid())
+  businessId  String
+  ownerUserId String
+
+  title  String
+  scope  String @default("COACH") // COACH, ADMIN
+  status String @default("DRAFT") // DRAFT, ARCHIVED
+
+  business Business        @relation("BusinessAICanvases", fields: [businessId], references: [id], onDelete: Cascade)
+  owner    User            @relation("UserAICanvases", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  blocks   AICanvasBlock[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([ownerUserId])
+  @@index([status])
+  @@index([updatedAt])
+}
+
+/// Ordered structured blocks inside an AI Canvas document.
+model AICanvasBlock {
+  id        String @id @default(uuid())
+  canvasId  String
+  type      String
+  position  Int
+  source    String @default("manual") // manual, ai, template
+  contentJson Json
+
+  canvas AICanvas @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([canvasId])
+  @@index([canvasId, position])
+  @@index([type])
+}
+
 /// AI-generated Workout of the Day for athletes
 model AIGeneratedWOD {
   id       String @id @default(uuid())

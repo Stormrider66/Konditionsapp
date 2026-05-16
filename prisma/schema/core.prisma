@@ -201,6 +201,7 @@ model User {
   // AI Studio relations
   coachDocuments   CoachDocument[]   @relation("CoachDocuments")
   aiConversations  AIConversation[]  @relation("CoachConversations")
+  aiCanvases        AICanvas[]        @relation("UserAICanvases")
   videoAnalyses    VideoAnalysis[]   @relation("CoachVideoAnalyses")
   apiKeys          UserApiKey?       @relation("UserApiKeys")
 
@@ -750,6 +751,7 @@ model Business {
 
   members              BusinessMember[]
   clients              Client[]
+  aiCanvases           AICanvas[] @relation("BusinessAICanvases")
   testers              Tester[]
   locations            Location[]
   athleteSubscriptions AthleteSubscription[]

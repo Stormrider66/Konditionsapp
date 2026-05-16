@@ -3,14 +3,18 @@
 import { useMemo, useState } from 'react'
 import {
   AlertCircle,
+  Archive,
   BarChart3,
   CheckCircle2,
   ClipboardList,
   FileText,
+  FilePlus2,
+  FolderOpen,
   Lightbulb,
   ListChecks,
   Plus,
   RotateCcw,
+  Save,
   Send,
   Sparkles,
   Table2,
@@ -34,6 +38,7 @@ interface CanvasBlock {
   columns?: string[]
   rows?: string[][]
   tone?: 'neutral' | 'positive' | 'warning'
+  source?: 'manual' | 'ai' | 'template'
 }
 
 interface GeneratedCanvasBlock {
@@ -44,6 +49,7 @@ interface GeneratedCanvasBlock {
   columns?: string[]
   rows?: string[][]
   tone?: 'neutral' | 'positive' | 'warning'
+  source?: 'manual' | 'ai' | 'template'
 }
 
 interface GenerateCanvasResponse {
@@ -56,6 +62,24 @@ interface GenerateCanvasResponse {
     modelId: string
     displayName: string
   }
+  error?: string
+}
+
+interface SavedCanvasSummary {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+  blockCount: number
+}
+
+interface SavedCanvasPayload extends SavedCanvasSummary {
+  blocks: CanvasBlock[]
+}
+
+interface CanvasSaveResponse {
+  success?: boolean
+  canvas?: SavedCanvasPayload
   error?: string
 }
 
@@ -111,6 +135,7 @@ const initialBlocks: CanvasBlock[] = [
     type: 'heading',
     title: 'AI Canvas',
     content: 'En arbetsyta för rapporter, analyser, planer och coachbeslut.',
+    source: 'template',
   },
   {
     id: 'welcome-insight',
@@ -119,6 +144,7 @@ const initialBlocks: CanvasBlock[] = [
     content:
       'Den här versionen fokuserar på känslan i arbetsytan: mallar, prompt, block och tydliga svar. Nästa steg blir att koppla in riktig atlet- och teamdata.',
     tone: 'positive',
+    source: 'template',
   },
   {
     id: 'welcome-actions',
@@ -129,6 +155,7 @@ const initialBlocks: CanvasBlock[] = [
       'Bygg en weekly coach briefing',
       'Sammanfatta risker inför kommande vecka',
     ],
+    source: 'template',
   },
 ]
 
@@ -146,9 +173,12 @@ function getAssistantMessage(prompt: string, blockCount: number): string {
 
 interface AICanvasClientProps {
   businessSlug: string
+  initialCanvases: SavedCanvasSummary[]
 }
 
-export function AICanvasClient({ businessSlug }: AICanvasClientProps) {
+export function AICanvasClient({ businessSlug, initialCanvases }: AICanvasClientProps) {
+  const [canvasId, setCanvasId] = useState<string | null>(null)
+  const [savedCanvases, setSavedCanvases] = useState<SavedCanvasSummary[]>(initialCanvases)
   const [title, setTitle] = useState('Untitled coach canvas')
   const [prompt, setPrompt] = useState('')
   const [selectedTemplateId, setSelectedTemplateId] = useState<CanvasTemplateId>('blank')
@@ -158,6 +188,8 @@ export function AICanvasClient({ businessSlug }: AICanvasClientProps) {
   )
   const [lastUpdated, setLastUpdated] = useState('Inte sparad än')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [loadingCanvasId, setLoadingCanvasId] = useState<string | null>(null)
   const [modelLabel, setModelLabel] = useState<string | null>(null)
 
   const selectedTemplate = useMemo(
@@ -205,6 +237,7 @@ export function AICanvasClient({ businessSlug }: AICanvasClientProps) {
 
       const nextBlocks = payload.blocks.map((block) => ({
         id: createId(block.type),
+        source: 'ai' as const,
         ...block,
       }))
 
@@ -221,12 +254,121 @@ export function AICanvasClient({ businessSlug }: AICanvasClientProps) {
   }
 
   const handleReset = () => {
+    setCanvasId(null)
     setBlocks(initialBlocks)
+    setTitle('Untitled coach canvas')
     setPrompt('')
     setSelectedTemplateId('blank')
     setAssistantMessage('Jag återställde canvasen till startläget.')
     setLastUpdated('Återställd')
     setModelLabel(null)
+  }
+
+  const upsertSavedCanvas = (canvas: SavedCanvasPayload) => {
+    setSavedCanvases((current) => {
+      const nextSummary: SavedCanvasSummary = {
+        id: canvas.id,
+        title: canvas.title,
+        createdAt: canvas.createdAt,
+        updatedAt: canvas.updatedAt,
+        blockCount: canvas.blocks.length,
+      }
+      const withoutCurrent = current.filter((item) => item.id !== canvas.id)
+      return [nextSummary, ...withoutCurrent].sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      )
+    })
+  }
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    setAssistantMessage('Jag sparar canvasen...')
+
+    try {
+      const response = await fetch(canvasId ? `/api/ai/canvas/${canvasId}` : '/api/ai/canvas', {
+        method: canvasId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(canvasId ? {} : { businessSlug }),
+          title,
+          blocks,
+        }),
+      })
+      const payload = (await response.json()) as CanvasSaveResponse
+
+      if (!response.ok || !payload.success || !payload.canvas) {
+        setAssistantMessage(payload.error || 'Jag kunde inte spara canvasen just nu.')
+        return
+      }
+
+      setCanvasId(payload.canvas.id)
+      setTitle(payload.canvas.title)
+      setBlocks(payload.canvas.blocks)
+      setLastUpdated(new Date(payload.canvas.updatedAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
+      upsertSavedCanvas(payload.canvas)
+      setAssistantMessage('Jag sparade canvasen.')
+    } catch {
+      setAssistantMessage('Jag kunde inte nå sparfunktionen just nu. Försök igen om en stund.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleLoadCanvas = async (id: string) => {
+    setLoadingCanvasId(id)
+    setAssistantMessage('Jag laddar canvasen...')
+
+    try {
+      const response = await fetch(`/api/ai/canvas/${id}`)
+      const payload = (await response.json()) as CanvasSaveResponse
+
+      if (!response.ok || !payload.success || !payload.canvas) {
+        setAssistantMessage(payload.error || 'Jag kunde inte ladda canvasen.')
+        return
+      }
+
+      setCanvasId(payload.canvas.id)
+      setTitle(payload.canvas.title)
+      setBlocks(payload.canvas.blocks)
+      setLastUpdated(new Date(payload.canvas.updatedAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
+      setModelLabel(null)
+      upsertSavedCanvas(payload.canvas)
+      setAssistantMessage('Jag laddade canvasen.')
+    } catch {
+      setAssistantMessage('Jag kunde inte nå sparade canvases just nu.')
+    } finally {
+      setLoadingCanvasId(null)
+    }
+  }
+
+  const handleArchiveCurrent = async () => {
+    if (!canvasId) {
+      setAssistantMessage('Det finns ingen sparad canvas att arkivera ännu.')
+      return
+    }
+
+    setIsSaving(true)
+    setAssistantMessage('Jag arkiverar canvasen...')
+
+    try {
+      const response = await fetch(`/api/ai/canvas/${canvasId}`, {
+        method: 'DELETE',
+      })
+      const payload = (await response.json()) as { success?: boolean; error?: string }
+
+      if (!response.ok || !payload.success) {
+        setAssistantMessage(payload.error || 'Jag kunde inte arkivera canvasen.')
+        return
+      }
+
+      setSavedCanvases((current) => current.filter((canvas) => canvas.id !== canvasId))
+      handleReset()
+      setAssistantMessage('Jag arkiverade canvasen och öppnade en ny arbetsyta.')
+    } catch {
+      setAssistantMessage('Jag kunde inte nå arkiveringen just nu.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -237,7 +379,7 @@ export function AICanvasClient({ businessSlug }: AICanvasClientProps) {
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                  Phase 1A
+                  Phase 1C
                 </Badge>
                 <Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-700">
                   Coach workspace
@@ -265,6 +407,20 @@ export function AICanvasClient({ businessSlug }: AICanvasClientProps) {
                 </>
               )}
             </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
+              <FilePlus2 className="h-4 w-4" />
+              Ny canvas
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={isSaving} className="gap-2">
+              <Save className="h-4 w-4" />
+              {isSaving ? 'Sparar...' : canvasId ? 'Spara ändringar' : 'Spara canvas'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleArchiveCurrent} disabled={isSaving || !canvasId} className="gap-2">
+              <Archive className="h-4 w-4" />
+              Arkivera
+            </Button>
           </div>
         </div>
       </section>
@@ -299,6 +455,41 @@ export function AICanvasClient({ businessSlug }: AICanvasClientProps) {
                 )
               })}
             </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <FolderOpen className="h-4 w-4 text-slate-700" />
+              <h2 className="text-sm font-semibold text-slate-900">Sparade canvases</h2>
+            </div>
+            {savedCanvases.length === 0 ? (
+              <p className="text-xs leading-5 text-slate-500">
+                Inga sparade canvases ännu. Skapa ett utkast och tryck Spara canvas.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {savedCanvases.map((canvas) => {
+                  const isActive = canvas.id === canvasId
+                  return (
+                    <button
+                      key={canvas.id}
+                      type="button"
+                      onClick={() => { void handleLoadCanvas(canvas.id) }}
+                      disabled={loadingCanvasId === canvas.id}
+                      className={cn(
+                        'w-full rounded-md border p-3 text-left transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-70',
+                        isActive ? 'border-slate-900 bg-slate-50' : 'border-slate-200 bg-white'
+                      )}
+                    >
+                      <span className="block truncate text-sm font-medium text-slate-900">{canvas.title}</span>
+                      <span className="mt-1 block text-xs text-slate-500">
+                        {canvas.blockCount} block · {new Date(canvas.updatedAt).toLocaleDateString('sv-SE')}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
