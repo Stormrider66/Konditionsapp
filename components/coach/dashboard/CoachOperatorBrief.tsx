@@ -69,7 +69,7 @@ export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
   const hasQueue = data.topItems.length > 0
 
   return (
-    <GlassCard className={cn('mt-6 rounded-lg border', tone.shell)} data-ai-operator-brief>
+    <GlassCard className={cn('rounded-lg border', tone.shell)} data-ai-operator-brief>
       <GlassCardHeader className="pb-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">

@@ -711,8 +711,10 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
           />
         )}
 
-        {operatorBriefData && (
-          <CoachOperatorBrief data={operatorBriefData} />
+        {mode !== 'TEAM' && operatorBriefData && (
+          <div className="mt-6">
+            <CoachOperatorBrief data={operatorBriefData} />
+          </div>
         )}
 
         {/* Conditional layout based on mode */}
@@ -727,6 +729,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
               total: readinessScores.length,
             }}
             teamDashboardData={teamDashboardData}
+            operatorBriefData={operatorBriefData ?? undefined}
             visible={visible}
             orderMap={orderMap}
           />

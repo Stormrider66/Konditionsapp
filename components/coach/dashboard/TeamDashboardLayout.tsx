@@ -1,12 +1,14 @@
 'use client'
 
 import { CoachAIAssistantPanel } from '@/components/coach/CoachAIAssistantPanel'
+import { CoachOperatorBrief } from '@/components/coach/dashboard/CoachOperatorBrief'
 import { CoachQuickActions } from '@/components/coach/dashboard/CoachQuickActions'
 import { TeamRosterGrid } from '@/components/coach/dashboard/TeamRosterGrid'
 import { TodayTimeline } from '@/components/coach/dashboard/TodayTimeline'
 import { TeamQuickAccess } from '@/components/coach/dashboard/TeamQuickAccess'
 import { TeamPulsePanel } from '@/components/coach/dashboard/TeamPulsePanel'
 import { TeamTestsAndActivity } from '@/components/coach/dashboard/TeamTestsAndActivity'
+import type { CoachOperatorBriefData } from '@/lib/coach/proactive-operator'
 
 export interface TeamDashboardData {
   teams: Array<{
@@ -49,6 +51,7 @@ interface TeamDashboardLayoutProps {
     total: number
   }
   teamDashboardData?: TeamDashboardData
+  operatorBriefData?: CoachOperatorBriefData
   visible?: Set<string>
   orderMap?: Map<string, number>
 }
@@ -58,6 +61,7 @@ export function TeamDashboardLayout({
   pendingFeedbackCount,
   readinessDistribution,
   teamDashboardData,
+  operatorBriefData,
   visible,
   orderMap,
 }: TeamDashboardLayoutProps) {
@@ -85,6 +89,14 @@ export function TeamDashboardLayout({
         />
       ),
     },
+    ...(operatorBriefData
+      ? [
+          {
+            key: 'coach-operator-brief',
+            node: <CoachOperatorBrief data={operatorBriefData} />,
+          },
+        ]
+      : []),
   ])
 
   const rightWidgets = sortByOrder([
@@ -118,7 +130,9 @@ export function TeamDashboardLayout({
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
       {/* Left — Timeline (60%) */}
       <div className="lg:col-span-3 space-y-6">
-        {leftWidgets.filter(w => isVisible(w.key)).map(w => <div key={w.key}>{w.node}</div>)}
+        {leftWidgets
+          .filter(w => w.key === 'coach-operator-brief' || isVisible(w.key))
+          .map(w => <div key={w.key}>{w.node}</div>)}
       </div>
 
       {/* Right — Roster + Actions + AI (40%) */}
