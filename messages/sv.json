@@ -140,6 +140,22 @@
       }
     }
   },
+  "athletePages": {
+    "predictions": {
+      "metadataTitle": "Tävlingsprediktioner",
+      "backToDashboard": "Tillbaka till dashboard",
+      "title": "Tävlingsprediktioner",
+      "description": "Se dina predicerade tider och räkna ut ekvivalenter mellan distanser"
+    },
+    "browseWorkouts": {
+      "metadataTitle": "Hitta pass | Athlete",
+      "metadataDescription": "Utforska färdiga träningspass"
+    },
+    "workoutDetail": {
+      "metadataTitle": "Pass | Athlete",
+      "metadataDescription": "Detaljer för träningspass"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Atleter",

@@ -6,9 +6,13 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { RacePredictionWidget } from '@/components/athlete/RacePredictionWidget'
 import { RaceEquivalentCalculator } from '@/components/athlete/RaceEquivalentCalculator'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Tävlingsprediktioner',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.predictions')
+  return {
+    title: t('metadataTitle'),
+  }
 }
 
 export default async function PredictionsPage({
@@ -18,6 +22,7 @@ export default async function PredictionsPage({
 }) {
   const { businessSlug } = await params
   const { clientId } = await requireAthleteOrCoachInAthleteMode()
+  const t = await getTranslations('athletePages.predictions')
 
   // Fetch current VDOT from athlete profile
   let currentVDOT: number | undefined
@@ -36,14 +41,14 @@ export default async function PredictionsPage({
       <Link href={`${basePath}/athlete/dashboard`}>
         <Button variant="ghost" className="mb-6">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka till dashboard
+          {t('backToDashboard')}
         </Button>
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Tävlingsprediktioner</h1>
+        <h1 className="text-3xl font-bold mb-2">{t('title')}</h1>
         <p className="text-muted-foreground">
-          Se dina predicerade tider och räkna ut ekvivalenter mellan distanser
+          {t('description')}
         </p>
       </div>
 

@@ -3,10 +3,14 @@ import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { BrowseWorkoutsClient } from '@/components/athlete/browse-workouts/BrowseWorkoutsClient'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Hitta pass | Athlete',
-  description: 'Utforska färdiga träningspass',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.browseWorkouts')
+  return {
+    title: t('metadataTitle'),
+    description: t('metadataDescription'),
+  }
 }
 
 interface PageProps {

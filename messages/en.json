@@ -140,6 +140,22 @@
       }
     }
   },
+  "athletePages": {
+    "predictions": {
+      "metadataTitle": "Race predictions",
+      "backToDashboard": "Back to dashboard",
+      "title": "Race predictions",
+      "description": "See your predicted times and calculate equivalents between distances"
+    },
+    "browseWorkouts": {
+      "metadataTitle": "Find workouts | Athlete",
+      "metadataDescription": "Explore ready-made workouts"
+    },
+    "workoutDetail": {
+      "metadataTitle": "Workout | Athlete",
+      "metadataDescription": "Workout details"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Athletes",
