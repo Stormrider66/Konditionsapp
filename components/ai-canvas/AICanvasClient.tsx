@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Copy,
   Download,
+  ExternalLink,
   FileText,
   FilePlus2,
   FolderOpen,
@@ -130,6 +131,15 @@ interface AthleteMessageDraft {
   athleteName: string
   content: string
   createdAt: string
+}
+
+interface CanvasTaskResponse {
+  success?: boolean
+  task?: {
+    id: string
+    title: string
+  }
+  error?: string
 }
 
 interface CanvasAthleteOption {
@@ -365,6 +375,46 @@ function buildAthleteMessageDraft(athleteName: string, canvasTitle: string, bloc
   return messageLines.join('\n').slice(0, 1000)
 }
 
+function buildFollowUpTaskTitle(
+  title: string,
+  subject?: { type: 'athlete' | 'team'; name: string }
+): string {
+  const prefix = subject
+    ? subject.type === 'athlete'
+      ? `Följ upp ${subject.name}`
+      : `Följ upp ${subject.name}`
+    : 'Följ upp AI Canvas'
+
+  if (!title.trim() || title === 'Untitled coach canvas') return prefix
+  return `${prefix}: ${title.trim()}`.slice(0, 160)
+}
+
+function buildFollowUpTaskDescription(
+  title: string,
+  blocks: CanvasBlock[],
+  subject?: { type: 'athlete' | 'team'; name: string }
+): string {
+  const actionItems = blocks
+    .filter((block) => block.type === 'actions' || block.type === 'checklist')
+    .flatMap((block) => block.items || [])
+    .slice(0, 6)
+  const riskItems = blocks
+    .filter((block) => block.type === 'risk-list')
+    .flatMap((block) => block.risks || [])
+    .filter((risk) => risk.priority === 'high' || risk.priority === 'medium')
+    .slice(0, 4)
+  const lines = [
+    `Skapad från AI Canvas: ${title.trim() || 'Untitled coach canvas'}`,
+    subject ? `Kontext: ${subject.name}` : null,
+    actionItems.length > 0 ? `Nästa steg:\n${actionItems.map((item) => `- ${item}`).join('\n')}` : null,
+    riskItems.length > 0
+      ? `Risker att följa upp:\n${riskItems.map((risk) => `- ${risk.title}: ${risk.description}`).join('\n')}`
+      : null,
+  ].filter(Boolean)
+
+  return lines.join('\n\n').slice(0, 1200)
+}
+
 interface AICanvasClientProps {
   businessSlug: string
   initialCanvases: SavedCanvasSummary[]
@@ -429,6 +479,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isSavingNote, setIsSavingNote] = useState(false)
+  const [isCreatingTask, setIsCreatingTask] = useState(false)
   const [loadingCanvasId, setLoadingCanvasId] = useState<string | null>(null)
   const [modelLabel, setModelLabel] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
@@ -735,6 +786,59 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
     }
   }
 
+  const handleOpenContext = () => {
+    if (contextSelection.scope === 'athlete' && selectedAthlete) {
+      window.open(`/${businessSlug}/coach/clients/${selectedAthlete.id}`, '_blank', 'noopener,noreferrer')
+      setAssistantMessage(`Jag öppnade profilen för ${selectedAthlete.name} i en ny flik.`)
+      return
+    }
+
+    if (contextSelection.scope === 'team' && selectedTeam) {
+      window.open(`/${businessSlug}/coach/teams/${selectedTeam.id}`, '_blank', 'noopener,noreferrer')
+      setAssistantMessage(`Jag öppnade lagsidan för ${selectedTeam.name} i en ny flik.`)
+      return
+    }
+
+    setAssistantMessage('Välj en atlet eller ett lag i kontextpanelen först, så kan jag öppna rätt sida.')
+  }
+
+  const handleCreateFollowUpTask = async () => {
+    const subject =
+      contextSelection.scope === 'athlete' && selectedAthlete
+        ? { type: 'athlete' as const, name: selectedAthlete.name }
+        : contextSelection.scope === 'team' && selectedTeam
+          ? { type: 'team' as const, name: selectedTeam.name }
+          : undefined
+
+    setIsCreatingTask(true)
+    setAssistantMessage('Jag skapar en uppgift från canvasen...')
+
+    try {
+      const response = await fetch('/api/ai/canvas/task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessSlug,
+          title: buildFollowUpTaskTitle(title, subject),
+          description: buildFollowUpTaskDescription(title, blocks, subject),
+          priority: blocks.some((block) => block.risks?.some((risk) => risk.priority === 'high')) ? 'HIGH' : 'NORMAL',
+        }),
+      })
+      const payload = (await response.json()) as CanvasTaskResponse
+
+      if (!response.ok || !payload.success || !payload.task) {
+        setAssistantMessage(payload.error || 'Jag kunde inte skapa uppgiften.')
+        return
+      }
+
+      setAssistantMessage(`Jag skapade uppgiften "${payload.task.title}".`)
+    } catch {
+      setAssistantMessage('Jag kunde inte nå uppgiftsfunktionen just nu. Försök igen om en stund.')
+    } finally {
+      setIsCreatingTask(false)
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <section className="border-b border-slate-200 bg-white print:border-none">
@@ -817,6 +921,46 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
 
       <section className="mx-auto grid w-full max-w-7xl gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:px-8 print:block print:max-w-none print:px-0 print:py-0">
         <aside className="space-y-3 print:hidden">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-blue-700" />
+              <h2 className="text-sm font-semibold text-slate-900">Nästa åtgärder</h2>
+            </div>
+            <div className="grid gap-2">
+              <Button variant="outline" size="sm" onClick={handleOpenContext} className="justify-start gap-2">
+                <ExternalLink className="h-4 w-4" />
+                Öppna kontext
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCreateFollowUpTask}
+                disabled={isCreatingTask}
+                className="justify-start gap-2"
+              >
+                <ClipboardList className="h-4 w-4" />
+                {isCreatingTask ? 'Skapar uppgift...' : 'Skapa uppgift'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handlePrepareAthleteMessage} className="justify-start gap-2">
+                <MessageSquareText className="h-4 w-4" />
+                Förbered meddelande
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSaveAthleteNote}
+                disabled={isSavingNote}
+                className="justify-start gap-2"
+              >
+                <ClipboardList className="h-4 w-4" />
+                Spara intern anteckning
+              </Button>
+            </div>
+            <p className="mt-3 text-xs leading-5 text-slate-500">
+              Åtgärder kräver klick och AI Canvas berättar alltid vad som hände. Meddelanden skickas inte från den här panelen.
+            </p>
+          </div>
+
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-amber-600" />
