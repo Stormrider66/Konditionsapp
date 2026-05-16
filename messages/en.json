@@ -50,6 +50,62 @@
     "monthly": "Monthly",
     "yearly": "Yearly"
   },
+  "home": {
+    "welcomeBack": "Welcome back!",
+    "overview": "Here is an overview of your business",
+    "stats": {
+      "athletes": "Athletes",
+      "lactateTests": "Lactate tests",
+      "programs": "Programs",
+      "activeThisWeek": "Active this week"
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "newTest": {
+        "title": "New test",
+        "description": "Lactate test"
+      },
+      "athletes": {
+        "title": "Athletes",
+        "description": "Manage clients"
+      },
+      "programs": {
+        "title": "Programs",
+        "description": "Training plans"
+      },
+      "aiStudio": {
+        "title": "AI Studio",
+        "description": "AI assistant"
+      },
+      "video": {
+        "title": "Video",
+        "description": "Running analysis"
+      },
+      "monitoring": {
+        "title": "Monitoring",
+        "description": "Training load"
+      }
+    },
+    "gettingStarted": {
+      "title": "Get started",
+      "addAthletes": {
+        "title": "Add athletes",
+        "description": "Create clients in the register"
+      },
+      "lactateTest": {
+        "title": "Run a lactate test",
+        "description": "Register test data"
+      },
+      "createPrograms": {
+        "title": "Create programs",
+        "description": "Build training plans"
+      },
+      "followUp": {
+        "title": "Follow up",
+        "description": "Monitor & analyze"
+      }
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Athletes",

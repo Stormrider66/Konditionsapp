@@ -50,6 +50,62 @@
     "monthly": "Månadsvis",
     "yearly": "Årsvis"
   },
+  "home": {
+    "welcomeBack": "Välkommen tillbaka!",
+    "overview": "Här är en översikt av din verksamhet",
+    "stats": {
+      "athletes": "Atleter",
+      "lactateTests": "Laktattester",
+      "programs": "Program",
+      "activeThisWeek": "Aktiva denna vecka"
+    },
+    "quickActions": {
+      "title": "Snabbåtgärder",
+      "newTest": {
+        "title": "Nytt Test",
+        "description": "Laktattest"
+      },
+      "athletes": {
+        "title": "Atleter",
+        "description": "Hantera klienter"
+      },
+      "programs": {
+        "title": "Program",
+        "description": "Träningsplaner"
+      },
+      "aiStudio": {
+        "title": "AI Studio",
+        "description": "AI-assistent"
+      },
+      "video": {
+        "title": "Video",
+        "description": "Löpanalys"
+      },
+      "monitoring": {
+        "title": "Monitorering",
+        "description": "Träningsbelastning"
+      }
+    },
+    "gettingStarted": {
+      "title": "Kom igång",
+      "addAthletes": {
+        "title": "Lägg till atleter",
+        "description": "Skapa klienter i registret"
+      },
+      "lactateTest": {
+        "title": "Genomför laktattest",
+        "description": "Registrera testdata"
+      },
+      "createPrograms": {
+        "title": "Skapa program",
+        "description": "Bygg träningsplaner"
+      },
+      "followUp": {
+        "title": "Följ upp",
+        "description": "Monitorera & analysera"
+      }
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Atleter",
