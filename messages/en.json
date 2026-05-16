@@ -236,6 +236,64 @@
       "athletePrompt": "Are you an athlete?",
       "athleteSignupLink": "Register as an athlete"
     },
+    "athleteSignup": {
+      "choosePlan": "Choose your plan",
+      "paymentRedirectNotice": "You create an account and are then redirected to payment.",
+      "focusTitle": "What do you want to focus on?",
+      "nutritionTitle": "Nutrition",
+      "nutritionDescription": "Macro tracking, AI food analysis, nutrition goals",
+      "orChooseSport": "Or choose a sport",
+      "showMoreSports": "Show more sports",
+      "showFewerSports": "Show fewer",
+      "chooseGym": "Choose gym or business",
+      "searchGymPlaceholder": "Search for gym or business...",
+      "searching": "Searching...",
+      "gymConnectDescription": "If you choose a gym, your account is connected to their business directly and you are sent to their page after registration.",
+      "popular": "Popular",
+      "registerAndPay": "Register & pay ({price})",
+      "tiers": {
+        "FREE": {
+          "name": "Free",
+          "price": "SEK 0"
+        },
+        "STANDARD": {
+          "name": "Standard",
+          "price": "SEK 199/mo"
+        },
+        "PRO": {
+          "name": "Pro",
+          "price": "SEK 399/mo"
+        }
+      },
+      "categories": {
+        "endurance": "Endurance",
+        "functionalStrength": "Functional & Strength",
+        "teamSports": "Team sports",
+        "racketSports": "Racket sports"
+      },
+      "sports": {
+        "RUNNING": "Running",
+        "CYCLING": "Cycling",
+        "SKIING": "Cross-country skiing",
+        "SWIMMING": "Swimming",
+        "TRIATHLON": "Triathlon",
+        "HYROX": "HYROX",
+        "GENERAL_FITNESS": "General Fitness",
+        "FUNCTIONAL_FITNESS": "Functional Fitness",
+        "STRENGTH": "Strength training",
+        "TEAM_FOOTBALL": "Football",
+        "TEAM_ICE_HOCKEY": "Ice hockey",
+        "TEAM_HANDBALL": "Handball",
+        "TEAM_FLOORBALL": "Floorball",
+        "TEAM_BASKETBALL": "Basketball",
+        "TEAM_VOLLEYBALL": "Volleyball",
+        "TENNIS": "Tennis",
+        "PADEL": "Padel"
+      },
+      "validation": {
+        "birthDateRequired": "Birth date is required"
+      }
+    },
     "claimBusiness": {
       "title": "Activate your account",
       "description": "Create your account to take over your business.",

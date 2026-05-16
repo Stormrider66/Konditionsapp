@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -24,46 +24,46 @@ type SportValue =
   | 'NUTRITION'
 
 interface SportCategory {
-  label: string
-  sports: { value: SportValue; label: string; icon: string }[]
+  key: 'endurance' | 'functionalStrength' | 'teamSports' | 'racketSports'
+  sports: { value: SportValue; icon: string }[]
 }
 
 const SPORT_CATEGORIES: SportCategory[] = [
   {
-    label: 'Uthållighet',
+    key: 'endurance',
     sports: [
-      { value: 'RUNNING', label: 'Löpning', icon: '🏃' },
-      { value: 'CYCLING', label: 'Cykling', icon: '🚴' },
-      { value: 'SKIING', label: 'Längdskidor', icon: '⛷️' },
-      { value: 'SWIMMING', label: 'Simning', icon: '🏊‍♂️' },
-      { value: 'TRIATHLON', label: 'Triathlon', icon: '🏊' },
+      { value: 'RUNNING', icon: '🏃' },
+      { value: 'CYCLING', icon: '🚴' },
+      { value: 'SKIING', icon: '⛷️' },
+      { value: 'SWIMMING', icon: '🏊‍♂️' },
+      { value: 'TRIATHLON', icon: '🏊' },
     ],
   },
   {
-    label: 'Funktionell & Styrka',
+    key: 'functionalStrength',
     sports: [
-      { value: 'HYROX', label: 'HYROX', icon: '💪' },
-      { value: 'GENERAL_FITNESS', label: 'Allmän Fitness', icon: '🏋️' },
-      { value: 'FUNCTIONAL_FITNESS', label: 'Funktionell Fitness', icon: '🔥' },
-      { value: 'STRENGTH', label: 'Styrketräning', icon: '🏋️‍♂️' },
+      { value: 'HYROX', icon: '💪' },
+      { value: 'GENERAL_FITNESS', icon: '🏋️' },
+      { value: 'FUNCTIONAL_FITNESS', icon: '🔥' },
+      { value: 'STRENGTH', icon: '🏋️‍♂️' },
     ],
   },
   {
-    label: 'Lagsporter',
+    key: 'teamSports',
     sports: [
-      { value: 'TEAM_FOOTBALL', label: 'Fotboll', icon: '⚽' },
-      { value: 'TEAM_ICE_HOCKEY', label: 'Ishockey', icon: '🏒' },
-      { value: 'TEAM_HANDBALL', label: 'Handboll', icon: '🤾' },
-      { value: 'TEAM_FLOORBALL', label: 'Innebandy', icon: '🏑' },
-      { value: 'TEAM_BASKETBALL', label: 'Basket', icon: '🏀' },
-      { value: 'TEAM_VOLLEYBALL', label: 'Volleyboll', icon: '🏐' },
+      { value: 'TEAM_FOOTBALL', icon: '⚽' },
+      { value: 'TEAM_ICE_HOCKEY', icon: '🏒' },
+      { value: 'TEAM_HANDBALL', icon: '🤾' },
+      { value: 'TEAM_FLOORBALL', icon: '🏑' },
+      { value: 'TEAM_BASKETBALL', icon: '🏀' },
+      { value: 'TEAM_VOLLEYBALL', icon: '🏐' },
     ],
   },
   {
-    label: 'Racketsporter',
+    key: 'racketSports',
     sports: [
-      { value: 'TENNIS', label: 'Tennis', icon: '🎾' },
-      { value: 'PADEL', label: 'Padel', icon: '🏓' },
+      { value: 'TENNIS', icon: '🎾' },
+      { value: 'PADEL', icon: '🏓' },
     ],
   },
 ]
@@ -83,26 +83,31 @@ function normalizeTierParam(value: string | null): Tier {
   }
 }
 
-const TIER_INFO: Record<Tier, { name: string; price: string; highlight?: boolean }> = {
-  FREE: { name: 'Free', price: '0 kr' },
-  STANDARD: { name: 'Standard', price: '199 kr/mån', highlight: false },
-  PRO: { name: 'Pro', price: '399 kr/mån', highlight: true },
+const TIER_INFO: Record<Tier, { highlight?: boolean }> = {
+  FREE: {},
+  STANDARD: { highlight: false },
+  PRO: { highlight: true },
 }
 
-const signupSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+type SignupFormData = {
+  name: string
+  email: string
+  password: string
+  confirmPassword: string
+  gender?: 'MALE' | 'FEMALE'
+  birthDate: string
+  inviteCode?: string
+}
+
+const baseSignupSchema = z.object({
+  name: z.string(),
+  email: z.string(),
+  password: z.string(),
   confirmPassword: z.string(),
   gender: z.enum(['MALE', 'FEMALE']).optional(),
-  birthDate: z.string().min(1, 'Födelsedatum krävs'),
+  birthDate: z.string(),
   inviteCode: z.string().optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
 })
-
-type SignupFormData = z.infer<typeof signupSchema>
 
 function TierCard({
   tier,
@@ -115,6 +120,8 @@ function TierCard({
   selected: boolean
   onSelect: () => void
 }) {
+  const t = useTranslations('auth')
+
   return (
     <button
       type="button"
@@ -126,16 +133,15 @@ function TierCard({
       } ${info.highlight && !selected ? 'ring-1 ring-blue-200' : ''}`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="font-semibold text-sm">{info.name}</span>
+        <span className="font-semibold text-sm">{t(`athleteSignup.tiers.${tier}.name`)}</span>
         {info.highlight && (
-          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Populär</span>
+          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{t('athleteSignup.popular')}</span>
         )}
       </div>
-      <div className="text-lg font-bold mb-3">{info.price}</div>
+      <div className="text-lg font-bold mb-3">{t(`athleteSignup.tiers.${tier}.price`)}</div>
       <ul className="space-y-1.5">
         {ATHLETE_TIER_FEATURES.map((feature) => {
           const value = feature[tier.toLowerCase() as 'free' | 'standard' | 'pro']
-          const isIncluded = value === true || (typeof value === 'string' && value !== '')
           const isExcluded = value === false
 
           return (
@@ -172,6 +178,21 @@ function AthleteSignupForm() {
 
   const inviteCodeFromUrl = searchParams.get('invite') || ''
   const isAICoached = searchParams.get('mode') === 'ai-coached'
+  const signupSchema = useMemo(
+    () =>
+      baseSignupSchema
+        .extend({
+          name: z.string().min(2, t('physioSignup.validation.nameMinLength')),
+          email: z.string().email(t('invalidEmail')),
+          password: z.string().min(8, t('gymSignup.validation.passwordMinLength')),
+          birthDate: z.string().min(1, t('athleteSignup.validation.birthDateRequired')),
+        })
+        .refine((data) => data.password === data.confirmPassword, {
+          message: t('gymSignup.validation.passwordsDoNotMatch'),
+          path: ['confirmPassword'],
+        }),
+    [t]
+  )
 
   const {
     register,
@@ -262,7 +283,7 @@ function AthleteSignupForm() {
     <div className="space-y-6">
       {/* Tier Selection */}
       <div>
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Välj din plan</h3>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">{t('athleteSignup.choosePlan')}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {(Object.entries(TIER_INFO) as [Tier, typeof TIER_INFO[Tier]][]).map(([tier, info]) => (
             <TierCard
@@ -276,14 +297,14 @@ function AthleteSignupForm() {
         </div>
         {selectedTier !== 'FREE' && (
           <p className="text-xs text-muted-foreground mt-2">
-            Du skapar ett konto och blir sedan omdirigerad till betalning.
+            {t('athleteSignup.paymentRedirectNotice')}
           </p>
         )}
       </div>
 
       {/* Sport / Focus Selection */}
       <div>
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Vad vill du fokusera på?</h3>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">{t('athleteSignup.focusTitle')}</h3>
 
         {/* Nutrition-only option */}
         <button
@@ -297,12 +318,12 @@ function AthleteSignupForm() {
         >
           <span className="text-2xl">🥗</span>
           <div>
-            <span className="text-sm font-semibold text-gray-900">Kost & Nutrition</span>
-            <p className="text-xs text-muted-foreground">Makrospårning, AI-matanalys, kostmål</p>
+            <span className="text-sm font-semibold text-gray-900">{t('athleteSignup.nutritionTitle')}</span>
+            <p className="text-xs text-muted-foreground">{t('athleteSignup.nutritionDescription')}</p>
           </div>
         </button>
 
-        <p className="text-xs font-medium text-muted-foreground mb-2">Eller välj en sport</p>
+        <p className="text-xs font-medium text-muted-foreground mb-2">{t('athleteSignup.orChooseSport')}</p>
         {(() => {
           const popularSports = SPORT_CATEGORIES[0].sports // Endurance as popular
           const otherCategories = SPORT_CATEGORIES.slice(1)
@@ -321,7 +342,7 @@ function AthleteSignupForm() {
                     }`}
                   >
                     <span className="text-2xl">{sport.icon}</span>
-                    <span className="text-xs font-medium leading-tight">{sport.label}</span>
+                    <span className="text-xs font-medium leading-tight">{t(`athleteSignup.sports.${sport.value}`)}</span>
                   </button>
                 ))}
               </div>
@@ -332,14 +353,14 @@ function AthleteSignupForm() {
                   onClick={() => setShowAllSports(true)}
                   className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 mx-auto"
                 >
-                  Visa fler sporter
+                  {t('athleteSignup.showMoreSports')}
                   <ChevronDown className="h-4 w-4" />
                 </button>
               ) : (
                 <div className="space-y-3">
                   {otherCategories.map((category) => (
-                    <div key={category.label}>
-                      <p className="text-xs font-medium text-muted-foreground mb-2">{category.label}</p>
+                    <div key={category.key}>
+                      <p className="text-xs font-medium text-muted-foreground mb-2">{t(`athleteSignup.categories.${category.key}`)}</p>
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {category.sports.map((sport) => (
                           <button
@@ -353,7 +374,7 @@ function AthleteSignupForm() {
                             }`}
                           >
                             <span className="text-xl">{sport.icon}</span>
-                            <span className="text-xs font-medium leading-tight">{sport.label}</span>
+                            <span className="text-xs font-medium leading-tight">{t(`athleteSignup.sports.${sport.value}`)}</span>
                           </button>
                         ))}
                       </div>
@@ -364,7 +385,7 @@ function AthleteSignupForm() {
                     onClick={() => setShowAllSports(false)}
                     className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 mx-auto"
                   >
-                    Visa färre
+                    {t('athleteSignup.showFewerSports')}
                     <ChevronUp className="h-4 w-4" />
                   </button>
                 </div>
@@ -378,7 +399,7 @@ function AthleteSignupForm() {
         <div className="flex items-center gap-2">
           <Building2 className="h-4 w-4 text-muted-foreground" />
           <label className="text-sm font-medium">
-            Välj gym eller business
+            {t('athleteSignup.chooseGym')}
           </label>
         </div>
 
@@ -398,7 +419,7 @@ function AthleteSignupForm() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 className="flex h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder="Sök efter gym eller business..."
+                placeholder={t('athleteSignup.searchGymPlaceholder')}
                 value={gymSearch}
                 onChange={(e) => searchGyms(e.target.value)}
                 disabled={isLoading}
@@ -426,13 +447,13 @@ function AthleteSignupForm() {
             {searchingGyms && (
               <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg p-3 text-center">
                 <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
-                <span className="text-sm text-muted-foreground">Söker...</span>
+                <span className="text-sm text-muted-foreground">{t('athleteSignup.searching')}</span>
               </div>
             )}
           </div>
         )}
         <p className="text-xs text-muted-foreground">
-          Om du väljer ett gym kopplas ditt konto till deras business direkt och du skickas till deras sida efter registrering.
+          {t('athleteSignup.gymConnectDescription')}
         </p>
       </div>
 
@@ -572,7 +593,7 @@ function AthleteSignupForm() {
           ) : selectedTier === 'FREE' ? (
             t('registerButton')
           ) : (
-            `Registrera & betala (${TIER_INFO[selectedTier].price})`
+            t('athleteSignup.registerAndPay', { price: t(`athleteSignup.tiers.${selectedTier}.price`) })
           )}
         </Button>
       </form>

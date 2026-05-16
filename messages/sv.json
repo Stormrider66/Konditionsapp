@@ -236,6 +236,64 @@
       "athletePrompt": "Är du atlet?",
       "athleteSignupLink": "Registrera dig som atlet"
     },
+    "athleteSignup": {
+      "choosePlan": "Välj din plan",
+      "paymentRedirectNotice": "Du skapar ett konto och blir sedan omdirigerad till betalning.",
+      "focusTitle": "Vad vill du fokusera på?",
+      "nutritionTitle": "Kost & Nutrition",
+      "nutritionDescription": "Makrospårning, AI-matanalys, kostmål",
+      "orChooseSport": "Eller välj en sport",
+      "showMoreSports": "Visa fler sporter",
+      "showFewerSports": "Visa färre",
+      "chooseGym": "Välj gym eller business",
+      "searchGymPlaceholder": "Sök efter gym eller business...",
+      "searching": "Söker...",
+      "gymConnectDescription": "Om du väljer ett gym kopplas ditt konto till deras business direkt och du skickas till deras sida efter registrering.",
+      "popular": "Populär",
+      "registerAndPay": "Registrera & betala ({price})",
+      "tiers": {
+        "FREE": {
+          "name": "Free",
+          "price": "0 kr"
+        },
+        "STANDARD": {
+          "name": "Standard",
+          "price": "199 kr/mån"
+        },
+        "PRO": {
+          "name": "Pro",
+          "price": "399 kr/mån"
+        }
+      },
+      "categories": {
+        "endurance": "Uthållighet",
+        "functionalStrength": "Funktionell & Styrka",
+        "teamSports": "Lagsporter",
+        "racketSports": "Racketsporter"
+      },
+      "sports": {
+        "RUNNING": "Löpning",
+        "CYCLING": "Cykling",
+        "SKIING": "Längdskidor",
+        "SWIMMING": "Simning",
+        "TRIATHLON": "Triathlon",
+        "HYROX": "HYROX",
+        "GENERAL_FITNESS": "Allmän Fitness",
+        "FUNCTIONAL_FITNESS": "Funktionell Fitness",
+        "STRENGTH": "Styrketräning",
+        "TEAM_FOOTBALL": "Fotboll",
+        "TEAM_ICE_HOCKEY": "Ishockey",
+        "TEAM_HANDBALL": "Handboll",
+        "TEAM_FLOORBALL": "Innebandy",
+        "TEAM_BASKETBALL": "Basket",
+        "TEAM_VOLLEYBALL": "Volleyboll",
+        "TENNIS": "Tennis",
+        "PADEL": "Padel"
+      },
+      "validation": {
+        "birthDateRequired": "Födelsedatum krävs"
+      }
+    },
     "claimBusiness": {
       "title": "Aktivera ditt konto",
       "description": "Skapa ditt konto för att ta över din verksamhet.",
