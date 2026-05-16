@@ -10,14 +10,22 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 
+type ProgramWizardClients = Parameters<typeof ProgramWizard>[0]['clients']
+
 interface PageProps {
   params: Promise<{
     businessSlug: string
   }>
+  searchParams?: Promise<{
+    source?: string
+    prompt?: string
+    clientId?: string
+  }>
 }
 
-export default async function BusinessNewProgramPage({ params }: PageProps) {
+export default async function BusinessNewProgramPage({ params, searchParams }: PageProps) {
   const { businessSlug } = await params
+  const query = await searchParams
   const user = await requireCoach()
 
   // Validate business membership
@@ -109,7 +117,21 @@ export default async function BusinessNewProgramPage({ params }: PageProps) {
         </p>
       </div>
 
-      <ProgramWizard clients={clients as any} basePath={basePath} />
+      {query?.source === 'AI Canvas' && (
+        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-950">
+          <p className="text-sm font-semibold">Öppnat från AI Canvas</p>
+          <p className="mt-1 text-sm leading-6">
+            Använd canvasens sammanhang som stöd när du väljer atlet, mål och datakälla. Inget program skapas förrän du bekräftar i guiden.
+          </p>
+          {query.prompt && (
+            <p className="mt-3 line-clamp-3 text-xs leading-5 text-blue-900">
+              {query.prompt}
+            </p>
+          )}
+        </div>
+      )}
+
+      <ProgramWizard clients={clients as unknown as ProgramWizardClients} basePath={basePath} />
     </div>
   )
 }

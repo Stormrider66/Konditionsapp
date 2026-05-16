@@ -11,6 +11,7 @@ const createCanvasTaskSchema = z.object({
   title: z.string().trim().min(1).max(160),
   description: z.string().trim().max(1200).optional(),
   priority: z.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']).default('NORMAL'),
+  dueDate: z.string().datetime().optional(),
 })
 
 function isNextRedirectError(error: unknown): boolean {
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
         title: parsed.data.title,
         description: parsed.data.description || null,
         priority: parsed.data.priority,
+        dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
       },
       select: {
         id: true,

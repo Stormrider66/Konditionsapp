@@ -22,10 +22,12 @@ import {
   RotateCcw,
   Save,
   Send,
+  ShieldCheck,
   Sparkles,
   Table2,
   TrendingDown,
   TrendingUp,
+  Undo2,
   Wand2,
 } from 'lucide-react'
 import {
@@ -443,6 +445,29 @@ function buildFollowUpTaskDescription(
   return lines.join('\n\n').slice(0, 1200)
 }
 
+function buildProgramDraftPrompt(title: string, blocks: CanvasBlock[]): string {
+  const actionItems = blocks
+    .filter((block) => block.type === 'actions' || block.type === 'checklist')
+    .flatMap((block) => block.items || [])
+    .slice(0, 5)
+  const insights = blocks
+    .filter((block) => block.content)
+    .map((block) => `${block.title || block.type}: ${truncateSentence(block.content || '', 140)}`)
+    .slice(0, 5)
+  const risks = blocks
+    .flatMap((block) => block.risks || [])
+    .map((risk) => `${risk.title}: ${risk.description}`)
+    .slice(0, 4)
+
+  return [
+    `Skapa ett träningsprogramutkast baserat på AI Canvas: ${title}`,
+    insights.length > 0 ? `Insikter:\n${insights.map((item) => `- ${item}`).join('\n')}` : null,
+    risks.length > 0 ? `Risker att respektera:\n${risks.map((item) => `- ${item}`).join('\n')}` : null,
+    actionItems.length > 0 ? `Önskade åtgärder:\n${actionItems.map((item) => `- ${item}`).join('\n')}` : null,
+    'Gör utkastet coachgranskningsbart och säkert. Skapa inget automatiskt utan coachens godkännande.',
+  ].filter(Boolean).join('\n\n').slice(0, 1200)
+}
+
 function looksLikeTestAction(value: string): boolean {
   return /test|retest|lt1|lt2|laktat|vo2|threshold|tröskel|fält/i.test(value)
 }
@@ -476,6 +501,26 @@ interface AICanvasClientProps {
   initialCanvases: SavedCanvasSummary[]
   athletes: CanvasAthleteOption[]
   teams: CanvasTeamOption[]
+  coachTier: 'FREE' | 'BASIC' | 'PRO' | 'ENTERPRISE'
+  subscriptionStatus: 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | 'TRIAL'
+}
+
+type ActionStatus = 'success' | 'warning' | 'error' | 'info'
+
+interface CanvasActionReceipt {
+  id: string
+  status: ActionStatus
+  title: string
+  detail: string
+  createdAt: string
+}
+
+interface CanvasSnapshot {
+  id: string
+  label: string
+  title: string
+  blocks: CanvasBlock[]
+  createdAt: string
 }
 
 const contextDataOptions: Array<{ key: CanvasContextDataKey; label: string }> = [
@@ -521,7 +566,88 @@ function buildContextSummary(
   ].join('\n')
 }
 
-export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams }: AICanvasClientProps) {
+function getCoachTierCanvasGuardrails(tier: AICanvasClientProps['coachTier']) {
+  const config = {
+    FREE: {
+      label: 'Free / trial',
+      message: 'AI Canvas kan testas med sparsam användning. Håll rapporter korta och använd export/anteckningar för manuellt arbete.',
+      calls: 'Låg volym',
+      level: 'warning' as const,
+    },
+    BASIC: {
+      label: 'Basic',
+      message: 'Passar för enskilda atletrapporter, anteckningar, uppgifter och meddelandeutkast. Teamrapporter bör hållas korta.',
+      calls: 'Normal volym',
+      level: 'info' as const,
+    },
+    PRO: {
+      label: 'Pro',
+      message: 'Rekommenderad nivå för teamrapporter, blockförbättringar och flera arbetsflöden per coachdag.',
+      calls: 'Högre volym',
+      level: 'success' as const,
+    },
+    ENTERPRISE: {
+      label: 'Enterprise',
+      message: 'Fullt arbetsflöde för coachteam: teamrapporter, flera canvases, export, uppgifter och uppföljningar med bredare användning.',
+      calls: 'Utökad volym',
+      level: 'success' as const,
+    },
+  }
+
+  return config[tier]
+}
+
+function createTeamPolishBlocks(team: CanvasTeamOption): CanvasBlock[] {
+  return [
+    {
+      id: createId('team-priority'),
+      type: 'metric-row',
+      title: 'Teamöversikt',
+      metrics: [
+        {
+          label: 'Lag',
+          value: team.name,
+          detail: team.sportType ? `Sport: ${team.sportType}` : 'Sport saknas',
+          tone: 'neutral',
+        },
+        {
+          label: 'Atleter',
+          value: String(team.athleteCount),
+          detail: team.athleteCount > 20 ? 'Använd riskgrupper och batchuppföljning.' : 'Lämpligt för snabb individuell genomgång.',
+          tone: team.athleteCount > 20 ? 'warning' : 'positive',
+        },
+      ],
+      source: 'analytics',
+    },
+    {
+      id: createId('team-actions'),
+      type: 'actions',
+      title: 'Teamuppföljning',
+      items: [
+        'Gruppera atleter efter testbehov, readiness och senaste genomförda pass.',
+        'Skapa en uppgift för de 3 viktigaste uppföljningarna innan nästa teambrief.',
+        'Boka retest för atleter där testdata är äldre än aktuell träningsfas.',
+      ],
+      source: 'analytics',
+    },
+  ]
+}
+
+function nextWeekIsoDate(): string {
+  const date = new Date()
+  date.setDate(date.getDate() + 7)
+  date.setHours(9, 0, 0, 0)
+  return date.toISOString()
+}
+
+export function AICanvasClient({
+  businessSlug,
+  initialCanvases,
+  athletes,
+  teams,
+  coachTier,
+  subscriptionStatus,
+}: AICanvasClientProps) {
   const [canvasId, setCanvasId] = useState<string | null>(null)
   const [savedCanvases, setSavedCanvases] = useState<SavedCanvasSummary[]>(initialCanvases)
   const [title, setTitle] = useState('Untitled coach canvas')
@@ -542,6 +668,8 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
   const [athleteMessageDraft, setAthleteMessageDraft] = useState<AthleteMessageDraft | null>(null)
   const [regeneratingBlockId, setRegeneratingBlockId] = useState<string | null>(null)
   const [isSendingDraft, setIsSendingDraft] = useState(false)
+  const [actionReceipts, setActionReceipts] = useState<CanvasActionReceipt[]>([])
+  const [history, setHistory] = useState<CanvasSnapshot[]>([])
   const [contextSelection, setContextSelection] = useState<CanvasContextSelection>({
     scope: 'none',
     athleteId: '',
@@ -558,6 +686,46 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
   const selectedAthlete = athletes.find((athlete) => athlete.id === contextSelection.athleteId)
   const selectedTeam = teams.find((team) => team.id === contextSelection.teamId)
   const contextSummary = buildContextSummary(contextSelection, selectedAthlete, selectedTeam)
+  const tierGuardrails = getCoachTierCanvasGuardrails(coachTier)
+
+  const addActionReceipt = (status: ActionStatus, titleText: string, detail: string) => {
+    const receipt: CanvasActionReceipt = {
+      id: createId('receipt'),
+      status,
+      title: titleText,
+      detail,
+      createdAt: new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }),
+    }
+    setActionReceipts((current) => [receipt, ...current].slice(0, 6))
+    setAssistantMessage(detail)
+  }
+
+  const rememberSnapshot = (label: string) => {
+    setHistory((current) => [
+      {
+        id: createId('snapshot'),
+        label,
+        title,
+        blocks,
+        createdAt: new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }),
+      },
+      ...current,
+    ].slice(0, 5))
+  }
+
+  const handleUndoLastCanvasChange = () => {
+    const [latest, ...rest] = history
+    if (!latest) {
+      addActionReceipt('warning', 'Ingen version att återställa', 'Det finns ingen tidigare canvasversion att återställa ännu.')
+      return
+    }
+
+    setTitle(latest.title)
+    setBlocks(latest.blocks)
+    setHistory(rest)
+    setLastUpdated(new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
+    addActionReceipt('success', 'Version återställd', `Jag återställde canvasen till versionen före "${latest.label}".`)
+  }
 
   const handleSelectTemplate = (template: CanvasTemplate) => {
     setSelectedTemplateId(template.id)
@@ -578,6 +746,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
 
     setIsGenerating(true)
     setAssistantMessage('Jag skapar strukturerade canvasblock...')
+    rememberSnapshot('ny generering')
 
     try {
       const response = await fetch('/api/ai/canvas/generate', {
@@ -595,23 +764,26 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       const payload = (await response.json()) as GenerateCanvasResponse
 
       if (!response.ok || !payload.success || !payload.blocks) {
-        setAssistantMessage(payload.error || 'Jag kunde inte skapa canvasblock just nu.')
+        addActionReceipt('error', 'Canvas kunde inte skapas', payload.error || 'Jag kunde inte skapa canvasblock just nu.')
         return
       }
 
-      const nextBlocks = payload.blocks.map((block) => ({
+      const generatedBlocks = payload.blocks.map((block) => ({
         id: createId(block.type),
         source: 'ai' as const,
         ...block,
       }))
+      const nextBlocks = contextSelection.scope === 'team' && selectedTeam
+        ? [...createTeamPolishBlocks(selectedTeam), ...generatedBlocks].slice(0, 12)
+        : generatedBlocks
 
       setBlocks(nextBlocks)
       setTitle(payload.title || title)
-      setAssistantMessage(payload.assistantMessage || getAssistantMessage(requestPrompt, nextBlocks.length))
+      addActionReceipt('success', 'Canvas skapad', payload.assistantMessage || getAssistantMessage(requestPrompt, nextBlocks.length))
       setModelLabel(payload.model?.displayName ?? null)
       setLastUpdated(new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
     } catch {
-      setAssistantMessage('Jag kunde inte nå AI Canvas just nu. Kontrollera anslutningen och försök igen.')
+      addActionReceipt('error', 'Canvas kunde inte skapas', 'Jag kunde inte nå AI Canvas just nu. Kontrollera anslutningen och försök igen.')
     } finally {
       setIsGenerating(false)
     }
@@ -620,6 +792,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
   const handleRegenerateBlock = async (block: CanvasBlock) => {
     setRegeneratingBlockId(block.id)
     setAssistantMessage(`Jag förbättrar blocket "${block.title || block.type}"...`)
+    rememberSnapshot(`förbättring av ${block.title || block.type}`)
 
     try {
       const response = await fetch('/api/ai/canvas/generate', {
@@ -642,7 +815,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       const payload = (await response.json()) as GenerateCanvasResponse
 
       if (!response.ok || !payload.success || !payload.blocks?.length) {
-        setAssistantMessage(payload.error || 'Jag kunde inte förbättra blocket just nu.')
+        addActionReceipt('error', 'Block kunde inte förbättras', payload.error || 'Jag kunde inte förbättra blocket just nu.')
         return
       }
 
@@ -654,21 +827,22 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       setBlocks((current) => current.map((item) => item.id === block.id ? improvedBlock : item))
       setModelLabel(payload.model?.displayName ?? modelLabel)
       setLastUpdated(new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
-      setAssistantMessage(`Jag förbättrade blocket "${improvedBlock.title || block.title || block.type}".`)
+      addActionReceipt('success', 'Block förbättrat', `Jag förbättrade blocket "${improvedBlock.title || block.title || block.type}".`)
     } catch {
-      setAssistantMessage('Jag kunde inte nå AI Canvas för att förbättra blocket just nu.')
+      addActionReceipt('error', 'Block kunde inte förbättras', 'Jag kunde inte nå AI Canvas för att förbättra blocket just nu.')
     } finally {
       setRegeneratingBlockId(null)
     }
   }
 
   const handleReset = () => {
+    rememberSnapshot('återställning')
     setCanvasId(null)
     setBlocks(initialBlocks)
     setTitle('Untitled coach canvas')
     setPrompt('')
     setSelectedTemplateId('blank')
-    setAssistantMessage('Jag återställde canvasen till startläget.')
+    addActionReceipt('success', 'Canvas återställd', 'Jag återställde canvasen till startläget.')
     setLastUpdated('Återställd')
     setModelLabel(null)
     setAthleteMessageDraft(null)
@@ -716,7 +890,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       const payload = (await response.json()) as CanvasSaveResponse
 
       if (!response.ok || !payload.success || !payload.canvas) {
-        setAssistantMessage(payload.error || 'Jag kunde inte spara canvasen just nu.')
+        addActionReceipt('error', 'Canvas kunde inte sparas', payload.error || 'Jag kunde inte spara canvasen just nu.')
         return
       }
 
@@ -725,9 +899,9 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       setBlocks(payload.canvas.blocks)
       setLastUpdated(new Date(payload.canvas.updatedAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
       upsertSavedCanvas(payload.canvas)
-      setAssistantMessage('Jag sparade canvasen.')
+      addActionReceipt('success', 'Canvas sparad', 'Jag sparade canvasen.')
     } catch {
-      setAssistantMessage('Jag kunde inte nå sparfunktionen just nu. Försök igen om en stund.')
+      addActionReceipt('error', 'Canvas kunde inte sparas', 'Jag kunde inte nå sparfunktionen just nu. Försök igen om en stund.')
     } finally {
       setIsSaving(false)
     }
@@ -742,7 +916,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       const payload = (await response.json()) as CanvasSaveResponse
 
       if (!response.ok || !payload.success || !payload.canvas) {
-        setAssistantMessage(payload.error || 'Jag kunde inte ladda canvasen.')
+        addActionReceipt('error', 'Canvas kunde inte laddas', payload.error || 'Jag kunde inte ladda canvasen.')
         return
       }
 
@@ -752,9 +926,9 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       setLastUpdated(new Date(payload.canvas.updatedAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
       setModelLabel(null)
       upsertSavedCanvas(payload.canvas)
-      setAssistantMessage('Jag laddade canvasen.')
+      addActionReceipt('success', 'Canvas laddad', 'Jag laddade canvasen.')
     } catch {
-      setAssistantMessage('Jag kunde inte nå sparade canvases just nu.')
+      addActionReceipt('error', 'Canvas kunde inte laddas', 'Jag kunde inte nå sparade canvases just nu.')
     } finally {
       setLoadingCanvasId(null)
     }
@@ -762,7 +936,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
 
   const handleArchiveCurrent = async () => {
     if (!canvasId) {
-      setAssistantMessage('Det finns ingen sparad canvas att arkivera ännu.')
+      addActionReceipt('warning', 'Inget att arkivera', 'Det finns ingen sparad canvas att arkivera ännu.')
       return
     }
 
@@ -776,15 +950,15 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       const payload = (await response.json()) as { success?: boolean; error?: string }
 
       if (!response.ok || !payload.success) {
-        setAssistantMessage(payload.error || 'Jag kunde inte arkivera canvasen.')
+        addActionReceipt('error', 'Canvas kunde inte arkiveras', payload.error || 'Jag kunde inte arkivera canvasen.')
         return
       }
 
       setSavedCanvases((current) => current.filter((canvas) => canvas.id !== canvasId))
       handleReset()
-      setAssistantMessage('Jag arkiverade canvasen och öppnade en ny arbetsyta.')
+      addActionReceipt('success', 'Canvas arkiverad', 'Jag arkiverade canvasen och öppnade en ny arbetsyta.')
     } catch {
-      setAssistantMessage('Jag kunde inte nå arkiveringen just nu.')
+      addActionReceipt('error', 'Canvas kunde inte arkiveras', 'Jag kunde inte nå arkiveringen just nu.')
     } finally {
       setIsSaving(false)
     }
@@ -794,9 +968,9 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
     const markdown = canvasToMarkdown(title, blocks)
     try {
       await navigator.clipboard.writeText(markdown)
-      setAssistantMessage('Jag kopierade canvasen som text.')
+      addActionReceipt('success', 'Canvas kopierad', 'Jag kopierade canvasen som text.')
     } catch {
-      setAssistantMessage('Jag kunde inte kopiera automatiskt. Markera texten och kopiera manuellt.')
+      addActionReceipt('error', 'Kopiering misslyckades', 'Jag kunde inte kopiera automatiskt. Markera texten och kopiera manuellt.')
     }
   }
 
@@ -813,20 +987,20 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       anchor.click()
       anchor.remove()
       URL.revokeObjectURL(url)
-      setAssistantMessage('Jag exporterade canvasen som markdown.')
+      addActionReceipt('success', 'Markdown exporterad', 'Jag exporterade canvasen som markdown.')
     } finally {
       setIsExporting(false)
     }
   }
 
   const handlePrintPdf = () => {
-    setAssistantMessage('Jag öppnar utskrift. Välj Spara som PDF i dialogen.')
+    addActionReceipt('info', 'PDF-export startad', 'Jag öppnar utskrift. Välj Spara som PDF i dialogen.')
     window.setTimeout(() => window.print(), 50)
   }
 
   const handleSaveAthleteNote = async () => {
     if (contextSelection.scope !== 'athlete' || !selectedAthlete) {
-      setAssistantMessage('Välj en atlet i kontextpanelen först, så kan jag spara canvasen som en intern coachanteckning.')
+      addActionReceipt('warning', 'Atlet saknas', 'Välj en atlet i kontextpanelen först, så kan jag spara canvasen som en intern coachanteckning.')
       return
     }
 
@@ -847,13 +1021,13 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       const payload = (await response.json()) as CanvasNoteResponse
 
       if (!response.ok || !payload.success) {
-        setAssistantMessage(payload.error || 'Jag kunde inte spara canvasen som coachanteckning.')
+        addActionReceipt('error', 'Anteckning kunde inte sparas', payload.error || 'Jag kunde inte spara canvasen som coachanteckning.')
         return
       }
 
-      setAssistantMessage(`Jag sparade canvasen som intern coachanteckning för ${payload.athleteName || selectedAthlete.name}.`)
+      addActionReceipt('success', 'Anteckning sparad', `Jag sparade canvasen som intern coachanteckning för ${payload.athleteName || selectedAthlete.name}.`)
     } catch {
-      setAssistantMessage('Jag kunde inte nå anteckningsfunktionen just nu. Försök igen om en stund.')
+      addActionReceipt('error', 'Anteckning kunde inte sparas', 'Jag kunde inte nå anteckningsfunktionen just nu. Försök igen om en stund.')
     } finally {
       setIsSavingNote(false)
     }
@@ -861,7 +1035,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
 
   const handlePrepareAthleteMessage = () => {
     if (contextSelection.scope !== 'athlete' || !selectedAthlete) {
-      setAssistantMessage('Välj en atlet i kontextpanelen först, så kan jag förbereda ett meddelande för granskning.')
+      addActionReceipt('warning', 'Atlet saknas', 'Välj en atlet i kontextpanelen först, så kan jag förbereda ett meddelande för granskning.')
       return
     }
 
@@ -872,37 +1046,37 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       content,
       createdAt: new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }),
     })
-    setAssistantMessage(`Jag förberedde ett meddelande till ${selectedAthlete.name}. Inget har skickats.`)
+    addActionReceipt('success', 'Meddelande förberett', `Jag förberedde ett meddelande till ${selectedAthlete.name}. Inget har skickats.`)
   }
 
   const handleCopyAthleteMessage = async () => {
     if (!athleteMessageDraft) {
-      setAssistantMessage('Det finns inget förberett meddelande att kopiera ännu.')
+      addActionReceipt('warning', 'Inget meddelandeutkast', 'Det finns inget förberett meddelande att kopiera ännu.')
       return
     }
 
     try {
       await navigator.clipboard.writeText(athleteMessageDraft.content)
-      setAssistantMessage(`Jag kopierade meddelandet till ${athleteMessageDraft.athleteName}. Det är fortfarande inte skickat.`)
+      addActionReceipt('success', 'Meddelande kopierat', `Jag kopierade meddelandet till ${athleteMessageDraft.athleteName}. Det är fortfarande inte skickat.`)
     } catch {
-      setAssistantMessage('Jag kunde inte kopiera meddelandet automatiskt. Markera texten och kopiera manuellt.')
+      addActionReceipt('error', 'Kopiering misslyckades', 'Jag kunde inte kopiera meddelandet automatiskt. Markera texten och kopiera manuellt.')
     }
   }
 
   const handleSendAthleteMessage = async () => {
     if (!athleteMessageDraft) {
-      setAssistantMessage('Det finns inget meddelandeutkast att skicka ännu.')
+      addActionReceipt('warning', 'Inget meddelandeutkast', 'Det finns inget meddelandeutkast att skicka ännu.')
       return
     }
 
     if (athleteMessageDraft.sentAt) {
-      setAssistantMessage(`Meddelandet till ${athleteMessageDraft.athleteName} är redan skickat.`)
+      addActionReceipt('warning', 'Meddelande redan skickat', `Meddelandet till ${athleteMessageDraft.athleteName} är redan skickat.`)
       return
     }
 
     const confirmed = window.confirm(`Skicka meddelandet till ${athleteMessageDraft.athleteName}?`)
     if (!confirmed) {
-      setAssistantMessage(`Jag skickade inte meddelandet till ${athleteMessageDraft.athleteName}.`)
+      addActionReceipt('info', 'Skick avbrutet', `Jag skickade inte meddelandet till ${athleteMessageDraft.athleteName}.`)
       return
     }
 
@@ -928,15 +1102,15 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       const payload = (await response.json()) as CanvasSendMessageResponse
 
       if (!response.ok || !payload.success) {
-        setAssistantMessage(payload.error || 'Jag kunde inte skicka meddelandet.')
+        addActionReceipt('error', 'Meddelande kunde inte skickas', payload.error || 'Jag kunde inte skicka meddelandet.')
         return
       }
 
       const sentAt = new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
       setAthleteMessageDraft((current) => current ? { ...current, sentAt } : current)
-      setAssistantMessage(payload.message || `Meddelandet skickades till ${athleteMessageDraft.athleteName}.`)
+      addActionReceipt('success', 'Meddelande skickat', payload.message || `Meddelandet skickades till ${athleteMessageDraft.athleteName}.`)
     } catch {
-      setAssistantMessage('Jag kunde inte nå meddelandefunktionen just nu. Försök igen om en stund.')
+      addActionReceipt('error', 'Meddelande kunde inte skickas', 'Jag kunde inte nå meddelandefunktionen just nu. Försök igen om en stund.')
     } finally {
       setIsSendingDraft(false)
     }
@@ -945,23 +1119,24 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
   const handleOpenContext = () => {
     if (contextSelection.scope === 'athlete' && selectedAthlete) {
       window.open(`/${businessSlug}/coach/clients/${selectedAthlete.id}`, '_blank', 'noopener,noreferrer')
-      setAssistantMessage(`Jag öppnade profilen för ${selectedAthlete.name} i en ny flik.`)
+      addActionReceipt('success', 'Profil öppnad', `Jag öppnade profilen för ${selectedAthlete.name} i en ny flik.`)
       return
     }
 
     if (contextSelection.scope === 'team' && selectedTeam) {
       window.open(`/${businessSlug}/coach/teams/${selectedTeam.id}`, '_blank', 'noopener,noreferrer')
-      setAssistantMessage(`Jag öppnade lagsidan för ${selectedTeam.name} i en ny flik.`)
+      addActionReceipt('success', 'Lag öppnat', `Jag öppnade lagsidan för ${selectedTeam.name} i en ny flik.`)
       return
     }
 
-    setAssistantMessage('Välj en atlet eller ett lag i kontextpanelen först, så kan jag öppna rätt sida.')
+    addActionReceipt('warning', 'Kontext saknas', 'Välj en atlet eller ett lag i kontextpanelen först, så kan jag öppna rätt sida.')
   }
 
   const handleCreateFollowUpTask = async (override?: {
     title?: string
     description?: string
     priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'
+    dueDate?: string
   }) => {
     const subject =
       contextSelection.scope === 'athlete' && selectedAthlete
@@ -982,18 +1157,19 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
           title: override?.title || buildFollowUpTaskTitle(title, subject),
           description: override?.description || buildFollowUpTaskDescription(title, blocks, subject),
           priority: override?.priority || (blocks.some((block) => block.risks?.some((risk) => risk.priority === 'high')) ? 'HIGH' : 'NORMAL'),
+          dueDate: override?.dueDate,
         }),
       })
       const payload = (await response.json()) as CanvasTaskResponse
 
       if (!response.ok || !payload.success || !payload.task) {
-        setAssistantMessage(payload.error || 'Jag kunde inte skapa uppgiften.')
+        addActionReceipt('error', 'Uppgift kunde inte skapas', payload.error || 'Jag kunde inte skapa uppgiften.')
         return
       }
 
-      setAssistantMessage(`Jag skapade uppgiften "${payload.task.title}".`)
+      addActionReceipt('success', 'Uppgift skapad', `Jag skapade uppgiften "${payload.task.title}".`)
     } catch {
-      setAssistantMessage('Jag kunde inte nå uppgiftsfunktionen just nu. Försök igen om en stund.')
+      addActionReceipt('error', 'Uppgift kunde inte skapas', 'Jag kunde inte nå uppgiftsfunktionen just nu. Försök igen om en stund.')
     } finally {
       setIsCreatingTask(false)
     }
@@ -1001,7 +1177,7 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
 
   const handleScheduleTestAction = (sourceLabel?: string) => {
     if (contextSelection.scope !== 'athlete' || !selectedAthlete) {
-      setAssistantMessage('Välj en atlet i kontextpanelen först, så kan jag öppna testbokningen med rätt sammanhang.')
+      addActionReceipt('warning', 'Atlet saknas', 'Välj en atlet i kontextpanelen först, så kan jag öppna testbokningen med rätt sammanhang.')
       return
     }
 
@@ -1010,11 +1186,37 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
       source: sourceLabel || 'AI Canvas',
     })
     window.open(`/${businessSlug}/coach/field-tests/schedule?${params.toString()}`, '_blank', 'noopener,noreferrer')
-    setAssistantMessage(
+    addActionReceipt(
+      'info',
+      'Testbokning öppnad',
       sourceLabel
         ? `Jag öppnade testbokningen för uppföljningen "${sourceLabel}". Ingen bokning har skapats ännu.`
         : `Jag öppnade testbokningen för ${selectedAthlete.name}. Ingen bokning har skapats ännu.`
     )
+  }
+
+  const handleCreateReassessmentReminder = () => {
+    void handleCreateFollowUpTask({
+      title: contextSelection.scope === 'athlete' && selectedAthlete
+        ? `Reassess ${selectedAthlete.name}`
+        : contextSelection.scope === 'team' && selectedTeam
+          ? `Team reassessment: ${selectedTeam.name}`
+          : `Reassess AI Canvas: ${title}`.slice(0, 160),
+      description: `Påminnelse skapad från AI Canvas.\n\n${buildFollowUpTaskDescription(title, blocks)}`,
+      priority: 'NORMAL',
+      dueDate: nextWeekIsoDate(),
+    })
+  }
+
+  const handleOpenProgramDraft = () => {
+    const params = new URLSearchParams()
+    if (contextSelection.scope === 'athlete' && selectedAthlete) {
+      params.set('clientId', selectedAthlete.id)
+    }
+    params.set('source', 'AI Canvas')
+    params.set('prompt', buildProgramDraftPrompt(title, blocks))
+    window.open(`/${businessSlug}/coach/programs/generate?${params.toString()}`, '_blank', 'noopener,noreferrer')
+    addActionReceipt('info', 'Programutkast öppnat', 'Jag öppnade programgeneratorn med canvasens sammanhang. Inget program har skapats ännu.')
   }
 
   return (
@@ -1066,6 +1268,10 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
             <Button variant="outline" size="sm" onClick={handleArchiveCurrent} disabled={isSaving || !canvasId} className="gap-2">
               <Archive className="h-4 w-4" />
               Arkivera
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleUndoLastCanvasChange} disabled={history.length === 0} className="gap-2">
+              <Undo2 className="h-4 w-4" />
+              Ångra AI-ändring
             </Button>
             <Button variant="outline" size="sm" onClick={handleCopyMarkdown} className="gap-2">
               <Copy className="h-4 w-4" />
@@ -1133,10 +1339,43 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
                 <ClipboardList className="h-4 w-4" />
                 Spara intern anteckning
               </Button>
+              <Button variant="outline" size="sm" onClick={handleOpenProgramDraft} className="justify-start gap-2">
+                <ListChecks className="h-4 w-4" />
+                Öppna programutkast
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCreateReassessmentReminder}
+                disabled={isCreatingTask}
+                className="justify-start gap-2"
+              >
+                <CalendarPlus className="h-4 w-4" />
+                Påminn om reassessment
+              </Button>
             </div>
             <p className="mt-3 text-xs leading-5 text-slate-500">
-              Åtgärder kräver klick och AI Canvas berättar alltid vad som hände. Meddelanden skickas inte från den här panelen.
+              Åtgärder kräver klick och AI Canvas berättar alltid vad som hände. Meddelanden skickas bara från granskningspanelen.
             </p>
+          </div>
+
+          <div className={cn(
+            'rounded-lg border bg-white p-4 shadow-sm',
+            tierGuardrails.level === 'warning' ? 'border-amber-200' : 'border-slate-200'
+          )}>
+            <div className="mb-2 flex items-center gap-2">
+              <ShieldCheck className={cn(
+                'h-4 w-4',
+                tierGuardrails.level === 'warning' ? 'text-amber-600' : 'text-emerald-600'
+              )} />
+              <h2 className="text-sm font-semibold text-slate-900">AI-kostnad & tier</h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">{tierGuardrails.label}</Badge>
+              <Badge variant="outline">{subscriptionStatus.toLowerCase()}</Badge>
+              <Badge variant="outline">{tierGuardrails.calls}</Badge>
+            </div>
+            <p className="mt-3 text-xs leading-5 text-slate-600">{tierGuardrails.message}</p>
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -1373,11 +1612,11 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
 
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-2 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-sky-600" />
-              <h2 className="text-sm font-semibold text-slate-900">Kommande datakoppling</h2>
+              <CheckCircle2 className="h-4 w-4 text-sky-600" />
+              <h2 className="text-sm font-semibold text-slate-900">Datakoppling</h2>
             </div>
             <p className="text-xs leading-5 text-slate-600">
-              Nästa fas lägger till atlet, team, datumintervall, tester, pass, program och readiness som valbar kontext.
+              Atlet, team, datumintervall, tester, pass, program, readiness och anteckningar kan användas som valbar livekontext.
             </p>
           </div>
         </aside>
@@ -1438,6 +1677,65 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
               <h2 className="text-sm font-semibold text-slate-900">AI svar</h2>
             </div>
             <p className="text-sm leading-6 text-slate-700">{assistantMessage}</p>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <h2 className="text-sm font-semibold text-slate-900">Åtgärdslogg</h2>
+            </div>
+            {actionReceipts.length === 0 ? (
+              <p className="text-xs leading-5 text-slate-500">
+                När något sparas, skickas, öppnas eller misslyckas visas svaret här.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {actionReceipts.map((receipt) => (
+                  <div
+                    key={receipt.id}
+                    className={cn(
+                      'rounded-md border p-3',
+                      receipt.status === 'success' && 'border-emerald-200 bg-emerald-50',
+                      receipt.status === 'warning' && 'border-amber-200 bg-amber-50',
+                      receipt.status === 'error' && 'border-red-200 bg-red-50',
+                      receipt.status === 'info' && 'border-sky-200 bg-sky-50'
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold text-slate-900">{receipt.title}</p>
+                      <span className="text-[11px] text-slate-500">{receipt.createdAt}</span>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-slate-700">{receipt.detail}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Undo2 className="h-4 w-4 text-slate-600" />
+                <h2 className="text-sm font-semibold text-slate-900">Versioner</h2>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleUndoLastCanvasChange} disabled={history.length === 0}>
+                Ångra
+              </Button>
+            </div>
+            {history.length === 0 ? (
+              <p className="text-xs leading-5 text-slate-500">
+                AI-genereringar och blockförbättringar sparar en kort lokal version så coachen kan ångra.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {history.map((snapshot) => (
+                  <div key={snapshot.id} className="rounded-md border border-slate-200 p-3">
+                    <p className="truncate text-xs font-semibold text-slate-900">Före {snapshot.label}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">{snapshot.blocks.length} block · {snapshot.createdAt}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {athleteMessageDraft && (

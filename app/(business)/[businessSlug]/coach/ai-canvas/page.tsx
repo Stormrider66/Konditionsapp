@@ -24,7 +24,7 @@ export default async function BusinessAICanvasPage({ params }: PageProps) {
   const coachIds = await getCoachScopedIds(user.id, membership.businessId, membership.role)
   const teamWhere = await getAccessibleTeamWhere(user.id, businessSlug)
 
-  const [canvases, clients, teams] = await Promise.all([
+  const [canvases, clients, teams, subscription] = await Promise.all([
     prisma.aICanvas.findMany({
       where: {
         businessId: membership.businessId,
@@ -74,6 +74,13 @@ export default async function BusinessAICanvasPage({ params }: PageProps) {
       orderBy: { name: 'asc' },
       take: 100,
     }),
+    prisma.subscription.findUnique({
+      where: { userId: user.id },
+      select: {
+        tier: true,
+        status: true,
+      },
+    }),
   ])
 
   return (
@@ -98,6 +105,8 @@ export default async function BusinessAICanvasPage({ params }: PageProps) {
         sportType: team.sportType ?? null,
         athleteCount: team._count.members,
       }))}
+      coachTier={subscription?.tier ?? 'FREE'}
+      subscriptionStatus={subscription?.status ?? 'TRIAL'}
     />
   )
 }
