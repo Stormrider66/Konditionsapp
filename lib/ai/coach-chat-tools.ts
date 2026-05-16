@@ -19,6 +19,7 @@ import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resolveModel } from '@/types/ai-models'
 import { logger } from '@/lib/logger'
 import { canAccessAthlete } from '@/lib/auth/athlete-access'
+import { getAccessibleTeam, getAccessibleTeamWhere } from '@/lib/coach/team-access'
 import type { StrengthPhase } from '@prisma/client'
 
 type CoachToolClient = {
@@ -42,14 +43,52 @@ type CompletedWorkoutItem = {
   metrics: Record<string, unknown>
 }
 
+type CoachNavigationDestination =
+  | 'dashboard'
+  | 'calendar'
+  | 'athletes'
+  | 'programs'
+  | 'programBuilder'
+  | 'aiStudio'
+  | 'strength'
+  | 'cardio'
+  | 'hybrid'
+  | 'agility'
+  | 'monitoring'
+  | 'liveHr'
+  | 'testOverview'
+  | 'newTest'
+  | 'videoAnalysis'
+  | 'messages'
+  | 'teams'
+  | 'settings'
+  | 'documents'
+  | 'analytics'
+  | 'athleteProfile'
+  | 'athleteLogs'
+  | 'athleteCalendar'
+  | 'athleteFueling'
+  | 'athleteEdit'
+  | 'teamDashboard'
+  | 'teamCalendar'
+  | 'teamTests'
+
+type CoachToolTeam = {
+  id: string
+  name: string
+  sportType: string | null
+}
+
 async function findAccessibleCoachClients(
   coachUserId: string,
   search: string,
+  businessSlug?: string,
   limit = 5
 ): Promise<CoachToolClient[]> {
   const clients = await prisma.client.findMany({
     where: {
       name: { contains: search, mode: 'insensitive' },
+      ...(businessSlug ? { business: { slug: businessSlug } } : {}),
     },
     select: {
       id: true,
@@ -74,13 +113,17 @@ async function findAccessibleCoachClients(
 
 async function getAccessibleCoachClientById(
   coachUserId: string,
-  clientId: string
+  clientId: string,
+  businessSlug?: string
 ): Promise<CoachToolClient | null> {
   const access = await canAccessAthlete(coachUserId, clientId)
   if (!access.allowed) return null
 
-  return prisma.client.findUnique({
-    where: { id: clientId },
+  return prisma.client.findFirst({
+    where: {
+      id: clientId,
+      ...(businessSlug ? { business: { slug: businessSlug } } : {}),
+    },
     select: {
       id: true,
       name: true,
@@ -114,10 +157,72 @@ function parseAdHocWorkoutSummary(parsedStructure: unknown) {
   }
 }
 
+async function findAccessibleCoachTeam(
+  coachUserId: string,
+  params: { teamId?: string; teamName?: string; businessSlug?: string }
+): Promise<{ team: CoachToolTeam | null; candidates: CoachToolTeam[] }> {
+  if (params.teamId) {
+    const team = await getAccessibleTeam(coachUserId, params.teamId, params.businessSlug)
+    return {
+      team: team ? { id: team.id, name: team.name, sportType: team.sportType } : null,
+      candidates: [],
+    }
+  }
+
+  if (!params.teamName) return { team: null, candidates: [] }
+
+  const where = await getAccessibleTeamWhere(coachUserId, params.businessSlug)
+  const candidates = await prisma.team.findMany({
+    where: {
+      AND: [
+        where,
+        { name: { contains: params.teamName, mode: 'insensitive' } },
+      ],
+    },
+    select: { id: true, name: true, sportType: true },
+    orderBy: { name: 'asc' },
+    take: 6,
+  })
+
+  const exactMatches = candidates.filter(
+    (team) => team.name.toLowerCase() === params.teamName?.toLowerCase()
+  )
+  return {
+    team: exactMatches.length === 1 ? exactMatches[0] : candidates.length === 1 ? candidates[0] : null,
+    candidates,
+  }
+}
+
+function getStaticCoachNavigation(destination: CoachNavigationDestination) {
+  const routes: Partial<Record<CoachNavigationDestination, { href: string; label: string; description: string }>> = {
+    dashboard: { href: '/coach/dashboard', label: 'Öppna dashboard', description: 'Coachens huvudöversikt' },
+    calendar: { href: '/coach/calendar', label: 'Öppna kalender', description: 'Planerade pass, tester och händelser' },
+    athletes: { href: '/coach/clients', label: 'Öppna atleter', description: 'Atletlista och snabb statusöversikt' },
+    programs: { href: '/coach/programs', label: 'Öppna program', description: 'Träningsprogram och programöversikt' },
+    programBuilder: { href: '/coach/programs/new', label: 'Skapa program', description: 'Starta nytt träningsprogram' },
+    aiStudio: { href: '/coach/ai-studio', label: 'Öppna AI Studio', description: 'AI-assisterad programgenerering' },
+    strength: { href: '/coach/strength', label: 'Öppna Strength Studio', description: 'Styrkepass och progression' },
+    cardio: { href: '/coach/cardio', label: 'Öppna Cardio Studio', description: 'Konditionspass och intervaller' },
+    hybrid: { href: '/coach/hybrid-studio', label: 'Öppna Hybrid Studio', description: 'HYROX och funktionella pass' },
+    agility: { href: '/coach/agility-studio', label: 'Öppna Agility Studio', description: 'Agilitypass och timing gates' },
+    monitoring: { href: '/coach/monitoring', label: 'Öppna monitorering', description: 'Beredskap, HRV och belastning' },
+    liveHr: { href: '/coach/live-hr', label: 'Öppna Live HR', description: 'Realtidsövervakning av puls' },
+    testOverview: { href: '/coach/test-overview', label: 'Öppna testöversikt', description: 'Senaste tester och teststatus' },
+    newTest: { href: '/coach/test', label: 'Skapa nytt test', description: 'Ny testinmatning' },
+    videoAnalysis: { href: '/coach/video-analysis', label: 'Öppna videoanalys', description: 'Rörelse- och teknikvideo' },
+    messages: { href: '/coach/messages', label: 'Öppna meddelanden', description: 'Coachens konversationer' },
+    teams: { href: '/coach/teams', label: 'Öppna lag', description: 'Lagöversikt' },
+    settings: { href: '/coach/settings', label: 'Öppna inställningar', description: 'Coach- och verksamhetsinställningar' },
+    documents: { href: '/coach/documents', label: 'Öppna dokument', description: 'Kunskapsdokument för AI/RAG' },
+    analytics: { href: '/coach/analytics', label: 'Öppna analys', description: 'Övergripande analysvyer' },
+  }
+  return routes[destination] ?? null
+}
+
 /**
  * Create all chat tools for a coach session.
  */
-export function createCoachChatTools(coachUserId: string) {
+export function createCoachChatTools(coachUserId: string, businessSlug?: string) {
   return {
     generateStrengthSession: tool({
       description: 'Generera ett styrkepass automatiskt baserat på mål, fas, utrustning och atletprofil. Kan skapa enskilt pass eller veckoprogram (2-3 pass A/B/C). Passet sparas i databasen och kan sedan redigeras i Strength Studio.',
@@ -379,7 +484,7 @@ export function createCoachChatTools(coachUserId: string) {
       }),
       execute: async ({ name, limit }) => {
         try {
-          const clients = await findAccessibleCoachClients(coachUserId, name, limit)
+          const clients = await findAccessibleCoachClients(coachUserId, name, businessSlug, limit)
           return {
             success: true,
             matchCount: clients.length,
@@ -416,7 +521,7 @@ export function createCoachChatTools(coachUserId: string) {
           let candidates: CoachToolClient[] = []
 
           if (clientId) {
-            client = await getAccessibleCoachClientById(coachUserId, clientId)
+            client = await getAccessibleCoachClientById(coachUserId, clientId, businessSlug)
             if (!client) {
               return {
                 success: false,
@@ -424,7 +529,7 @@ export function createCoachChatTools(coachUserId: string) {
               }
             }
           } else if (athleteName) {
-            candidates = await findAccessibleCoachClients(coachUserId, athleteName, 6)
+            candidates = await findAccessibleCoachClients(coachUserId, athleteName, businessSlug, 6)
             const exactMatches = candidates.filter(
               (candidate) => candidate.name.toLowerCase() === athleteName.toLowerCase()
             )
@@ -748,6 +853,215 @@ export function createCoachChatTools(coachUserId: string) {
         } catch (error) {
           logger.error('Error in getLatestCompletedWorkout tool', { coachUserId, clientId, athleteName }, error)
           return { success: false, error: 'Kunde inte hämta senaste genomförda pass.' }
+        }
+      },
+    }),
+
+    suggestCoachNavigation: tool({
+      description: 'Skapa en säker navigeringsåtgärd till rätt coach-sida. Använd när coachen ber dig öppna, visa, gå till eller ta dem till en sida, atletvy eller lagvy. Verktyget klickar inte själv, utan returnerar en app-länk som chatten kan visa som knapp.',
+      inputSchema: z.object({
+        destination: z.enum([
+          'dashboard',
+          'calendar',
+          'athletes',
+          'programs',
+          'programBuilder',
+          'aiStudio',
+          'strength',
+          'cardio',
+          'hybrid',
+          'agility',
+          'monitoring',
+          'liveHr',
+          'testOverview',
+          'newTest',
+          'videoAnalysis',
+          'messages',
+          'teams',
+          'settings',
+          'documents',
+          'analytics',
+          'athleteProfile',
+          'athleteLogs',
+          'athleteCalendar',
+          'athleteFueling',
+          'athleteEdit',
+          'teamDashboard',
+          'teamCalendar',
+          'teamTests',
+        ]).describe('Målsidan coachen vill till'),
+        clientId: z.string().optional().describe('Atletens clientId om känd'),
+        athleteName: z.string().optional().describe('Atletens namn om destinationen är atletrelaterad'),
+        teamId: z.string().optional().describe('Lagets id om känd'),
+        teamName: z.string().optional().describe('Lagets namn om destinationen är lagrelaterad'),
+      }),
+      execute: async ({ destination, clientId, athleteName, teamId, teamName }) => {
+        try {
+          const athleteDestinations = new Set<CoachNavigationDestination>([
+            'athleteProfile',
+            'athleteLogs',
+            'athleteCalendar',
+            'athleteFueling',
+            'athleteEdit',
+          ])
+          const teamDestinations = new Set<CoachNavigationDestination>([
+            'teamDashboard',
+            'teamCalendar',
+            'teamTests',
+          ])
+
+          if (athleteDestinations.has(destination)) {
+            let client: CoachToolClient | null = null
+            let candidates: CoachToolClient[] = []
+
+            if (clientId) {
+              client = await getAccessibleCoachClientById(coachUserId, clientId, businessSlug)
+            } else if (athleteName) {
+              candidates = await findAccessibleCoachClients(coachUserId, athleteName, businessSlug, 6)
+              const exactMatches = candidates.filter(
+                (candidate) => candidate.name.toLowerCase() === athleteName.toLowerCase()
+              )
+              client = exactMatches.length === 1 ? exactMatches[0] : candidates.length === 1 ? candidates[0] : null
+            }
+
+            if (!client) {
+              return {
+                success: false,
+                needsClarification: candidates.length > 1,
+                error:
+                  candidates.length > 1
+                    ? `Jag hittade flera möjliga atleter${athleteName ? ` för "${athleteName}"` : ''}.`
+                    : 'Jag behöver en atlet för att skapa den navigeringen.',
+                candidates: candidates.map((candidate) => ({
+                  id: candidate.id,
+                  name: candidate.name,
+                  team: candidate.team?.name ?? null,
+                })),
+              }
+            }
+
+            const athleteRoutes: Record<string, { href: string; label: string; description: string }> = {
+              athleteProfile: {
+                href: `/coach/clients/${client.id}`,
+                label: `Öppna ${client.name}`,
+                description: 'Atletens coachprofil',
+              },
+              athleteLogs: {
+                href: `/coach/athletes/${client.id}/logs`,
+                label: `Öppna ${client.name}s träningslogg`,
+                description: 'Genomförda och ej genomförda pass',
+              },
+              athleteCalendar: {
+                href: `/coach/athletes/${client.id}/calendar`,
+                label: `Öppna ${client.name}s kalender`,
+                description: 'Atletens planerade kalender',
+              },
+              athleteFueling: {
+                href: `/coach/clients/${client.id}/fueling`,
+                label: `Öppna ${client.name}s fueling`,
+                description: 'Energi- och vätskeplanering',
+              },
+              athleteEdit: {
+                href: `/coach/clients/${client.id}/edit`,
+                label: `Redigera ${client.name}`,
+                description: 'Atletens profilinställningar',
+              },
+            }
+            const navigation = athleteRoutes[destination]
+            return {
+              success: true,
+              navigation: {
+                ...navigation,
+                destination,
+                entityType: 'athlete',
+                entityId: client.id,
+                entityName: client.name,
+              },
+              message: `Jag har förberett en genväg till ${navigation.description.toLowerCase()} för ${client.name}.`,
+            }
+          }
+
+          if (teamDestinations.has(destination)) {
+            const { team, candidates } = await findAccessibleCoachTeam(coachUserId, {
+              teamId,
+              teamName,
+              businessSlug,
+            })
+
+            if (!team) {
+              return {
+                success: false,
+                needsClarification: candidates.length > 1,
+                error:
+                  candidates.length > 1
+                    ? `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
+                    : 'Jag behöver ett lag för att skapa den navigeringen.',
+                candidates: candidates.map((candidate) => ({
+                  id: candidate.id,
+                  name: candidate.name,
+                  sportType: candidate.sportType,
+                })),
+              }
+            }
+
+            const teamRoutes: Record<string, { href: string; label: string; description: string }> = {
+              teamDashboard: {
+                href: `/coach/teams/${team.id}`,
+                label: `Öppna ${team.name}`,
+                description: 'Lagdashboard',
+              },
+              teamCalendar: {
+                href: `/coach/teams/${team.id}/calendar`,
+                label: `Öppna ${team.name}s kalender`,
+                description: 'Lagets kalender',
+              },
+              teamTests: {
+                href: `/coach/teams/${team.id}/tests`,
+                label: `Öppna ${team.name}s tester`,
+                description: 'Lagets testvy',
+              },
+            }
+            const navigation = teamRoutes[destination]
+            return {
+              success: true,
+              navigation: {
+                ...navigation,
+                destination,
+                entityType: 'team',
+                entityId: team.id,
+                entityName: team.name,
+              },
+              message: `Jag har förberett en genväg till ${navigation.description.toLowerCase()} för ${team.name}.`,
+            }
+          }
+
+          const navigation = getStaticCoachNavigation(destination)
+          if (!navigation) {
+            return { success: false, error: 'Den destinationen stöds inte ännu.' }
+          }
+
+          return {
+            success: true,
+            navigation: {
+              ...navigation,
+              destination,
+              entityType: 'page',
+              entityId: null,
+              entityName: null,
+            },
+            message: `Jag har förberett en genväg: ${navigation.label}.`,
+          }
+        } catch (error) {
+          logger.error('Error in suggestCoachNavigation tool', {
+            coachUserId,
+            businessSlug,
+            destination,
+            clientId,
+            athleteName,
+            teamId,
+            teamName,
+          }, error)
+          return { success: false, error: 'Kunde inte skapa navigeringen.' }
         }
       },
     }),

@@ -26,6 +26,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { ChatMessage } from './ChatMessage'
+import { ChatNavigationCard, type ChatNavigationResult } from './ChatNavigationCard'
 import { cn } from '@/lib/utils'
 import { parseAIProgram, type ParseResult } from '@/lib/ai/program-parser'
 import { getInfoEntriesByKeys } from '@/lib/info-content'
@@ -71,6 +72,12 @@ interface ModelConfig {
 interface QuickPrompt {
   label: string
   prompt: string
+}
+
+interface ToolOutputPart {
+  type: string
+  state?: string
+  output?: unknown
 }
 
 export function FloatingAIChat({
@@ -555,6 +562,7 @@ export function FloatingAIChat({
         documentIds: [],
         webSearchEnabled: false,
         pageContext: contextStringRef.current,
+        businessSlug: pathBusinessSlug,
       },
     })
   }
@@ -946,19 +954,29 @@ export function FloatingAIChat({
                 ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
                 .map((part) => part.text)
                 .join('') || ''
+              const navigationToolPart = (message.parts as ToolOutputPart[] | undefined)?.find(
+                part => part.type === 'tool-suggestCoachNavigation' && part.state === 'output-available'
+              )
+              const navigationResult = navigationToolPart?.output as ChatNavigationResult | undefined
               return (
-                <ChatMessage
-                  key={message.id}
-                  message={{
-                    id: message.id,
-                    role: message.role as 'user' | 'assistant' | 'system',
-                    content: textContent,
-                    createdAt: new Date(),
-                  }}
-                  athleteId={athleteId}
-                  athleteName={athleteName}
-                  conversationId={conversationId}
-                />
+                <div key={message.id}>
+                  {textContent && (
+                    <ChatMessage
+                      message={{
+                        id: message.id,
+                        role: message.role as 'user' | 'assistant' | 'system',
+                        content: textContent,
+                        createdAt: new Date(),
+                      }}
+                      athleteId={athleteId}
+                      athleteName={athleteName}
+                      conversationId={conversationId}
+                    />
+                  )}
+                  {navigationResult?.success && (
+                    <ChatNavigationCard result={navigationResult} basePath={basePath} />
+                  )}
+                </div>
               )
             })}
             {isLoading && (

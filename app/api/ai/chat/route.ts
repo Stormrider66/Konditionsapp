@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
       webSearchEnabled = false,
       deepThinkEnabled = false,
       pageContext = '',
+      businessSlug,
       isAthleteChat = false,
       memoryContext,
     } = body
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
     let calendarProgramEndDate: Date | undefined
 
     let effectiveBusinessId: string | null = request.headers.get('x-business-id')
-    const explicitBusinessSlug = request.headers.get('x-business-slug')
+    const explicitBusinessSlug = businessSlug || request.headers.get('x-business-slug')
     if (!effectiveBusinessId && explicitBusinessSlug) {
       const scopedBusiness = await prisma.business.findUnique({
         where: { slug: explicitBusinessSlug },
@@ -296,7 +297,7 @@ export async function POST(request: NextRequest) {
         maxSteps: 4,
       }),
       ...(!isAthleteChat && {
-        tools: createCoachChatTools(userId),
+        tools: createCoachChatTools(userId, explicitBusinessSlug || undefined),
         maxSteps: 4,
       }),
       ...(provider === 'GOOGLE' && deepThinkEnabled && {

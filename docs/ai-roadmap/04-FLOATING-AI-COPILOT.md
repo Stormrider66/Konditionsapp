@@ -54,6 +54,8 @@ Success examples:
 
 ## Level 3: Navigation Assistant
 
+Status: first navigation-intent slice shipped on 2026-05-16
+
 The assistant can move the coach around the application through first-class navigation intents.
 
 Scope:

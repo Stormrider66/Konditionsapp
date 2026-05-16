@@ -27,6 +27,8 @@ export interface ChatRequest {
   deepThinkEnabled?: boolean
   /** Page-scoped context (video analysis, test results, …). */
   pageContext?: string
+  /** Current business scope from the route, used for safe coach tools/navigation. */
+  businessSlug?: string
   /** Athlete-mode chat: uses athlete's own context + coach's API keys. */
   isAthleteChat?: boolean
   /** Athlete client id (athlete-mode chat only). */

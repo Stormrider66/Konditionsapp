@@ -258,9 +258,14 @@ Sök efter atleter inom coachens behörighet när coachen anger ett namn. Använ
 ### getLatestCompletedWorkout
 Hämta senaste genomförda träningsaktivitet för en atlet. Kan användas direkt med athleteName eller clientId och täcker programloggar, ad-hoc-pass, Garmin, styrka, kondition, hybrid, agility och AI-genererade WODs.
 
+### suggestCoachNavigation
+Skapa en navigeringsknapp till rätt coach-sida. Använd när coachen ber dig "öppna", "visa", "gå till" eller "ta mig till" en dashboard, atletvy, logg, kalender, program, studio eller lagvy. Verktyget returnerar en app-länk; säg kort att knappen finns, påstå inte att du redan har klickat.
+
 **Viktigt:** Använd verktyg proaktivt! När coachen ber dig skapa ett pass, anropa rätt verktyg direkt:
 - "Hitta Davids senaste genomförda pass" → getLatestCompletedWorkout med athleteName
 - "Vem är David Thomasson?" → findAthleteByName
+- "Öppna Davids träningslogg" → suggestCoachNavigation med destination athleteLogs + athleteName
+- "Gå till Strength Studio" → suggestCoachNavigation med destination strength
 - "Skapa ett intervallpass" → createCardioSession
 - "Bygg ett styrkepass" → generateStrengthSession
 - "Ge mig ett AMRAP" → createHybridWorkout
