@@ -7,6 +7,7 @@ import {
   parseDayPrintSelection,
 } from '@/lib/workout-print/day-pack'
 import { PrintableWorkoutPackClient } from '@/components/workouts/print/PrintableWorkoutPackClient'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -18,12 +19,12 @@ interface PageProps {
   }>
 }
 
-function EmptyPrintState({ message }: { message: string }) {
+function EmptyPrintState({ title, message }: { title: string; message: string }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
       <div className="max-w-md rounded-lg border bg-white p-6 text-center shadow-sm">
         <AlertCircle className="mx-auto h-8 w-8 text-amber-500" />
-        <h1 className="mt-3 text-lg font-semibold">Ingen utskrift att visa</h1>
+        <h1 className="mt-3 text-lg font-semibold">{title}</h1>
         <p className="mt-2 text-sm text-slate-600">{message}</p>
       </div>
     </div>
@@ -35,18 +36,19 @@ export default async function OrganizationDayPrintPage({ params, searchParams }:
   const query = await searchParams
   const user = await requireCoach()
   const membership = await validateBusinessMembership(user.id, businessSlug)
+  const t = await getTranslations('coach.pages.organizationDayPrint')
 
   if (!membership) {
     notFound()
   }
 
   if (!query.date) {
-    return <EmptyPrintState message="Välj ett datum från organisationssidan först." />
+    return <EmptyPrintState title={t('emptyTitle')} message={t('missingDate')} />
   }
 
   const selection = parseDayPrintSelection(query.items)
   if (selection.size === 0) {
-    return <EmptyPrintState message="Välj minst ett lagpass och antal kopior innan du öppnar utskriften." />
+    return <EmptyPrintState title={t('emptyTitle')} message={t('missingSelection')} />
   }
 
   const dayItems = await getOrganizationDayPrintItems({
@@ -67,7 +69,7 @@ export default async function OrganizationDayPrintPage({ params, searchParams }:
   })
 
   if (entries.length === 0) {
-    return <EmptyPrintState message="Passet hittades inte längre, eller så saknar du åtkomst till laget." />
+    return <EmptyPrintState title={t('emptyTitle')} message={t('notFound')} />
   }
 
   return <PrintableWorkoutPackClient entries={entries} dateLabel={dayItems[0]?.dateLabel || query.date} />

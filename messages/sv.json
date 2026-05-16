@@ -681,6 +681,12 @@
         "backToTeam": "Tillbaka till lag",
         "title": "Lagets analys",
         "description": "Vem behöver uppmärksamhet idag? Belastning, aktivitet och PRs per atlet."
+      },
+      "organizationDayPrint": {
+        "emptyTitle": "Ingen utskrift att visa",
+        "missingDate": "Välj ett datum från organisationssidan först.",
+        "missingSelection": "Välj minst ett lagpass och antal kopior innan du öppnar utskriften.",
+        "notFound": "Passet hittades inte längre, eller så saknar du åtkomst till laget."
       }
     },
     "dashboard": "Coach Dashboard",

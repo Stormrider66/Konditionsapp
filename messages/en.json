@@ -681,6 +681,12 @@
         "backToTeam": "Back to team",
         "title": "Team analysis",
         "description": "Who needs attention today? Load, activity, and PRs per athlete."
+      },
+      "organizationDayPrint": {
+        "emptyTitle": "No print view to show",
+        "missingDate": "Choose a date from the organization page first.",
+        "missingSelection": "Choose at least one team workout and number of copies before opening the print view.",
+        "notFound": "The workout was no longer found, or you do not have access to the team."
       }
     },
     "dashboard": "Coach Dashboard",
