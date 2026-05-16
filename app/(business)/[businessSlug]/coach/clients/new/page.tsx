@@ -1,7 +1,7 @@
 // app/(business)/[businessSlug]/coach/clients/new/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -21,6 +21,12 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2 } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
+
+interface TeamOption {
+  id: string
+  name: string
+}
 
 export default function BusinessNewClientPage() {
   const router = useRouter()
@@ -32,15 +38,12 @@ export default function BusinessNewClientPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [teams, setTeams] = useState<any[]>([])
+  const [teams, setTeams] = useState<TeamOption[]>([])
   const [teamsLoading, setTeamsLoading] = useState(true)
   const { toast } = useToast()
+  const t = useTranslations('coach.pages.clientNew')
 
-  useEffect(() => {
-    fetchTeams()
-  }, [businessSlug])
-
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     try {
       const response = await fetch('/api/teams', {
         headers: { 'x-business-slug': businessSlug },
@@ -54,7 +57,11 @@ export default function BusinessNewClientPage() {
     } finally {
       setTeamsLoading(false)
     }
-  }
+  }, [businessSlug])
+
+  useEffect(() => {
+    void fetchTeams()
+  }, [fetchTeams])
 
   const {
     register,
@@ -95,27 +102,27 @@ export default function BusinessNewClientPage() {
         // Credentials are emailed directly — API returns a boolean only.
         toast({
           title: result.athleteAccountCreated
-            ? 'Klient och atlet-konto skapat!'
-            : 'Klient skapad!',
+            ? t('toasts.clientAndAccountCreated')
+            : t('toasts.clientCreated'),
           description: result.athleteAccountCreated
-            ? `${data.name} har lagts till. Inloggningsuppgifter har skickats till ${data.email}.`
-            : `${data.name} har lagts till i klientregistret.`,
+            ? t('toasts.accountCreatedDescription', { name: data.name, email: data.email ?? '' })
+            : t('toasts.clientCreatedDescription', { name: data.name }),
         })
         router.push(`${basePath}/${result.data.id}`)
       } else {
-        setError(result.error || 'Failed to create client')
+        setError(result.error || t('errors.createFailed'))
         toast({
-          title: 'Fel',
-          description: result.error || 'Kunde inte skapa klienten.',
+          title: t('toasts.errorTitle'),
+          description: result.error || t('errors.createFailed'),
           variant: 'destructive',
         })
       }
     } catch (err) {
       console.error(err)
-      setError('Network error')
+      setError(t('errors.network'))
       toast({
-        title: 'Nätverksfel',
-        description: 'Något gick fel. Försök igen.',
+        title: t('toasts.networkErrorTitle'),
+        description: t('errors.retry'),
         variant: 'destructive',
       })
     } finally {
@@ -127,7 +134,7 @@ export default function BusinessNewClientPage() {
     <div className="max-w-3xl mx-auto px-4 py-6 lg:py-12">
       <Card className="dark:bg-slate-900/50 dark:border-white/10">
         <CardHeader>
-          <CardTitle className="dark:text-white">Ny Klient</CardTitle>
+          <CardTitle className="dark:text-white">{t('title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -140,12 +147,12 @@ export default function BusinessNewClientPage() {
             {/* Namn */}
             <div className="space-y-2">
               <Label htmlFor="name" className="dark:text-slate-200">
-                Namn <span className="text-red-500">*</span>
+                {t('fields.name')} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="name"
                 {...register('name')}
-                placeholder="Förnamn Efternamn"
+                placeholder={t('placeholders.name')}
                 className="dark:bg-slate-800 dark:border-white/10"
               />
               {errors.name && (
@@ -155,7 +162,7 @@ export default function BusinessNewClientPage() {
 
             {/* E-post */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="dark:text-slate-200">E-post</Label>
+              <Label htmlFor="email" className="dark:text-slate-200">{t('fields.email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -170,7 +177,7 @@ export default function BusinessNewClientPage() {
 
             {/* Telefon */}
             <div className="space-y-2">
-              <Label htmlFor="phone" className="dark:text-slate-200">Telefon</Label>
+              <Label htmlFor="phone" className="dark:text-slate-200">{t('fields.phone')}</Label>
               <Input
                 id="phone"
                 type="tel"
@@ -184,18 +191,18 @@ export default function BusinessNewClientPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="gender" className="dark:text-slate-200">
-                  Kön <span className="text-red-500">*</span>
+                  {t('fields.gender')} <span className="text-red-500">*</span>
                 </Label>
                 <Select
                   value={gender}
                   onValueChange={(value) => setValue('gender', value as 'MALE' | 'FEMALE')}
                 >
                   <SelectTrigger id="gender" className="dark:bg-slate-800 dark:border-white/10">
-                    <SelectValue placeholder="Välj kön" />
+                    <SelectValue placeholder={t('placeholders.gender')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="MALE">Man</SelectItem>
-                    <SelectItem value="FEMALE">Kvinna</SelectItem>
+                    <SelectItem value="MALE">{t('gender.male')}</SelectItem>
+                    <SelectItem value="FEMALE">{t('gender.female')}</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.gender && (
@@ -205,7 +212,7 @@ export default function BusinessNewClientPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="birthDate" className="dark:text-slate-200">
-                  Födelsedatum <span className="text-red-500">*</span>
+                  {t('fields.birthDate')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="birthDate"
@@ -223,7 +230,7 @@ export default function BusinessNewClientPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="height" className="dark:text-slate-200">
-                  Längd (cm) <span className="text-red-500">*</span>
+                  {t('fields.height')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="height"
@@ -240,7 +247,7 @@ export default function BusinessNewClientPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="weight" className="dark:text-slate-200">
-                  Vikt (kg) <span className="text-red-500">*</span>
+                  {t('fields.weight')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="weight"
@@ -258,16 +265,16 @@ export default function BusinessNewClientPage() {
 
             {/* Lag/Klubb */}
             <div className="space-y-2">
-              <Label htmlFor="teamId" className="dark:text-slate-200">Lag/Klubb</Label>
+              <Label htmlFor="teamId" className="dark:text-slate-200">{t('fields.team')}</Label>
               <Select
                 value={selectedTeamId ?? 'none'}
                 onValueChange={(value) => setValue('teamId', value === 'none' ? undefined : value)}
               >
                 <SelectTrigger id="teamId" disabled={teamsLoading} className="dark:bg-slate-800 dark:border-white/10">
-                  <SelectValue placeholder={teamsLoading ? 'Laddar lag...' : 'Välj lag (valfritt)'} />
+                  <SelectValue placeholder={teamsLoading ? t('placeholders.loadingTeams') : t('placeholders.team')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Inget lag</SelectItem>
+                  <SelectItem value="none">{t('team.none')}</SelectItem>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
@@ -280,14 +287,14 @@ export default function BusinessNewClientPage() {
             {/* Tröjnummer & Position */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="jerseyNumber" className="dark:text-slate-200">Tröjnummer</Label>
+                <Label htmlFor="jerseyNumber" className="dark:text-slate-200">{t('fields.jerseyNumber')}</Label>
                 <Input
                   id="jerseyNumber"
                   type="number"
                   min={0}
                   max={999}
                   {...register('jerseyNumber', { valueAsNumber: true })}
-                  placeholder="t.ex. 17"
+                  placeholder={t('placeholders.jerseyNumber')}
                   className="dark:bg-slate-800 dark:border-white/10"
                 />
                 {errors.jerseyNumber && (
@@ -296,12 +303,12 @@ export default function BusinessNewClientPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="position" className="dark:text-slate-200">Position</Label>
+                <Label htmlFor="position" className="dark:text-slate-200">{t('fields.position')}</Label>
                 <Input
                   id="position"
                   type="text"
                   {...register('position')}
-                  placeholder="t.ex. Center, Back, Målvakt"
+                  placeholder={t('placeholders.position')}
                   className="dark:bg-slate-800 dark:border-white/10"
                 />
                 {errors.position && (
@@ -313,7 +320,7 @@ export default function BusinessNewClientPage() {
             {/* Prenumerationsnivå (only relevant when an email is provided — drives auto-created athlete account) */}
             <div className="space-y-2">
               <Label htmlFor="athleteTier" className="dark:text-slate-200">
-                Prenumerationsnivå för atlet
+                {t('fields.athleteTier')}
               </Label>
               <Select
                 value={athleteTier}
@@ -322,29 +329,29 @@ export default function BusinessNewClientPage() {
                 }
               >
                 <SelectTrigger id="athleteTier" className="dark:bg-slate-800 dark:border-white/10">
-                  <SelectValue placeholder="Välj nivå" />
+                  <SelectValue placeholder={t('placeholders.athleteTier')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="FREE">Free — endast rapportvy, ingen AI</SelectItem>
-                  <SelectItem value="STANDARD">Standard — AI-chat (50/mån), Strava/Garmin (14 dgr trial)</SelectItem>
-                  <SelectItem value="PRO">Pro — full AI, videoanalys, allt</SelectItem>
-                  <SelectItem value="ELITE">Elite — Pro + tilldelad coach</SelectItem>
+                  <SelectItem value="FREE">{t('tiers.free')}</SelectItem>
+                  <SelectItem value="STANDARD">{t('tiers.standard')}</SelectItem>
+                  <SelectItem value="PRO">{t('tiers.pro')}</SelectItem>
+                  <SelectItem value="ELITE">{t('tiers.elite')}</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Sätts på det automatiskt skapade atletkontot. Endast aktivt om e-post anges.
+                {t('athleteTierHelper')}
               </p>
             </div>
 
             {/* Anteckningar */}
             <div className="space-y-2">
-              <Label htmlFor="notes" className="dark:text-slate-200">Anteckningar</Label>
+              <Label htmlFor="notes" className="dark:text-slate-200">{t('fields.notes')}</Label>
               <textarea
                 id="notes"
                 {...register('notes')}
                 rows={4}
                 className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-800 dark:border-white/10"
-                placeholder="Valfria anteckningar om klienten..."
+                placeholder={t('placeholders.notes')}
               />
             </div>
 
@@ -352,12 +359,12 @@ export default function BusinessNewClientPage() {
             <div className="flex justify-end gap-4 pt-4">
               <Link href={basePath}>
                 <Button type="button" variant="outline">
-                  Avbryt
+                  {t('actions.cancel')}
                 </Button>
               </Link>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSubmitting ? 'Sparar...' : 'Skapa Klient'}
+                {isSubmitting ? t('actions.saving') : t('actions.createClient')}
               </Button>
             </div>
           </form>
@@ -367,10 +374,10 @@ export default function BusinessNewClientPage() {
       <Card className="mt-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
         <CardContent className="p-4 space-y-2">
           <p className="text-sm text-blue-800 dark:text-blue-300">
-            <strong>Info:</strong> Alla fält markerade med <span className="text-red-500">*</span> är obligatoriska.
+            <strong>{t('info.requiredPrefix')}</strong> {t('info.requiredText')} <span className="text-red-500">*</span> {t('info.requiredSuffix')}
           </p>
           <p className="text-sm text-blue-800 dark:text-blue-300">
-            <strong>Automatiskt atlet-konto:</strong> Om du anger en e-postadress skapas ett atlet-konto automatiskt och inloggningsuppgifter mejlas direkt till atleten.
+            <strong>{t('info.autoAccountPrefix')}</strong> {t('info.autoAccountText')}
           </p>
         </CardContent>
       </Card>

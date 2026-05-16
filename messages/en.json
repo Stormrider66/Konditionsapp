@@ -730,6 +730,72 @@
           "deleting": "Deleting...",
           "delete": "Delete"
         }
+      },
+      "clientNew": {
+        "title": "New client",
+        "fields": {
+          "name": "Name",
+          "email": "Email",
+          "phone": "Phone",
+          "gender": "Gender",
+          "birthDate": "Birth date",
+          "height": "Height (cm)",
+          "weight": "Weight (kg)",
+          "team": "Team/Club",
+          "jerseyNumber": "Jersey number",
+          "position": "Position",
+          "athleteTier": "Athlete subscription tier",
+          "notes": "Notes"
+        },
+        "placeholders": {
+          "name": "First name Last name",
+          "gender": "Select gender",
+          "loadingTeams": "Loading teams...",
+          "team": "Select team (optional)",
+          "jerseyNumber": "e.g. 17",
+          "position": "e.g. Center, Defense, Goalie",
+          "athleteTier": "Select tier",
+          "notes": "Optional notes about the client..."
+        },
+        "gender": {
+          "male": "Male",
+          "female": "Female"
+        },
+        "team": {
+          "none": "No team"
+        },
+        "tiers": {
+          "free": "Free — report view only, no AI",
+          "standard": "Standard — AI chat (50/month), Strava/Garmin (14-day trial)",
+          "pro": "Pro — full AI, video analysis, everything",
+          "elite": "Elite — Pro + assigned coach"
+        },
+        "athleteTierHelper": "Applied to the automatically created athlete account. Only active when an email address is provided.",
+        "actions": {
+          "cancel": "Cancel",
+          "saving": "Saving...",
+          "createClient": "Create client"
+        },
+        "info": {
+          "requiredPrefix": "Info:",
+          "requiredText": "All fields marked with",
+          "requiredSuffix": "are required.",
+          "autoAccountPrefix": "Automatic athlete account:",
+          "autoAccountText": "If you enter an email address, an athlete account is created automatically and login details are emailed directly to the athlete."
+        },
+        "toasts": {
+          "clientAndAccountCreated": "Client and athlete account created!",
+          "clientCreated": "Client created!",
+          "accountCreatedDescription": "{name} has been added. Login details have been sent to {email}.",
+          "clientCreatedDescription": "{name} has been added to the client registry.",
+          "errorTitle": "Error",
+          "networkErrorTitle": "Network error"
+        },
+        "errors": {
+          "createFailed": "Could not create the client.",
+          "network": "Network error",
+          "retry": "Something went wrong. Try again."
+        }
       }
     },
     "dashboard": "Coach Dashboard",

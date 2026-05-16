@@ -730,6 +730,72 @@
           "deleting": "Tar bort...",
           "delete": "Ta bort"
         }
+      },
+      "clientNew": {
+        "title": "Ny Klient",
+        "fields": {
+          "name": "Namn",
+          "email": "E-post",
+          "phone": "Telefon",
+          "gender": "Kön",
+          "birthDate": "Födelsedatum",
+          "height": "Längd (cm)",
+          "weight": "Vikt (kg)",
+          "team": "Lag/Klubb",
+          "jerseyNumber": "Tröjnummer",
+          "position": "Position",
+          "athleteTier": "Prenumerationsnivå för atlet",
+          "notes": "Anteckningar"
+        },
+        "placeholders": {
+          "name": "Förnamn Efternamn",
+          "gender": "Välj kön",
+          "loadingTeams": "Laddar lag...",
+          "team": "Välj lag (valfritt)",
+          "jerseyNumber": "t.ex. 17",
+          "position": "t.ex. Center, Back, Målvakt",
+          "athleteTier": "Välj nivå",
+          "notes": "Valfria anteckningar om klienten..."
+        },
+        "gender": {
+          "male": "Man",
+          "female": "Kvinna"
+        },
+        "team": {
+          "none": "Inget lag"
+        },
+        "tiers": {
+          "free": "Free — endast rapportvy, ingen AI",
+          "standard": "Standard — AI-chat (50/mån), Strava/Garmin (14 dgr trial)",
+          "pro": "Pro — full AI, videoanalys, allt",
+          "elite": "Elite — Pro + tilldelad coach"
+        },
+        "athleteTierHelper": "Sätts på det automatiskt skapade atletkontot. Endast aktivt om e-post anges.",
+        "actions": {
+          "cancel": "Avbryt",
+          "saving": "Sparar...",
+          "createClient": "Skapa Klient"
+        },
+        "info": {
+          "requiredPrefix": "Info:",
+          "requiredText": "Alla fält markerade med",
+          "requiredSuffix": "är obligatoriska.",
+          "autoAccountPrefix": "Automatiskt atlet-konto:",
+          "autoAccountText": "Om du anger en e-postadress skapas ett atlet-konto automatiskt och inloggningsuppgifter mejlas direkt till atleten."
+        },
+        "toasts": {
+          "clientAndAccountCreated": "Klient och atlet-konto skapat!",
+          "clientCreated": "Klient skapad!",
+          "accountCreatedDescription": "{name} har lagts till. Inloggningsuppgifter har skickats till {email}.",
+          "clientCreatedDescription": "{name} har lagts till i klientregistret.",
+          "errorTitle": "Fel",
+          "networkErrorTitle": "Nätverksfel"
+        },
+        "errors": {
+          "createFailed": "Kunde inte skapa klienten.",
+          "network": "Nätverksfel",
+          "retry": "Något gick fel. Försök igen."
+        }
       }
     },
     "dashboard": "Coach Dashboard",
