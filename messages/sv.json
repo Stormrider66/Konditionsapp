@@ -525,6 +525,12 @@
     "viewMore": "Visa mer"
   },
   "coach": {
+    "error": {
+      "title": "Något gick fel",
+      "description": "Ett oväntat fel uppstod. Försök igen eller gå tillbaka till dashboarden.",
+      "errorId": "Fel-ID: {digest}",
+      "tryAgain": "Försök igen"
+    },
     "dashboard": "Coach Dashboard",
     "myAthletes": "Mina atleter",
     "addAthlete": "Lägg till atlet",

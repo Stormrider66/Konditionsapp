@@ -525,6 +525,12 @@
     "viewMore": "View more"
   },
   "coach": {
+    "error": {
+      "title": "Something went wrong",
+      "description": "An unexpected error occurred. Try again or go back to the dashboard.",
+      "errorId": "Error ID: {digest}",
+      "tryAgain": "Try again"
+    },
     "dashboard": "Coach Dashboard",
     "myAthletes": "My athletes",
     "addAthlete": "Add athlete",
