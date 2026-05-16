@@ -22,6 +22,7 @@ const requestSchema = z.object({
   businessSlug: z.string().min(1).max(80),
   prompt: z.string().trim().min(4).max(3000),
   templateId: templateSchema.default('blank'),
+  contextSummary: z.string().trim().max(1200).optional(),
 })
 
 const canvasBlockSchema = z.object({
@@ -54,6 +55,7 @@ Return structured Swedish coach-facing canvas blocks only. The blocks must help 
 
 Rules:
 - Do not claim you used live athlete, team, test, readiness, or program data unless it is included in the prompt.
+- If the request includes "Selected canvas context", treat it as user-selected context preferences, not as live metrics.
 - If data is missing, make that explicit in the content.
 - Keep recommendations coach-assistive, practical, and non-medical.
 - Do not say that you changed, saved, messaged, scheduled, or updated anything.
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { businessSlug, prompt, templateId } = parsed.data
+    const { businessSlug, prompt, templateId, contextSummary } = parsed.data
     const membership = await validateBusinessMembership(user.id, businessSlug)
     if (!membership) {
       return NextResponse.json({ error: 'Business not found or access denied' }, { status: 404 })
@@ -115,6 +117,11 @@ export async function POST(request: NextRequest) {
         prompt: [
           `Template: ${templateId}`,
           `Template guidance: ${TEMPLATE_GUIDANCE[templateId]}`,
+          '',
+          contextSummary ? `Selected canvas context:\n${contextSummary}\n` : '',
+          contextSummary
+            ? 'Important: this context identifies what the coach selected. It does not include live metrics yet.'
+            : '',
           '',
           'Coach request:',
           prompt,

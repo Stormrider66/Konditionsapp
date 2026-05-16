@@ -22,6 +22,14 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 
@@ -81,6 +89,30 @@ interface CanvasSaveResponse {
   success?: boolean
   canvas?: SavedCanvasPayload
   error?: string
+}
+
+interface CanvasAthleteOption {
+  id: string
+  name: string
+  teamId: string | null
+  primarySport: string | null
+}
+
+interface CanvasTeamOption {
+  id: string
+  name: string
+  sportType: string | null
+  athleteCount: number
+}
+
+type CanvasContextDataKey = 'tests' | 'sessions' | 'programs' | 'readiness' | 'notes'
+
+interface CanvasContextSelection {
+  scope: 'none' | 'athlete' | 'team'
+  athleteId: string
+  teamId: string
+  dateRange: 'last7' | 'last30' | 'last90' | 'next30'
+  dataKeys: CanvasContextDataKey[]
 }
 
 interface CanvasTemplate {
@@ -174,9 +206,54 @@ function getAssistantMessage(prompt: string, blockCount: number): string {
 interface AICanvasClientProps {
   businessSlug: string
   initialCanvases: SavedCanvasSummary[]
+  athletes: CanvasAthleteOption[]
+  teams: CanvasTeamOption[]
 }
 
-export function AICanvasClient({ businessSlug, initialCanvases }: AICanvasClientProps) {
+const contextDataOptions: Array<{ key: CanvasContextDataKey; label: string }> = [
+  { key: 'tests', label: 'Tester' },
+  { key: 'sessions', label: 'Träningspass' },
+  { key: 'programs', label: 'Program' },
+  { key: 'readiness', label: 'Readiness' },
+  { key: 'notes', label: 'Anteckningar' },
+]
+
+const dateRangeLabels: Record<CanvasContextSelection['dateRange'], string> = {
+  last7: 'Senaste 7 dagarna',
+  last30: 'Senaste 30 dagarna',
+  last90: 'Senaste 90 dagarna',
+  next30: 'Kommande 30 dagarna',
+}
+
+function buildContextSummary(
+  selection: CanvasContextSelection,
+  athlete?: CanvasAthleteOption,
+  team?: CanvasTeamOption
+): string {
+  if (selection.scope === 'none') return ''
+
+  const subject =
+    selection.scope === 'athlete'
+      ? athlete
+        ? `Atlet: ${athlete.name}${athlete.primarySport ? ` (${athlete.primarySport})` : ''}`
+        : 'Atlet: ingen atlet vald'
+      : team
+        ? `Lag: ${team.name}${team.sportType ? ` (${team.sportType})` : ''}, ${team.athleteCount} atleter`
+        : 'Lag: inget lag valt'
+
+  const dataLabels = contextDataOptions
+    .filter((option) => selection.dataKeys.includes(option.key))
+    .map((option) => option.label)
+
+  return [
+    subject,
+    `Period: ${dateRangeLabels[selection.dateRange]}`,
+    `Valda dataområden: ${dataLabels.length > 0 ? dataLabels.join(', ') : 'inga'}`,
+    'Live-data kopplas in i nästa fas; använd detta som urval och rapportstruktur.',
+  ].join('\n')
+}
+
+export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams }: AICanvasClientProps) {
   const [canvasId, setCanvasId] = useState<string | null>(null)
   const [savedCanvases, setSavedCanvases] = useState<SavedCanvasSummary[]>(initialCanvases)
   const [title, setTitle] = useState('Untitled coach canvas')
@@ -191,11 +268,22 @@ export function AICanvasClient({ businessSlug, initialCanvases }: AICanvasClient
   const [isSaving, setIsSaving] = useState(false)
   const [loadingCanvasId, setLoadingCanvasId] = useState<string | null>(null)
   const [modelLabel, setModelLabel] = useState<string | null>(null)
+  const [contextSelection, setContextSelection] = useState<CanvasContextSelection>({
+    scope: 'none',
+    athleteId: '',
+    teamId: '',
+    dateRange: 'last30',
+    dataKeys: ['tests', 'sessions', 'programs'],
+  })
 
   const selectedTemplate = useMemo(
     () => starterTemplates.find((template) => template.id === selectedTemplateId) ?? starterTemplates[0],
     [selectedTemplateId]
   )
+
+  const selectedAthlete = athletes.find((athlete) => athlete.id === contextSelection.athleteId)
+  const selectedTeam = teams.find((team) => team.id === contextSelection.teamId)
+  const contextSummary = buildContextSummary(contextSelection, selectedAthlete, selectedTeam)
 
   const handleSelectTemplate = (template: CanvasTemplate) => {
     setSelectedTemplateId(template.id)
@@ -225,6 +313,7 @@ export function AICanvasClient({ businessSlug, initialCanvases }: AICanvasClient
           businessSlug,
           prompt: requestPrompt,
           templateId: selectedTemplate.id,
+          contextSummary,
         }),
       })
 
@@ -262,6 +351,15 @@ export function AICanvasClient({ businessSlug, initialCanvases }: AICanvasClient
     setAssistantMessage('Jag återställde canvasen till startläget.')
     setLastUpdated('Återställd')
     setModelLabel(null)
+  }
+
+  const updateContextDataKey = (key: CanvasContextDataKey, enabled: boolean) => {
+    setContextSelection((current) => ({
+      ...current,
+      dataKeys: enabled
+        ? Array.from(new Set([...current.dataKeys, key]))
+        : current.dataKeys.filter((item) => item !== key),
+    }))
   }
 
   const upsertSavedCanvas = (canvas: SavedCanvasPayload) => {
@@ -454,6 +552,138 @@ export function AICanvasClient({ businessSlug, initialCanvases }: AICanvasClient
                   </button>
                 )
               })}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-cyan-700" />
+              <h2 className="text-sm font-semibold text-slate-900">Kontext</h2>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Fokus</label>
+                <Select
+                  value={contextSelection.scope}
+                  onValueChange={(value) => {
+                    const nextScope = value as CanvasContextSelection['scope']
+                    setContextSelection((current) => ({
+                      ...current,
+                      scope: nextScope,
+                      athleteId: nextScope === 'athlete' ? current.athleteId : '',
+                      teamId: nextScope === 'team' ? current.teamId : '',
+                    }))
+                  }}
+                >
+                  <SelectTrigger className="h-9 border-slate-200">
+                    <SelectValue placeholder="Välj fokus" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Ingen specifik</SelectItem>
+                    <SelectItem value="athlete">Atlet</SelectItem>
+                    <SelectItem value="team">Lag</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {contextSelection.scope === 'athlete' && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Atlet</label>
+                  <Select
+                    value={contextSelection.athleteId || 'none'}
+                    onValueChange={(value) => {
+                      setContextSelection((current) => ({
+                        ...current,
+                        athleteId: value === 'none' ? '' : value,
+                      }))
+                    }}
+                  >
+                    <SelectTrigger className="h-9 border-slate-200">
+                      <SelectValue placeholder="Välj atlet" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Välj atlet</SelectItem>
+                      {athletes.map((athlete) => (
+                        <SelectItem key={athlete.id} value={athlete.id}>
+                          {athlete.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {contextSelection.scope === 'team' && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Lag</label>
+                  <Select
+                    value={contextSelection.teamId || 'none'}
+                    onValueChange={(value) => {
+                      setContextSelection((current) => ({
+                        ...current,
+                        teamId: value === 'none' ? '' : value,
+                      }))
+                    }}
+                  >
+                    <SelectTrigger className="h-9 border-slate-200">
+                      <SelectValue placeholder="Välj lag" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Välj lag</SelectItem>
+                      {teams.map((team) => (
+                        <SelectItem key={team.id} value={team.id}>
+                          {team.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Period</label>
+                <Select
+                  value={contextSelection.dateRange}
+                  onValueChange={(value) => {
+                    setContextSelection((current) => ({
+                      ...current,
+                      dateRange: value as CanvasContextSelection['dateRange'],
+                    }))
+                  }}
+                >
+                  <SelectTrigger className="h-9 border-slate-200">
+                    <SelectValue placeholder="Välj period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(dateRangeLabels).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-medium text-slate-600">Data att förbereda</p>
+                <div className="space-y-2">
+                  {contextDataOptions.map((option) => (
+                    <label key={option.key} className="flex items-center gap-2 text-sm text-slate-700">
+                      <Checkbox
+                        checked={contextSelection.dataKeys.includes(option.key)}
+                        onCheckedChange={(checked) => updateContextDataKey(option.key, checked === true)}
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-md border border-cyan-100 bg-cyan-50 p-3">
+                <p className="text-xs leading-5 text-cyan-900">
+                  {contextSummary || 'Ingen specifik kontext vald ännu.'}
+                </p>
+              </div>
             </div>
           </div>
 
