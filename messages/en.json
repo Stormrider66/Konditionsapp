@@ -228,6 +228,14 @@
         "athleteProfileRequired": "All athlete profile fields are required"
       }
     },
+    "coachSignup": {
+      "title": "Register as a coach",
+      "invitedTo": "You have been invited to {businessName}",
+      "inviteDescription": "Create your account to join the team",
+      "defaultTeamName": "a team",
+      "athletePrompt": "Are you an athlete?",
+      "athleteSignupLink": "Register as an athlete"
+    },
     "claimBusiness": {
       "title": "Activate your account",
       "description": "Create your account to take over your business.",

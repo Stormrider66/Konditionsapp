@@ -79,15 +79,15 @@ function CoachSignupForm() {
         .then(res => res.json())
         .then(data => {
           if (data.valid) {
-            setInvitationInfo({ code: invitationCode, businessName: data.businessName || 'ett team' })
+            setInvitationInfo({ code: invitationCode, businessName: data.businessName || t('coachSignup.defaultTeamName') })
           }
         })
         .catch(() => {
           // Invitation may still be valid, keep the code for acceptance
-          setInvitationInfo({ code: invitationCode, businessName: 'ett team' })
+          setInvitationInfo({ code: invitationCode, businessName: t('coachSignup.defaultTeamName') })
         })
     }
-  }, [searchParams])
+  }, [searchParams, t])
 
   const validateReferralCode = async (code: string) => {
     try {
@@ -283,11 +283,11 @@ function CoachSignupForm() {
             <Building2 className="h-5 w-5" />
             <div className="flex-1">
               <p className="font-medium text-sm">
-                Du har blivit inbjuden till {invitationInfo.businessName}
+                {t('coachSignup.invitedTo', { businessName: invitationInfo.businessName })}
               </p>
               <p className="text-xs opacity-90">
                 <CheckCircle2 className="h-3 w-3 inline mr-1" />
-                Skapa ditt konto för att gå med i teamet
+                {t('coachSignup.inviteDescription')}
               </p>
             </div>
           </div>
@@ -545,7 +545,7 @@ export default function CoachSignupPage() {
             <Dumbbell className="h-6 w-6 text-green-600" />
           </div>
           <CardTitle className="text-2xl font-bold">
-            Registrera dig som Coach
+            {t('coachSignup.title')}
           </CardTitle>
           <CardDescription>
             {t('registerDescription')}
@@ -573,9 +573,9 @@ export default function CoachSignupPage() {
             </Link>
           </div>
           <div className="text-xs text-center text-muted-foreground">
-            Är du atlet?{' '}
+            {t('coachSignup.athletePrompt')}{' '}
             <Link href="/signup/athlete" className="text-blue-600 hover:underline">
-              Registrera dig som atlet
+              {t('coachSignup.athleteSignupLink')}
             </Link>
           </div>
         </CardFooter>

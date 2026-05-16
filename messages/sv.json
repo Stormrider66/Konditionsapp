@@ -228,6 +228,14 @@
         "athleteProfileRequired": "Alla fält för atletprofilen krävs"
       }
     },
+    "coachSignup": {
+      "title": "Registrera dig som coach",
+      "invitedTo": "Du har blivit inbjuden till {businessName}",
+      "inviteDescription": "Skapa ditt konto för att gå med i teamet",
+      "defaultTeamName": "ett team",
+      "athletePrompt": "Är du atlet?",
+      "athleteSignupLink": "Registrera dig som atlet"
+    },
     "claimBusiness": {
       "title": "Aktivera ditt konto",
       "description": "Skapa ditt konto för att ta över din verksamhet.",
