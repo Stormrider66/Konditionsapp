@@ -15,6 +15,7 @@ import { PTDashboardLayout } from '@/components/coach/dashboard/PTDashboardLayou
 import { TeamDashboardLayout } from '@/components/coach/dashboard/TeamDashboardLayout'
 import { GymDashboardLayout } from '@/components/coach/dashboard/GymDashboardLayout'
 import { CoachCommandCenter } from '@/components/coach/dashboard/CoachCommandCenter'
+import { CoachDashboardAIContext, type CoachDashboardAIContextData } from '@/components/coach/dashboard/CoachDashboardAIContext'
 import { getCoachCommandCenterData } from '@/lib/coach/command-center'
 import type { SportType } from '@/types'
 
@@ -584,9 +585,94 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     })
     : null
 
+  const dashboardSignals: string[] = []
+  if (logsNeedingFeedback.length > 0) {
+    dashboardSignals.push(`${logsNeedingFeedback.length} genomförda pass väntar på coachfeedback`)
+  }
+  if (lowReadiness > 0) {
+    dashboardSignals.push(`${lowReadiness} atleter har låg beredskap`)
+  }
+  if (activeInjuries > 0) {
+    dashboardSignals.push(`${activeInjuries} aktiva skadeärenden behöver bevakning`)
+  }
+  if (highLoadAthletes.length > 0) {
+    dashboardSignals.push(`${highLoadAthletes.length} atleter har hög veckobelastning`)
+  }
+  if (upcomingEvents.length > 0) {
+    dashboardSignals.push(`${upcomingEvents.length} kalenderhändelser ligger kommande 7 dagar`)
+  }
+  if (recentTests.length > 0) {
+    dashboardSignals.push(`${recentTests.length} tester är genomförda senaste 30 dagarna`)
+  }
+  if (mode === 'GYM' && gymStats?.plateauCount) {
+    dashboardSignals.push(`${gymStats.plateauCount} styrkeprogressioner visar platåsignal`)
+  }
+  if (mode === 'TEAM' && teamDashboardData) {
+    const teamsWithAttention = teamDashboardData.teams.filter(team => team.attentionCount > 0).length
+    if (teamsWithAttention > 0) {
+      dashboardSignals.push(`${teamsWithAttention} lag har minst en uppmärksamhetssignal`)
+    }
+  }
+  if (dashboardSignals.length === 0) {
+    dashboardSignals.push('Inga akuta aggregerade dashboard-signaler hittades')
+  }
+
+  const dashboardAIContext: CoachDashboardAIContextData = {
+    mode,
+    businessName: membership.business.name,
+    metrics: {
+      athletes: clientsCount,
+      activePrograms: activeProgramsCount,
+      completedLogsThisWeek,
+      totalActivitiesThisWeek,
+      pendingFeedback: logsNeedingFeedback.length,
+      activeInjuries,
+      highLoadAthletes: highLoadAthletes.length,
+      feedbackGiven,
+      averageRpe: avgRPE,
+      recentTests: recentTests.length,
+      upcomingEvents: upcomingEvents.length,
+    },
+    readiness: {
+      high: highReadiness,
+      medium: mediumReadiness,
+      low: lowReadiness,
+      total: readinessScores.length,
+    },
+    integrations: {
+      stravaActivitiesThisWeek: stravaWeeklyCount,
+      garminActivitiesThisWeek: garminWeeklyCount,
+    },
+    gym: gymStats,
+    team: teamDashboardData
+      ? {
+          teamCount: teamDashboardData.teams.length,
+          teamsWithAttention: teamDashboardData.teams.filter(team => team.attentionCount > 0).length,
+          totalMissedWorkouts: teamDashboardData.teams.reduce((sum, team) => sum + team.missedWorkoutCount, 0),
+          totalUnreadMessages: teamDashboardData.teams.reduce((sum, team) => sum + team.unreadMessageCount, 0),
+          upcomingTests: teamDashboardData.upcomingTests.length,
+          recentActivityItems: teamDashboardData.recentActivity.length,
+          teams: teamDashboardData.teams.slice(0, 5).map(team => ({
+            name: team.name,
+            athleteCount: team.athleteCount,
+            sessionsToday: team.sessionsToday,
+            readiness: team.readiness,
+            injuryCount: team.injuryCount,
+            unreadMessageCount: team.unreadMessageCount,
+            missedWorkoutCount: team.missedWorkoutCount,
+            attentionCount: team.attentionCount,
+          })),
+        }
+      : undefined,
+    visibleWidgets: Array.from(visible),
+    signals: dashboardSignals,
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="container mx-auto py-6 px-4 max-w-7xl">
+        <CoachDashboardAIContext data={dashboardAIContext} />
+
         {/* Header */}
         <div className="mb-6 flex items-start justify-between">
           <div>

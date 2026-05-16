@@ -68,6 +68,11 @@ interface ModelConfig {
   displayName: string
 }
 
+interface QuickPrompt {
+  label: string
+  prompt: string
+}
+
 export function FloatingAIChat({
   athleteId,
   athleteName,
@@ -592,6 +597,59 @@ export function FloatingAIChat({
 
   const contextLabel = getContextLabel()
 
+  const contextualQuickPrompts = useMemo<QuickPrompt[]>(() => {
+    if (!pageContext || !hasContext || !isContextEnabled) return []
+
+    if (pageContext.type === 'video-analysis') {
+      return [
+        {
+          label: 'Förklara problem',
+          prompt: 'Förklara de viktigaste problemen i analysen',
+        },
+        {
+          label: 'Förbättringsövningar',
+          prompt: 'Ge mig specifika övningar för att förbättra tekniken',
+        },
+        {
+          label: 'Enkel sammanfattning',
+          prompt: 'Sammanfatta analysen i enkla termer för atleten',
+        },
+      ]
+    }
+
+    if (pageContext.type === 'coach-dashboard') {
+      return [
+        {
+          label: 'Sammanfatta',
+          prompt: 'Sammanfatta coachdashboarden utifrån sidkontexten och prioritera de tre viktigaste nästa stegen.',
+        },
+        {
+          label: 'Vad kräver åtgärd?',
+          prompt: 'Vad kräver åtgärd på den här dashboarden just nu? Skilj på akuta signaler och saker att följa upp senare.',
+        },
+        {
+          label: 'Förklara korten',
+          prompt: 'Förklara korten och signalerna på dashboarden så jag snabbt vet hur jag ska läsa sidan.',
+        },
+      ]
+    }
+
+    return [
+      {
+        label: 'Sammanfatta sidan',
+        prompt: 'Sammanfatta den här sidan och lyft fram vad jag bör titta på först.',
+      },
+      {
+        label: 'Nästa steg',
+        prompt: 'Föreslå konkreta nästa steg baserat på sidkontexten.',
+      },
+      {
+        label: 'Förklara begrepp',
+        prompt: 'Förklara de viktigaste begreppen på den här sidan kort och praktiskt.',
+      },
+    ]
+  }, [pageContext, hasContext, isContextEnabled])
+
   // Get provider color for badge
   function getProviderBadge() {
     if (!modelConfig) return null
@@ -827,34 +885,17 @@ export function FloatingAIChat({
             </p>
             {/* Quick prompts */}
             <div className="mt-4 flex flex-wrap gap-2 justify-center">
-              {pageContext?.type === 'video-analysis' && hasContext && isContextEnabled && (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setInput('Förklara de viktigaste problemen i analysen')}
-                    className="text-xs"
-                  >
-                    Förklara problem
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setInput('Ge mig specifika övningar för att förbättra tekniken')}
-                    className="text-xs"
-                  >
-                    Förbättringsövningar
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setInput('Sammanfatta analysen i enkla termer för atleten')}
-                    className="text-xs"
-                  >
-                    Enkel sammanfattning
-                  </Button>
-                </>
-              )}
+              {contextualQuickPrompts.map((quickPrompt) => (
+                <Button
+                  key={quickPrompt.label}
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setInput(quickPrompt.prompt)}
+                  className="text-xs"
+                >
+                  {quickPrompt.label}
+                </Button>
+              ))}
               {!pageContext && athleteName && (
                 <>
                   <Button
