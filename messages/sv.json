@@ -106,6 +106,28 @@
       }
     }
   },
+  "reports": {
+    "share": {
+      "trigger": "Dela rapport",
+      "title": "Dela testrapport",
+      "description": "Skapa en publik länk som atleten kan använda för att se sin rapport",
+      "expiresAt": "Länken är giltig till {date}",
+      "revoke": "Ta bort länk",
+      "empty": "Ingen delningslänk finns. Skapa en för att låta atleten se rapporten utan att logga in.",
+      "create": "Skapa delningslänk",
+      "toasts": {
+        "createdTitle": "Delningslänk skapad",
+        "createdDescription": "Länken är giltig i 30 dagar",
+        "createError": "Kunde inte skapa delningslänk",
+        "revokedTitle": "Länk borttagen",
+        "revokedDescription": "Delningslänken har tagits bort",
+        "revokeError": "Kunde inte ta bort länken",
+        "copiedTitle": "Kopierad!",
+        "copiedDescription": "Länken har kopierats till urklipp",
+        "copyError": "Kunde inte kopiera länken"
+      }
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Atleter",

@@ -106,6 +106,28 @@
       }
     }
   },
+  "reports": {
+    "share": {
+      "trigger": "Share report",
+      "title": "Share test report",
+      "description": "Create a public link the athlete can use to view their report",
+      "expiresAt": "The link is valid until {date}",
+      "revoke": "Remove link",
+      "empty": "No share link exists. Create one to let the athlete view the report without logging in.",
+      "create": "Create share link",
+      "toasts": {
+        "createdTitle": "Share link created",
+        "createdDescription": "The link is valid for 30 days",
+        "createError": "Could not create share link",
+        "revokedTitle": "Link removed",
+        "revokedDescription": "The share link has been removed",
+        "revokeError": "Could not remove the link",
+        "copiedTitle": "Copied!",
+        "copiedDescription": "The link has been copied to the clipboard",
+        "copyError": "Could not copy the link"
+      }
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Athletes",

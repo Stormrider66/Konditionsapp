@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { Share2, Copy, Link2, Loader2, Check, Trash2 } from 'lucide-react'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface ShareReportButtonProps {
   testId: string
@@ -27,9 +28,11 @@ interface ShareReportButtonProps {
 
 export function ShareReportButton({
   testId,
-  hasExistingLink = false,
   existingToken,
 }: ShareReportButtonProps) {
+  const t = useTranslations('reports.share')
+  const tCommon = useTranslations('common')
+  const locale = useLocale()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -54,20 +57,20 @@ export function ShareReportButton({
         setShareLink(data.publicUrl)
         setExpiresAt(data.expiresAt)
         toast({
-          title: 'Delningslänk skapad',
-          description: 'Länken är giltig i 30 dagar',
+          title: t('toasts.createdTitle'),
+          description: t('toasts.createdDescription'),
         })
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte skapa delningslänk',
+          title: tCommon('error'),
+          description: data.error || t('toasts.createError'),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte skapa delningslänk',
+        title: tCommon('error'),
+        description: t('toasts.createError'),
         variant: 'destructive',
       })
     } finally {
@@ -86,21 +89,21 @@ export function ShareReportButton({
         setShareLink(null)
         setExpiresAt(null)
         toast({
-          title: 'Länk borttagen',
-          description: 'Delningslänken har tagits bort',
+          title: t('toasts.revokedTitle'),
+          description: t('toasts.revokedDescription'),
         })
       } else {
         const data = await response.json()
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte ta bort länken',
+          title: tCommon('error'),
+          description: data.error || t('toasts.revokeError'),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte ta bort länken',
+        title: tCommon('error'),
+        description: t('toasts.revokeError'),
         variant: 'destructive',
       })
     } finally {
@@ -115,21 +118,21 @@ export function ShareReportButton({
       await navigator.clipboard.writeText(shareLink)
       setCopied(true)
       toast({
-        title: 'Kopierad!',
-        description: 'Länken har kopierats till urklipp',
+        title: t('toasts.copiedTitle'),
+        description: t('toasts.copiedDescription'),
       })
       setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte kopiera länken',
+        title: tCommon('error'),
+        description: t('toasts.copyError'),
         variant: 'destructive',
       })
     }
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('sv-SE', {
+    return new Date(dateString).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -141,14 +144,14 @@ export function ShareReportButton({
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Share2 className="h-4 w-4 mr-2" />
-          Dela rapport
+          {t('trigger')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Dela testrapport</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            Skapa en publik länk som atleten kan använda för att se sin rapport
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -176,7 +179,7 @@ export function ShareReportButton({
 
               {expiresAt && (
                 <p className="text-sm text-muted-foreground">
-                  Länken är giltig till {formatDate(expiresAt)}
+                  {t('expiresAt', { date: formatDate(expiresAt) })}
                 </p>
               )}
 
@@ -193,14 +196,14 @@ export function ShareReportButton({
                   ) : (
                     <Trash2 className="h-4 w-4 mr-2" />
                   )}
-                  Ta bort länk
+                  {t('revoke')}
                 </Button>
               </div>
             </>
           ) : (
             <div className="text-center space-y-4">
               <p className="text-sm text-muted-foreground">
-                Ingen delningslänk finns. Skapa en för att låta atleten se rapporten utan att logga in.
+                {t('empty')}
               </p>
               <Button
                 onClick={generateLink}
@@ -212,7 +215,7 @@ export function ShareReportButton({
                 ) : (
                   <Link2 className="h-4 w-4 mr-2" />
                 )}
-                Skapa delningslänk
+                {t('create')}
               </Button>
             </div>
           )}
