@@ -5,7 +5,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
-import { buildCanvasContextSummary } from '@/lib/ai-canvas/context-builder'
+import { buildCanvasAnalyticsBlocks, buildCanvasContextSummary } from '@/lib/ai-canvas/context-builder'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resolveModel } from '@/types/ai-models'
@@ -34,13 +34,32 @@ const requestSchema = z.object({
 })
 
 const canvasBlockSchema = z.object({
-  type: z.enum(['heading', 'text', 'checklist', 'table', 'insight', 'actions']),
+  type: z.enum(['heading', 'text', 'checklist', 'table', 'insight', 'actions', 'metric-row', 'risk-list', 'trend-summary']),
   title: z.string().trim().min(1).max(120).optional(),
   content: z.string().trim().max(1400).optional(),
   items: z.array(z.string().trim().min(1).max(180)).max(8).optional(),
   columns: z.array(z.string().trim().min(1).max(60)).max(5).optional(),
   rows: z.array(z.array(z.string().trim().min(1).max(180)).max(5)).max(8).optional(),
+  metrics: z.array(z.object({
+    label: z.string().trim().min(1).max(80),
+    value: z.string().trim().min(1).max(80),
+    detail: z.string().trim().max(140).optional(),
+    tone: z.enum(['neutral', 'positive', 'warning', 'danger']).optional(),
+  })).max(8).optional(),
+  risks: z.array(z.object({
+    title: z.string().trim().min(1).max(120),
+    description: z.string().trim().min(1).max(240),
+    priority: z.enum(['low', 'medium', 'high']),
+    meta: z.string().trim().max(140).optional(),
+  })).max(10).optional(),
+  trends: z.array(z.object({
+    label: z.string().trim().min(1).max(100),
+    value: z.string().trim().min(1).max(100),
+    direction: z.enum(['up', 'down', 'flat']),
+    detail: z.string().trim().max(180).optional(),
+  })).max(10).optional(),
   tone: z.enum(['neutral', 'positive', 'warning']).optional(),
+  source: z.enum(['manual', 'ai', 'template', 'analytics']).optional(),
 })
 
 const canvasResponseSchema = z.object({
@@ -122,6 +141,13 @@ export async function POST(request: NextRequest) {
       role: membership.role,
       selection: contextSelection,
     })
+    const analyticsBlocks = await buildCanvasAnalyticsBlocks({
+      userId: user.id,
+      businessSlug,
+      businessId: membership.businessId,
+      role: membership.role,
+      selection: contextSelection,
+    })
     const resolvedContextSummary = liveContextSummary || contextSummary
 
     const model = createModelInstance(resolved)
@@ -152,12 +178,18 @@ export async function POST(request: NextRequest) {
     )
 
     const validated = canvasResponseSchema.parse(result.object)
+    const blocks = [
+      ...analyticsBlocks,
+      ...validated.blocks,
+    ].slice(0, 10)
 
     return NextResponse.json({
       success: true,
       title: validated.title,
-      assistantMessage: validated.assistantMessage,
-      blocks: validated.blocks,
+      assistantMessage: analyticsBlocks.length > 0
+        ? `${validated.assistantMessage} Jag lade även till ${analyticsBlocks.length} datadrivna analysblock.`
+        : validated.assistantMessage,
+      blocks,
       model: {
         provider: resolved.provider,
         modelId: resolved.modelId,

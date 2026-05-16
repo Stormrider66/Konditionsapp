@@ -7,7 +7,17 @@ import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 
-const blockTypeSchema = z.enum(['heading', 'text', 'checklist', 'table', 'insight', 'actions'])
+const blockTypeSchema = z.enum([
+  'heading',
+  'text',
+  'checklist',
+  'table',
+  'insight',
+  'actions',
+  'metric-row',
+  'risk-list',
+  'trend-summary',
+])
 
 const canvasBlockSchema = z.object({
   id: z.string().optional(),
@@ -17,8 +27,26 @@ const canvasBlockSchema = z.object({
   items: z.array(z.string().trim().min(1).max(220)).max(20).optional(),
   columns: z.array(z.string().trim().min(1).max(80)).max(8).optional(),
   rows: z.array(z.array(z.string().trim().min(1).max(220)).max(8)).max(30).optional(),
+  metrics: z.array(z.object({
+    label: z.string().trim().min(1).max(80),
+    value: z.string().trim().min(1).max(80),
+    detail: z.string().trim().max(140).optional(),
+    tone: z.enum(['neutral', 'positive', 'warning', 'danger']).optional(),
+  })).max(8).optional(),
+  risks: z.array(z.object({
+    title: z.string().trim().min(1).max(120),
+    description: z.string().trim().min(1).max(240),
+    priority: z.enum(['low', 'medium', 'high']),
+    meta: z.string().trim().max(140).optional(),
+  })).max(10).optional(),
+  trends: z.array(z.object({
+    label: z.string().trim().min(1).max(100),
+    value: z.string().trim().min(1).max(100),
+    direction: z.enum(['up', 'down', 'flat']),
+    detail: z.string().trim().max(180).optional(),
+  })).max(10).optional(),
   tone: z.enum(['neutral', 'positive', 'warning']).optional(),
-  source: z.enum(['manual', 'ai', 'template']).optional(),
+  source: z.enum(['manual', 'ai', 'template', 'analytics']).optional(),
 })
 
 const createCanvasSchema = z.object({

@@ -18,6 +18,8 @@ import {
   Send,
   Sparkles,
   Table2,
+  TrendingDown,
+  TrendingUp,
   Wand2,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -33,7 +35,16 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 
-type CanvasBlockType = 'heading' | 'text' | 'checklist' | 'table' | 'insight' | 'actions'
+type CanvasBlockType =
+  | 'heading'
+  | 'text'
+  | 'checklist'
+  | 'table'
+  | 'insight'
+  | 'actions'
+  | 'metric-row'
+  | 'risk-list'
+  | 'trend-summary'
 
 type CanvasTemplateId = 'blank' | 'athlete-review' | 'weekly-briefing' | 'team-risk' | 'program-notes'
 
@@ -46,25 +57,32 @@ interface CanvasBlock {
   columns?: string[]
   rows?: string[][]
   tone?: 'neutral' | 'positive' | 'warning'
-  source?: 'manual' | 'ai' | 'template'
-}
-
-interface GeneratedCanvasBlock {
-  type: CanvasBlockType
-  title?: string
-  content?: string
-  items?: string[]
-  columns?: string[]
-  rows?: string[][]
-  tone?: 'neutral' | 'positive' | 'warning'
-  source?: 'manual' | 'ai' | 'template'
+  metrics?: Array<{
+    label: string
+    value: string
+    detail?: string
+    tone?: 'neutral' | 'positive' | 'warning' | 'danger'
+  }>
+  risks?: Array<{
+    title: string
+    description: string
+    priority: 'low' | 'medium' | 'high'
+    meta?: string
+  }>
+  trends?: Array<{
+    label: string
+    value: string
+    direction: 'up' | 'down' | 'flat'
+    detail?: string
+  }>
+  source?: 'manual' | 'ai' | 'template' | 'analytics'
 }
 
 interface GenerateCanvasResponse {
   success?: boolean
   title?: string
   assistantMessage?: string
-  blocks?: GeneratedCanvasBlock[]
+  blocks?: Omit<CanvasBlock, 'id'>[]
   model?: {
     provider: string
     modelId: string
@@ -249,7 +267,7 @@ function buildContextSummary(
     subject,
     `Period: ${dateRangeLabels[selection.dateRange]}`,
     `Valda dataområden: ${dataLabels.length > 0 ? dataLabels.join(', ') : 'inga'}`,
-    'Live-data kopplas in i nästa fas; använd detta som urval och rapportstruktur.',
+    'Live-data hämtas vid generering och används för datadrivna analysblock.',
   ].join('\n')
 }
 
@@ -795,6 +813,87 @@ export function AICanvasClient({ businessSlug, initialCanvases, athletes, teams 
 }
 
 function CanvasBlockView({ block }: { block: CanvasBlock }) {
+  if (block.type === 'metric-row') {
+    return (
+      <article className="rounded-lg border border-slate-200 bg-white p-4">
+        <BlockHeader icon={BarChart3} title={block.title ?? 'Mätvärden'} compact />
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {block.metrics?.map((metric) => (
+            <div key={`${metric.label}-${metric.value}`} className={cn(
+              'rounded-md border p-3',
+              metric.tone === 'positive' && 'border-emerald-200 bg-emerald-50',
+              metric.tone === 'warning' && 'border-amber-200 bg-amber-50',
+              metric.tone === 'danger' && 'border-red-200 bg-red-50',
+              (!metric.tone || metric.tone === 'neutral') && 'border-slate-200 bg-slate-50'
+            )}>
+              <p className="text-xs font-medium text-slate-500">{metric.label}</p>
+              <p className="mt-1 text-2xl font-semibold text-slate-950">{metric.value}</p>
+              {metric.detail && <p className="mt-1 text-xs leading-5 text-slate-600">{metric.detail}</p>}
+            </div>
+          ))}
+        </div>
+      </article>
+    )
+  }
+
+  if (block.type === 'risk-list') {
+    return (
+      <article className="rounded-lg border border-slate-200 bg-white p-4">
+        <BlockHeader icon={AlertCircle} title={block.title ?? 'Risker'} compact />
+        <div className="mt-3 space-y-2">
+          {block.risks?.map((risk) => (
+            <div key={`${risk.title}-${risk.description}`} className="rounded-md border border-slate-200 p-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-slate-950">{risk.title}</p>
+                  <p className="mt-1 text-sm leading-5 text-slate-700">{risk.description}</p>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    risk.priority === 'high' && 'border-red-200 bg-red-50 text-red-700',
+                    risk.priority === 'medium' && 'border-amber-200 bg-amber-50 text-amber-700',
+                    risk.priority === 'low' && 'border-slate-200 bg-slate-50 text-slate-600'
+                  )}
+                >
+                  {risk.priority}
+                </Badge>
+              </div>
+              {risk.meta && <p className="mt-2 text-xs text-slate-500">{risk.meta}</p>}
+            </div>
+          ))}
+        </div>
+      </article>
+    )
+  }
+
+  if (block.type === 'trend-summary') {
+    return (
+      <article className="rounded-lg border border-slate-200 bg-white p-4">
+        <BlockHeader icon={TrendingUp} title={block.title ?? 'Trend'} compact />
+        <div className="mt-3 space-y-2">
+          {block.trends?.map((trend) => {
+            const TrendIcon = trend.direction === 'down' ? TrendingDown : trend.direction === 'up' ? TrendingUp : BarChart3
+            return (
+              <div key={`${trend.label}-${trend.value}`} className="flex gap-3 rounded-md border border-slate-200 p-3">
+                <TrendIcon className={cn(
+                  'mt-0.5 h-4 w-4 shrink-0',
+                  trend.direction === 'up' && 'text-emerald-600',
+                  trend.direction === 'down' && 'text-red-600',
+                  trend.direction === 'flat' && 'text-slate-500'
+                )} />
+                <div>
+                  <p className="text-sm font-semibold text-slate-950">{trend.label}: {trend.value}</p>
+                  {trend.detail && <p className="mt-1 text-sm leading-5 text-slate-600">{trend.detail}</p>}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </article>
+    )
+  }
+
   if (block.type === 'heading') {
     return (
       <article className="rounded-lg border border-slate-200 bg-slate-950 p-5 text-white">

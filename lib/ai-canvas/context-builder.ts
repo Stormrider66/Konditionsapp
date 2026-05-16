@@ -14,6 +14,41 @@ export interface CanvasContextSelectionInput {
   dataKeys: CanvasContextDataKey[]
 }
 
+export type CanvasAnalyticsBlock =
+  | {
+      type: 'metric-row'
+      title: string
+      metrics: Array<{
+        label: string
+        value: string
+        detail?: string
+        tone?: 'neutral' | 'positive' | 'warning' | 'danger'
+      }>
+      source: 'analytics'
+    }
+  | {
+      type: 'risk-list'
+      title: string
+      risks: Array<{
+        title: string
+        description: string
+        priority: 'low' | 'medium' | 'high'
+        meta?: string
+      }>
+      source: 'analytics'
+    }
+  | {
+      type: 'trend-summary'
+      title: string
+      trends: Array<{
+        label: string
+        value: string
+        direction: 'up' | 'down' | 'flat'
+        detail?: string
+      }>
+      source: 'analytics'
+    }
+
 interface BuildCanvasContextParams {
   userId: string
   businessSlug: string
@@ -141,6 +176,117 @@ export async function buildCanvasContextSummary({
   }
 
   return lines.join('\n')
+}
+
+export async function buildCanvasAnalyticsBlocks({
+  userId,
+  businessSlug,
+  businessId,
+  role,
+  selection,
+  now = new Date(),
+}: BuildCanvasContextParams): Promise<CanvasAnalyticsBlock[]> {
+  if (!selection || selection.scope === 'none') return []
+
+  const dataKeys = uniqueDataKeys(selection.dataKeys)
+  if (dataKeys.length === 0) return []
+
+  const window = resolveDateWindow(selection.dateRange, now)
+  const coachIds = await getCoachScopedIds(userId, businessId, role)
+  const baseClientWhere: Prisma.ClientWhereInput = {
+    userId: { in: coachIds },
+    businessId,
+  }
+
+  const clientWhere = await resolveClientWhere({
+    userId,
+    businessSlug,
+    baseClientWhere,
+    selection,
+  })
+
+  if (!clientWhere) return []
+
+  const clients = await prisma.client.findMany({
+    where: clientWhere,
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: { name: 'asc' },
+    take: selection.scope === 'athlete' ? 1 : 80,
+  })
+
+  if (clients.length === 0) return []
+
+  const clientIds = clients.map((client) => client.id)
+  const clientNames = new Map(clients.map((client) => [client.id, client.name]))
+  const [testAnalytics, programAnalytics, sessionAnalytics, readinessAnalytics, noteAnalytics] = await Promise.all([
+    dataKeys.includes('tests') ? getTestAnalytics(clientIds, clientNames, now) : Promise.resolve(null),
+    dataKeys.includes('programs') ? getProgramAnalytics(clientIds, clientNames, now) : Promise.resolve(null),
+    dataKeys.includes('sessions') ? getSessionAnalytics(clientIds, clientNames, window.start, window.end, window.future) : Promise.resolve(null),
+    dataKeys.includes('readiness') ? getReadinessAnalytics(clientIds, clientNames, window.start, window.end) : Promise.resolve(null),
+    dataKeys.includes('notes') ? getNoteAnalytics(clientIds) : Promise.resolve(null),
+  ])
+
+  const metrics: Extract<CanvasAnalyticsBlock, { type: 'metric-row' }>['metrics'] = [
+    {
+      label: selection.scope === 'athlete' ? 'Atlet' : 'Atleter',
+      value: String(clients.length),
+      detail: selection.scope === 'athlete' ? clients[0].name : 'i valt urval',
+      tone: 'neutral',
+    },
+  ]
+
+  if (testAnalytics) metrics.push(testAnalytics.metric)
+  if (programAnalytics) metrics.push(programAnalytics.metric)
+  if (sessionAnalytics) metrics.push(sessionAnalytics.metric)
+  if (readinessAnalytics) metrics.push(readinessAnalytics.metric)
+  if (noteAnalytics) metrics.push(noteAnalytics.metric)
+
+  const risks = [
+    ...(testAnalytics?.risks ?? []),
+    ...(programAnalytics?.risks ?? []),
+    ...(sessionAnalytics?.risks ?? []),
+    ...(readinessAnalytics?.risks ?? []),
+  ].slice(0, 8)
+
+  const trends = [
+    ...(testAnalytics?.trends ?? []),
+    ...(programAnalytics?.trends ?? []),
+    ...(sessionAnalytics?.trends ?? []),
+    ...(readinessAnalytics?.trends ?? []),
+    ...(noteAnalytics?.trends ?? []),
+  ].slice(0, 8)
+
+  const blocks: CanvasAnalyticsBlock[] = [
+    {
+      type: 'metric-row',
+      title: 'Datadriven översikt',
+      metrics,
+      source: 'analytics',
+    },
+  ]
+
+  if (risks.length > 0) {
+    blocks.push({
+      type: 'risk-list',
+      title: 'Risker och uppföljningar',
+      risks,
+      source: 'analytics',
+    })
+  }
+
+  if (trends.length > 0) {
+    blocks.push({
+      type: 'trend-summary',
+      title: 'Trendbild',
+      trends,
+      source: 'analytics',
+    })
+  }
+
+  return blocks
 }
 
 async function resolveClientWhere({
@@ -401,4 +547,352 @@ function buildNoteLines(clients: Array<{ name: string; notes: string | null }>):
       return `- ${client.name}: ${note}`
     }),
   ]
+}
+
+interface AnalyticsResult {
+  metric: Extract<CanvasAnalyticsBlock, { type: 'metric-row' }>['metrics'][number]
+  risks: Extract<CanvasAnalyticsBlock, { type: 'risk-list' }>['risks']
+  trends: Extract<CanvasAnalyticsBlock, { type: 'trend-summary' }>['trends']
+}
+
+async function getTestAnalytics(
+  clientIds: string[],
+  clientNames: Map<string, string>,
+  now: Date
+): Promise<AnalyticsResult> {
+  const tests = await prisma.test.findMany({
+    where: {
+      clientId: { in: clientIds },
+      status: 'COMPLETED',
+    },
+    select: {
+      clientId: true,
+      testDate: true,
+    },
+    orderBy: { testDate: 'desc' },
+  })
+
+  const latestByClient = new Map<string, Date>()
+  tests.forEach((test) => {
+    if (!latestByClient.has(test.clientId)) latestByClient.set(test.clientId, test.testDate)
+  })
+
+  const missingNames = clientIds
+    .filter((clientId) => !latestByClient.has(clientId))
+    .map((clientId) => clientNames.get(clientId) ?? 'Okänd atlet')
+
+  const staleNames = Array.from(latestByClient.entries())
+    .filter(([, testDate]) => differenceInCalendarDays(now, testDate) > 120)
+    .map(([clientId]) => clientNames.get(clientId) ?? 'Okänd atlet')
+
+  const coveragePercent = Math.round((latestByClient.size / Math.max(clientIds.length, 1)) * 100)
+  const risks: AnalyticsResult['risks'] = []
+
+  if (staleNames.length > 0) {
+    risks.push({
+      title: 'Gammal testdata',
+      description: `${staleNames.slice(0, 4).join(', ')}${staleNames.length > 4 ? ` +${staleNames.length - 4}` : ''}`,
+      priority: staleNames.length >= 3 ? 'high' : 'medium',
+      meta: 'Senaste test äldre än 120 dagar',
+    })
+  }
+
+  if (missingNames.length > 0) {
+    risks.push({
+      title: 'Saknar slutförd test',
+      description: `${missingNames.slice(0, 4).join(', ')}${missingNames.length > 4 ? ` +${missingNames.length - 4}` : ''}`,
+      priority: missingNames.length >= 3 ? 'high' : 'medium',
+      meta: 'Ingen completed test hittades',
+    })
+  }
+
+  return {
+    metric: {
+      label: 'Testtäckning',
+      value: `${coveragePercent}%`,
+      detail: `${latestByClient.size}/${clientIds.length} har test`,
+      tone: coveragePercent >= 80 ? 'positive' : coveragePercent >= 50 ? 'warning' : 'danger',
+    },
+    risks,
+    trends: [
+      {
+        label: 'Teststatus',
+        value: `${staleNames.length + missingNames.length} behöver kontroll`,
+        direction: staleNames.length + missingNames.length > 0 ? 'down' : 'flat',
+        detail: 'Baserat på completed tests',
+      },
+    ],
+  }
+}
+
+async function getProgramAnalytics(
+  clientIds: string[],
+  clientNames: Map<string, string>,
+  now: Date
+): Promise<AnalyticsResult> {
+  const programs = await prisma.trainingProgram.findMany({
+    where: {
+      clientId: { in: clientIds },
+      isActive: true,
+      startDate: { lte: now },
+      endDate: { gte: now },
+    },
+    select: {
+      clientId: true,
+      endDate: true,
+    },
+    orderBy: { endDate: 'asc' },
+  })
+
+  const programClientIds = new Set(programs.map((program) => program.clientId))
+  const missingProgramNames = clientIds
+    .filter((clientId) => !programClientIds.has(clientId))
+    .map((clientId) => clientNames.get(clientId) ?? 'Okänd atlet')
+  const endingSoon = programs.filter((program) => differenceInCalendarDays(program.endDate, now) <= 14)
+
+  const risks: AnalyticsResult['risks'] = []
+  if (missingProgramNames.length > 0) {
+    risks.push({
+      title: 'Saknar aktivt program',
+      description: `${missingProgramNames.slice(0, 4).join(', ')}${missingProgramNames.length > 4 ? ` +${missingProgramNames.length - 4}` : ''}`,
+      priority: missingProgramNames.length >= 3 ? 'high' : 'medium',
+      meta: 'Inget aktivt program i dag',
+    })
+  }
+  if (endingSoon.length > 0) {
+    risks.push({
+      title: 'Program slutar snart',
+      description: `${endingSoon.length} program slutar inom 14 dagar`,
+      priority: 'medium',
+      meta: 'Bra läge att planera nästa block',
+    })
+  }
+
+  return {
+    metric: {
+      label: 'Aktiva program',
+      value: String(programs.length),
+      detail: `${programClientIds.size}/${clientIds.length} atleter täckta`,
+      tone: programClientIds.size === clientIds.length ? 'positive' : 'warning',
+    },
+    risks,
+    trends: [
+      {
+        label: 'Programtäckning',
+        value: `${Math.round((programClientIds.size / Math.max(clientIds.length, 1)) * 100)}%`,
+        direction: programClientIds.size === clientIds.length ? 'flat' : 'down',
+        detail: 'Aktiva program just nu',
+      },
+    ],
+  }
+}
+
+async function getSessionAnalytics(
+  clientIds: string[],
+  clientNames: Map<string, string>,
+  start: Date,
+  end: Date,
+  future: boolean
+): Promise<AnalyticsResult> {
+  if (future) {
+    const planned = await prisma.workout.count({
+      where: {
+        day: {
+          date: { gte: start, lte: end },
+          week: {
+            program: {
+              clientId: { in: clientIds },
+            },
+          },
+        },
+        status: { not: 'CANCELLED' },
+      },
+    })
+
+    return {
+      metric: {
+        label: 'Planerade pass',
+        value: String(planned),
+        detail: 'kommande period',
+        tone: planned > 0 ? 'positive' : 'warning',
+      },
+      risks: planned === 0
+        ? [{
+            title: 'Inga kommande pass',
+            description: 'Valt urval saknar planerade pass i perioden.',
+            priority: 'medium',
+            meta: 'Kontrollera program eller kalender',
+          }]
+        : [],
+      trends: [{
+        label: 'Planering framåt',
+        value: planned > 0 ? `${planned} pass` : 'saknas',
+        direction: planned > 0 ? 'flat' : 'down',
+        detail: 'Baserat på programmens kommande träningsdagar',
+      }],
+    }
+  }
+
+  const logs = await prisma.workoutLog.findMany({
+    where: {
+      completedAt: { gte: start, lte: end },
+      workout: {
+        day: {
+          week: {
+            program: {
+              clientId: { in: clientIds },
+            },
+          },
+        },
+      },
+    },
+    select: {
+      completed: true,
+      perceivedEffort: true,
+      workout: {
+        select: {
+          day: {
+            select: {
+              week: {
+                select: {
+                  program: {
+                    select: { clientId: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+
+  const completed = logs.filter((log) => log.completed).length
+  const activeClientIds = new Set(logs.map((log) => log.workout.day.week.program.clientId))
+  const inactiveNames = clientIds
+    .filter((clientId) => !activeClientIds.has(clientId))
+    .map((clientId) => clientNames.get(clientId) ?? 'Okänd atlet')
+  const rpeScores = logs.map((log) => log.perceivedEffort).filter((value): value is number => typeof value === 'number')
+  const avgRpe = rpeScores.length ? rpeScores.reduce((sum, value) => sum + value, 0) / rpeScores.length : null
+
+  return {
+    metric: {
+      label: 'Loggade pass',
+      value: String(completed),
+      detail: avgRpe ? `snitt-RPE ${numberText(avgRpe)}` : 'RPE saknas',
+      tone: completed > 0 ? 'positive' : 'warning',
+    },
+    risks: inactiveNames.length > 0
+      ? [{
+          title: 'Ingen passlogg i perioden',
+          description: `${inactiveNames.slice(0, 4).join(', ')}${inactiveNames.length > 4 ? ` +${inactiveNames.length - 4}` : ''}`,
+          priority: inactiveNames.length >= 3 ? 'high' : 'medium',
+          meta: 'Baserat på workout logs',
+        }]
+      : [],
+    trends: [{
+      label: 'Träningsaktivitet',
+      value: `${activeClientIds.size}/${clientIds.length} aktiva`,
+      direction: activeClientIds.size === clientIds.length ? 'flat' : 'down',
+      detail: 'Atleter med loggade pass i perioden',
+    }],
+  }
+}
+
+async function getReadinessAnalytics(
+  clientIds: string[],
+  clientNames: Map<string, string>,
+  start: Date,
+  end: Date
+): Promise<AnalyticsResult> {
+  const metrics = await prisma.dailyMetrics.findMany({
+    where: {
+      clientId: { in: clientIds },
+      date: { gte: start, lte: end },
+    },
+    select: {
+      clientId: true,
+      date: true,
+      readinessScore: true,
+      readinessLevel: true,
+      recommendedAction: true,
+      injuryPain: true,
+    },
+    orderBy: { date: 'desc' },
+  })
+
+  const latestByClient = new Map<string, typeof metrics[number]>()
+  metrics.forEach((metric) => {
+    if (!latestByClient.has(metric.clientId)) latestByClient.set(metric.clientId, metric)
+  })
+
+  const scores = metrics.map((metric) => metric.readinessScore).filter((value): value is number => typeof value === 'number')
+  const avgScore = scores.length ? scores.reduce((sum, value) => sum + value, 0) / scores.length : null
+  const lowReadiness = Array.from(latestByClient.values()).filter((metric) =>
+    (metric.readinessScore ?? 10) <= 5 ||
+    ['MODIFY_MODERATE', 'MODIFY_SIGNIFICANT', 'REST_REQUIRED'].includes(metric.recommendedAction ?? '')
+  )
+  const painFlags = Array.from(latestByClient.values()).filter((metric) => (metric.injuryPain ?? 0) >= 4)
+
+  const risks: AnalyticsResult['risks'] = []
+  if (lowReadiness.length > 0) {
+    risks.push({
+      title: 'Låg readiness',
+      description: lowReadiness
+        .slice(0, 4)
+        .map((metric) => clientNames.get(metric.clientId) ?? 'Okänd atlet')
+        .join(', '),
+      priority: lowReadiness.length >= 3 ? 'high' : 'medium',
+      meta: 'Readinessscore låg eller rekommenderad modifiering',
+    })
+  }
+  if (painFlags.length > 0) {
+    risks.push({
+      title: 'Smärtflaggor',
+      description: `${painFlags.length} senaste readinessposter har smärta 4+`,
+      priority: 'high',
+      meta: 'Kontrollera belastning och uppföljning',
+    })
+  }
+
+  return {
+    metric: {
+      label: 'Readiness',
+      value: numberText(avgScore),
+      detail: `${latestByClient.size}/${clientIds.length} med data`,
+      tone: avgScore === null ? 'warning' : avgScore >= 7 ? 'positive' : avgScore >= 5 ? 'warning' : 'danger',
+    },
+    risks,
+    trends: [{
+      label: 'Readinessläge',
+      value: avgScore === null ? 'saknas' : numberText(avgScore),
+      direction: avgScore === null ? 'flat' : avgScore >= 7 ? 'up' : avgScore >= 5 ? 'flat' : 'down',
+      detail: 'Genomsnitt i vald period',
+    }],
+  }
+}
+
+async function getNoteAnalytics(clientIds: string[]): Promise<AnalyticsResult> {
+  const notesCount = await prisma.client.count({
+    where: {
+      id: { in: clientIds },
+      notes: { not: null },
+    },
+  })
+
+  return {
+    metric: {
+      label: 'Coachnoteringar',
+      value: String(notesCount),
+      detail: `${notesCount}/${clientIds.length} atleter`,
+      tone: notesCount > 0 ? 'neutral' : 'warning',
+    },
+    risks: [],
+    trends: [{
+      label: 'Anteckningsunderlag',
+      value: notesCount > 0 ? `${notesCount} finns` : 'saknas',
+      direction: notesCount > 0 ? 'flat' : 'down',
+      detail: 'Baserat på klientanteckningar',
+    }],
+  }
 }
