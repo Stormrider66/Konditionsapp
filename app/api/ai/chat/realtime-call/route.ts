@@ -15,6 +15,7 @@ import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { checkAthleteFeatureAccess } from '@/lib/subscription/feature-access'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { getConsentStatus } from '@/lib/agent/gdpr/consent-manager'
 import { resolveAthleteProviderAllowlist } from '@/lib/ai/chat/providers'
 import {
   getPlatformAiKeyOwnerId,
@@ -49,14 +50,25 @@ async function resolveBusinessId(businessSlug?: string): Promise<string | null> 
   return business?.id ?? null
 }
 
-function buildRealtimeInstructions(pageContext: string): string {
+function buildRealtimeInstructions(pageContext: string, isAthleteChat: boolean): string {
   const context = pageContext.trim()
+  const roleInstructions = isAthleteChat
+    ? [
+        'Du är Trainomics flytande AI i live voice-läge för atletchatten.',
+        'Svara kort, naturligt och på svenska om användaren talar svenska. Använd ett lugnt, stöttande coach-tonläge.',
+        'Du får hjälpa atleten att förstå träning, pass, återhämtning, testdata och nästa rimliga steg.',
+        'För åtgärder som skapar pass/program, ändrar data eller öppnar vyer: be användaren använda den vanliga chatten/confirm-kortet så åtgärden blir synlig och bekräftad.',
+      ]
+    : [
+        'Du är Trainomics flytande AI i live voice-läge för coachdashboarden.',
+        'Svara kort, naturligt och på svenska om användaren talar svenska. Använd ett lugnt coach-operator-tonläge.',
+        'Du får hjälpa användaren att tänka, sammanfatta, förklara och säga vilken vy eller vilket nästa steg som är lämpligt.',
+        'För åtgärder som skickar meddelanden, ändrar data, skapar pass/program eller öppnar vyer: be användaren använda den vanliga chatten/confirm-kortet så åtgärden blir synlig och bekräftad.',
+      ]
+
   return [
-    'Du är Trainomics flytande AI i live voice-läge för coachdashboarden.',
-    'Svara kort, naturligt och på svenska om användaren talar svenska. Använd ett lugnt coach-operator-tonläge.',
-    'Du får hjälpa användaren att tänka, sammanfatta, förklara och säga vilken vy eller vilket nästa steg som är lämpligt.',
+    ...roleInstructions,
     'Du får inte påstå att du har navigerat, skickat, skapat, uppdaterat eller raderat något i appen under live voice-läget.',
-    'För åtgärder som skickar meddelanden, ändrar data, skapar pass/program eller öppnar vyer: be användaren använda den vanliga chatten/confirm-kortet så åtgärden blir synlig och bekräftad.',
     'Om du saknar åtkomst eller data, säg det tydligt i ord och föreslå ett säkert nästa steg.',
     context ? `Aktuell sidkontext:\n${context}` : '',
   ].filter(Boolean).join('\n\n')
@@ -87,6 +99,17 @@ async function resolveOpenAiKey(params: {
         upgradeUrl: access.upgradeUrl || '/athlete/subscription',
         currentUsage: access.currentUsage,
         limit: access.limit,
+      }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    const consent = await getConsentStatus(resolved.clientId)
+    if (!consent.hasRequiredConsent) {
+      throw new Response(JSON.stringify({
+        error: 'Du måste godkänna databehandling innan du kan använda live voice.',
+        code: 'CONSENT_REQUIRED',
       }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' },
@@ -185,7 +208,7 @@ export async function POST(request: NextRequest) {
     formData.set('session', JSON.stringify({
       type: 'realtime',
       model: REALTIME_MODEL,
-      instructions: buildRealtimeInstructions(parsed.data.pageContext),
+      instructions: buildRealtimeInstructions(parsed.data.pageContext, parsed.data.isAthleteChat),
       output_modalities: ['audio'],
       audio: {
         input: {

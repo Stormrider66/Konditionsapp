@@ -15,6 +15,7 @@ import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { checkAthleteFeatureAccess } from '@/lib/subscription/feature-access'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { getConsentStatus } from '@/lib/agent/gdpr/consent-manager'
 import { resolveAthleteProviderAllowlist } from '@/lib/ai/chat/providers'
 import {
   getPlatformAiKeyOwnerId,
@@ -106,6 +107,17 @@ export async function POST(request: NextRequest) {
             upgradeUrl: access.upgradeUrl || '/athlete/subscription',
             currentUsage: access.currentUsage,
             limit: access.limit,
+          },
+          { status: 403 }
+        )
+      }
+
+      const consent = await getConsentStatus(resolved.clientId)
+      if (!consent.hasRequiredConsent) {
+        return NextResponse.json(
+          {
+            error: 'Du måste godkänna databehandling innan du kan använda AI-röst.',
+            code: 'CONSENT_REQUIRED',
           },
           { status: 403 }
         )

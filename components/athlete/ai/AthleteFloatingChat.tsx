@@ -23,6 +23,14 @@ import {
   ShieldCheck,
   Check,
   ChevronDown,
+  Mic,
+  Square,
+  Volume2,
+  VolumeX,
+  Zap,
+  Headphones,
+  Radio,
+  PhoneOff,
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ChatMessage } from '@/components/ai-studio/ChatMessage'
@@ -52,6 +60,7 @@ import {
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors'
 import { AiAllowanceBlockedAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
+import { useAudioRecorder } from '@/hooks/use-audio-recorder'
 
 interface AthleteFloatingChatProps {
   clientId: string
@@ -66,6 +75,43 @@ interface IntentTierOption {
   label: string
   description: string
   icon: string
+}
+
+const ATHLETE_VOICE_AUTO_SEND_KEY = 'athlete-floating-ai-voice-auto-send'
+const ATHLETE_SPOKEN_REPLIES_KEY = 'athlete-floating-ai-spoken-replies'
+const ATHLETE_VOICE_OPERATOR_KEY = 'athlete-floating-ai-voice-operator-mode'
+
+function getVoiceFileExtension(mimeType: string): string {
+  if (mimeType.includes('mp4') || mimeType.includes('m4a')) return 'm4a'
+  if (mimeType.includes('ogg')) return 'ogg'
+  if (mimeType.includes('wav')) return 'wav'
+  if (mimeType.includes('mpeg') || mimeType.includes('mp3')) return 'mp3'
+  return 'webm'
+}
+
+function formatVoiceDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
+
+function getMessageTextContent(parts?: unknown[]): string {
+  return parts
+    ?.filter((part): part is { type: 'text'; text: string } => {
+      return typeof part === 'object' && part !== null && (part as { type?: unknown }).type === 'text'
+    })
+    .map((part) => part.text)
+    .join('') || ''
+}
+
+function getSpeakableAssistantText(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[#*_~>|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 export function AthleteFloatingChat({
@@ -84,6 +130,18 @@ export function AthleteFloatingChat({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pageCtx = usePageContextOptional()
+  const assistantSpeechVoiceRef = useRef<SpeechSynthesisVoice | null>(null)
+  const spokenAssistantMessageIdsRef = useRef<Set<string>>(new Set())
+  const spokenAssistantNoticeIdsRef = useRef<Set<string>>(new Set())
+  const voiceAutoSendTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const assistantAudioRef = useRef<HTMLAudioElement | null>(null)
+  const assistantAudioUrlRef = useRef<string | null>(null)
+  const assistantSpeechAbortRef = useRef<AbortController | null>(null)
+  const premiumVoiceUnavailableRef = useRef(false)
+  const realtimePeerRef = useRef<RTCPeerConnection | null>(null)
+  const realtimeDataChannelRef = useRef<RTCDataChannel | null>(null)
+  const realtimeMediaStreamRef = useRef<MediaStream | null>(null)
+  const realtimeAudioRef = useRef<HTMLAudioElement | null>(null)
 
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
@@ -118,10 +176,354 @@ export function AthleteFloatingChat({
 
   // Tool-based program generation state (orchestrator programs)
   const [completedPrograms, setCompletedPrograms] = useState<Map<string, MergedProgram>>(new Map())
+  const [assistantNotices, setAssistantNotices] = useState<Array<{
+    id: string
+    content: string
+    createdAt: Date
+  }>>([])
+  const [isTranscribingVoice, setIsTranscribingVoice] = useState(false)
+  const [isSpokenRepliesEnabled, setIsSpokenRepliesEnabled] = useState(false)
+  const [isSpeechSupported, setIsSpeechSupported] = useState(false)
+  const [isBrowserSpeechSupported, setIsBrowserSpeechSupported] = useState(false)
+  const [isSpeakingAssistant, setIsSpeakingAssistant] = useState(false)
+  const [isGeneratingAssistantAudio, setIsGeneratingAssistantAudio] = useState(false)
+  const [voicePlaybackStatus, setVoicePlaybackStatus] = useState<string | null>(null)
+  const [isVoiceAutoSendEnabled, setIsVoiceAutoSendEnabled] = useState(false)
+  const [isVoiceAutoSendPending, setIsVoiceAutoSendPending] = useState(false)
+  const [isVoiceOperatorModeEnabled, setIsVoiceOperatorModeEnabled] = useState(false)
+  const [isRealtimeVoiceConnecting, setIsRealtimeVoiceConnecting] = useState(false)
+  const [isRealtimeVoiceActive, setIsRealtimeVoiceActive] = useState(false)
+  const [realtimeVoiceStatus, setRealtimeVoiceStatus] = useState<string | null>(null)
+  const voiceRecordingPromiseRef = useRef<Promise<Blob> | null>(null)
+  const addAssistantNotice = useCallback((content: string) => {
+    setAssistantNotices((current) => [
+      ...current,
+      {
+        id: `athlete-assistant-notice-${Date.now()}-${current.length}`,
+        content,
+        createdAt: new Date(),
+      },
+    ].slice(-3))
+  }, [])
+  const {
+    isRecording: isVoiceRecording,
+    duration: voiceDuration,
+    startRecording,
+    stopRecording,
+    error: voiceRecorderError,
+    isSupported: isVoiceSupported,
+  } = useAudioRecorder()
 
   // Mental prep context (set when opened from MentalPrepCard)
   const [mentalPrepContext, setMentalPrepContext] = useState<MentalPrepChatEvent | null>(null)
   const mentalPrepContextRef = useRef<MentalPrepChatEvent | null>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const frame = window.requestAnimationFrame(() => {
+      const savedVoiceOperatorMode = window.localStorage.getItem(ATHLETE_VOICE_OPERATOR_KEY) === 'true'
+      const canPlayAssistantAudio = 'Audio' in window || 'speechSynthesis' in window
+      setIsVoiceAutoSendEnabled(window.localStorage.getItem(ATHLETE_VOICE_AUTO_SEND_KEY) === 'true')
+      setIsSpokenRepliesEnabled(window.localStorage.getItem(ATHLETE_SPOKEN_REPLIES_KEY) === 'true')
+      setIsSpeechSupported(canPlayAssistantAudio)
+      setIsVoiceOperatorModeEnabled(savedVoiceOperatorMode && canPlayAssistantAudio)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (voiceAutoSendTimeoutRef.current) {
+        clearTimeout(voiceAutoSendTimeoutRef.current)
+      }
+      assistantSpeechAbortRef.current?.abort()
+      assistantAudioRef.current?.pause()
+      if (assistantAudioUrlRef.current) {
+        URL.revokeObjectURL(assistantAudioUrlRef.current)
+      }
+      realtimeDataChannelRef.current?.close()
+      realtimePeerRef.current?.close()
+      realtimeMediaStreamRef.current?.getTracks().forEach((track) => track.stop())
+      realtimeAudioRef.current?.pause()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
+    const frame = window.requestAnimationFrame(() => {
+      setIsBrowserSpeechSupported(true)
+      setIsSpokenRepliesEnabled(window.localStorage.getItem(ATHLETE_SPOKEN_REPLIES_KEY) === 'true')
+    })
+
+    const pickVoice = () => {
+      const voices = window.speechSynthesis.getVoices()
+      const preferredVoice =
+        voices.find((voice) => voice.lang.toLowerCase().startsWith('sv') && /alva|klara|oskar/i.test(voice.name)) ||
+        voices.find((voice) => voice.lang.toLowerCase().startsWith('sv')) ||
+        voices.find((voice) => voice.lang.toLowerCase().startsWith('en') && /samantha|daniel/i.test(voice.name)) ||
+        voices.find((voice) => voice.lang.toLowerCase().startsWith('en')) ||
+        voices[0] ||
+        null
+
+      assistantSpeechVoiceRef.current = preferredVoice
+    }
+
+    pickVoice()
+    window.speechSynthesis.addEventListener('voiceschanged', pickVoice)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.speechSynthesis.removeEventListener('voiceschanged', pickVoice)
+      window.speechSynthesis.cancel()
+    }
+  }, [])
+
+  const stopAssistantSpeech = useCallback(() => {
+    assistantSpeechAbortRef.current?.abort()
+    assistantSpeechAbortRef.current = null
+
+    if (assistantAudioRef.current) {
+      assistantAudioRef.current.pause()
+      assistantAudioRef.current.src = ''
+      assistantAudioRef.current = null
+    }
+    if (assistantAudioUrlRef.current) {
+      URL.revokeObjectURL(assistantAudioUrlRef.current)
+      assistantAudioUrlRef.current = null
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+    }
+    setIsSpeakingAssistant(false)
+    setIsGeneratingAssistantAudio(false)
+    setVoicePlaybackStatus(null)
+  }, [])
+
+  const stopRealtimeVoice = useCallback((statusMessage?: string) => {
+    const dataChannel = realtimeDataChannelRef.current
+    realtimeDataChannelRef.current = null
+    dataChannel?.close()
+
+    const peer = realtimePeerRef.current
+    realtimePeerRef.current = null
+    peer?.close()
+
+    const mediaStream = realtimeMediaStreamRef.current
+    realtimeMediaStreamRef.current = null
+    mediaStream?.getTracks().forEach((track) => track.stop())
+
+    if (realtimeAudioRef.current) {
+      realtimeAudioRef.current.pause()
+      realtimeAudioRef.current.srcObject = null
+      realtimeAudioRef.current = null
+    }
+    setIsRealtimeVoiceConnecting(false)
+    setIsRealtimeVoiceActive(false)
+    setRealtimeVoiceStatus(statusMessage ?? null)
+  }, [])
+
+  const speakBrowserAssistantReply = useCallback((text: string): boolean => {
+    if (!isBrowserSpeechSupported) return false
+    if (typeof window === 'undefined' || !window.speechSynthesis) return false
+    const speakableText = getSpeakableAssistantText(text)
+    if (!speakableText) return false
+
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(speakableText)
+    const voice = assistantSpeechVoiceRef.current
+    utterance.lang = voice?.lang || 'sv-SE'
+    utterance.voice = voice
+    utterance.rate = 1
+    utterance.pitch = 1
+    utterance.onstart = () => {
+      setIsSpeakingAssistant(true)
+      setVoicePlaybackStatus('Använder webbläsarens röst.')
+    }
+    utterance.onend = () => {
+      setIsSpeakingAssistant(false)
+      setVoicePlaybackStatus(null)
+    }
+    utterance.onerror = () => {
+      setIsSpeakingAssistant(false)
+      setVoicePlaybackStatus(null)
+    }
+    window.speechSynthesis.speak(utterance)
+    return true
+  }, [isBrowserSpeechSupported])
+
+  const playPremiumAssistantReply = useCallback(async (text: string): Promise<boolean> => {
+    if (premiumVoiceUnavailableRef.current) return false
+    if (typeof window === 'undefined' || !('Audio' in window)) return false
+
+    const speakableText = getSpeakableAssistantText(text).slice(0, 4096)
+    if (!speakableText) return false
+
+    stopAssistantSpeech()
+    const controller = new AbortController()
+    assistantSpeechAbortRef.current = controller
+    setIsGeneratingAssistantAudio(true)
+    setVoicePlaybackStatus('Skapar AI-röst...')
+
+    try {
+      const response = await fetch('/api/ai/chat/speech', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          text: speakableText,
+          isAthleteChat: true,
+        }),
+      })
+
+      if (!response.ok) {
+        if ([400, 401, 403].includes(response.status)) {
+          premiumVoiceUnavailableRef.current = true
+        }
+        return false
+      }
+
+      const audioBlob = await response.blob()
+      const audioUrl = URL.createObjectURL(audioBlob)
+      const audio = new Audio(audioUrl)
+      assistantAudioRef.current = audio
+      assistantAudioUrlRef.current = audioUrl
+      audio.onplay = () => {
+        setIsGeneratingAssistantAudio(false)
+        setIsSpeakingAssistant(true)
+        setVoicePlaybackStatus('Spelar AI-röst...')
+      }
+      audio.onended = () => {
+        setIsSpeakingAssistant(false)
+        setVoicePlaybackStatus(null)
+        URL.revokeObjectURL(audioUrl)
+        if (assistantAudioUrlRef.current === audioUrl) assistantAudioUrlRef.current = null
+        if (assistantAudioRef.current === audio) assistantAudioRef.current = null
+      }
+      audio.onerror = () => {
+        setIsSpeakingAssistant(false)
+        setVoicePlaybackStatus(null)
+        URL.revokeObjectURL(audioUrl)
+        if (assistantAudioUrlRef.current === audioUrl) assistantAudioUrlRef.current = null
+        if (assistantAudioRef.current === audio) assistantAudioRef.current = null
+      }
+      await audio.play()
+      return true
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return true
+      return false
+    } finally {
+      if (assistantSpeechAbortRef.current === controller) {
+        assistantSpeechAbortRef.current = null
+      }
+      setIsGeneratingAssistantAudio(false)
+    }
+  }, [stopAssistantSpeech])
+
+  const speakAssistantReply = useCallback(async (text: string) => {
+    if (!isSpokenRepliesEnabled || !isSpeechSupported) return
+
+    const usedPremiumVoice = await playPremiumAssistantReply(text)
+    if (usedPremiumVoice) return
+
+    const usedBrowserVoice = speakBrowserAssistantReply(text)
+    if (usedBrowserVoice) {
+      setVoicePlaybackStatus(premiumVoiceUnavailableRef.current ? 'Använder webbläsarens röst.' : null)
+      return
+    }
+
+    setVoicePlaybackStatus('Röstsvar kunde inte spelas i den här webbläsaren.')
+  }, [
+    isSpeechSupported,
+    isSpokenRepliesEnabled,
+    playPremiumAssistantReply,
+    speakBrowserAssistantReply,
+  ])
+
+  const toggleSpokenReplies = useCallback(() => {
+    if (!isSpeechSupported) {
+      const message = 'Röstsvar stöds inte i den här webbläsaren.'
+      addAssistantNotice(message)
+      toast({
+        title: 'Röstsvar stöds inte',
+        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsSpokenRepliesEnabled((current) => {
+      const next = !current
+      window.localStorage.setItem(ATHLETE_SPOKEN_REPLIES_KEY, String(next))
+      if (!next) {
+        stopAssistantSpeech()
+        setIsVoiceOperatorModeEnabled(false)
+        window.localStorage.setItem(ATHLETE_VOICE_OPERATOR_KEY, 'false')
+      }
+      return next
+    })
+  }, [addAssistantNotice, isSpeechSupported, stopAssistantSpeech, toast])
+
+  const cancelVoiceAutoSend = useCallback(() => {
+    if (voiceAutoSendTimeoutRef.current) {
+      clearTimeout(voiceAutoSendTimeoutRef.current)
+      voiceAutoSendTimeoutRef.current = null
+    }
+    setIsVoiceAutoSendPending(false)
+  }, [])
+
+  const toggleVoiceAutoSend = useCallback(() => {
+    setIsVoiceAutoSendEnabled((current) => {
+      const next = !current
+      window.localStorage.setItem(ATHLETE_VOICE_AUTO_SEND_KEY, String(next))
+      if (!next) {
+        cancelVoiceAutoSend()
+        setIsVoiceOperatorModeEnabled(false)
+        window.localStorage.setItem(ATHLETE_VOICE_OPERATOR_KEY, 'false')
+      }
+      return next
+    })
+  }, [cancelVoiceAutoSend])
+
+  const toggleVoiceOperatorMode = useCallback(() => {
+    if (!isVoiceOperatorModeEnabled && !isSpeechSupported) {
+      const message = 'Voice operator-läget behöver röstsvar, men den här webbläsaren stödjer inte uppläsning.'
+      addAssistantNotice(message)
+      toast({
+        title: 'Voice operator kan inte startas',
+        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const next = !isVoiceOperatorModeEnabled
+    setIsVoiceOperatorModeEnabled(next)
+    window.localStorage.setItem(ATHLETE_VOICE_OPERATOR_KEY, String(next))
+
+    if (next) {
+      setIsSpokenRepliesEnabled(true)
+      setIsVoiceAutoSendEnabled(true)
+      window.localStorage.setItem(ATHLETE_SPOKEN_REPLIES_KEY, 'true')
+      window.localStorage.setItem(ATHLETE_VOICE_AUTO_SEND_KEY, 'true')
+      addAssistantNotice('Voice operator-läget är aktivt. Jag lyssnar via mikrofonen, skickar efter en kort paus och säger mina svar högt. Åtgärder som skapar eller ändrar något kräver fortfarande bekräftelse.')
+      toast({
+        title: 'Voice operator aktiv',
+        description: 'Röstsvar och automatisk röstsändning är på.',
+      })
+    } else {
+      cancelVoiceAutoSend()
+      addAssistantNotice('Voice operator-läget är avstängt. Du kan fortfarande använda mikrofonen manuellt.')
+      toast({
+        title: 'Voice operator avstängd',
+        description: 'Röstinställningarna kan fortfarande styras separat.',
+      })
+    }
+  }, [
+    addAssistantNotice,
+    cancelVoiceAutoSend,
+    isSpeechSupported,
+    isVoiceOperatorModeEnabled,
+    toast,
+  ])
 
   // Fetch AI config from coach
   useEffect(() => {
@@ -146,7 +548,7 @@ export function AthleteFloatingChat({
       }
     }
 
-    fetchConfig()
+    void fetchConfig()
   }, [])
 
   // Fetch subscription status
@@ -166,7 +568,7 @@ export function AthleteFloatingChat({
         console.error('Failed to fetch subscription status:', error)
       }
     }
-    fetchSubscriptionStatus()
+    void fetchSubscriptionStatus()
   }, [])
 
   // Check GDPR consent status when chat opens
@@ -186,7 +588,7 @@ export function AthleteFloatingChat({
         setConsentStatus('required')
       }
     }
-    checkConsent()
+    void checkConsent()
   }, [isOpen])
 
   // Listen for mental prep chat events from MentalPrepCard
@@ -282,6 +684,151 @@ export function AthleteFloatingChat({
   useEffect(() => {
     pageContextRef.current = buildAthletePageContext()
   }, [buildAthletePageContext])
+
+  const startRealtimeVoice = useCallback(async () => {
+    if (isRealtimeVoiceConnecting || isRealtimeVoiceActive) return
+    if (typeof window === 'undefined' || !window.RTCPeerConnection) {
+      const message = 'Live voice stöds inte i den här webbläsaren.'
+      addAssistantNotice(message)
+      toast({
+        title: 'Live voice stöds inte',
+        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      const message = 'Jag kan inte starta live voice eftersom mikrofonåtkomst saknas.'
+      addAssistantNotice(message)
+      toast({
+        title: 'Mikrofon saknas',
+        description: 'Tillåt mikrofonåtkomst och försök igen.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    stopAssistantSpeech()
+    cancelVoiceAutoSend()
+    setIsRealtimeVoiceConnecting(true)
+    setRealtimeVoiceStatus('Startar live voice...')
+
+    let peer: RTCPeerConnection | null = null
+    let mediaStream: MediaStream | null = null
+    try {
+      peer = new RTCPeerConnection()
+      realtimePeerRef.current = peer
+
+      const remoteAudio = new Audio()
+      remoteAudio.autoplay = true
+      realtimeAudioRef.current = remoteAudio
+      peer.ontrack = (event) => {
+        remoteAudio.srcObject = event.streams[0]
+      }
+      peer.onconnectionstatechange = () => {
+        if (!peer) return
+        if (realtimePeerRef.current !== peer) return
+        if (peer.connectionState === 'connected') {
+          setIsRealtimeVoiceConnecting(false)
+          setIsRealtimeVoiceActive(true)
+          setRealtimeVoiceStatus('Live voice aktiv. Åtgärder kräver fortsatt bekräftelse i chatten.')
+        }
+        if (['failed', 'closed', 'disconnected'].includes(peer.connectionState)) {
+          stopRealtimeVoice('Live voice är frånkopplad.')
+        }
+      }
+
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      realtimeMediaStreamRef.current = mediaStream
+      for (const track of mediaStream.getAudioTracks()) {
+        peer.addTrack(track, mediaStream)
+      }
+
+      const dataChannel = peer.createDataChannel('oai-events')
+      realtimeDataChannelRef.current = dataChannel
+      dataChannel.onopen = () => {
+        setRealtimeVoiceStatus('Live voice lyssnar.')
+      }
+      dataChannel.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as { type?: string; error?: { message?: string } }
+          if (data.type === 'error') {
+            const message = data.error?.message || 'Live voice fick ett okänt fel.'
+            setRealtimeVoiceStatus(message)
+            addAssistantNotice(`Live voice kunde inte fortsätta: ${message}`)
+          } else if (data.type === 'response.audio_transcript.done') {
+            setRealtimeVoiceStatus('Live voice svarade.')
+          } else if (data.type === 'input_audio_buffer.speech_started') {
+            setRealtimeVoiceStatus('Live voice lyssnar...')
+          } else if (data.type === 'input_audio_buffer.speech_stopped') {
+            setRealtimeVoiceStatus('Bearbetar live voice...')
+          }
+        } catch {
+          // Ignore non-JSON realtime diagnostics.
+        }
+      }
+
+      const offer = await peer.createOffer()
+      await peer.setLocalDescription(offer)
+      if (!offer.sdp) {
+        throw new Error('Kunde inte skapa WebRTC-offer.')
+      }
+
+      const response = await fetch('/api/ai/chat/realtime-call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sdp: offer.sdp,
+          isAthleteChat: true,
+          pageContext: pageContextRef.current,
+        }),
+      })
+      const answerSdp = await response.text()
+      if (!response.ok) {
+        let message = 'Kunde inte starta OpenAI live voice.'
+        try {
+          const parsed = JSON.parse(answerSdp) as { error?: string }
+          message = parsed.error || message
+        } catch {
+          if (answerSdp.trim()) message = answerSdp.trim()
+        }
+        throw new Error(message)
+      }
+
+      await peer.setRemoteDescription({ type: 'answer', sdp: answerSdp })
+      setRealtimeVoiceStatus('Ansluter live voice...')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Kunde inte starta live voice.'
+      stopRealtimeVoice(message)
+      addAssistantNotice(`Jag kunde inte starta live voice: ${message}`)
+      toast({
+        title: 'Live voice kunde inte starta',
+        description: message,
+        variant: 'destructive',
+      })
+    }
+  }, [
+    addAssistantNotice,
+    cancelVoiceAutoSend,
+    isRealtimeVoiceActive,
+    isRealtimeVoiceConnecting,
+    stopAssistantSpeech,
+    stopRealtimeVoice,
+    toast,
+  ])
+
+  const toggleRealtimeVoice = useCallback(() => {
+    if (isRealtimeVoiceActive || isRealtimeVoiceConnecting) {
+      stopRealtimeVoice('Live voice är avstängd.')
+      return
+    }
+    void startRealtimeVoice()
+  }, [
+    isRealtimeVoiceActive,
+    isRealtimeVoiceConnecting,
+    startRealtimeVoice,
+    stopRealtimeVoice,
+  ])
 
   // Manual input state
   const [input, setInput] = useState('')
@@ -395,7 +942,7 @@ export function AthleteFloatingChat({
 
       const mentalPrepPageContext = buildMentalPrepPageContext(mentalPrepContext!)
 
-      sendMessage({ text: message }, {
+      void sendMessage({ text: message }, {
         body: {
           conversationId: convId,
           intent: selectedIntent,
@@ -410,7 +957,7 @@ export function AthleteFloatingChat({
       setMentalPrepContext(null)
     }
 
-    startMentalPrepChat()
+    void startMentalPrepChat()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mentalPrepContext, configReady, consentStatus, messages.length])
 
@@ -443,6 +990,35 @@ export function AthleteFloatingChat({
       setDetectedProgram(null)
     }
   }, [messages, isLoading])
+
+  useEffect(() => {
+    if (isLoading || !messages.length) return
+
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage.role !== 'assistant') return
+    if (spokenAssistantMessageIdsRef.current.has(lastMessage.id)) return
+
+    const textContent = getMessageTextContent(lastMessage.parts)
+    if (!textContent) return
+
+    spokenAssistantMessageIdsRef.current.add(lastMessage.id)
+    const timeout = window.setTimeout(() => {
+      void speakAssistantReply(textContent)
+    }, 0)
+    return () => window.clearTimeout(timeout)
+  }, [isLoading, messages, speakAssistantReply])
+
+  useEffect(() => {
+    if (!assistantNotices.length) return
+    const latestNotice = assistantNotices[assistantNotices.length - 1]
+    if (spokenAssistantNoticeIdsRef.current.has(latestNotice.id)) return
+
+    spokenAssistantNoticeIdsRef.current.add(latestNotice.id)
+    const timeout = window.setTimeout(() => {
+      void speakAssistantReply(latestNotice.content)
+    }, 0)
+    return () => window.clearTimeout(timeout)
+  }, [assistantNotices, speakAssistantReply])
 
   async function handlePublishProgram() {
     if (!detectedProgram?.program) return
@@ -479,7 +1055,7 @@ export function AthleteFloatingChat({
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Fel vid sparning',
         description: 'Ett oväntat fel uppstod.',
@@ -497,12 +1073,16 @@ export function AthleteFloatingChat({
     }
   }, [isOpen])
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!input.trim() || isLoading || !configReady) return
+  const sendAthleteChatMessage = useCallback(async (rawMessage: string) => {
+    const messageContent = rawMessage.trim()
+    if (!messageContent || isLoading) return
+    if (!configReady) {
+      addAssistantNotice('Jag kan inte skicka just nu eftersom AI-inställningarna inte är färdigladdade. Vänta några sekunder och försök igen.')
+      return
+    }
 
-    // Create conversation if none exists
-    if (!conversationId) {
+    let nextConversationId = conversationId
+    if (!nextConversationId) {
       try {
         const response = await fetch('/api/ai/conversations', {
           method: 'POST',
@@ -514,17 +1094,16 @@ export function AthleteFloatingChat({
         })
         const data = await response.json()
         if (data.conversation?.id) {
-          setConversationId(data.conversation.id)
+          nextConversationId = data.conversation.id
+          setConversationId(nextConversationId)
         }
       } catch (error) {
         console.error('Failed to create conversation:', error)
       }
     }
 
-    const messageContent = input.trim()
     setInput('')
 
-    // Include mental prep context if active (for follow-up messages in the session)
     const mentalPrepPageCtx = mentalPrepContextRef.current
       ? buildMentalPrepPageContext(mentalPrepContextRef.current)
       : ''
@@ -532,9 +1111,9 @@ export function AthleteFloatingChat({
       .filter(Boolean)
       .join('\n')
 
-    sendMessage({ text: messageContent }, {
+    void sendMessage({ text: messageContent }, {
       body: {
-        conversationId,
+        conversationId: nextConversationId,
         intent: selectedIntent,
         isAthleteChat: true, // This triggers athlete mode
         clientId,
@@ -542,30 +1121,159 @@ export function AthleteFloatingChat({
         pageContext: combinedPageContext || undefined,
       },
     })
+  }, [
+    addAssistantNotice,
+    clientId,
+    configReady,
+    conversationId,
+    isLoading,
+    memoryContext,
+    selectedIntent,
+    sendMessage,
+  ])
+
+  const scheduleVoiceAutoSend = useCallback((message: string) => {
+    cancelVoiceAutoSend()
+    setIsVoiceAutoSendPending(true)
+    voiceAutoSendTimeoutRef.current = setTimeout(() => {
+      voiceAutoSendTimeoutRef.current = null
+      setIsVoiceAutoSendPending(false)
+      void sendAthleteChatMessage(message)
+    }, 2000)
+  }, [cancelVoiceAutoSend, sendAthleteChatMessage])
+
+  const transcribeVoiceBlob = useCallback(async (audioBlob: Blob): Promise<string> => {
+    setIsTranscribingVoice(true)
+    try {
+      const formData = new FormData()
+      const extension = getVoiceFileExtension(audioBlob.type)
+      formData.append('audio', audioBlob, `athlete-floating-chat-voice.${extension}`)
+      formData.append('isAthleteChat', 'true')
+
+      const response = await fetch('/api/ai/chat/transcribe-audio', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Kunde inte transkribera röstmeddelandet.')
+      }
+
+      const text = typeof data.text === 'string' ? data.text.trim() : ''
+      if (!text) {
+        throw new Error('Jag hörde inget tydligt i röstmeddelandet.')
+      }
+      return text
+    } finally {
+      setIsTranscribingVoice(false)
+    }
+  }, [])
+
+  async function handleVoiceButtonClick() {
+    if (isVoiceRecording) {
+      stopRecording()
+      return
+    }
+
+    if (isTranscribingVoice || voiceRecordingPromiseRef.current) return
+    cancelVoiceAutoSend()
+
+    if (!isVoiceSupported) {
+      const message = 'Röstinmatning stöds inte i den här webbläsaren.'
+      addAssistantNotice(message)
+      toast({
+        title: 'Röstinmatning stöds inte',
+        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    let recordingPromise: Promise<Blob> | null = null
+    try {
+      recordingPromise = startRecording()
+      voiceRecordingPromiseRef.current = recordingPromise
+      const audioBlob = await recordingPromise
+      if (voiceRecordingPromiseRef.current !== recordingPromise) return
+      voiceRecordingPromiseRef.current = null
+
+      if (audioBlob.size === 0) {
+        throw new Error('Jag fick ingen ljuddata från mikrofonen.')
+      }
+
+      const transcript = await transcribeVoiceBlob(audioBlob)
+      const trimmedInput = input.trim()
+      const nextInputValue = trimmedInput ? `${trimmedInput}\n${transcript}` : transcript
+      setInput(nextInputValue)
+      textareaRef.current?.focus()
+      if (isVoiceAutoSendEnabled) {
+        scheduleVoiceAutoSend(nextInputValue)
+        toast({
+          title: 'Röst transkriberad',
+          description: 'Jag skickar meddelandet automatiskt om en liten stund.',
+        })
+      } else {
+        toast({
+          title: 'Röst transkriberad',
+          description: 'Texten ligger i meddelandefältet.',
+        })
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Kunde inte hantera röstmeddelandet.'
+      addAssistantNotice(`Jag kunde inte använda röstmeddelandet: ${message}`)
+      toast({
+        title: 'Kunde inte använda rösten',
+        description: message,
+        variant: 'destructive',
+      })
+    } finally {
+      if (voiceRecordingPromiseRef.current === recordingPromise) {
+        voiceRecordingPromiseRef.current = null
+      }
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    cancelVoiceAutoSend()
+    await sendAthleteChatMessage(input)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSubmit(e)
+      void handleSubmit(e)
     }
   }
 
   function handleClose() {
+    stopAssistantSpeech()
+    cancelVoiceAutoSend()
+    stopRealtimeVoice()
     setIsOpen(false)
     setMessages([])
+    setAssistantNotices([])
     setConversationId(null)
     setInput('')
     setMentalPrepContext(null)
     mentalPrepContextRef.current = null
+    spokenAssistantMessageIdsRef.current.clear()
+    spokenAssistantNoticeIdsRef.current.clear()
   }
 
   function handleNewChat() {
+    stopAssistantSpeech()
+    cancelVoiceAutoSend()
+    stopRealtimeVoice()
     setMessages([])
+    setAssistantNotices([])
     setConversationId(null)
     setInput('')
     setMentalPrepContext(null)
     mentalPrepContextRef.current = null
+    spokenAssistantMessageIdsRef.current.clear()
+    spokenAssistantNoticeIdsRef.current.clear()
   }
 
   function handleQuickPrompt(prompt: string) {
@@ -635,6 +1343,31 @@ export function AthleteFloatingChat({
       </Popover>
     )
   }
+
+  const voiceStatusMessage = isVoiceRecording
+    ? `Spelar in ${formatVoiceDuration(voiceDuration)}`
+    : isTranscribingVoice
+      ? 'Skriver ut röstmeddelandet...'
+      : voiceRecorderError
+        ? voiceRecorderError
+        : null
+  const voiceButtonLabel = isVoiceRecording
+    ? 'Stoppa inspelning'
+    : isTranscribingVoice
+      ? 'Transkriberar röst'
+      : 'Starta röstinmatning'
+  const spokenRepliesLabel = isSpokenRepliesEnabled
+    ? 'Stäng av röstsvar'
+    : 'Slå på röstsvar'
+  const voiceAutoSendLabel = isVoiceAutoSendEnabled
+    ? 'Stäng av automatisk röstsändning'
+    : 'Slå på automatisk röstsändning'
+  const voiceOperatorModeLabel = isVoiceOperatorModeEnabled
+    ? 'Stäng av voice operator'
+    : 'Slå på voice operator'
+  const realtimeVoiceLabel = isRealtimeVoiceActive || isRealtimeVoiceConnecting
+    ? 'Stäng av live voice'
+    : 'Starta live voice'
 
   // Don't render if AI is not configured
   if (!isOpen && hasAIAccess === false) {
@@ -880,12 +1613,12 @@ export function AthleteFloatingChat({
         <div
           onPointerDown={!isExpanded ? handlePanelDragStart : undefined}
           className={cn(
-            'flex items-center gap-2 touch-none',
+            'flex min-w-0 items-center gap-2 touch-none',
             !isExpanded && 'cursor-grab active:cursor-grabbing'
           )}
         >
-          <Bot className="h-5 w-5 text-white" />
-          <span className="font-semibold text-white">AI-assistent</span>
+          <Bot className="h-5 w-5 shrink-0 text-white" />
+          <span className="truncate font-semibold text-white">AI-assistent</span>
           {renderModelBadge()}
           {/* Usage meter - only show if there's a limit */}
           {subscriptionStatus && subscriptionStatus.limit > 0 && subscriptionStatus.limit !== -1 && (
@@ -898,7 +1631,68 @@ export function AthleteFloatingChat({
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleRealtimeVoice}
+            disabled={isTranscribingVoice || isVoiceRecording}
+            className={cn(
+              'h-8 w-8 text-white hover:bg-white/20',
+              (isRealtimeVoiceActive || isRealtimeVoiceConnecting) && 'bg-white/20 ring-1 ring-white/40'
+            )}
+            title={realtimeVoiceLabel}
+            aria-label={realtimeVoiceLabel}
+          >
+            {isRealtimeVoiceActive || isRealtimeVoiceConnecting ? (
+              <PhoneOff className="h-4 w-4" />
+            ) : (
+              <Radio className="h-4 w-4" />
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleVoiceOperatorMode}
+            className={cn(
+              'h-8 w-8 text-white hover:bg-white/20',
+              isVoiceOperatorModeEnabled && 'bg-white/20 ring-1 ring-white/40'
+            )}
+            title={voiceOperatorModeLabel}
+            aria-label={voiceOperatorModeLabel}
+          >
+            <Headphones className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleVoiceAutoSend}
+            className={cn(
+              'h-8 w-8 text-white hover:bg-white/20',
+              isVoiceAutoSendEnabled && 'bg-white/15'
+            )}
+            title={voiceAutoSendLabel}
+            aria-label={voiceAutoSendLabel}
+          >
+            <Zap className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSpokenReplies}
+            className={cn(
+              'h-8 w-8 text-white hover:bg-white/20',
+              isSpokenRepliesEnabled && 'bg-white/15'
+            )}
+            title={spokenRepliesLabel}
+            aria-label={spokenRepliesLabel}
+          >
+            {isSpokenRepliesEnabled ? (
+              <Volume2 className="h-4 w-4" />
+            ) : (
+              <VolumeX className="h-4 w-4" />
+            )}
+          </Button>
           <MemoryIndicator
             clientId={clientId}
             onMemoryContextReady={setMemoryContext}
@@ -935,9 +1729,47 @@ export function AthleteFloatingChat({
         </div>
       </div>
 
+      {isVoiceOperatorModeEnabled && (
+        <div className="px-3 py-2 border-b bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Headphones className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">Voice operator aktiv: mikrofon, auto-send och röstsvar är på</span>
+          </div>
+          <span className="shrink-0 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium">
+            Bekräftar åtgärder
+          </span>
+        </div>
+      )}
+
+      {(isRealtimeVoiceActive || isRealtimeVoiceConnecting || realtimeVoiceStatus) && (
+        <div className="px-3 py-2 border-b bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            {isRealtimeVoiceConnecting ? (
+              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+            ) : (
+              <Radio className="h-3.5 w-3.5 shrink-0" />
+            )}
+            <span className="truncate">
+              {realtimeVoiceStatus || 'Live voice aktiv'}
+            </span>
+          </div>
+          {(isRealtimeVoiceActive || isRealtimeVoiceConnecting) && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => stopRealtimeVoice('Live voice är avstängd.')}
+              className="h-6 px-2 text-xs hover:bg-emerald-500/10"
+            >
+              Stoppa
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Messages */}
       <ScrollArea className="flex-1 p-4">
-        {messages.length === 0 ? (
+        {messages.length === 0 && assistantNotices.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <Sparkles className="h-10 w-10 text-emerald-500 mb-3" />
             <h3 className="font-medium mb-1">Hej{athleteName ? `, ${athleteName}` : ''}!</h3>
@@ -1070,6 +1902,17 @@ export function AthleteFloatingChat({
                 </div>
               )
             })}
+            {assistantNotices.map((notice) => (
+              <ChatMessage
+                key={notice.id}
+                message={{
+                  id: notice.id,
+                  role: 'assistant',
+                  content: notice.content,
+                  createdAt: notice.createdAt,
+                }}
+              />
+            ))}
             {knowledgeSkills.length > 0 && !isLoading && (
               <div className="flex items-center gap-1.5 flex-wrap px-1 py-1">
                 <BookOpen className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -1119,28 +1962,82 @@ export function AthleteFloatingChat({
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-3 border-t">
-        <div className="flex gap-2">
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Skriv ett meddelande..."
-            className="min-h-[44px] max-h-[120px] resize-none"
-            disabled={isLoading}
-          />
-          <Button
-            type="submit"
-            size="icon"
-            className="h-[44px] w-[44px] bg-emerald-600 hover:bg-emerald-700"
-            disabled={!input.trim() || isLoading}
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => {
+                cancelVoiceAutoSend()
+                setInput(e.target.value)
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder="Skriv ett meddelande..."
+              className="min-h-[44px] max-h-[120px] resize-none"
+              disabled={isLoading}
+            />
+            <Button
+              type="button"
+              variant={isVoiceRecording ? 'destructive' : 'outline'}
+              disabled={isTranscribingVoice}
+              onClick={() => { void handleVoiceButtonClick() }}
+              className="h-auto px-3"
+              title={voiceButtonLabel}
+              aria-label={voiceButtonLabel}
+            >
+              {isTranscribingVoice ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isVoiceRecording ? (
+                <Square className="h-4 w-4" />
+              ) : (
+                <Mic className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              type="submit"
+              size="icon"
+              className="h-auto px-3 bg-emerald-600 hover:bg-emerald-700"
+              disabled={!input.trim() || isLoading || isVoiceRecording || isTranscribingVoice}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          {voiceStatusMessage && (
+            <div
+              className={cn(
+                'rounded-md px-3 py-2 text-xs',
+                voiceRecorderError && !isVoiceRecording && !isTranscribingVoice
+                  ? 'bg-destructive/10 text-destructive'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              {voiceStatusMessage}
+            </div>
+          )}
+          {isVoiceAutoSendPending && (
+            <div className="flex items-center justify-between gap-2 rounded-md bg-blue-500/10 px-3 py-2 text-xs text-blue-700 dark:text-blue-300">
+              <span>Skickar röstmeddelandet snart...</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={cancelVoiceAutoSend}
+                className="h-6 px-2 text-xs hover:bg-blue-500/10"
+              >
+                Avbryt
+              </Button>
+            </div>
+          )}
+          {isSpokenRepliesEnabled && (isGeneratingAssistantAudio || isSpeakingAssistant || voicePlaybackStatus) && (
+            <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+              {voicePlaybackStatus || (isSpeakingAssistant ? 'Läser upp svaret...' : 'Skapar AI-röst...')}
+              <span className="ml-1">Rösten är AI-genererad.</span>
+            </div>
+          )}
         </div>
       </form>
     </div>
