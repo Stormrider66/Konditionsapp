@@ -28,6 +28,7 @@ import {
   Square,
   Volume2,
   VolumeX,
+  Zap,
 } from 'lucide-react'
 import { ChatMessage } from './ChatMessage'
 import { ChatNavigationCard, type ChatNavigationResult } from './ChatNavigationCard'
@@ -260,6 +261,7 @@ export function FloatingAIChat({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const assistantSpeechVoiceRef = useRef<SpeechSynthesisVoice | null>(null)
   const spokenAssistantMessageIdsRef = useRef<Set<string>>(new Set())
+  const voiceAutoSendTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
@@ -285,6 +287,8 @@ export function FloatingAIChat({
   const [isSpokenRepliesEnabled, setIsSpokenRepliesEnabled] = useState(false)
   const [isSpeechSupported, setIsSpeechSupported] = useState(false)
   const [isSpeakingAssistant, setIsSpeakingAssistant] = useState(false)
+  const [isVoiceAutoSendEnabled, setIsVoiceAutoSendEnabled] = useState(false)
+  const [isVoiceAutoSendPending, setIsVoiceAutoSendPending] = useState(false)
   const voiceRecordingPromiseRef = useRef<Promise<Blob> | null>(null)
   const addAssistantNotice = useCallback((content: string) => {
     setAssistantNotices((current) => [
@@ -304,6 +308,22 @@ export function FloatingAIChat({
     error: voiceRecorderError,
     isSupported: isVoiceSupported,
   } = useAudioRecorder()
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const frame = window.requestAnimationFrame(() => {
+      setIsVoiceAutoSendEnabled(window.localStorage.getItem('floating-ai-voice-auto-send') === 'true')
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (voiceAutoSendTimeoutRef.current) {
+        clearTimeout(voiceAutoSendTimeoutRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return
@@ -380,6 +400,23 @@ export function FloatingAIChat({
       return next
     })
   }, [addAssistantNotice, isSpeechSupported, stopAssistantSpeech, toast])
+
+  const cancelVoiceAutoSend = useCallback(() => {
+    if (voiceAutoSendTimeoutRef.current) {
+      clearTimeout(voiceAutoSendTimeoutRef.current)
+      voiceAutoSendTimeoutRef.current = null
+    }
+    setIsVoiceAutoSendPending(false)
+  }, [])
+
+  const toggleVoiceAutoSend = useCallback(() => {
+    setIsVoiceAutoSendEnabled((current) => {
+      const next = !current
+      window.localStorage.setItem('floating-ai-voice-auto-send', String(next))
+      if (!next) cancelVoiceAutoSend()
+      return next
+    })
+  }, [cancelVoiceAutoSend])
 
   // Track if context is available (data-rich or auto-context with concepts)
   const hasContext = !!pageContext && (
@@ -800,6 +837,7 @@ export function FloatingAIChat({
     function handleCoachChatIntent(event: Event) {
       const detail = (event as CustomEvent<CoachFloatingChatEvent>).detail
       if (!detail?.message) return
+      cancelVoiceAutoSend()
       if (detail.open !== false) {
         setIsOpen(true)
       }
@@ -808,7 +846,71 @@ export function FloatingAIChat({
 
     window.addEventListener(COACH_FLOATING_CHAT_EVENT, handleCoachChatIntent)
     return () => window.removeEventListener(COACH_FLOATING_CHAT_EVENT, handleCoachChatIntent)
-  }, [])
+  }, [cancelVoiceAutoSend])
+
+  const sendChatMessage = useCallback(async (message: string) => {
+    const messageContent = message.trim()
+    if (!messageContent || isLoading) return
+    if (!modelConfig) {
+      addAssistantNotice('Jag kan inte skicka just nu eftersom AI-modellen inte är färdigladdad. Vänta några sekunder och försök igen.')
+      return
+    }
+    setAssistantNotices([])
+
+    let nextConversationId = conversationId
+    if (!nextConversationId) {
+      try {
+        const response = await fetch('/api/ai/conversations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            modelUsed: modelConfig.model,
+            provider: modelConfig.provider,
+            athleteId,
+          }),
+        })
+        const data = await response.json()
+        if (data.conversation?.id) {
+          nextConversationId = data.conversation.id
+          setConversationId(nextConversationId)
+        }
+      } catch (error) {
+        console.error('Failed to create conversation:', error)
+      }
+    }
+
+    setInput('')
+    void sendMessage({ text: messageContent }, {
+      body: {
+        conversationId: nextConversationId,
+        model: modelConfig.model,
+        provider: modelConfig.provider,
+        athleteId,
+        documentIds: [],
+        webSearchEnabled: false,
+        pageContext: contextStringRef.current,
+        businessSlug: pathBusinessSlug,
+      },
+    })
+  }, [
+    addAssistantNotice,
+    athleteId,
+    conversationId,
+    isLoading,
+    modelConfig,
+    pathBusinessSlug,
+    sendMessage,
+  ])
+
+  const scheduleVoiceAutoSend = useCallback((message: string) => {
+    cancelVoiceAutoSend()
+    setIsVoiceAutoSendPending(true)
+    voiceAutoSendTimeoutRef.current = setTimeout(() => {
+      voiceAutoSendTimeoutRef.current = null
+      setIsVoiceAutoSendPending(false)
+      void sendChatMessage(message)
+    }, 2000)
+  }, [cancelVoiceAutoSend, sendChatMessage])
 
   const transcribeVoiceBlob = useCallback(async (audioBlob: Blob): Promise<string> => {
     setIsTranscribingVoice(true)
@@ -848,6 +950,7 @@ export function FloatingAIChat({
     }
 
     if (isTranscribingVoice || voiceRecordingPromiseRef.current) return
+    cancelVoiceAutoSend()
 
     if (!isVoiceSupported) {
       const message = 'Röstinmatning stöds inte i den här webbläsaren.'
@@ -873,15 +976,22 @@ export function FloatingAIChat({
       }
 
       const transcript = await transcribeVoiceBlob(audioBlob)
-      setInput((current) => {
-        const trimmed = current.trim()
-        return trimmed ? `${trimmed}\n${transcript}` : transcript
-      })
+      const trimmedInput = input.trim()
+      const nextInputValue = trimmedInput ? `${trimmedInput}\n${transcript}` : transcript
+      setInput(nextInputValue)
       textareaRef.current?.focus()
-      toast({
-        title: 'Röst transkriberad',
-        description: 'Texten ligger i meddelandefältet.',
-      })
+      if (isVoiceAutoSendEnabled) {
+        scheduleVoiceAutoSend(nextInputValue)
+        toast({
+          title: 'Röst transkriberad',
+          description: 'Jag skickar meddelandet automatiskt om en liten stund.',
+        })
+      } else {
+        toast({
+          title: 'Röst transkriberad',
+          description: 'Texten ligger i meddelandefältet.',
+        })
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Kunde inte hantera röstmeddelandet.'
       addAssistantNotice(`Jag kunde inte använda röstmeddelandet: ${message}`)
@@ -906,61 +1016,20 @@ export function FloatingAIChat({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!input.trim() || isLoading) return
-    if (!modelConfig) {
-      addAssistantNotice('Jag kan inte skicka just nu eftersom AI-modellen inte är färdigladdad. Vänta några sekunder och försök igen.')
-      return
-    }
-    setAssistantNotices([])
-
-    // Create conversation if none exists
-    if (!conversationId) {
-      try {
-        const response = await fetch('/api/ai/conversations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            modelUsed: modelConfig.model,
-            provider: modelConfig.provider,
-            athleteId,
-          }),
-        })
-        const data = await response.json()
-        if (data.conversation?.id) {
-          setConversationId(data.conversation.id)
-        }
-      } catch (error) {
-        console.error('Failed to create conversation:', error)
-      }
-    }
-
-    // Pass all dynamic values at submission time via options
-    // This ensures we use the current modelConfig and conversationId
-    const messageContent = input.trim()
-    setInput('') // Clear input
-    sendMessage({ text: messageContent }, {
-      body: {
-        conversationId,
-        model: modelConfig?.model,
-        provider: modelConfig?.provider,
-        athleteId,
-        documentIds: [],
-        webSearchEnabled: false,
-        pageContext: contextStringRef.current,
-        businessSlug: pathBusinessSlug,
-      },
-    })
+    cancelVoiceAutoSend()
+    await sendChatMessage(input)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSubmit(e)
+      void handleSubmit(e)
     }
   }
 
   function handleClose() {
     stopAssistantSpeech()
+    cancelVoiceAutoSend()
     setIsOpen(false)
     setMessages([])
     setAssistantNotices([])
@@ -971,6 +1040,7 @@ export function FloatingAIChat({
 
   function handleNewChat() {
     stopAssistantSpeech()
+    cancelVoiceAutoSend()
     setMessages([])
     setAssistantNotices([])
     setConversationId(null)
@@ -1094,6 +1164,9 @@ export function FloatingAIChat({
   const spokenRepliesLabel = isSpokenRepliesEnabled
     ? 'Stäng av röstsvar'
     : 'Slå på röstsvar'
+  const voiceAutoSendLabel = isVoiceAutoSendEnabled
+    ? 'Stäng av automatisk röstsändning'
+    : 'Slå på automatisk röstsändning'
 
   // Floating button (always visible)
   if (!isOpen) {
@@ -1227,6 +1300,19 @@ export function FloatingAIChat({
           {getProviderBadge()}
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleVoiceAutoSend}
+            className={cn(
+              'h-8 w-8 text-white hover:bg-white/20',
+              isVoiceAutoSendEnabled && 'bg-white/15'
+            )}
+            title={voiceAutoSendLabel}
+            aria-label={voiceAutoSendLabel}
+          >
+            <Zap className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -1524,7 +1610,10 @@ export function FloatingAIChat({
             <Textarea
               ref={textareaRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                cancelVoiceAutoSend()
+                setInput(e.target.value)
+              }}
               onKeyDown={handleKeyDown}
               placeholder="Skriv ett meddelande..."
               className="min-h-[44px] max-h-[120px] resize-none"
@@ -1569,6 +1658,20 @@ export function FloatingAIChat({
               )}
             >
               {voiceStatusMessage}
+            </div>
+          )}
+          {isVoiceAutoSendPending && (
+            <div className="flex items-center justify-between gap-2 rounded-md bg-blue-500/10 px-3 py-2 text-xs text-blue-700 dark:text-blue-300">
+              <span>Skickar röstmeddelandet snart...</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={cancelVoiceAutoSend}
+                className="h-6 px-2 text-xs hover:bg-blue-500/10"
+              >
+                Avbryt
+              </Button>
             </div>
           )}
           {isSpokenRepliesEnabled && isSpeakingAssistant && (
