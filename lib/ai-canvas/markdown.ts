@@ -22,6 +22,13 @@ export interface CanvasMarkdownBlock {
     direction: string
     detail?: string
   }>
+  chartType?: 'bar' | 'line'
+  unit?: string
+  points?: Array<{
+    label: string
+    value: number
+    detail?: string
+  }>
 }
 
 export function slugifyCanvasFilename(value: string): string {
@@ -99,6 +106,16 @@ export function canvasToMarkdown(title: string, blocks: CanvasMarkdownBlock[], i
       for (const trend of block.trends || []) {
         const detail = trend.detail ? ` - ${trend.detail}` : ''
         lines.push(`- **${trend.label}**: ${trend.value} (${trend.direction})${detail}`)
+      }
+    }
+
+    if (block.type === 'chart') {
+      if (block.content) lines.push(block.content, '')
+      lines.push('| Punkt | Värde | Detalj |', '| --- | --- | --- |')
+      for (const point of block.points || []) {
+        lines.push(
+          `| ${escapeMarkdownTableCell(point.label)} | ${point.value}${block.unit ? ` ${escapeMarkdownTableCell(block.unit)}` : ''} | ${escapeMarkdownTableCell(point.detail)} |`
+        )
       }
     }
 

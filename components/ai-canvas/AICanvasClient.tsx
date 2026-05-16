@@ -28,6 +28,17 @@ import {
   TrendingUp,
   Wand2,
 } from 'lucide-react'
+import {
+  Bar,
+  BarChart as RechartsBarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -52,6 +63,7 @@ type CanvasBlockType =
   | 'metric-row'
   | 'risk-list'
   | 'trend-summary'
+  | 'chart'
 
 type CanvasTemplateId = 'blank' | 'athlete-review' | 'weekly-briefing' | 'team-risk' | 'program-notes'
   | 'athlete-progress-report'
@@ -85,6 +97,13 @@ interface CanvasBlock {
     label: string
     value: string
     direction: 'up' | 'down' | 'flat'
+    detail?: string
+  }>
+  chartType?: 'bar' | 'line'
+  unit?: string
+  points?: Array<{
+    label: string
+    value: number
     detail?: string
   }>
   source?: 'manual' | 'ai' | 'template' | 'analytics'
@@ -434,6 +453,9 @@ function describeCanvasBlock(block: CanvasBlock): string {
       : null,
     block.trends?.length
       ? `Trender: ${block.trends.map((trend) => `${trend.label}: ${trend.value}`).join('; ')}`
+      : null,
+    block.points?.length
+      ? `Diagram: ${block.points.map((point) => `${point.label} ${point.value}`).join('; ')}`
       : null,
     block.columns?.length ? `Kolumner: ${block.columns.join(', ')}` : null,
   ].filter(Boolean)
@@ -1407,6 +1429,36 @@ function CanvasBlockView({
   isCreatingTask: boolean
   isRegenerating: boolean
 }) {
+  if (block.type === 'chart') {
+    return (
+      <article className="rounded-lg border border-slate-200 bg-white p-4">
+        <BlockHeader icon={BarChart3} title={block.title ?? 'Diagram'} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
+        {block.content && <p className="mt-2 text-sm leading-6 text-slate-600">{block.content}</p>}
+        <div className="mt-4 h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            {block.chartType === 'line' ? (
+              <LineChart data={block.points || []} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} width={42} />
+                <Tooltip formatter={(value) => [`${value}${block.unit ? ` ${block.unit}` : ''}`, 'Värde']} />
+                <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} />
+              </LineChart>
+            ) : (
+              <RechartsBarChart data={block.points || []} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} width={42} />
+                <Tooltip formatter={(value) => [`${value}${block.unit ? ` ${block.unit}` : ''}`, 'Värde']} />
+                <Bar dataKey="value" fill="#2563eb" radius={[4, 4, 0, 0]} />
+              </RechartsBarChart>
+            )}
+          </ResponsiveContainer>
+        </div>
+      </article>
+    )
+  }
+
   if (block.type === 'metric-row') {
     return (
       <article className="rounded-lg border border-slate-200 bg-white p-4">

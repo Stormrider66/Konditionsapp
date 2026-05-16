@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger'
 
 const canvasBlockSchema = z.object({
   id: z.string().optional(),
-  type: z.enum(['heading', 'text', 'checklist', 'table', 'insight', 'actions', 'metric-row', 'risk-list', 'trend-summary']),
+  type: z.enum(['heading', 'text', 'checklist', 'table', 'insight', 'actions', 'metric-row', 'risk-list', 'trend-summary', 'chart']),
   title: z.string().trim().max(120).optional(),
   content: z.string().trim().max(2000).optional(),
   items: z.array(z.string().trim().min(1).max(220)).max(20).optional(),
@@ -32,6 +32,13 @@ const canvasBlockSchema = z.object({
     direction: z.enum(['up', 'down', 'flat']),
     detail: z.string().trim().max(180).optional(),
   })).max(10).optional(),
+  chartType: z.enum(['bar', 'line']).optional(),
+  unit: z.string().trim().max(24).optional(),
+  points: z.array(z.object({
+    label: z.string().trim().min(1).max(40),
+    value: z.number().finite(),
+    detail: z.string().trim().max(120).optional(),
+  })).max(12).optional(),
   tone: z.enum(['neutral', 'positive', 'warning']).optional(),
   source: z.enum(['manual', 'ai', 'template', 'analytics']).optional(),
 })

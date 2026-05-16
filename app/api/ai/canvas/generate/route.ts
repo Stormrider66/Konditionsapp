@@ -39,7 +39,7 @@ const requestSchema = z.object({
 })
 
 const canvasBlockSchema = z.object({
-  type: z.enum(['heading', 'text', 'checklist', 'table', 'insight', 'actions', 'metric-row', 'risk-list', 'trend-summary']),
+  type: z.enum(['heading', 'text', 'checklist', 'table', 'insight', 'actions', 'metric-row', 'risk-list', 'trend-summary', 'chart']),
   title: z.string().trim().min(1).max(120).optional(),
   content: z.string().trim().max(1400).optional(),
   items: z.array(z.string().trim().min(1).max(180)).max(8).optional(),
@@ -63,6 +63,13 @@ const canvasBlockSchema = z.object({
     direction: z.enum(['up', 'down', 'flat']),
     detail: z.string().trim().max(180).optional(),
   })).max(10).optional(),
+  chartType: z.enum(['bar', 'line']).optional(),
+  unit: z.string().trim().max(24).optional(),
+  points: z.array(z.object({
+    label: z.string().trim().min(1).max(40),
+    value: z.number().finite(),
+    detail: z.string().trim().max(120).optional(),
+  })).max(12).optional(),
   tone: z.enum(['neutral', 'positive', 'warning']).optional(),
   source: z.enum(['manual', 'ai', 'template', 'analytics']).optional(),
 })
@@ -118,6 +125,7 @@ Rules:
 - Do not say that you changed, saved, messaged, scheduled, or updated anything.
 - Always include a short assistantMessage explaining what you created or why the request is limited.
 - For report templates, create polished deliverable-style sections with clear headings, evidence, recommendations, and next steps.
+- Use chart blocks only for simple numeric series. A chart block must include chartType, points with numeric value, and a short content summary. Do not invent numeric chart values.
 - Prefer clear Swedish.`
 
 function isNextRedirectError(error: unknown): boolean {

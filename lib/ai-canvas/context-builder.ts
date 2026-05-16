@@ -48,6 +48,19 @@ export type CanvasAnalyticsBlock =
       }>
       source: 'analytics'
     }
+  | {
+      type: 'chart'
+      title: string
+      content?: string
+      chartType: 'bar' | 'line'
+      unit?: string
+      points: Array<{
+        label: string
+        value: number
+        detail?: string
+      }>
+      source: 'analytics'
+    }
 
 interface BuildCanvasContextParams {
   userId: string
@@ -258,6 +271,12 @@ export async function buildCanvasAnalyticsBlocks({
     ...(readinessAnalytics?.trends ?? []),
     ...(noteAnalytics?.trends ?? []),
   ].slice(0, 8)
+  const charts = [
+    ...(testAnalytics?.charts ?? []),
+    ...(programAnalytics?.charts ?? []),
+    ...(sessionAnalytics?.charts ?? []),
+    ...(readinessAnalytics?.charts ?? []),
+  ].slice(0, 2)
 
   const blocks: CanvasAnalyticsBlock[] = [
     {
@@ -285,6 +304,8 @@ export async function buildCanvasAnalyticsBlocks({
       source: 'analytics',
     })
   }
+
+  blocks.push(...charts)
 
   return blocks
 }
@@ -553,6 +574,7 @@ interface AnalyticsResult {
   metric: Extract<CanvasAnalyticsBlock, { type: 'metric-row' }>['metrics'][number]
   risks: Extract<CanvasAnalyticsBlock, { type: 'risk-list' }>['risks']
   trends: Extract<CanvasAnalyticsBlock, { type: 'trend-summary' }>['trends']
+  charts: Extract<CanvasAnalyticsBlock, { type: 'chart' }>[]
 }
 
 async function getTestAnalytics(
@@ -584,6 +606,14 @@ async function getTestAnalytics(
   const staleNames = Array.from(latestByClient.entries())
     .filter(([, testDate]) => differenceInCalendarDays(now, testDate) > 120)
     .map(([clientId]) => clientNames.get(clientId) ?? 'Okänd atlet')
+  const testAgePoints = Array.from(latestByClient.entries())
+    .map(([clientId, testDate]) => ({
+      label: (clientNames.get(clientId) ?? 'Okänd').slice(0, 18),
+      value: differenceInCalendarDays(now, testDate),
+      detail: fmtDate(testDate),
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8)
 
   const coveragePercent = Math.round((latestByClient.size / Math.max(clientIds.length, 1)) * 100)
   const risks: AnalyticsResult['risks'] = []
@@ -622,6 +652,17 @@ async function getTestAnalytics(
         detail: 'Baserat på completed tests',
       },
     ],
+    charts: testAgePoints.length > 1
+      ? [{
+          type: 'chart',
+          title: 'Testålder per atlet',
+          content: 'Antal dagar sedan senaste slutförda test för atleter med testdata.',
+          chartType: 'bar',
+          unit: 'dagar',
+          points: testAgePoints,
+          source: 'analytics',
+        }]
+      : [],
   }
 }
 
@@ -684,6 +725,7 @@ async function getProgramAnalytics(
         detail: 'Aktiva program just nu',
       },
     ],
+    charts: [],
   }
 }
 
@@ -730,6 +772,7 @@ async function getSessionAnalytics(
         direction: planned > 0 ? 'flat' : 'down',
         detail: 'Baserat på programmens kommande träningsdagar',
       }],
+      charts: [],
     }
   }
 
@@ -769,6 +812,14 @@ async function getSessionAnalytics(
 
   const completed = logs.filter((log) => log.completed).length
   const activeClientIds = new Set(logs.map((log) => log.workout.day.week.program.clientId))
+  const logsByClient = logs.reduce((acc, log) => {
+    const clientId = log.workout.day.week.program.clientId
+    const current = acc.get(clientId) ?? { total: 0, completed: 0 }
+    current.total += 1
+    if (log.completed) current.completed += 1
+    acc.set(clientId, current)
+    return acc
+  }, new Map<string, { total: number; completed: number }>())
   const inactiveNames = clientIds
     .filter((clientId) => !activeClientIds.has(clientId))
     .map((clientId) => clientNames.get(clientId) ?? 'Okänd atlet')
@@ -796,6 +847,24 @@ async function getSessionAnalytics(
       direction: activeClientIds.size === clientIds.length ? 'flat' : 'down',
       detail: 'Atleter med loggade pass i perioden',
     }],
+    charts: logsByClient.size > 1
+      ? [{
+          type: 'chart',
+          title: 'Genomförda pass per atlet',
+          content: 'Antal genomförda pass i vald period baserat på workout logs.',
+          chartType: 'bar',
+          unit: 'pass',
+          points: Array.from(logsByClient.entries())
+            .map(([clientId, item]) => ({
+              label: (clientNames.get(clientId) ?? 'Okänd').slice(0, 18),
+              value: item.completed,
+              detail: `${item.completed}/${item.total} loggar`,
+            }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 8),
+          source: 'analytics',
+        }]
+      : [],
   }
 }
 
@@ -833,6 +902,15 @@ async function getReadinessAnalytics(
     ['MODIFY_MODERATE', 'MODIFY_SIGNIFICANT', 'REST_REQUIRED'].includes(metric.recommendedAction ?? '')
   )
   const painFlags = Array.from(latestByClient.values()).filter((metric) => (metric.injuryPain ?? 0) >= 4)
+  const readinessPoints = Array.from(latestByClient.values())
+    .filter((metric) => typeof metric.readinessScore === 'number')
+    .map((metric) => ({
+      label: (clientNames.get(metric.clientId) ?? 'Okänd').slice(0, 18),
+      value: metric.readinessScore ?? 0,
+      detail: fmtDate(metric.date),
+    }))
+    .sort((a, b) => a.value - b.value)
+    .slice(0, 8)
 
   const risks: AnalyticsResult['risks'] = []
   if (lowReadiness.length > 0) {
@@ -869,6 +947,17 @@ async function getReadinessAnalytics(
       direction: avgScore === null ? 'flat' : avgScore >= 7 ? 'up' : avgScore >= 5 ? 'flat' : 'down',
       detail: 'Genomsnitt i vald period',
     }],
+    charts: readinessPoints.length > 1
+      ? [{
+          type: 'chart',
+          title: 'Senaste readiness per atlet',
+          content: 'Senaste readinessscore per atlet i valt urval.',
+          chartType: 'bar',
+          unit: 'score',
+          points: readinessPoints,
+          source: 'analytics',
+        }]
+      : [],
   }
 }
 
@@ -894,5 +983,6 @@ async function getNoteAnalytics(clientIds: string[]): Promise<AnalyticsResult> {
       direction: notesCount > 0 ? 'flat' : 'down',
       detail: 'Baserat på klientanteckningar',
     }],
+    charts: [],
   }
 }
