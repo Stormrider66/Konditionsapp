@@ -412,12 +412,37 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
   const [queueOwnerFilter, setQueueOwnerFilter] = useState<'all' | TeamEventContentOwner>('all')
   const [queueStatusFilter, setQueueStatusFilter] = useState<'open' | TeamEventContentStatus>('open')
   const [calendarPermissions, setCalendarPermissions] = useState<TeamCalendarPermissions | null>(null)
+  const [assigningEventId, setAssigningEventId] = useState<string | null>(null)
+
+  const weekDates = getWeekDates(weekBase)
+  const monthDates = getMonthDates(weekBase)
+  const rangeStart = viewMode === 'planning' ? monthDates[0] : weekDates[0]
+  const rangeEnd = new Date(viewMode === 'planning' ? monthDates[monthDates.length - 1] : weekDates[6])
+  rangeEnd.setHours(23, 59, 59, 999)
+
+  // Stabilize the ISO strings outside the dep array — react-hooks v6
+  // requires deps to be simple expressions (no method calls).
+  const rangeStartIso = rangeStart.toISOString()
+  const rangeEndIso = rangeEnd.toISOString()
+  const creatableTypes = calendarPermissions?.creatableTypes ?? DEFAULT_CREATABLE_TYPES
+  const isPhysicalTrainerCalendar = calendarPermissions?.role === 'PHYSICAL_TRAINER'
+  const canCreateType = (type: TeamEventType) => creatableTypes.includes(type)
+  const canAssignContentType = (type: string) => calendarPermissions?.assignableContentTypes.includes(type as TeamEventType) ?? true
   const contentQueue = events
     .filter(eventNeedsContent)
     .filter((event) => queueOwnerFilter === 'all' || event.contentOwner === queueOwnerFilter)
     .filter((event) => queueStatusFilter === 'open' || event.contentStatus === queueStatusFilter)
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
   const allOpenContentQueue = events.filter(eventNeedsContent)
+  const readyAssignmentQueue = events
+    .filter((event) => (
+      isPhysicalEvent(event) &&
+      event.contentStatus === 'CONTENT_READY' &&
+      Boolean(event.linkedWorkoutId) &&
+      !event.assignedBroadcastId &&
+      canAssignContentType(event.type)
+    ))
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
   const planningReviewQueue = events
     .filter(eventNeedsReview)
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
@@ -435,21 +460,6 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
     ice: 0,
     physical: 0,
   })
-
-  const weekDates = getWeekDates(weekBase)
-  const monthDates = getMonthDates(weekBase)
-  const rangeStart = viewMode === 'planning' ? monthDates[0] : weekDates[0]
-  const rangeEnd = new Date(viewMode === 'planning' ? monthDates[monthDates.length - 1] : weekDates[6])
-  rangeEnd.setHours(23, 59, 59, 999)
-
-  // Stabilize the ISO strings outside the dep array — react-hooks v6
-  // requires deps to be simple expressions (no method calls).
-  const rangeStartIso = rangeStart.toISOString()
-  const rangeEndIso = rangeEnd.toISOString()
-  const creatableTypes = calendarPermissions?.creatableTypes ?? DEFAULT_CREATABLE_TYPES
-  const isPhysicalTrainerCalendar = calendarPermissions?.role === 'PHYSICAL_TRAINER'
-  const canCreateType = (type: TeamEventType) => creatableTypes.includes(type)
-  const canAssignContentType = (type: string) => calendarPermissions?.assignableContentTypes.includes(type as TeamEventType) ?? true
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -508,6 +518,36 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
       }
     } catch {
       toast.error('Kunde inte ta bort händelse')
+    }
+  }
+
+  const handleAssignReadyWorkout = async (event: TeamEvent) => {
+    if (!canAssignContentType(event.type) || !event.linkedWorkoutId) {
+      toast.error('Din roll kan inte tilldela det här passet')
+      return
+    }
+
+    setAssigningEventId(event.id)
+    try {
+      const params = new URLSearchParams()
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const res = await fetch(`/api/coach/teams/${teamId}/events/${event.id}/assign-workout${params.size ? `?${params}` : ''}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
+        },
+        body: JSON.stringify({ notes: event.description || undefined }),
+      })
+
+      if (!res.ok) throw new Error('Failed')
+      const data = await res.json()
+      toast.success(`Tilldelat till ${data.assignmentCount ?? 'laget'} spelare`)
+      await fetchEvents()
+    } catch {
+      toast.error('Kunde inte tilldela passet')
+    } finally {
+      setAssigningEventId(null)
     }
   }
 
@@ -641,6 +681,80 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                       {new Date(event.startDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} · {issues.slice(0, 2).join(' · ')}
                     </div>
                   </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {readyAssignmentQueue.length > 0 && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-emerald-950">
+          <div className="flex flex-col gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <CheckCircle2 className="h-4 w-4" />
+                Färdiga pass att tilldela
+              </div>
+              <div className="text-xs text-emerald-900/80">
+                {readyAssignmentQueue.length} pass har kopplat workout-innehåll och kan skickas till laget.
+              </div>
+            </div>
+
+            <div className="flex max-w-full flex-wrap gap-2">
+              {readyAssignmentQueue.slice(0, 8).map((event) => {
+                const typeConfig = getTypeConfig(event.type)
+                const isAssigning = assigningEventId === event.id
+                return (
+                  <div
+                    key={event.id}
+                    className="rounded-md border border-emerald-300 bg-white/75 px-2.5 py-2 text-xs shadow-sm"
+                  >
+                    <button
+                      type="button"
+                      className="block w-full text-left hover:text-emerald-700"
+                      onClick={() => setSelectedEvent(event)}
+                    >
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={`inline-block h-2 w-2 rounded-full ${typeConfig.color}`} />
+                        <span className="font-medium">{event.title}</span>
+                        <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-[10px] text-emerald-800">
+                          {typeConfig.label}
+                        </Badge>
+                      </div>
+                      <div className="mt-1 text-emerald-900/75">
+                        {new Date(event.startDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+                        {!event.allDay && ` ${formatTime(event.startDate)}`}
+                      </div>
+                      {event.linkedWorkoutName && (
+                        <div className="mt-1 max-w-64 truncate text-emerald-900/75">
+                          {event.linkedWorkoutName}
+                        </div>
+                      )}
+                    </button>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <Button
+                        type="button"
+                        variant="default"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        disabled={Boolean(assigningEventId)}
+                        onClick={() => void handleAssignReadyWorkout(event)}
+                      >
+                        <Send className="mr-1 h-3 w-3" />
+                        {isAssigning ? 'Tilldelar...' : 'Tilldela laget'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => setSelectedEvent(event)}
+                      >
+                        Öppna
+                      </Button>
+                    </div>
+                  </div>
                 )
               })}
             </div>
