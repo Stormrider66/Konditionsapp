@@ -4180,6 +4180,34 @@
       "volume": "Volume: {value}%",
       "reasons": "Reasons:"
     },
+    "nutritionStatsPage": {
+      "ranges": {
+        "oneDay": "1 day",
+        "sevenDays": "7 days",
+        "thirtyDays": "30 days",
+        "ninetyDays": "90 days"
+      },
+      "errors": {
+        "fetchFailed": "Could not fetch stats",
+        "generic": "Something went wrong"
+      },
+      "actions": {
+        "retry": "Try again"
+      },
+      "empty": {
+        "title": "No nutrition data found",
+        "description": "Log meals to see stats and trends."
+      },
+      "summary": "{days} days logged · {meals} meals",
+      "foodHistory": {
+        "title": "Food history",
+        "description": "See your most eaten foods and nutrition sources"
+      },
+      "wrapped": {
+        "title": "Nutrition summary",
+        "description": "Your wrapped — monthly and yearly overview"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Nutrition timing",
       "subtitle": {

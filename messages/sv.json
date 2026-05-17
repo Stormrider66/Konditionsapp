@@ -4180,6 +4180,34 @@
       "volume": "Volym: {value}%",
       "reasons": "Anledningar:"
     },
+    "nutritionStatsPage": {
+      "ranges": {
+        "oneDay": "1 dag",
+        "sevenDays": "7 dagar",
+        "thirtyDays": "30 dagar",
+        "ninetyDays": "90 dagar"
+      },
+      "errors": {
+        "fetchFailed": "Kunde inte hämta statistik",
+        "generic": "Ett fel uppstod"
+      },
+      "actions": {
+        "retry": "Försök igen"
+      },
+      "empty": {
+        "title": "Ingen kostdata hittades",
+        "description": "Logga måltider för att se statistik och trender."
+      },
+      "summary": "{days} dagar loggade · {meals} måltider",
+      "foodHistory": {
+        "title": "Mathistorik",
+        "description": "Se dina mest ätna livsmedel och näringskällor"
+      },
+      "wrapped": {
+        "title": "Kostsammanfattning",
+        "description": "Din wrapped — månads- och årsöversikt"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Kosttajming",
       "subtitle": {

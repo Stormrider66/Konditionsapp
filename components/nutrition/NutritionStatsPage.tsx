@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -12,6 +12,7 @@ import { MealFrequencyChart } from './MealFrequencyChart'
 import { ProteinTimingCard } from './ProteinTimingCard'
 import { GoalAdherenceCard } from './GoalAdherenceCard'
 import { NutritionQualityCard, type NutritionQuality } from './NutritionQualityCard'
+import { useTranslations } from '@/i18n/client'
 
 interface DailyTotal {
   date: string
@@ -79,36 +80,37 @@ interface NutritionStatsPageProps {
 }
 
 const RANGE_OPTIONS = [
-  { value: '1d', label: '1 dag' },
-  { value: '7d', label: '7 dagar' },
-  { value: '30d', label: '30 dagar' },
-  { value: '90d', label: '90 dagar' },
+  { value: '1d', labelKey: 'ranges.oneDay' },
+  { value: '7d', labelKey: 'ranges.sevenDays' },
+  { value: '30d', labelKey: 'ranges.thirtyDays' },
+  { value: '90d', labelKey: 'ranges.ninetyDays' },
 ] as const
 
 export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPageProps) {
+  const t = useTranslations('components.nutritionStatsPage')
   const [range, setRange] = useState<string>('30d')
   const [data, setData] = useState<StatsData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchStats = async (selectedRange: string) => {
+  const fetchStats = useCallback(async (selectedRange: string) => {
     setIsLoading(true)
     setError(null)
     try {
       const res = await fetch(`/api/nutrition/stats?range=${selectedRange}`)
-      if (!res.ok) throw new Error('Kunde inte hämta statistik')
+      if (!res.ok) throw new Error(t('errors.fetchFailed'))
       const json = await res.json()
       setData(json)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : t('errors.generic'))
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [t])
 
   useEffect(() => {
     void fetchStats(range)
-  }, [range, clientId])
+  }, [fetchStats, range, clientId])
 
   if (isLoading) {
     return (
@@ -134,7 +136,7 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
             <p className="text-red-200">{error}</p>
             <Button variant="outline" onClick={() => fetchStats(range)} className="gap-2 border-red-500/30 hover:bg-red-500/20 text-red-200">
               <RefreshCw className="h-4 w-4" />
-              Försök igen
+              {t('actions.retry')}
             </Button>
           </div>
         </GlassCardContent>
@@ -147,9 +149,9 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
       <GlassCard>
         <GlassCardContent className="p-8">
           <div className="flex flex-col items-center justify-center text-center space-y-3">
-            <p className="text-slate-700 dark:text-slate-300 font-medium">Ingen kostdata hittades</p>
+            <p className="text-slate-700 dark:text-slate-300 font-medium">{t('empty.title')}</p>
             <p className="text-sm text-slate-500">
-              Logga måltider för att se statistik och trender.
+              {t('empty.description')}
             </p>
           </div>
         </GlassCardContent>
@@ -162,7 +164,7 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
       {/* Range selector */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          {data.summary.totalDaysLogged} dagar loggade &middot; {data.summary.totalMeals} måltider
+          {t('summary', { days: data.summary.totalDaysLogged, meals: data.summary.totalMeals })}
         </p>
         <div className="flex flex-wrap justify-end gap-1 bg-slate-100 dark:bg-white/5 rounded-lg p-1">
           {RANGE_OPTIONS.map((opt) => (
@@ -177,7 +179,7 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
               }`}
               onClick={() => setRange(opt.value)}
             >
-              {opt.label}
+              {t(opt.labelKey)}
             </Button>
           ))}
         </div>
@@ -191,8 +193,8 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
               <Apple className="h-5 w-5 text-emerald-400" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-slate-900 dark:text-white">Mathistorik</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Se dina mest ätna livsmedel och näringskällor</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">{t('foodHistory.title')}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{t('foodHistory.description')}</p>
             </div>
             <span className="text-xs text-slate-500">&rarr;</span>
           </GlassCardContent>
@@ -207,8 +209,8 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
               <Sparkles className="h-5 w-5 text-cyan-400" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-slate-900 dark:text-white">Kostsammanfattning</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Din wrapped — månads- och årsöversikt</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">{t('wrapped.title')}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{t('wrapped.description')}</p>
             </div>
             <span className="text-xs text-slate-500">&rarr;</span>
           </GlassCardContent>
