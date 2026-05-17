@@ -8,24 +8,19 @@
  */
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { format } from 'date-fns'
+import { enUS } from 'date-fns/locale'
 import { sv } from 'date-fns/locale'
 import { CalendarIcon, Loader2, Lightbulb } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
-const EXAMPLES = [
-  'Sprang 5 km på 28 minuter, lätt tempo',
-  '3x10 knäböj med 80 kg, 3x8 bänkpress 60 kg, 3x12 rodd',
-  'AMRAP 20 min: 5 pull-ups, 10 push-ups, 15 air squats. 8 rundor + 5 reps',
-  'Cyklade 45 minuter intervaller, 4x4 min i zon 4',
-  'Passade på gymmet, gjorde överkropp - axelpress, lateral raises, triceps',
-]
+const EXAMPLE_KEYS = ['run5k', 'strengthSets', 'amrap', 'cyclingIntervals', 'gymUpperBody']
 
 interface TextInputProps {
   onSubmit: (data: { text: string; workoutDate: Date }) => Promise<void>
@@ -33,9 +28,12 @@ interface TextInputProps {
 }
 
 export function TextInput({ onSubmit, isProcessing }: TextInputProps) {
+  const t = useTranslations('components.adHocTextInput')
+  const locale = useLocale()
   const [text, setText] = useState('')
   const [workoutDate, setWorkoutDate] = useState<Date>(new Date())
   const [showExamples, setShowExamples] = useState(false)
+  const dateLocale = locale === 'en' ? enUS : sv
 
   const handleSubmit = async () => {
     if (!text.trim()) return
@@ -51,14 +49,14 @@ export function TextInput({ onSubmit, isProcessing }: TextInputProps) {
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          Beskriv ditt pass
+          {t('title')}
         </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
         {/* Date picker */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">När genomfördes passet?</label>
+          <label className="text-sm font-medium">{t('date.label')}</label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -70,9 +68,9 @@ export function TextInput({ onSubmit, isProcessing }: TextInputProps) {
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {workoutDate ? (
-                  format(workoutDate, 'PPP', { locale: sv })
+                  format(workoutDate, 'PPP', { locale: dateLocale })
                 ) : (
-                  <span>Välj datum</span>
+                  <span>{t('date.placeholder')}</span>
                 )}
               </Button>
             </PopoverTrigger>
@@ -83,7 +81,7 @@ export function TextInput({ onSubmit, isProcessing }: TextInputProps) {
                 onSelect={(date) => date && setWorkoutDate(date)}
                 disabled={(date) => date > new Date()}
                 initialFocus
-                locale={sv}
+                locale={dateLocale}
               />
             </PopoverContent>
           </Popover>
@@ -92,7 +90,7 @@ export function TextInput({ onSubmit, isProcessing }: TextInputProps) {
         {/* Text input */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Beskrivning</label>
+            <label className="text-sm font-medium">{t('description.label')}</label>
             <Button
               variant="ghost"
               size="sm"
@@ -100,12 +98,12 @@ export function TextInput({ onSubmit, isProcessing }: TextInputProps) {
               onClick={() => setShowExamples(!showExamples)}
             >
               <Lightbulb className="h-3 w-3 mr-1" />
-              Visa exempel
+              {t('examples.show')}
             </Button>
           </div>
 
           <Textarea
-            placeholder="Beskriv vad du gjorde, t.ex. 'Körde 5 km löpning i 25 min' eller '3x10 knäböj, 3x8 bänkpress'"
+            placeholder={t('description.placeholder')}
             value={text}
             onChange={(e) => setText(e.target.value)}
             className="min-h-[150px] resize-none"
@@ -113,25 +111,28 @@ export function TextInput({ onSubmit, isProcessing }: TextInputProps) {
           />
 
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{text.length} tecken</span>
-            <span>Min 10 tecken rekommenderas</span>
+            <span>{t('description.characterCount', { count: text.length })}</span>
+            <span>{t('description.minRecommended')}</span>
           </div>
         </div>
 
         {/* Examples */}
         {showExamples && (
           <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
-            <p className="text-sm font-medium">Klicka på ett exempel:</p>
+            <p className="text-sm font-medium">{t('examples.title')}</p>
             <div className="space-y-2">
-              {EXAMPLES.map((example, i) => (
-                <button
-                  key={i}
-                  className="block w-full text-left text-sm p-2 rounded hover:bg-accent transition-colors"
-                  onClick={() => handleExampleClick(example)}
-                >
-                  &ldquo;{example}&rdquo;
-                </button>
-              ))}
+              {EXAMPLE_KEYS.map((exampleKey) => {
+                const example = t(`examples.items.${exampleKey}`)
+                return (
+                  <button
+                    key={exampleKey}
+                    className="block w-full text-left text-sm p-2 rounded hover:bg-accent transition-colors"
+                    onClick={() => handleExampleClick(example)}
+                  >
+                    &ldquo;{example}&rdquo;
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}
@@ -146,10 +147,10 @@ export function TextInput({ onSubmit, isProcessing }: TextInputProps) {
           {isProcessing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Analyserar...
+              {t('actions.analyzing')}
             </>
           ) : (
-            'Fortsätt'
+            t('actions.continue')
           )}
         </Button>
       </CardFooter>

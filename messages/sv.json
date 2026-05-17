@@ -5264,6 +5264,34 @@
       "log": "Logga pass",
       "description": "Registrera ett träningspass du gjort"
     },
+    "adHocTextInput": {
+      "title": "Beskriv ditt pass",
+      "date": {
+        "label": "När genomfördes passet?",
+        "placeholder": "Välj datum"
+      },
+      "description": {
+        "label": "Beskrivning",
+        "placeholder": "Beskriv vad du gjorde, t.ex. 'Körde 5 km löpning i 25 min' eller '3x10 knäböj, 3x8 bänkpress'",
+        "characterCount": "{count} tecken",
+        "minRecommended": "Min 10 tecken rekommenderas"
+      },
+      "examples": {
+        "show": "Visa exempel",
+        "title": "Klicka på ett exempel:",
+        "items": {
+          "run5k": "Sprang 5 km på 28 minuter, lätt tempo",
+          "strengthSets": "3x10 knäböj med 80 kg, 3x8 bänkpress 60 kg, 3x12 rodd",
+          "amrap": "AMRAP 20 min: 5 pull-ups, 10 push-ups, 15 air squats. 8 rundor + 5 reps",
+          "cyclingIntervals": "Cyklade 45 minuter intervaller, 4x4 min i zon 4",
+          "gymUpperBody": "Passade på gymmet, gjorde överkropp - axelpress, lateral raises, triceps"
+        }
+      },
+      "actions": {
+        "analyzing": "Analyserar...",
+        "continue": "Fortsätt"
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

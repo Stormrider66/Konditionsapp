@@ -5264,6 +5264,34 @@
       "log": "Log workout",
       "description": "Register a workout you completed"
     },
+    "adHocTextInput": {
+      "title": "Describe your workout",
+      "date": {
+        "label": "When did you complete the workout?",
+        "placeholder": "Choose date"
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Describe what you did, e.g. 'Ran 5 km in 25 min' or '3x10 squats, 3x8 bench press'",
+        "characterCount": "{count} characters",
+        "minRecommended": "At least 10 characters recommended"
+      },
+      "examples": {
+        "show": "Show examples",
+        "title": "Click an example:",
+        "items": {
+          "run5k": "Ran 5 km in 28 minutes, easy pace",
+          "strengthSets": "3x10 squats with 80 kg, 3x8 bench press 60 kg, 3x12 rows",
+          "amrap": "AMRAP 20 min: 5 pull-ups, 10 push-ups, 15 air squats. 8 rounds + 5 reps",
+          "cyclingIntervals": "Cycled 45 minutes of intervals, 4x4 min in zone 4",
+          "gymUpperBody": "Went to the gym, did upper body - shoulder press, lateral raises, triceps"
+        }
+      },
+      "actions": {
+        "analyzing": "Analyzing...",
+        "continue": "Continue"
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {
