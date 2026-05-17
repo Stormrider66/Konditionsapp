@@ -32,7 +32,7 @@ import {
   type TeamEventContentStatus,
   type TeamEventType,
 } from '@/lib/team-calendar/event-types'
-import { CheckCircle2, Dumbbell, ExternalLink, HeartPulse, Plus, Route, Send, Trash2, Zap } from 'lucide-react'
+import { CheckCircle2, Dumbbell, ExternalLink, HeartPulse, Plus, Printer, Route, Send, Trash2, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -266,6 +266,9 @@ export function EditEventDialog({
   const builderLink = builderLinkFor(type, businessSlug)
   const isPhysicalSession = PHYSICAL_TEAM_EVENT_TYPES.includes(type)
   const isIcePractice = type === 'PRACTICE' || type === 'ICE_PRACTICE'
+  const practiceSheetHref = event && businessSlug
+    ? `/${businessSlug}/coach/teams/${teamId}/calendar/${event.id}/practice-sheet`
+    : null
   const linkedWorkoutType = workoutTypeForEventType(type)
   const canAssignPersistedWorkout = Boolean(canAssignContent && event?.linkedWorkoutId && event?.linkedWorkoutType && !event.assignedBroadcastId)
   const isAssigned = Boolean(event?.assignedBroadcastId)
@@ -655,8 +658,18 @@ export function EditEventDialog({
                       Bygg passet i block med tid, fokus och coachingpunkter.
                     </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {practiceBlocks.reduce((sum, block) => sum + (Number(block.duration) || 0), 0)} min totalt
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-muted-foreground">
+                      {practiceBlocks.reduce((sum, block) => sum + (Number(block.duration) || 0), 0)} min totalt
+                    </div>
+                    {practiceSheetHref && (
+                      <Button asChild type="button" variant="outline" size="sm">
+                        <Link href={practiceSheetHref} target="_blank">
+                          <Printer className="mr-1.5 h-3.5 w-3.5" />
+                          Passblad
+                        </Link>
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
