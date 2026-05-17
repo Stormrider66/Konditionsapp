@@ -41,6 +41,9 @@ interface CreateEventDialogProps {
   trigger?: ReactNode
   defaultDate?: string
   defaultType?: TeamEventType
+  defaultTitle?: string
+  defaultContentStatus?: TeamEventContentStatus
+  defaultContentOwner?: TeamEventContentOwner
 }
 
 export function CreateEventDialog({
@@ -50,11 +53,14 @@ export function CreateEventDialog({
   trigger,
   defaultDate,
   defaultType = 'PRACTICE',
+  defaultTitle = '',
+  defaultContentStatus = 'PLANNED',
+  defaultContentOwner = 'physical_trainer',
 }: CreateEventDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const [title, setTitle] = useState('')
+  const [title, setTitle] = useState(defaultTitle)
   const [type, setType] = useState<TeamEventType>(defaultType)
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
@@ -62,8 +68,8 @@ export function CreateEventDialog({
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
   const [allDay, setAllDay] = useState(false)
-  const [contentOwner, setContentOwner] = useState<TeamEventContentOwner>('physical_trainer')
-  const [contentStatus, setContentStatus] = useState<TeamEventContentStatus>('PLANNED')
+  const [contentOwner, setContentOwner] = useState<TeamEventContentOwner>(defaultContentOwner)
+  const [contentStatus, setContentStatus] = useState<TeamEventContentStatus>(defaultContentStatus)
 
   const handleCreate = async () => {
     if (!title.trim() || !startDate) {
@@ -116,7 +122,7 @@ export function CreateEventDialog({
   }
 
   const resetForm = () => {
-    setTitle('')
+    setTitle(defaultTitle)
     setType(defaultType)
     setDescription('')
     setLocation('')
@@ -124,15 +130,18 @@ export function CreateEventDialog({
     setStartTime('')
     setEndTime('')
     setAllDay(false)
-    setContentOwner('physical_trainer')
-    setContentStatus('PLANNED')
+    setContentOwner(defaultContentOwner)
+    setContentStatus(defaultContentStatus)
   }
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen)
     if (nextOpen) {
+      setTitle(defaultTitle)
       setType(defaultType)
       setStartDate(defaultDate ?? '')
+      setContentOwner(defaultContentOwner)
+      setContentStatus(defaultContentStatus)
     }
   }
 

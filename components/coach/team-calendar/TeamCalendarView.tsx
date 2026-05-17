@@ -7,6 +7,7 @@ import { CreateEventDialog } from './CreateEventDialog'
 import { EditEventDialog } from './EditEventDialog'
 import {
   PHYSICAL_TEAM_EVENT_TYPES,
+  TEAM_EVENT_CONTENT_OWNERS,
   TEAM_EVENT_CONTENT_OWNER_LABELS,
   TEAM_EVENT_CONTENT_STATUS_LABELS,
   TEAM_EVENT_TYPE_COLORS,
@@ -24,6 +25,7 @@ import {
   Download,
   Trash2,
   Plus,
+  Filter,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -137,6 +139,15 @@ function inputDateValue(date: Date): string {
   return `${year}-${month}-${day}`
 }
 
+const PHYSICAL_QUICK_TYPES: Array<{ type: TeamEventType; title: string; label: string }> = [
+  { type: 'STRENGTH', title: 'Styrka', label: 'Styrka' },
+  { type: 'CARDIO', title: 'Kondition', label: 'Kondition' },
+  { type: 'PREHAB', title: 'Stabilitet / Prehab', label: 'Prehab' },
+  { type: 'PLYOMETRICS', title: 'Plyometri', label: 'Plyo' },
+  { type: 'HYBRID', title: 'Hybrid', label: 'Hybrid' },
+  { type: 'AGILITY', title: 'Agility', label: 'Agility' },
+]
+
 interface TeamCalendarViewProps {
   teamId: string
   teamName: string
@@ -149,9 +160,14 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
   const [weekBase, setWeekBase] = useState(new Date())
   const [selectedEvent, setSelectedEvent] = useState<TeamEvent | null>(null)
   const [viewMode, setViewMode] = useState<'week' | 'planning'>('week')
+  const [queueOwnerFilter, setQueueOwnerFilter] = useState<'all' | TeamEventContentOwner>('all')
+  const [queueStatusFilter, setQueueStatusFilter] = useState<'open' | TeamEventContentStatus>('open')
   const contentQueue = events
     .filter(eventNeedsContent)
+    .filter((event) => queueOwnerFilter === 'all' || event.contentOwner === queueOwnerFilter)
+    .filter((event) => queueStatusFilter === 'open' || event.contentStatus === queueStatusFilter)
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+  const allOpenContentQueue = events.filter(eventNeedsContent)
 
   const weekDates = getWeekDates(weekBase)
   const monthDates = getMonthDates(weekBase)
@@ -284,29 +300,88 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
         </div>
       </div>
 
-      {contentQueue.length > 0 && (
+      {allOpenContentQueue.length > 0 && (
         <div className="rounded-lg border bg-amber-50/70 p-3 text-amber-950">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-3">
             <div>
-              <div className="text-sm font-semibold">Fys-pass som behöver innehåll</div>
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Filter className="h-4 w-4" />
+                Fys-pass som behöver innehåll
+              </div>
               <div className="text-xs text-amber-900/80">
-                {contentQueue.length} planerade pass saknar kopplat workout-innehåll.
+                {allOpenContentQueue.length} planerade pass saknar kopplat workout-innehåll.
               </div>
             </div>
-            <div className="flex max-w-full flex-wrap gap-2">
-              {contentQueue.slice(0, 6).map((event) => (
-                <button
-                  key={event.id}
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant={queueStatusFilter === 'open' ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setQueueStatusFilter('open')}
+              >
+                Alla öppna
+              </Button>
+              <Button
+                type="button"
+                variant={queueStatusFilter === 'PLANNED' ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setQueueStatusFilter('PLANNED')}
+              >
+                Planerad ram
+              </Button>
+              <Button
+                type="button"
+                variant={queueStatusFilter === 'NEEDS_CONTENT' ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setQueueStatusFilter('NEEDS_CONTENT')}
+              >
+                Behöver innehåll
+              </Button>
+              <Button
+                type="button"
+                variant={queueOwnerFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setQueueOwnerFilter('all')}
+              >
+                Alla roller
+              </Button>
+              {TEAM_EVENT_CONTENT_OWNERS.map((owner) => (
+                <Button
+                  key={owner}
                   type="button"
-                  className="rounded-md border border-amber-300 bg-white/70 px-2.5 py-1.5 text-left text-xs shadow-sm hover:bg-white"
-                  onClick={() => setSelectedEvent(event)}
+                  variant={queueOwnerFilter === owner ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setQueueOwnerFilter(owner)}
                 >
-                  <div className="font-medium">{event.title}</div>
-                  <div className="text-amber-900/75">
-                    {new Date(event.startDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} · {contentOwnerLabel(event.contentOwner)}
-                  </div>
-                </button>
+                  {TEAM_EVENT_CONTENT_OWNER_LABELS[owner]}
+                </Button>
               ))}
+            </div>
+
+            <div className="flex max-w-full flex-wrap gap-2">
+              {contentQueue.length === 0 ? (
+                <div className="text-xs text-amber-900/75">Inga pass matchar filtret.</div>
+              ) : (
+                contentQueue.slice(0, 8).map((event) => (
+                  <button
+                    key={event.id}
+                    type="button"
+                    className="rounded-md border border-amber-300 bg-white/70 px-2.5 py-1.5 text-left text-xs shadow-sm hover:bg-white"
+                    onClick={() => setSelectedEvent(event)}
+                  >
+                    <div className="font-medium">{event.title}</div>
+                    <div className="text-amber-900/75">
+                      {new Date(event.startDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} · {contentOwnerLabel(event.contentOwner)} · {contentStatusLabel(event.contentStatus)}
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -348,25 +423,59 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                 const dayName = date.toLocaleDateString('sv-SE', { weekday: 'short' }).toUpperCase()
                 const weekNumber = Math.ceil((((date.getTime() - new Date(date.getFullYear(), 0, 1).getTime()) / 86400000) + new Date(date.getFullYear(), 0, 1).getDay() + 1) / 7)
 
+                const renderQuickAdd = (defaultType: TeamEventType) => {
+                  if (defaultType === 'STRENGTH') {
+                    return (
+                      <div className="flex flex-wrap gap-1">
+                        {PHYSICAL_QUICK_TYPES.map((quickType) => (
+                          <CreateEventDialog
+                            key={quickType.type}
+                            teamId={teamId}
+                            businessSlug={businessSlug}
+                            onCreated={fetchEvents}
+                            defaultDate={inputDateValue(date)}
+                            defaultType={quickType.type}
+                            defaultTitle={quickType.title}
+                            defaultContentStatus="NEEDS_CONTENT"
+                            defaultContentOwner="physical_trainer"
+                            trigger={
+                              <button
+                                type="button"
+                                className="rounded border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                              >
+                                {quickType.label}
+                              </button>
+                            }
+                          />
+                        ))}
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <CreateEventDialog
+                      teamId={teamId}
+                      businessSlug={businessSlug}
+                      onCreated={fetchEvents}
+                      defaultDate={inputDateValue(date)}
+                      defaultType={defaultType}
+                      trigger={
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-1 rounded-sm px-1.5 py-1 text-left text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                          <Plus className="h-3 w-3" />
+                          Lägg till
+                        </button>
+                      }
+                    />
+                  )
+                }
+
                 const renderCell = (cellEvents: TeamEvent[], defaultType: TeamEventType) => (
                   <div className="space-y-1">
                     {cellEvents.length === 0 ? (
-                      <CreateEventDialog
-                        teamId={teamId}
-                        businessSlug={businessSlug}
-                        onCreated={fetchEvents}
-                        defaultDate={inputDateValue(date)}
-                        defaultType={defaultType}
-                        trigger={
-                          <button
-                            type="button"
-                            className="flex w-full items-center gap-1 rounded-sm px-1.5 py-1 text-left text-muted-foreground hover:bg-muted hover:text-foreground"
-                          >
-                            <Plus className="h-3 w-3" />
-                            Lägg till
-                          </button>
-                        }
-                      />
+                      renderQuickAdd(defaultType)
                     ) : (
                       <>
                         {cellEvents.map((event) => {
@@ -388,22 +497,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                             </button>
                           )
                         })}
-                        <CreateEventDialog
-                          teamId={teamId}
-                          businessSlug={businessSlug}
-                          onCreated={fetchEvents}
-                          defaultDate={inputDateValue(date)}
-                          defaultType={defaultType}
-                          trigger={
-                            <button
-                              type="button"
-                              className="flex w-full items-center gap-1 rounded-sm px-1.5 py-1 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                            >
-                              <Plus className="h-3 w-3" />
-                              Lägg till
-                            </button>
-                          }
-                        />
+                        {renderQuickAdd(defaultType)}
                       </>
                     )}
                   </div>
