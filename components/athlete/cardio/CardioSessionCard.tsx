@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB'
+type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 type AssignmentStatus = 'PENDING' | 'SCHEDULED' | 'COMPLETED' | 'SKIPPED' | 'MODIFIED'
 
 interface CardioSessionCardProps {
@@ -73,6 +73,7 @@ const SEGMENT_COLORS: Record<SegmentType, string> = {
   DRILLS: 'bg-purple-500',
   CORE: 'bg-violet-500',
   PREHAB: 'bg-teal-500',
+  PLYOMETRIC: 'bg-amber-500',
 }
 
 export function CardioSessionCard({

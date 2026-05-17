@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB'
+type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
 interface SegmentLoggingFormProps {
   segmentIndex: number
@@ -57,6 +57,7 @@ const SEGMENT_COLORS: Record<SegmentType, string> = {
   DRILLS: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
   CORE: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
   PREHAB: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+  PLYOMETRIC: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 }
 
 export function SegmentLoggingForm({

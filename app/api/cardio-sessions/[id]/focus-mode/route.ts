@@ -75,6 +75,7 @@ const SEGMENT_TYPE_NAMES: Record<string, string> = {
   DRILLS: 'Övningar',
   CORE: 'Core',
   PREHAB: 'Stabilitet / Prehab',
+  PLYOMETRIC: 'Plyometri',
 }
 
 /**

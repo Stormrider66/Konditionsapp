@@ -213,7 +213,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (pushToGarmin && garminTokensByAthlete.size > 0) {
       const segments = (session.segments as unknown as CardioSegment[]) || [];
       const garminSegments = segments
-        .filter((s) => s.type !== 'CORE' && s.type !== 'PREHAB')
+        .filter((s) => s.type !== 'CORE' && s.type !== 'PREHAB' && s.type !== 'PLYOMETRIC')
         .map((s) => {
         // REPEAT_GROUP: multi-step repeat block
         if (s.type === 'REPEAT_GROUP' && s.steps && s.steps.length > 0) {

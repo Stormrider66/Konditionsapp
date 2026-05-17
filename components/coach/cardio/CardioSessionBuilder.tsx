@@ -25,7 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { GripVertical, Plus, Trash2, Timer, Activity, Footprints, Calendar, Heart, Gauge, Repeat, Download, Loader2, X, Target, ShieldCheck } from 'lucide-react'
+import { GripVertical, Plus, Trash2, Timer, Activity, Footprints, Calendar, Heart, Gauge, Repeat, Download, Loader2, X, Target, ShieldCheck, Zap } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -88,7 +88,7 @@ type LibraryExercise = {
 
 type CardioExerciseBlock = {
   id: string
-  type: 'CORE' | 'PREHAB'
+  type: 'CORE' | 'PREHAB' | 'PLYOMETRIC'
   duration?: number // minutes
   notes?: string
   exercises: CardioSupplementalExercise[]
@@ -143,7 +143,7 @@ function isRepeatGroup(seg: CardioSegment): seg is CardioRepeatGroup {
 }
 
 function isExerciseBlock(seg: CardioSegment): seg is CardioExerciseBlock {
-  return seg.type === 'CORE' || seg.type === 'PREHAB'
+  return seg.type === 'CORE' || seg.type === 'PREHAB' || seg.type === 'PLYOMETRIC'
 }
 
 const generateId = () => Math.random().toString(36).substr(2, 9)
@@ -160,6 +160,7 @@ const AVAILABLE_SEGMENTS = [
   { id: 'seg8', name: 'Repeat Group', type: 'REPEAT_GROUP', defaultDuration: 0, defaultZone: '1' },
   { id: 'seg9', name: 'Core section', type: 'CORE', defaultDuration: 8, defaultZone: '1' },
   { id: 'seg10', name: 'Stabilitet / Prehab', type: 'PREHAB', defaultDuration: 8, defaultZone: '1' },
+  { id: 'seg11', name: 'Plyometri', type: 'PLYOMETRIC', defaultDuration: 8, defaultZone: '1' },
 ]
 
 // Helper functions for auto-calculation
@@ -212,7 +213,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
       setSport(initialData.sport || 'RUNNING')
       setSegments(
         initialData.segments.map((s: any) => {
-          if (s.type === 'CORE' || s.type === 'PREHAB') {
+          if (s.type === 'CORE' || s.type === 'PREHAB' || s.type === 'PLYOMETRIC') {
             return {
               id: s.id || generateId(),
               type: s.type,
@@ -516,14 +517,16 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
       return
     }
 
-    if (template.type === 'CORE' || template.type === 'PREHAB') {
+    if (template.type === 'CORE' || template.type === 'PREHAB' || template.type === 'PLYOMETRIC') {
       const newBlock: CardioExerciseBlock = {
         id: generateId(),
         type: template.type,
         duration: template.defaultDuration || undefined,
         notes: template.type === 'PREHAB'
           ? 'Ledkontroll, vävnadskapacitet och riskområden kopplat till konditionspasset.'
-          : 'Core-kontroll som stödjer hållning, kraftöverföring och teknikkvalitet.',
+          : template.type === 'PLYOMETRIC'
+            ? 'Explosivitet, elastisk styrka och landningskvalitet kopplat till konditionspasset.'
+            : 'Core-kontroll som stödjer hållning, kraftöverföring och teknikkvalitet.',
         exercises: [],
       }
       setSegments([...segments, newBlock])
@@ -730,7 +733,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
         exerciseId: template.id,
         name: template.name,
         sets: 2,
-        reps: s.type === 'PREHAB' ? '8-12 kontrollerat' : '10-15',
+        reps: s.type === 'PREHAB' ? '8-12 kontrollerat' : s.type === 'PLYOMETRIC' ? '3-6 explosivt' : '10-15',
         restSeconds: 30,
       }
       return { ...s, exercises: [...s.exercises, newExercise] }
@@ -951,7 +954,10 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
                             return <div className="bg-card border-2 border-indigo-400 rounded-md p-3 shadow-lg"><Badge className="bg-indigo-500 text-white">Repeat Group x{seg.repeats}</Badge></div>
                           }
                           if (isExerciseBlock(seg)) {
-                            return <div className="bg-card border-2 border-teal-400 rounded-md p-3 shadow-lg"><Badge className="bg-teal-500 text-white">{seg.type === 'PREHAB' ? 'Stabilitet / Prehab' : 'Core'}</Badge></div>
+                            const label = seg.type === 'PREHAB' ? 'Stabilitet / Prehab' : seg.type === 'PLYOMETRIC' ? 'Plyometri' : 'Core'
+                            const borderClass = seg.type === 'PREHAB' ? 'border-teal-400' : seg.type === 'PLYOMETRIC' ? 'border-amber-400' : 'border-purple-400'
+                            const badgeClass = seg.type === 'PREHAB' ? 'bg-teal-500' : seg.type === 'PLYOMETRIC' ? 'bg-amber-500' : 'bg-purple-500'
+                            return <div className={`bg-card border-2 ${borderClass} rounded-md p-3 shadow-lg`}><Badge className={`${badgeClass} text-white`}>{label}</Badge></div>
                           }
                           return <SortableSegmentItem segment={seg} onRemove={() => {}} onUpdate={() => {}} onCalculate={() => {}} isOverlay />
                         })()}
@@ -1303,22 +1309,29 @@ function SortableExerciseBlockItem({
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: block.id })
   const style = { transform: CSS.Transform.toString(transform), transition }
   const isPrehab = block.type === 'PREHAB'
-  const Icon = isPrehab ? ShieldCheck : Target
+  const isPlyometric = block.type === 'PLYOMETRIC'
+  const Icon = isPrehab ? ShieldCheck : isPlyometric ? Zap : Target
+  const label = isPrehab ? 'Stabilitet / Prehab' : isPlyometric ? 'Plyometri' : 'Core'
+  const colorClasses = isPrehab
+    ? { border: 'border-teal-300', badge: 'bg-teal-500' }
+    : isPlyometric
+      ? { border: 'border-amber-300', badge: 'bg-amber-500' }
+      : { border: 'border-purple-300', badge: 'bg-purple-500' }
   const filteredExercises = availableExercises.filter((exercise) =>
     isPrehab
       ? matchesStrengthLibraryCategoryFilter(exercise, PREHAB_STABILITY_FILTER)
-      : matchesStrengthLibraryCategoryFilter(exercise, 'CORE')
+      : matchesStrengthLibraryCategoryFilter(exercise, isPlyometric ? 'PLYOMETRIC' : 'CORE')
   )
 
   return (
-    <div ref={setNodeRef} style={style} className={`bg-card border rounded-md p-3 space-y-3 ${isPrehab ? 'border-teal-300' : 'border-purple-300'}`}>
+    <div ref={setNodeRef} style={style} className={`bg-card border rounded-md p-3 space-y-3 ${colorClasses.border}`}>
       <div className="flex items-center gap-3">
         <div {...attributes} {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground">
           <GripVertical className="h-5 w-5" />
         </div>
-        <Badge className={`${isPrehab ? 'bg-teal-500' : 'bg-purple-500'} text-white`}>
+        <Badge className={`${colorClasses.badge} text-white`}>
           <Icon className="h-3 w-3 mr-1" />
-          {isPrehab ? 'Stabilitet / Prehab' : 'Core'}
+          {label}
         </Badge>
         <div className="ml-auto flex items-center gap-2">
           <Label className="text-xs text-muted-foreground">Tid</Label>
@@ -1341,13 +1354,13 @@ function SortableExerciseBlockItem({
         value={block.notes || ''}
         onChange={(e) => onUpdateBlock(block.id, 'notes', e.target.value)}
         className="min-h-[64px] text-sm"
-        placeholder={isPrehab ? 'Syfte, riskområde eller coachnotering...' : 'Syfte eller coachnotering...'}
+        placeholder={isPrehab ? 'Syfte, riskområde eller coachnotering...' : isPlyometric ? 'Syfte, intensitet eller coachnotering...' : 'Syfte eller coachnotering...'}
       />
 
       <div className="flex gap-2">
         <Select onValueChange={(exerciseId) => onAddExercise(block.id, exerciseId)}>
           <SelectTrigger className="h-8 text-sm">
-            <SelectValue placeholder={isPrehab ? 'Lägg till prehabövning...' : 'Lägg till coreövning...'} />
+            <SelectValue placeholder={isPrehab ? 'Lägg till prehabövning...' : isPlyometric ? 'Lägg till plyometrisk övning...' : 'Lägg till coreövning...'} />
           </SelectTrigger>
           <SelectContent>
             {filteredExercises.map((exercise) => (

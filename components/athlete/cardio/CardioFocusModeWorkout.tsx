@@ -47,7 +47,7 @@ import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
 import { LiveVoiceCoachButton } from './LiveVoiceCoachButton'
 
-type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB'
+type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
 interface FocusModeSegment {
   id: string
@@ -103,6 +103,7 @@ const SEGMENT_COLORS: Record<SegmentType, string> = {
   DRILLS: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400',
   CORE: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400',
   PREHAB: 'bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-400',
+  PLYOMETRIC: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400',
 }
 
 type ViewState = 'timer' | 'logging' | 'complete'

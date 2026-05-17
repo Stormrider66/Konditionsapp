@@ -75,6 +75,7 @@ const segmentTypeLabels: Record<string, { label: string; color: string }> = {
   REPEAT_GROUP: { label: 'Repetitionsblock', color: 'bg-indigo-500' },
   CORE: { label: 'Core', color: 'bg-purple-500' },
   PREHAB: { label: 'Stabilitet / Prehab', color: 'bg-teal-500' },
+  PLYOMETRIC: { label: 'Plyometri', color: 'bg-amber-500' },
 };
 
 const zoneColors: Record<number, string> = {

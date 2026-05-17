@@ -7,7 +7,7 @@
 import ExcelJS from 'exceljs'
 import { jsPDF } from 'jspdf'
 
-export type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB'
+export type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
 export interface CardioSegment {
   id: string
@@ -44,6 +44,7 @@ const SEGMENT_LABELS: Record<SegmentType, string> = {
   DRILLS: 'Teknik',
   CORE: 'Core',
   PREHAB: 'Stabilitet / Prehab',
+  PLYOMETRIC: 'Plyometri',
 }
 
 // Intensity labels in Swedish
