@@ -7710,6 +7710,18 @@
       "rest": "Vila",
       "skipRest": "Hoppa över vila"
     },
+    "themeSelector": {
+      "title": "Tema-inställningar",
+      "description": "Välj utseende för din träningsvy och PDF-exporter",
+      "appTheme": {
+        "title": "App-tema",
+        "description": "Hur dina träningspass visas i appen"
+      },
+      "pdfTheme": {
+        "title": "PDF-tema",
+        "description": "Utseende vid export till PDF"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

@@ -7710,6 +7710,18 @@
       "rest": "Rest",
       "skipRest": "Skip rest"
     },
+    "themeSelector": {
+      "title": "Theme settings",
+      "description": "Choose the appearance for your training view and PDF exports",
+      "appTheme": {
+        "title": "App theme",
+        "description": "How your workouts appear in the app"
+      },
+      "pdfTheme": {
+        "title": "PDF theme",
+        "description": "Appearance when exporting to PDF"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

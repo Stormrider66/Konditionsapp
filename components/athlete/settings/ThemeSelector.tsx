@@ -8,21 +8,17 @@
  */
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Check, Palette, FileText, Monitor } from 'lucide-react';
 import { useWorkoutTheme } from '@/lib/themes/ThemeProvider';
 import { THEMES } from '@/lib/themes/definitions';
-import type { ThemeId, WorkoutTheme } from '@/lib/themes/types';
+import type { WorkoutTheme } from '@/lib/themes/types';
 import { AVAILABLE_THEMES } from '@/lib/themes/types';
 import { cn } from '@/lib/utils';
 
 import {
   GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardContent,
-  GlassCardDescription
 } from '@/components/ui/GlassCard'
+import { useLocale, useTranslations } from '@/i18n/client';
 
 interface ThemeSelectorProps {
   className?: string;
@@ -30,6 +26,8 @@ interface ThemeSelectorProps {
 }
 
 export function ThemeSelector({ className, variant = 'default' }: ThemeSelectorProps) {
+  const t = useTranslations('components.themeSelector');
+  const locale = useLocale();
   const { preferences, setAppTheme, setPdfTheme, isLoading } = useWorkoutTheme();
   const isGlass = variant === 'glass';
   const themeOptions = AVAILABLE_THEMES.map((id) => THEMES[id]);
@@ -41,10 +39,10 @@ export function ThemeSelector({ className, variant = 'default' }: ThemeSelectorP
       <CardHeader>
         <CardTitle className={cn("flex items-center gap-2", isGlass ? "text-white font-black uppercase italic tracking-tight" : "")}>
           <Palette className={cn("h-5 w-5", isGlass ? "text-orange-500" : "")} />
-          Tema-inställningar
+          {t('title')}
         </CardTitle>
         <CardDescription className={cn(isGlass ? "text-slate-500 font-medium" : "")}>
-          Välj utseende för din träningsvy och PDF-exporter
+          {t('description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -52,10 +50,10 @@ export function ThemeSelector({ className, variant = 'default' }: ThemeSelectorP
         <div>
           <h4 className={cn("text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2", isGlass ? "text-slate-400" : "")}>
             <Monitor className="h-4 w-4" />
-            App-tema
+            {t('appTheme.title')}
           </h4>
           <p className={cn("text-xs mb-4", isGlass ? "text-slate-500" : "text-muted-foreground")}>
-            Hur dina träningspass visas i appen
+            {t('appTheme.description')}
           </p>
           <div className="grid grid-cols-2 gap-3">
             {themeOptions.map((theme) => (
@@ -66,6 +64,7 @@ export function ThemeSelector({ className, variant = 'default' }: ThemeSelectorP
                 onSelect={() => setAppTheme(theme.id)}
                 disabled={isLoading}
                 isGlass={isGlass}
+                locale={locale}
               />
             ))}
           </div>
@@ -75,10 +74,10 @@ export function ThemeSelector({ className, variant = 'default' }: ThemeSelectorP
         <div className={cn("pt-6 border-t", isGlass ? "border-white/5" : "")}>
           <h4 className={cn("text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2", isGlass ? "text-slate-400" : "")}>
             <FileText className="h-4 w-4" />
-            PDF-tema
+            {t('pdfTheme.title')}
           </h4>
           <p className={cn("text-xs mb-4", isGlass ? "text-slate-500" : "text-muted-foreground")}>
-            Utseende vid export till PDF
+            {t('pdfTheme.description')}
           </p>
           <div className="grid grid-cols-2 gap-3">
             {themeOptions.map((theme) => (
@@ -89,6 +88,7 @@ export function ThemeSelector({ className, variant = 'default' }: ThemeSelectorP
                 onSelect={() => setPdfTheme(theme.id)}
                 disabled={isLoading}
                 isGlass={isGlass}
+                locale={locale}
               />
             ))}
           </div>
@@ -104,9 +104,10 @@ interface ThemePreviewCardProps {
   onSelect: () => void;
   disabled: boolean;
   isGlass?: boolean;
+  locale: string;
 }
 
-function ThemePreviewCard({ theme, isSelected, onSelect, disabled, isGlass }: ThemePreviewCardProps) {
+function ThemePreviewCard({ theme, isSelected, onSelect, disabled, isGlass, locale }: ThemePreviewCardProps) {
   return (
     <button
       onClick={onSelect}
@@ -160,7 +161,7 @@ function ThemePreviewCard({ theme, isSelected, onSelect, disabled, isGlass }: Th
         "text-xs font-black uppercase tracking-tight block",
         isSelected ? (isGlass ? "text-orange-400" : "text-primary") : (isGlass ? "text-slate-400" : "text-slate-900")
       )}>
-        {theme.nameSv}
+        {locale === 'en' ? theme.name : theme.nameSv}
       </span>
 
       {/* Selected indicator */}
