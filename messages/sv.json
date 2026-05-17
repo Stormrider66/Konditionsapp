@@ -7069,6 +7069,20 @@
       "timeUp": "Tid ute!",
       "roundDone": "+ Runda klar"
     },
+    "forTimeTimer": {
+      "remaining": "{time} kvar",
+      "timeUp": "Tid ute!",
+      "done": "Klar!"
+    },
+    "emomTimer": {
+      "minutes": "{count} minuter",
+      "minute": "Minut",
+      "done": "Klar!",
+      "phase": {
+        "work": "ARBETE",
+        "rest": "VILA"
+      }
+    },
     "tabataTimer": {
       "workRest": "{work}s arbete / {rest}s vila",
       "round": "Runda",

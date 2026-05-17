@@ -7069,6 +7069,20 @@
       "timeUp": "Time up!",
       "roundDone": "+ Round done"
     },
+    "forTimeTimer": {
+      "remaining": "{time} left",
+      "timeUp": "Time up!",
+      "done": "Done!"
+    },
+    "emomTimer": {
+      "minutes": "{count} minutes",
+      "minute": "Minute",
+      "done": "Done!",
+      "phase": {
+        "work": "WORK",
+        "rest": "REST"
+      }
+    },
     "tabataTimer": {
       "workRest": "{work}s work / {rest}s rest",
       "round": "Round",

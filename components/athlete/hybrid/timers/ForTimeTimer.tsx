@@ -20,6 +20,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface ForTimeTimerProps {
   /** Time cap in seconds (0 = no cap) */
@@ -38,6 +39,7 @@ export function ForTimeTimer({
   onTimeCapReached,
   autoStart = false,
 }: ForTimeTimerProps) {
+  const t = useTranslations('components.forTimeTimer')
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [isRunning, setIsRunning] = useState(autoStart)
   const [isMuted, setIsMuted] = useState(false)
@@ -67,7 +69,7 @@ export function ForTimeTimer({
         oscillator.start()
         setTimeout(() => {
           oscillator.stop()
-          audioContext.close()
+          void audioContext.close()
         }, duration)
       } catch {
         // Audio context not supported
@@ -255,12 +257,12 @@ export function ForTimeTimer({
                 <div className="flex items-center gap-1 mt-1">
                   <Clock className="h-3 w-3 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground">
-                    {formatTime(remaining)} kvar
+                    {t('remaining', { time: formatTime(remaining) })}
                   </span>
                 </div>
               )}
               {isTimeCapped && (
-                <span className="text-sm text-red-500 mt-1">Tid ute!</span>
+                <span className="text-sm text-red-500 mt-1">{t('timeUp')}</span>
               )}
             </>
           )}
@@ -275,7 +277,7 @@ export function ForTimeTimer({
           onClick={handleComplete}
         >
           <Flag className="h-5 w-5 mr-2" />
-          Klar!
+          {t('done')}
         </Button>
       )}
 

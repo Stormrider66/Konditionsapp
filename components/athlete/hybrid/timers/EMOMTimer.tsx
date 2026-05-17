@@ -16,9 +16,9 @@ import {
   RotateCcw,
   Volume2,
   VolumeX,
-  Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface EMOMTimerProps {
   /** Total minutes */
@@ -46,6 +46,7 @@ export function EMOMTimer({
   onMinuteComplete,
   autoStart = false,
 }: EMOMTimerProps) {
+  const t = useTranslations('components.emomTimer')
   const minuteDuration = workTime + restTime
   const [secondsInMinute, setSecondsInMinute] = useState(minuteDuration)
   const [minute, setMinute] = useState(currentMinute)
@@ -78,7 +79,7 @@ export function EMOMTimer({
         oscillator.start()
         setTimeout(() => {
           oscillator.stop()
-          audioContext.close()
+          void audioContext.close()
         }, duration)
       } catch {
         // Audio context not supported
@@ -227,13 +228,13 @@ export function EMOMTimer({
           EMOM
         </Badge>
         <span className="text-sm text-muted-foreground">
-          {totalMinutes} minuter
+          {t('minutes', { count: totalMinutes })}
         </span>
       </div>
 
       {/* Minute indicator */}
       <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Minut</span>
+        <span className="text-sm text-muted-foreground">{t('minute')}</span>
         <span className="text-3xl font-bold">
           {Math.min(minute, totalMinutes)}
         </span>
@@ -283,7 +284,7 @@ export function EMOMTimer({
               <Play className="h-8 w-8" />
             </Button>
           ) : isComplete ? (
-            <span className="text-2xl font-bold text-green-500">Klar!</span>
+            <span className="text-2xl font-bold text-green-500">{t('done')}</span>
           ) : (
             <>
               <Badge
@@ -294,7 +295,7 @@ export function EMOMTimer({
                     : 'bg-blue-500/20 text-blue-600'
                 )}
               >
-                {phase === 'WORK' ? 'ARBETE' : 'VILA'}
+                {phase === 'WORK' ? t('phase.work') : t('phase.rest')}
               </Badge>
               <span className={cn('text-5xl font-bold tabular-nums', getColor())}>
                 {formatTime(secondsInMinute)}
