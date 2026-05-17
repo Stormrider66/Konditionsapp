@@ -2847,6 +2847,28 @@
         "navigationMenu": "Navigation menu"
       }
     },
+    "sportSwitcher": {
+      "switchSport": "Switch sport",
+      "primary": "Primary",
+      "sports": {
+        "running": "Running",
+        "cycling": "Cycling",
+        "skiing": "Cross-country skiing",
+        "triathlon": "Triathlon",
+        "hyrox": "HYROX",
+        "generalFitness": "General fitness",
+        "functionalFitness": "Functional fitness",
+        "swimming": "Swimming",
+        "iceHockey": "Ice hockey",
+        "football": "Football",
+        "handball": "Handball",
+        "floorball": "Floorball",
+        "basketball": "Basketball",
+        "volleyball": "Volleyball",
+        "tennis": "Tennis",
+        "padel": "Padel"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Nutrition timing",
       "subtitle": {

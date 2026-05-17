@@ -2847,6 +2847,28 @@
         "navigationMenu": "Navigationsmeny"
       }
     },
+    "sportSwitcher": {
+      "switchSport": "Byt sport",
+      "primary": "Huvud",
+      "sports": {
+        "running": "Löpning",
+        "cycling": "Cykling",
+        "skiing": "Längdskidåkning",
+        "triathlon": "Triathlon",
+        "hyrox": "HYROX",
+        "generalFitness": "Allmän fitness",
+        "functionalFitness": "Funktionell fitness",
+        "swimming": "Simning",
+        "iceHockey": "Ishockey",
+        "football": "Fotboll",
+        "handball": "Handboll",
+        "floorball": "Innebandy",
+        "basketball": "Basket",
+        "volleyball": "Volleyboll",
+        "tennis": "Tennis",
+        "padel": "Padel"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Kosttajming",
       "subtitle": {
