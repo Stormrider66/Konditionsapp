@@ -18,7 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   CalendarIcon,
   Loader2,
@@ -27,7 +27,8 @@ import {
   ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { ParsedWorkout, ParsedStrengthExercise } from '@/lib/adhoc-workout/types'
+import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface QuickFormProps {
   onSubmit: (data: { parsedWorkout: ParsedWorkout; workoutDate: Date }) => Promise<void>
@@ -37,29 +38,29 @@ interface QuickFormProps {
 type WorkoutTypeOption = 'CARDIO' | 'STRENGTH' | 'HYBRID'
 
 const CARDIO_SPORTS = [
-  { value: 'RUNNING', label: 'Löpning' },
-  { value: 'CYCLING', label: 'Cykling' },
-  { value: 'SWIMMING', label: 'Simning' },
-  { value: 'ROWING', label: 'Rodd' },
-  { value: 'SKIING', label: 'Längdskidor' },
-  { value: 'WALKING', label: 'Promenad' },
-  { value: 'OTHER', label: 'Övrigt' },
+  { value: 'RUNNING', labelKey: 'running' },
+  { value: 'CYCLING', labelKey: 'cycling' },
+  { value: 'SWIMMING', labelKey: 'swimming' },
+  { value: 'ROWING', labelKey: 'rowing' },
+  { value: 'SKIING', labelKey: 'skiing' },
+  { value: 'WALKING', labelKey: 'walking' },
+  { value: 'OTHER', labelKey: 'other' },
 ]
 
 const INTENSITY_OPTIONS = [
-  { value: 'RECOVERY', label: 'Återhämtning (Zon 1)' },
-  { value: 'EASY', label: 'Lätt (Zon 2)' },
-  { value: 'MODERATE', label: 'Måttlig (Zon 3)' },
-  { value: 'HARD', label: 'Hård (Zon 4)' },
-  { value: 'MAXIMUM', label: 'Maximal (Zon 5)' },
+  { value: 'RECOVERY', labelKey: 'recovery' },
+  { value: 'EASY', labelKey: 'easy' },
+  { value: 'MODERATE', labelKey: 'moderate' },
+  { value: 'THRESHOLD', labelKey: 'hard' },
+  { value: 'MAX', labelKey: 'maximum' },
 ]
 
 const FEELING_OPTIONS = [
-  { value: 'GREAT', label: 'Fantastiskt' },
-  { value: 'GOOD', label: 'Bra' },
-  { value: 'OKAY', label: 'Okej' },
-  { value: 'TIRED', label: 'Trött' },
-  { value: 'EXHAUSTED', label: 'Utmattad' },
+  { value: 'GREAT', labelKey: 'great' },
+  { value: 'GOOD', labelKey: 'good' },
+  { value: 'OKAY', labelKey: 'okay' },
+  { value: 'TIRED', labelKey: 'tired' },
+  { value: 'EXHAUSTED', labelKey: 'exhausted' },
 ]
 
 interface ExerciseEntry {
@@ -71,6 +72,8 @@ interface ExerciseEntry {
 }
 
 export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
+  const t = useTranslations('components.adHocQuickForm')
+  const locale = useLocale()
   const [workoutDate, setWorkoutDate] = useState<Date>(new Date())
   const [workoutType, setWorkoutType] = useState<WorkoutTypeOption>('CARDIO')
   const [workoutName, setWorkoutName] = useState('')
@@ -90,6 +93,7 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
   const [perceivedEffort, setPerceivedEffort] = useState<number>(5)
   const [feeling, setFeeling] = useState<string>('')
   const [notes, setNotes] = useState('')
+  const dateLocale = locale === 'en' ? enUS : sv
 
   const addExercise = () => {
     setExercises([
@@ -104,7 +108,7 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
     }
   }
 
-  const updateExercise = (id: string, field: keyof ExerciseEntry, value: any) => {
+  const updateExercise = <K extends keyof ExerciseEntry>(id: string, field: K, value: ExerciseEntry[K]) => {
     setExercises(
       exercises.map((e) => (e.id === id ? { ...e, [field]: value } : e))
     )
@@ -118,15 +122,15 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
       name: workoutName || undefined,
       duration: duration,
       distance: distance ? Math.round(parseFloat(distance) * 1000) : undefined,
-      intensity: intensity as any,
+      intensity: intensity as ParsedWorkout['intensity'],
       perceivedEffort,
-      feeling: feeling as any,
+      feeling: feeling as ParsedWorkout['feeling'],
       notes: notes || undefined,
-      rawInterpretation: 'Manuellt inmatat pass',
+      rawInterpretation: t('rawInterpretation'),
     }
 
     if (workoutType === 'CARDIO' || workoutType === 'HYBRID') {
-      parsedWorkout.sport = sport as any
+      parsedWorkout.sport = sport as ParsedWorkout['sport']
     }
 
     if (workoutType === 'STRENGTH' || workoutType === 'HYBRID') {
@@ -163,14 +167,14 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ClipboardList className="h-5 w-5" />
-          Fyll i formulär
+          {t('title')}
         </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-6">
         {/* Date picker */}
         <div className="space-y-2">
-          <Label>När genomfördes passet?</Label>
+          <Label>{t('date.label')}</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -182,9 +186,9 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {workoutDate ? (
-                  format(workoutDate, 'PPP', { locale: sv })
+                  format(workoutDate, 'PPP', { locale: dateLocale })
                 ) : (
-                  <span>Välj datum</span>
+                  <span>{t('date.placeholder')}</span>
                 )}
               </Button>
             </PopoverTrigger>
@@ -195,7 +199,7 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
                 onSelect={(date) => date && setWorkoutDate(date)}
                 disabled={(date) => date > new Date()}
                 initialFocus
-                locale={sv}
+                locale={dateLocale}
               />
             </PopoverContent>
           </Popover>
@@ -203,24 +207,24 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
 
         {/* Workout type */}
         <div className="space-y-2">
-          <Label>Typ av pass</Label>
+          <Label>{t('workoutType.label')}</Label>
           <Select value={workoutType} onValueChange={(v) => setWorkoutType(v as WorkoutTypeOption)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="CARDIO">Kondition</SelectItem>
-              <SelectItem value="STRENGTH">Styrka</SelectItem>
-              <SelectItem value="HYBRID">Blandat</SelectItem>
+              <SelectItem value="CARDIO">{t('workoutType.cardio')}</SelectItem>
+              <SelectItem value="STRENGTH">{t('workoutType.strength')}</SelectItem>
+              <SelectItem value="HYBRID">{t('workoutType.hybrid')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Workout name (optional) */}
         <div className="space-y-2">
-          <Label>Namn på passet (valfritt)</Label>
+          <Label>{t('name.label')}</Label>
           <Input
-            placeholder="t.ex. Morgonlöpning, Benpass"
+            placeholder={t('name.placeholder')}
             value={workoutName}
             onChange={(e) => setWorkoutName(e.target.value)}
           />
@@ -229,11 +233,11 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
         {/* Cardio fields */}
         {(workoutType === 'CARDIO' || workoutType === 'HYBRID') && (
           <div className="space-y-4 p-4 border rounded-lg">
-            <h3 className="font-medium">Konditionsdel</h3>
+            <h3 className="font-medium">{t('cardio.title')}</h3>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Sport</Label>
+                <Label>{t('cardio.sport')}</Label>
                 <Select value={sport} onValueChange={setSport}>
                   <SelectTrigger>
                     <SelectValue />
@@ -241,7 +245,7 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
                   <SelectContent>
                     {CARDIO_SPORTS.map((s) => (
                       <SelectItem key={s.value} value={s.value}>
-                        {s.label}
+                        {t(`sports.${s.labelKey}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -249,7 +253,7 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>Intensitet</Label>
+                <Label>{t('cardio.intensity')}</Label>
                 <Select value={intensity} onValueChange={setIntensity}>
                   <SelectTrigger>
                     <SelectValue />
@@ -257,7 +261,7 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
                   <SelectContent>
                     {INTENSITY_OPTIONS.map((i) => (
                       <SelectItem key={i.value} value={i.value}>
-                        {i.label}
+                        {t(`intensities.${i.labelKey}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -267,7 +271,7 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Duration (minuter)</Label>
+                <Label>{t('cardio.duration')}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -277,12 +281,12 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>Distans (km, valfritt)</Label>
+                <Label>{t('cardio.distance')}</Label>
                 <Input
                   type="number"
                   step="0.1"
                   min={0}
-                  placeholder="t.ex. 5.0"
+                  placeholder={t('cardio.distancePlaceholder')}
                   value={distance}
                   onChange={(e) => setDistance(e.target.value)}
                 />
@@ -295,20 +299,20 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
         {(workoutType === 'STRENGTH' || workoutType === 'HYBRID') && (
           <div className="space-y-4 p-4 border rounded-lg">
             <div className="flex items-center justify-between">
-              <h3 className="font-medium">Styrkedel</h3>
+              <h3 className="font-medium">{t('strength.title')}</h3>
               <Button variant="outline" size="sm" onClick={addExercise}>
                 <Plus className="h-4 w-4 mr-1" />
-                Lägg till övning
+                {t('strength.addExercise')}
               </Button>
             </div>
 
             <div className="space-y-3">
-              {exercises.map((exercise, index) => (
+              {exercises.map((exercise) => (
                 <div key={exercise.id} className="flex gap-2 items-start">
                   <div className="flex-1 grid grid-cols-4 gap-2">
                     <div className="col-span-2">
                       <Input
-                        placeholder="Övning"
+                        placeholder={t('strength.exercisePlaceholder')}
                         value={exercise.name}
                         onChange={(e) => updateExercise(exercise.id, 'name', e.target.value)}
                       />
@@ -366,11 +370,11 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
 
         {/* Subjective fields */}
         <div className="space-y-4 p-4 border rounded-lg">
-          <h3 className="font-medium">Hur kändes det?</h3>
+          <h3 className="font-medium">{t('subjective.title')}</h3>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Upplevd ansträngning (RPE)</Label>
+              <Label>{t('subjective.rpe')}</Label>
               <span className="text-sm font-medium">{perceivedEffort}/10</span>
             </div>
             <Slider
@@ -381,21 +385,21 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
               step={1}
             />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Lätt</span>
-              <span>Maximal</span>
+              <span>{t('subjective.easy')}</span>
+              <span>{t('subjective.maximum')}</span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Känsla</Label>
+            <Label>{t('subjective.feeling')}</Label>
             <Select value={feeling} onValueChange={setFeeling}>
               <SelectTrigger>
-                <SelectValue placeholder="Välj hur du kände dig" />
+                <SelectValue placeholder={t('subjective.feelingPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {FEELING_OPTIONS.map((f) => (
                   <SelectItem key={f.value} value={f.value}>
-                    {f.label}
+                    {t(`feelings.${f.labelKey}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -403,9 +407,9 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label>Anteckningar (valfritt)</Label>
+            <Label>{t('subjective.notes')}</Label>
             <Textarea
-              placeholder="Övriga kommentarer om passet..."
+              placeholder={t('subjective.notesPlaceholder')}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="resize-none"
@@ -424,10 +428,10 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
           {isProcessing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sparar...
+              {t('actions.saving')}
             </>
           ) : (
-            'Spara pass'
+            t('actions.saveWorkout')
           )}
         </Button>
       </CardFooter>

@@ -5422,6 +5422,74 @@
         "confirm": "Confirm"
       }
     },
+    "adHocQuickForm": {
+      "title": "Fill in form",
+      "rawInterpretation": "Manually entered workout",
+      "date": {
+        "label": "When did you complete the workout?",
+        "placeholder": "Choose date"
+      },
+      "workoutType": {
+        "label": "Workout type",
+        "cardio": "Cardio",
+        "strength": "Strength",
+        "hybrid": "Mixed"
+      },
+      "name": {
+        "label": "Workout name (optional)",
+        "placeholder": "e.g. Morning run, Leg day"
+      },
+      "sports": {
+        "running": "Running",
+        "cycling": "Cycling",
+        "swimming": "Swimming",
+        "rowing": "Rowing",
+        "skiing": "Cross-country skiing",
+        "walking": "Walking",
+        "other": "Other"
+      },
+      "intensities": {
+        "recovery": "Recovery (Zone 1)",
+        "easy": "Easy (Zone 2)",
+        "moderate": "Moderate (Zone 3)",
+        "hard": "Hard (Zone 4)",
+        "maximum": "Maximum (Zone 5)"
+      },
+      "cardio": {
+        "title": "Cardio section",
+        "sport": "Sport",
+        "intensity": "Intensity",
+        "duration": "Duration (minutes)",
+        "distance": "Distance (km, optional)",
+        "distancePlaceholder": "e.g. 5.0"
+      },
+      "strength": {
+        "title": "Strength section",
+        "addExercise": "Add exercise",
+        "exercisePlaceholder": "Exercise"
+      },
+      "subjective": {
+        "title": "How did it feel?",
+        "rpe": "Perceived exertion (RPE)",
+        "easy": "Easy",
+        "maximum": "Maximum",
+        "feeling": "Feeling",
+        "feelingPlaceholder": "Choose how you felt",
+        "notes": "Notes (optional)",
+        "notesPlaceholder": "Other comments about the workout..."
+      },
+      "feelings": {
+        "great": "Fantastic",
+        "good": "Good",
+        "okay": "Okay",
+        "tired": "Tired",
+        "exhausted": "Exhausted"
+      },
+      "actions": {
+        "saving": "Saving...",
+        "saveWorkout": "Save workout"
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

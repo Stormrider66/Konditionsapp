@@ -5422,6 +5422,74 @@
         "confirm": "Bekräfta"
       }
     },
+    "adHocQuickForm": {
+      "title": "Fyll i formulär",
+      "rawInterpretation": "Manuellt inmatat pass",
+      "date": {
+        "label": "När genomfördes passet?",
+        "placeholder": "Välj datum"
+      },
+      "workoutType": {
+        "label": "Typ av pass",
+        "cardio": "Kondition",
+        "strength": "Styrka",
+        "hybrid": "Blandat"
+      },
+      "name": {
+        "label": "Namn på passet (valfritt)",
+        "placeholder": "t.ex. Morgonlöpning, Benpass"
+      },
+      "sports": {
+        "running": "Löpning",
+        "cycling": "Cykling",
+        "swimming": "Simning",
+        "rowing": "Rodd",
+        "skiing": "Längdskidor",
+        "walking": "Promenad",
+        "other": "Övrigt"
+      },
+      "intensities": {
+        "recovery": "Återhämtning (Zon 1)",
+        "easy": "Lätt (Zon 2)",
+        "moderate": "Måttlig (Zon 3)",
+        "hard": "Hård (Zon 4)",
+        "maximum": "Maximal (Zon 5)"
+      },
+      "cardio": {
+        "title": "Konditionsdel",
+        "sport": "Sport",
+        "intensity": "Intensitet",
+        "duration": "Duration (minuter)",
+        "distance": "Distans (km, valfritt)",
+        "distancePlaceholder": "t.ex. 5.0"
+      },
+      "strength": {
+        "title": "Styrkedel",
+        "addExercise": "Lägg till övning",
+        "exercisePlaceholder": "Övning"
+      },
+      "subjective": {
+        "title": "Hur kändes det?",
+        "rpe": "Upplevd ansträngning (RPE)",
+        "easy": "Lätt",
+        "maximum": "Maximal",
+        "feeling": "Känsla",
+        "feelingPlaceholder": "Välj hur du kände dig",
+        "notes": "Anteckningar (valfritt)",
+        "notesPlaceholder": "Övriga kommentarer om passet..."
+      },
+      "feelings": {
+        "great": "Fantastiskt",
+        "good": "Bra",
+        "okay": "Okej",
+        "tired": "Trött",
+        "exhausted": "Utmattad"
+      },
+      "actions": {
+        "saving": "Sparar...",
+        "saveWorkout": "Spara pass"
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {
