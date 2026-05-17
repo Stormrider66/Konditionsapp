@@ -6087,6 +6087,18 @@
       }
     }
   },
+  "api": {
+    "nutrition": {
+      "stats": {
+        "errors": {
+          "fetchFailed": "Could not fetch statistics"
+        }
+      },
+      "wrapped": {
+        "noDataForPeriod": "No nutrition data for this period"
+      }
+    }
+  },
   "infographic": {
     "title": "Program Overview",
     "generate": "Generate",

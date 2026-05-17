@@ -12,8 +12,10 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { generateNutritionWrapped } from '@/lib/nutrition/wrapped-generator'
 import { logger } from '@/lib/logger'
+import { getTranslations } from '@/i18n/server'
 
 export async function GET(request: NextRequest) {
+  const t = await getTranslations('api.nutrition.wrapped')
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
@@ -58,7 +60,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: true,
           wrapped: null,
-          message: 'Ingen kostdata för denna period',
+          message: t('noDataForPeriod'),
         })
       }
 

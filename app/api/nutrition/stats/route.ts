@@ -12,6 +12,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { inferCompleteProtein, inferProteinSource, normalizeProteinSource } from '@/lib/nutrition/protein-quality'
+import { getTranslations } from '@/i18n/server'
 
 const RANGE_DAYS: Record<string, number> = {
   '1d': 1,
@@ -21,6 +22,7 @@ const RANGE_DAYS: Record<string, number> = {
 }
 
 export async function GET(request: NextRequest) {
+  const t = await getTranslations('api.nutrition.stats')
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
@@ -266,7 +268,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    return NextResponse.json({ error: 'Kunde inte hämta statistik' }, { status: 500 })
+    return NextResponse.json({ error: t('errors.fetchFailed') }, { status: 500 })
   }
 }
 
