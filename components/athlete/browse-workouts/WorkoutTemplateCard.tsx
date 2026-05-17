@@ -3,19 +3,14 @@
 import Link from 'next/link'
 import { Heart, Clock, Dumbbell, Flame, Target, StretchHorizontal, Activity } from 'lucide-react'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useLocale, useTranslations } from '@/i18n/client'
 
-const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  STRENGTH: { label: 'Styrka', color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400', icon: Dumbbell },
-  CARDIO: { label: 'Cardio', color: 'bg-red-500/10 text-red-600 dark:text-red-400', icon: Activity },
-  FUNCTIONAL: { label: 'Funktionell', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400', icon: Flame },
-  CORE: { label: 'Core', color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', icon: Target },
-  STRETCHING: { label: 'Stretching', color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400', icon: StretchHorizontal },
-}
-
-const DIFFICULTY_LABELS: Record<string, string> = {
-  BEGINNER: 'Nybörjare',
-  INTERMEDIATE: 'Medel',
-  ADVANCED: 'Avancerad',
+const CATEGORY_CONFIG: Record<string, { color: string; icon: React.ElementType }> = {
+  STRENGTH: { color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400', icon: Dumbbell },
+  CARDIO: { color: 'bg-red-500/10 text-red-600 dark:text-red-400', icon: Activity },
+  FUNCTIONAL: { color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400', icon: Flame },
+  CORE: { color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', icon: Target },
+  STRETCHING: { color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400', icon: StretchHorizontal },
 }
 
 export interface WorkoutTemplateSummary {
@@ -41,9 +36,24 @@ interface WorkoutTemplateCardProps {
 }
 
 export function WorkoutTemplateCard({ template, onToggleFavorite }: WorkoutTemplateCardProps) {
+  const t = useTranslations('components.workoutTemplateCard')
+  const locale = useLocale()
   const basePath = useBasePath()
   const categoryConfig = CATEGORY_CONFIG[template.category] || CATEGORY_CONFIG.STRENGTH
   const CategoryIcon = categoryConfig.icon
+  const categoryLabels: Record<string, string> = {
+    STRENGTH: t('category.strength'),
+    CARDIO: t('category.cardio'),
+    FUNCTIONAL: t('category.functional'),
+    CORE: t('category.core'),
+    STRETCHING: t('category.stretching'),
+  }
+  const difficultyLabels: Record<string, string> = {
+    BEGINNER: t('difficulty.beginner'),
+    INTERMEDIATE: t('difficulty.intermediate'),
+    ADVANCED: t('difficulty.advanced'),
+  }
+  const templateName = locale === 'en' ? template.name : template.nameSv
 
   return (
     <div className="relative group">
@@ -55,16 +65,16 @@ export function WorkoutTemplateCard({ template, onToggleFavorite }: WorkoutTempl
         <div className="flex items-center justify-between">
           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${categoryConfig.color}`}>
             <CategoryIcon className="h-3 w-3" />
-            {categoryConfig.label}
+            {categoryLabels[template.category] || template.category}
           </span>
           <span className="text-xs text-slate-400 dark:text-slate-500">
-            {DIFFICULTY_LABELS[template.difficulty]}
+            {difficultyLabels[template.difficulty] || template.difficulty}
           </span>
         </div>
 
         {/* Name */}
         <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-sm leading-tight">
-          {template.nameSv}
+          {templateName}
         </h3>
 
         {/* Duration + muscle groups */}
@@ -101,7 +111,7 @@ export function WorkoutTemplateCard({ template, onToggleFavorite }: WorkoutTempl
           onToggleFavorite(template.id)
         }}
         className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors z-10"
-        aria-label={template.isFavorite ? 'Ta bort favorit' : 'Lägg till favorit'}
+        aria-label={template.isFavorite ? t('favorite.remove') : t('favorite.add')}
       >
         <Heart
           className={`h-4 w-4 transition-colors ${

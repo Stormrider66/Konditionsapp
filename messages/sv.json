@@ -7614,6 +7614,24 @@
         }
       }
     },
+    "workoutTemplateCard": {
+      "category": {
+        "strength": "Styrka",
+        "cardio": "Cardio",
+        "functional": "Funktionell",
+        "core": "Core",
+        "stretching": "Stretching"
+      },
+      "difficulty": {
+        "beginner": "Nybörjare",
+        "intermediate": "Medel",
+        "advanced": "Avancerad"
+      },
+      "favorite": {
+        "add": "Lägg till favorit",
+        "remove": "Ta bort favorit"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

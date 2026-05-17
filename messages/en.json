@@ -7614,6 +7614,24 @@
         }
       }
     },
+    "workoutTemplateCard": {
+      "category": {
+        "strength": "Strength",
+        "cardio": "Cardio",
+        "functional": "Functional",
+        "core": "Core",
+        "stretching": "Stretching"
+      },
+      "difficulty": {
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced"
+      },
+      "favorite": {
+        "add": "Add favorite",
+        "remove": "Remove favorite"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
