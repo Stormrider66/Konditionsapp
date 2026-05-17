@@ -3007,6 +3007,21 @@
         "fetchFailed": "Could not fetch predictions"
       }
     },
+    "goalProjection": {
+      "title": "Goal projection",
+      "description": "Based on current trends",
+      "emptyDescription": "Set goals for weight, body fat, or muscle mass to see projections.",
+      "current": "Current",
+      "target": "Goal",
+      "weeksRemaining": "~{weeks} weeks remaining ({date})",
+      "unavailable": "Cannot calculate - more data or adjusted goals are needed",
+      "disclaimer": "* Projections are based on the current trend and assume constant progress. Actual results may vary.",
+      "goals": {
+        "weight": "Target weight",
+        "bodyFat": "Target body fat",
+        "muscleMass": "Target muscle mass"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",

@@ -3007,6 +3007,21 @@
         "fetchFailed": "Kunde inte hämta prediktioner"
       }
     },
+    "goalProjection": {
+      "title": "Målprojektion",
+      "description": "Baserat på nuvarande trender",
+      "emptyDescription": "Sätt upp mål för vikt, kroppsfett eller muskelmassa för att se projektioner.",
+      "current": "Nuvarande",
+      "target": "Mål",
+      "weeksRemaining": "~{weeks} veckor kvar ({date})",
+      "unavailable": "Kan inte beräkna - behöver mer data eller justera mål",
+      "disclaimer": "* Projektioner baseras på nuvarande trend och förutsätter konstant utveckling. Faktiska resultat kan variera.",
+      "goals": {
+        "weight": "Målvikt",
+        "bodyFat": "Mål kroppsfett",
+        "muscleMass": "Mål muskelmassa"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

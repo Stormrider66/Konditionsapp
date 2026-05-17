@@ -16,6 +16,7 @@ import {
   type AnalysisOptions
 } from '@/lib/ai/body-composition-analyzer'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface GoalProjectionProps {
   measurements: BodyCompositionMeasurement[]
@@ -23,8 +24,8 @@ interface GoalProjectionProps {
   className?: string
 }
 
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('sv-SE', {
+function formatDate(date: Date, locale: string): string {
+  return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -40,6 +41,11 @@ function ProjectionCard({
   weeks,
   targetDate,
   color,
+  locale,
+  currentLabel,
+  targetLabel,
+  weeksRemainingLabel,
+  unavailableLabel,
 }: {
   icon: typeof Target
   title: string
@@ -49,11 +55,12 @@ function ProjectionCard({
   weeks: number | null
   targetDate: Date | null
   color: string
+  locale: string
+  currentLabel: string
+  targetLabel: string
+  weeksRemainingLabel: (values: { weeks: number; date: string }) => string
+  unavailableLabel: string
 }) {
-  const progress = Math.min(100, Math.max(0,
-    ((current - target) / (current - target + (target - current))) * 100
-  ))
-
   // Calculate actual progress based on direction
   const isDecreasing = target < current
   const progressPercent = isDecreasing
@@ -70,14 +77,14 @@ function ProjectionCard({
       </div>
 
       <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">Nuvarande</span>
+        <span className="text-muted-foreground">{currentLabel}</span>
         <span className="font-semibold">{current.toFixed(1)} {unit}</span>
       </div>
 
       <Progress value={progressPercent} className="h-2" />
 
       <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">Mål</span>
+        <span className="text-muted-foreground">{targetLabel}</span>
         <span className="font-semibold">{target.toFixed(1)} {unit}</span>
       </div>
 
@@ -85,12 +92,12 @@ function ProjectionCard({
         <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t">
           <Calendar className="h-4 w-4" />
           <span>
-            ~{weeks} veckor kvar ({formatDate(targetDate)})
+            {weeksRemainingLabel({ weeks, date: formatDate(targetDate, locale) })}
           </span>
         </div>
       ) : (
         <div className="text-sm text-muted-foreground pt-2 border-t">
-          Kan inte beräkna - behöver mer data eller justera mål
+          {unavailableLabel}
         </div>
       )}
     </div>
@@ -98,6 +105,8 @@ function ProjectionCard({
 }
 
 export function GoalProjection({ measurements, options, className }: GoalProjectionProps) {
+  const t = useTranslations('components.goalProjection')
+  const locale = useLocale()
   const analysis = useMemo(
     () => analyzeBodyComposition(measurements, options),
     [measurements, options]
@@ -118,12 +127,12 @@ export function GoalProjection({ measurements, options, className }: GoalProject
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
-            Målprojektion
+            {t('title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Sätt upp mål för vikt, kroppsfett eller muskelmassa för att se projektioner.
+            {t('emptyDescription')}
           </p>
         </CardContent>
       </Card>
@@ -135,10 +144,10 @@ export function GoalProjection({ measurements, options, className }: GoalProject
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Target className="h-5 w-5" />
-          Målprojektion
+          {t('title')}
         </CardTitle>
         <CardDescription>
-          Baserat på nuvarande trender
+          {t('description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -146,13 +155,18 @@ export function GoalProjection({ measurements, options, className }: GoalProject
         {options.targetWeight && latestMeasurement.weightKg && (
           <ProjectionCard
             icon={Scale}
-            title="Målvikt"
+            title={t('goals.weight')}
             current={latestMeasurement.weightKg}
             target={options.targetWeight}
             unit="kg"
             weeks={analysis.projections.targetWeight?.weeks ?? null}
             targetDate={analysis.projections.targetWeight?.date ?? null}
             color="bg-blue-500"
+            locale={locale}
+            currentLabel={t('current')}
+            targetLabel={t('target')}
+            weeksRemainingLabel={(values) => t('weeksRemaining', values)}
+            unavailableLabel={t('unavailable')}
           />
         )}
 
@@ -160,13 +174,18 @@ export function GoalProjection({ measurements, options, className }: GoalProject
         {options.targetBodyFatPercent && latestMeasurement.bodyFatPercent && (
           <ProjectionCard
             icon={TrendingDown}
-            title="Mål kroppsfett"
+            title={t('goals.bodyFat')}
             current={latestMeasurement.bodyFatPercent}
             target={options.targetBodyFatPercent}
             unit="%"
             weeks={analysis.projections.targetFatPercent?.weeks ?? null}
             targetDate={analysis.projections.targetFatPercent?.date ?? null}
             color="bg-orange-500"
+            locale={locale}
+            currentLabel={t('current')}
+            targetLabel={t('target')}
+            weeksRemainingLabel={(values) => t('weeksRemaining', values)}
+            unavailableLabel={t('unavailable')}
           />
         )}
 
@@ -174,20 +193,24 @@ export function GoalProjection({ measurements, options, className }: GoalProject
         {options.targetMuscleMass && latestMeasurement.muscleMassKg && (
           <ProjectionCard
             icon={Dumbbell}
-            title="Mål muskelmassa"
+            title={t('goals.muscleMass')}
             current={latestMeasurement.muscleMassKg}
             target={options.targetMuscleMass}
             unit="kg"
             weeks={analysis.projections.targetMuscleMass?.weeks ?? null}
             targetDate={analysis.projections.targetMuscleMass?.date ?? null}
             color="bg-purple-500"
+            locale={locale}
+            currentLabel={t('current')}
+            targetLabel={t('target')}
+            weeksRemainingLabel={(values) => t('weeksRemaining', values)}
+            unavailableLabel={t('unavailable')}
           />
         )}
 
         {/* Disclaimer */}
         <p className="text-xs text-muted-foreground">
-          * Projektioner baseras på nuvarande trend och förutsätter konstant utveckling.
-          Faktiska resultat kan variera.
+          {t('disclaimer')}
         </p>
       </CardContent>
     </Card>
