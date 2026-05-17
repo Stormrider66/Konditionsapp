@@ -32,7 +32,7 @@ import {
   type TeamEventContentStatus,
   type TeamEventType,
 } from '@/lib/team-calendar/event-types'
-import { CheckCircle2, Copy, Dumbbell, ExternalLink, HeartPulse, Plus, Printer, Route, Send, Trash2, Zap } from 'lucide-react'
+import { CheckCircle2, ClipboardList, Copy, Dumbbell, ExternalLink, HeartPulse, Plus, Printer, Route, Send, Trash2, TriangleAlert, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { IceHockeyRink, type DrillStructure } from '@/components/coach/drills/IceHockeyRink'
@@ -162,6 +162,90 @@ function formatDuration(value: number | null) {
   return `${value} min`
 }
 
+type PhysicalWorkflowKey = 'planned' | 'needsContent' | 'ready' | 'assigned'
+
+const PHYSICAL_WORKFLOW_STEPS: Array<{
+  key: PhysicalWorkflowKey
+  label: string
+  description: string
+}> = [
+  { key: 'planned', label: 'Planerad ram', description: 'Tid, plats och ansvar är satt' },
+  { key: 'needsContent', label: 'Behöver innehåll', description: 'Passet ska byggas eller kopplas' },
+  { key: 'ready', label: 'Klar att tilldela', description: 'Workout-innehåll finns' },
+  { key: 'assigned', label: 'Tilldelat', description: 'Spelarna kan genomföra' },
+]
+
+function physicalWorkflowKey({
+  contentStatus,
+  linkedWorkoutId,
+  isAssigned,
+}: {
+  contentStatus: TeamEventContentStatus
+  linkedWorkoutId: string
+  isAssigned: boolean
+}): PhysicalWorkflowKey {
+  if (isAssigned || contentStatus === 'ASSIGNED') return 'assigned'
+  if (linkedWorkoutId !== 'none' && contentStatus === 'CONTENT_READY') return 'ready'
+  if (contentStatus === 'NEEDS_CONTENT' || linkedWorkoutId === 'none') return 'needsContent'
+  return 'planned'
+}
+
+function physicalWorkflowCopy({
+  key,
+  canAssignContent,
+  canAssignPersistedWorkout,
+  linkedWorkoutName,
+  completionRate,
+}: {
+  key: PhysicalWorkflowKey
+  canAssignContent: boolean
+  canAssignPersistedWorkout: boolean
+  linkedWorkoutName: string | null
+  completionRate: number | null
+}) {
+  if (key === 'assigned') {
+    return {
+      title: 'Tilldelat till laget',
+      description: completionRate === null
+        ? 'Följ spelarnas genomförande när de börjar rapportera.'
+        : `${completionRate}% av spelarna är klara.`,
+      className: 'border-emerald-300 bg-emerald-50 text-emerald-950',
+      icon: CheckCircle2,
+    }
+  }
+
+  if (key === 'ready') {
+    return {
+      title: 'Workout är kopplad',
+      description: canAssignPersistedWorkout
+        ? 'Nästa steg: tilldela passet till laget.'
+        : 'Spara händelsen först, sedan kan passet tilldelas laget.',
+      className: 'border-blue-300 bg-blue-50 text-blue-950',
+      icon: Send,
+    }
+  }
+
+  if (key === 'needsContent') {
+    return {
+      title: 'Passet behöver innehåll',
+      description: canAssignContent
+        ? 'Nästa steg: öppna rätt studio eller välj ett färdigt pass.'
+        : 'Din roll kan se vad som saknas, men inte koppla workout-innehåll.',
+      className: 'border-amber-300 bg-amber-50 text-amber-950',
+      icon: TriangleAlert,
+    }
+  }
+
+  return {
+    title: 'Planerad ram',
+    description: linkedWorkoutName
+      ? `Kopplat pass: ${linkedWorkoutName}`
+      : 'Ramen finns. Nästa steg är att bestämma innehåll och koppla pass.',
+    className: 'border-slate-300 bg-slate-50 text-slate-950',
+    icon: ClipboardList,
+  }
+}
+
 const PRACTICE_BLOCK_TYPES: Array<{ value: PracticeBlock['type']; label: string }> = [
   { value: 'warmup', label: 'Uppvärmning' },
   { value: 'technical', label: 'Teknik' },
@@ -242,6 +326,16 @@ export function EditEventDialog({
   const canAssignPersistedWorkout = Boolean(canAssignContent && event?.linkedWorkoutId && event?.linkedWorkoutType && !event.assignedBroadcastId)
   const isAssigned = Boolean(event?.assignedBroadcastId)
   const assignmentSummary = event?.assignmentSummary
+  const workflowKey = physicalWorkflowKey({ contentStatus, linkedWorkoutId, isAssigned })
+  const workflowCopy = physicalWorkflowCopy({
+    key: workflowKey,
+    canAssignContent,
+    canAssignPersistedWorkout,
+    linkedWorkoutName,
+    completionRate: assignmentSummary?.completionRate ?? null,
+  })
+  const workflowStepIndex = PHYSICAL_WORKFLOW_STEPS.findIndex((step) => step.key === workflowKey)
+  const WorkflowIcon = workflowCopy.icon
 
   useEffect(() => {
     if (!event) return
@@ -529,6 +623,47 @@ export function EditEventDialog({
                       </Link>
                     </Button>
                   )}
+                </div>
+
+                <div className={`rounded-md border p-3 ${workflowCopy.className}`}>
+                  <div className="flex items-start gap-2">
+                    <WorkflowIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold">{workflowCopy.title}</div>
+                      <div className="text-xs opacity-80">{workflowCopy.description}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+                  {PHYSICAL_WORKFLOW_STEPS.map((step, index) => {
+                    const isCurrent = step.key === workflowKey
+                    const isComplete = index < workflowStepIndex
+                    return (
+                      <div
+                        key={step.key}
+                        className={`rounded-md border p-2 ${
+                          isCurrent
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : isComplete
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                              : 'border-border bg-background text-muted-foreground'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 text-xs font-semibold">
+                          {isComplete ? (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          ) : (
+                            <span className={`h-2 w-2 rounded-full ${isCurrent ? 'bg-primary-foreground' : 'bg-muted-foreground/40'}`} />
+                          )}
+                          {step.label}
+                        </div>
+                        <div className={`mt-1 text-[11px] leading-snug ${isCurrent ? 'text-primary-foreground/80' : ''}`}>
+                          {step.description}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
