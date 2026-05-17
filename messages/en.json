@@ -377,6 +377,78 @@
         "cycling": "Cycling",
         "skiing": "Skiing"
       }
+    },
+    "adHocDetail": {
+      "backToHistory": "Training history",
+      "metrics": {
+        "time": "Time",
+        "distance": "Distance",
+        "avgHeartRate": "Average heart rate",
+        "maxHeartRate": "Max heart rate",
+        "avgPace": "Average pace",
+        "elevation": "Elevation"
+      },
+      "sections": {
+        "details": "Details",
+        "strengthWorkout": "Strength workout ({count, plural, one {# exercise} other {# exercises}})",
+        "cardioWorkout": "Cardio workout ({count, plural, one {# segment} other {# segments}})",
+        "movements": "Movements ({count})",
+        "notes": "Notes",
+        "aiInterpretation": "AI interpretation",
+        "rawInput": "Original input"
+      },
+      "labels": {
+        "timeCap": "Time cap: {minutes} min",
+        "feeling": "Feeling:",
+        "confidence": "Confidence: {percent}%"
+      },
+      "footer": {
+        "registered": "Registered {date}",
+        "parsedBy": "Parsed by {model}"
+      },
+      "exercise": {
+        "setsReps": "{sets} sets x {reps} reps",
+        "rest": "Rest {seconds}s"
+      },
+      "cardio": {
+        "zone": "Zone {zone}"
+      },
+      "inputTypes": {
+        "text": "Text input",
+        "photo": "Photo",
+        "voice": "Voice input",
+        "externalImport": "Imported"
+      },
+      "workoutTypes": {
+        "cardio": "Cardio",
+        "strength": "Strength",
+        "hybrid": "Hybrid",
+        "mixed": "Mixed"
+      },
+      "intensities": {
+        "recovery": "Recovery",
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "threshold": "Threshold",
+        "interval": "Interval",
+        "max": "Maximum"
+      },
+      "feelings": {
+        "great": "Fantastic",
+        "good": "Good",
+        "okay": "Okay",
+        "tired": "Tired",
+        "exhausted": "Exhausted"
+      },
+      "segmentTypes": {
+        "warmup": "Warm-up",
+        "cooldown": "Cool-down",
+        "interval": "Interval",
+        "steady": "Steady pace",
+        "recovery": "Rest",
+        "hill": "Hill",
+        "drills": "Drills"
+      }
     }
   },
   "nav": {

@@ -377,6 +377,78 @@
         "cycling": "Cykling",
         "skiing": "Skidåkning"
       }
+    },
+    "adHocDetail": {
+      "backToHistory": "Träningshistorik",
+      "metrics": {
+        "time": "Tid",
+        "distance": "Distans",
+        "avgHeartRate": "Snittpuls",
+        "maxHeartRate": "Max puls",
+        "avgPace": "Snittempo",
+        "elevation": "Stigning"
+      },
+      "sections": {
+        "details": "Detaljer",
+        "strengthWorkout": "Styrkepass ({count} {count, plural, one {övning} other {övningar}})",
+        "cardioWorkout": "Konditionspass ({count} {count, plural, one {segment} other {segment}})",
+        "movements": "Rörelser ({count} st)",
+        "notes": "Anteckningar",
+        "aiInterpretation": "AI-tolkning",
+        "rawInput": "Originalinmatning"
+      },
+      "labels": {
+        "timeCap": "Time cap: {minutes} min",
+        "feeling": "Känsla:",
+        "confidence": "Konfidensgrad: {percent}%"
+      },
+      "footer": {
+        "registered": "Registrerad {date}",
+        "parsedBy": "Tolkad av {model}"
+      },
+      "exercise": {
+        "setsReps": "{sets} set x {reps} reps",
+        "rest": "Vila {seconds}s"
+      },
+      "cardio": {
+        "zone": "Zon {zone}"
+      },
+      "inputTypes": {
+        "text": "Textinmatning",
+        "photo": "Foto",
+        "voice": "Röstinmatning",
+        "externalImport": "Importerad"
+      },
+      "workoutTypes": {
+        "cardio": "Kondition",
+        "strength": "Styrka",
+        "hybrid": "Blandat",
+        "mixed": "Mixat"
+      },
+      "intensities": {
+        "recovery": "Vilopass",
+        "easy": "Lätt",
+        "moderate": "Måttlig",
+        "threshold": "Tröskel",
+        "interval": "Intervall",
+        "max": "Maximal"
+      },
+      "feelings": {
+        "great": "Fantastiskt",
+        "good": "Bra",
+        "okay": "Okej",
+        "tired": "Trött",
+        "exhausted": "Utmattad"
+      },
+      "segmentTypes": {
+        "warmup": "Uppvärmning",
+        "cooldown": "Nedvarvning",
+        "interval": "Intervall",
+        "steady": "Jämnt tempo",
+        "recovery": "Vila",
+        "hill": "Backe",
+        "drills": "Teknikövningar"
+      }
     }
   },
   "nav": {
