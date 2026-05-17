@@ -2489,6 +2489,96 @@
       },
       "missedWorkouts": "{count} missade",
       "unreadMessages": "{count} olästa"
+    },
+    "coachQuickActions": {
+      "quickLinks": "Snabblänkar",
+      "reviewWorkouts": "Granska pass",
+      "team": {
+        "title": "Snabba åtgärder",
+        "createWorkout": "Skapa pass",
+        "bookTest": "Boka test",
+        "message": "Meddelande",
+        "program": "Program",
+        "newAthlete": "Ny atlet",
+        "roster": "Trupp"
+      },
+      "gym": {
+        "newMember": "Ny medlem",
+        "strengthWorkout": "Styrkepass",
+        "logPr": "Logga PR",
+        "exercises": "Övningar",
+        "bodyMeasurement": "Kroppsmätning",
+        "assignWorkout": "Tilldela pass"
+      },
+      "pt": {
+        "newClient": "Ny klient",
+        "newTest": "Nytt test",
+        "strength": "Styrka",
+        "intervals": "Intervaller"
+      }
+    },
+    "teamCoachActionDialog": {
+      "fallbackTitle": "Snabbåtgärd",
+      "actions": {
+        "workout": {
+          "title": "Skapa lagpass",
+          "description": "Välj lag och vilken typ av pass du vill bygga."
+        },
+        "test": {
+          "title": "Boka lagtest",
+          "description": "Lägg in ett test i lagets kalender."
+        },
+        "message": {
+          "title": "Skicka lagmeddelande",
+          "description": "Skicka ett snabbt meddelande till hela laget eller en smart grupp."
+        }
+      },
+      "defaults": {
+        "testTitle": "Lagtest",
+        "teamFallback": "laget"
+      },
+      "fields": {
+        "team": "Lag",
+        "teamPlaceholder": "Välj lag",
+        "workoutType": "Typ av pass",
+        "testName": "Testnamn",
+        "date": "Datum",
+        "time": "Tid",
+        "location": "Plats",
+        "locationPlaceholder": "t.ex. Hall A",
+        "recipients": "Mottagare",
+        "message": "Meddelande",
+        "messagePlaceholder": "Skriv ett kort meddelande..."
+      },
+      "workoutTypes": {
+        "cardio": "Kondition",
+        "strength": "Styrka"
+      },
+      "messageTargets": {
+        "all": "Hela laget",
+        "lowReadiness": "Låg beredskap",
+        "missedWorkouts": "Missade pass",
+        "injured": "Skadeflaggor"
+      },
+      "actions": {
+        "cancel": "Avbryt",
+        "continue": "Fortsätt",
+        "book": "Boka",
+        "send": "Skicka"
+      },
+      "toasts": {
+        "testBooked": "Test bokat",
+        "testBookedDescription": "{testTitle} lades till för {teamName}.",
+        "messageSent": "Meddelande skickat",
+        "messageSentDescription": "{count} mottagare i {teamName}.",
+        "testBookFailed": "Testet kunde inte bokas",
+        "messageSendFailed": "Meddelandet kunde inte skickas"
+      },
+      "errors": {
+        "bookTestFailed": "Kunde inte boka testet",
+        "sendMessageFailed": "Kunde inte skicka meddelandet",
+        "unexpected": "Ett oväntat fel inträffade."
+      }
     }
   },
   "infographic": {

@@ -2489,6 +2489,96 @@
       },
       "missedWorkouts": "{count} missed",
       "unreadMessages": "{count} unread"
+    },
+    "coachQuickActions": {
+      "quickLinks": "Quick links",
+      "reviewWorkouts": "Review workouts",
+      "team": {
+        "title": "Quick actions",
+        "createWorkout": "Create workout",
+        "bookTest": "Book test",
+        "message": "Message",
+        "program": "Program",
+        "newAthlete": "New athlete",
+        "roster": "Roster"
+      },
+      "gym": {
+        "newMember": "New member",
+        "strengthWorkout": "Strength workout",
+        "logPr": "Log PR",
+        "exercises": "Exercises",
+        "bodyMeasurement": "Body measurement",
+        "assignWorkout": "Assign workout"
+      },
+      "pt": {
+        "newClient": "New client",
+        "newTest": "New test",
+        "strength": "Strength",
+        "intervals": "Intervals"
+      }
+    },
+    "teamCoachActionDialog": {
+      "fallbackTitle": "Quick action",
+      "actions": {
+        "workout": {
+          "title": "Create team workout",
+          "description": "Choose a team and what type of workout you want to build."
+        },
+        "test": {
+          "title": "Book team test",
+          "description": "Add a test to the team calendar."
+        },
+        "message": {
+          "title": "Send team message",
+          "description": "Send a quick message to the whole team or a smart group."
+        }
+      },
+      "defaults": {
+        "testTitle": "Team test",
+        "teamFallback": "the team"
+      },
+      "fields": {
+        "team": "Team",
+        "teamPlaceholder": "Select team",
+        "workoutType": "Workout type",
+        "testName": "Test name",
+        "date": "Date",
+        "time": "Time",
+        "location": "Location",
+        "locationPlaceholder": "e.g. Hall A",
+        "recipients": "Recipients",
+        "message": "Message",
+        "messagePlaceholder": "Write a short message..."
+      },
+      "workoutTypes": {
+        "cardio": "Cardio",
+        "strength": "Strength"
+      },
+      "messageTargets": {
+        "all": "Whole team",
+        "lowReadiness": "Low readiness",
+        "missedWorkouts": "Missed workouts",
+        "injured": "Injury flags"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "continue": "Continue",
+        "book": "Book",
+        "send": "Send"
+      },
+      "toasts": {
+        "testBooked": "Test booked",
+        "testBookedDescription": "{testTitle} was added for {teamName}.",
+        "messageSent": "Message sent",
+        "messageSentDescription": "{count} recipients in {teamName}.",
+        "testBookFailed": "The test could not be booked",
+        "messageSendFailed": "The message could not be sent"
+      },
+      "errors": {
+        "bookTestFailed": "Could not book the test",
+        "sendMessageFailed": "Could not send the message",
+        "unexpected": "An unexpected error occurred."
+      }
     }
   },
   "infographic": {

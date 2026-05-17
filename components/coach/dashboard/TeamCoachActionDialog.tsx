@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { TeamDashboardData } from '@/components/coach/dashboard/TeamDashboardLayout'
+import { useTranslations } from '@/i18n/client'
 
 export type TeamCoachAction = 'workout' | 'test' | 'message'
 
@@ -34,18 +35,18 @@ interface TeamCoachActionDialogProps {
 
 const actionCopy = {
   workout: {
-    title: 'Skapa lagpass',
-    description: 'Välj lag och vilken typ av pass du vill bygga.',
+    titleKey: 'actions.workout.title',
+    descriptionKey: 'actions.workout.description',
     icon: Dumbbell,
   },
   test: {
-    title: 'Boka lagtest',
-    description: 'Lägg in ett test i lagets kalender.',
+    titleKey: 'actions.test.title',
+    descriptionKey: 'actions.test.description',
     icon: CalendarClock,
   },
   message: {
-    title: 'Skicka lagmeddelande',
-    description: 'Skicka ett snabbt meddelande till hela laget eller en smart grupp.',
+    titleKey: 'actions.message.title',
+    descriptionKey: 'actions.message.description',
     icon: MessageSquare,
   },
 }
@@ -62,10 +63,11 @@ export function TeamCoachActionDialog({
   open,
   onOpenChange,
 }: TeamCoachActionDialogProps) {
+  const t = useTranslations('components.teamCoachActionDialog')
   const router = useRouter()
   const [teamId, setTeamId] = useState('')
   const [workoutType, setWorkoutType] = useState('cardio')
-  const [testTitle, setTestTitle] = useState('Lagtest')
+  const [testTitle, setTestTitle] = useState(t('defaults.testTitle'))
   const [date, setDate] = useState(todayValue())
   const [time, setTime] = useState('09:00')
   const [location, setLocation] = useState('')
@@ -79,15 +81,19 @@ export function TeamCoachActionDialog({
 
   useEffect(() => {
     if (!open) return
-    setTeamId(initialTeamId || teams[0]?.id || '')
-    setWorkoutType('cardio')
-    setTestTitle('Lagtest')
-    setDate(todayValue())
-    setTime('09:00')
-    setLocation('')
-    setMessageTarget('ALL')
-    setMessageText('')
-  }, [initialTeamId, open, teams])
+    const timeoutId = window.setTimeout(() => {
+      setTeamId(initialTeamId || teams[0]?.id || '')
+      setWorkoutType('cardio')
+      setTestTitle(t('defaults.testTitle'))
+      setDate(todayValue())
+      setTime('09:00')
+      setLocation('')
+      setMessageTarget('ALL')
+      setMessageText('')
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [initialTeamId, open, teams, t])
 
   async function handleSubmit() {
     if (!action || !teamId) return
@@ -123,9 +129,12 @@ export function TeamCoachActionDialog({
           }),
         })
         const result = await response.json()
-        if (!response.ok) throw new Error(result.error || 'Kunde inte boka testet')
-        toast.success('Test bokat', {
-          description: `${testTitle} lades till för ${selectedTeam?.name ?? 'laget'}.`,
+        if (!response.ok) throw new Error(result.error || t('errors.bookTestFailed'))
+        toast.success(t('toasts.testBooked'), {
+          description: t('toasts.testBookedDescription', {
+            testTitle,
+            teamName: selectedTeam?.name ?? t('defaults.teamFallback'),
+          }),
         })
       } else {
         const response = await fetch(`/api/coach/teams/${teamId}/messages`, {
@@ -140,15 +149,18 @@ export function TeamCoachActionDialog({
           }),
         })
         const result = await response.json()
-        if (!response.ok) throw new Error(result.error || 'Kunde inte skicka meddelandet')
-        toast.success('Meddelande skickat', {
-          description: `${result.sent} mottagare i ${result.teamName}.`,
+        if (!response.ok) throw new Error(result.error || t('errors.sendMessageFailed'))
+        toast.success(t('toasts.messageSent'), {
+          description: t('toasts.messageSentDescription', {
+            count: result.sent,
+            teamName: result.teamName,
+          }),
         })
       }
       onOpenChange(false)
     } catch (error) {
-      toast.error(action === 'test' ? 'Testet kunde inte bokas' : 'Meddelandet kunde inte skickas', {
-        description: error instanceof Error ? error.message : 'Ett oväntat fel inträffade.',
+      toast.error(action === 'test' ? t('toasts.testBookFailed') : t('toasts.messageSendFailed'), {
+        description: error instanceof Error ? error.message : t('errors.unexpected'),
       })
     } finally {
       setSubmitting(false)
@@ -167,17 +179,17 @@ export function TeamCoachActionDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Icon className="h-5 w-5" />
-            {copy?.title ?? 'Snabbåtgärd'}
+            {copy ? t(copy.titleKey) : t('fallbackTitle')}
           </DialogTitle>
-          <DialogDescription>{copy?.description}</DialogDescription>
+          <DialogDescription>{copy ? t(copy.descriptionKey) : undefined}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label>Lag</Label>
+            <Label>{t('fields.team')}</Label>
             <Select value={teamId} onValueChange={setTeamId}>
               <SelectTrigger>
-                <SelectValue placeholder="Välj lag" />
+                <SelectValue placeholder={t('fields.teamPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {teams.map(team => (
@@ -191,14 +203,14 @@ export function TeamCoachActionDialog({
 
           {action === 'workout' && (
             <div className="space-y-2">
-              <Label>Typ av pass</Label>
+              <Label>{t('fields.workoutType')}</Label>
               <Select value={workoutType} onValueChange={setWorkoutType}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cardio">Kondition</SelectItem>
-                  <SelectItem value="strength">Styrka</SelectItem>
+                  <SelectItem value="cardio">{t('workoutTypes.cardio')}</SelectItem>
+                  <SelectItem value="strength">{t('workoutTypes.strength')}</SelectItem>
                   <SelectItem value="hybrid">Hybrid</SelectItem>
                 </SelectContent>
               </Select>
@@ -208,22 +220,22 @@ export function TeamCoachActionDialog({
           {action === 'test' && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="team-test-title">Testnamn</Label>
+                <Label htmlFor="team-test-title">{t('fields.testName')}</Label>
                 <Input id="team-test-title" value={testTitle} onChange={event => setTestTitle(event.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="team-test-date">Datum</Label>
+                  <Label htmlFor="team-test-date">{t('fields.date')}</Label>
                   <Input id="team-test-date" type="date" value={date} onChange={event => setDate(event.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="team-test-time">Tid</Label>
+                  <Label htmlFor="team-test-time">{t('fields.time')}</Label>
                   <Input id="team-test-time" type="time" value={time} onChange={event => setTime(event.target.value)} />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="team-test-location">Plats</Label>
-                <Input id="team-test-location" value={location} onChange={event => setLocation(event.target.value)} placeholder="t.ex. Hall A" />
+                <Label htmlFor="team-test-location">{t('fields.location')}</Label>
+                <Input id="team-test-location" value={location} onChange={event => setLocation(event.target.value)} placeholder={t('fields.locationPlaceholder')} />
               </div>
             </>
           )}
@@ -231,26 +243,26 @@ export function TeamCoachActionDialog({
           {action === 'message' && (
             <>
               <div className="space-y-2">
-                <Label>Mottagare</Label>
+                <Label>{t('fields.recipients')}</Label>
                 <Select value={messageTarget} onValueChange={setMessageTarget}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ALL">Hela laget</SelectItem>
-                    <SelectItem value="LOW_READINESS">Låg beredskap</SelectItem>
-                    <SelectItem value="MISSED_WORKOUTS">Missade pass</SelectItem>
-                    <SelectItem value="INJURED">Skadeflaggor</SelectItem>
+                    <SelectItem value="ALL">{t('messageTargets.all')}</SelectItem>
+                    <SelectItem value="LOW_READINESS">{t('messageTargets.lowReadiness')}</SelectItem>
+                    <SelectItem value="MISSED_WORKOUTS">{t('messageTargets.missedWorkouts')}</SelectItem>
+                    <SelectItem value="INJURED">{t('messageTargets.injured')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="team-message">Meddelande</Label>
+                <Label htmlFor="team-message">{t('fields.message')}</Label>
                 <Textarea
                   id="team-message"
                   value={messageText}
                   onChange={event => setMessageText(event.target.value)}
-                  placeholder="Skriv ett kort meddelande..."
+                  placeholder={t('fields.messagePlaceholder')}
                   rows={4}
                   maxLength={1000}
                 />
@@ -262,7 +274,7 @@ export function TeamCoachActionDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Avbryt
+            {t('actions.cancel')}
           </Button>
           <Button onClick={handleSubmit} disabled={disabled}>
             {submitting ? (
@@ -270,7 +282,7 @@ export function TeamCoachActionDialog({
             ) : action === 'message' ? (
               <Send className="h-4 w-4 mr-2" />
             ) : null}
-            {action === 'workout' ? 'Fortsätt' : action === 'test' ? 'Boka' : 'Skicka'}
+            {action === 'workout' ? t('actions.continue') : action === 'test' ? t('actions.book') : t('actions.send')}
           </Button>
         </DialogFooter>
       </DialogContent>
