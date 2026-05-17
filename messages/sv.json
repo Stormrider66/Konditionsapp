@@ -947,6 +947,148 @@
           "inlinePrefix": "Fel:"
         }
       },
+      "clientDetail": {
+        "loading": "Laddar klientinformation...",
+        "backToClientList": "Tillbaka till klientlista",
+        "subtitle": "Klientdetaljer och testhistorik",
+        "ageYears": "{age} år",
+        "aiContext": {
+          "title": "Videoanalys: {exercise}",
+          "athleteFallback": "atlet",
+          "notAssessed": "Ej bedömd",
+          "summary": "Videoanalys för {athlete} - {exercise}. Poäng: {score}. {count} problem identifierade."
+        },
+        "actions": {
+          "fullProfile": "Fullständig profil",
+          "edit": "Redigera",
+          "createAthleteAccount": "Skapa atletkonto",
+          "exportCsv": "Exportera CSV",
+          "view": "Visa",
+          "viewArrow": "Visa →",
+          "editTest": "Redigera test",
+          "deleteTest": "Ta bort test",
+          "cancel": "Avbryt",
+          "deleting": "Tar bort...",
+          "delete": "Ta bort"
+        },
+        "fields": {
+          "age": "Ålder",
+          "gender": "Kön",
+          "birthDate": "Födelsedatum",
+          "height": "Längd",
+          "weight": "Vikt",
+          "email": "E-post",
+          "phone": "Telefon",
+          "team": "Lag/Klubb",
+          "notes": "Anteckningar"
+        },
+        "gender": {
+          "male": "Man",
+          "female": "Kvinna"
+        },
+        "portalStatus": {
+          "passwordReady": "Aktiv - lösenord klart",
+          "active": "Aktiv",
+          "notLoggedIn": "Inte inloggad än"
+        },
+        "overview": {
+          "personalInfo": "Personuppgifter",
+          "sportSpecificData": "Sportspecifik Data",
+          "heartRateZoneAnalysis": "Pulszonanalys"
+        },
+        "analysis": {
+          "trainingLogs": {
+            "title": "Träningsloggar",
+            "description": "Hela loggvyn — feedback, kommentarer per pass, filtrering på datum.",
+            "cta": "Öppna loggvyn"
+          },
+          "hockeyLogs": {
+            "title": "Hockeyloggar och passfeedback",
+            "description": "Hela loggvyn med passkommentarer, utförandegrad och belastning inför nästa is- eller gymblock."
+          },
+          "noAthleteAccount": {
+            "title": "Denna klient har inget atletkonto",
+            "description": "Skapa ett atletkonto så att klienten kan logga in, logga träningspass och få analys."
+          }
+        },
+        "programs": {
+          "title": "Träningsprogram",
+          "newProgram": "+ Nytt program",
+          "loading": "Laddar program...",
+          "emptyTitle": "Inga träningsprogram skapade ännu",
+          "createFirst": "Skapa första programmet",
+          "weeks": "{count} veckor"
+        },
+        "programGoals": {
+          "halfMarathon": "Halvmarathon",
+          "fitness": "Fitness/Kondition",
+          "cycling": "Cykling",
+          "skiing": "Skidåkning",
+          "custom": "Anpassad"
+        },
+        "tests": {
+          "title": "Testhistorik",
+          "showingFiltered": "Visar {filtered} av {total} tester",
+          "newTest": "+ Nytt Test",
+          "searchPlaceholder": "Sök datum eller anteckningar...",
+          "filterPlaceholder": "Filtrera testtyp",
+          "allTestTypes": "Alla testtyper",
+          "emptyTitle": "Inga tester registrerade ännu",
+          "createFirst": "Skapa första testet",
+          "noMatches": "Inga tester matchar sökningen eller filtren",
+          "resetFilters": "Återställ alla filter",
+          "table": {
+            "date": "Datum",
+            "type": "Typ",
+            "aerobicThreshold": "Aerob tröskel",
+            "anaerobicThreshold": "Anaerob tröskel",
+            "actions": "Åtgärder"
+          },
+          "details": {
+            "title": "Detaljerad information",
+            "maxHr": "Max puls",
+            "maxLactate": "Max laktat",
+            "trainingZones": "Träningszoner",
+            "zone": "Zon",
+            "heartRateBpm": "Puls (bpm)",
+            "percentOfMax": "% av max",
+            "description": "Beskrivning"
+          }
+        },
+        "testTypes": {
+          "running": "Löpning",
+          "cycling": "Cykling",
+          "skiing": "Skidåkning"
+        },
+        "testStatus": {
+          "completed": "Genomfört",
+          "draft": "Utkast",
+          "archived": "Arkiverad"
+        },
+        "deleteDialog": {
+          "title": "Är du säker?",
+          "description": "Detta kommer att permanent ta bort testet från {date}.",
+          "cannotUndo": "Denna åtgärd kan inte ångras."
+        },
+        "toasts": {
+          "aiStudioUnavailableTitle": "AI Studio ej tillgänglig",
+          "aiStudioUnavailableDescription": "Öppna AI-chatten för att ladda videoanalys som kontext",
+          "testDeletedTitle": "Test borttaget",
+          "testDeletedDescription": "Testet har tagits bort",
+          "errorTitle": "Fel",
+          "testDeleteFailed": "Kunde inte ta bort testet",
+          "noExportDataTitle": "Ingen data att exportera",
+          "noExportDataDescription": "Det finns inga tester att exportera.",
+          "exportSuccessTitle": "Export lyckades!",
+          "exportSuccessDescription": "{count} tester exporterades till CSV.",
+          "exportErrorTitle": "Exportfel",
+          "exportErrorDescription": "Kunde inte exportera tester."
+        },
+        "errors": {
+          "inlinePrefix": "Fel:",
+          "clientNotFound": "Klienten hittades inte"
+        }
+      },
       "calendarSettings": {
         "backToSettings": "Tillbaka till inställningar",
         "title": "Kalenderanslutningar",

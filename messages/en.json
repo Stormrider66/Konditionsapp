@@ -947,6 +947,148 @@
           "inlinePrefix": "Error:"
         }
       },
+      "clientDetail": {
+        "loading": "Loading client information...",
+        "backToClientList": "Back to client list",
+        "subtitle": "Client details and test history",
+        "ageYears": "{age} years",
+        "aiContext": {
+          "title": "Video analysis: {exercise}",
+          "athleteFallback": "athlete",
+          "notAssessed": "Not assessed",
+          "summary": "Video analysis for {athlete} - {exercise}. Score: {score}. {count} issues identified."
+        },
+        "actions": {
+          "fullProfile": "Full profile",
+          "edit": "Edit",
+          "createAthleteAccount": "Create athlete account",
+          "exportCsv": "Export CSV",
+          "view": "View",
+          "viewArrow": "View →",
+          "editTest": "Edit test",
+          "deleteTest": "Delete test",
+          "cancel": "Cancel",
+          "deleting": "Deleting...",
+          "delete": "Delete"
+        },
+        "fields": {
+          "age": "Age",
+          "gender": "Gender",
+          "birthDate": "Date of birth",
+          "height": "Height",
+          "weight": "Weight",
+          "email": "Email",
+          "phone": "Phone",
+          "team": "Team/club",
+          "notes": "Notes"
+        },
+        "gender": {
+          "male": "Male",
+          "female": "Female"
+        },
+        "portalStatus": {
+          "passwordReady": "Active - password ready",
+          "active": "Active",
+          "notLoggedIn": "Not logged in yet"
+        },
+        "overview": {
+          "personalInfo": "Personal information",
+          "sportSpecificData": "Sport-specific data",
+          "heartRateZoneAnalysis": "Heart rate zone analysis"
+        },
+        "analysis": {
+          "trainingLogs": {
+            "title": "Training logs",
+            "description": "Full log view — feedback, workout comments, date filtering.",
+            "cta": "Open log view"
+          },
+          "hockeyLogs": {
+            "title": "Hockey logs and workout feedback",
+            "description": "Full log view with workout comments, completion rate, and load before the next ice or gym block."
+          },
+          "noAthleteAccount": {
+            "title": "This client does not have an athlete account",
+            "description": "Create an athlete account so the client can sign in, log workouts, and get analysis."
+          }
+        },
+        "programs": {
+          "title": "Training programs",
+          "newProgram": "+ New program",
+          "loading": "Loading programs...",
+          "emptyTitle": "No training programs created yet",
+          "createFirst": "Create first program",
+          "weeks": "{count} weeks"
+        },
+        "programGoals": {
+          "halfMarathon": "Half marathon",
+          "fitness": "Fitness/cardio",
+          "cycling": "Cycling",
+          "skiing": "Skiing",
+          "custom": "Custom"
+        },
+        "tests": {
+          "title": "Test history",
+          "showingFiltered": "Showing {filtered} of {total} tests",
+          "newTest": "+ New test",
+          "searchPlaceholder": "Search dates or notes...",
+          "filterPlaceholder": "Filter test type",
+          "allTestTypes": "All test types",
+          "emptyTitle": "No tests registered yet",
+          "createFirst": "Create first test",
+          "noMatches": "No tests match the search or filters",
+          "resetFilters": "Reset all filters",
+          "table": {
+            "date": "Date",
+            "type": "Type",
+            "aerobicThreshold": "Aerobic threshold",
+            "anaerobicThreshold": "Anaerobic threshold",
+            "actions": "Actions"
+          },
+          "details": {
+            "title": "Detailed information",
+            "maxHr": "Max HR",
+            "maxLactate": "Max lactate",
+            "trainingZones": "Training zones",
+            "zone": "Zone",
+            "heartRateBpm": "Heart rate (bpm)",
+            "percentOfMax": "% of max",
+            "description": "Description"
+          }
+        },
+        "testTypes": {
+          "running": "Running",
+          "cycling": "Cycling",
+          "skiing": "Skiing"
+        },
+        "testStatus": {
+          "completed": "Completed",
+          "draft": "Draft",
+          "archived": "Archived"
+        },
+        "deleteDialog": {
+          "title": "Are you sure?",
+          "description": "This will permanently delete the test from {date}.",
+          "cannotUndo": "This action cannot be undone."
+        },
+        "toasts": {
+          "aiStudioUnavailableTitle": "AI Studio unavailable",
+          "aiStudioUnavailableDescription": "Open AI chat to load video analysis as context",
+          "testDeletedTitle": "Test deleted",
+          "testDeletedDescription": "The test has been deleted",
+          "errorTitle": "Error",
+          "testDeleteFailed": "Could not delete the test",
+          "noExportDataTitle": "No data to export",
+          "noExportDataDescription": "There are no tests to export.",
+          "exportSuccessTitle": "Export succeeded!",
+          "exportSuccessDescription": "{count} tests were exported to CSV.",
+          "exportErrorTitle": "Export error",
+          "exportErrorDescription": "Could not export tests."
+        },
+        "errors": {
+          "inlinePrefix": "Error:",
+          "clientNotFound": "Client not found"
+        }
+      },
       "calendarSettings": {
         "backToSettings": "Back to settings",
         "title": "Calendar connections",

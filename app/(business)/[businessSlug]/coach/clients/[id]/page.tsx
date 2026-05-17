@@ -5,7 +5,8 @@ import { useEffect, useState, useMemo, Fragment, useCallback, Suspense } from 'r
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale, useTranslations } from '@/i18n/client'
 import type { Client, Team, Test, TestType, TrainingZone } from '@/types'
 import { ProgressionChart } from '@/components/charts/ProgressionChart'
 import { SportSpecificAthleteView } from '@/components/coach/sport-views'
@@ -190,6 +191,9 @@ function buildHockeySettings(
 }
 
 export default function BusinessClientDetailPage() {
+  const t = useTranslations('coach.pages.clientDetail')
+  const locale = useLocale()
+  const dateFnsLocale = locale === 'sv' ? sv : enUS
   const params = useParams()
   const id = params.id as string
   const businessSlug = params.businessSlug as string
@@ -228,8 +232,8 @@ export default function BusinessClientDetailPage() {
   }) => {
     if (!pageContextApi?.setPageContext) {
       toast({
-        title: 'AI Studio ej tillgänglig',
-        description: 'Öppna AI-chatten för att ladda videoanalys som kontext',
+        title: t('toasts.aiStudioUnavailableTitle'),
+        description: t('toasts.aiStudioUnavailableDescription'),
         variant: 'destructive',
       })
       return
@@ -237,7 +241,7 @@ export default function BusinessClientDetailPage() {
 
     const context: PageContext = {
       type: 'video-analysis',
-      title: `Videoanalys: ${analysis.exercise?.nameSv || analysis.exercise?.name || analysis.videoType}`,
+      title: t('aiContext.title', { exercise: analysis.exercise?.nameSv || analysis.exercise?.name || analysis.videoType }),
       data: {
         analysisId: analysis.id,
         videoType: analysis.videoType,
@@ -246,11 +250,16 @@ export default function BusinessClientDetailPage() {
         issues: analysis.issuesDetected,
         recommendations: analysis.recommendations,
       },
-      summary: `Videoanalys för ${client?.name || 'atlet'} - ${analysis.exercise?.nameSv || analysis.exercise?.name || analysis.videoType}. Poäng: ${analysis.formScore ?? 'Ej bedömd'}. ${analysis.issuesDetected?.length || 0} problem identifierade.`,
+      summary: t('aiContext.summary', {
+        athlete: client?.name || t('aiContext.athleteFallback'),
+        exercise: analysis.exercise?.nameSv || analysis.exercise?.name || analysis.videoType,
+        score: analysis.formScore ?? t('aiContext.notAssessed'),
+        count: analysis.issuesDetected?.length || 0,
+      }),
     }
 
     pageContextApi.setPageContext(context)
-  }, [pageContextApi, client?.name, toast])
+  }, [pageContextApi, client?.name, t, toast])
 
   const fetchClient = useCallback(async () => {
     try {
@@ -351,7 +360,7 @@ export default function BusinessClientDetailPage() {
     if (searchTerm) {
       const search = searchTerm.toLowerCase()
       filtered = filtered.filter((test) => {
-        const dateString = format(new Date(test.testDate), 'PPP', { locale: sv }).toLowerCase()
+        const dateString = format(new Date(test.testDate), 'PPP', { locale: dateFnsLocale }).toLowerCase()
         const notes = test.notes?.toLowerCase() || ''
         return dateString.includes(search) || notes.includes(search)
       })
@@ -379,7 +388,7 @@ export default function BusinessClientDetailPage() {
     })
 
     return filtered
-  }, [clientTests, filterTestType, searchTerm, sortField, sortDirection])
+  }, [clientTests, filterTestType, searchTerm, sortField, sortDirection, dateFnsLocale])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -413,8 +422,8 @@ export default function BusinessClientDetailPage() {
 
       if (result.success) {
         toast({
-          title: 'Test borttaget',
-          description: 'Testet har tagits bort',
+          title: t('toasts.testDeletedTitle'),
+          description: t('toasts.testDeletedDescription'),
         })
         await fetchClient()
         if (expandedTestId === testToDelete.id) {
@@ -426,8 +435,8 @@ export default function BusinessClientDetailPage() {
     } catch (error) {
       console.error('Error deleting test:', error)
       toast({
-        title: 'Fel',
-        description: 'Kunde inte ta bort testet',
+        title: t('toasts.errorTitle'),
+        description: t('toasts.testDeleteFailed'),
         variant: 'destructive',
       })
     } finally {
@@ -440,8 +449,8 @@ export default function BusinessClientDetailPage() {
   const handleExportTests = () => {
     if (!client || !client.tests || client.tests.length === 0) {
       toast({
-        title: 'Ingen data att exportera',
-        description: 'Det finns inga tester att exportera.',
+        title: t('toasts.noExportDataTitle'),
+        description: t('toasts.noExportDataDescription'),
         variant: 'destructive',
       })
       return
@@ -455,14 +464,14 @@ export default function BusinessClientDetailPage() {
       exportClientTestsToCSV(testsToExport, client.name)
 
       toast({
-        title: 'Export lyckades!',
-        description: `${testsToExport.length} tester exporterades till CSV.`,
+        title: t('toasts.exportSuccessTitle'),
+        description: t('toasts.exportSuccessDescription', { count: testsToExport.length }),
       })
     } catch (error) {
       console.error('Export error:', error)
       toast({
-        title: 'Exportfel',
-        description: 'Kunde inte exportera tester.',
+        title: t('toasts.exportErrorTitle'),
+        description: t('toasts.exportErrorDescription'),
         variant: 'destructive',
       })
     }
@@ -471,7 +480,7 @@ export default function BusinessClientDetailPage() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-12">
-        <div className="text-center dark:text-slate-300">Laddar klientinformation...</div>
+        <div className="text-center dark:text-slate-300">{t('loading')}</div>
       </div>
     )
   }
@@ -480,13 +489,13 @@ export default function BusinessClientDetailPage() {
     return (
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-12">
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <p className="text-red-800 dark:text-red-300">Fel: {error || 'Client not found'}</p>
+          <p className="text-red-800 dark:text-red-300">{t('errors.inlinePrefix')} {error || t('errors.clientNotFound')}</p>
         </div>
         <Link
           href={`${basePath}/clients`}
           className="mt-4 inline-block text-blue-600 hover:text-blue-800"
         >
-          Tillbaka till klientlista
+          {t('backToClientList')}
         </Link>
       </div>
     )
@@ -498,14 +507,42 @@ export default function BusinessClientDetailPage() {
   const hockeySettings = isHockeyAthlete
     ? buildHockeySettings(client, sportProfile)
     : null
+  const testTypeLabels: Record<TestType, string> = {
+    RUNNING: t('testTypes.running'),
+    CYCLING: t('testTypes.cycling'),
+    SKIING: t('testTypes.skiing'),
+  }
+  const testStatusLabels: Record<string, string> = {
+    COMPLETED: t('testStatus.completed'),
+    DRAFT: t('testStatus.draft'),
+    ARCHIVED: t('testStatus.archived'),
+  }
+  const programGoalLabels: Record<string, string> = {
+    marathon: 'Marathon',
+    half_marathon: t('programGoals.halfMarathon'),
+    '10k': '10K',
+    '5k': '5K',
+    fitness: t('programGoals.fitness'),
+    cycling: t('programGoals.cycling'),
+    skiing: t('programGoals.skiing'),
+    triathlon: 'Triathlon',
+    custom: t('programGoals.custom'),
+  }
 
   const overviewContent = (
     <>
       <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6 mb-4 sm:mb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-lg sm:text-xl font-semibold dark:text-white">Personuppgifter</h2>
-            <AthletePortalStatusBadge athleteAccount={client.athleteAccount} />
+            <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('overview.personalInfo')}</h2>
+            <AthletePortalStatusBadge
+              athleteAccount={client.athleteAccount}
+              labels={{
+                passwordReady: t('portalStatus.passwordReady'),
+                active: t('portalStatus.active'),
+                notLoggedIn: t('portalStatus.notLoggedIn'),
+              }}
+            />
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <CreateAthleteAccountDialog
@@ -519,7 +556,7 @@ export default function BusinessClientDetailPage() {
             <Link href={`${basePath}/clients/${id}/profile`}>
               <Button variant="outline" size="sm">
                 <UserCircle className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Fullständig profil</span>
+                <span className="hidden sm:inline">{t('actions.fullProfile')}</span>
               </Button>
             </Link>
             <AIContextButton
@@ -529,34 +566,34 @@ export default function BusinessClientDetailPage() {
             <Link href={`${basePath}/clients/${id}/edit`}>
               <Button variant="outline" size="sm">
                 <Edit2 className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Redigera</span>
+                <span className="hidden sm:inline">{t('actions.edit')}</span>
               </Button>
             </Link>
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Ålder</p>
-            <p className="text-base sm:text-lg font-medium dark:text-slate-200">{calculateAge(client.birthDate)} år</p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.age')}</p>
+            <p className="text-base sm:text-lg font-medium dark:text-slate-200">{t('ageYears', { age: calculateAge(client.birthDate) })}</p>
           </div>
           <div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Kön</p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.gender')}</p>
             <p className="text-base sm:text-lg font-medium dark:text-slate-200">
-              {client.gender === 'MALE' ? 'Man' : 'Kvinna'}
+              {client.gender === 'MALE' ? t('gender.male') : t('gender.female')}
             </p>
           </div>
           <div className="col-span-2 sm:col-span-1">
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Födelsedatum</p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.birthDate')}</p>
             <p className="text-base sm:text-lg font-medium dark:text-slate-200">
-              {format(new Date(client.birthDate), 'PPP', { locale: sv })}
+              {format(new Date(client.birthDate), 'PPP', { locale: dateFnsLocale })}
             </p>
           </div>
           <div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Längd</p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.height')}</p>
             <p className="text-base sm:text-lg font-medium dark:text-slate-200">{client.height} cm</p>
           </div>
           <div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Vikt</p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.weight')}</p>
             <p className="text-base sm:text-lg font-medium dark:text-slate-200">{client.weight} kg</p>
           </div>
           <div>
@@ -567,26 +604,26 @@ export default function BusinessClientDetailPage() {
           </div>
           {client.email && (
             <div className="col-span-2 sm:col-span-1">
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">E-post</p>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.email')}</p>
               <p className="text-base sm:text-lg font-medium dark:text-slate-200 truncate">{client.email}</p>
             </div>
           )}
           {client.phone && (
             <div>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Telefon</p>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.phone')}</p>
               <p className="text-base sm:text-lg font-medium dark:text-slate-200">{client.phone}</p>
             </div>
           )}
           {client.team && (
             <div>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Lag/Klubb</p>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.team')}</p>
               <p className="text-base sm:text-lg font-medium dark:text-slate-200">{client.team.name}</p>
             </div>
           )}
         </div>
         {client.notes && (
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-white/10">
-            <p className="text-sm text-gray-500 dark:text-slate-400">Anteckningar</p>
+            <p className="text-sm text-gray-500 dark:text-slate-400">{t('fields.notes')}</p>
             <p className="mt-1 text-gray-700 dark:text-slate-300">{client.notes}</p>
           </div>
         )}
@@ -594,7 +631,7 @@ export default function BusinessClientDetailPage() {
 
       {!sportProfileLoading && (
         <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6 mb-4 sm:mb-6">
-          <h2 className="text-xl font-semibold mb-4 dark:text-white">Sportspecifik Data</h2>
+          <h2 className="text-xl font-semibold mb-4 dark:text-white">{t('overview.sportSpecificData')}</h2>
           <SportProfileEditor
             key={sportProfile?.id ?? id}
             clientId={id}
@@ -646,7 +683,7 @@ export default function BusinessClientDetailPage() {
       </div>
 
       <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6 mb-4 sm:mb-6">
-        <h2 className="text-lg sm:text-xl font-semibold mb-4 dark:text-white">Pulszonanalys</h2>
+        <h2 className="text-lg sm:text-xl font-semibold mb-4 dark:text-white">{t('overview.heartRateZoneAnalysis')}</h2>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="lg:col-span-1">
             <WeeklyZoneSummary clientId={id} />
@@ -701,16 +738,16 @@ export default function BusinessClientDetailPage() {
           <div className="flex-1">
             <h3 className="font-semibold text-sm flex items-center gap-2 dark:text-white">
               <ClipboardList className="h-4 w-4 text-blue-500" />
-              Träningsloggar
+              {t('analysis.trainingLogs.title')}
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Hela loggvyn — feedback, kommentarer per pass, filtrering på datum.
+              {t('analysis.trainingLogs.description')}
             </p>
           </div>
           <Link href={`${basePath}/athletes/${id}/logs`}>
             <Button size="sm" variant="outline" className="w-full sm:w-auto">
               <ExternalLink className="w-4 h-4 mr-2" />
-              Öppna loggvyn
+              {t('analysis.trainingLogs.cta')}
             </Button>
           </Link>
         </div>
@@ -720,9 +757,9 @@ export default function BusinessClientDetailPage() {
     <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
       <div className="text-center py-12 text-gray-500 dark:text-slate-400">
         <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p className="mb-2">Denna klient har inget atletkonto</p>
+        <p className="mb-2">{t('analysis.noAthleteAccount.title')}</p>
         <p className="text-sm mb-4">
-          Skapa ett atletkonto så att klienten kan logga in, logga träningspass och få analys.
+          {t('analysis.noAthleteAccount.description')}
         </p>
         <CreateAthleteAccountDialog
           clientId={id}
@@ -734,7 +771,7 @@ export default function BusinessClientDetailPage() {
           trigger={
             <Button>
               <UserPlus className="w-4 h-4 mr-2" />
-              Skapa atletkonto
+              {t('actions.createAthleteAccount')}
             </Button>
           }
         />
@@ -774,17 +811,17 @@ export default function BusinessClientDetailPage() {
           <div className="flex-1">
             <h3 className="font-semibold text-sm flex items-center gap-2 dark:text-white">
               <ClipboardList className="h-4 w-4 text-blue-500" />
-              Hockeyloggar och passfeedback
+              {t('analysis.hockeyLogs.title')}
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Hela loggvyn med passkommentarer, utförandegrad och belastning inför nästa is- eller gymblock.
+              {t('analysis.hockeyLogs.description')}
             </p>
           </div>
           {client.athleteAccount ? (
             <Link href={`${basePath}/athletes/${id}/logs`}>
               <Button size="sm" variant="outline" className="w-full sm:w-auto">
                 <ExternalLink className="w-4 h-4 mr-2" />
-                Öppna loggvyn
+                {t('analysis.trainingLogs.cta')}
               </Button>
             </Link>
           ) : (
@@ -798,7 +835,7 @@ export default function BusinessClientDetailPage() {
               trigger={
                 <Button size="sm" variant="outline" className="w-full sm:w-auto">
                   <UserPlus className="w-4 h-4 mr-2" />
-                  Skapa atletkonto
+                  {t('actions.createAthleteAccount')}
                 </Button>
               }
             />
@@ -813,25 +850,25 @@ export default function BusinessClientDetailPage() {
   const programsContent = (
     <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-        <h2 className="text-lg sm:text-xl font-semibold dark:text-white">Träningsprogram</h2>
+        <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('programs.title')}</h2>
         <Link href={`${basePath}/programs/new`} className="shrink-0">
-          <Button size="sm" className="w-full sm:w-auto">+ Nytt program</Button>
+          <Button size="sm" className="w-full sm:w-auto">{t('programs.newProgram')}</Button>
         </Link>
       </div>
 
       {programsLoading ? (
         <div className="flex items-center justify-center py-8 text-gray-500 dark:text-slate-400">
           <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-          Laddar program...
+          {t('programs.loading')}
         </div>
       ) : programs.length === 0 ? (
         <div className="text-center py-8 text-gray-500 dark:text-slate-400">
-          <p className="mb-2">Inga träningsprogram skapade ännu</p>
+          <p className="mb-2">{t('programs.emptyTitle')}</p>
           <Link
             href={`${basePath}/programs/new`}
             className="text-blue-600 hover:text-blue-800 font-medium"
           >
-            Skapa första programmet
+            {t('programs.createFirst')}
           </Link>
         </div>
       ) : (
@@ -843,31 +880,23 @@ export default function BusinessClientDetailPage() {
                   <div>
                     <h3 className="font-semibold text-lg mb-1 dark:text-white">{program.name}</h3>
                     <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
-                      {program.goalType === 'marathon' && 'Marathon'}
-                      {program.goalType === 'half_marathon' && 'Halvmarathon'}
-                      {program.goalType === '10k' && '10K'}
-                      {program.goalType === '5k' && '5K'}
-                      {program.goalType === 'fitness' && 'Fitness/Kondition'}
-                      {program.goalType === 'cycling' && 'Cykling'}
-                      {program.goalType === 'skiing' && 'Skidåkning'}
-                      {program.goalType === 'triathlon' && 'Triathlon'}
-                      {program.goalType === 'custom' && 'Anpassad'}
+                      {programGoalLabels[program.goalType] ?? program.goalType}
                     </p>
                     <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-slate-400">
                       <span>
-                        {format(new Date(program.startDate), 'PPP', { locale: sv })} -{' '}
-                        {format(new Date(program.endDate), 'PPP', { locale: sv })}
+                        {format(new Date(program.startDate), 'PPP', { locale: dateFnsLocale })} -{' '}
+                        {format(new Date(program.endDate), 'PPP', { locale: dateFnsLocale })}
                       </span>
                       {program._count?.weeks && (
                         <span className="text-gray-400">
-                          {program._count.weeks} veckor
+                          {t('programs.weeks', { count: program._count.weeks })}
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="text-right">
                     <span className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                      Visa →
+                      {t('actions.viewArrow')}
                     </span>
                   </div>
                 </div>
@@ -885,10 +914,10 @@ export default function BusinessClientDetailPage() {
         <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
             <div>
-              <h2 className="text-lg sm:text-xl font-semibold dark:text-white">Testhistorik</h2>
+              <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('tests.title')}</h2>
               {(searchTerm || filterTestType !== 'ALL') && client.tests && (
                 <p className="text-sm text-muted-foreground mt-1">
-                  Visar {sortedAndFilteredTests.length} av {client.tests.length} tester
+                  {t('tests.showingFiltered', { filtered: sortedAndFilteredTests.length, total: client.tests.length })}
                 </p>
               )}
             </div>
@@ -897,7 +926,7 @@ export default function BusinessClientDetailPage() {
               href={`${basePath}/test`}
               className="px-4 py-2 gradient-primary text-white rounded-lg hover:opacity-90 transition self-end sm:self-auto"
             >
-              + Nytt Test
+              {t('tests.newTest')}
             </Link>
           </div>
 
@@ -905,7 +934,7 @@ export default function BusinessClientDetailPage() {
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 sm:max-w-sm">
                 <SearchInput
-                  placeholder="Sök datum eller anteckningar..."
+                  placeholder={t('tests.searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onClear={() => setSearchTerm('')}
@@ -918,13 +947,13 @@ export default function BusinessClientDetailPage() {
                     onValueChange={(value) => setFilterTestType(value as TestType | 'ALL')}
                   >
                     <SelectTrigger id="test-type-filter" className="w-full sm:w-[180px]">
-                      <SelectValue placeholder="Filtrera testtyp" />
+                      <SelectValue placeholder={t('tests.filterPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ALL">Alla testtyper</SelectItem>
-                      <SelectItem value="RUNNING">Löpning</SelectItem>
-                      <SelectItem value="CYCLING">Cykling</SelectItem>
-                      <SelectItem value="SKIING">Skidåkning</SelectItem>
+                      <SelectItem value="ALL">{t('tests.allTestTypes')}</SelectItem>
+                      <SelectItem value="RUNNING">{testTypeLabels.RUNNING}</SelectItem>
+                      <SelectItem value="CYCLING">{testTypeLabels.CYCLING}</SelectItem>
+                      <SelectItem value="SKIING">{testTypeLabels.SKIING}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -934,7 +963,7 @@ export default function BusinessClientDetailPage() {
                   className="w-full sm:w-auto"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Exportera CSV
+                  {t('actions.exportCsv')}
                 </Button>
               </div>
             </div>
@@ -943,17 +972,17 @@ export default function BusinessClientDetailPage() {
 
         {!client.tests || client.tests.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-slate-400">
-            <p className="mb-4">Inga tester registrerade ännu</p>
+            <p className="mb-4">{t('tests.emptyTitle')}</p>
             <Link
               href={`${basePath}/test`}
               className="text-blue-600 hover:text-blue-800 font-medium"
             >
-              Skapa första testet
+              {t('tests.createFirst')}
             </Link>
           </div>
         ) : sortedAndFilteredTests.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-slate-400">
-            <p className="mb-4">Inga tester matchar sökningen eller filtren</p>
+            <p className="mb-4">{t('tests.noMatches')}</p>
             <button
               onClick={() => {
                 setFilterTestType('ALL')
@@ -961,7 +990,7 @@ export default function BusinessClientDetailPage() {
               }}
               className="text-blue-600 hover:text-blue-800 font-medium"
             >
-              Återställ alla filter
+              {t('tests.resetFilters')}
             </button>
           </div>
         ) : (
@@ -976,7 +1005,7 @@ export default function BusinessClientDetailPage() {
                           onClick={() => handleSort('date')}
                           className="flex items-center gap-1 text-sm font-semibold text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white"
                         >
-                          Datum
+                          {t('tests.table.date')}
                           {sortField === 'date' ? (
                             sortDirection === 'asc' ? (
                               <ChevronUp className="w-4 h-4" />
@@ -993,7 +1022,7 @@ export default function BusinessClientDetailPage() {
                           onClick={() => handleSort('type')}
                           className="flex items-center gap-1 text-sm font-semibold text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white"
                         >
-                          Typ
+                          {t('tests.table.type')}
                           {sortField === 'type' ? (
                             sortDirection === 'asc' ? (
                               <ChevronUp className="w-4 h-4" />
@@ -1040,13 +1069,13 @@ export default function BusinessClientDetailPage() {
                         </button>
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-slate-300">
-                        Aerob tröskel
+                        {t('tests.table.aerobicThreshold')}
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-slate-300">
-                        Anaerob tröskel
+                        {t('tests.table.anaerobicThreshold')}
                       </th>
                       <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-slate-300">
-                        Åtgärder
+                        {t('tests.table.actions')}
                       </th>
                     </tr>
                   </thead>
@@ -1072,11 +1101,11 @@ export default function BusinessClientDetailPage() {
                                 ) : (
                                   <ChevronDown className="w-4 h-4 text-gray-400" />
                                 )}
-                                {format(new Date(test.testDate), 'PPP', { locale: sv })}
+                                {format(new Date(test.testDate), 'PPP', { locale: dateFnsLocale })}
                               </div>
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">
-                              {test.testType === 'RUNNING' ? 'Löpning' : test.testType === 'CYCLING' ? 'Cykling' : 'Skidåkning'}
+                              {testTypeLabels[test.testType]}
                             </td>
                             <td className="px-4 py-3 text-sm">
                               <span
@@ -1089,10 +1118,10 @@ export default function BusinessClientDetailPage() {
                                 }`}
                               >
                                 {test.status === 'COMPLETED'
-                                  ? 'Genomfört'
+                                  ? testStatusLabels.COMPLETED
                                   : test.status === 'DRAFT'
-                                  ? 'Utkast'
-                                  : 'Arkiverad'}
+                                  ? testStatusLabels.DRAFT
+                                  : testStatusLabels.ARCHIVED}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">
@@ -1110,7 +1139,7 @@ export default function BusinessClientDetailPage() {
                                   href={`${basePath}/tests/${test.id}`}
                                   className="text-blue-600 hover:text-blue-800 font-medium"
                                 >
-                                  Visa
+                                  {t('actions.view')}
                                 </Link>
                                 <AnalyzeTestButton
                                   testId={test.id}
@@ -1121,14 +1150,14 @@ export default function BusinessClientDetailPage() {
                                 <Link
                                   href={`${basePath}/tests/${test.id}/edit`}
                                   className="text-blue-600 hover:text-blue-800"
-                                  title="Redigera test"
+                                  title={t('actions.editTest')}
                                 >
                                   <Edit2 className="w-4 h-4" />
                                 </Link>
                                 <button
                                   onClick={(e) => handleDeleteClick(test, e)}
                                   className="text-red-600 hover:text-red-800 transition"
-                                  title="Ta bort test"
+                                  title={t('actions.deleteTest')}
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
@@ -1140,18 +1169,18 @@ export default function BusinessClientDetailPage() {
                               <td colSpan={7} className="px-4 py-4">
                                 <div className="space-y-4">
                                   <h4 className="font-semibold text-sm text-gray-700 dark:text-slate-300">
-                                    Detaljerad information
+                                    {t('tests.details.title')}
                                   </h4>
 
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
-                                      <p className="text-xs text-gray-500 dark:text-slate-400">Max puls</p>
+                                      <p className="text-xs text-gray-500 dark:text-slate-400">{t('tests.details.maxHr')}</p>
                                       <p className="text-sm font-medium dark:text-slate-200">
                                         {test.maxHR ? `${test.maxHR} bpm` : '-'}
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-xs text-gray-500 dark:text-slate-400">Max laktat</p>
+                                      <p className="text-xs text-gray-500 dark:text-slate-400">{t('tests.details.maxLactate')}</p>
                                       <p className="text-sm font-medium dark:text-slate-200">
                                         {test.maxLactate ? `${test.maxLactate.toFixed(1)} mmol/L` : '-'}
                                       </p>
@@ -1167,23 +1196,23 @@ export default function BusinessClientDetailPage() {
                                   {trainingZones && trainingZones.length > 0 && (
                                     <div className="mt-4">
                                       <h5 className="font-semibold text-sm text-gray-700 dark:text-slate-300 mb-2">
-                                        Träningszoner
+                                        {t('tests.details.trainingZones')}
                                       </h5>
                                       <div className="overflow-x-auto">
                                         <table className="min-w-full text-sm">
                                           <thead className="bg-gray-100 dark:bg-slate-700/50">
                                             <tr>
                                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-slate-400">
-                                                Zon
+                                                {t('tests.details.zone')}
                                               </th>
                                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-slate-400">
-                                                Puls (bpm)
+                                                {t('tests.details.heartRateBpm')}
                                               </th>
                                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-slate-400">
-                                                % av max
+                                                {t('tests.details.percentOfMax')}
                                               </th>
                                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-slate-400">
-                                                Beskrivning
+                                                {t('tests.details.description')}
                                               </th>
                                             </tr>
                                           </thead>
@@ -1211,7 +1240,7 @@ export default function BusinessClientDetailPage() {
                                   {test.notes && (
                                     <div className="mt-4">
                                       <h5 className="font-semibold text-sm text-gray-700 dark:text-slate-300 mb-1">
-                                        Anteckningar
+                                        {t('fields.notes')}
                                       </h5>
                                       <p className="text-sm text-gray-600 dark:text-slate-400">{test.notes}</p>
                                     </div>
@@ -1237,7 +1266,7 @@ export default function BusinessClientDetailPage() {
     <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-12">
       <div className="mb-4 sm:mb-6">
         <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{client.name}</h2>
-        <p className="text-gray-600 dark:text-slate-400 mt-1 text-xs sm:text-sm lg:text-base">Klientdetaljer och testhistorik</p>
+        <p className="text-gray-600 dark:text-slate-400 mt-1 text-xs sm:text-sm lg:text-base">{t('subtitle')}</p>
       </div>
 
       <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" /></div>}>
@@ -1256,23 +1285,24 @@ export default function BusinessClientDetailPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Är du säker?</AlertDialogTitle>
+            <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Detta kommer att permanent ta bort testet från{' '}
-              {testToDelete && format(new Date(testToDelete.testDate), 'PPP', { locale: sv })}.
+              {t('deleteDialog.description', {
+                date: testToDelete ? format(new Date(testToDelete.testDate), 'PPP', { locale: dateFnsLocale }) : '',
+              })}
               <br />
               <br />
-              Denna åtgärd kan inte ångras.
+              {t('deleteDialog.cannotUndo')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t('actions.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               disabled={deleting}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
-              {deleting ? 'Tar bort...' : 'Ta bort'}
+              {deleting ? t('actions.deleting') : t('actions.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1283,8 +1313,14 @@ export default function BusinessClientDetailPage() {
 
 function AthletePortalStatusBadge({
   athleteAccount,
+  labels,
 }: {
   athleteAccount: ClientWithTests['athleteAccount']
+  labels: {
+    passwordReady: string
+    active: string
+    notLoggedIn: string
+  }
 }) {
   if (!athleteAccount) return null
 
@@ -1293,7 +1329,7 @@ function AthletePortalStatusBadge({
     return (
       <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800">
         <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-        Aktiv - lösenord klart
+        {labels.passwordReady}
       </Badge>
     )
   }
@@ -1302,7 +1338,7 @@ function AthletePortalStatusBadge({
     return (
       <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50 dark:text-blue-300 dark:border-blue-800 dark:bg-blue-900/20">
         <KeyRound className="h-3.5 w-3.5 mr-1" />
-        Aktiv
+        {labels.active}
       </Badge>
     )
   }
@@ -1310,7 +1346,7 @@ function AthletePortalStatusBadge({
   return (
     <Badge variant="outline" className="text-amber-700 border-amber-200 bg-amber-50 dark:text-amber-300 dark:border-amber-800 dark:bg-amber-900/20">
       <CircleAlert className="h-3.5 w-3.5 mr-1" />
-      Inte inloggad än
+      {labels.notLoggedIn}
     </Badge>
   )
 }
