@@ -8,6 +8,7 @@
 
 import { AlertTriangle, Lightbulb, CheckCircle2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 type RecommendationType = 'WARNING' | 'SUGGESTION' | 'POSITIVE'
 
@@ -48,12 +49,14 @@ const TYPE_CONFIG: Record<
 }
 
 export function AIRecommendations({ recommendations, className }: AIRecommendationsProps) {
+  const t = useTranslations('components.aiRecommendations')
+
   if (recommendations.length === 0) {
     return (
       <div className={cn('text-center py-6 text-muted-foreground', className)}>
         <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
-        <p className="text-sm">Inga rekommendationer just nu</p>
-        <p className="text-xs mt-1">Fortsätt logga din träning för personliga tips!</p>
+        <p className="text-sm">{t('empty.title')}</p>
+        <p className="text-xs mt-1">{t('empty.description')}</p>
       </div>
     )
   }
@@ -63,7 +66,7 @@ export function AIRecommendations({ recommendations, className }: AIRecommendati
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-medium text-muted-foreground">
-          AI-rekommendationer
+          {t('title')}
         </h3>
       </div>
 

@@ -7262,6 +7262,13 @@
         "10": "Maximal ansträngning"
       }
     },
+    "aiRecommendations": {
+      "title": "AI-rekommendationer",
+      "empty": {
+        "title": "Inga rekommendationer just nu",
+        "description": "Fortsätt logga din träning för personliga tips!"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

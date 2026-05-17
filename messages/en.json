@@ -7262,6 +7262,13 @@
         "10": "Maximum effort"
       }
     },
+    "aiRecommendations": {
+      "title": "AI recommendations",
+      "empty": {
+        "title": "No recommendations right now",
+        "description": "Keep logging your training for personalized tips."
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
