@@ -3751,6 +3751,32 @@
         "stable": "Your load is stable"
       }
     },
+    "integrationStatusWidget": {
+      "title": "Connections",
+      "status": {
+        "connected": "Connected",
+        "disconnected": "Not connected",
+        "synced": "Synced {time}"
+      },
+      "actions": {
+        "connect": "Connect",
+        "connectApps": "Connect apps"
+      },
+      "counts": {
+        "workouts": "{count} {count, plural, one {workout} other {workouts}}"
+      },
+      "syncProblem": "Sync issue detected",
+      "toasts": {
+        "synced": "{service} synced",
+        "activitiesSynced": "{count} {count, plural, one {activity} other {activities}} synced",
+        "workoutsSynced": "{count} {count, plural, one {workout} other {workouts}} synced",
+        "healthDataSynced": "Health data has been synced",
+        "syncError": "Sync error",
+        "syncWithServiceError": "Could not sync with {service}",
+        "connectError": "Connection error",
+        "connectWithServiceError": "Could not connect to {service}"
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Training library",

@@ -3751,6 +3751,32 @@
         "stable": "Din belastning är stabil"
       }
     },
+    "integrationStatusWidget": {
+      "title": "Anslutningar",
+      "status": {
+        "connected": "Ansluten",
+        "disconnected": "Ej ansluten",
+        "synced": "Synkad {time}"
+      },
+      "actions": {
+        "connect": "Anslut",
+        "connectApps": "Anslut appar"
+      },
+      "counts": {
+        "workouts": "{count} {count, plural, one {pass} other {pass}}"
+      },
+      "syncProblem": "Synkproblem upptäckt",
+      "toasts": {
+        "synced": "{service} synkad",
+        "activitiesSynced": "{count} {count, plural, one {aktivitet} other {aktiviteter}} synkroniserade",
+        "workoutsSynced": "{count} {count, plural, one {träningspass} other {träningspass}} synkroniserade",
+        "healthDataSynced": "Hälsodata har synkroniserats",
+        "syncError": "Synkfel",
+        "syncWithServiceError": "Kunde inte synkronisera med {service}",
+        "connectError": "Anslutningsfel",
+        "connectWithServiceError": "Kunde inte ansluta till {service}"
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Träningsbibliotek",

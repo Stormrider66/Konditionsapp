@@ -16,6 +16,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react'
+import { useLocale, useTranslations } from '@/i18n/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
@@ -28,12 +29,11 @@ import {
   RefreshCw,
   Activity,
   Watch,
-  Clock,
   AlertTriangle,
   Waves,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv as svLocale } from 'date-fns/locale'
 import Link from 'next/link'
 import Image from 'next/image'
 import { IntegrationsHelpModal } from './settings/IntegrationsHelpModal'
@@ -56,6 +56,9 @@ interface IntegrationStatusWidgetProps {
 }
 
 export function IntegrationStatusWidget({ clientId, compact = false, variant = 'default', basePath = '' }: IntegrationStatusWidgetProps) {
+  const t = useTranslations('components.integrationStatusWidget')
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? svLocale : enUS
   const { toast } = useToast()
   const [stravaStatus, setStravaStatus] = useState<IntegrationStatus | null>(null)
   const [garminStatus, setGarminStatus] = useState<IntegrationStatus | null>(null)
@@ -94,8 +97,15 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
   }, [clientId])
 
   useEffect(() => {
-    fetchStatus()
+    void fetchStatus()
   }, [fetchStatus])
+
+  const formatLastSync = (lastSyncAt?: string) => {
+    if (!lastSyncAt) return t('status.connected')
+    return t('status.synced', {
+      time: formatDistanceToNow(new Date(lastSyncAt), { addSuffix: true, locale: dateLocale }),
+    })
+  }
 
   const syncStrava = async () => {
     setSyncing(prev => ({ ...prev, strava: true }))
@@ -109,17 +119,17 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
       if (response.ok) {
         const data = await response.json()
         toast({
-          title: 'Strava synkad',
-          description: `${data.synced || 0} aktiviteter synkroniserade`,
+          title: t('toasts.synced', { service: 'Strava' }),
+          description: t('toasts.activitiesSynced', { count: data.synced || 0 }),
         })
-        fetchStatus()
+        void fetchStatus()
       } else {
         throw new Error('Sync failed')
       }
     } catch {
       toast({
-        title: 'Synkfel',
-        description: 'Kunde inte synkronisera med Strava',
+        title: t('toasts.syncError'),
+        description: t('toasts.syncWithServiceError', { service: 'Strava' }),
         variant: 'destructive',
       })
     } finally {
@@ -138,17 +148,17 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
 
       if (response.ok) {
         toast({
-          title: 'Garmin synkad',
-          description: 'Hälsodata har synkroniserats',
+          title: t('toasts.synced', { service: 'Garmin' }),
+          description: t('toasts.healthDataSynced'),
         })
-        fetchStatus()
+        void fetchStatus()
       } else {
         throw new Error('Sync failed')
       }
     } catch {
       toast({
-        title: 'Synkfel',
-        description: 'Kunde inte synkronisera med Garmin',
+        title: t('toasts.syncError'),
+        description: t('toasts.syncWithServiceError', { service: 'Garmin' }),
         variant: 'destructive',
       })
     } finally {
@@ -168,17 +178,17 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
       if (response.ok) {
         const data = await response.json()
         toast({
-          title: 'Concept2 synkad',
-          description: `${data.synced || 0} träningspass synkroniserade`,
+          title: t('toasts.synced', { service: 'Concept2' }),
+          description: t('toasts.workoutsSynced', { count: data.synced || 0 }),
         })
-        fetchStatus()
+        void fetchStatus()
       } else {
         throw new Error('Sync failed')
       }
     } catch {
       toast({
-        title: 'Synkfel',
-        description: 'Kunde inte synkronisera med Concept2',
+        title: t('toasts.syncError'),
+        description: t('toasts.syncWithServiceError', { service: 'Concept2' }),
         variant: 'destructive',
       })
     } finally {
@@ -206,8 +216,8 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
       }
     } catch (error) {
       toast({
-        title: 'Anslutningsfel',
-        description: error instanceof Error ? error.message : 'Kunde inte ansluta till Concept2',
+        title: t('toasts.connectError'),
+        description: error instanceof Error ? error.message : t('toasts.connectWithServiceError', { service: 'Concept2' }),
         variant: 'destructive',
       })
       setConnecting(prev => ({ ...prev, concept2: false }))
@@ -234,8 +244,8 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
       }
     } catch (error) {
       toast({
-        title: 'Anslutningsfel',
-        description: error instanceof Error ? error.message : 'Kunde inte ansluta till Garmin',
+        title: t('toasts.connectError'),
+        description: error instanceof Error ? error.message : t('toasts.connectWithServiceError', { service: 'Garmin' }),
         variant: 'destructive',
       })
       setConnecting(prev => ({ ...prev, garmin: false }))
@@ -262,8 +272,8 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
       }
     } catch (error) {
       toast({
-        title: 'Anslutningsfel',
-        description: error instanceof Error ? error.message : 'Kunde inte ansluta till Strava',
+        title: t('toasts.connectError'),
+        description: error instanceof Error ? error.message : t('toasts.connectWithServiceError', { service: 'Strava' }),
         variant: 'destructive',
       })
       setConnecting(prev => ({ ...prev, strava: false }))
@@ -277,7 +287,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
           <GlassCardHeader>
             <GlassCardTitle className="flex items-center gap-2">
               <Link2 className="h-5 w-5" />
-              Anslutningar
+              {t('title')}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
@@ -297,7 +307,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Link2 className="h-5 w-5" />
-            Anslutningar
+            {t('title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -363,7 +373,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
             <Link href={`${basePath}/athlete/settings`}>
               <Badge variant="outline" className="text-slate-400 border-white/10 cursor-pointer hover:bg-white/10 hover:text-white">
                 <Link2 className="h-3 w-3 mr-1" />
-                Anslut appar
+                {t('actions.connectApps')}
               </Badge>
             </Link>
           )}
@@ -421,7 +431,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
           <Link href={`${basePath}/athlete/settings`}>
             <Badge variant="outline" className="text-muted-foreground cursor-pointer hover:bg-gray-100">
               <Link2 className="h-3 w-3 mr-1" />
-              Anslut appar
+              {t('actions.connectApps')}
             </Badge>
           </Link>
         )}
@@ -436,7 +446,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
           <div className="flex items-center justify-between">
             <GlassCardTitle className="flex items-center gap-2 text-base">
               <Link2 className="h-5 w-5 text-gray-400" />
-              Anslutningar
+              {t('title')}
             </GlassCardTitle>
           </div>
         </GlassCardHeader>
@@ -453,12 +463,10 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
                 <p className="text-sm font-medium text-white">Strava</p>
                 {stravaStatus?.connected ? (
                   <p className="text-xs text-slate-400">
-                    {stravaStatus.lastSyncAt
-                      ? `Synkad ${formatDistanceToNow(new Date(stravaStatus.lastSyncAt), { addSuffix: true, locale: sv })}`
-                      : 'Ansluten'}
+                    {formatLastSync(stravaStatus.lastSyncAt)}
                   </p>
                 ) : (
-                  <p className="text-xs text-slate-500">Ej ansluten</p>
+                  <p className="text-xs text-slate-500">{t('status.disconnected')}</p>
                 )}
               </div>
             </div>
@@ -489,7 +497,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
                   ) : (
                     <Link2 className="h-3 w-3 mr-1" />
                   )}
-                  Anslut
+                  {t('actions.connect')}
                 </Button>
               )}
             </div>
@@ -512,12 +520,10 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
                 <p className="text-sm font-medium text-white">Garmin Connect</p>
                 {garminStatus?.connected ? (
                   <p className="text-xs text-slate-400">
-                    {garminStatus.lastSyncAt
-                      ? `Synkad ${formatDistanceToNow(new Date(garminStatus.lastSyncAt), { addSuffix: true, locale: sv })}`
-                      : 'Ansluten'}
+                    {formatLastSync(garminStatus.lastSyncAt)}
                   </p>
                 ) : (
-                  <p className="text-xs text-slate-500">Ej ansluten</p>
+                  <p className="text-xs text-slate-500">{t('status.disconnected')}</p>
                 )}
               </div>
             </div>
@@ -548,7 +554,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
                   ) : (
                     <Link2 className="h-3 w-3 mr-1" />
                   )}
-                  Anslut
+                  {t('actions.connect')}
                 </Button>
               )}
             </div>
@@ -566,13 +572,11 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
                 <p className="text-sm font-medium text-white">Concept2</p>
                 {concept2Status?.connected ? (
                   <p className="text-xs text-slate-400">
-                    {concept2Status.lastSyncAt
-                      ? `Synkad ${formatDistanceToNow(new Date(concept2Status.lastSyncAt), { addSuffix: true, locale: sv })}`
-                      : 'Ansluten'}
-                    {concept2Status.resultCount ? ` • ${concept2Status.resultCount} pass` : ''}
+                    {formatLastSync(concept2Status.lastSyncAt)}
+                    {concept2Status.resultCount ? ` • ${t('counts.workouts', { count: concept2Status.resultCount })}` : ''}
                   </p>
                 ) : (
-                  <p className="text-xs text-slate-500">Ej ansluten</p>
+                  <p className="text-xs text-slate-500">{t('status.disconnected')}</p>
                 )}
               </div>
             </div>
@@ -603,7 +607,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
                   ) : (
                     <Link2 className="h-3 w-3 mr-1" />
                   )}
-                  Anslut
+                  {t('actions.connect')}
                 </Button>
               )}
             </div>
@@ -613,7 +617,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
           {(stravaStatus?.error || garminStatus?.error || concept2Status?.error) && (
             <div className="flex items-center gap-2 p-2 bg-yellow-500/10 rounded text-xs text-yellow-500 border border-yellow-500/20">
               <AlertTriangle className="h-4 w-4" />
-              <span>Synkproblem upptäckt</span>
+              <span>{t('syncProblem')}</span>
             </div>
           )}
 
@@ -629,7 +633,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <Link2 className="h-5 w-5" />
-            Anslutningar
+            {t('title')}
           </CardTitle>
           <IntegrationsHelpModal />
         </div>
@@ -647,12 +651,10 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
               <p className="text-sm font-medium">Strava</p>
               {stravaStatus?.connected ? (
                 <p className="text-xs text-muted-foreground">
-                  {stravaStatus.lastSyncAt
-                    ? `Synkad ${formatDistanceToNow(new Date(stravaStatus.lastSyncAt), { addSuffix: true, locale: sv })}`
-                    : 'Ansluten'}
+                  {formatLastSync(stravaStatus.lastSyncAt)}
                 </p>
               ) : (
-                <p className="text-xs text-muted-foreground">Ej ansluten</p>
+                <p className="text-xs text-muted-foreground">{t('status.disconnected')}</p>
               )}
             </div>
           </div>
@@ -683,7 +685,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
                 ) : (
                   <Link2 className="h-3 w-3 mr-1" />
                 )}
-                Anslut
+                {t('actions.connect')}
               </Button>
             )}
           </div>
@@ -701,12 +703,10 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
               <p className="text-sm font-medium">Garmin</p>
               {garminStatus?.connected ? (
                 <p className="text-xs text-muted-foreground">
-                  {garminStatus.lastSyncAt
-                    ? `Synkad ${formatDistanceToNow(new Date(garminStatus.lastSyncAt), { addSuffix: true, locale: sv })}`
-                    : 'Ansluten'}
+                  {formatLastSync(garminStatus.lastSyncAt)}
                 </p>
               ) : (
-                <p className="text-xs text-muted-foreground">Ej ansluten</p>
+                <p className="text-xs text-muted-foreground">{t('status.disconnected')}</p>
               )}
             </div>
           </div>
@@ -737,7 +737,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
                 ) : (
                   <Link2 className="h-3 w-3 mr-1" />
                 )}
-                Anslut
+                {t('actions.connect')}
               </Button>
             )}
           </div>
@@ -755,13 +755,11 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
               <p className="text-sm font-medium">Concept2</p>
               {concept2Status?.connected ? (
                 <p className="text-xs text-muted-foreground">
-                  {concept2Status.lastSyncAt
-                    ? `Synkad ${formatDistanceToNow(new Date(concept2Status.lastSyncAt), { addSuffix: true, locale: sv })}`
-                    : 'Ansluten'}
-                  {concept2Status.resultCount ? ` • ${concept2Status.resultCount} pass` : ''}
+                  {formatLastSync(concept2Status.lastSyncAt)}
+                  {concept2Status.resultCount ? ` • ${t('counts.workouts', { count: concept2Status.resultCount })}` : ''}
                 </p>
               ) : (
-                <p className="text-xs text-muted-foreground">Ej ansluten</p>
+                <p className="text-xs text-muted-foreground">{t('status.disconnected')}</p>
               )}
             </div>
           </div>
@@ -792,7 +790,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
                 ) : (
                   <Link2 className="h-3 w-3 mr-1" />
                 )}
-                Anslut
+                {t('actions.connect')}
               </Button>
             )}
           </div>
@@ -802,7 +800,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
         {(stravaStatus?.error || garminStatus?.error || concept2Status?.error) && (
           <div className="flex items-center gap-2 p-2 bg-yellow-50 rounded text-xs text-yellow-800">
             <AlertTriangle className="h-4 w-4" />
-            <span>Synkproblem upptäckt</span>
+            <span>{t('syncProblem')}</span>
           </div>
         )}
 
@@ -811,7 +809,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
           <Link href={`${basePath}/athlete/settings`} className="block">
             <Button variant="outline" size="sm" className="w-full mt-2">
               <Link2 className="h-4 w-4 mr-2" />
-              Anslut appar
+              {t('actions.connectApps')}
             </Button>
           </Link>
         )}
