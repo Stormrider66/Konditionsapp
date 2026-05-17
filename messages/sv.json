@@ -201,6 +201,27 @@
     "wodHistory": {
       "metadataTitle": "WOD Historik | Konditionstest",
       "metadataDescription": "Se dina tidigare AI-genererade träningspass"
+    },
+    "nutrition": {
+      "stats": {
+        "backToDashboard": "Tillbaka till dashboard",
+        "title": "Koststatistik",
+        "subtitle": "Trender, mål & fördelning"
+      },
+      "wrapped": {
+        "metadataTitle": "Kostsammanfattning | Kost",
+        "metadataDescription": "Din månads- och årssammanfattning av kost",
+        "backToStats": "Tillbaka till koststatistik",
+        "title": "Kostsammanfattning",
+        "subtitle": "Din wrapped — månads & årsöversikt"
+      },
+      "foodHistory": {
+        "metadataTitle": "Mathistorik | Kost",
+        "metadataDescription": "Se vad du har ätit och dina trender",
+        "backToStats": "Tillbaka till koststatistik",
+        "title": "Mathistorik",
+        "subtitle": "Dina livsmedel & näringskällor"
+      }
     }
   },
   "nav": {

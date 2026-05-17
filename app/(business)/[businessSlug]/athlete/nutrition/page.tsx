@@ -5,6 +5,7 @@ import { NutritionStatsPage } from '@/components/nutrition/NutritionStatsPage'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
+import { getTranslations } from '@/i18n/server'
 
 interface BusinessNutritionPageProps {
   params: Promise<{ businessSlug: string }>
@@ -12,6 +13,7 @@ interface BusinessNutritionPageProps {
 
 export default async function BusinessNutritionPage({ params }: BusinessNutritionPageProps) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.nutrition.stats')
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -32,7 +34,7 @@ export default async function BusinessNutritionPage({ params }: BusinessNutritio
         <Link href={`${basePath}/athlete/dashboard`}>
           <Button variant="ghost" size="sm" className="gap-2 mb-6 text-slate-600 hover:text-slate-950 hover:bg-slate-100 rounded-full px-4 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5">
             <ArrowLeft className="h-4 w-4" />
-            Tillbaka till dashboard
+            {t('backToDashboard')}
           </Button>
         </Link>
 
@@ -42,10 +44,10 @@ export default async function BusinessNutritionPage({ params }: BusinessNutritio
           </div>
           <div>
             <h1 className="text-3xl font-black italic uppercase tracking-tight text-slate-950 leading-none dark:text-white">
-              Koststatistik
+              {t('title')}
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">
-              Trender, mål & fördelning
+              {t('subtitle')}
             </p>
           </div>
         </div>

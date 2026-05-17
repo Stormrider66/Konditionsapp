@@ -5,10 +5,14 @@ import { FoodHistoryPage } from '@/components/nutrition/FoodHistoryPage'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Apple } from 'lucide-react'
 import Link from 'next/link'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Mathistorik | Kost',
-  description: 'Se vad du har ätit och dina trender',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.nutrition.foodHistory')
+  return {
+    title: t('metadataTitle'),
+    description: t('metadataDescription'),
+  }
 }
 
 interface Props {
@@ -17,6 +21,7 @@ interface Props {
 
 export default async function BusinessFoodHistoryPage({ params }: Props) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.nutrition.foodHistory')
   const { user } = await requireAthleteOrCoachInAthleteMode()
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -37,7 +42,7 @@ export default async function BusinessFoodHistoryPage({ params }: Props) {
         <Link href={`${basePath}/athlete/nutrition`}>
           <Button variant="ghost" size="sm" className="gap-2 mb-6 text-slate-600 hover:text-slate-950 hover:bg-slate-100 rounded-full px-4 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5">
             <ArrowLeft className="h-4 w-4" />
-            Tillbaka till koststatistik
+            {t('backToStats')}
           </Button>
         </Link>
 
@@ -47,10 +52,10 @@ export default async function BusinessFoodHistoryPage({ params }: Props) {
           </div>
           <div>
             <h1 className="text-3xl font-black italic uppercase tracking-tight text-slate-950 leading-none dark:text-white">
-              Mathistorik
+              {t('title')}
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">
-              Dina livsmedel & näringskällor
+              {t('subtitle')}
             </p>
           </div>
         </div>

@@ -5,10 +5,14 @@ import { NutritionWrappedPage } from '@/components/nutrition/wrapped/NutritionWr
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Sparkles } from 'lucide-react'
 import Link from 'next/link'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Kostsammanfattning | Kost',
-  description: 'Din månads- och årssammanfattning av kost',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.nutrition.wrapped')
+  return {
+    title: t('metadataTitle'),
+    description: t('metadataDescription'),
+  }
 }
 
 interface Props {
@@ -17,6 +21,7 @@ interface Props {
 
 export default async function BusinessNutritionWrappedPage({ params }: Props) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.nutrition.wrapped')
   const { user } = await requireAthleteOrCoachInAthleteMode()
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -37,7 +42,7 @@ export default async function BusinessNutritionWrappedPage({ params }: Props) {
         <Link href={`${basePath}/athlete/nutrition`}>
           <Button variant="ghost" size="sm" className="gap-2 mb-6 text-slate-600 hover:text-slate-950 hover:bg-slate-100 rounded-full px-4 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5">
             <ArrowLeft className="h-4 w-4" />
-            Tillbaka till koststatistik
+            {t('backToStats')}
           </Button>
         </Link>
 
@@ -47,10 +52,10 @@ export default async function BusinessNutritionWrappedPage({ params }: Props) {
           </div>
           <div>
             <h1 className="text-3xl font-black italic uppercase tracking-tight text-slate-950 leading-none dark:text-white">
-              Kostsammanfattning
+              {t('title')}
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">
-              Din wrapped — månads & årsöversikt
+              {t('subtitle')}
             </p>
           </div>
         </div>

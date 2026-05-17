@@ -201,6 +201,27 @@
     "wodHistory": {
       "metadataTitle": "WOD History | Konditionstest",
       "metadataDescription": "View your previous AI-generated workouts"
+    },
+    "nutrition": {
+      "stats": {
+        "backToDashboard": "Back to dashboard",
+        "title": "Nutrition stats",
+        "subtitle": "Trends, goals & distribution"
+      },
+      "wrapped": {
+        "metadataTitle": "Nutrition summary | Nutrition",
+        "metadataDescription": "Your monthly and yearly nutrition summary",
+        "backToStats": "Back to nutrition stats",
+        "title": "Nutrition summary",
+        "subtitle": "Your wrapped — monthly & yearly overview"
+      },
+      "foodHistory": {
+        "metadataTitle": "Food history | Nutrition",
+        "metadataDescription": "See what you have eaten and your trends",
+        "backToStats": "Back to nutrition stats",
+        "title": "Food history",
+        "subtitle": "Your foods & nutrition sources"
+      }
     }
   },
   "nav": {
