@@ -139,6 +139,72 @@
       "title": "Integritet",
       "subtitle": "Styr vad din coach kan se"
     },
+    "athleteSettings": {
+      "title": "Inställningar",
+      "subtitle": "Personliga preferenser",
+      "loggedInAs": "Inloggad som",
+      "fallbackAthlete": "Atlet",
+      "sections": {
+        "profile": "Profil",
+        "password": "Lösenord",
+        "subscription": "Prenumeration",
+        "aiProfile": "AI-profil",
+        "appearance": "Utseende",
+        "trainingIntensity": "Träningsintensitet",
+        "macroSplit": "Makrofördelning",
+        "aiModel": "AI-modell",
+        "gymLocation": "Gym-plats",
+        "aiNotifications": "AI-notifikationer",
+        "aiCosts": "AI & Kostnader",
+        "privacy": "Integritet & Delning",
+        "integrations": "Integrationer",
+        "business": "Företag"
+      },
+      "cards": {
+        "subscription": {
+          "title": "Prenumeration",
+          "description": "Hantera din plan och betalning"
+        },
+        "dashboard": {
+          "title": "Anpassa dashboard",
+          "description": "Välj vilka widgets du vill se"
+        },
+        "notifications": {
+          "title": "Notifikationsinställningar",
+          "description": "Anpassa morgonbriefing, påminnelser och varningar"
+        },
+        "aiCosts": {
+          "title": "AI-kostnader & din plan",
+          "description": "Se funktioner, användning och tier-jämförelse"
+        },
+        "privacy": {
+          "title": "Integritet & Delning",
+          "description": "Styr vilken data din coach kan se"
+        }
+      },
+      "toast": {
+        "intensitySaved": {
+          "title": "Sparad!",
+          "description": "Dina intensitetsmål har uppdaterats."
+        },
+        "intensityError": {
+          "title": "Fel",
+          "description": "Kunde inte spara intensitetsmålen. Försök igen."
+        }
+      },
+      "business": {
+        "memberDescription": "Du är medlem i detta företag",
+        "leave": "Lämna {name}",
+        "confirmDescription": "Är du säker? Du förlorar åtkomst till företagets tjänster. Din data (tester, program) bevaras.",
+        "cancel": "Avbryt",
+        "confirm": "Bekräfta",
+        "leaving": "Lämnar...",
+        "leftTitle": "Klart",
+        "leftDescription": "Du har lämnat {name}",
+        "errorTitle": "Fel",
+        "genericError": "Något gick fel"
+      }
+    },
     "calendarConnections": {
       "backToCalendar": "TILLBAKA TILL KALENDERN",
       "titlePrefix": "Kalender",

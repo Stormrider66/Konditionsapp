@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react'
-import { Settings, ChevronLeft, Bot, Bell, ChevronRight, Target, User, DollarSign, Lock, CreditCard, LogOut, Building2, Shield, LayoutDashboard } from 'lucide-react'
+import { Settings, ChevronLeft, Bell, ChevronRight, DollarSign, CreditCard, LogOut, Building2, Shield, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
@@ -25,9 +25,9 @@ import type { SportProfile } from '@prisma/client'
 import { SportType, IntensityTargets } from '@/types'
 import { getTargetsFromSettings } from '@/lib/training/intensity-targets'
 import { useToast } from '@/hooks/use-toast'
+import { useTranslations } from '@/i18n/client'
 
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
-import { cn } from '@/lib/utils'
+import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 
 interface AthleteSettingsClientProps {
   clientId: string
@@ -47,6 +47,7 @@ export function AthleteSettingsClient({
   business,
 }: AthleteSettingsClientProps) {
   const { toast } = useToast()
+  const t = useTranslations('pages.athleteSettings')
   const [leavingBusiness, setLeavingBusiness] = useState(false)
   const [confirmLeave, setConfirmLeave] = useState(false)
   const primarySport = (sportProfile?.primarySport || 'RUNNING') as SportType
@@ -99,14 +100,14 @@ export function AthleteSettingsClient({
       }
 
       toast({
-        title: 'Sparad!',
-        description: 'Dina intensitetsmål har uppdaterats.',
+        title: t('toast.intensitySaved.title'),
+        description: t('toast.intensitySaved.description'),
       })
     } catch (error) {
       console.error('Error saving intensity targets:', error)
       toast({
-        title: 'Fel',
-        description: 'Kunde inte spara intensitetsmålen. Försök igen.',
+        title: t('toast.intensityError.title'),
+        description: t('toast.intensityError.description'),
         variant: 'destructive',
       })
       throw error
@@ -134,8 +135,8 @@ export function AthleteSettingsClient({
               <Settings className="h-5 w-5 text-orange-600 dark:text-orange-400 transition-colors" />
             </div>
             <div>
-              <h1 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white leading-none transition-colors">Inställningar</h1>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1 transition-colors">Personliga preferenser</p>
+              <h1 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white leading-none transition-colors">{t('title')}</h1>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1 transition-colors">{t('subtitle')}</p>
             </div>
           </div>
         </div>
@@ -146,14 +147,14 @@ export function AthleteSettingsClient({
         {/* Athlete Info */}
         <GlassCard>
           <GlassCardContent className="p-6">
-            <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 mb-2 transition-colors">Inloggad som</h2>
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 mb-2 transition-colors">{t('loggedInAs')}</h2>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-white/10 flex items-center justify-center text-xl font-black italic text-slate-700 dark:text-white transition-all">
                 {clientName.charAt(0)}
               </div>
               <div>
                 <p className="text-xl font-black italic tracking-tight text-slate-900 dark:text-white transition-colors">{clientName}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 transition-colors">{sportProfile?.primarySport || 'Atlet'}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 transition-colors">{sportProfile?.primarySport || t('fallbackAthlete')}</p>
               </div>
             </div>
           </GlassCardContent>
@@ -164,7 +165,7 @@ export function AthleteSettingsClient({
           <div className="space-y-4">
             <div className="flex items-center gap-2 px-2">
               <div className="w-1.5 h-4 bg-slate-500 rounded-full" />
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Profil</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.profile')}</h3>
             </div>
             <ProfileSettings userName={clientName} userEmail={userEmail} />
           </div>
@@ -175,7 +176,7 @@ export function AthleteSettingsClient({
           <div className="space-y-4">
             <div className="flex items-center gap-2 px-2">
               <div className="w-1.5 h-4 bg-red-500 rounded-full" />
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Lösenord</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.password')}</h3>
             </div>
             <PasswordChangeForm userEmail={userEmail} />
           </div>
@@ -185,7 +186,7 @@ export function AthleteSettingsClient({
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Prenumeration</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.subscription')}</h3>
           </div>
           <Link href={`${basePath}/athlete/subscription`}>
             <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
@@ -195,8 +196,8 @@ export function AthleteSettingsClient({
                     <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">Prenumeration</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Hantera din plan och betalning</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">{t('cards.subscription.title')}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('cards.subscription.description')}</p>
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
@@ -211,7 +212,7 @@ export function AthleteSettingsClient({
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-pink-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">AI-profil</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.aiProfile')}</h3>
           </div>
           <AIContextSettings clientId={clientId} variant="glass" />
         </div>
@@ -220,7 +221,7 @@ export function AthleteSettingsClient({
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-orange-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Utseende</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.appearance')}</h3>
           </div>
           <ThemeSelector variant="glass" />
         </div>
@@ -239,8 +240,8 @@ export function AthleteSettingsClient({
                     <LayoutDashboard className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">Anpassa dashboard</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Välj vilka widgets du vill se</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">{t('cards.dashboard.title')}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('cards.dashboard.description')}</p>
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
@@ -253,7 +254,7 @@ export function AthleteSettingsClient({
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-green-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Träningsintensitet</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.trainingIntensity')}</h3>
           </div>
           <IntensityTargetsEditor
             sport={primarySport}
@@ -268,7 +269,7 @@ export function AthleteSettingsClient({
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Makrofördelning</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.macroSplit')}</h3>
           </div>
           <MacroSplitEditor clientId={clientId} variant="glass" />
         </div>
@@ -277,7 +278,7 @@ export function AthleteSettingsClient({
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-purple-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">AI-modell</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.aiModel')}</h3>
           </div>
           <AIModelSettings variant="glass" />
         </div>
@@ -286,7 +287,7 @@ export function AthleteSettingsClient({
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-cyan-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Gym-plats</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.gymLocation')}</h3>
           </div>
           <LocationSettings variant="glass" />
         </div>
@@ -295,7 +296,7 @@ export function AthleteSettingsClient({
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-amber-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">AI-notifikationer</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.aiNotifications')}</h3>
           </div>
           <Link href={`${basePath}/athlete/settings/ai-notifications`}>
             <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
@@ -305,8 +306,8 @@ export function AthleteSettingsClient({
                     <Bell className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">Notifikationsinställningar</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Anpassa morgonbriefing, påminnelser och varningar</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">{t('cards.notifications.title')}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('cards.notifications.description')}</p>
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
@@ -319,7 +320,7 @@ export function AthleteSettingsClient({
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-green-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">AI & Kostnader</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.aiCosts')}</h3>
           </div>
           <Link href={`${basePath}/athlete/settings/ai-info`}>
             <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
@@ -329,8 +330,8 @@ export function AthleteSettingsClient({
                     <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">AI-kostnader & din plan</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Se funktioner, användning och tier-jämförelse</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">{t('cards.aiCosts.title')}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('cards.aiCosts.description')}</p>
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
@@ -343,7 +344,7 @@ export function AthleteSettingsClient({
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-cyan-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Integritet & Delning</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.privacy')}</h3>
           </div>
           <Link href={`${basePath}/athlete/settings/privacy`}>
             <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
@@ -353,8 +354,8 @@ export function AthleteSettingsClient({
                     <Shield className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">Integritet & Delning</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Styr vilken data din coach kan se</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">{t('cards.privacy.title')}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('cards.privacy.description')}</p>
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
@@ -367,7 +368,7 @@ export function AthleteSettingsClient({
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-blue-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Integrationer</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.integrations')}</h3>
           </div>
           <IntegrationsSettings clientId={clientId} businessSlug={basePath.replace(/^\//, '')} variant="glass" />
         </div>
@@ -377,7 +378,7 @@ export function AthleteSettingsClient({
           <div className="space-y-4">
             <div className="flex items-center gap-2 px-2">
               <div className="w-1.5 h-4 bg-red-500 rounded-full" />
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Företag</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.business')}</h3>
             </div>
             <GlassCard>
               <GlassCardContent className="p-6 space-y-4">
@@ -387,7 +388,7 @@ export function AthleteSettingsClient({
                   </div>
                   <div>
                     <p className="font-semibold text-slate-900 dark:text-white">{business.name}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Du är medlem i detta företag</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('business.memberDescription')}</p>
                   </div>
                 </div>
                 {!confirmLeave ? (
@@ -397,12 +398,12 @@ export function AthleteSettingsClient({
                     onClick={() => setConfirmLeave(true)}
                   >
                     <LogOut className="h-4 w-4 mr-2" />
-                    Lämna {business.name}
+                    {t('business.leave', { name: business.name })}
                   </Button>
                 ) : (
                   <div className="space-y-3 p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
                     <p className="text-sm text-red-700 dark:text-red-300">
-                      Är du säker? Du förlorar åtkomst till företagets tjänster. Din data (tester, program) bevaras.
+                      {t('business.confirmDescription')}
                     </p>
                     <div className="flex gap-2">
                       <Button
@@ -411,7 +412,7 @@ export function AthleteSettingsClient({
                         onClick={() => setConfirmLeave(false)}
                         className="flex-1"
                       >
-                        Avbryt
+                        {t('business.cancel')}
                       </Button>
                       <Button
                         variant="destructive"
@@ -428,19 +429,19 @@ export function AthleteSettingsClient({
                             })
                             const data = await res.json()
                             if (data.success) {
-                              toast({ title: 'Klart', description: `Du har lämnat ${business.name}` })
+                              toast({ title: t('business.leftTitle'), description: t('business.leftDescription', { name: business.name }) })
                               window.location.href = '/athlete'
                             } else {
-                              toast({ title: 'Fel', description: data.error, variant: 'destructive' })
+                              toast({ title: t('business.errorTitle'), description: data.error, variant: 'destructive' })
                             }
                           } catch {
-                            toast({ title: 'Fel', description: 'Något gick fel', variant: 'destructive' })
+                            toast({ title: t('business.errorTitle'), description: t('business.genericError'), variant: 'destructive' })
                           } finally {
                             setLeavingBusiness(false)
                           }
                         }}
                       >
-                        {leavingBusiness ? 'Lämnar...' : 'Bekräfta'}
+                        {leavingBusiness ? t('business.leaving') : t('business.confirm')}
                       </Button>
                     </div>
                   </div>

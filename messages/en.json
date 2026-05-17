@@ -139,6 +139,72 @@
       "title": "Privacy",
       "subtitle": "Control what your coach can see"
     },
+    "athleteSettings": {
+      "title": "Settings",
+      "subtitle": "Personal preferences",
+      "loggedInAs": "Signed in as",
+      "fallbackAthlete": "Athlete",
+      "sections": {
+        "profile": "Profile",
+        "password": "Password",
+        "subscription": "Subscription",
+        "aiProfile": "AI profile",
+        "appearance": "Appearance",
+        "trainingIntensity": "Training intensity",
+        "macroSplit": "Macro split",
+        "aiModel": "AI model",
+        "gymLocation": "Gym location",
+        "aiNotifications": "AI notifications",
+        "aiCosts": "AI & Costs",
+        "privacy": "Privacy & Sharing",
+        "integrations": "Integrations",
+        "business": "Business"
+      },
+      "cards": {
+        "subscription": {
+          "title": "Subscription",
+          "description": "Manage your plan and payment"
+        },
+        "dashboard": {
+          "title": "Customize dashboard",
+          "description": "Choose which widgets you want to see"
+        },
+        "notifications": {
+          "title": "Notification settings",
+          "description": "Customize morning briefings, reminders, and alerts"
+        },
+        "aiCosts": {
+          "title": "AI costs & your plan",
+          "description": "See features, usage, and tier comparison"
+        },
+        "privacy": {
+          "title": "Privacy & Sharing",
+          "description": "Control which data your coach can see"
+        }
+      },
+      "toast": {
+        "intensitySaved": {
+          "title": "Saved!",
+          "description": "Your intensity targets have been updated."
+        },
+        "intensityError": {
+          "title": "Error",
+          "description": "Could not save the intensity targets. Try again."
+        }
+      },
+      "business": {
+        "memberDescription": "You are a member of this business",
+        "leave": "Leave {name}",
+        "confirmDescription": "Are you sure? You will lose access to the business services. Your data (tests, programs) will be kept.",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "leaving": "Leaving...",
+        "leftTitle": "Done",
+        "leftDescription": "You have left {name}",
+        "errorTitle": "Error",
+        "genericError": "Something went wrong"
+      }
+    },
     "calendarConnections": {
       "backToCalendar": "BACK TO CALENDAR",
       "titlePrefix": "Calendar",
