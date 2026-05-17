@@ -3831,6 +3831,45 @@
       },
       "instructions": "Instructions"
     },
+    "strengthSessionCard": {
+      "phases": {
+        "anatomicalAdaptation": "AA",
+        "maxStrength": "Max",
+        "power": "Power",
+        "maintenance": "Maintenance",
+        "taper": "Taper"
+      },
+      "statuses": {
+        "pending": "Not started",
+        "scheduled": "Scheduled",
+        "completed": "Done",
+        "skipped": "Skipped",
+        "modified": "Modified"
+      },
+      "date": {
+        "today": "Today"
+      },
+      "progress": {
+        "label": "Progress"
+      },
+      "metrics": {
+        "exercises": "Exercises"
+      },
+      "sections": {
+        "warmup": "Warmup",
+        "main": "Main session",
+        "cooldown": "Cooldown"
+      },
+      "coachNote": "Coach note:",
+      "completed": {
+        "title": "Workout finished!"
+      },
+      "actions": {
+        "continueWorkout": "Continue workout",
+        "openWorkout": "Open workout",
+        "viewDetails": "View details"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",

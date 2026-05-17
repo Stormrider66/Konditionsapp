@@ -26,6 +26,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { StrengthWorkoutPreview } from '@/components/workouts/StrengthWorkoutPreview'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface StrengthSessionCardProps {
   assignment: {
@@ -57,37 +58,37 @@ interface StrengthSessionCardProps {
   onComplete?: () => void
 }
 
-const PHASE_LABELS: Record<string, { label: string; color: string }> = {
-  ANATOMICAL_ADAPTATION: { label: 'AA', color: 'bg-green-100 text-green-800' },
-  MAX_STRENGTH: { label: 'Max', color: 'bg-purple-100 text-purple-800' },
-  POWER: { label: 'Power', color: 'bg-red-100 text-red-800' },
-  MAINTENANCE: { label: 'Underhåll', color: 'bg-blue-100 text-blue-800' },
-  TAPER: { label: 'Taper', color: 'bg-yellow-100 text-yellow-800' },
+const PHASE_LABELS: Record<string, { labelKey: string; color: string }> = {
+  ANATOMICAL_ADAPTATION: { labelKey: 'phases.anatomicalAdaptation', color: 'bg-green-100 text-green-800' },
+  MAX_STRENGTH: { labelKey: 'phases.maxStrength', color: 'bg-purple-100 text-purple-800' },
+  POWER: { labelKey: 'phases.power', color: 'bg-red-100 text-red-800' },
+  MAINTENANCE: { labelKey: 'phases.maintenance', color: 'bg-blue-100 text-blue-800' },
+  TAPER: { labelKey: 'phases.taper', color: 'bg-yellow-100 text-yellow-800' },
 }
 
 const STATUS_CONFIG = {
   PENDING: {
-    label: 'Ej påbörjad',
+    labelKey: 'statuses.pending',
     color: 'bg-gray-100 text-gray-700',
     icon: null,
   },
   SCHEDULED: {
-    label: 'Schemalagd',
+    labelKey: 'statuses.scheduled',
     color: 'bg-blue-100 text-blue-700',
     icon: null,
   },
   COMPLETED: {
-    label: 'Klar',
+    labelKey: 'statuses.completed',
     color: 'bg-green-100 text-green-700',
     icon: CheckCircle2,
   },
   SKIPPED: {
-    label: 'Överhoppad',
+    labelKey: 'statuses.skipped',
     color: 'bg-gray-200 text-gray-500',
     icon: null,
   },
   MODIFIED: {
-    label: 'Modifierad',
+    labelKey: 'statuses.modified',
     color: 'bg-yellow-100 text-yellow-700',
     icon: null,
   },
@@ -97,12 +98,14 @@ export function StrengthSessionCard({
   assignment,
   onComplete,
 }: StrengthSessionCardProps) {
+  const t = useTranslations('components.strengthSessionCard')
+  const locale = useLocale()
   const [showPreview, setShowPreview] = useState(false)
 
   const { session, progress, status } = assignment
   const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING
   const phaseConfig = PHASE_LABELS[session.phase] || {
-    label: session.phase,
+    labelKey: session.phase,
     color: 'bg-gray-100 text-gray-800',
   }
 
@@ -115,8 +118,8 @@ export function StrengthSessionCard({
   const assignedDate = new Date(assignment.assignedDate)
   const isToday = new Date().toDateString() === assignedDate.toDateString()
   const dateLabel = isToday
-    ? 'Idag'
-    : assignedDate.toLocaleDateString('sv-SE', {
+    ? t('date.today')
+    : assignedDate.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
@@ -135,13 +138,13 @@ export function StrengthSessionCard({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <Badge className={phaseConfig.color} variant="secondary">
-                  {phaseConfig.label}
+                  {PHASE_LABELS[session.phase] ? t(phaseConfig.labelKey) : phaseConfig.labelKey}
                 </Badge>
                 <Badge className={statusConfig.color} variant="secondary">
                   {statusConfig.icon && (
                     <statusConfig.icon className="h-3 w-3 mr-1" />
                   )}
-                  {statusConfig.label}
+                  {t(statusConfig.labelKey)}
                 </Badge>
               </div>
               <CardTitle className="text-lg truncate">{session.name}</CardTitle>
@@ -165,7 +168,7 @@ export function StrengthSessionCard({
           {progressPercent > 0 && status !== 'COMPLETED' && status !== 'SKIPPED' && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Framsteg</span>
+                <span className="text-muted-foreground">{t('progress.label')}</span>
                 <span className="font-medium">
                   {progress.completedSets} / {session.totalSets} set
                 </span>
@@ -179,7 +182,7 @@ export function StrengthSessionCard({
             <div className="text-center p-2 bg-muted/50 rounded-lg">
               <Dumbbell className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
               <p className="text-sm font-medium">{session.totalExercises}</p>
-              <p className="text-xs text-muted-foreground">Övningar</p>
+              <p className="text-xs text-muted-foreground">{t('metrics.exercises')}</p>
             </div>
             <div className="text-center p-2 bg-muted/50 rounded-lg">
               <Target className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
@@ -200,12 +203,12 @@ export function StrengthSessionCard({
             {session.hasWarmup && (
               <Badge variant="outline" className="text-xs">
                 <Flame className="h-3 w-3 mr-1 text-yellow-500" />
-                Uppvärmning
+                {t('sections.warmup')}
               </Badge>
             )}
             <Badge variant="outline" className="text-xs">
               <Dumbbell className="h-3 w-3 mr-1 text-blue-500" />
-              Huvudpass
+              {t('sections.main')}
             </Badge>
             {session.hasPrehab && (
               <Badge variant="outline" className="text-xs">
@@ -222,7 +225,7 @@ export function StrengthSessionCard({
             {session.hasCooldown && (
               <Badge variant="outline" className="text-xs">
                 <Timer className="h-3 w-3 mr-1 text-green-500" />
-                Nedvarvning
+                {t('sections.cooldown')}
               </Badge>
             )}
           </div>
@@ -231,7 +234,7 @@ export function StrengthSessionCard({
           {assignment.notes && (
             <div className="bg-yellow-50 p-3 rounded-lg">
               <p className="text-xs text-yellow-800 font-medium mb-1">
-                Coach-anteckning:
+                {t('coachNote')}
               </p>
               <p className="text-sm text-yellow-900">{assignment.notes}</p>
             </div>
@@ -243,7 +246,7 @@ export function StrengthSessionCard({
               <CheckCircle2 className="h-5 w-5 text-green-600" />
               <div>
                 <p className="text-sm font-medium text-green-800">
-                  Pass avslutat!
+                  {t('completed.title')}
                 </p>
                 {assignment.rpe && (
                   <p className="text-xs text-green-700">
@@ -264,7 +267,7 @@ export function StrengthSessionCard({
                 onClick={() => setShowPreview(true)}
               >
                 <Play className="h-5 w-5 mr-2" />
-                {progressPercent > 0 ? 'Fortsätt pass' : 'Öppna pass'}
+                {progressPercent > 0 ? t('actions.continueWorkout') : t('actions.openWorkout')}
                 <ChevronRight className="h-4 w-4 ml-auto" />
               </Button>
               <HeadlessVoiceCoachLauncher assignmentId={assignment.id} workoutType="strength" />
@@ -277,7 +280,7 @@ export function StrengthSessionCard({
               className="w-full"
               onClick={() => setShowPreview(true)}
             >
-              Visa detaljer
+              {t('actions.viewDetails')}
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           )}

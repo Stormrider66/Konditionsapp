@@ -3831,6 +3831,45 @@
       },
       "instructions": "Instruktioner"
     },
+    "strengthSessionCard": {
+      "phases": {
+        "anatomicalAdaptation": "AA",
+        "maxStrength": "Max",
+        "power": "Power",
+        "maintenance": "Underhåll",
+        "taper": "Taper"
+      },
+      "statuses": {
+        "pending": "Ej påbörjad",
+        "scheduled": "Schemalagd",
+        "completed": "Klar",
+        "skipped": "Överhoppad",
+        "modified": "Modifierad"
+      },
+      "date": {
+        "today": "Idag"
+      },
+      "progress": {
+        "label": "Framsteg"
+      },
+      "metrics": {
+        "exercises": "Övningar"
+      },
+      "sections": {
+        "warmup": "Uppvärmning",
+        "main": "Huvudpass",
+        "cooldown": "Nedvarvning"
+      },
+      "coachNote": "Coach-anteckning:",
+      "completed": {
+        "title": "Pass avslutat!"
+      },
+      "actions": {
+        "continueWorkout": "Fortsätt pass",
+        "openWorkout": "Öppna pass",
+        "viewDetails": "Visa detaljer"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",
