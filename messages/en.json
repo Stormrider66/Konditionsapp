@@ -4467,6 +4467,14 @@
         "noPaceData": "No pace data available"
       }
     },
+    "morningBriefingCard": {
+      "today": "today",
+      "readiness": "Readiness:",
+      "actions": {
+        "showDetails": "Show details",
+        "hideDetails": "Hide details"
+      }
+    },
     "exportDataButton": {
       "trigger": "Export data",
       "formatLabel": "Export format",

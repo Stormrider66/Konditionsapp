@@ -20,6 +20,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface BriefingAlert {
   type: 'warning' | 'info' | 'success'
@@ -46,6 +47,8 @@ interface Briefing {
 }
 
 export function MorningBriefingCard() {
+  const t = useTranslations('components.morningBriefingCard')
+  const locale = useLocale()
   const router = useRouter()
   const basePath = useBasePath()
   const [briefing, setBriefing] = useState<Briefing | null>(null)
@@ -63,7 +66,7 @@ export function MorningBriefingCard() {
 
           // Mark as read if not already
           if (data.briefing && !data.briefing.readAt) {
-            fetch(`/api/athlete/briefing/${data.briefing.id}`, {
+            void fetch(`/api/athlete/briefing/${data.briefing.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'read' }),
@@ -77,7 +80,7 @@ export function MorningBriefingCard() {
       }
     }
 
-    fetchBriefing()
+    void fetchBriefing()
   }, [])
 
   async function handleDismiss() {
@@ -176,11 +179,11 @@ export function MorningBriefingCard() {
                 {briefing.title}
               </h3>
               <p className="text-xs text-amber-700 dark:text-amber-300">
-                {new Date(briefing.scheduledFor).toLocaleTimeString('sv-SE', {
+                {new Date(briefing.scheduledFor).toLocaleTimeString(locale, {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}{' '}
-                idag
+                {t('today')}
               </p>
             </div>
           </div>
@@ -207,7 +210,7 @@ export function MorningBriefingCard() {
         {/* Readiness score if available */}
         {briefing.readinessScore !== undefined && briefing.readinessScore !== null && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-amber-600 dark:text-amber-400">Readiness:</span>
+            <span className="text-xs text-amber-600 dark:text-amber-400">{t('readiness')}</span>
             <Badge
               variant="secondary"
               className={cn(
@@ -265,7 +268,7 @@ export function MorningBriefingCard() {
               <ChevronRight
                 className={cn('h-3 w-3 transition-transform', isExpanded && 'rotate-90')}
               />
-              {isExpanded ? 'Dölj detaljer' : 'Visa detaljer'}
+              {isExpanded ? t('actions.hideDetails') : t('actions.showDetails')}
             </button>
             {isExpanded && (
               <ul className="mt-2 space-y-1 pl-4">

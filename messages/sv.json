@@ -4467,6 +4467,14 @@
         "noPaceData": "Ingen tempodata tillgänglig"
       }
     },
+    "morningBriefingCard": {
+      "today": "idag",
+      "readiness": "Readiness:",
+      "actions": {
+        "showDetails": "Visa detaljer",
+        "hideDetails": "Dölj detaljer"
+      }
+    },
     "exportDataButton": {
       "trigger": "Exportera data",
       "formatLabel": "Exportformat",
