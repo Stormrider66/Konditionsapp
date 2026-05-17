@@ -29,11 +29,15 @@ import {
   Zap,
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { getLocale, getTranslations } from '@/i18n/server'
 
 export default async function AthleteTestsPage() {
   const { clientId } = await requireAthleteOrCoachInAthleteMode()
+  const t = await getTranslations('pages.athlete.tests')
+  const locale = await getLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const sportProfile = await prisma.sportProfile.findUnique({
     where: { clientId },
     select: { primarySport: true, secondarySports: true },
@@ -54,6 +58,15 @@ export default async function AthleteTestsPage() {
     },
   })
 
+  const formatTestType = (type: string): string => {
+    const types: Record<string, string> = {
+      RUNNING: t('testTypes.running'),
+      CYCLING: t('testTypes.cycling'),
+      SKIING: t('testTypes.skiing'),
+    }
+    return types[type] || type
+  }
+
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Background blobs */}
@@ -64,7 +77,7 @@ export default async function AthleteTestsPage() {
         <Link href="/athlete/dashboard">
           <Button variant="ghost" className="mb-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 group transition-colors">
             <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-            TILLBAKA TILL DASHBOARD
+            {t('backToDashboard')}
           </Button>
         </Link>
 
@@ -75,10 +88,10 @@ export default async function AthleteTestsPage() {
             </div>
             <div>
               <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-1 text-slate-900 dark:text-white transition-colors">
-                Mina <span className="text-blue-600 dark:text-blue-400 transition-colors">Konditionstester</span>
+                {t('titlePrefix')} <span className="text-blue-600 dark:text-blue-400 transition-colors">{t('titleAccent')}</span>
               </h1>
               <p className="text-slate-500 dark:text-slate-400 font-medium transition-colors">
-                Översikt över alla dina genomförda konditionstester och resultat
+                {t('description')}
               </p>
             </div>
           </div>
@@ -91,7 +104,7 @@ export default async function AthleteTestsPage() {
               <GlassCardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <GlassCardDescription className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 transition-colors">
-                    Totalt tester
+                    {t('stats.totalTests')}
                   </GlassCardDescription>
                   <Activity className="h-4 w-4 text-blue-600/50 dark:text-blue-400/50 transition-colors" />
                 </div>
@@ -107,7 +120,7 @@ export default async function AthleteTestsPage() {
                 <GlassCardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <GlassCardDescription className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 transition-colors">
-                      Senaste VO2max
+                      {t('stats.latestVo2max')}
                     </GlassCardDescription>
                     <Zap className="h-4 w-4 text-orange-500/50 dark:text-orange-400/50 transition-colors" />
                   </div>
@@ -126,7 +139,7 @@ export default async function AthleteTestsPage() {
                 <GlassCardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <GlassCardDescription className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 transition-colors">
-                      Max Puls
+                      {t('stats.maxHeartRate')}
                     </GlassCardDescription>
                     <Heart className="h-4 w-4 text-pink-500/50 dark:text-pink-400/50 transition-colors" />
                   </div>
@@ -145,7 +158,7 @@ export default async function AthleteTestsPage() {
                 <GlassCardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <GlassCardDescription className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 transition-colors">
-                      Förbättring
+                      {t('stats.improvement')}
                     </GlassCardDescription>
                     <TrendingUp className="h-4 w-4 text-green-500/50 dark:text-green-400/50 transition-colors" />
                   </div>
@@ -174,26 +187,26 @@ export default async function AthleteTestsPage() {
           <div className="lg:col-span-2 space-y-8">
             <GlassCard className="border-slate-200 shadow-sm dark:border-white/5 dark:shadow-xl dark:shadow-black/50 transition-colors">
               <GlassCardHeader>
-                <GlassCardTitle className="text-xl font-black italic uppercase tracking-tight text-slate-900 dark:text-white transition-colors">Alla Tester</GlassCardTitle>
+                <GlassCardTitle className="text-xl font-black italic uppercase tracking-tight text-slate-900 dark:text-white transition-colors">{t('table.title')}</GlassCardTitle>
                 <GlassCardDescription className="text-slate-500 dark:text-slate-500 transition-colors">
-                  Klicka på ett test för att se detaljerad rapport
+                  {t('table.description')}
                 </GlassCardDescription>
               </GlassCardHeader>
               <GlassCardContent>
                 {tests.length === 0 ? (
                   <div className="text-center py-20 bg-slate-50 border border-dashed border-slate-200 dark:bg-white/[0.02] dark:border-white/10 rounded-2xl transition-colors">
                     <Calendar className="h-16 w-16 mx-auto mb-4 text-slate-300 dark:text-slate-700 transition-colors" />
-                    <p className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest transition-colors">Inga tester genomförda ännu</p>
+                    <p className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest transition-colors">{t('table.empty')}</p>
                   </div>
                 ) : (
                   <div className="overflow-hidden bg-white border border-slate-200 dark:bg-white/[0.02] dark:border-white/5 rounded-2xl transition-colors">
                     <Table>
                       <TableHeader className="bg-slate-50 border-b border-slate-200 dark:bg-white/5 dark:border-white/5 transition-colors">
                         <TableRow className="hover:bg-transparent border-none">
-                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 py-4 transition-colors">Datum</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 py-4 transition-colors">Typ</TableHead>
+                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 py-4 transition-colors">{t('table.date')}</TableHead>
+                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 py-4 transition-colors">{t('table.type')}</TableHead>
                           <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 py-4 text-center transition-colors">VO2max</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 py-4 text-right transition-colors">Åtgärd</TableHead>
+                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 py-4 text-right transition-colors">{t('table.action')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -201,7 +214,7 @@ export default async function AthleteTestsPage() {
                           <TableRow key={test.id} className="hover:bg-slate-50 border-slate-100 dark:hover:bg-white/5 dark:border-white/5 group transition-colors">
                             <TableCell className="py-4">
                               <span className="font-bold text-slate-700 dark:text-slate-200 transition-colors">
-                                {format(new Date(test.testDate), 'd MMMM yyyy', { locale: sv })}
+                                {format(new Date(test.testDate), 'd MMMM yyyy', { locale: dateLocale })}
                               </span>
                             </TableCell>
                             <TableCell className="py-4">
@@ -217,7 +230,7 @@ export default async function AthleteTestsPage() {
                             <TableCell className="text-right py-4">
                               <Link href={`/athlete/tests/${test.id}`}>
                                 <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-white/5 dark:border-white/10 dark:hover:bg-blue-600 dark:hover:text-white transition-all">
-                                  Visa Rapport
+                                  {t('table.viewReport')}
                                 </Button>
                               </Link>
                             </TableCell>
@@ -236,9 +249,9 @@ export default async function AthleteTestsPage() {
             {tests.length > 1 && tests.some((t) => t.vo2max) && (
               <GlassCard className="border-slate-200 shadow-sm dark:border-white/5 dark:shadow-xl dark:shadow-black/50 h-full transition-colors">
                 <GlassCardHeader>
-                  <GlassCardTitle className="text-xl font-black italic uppercase tracking-tight text-slate-900 dark:text-white transition-colors">Utveckling</GlassCardTitle>
+                  <GlassCardTitle className="text-xl font-black italic uppercase tracking-tight text-slate-900 dark:text-white transition-colors">{t('chart.title')}</GlassCardTitle>
                   <GlassCardDescription className="text-slate-500 dark:text-slate-500 transition-colors">
-                    Din VO2max-progression över tid
+                    {t('chart.description')}
                   </GlassCardDescription>
                 </GlassCardHeader>
                 <GlassCardContent>
@@ -247,7 +260,7 @@ export default async function AthleteTestsPage() {
                       .slice()
                       .reverse()
                       .filter((t) => t.vo2max)
-                      .map((test, index) => {
+                      .map((test) => {
                         const maxVo2 = Math.max(
                           ...tests.filter((t) => t.vo2max).map((t) => t.vo2max!)
                         )
@@ -272,7 +285,7 @@ export default async function AthleteTestsPage() {
                               />
                             </div>
                             <div className="text-[10px] font-black text-slate-400 dark:text-slate-600 mt-3 rotate-45 origin-left whitespace-nowrap transition-colors">
-                              {format(new Date(test.testDate), 'MMM yy', { locale: sv })}
+                              {format(new Date(test.testDate), 'MMM yy', { locale: dateLocale })}
                             </div>
                           </div>
                         )
@@ -281,13 +294,13 @@ export default async function AthleteTestsPage() {
 
                   <div className="mt-12 pt-6 border-t border-slate-200 dark:border-white/5 flex items-center justify-between transition-colors">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 transition-colors">Högsta värde</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 transition-colors">{t('chart.highest')}</p>
                       <p className="text-xl font-black text-blue-600 dark:text-blue-400 transition-colors">
                         {Math.max(...tests.filter(t => t.vo2max).map(t => t.vo2max!)).toFixed(1)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 transition-colors">Lägsta värde</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 transition-colors">{t('chart.lowest')}</p>
                       <p className="text-xl font-black text-slate-400 dark:text-slate-500 transition-colors">
                         {Math.min(...tests.filter(t => t.vo2max).map(t => t.vo2max!)).toFixed(1)}
                       </p>
@@ -301,14 +314,4 @@ export default async function AthleteTestsPage() {
       </div>
     </div>
   )
-}
-
-// Helper functions
-function formatTestType(type: string): string {
-  const types: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    SKIING: 'Skidåkning',
-  }
-  return types[type] || type
 }
