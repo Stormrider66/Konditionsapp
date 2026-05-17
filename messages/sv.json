@@ -2944,6 +2944,93 @@
         "viewProfile": "Visa profil",
         "assignWorkout": "Tilldela pass"
       }
+    },
+    "athleteDetailSheet": {
+      "errors": {
+        "loadData": "Kunde inte ladda data"
+      },
+      "tabs": {
+        "overview": "Översikt",
+        "health": "Hälsa",
+        "training": "Träning",
+        "alerts": "Varningar"
+      },
+      "sports": {
+        "running": "Löpning",
+        "cycling": "Cykling",
+        "skiing": "Skidor",
+        "swimming": "Simning",
+        "triathlon": "Triathlon",
+        "hyrox": "HYROX",
+        "generalFitness": "Fitness",
+        "functionalFitness": "Funktionell",
+        "strength": "Styrka",
+        "football": "Fotboll",
+        "iceHockey": "Hockey",
+        "handball": "Handboll",
+        "floorball": "Innebandy",
+        "basketball": "Basket",
+        "volleyball": "Volleyboll",
+        "tennis": "Tennis",
+        "padel": "Padel"
+      },
+      "metrics": {
+        "readiness": "Beredskap",
+        "restingHr": "Vila-puls",
+        "sleep": "Sömn",
+        "sleepHours": "Sömn (timmar)",
+        "sleepQuality": "Sömnkvalitet",
+        "energy": "Energi",
+        "mood": "Humör",
+        "muscleSoreness": "Muskelvärk"
+      },
+      "sections": {
+        "trainingZonesThisWeek": "Träningszoner denna vecka",
+        "recentActivities": "Senaste aktiviteter",
+        "wellbeing": "Välmående",
+        "weeklyVolumeDistance": "Veckovolym (distans)",
+        "weeklyVolumeWorkouts": "Veckovolym (pass)",
+        "paceTrend": "Tempoutveckling",
+        "powerTrend": "Effektutveckling",
+        "completedWorkouts": "Genomförda pass",
+        "activities": "Aktiviteter",
+        "alerts": "Varningar",
+        "activeInjuries": "Aktiva skador"
+      },
+      "empty": {
+        "insufficientData": "Otillräcklig data",
+        "noZoneData": "Ingen zondata",
+        "noHealthData": "Ingen hälsodata — inväntar check-in",
+        "noTrainingData": "Ingen träningsdata",
+        "noActivities": "Inga aktiviteter registrerade",
+        "noActiveAlerts": "Inga aktiva varningar"
+      },
+      "zones": {
+        "zone1": "Zon 1",
+        "zone2": "Zon 2",
+        "zone3": "Zon 3",
+        "zone4": "Zon 4",
+        "zone5": "Zon 5"
+      },
+      "polarization": {
+        "label": "Polarisering: {percent}% lätt",
+        "good": " (bra)",
+        "ok": " (ok)",
+        "tooIntense": " (för mycket intensivt)"
+      },
+      "tooltip": {
+        "distance": "Distans",
+        "workouts": "Pass",
+        "week": "Vecka {week}"
+      },
+      "injuries": {
+        "unknown": "Okänd",
+        "left": "vänster",
+        "right": "höger",
+        "both": "båda",
+        "pain": "Smärta: {pain}/10",
+        "phase": "Fas: {phase}"
+      }
     }
   },
   "infographic": {

@@ -2944,6 +2944,93 @@
         "viewProfile": "View profile",
         "assignWorkout": "Assign workout"
       }
+    },
+    "athleteDetailSheet": {
+      "errors": {
+        "loadData": "Could not load data"
+      },
+      "tabs": {
+        "overview": "Overview",
+        "health": "Health",
+        "training": "Training",
+        "alerts": "Alerts"
+      },
+      "sports": {
+        "running": "Running",
+        "cycling": "Cycling",
+        "skiing": "Skiing",
+        "swimming": "Swimming",
+        "triathlon": "Triathlon",
+        "hyrox": "HYROX",
+        "generalFitness": "Fitness",
+        "functionalFitness": "Functional",
+        "strength": "Strength",
+        "football": "Football",
+        "iceHockey": "Hockey",
+        "handball": "Handball",
+        "floorball": "Floorball",
+        "basketball": "Basketball",
+        "volleyball": "Volleyball",
+        "tennis": "Tennis",
+        "padel": "Padel"
+      },
+      "metrics": {
+        "readiness": "Readiness",
+        "restingHr": "Resting HR",
+        "sleep": "Sleep",
+        "sleepHours": "Sleep (hours)",
+        "sleepQuality": "Sleep quality",
+        "energy": "Energy",
+        "mood": "Mood",
+        "muscleSoreness": "Muscle soreness"
+      },
+      "sections": {
+        "trainingZonesThisWeek": "Training zones this week",
+        "recentActivities": "Recent activities",
+        "wellbeing": "Wellbeing",
+        "weeklyVolumeDistance": "Weekly volume (distance)",
+        "weeklyVolumeWorkouts": "Weekly volume (workouts)",
+        "paceTrend": "Pace trend",
+        "powerTrend": "Power trend",
+        "completedWorkouts": "Completed workouts",
+        "activities": "Activities",
+        "alerts": "Alerts",
+        "activeInjuries": "Active injuries"
+      },
+      "empty": {
+        "insufficientData": "Insufficient data",
+        "noZoneData": "No zone data",
+        "noHealthData": "No health data — waiting for check-in",
+        "noTrainingData": "No training data",
+        "noActivities": "No activities registered",
+        "noActiveAlerts": "No active alerts"
+      },
+      "zones": {
+        "zone1": "Zone 1",
+        "zone2": "Zone 2",
+        "zone3": "Zone 3",
+        "zone4": "Zone 4",
+        "zone5": "Zone 5"
+      },
+      "polarization": {
+        "label": "Polarization: {percent}% easy",
+        "good": " (good)",
+        "ok": " (ok)",
+        "tooIntense": " (too much intensity)"
+      },
+      "tooltip": {
+        "distance": "Distance",
+        "workouts": "Workouts",
+        "week": "Week {week}"
+      },
+      "injuries": {
+        "unknown": "Unknown",
+        "left": "left",
+        "right": "right",
+        "both": "both",
+        "pain": "Pain: {pain}/10",
+        "phase": "Phase: {phase}"
+      }
     }
   },
   "infographic": {

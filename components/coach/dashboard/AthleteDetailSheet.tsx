@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Heart,
-  Activity,
   AlertTriangle,
   Moon,
   Zap,
@@ -23,6 +22,7 @@ import {
   HeartPulse,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 import {
   AreaChart,
   Area,
@@ -152,16 +152,7 @@ function getSportCategory(sport: string | null): SportCategory {
   }
 }
 
-const sportLabels: Record<string, string> = {
-  RUNNING: 'Löpning', CYCLING: 'Cykling', SKIING: 'Skidor', SWIMMING: 'Simning',
-  TRIATHLON: 'Triathlon', HYROX: 'HYROX', GENERAL_FITNESS: 'Fitness',
-  FUNCTIONAL_FITNESS: 'Funktionell', STRENGTH: 'Styrka', FOOTBALL: 'Fotboll',
-  ICE_HOCKEY: 'Hockey', HANDBALL: 'Handboll', FLOORBALL: 'Innebandy',
-  BASKETBALL: 'Basket', VOLLEYBALL: 'Volleyboll', TENNIS: 'Tennis', PADEL: 'Padel',
-}
-
 const zoneColors = ['#3b82f6', '#22c55e', '#eab308', '#f97316', '#ef4444']
-const zoneLabels = ['Zon 1', 'Zon 2', 'Zon 3', 'Zon 4', 'Zon 5']
 
 function formatPace(speedMs: number | null): string {
   if (!speedMs || speedMs <= 0) return '-'
@@ -185,9 +176,9 @@ function formatDistance(meters: number | null): string {
   return km >= 10 ? `${km.toFixed(1)} km` : `${km.toFixed(2)} km`
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr)
-  return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+  return d.toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', { day: 'numeric', month: 'short' })
 }
 
 function getInitials(name: string): string {
@@ -203,14 +194,18 @@ const severityColors: Record<string, string> = {
 
 // --- Sparkline Component ---
 
-function Sparkline({ data, dataKey, color = '#3b82f6', height = 40 }: {
-  data: any[]
+function Sparkline({ data, dataKey, emptyText, color = '#3b82f6', height = 40 }: {
+  data: unknown[]
   dataKey: string
+  emptyText: string
   color?: string
   height?: number
 }) {
-  const filtered = data.filter((d: any) => d[dataKey] != null)
-  if (filtered.length < 2) return <span className="text-xs text-muted-foreground italic">Otillräcklig data</span>
+  const filtered = data.filter((d): d is Record<string, unknown> => {
+    if (typeof d !== 'object' || d === null) return false
+    return (d as Record<string, unknown>)[dataKey] != null
+  })
+  if (filtered.length < 2) return <span className="text-xs text-muted-foreground italic">{emptyText}</span>
   return (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={filtered} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
@@ -228,12 +223,22 @@ function Sparkline({ data, dataKey, color = '#3b82f6', height = 40 }: {
 
 // --- Zone Distribution Bar ---
 
-function ZoneBar({ zones, totalMinutes }: {
+type AthleteDetailTranslator = ReturnType<typeof useTranslations>
+
+function ZoneBar({ zones, totalMinutes, t }: {
   zones: { zone1Minutes: number; zone2Minutes: number; zone3Minutes: number; zone4Minutes: number; zone5Minutes: number }
   totalMinutes: number
+  t: AthleteDetailTranslator
 }) {
-  if (totalMinutes === 0) return <span className="text-xs text-muted-foreground italic">Ingen zondata</span>
+  if (totalMinutes === 0) return <span className="text-xs text-muted-foreground italic">{t('empty.noZoneData')}</span>
   const values = [zones.zone1Minutes, zones.zone2Minutes, zones.zone3Minutes, zones.zone4Minutes, zones.zone5Minutes]
+  const zoneLabels = [
+    t('zones.zone1'),
+    t('zones.zone2'),
+    t('zones.zone3'),
+    t('zones.zone4'),
+    t('zones.zone5'),
+  ]
   return (
     <div className="space-y-1.5">
       <div className="flex h-3 rounded-full overflow-hidden">
@@ -272,10 +277,31 @@ interface AthleteDetailSheetProps {
   basePath: string
 }
 
-export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange, basePath }: AthleteDetailSheetProps) {
+export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange, basePath: _basePath }: AthleteDetailSheetProps) {
+  const t = useTranslations('components.athleteDetailSheet')
+  const locale = useLocale()
   const [data, setData] = useState<ClientDetailData | null>(null)
   const [loading, setLoading] = useState(false)
   const cacheRef = useRef(new Map<string, ClientDetailData>())
+  const sportLabels: Record<string, string> = {
+    RUNNING: t('sports.running'),
+    CYCLING: t('sports.cycling'),
+    SKIING: t('sports.skiing'),
+    SWIMMING: t('sports.swimming'),
+    TRIATHLON: t('sports.triathlon'),
+    HYROX: t('sports.hyrox'),
+    GENERAL_FITNESS: t('sports.generalFitness'),
+    FUNCTIONAL_FITNESS: t('sports.functionalFitness'),
+    STRENGTH: t('sports.strength'),
+    FOOTBALL: t('sports.football'),
+    ICE_HOCKEY: t('sports.iceHockey'),
+    HANDBALL: t('sports.handball'),
+    FLOORBALL: t('sports.floorball'),
+    BASKETBALL: t('sports.basketball'),
+    VOLLEYBALL: t('sports.volleyball'),
+    TENNIS: t('sports.tennis'),
+    PADEL: t('sports.padel'),
+  }
 
   useEffect(() => {
     if (!clientId || !open) return
@@ -338,16 +364,16 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
           </div>
         ) : !data ? (
           <div className="text-center py-12 text-muted-foreground">
-            <p className="text-sm">Kunde inte ladda data</p>
+            <p className="text-sm">{t('errors.loadData')}</p>
           </div>
         ) : (
           <Tabs defaultValue="overview" className="pt-2">
             <TabsList className="w-full grid grid-cols-4">
-              <TabsTrigger value="overview" className="text-xs">Översikt</TabsTrigger>
-              <TabsTrigger value="health" className="text-xs">Hälsa</TabsTrigger>
-              <TabsTrigger value="training" className="text-xs">Träning</TabsTrigger>
+              <TabsTrigger value="overview" className="text-xs">{t('tabs.overview')}</TabsTrigger>
+              <TabsTrigger value="health" className="text-xs">{t('tabs.health')}</TabsTrigger>
+              <TabsTrigger value="training" className="text-xs">{t('tabs.training')}</TabsTrigger>
               <TabsTrigger value="alerts" className="text-xs relative">
-                Varningar
+                {t('tabs.alerts')}
                 {alertCount > 0 && (
                   <Badge className="ml-1 h-4 px-1 text-[10px] bg-red-500 text-white">{alertCount}</Badge>
                 )}
@@ -359,11 +385,11 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
               {/* Readiness */}
               <MetricRow
                 icon={<Zap className="h-4 w-4 text-yellow-500" />}
-                label="Beredskap"
+                label={t('metrics.readiness')}
                 value={data.dailyMetrics.length > 0 ? data.dailyMetrics[data.dailyMetrics.length - 1]?.readinessScore?.toFixed(1) ?? '-' : '-'}
                 suffix="/10"
               >
-                <Sparkline data={data.dailyMetrics} dataKey="readinessScore" color="#eab308" />
+                <Sparkline data={data.dailyMetrics} dataKey="readinessScore" emptyText={t('empty.insufficientData')} color="#eab308" />
               </MetricRow>
 
               {/* HRV */}
@@ -374,36 +400,37 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
                 suffix="ms"
                 trend={data.dailyMetrics.length > 0 ? data.dailyMetrics[data.dailyMetrics.length - 1]?.hrvTrend ?? null : null}
               >
-                <Sparkline data={data.dailyMetrics} dataKey="hrvRMSSD" color="#a855f7" />
+                <Sparkline data={data.dailyMetrics} dataKey="hrvRMSSD" emptyText={t('empty.insufficientData')} color="#a855f7" />
               </MetricRow>
 
               {/* Resting HR */}
               <MetricRow
                 icon={<Heart className="h-4 w-4 text-red-500" />}
-                label="Vila-puls"
+                label={t('metrics.restingHr')}
                 value={data.dailyMetrics.length > 0 ? data.dailyMetrics[data.dailyMetrics.length - 1]?.restingHR?.toFixed(0) ?? '-' : '-'}
                 suffix="bpm"
               >
-                <Sparkline data={data.dailyMetrics} dataKey="restingHR" color="#ef4444" />
+                <Sparkline data={data.dailyMetrics} dataKey="restingHR" emptyText={t('empty.insufficientData')} color="#ef4444" />
               </MetricRow>
 
               {/* Sleep */}
               <MetricRow
                 icon={<Moon className="h-4 w-4 text-blue-500" />}
-                label="Sömn"
+                label={t('metrics.sleep')}
                 value={data.dailyMetrics.length > 0 ? data.dailyMetrics[data.dailyMetrics.length - 1]?.sleepHours?.toFixed(1) ?? '-' : '-'}
                 suffix="h"
               >
-                <Sparkline data={data.dailyMetrics} dataKey="sleepHours" color="#3b82f6" />
+                <Sparkline data={data.dailyMetrics} dataKey="sleepHours" emptyText={t('empty.insufficientData')} color="#3b82f6" />
               </MetricRow>
 
               {/* Zone Distribution */}
               {sportCategory !== 'strength' && data.currentZoneDistribution && (
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Träningszoner denna vecka</p>
+                  <p className="text-xs font-medium text-muted-foreground">{t('sections.trainingZonesThisWeek')}</p>
                   <ZoneBar
                     zones={data.currentZoneDistribution}
                     totalMinutes={data.currentZoneDistribution.totalMinutes}
+                    t={t}
                   />
                 </div>
               )}
@@ -411,9 +438,9 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
               {/* Last 3 activities */}
               {data.recentActivities.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Senaste aktiviteter</p>
+                  <p className="text-xs font-medium text-muted-foreground">{t('sections.recentActivities')}</p>
                   {data.recentActivities.slice(0, 3).map(a => (
-                    <ActivityRow key={a.id} activity={a} sportCategory={sportCategory} />
+                    <ActivityRow key={a.id} activity={a} sportCategory={sportCategory} locale={locale} />
                   ))}
                 </div>
               )}
@@ -422,22 +449,22 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
             {/* === HÄLSA === */}
             <TabsContent value="health" className="space-y-5 mt-4">
               {data.dailyMetrics.length === 0 ? (
-                <EmptyState text="Ingen hälsodata — inväntar check-in" />
+                <EmptyState text={t('empty.noHealthData')} />
               ) : (
                 <>
-                  <ChartSection label="HRV (RMSSD)" color="#a855f7" data={data.dailyMetrics} dataKey="hrvRMSSD" unit="ms" />
-                  <ChartSection label="Vila-puls" color="#ef4444" data={data.dailyMetrics} dataKey="restingHR" unit="bpm" />
-                  <ChartSection label="Sömn (timmar)" color="#3b82f6" data={data.dailyMetrics} dataKey="sleepHours" unit="h" />
-                  <ChartSection label="Sömnkvalitet" color="#6366f1" data={data.dailyMetrics} dataKey="sleepQuality" unit="/10" />
+                  <ChartSection label="HRV (RMSSD)" color="#a855f7" data={data.dailyMetrics} dataKey="hrvRMSSD" unit="ms" locale={locale} />
+                  <ChartSection label={t('metrics.restingHr')} color="#ef4444" data={data.dailyMetrics} dataKey="restingHR" unit="bpm" locale={locale} />
+                  <ChartSection label={t('metrics.sleepHours')} color="#3b82f6" data={data.dailyMetrics} dataKey="sleepHours" unit="h" locale={locale} />
+                  <ChartSection label={t('metrics.sleepQuality')} color="#6366f1" data={data.dailyMetrics} dataKey="sleepQuality" unit="/10" locale={locale} />
 
                   {/* Wellness grid */}
                   <div className="space-y-2">
-                    <p className="text-sm font-medium">Välmående</p>
+                    <p className="text-sm font-medium">{t('sections.wellbeing')}</p>
                     <div className="grid grid-cols-2 gap-3">
-                      <WellnessItem label="Energi" data={data.dailyMetrics} dataKey="energyLevel" color="#22c55e" />
-                      <WellnessItem label="Humör" data={data.dailyMetrics} dataKey="mood" color="#eab308" />
-                      <WellnessItem label="Stress" data={data.dailyMetrics} dataKey="stress" color="#f97316" inverted />
-                      <WellnessItem label="Muskelvärk" data={data.dailyMetrics} dataKey="muscleSoreness" color="#ef4444" inverted />
+                      <WellnessItem label={t('metrics.energy')} data={data.dailyMetrics} dataKey="energyLevel" color="#22c55e" emptyText={t('empty.insufficientData')} />
+                      <WellnessItem label={t('metrics.mood')} data={data.dailyMetrics} dataKey="mood" color="#eab308" emptyText={t('empty.insufficientData')} />
+                      <WellnessItem label="Stress" data={data.dailyMetrics} dataKey="stress" color="#f97316" emptyText={t('empty.insufficientData')} inverted />
+                      <WellnessItem label={t('metrics.muscleSoreness')} data={data.dailyMetrics} dataKey="muscleSoreness" color="#ef4444" emptyText={t('empty.insufficientData')} inverted />
                     </div>
                   </div>
                 </>
@@ -449,12 +476,16 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
               {/* Sport-specific content */}
               {sportCategory !== 'strength' && data.currentZoneDistribution && (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Träningszoner denna vecka</p>
-                  <ZoneBar zones={data.currentZoneDistribution} totalMinutes={data.currentZoneDistribution.totalMinutes} />
+                  <p className="text-sm font-medium">{t('sections.trainingZonesThisWeek')}</p>
+                  <ZoneBar zones={data.currentZoneDistribution} totalMinutes={data.currentZoneDistribution.totalMinutes} t={t} />
                   {data.currentZoneDistribution.polarizationRatio !== null && (
                     <p className="text-xs text-muted-foreground">
-                      Polarisering: {(data.currentZoneDistribution.polarizationRatio * 100).toFixed(0)}% lätt
-                      {data.currentZoneDistribution.polarizationRatio >= 0.75 ? ' (bra)' : data.currentZoneDistribution.polarizationRatio >= 0.6 ? ' (ok)' : ' (för mycket intensivt)'}
+                      {t('polarization.label', { percent: (data.currentZoneDistribution.polarizationRatio * 100).toFixed(0) })}
+                      {data.currentZoneDistribution.polarizationRatio >= 0.75
+                        ? t('polarization.good')
+                        : data.currentZoneDistribution.polarizationRatio >= 0.6
+                          ? t('polarization.ok')
+                          : t('polarization.tooIntense')}
                     </p>
                   )}
                 </div>
@@ -465,8 +496,8 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
                 <div className="space-y-2">
                   <p className="text-sm font-medium">
                     {sportCategory === 'endurance' || sportCategory === 'power_endurance'
-                      ? 'Veckovolym (distans)'
-                      : 'Veckovolym (pass)'}
+                      ? t('sections.weeklyVolumeDistance')
+                      : t('sections.weeklyVolumeWorkouts')}
                   </p>
                   <ResponsiveContainer width="100%" height={120}>
                     <BarChart data={data.weeklySummaries} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
@@ -475,10 +506,10 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
                       <Tooltip
                         formatter={(value: number) =>
                           sportCategory === 'endurance' || sportCategory === 'power_endurance'
-                            ? [`${value.toFixed(1)} km`, 'Distans']
-                            : [`${value}`, 'Pass']
+                            ? [`${value.toFixed(1)} km`, t('tooltip.distance')]
+                            : [`${value}`, t('tooltip.workouts')]
                         }
-                        labelFormatter={l => `Vecka ${l}`}
+                        labelFormatter={l => t('tooltip.week', { week: l })}
                       />
                       <Bar
                         dataKey={sportCategory === 'endurance' || sportCategory === 'power_endurance' ? 'totalDistance' : 'workoutCount'}
@@ -493,14 +524,14 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
               {/* Endurance-specific: pace trend */}
               {(sportCategory === 'endurance') && data.recentActivities.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Tempoutveckling</p>
+                  <p className="text-sm font-medium">{t('sections.paceTrend')}</p>
                   <div className="space-y-1">
                     {data.recentActivities
                       .filter(a => a.avgSpeed && a.distance && a.distance > 1000)
                       .slice(0, 5)
                       .map(a => (
                         <div key={a.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-100 dark:border-white/5">
-                          <span className="text-muted-foreground">{formatDate(a.startDate)}</span>
+                          <span className="text-muted-foreground">{formatDate(a.startDate, locale)}</span>
                           <span className="font-medium">{formatPace(a.avgSpeed)}</span>
                           <span className="text-muted-foreground">{formatDistance(a.distance)}</span>
                         </div>
@@ -513,14 +544,14 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
               {/* Power-specific: watts trend */}
               {sportCategory === 'power_endurance' && data.recentActivities.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Effektutveckling</p>
+                  <p className="text-sm font-medium">{t('sections.powerTrend')}</p>
                   <div className="space-y-1">
                     {data.recentActivities
                       .filter(a => a.avgWatts)
                       .slice(0, 5)
                       .map(a => (
                         <div key={a.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-100 dark:border-white/5">
-                          <span className="text-muted-foreground">{formatDate(a.startDate)}</span>
+                          <span className="text-muted-foreground">{formatDate(a.startDate, locale)}</span>
                           <span className="font-medium">{a.avgWatts}W</span>
                           <span className="text-muted-foreground">{formatDistance(a.distance)}</span>
                         </div>
@@ -533,7 +564,7 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
               {/* Strength-specific: session count + wellness */}
               {sportCategory === 'strength' && (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Genomförda pass</p>
+                  <p className="text-sm font-medium">{t('sections.completedWorkouts')}</p>
                   {data.weeklySummaries.length > 0 ? (
                     <ResponsiveContainer width="100%" height={100}>
                       <BarChart data={data.weeklySummaries} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
@@ -543,19 +574,19 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <EmptyState text="Ingen träningsdata" />
+                    <EmptyState text={t('empty.noTrainingData')} />
                   )}
                 </div>
               )}
 
               {/* All activities list */}
               <div className="space-y-2">
-                <p className="text-sm font-medium">Aktiviteter</p>
+                <p className="text-sm font-medium">{t('sections.activities')}</p>
                 {data.recentActivities.length === 0 ? (
-                  <EmptyState text="Inga aktiviteter registrerade" />
+                  <EmptyState text={t('empty.noActivities')} />
                 ) : (
                   data.recentActivities.map(a => (
-                    <ActivityRow key={a.id} activity={a} sportCategory={sportCategory} />
+                    <ActivityRow key={a.id} activity={a} sportCategory={sportCategory} locale={locale} />
                   ))
                 )}
               </div>
@@ -564,12 +595,12 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
             {/* === VARNINGAR === */}
             <TabsContent value="alerts" className="space-y-4 mt-4">
               {data.alerts.length === 0 && data.injuries.length === 0 ? (
-                <EmptyState text="Inga aktiva varningar" />
+                <EmptyState text={t('empty.noActiveAlerts')} />
               ) : (
                 <>
                   {data.alerts.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-sm font-medium">Varningar</p>
+                      <p className="text-sm font-medium">{t('sections.alerts')}</p>
                       {data.alerts.map(alert => (
                         <div key={alert.id} className="p-3 rounded-lg border border-slate-200 dark:border-white/10 space-y-1">
                           <div className="flex items-center gap-2">
@@ -580,7 +611,7 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
                             </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">{alert.message}</p>
-                          <p className="text-[10px] text-muted-foreground">{formatDate(alert.createdAt)}</p>
+                          <p className="text-[10px] text-muted-foreground">{formatDate(alert.createdAt, locale)}</p>
                         </div>
                       ))}
                     </div>
@@ -588,16 +619,16 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
 
                   {data.injuries.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-sm font-medium">Aktiva skador</p>
+                      <p className="text-sm font-medium">{t('sections.activeInjuries')}</p>
                       {data.injuries.map(injury => (
                         <div key={injury.id} className="flex items-center gap-3 p-3 rounded-lg border border-red-200 dark:border-red-800/30 bg-red-50 dark:bg-red-900/10">
                           <HeartPulse className="h-4 w-4 text-red-500" />
                           <div className="flex-1">
                             <p className="text-sm font-medium">
-                              {injury.bodyPart || 'Okänd'}{injury.side ? ` (${injury.side === 'LEFT' ? 'vänster' : injury.side === 'RIGHT' ? 'höger' : 'båda'})` : ''}
+                              {injury.bodyPart || t('injuries.unknown')}{injury.side ? ` (${t(injury.side === 'LEFT' ? 'injuries.left' : injury.side === 'RIGHT' ? 'injuries.right' : 'injuries.both')})` : ''}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Smärta: {injury.painLevel}/10 {injury.phase ? `• Fas: ${injury.phase}` : ''}
+                              {t('injuries.pain', { pain: injury.painLevel })}{injury.phase ? ` • ${t('injuries.phase', { phase: injury.phase })}` : ''}
                             </p>
                           </div>
                           <Badge variant="outline" className="text-[10px]">{injury.status}</Badge>
@@ -647,12 +678,13 @@ function MetricRow({ icon, label, value, suffix, trend, children }: {
   )
 }
 
-function ChartSection({ label, color, data, dataKey, unit }: {
+function ChartSection({ label, color, data, dataKey, unit, locale }: {
   label: string
   color: string
   data: DailyMetric[]
   dataKey: keyof DailyMetric
   unit: string
+  locale: string
 }) {
   const filtered = data.filter(d => d[dataKey] != null)
   if (filtered.length < 2) return null
@@ -677,7 +709,7 @@ function ChartSection({ label, color, data, dataKey, unit }: {
           <YAxis hide />
           <Tooltip
             formatter={(value: number) => [`${value.toFixed(1)} ${unit}`, label]}
-            labelFormatter={l => formatDate(l as string)}
+            labelFormatter={l => formatDate(l as string, locale)}
           />
           <Area type="monotone" dataKey={dataKey as string} stroke={color} fill={`url(#chart-${dataKey as string})`} strokeWidth={1.5} dot={false} connectNulls />
         </AreaChart>
@@ -686,11 +718,12 @@ function ChartSection({ label, color, data, dataKey, unit }: {
   )
 }
 
-function WellnessItem({ label, data, dataKey, color, inverted }: {
+function WellnessItem({ label, data, dataKey, color, emptyText, inverted }: {
   label: string
   data: DailyMetric[]
   dataKey: keyof DailyMetric
   color: string
+  emptyText: string
   inverted?: boolean
 }) {
   const filtered = data.filter(d => d[dataKey] != null)
@@ -707,12 +740,12 @@ function WellnessItem({ label, data, dataKey, color, inverted }: {
           {typeof latest === 'number' ? latest : '-'}/10
         </span>
       </div>
-      <Sparkline data={filtered} dataKey={dataKey as string} color={color} height={30} />
+      <Sparkline data={filtered} dataKey={dataKey as string} emptyText={emptyText} color={color} height={30} />
     </div>
   )
 }
 
-function ActivityRow({ activity: a, sportCategory }: { activity: RecentActivity; sportCategory: SportCategory }) {
+function ActivityRow({ activity: a, sportCategory, locale }: { activity: RecentActivity; sportCategory: SportCategory; locale: string }) {
   return (
     <div className="flex items-center gap-3 py-2 border-b border-slate-100 dark:border-white/5 last:border-0">
       <div className="flex-shrink-0">
@@ -720,7 +753,7 @@ function ActivityRow({ activity: a, sportCategory }: { activity: RecentActivity;
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium truncate">{a.name}</p>
-        <p className="text-[10px] text-muted-foreground">{formatDate(a.startDate)}</p>
+        <p className="text-[10px] text-muted-foreground">{formatDate(a.startDate, locale)}</p>
       </div>
       <div className="flex items-center gap-3 text-xs text-right flex-shrink-0">
         {a.distance && a.distance > 100 && (
