@@ -39,8 +39,8 @@ import {
   getTargetStatus,
   getRecommendedTargets,
   getVolumeCategory,
-  VOLUME_ADJUSTED_TARGETS,
 } from '@/lib/training/intensity-targets';
+import { useLocale, useTranslations } from '@/i18n/client';
 
 interface WeeklySummary {
   id: string;
@@ -87,24 +87,24 @@ interface WeeklyTrainingSummaryCardProps {
   intensityTargets?: IntensityTargets;
 }
 
-const ACWR_ZONE_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+const ACWR_ZONE_CONFIG: Record<string, { labelKey: string; color: string; icon: React.ReactNode }> = {
   OPTIMAL: {
-    label: 'Optimal',
+    labelKey: 'acwr.optimal',
     color: 'bg-green-100 text-green-800',
     icon: <CheckCircle className="h-3 w-3" />,
   },
   CAUTION: {
-    label: 'Forsiktighet',
+    labelKey: 'acwr.caution',
     color: 'bg-yellow-100 text-yellow-800',
     icon: <AlertTriangle className="h-3 w-3" />,
   },
   DANGER: {
-    label: 'Hog risk',
+    labelKey: 'acwr.danger',
     color: 'bg-red-100 text-red-800',
     icon: <AlertTriangle className="h-3 w-3" />,
   },
   CRITICAL: {
-    label: 'Kritisk',
+    labelKey: 'acwr.critical',
     color: 'bg-red-200 text-red-900',
     icon: <AlertTriangle className="h-3 w-3" />,
   },
@@ -128,39 +128,46 @@ function formatDistance(km: number): string {
   return `${km.toFixed(1)} km`;
 }
 
-function getWeekDateRange(weekStart: string, weekEnd: string): string {
+function getWeekDateRange(weekStart: string, weekEnd: string, locale: string): string {
   const start = new Date(weekStart);
   const end = new Date(weekEnd);
 
   const startDay = start.getDate();
   const endDay = end.getDate();
-  const month = start.toLocaleDateString('sv-SE', { month: 'short' });
+  const month = start.toLocaleDateString(locale, { month: 'short' });
 
   return `${startDay}-${endDay} ${month}`;
 }
 
-/**
- * Get Swedish label for volume category
- */
-function getVolumeCategoryLabel(category: VolumeCategory): string {
+function getVolumeCategoryLabel(category: VolumeCategory, t: (key: string) => string): string {
   const labels: Record<VolumeCategory, string> = {
-    VERY_LOW: '<3h/vecka',
-    LOW: '3-5h/vecka',
-    MODERATE: '5-9h/vecka',
-    HIGH: '9-15h/vecka',
-    VERY_HIGH: '>15h/vecka',
+    VERY_LOW: 'volume.veryLow',
+    LOW: 'volume.low',
+    MODERATE: 'volume.moderate',
+    HIGH: 'volume.high',
+    VERY_HIGH: 'volume.veryHigh',
   };
-  return labels[category];
+  return t(labels[category]);
 }
 
-function IntensityPieChart({ easy, moderate, hard }: { easy: number; moderate: number; hard: number }) {
+function IntensityPieChart({
+  easy,
+  moderate,
+  hard,
+  labels,
+}: {
+  easy: number;
+  moderate: number;
+  hard: number;
+  labels: { easy: string; moderate: string; hard: string };
+}) {
   const total = easy + moderate + hard;
   if (total === 0) return null;
 
   const data = [
-    { name: 'Lagt', value: easy, color: INTENSITY_COLORS.easy },
-    { name: 'Medel', value: moderate, color: INTENSITY_COLORS.moderate },
-    { name: 'Hogt', value: hard, color: INTENSITY_COLORS.hard },
+    { name: labels.easy, value: easy, color: INTENSITY_COLORS.easy },
+    { name: labels.moderate, value: moderate, color: INTENSITY_COLORS.moderate },
+    { name: labels.hard, value: hard, color: INTENSITY_COLORS.hard },
   ].filter(d => d.value > 0);
 
   return (
@@ -206,6 +213,8 @@ export function WeeklyTrainingSummaryCard({
   activeSport = 'RUNNING',
   intensityTargets,
 }: WeeklyTrainingSummaryCardProps) {
+  const t = useTranslations('components.weeklyTrainingSummaryCard');
+  const locale = useLocale();
   const [summary, setSummary] = useState<WeeklySummary | null>(null);
   const [previousSummary, setPreviousSummary] = useState<WeeklySummary | null>(null);
   const [zoneData, setZoneData] = useState<ZoneDistribution | null>(null);
@@ -244,7 +253,7 @@ export function WeeklyTrainingSummaryCard({
   }, [clientId]);
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, [fetchData]);
 
   const cardClass = variant === 'glass'
@@ -274,14 +283,14 @@ export function WeeklyTrainingSummaryCard({
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Activity className="h-4 w-4" />
-            Veckans traning
+            {t('title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-4">
             <CalendarDays className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">
-              Inga traningsdata for denna vecka annu
+              {t('empty')}
             </p>
           </div>
         </CardContent>
@@ -293,7 +302,7 @@ export function WeeklyTrainingSummaryCard({
 
   // Trend: compare daily TSS rate (current vs previous week).
   // The current week may be partial (e.g. Tuesday = 2 days), so comparing raw
-  // totals is misleading ("Minskande 95%"). Normalize to TSS/day instead.
+  // totals is misleading. Normalize to TSS/day instead.
   const trend = (() => {
     if (!previousSummary || previousSummary.totalTSS === 0) return null;
     const now = new Date();
@@ -310,9 +319,9 @@ export function WeeklyTrainingSummaryCard({
   })();
 
   const TREND_CONFIG = {
-    increasing: { label: 'Ökande', color: 'bg-orange-100 text-orange-800', icon: <TrendingUp className="h-3 w-3" />, context: 'Din belastning ökar jämfört med förra veckan' },
-    decreasing: { label: 'Minskande', color: 'bg-blue-100 text-blue-800', icon: <TrendingDown className="h-3 w-3" />, context: 'Din belastning minskar jämfört med förra veckan' },
-    stable: { label: 'Stabil', color: 'bg-green-100 text-green-800', icon: <Minus className="h-3 w-3" />, context: 'Din belastning är stabil jämfört med förra veckan' },
+    increasing: { label: t('trend.increasing.label'), color: 'bg-orange-100 text-orange-800', icon: <TrendingUp className="h-3 w-3" />, context: t('trend.increasing.context') },
+    decreasing: { label: t('trend.decreasing.label'), color: 'bg-blue-100 text-blue-800', icon: <TrendingDown className="h-3 w-3" />, context: t('trend.decreasing.context') },
+    stable: { label: t('trend.stable.label'), color: 'bg-green-100 text-green-800', icon: <Minus className="h-3 w-3" />, context: t('trend.stable.context') },
   };
 
   const trendConfig = trend ? TREND_CONFIG[trend.direction] : null;
@@ -371,7 +380,7 @@ export function WeeklyTrainingSummaryCard({
               {acwrConfig && (
                 <Badge className={`text-xs ${acwrConfig.color}`}>
                   {acwrConfig.icon}
-                  <span className="ml-1">{acwrConfig.label}</span>
+                  <span className="ml-1">{t(acwrConfig.labelKey)}</span>
                 </Badge>
               )}
             </div>
@@ -387,7 +396,7 @@ export function WeeklyTrainingSummaryCard({
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <Activity className="h-4 w-4" />
-            Veckans traning
+            {t('title')}
           </CardTitle>
           <div className="flex items-center gap-2">
             {trendConfig && (
@@ -399,13 +408,16 @@ export function WeeklyTrainingSummaryCard({
             {acwrConfig && (
               <Badge className={acwrConfig.color}>
                 {acwrConfig.icon}
-                <span className="ml-1">{acwrConfig.label}</span>
+                <span className="ml-1">{t(acwrConfig.labelKey)}</span>
               </Badge>
             )}
           </div>
         </div>
         <CardDescription>
-          Vecka {summary.weekNumber} • {getWeekDateRange(summary.weekStart, summary.weekEnd)}
+          {t('weekDescription', {
+            week: summary.weekNumber,
+            range: getWeekDateRange(summary.weekStart, summary.weekEnd, locale),
+          })}
         </CardDescription>
       </CardHeader>
 
@@ -420,12 +432,12 @@ export function WeeklyTrainingSummaryCard({
           <div className="text-center p-3 bg-muted/50 rounded-lg">
             <Clock className="h-5 w-5 mx-auto text-blue-500 mb-1" />
             <p className="text-xl font-bold">{formatDuration(summary.totalDuration)}</p>
-            <p className="text-xs text-muted-foreground">Tid</p>
+            <p className="text-xs text-muted-foreground">{t('metrics.time')}</p>
           </div>
           <div className="text-center p-3 bg-muted/50 rounded-lg">
             <Route className="h-5 w-5 mx-auto text-green-500 mb-1" />
             <p className="text-xl font-bold">{formatDistance(summary.totalDistance)}</p>
-            <p className="text-xs text-muted-foreground">Distans</p>
+            <p className="text-xs text-muted-foreground">{t('metrics.distance')}</p>
           </div>
         </div>
 
@@ -435,11 +447,14 @@ export function WeeklyTrainingSummaryCard({
             <Target className="h-5 w-5 text-primary" />
             <div>
               <p className="font-medium">
-                {summary.workoutCount} traningspass
+                {t('workouts.count', { count: summary.workoutCount })}
               </p>
               {summary.plannedWorkoutCount && (
                 <p className="text-xs text-muted-foreground">
-                  {summary.completedWorkoutCount}/{summary.plannedWorkoutCount} planerade
+	                  {t('workouts.planned', {
+	                    completed: summary.completedWorkoutCount ?? 0,
+	                    planned: summary.plannedWorkoutCount,
+	                  })}
                 </p>
               )}
             </div>
@@ -447,7 +462,7 @@ export function WeeklyTrainingSummaryCard({
           {summary.compliancePercent !== null && (
             <div className="text-right">
               <p className="font-bold text-lg">{Math.round(summary.compliancePercent)}%</p>
-              <p className="text-xs text-muted-foreground">Efterlevnad</p>
+              <p className="text-xs text-muted-foreground">{t('workouts.compliance')}</p>
             </div>
           )}
         </div>
@@ -461,12 +476,17 @@ export function WeeklyTrainingSummaryCard({
                   easy={summary.easyMinutes}
                   moderate={summary.moderateMinutes}
                   hard={summary.hardMinutes}
+                  labels={{
+                    easy: t('intensity.low'),
+                    moderate: t('intensity.moderate'),
+                    hard: t('intensity.high'),
+                  }}
                 />
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${easyStatus === 'on-target' ? 'bg-green-500' : easyStatus === 'close' ? 'bg-yellow-500' : 'bg-green-300'}`} />
                     <span className="text-xs">
-                      Lågt: {formatDuration(summary.easyMinutes)}
+                      {t('intensity.lowWithDuration', { duration: formatDuration(summary.easyMinutes) })}
                       <span className="text-muted-foreground ml-1">
                         ({Math.round(actualEasyPercent)}% / {targets.easyPercent}%)
                       </span>
@@ -475,7 +495,7 @@ export function WeeklyTrainingSummaryCard({
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${moderateStatus === 'on-target' ? 'bg-yellow-500' : moderateStatus === 'close' ? 'bg-yellow-400' : 'bg-yellow-300'}`} />
                     <span className="text-xs">
-                      Medel: {formatDuration(summary.moderateMinutes)}
+                      {t('intensity.moderateWithDuration', { duration: formatDuration(summary.moderateMinutes) })}
                       <span className="text-muted-foreground ml-1">
                         ({Math.round(actualModeratePercent)}% / {targets.moderatePercent}%)
                       </span>
@@ -484,7 +504,7 @@ export function WeeklyTrainingSummaryCard({
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${hardStatus === 'on-target' ? 'bg-red-500' : hardStatus === 'close' ? 'bg-red-400' : 'bg-red-300'}`} />
                     <span className="text-xs">
-                      Högt: {formatDuration(summary.hardMinutes)}
+                      {t('intensity.highWithDuration', { duration: formatDuration(summary.hardMinutes) })}
                       <span className="text-muted-foreground ml-1">
                         ({Math.round(actualHardPercent)}% / {targets.hardPercent}%)
                       </span>
@@ -498,12 +518,12 @@ export function WeeklyTrainingSummaryCard({
                   {targets.label || `${targets.easyPercent}/${targets.moderatePercent}/${targets.hardPercent}`}
                 </Badge>
                 <span className="text-[10px] text-muted-foreground">
-                  {getVolumeCategoryLabel(volumeCategory)}
+                  {getVolumeCategoryLabel(volumeCategory, t)}
                 </span>
                 {isDistributionOnTarget && (
                   <span className="text-[10px] text-green-600 flex items-center gap-1 justify-end">
                     <CheckCircle className="h-3 w-3" />
-                    På mål
+                    {t('intensity.onTarget')}
                   </span>
                 )}
               </div>
@@ -514,10 +534,15 @@ export function WeeklyTrainingSummaryCard({
               <div className="flex items-start gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
                 <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
                 <div className="text-xs text-amber-800 dark:text-amber-200">
-                  <p className="font-medium mb-1">Volymbaserad rekommendation</p>
+                  <p className="font-medium mb-1">{t('recommendation.title')}</p>
                   <p>{volumeRecommendation.advice}</p>
                   <p className="mt-1 text-amber-600 dark:text-amber-400">
-                    Rekommenderat: {volumeRecommendation.volumeRecommendation.label} ({volumeRecommendation.volumeRecommendation.easyPercent}/{volumeRecommendation.volumeRecommendation.moderatePercent}/{volumeRecommendation.volumeRecommendation.hardPercent})
+	                    {t('recommendation.recommended', {
+	                      label: volumeRecommendation.volumeRecommendation.label ?? '',
+	                      easy: volumeRecommendation.volumeRecommendation.easyPercent,
+                      moderate: volumeRecommendation.volumeRecommendation.moderatePercent,
+                      hard: volumeRecommendation.volumeRecommendation.hardPercent,
+                    })}
                   </p>
                 </div>
               </div>
@@ -543,7 +568,7 @@ export function WeeklyTrainingSummaryCard({
           <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
             <div className="flex items-center gap-2">
               <Dumbbell className="h-4 w-4 text-purple-500" />
-              <span className="text-sm">Styrketraning</span>
+              <span className="text-sm">{t('strength.title')}</span>
             </div>
             <div className="text-right">
               <span className="font-medium">{summary.strengthSets} set</span>
@@ -559,11 +584,11 @@ export function WeeklyTrainingSummaryCard({
         {/* HR Zone breakdown (5 zones) */}
         {zoneData && zoneData.totalMinutes > 0 && (() => {
           const zones = [
-            { label: 'Z1 Återhämtning', minutes: zoneData.zone1Minutes, color: 'bg-green-500' },
-            { label: 'Z2 Aerob bas', minutes: zoneData.zone2Minutes, color: 'bg-blue-500' },
-            { label: 'Z3 Tempo', minutes: zoneData.zone3Minutes, color: 'bg-yellow-500' },
-            { label: 'Z4 Tröskel', minutes: zoneData.zone4Minutes, color: 'bg-orange-500' },
-            { label: 'Z5 VO₂max', minutes: zoneData.zone5Minutes, color: 'bg-red-500' },
+            { label: t('zones.zone1'), minutes: zoneData.zone1Minutes, color: 'bg-green-500' },
+            { label: t('zones.zone2'), minutes: zoneData.zone2Minutes, color: 'bg-blue-500' },
+            { label: t('zones.zone3'), minutes: zoneData.zone3Minutes, color: 'bg-yellow-500' },
+            { label: t('zones.zone4'), minutes: zoneData.zone4Minutes, color: 'bg-orange-500' },
+            { label: t('zones.zone5'), minutes: zoneData.zone5Minutes, color: 'bg-red-500' },
           ];
           const isPolarized = zoneData.polarizationRatio != null && zoneData.polarizationRatio >= 75;
           return (
@@ -571,10 +596,10 @@ export function WeeklyTrainingSummaryCard({
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium flex items-center gap-2">
                   <Heart className="h-4 w-4 text-red-500" />
-                  HR-zoner
+                  {t('zones.title')}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {formatDuration(zoneData.totalMinutes)} total
+                  {t('zones.total', { duration: formatDuration(zoneData.totalMinutes) })}
                 </span>
               </div>
               <div className="space-y-1">
@@ -598,13 +623,13 @@ export function WeeklyTrainingSummaryCard({
                 })}
               </div>
               <div className="flex items-center justify-between pt-1">
-                <span className="text-xs text-muted-foreground">Polarisering</span>
+                <span className="text-xs text-muted-foreground">{t('zones.polarization')}</span>
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-bold">{zoneData.polarizationRatio?.toFixed(0) || 0}%</span>
                   {isPolarized ? (
-                    <span className="text-[10px] text-green-600">Optimalt</span>
+                    <span className="text-[10px] text-green-600">{t('zones.optimal')}</span>
                   ) : (
-                    <span className="text-[10px] text-yellow-600">Förbättringsbar</span>
+                    <span className="text-[10px] text-yellow-600">{t('zones.improvable')}</span>
                   )}
                 </div>
               </div>

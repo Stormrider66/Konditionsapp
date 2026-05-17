@@ -4608,6 +4608,75 @@
         "drillCount": "{count} {count, plural, one {övning} other {övningar}}"
       }
     },
+    "weeklyTrainingSummaryCard": {
+      "empty": "Inga träningsdata för denna vecka ännu",
+      "title": "Veckans träning",
+      "weekDescription": "Vecka {week} • {range}",
+      "acwr": {
+        "optimal": "Optimal",
+        "caution": "Försiktighet",
+        "danger": "Hög risk",
+        "critical": "Kritisk"
+      },
+      "trend": {
+        "increasing": {
+          "label": "Ökande",
+          "context": "Din belastning ökar jämfört med förra veckan"
+        },
+        "decreasing": {
+          "label": "Minskande",
+          "context": "Din belastning minskar jämfört med förra veckan"
+        },
+        "stable": {
+          "label": "Stabil",
+          "context": "Din belastning är stabil jämfört med förra veckan"
+        }
+      },
+      "volume": {
+        "veryLow": "<3h/vecka",
+        "low": "3-5h/vecka",
+        "moderate": "5-9h/vecka",
+        "high": "9-15h/vecka",
+        "veryHigh": ">15h/vecka"
+      },
+      "metrics": {
+        "time": "Tid",
+        "distance": "Distans"
+      },
+      "workouts": {
+        "count": "{count} träningspass",
+        "planned": "{completed}/{planned} planerade",
+        "compliance": "Efterlevnad"
+      },
+      "intensity": {
+        "low": "Lågt",
+        "moderate": "Medel",
+        "high": "Högt",
+        "lowWithDuration": "Lågt: {duration}",
+        "moderateWithDuration": "Medel: {duration}",
+        "highWithDuration": "Högt: {duration}",
+        "onTarget": "På mål"
+      },
+      "recommendation": {
+        "title": "Volymbaserad rekommendation",
+        "recommended": "Rekommenderat: {label} ({easy}/{moderate}/{hard})"
+      },
+      "strength": {
+        "title": "Styrketräning"
+      },
+      "zones": {
+        "title": "HR-zoner",
+        "total": "{duration} totalt",
+        "zone1": "Z1 Återhämtning",
+        "zone2": "Z2 Aerob bas",
+        "zone3": "Z3 Tempo",
+        "zone4": "Z4 Tröskel",
+        "zone5": "Z5 VO₂max",
+        "polarization": "Polarisering",
+        "optimal": "Optimalt",
+        "improvable": "Förbättringsbar"
+      }
+    },
     "exportDataButton": {
       "trigger": "Exportera data",
       "formatLabel": "Exportformat",

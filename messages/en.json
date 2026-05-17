@@ -4608,6 +4608,75 @@
         "drillCount": "{count, plural, one {# drill} other {# drills}}"
       }
     },
+    "weeklyTrainingSummaryCard": {
+      "empty": "No training data for this week yet",
+      "title": "This week's training",
+      "weekDescription": "Week {week} • {range}",
+      "acwr": {
+        "optimal": "Optimal",
+        "caution": "Caution",
+        "danger": "High risk",
+        "critical": "Critical"
+      },
+      "trend": {
+        "increasing": {
+          "label": "Increasing",
+          "context": "Your load is increasing compared with last week"
+        },
+        "decreasing": {
+          "label": "Decreasing",
+          "context": "Your load is decreasing compared with last week"
+        },
+        "stable": {
+          "label": "Stable",
+          "context": "Your load is stable compared with last week"
+        }
+      },
+      "volume": {
+        "veryLow": "<3h/week",
+        "low": "3-5h/week",
+        "moderate": "5-9h/week",
+        "high": "9-15h/week",
+        "veryHigh": ">15h/week"
+      },
+      "metrics": {
+        "time": "Time",
+        "distance": "Distance"
+      },
+      "workouts": {
+        "count": "{count, plural, one {# workout} other {# workouts}}",
+        "planned": "{completed}/{planned} planned",
+        "compliance": "Compliance"
+      },
+      "intensity": {
+        "low": "Low",
+        "moderate": "Moderate",
+        "high": "High",
+        "lowWithDuration": "Low: {duration}",
+        "moderateWithDuration": "Moderate: {duration}",
+        "highWithDuration": "High: {duration}",
+        "onTarget": "On target"
+      },
+      "recommendation": {
+        "title": "Volume-based recommendation",
+        "recommended": "Recommended: {label} ({easy}/{moderate}/{hard})"
+      },
+      "strength": {
+        "title": "Strength training"
+      },
+      "zones": {
+        "title": "HR zones",
+        "total": "{duration} total",
+        "zone1": "Z1 Recovery",
+        "zone2": "Z2 Aerobic base",
+        "zone3": "Z3 Tempo",
+        "zone4": "Z4 Threshold",
+        "zone5": "Z5 VO₂max",
+        "polarization": "Polarization",
+        "optimal": "Optimal",
+        "improvable": "Can improve"
+      }
+    },
     "exportDataButton": {
       "trigger": "Export data",
       "formatLabel": "Export format",
