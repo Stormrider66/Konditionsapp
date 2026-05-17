@@ -4304,6 +4304,27 @@
         "startWorkout": "Starta träningspass"
       }
     },
+    "intervalTimer": {
+      "segments": {
+        "warmup": "Uppvärmning",
+        "cooldown": "Nedvarvning",
+        "interval": "Intervall",
+        "steady": "Jämn",
+        "recovery": "Återhämtning",
+        "hill": "Backe",
+        "drills": "Övningar",
+        "core": "Core",
+        "prehab": "Stabilitet / Prehab",
+        "plyometric": "Plyometri"
+      },
+      "segmentCounter": "{current} av {total}",
+      "zone": "Zon {zone}",
+      "actions": {
+        "pauseTimer": "Pausa timer",
+        "startTimer": "Starta timer",
+        "skip": "Hoppa över"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",

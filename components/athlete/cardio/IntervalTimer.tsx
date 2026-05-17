@@ -24,6 +24,7 @@ import {
   Gauge,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
@@ -124,16 +125,16 @@ const SEGMENT_COLORS: Record<SegmentType, { bg: string; text: string; stroke: st
 }
 
 const SEGMENT_NAMES: Record<SegmentType, string> = {
-  WARMUP: 'Uppvärmning',
-  COOLDOWN: 'Nedvarvning',
-  INTERVAL: 'Intervall',
-  STEADY: 'Jämn',
-  RECOVERY: 'Återhämtning',
-  HILL: 'Backe',
-  DRILLS: 'Övningar',
-  CORE: 'Core',
-  PREHAB: 'Stabilitet / Prehab',
-  PLYOMETRIC: 'Plyometri',
+  WARMUP: 'segments.warmup',
+  COOLDOWN: 'segments.cooldown',
+  INTERVAL: 'segments.interval',
+  STEADY: 'segments.steady',
+  RECOVERY: 'segments.recovery',
+  HILL: 'segments.hill',
+  DRILLS: 'segments.drills',
+  CORE: 'segments.core',
+  PREHAB: 'segments.prehab',
+  PLYOMETRIC: 'segments.plyometric',
 }
 
 const ZONE_COLORS = [
@@ -162,6 +163,7 @@ export function IntervalTimer({
   forcePaused,
   onStateChange,
 }: IntervalTimerProps) {
+  const t = useTranslations('components.intervalTimer')
   const [seconds, setSeconds] = useState(duration)
   const [isRunning, setIsRunning] = useState(autoStart)
   const [isMuted, setIsMuted] = useState(false)
@@ -207,7 +209,7 @@ export function IntervalTimer({
         oscillator.start()
         setTimeout(() => {
           oscillator.stop()
-          audioContext.close()
+          void audioContext.close()
         }, audioDuration)
       } catch {
         // Audio context not supported
@@ -334,9 +336,9 @@ export function IntervalTimer({
     <div className="flex flex-col items-center justify-center p-6 space-y-6">
       {/* Segment header */}
       <div className="flex items-center gap-3">
-        <Badge className={colors.badge}>{SEGMENT_NAMES[segmentType]}</Badge>
+        <Badge className={colors.badge}>{t(SEGMENT_NAMES[segmentType])}</Badge>
         <span className="text-sm text-muted-foreground">
-          {segmentNumber} av {totalSegments}
+          {t('segmentCounter', { current: segmentNumber, total: totalSegments })}
         </span>
       </div>
 
@@ -351,7 +353,7 @@ export function IntervalTimer({
         {targetZone && (
           <Badge className={cn('text-xs', ZONE_COLORS[targetZone])}>
             <Heart className="h-3 w-3 mr-1" />
-            Zon {targetZone}
+            {t('zone', { zone: targetZone })}
           </Badge>
         )}
         {targetDistance && (
@@ -439,7 +441,7 @@ export function IntervalTimer({
             variant="outline"
             size="icon"
             onClick={toggleTimer}
-            aria-label={isRunning ? 'Pausa timer' : 'Starta timer'}
+            aria-label={isRunning ? t('actions.pauseTimer') : t('actions.startTimer')}
           >
             {isRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
           </Button>
@@ -462,7 +464,7 @@ export function IntervalTimer({
         </Button>
         <Button variant="secondary" onClick={onSkip}>
           <SkipForward className="h-4 w-4 mr-2" />
-          Hoppa över
+          {t('actions.skip')}
         </Button>
       </div>
     </div>

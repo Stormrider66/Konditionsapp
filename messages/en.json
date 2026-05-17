@@ -4304,6 +4304,27 @@
         "startWorkout": "Start workout"
       }
     },
+    "intervalTimer": {
+      "segments": {
+        "warmup": "Warmup",
+        "cooldown": "Cooldown",
+        "interval": "Interval",
+        "steady": "Steady",
+        "recovery": "Recovery",
+        "hill": "Hill",
+        "drills": "Drills",
+        "core": "Core",
+        "prehab": "Stability / Prehab",
+        "plyometric": "Plyometrics"
+      },
+      "segmentCounter": "{current} of {total}",
+      "zone": "Zone {zone}",
+      "actions": {
+        "pauseTimer": "Pause timer",
+        "startTimer": "Start timer",
+        "skip": "Skip"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",
