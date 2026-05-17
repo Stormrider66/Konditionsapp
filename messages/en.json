@@ -2761,6 +2761,63 @@
         "activeInjury": "{name}: {count, plural, one {# active injury} other {# active injuries}}",
         "inactive": "{name}: inactive {days}d"
       }
+    },
+    "clientStatusCard": {
+      "dates": {
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "daysAgo": "{days}d ago",
+        "weeksAgo": "{weeks}w ago"
+      },
+      "source": {
+        "via": "via {source}"
+      },
+      "engagement": {
+        "active": "Active",
+        "moderate": "Moderate",
+        "inactive": "Inactive",
+        "new": "New"
+      },
+      "sports": {
+        "running": "Running",
+        "cycling": "Cycling",
+        "skiing": "Skiing",
+        "swimming": "Swimming",
+        "triathlon": "Triathlon",
+        "hyrox": "HYROX",
+        "generalFitness": "Fitness",
+        "functionalFitness": "Functional",
+        "strength": "Strength",
+        "football": "Football",
+        "iceHockey": "Hockey",
+        "handball": "Handball",
+        "floorball": "Floorball",
+        "basketball": "Basketball",
+        "volleyball": "Volleyball",
+        "tennis": "Tennis",
+        "padel": "Padel"
+      },
+      "metrics": {
+        "readiness": "Readiness",
+        "workouts": "{count} workouts",
+        "thisWeek": "this week",
+        "compliance": "Compliance"
+      },
+      "badges": {
+        "injuries": "{count, plural, one {# injury} other {# injuries}}",
+        "alerts": "{count, plural, one {# alert} other {# alerts}}",
+        "feedback": "{count} feedback"
+      },
+      "empty": {
+        "newAthlete": "New athlete — waiting for data",
+        "inactiveWithDays": "Inactive — {days}d since last activity",
+        "inactiveNoActivity": "Inactive — no activity registered"
+      },
+      "actions": {
+        "viewProfile": "View profile",
+        "giveFeedback": "Give feedback",
+        "getStarted": "Get started"
+      }
     }
   },
   "infographic": {

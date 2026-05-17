@@ -14,6 +14,7 @@ import {
   UserPlus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 export interface PTClientStatus {
   id: string
@@ -78,22 +79,24 @@ function getReadinessColor(score: number | null): string {
   return 'bg-red-500'
 }
 
-function getAcwrBadge(zone: string | null): { color: string; label: string } {
+function getAcwrBadgeColor(zone: string | null): string {
   switch (zone) {
-    case 'OPTIMAL': return { color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', label: 'Optimal' }
-    case 'CAUTION': return { color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', label: 'Varning' }
-    case 'DANGER': return { color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', label: 'Fara' }
-    case 'CRITICAL': return { color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', label: 'Kritisk' }
-    default: return { color: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400', label: '-' }
+    case 'OPTIMAL': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+    case 'CAUTION': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+    case 'DANGER': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+    case 'CRITICAL': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+    default: return 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
   }
 }
 
-function formatLastActivity(days: number | null): string {
+type ClientStatusCardTranslator = ReturnType<typeof useTranslations>
+
+function formatLastActivity(days: number | null, t: ClientStatusCardTranslator): string {
   if (days === null) return '-'
-  if (days === 0) return 'Idag'
-  if (days === 1) return 'Igår'
-  if (days < 7) return `${days}d sedan`
-  return `${Math.floor(days / 7)}v sedan`
+  if (days === 0) return t('dates.today')
+  if (days === 1) return t('dates.yesterday')
+  if (days < 7) return t('dates.daysAgo', { days })
+  return t('dates.weeksAgo', { weeks: Math.floor(days / 7) })
 }
 
 function getInitials(name: string): string {
@@ -105,46 +108,38 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
-function getEngagementDot(level: PTClientStatus['engagementLevel']): { color: string; label: string } {
+function getEngagementDot(level: PTClientStatus['engagementLevel'], t: ClientStatusCardTranslator): { color: string; label: string } {
   switch (level) {
-    case 'ACTIVE': return { color: 'bg-green-500', label: 'Aktiv' }
-    case 'MODERATE': return { color: 'bg-yellow-500', label: 'Måttlig' }
-    case 'INACTIVE': return { color: 'bg-red-500', label: 'Inaktiv' }
-    case 'NEW': return { color: 'bg-slate-400', label: 'Ny' }
+    case 'ACTIVE': return { color: 'bg-green-500', label: t('engagement.active') }
+    case 'MODERATE': return { color: 'bg-yellow-500', label: t('engagement.moderate') }
+    case 'INACTIVE': return { color: 'bg-red-500', label: t('engagement.inactive') }
+    case 'NEW': return { color: 'bg-slate-400', label: t('engagement.new') }
   }
-}
-
-function getSourceIcon(source: PTClientStatus['lastActivitySource']): string {
-  switch (source) {
-    case 'strava': return '🟧'
-    case 'garmin': return '🔵'
-    default: return ''
-  }
-}
-
-const sportLabels: Record<string, string> = {
-  RUNNING: 'Löpning',
-  CYCLING: 'Cykling',
-  SKIING: 'Skidor',
-  SWIMMING: 'Simning',
-  TRIATHLON: 'Triathlon',
-  HYROX: 'HYROX',
-  GENERAL_FITNESS: 'Fitness',
-  FUNCTIONAL_FITNESS: 'Funktionell',
-  STRENGTH: 'Styrka',
-  FOOTBALL: 'Fotboll',
-  ICE_HOCKEY: 'Hockey',
-  HANDBALL: 'Handboll',
-  FLOORBALL: 'Innebandy',
-  BASKETBALL: 'Basket',
-  VOLLEYBALL: 'Volleyboll',
-  TENNIS: 'Tennis',
-  PADEL: 'Padel',
 }
 
 export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCardProps) {
+  const t = useTranslations('components.clientStatusCard')
   const urgencyBorder = getUrgencyBorder(client)
-  const engagementDot = getEngagementDot(client.engagementLevel)
+  const engagementDot = getEngagementDot(client.engagementLevel, t)
+  const sportLabels: Record<string, string> = {
+    RUNNING: t('sports.running'),
+    CYCLING: t('sports.cycling'),
+    SKIING: t('sports.skiing'),
+    SWIMMING: t('sports.swimming'),
+    TRIATHLON: t('sports.triathlon'),
+    HYROX: t('sports.hyrox'),
+    GENERAL_FITNESS: t('sports.generalFitness'),
+    FUNCTIONAL_FITNESS: t('sports.functionalFitness'),
+    STRENGTH: t('sports.strength'),
+    FOOTBALL: t('sports.football'),
+    ICE_HOCKEY: t('sports.iceHockey'),
+    HANDBALL: t('sports.handball'),
+    FLOORBALL: t('sports.floorball'),
+    BASKETBALL: t('sports.basketball'),
+    VOLLEYBALL: t('sports.volleyball'),
+    TENNIS: t('sports.tennis'),
+    PADEL: t('sports.padel'),
+  }
 
   // Determine which metrics to show (only those with actual data)
   const hasReadiness = client.readinessScore !== null
@@ -198,11 +193,11 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
                   ? 'text-red-600 dark:text-red-400'
                   : 'text-muted-foreground'
             )}>
-              {formatLastActivity(client.daysSinceLastActivity)}
+              {formatLastActivity(client.daysSinceLastActivity, t)}
             </p>
             {client.lastActivitySource && client.lastActivitySource !== 'program' && (
               <p className="text-[10px] text-muted-foreground">
-                via {client.lastActivitySource === 'strava' ? 'Strava' : 'Garmin'}
+                {t('source.via', { source: client.lastActivitySource === 'strava' ? 'Strava' : 'Garmin' })}
               </p>
             )}
           </div>
@@ -212,7 +207,7 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
         {hasReadiness && (
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Beredskap</span>
+              <span className="text-muted-foreground">{t('metrics.readiness')}</span>
               <span className={cn(
                 'font-semibold',
                 client.readinessScore! >= 70
@@ -237,11 +232,11 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
         {hasAnyMetric && (
           <div className="flex flex-wrap gap-2">
             {hasAcwr && (() => {
-              const acwrBadge = getAcwrBadge(client.acwrZone)
+              const acwrBadgeColor = getAcwrBadgeColor(client.acwrZone)
               return (
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] text-muted-foreground">ACWR</span>
-                  <Badge className={cn('text-[10px] font-medium', acwrBadge.color)}>
+                  <Badge className={cn('text-[10px] font-medium', acwrBadgeColor)}>
                     {client.acwr!.toFixed(2)}
                   </Badge>
                 </div>
@@ -251,14 +246,14 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
               <div className="flex items-center gap-1">
                 <Activity className="h-3 w-3 text-muted-foreground" />
                 <span className="text-xs font-medium dark:text-slate-300">
-                  {client.totalActivitiesThisWeek} pass
+                  {t('metrics.workouts', { count: client.totalActivitiesThisWeek })}
                 </span>
-                <span className="text-[10px] text-muted-foreground">denna vecka</span>
+                <span className="text-[10px] text-muted-foreground">{t('metrics.thisWeek')}</span>
               </div>
             )}
             {hasCompliance && (
               <div className="flex items-center gap-1">
-                <span className="text-[10px] text-muted-foreground">Följsamhet</span>
+                <span className="text-[10px] text-muted-foreground">{t('metrics.compliance')}</span>
                 <span className="text-xs font-semibold dark:text-slate-200">
                   {client.completedWorkoutsThisWeek}/{client.plannedWorkoutsThisWeek}
                 </span>
@@ -267,7 +262,7 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
             {hasInjuries && (
               <Badge variant="outline" className="text-[10px] text-red-600 dark:text-red-400 border-red-200 dark:border-red-800">
                 <HeartPulse className="h-3 w-3 mr-0.5" />
-                {client.injuryCount} {client.injuryCount === 1 ? 'skada' : 'skador'}
+                {t('badges.injuries', { count: client.injuryCount })}
               </Badge>
             )}
           </div>
@@ -277,7 +272,7 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
         {!hasAnyMetric && client.engagementLevel === 'NEW' && (
           <div className="py-1">
             <p className="text-xs text-muted-foreground italic">
-              Ny atlet — inväntar data
+              {t('empty.newAthlete')}
             </p>
           </div>
         )}
@@ -286,7 +281,9 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
         {!hasAnyMetric && client.engagementLevel === 'INACTIVE' && (
           <div className="py-1">
             <p className="text-xs text-red-500 dark:text-red-400">
-              Inaktiv — {client.daysSinceLastActivity ? `${client.daysSinceLastActivity}d sedan senaste aktivitet` : 'ingen aktivitet registrerad'}
+              {client.daysSinceLastActivity
+                ? t('empty.inactiveWithDays', { days: client.daysSinceLastActivity })
+                : t('empty.inactiveNoActivity')}
             </p>
           </div>
         )}
@@ -296,13 +293,13 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
           {client.activeAlertCount > 0 && (
             <Badge variant="outline" className="text-[10px] h-5 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
               <AlertTriangle className="h-3 w-3 mr-0.5" />
-              {client.activeAlertCount} {client.activeAlertCount === 1 ? 'alert' : 'alerts'}
+              {t('badges.alerts', { count: client.activeAlertCount })}
             </Badge>
           )}
           {client.pendingFeedbackCount > 0 && (
             <Badge variant="outline" className="text-[10px] h-5 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
               <MessageSquare className="h-3 w-3 mr-0.5" />
-              {client.pendingFeedbackCount} feedback
+              {t('badges.feedback', { count: client.pendingFeedbackCount })}
             </Badge>
           )}
           {client.hasActiveProgram && client.programName && (
@@ -318,14 +315,14 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
           <Link href={`${basePath}/coach/clients/${client.id}`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full text-xs h-7">
               <User className="h-3 w-3 mr-1" />
-              Visa profil
+              {t('actions.viewProfile')}
             </Button>
           </Link>
           {client.pendingFeedbackCount > 0 && (
             <Link href={`${basePath}/coach/athletes/${client.id}/logs`} className="flex-1">
               <Button variant="outline" size="sm" className="w-full text-xs h-7 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20">
                 <MessageSquare className="h-3 w-3 mr-1" />
-                Ge feedback
+                {t('actions.giveFeedback')}
               </Button>
             </Link>
           )}
@@ -333,7 +330,7 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
             <Link href={`${basePath}/coach/clients/${client.id}`} className="flex-1">
               <Button variant="outline" size="sm" className="w-full text-xs h-7 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/20">
                 <UserPlus className="h-3 w-3 mr-1" />
-                Kom igång
+                {t('actions.getStarted')}
               </Button>
             </Link>
           )}

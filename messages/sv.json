@@ -2761,6 +2761,63 @@
         "activeInjury": "{name}: {count, plural, one {# aktiv skada} other {# aktiva skador}}",
         "inactive": "{name}: Inaktiv {days}d"
       }
+    },
+    "clientStatusCard": {
+      "dates": {
+        "today": "Idag",
+        "yesterday": "Igår",
+        "daysAgo": "{days}d sedan",
+        "weeksAgo": "{weeks}v sedan"
+      },
+      "source": {
+        "via": "via {source}"
+      },
+      "engagement": {
+        "active": "Aktiv",
+        "moderate": "Måttlig",
+        "inactive": "Inaktiv",
+        "new": "Ny"
+      },
+      "sports": {
+        "running": "Löpning",
+        "cycling": "Cykling",
+        "skiing": "Skidor",
+        "swimming": "Simning",
+        "triathlon": "Triathlon",
+        "hyrox": "HYROX",
+        "generalFitness": "Fitness",
+        "functionalFitness": "Funktionell",
+        "strength": "Styrka",
+        "football": "Fotboll",
+        "iceHockey": "Hockey",
+        "handball": "Handboll",
+        "floorball": "Innebandy",
+        "basketball": "Basket",
+        "volleyball": "Volleyboll",
+        "tennis": "Tennis",
+        "padel": "Padel"
+      },
+      "metrics": {
+        "readiness": "Beredskap",
+        "workouts": "{count} pass",
+        "thisWeek": "denna vecka",
+        "compliance": "Följsamhet"
+      },
+      "badges": {
+        "injuries": "{count, plural, one {# skada} other {# skador}}",
+        "alerts": "{count, plural, one {# alert} other {# alerts}}",
+        "feedback": "{count} feedback"
+      },
+      "empty": {
+        "newAthlete": "Ny atlet — inväntar data",
+        "inactiveWithDays": "Inaktiv — {days}d sedan senaste aktivitet",
+        "inactiveNoActivity": "Inaktiv — ingen aktivitet registrerad"
+      },
+      "actions": {
+        "viewProfile": "Visa profil",
+        "giveFeedback": "Ge feedback",
+        "getStarted": "Kom igång"
+      }
     }
   },
   "infographic": {
