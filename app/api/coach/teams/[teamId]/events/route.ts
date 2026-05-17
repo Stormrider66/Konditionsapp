@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
-import { getAccessibleTeam, getWritableTeam } from '@/lib/coach/team-access'
+import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignment-summary'
 import {
@@ -16,6 +16,7 @@ import {
   TEAM_EVENT_CONTENT_STATUSES,
   TEAM_EVENT_TYPES,
 } from '@/lib/team-calendar/event-types'
+import { getTeamCalendarPermissionProfile, getTeamCalendarWritableTeam } from '@/lib/team-calendar/permissions'
 import { z } from 'zod'
 
 interface RouteContext {
@@ -56,6 +57,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
     }
+    const calendarPermissions = await getTeamCalendarPermissionProfile(user.id, teamId, scope.businessSlug)
 
     const { searchParams } = new URL(req.url)
     const from = searchParams.get('from')
@@ -87,6 +89,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
           ? assignmentSummaries.get(event.assignedBroadcastId) ?? null
           : null,
       })),
+      calendarPermissions,
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
@@ -103,12 +106,6 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
-    const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'events')
-
-    if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
-    }
-
     const body = await req.json()
     const parsed = createEventSchema.safeParse(body)
 
@@ -117,6 +114,12 @@ export async function POST(req: NextRequest, context: RouteContext) {
         { error: 'Invalid input', details: parsed.error.flatten() },
         { status: 400 }
       )
+    }
+
+    const team = await getTeamCalendarWritableTeam(user.id, teamId, scope.businessSlug, parsed.data.type, 'create')
+
+    if (!team) {
+      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
     }
 
     const event = await prisma.teamEvent.create({

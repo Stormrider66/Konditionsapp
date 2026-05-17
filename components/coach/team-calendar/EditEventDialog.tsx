@@ -76,6 +76,8 @@ interface EditEventDialogProps {
   event: EditableTeamEvent | null
   teamId: string
   businessSlug?: string
+  canEdit?: boolean
+  canAssignContent?: boolean
   onOpenChange: (open: boolean) => void
   onUpdated: () => void
 }
@@ -155,6 +157,8 @@ export function EditEventDialog({
   event,
   teamId,
   businessSlug,
+  canEdit = true,
+  canAssignContent = true,
   onOpenChange,
   onUpdated,
 }: EditEventDialogProps) {
@@ -177,7 +181,7 @@ export function EditEventDialog({
   const builderLink = builderLinkFor(type, businessSlug)
   const isPhysicalSession = PHYSICAL_TEAM_EVENT_TYPES.includes(type)
   const linkedWorkoutType = workoutTypeForEventType(type)
-  const canAssignPersistedWorkout = Boolean(event?.linkedWorkoutId && event?.linkedWorkoutType && !event.assignedBroadcastId)
+  const canAssignPersistedWorkout = Boolean(canAssignContent && event?.linkedWorkoutId && event?.linkedWorkoutType && !event.assignedBroadcastId)
   const isAssigned = Boolean(event?.assignedBroadcastId)
   const assignmentSummary = event?.assignmentSummary
 
@@ -233,6 +237,10 @@ export function EditEventDialog({
   }, [event, isPhysicalSession, linkedWorkoutType, teamId, businessSlug])
 
   const handleUpdate = async () => {
+    if (!canEdit) {
+      toast.error('Din roll kan bara visa den här händelsen')
+      return
+    }
     if (!event || !title.trim() || !startDate) {
       toast.error('Ange titel och datum')
       return
@@ -402,6 +410,7 @@ export function EditEventDialog({
                   <Label className="text-xs">Kopplat pass</Label>
                   <Select
                     value={linkedWorkoutId}
+                    disabled={!canAssignContent}
                     onValueChange={(value) => {
                       setLinkedWorkoutId(value)
                       const selected = workoutOptions.find((option) => option.id === value)
@@ -512,11 +521,11 @@ export function EditEventDialog({
                     </div>
                   ) : linkedWorkoutId !== 'none' ? (
                     <div className="text-xs text-muted-foreground">
-                      Spara händelsen först, sedan kan passet tilldelas laget.
+                      {canAssignContent ? 'Spara händelsen först, sedan kan passet tilldelas laget.' : 'Din roll kan se passet men inte tilldela workout-innehåll.'}
                     </div>
                   ) : (
                     <div className="text-xs text-muted-foreground">
-                      Koppla ett färdigt pass för att kunna tilldela laget.
+                      {canAssignContent ? 'Koppla ett färdigt pass för att kunna tilldela laget.' : 'Din roll kan se passet men inte tilldela workout-innehåll.'}
                     </div>
                   )}
                 </div>
@@ -587,8 +596,8 @@ export function EditEventDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Avbryt
           </Button>
-          <Button onClick={handleUpdate} disabled={loading}>
-            {loading ? 'Sparar...' : 'Spara'}
+          <Button onClick={handleUpdate} disabled={loading || !canEdit}>
+            {canEdit ? (loading ? 'Sparar...' : 'Spara') : 'Endast visning'}
           </Button>
         </div>
       </DialogContent>

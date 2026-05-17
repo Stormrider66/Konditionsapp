@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
-import { getAccessibleTeam, getWritableTeam } from '@/lib/coach/team-access'
+import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignment-summary'
 import {
@@ -17,6 +17,7 @@ import {
   TEAM_EVENT_CONTENT_STATUSES,
   TEAM_EVENT_TYPES,
 } from '@/lib/team-calendar/event-types'
+import { getTeamCalendarWritableTeam } from '@/lib/team-calendar/permissions'
 import { z } from 'zod'
 
 interface RouteContext {
@@ -90,12 +91,6 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     const { teamId, eventId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
-    const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'events')
-
-    if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
-    }
-
     const body = await req.json()
     const parsed = updateEventSchema.safeParse(body)
 
@@ -123,11 +118,32 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
     const existingEvent = await prisma.teamEvent.findFirst({
       where: { id: eventId, teamId },
-      select: { id: true },
+      select: { id: true, type: true },
     })
 
     if (!existingEvent) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
+
+    const targetType = parsed.data.type ?? existingEvent.type
+    const team = await getTeamCalendarWritableTeam(user.id, teamId, scope.businessSlug, targetType, 'update')
+
+    if (!team) {
+      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+    }
+
+    const updatesWorkoutContent =
+      parsed.data.linkedWorkoutType !== undefined ||
+      parsed.data.linkedWorkoutId !== undefined ||
+      parsed.data.linkedWorkoutName !== undefined ||
+      parsed.data.contentStatus === 'CONTENT_READY' ||
+      parsed.data.contentStatus === 'ASSIGNED'
+
+    if (updatesWorkoutContent) {
+      const contentTeam = await getTeamCalendarWritableTeam(user.id, teamId, scope.businessSlug, targetType, 'assignContent')
+      if (!contentTeam) {
+        return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      }
     }
 
     const event = await prisma.teamEvent.update({
@@ -162,7 +178,16 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     const { teamId, eventId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
-    const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'events')
+    const existingEvent = await prisma.teamEvent.findFirst({
+      where: { id: eventId, teamId },
+      select: { id: true, type: true },
+    })
+
+    if (!existingEvent) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
+
+    const team = await getTeamCalendarWritableTeam(user.id, teamId, scope.businessSlug, existingEvent.type, 'delete')
 
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })

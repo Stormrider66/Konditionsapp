@@ -67,6 +67,14 @@ interface TeamEvent {
   intervalSession: { id: string; name: string; status: string } | null
 }
 
+interface TeamCalendarPermissions {
+  role: string
+  roleLabel: string
+  canView: boolean
+  creatableTypes: TeamEventType[]
+  assignableContentTypes: TeamEventType[]
+}
+
 function getTypeConfig(type: string) {
   if (isTeamEventType(type)) {
     return {
@@ -174,6 +182,14 @@ const PHYSICAL_QUICK_TYPES: Array<{ type: TeamEventType; title: string; label: s
   { type: 'AGILITY', title: 'Agility', label: 'Agility' },
 ]
 
+const DEFAULT_CREATABLE_TYPES: TeamEventType[] = [
+  ...PHYSICAL_QUICK_TYPES.map((item) => item.type),
+  'PRACTICE',
+  'GAME',
+  'OTHER',
+  'ANNUAL_PLAN',
+]
+
 interface TeamCalendarViewProps {
   teamId: string
   teamName: string
@@ -188,6 +204,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
   const [viewMode, setViewMode] = useState<'week' | 'planning'>('week')
   const [queueOwnerFilter, setQueueOwnerFilter] = useState<'all' | TeamEventContentOwner>('all')
   const [queueStatusFilter, setQueueStatusFilter] = useState<'open' | TeamEventContentStatus>('open')
+  const [calendarPermissions, setCalendarPermissions] = useState<TeamCalendarPermissions | null>(null)
   const contentQueue = events
     .filter(eventNeedsContent)
     .filter((event) => queueOwnerFilter === 'all' || event.contentOwner === queueOwnerFilter)
@@ -205,6 +222,9 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
   // requires deps to be simple expressions (no method calls).
   const rangeStartIso = rangeStart.toISOString()
   const rangeEndIso = rangeEnd.toISOString()
+  const creatableTypes = calendarPermissions?.creatableTypes ?? DEFAULT_CREATABLE_TYPES
+  const canCreateType = (type: TeamEventType) => creatableTypes.includes(type)
+  const canAssignContentType = (type: string) => calendarPermissions?.assignableContentTypes.includes(type as TeamEventType) ?? true
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -219,6 +239,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
       if (res.ok) {
         const data = await res.json()
         setEvents(data.events || [])
+        setCalendarPermissions(data.calendarPermissions || null)
       }
     } catch {
       toast.error('Kunde inte hämta händelser')
@@ -322,7 +343,14 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
             <Download className="h-3.5 w-3.5 mr-1.5" />
             Exportera .ics
           </Button>
-          <CreateEventDialog teamId={teamId} businessSlug={businessSlug} onCreated={fetchEvents} />
+          {creatableTypes.length > 0 && (
+            <CreateEventDialog
+              teamId={teamId}
+              businessSlug={businessSlug}
+              onCreated={fetchEvents}
+              allowedEventTypes={creatableTypes}
+            />
+          )}
         </div>
       </div>
 
@@ -454,29 +482,34 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                     return (
                       <div className="flex flex-wrap gap-1">
                         {PHYSICAL_QUICK_TYPES.map((quickType) => (
-                          <CreateEventDialog
-                            key={quickType.type}
-                            teamId={teamId}
-                            businessSlug={businessSlug}
-                            onCreated={fetchEvents}
-                            defaultDate={inputDateValue(date)}
-                            defaultType={quickType.type}
-                            defaultTitle={quickType.title}
-                            defaultContentStatus="NEEDS_CONTENT"
-                            defaultContentOwner="physical_trainer"
-                            trigger={
-                              <button
-                                type="button"
-                                className="rounded border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground"
-                              >
-                                {quickType.label}
-                              </button>
-                            }
-                          />
+                          canCreateType(quickType.type) ? (
+                            <CreateEventDialog
+                              key={quickType.type}
+                              teamId={teamId}
+                              businessSlug={businessSlug}
+                              onCreated={fetchEvents}
+                              defaultDate={inputDateValue(date)}
+                              defaultType={quickType.type}
+                              defaultTitle={quickType.title}
+                              defaultContentStatus="NEEDS_CONTENT"
+                              defaultContentOwner="physical_trainer"
+                              allowedEventTypes={creatableTypes}
+                              trigger={
+                                <button
+                                  type="button"
+                                  className="rounded border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                                >
+                                  {quickType.label}
+                                </button>
+                              }
+                            />
+                          ) : null
                         ))}
                       </div>
                     )
                   }
+
+                  if (!canCreateType(defaultType)) return null
 
                   return (
                     <CreateEventDialog
@@ -485,6 +518,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                       onCreated={fetchEvents}
                       defaultDate={inputDateValue(date)}
                       defaultType={defaultType}
+                      allowedEventTypes={creatableTypes}
                       trigger={
                         <button
                           type="button"
@@ -645,17 +679,19 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                                 </div>
                               )}
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 text-destructive shrink-0"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                void handleDelete(event.id)
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                            {canCreateType(event.type as TeamEventType) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 text-destructive shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  void handleDelete(event.id)
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
                           </div>
                         )
                       })}
@@ -672,6 +708,8 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
         event={selectedEvent}
         teamId={teamId}
         businessSlug={businessSlug}
+        canEdit={selectedEvent ? canCreateType(selectedEvent.type as TeamEventType) : false}
+        canAssignContent={selectedEvent ? canAssignContentType(selectedEvent.type) : false}
         onOpenChange={(open) => {
           if (!open) setSelectedEvent(null)
         }}

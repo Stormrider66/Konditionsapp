@@ -44,6 +44,7 @@ interface CreateEventDialogProps {
   defaultTitle?: string
   defaultContentStatus?: TeamEventContentStatus
   defaultContentOwner?: TeamEventContentOwner
+  allowedEventTypes?: TeamEventType[]
 }
 
 export function CreateEventDialog({
@@ -56,12 +57,15 @@ export function CreateEventDialog({
   defaultTitle = '',
   defaultContentStatus = 'PLANNED',
   defaultContentOwner = 'physical_trainer',
+  allowedEventTypes,
 }: CreateEventDialogProps) {
+  const availableEventTypes = allowedEventTypes?.length ? allowedEventTypes : [...TEAM_EVENT_TYPES]
+  const initialType = availableEventTypes.includes(defaultType) ? defaultType : availableEventTypes[0] ?? defaultType
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const [title, setTitle] = useState(defaultTitle)
-  const [type, setType] = useState<TeamEventType>(defaultType)
+  const [type, setType] = useState<TeamEventType>(initialType)
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
   const [startDate, setStartDate] = useState(defaultDate ?? '')
@@ -74,6 +78,10 @@ export function CreateEventDialog({
   const handleCreate = async () => {
     if (!title.trim() || !startDate) {
       toast.error('Ange titel och datum')
+      return
+    }
+    if (!availableEventTypes.includes(type)) {
+      toast.error('Din roll kan inte skapa den här typen av händelse')
       return
     }
 
@@ -123,7 +131,7 @@ export function CreateEventDialog({
 
   const resetForm = () => {
     setTitle(defaultTitle)
-    setType(defaultType)
+    setType(initialType)
     setDescription('')
     setLocation('')
     setStartDate(defaultDate ?? '')
@@ -138,7 +146,7 @@ export function CreateEventDialog({
     setOpen(nextOpen)
     if (nextOpen) {
       setTitle(defaultTitle)
-      setType(defaultType)
+      setType(initialType)
       setStartDate(defaultDate ?? '')
       setContentOwner(defaultContentOwner)
       setContentStatus(defaultContentStatus)
@@ -177,7 +185,7 @@ export function CreateEventDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {TEAM_EVENT_TYPES.map((eventType) => (
+                {availableEventTypes.map((eventType) => (
                   <SelectItem key={eventType} value={eventType}>
                     {TEAM_EVENT_TYPE_LABELS[eventType]}
                   </SelectItem>

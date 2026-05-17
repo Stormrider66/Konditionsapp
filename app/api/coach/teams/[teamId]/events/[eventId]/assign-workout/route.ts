@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
-import { getWritableTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
+import { getTeamCalendarWritableTeam } from '@/lib/team-calendar/permissions'
 import { z } from 'zod'
 
 interface RouteContext {
@@ -31,11 +31,6 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const user = await requireCoach()
     const { teamId, eventId } = await context.params
     const scope = getRequestedBusinessScope(req)
-    const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'events')
-
-    if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
-    }
 
     const body = await req.json().catch(() => ({}))
     const parsed = assignFromEventSchema.safeParse(body)
@@ -57,6 +52,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
         linkedWorkoutId: true,
         linkedWorkoutName: true,
         assignedBroadcastId: true,
+        type: true,
       },
     })
 
@@ -68,6 +64,12 @@ export async function POST(req: NextRequest, context: RouteContext) {
     }
     if (!event.linkedWorkoutType || !event.linkedWorkoutId) {
       return NextResponse.json({ error: 'Event has no linked workout' }, { status: 400 })
+    }
+
+    const team = await getTeamCalendarWritableTeam(user.id, teamId, scope.businessSlug, event.type, 'assignContent')
+
+    if (!team) {
+      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
     }
 
     const workoutField = workoutTypeField(event.linkedWorkoutType)
