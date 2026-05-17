@@ -1,5 +1,5 @@
 // app/athlete/workouts/[id]/page.tsx
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
@@ -7,16 +7,16 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, CheckCircle2, Clock, MapPin, Calendar, Edit, Info, Activity, Zap, Trophy, Utensils } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { WorkoutSegments } from '@/components/athlete/workout/WorkoutSegments'
 import {
   GlassCard,
   GlassCardHeader,
   GlassCardTitle,
   GlassCardContent,
-  GlassCardDescription
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
+import { getLocale, getTranslations } from '@/i18n/server'
 
 interface WorkoutDetailPageProps {
   params: Promise<{
@@ -24,8 +24,25 @@ interface WorkoutDetailPageProps {
   }>
 }
 
+interface CompletedLogSummary {
+  duration?: number | null
+  distance?: number | null
+  avgPace?: string | null
+  avgHR?: number | null
+  perceivedEffort?: number | null
+}
+
+interface RaceResultSummary {
+  timeFormatted?: string | null
+  distance?: string | null
+  customDistanceKm?: number | null
+}
+
 export default async function WorkoutDetailPage({ params }: WorkoutDetailPageProps) {
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
+  const t = await getTranslations('pages.athlete.workoutDetail')
+  const locale = await getLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const { id } = await params
 
   // Fetch workout with full details
@@ -97,7 +114,54 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
   const intervalResults = Array.isArray(existingLog?.intervalResults)
     ? existingLog.intervalResults as Array<Record<string, unknown>>
     : []
-  const completedHighlights = getCompletedHighlights(existingLog, raceResult)
+  const formatEffortLabel = (effort: number): string => {
+    if (effort <= 2) return t('effortLabels.veryEasy')
+    if (effort <= 4) return t('effortLabels.easy')
+    if (effort <= 6) return t('effortLabels.moderate')
+    if (effort <= 8) return t('effortLabels.hard')
+    return t('effortLabels.max')
+  }
+  const formatDifficultyLabel = (difficulty: number): string => {
+    if (difficulty <= 3) return t('difficultyLabels.easierThanPlanned')
+    if (difficulty <= 5) return t('difficultyLabels.asPlanned')
+    if (difficulty <= 7) return t('difficultyLabels.tough')
+    return t('difficultyLabels.veryTough')
+  }
+  const formatRaceDistanceLabel = (distance?: string | null, customDistanceKm?: number | null): string => {
+    const map: Record<string, string> = {
+      '5K': t('raceDistances.5k'),
+      '10K': t('raceDistances.10k'),
+      HALF_MARATHON: t('raceDistances.halfMarathon'),
+      MARATHON: t('raceDistances.marathon'),
+      CUSTOM: customDistanceKm ? t('raceDistances.customWithDistance', { distance: customDistanceKm }) : t('raceDistances.custom'),
+    }
+    return map[distance || ''] || distance || t('raceResult')
+  }
+  const formatWorkoutType = (type: string): string => {
+    const types: Record<string, string> = {
+      RUNNING: t('workoutTypes.running'),
+      CYCLING: t('workoutTypes.cycling'),
+      STRENGTH: t('workoutTypes.strength'),
+      CORE: t('workoutTypes.core'),
+      PLYOMETRIC: t('workoutTypes.plyometric'),
+      RECOVERY: t('workoutTypes.recovery'),
+      SKIING: t('workoutTypes.skiing'),
+      OTHER: t('workoutTypes.other'),
+    }
+    return types[type] || type
+  }
+  const formatIntensity = (intensity: string): string => {
+    const intensities: Record<string, string> = {
+      RECOVERY: t('intensities.recovery'),
+      EASY: t('intensities.easy'),
+      MODERATE: t('intensities.moderate'),
+      THRESHOLD: t('intensities.threshold'),
+      INTERVAL: t('intensities.interval'),
+      MAX: t('intensities.max'),
+    }
+    return intensities[intensity] || intensity
+  }
+  const completedHighlights = getCompletedHighlights(existingLog, raceResult, t, formatEffortLabel, formatRaceDistanceLabel)
 
   // Calculate workout date
   const programStartDate = new Date(workout.day.week.program.startDate)
@@ -110,7 +174,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
       <Link href={`/athlete/programs/${workout.day.week.program.id}`}>
         <Button variant="ghost" className="mb-6 px-2 font-black uppercase tracking-widest text-[10px] text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors sm:mb-8">
           <ArrowLeft className="mr-2 h-3.5 w-3.5" />
-          Programöversikt
+          {t('programOverview')}
         </Button>
       </Link>
 
@@ -123,18 +187,18 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
             <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 transition-colors dark:text-slate-500 sm:gap-3 sm:text-[11px]">
               <Calendar className="h-3.5 w-3.5 text-blue-600 dark:text-blue-500 transition-colors" />
               <span>
-                {format(workoutDate, 'EEEE d MMM yyyy', { locale: sv })}
+                {format(workoutDate, 'EEEE d MMM yyyy', { locale: dateLocale })}
               </span>
               <span className="text-slate-400 dark:text-slate-700">•</span>
               <span>
-                Vecka <span className="text-slate-900 dark:text-white transition-colors">{workout.day.week.weekNumber}</span>, Dag <span className="text-slate-900 dark:text-white transition-colors">{workout.day.dayNumber}</span>
+                {t('week')} <span className="text-slate-900 dark:text-white transition-colors">{workout.day.week.weekNumber}</span>, {t('day')} <span className="text-slate-900 dark:text-white transition-colors">{workout.day.dayNumber}</span>
               </span>
             </div>
           </div>
           {isCompleted && (
             <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-100 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 transition-colors">
               <CheckCircle2 className="h-4 w-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Passet slutfört</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{t('completed')}</span>
             </div>
           )}
         </div>
@@ -158,7 +222,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
           <GlassCardHeader className="pb-3">
             <GlassCardTitle className="text-lg font-black tracking-tight flex items-center gap-2 text-slate-900 dark:text-white transition-colors">
               <Info className="h-4 w-4 text-blue-600 dark:text-blue-500 transition-colors" />
-              Instruktioner
+              {t('instructions')}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
@@ -176,7 +240,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
                 {workout.instructions}
               </p>
             ) : (
-              <p className="text-slate-500 dark:text-slate-500 italic transition-colors">Inga specifika instruktioner angivna.</p>
+              <p className="text-slate-500 dark:text-slate-500 italic transition-colors">{t('noInstructions')}</p>
             )}
           </GlassCardContent>
         </GlassCard>
@@ -186,7 +250,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
             <GlassCardHeader className="pb-3">
               <GlassCardTitle className="text-lg font-black tracking-tight flex items-center gap-2 text-blue-600 dark:text-blue-400 transition-colors">
                 <Zap className="h-4 w-4" />
-                Planerade Mål
+                {t('plannedGoals')}
               </GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent className="space-y-4 sm:space-y-6">
@@ -196,7 +260,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
                     <Clock className="h-5 w-5 text-blue-600 dark:text-blue-500 transition-colors" />
                   </div>
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Tid</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('time')}</p>
                     <p className="text-xl font-black text-slate-900 dark:text-white transition-colors">{workout.duration} min</p>
                   </div>
                 </div>
@@ -207,7 +271,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
                     <MapPin className="h-5 w-5 text-emerald-600 dark:text-emerald-500 transition-colors" />
                   </div>
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Distans</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('distance')}</p>
                     <p className="text-xl font-black text-slate-900 dark:text-white transition-colors">{workout.distance} km</p>
                   </div>
                 </div>
@@ -218,7 +282,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
                     <Utensils className="h-5 w-5 text-amber-600 dark:text-amber-500 transition-colors" />
                   </div>
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Kolhydrater</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('carbs')}</p>
                     <p className="text-xl font-black text-slate-900 dark:text-white transition-colors">
                       {Math.round(workout.fuelingPrescription.targetCarbsGPerHour)} g/h
                     </p>
@@ -231,7 +295,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
           {!isCompleted && (
             <Link href={`/athlete/workouts/${workout.id}/log`} className="block">
               <Button className="w-full h-16 rounded-3xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-sm shadow-[0_10px_30px_rgba(37,99,235,0.2)] transition-all hover:scale-[1.02] active:scale-[0.98]">
-                Logga detta pass
+                {t('logWorkout')}
               </Button>
             </Link>
           )}
@@ -256,11 +320,11 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
         <GlassCard className="mb-8 border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/5 transition-colors">
           <GlassCardHeader>
             <div className="flex items-center justify-between">
-              <GlassCardTitle className="text-xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic transition-colors">Genomfört Logg</GlassCardTitle>
+              <GlassCardTitle className="text-xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic transition-colors">{t('completedLog')}</GlassCardTitle>
               <Link href={`/athlete/workouts/${workout.id}/log`}>
                 <Button variant="ghost" size="sm" className="h-9 px-4 rounded-xl font-black uppercase tracking-widest text-[9px] bg-white border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 dark:text-slate-300 transition-colors">
                   <Edit className="mr-2 h-3.5 w-3.5" />
-                  Redigera
+                  {t('edit')}
                 </Button>
               </Link>
             </div>
@@ -280,7 +344,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
 
             {intervalResults.length > 0 && (
               <div className="pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3 transition-colors">Intervall- och splittider</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3 transition-colors">{t('intervalSplits')}</p>
                 <div className="space-y-3">
                   {intervalResults.map((segment, segmentIndex) => {
                     const reps = Array.isArray(segment.reps) ? segment.reps as Array<Record<string, unknown>> : []
@@ -289,17 +353,17 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
                     return (
                       <div key={`${segmentIndex}-${String(segment.segmentId || 'segment')}`} className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-4 transition-colors">
                         <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2 transition-colors">
-                          {typeof segment.segmentLabel === 'string' ? segment.segmentLabel : `Block ${segmentIndex + 1}`}
+                          {typeof segment.segmentLabel === 'string' ? segment.segmentLabel : t('block', { number: segmentIndex + 1 })}
                         </p>
                         <div className="space-y-2">
                           {reps.map((rep, repIndex) => (
                             <div key={`${segmentIndex}-${repIndex}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                              <span className="text-slate-900 dark:text-white">Rep {typeof rep.repNumber === 'number' ? rep.repNumber : repIndex + 1}</span>
-                              {typeof rep.duration === 'number' ? <span>Tid {formatDuration(rep.duration)}</span> : null}
-                              {typeof rep.distance === 'number' ? <span>Distans {rep.distance} km</span> : null}
-                              {typeof rep.pace === 'string' ? <span>Tempo {rep.pace}</span> : null}
-                              {typeof rep.avgHR === 'number' ? <span>Puls {rep.avgHR} bpm</span> : null}
-                              {typeof rep.avgPower === 'number' ? <span>Effekt {rep.avgPower} W</span> : null}
+                              <span className="text-slate-900 dark:text-white">{t('rep', { number: typeof rep.repNumber === 'number' ? rep.repNumber : repIndex + 1 })}</span>
+                              {typeof rep.duration === 'number' ? <span>{t('time')} {formatDuration(rep.duration)}</span> : null}
+                              {typeof rep.distance === 'number' ? <span>{t('distance')} {rep.distance} km</span> : null}
+                              {typeof rep.pace === 'string' ? <span>{t('pace')} {rep.pace}</span> : null}
+                              {typeof rep.avgHR === 'number' ? <span>{t('pulse')} {rep.avgHR} bpm</span> : null}
+                              {typeof rep.avgPower === 'number' ? <span>{t('power')} {rep.avgPower} W</span> : null}
                             </div>
                           ))}
                         </div>
@@ -319,8 +383,8 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-3">
-                        <p className="font-black text-red-600 dark:text-red-500 text-[10px] uppercase tracking-[0.2em] transition-colors">Tävlingsresultat</p>
-                        <span className="text-[8px] font-black text-slate-500 dark:text-slate-600 uppercase transition-colors">{formatRaceDistance(raceResult.distance, raceResult.customDistanceKm)}</span>
+                        <p className="font-black text-red-600 dark:text-red-500 text-[10px] uppercase tracking-[0.2em] transition-colors">{t('raceResult')}</p>
+                        <span className="text-[8px] font-black text-slate-500 dark:text-slate-600 uppercase transition-colors">{formatRaceDistanceLabel(raceResult.distance, raceResult.customDistanceKm)}</span>
                       </div>
                       <p className="text-red-900 dark:text-red-100 text-2xl font-black transition-colors">
                         {raceResult.timeFormatted}
@@ -328,12 +392,12 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
                       <div className="flex flex-wrap gap-2 mt-3">
                         {raceResult.goalTime ? (
                           <Badge variant="outline" className="rounded-lg bg-white border-red-200 text-red-700 dark:bg-white/5 dark:border-red-500/20 dark:text-red-300 font-bold">
-                            Mål {raceResult.goalTime}
+                            {t('goal', { value: raceResult.goalTime })}
                           </Badge>
                         ) : null}
                         {raceResult.avgPace ? (
                           <Badge variant="outline" className="rounded-lg bg-white border-red-200 text-red-700 dark:bg-white/5 dark:border-red-500/20 dark:text-red-300 font-bold">
-                            Tempo {raceResult.avgPace}
+                            {t('pace')} {raceResult.avgPace}
                           </Badge>
                         ) : null}
                       </div>
@@ -348,20 +412,20 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                   {existingLog.perceivedEffort && (
                     <div className="space-y-2">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Perceived Effort (RPE)</p>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('perceivedEffort')}</p>
                       <div className={cn(
                         "inline-flex items-center h-10 px-4 rounded-2xl border font-bold text-sm transition-colors",
                         getEffortBadgeClass(existingLog.perceivedEffort, true)
                       )}>
-                        {existingLog.perceivedEffort}/10 — {getEffortLabel(existingLog.perceivedEffort)}
+                        {existingLog.perceivedEffort}/10 — {formatEffortLabel(existingLog.perceivedEffort)}
                       </div>
                     </div>
                   )}
                   {existingLog.difficulty && (
                     <div className="space-y-2">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Känslomässig Svårighet</p>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('emotionalDifficulty')}</p>
                       <div className="inline-flex items-center h-10 px-4 rounded-2xl border border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white font-bold text-sm transition-colors">
-                        {existingLog.difficulty}/10 — {getDifficultyLabel(existingLog.difficulty)}
+                        {existingLog.difficulty}/10 — {formatDifficultyLabel(existingLog.difficulty)}
                       </div>
                     </div>
                   )}
@@ -371,14 +435,14 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
 
             {existingLog.feeling && (
               <div className="pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 mb-2 transition-colors">Känsla</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 mb-2 transition-colors">{t('feeling')}</p>
                 <p className="text-slate-700 dark:text-slate-300 font-medium leading-relaxed italic transition-colors">&quot;{existingLog.feeling}&quot;</p>
               </div>
             )}
 
             {existingLog.notes && (
               <div className="pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 mb-2 transition-colors">Anteckningar</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 mb-2 transition-colors">{t('notes')}</p>
                 <div className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 dark:bg-white/5 dark:border-white/5 dark:text-slate-400 text-sm whitespace-pre-wrap leading-relaxed transition-colors">
                   {existingLog.notes}
                 </div>
@@ -387,19 +451,19 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
 
             {(existingLog.stravaUrl || existingLog.dataFileUrl) && (
               <div className="pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 mb-3 transition-colors">Integrations & Data</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 mb-3 transition-colors">{t('integrationsData')}</p>
                 <div className="flex flex-wrap gap-3">
                   {existingLog.stravaUrl && (
                     <a href={existingLog.stravaUrl} target="_blank" rel="noopener noreferrer">
                       <Button variant="ghost" size="sm" className="h-10 px-5 rounded-xl bg-[#FC642D]/10 border border-[#FC642D]/20 text-[#FC642D] hover:bg-[#FC642D]/20 font-black uppercase tracking-widest text-[10px]">
-                        Visa på Strava
+                        {t('viewOnStrava')}
                       </Button>
                     </a>
                   )}
                   {existingLog.dataFileUrl && (
                     <a href={existingLog.dataFileUrl} target="_blank" rel="noopener noreferrer">
                       <Button variant="ghost" size="sm" className="h-10 px-5 rounded-xl bg-slate-100 border-slate-200 text-slate-600 dark:bg-white/10 dark:border-white/20 dark:text-white font-black uppercase tracking-widest text-[10px] transition-colors">
-                        Datafil
+                        {t('dataFile')}
                       </Button>
                     </a>
                   )}
@@ -416,8 +480,8 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-3">
-                        <p className="font-black text-blue-600 dark:text-blue-500 text-[10px] uppercase tracking-[0.2em] transition-colors">Feedback från Coach</p>
-                        <span className="text-[8px] font-black text-slate-500 dark:text-slate-600 uppercase transition-colors">Privat Logg</span>
+                        <p className="font-black text-blue-600 dark:text-blue-500 text-[10px] uppercase tracking-[0.2em] transition-colors">{t('coachFeedback')}</p>
+                        <span className="text-[8px] font-black text-slate-500 dark:text-slate-600 uppercase transition-colors">{t('privateLog')}</span>
                       </div>
                       <p className="text-blue-900 dark:text-blue-100 text-sm font-medium leading-relaxed whitespace-pre-wrap transition-colors">
                         {existingLog.coachFeedback}
@@ -429,8 +493,8 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
             )}
 
             <div className="flex flex-col gap-2 border-t border-slate-200 pt-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 transition-colors dark:border-white/5 dark:text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-              <span>Timestamp</span>
-              <span>{existingLog.completedAt ? format(new Date(existingLog.completedAt), 'PPP HH:mm', { locale: sv }) : '-'}</span>
+              <span>{t('timestamp')}</span>
+              <span>{existingLog.completedAt ? format(new Date(existingLog.completedAt), 'PPP HH:mm', { locale: dateLocale }) : '-'}</span>
             </div>
           </GlassCardContent>
         </GlassCard>
@@ -446,9 +510,9 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
               : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20"
           )}>
             {isCompleted ? (
-              <><Edit className="mr-2 h-4 w-4" /> Redigera logg</>
+              <><Edit className="mr-2 h-4 w-4" /> {t('editLog')}</>
             ) : (
-              <><CheckCircle2 className="mr-2 h-4 w-4" /> Logga genomfört pass</>
+              <><CheckCircle2 className="mr-2 h-4 w-4" /> {t('logCompletedWorkout')}</>
             )}
           </Button>
         </Link>
@@ -458,32 +522,6 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
 }
 
 // Helper functions
-function formatWorkoutType(type: string): string {
-  const types: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    STRENGTH: 'Styrka',
-    CORE: 'Core',
-    PLYOMETRIC: 'Plyometri',
-    RECOVERY: 'Återhämtning',
-    SKIING: 'Skidåkning',
-    OTHER: 'Annat',
-  }
-  return types[type] || type
-}
-
-function formatIntensity(intensity: string): string {
-  const intensities: Record<string, string> = {
-    RECOVERY: 'Återhämtning',
-    EASY: 'Lätt',
-    MODERATE: 'Måttlig',
-    THRESHOLD: 'Tröskel',
-    INTERVAL: 'Intervall',
-    MAX: 'Maximal',
-  }
-  return intensities[intensity] || intensity
-}
-
 function getIntensityBadgeClass(intensity: string, isGlass: boolean = false): string {
   if (isGlass) {
     const classes: Record<string, string> = {
@@ -508,21 +546,6 @@ function getIntensityBadgeClass(intensity: string, isGlass: boolean = false): st
   return classes[intensity] || ''
 }
 
-function getEffortLabel(effort: number): string {
-  if (effort <= 2) return 'Mycket lätt'
-  if (effort <= 4) return 'Lätt'
-  if (effort <= 6) return 'Måttlig'
-  if (effort <= 8) return 'Hård'
-  return 'Maximal'
-}
-
-function getDifficultyLabel(difficulty: number): string {
-  if (difficulty <= 3) return 'Lättare än planat'
-  if (difficulty <= 5) return 'Som planat'
-  if (difficulty <= 7) return 'Slitigt'
-  return 'Väldigt tufft'
-}
-
 function getEffortBadgeClass(effort: number, isGlass: boolean = false): string {
   if (isGlass) {
     if (effort <= 3) return 'bg-emerald-100 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
@@ -537,21 +560,27 @@ function getEffortBadgeClass(effort: number, isGlass: boolean = false): string {
   return 'border-red-300 text-red-700'
 }
 
-function getCompletedHighlights(existingLog: any, raceResult: any) {
+function getCompletedHighlights(
+  existingLog: CompletedLogSummary | null | undefined,
+  raceResult: RaceResultSummary | null | undefined,
+  t: Awaited<ReturnType<typeof getTranslations>>,
+  formatEffortLabel: (effort: number) => string,
+  formatRaceDistance: (distance?: string | null, customDistanceKm?: number | null) => string
+) {
   const highlights: Array<{ label: string; value: string; subvalue?: string }> = []
 
   if (raceResult?.timeFormatted) {
     highlights.push({
-      label: 'Tävlingsresultat',
+      label: t('raceResult'),
       value: raceResult.timeFormatted,
       subvalue: formatRaceDistance(raceResult.distance, raceResult.customDistanceKm),
     })
   }
-  if (existingLog?.duration) highlights.push({ label: 'Loggad tid', value: `${existingLog.duration} min` })
-  if (existingLog?.distance) highlights.push({ label: 'Loggad distans', value: `${existingLog.distance} km` })
-  if (existingLog?.avgPace) highlights.push({ label: 'Tempo', value: existingLog.avgPace })
-  if (existingLog?.avgHR) highlights.push({ label: 'Snittpuls', value: `${existingLog.avgHR} bpm` })
-  if (existingLog?.perceivedEffort) highlights.push({ label: 'RPE', value: `${existingLog.perceivedEffort}/10`, subvalue: getEffortLabel(existingLog.perceivedEffort) })
+  if (existingLog?.duration) highlights.push({ label: t('loggedTime'), value: `${existingLog.duration} min` })
+  if (existingLog?.distance) highlights.push({ label: t('loggedDistance'), value: `${existingLog.distance} km` })
+  if (existingLog?.avgPace) highlights.push({ label: t('pace'), value: existingLog.avgPace })
+  if (existingLog?.avgHR) highlights.push({ label: t('averageHeartRate'), value: `${existingLog.avgHR} bpm` })
+  if (existingLog?.perceivedEffort) highlights.push({ label: 'RPE', value: `${existingLog.perceivedEffort}/10`, subvalue: formatEffortLabel(existingLog.perceivedEffort) })
 
   return highlights.slice(0, 4)
 }
@@ -561,15 +590,4 @@ function formatDuration(minutes: number): string {
     return `${Math.round(minutes * 60)} s`
   }
   return `${minutes} min`
-}
-
-function formatRaceDistance(distance?: string | null, customDistanceKm?: number | null): string {
-  const map: Record<string, string> = {
-    '5K': '5 km',
-    '10K': '10 km',
-    HALF_MARATHON: 'Halvmaraton',
-    MARATHON: 'Maraton',
-    CUSTOM: customDistanceKm ? `${customDistanceKm} km` : 'Anpassad distans',
-  }
-  return map[distance || ''] || distance || 'Tävlingsresultat'
 }
