@@ -4438,6 +4438,115 @@
         "savePreferences": "Kunde inte spara preferenser"
       }
     },
+    "nutritionGoalForm": {
+      "goalTypes": {
+        "weightLoss": {
+          "label": "Gå ner i vikt",
+          "description": "Minska kroppsvikt medan du behåller muskelmassa"
+        },
+        "weightGain": {
+          "label": "Gå upp i vikt",
+          "description": "Öka muskelmassa och kroppsvikt"
+        },
+        "maintain": {
+          "label": "Behålla vikt",
+          "description": "Håll stabil vikt och fokusera på prestation"
+        },
+        "bodyRecomp": {
+          "label": "Kroppsrekomposition",
+          "description": "Minska fett och öka muskelmassa samtidigt"
+        }
+      },
+      "macroProfiles": {
+        "balanced": {
+          "label": "Balanserad",
+          "description": "40% kolhydrater, 30% protein, 30% fett"
+        },
+        "highProtein": {
+          "label": "Hög protein",
+          "description": "Extra protein för muskeluppbyggnad"
+        },
+        "lowCarb": {
+          "label": "Lägre kolhydrater",
+          "description": "För fettanpassad träning"
+        },
+        "endurance": {
+          "label": "Uthållighet",
+          "description": "Högre kolhydrater för långdistans"
+        },
+        "strength": {
+          "label": "Styrka",
+          "description": "Optimerat för styrketräning"
+        }
+      },
+      "goal": {
+        "title": "Mål",
+        "description": "Vad är ditt primära mål?"
+      },
+      "weightTarget": {
+        "title": "Viktmål",
+        "description": "Sätt ett realistiskt mål (0.25-0.5 kg/vecka rekommenderas)",
+        "targetWeightLabel": "Målvikt (kg)",
+        "targetWeightPlaceholder": "T.ex. 75",
+        "toLose": "att gå ner",
+        "toGain": "att gå upp",
+        "weeklyRateLabel": "Takt per vecka (kg)",
+        "weeklyRatePlaceholder": "Välj takt",
+        "rates": {
+          "slow": "0.25 kg/vecka (långsam, säker)",
+          "recommended": "0.5 kg/vecka (rekommenderad)",
+          "faster": "0.75 kg/vecka (snabbare)",
+          "aggressive": "1 kg/vecka (aggressiv)"
+        }
+      },
+      "bodyFatTarget": {
+        "title": "Kroppsfettmål",
+        "description": "Valfritt - sätt ett mål för kroppsfettsprocent",
+        "label": "Mål kroppsfett (%)",
+        "placeholder": "T.ex. 15",
+        "typicalValues": "Typiska värden: Män 10-20%, Kvinnor 18-28%"
+      },
+      "macroProfile": {
+        "title": "Makroprofil",
+        "description": "Välj fördelning av kolhydrater, protein och fett",
+        "placeholder": "Välj makroprofil"
+      },
+      "bmr": {
+        "title": "Basalmetabolism (BMR)",
+        "description": "Om du har gjort en bioimpedansmätning kan du ange ditt uppmätta BMR-värde. Detta används för att beräkna mer exakta kalori- och makromål.",
+        "label": "Uppmätt BMR (kcal/dag)",
+        "placeholder": "T.ex. 1650",
+        "helper": "Lämna tomt för att använda beräknat värde baserat på vikt, längd och ålder"
+      },
+      "displayPreferences": {
+        "title": "Visningsinställningar",
+        "showMacroTargets": {
+          "label": "Visa makromål",
+          "description": "Visa dagliga mål för protein, kolhydrater och fett"
+        },
+        "showHydration": {
+          "label": "Visa vätskemål",
+          "description": "Visa dagligt vätskeintag baserat på kroppsvikt och träning"
+        }
+      },
+      "actions": {
+        "saving": "Sparar...",
+        "saveGoals": "Spara mål"
+      },
+      "toast": {
+        "saved": {
+          "title": "Sparat",
+          "description": "Dina näringsmål har uppdaterats."
+        },
+        "error": {
+          "title": "Fel",
+          "description": "Kunde inte spara mål. Försök igen."
+        }
+      },
+      "errors": {
+        "saveGoals": "Kunde inte spara mål"
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

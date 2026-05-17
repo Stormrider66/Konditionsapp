@@ -4438,6 +4438,115 @@
         "savePreferences": "Could not save preferences"
       }
     },
+    "nutritionGoalForm": {
+      "goalTypes": {
+        "weightLoss": {
+          "label": "Lose weight",
+          "description": "Reduce body weight while preserving muscle mass"
+        },
+        "weightGain": {
+          "label": "Gain weight",
+          "description": "Increase muscle mass and body weight"
+        },
+        "maintain": {
+          "label": "Maintain weight",
+          "description": "Keep weight stable and focus on performance"
+        },
+        "bodyRecomp": {
+          "label": "Body recomposition",
+          "description": "Reduce fat and increase muscle mass at the same time"
+        }
+      },
+      "macroProfiles": {
+        "balanced": {
+          "label": "Balanced",
+          "description": "40% carbohydrates, 30% protein, 30% fat"
+        },
+        "highProtein": {
+          "label": "High protein",
+          "description": "Extra protein for muscle building"
+        },
+        "lowCarb": {
+          "label": "Lower carbohydrate",
+          "description": "For fat-adapted training"
+        },
+        "endurance": {
+          "label": "Endurance",
+          "description": "Higher carbohydrates for long distance"
+        },
+        "strength": {
+          "label": "Strength",
+          "description": "Optimized for strength training"
+        }
+      },
+      "goal": {
+        "title": "Goal",
+        "description": "What is your primary goal?"
+      },
+      "weightTarget": {
+        "title": "Weight target",
+        "description": "Set a realistic target (0.25-0.5 kg/week recommended)",
+        "targetWeightLabel": "Target weight (kg)",
+        "targetWeightPlaceholder": "E.g. 75",
+        "toLose": "to lose",
+        "toGain": "to gain",
+        "weeklyRateLabel": "Weekly rate (kg)",
+        "weeklyRatePlaceholder": "Choose rate",
+        "rates": {
+          "slow": "0.25 kg/week (slow, safe)",
+          "recommended": "0.5 kg/week (recommended)",
+          "faster": "0.75 kg/week (faster)",
+          "aggressive": "1 kg/week (aggressive)"
+        }
+      },
+      "bodyFatTarget": {
+        "title": "Body fat target",
+        "description": "Optional - set a target for body fat percentage",
+        "label": "Target body fat (%)",
+        "placeholder": "E.g. 15",
+        "typicalValues": "Typical values: Men 10-20%, women 18-28%"
+      },
+      "macroProfile": {
+        "title": "Macro profile",
+        "description": "Choose the distribution of carbohydrates, protein, and fat",
+        "placeholder": "Choose macro profile"
+      },
+      "bmr": {
+        "title": "Basal metabolic rate (BMR)",
+        "description": "If you have done a bioimpedance measurement, you can enter your measured BMR value. This is used to calculate more accurate calorie and macro targets.",
+        "label": "Measured BMR (kcal/day)",
+        "placeholder": "E.g. 1650",
+        "helper": "Leave empty to use the calculated value based on weight, height, and age"
+      },
+      "displayPreferences": {
+        "title": "Display settings",
+        "showMacroTargets": {
+          "label": "Show macro targets",
+          "description": "Show daily targets for protein, carbohydrates, and fat"
+        },
+        "showHydration": {
+          "label": "Show hydration target",
+          "description": "Show daily fluid intake based on body weight and training"
+        }
+      },
+      "actions": {
+        "saving": "Saving...",
+        "saveGoals": "Save goals"
+      },
+      "toast": {
+        "saved": {
+          "title": "Saved",
+          "description": "Your nutrition goals have been updated."
+        },
+        "error": {
+          "title": "Error",
+          "description": "Could not save goals. Try again."
+        }
+      },
+      "errors": {
+        "saveGoals": "Could not save goals"
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

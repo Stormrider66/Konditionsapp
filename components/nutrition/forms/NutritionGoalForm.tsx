@@ -38,6 +38,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useToast } from '@/hooks/use-toast'
 import { useRouter } from 'next/navigation'
 import { Loader2, TrendingDown, TrendingUp, Minus, Sparkles, Flame } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 const goalSchema = z.object({
   goalType: z.enum(['WEIGHT_LOSS', 'WEIGHT_GAIN', 'MAINTAIN', 'BODY_RECOMP']),
@@ -56,40 +57,40 @@ type GoalFormData = z.infer<typeof goalSchema>
 const GOAL_TYPES = [
   {
     value: 'WEIGHT_LOSS',
-    label: 'Gå ner i vikt',
-    description: 'Minska kroppsvikt medan du behåller muskelmassa',
+    labelKey: 'goalTypes.weightLoss.label',
+    descriptionKey: 'goalTypes.weightLoss.description',
     icon: TrendingDown,
     color: 'text-blue-600',
   },
   {
     value: 'WEIGHT_GAIN',
-    label: 'Gå upp i vikt',
-    description: 'Öka muskelmassa och kroppsvikt',
+    labelKey: 'goalTypes.weightGain.label',
+    descriptionKey: 'goalTypes.weightGain.description',
     icon: TrendingUp,
     color: 'text-green-600',
   },
   {
     value: 'MAINTAIN',
-    label: 'Behålla vikt',
-    description: 'Håll stabil vikt och fokusera på prestation',
+    labelKey: 'goalTypes.maintain.label',
+    descriptionKey: 'goalTypes.maintain.description',
     icon: Minus,
     color: 'text-slate-600',
   },
   {
     value: 'BODY_RECOMP',
-    label: 'Kroppsrekompositon',
-    description: 'Minska fett och öka muskelmassa samtidigt',
+    labelKey: 'goalTypes.bodyRecomp.label',
+    descriptionKey: 'goalTypes.bodyRecomp.description',
     icon: Sparkles,
     color: 'text-purple-600',
   },
 ]
 
 const MACRO_PROFILES = [
-  { value: 'BALANCED', label: 'Balanserad', description: '40% kolhydrater, 30% protein, 30% fett' },
-  { value: 'HIGH_PROTEIN', label: 'Hög protein', description: 'Extra protein för muskeluppbyggnad' },
-  { value: 'LOW_CARB', label: 'Lägre kolhydrater', description: 'För fettanpassad träning' },
-  { value: 'ENDURANCE', label: 'Uthållighet', description: 'Högre kolhydrater för långdistans' },
-  { value: 'STRENGTH', label: 'Styrka', description: 'Optimerat för styrketräning' },
+  { value: 'BALANCED', labelKey: 'macroProfiles.balanced.label', descriptionKey: 'macroProfiles.balanced.description' },
+  { value: 'HIGH_PROTEIN', labelKey: 'macroProfiles.highProtein.label', descriptionKey: 'macroProfiles.highProtein.description' },
+  { value: 'LOW_CARB', labelKey: 'macroProfiles.lowCarb.label', descriptionKey: 'macroProfiles.lowCarb.description' },
+  { value: 'ENDURANCE', labelKey: 'macroProfiles.endurance.label', descriptionKey: 'macroProfiles.endurance.description' },
+  { value: 'STRENGTH', labelKey: 'macroProfiles.strength.label', descriptionKey: 'macroProfiles.strength.description' },
 ]
 
 // NOTE: the previous "Aktivitetsnivå" picker (SEDENTARY → ATHLETE) was
@@ -107,6 +108,7 @@ interface NutritionGoalFormProps {
 }
 
 export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: NutritionGoalFormProps) {
+  const t = useTranslations('components.nutritionGoalForm')
   const { toast } = useToast()
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -141,12 +143,12 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
       if (!response.ok) {
         const errorData = await response.json().catch(() => null)
         console.error('Failed to save goals:', response.status, errorData)
-        throw new Error(errorData?.error || 'Kunde inte spara mål')
+        throw new Error(errorData?.error || t('errors.saveGoals'))
       }
 
       toast({
-        title: 'Sparat',
-        description: 'Dina näringsmål har uppdaterats.',
+        title: t('toast.saved.title'),
+        description: t('toast.saved.description'),
       })
 
       router.refresh()
@@ -154,8 +156,8 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
     } catch (error) {
       console.error('Save goals error:', error)
       toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Kunde inte spara mål. Försök igen.',
+        title: t('toast.error.title'),
+        description: error instanceof Error ? error.message : t('toast.error.description'),
         variant: 'destructive',
       })
     } finally {
@@ -169,8 +171,8 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
         {/* Goal Type */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Mål</CardTitle>
-            <CardDescription>Vad är ditt primära mål?</CardDescription>
+            <CardTitle className="text-base">{t('goal.title')}</CardTitle>
+            <CardDescription>{t('goal.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <FormField
@@ -200,10 +202,10 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2">
                                     <Icon className={`h-4 w-4 ${goal.color}`} />
-                                    <span className="font-medium text-sm">{goal.label}</span>
+                                    <span className="font-medium text-sm">{t(goal.labelKey)}</span>
                                   </div>
                                   <p className="text-xs text-slate-500 mt-0.5">
-                                    {goal.description}
+                                    {t(goal.descriptionKey)}
                                   </p>
                                 </div>
                               </label>
@@ -224,12 +226,8 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
         {showWeightTarget && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Viktmål</CardTitle>
-              <CardDescription>
-                {goalType === 'WEIGHT_LOSS'
-                  ? 'Sätt ett realistiskt mål (0.25-0.5 kg/vecka rekommenderas)'
-                  : 'Sätt ett realistiskt mål (0.25-0.5 kg/vecka rekommenderas)'}
-              </CardDescription>
+              <CardTitle className="text-base">{t('weightTarget.title')}</CardTitle>
+              <CardDescription>{t('weightTarget.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <FormField
@@ -237,12 +235,12 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
                 name="targetWeightKg"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Målvikt (kg)</FormLabel>
+                    <FormLabel>{t('weightTarget.targetWeightLabel')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         step="0.1"
-                        placeholder="T.ex. 75"
+                        placeholder={t('weightTarget.targetWeightPlaceholder')}
                         {...field}
                         value={field.value ?? ''}
                         onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
@@ -251,7 +249,7 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
                     {currentWeightKg && field.value && (
                       <FormDescription>
                         {Math.abs(field.value - currentWeightKg).toFixed(1)} kg{' '}
-                        {field.value < currentWeightKg ? 'att gå ner' : 'att gå upp'}
+                        {field.value < currentWeightKg ? t('weightTarget.toLose') : t('weightTarget.toGain')}
                       </FormDescription>
                     )}
                     <FormMessage />
@@ -264,21 +262,21 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
                 name="weeklyChangeKg"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Takt per vecka (kg)</FormLabel>
+                    <FormLabel>{t('weightTarget.weeklyRateLabel')}</FormLabel>
                     <Select
                       onValueChange={(v) => field.onChange(parseFloat(v))}
                       value={field.value?.toString()}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Välj takt" />
+                          <SelectValue placeholder={t('weightTarget.weeklyRatePlaceholder')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="0.25">0.25 kg/vecka (långsam, säker)</SelectItem>
-                        <SelectItem value="0.5">0.5 kg/vecka (rekommenderad)</SelectItem>
-                        <SelectItem value="0.75">0.75 kg/vecka (snabbare)</SelectItem>
-                        <SelectItem value="1">1 kg/vecka (aggressiv)</SelectItem>
+                        <SelectItem value="0.25">{t('weightTarget.rates.slow')}</SelectItem>
+                        <SelectItem value="0.5">{t('weightTarget.rates.recommended')}</SelectItem>
+                        <SelectItem value="0.75">{t('weightTarget.rates.faster')}</SelectItem>
+                        <SelectItem value="1">{t('weightTarget.rates.aggressive')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -293,8 +291,8 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
         {goalType === 'BODY_RECOMP' && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Kroppsfettmål</CardTitle>
-              <CardDescription>Valfritt - sätt ett mål för kroppsfettsprocent</CardDescription>
+              <CardTitle className="text-base">{t('bodyFatTarget.title')}</CardTitle>
+              <CardDescription>{t('bodyFatTarget.description')}</CardDescription>
             </CardHeader>
             <CardContent>
               <FormField
@@ -302,19 +300,19 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
                 name="targetBodyFatPercent"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mål kroppsfett (%)</FormLabel>
+                    <FormLabel>{t('bodyFatTarget.label')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         step="0.5"
-                        placeholder="T.ex. 15"
+                        placeholder={t('bodyFatTarget.placeholder')}
                         {...field}
                         value={field.value ?? ''}
                         onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                       />
                     </FormControl>
                     <FormDescription>
-                      Typiska värden: Män 10-20%, Kvinnor 18-28%
+                      {t('bodyFatTarget.typicalValues')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -327,8 +325,8 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
         {/* Macro Profile */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Makroprofil</CardTitle>
-            <CardDescription>Välj fördelning av kolhydrater, protein och fett</CardDescription>
+            <CardTitle className="text-base">{t('macroProfile.title')}</CardTitle>
+            <CardDescription>{t('macroProfile.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <FormField
@@ -342,15 +340,15 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Välj makroprofil" />
+                        <SelectValue placeholder={t('macroProfile.placeholder')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {MACRO_PROFILES.map((profile) => (
                         <SelectItem key={profile.value} value={profile.value}>
                           <div className="flex flex-col">
-                            <span>{profile.label}</span>
-                            <span className="text-xs text-slate-500">{profile.description}</span>
+                            <span>{t(profile.labelKey)}</span>
+                            <span className="text-xs text-slate-500">{t(profile.descriptionKey)}</span>
                           </div>
                         </SelectItem>
                       ))}
@@ -368,11 +366,10 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Flame className="h-4 w-4 text-orange-500" />
-              Basalmetabolism (BMR)
+              {t('bmr.title')}
             </CardTitle>
             <CardDescription>
-              Om du har gjort en bioimpedansmätning kan du ange ditt uppmätta BMR-värde.
-              Detta används för att beräkna mer exakta kalori- och makromål.
+              {t('bmr.description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -381,19 +378,19 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
               name="customBmrKcal"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Uppmätt BMR (kcal/dag)</FormLabel>
+                  <FormLabel>{t('bmr.label')}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       step="1"
-                      placeholder="T.ex. 1650"
+                      placeholder={t('bmr.placeholder')}
                       {...field}
                       value={field.value ?? ''}
                       onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value, 10) : undefined)}
                     />
                   </FormControl>
                   <FormDescription>
-                    Lämna tomt för att använda beräknat värde baserat på vikt, längd och ålder
+                    {t('bmr.helper')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -405,7 +402,7 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
         {/* Display Preferences */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Visningsinställningar</CardTitle>
+            <CardTitle className="text-base">{t('displayPreferences.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -414,9 +411,9 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-sm">Visa makromål</FormLabel>
+                    <FormLabel className="text-sm">{t('displayPreferences.showMacroTargets.label')}</FormLabel>
                     <FormDescription className="text-xs">
-                      Visa dagliga mål för protein, kolhydrater och fett
+                      {t('displayPreferences.showMacroTargets.description')}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -432,9 +429,9 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-sm">Visa vätskemål</FormLabel>
+                    <FormLabel className="text-sm">{t('displayPreferences.showHydration.label')}</FormLabel>
                     <FormDescription className="text-xs">
-                      Visa dagligt vätskeintag baserat på kroppsvikt och träning
+                      {t('displayPreferences.showHydration.description')}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -450,10 +447,10 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sparar...
+              {t('actions.saving')}
             </>
           ) : (
-            'Spara mål'
+            t('actions.saveGoals')
           )}
         </Button>
       </form>
