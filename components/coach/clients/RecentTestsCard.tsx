@@ -17,7 +17,8 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { TestTube, ChevronRight, Loader2 } from 'lucide-react'
+import { TestTube, ChevronRight } from 'lucide-react'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface RecentTestEntry {
   id: string
@@ -33,14 +34,8 @@ interface RecentTestsCardProps {
   testsHref: string
 }
 
-const KIND_LABEL: Record<RecentTestEntry['kind'], string> = {
-  TEST: 'Fystest',
-  HOCKEY_PHYSICAL: 'Hockey',
-  CUSTOM: 'Anpassat',
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', {
+function formatDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -48,6 +43,9 @@ function formatDate(iso: string): string {
 }
 
 export function RecentTestsCard({ clientId, testsHref }: RecentTestsCardProps) {
+  const t = useTranslations('components.recentTestsCard')
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [items, setItems] = useState<RecentTestEntry[]>([])
   const [counts, setCounts] = useState({ test: 0, hockey: 0, custom: 0 })
   const [isLoading, setIsLoading] = useState(true)
@@ -67,7 +65,7 @@ export function RecentTestsCard({ clientId, testsHref }: RecentTestsCardProps) {
         if (!cancelled) setIsLoading(false)
       }
     }
-    load()
+    void load()
     return () => {
       cancelled = true
     }
@@ -79,6 +77,11 @@ export function RecentTestsCard({ clientId, testsHref }: RecentTestsCardProps) {
   if (isLoading || items.length === 0) return null
 
   const totalTests = counts.test + counts.hockey + counts.custom
+  const kindLabels: Record<RecentTestEntry['kind'], string> = {
+    TEST: t('kinds.test'),
+    HOCKEY_PHYSICAL: 'Hockey',
+    CUSTOM: t('kinds.custom'),
+  }
 
   return (
     <Card>
@@ -87,16 +90,16 @@ export function RecentTestsCard({ clientId, testsHref }: RecentTestsCardProps) {
           <div>
             <CardTitle className="text-base flex items-center gap-2">
               <TestTube className="h-4 w-4 text-purple-500" />
-              Sport-tester
+              {t('title')}
               <Badge variant="secondary">{totalTests}</Badge>
             </CardTitle>
             <CardDescription>
-              Senaste fys-, hockey- och anpassade tester. Fullständig vy i Tester-fliken.
+              {t('description')}
             </CardDescription>
           </div>
           <a href={testsHref}>
             <Button variant="ghost" size="sm" className="h-7 text-xs">
-              Visa alla
+              {t('viewAll')}
               <ChevronRight className="h-3 w-3 ml-1" />
             </Button>
           </a>
@@ -107,7 +110,7 @@ export function RecentTestsCard({ clientId, testsHref }: RecentTestsCardProps) {
           {items.map((t) => (
             <div key={`${t.kind}-${t.id}`} className="flex items-center gap-3 py-2">
               <Badge variant="outline" className="text-[10px] py-0 shrink-0">
-                {KIND_LABEL[t.kind]}
+                {kindLabels[t.kind]}
               </Badge>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium truncate">{t.label}</div>
@@ -116,7 +119,7 @@ export function RecentTestsCard({ clientId, testsHref }: RecentTestsCardProps) {
                 )}
               </div>
               <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-                {formatDate(t.date)}
+                {formatDate(t.date, dateLocale)}
               </span>
             </div>
           ))}

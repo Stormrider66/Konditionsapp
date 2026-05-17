@@ -2405,6 +2405,53 @@
         "deleteFailed": "Could not delete invitation",
         "copyFailed": "Could not copy the link"
       }
+    },
+    "recentTestsCard": {
+      "title": "Sport tests",
+      "description": "Recent physical, hockey, and custom tests. Full view in the Tests tab.",
+      "viewAll": "View all",
+      "kinds": {
+        "test": "Physical test",
+        "custom": "Custom"
+      }
+    },
+    "clientLoadSummary": {
+      "title": "Load",
+      "description": "Acute:chronic workload (ACWR) — proxy for injury risk.",
+      "zones": {
+        "optimal": {
+          "label": "Optimal load",
+          "helper": "ACWR between 0.8 and 1.3 — the adaptation sweet spot without elevated injury risk."
+        },
+        "caution": {
+          "label": "Caution",
+          "helper": "ACWR 1.3-1.5 — monitor closely and avoid increasing volume further."
+        },
+        "danger": {
+          "label": "High injury risk",
+          "helper": "ACWR 1.5-2.0 — reduce acute load over the next few days."
+        },
+        "critical": {
+          "label": "Critical",
+          "helper": "ACWR > 2.0 — high injury risk. Plan a deload or rest."
+        },
+        "detraining": {
+          "label": "Detraining",
+          "helper": "ACWR < 0.8 — load is too low, ramp gradually."
+        },
+        "unknown": {
+          "label": "Insufficient data",
+          "helper": "No logged workouts in the last 30 days — ACWR needs at least 28 days of data."
+        }
+      },
+      "chart": {
+        "acute": "Acute (7d)",
+        "chronic": "Chronic (28d)",
+        "last30Days": "Last 30 days"
+      },
+      "errors": {
+        "fetchLoad": "Could not fetch load"
+      }
     }
   },
   "infographic": {

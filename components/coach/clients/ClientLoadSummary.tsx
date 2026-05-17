@@ -9,7 +9,7 @@
  * (load + recovery) above the fold.
  */
 
-import { useEffect, useState } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import {
   Card,
   CardContent,
@@ -17,7 +17,6 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import {
   AreaChart,
   Area,
@@ -38,6 +37,7 @@ import {
   TrendingDown,
   HelpCircle,
 } from 'lucide-react'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 type AcwrZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL'
 
@@ -61,65 +61,68 @@ interface ClientLoadSummaryProps {
 const ZONE_META: Record<
   AcwrZone | 'UNKNOWN',
   {
-    label: string
+    labelKey: string
     text: string
     bg: string
     border: string
     icon: React.ElementType
-    helper: string
+    helperKey: string
   }
 > = {
   OPTIMAL: {
-    label: 'Optimal belastning',
+    labelKey: 'optimal.label',
     text: 'text-green-700 dark:text-green-400',
     bg: 'bg-green-50 dark:bg-green-900/20',
     border: 'border-green-200 dark:border-green-800',
     icon: ShieldCheck,
-    helper: 'ACWR mellan 0.8 och 1.3 — sweet spot för adaptation utan skaderisk.',
+    helperKey: 'optimal.helper',
   },
   CAUTION: {
-    label: 'Försiktighet',
+    labelKey: 'caution.label',
     text: 'text-yellow-700 dark:text-yellow-400',
     bg: 'bg-yellow-50 dark:bg-yellow-900/20',
     border: 'border-yellow-200 dark:border-yellow-800',
     icon: Shield,
-    helper: 'ACWR 1.3–1.5 — håll koll, undvik att höja volymen ytterligare.',
+    helperKey: 'caution.helper',
   },
   DANGER: {
-    label: 'Hög skaderisk',
+    labelKey: 'danger.label',
     text: 'text-orange-700 dark:text-orange-400',
     bg: 'bg-orange-50 dark:bg-orange-900/20',
     border: 'border-orange-200 dark:border-orange-800',
     icon: ShieldAlert,
-    helper: 'ACWR 1.5–2.0 — minska akut belastning kommande dagarna.',
+    helperKey: 'danger.helper',
   },
   CRITICAL: {
-    label: 'Kritisk',
+    labelKey: 'critical.label',
     text: 'text-red-700 dark:text-red-400',
     bg: 'bg-red-50 dark:bg-red-900/20',
     border: 'border-red-200 dark:border-red-800',
     icon: AlertTriangle,
-    helper: 'ACWR > 2.0 — hög skaderisk. Planera deload eller vila.',
+    helperKey: 'critical.helper',
   },
   DETRAINING: {
-    label: 'Detraining',
+    labelKey: 'detraining.label',
     text: 'text-blue-700 dark:text-blue-400',
     bg: 'bg-blue-50 dark:bg-blue-900/20',
     border: 'border-blue-200 dark:border-blue-800',
     icon: TrendingDown,
-    helper: 'ACWR < 0.8 — för lite belastning, ramp upp gradvis.',
+    helperKey: 'detraining.helper',
   },
   UNKNOWN: {
-    label: 'Otillräckligt data',
+    labelKey: 'unknown.label',
     text: 'text-muted-foreground',
     bg: 'bg-muted/30',
     border: 'border-border',
     icon: HelpCircle,
-    helper: 'Inga loggade pass på sista 30 dagarna — ACWR kräver minst 28 dagars data.',
+    helperKey: 'unknown.helper',
   },
 }
 
 export function ClientLoadSummary({ clientId }: ClientLoadSummaryProps) {
+  const t = useTranslations('components.clientLoadSummary')
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [data, setData] = useState<LoadSummary | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -134,38 +137,40 @@ export function ClientLoadSummary({ clientId }: ClientLoadSummaryProps) {
         const body = await res.json()
         if (!cancelled && body.success) setData(body.data)
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Kunde inte hämta belastning')
+        if (!cancelled) setError(e instanceof Error ? e.message : t('errors.fetchLoad'))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
     }
-    load()
+    void load()
     return () => {
       cancelled = true
     }
-  }, [clientId])
+  }, [clientId, t])
 
   const latest = data?.latest ?? null
   const zoneKey: AcwrZone | 'UNKNOWN' = latest?.zone ?? 'UNKNOWN'
   const meta = ZONE_META[zoneKey]
   const ZoneIcon = meta.icon
 
-  const chartData =
-    data?.series.map((p) => ({
-      date: new Date(p.date).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' }),
+  const chartData = useMemo(
+    () => data?.series.map((p) => ({
+      date: new Date(p.date).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' }),
       acute: p.acuteLoad,
       chronic: p.chronicLoad,
-    })) ?? []
+    })) ?? [],
+    [data?.series, dateLocale],
+  )
 
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Activity className="h-4 w-4 text-blue-500" />
-          Belastning
+          {t('title')}
         </CardTitle>
         <CardDescription>
-          Akut:kroniskt arbete (ACWR) — proxy för skaderisk.
+          {t('description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -183,7 +188,7 @@ export function ClientLoadSummary({ clientId }: ClientLoadSummaryProps) {
               <div className="flex items-center justify-between gap-2">
                 <div className={`flex items-center gap-2 ${meta.text}`}>
                   <ZoneIcon className="h-4 w-4" />
-                  <span className="text-sm font-medium">{meta.label}</span>
+                  <span className="text-sm font-medium">{t(`zones.${meta.labelKey}`)}</span>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold tabular-nums">
@@ -194,7 +199,7 @@ export function ClientLoadSummary({ clientId }: ClientLoadSummaryProps) {
                   </div>
                 </div>
               </div>
-              <p className={`text-xs mt-2 ${meta.text} opacity-80`}>{meta.helper}</p>
+              <p className={`text-xs mt-2 ${meta.text} opacity-80`}>{t(`zones.${meta.helperKey}`)}</p>
             </div>
 
             {chartData.length > 1 && (
@@ -233,7 +238,7 @@ export function ClientLoadSummary({ clientId }: ClientLoadSummaryProps) {
                       contentStyle={{ fontSize: 11 }}
                       formatter={(value: number, name: string) => [
                         value?.toFixed?.(0) ?? '—',
-                        name === 'acute' ? 'Akut (7d)' : 'Kroniskt (28d)',
+                        name === 'acute' ? t('chart.acute') : t('chart.chronic'),
                       ]}
                     />
                     <ReferenceLine y={0} stroke="transparent" />
@@ -259,13 +264,13 @@ export function ClientLoadSummary({ clientId }: ClientLoadSummaryProps) {
             <div className="flex items-center justify-between text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1">
                 <span className="inline-block w-2 h-2 rounded-full bg-blue-500" />
-                Akut (7d)
+                {t('chart.acute')}
               </span>
               <span className="flex items-center gap-1">
                 <span className="inline-block w-2 h-2 rounded-full bg-slate-400" />
-                Kroniskt (28d)
+                {t('chart.chronic')}
               </span>
-              <span>Senaste 30 dagarna</span>
+              <span>{t('chart.last30Days')}</span>
             </div>
           </>
         )}
