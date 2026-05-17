@@ -1,18 +1,10 @@
 // app/athlete/history/page.tsx
-import { redirect } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { subDays, subWeeks, subMonths, startOfWeek, endOfWeek, format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { subDays, subMonths, format } from 'date-fns'
+import { enUS, sv } from 'date-fns/locale'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -26,12 +18,9 @@ import {
   Calendar,
   Clock,
   TrendingUp,
-  Heart,
   Zap,
-  Download,
   ArrowLeft,
   Filter,
-  Trophy,
   Plus,
   Sparkles,
 } from 'lucide-react'
@@ -46,6 +35,8 @@ import {
   GlassCardDescription
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
+import { getLocale, getTranslations } from '@/i18n/server'
+import type { Prisma } from '@prisma/client'
 
 interface HistoryPageProps {
   searchParams: Promise<{
@@ -54,8 +45,20 @@ interface HistoryPageProps {
   }>
 }
 
+interface ParsedAdHocHistory {
+  name?: string
+  type?: string
+  sport?: string
+  distance?: number
+  duration?: number
+  perceivedEffort?: number
+}
+
 export default async function WorkoutHistoryPage({ searchParams }: HistoryPageProps) {
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
+  const t = await getTranslations('pages.athlete.history')
+  const locale = await getLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const params = await searchParams
 
   // Determine timeframe
@@ -84,7 +87,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
   }
 
   // Build where clause
-  const whereClause: any = {
+  const whereClause: Prisma.WorkoutLogWhereInput = {
     athleteId: user.id,
     completed: true,
     completedAt: {
@@ -212,11 +215,11 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
 
   // Parse ad-hoc workout data
   const adHocWithParsedData = adHocWorkouts.map((adHoc) => {
-    const parsed = adHoc.parsedStructure as any
+    const parsed = adHoc.parsedStructure as ParsedAdHocHistory | null
     return {
       id: adHoc.id,
       workoutDate: adHoc.workoutDate,
-      name: parsed?.name || adHoc.workoutName || 'Ad-hoc pass',
+      name: parsed?.name || adHoc.workoutName || t('fallbackAdHocName'),
       type: parsed?.type || 'OTHER',
       sport: parsed?.sport,
       distance: parsed?.distance,
@@ -310,6 +313,33 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
   const avgRPE = allEfforts.length > 0
     ? (allEfforts.reduce((sum, e) => sum + e, 0) / allEfforts.length).toFixed(1)
     : '-'
+  const chartLogs = logs.filter((log): log is (typeof logs)[number] & { completedAt: Date } => log.completedAt !== null)
+  const timeframeSummary =
+    timeframe === '7days' ? t('timeframeSummaries.sevenDays') :
+      timeframe === '30days' ? t('timeframeSummaries.thirtyDays') :
+        timeframe === '3months' ? t('timeframeSummaries.threeMonths') :
+          timeframe === '6months' ? t('timeframeSummaries.sixMonths') :
+            t('timeframeSummaries.oneYear')
+  const formatWorkoutType = (type: string): string => {
+    const types: Record<string, string> = {
+      RUNNING: t('workoutTypes.running'),
+      CYCLING: t('workoutTypes.cycling'),
+      STRENGTH: t('workoutTypes.strength'),
+      CORE: t('workoutTypes.core'),
+      PLYOMETRIC: t('workoutTypes.plyometric'),
+      RECOVERY: t('workoutTypes.recovery'),
+      SKIING: t('workoutTypes.skiing'),
+      OTHER: t('workoutTypes.other'),
+      CARDIO: t('workoutTypes.cardio'),
+      HYBRID: t('workoutTypes.hybrid'),
+      AGILITY: t('workoutTypes.agility'),
+      MIXED: t('workoutTypes.mixed'),
+      SWIMMING: t('workoutTypes.swimming'),
+      ROWING: t('workoutTypes.rowing'),
+      WALKING: t('workoutTypes.walking'),
+    }
+    return types[type] || type
+  }
 
   // Create merged and sorted history list
   interface HistoryItem {
@@ -388,20 +418,20 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
       <Link href="/athlete/dashboard">
         <Button variant="ghost" className="mb-8 font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white">
           <ArrowLeft className="mr-2 h-3.5 w-3.5" />
-          Tillbaka
+          {t('back')}
         </Button>
       </Link>
 
       <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8 animate-in fade-in slide-in-from-top-4 duration-700">
         <div className="space-y-2">
           <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tighter uppercase italic leading-none">
-            Tränings<span className="text-blue-600">historik</span>
+            {t('titlePrefix')}<span className="text-blue-600">{t('titleAccent')}</span>
           </h1>
           <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-[10px]">
-            Översikt över dina genomförda träningspass och framsteg
+            {t('description')}
           </p>
         </div>
-        <ExportDataButton logs={logs as any} />
+        <ExportDataButton logs={logs} />
       </div>
 
       {/* Stats Cards */}
@@ -410,7 +440,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
           <GlassCardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Totalt pass
+                {t('stats.totalWorkouts')}
               </span>
               <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
                 <Calendar className="h-4 w-4 text-blue-400" />
@@ -420,7 +450,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
           <GlassCardContent>
             <div className="text-3xl font-black text-white">{totalWorkouts}</div>
             <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">
-              Senaste {timeframe === '7days' ? '7 dagarna' : timeframe === '30days' ? '30 dagarna' : timeframe === '3months' ? '3 månaderna' : timeframe === '6months' ? '6 månaderna' : 'året'}
+              {t('stats.latest', { period: timeframeSummary })}
             </p>
           </GlassCardContent>
         </GlassCard>
@@ -429,7 +459,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
           <GlassCardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Total distans
+                {t('stats.totalDistance')}
               </span>
               <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                 <TrendingUp className="h-4 w-4 text-emerald-400" />
@@ -438,7 +468,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
           </GlassCardHeader>
           <GlassCardContent>
             <div className="text-3xl font-black text-white">{totalDistance.toFixed(1)}</div>
-            <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">kilometer körda</p>
+            <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">{t('stats.kilometersCompleted')}</p>
           </GlassCardContent>
         </GlassCard>
 
@@ -446,7 +476,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
           <GlassCardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Total tid
+                {t('stats.totalTime')}
               </span>
               <div className="p-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20">
                 <Clock className="h-4 w-4 text-orange-400" />
@@ -457,7 +487,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
             <div className="text-3xl font-black text-white">
               {Math.floor(totalDuration / 60)}h {totalDuration % 60}m
             </div>
-            <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">effektiv träning</p>
+            <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">{t('stats.effectiveTraining')}</p>
           </GlassCardContent>
         </GlassCard>
 
@@ -465,7 +495,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
           <GlassCardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Snitt RPE
+                {t('stats.averageRpe')}
               </span>
               <div className="p-1.5 rounded-lg bg-red-500/10 border border-red-500/20">
                 <Zap className="h-4 w-4 text-red-400" />
@@ -474,7 +504,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
           </GlassCardHeader>
           <GlassCardContent>
             <div className="text-3xl font-black text-white">{avgRPE}</div>
-            <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">upplevd ansträngning</p>
+            <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">{t('stats.perceivedEffort')}</p>
           </GlassCardContent>
         </GlassCard>
       </div>
@@ -486,9 +516,9 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
             <div>
               <GlassCardTitle className="flex items-center gap-2">
                 <Filter className="h-5 w-5 text-orange-500" />
-                Filtrera
+                {t('filters.title')}
               </GlassCardTitle>
-              <GlassCardDescription>Välj tidsperiod och typ av träning</GlassCardDescription>
+              <GlassCardDescription>{t('filters.description')}</GlassCardDescription>
             </div>
           </div>
         </GlassCardHeader>
@@ -496,31 +526,31 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Timeframe filters */}
             <div className="flex-1">
-              <p className="text-sm font-medium mb-2">Tidsperiod</p>
+              <p className="text-sm font-medium mb-2">{t('filters.timeframe')}</p>
               <div className="flex flex-wrap gap-2">
                 <Link href="/athlete/history?timeframe=7days">
                   <Badge variant={timeframe === '7days' ? 'default' : 'outline'}>
-                    7 dagar
+                    {t('timeframes.sevenDays')}
                   </Badge>
                 </Link>
                 <Link href="/athlete/history?timeframe=30days">
                   <Badge variant={timeframe === '30days' ? 'default' : 'outline'}>
-                    30 dagar
+                    {t('timeframes.thirtyDays')}
                   </Badge>
                 </Link>
                 <Link href="/athlete/history?timeframe=3months">
                   <Badge variant={timeframe === '3months' ? 'default' : 'outline'}>
-                    3 månader
+                    {t('timeframes.threeMonths')}
                   </Badge>
                 </Link>
                 <Link href="/athlete/history?timeframe=6months">
                   <Badge variant={timeframe === '6months' ? 'default' : 'outline'}>
-                    6 månader
+                    {t('timeframes.sixMonths')}
                   </Badge>
                 </Link>
                 <Link href="/athlete/history?timeframe=1year">
                   <Badge variant={timeframe === '1year' ? 'default' : 'outline'}>
-                    1 år
+                    {t('timeframes.oneYear')}
                   </Badge>
                 </Link>
               </div>
@@ -528,41 +558,41 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
 
             {/* Type filters */}
             <div className="flex-1">
-              <p className="text-sm font-medium mb-2">Typ av träning</p>
+              <p className="text-sm font-medium mb-2">{t('filters.trainingType')}</p>
               <div className="flex flex-wrap gap-2">
                 <Link href={`/athlete/history?timeframe=${timeframe}`}>
                   <Badge variant={!params.type ? 'default' : 'outline'}>
-                    Alla
+                    {t('filters.all')}
                   </Badge>
                 </Link>
                 <Link href={`/athlete/history?timeframe=${timeframe}&type=RUNNING`}>
                   <Badge variant={params.type === 'RUNNING' ? 'default' : 'outline'}>
-                    Löpning
+                    {t('workoutTypes.running')}
                   </Badge>
                 </Link>
                 <Link href={`/athlete/history?timeframe=${timeframe}&type=CYCLING`}>
                   <Badge variant={params.type === 'CYCLING' ? 'default' : 'outline'}>
-                    Cykling
+                    {t('workoutTypes.cycling')}
                   </Badge>
                 </Link>
                 <Link href={`/athlete/history?timeframe=${timeframe}&type=STRENGTH`}>
                   <Badge variant={params.type === 'STRENGTH' ? 'default' : 'outline'}>
-                    Styrka
+                    {t('workoutTypes.strength')}
                   </Badge>
                 </Link>
                 <Link href={`/athlete/history?timeframe=${timeframe}&type=CARDIO`}>
                   <Badge variant={params.type === 'CARDIO' ? 'default' : 'outline'}>
-                    Kondition
+                    {t('workoutTypes.cardio')}
                   </Badge>
                 </Link>
                 <Link href={`/athlete/history?timeframe=${timeframe}&type=HYBRID`}>
                   <Badge variant={params.type === 'HYBRID' ? 'default' : 'outline'}>
-                    Hybrid
+                    {t('workoutTypes.hybrid')}
                   </Badge>
                 </Link>
                 <Link href={`/athlete/history?timeframe=${timeframe}&type=AGILITY`}>
                   <Badge variant={params.type === 'AGILITY' ? 'default' : 'outline'}>
-                    Agility
+                    {t('workoutTypes.agility')}
                   </Badge>
                 </Link>
               </div>
@@ -575,21 +605,21 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
       <PersonalRecords athleteId={user.id} variant="glass" />
 
       {/* Progress Charts */}
-      <WorkoutHistoryCharts logs={logs as any} timeframe={timeframe} variant="glass" />
+      <WorkoutHistoryCharts logs={chartLogs} timeframe={timeframe} variant="glass" />
 
       {/* Workout History */}
       <GlassCard>
         <GlassCardHeader>
-          <GlassCardTitle className="text-xl font-black tracking-tight text-white uppercase italic">Alla träningspass</GlassCardTitle>
+          <GlassCardTitle className="text-xl font-black tracking-tight text-white uppercase italic">{t('table.title')}</GlassCardTitle>
           <GlassCardDescription className="text-slate-500 font-bold uppercase text-[9px] tracking-widest">
-            DETALJERAD ÖVERSIKT ÖVER ALLA DINA GENOMFÖRDA PASS
+            {t('table.description')}
           </GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
           {historyItems.length === 0 ? (
             <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/5">
               <Calendar className="h-16 w-16 mx-auto mb-6 opacity-10 text-white" />
-              <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Inga pass hittades för vald period</p>
+              <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">{t('table.empty')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -606,20 +636,20 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
                           <p className="font-black uppercase italic tracking-tight text-white">
                             {item.name}
                           </p>
-                          {getSourceBadge(item)}
+                          {getSourceBadge(item, t)}
                         </div>
                         <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                          {getHistorySubtitle(item)}
+                          {getHistorySubtitle(item, t)}
                         </p>
                       </div>
                       <div className="rounded-2xl border border-white/5 bg-white/5 px-3 py-2 text-right">
-                        <p className="text-xs font-black text-white">{format(new Date(item.date), 'd MMM', { locale: sv })}</p>
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{format(new Date(item.date), 'yyyy', { locale: sv })}</p>
+                        <p className="text-xs font-black text-white">{format(new Date(item.date), 'd MMM', { locale: dateLocale })}</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{format(new Date(item.date), 'yyyy', { locale: dateLocale })}</p>
                       </div>
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {getHistoryMetaChips(item).map((chip) => (
+                      {getHistoryMetaChips(item, formatWorkoutType).map((chip) => (
                         <span key={chip} className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-400">
                           {chip}
                         </span>
@@ -628,11 +658,11 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
 
                     <div className="mt-4 grid grid-cols-2 gap-3">
                       <div className="rounded-2xl border border-white/5 bg-black/10 px-3 py-2">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Distans</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t('table.distance')}</p>
                         <p className="mt-1 text-sm font-black text-white">{item.distance ? `${item.distance.toFixed(1)} km` : '-'}</p>
                       </div>
                       <div className="rounded-2xl border border-white/5 bg-black/10 px-3 py-2">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Tid</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t('table.time')}</p>
                         <p className="mt-1 text-sm font-black text-white">{item.duration ? `${item.duration} min` : '-'}</p>
                       </div>
                     </div>
@@ -652,7 +682,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
                         )}
                       </div>
                       <Button variant="ghost" className="h-10 rounded-xl border border-white/5 bg-white/5 px-4 text-[10px] font-black uppercase tracking-widest text-slate-200 hover:border-blue-600 hover:bg-blue-600 hover:text-white">
-                        Visa detaljer
+                        {t('table.viewDetails')}
                       </Button>
                     </div>
                   </Link>
@@ -663,13 +693,13 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
                 <Table>
                   <TableHeader>
                     <TableRow className="border-white/5 hover:bg-transparent">
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Datum</TableHead>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Träningspass</TableHead>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Kategori</TableHead>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Distans</TableHead>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Tid</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('table.date')}</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('table.workout')}</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('table.category')}</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('table.distance')}</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('table.time')}</TableHead>
                       <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1 text-center">RPE</TableHead>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">Åtgärd</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">{t('table.action')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -678,10 +708,10 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
                         <TableCell className="py-5">
                           <div className="inline-flex flex-col rounded-2xl border border-white/5 bg-white/5 px-3 py-2">
                             <span className="font-black text-xs text-white">
-                              {format(new Date(item.date), 'd MMM', { locale: sv })}
+                              {format(new Date(item.date), 'd MMM', { locale: dateLocale })}
                             </span>
                             <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
-                              {format(new Date(item.date), 'yyyy', { locale: sv })}
+                              {format(new Date(item.date), 'yyyy', { locale: dateLocale })}
                             </span>
                           </div>
                         </TableCell>
@@ -689,13 +719,13 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
                           <Link href={getItemHref(item)} className="block space-y-0.5">
                             <div className="font-black text-white uppercase italic tracking-tight group-hover:text-blue-400 transition-colors flex flex-wrap items-center gap-2">
                               {item.name}
-                              {getSourceBadge(item)}
+                              {getSourceBadge(item, t)}
                             </div>
                             <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
-                              {getHistorySubtitle(item)}
+                              {getHistorySubtitle(item, t)}
                             </div>
                             <div className="flex flex-wrap gap-2 pt-2">
-                              {getHistoryMetaChips(item).map((chip) => (
+                              {getHistoryMetaChips(item, formatWorkoutType).map((chip) => (
                                 <span key={chip} className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-400">
                                   {chip}
                                 </span>
@@ -729,7 +759,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
                         <TableCell className="py-5 text-right">
                           <Link href={getItemHref(item)}>
                             <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
-                              Visa
+                              {t('table.view')}
                             </Button>
                           </Link>
                         </TableCell>
@@ -750,19 +780,19 @@ function getHistorySubtitle(item: {
   isAdHoc: boolean
   programName?: string
   source?: string
-}): string {
+}, t: Awaited<ReturnType<typeof getTranslations>>): string {
   if (item.programName) return item.programName
-  if (item.isAdHoc) return 'Eget pass'
-  if (item.source === 'wod') return 'AI-genererat pass'
-  if (item.source === 'ai-chat') return 'AI-chatt pass'
-  if (item.source) return 'Studio-pass'
+  if (item.isAdHoc) return t('sources.customWorkout')
+  if (item.source === 'wod') return t('sources.aiGeneratedWorkout')
+  if (item.source === 'ai-chat') return t('sources.aiChatWorkout')
+  if (item.source) return t('sources.studioWorkout')
   return '-'
 }
 
 function getSourceBadge(item: {
   isAdHoc: boolean
   source?: string
-}) {
+}, t: Awaited<ReturnType<typeof getTranslations>>) {
   if (item.isAdHoc) {
     return (
       <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -775,7 +805,7 @@ function getSourceBadge(item: {
     return (
       <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
         <Sparkles className="h-2.5 w-2.5" />
-        AI-Pass
+        {t('sources.aiWorkout')}
       </span>
     )
   }
@@ -783,7 +813,7 @@ function getSourceBadge(item: {
     return (
       <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
         <Sparkles className="h-2.5 w-2.5" />
-        AI-Chatt
+        {t('sources.aiChat')}
       </span>
     )
   }
@@ -802,35 +832,12 @@ function getHistoryMetaChips(item: {
   distance?: number | null
   duration?: number | null
   perceivedEffort?: number | null
-}) {
+}, formatWorkoutType: (type: string) => string) {
   const chips = [formatWorkoutType(item.type)]
   if (item.distance) chips.push(`${item.distance.toFixed(1)} km`)
   if (item.duration) chips.push(`${item.duration} min`)
   if (item.perceivedEffort) chips.push(`RPE ${item.perceivedEffort}`)
   return chips
-}
-
-// Helper functions
-function formatWorkoutType(type: string): string {
-  const types: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    STRENGTH: 'Styrka',
-    CORE: 'Core',
-    PLYOMETRIC: 'Plyometri',
-    RECOVERY: 'Återhämtning',
-    SKIING: 'Skidåkning',
-    OTHER: 'Annat',
-    // Ad-hoc workout types
-    CARDIO: 'Kondition',
-    HYBRID: 'Blandat',
-    AGILITY: 'Agility',
-    MIXED: 'Mixat',
-    SWIMMING: 'Simning',
-    ROWING: 'Rodd',
-    WALKING: 'Promenad',
-  }
-  return types[type] || type
 }
 
 function getItemHref(item: { isAdHoc: boolean; id: string; linkHref?: string; workoutId?: string }): string {

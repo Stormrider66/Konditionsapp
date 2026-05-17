@@ -651,7 +651,8 @@
         "distance": "Distans",
         "time": "Tid",
         "action": "Åtgärd",
-        "view": "Visa"
+        "view": "Visa",
+        "viewDetails": "Visa detaljer"
       },
       "sources": {
         "aiWorkout": "AI-pass",

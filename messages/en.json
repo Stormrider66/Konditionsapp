@@ -651,7 +651,8 @@
         "distance": "Distance",
         "time": "Time",
         "action": "Action",
-        "view": "View"
+        "view": "View",
+        "viewDetails": "View details"
       },
       "sources": {
         "aiWorkout": "AI workout",
