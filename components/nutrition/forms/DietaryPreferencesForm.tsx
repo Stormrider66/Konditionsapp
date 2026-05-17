@@ -38,6 +38,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { useRouter } from 'next/navigation'
 import { Loader2, X, Plus } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 const preferencesSchema = z.object({
   dietaryStyle: z.enum(['OMNIVORE', 'VEGETARIAN', 'VEGAN', 'PESCATARIAN', 'FLEXITARIAN']).optional().nullable(),
@@ -54,32 +55,32 @@ const preferencesSchema = z.object({
 type PreferencesFormData = z.infer<typeof preferencesSchema>
 
 const DIETARY_STYLES = [
-  { value: 'OMNIVORE', label: 'Allätare', description: 'Äter allt' },
-  { value: 'FLEXITARIAN', label: 'Flexitarian', description: 'Mestadels vegetariskt' },
-  { value: 'PESCATARIAN', label: 'Pescetarian', description: 'Vegetarisk + fisk' },
-  { value: 'VEGETARIAN', label: 'Vegetarian', description: 'Ingen kött eller fisk' },
-  { value: 'VEGAN', label: 'Vegan', description: 'Endast växtbaserat' },
+  { value: 'OMNIVORE', labelKey: 'dietaryStyles.omnivore.label', descriptionKey: 'dietaryStyles.omnivore.description' },
+  { value: 'FLEXITARIAN', labelKey: 'dietaryStyles.flexitarian.label', descriptionKey: 'dietaryStyles.flexitarian.description' },
+  { value: 'PESCATARIAN', labelKey: 'dietaryStyles.pescatarian.label', descriptionKey: 'dietaryStyles.pescatarian.description' },
+  { value: 'VEGETARIAN', labelKey: 'dietaryStyles.vegetarian.label', descriptionKey: 'dietaryStyles.vegetarian.description' },
+  { value: 'VEGAN', labelKey: 'dietaryStyles.vegan.label', descriptionKey: 'dietaryStyles.vegan.description' },
 ]
 
 const COMMON_ALLERGIES = [
-  'Nötter',
-  'Jordnötter',
-  'Skaldjur',
-  'Fisk',
-  'Ägg',
-  'Mjölk',
-  'Vete/Gluten',
-  'Soja',
-  'Selleri',
-  'Senap',
-  'Sesam',
+  { value: 'Nötter', labelKey: 'allergyOptions.nuts' },
+  { value: 'Jordnötter', labelKey: 'allergyOptions.peanuts' },
+  { value: 'Skaldjur', labelKey: 'allergyOptions.shellfish' },
+  { value: 'Fisk', labelKey: 'allergyOptions.fish' },
+  { value: 'Ägg', labelKey: 'allergyOptions.eggs' },
+  { value: 'Mjölk', labelKey: 'allergyOptions.milk' },
+  { value: 'Vete/Gluten', labelKey: 'allergyOptions.wheatGluten' },
+  { value: 'Soja', labelKey: 'allergyOptions.soy' },
+  { value: 'Selleri', labelKey: 'allergyOptions.celery' },
+  { value: 'Senap', labelKey: 'allergyOptions.mustard' },
+  { value: 'Sesam', labelKey: 'allergyOptions.sesame' },
 ]
 
 const COMMON_INTOLERANCES = [
-  'Laktos',
-  'Fruktos',
-  'Histamin',
-  'Gluten (ej allergi)',
+  { value: 'Laktos', labelKey: 'intoleranceOptions.lactose' },
+  { value: 'Fruktos', labelKey: 'intoleranceOptions.fructose' },
+  { value: 'Histamin', labelKey: 'intoleranceOptions.histamine' },
+  { value: 'Gluten (ej allergi)', labelKey: 'intoleranceOptions.glutenNonAllergy' },
 ]
 
 interface DietaryPreferencesFormProps {
@@ -88,6 +89,7 @@ interface DietaryPreferencesFormProps {
 }
 
 export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPreferencesFormProps) {
+  const t = useTranslations('components.dietaryPreferencesForm')
   const { toast } = useToast()
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -157,12 +159,12 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
       if (!response.ok) {
         const errorData = await response.json().catch(() => null)
         console.error('Failed to save preferences:', response.status, errorData)
-        throw new Error(errorData?.error || 'Kunde inte spara preferenser')
+        throw new Error(errorData?.error || t('errors.savePreferences'))
       }
 
       toast({
-        title: 'Sparat',
-        description: 'Dina kostpreferenser har uppdaterats.',
+        title: t('toast.saved.title'),
+        description: t('toast.saved.description'),
       })
 
       router.refresh()
@@ -170,8 +172,8 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
     } catch (error) {
       console.error('Save preferences error:', error)
       toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Kunde inte spara preferenser. Försök igen.',
+        title: t('toast.error.title'),
+        description: error instanceof Error ? error.message : t('toast.error.description'),
         variant: 'destructive',
       })
     } finally {
@@ -185,8 +187,8 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
         {/* Dietary Style */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Koststil</CardTitle>
-            <CardDescription>Välj din primära koststil</CardDescription>
+            <CardTitle className="text-base">{t('dietaryStyle.title')}</CardTitle>
+            <CardDescription>{t('dietaryStyle.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <FormField
@@ -200,15 +202,15 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Välj koststil" />
+                        <SelectValue placeholder={t('dietaryStyle.placeholder')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {DIETARY_STYLES.map((style) => (
                         <SelectItem key={style.value} value={style.value}>
                           <div className="flex flex-col">
-                            <span>{style.label}</span>
-                            <span className="text-xs text-slate-500">{style.description}</span>
+                            <span>{t(style.labelKey)}</span>
+                            <span className="text-xs text-slate-500">{t(style.descriptionKey)}</span>
                           </div>
                         </SelectItem>
                       ))}
@@ -224,23 +226,23 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
         {/* Allergies */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Allergier</CardTitle>
-            <CardDescription>Välj alla som gäller dig</CardDescription>
+            <CardTitle className="text-base">{t('allergies.title')}</CardTitle>
+            <CardDescription>{t('allergies.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {COMMON_ALLERGIES.map((allergy) => (
                 <Badge
-                  key={allergy}
-                  variant={allergies.includes(allergy) ? 'default' : 'outline'}
+                  key={allergy.value}
+                  variant={allergies.includes(allergy.value) ? 'default' : 'outline'}
                   className={`cursor-pointer transition-colors ${
-                    allergies.includes(allergy)
+                    allergies.includes(allergy.value)
                       ? 'bg-red-600 hover:bg-red-700'
                       : 'hover:bg-slate-100'
                   }`}
-                  onClick={() => toggleAllergy(allergy)}
+                  onClick={() => toggleAllergy(allergy.value)}
                 >
-                  {allergy}
+                  {t(allergy.labelKey)}
                 </Badge>
               ))}
             </div>
@@ -250,23 +252,23 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
         {/* Intolerances */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Intoleranser</CardTitle>
-            <CardDescription>Livsmedel som ger dig besvär (men inte är allergi)</CardDescription>
+            <CardTitle className="text-base">{t('intolerances.title')}</CardTitle>
+            <CardDescription>{t('intolerances.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {COMMON_INTOLERANCES.map((intolerance) => (
                 <Badge
-                  key={intolerance}
-                  variant={intolerances.includes(intolerance) ? 'default' : 'outline'}
+                  key={intolerance.value}
+                  variant={intolerances.includes(intolerance.value) ? 'default' : 'outline'}
                   className={`cursor-pointer transition-colors ${
-                    intolerances.includes(intolerance)
+                    intolerances.includes(intolerance.value)
                       ? 'bg-amber-600 hover:bg-amber-700'
                       : 'hover:bg-slate-100'
                   }`}
-                  onClick={() => toggleIntolerance(intolerance)}
+                  onClick={() => toggleIntolerance(intolerance.value)}
                 >
-                  {intolerance}
+                  {t(intolerance.labelKey)}
                 </Badge>
               ))}
             </div>
@@ -276,13 +278,13 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
         {/* Disliked Foods */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Ogillade livsmedel</CardTitle>
-            <CardDescription>Livsmedel du inte vill ha förslag på</CardDescription>
+            <CardTitle className="text-base">{t('dislikedFoods.title')}</CardTitle>
+            <CardDescription>{t('dislikedFoods.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex gap-2">
               <Input
-                placeholder="T.ex. havregrynsgröt"
+                placeholder={t('dislikedFoods.placeholder')}
                 value={newDislikedFood}
                 onChange={(e) => setNewDislikedFood(e.target.value)}
                 onKeyDown={(e) => {
@@ -305,6 +307,7 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
                       type="button"
                       onClick={() => removeDislikedFood(food)}
                       className="ml-1 hover:text-red-600"
+                      aria-label={t('dislikedFoods.removeAria', { food })}
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -318,7 +321,7 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
         {/* Special Preferences */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Specialpreferenser</CardTitle>
+            <CardTitle className="text-base">{t('specialPreferences.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -327,9 +330,9 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-sm">Låg-FODMAP</FormLabel>
+                    <FormLabel className="text-sm">{t('specialPreferences.lowFodmap.label')}</FormLabel>
                     <FormDescription className="text-xs">
-                      Undvik livsmedel med hög FODMAP (vid IBS)
+                      {t('specialPreferences.lowFodmap.description')}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -345,9 +348,9 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-sm">Föredra fullkorn</FormLabel>
+                    <FormLabel className="text-sm">{t('specialPreferences.wholeGrain.label')}</FormLabel>
                     <FormDescription className="text-xs">
-                      Prioritera fullkornsprodukter i förslag
+                      {t('specialPreferences.wholeGrain.description')}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -363,9 +366,9 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-sm">Svenska livsmedel</FormLabel>
+                    <FormLabel className="text-sm">{t('specialPreferences.swedishFoods.label')}</FormLabel>
                     <FormDescription className="text-xs">
-                      Prioritera svenska/nordiska livsmedel
+                      {t('specialPreferences.swedishFoods.description')}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -381,9 +384,9 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-sm">Detaljerad makroanalys</FormLabel>
+                    <FormLabel className="text-sm">{t('specialPreferences.enhancedMacroAnalysis.label')}</FormLabel>
                     <FormDescription className="text-xs">
-                      AI-analysen inkluderar fetttyper (mättat, omättat), sockerinnehåll och proteinkvalitet. Kan ta 1–2 sekunder extra.
+                      {t('specialPreferences.enhancedMacroAnalysis.description')}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -399,9 +402,9 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-sm">Matminne för bildskanner</FormLabel>
+                    <FormLabel className="text-sm">{t('specialPreferences.memoryEnabled.label')}</FormLabel>
                     <FormDescription className="text-xs">
-                      Låt Gemini lära sig vad du brukar äta för att förbättra träffsäkerheten i bildanalysen. Används bara vid osäkra bilder.
+                      {t('specialPreferences.memoryEnabled.description')}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -417,10 +420,10 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sparar...
+              {t('actions.saving')}
             </>
           ) : (
-            'Spara preferenser'
+            t('actions.savePreferences')
           )}
         </Button>
       </form>

@@ -4336,6 +4336,108 @@
         }
       }
     },
+    "dietaryPreferencesForm": {
+      "dietaryStyles": {
+        "omnivore": {
+          "label": "Omnivore",
+          "description": "Eats everything"
+        },
+        "flexitarian": {
+          "label": "Flexitarian",
+          "description": "Mostly vegetarian"
+        },
+        "pescatarian": {
+          "label": "Pescatarian",
+          "description": "Vegetarian + fish"
+        },
+        "vegetarian": {
+          "label": "Vegetarian",
+          "description": "No meat or fish"
+        },
+        "vegan": {
+          "label": "Vegan",
+          "description": "Only plant-based"
+        }
+      },
+      "allergyOptions": {
+        "nuts": "Tree nuts",
+        "peanuts": "Peanuts",
+        "shellfish": "Shellfish",
+        "fish": "Fish",
+        "eggs": "Eggs",
+        "milk": "Milk",
+        "wheatGluten": "Wheat/Gluten",
+        "soy": "Soy",
+        "celery": "Celery",
+        "mustard": "Mustard",
+        "sesame": "Sesame"
+      },
+      "intoleranceOptions": {
+        "lactose": "Lactose",
+        "fructose": "Fructose",
+        "histamine": "Histamine",
+        "glutenNonAllergy": "Gluten (not allergy)"
+      },
+      "dietaryStyle": {
+        "title": "Dietary style",
+        "description": "Choose your primary dietary style",
+        "placeholder": "Choose dietary style"
+      },
+      "allergies": {
+        "title": "Allergies",
+        "description": "Select all that apply to you"
+      },
+      "intolerances": {
+        "title": "Intolerances",
+        "description": "Foods that cause issues for you (but are not allergies)"
+      },
+      "dislikedFoods": {
+        "title": "Disliked foods",
+        "description": "Foods you do not want suggestions for",
+        "placeholder": "E.g. oatmeal porridge",
+        "removeAria": "Remove {food}"
+      },
+      "specialPreferences": {
+        "title": "Special preferences",
+        "lowFodmap": {
+          "label": "Low-FODMAP",
+          "description": "Avoid foods high in FODMAP (for IBS)"
+        },
+        "wholeGrain": {
+          "label": "Prefer whole grain",
+          "description": "Prioritize whole-grain products in suggestions"
+        },
+        "swedishFoods": {
+          "label": "Swedish foods",
+          "description": "Prioritize Swedish/Nordic foods"
+        },
+        "enhancedMacroAnalysis": {
+          "label": "Detailed macro analysis",
+          "description": "The AI analysis includes fat types (saturated, unsaturated), sugar content, and protein quality. Can take 1-2 extra seconds."
+        },
+        "memoryEnabled": {
+          "label": "Food memory for image scanner",
+          "description": "Let Gemini learn what you usually eat to improve image analysis accuracy. Only used for uncertain images."
+        }
+      },
+      "actions": {
+        "saving": "Saving...",
+        "savePreferences": "Save preferences"
+      },
+      "toast": {
+        "saved": {
+          "title": "Saved",
+          "description": "Your dietary preferences have been updated."
+        },
+        "error": {
+          "title": "Error",
+          "description": "Could not save preferences. Try again."
+        }
+      },
+      "errors": {
+        "savePreferences": "Could not save preferences"
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

@@ -4336,6 +4336,108 @@
         }
       }
     },
+    "dietaryPreferencesForm": {
+      "dietaryStyles": {
+        "omnivore": {
+          "label": "Allätare",
+          "description": "Äter allt"
+        },
+        "flexitarian": {
+          "label": "Flexitarian",
+          "description": "Mestadels vegetariskt"
+        },
+        "pescatarian": {
+          "label": "Pescetarian",
+          "description": "Vegetarisk + fisk"
+        },
+        "vegetarian": {
+          "label": "Vegetarian",
+          "description": "Ingen kött eller fisk"
+        },
+        "vegan": {
+          "label": "Vegan",
+          "description": "Endast växtbaserat"
+        }
+      },
+      "allergyOptions": {
+        "nuts": "Nötter",
+        "peanuts": "Jordnötter",
+        "shellfish": "Skaldjur",
+        "fish": "Fisk",
+        "eggs": "Ägg",
+        "milk": "Mjölk",
+        "wheatGluten": "Vete/Gluten",
+        "soy": "Soja",
+        "celery": "Selleri",
+        "mustard": "Senap",
+        "sesame": "Sesam"
+      },
+      "intoleranceOptions": {
+        "lactose": "Laktos",
+        "fructose": "Fruktos",
+        "histamine": "Histamin",
+        "glutenNonAllergy": "Gluten (ej allergi)"
+      },
+      "dietaryStyle": {
+        "title": "Koststil",
+        "description": "Välj din primära koststil",
+        "placeholder": "Välj koststil"
+      },
+      "allergies": {
+        "title": "Allergier",
+        "description": "Välj alla som gäller dig"
+      },
+      "intolerances": {
+        "title": "Intoleranser",
+        "description": "Livsmedel som ger dig besvär (men inte är allergi)"
+      },
+      "dislikedFoods": {
+        "title": "Ogillade livsmedel",
+        "description": "Livsmedel du inte vill ha förslag på",
+        "placeholder": "T.ex. havregrynsgröt",
+        "removeAria": "Ta bort {food}"
+      },
+      "specialPreferences": {
+        "title": "Specialpreferenser",
+        "lowFodmap": {
+          "label": "Låg-FODMAP",
+          "description": "Undvik livsmedel med hög FODMAP (vid IBS)"
+        },
+        "wholeGrain": {
+          "label": "Föredra fullkorn",
+          "description": "Prioritera fullkornsprodukter i förslag"
+        },
+        "swedishFoods": {
+          "label": "Svenska livsmedel",
+          "description": "Prioritera svenska/nordiska livsmedel"
+        },
+        "enhancedMacroAnalysis": {
+          "label": "Detaljerad makroanalys",
+          "description": "AI-analysen inkluderar fetttyper (mättat, omättat), sockerinnehåll och proteinkvalitet. Kan ta 1-2 sekunder extra."
+        },
+        "memoryEnabled": {
+          "label": "Matminne för bildskanner",
+          "description": "Låt Gemini lära sig vad du brukar äta för att förbättra träffsäkerheten i bildanalysen. Används bara vid osäkra bilder."
+        }
+      },
+      "actions": {
+        "saving": "Sparar...",
+        "savePreferences": "Spara preferenser"
+      },
+      "toast": {
+        "saved": {
+          "title": "Sparat",
+          "description": "Dina kostpreferenser har uppdaterats."
+        },
+        "error": {
+          "title": "Fel",
+          "description": "Kunde inte spara preferenser. Försök igen."
+        }
+      },
+      "errors": {
+        "savePreferences": "Kunde inte spara preferenser"
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {
