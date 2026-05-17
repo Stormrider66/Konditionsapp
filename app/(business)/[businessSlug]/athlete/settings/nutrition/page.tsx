@@ -18,6 +18,7 @@ import Link from 'next/link'
 import { DietaryPreferencesForm } from '@/components/nutrition/forms/DietaryPreferencesForm'
 import { NutritionGoalForm } from '@/components/nutrition/forms/NutritionGoalForm'
 import { LifestyleActivitySelector } from '@/components/nutrition/forms/LifestyleActivitySelector'
+import { getTranslations } from '@/i18n/server'
 
 interface BusinessNutritionSettingsPageProps {
   params: Promise<{ businessSlug: string }>
@@ -25,6 +26,7 @@ interface BusinessNutritionSettingsPageProps {
 
 export default async function BusinessNutritionSettingsPage({ params }: BusinessNutritionSettingsPageProps) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.settingsNutrition')
   const { user } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
@@ -116,8 +118,8 @@ export default async function BusinessNutritionSettingsPage({ params }: Business
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Kost & Näring</h1>
-          <p className="text-slate-500">Anpassa dina kostpreferenser och mål</p>
+          <h1 className="text-2xl font-bold">{t('title')}</h1>
+          <p className="text-slate-500">{t('description')}</p>
         </div>
       </div>
 
@@ -126,11 +128,11 @@ export default async function BusinessNutritionSettingsPage({ params }: Business
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="preferences" className="gap-2">
             <Utensils className="h-4 w-4" />
-            Preferenser
+            {t('tabs.preferences')}
           </TabsTrigger>
           <TabsTrigger value="goals" className="gap-2">
             <Target className="h-4 w-4" />
-            Mål
+            {t('tabs.goals')}
           </TabsTrigger>
         </TabsList>
 

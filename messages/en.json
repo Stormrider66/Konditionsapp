@@ -241,6 +241,21 @@
       "subtitle": "Body composition & bioimpedance",
       "formTitle": "Measurement data",
       "formDescription": "Fill in values from your bioimpedance scale. You do not need to fill in every field."
+    },
+    "settingsNutrition": {
+      "title": "Food & Nutrition",
+      "description": "Customize your nutrition preferences and goals",
+      "tabs": {
+        "preferences": "Preferences",
+        "goals": "Goals"
+      }
+    },
+    "settingsPrivacy": {
+      "metadataTitle": "Privacy & Sharing | Settings",
+      "metadataDescription": "Manage what your coach can see",
+      "backToSettings": "Back to settings",
+      "title": "Privacy",
+      "subtitle": "Control what your coach can see"
     }
   },
   "nav": {
