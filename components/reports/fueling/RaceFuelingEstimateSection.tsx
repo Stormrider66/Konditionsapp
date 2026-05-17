@@ -8,6 +8,7 @@ import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
 import { formatFuelingTargetIntensity } from '@/lib/fueling/target-intensity'
 import { extractApiErrorMessage } from '@/lib/fueling/api-error'
 import type { RaceFuelingEstimate } from '@/lib/fueling/types'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface RaceFuelingEstimateSectionProps {
   clientId: string
@@ -22,30 +23,13 @@ type RaceTargetOption = {
   custom?: boolean
 }
 
-const DISTANCE_OPTIONS: Record<TestType, RaceTargetOption[]> = {
-  RUNNING: [
-    { label: '10 km', distanceKm: 10 },
-    { label: 'Halvmarathon', distanceKm: 21.0975 },
-    { label: 'Marathon', distanceKm: 42.195 },
-    { label: 'Egen distans / tid', custom: true },
-  ],
-  CYCLING: [
-    { label: '2 timmar', durationMinutes: 120 },
-    { label: '3 timmar', durationMinutes: 180 },
-    { label: '5 timmar', durationMinutes: 300 },
-    { label: 'Egen distans / tid', custom: true },
-  ],
-  SKIING: [
-    { label: '20 km', distanceKm: 20 },
-    { label: '45 km', distanceKm: 45 },
-    { label: '90 km', distanceKm: 90 },
-    { label: 'Egen distans / tid', custom: true },
-  ],
-}
+type RaceFuelingT = ReturnType<typeof useTranslations>
 
 export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFuelingEstimateSectionProps) {
+  const t = useTranslations('components.raceFuelingEstimate')
+  const locale = useLocale()
   const usableStages = useMemo(() => getUsableStages(test), [test])
-  const options = DISTANCE_OPTIONS[test.testType] ?? DISTANCE_OPTIONS.RUNNING
+  const options = useMemo(() => getDistanceOptions(test.testType, t), [test.testType, t])
   const [selectedDistanceIndex, setSelectedDistanceIndex] = useState(Math.max(0, options.length - 2))
   const [selectedStageSequence, setSelectedStageSequence] = useState<number | null>(usableStages[0]?.sequence ?? null)
   const [customDistanceKm, setCustomDistanceKm] = useState('')
@@ -108,7 +92,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
           clientId,
           testId: test.id,
           sport: test.testType,
-          name: `Tävlingsenergi ${formatRaceTargetLabel(selectedDistance)}`,
+          name: t('planName', { target: formatRaceTargetLabel(selectedDistance, locale) }),
           distanceKm: selectedDistance.distanceKm,
           durationMinutes: selectedDistance.durationMinutes,
           targetSpeedKmh: selectedStage.speed,
@@ -120,11 +104,11 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
       })
 
       const body = await response.json()
-      if (!response.ok) throw new Error(extractApiErrorMessage(body) ?? 'Kunde inte spara planen.')
+      if (!response.ok) throw new Error(extractApiErrorMessage(body) ?? t('errors.saveFailed'))
       setSaveStatus('saved')
     } catch (err) {
       setSaveStatus('error')
-      setSaveError(err instanceof Error ? err.message : 'Kunde inte spara planen.')
+      setSaveError(err instanceof Error ? err.message : t('errors.saveFailed'))
     }
   }
 
@@ -132,14 +116,14 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
     <section className="mt-6 border-b pb-6 print:break-inside-avoid" data-pdf-section>
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <h2 className="text-2xl font-semibold">Tävlingsenergi</h2>
+          <h2 className="text-2xl font-semibold">{t('title')}</h2>
           <p className="text-sm text-gray-600 mt-1">
-            En uppskattning av kolhydratbehov vid tävlingslik intensitet baserat på metabol testdata.
+            {t('description')}
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
           <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-            Säkerhet: {confidenceLabel(estimate.confidence)}
+            {t('confidence.label')} {t(`confidence.values.${estimate.confidence.toLowerCase()}`)}
           </span>
           <button
             type="button"
@@ -147,16 +131,16 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
             disabled={saveStatus === 'saving' || !canSavePlan}
             className="print:hidden text-xs px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60"
           >
-            {saveStatus === 'saving' ? 'Sparar...' : saveStatus === 'saved' ? 'Sparad' : 'Skapa tävlingsplan'}
+            {saveStatus === 'saving' ? t('actions.saving') : saveStatus === 'saved' ? t('actions.saved') : t('actions.createPlan')}
           </button>
           {!canSavePlan && (
             <span className="print:hidden max-w-52 text-right text-xs text-amber-700">
-              Ange förväntad tid, eller distans tillsammans med fart/pace.
+              {t('validation.needTarget')}
             </span>
           )}
           {saveStatus === 'error' && (
             <span className="print:hidden max-w-52 text-right text-xs text-red-600">
-              {saveError ?? 'Kunde inte spara planen.'}
+              {saveError ?? t('errors.saveFailed')}
             </span>
           )}
         </div>
@@ -164,7 +148,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 print:hidden">
         <label className="text-sm font-medium text-gray-700">
-          Distans / tid
+          {t('fields.distanceTime')}
           <select
             className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
             value={selectedDistanceIndex}
@@ -181,7 +165,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
         </label>
 
         <label className="text-sm font-medium text-gray-700">
-          Planerad tävlingsintensitet
+          {t('fields.plannedIntensity')}
           <select
             className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
             value={selectedStageSequence ?? ''}
@@ -194,7 +178,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
             {usableStages.map((stage) => (
               <option key={stage.sequence} value={stage.sequence}>
                 {formatStageIntensity(stage, test.testType)}
-                {stage.lactate != null ? `, laktat ${stage.lactate}` : ''}
+                {stage.lactate != null ? `, ${t('stage.lactate')} ${stage.lactate}` : ''}
                 {stage.rer != null ? `, RER ${stage.rer.toFixed(2)}` : ''}
               </option>
             ))}
@@ -205,7 +189,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
       {selectedDistanceOption.custom && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 print:hidden">
           <label className="text-sm font-medium text-gray-700">
-            Egen distans (km)
+            {t('fields.customDistance')}
             <input
               className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
               inputMode="decimal"
@@ -218,11 +202,11 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
                 setSaveStatus('idle')
                 setSaveError(null)
               }}
-              placeholder="Ex. 30"
+              placeholder={t('placeholders.exampleDistance')}
             />
           </label>
           <label className="text-sm font-medium text-gray-700">
-            Förväntad tid (min)
+            {t('fields.expectedTime')}
             <input
               className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
               inputMode="numeric"
@@ -235,7 +219,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
                 setSaveStatus('idle')
                 setSaveError(null)
               }}
-              placeholder="Behövs om fart/pace saknas"
+              placeholder={t('placeholders.expectedTime')}
             />
           </label>
         </div>
@@ -243,7 +227,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 print:hidden">
         <label className="text-sm font-medium text-gray-700">
-          Tävlingsdatum
+          {t('fields.raceDate')}
           <input
             className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
             type="date"
@@ -256,7 +240,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
           />
         </label>
         <label className="text-sm font-medium text-gray-700">
-          Nuvarande magtolerans (g/h)
+          {t('fields.gutTolerance')}
           <input
             className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
             inputMode="numeric"
@@ -270,26 +254,26 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
               setSaveStatus('idle')
               setSaveError(null)
             }}
-            placeholder="Ex. 60"
+            placeholder={t('placeholders.exampleGutTolerance')}
           />
         </label>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-        <Metric label="Beräknad tid" value={formatDuration(estimate.estimatedDurationMinutes)} />
-        <Metric label="Målintensitet" value={targetIntensity ?? 'Saknas'} />
-        <Metric label="KH-förbrukning" value={estimate.carbohydrateDemandPerHour ? `${estimate.carbohydrateDemandPerHour} g/h` : 'Saknas'} />
-        <Metric label="Rekommenderat intag" value={estimate.recommendedCarbsPerHour ? `${estimate.recommendedCarbsPerHour} g/h` : 'Saknas'} />
-        <Metric label="Totalt intag" value={estimate.scenarios[1]?.totalCarbs ? `${estimate.scenarios[1].totalCarbs} g` : 'Saknas'} />
+        <Metric label={t('metrics.estimatedTime')} value={formatDuration(estimate.estimatedDurationMinutes, t)} />
+        <Metric label={t('metrics.targetIntensity')} value={targetIntensity ?? t('missing')} />
+        <Metric label={t('metrics.carbDemand')} value={estimate.carbohydrateDemandPerHour ? `${estimate.carbohydrateDemandPerHour} g/h` : t('missing')} />
+        <Metric label={t('metrics.recommendedIntake')} value={estimate.recommendedCarbsPerHour ? `${estimate.recommendedCarbsPerHour} g/h` : t('missing')} />
+        <Metric label={t('metrics.totalIntake')} value={estimate.scenarios[1]?.totalCarbs ? `${estimate.scenarios[1].totalCarbs} g` : t('missing')} />
       </div>
 
       {raceDayPlan && (
         <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-950">
-          <p className="font-medium mb-2">Praktisk raceplan</p>
+          <p className="font-medium mb-2">{t('raceDayPlan.title')}</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Metric label="Intagsrytm" value={`${raceDayPlan.intakeEvery20Min} g var 20:e min`} />
-            <Metric label="Gel-ekvivalent" value={raceDayPlan.gelEquivalentCount ? `${raceDayPlan.gelEquivalentCount} st à 25 g` : 'Saknas'} />
-            <Metric label="Sportdryck" value={raceDayPlan.bottleMixCount ? `${raceDayPlan.bottleMixCount} flaskor à 40 g` : 'Saknas'} />
+            <Metric label={t('raceDayPlan.intakeRhythm')} value={t('raceDayPlan.intakeEvery20Min', { grams: raceDayPlan.intakeEvery20Min })} />
+            <Metric label={t('raceDayPlan.gelEquivalent')} value={raceDayPlan.gelEquivalentCount ? t('raceDayPlan.gels', { count: raceDayPlan.gelEquivalentCount }) : t('missing')} />
+            <Metric label={t('raceDayPlan.sportsDrink')} value={raceDayPlan.bottleMixCount ? t('raceDayPlan.bottles', { count: raceDayPlan.bottleMixCount }) : t('missing')} />
           </div>
           {raceDayPlan.notesSv.length > 0 && (
             <ul className="list-disc pl-5 mt-3 space-y-1">
@@ -305,20 +289,20 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
         <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
           <div className="flex flex-col gap-1 md:flex-row md:items-start md:justify-between">
             <div>
-              <p className="font-medium">Magträning fram till loppet</p>
+              <p className="font-medium">{t('buildUp.title')}</p>
               <p className="mt-1 text-blue-900">
-                Bygg från {buildUpPlan.startCarbsGPerHour} till {buildUpPlan.raceTargetGPerHour} g/h med ett tävlingslikt pass per vecka.
+                {t('buildUp.description', { start: buildUpPlan.startCarbsGPerHour, target: buildUpPlan.raceTargetGPerHour })}
               </p>
             </div>
             <span className="w-fit rounded-full bg-white px-2 py-1 text-xs font-medium text-blue-700">
-              {buildUpPlan.sessions.length} veckor
+              {t('buildUp.weeks', { weeks: buildUpPlan.sessions.length })}
             </span>
           </div>
 
           <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
             {buildUpPlan.sessions.slice(0, 6).map((session) => (
               <div key={session.week} className="rounded-md border border-blue-100 bg-white/70 p-3">
-                <p className="text-xs font-medium text-blue-700">Vecka {session.week}</p>
+                <p className="text-xs font-medium text-blue-700">{t('buildUp.week', { week: session.week })}</p>
                 <p className="mt-1 text-lg font-semibold text-gray-900">{session.targetCarbsGPerHour} g/h</p>
                 <p className="text-xs font-medium text-gray-700">{session.focusSv}</p>
                 <p className="mt-1 text-xs text-gray-600">{session.noteSv}</p>
@@ -332,11 +316,11 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
         <table className="w-full text-sm">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-3 py-2 text-left">Scenario</th>
-              <th className="px-3 py-2 text-left">g/timme</th>
-              <th className="px-3 py-2 text-left">Var 20:e min</th>
-              <th className="px-3 py-2 text-left">Totalt</th>
-              <th className="px-3 py-2 text-left">Kommentar</th>
+              <th className="px-3 py-2 text-left">{t('scenarioTable.scenario')}</th>
+              <th className="px-3 py-2 text-left">{t('scenarioTable.gramsPerHour')}</th>
+              <th className="px-3 py-2 text-left">{t('scenarioTable.every20Min')}</th>
+              <th className="px-3 py-2 text-left">{t('scenarioTable.total')}</th>
+              <th className="px-3 py-2 text-left">{t('scenarioTable.comment')}</th>
             </tr>
           </thead>
           <tbody>
@@ -348,7 +332,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
                 <td className="px-3 py-2">{scenario.totalCarbs || '–'} g</td>
                 <td className="px-3 py-2 text-gray-700">
                   {scenario.noteSv}
-                  {scenario.requiresGutTraining ? ' Kräver magträning.' : ''}
+                  {scenario.requiresGutTraining ? ` ${t('scenarioTable.requiresGutTraining')}` : ''}
                 </td>
               </tr>
             ))}
@@ -357,10 +341,9 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
       </div>
 
       <div className="mt-3 p-4 bg-amber-50 rounded-lg border border-amber-200 text-sm text-amber-900">
-        <p className="font-medium mb-1">Tolkning</p>
+        <p className="font-medium mb-1">{t('interpretation.title')}</p>
         <p>
-          Kroppen kan förbruka mer kolhydrater än magen hinner ta upp. Därför är rekommendationen ett praktiskt
-          intagsmål, medan beräknad KH-förbrukning visar belastningen på glykogenlagren.
+          {t('interpretation.description')}
         </p>
         {(estimate.assumptionsSv.length > 0 || estimate.warningsSv.length > 0) && (
           <ul className="list-disc pl-5 mt-2 space-y-1">
@@ -398,18 +381,12 @@ function formatStageIntensity(stage: TestStage, testType: TestType): string {
   return `${stage.pace ?? '–'} min/km`
 }
 
-function confidenceLabel(confidence: RaceFuelingEstimate['confidence']): string {
-  if (confidence === 'HIGH') return 'hög'
-  if (confidence === 'MEDIUM') return 'medel'
-  return 'låg'
-}
-
-function formatDuration(minutes: number | null): string {
-  if (minutes == null) return 'Saknas'
+function formatDuration(minutes: number | null, t: RaceFuelingT): string {
+  if (minutes == null) return t('missing')
   const totalMinutes = Math.round(minutes)
   const hours = Math.floor(totalMinutes / 60)
   const mins = totalMinutes % 60
-  return hours > 0 ? `${hours} h ${mins} min` : `${mins} min`
+  return hours > 0 ? t('duration.hoursMinutes', { hours, minutes: mins }) : t('duration.minutes', { minutes: mins })
 }
 
 function resolveRaceTarget(option: RaceTargetOption, customDistanceKm: string, customDurationMinutes: string): RaceTargetOption {
@@ -419,7 +396,7 @@ function resolveRaceTarget(option: RaceTargetOption, customDistanceKm: string, c
   const durationMinutes = parsePositiveNumber(customDurationMinutes)
 
   return {
-    label: 'Egen distans / tid',
+    label: option.label,
     distanceKm,
     durationMinutes,
     custom: true,
@@ -431,15 +408,47 @@ function parsePositiveNumber(value: string): number | undefined {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
 }
 
-function formatRaceTargetLabel(option: RaceTargetOption): string {
+function formatRaceTargetLabel(option: RaceTargetOption, locale: string): string {
   if (!option.custom) return option.label
 
   const parts = [
-    option.distanceKm ? `${option.distanceKm.toLocaleString('sv-SE', { maximumFractionDigits: 1 })} km` : null,
-    option.durationMinutes ? formatDuration(option.durationMinutes) : null,
+    option.distanceKm ? `${option.distanceKm.toLocaleString(locale === 'en' ? 'en-US' : 'sv-SE', { maximumFractionDigits: 1 })} km` : null,
+    option.durationMinutes ? `${option.durationMinutes} min` : null,
   ].filter(Boolean)
 
   return parts.length > 0 ? parts.join(' / ') : option.label
+}
+
+function getDistanceOptions(
+  testType: TestType,
+  t: RaceFuelingT
+): RaceTargetOption[] {
+  const custom = { label: t('distanceOptions.custom'), custom: true }
+
+  if (testType === 'CYCLING') {
+    return [
+      { label: t('distanceOptions.twoHours'), durationMinutes: 120 },
+      { label: t('distanceOptions.threeHours'), durationMinutes: 180 },
+      { label: t('distanceOptions.fiveHours'), durationMinutes: 300 },
+      custom,
+    ]
+  }
+
+  if (testType === 'SKIING') {
+    return [
+      { label: '20 km', distanceKm: 20 },
+      { label: '45 km', distanceKm: 45 },
+      { label: '90 km', distanceKm: 90 },
+      custom,
+    ]
+  }
+
+  return [
+    { label: '10 km', distanceKm: 10 },
+    { label: t('distanceOptions.halfMarathon'), distanceKm: 21.0975 },
+    { label: t('distanceOptions.marathon'), distanceKm: 42.195 },
+    custom,
+  ]
 }
 
 function weeksUntilRace(value: string): number | null {

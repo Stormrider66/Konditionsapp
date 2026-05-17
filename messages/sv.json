@@ -3352,6 +3352,93 @@
       },
       "note": "Dessa tempo är beräknade från dina individuella tröskelvärden. Pulszoner ger mer exakt styrning under träning, särskilt vid varierande förhållanden."
     },
+    "raceFuelingEstimate": {
+      "title": "Tävlingsenergi",
+      "description": "En uppskattning av kolhydratbehov vid tävlingslik intensitet baserat på metabol testdata.",
+      "planName": "Tävlingsenergi {target}",
+      "missing": "Saknas",
+      "errors": {
+        "saveFailed": "Kunde inte spara planen."
+      },
+      "actions": {
+        "saving": "Sparar...",
+        "saved": "Sparad",
+        "createPlan": "Skapa tävlingsplan"
+      },
+      "validation": {
+        "needTarget": "Ange förväntad tid, eller distans tillsammans med fart/pace."
+      },
+      "confidence": {
+        "label": "Säkerhet:",
+        "values": {
+          "high": "hög",
+          "medium": "medel",
+          "low": "låg"
+        }
+      },
+      "distanceOptions": {
+        "halfMarathon": "Halvmarathon",
+        "marathon": "Marathon",
+        "custom": "Egen distans / tid",
+        "twoHours": "2 timmar",
+        "threeHours": "3 timmar",
+        "fiveHours": "5 timmar"
+      },
+      "fields": {
+        "distanceTime": "Distans / tid",
+        "plannedIntensity": "Planerad tävlingsintensitet",
+        "customDistance": "Egen distans (km)",
+        "expectedTime": "Förväntad tid (min)",
+        "raceDate": "Tävlingsdatum",
+        "gutTolerance": "Nuvarande magtolerans (g/h)"
+      },
+      "stage": {
+        "lactate": "laktat"
+      },
+      "placeholders": {
+        "exampleDistance": "Ex. 30",
+        "expectedTime": "Behövs om fart/pace saknas",
+        "exampleGutTolerance": "Ex. 60"
+      },
+      "metrics": {
+        "estimatedTime": "Beräknad tid",
+        "targetIntensity": "Målintensitet",
+        "carbDemand": "KH-förbrukning",
+        "recommendedIntake": "Rekommenderat intag",
+        "totalIntake": "Totalt intag"
+      },
+      "duration": {
+        "hoursMinutes": "{hours} h {minutes} min",
+        "minutes": "{minutes} min"
+      },
+      "raceDayPlan": {
+        "title": "Praktisk raceplan",
+        "intakeRhythm": "Intagsrytm",
+        "intakeEvery20Min": "{grams} g var 20:e min",
+        "gelEquivalent": "Gel-ekvivalent",
+        "gels": "{count} st à 25 g",
+        "sportsDrink": "Sportdryck",
+        "bottles": "{count} flaskor à 40 g"
+      },
+      "buildUp": {
+        "title": "Magträning fram till loppet",
+        "description": "Bygg från {start} till {target} g/h med ett tävlingslikt pass per vecka.",
+        "weeks": "{weeks} veckor",
+        "week": "Vecka {week}"
+      },
+      "scenarioTable": {
+        "scenario": "Scenario",
+        "gramsPerHour": "g/timme",
+        "every20Min": "Var 20:e min",
+        "total": "Totalt",
+        "comment": "Kommentar",
+        "requiresGutTraining": "Kräver magträning."
+      },
+      "interpretation": {
+        "title": "Tolkning",
+        "description": "Kroppen kan förbruka mer kolhydrater än magen hinner ta upp. Därför är rekommendationen ett praktiskt intagsmål, medan beräknad KH-förbrukning visar belastningen på glykogenlagren."
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

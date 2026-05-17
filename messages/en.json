@@ -3352,6 +3352,93 @@
       },
       "note": "These paces are calculated from your individual threshold values. Heart-rate zones provide more precise guidance during training, especially in variable conditions."
     },
+    "raceFuelingEstimate": {
+      "title": "Race fueling",
+      "description": "An estimate of carbohydrate needs at race-like intensity based on metabolic test data.",
+      "planName": "Race fueling {target}",
+      "missing": "Missing",
+      "errors": {
+        "saveFailed": "Could not save the plan."
+      },
+      "actions": {
+        "saving": "Saving...",
+        "saved": "Saved",
+        "createPlan": "Create race plan"
+      },
+      "validation": {
+        "needTarget": "Enter expected time, or distance together with speed/pace."
+      },
+      "confidence": {
+        "label": "Confidence:",
+        "values": {
+          "high": "high",
+          "medium": "medium",
+          "low": "low"
+        }
+      },
+      "distanceOptions": {
+        "halfMarathon": "Half marathon",
+        "marathon": "Marathon",
+        "custom": "Custom distance / time",
+        "twoHours": "2 hours",
+        "threeHours": "3 hours",
+        "fiveHours": "5 hours"
+      },
+      "fields": {
+        "distanceTime": "Distance / time",
+        "plannedIntensity": "Planned race intensity",
+        "customDistance": "Custom distance (km)",
+        "expectedTime": "Expected time (min)",
+        "raceDate": "Race date",
+        "gutTolerance": "Current gut tolerance (g/h)"
+      },
+      "stage": {
+        "lactate": "lactate"
+      },
+      "placeholders": {
+        "exampleDistance": "E.g. 30",
+        "expectedTime": "Needed if speed/pace is missing",
+        "exampleGutTolerance": "E.g. 60"
+      },
+      "metrics": {
+        "estimatedTime": "Estimated time",
+        "targetIntensity": "Target intensity",
+        "carbDemand": "Carb demand",
+        "recommendedIntake": "Recommended intake",
+        "totalIntake": "Total intake"
+      },
+      "duration": {
+        "hoursMinutes": "{hours} h {minutes} min",
+        "minutes": "{minutes} min"
+      },
+      "raceDayPlan": {
+        "title": "Practical race plan",
+        "intakeRhythm": "Intake rhythm",
+        "intakeEvery20Min": "{grams} g every 20 min",
+        "gelEquivalent": "Gel equivalent",
+        "gels": "{count} x 25 g gels",
+        "sportsDrink": "Sports drink",
+        "bottles": "{count} bottles at 40 g"
+      },
+      "buildUp": {
+        "title": "Gut training until race day",
+        "description": "Build from {start} to {target} g/h with one race-like session per week.",
+        "weeks": "{weeks} weeks",
+        "week": "Week {week}"
+      },
+      "scenarioTable": {
+        "scenario": "Scenario",
+        "gramsPerHour": "g/hour",
+        "every20Min": "Every 20 min",
+        "total": "Total",
+        "comment": "Comment",
+        "requiresGutTraining": "Requires gut training."
+      },
+      "interpretation": {
+        "title": "Interpretation",
+        "description": "The body can burn more carbohydrates than the gut can absorb. The recommendation is therefore a practical intake target, while estimated carb demand shows the load on glycogen stores."
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",
