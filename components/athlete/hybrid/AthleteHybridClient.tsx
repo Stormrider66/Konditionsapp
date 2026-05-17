@@ -8,7 +8,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +33,7 @@ import {
   History,
   Flame,
 } from 'lucide-react';
+import { useLocale, useTranslations } from '@/i18n/client';
 
 interface HybridMovement {
   id: string;
@@ -97,16 +97,18 @@ interface AthleteHybridClientProps {
   basePath?: string;
 }
 
-const formatLabels: Record<string, { label: string; labelSv: string; icon: React.ReactNode }> = {
-  AMRAP: { label: 'AMRAP', labelSv: 'AMRAP', icon: <Repeat className="h-4 w-4" /> },
-  FOR_TIME: { label: 'For Time', labelSv: 'På Tid', icon: <Timer className="h-4 w-4" /> },
-  EMOM: { label: 'EMOM', labelSv: 'EMOM', icon: <Clock className="h-4 w-4" /> },
-  TABATA: { label: 'Tabata', labelSv: 'Tabata', icon: <Zap className="h-4 w-4" /> },
-  CHIPPER: { label: 'Chipper', labelSv: 'Chipper', icon: <Target className="h-4 w-4" /> },
-  LADDER: { label: 'Ladder', labelSv: 'Stege', icon: <Dumbbell className="h-4 w-4" /> },
-  INTERVALS: { label: 'Intervals', labelSv: 'Intervaller', icon: <Zap className="h-4 w-4" /> },
-  HYROX_SIM: { label: 'HYROX', labelSv: 'HYROX', icon: <Trophy className="h-4 w-4" /> },
-  CUSTOM: { label: 'Custom', labelSv: 'Anpassad', icon: <Dumbbell className="h-4 w-4" /> },
+type TranslationKey = Parameters<ReturnType<typeof useTranslations>>[0]
+
+const formatLabels: Record<string, { labelKey: TranslationKey; icon: React.ReactNode }> = {
+  AMRAP: { labelKey: 'formats.amrap', icon: <Repeat className="h-4 w-4" /> },
+  FOR_TIME: { labelKey: 'formats.forTime', icon: <Timer className="h-4 w-4" /> },
+  EMOM: { labelKey: 'formats.emom', icon: <Clock className="h-4 w-4" /> },
+  TABATA: { labelKey: 'formats.tabata', icon: <Zap className="h-4 w-4" /> },
+  CHIPPER: { labelKey: 'formats.chipper', icon: <Target className="h-4 w-4" /> },
+  LADDER: { labelKey: 'formats.ladder', icon: <Dumbbell className="h-4 w-4" /> },
+  INTERVALS: { labelKey: 'formats.intervals', icon: <Zap className="h-4 w-4" /> },
+  HYROX_SIM: { labelKey: 'formats.hyrox', icon: <Trophy className="h-4 w-4" /> },
+  CUSTOM: { labelKey: 'formats.custom', icon: <Dumbbell className="h-4 w-4" /> },
 };
 
 const scalingLabels: Record<string, { label: string; color: string }> = {
@@ -116,7 +118,8 @@ const scalingLabels: Record<string, { label: string; color: string }> = {
   CUSTOM: { label: 'Custom', color: 'bg-purple-500' },
 };
 
-export function AthleteHybridClient({ clientId, canAccessTemplates = false, basePath = '' }: AthleteHybridClientProps) {
+export function AthleteHybridClient({ clientId, basePath = '' }: AthleteHybridClientProps) {
+  const t = useTranslations('components.athleteHybridClient')
   const [workouts, setWorkouts] = useState<HybridWorkout[]>([]);
   const [results, setResults] = useState<AthleteResult[]>([]);
   const [prs, setPrs] = useState<AthleteResult[]>([]);
@@ -159,8 +162,8 @@ export function AthleteHybridClient({ clientId, canAccessTemplates = false, base
   }, [clientId]);
 
   useEffect(() => {
-    fetchWorkouts();
-    fetchResults();
+    void fetchWorkouts();
+    void fetchResults();
   }, [fetchWorkouts, fetchResults]);
 
   function formatWorkoutDescription(workout: HybridWorkout): string {
@@ -170,7 +173,7 @@ export function AthleteHybridClient({ clientId, canAccessTemplates = false, base
       parts.push(`${workout.totalMinutes} min`);
     }
     if (workout.totalRounds) {
-      parts.push(`${workout.totalRounds} rounds`);
+      parts.push(t('description.rounds', { count: workout.totalRounds }));
     }
     if (workout.repScheme) {
       parts.push(workout.repScheme);
@@ -181,7 +184,7 @@ export function AthleteHybridClient({ clientId, canAccessTemplates = false, base
 
     const movementCount = workout.movements?.length || 0;
     if (movementCount > 0) {
-      parts.push(`${movementCount} rörelser`);
+      parts.push(t('description.movements', { count: movementCount }));
     }
 
     return parts.join(' • ');
@@ -220,10 +223,10 @@ export function AthleteHybridClient({ clientId, canAccessTemplates = false, base
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Flame className="h-8 w-8 text-orange-500" />
-            Hybrid Pass
+            {t('header.title')}
           </h1>
           <p className="text-muted-foreground">
-            Dina CrossFit, HYROX och funktionella pass
+            {t('header.description')}
           </p>
         </div>
       </div>
@@ -235,31 +238,31 @@ export function AthleteHybridClient({ clientId, canAccessTemplates = false, base
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Medal className="h-4 w-4 text-yellow-600" />
-                Personliga Rekord
+                {t('summary.personalRecords')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-700">{prs.length}</div>
-              <p className="text-xs text-muted-foreground">PRs totalt</p>
+              <p className="text-xs text-muted-foreground">{t('summary.totalPrs')}</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <History className="h-4 w-4" />
-                Loggade Pass
+                {t('summary.loggedWorkouts')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{results.length}</div>
-              <p className="text-xs text-muted-foreground">genomförda pass</p>
+              <p className="text-xs text-muted-foreground">{t('summary.completedWorkouts')}</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
-                Senaste PR
+                {t('summary.latestPr')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -277,19 +280,19 @@ export function AthleteHybridClient({ clientId, canAccessTemplates = false, base
         <TabsList>
           <TabsTrigger value="workouts">
             <Dumbbell className="h-4 w-4 mr-2" />
-            Pass ({workouts.length})
+            {t('tabs.workouts', { count: workouts.length })}
           </TabsTrigger>
           <TabsTrigger value="benchmarks">
             <Trophy className="h-4 w-4 mr-2" />
-            Benchmarks ({benchmarkWorkouts.length})
+            {t('tabs.benchmarks', { count: benchmarkWorkouts.length })}
           </TabsTrigger>
           <TabsTrigger value="history">
             <History className="h-4 w-4 mr-2" />
-            Historik ({results.length})
+            {t('tabs.history', { count: results.length })}
           </TabsTrigger>
           <TabsTrigger value="prs">
             <Medal className="h-4 w-4 mr-2" />
-            PRs ({prs.length})
+            {t('tabs.prs', { count: prs.length })}
           </TabsTrigger>
         </TabsList>
 
@@ -299,7 +302,7 @@ export function AthleteHybridClient({ clientId, canAccessTemplates = false, base
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Sök pass..."
+                placeholder={t('filters.searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -307,13 +310,13 @@ export function AthleteHybridClient({ clientId, canAccessTemplates = false, base
             </div>
             <Select value={formatFilter} onValueChange={setFormatFilter}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Alla format" />
+                <SelectValue placeholder={t('filters.allFormats')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alla format</SelectItem>
-                {Object.entries(formatLabels).map(([key, { labelSv }]) => (
+                <SelectItem value="all">{t('filters.allFormats')}</SelectItem>
+                {Object.entries(formatLabels).map(([key, { labelKey }]) => (
                   <SelectItem key={key} value={key}>
-                    {labelSv}
+                    {t(labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -380,7 +383,7 @@ export function AthleteHybridClient({ clientId, canAccessTemplates = false, base
 interface WorkoutGridProps {
   workouts: HybridWorkout[];
   loading: boolean;
-  formatLabels: Record<string, { label: string; labelSv: string; icon: React.ReactNode }>;
+  formatLabels: Record<string, { labelKey: TranslationKey; icon: React.ReactNode }>;
   scalingLabels: Record<string, { label: string; color: string }>;
   formatWorkoutDescription: (workout: HybridWorkout) => string;
   getMovementSummary: (movements: HybridMovement[]) => string;
@@ -398,6 +401,7 @@ function WorkoutGrid({
   results,
   basePath,
 }: WorkoutGridProps) {
+  const t = useTranslations('components.athleteHybridClient')
   if (loading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -421,8 +425,8 @@ function WorkoutGrid({
     return (
       <Card className="p-8 text-center">
         <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">Inga pass hittades</h3>
-        <p className="text-muted-foreground">Prova att ändra dina sökfilter.</p>
+        <h3 className="text-lg font-semibold mb-2">{t('empty.workoutsTitle')}</h3>
+        <p className="text-muted-foreground">{t('empty.workoutsDescription')}</p>
       </Card>
     );
   }
@@ -455,7 +459,7 @@ function WorkoutGrid({
                   </CardTitle>
                   <CardDescription className="flex items-center gap-2 mt-1">
                     {formatLabels[workout.format]?.icon}
-                    {formatLabels[workout.format]?.labelSv || workout.format}
+                    {formatLabels[workout.format] ? t(formatLabels[workout.format].labelKey) : workout.format}
                   </CardDescription>
                 </div>
                 <Badge
@@ -478,7 +482,7 @@ function WorkoutGrid({
               {resultCounts[workout.id] > 0 && (
                 <div className="mt-2 flex items-center gap-1 text-xs text-green-600">
                   <History className="h-3 w-3" />
-                  {resultCounts[workout.id]} {resultCounts[workout.id] === 1 ? 'gång' : 'gånger'} genomfört
+                  {t('resultCount', { count: resultCounts[workout.id] })}
                 </div>
               )}
             </CardContent>
@@ -497,13 +501,15 @@ interface ResultsListProps {
 }
 
 function ResultsList({ results, formatScore, scalingLabels, basePath }: ResultsListProps) {
+  const t = useTranslations('components.athleteHybridClient')
+  const locale = useLocale()
   if (results.length === 0) {
     return (
       <Card className="p-8 text-center">
         <History className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">Ingen historik än</h3>
+        <h3 className="text-lg font-semibold mb-2">{t('empty.historyTitle')}</h3>
         <p className="text-muted-foreground">
-          Genomför ditt första pass för att se din historik här.
+          {t('empty.historyDescription')}
         </p>
       </Card>
     );
@@ -521,7 +527,7 @@ function ResultsList({ results, formatScore, scalingLabels, basePath }: ResultsL
                   <div>
                     <div className="font-medium">{result.workout?.name}</div>
                     <div className="text-sm text-muted-foreground">
-                      {new Date(result.completedAt).toLocaleDateString('sv-SE')}
+                      {new Date(result.completedAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE')}
                     </div>
                   </div>
                 </div>
@@ -551,13 +557,15 @@ interface PRBoardProps {
 }
 
 function PRBoard({ prs, formatScore, scalingLabels, basePath }: PRBoardProps) {
+  const t = useTranslations('components.athleteHybridClient')
+  const locale = useLocale()
   if (prs.length === 0) {
     return (
       <Card className="p-8 text-center">
         <Medal className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">Inga personliga rekord än</h3>
+        <h3 className="text-lg font-semibold mb-2">{t('empty.prsTitle')}</h3>
         <p className="text-muted-foreground">
-          Dina PRs dyker upp här när du loggar resultat.
+          {t('empty.prsDescription')}
         </p>
       </Card>
     );
@@ -575,7 +583,7 @@ function PRBoard({ prs, formatScore, scalingLabels, basePath }: PRBoardProps) {
                   <div>
                     <div className="font-semibold">{pr.workout?.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {new Date(pr.completedAt).toLocaleDateString('sv-SE')}
+                      {new Date(pr.completedAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE')}
                     </div>
                   </div>
                 </div>

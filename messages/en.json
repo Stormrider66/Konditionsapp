@@ -7111,6 +7111,53 @@
       },
       "elapsedTime": "Elapsed time: {time}"
     },
+    "athleteHybridClient": {
+      "formats": {
+        "amrap": "AMRAP",
+        "forTime": "For Time",
+        "emom": "EMOM",
+        "tabata": "Tabata",
+        "chipper": "Chipper",
+        "ladder": "Ladder",
+        "intervals": "Intervals",
+        "hyrox": "HYROX",
+        "custom": "Custom"
+      },
+      "header": {
+        "title": "Hybrid workouts",
+        "description": "Your CrossFit, HYROX, and functional workouts"
+      },
+      "summary": {
+        "personalRecords": "Personal records",
+        "totalPrs": "Total PRs",
+        "loggedWorkouts": "Logged workouts",
+        "completedWorkouts": "completed workouts",
+        "latestPr": "Latest PR"
+      },
+      "tabs": {
+        "workouts": "Workouts ({count})",
+        "benchmarks": "Benchmarks ({count})",
+        "history": "History ({count})",
+        "prs": "PRs ({count})"
+      },
+      "filters": {
+        "searchPlaceholder": "Search workouts...",
+        "allFormats": "All formats"
+      },
+      "description": {
+        "rounds": "{count} rounds",
+        "movements": "{count} movements"
+      },
+      "empty": {
+        "workoutsTitle": "No workouts found",
+        "workoutsDescription": "Try changing your search filters.",
+        "historyTitle": "No history yet",
+        "historyDescription": "Complete your first workout to see your history here.",
+        "prsTitle": "No personal records yet",
+        "prsDescription": "Your PRs will appear here when you log results."
+      },
+      "resultCount": "{count, plural, one {# time completed} other {# times completed}}"
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

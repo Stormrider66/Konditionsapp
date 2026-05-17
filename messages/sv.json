@@ -7111,6 +7111,53 @@
       },
       "elapsedTime": "Förfluten tid: {time}"
     },
+    "athleteHybridClient": {
+      "formats": {
+        "amrap": "AMRAP",
+        "forTime": "På Tid",
+        "emom": "EMOM",
+        "tabata": "Tabata",
+        "chipper": "Chipper",
+        "ladder": "Stege",
+        "intervals": "Intervaller",
+        "hyrox": "HYROX",
+        "custom": "Anpassad"
+      },
+      "header": {
+        "title": "Hybrid Pass",
+        "description": "Dina CrossFit, HYROX och funktionella pass"
+      },
+      "summary": {
+        "personalRecords": "Personliga Rekord",
+        "totalPrs": "PRs totalt",
+        "loggedWorkouts": "Loggade Pass",
+        "completedWorkouts": "genomförda pass",
+        "latestPr": "Senaste PR"
+      },
+      "tabs": {
+        "workouts": "Pass ({count})",
+        "benchmarks": "Benchmarks ({count})",
+        "history": "Historik ({count})",
+        "prs": "PRs ({count})"
+      },
+      "filters": {
+        "searchPlaceholder": "Sök pass...",
+        "allFormats": "Alla format"
+      },
+      "description": {
+        "rounds": "{count} rounds",
+        "movements": "{count} rörelser"
+      },
+      "empty": {
+        "workoutsTitle": "Inga pass hittades",
+        "workoutsDescription": "Prova att ändra dina sökfilter.",
+        "historyTitle": "Ingen historik än",
+        "historyDescription": "Genomför ditt första pass för att se din historik här.",
+        "prsTitle": "Inga personliga rekord än",
+        "prsDescription": "Dina PRs dyker upp här när du loggar resultat."
+      },
+      "resultCount": "{count, plural, one {# gång genomfört} other {# gånger genomfört}}"
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",
