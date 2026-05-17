@@ -24,6 +24,8 @@ interface PracticeBlock {
   title?: string
   duration?: number
   focus?: string
+  groups?: string
+  equipment?: string
   description?: string
   coachingPoints?: string
   drillId?: string | null
@@ -185,6 +187,22 @@ export default async function PracticeSheetPage({ params }: PageProps) {
 
                 {block.focus && (
                   <p className="mt-3 text-sm font-medium text-slate-700">Fokus: {block.focus}</p>
+                )}
+                {(block.groups || block.equipment) && (
+                  <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                    {block.groups && (
+                      <div className="rounded-md bg-slate-50 p-2 print:border print:bg-white">
+                        <span className="font-semibold">Grupp: </span>
+                        {block.groups}
+                      </div>
+                    )}
+                    {block.equipment && (
+                      <div className="rounded-md bg-slate-50 p-2 print:border print:bg-white">
+                        <span className="font-semibold">Material: </span>
+                        {block.equipment}
+                      </div>
+                    )}
+                  </div>
                 )}
                 {block.description && (
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">{block.description}</p>
