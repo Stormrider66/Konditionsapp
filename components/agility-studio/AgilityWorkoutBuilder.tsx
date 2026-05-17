@@ -31,7 +31,8 @@ import {
   Plus,
   Trash2,
   GripVertical,
-  Clock,
+  Search,
+  Sparkles,
   Zap
 } from 'lucide-react'
 import type {
@@ -42,6 +43,7 @@ import type {
   SportType
 } from '@/types'
 import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton'
+import { HOCKEY_AGILITY_PRESETS, type HockeyAgilityPreset } from '@/lib/hockey/hockey-builder-presets'
 
 interface AgilityWorkoutBuilderProps {
   drills: AgilityDrill[]
@@ -79,35 +81,24 @@ export interface ImportedDrillSeed {
   notes?: string
 }
 
-const formatOptions: { value: AgilityWorkoutFormat; label: string; description: string }[] = [
-  { value: 'CIRCUIT', label: 'Circuit', description: 'Multiple drills performed in sequence' },
-  { value: 'STATION_ROTATION', label: 'Station Rotation', description: 'Teams rotate through different stations' },
-  { value: 'INTERVAL', label: 'Interval', description: 'Work/rest intervals with specific timing' },
-  { value: 'PROGRESSIVE', label: 'Progressive', description: 'Drills increase in difficulty/intensity' },
-  { value: 'REACTIVE', label: 'Reactive', description: 'Random order based on signals/cues' },
-  { value: 'TESTING', label: 'Testing', description: 'Standardized testing session' }
-]
+const normalizeDrillName = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/^hockey\s+/, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
 
-const stageOptions: { value: DevelopmentStage; label: string }[] = [
-  { value: 'FUNDAMENTALS', label: 'Fundamentals (6-9)' },
-  { value: 'LEARNING_TO_TRAIN', label: 'Learning to Train (9-12)' },
-  { value: 'TRAINING_TO_TRAIN', label: 'Training to Train (12-16)' },
-  { value: 'TRAINING_TO_COMPETE', label: 'Training to Compete (16-18)' },
-  { value: 'TRAINING_TO_WIN', label: 'Training to Win (18+)' },
-  { value: 'ELITE', label: 'Elite' }
-]
+const drillMatchesBlueprint = (
+  drill: AgilityDrill,
+  blueprint: HockeyAgilityPreset['drillBlueprints'][number]
+) => {
+  if (drill.category !== blueprint.category) return false
 
-const sportOptions: { value: SportType; label: string }[] = [
-  { value: 'TEAM_FOOTBALL', label: 'Football' },
-  { value: 'TEAM_BASKETBALL', label: 'Basketball' },
-  { value: 'TEAM_HANDBALL', label: 'Handball' },
-  { value: 'TEAM_FLOORBALL', label: 'Floorball' },
-  { value: 'TEAM_ICE_HOCKEY', label: 'Ice Hockey' },
-  { value: 'TEAM_VOLLEYBALL', label: 'Volleyball' },
-  { value: 'TENNIS', label: 'Tennis' },
-  { value: 'PADEL', label: 'Padel' },
-  { value: 'RUNNING', label: 'Running' }
-]
+  const blueprintName = normalizeDrillName(blueprint.name)
+  const drillNames = [drill.name, drill.nameSv ?? ''].map(normalizeDrillName)
+
+  return drillNames.some((name) => name === blueprintName || name.includes(blueprintName) || blueprintName.includes(name))
+}
 
 export function AgilityWorkoutBuilder({
   drills,
@@ -168,34 +159,88 @@ export function AgilityWorkoutBuilder({
     setSelectedDrills(seeded)
   }, [initialDrills, drills])
   const [drillSearchQuery, setDrillSearchQuery] = useState('')
+  const [drillSportFilter, setDrillSportFilter] = useState<SportType | 'all'>(
+    initialWorkout?.targetSports?.includes('TEAM_ICE_HOCKEY') ? 'TEAM_ICE_HOCKEY' : 'all'
+  )
 
   // Step 4: Review
   const [name, setName] = useState(initialWorkout?.name || '')
   const [description, setDescription] = useState(initialWorkout?.description || '')
   const [isTemplate, setIsTemplate] = useState(initialWorkout?.isTemplate || false)
+  const [primaryFocus, setPrimaryFocus] = useState(initialWorkout?.primaryFocus ?? undefined)
+  const [tags, setTags] = useState<string[]>(initialWorkout?.tags ?? [])
 
   const filteredDrills = drills.filter(drill => {
+    if (
+      drillSportFilter !== 'all' &&
+      !drill.primarySports.includes(drillSportFilter) &&
+      !drill.primarySports.includes('GENERAL_FITNESS')
+    ) {
+      return false
+    }
+
     if (!drillSearchQuery) return true
     const query = drillSearchQuery.toLowerCase()
     return (
       drill.name.toLowerCase().includes(query) ||
-      drill.nameSv?.toLowerCase().includes(query)
+      drill.nameSv?.toLowerCase().includes(query) ||
+      drill.description?.toLowerCase().includes(query) ||
+      drill.descriptionSv?.toLowerCase().includes(query)
     )
   })
 
-  const addDrill = (drill: AgilityDrill) => {
+  const addDrill = (
+    drill: AgilityDrill,
+    overrides?: Partial<Omit<SelectedDrill, 'drill' | 'order'>>
+  ) => {
     setSelectedDrills(prev => [
       ...prev,
       {
         drill,
         order: prev.length,
-        sectionType: 'MAIN',
+        sectionType: overrides?.sectionType ?? 'MAIN',
         sets: drill.defaultSets || undefined,
         reps: drill.defaultReps || undefined,
         duration: drill.durationSeconds || undefined,
-        restSeconds: drill.restSeconds || restBetweenDrills
+        restSeconds: drill.restSeconds || restBetweenDrills,
+        ...overrides
       }
     ])
+  }
+
+  const applyHockeyPreset = (preset: HockeyAgilityPreset) => {
+    const seeded = preset.drillBlueprints
+      .map((blueprint, index): SelectedDrill | null => {
+        const drill = drills.find((candidate) => drillMatchesBlueprint(candidate, blueprint))
+        if (!drill) return null
+
+        return {
+          drill,
+          order: index,
+          sectionType: blueprint.sectionType === 'COOLDOWN' ? 'COOLDOWN' : blueprint.sectionType === 'WARMUP' ? 'WARMUP' : 'MAIN',
+          sets: blueprint.sets ?? drill.defaultSets ?? undefined,
+          reps: blueprint.reps ?? drill.defaultReps ?? undefined,
+          duration: blueprint.duration ?? drill.durationSeconds ?? undefined,
+          restSeconds: blueprint.restSeconds ?? drill.restSeconds ?? restBetweenDrills,
+          notes: blueprint.notes,
+        }
+      })
+      .filter((item): item is SelectedDrill => item !== null)
+      .map((item, index) => ({ ...item, order: index }))
+
+    setFormat(preset.format)
+    setName(preset.name)
+    setDescription(preset.description)
+    setTotalDuration(preset.totalDuration)
+    setTargetSports(['TEAM_ICE_HOCKEY'])
+    setDrillSportFilter('TEAM_ICE_HOCKEY')
+    setPrimaryFocus(preset.primaryFocus)
+    setTags(preset.tags)
+
+    if (seeded.length > 0) {
+      setSelectedDrills(seeded)
+      setStep(3)
+    }
   }
 
   const removeDrill = (index: number) => {
@@ -244,6 +289,8 @@ export function AgilityWorkoutBuilder({
           restBetweenDrills,
           developmentStage,
           targetSports,
+          primaryFocus,
+          tags,
           isTemplate,
           drills: selectedDrills.map(d => ({
             drillId: d.drill.id,
@@ -324,7 +371,38 @@ export function AgilityWorkoutBuilder({
         <div className="flex-1 overflow-y-auto py-4">
           {/* Step 1: Format Selection */}
           {step === 1 && (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h4 className="font-medium">{t('builder.hockeyTemplates')}</h4>
+                </div>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  {HOCKEY_AGILITY_PRESETS.map((preset) => {
+                    const matchedDrills = preset.drillBlueprints.filter((blueprint) =>
+                      drills.some((drill) => drillMatchesBlueprint(drill, blueprint))
+                    ).length
+
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => applyHockeyPreset(preset)}
+                        className="rounded-md border bg-background p-3 text-left transition hover:border-primary hover:bg-primary/5"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium">{preset.name}</p>
+                          <Badge variant="secondary" className="shrink-0 text-xs">
+                            {matchedDrills}/{preset.drillBlueprints.length}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{preset.description}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
               <p className="text-muted-foreground">
                 {t('builder.chooseFormat')}
               </p>
@@ -403,6 +481,12 @@ export function AgilityWorkoutBuilder({
                 </div>
               </div>
 
+              {targetSports.includes('TEAM_ICE_HOCKEY') && (
+                <div className="rounded-lg border bg-blue-50 p-3 text-sm text-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
+                  {t('builder.hockeyModeHint')}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>{t('builder.totalDuration')}</Label>
@@ -434,12 +518,29 @@ export function AgilityWorkoutBuilder({
               {/* Drill Picker */}
               <div className="border rounded-lg p-4 overflow-hidden flex flex-col">
                 <h4 className="font-medium mb-2">{t('builder.availableDrills')}</h4>
-                <Input
-                  placeholder={t('builder.searchDrills')}
-                  value={drillSearchQuery}
-                  onChange={(e) => setDrillSearchQuery(e.target.value)}
-                  className="mb-2"
-                />
+                <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_150px]">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder={t('builder.searchDrills')}
+                      value={drillSearchQuery}
+                      onChange={(e) => setDrillSearchQuery(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                  <Select
+                    value={drillSportFilter}
+                    onValueChange={(value) => setDrillSportFilter(value as SportType | 'all')}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('builder.allSports')}</SelectItem>
+                      <SelectItem value="TEAM_ICE_HOCKEY">{t('builder.hockeyOnly')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex-1 overflow-y-auto space-y-2">
                   {filteredDrills.map((drill) => (
                     <div
@@ -451,6 +552,11 @@ export function AgilityWorkoutBuilder({
                         <p className="text-xs text-muted-foreground">
                           {t(`categories.${drill.category}`)}
                         </p>
+                        {drill.primarySports.includes('TEAM_ICE_HOCKEY') && (
+                          <Badge variant="outline" className="mt-1 text-[10px]">
+                            {t('sports.TEAM_ICE_HOCKEY')}
+                          </Badge>
+                        )}
                       </div>
                       <Button size="sm" onClick={() => addDrill(drill)}>
                         <Plus className="h-4 w-4" />
@@ -488,7 +594,7 @@ export function AgilityWorkoutBuilder({
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
-                          <div className="flex gap-2 mt-1">
+                          <div className="mt-2 grid grid-cols-2 gap-2">
                             <Select
                               value={item.sectionType}
                               onValueChange={(v) =>
@@ -497,7 +603,7 @@ export function AgilityWorkoutBuilder({
                                 })
                               }
                             >
-                              <SelectTrigger className="h-7 w-24 text-xs">
+                              <SelectTrigger className="h-8 text-xs">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -509,7 +615,7 @@ export function AgilityWorkoutBuilder({
                             <Input
                               type="number"
                               placeholder={t('builder.sets')}
-                              className="h-7 w-16 text-xs"
+                              className="h-8 text-xs"
                               value={item.sets || ''}
                               onChange={(e) =>
                                 updateDrill(index, {
@@ -520,7 +626,7 @@ export function AgilityWorkoutBuilder({
                             <Input
                               type="number"
                               placeholder={t('builder.reps')}
-                              className="h-7 w-16 text-xs"
+                              className="h-8 text-xs"
                               value={item.reps || ''}
                               onChange={(e) =>
                                 updateDrill(index, {
@@ -528,6 +634,56 @@ export function AgilityWorkoutBuilder({
                                 })
                               }
                             />
+                            <Input
+                              type="number"
+                              placeholder={t('builder.durationSeconds')}
+                              className="h-8 text-xs"
+                              value={item.duration || ''}
+                              onChange={(e) =>
+                                updateDrill(index, {
+                                  duration: e.target.value ? parseInt(e.target.value) : undefined
+                                })
+                              }
+                            />
+                            <Input
+                              type="number"
+                              placeholder={t('builder.restSeconds')}
+                              className="h-8 text-xs"
+                              value={item.restSeconds || ''}
+                              onChange={(e) =>
+                                updateDrill(index, {
+                                  restSeconds: e.target.value ? parseInt(e.target.value) : undefined
+                                })
+                              }
+                            />
+                            <div className="col-span-2 flex gap-1">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-8 px-2"
+                                disabled={index === 0}
+                                onClick={() => moveDrill(index, index - 1)}
+                              >
+                                <ChevronLeft className="h-3 w-3 rotate-90" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-8 px-2"
+                                disabled={index === selectedDrills.length - 1}
+                                onClick={() => moveDrill(index, index + 1)}
+                              >
+                                <ChevronRight className="h-3 w-3 rotate-90" />
+                              </Button>
+                              <Input
+                                placeholder={t('builder.drillNotes')}
+                                className="h-8 flex-1 text-xs"
+                                value={item.notes || ''}
+                                onChange={(e) => updateDrill(index, { notes: e.target.value || undefined })}
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -586,7 +742,17 @@ export function AgilityWorkoutBuilder({
                   {developmentStage && (
                     <div>{t('builder.stage')}: {t(`stages.${developmentStage === 'FUNDAMENTALS' ? 'fundamentals' : developmentStage === 'LEARNING_TO_TRAIN' ? 'learningToTrain' : developmentStage === 'TRAINING_TO_TRAIN' ? 'trainingToTrain' : developmentStage === 'TRAINING_TO_COMPETE' ? 'trainingToCompete' : developmentStage === 'TRAINING_TO_WIN' ? 'trainingToWin' : 'elite'}`)}</div>
                   )}
+                  {primaryFocus && <div>{t('builder.focus')}: {t(`categories.${primaryFocus}`)}</div>}
                 </div>
+                {tags.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {tags.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
                 {targetSports.length > 0 && (
                   <div className="mt-2">
                     <p className="text-sm">{t('builder.sports')}:</p>

@@ -26,7 +26,7 @@ import {
   Scale,
   Timer
 } from 'lucide-react'
-import type { AgilityDrill, AgilityDrillCategory, DevelopmentStage } from '@/types'
+import type { AgilityDrill, AgilityDrillCategory, DevelopmentStage, SportType } from '@/types'
 import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 
 interface DrillLibraryProps {
@@ -72,6 +72,7 @@ export function DrillLibrary({
   const t = useTranslations('agilityStudio')
   const tCommon = useTranslations('common')
   const [selectedCategory, setSelectedCategory] = useState<AgilityDrillCategory | 'all'>('all')
+  const [selectedSport, setSelectedSport] = useState<SportType | 'all'>('all')
   const [selectedDrill, setSelectedDrill] = useState<AgilityDrill | null>(null)
 
   const categoryLabels: Record<AgilityDrillCategory, string> = {
@@ -87,6 +88,15 @@ export function DrillLibrary({
     return drills.filter(drill => {
       // Category filter
       if (selectedCategory !== 'all' && drill.category !== selectedCategory) {
+        return false
+      }
+
+      // Sport filter
+      if (
+        selectedSport !== 'all' &&
+        !drill.primarySports.includes(selectedSport) &&
+        !drill.primarySports.includes('GENERAL_FITNESS')
+      ) {
         return false
       }
 
@@ -121,7 +131,7 @@ export function DrillLibrary({
 
       return true
     })
-  }, [drills, selectedCategory, developmentStage, searchQuery])
+  }, [drills, selectedCategory, selectedSport, developmentStage, searchQuery])
 
   const groupedDrills = useMemo(() => {
     const groups: Record<AgilityDrillCategory, AgilityDrill[]> = {
@@ -167,6 +177,13 @@ export function DrillLibrary({
             </Button>
           )
         })}
+        <Button
+          variant={selectedSport === 'TEAM_ICE_HOCKEY' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSelectedSport(selectedSport === 'TEAM_ICE_HOCKEY' ? 'all' : 'TEAM_ICE_HOCKEY')}
+        >
+          {t('builder.hockeyOnly')} ({drills.filter((drill) => drill.primarySports.includes('TEAM_ICE_HOCKEY')).length})
+        </Button>
       </div>
 
       {/* Drill Grid */}
@@ -270,6 +287,9 @@ function DrillCard({ drill, onView, onAdd }: DrillCardProps) {
           {drill.descriptionSv || drill.description}
         </p>
         <div className="flex flex-wrap gap-2 mb-4">
+          {drill.primarySports.includes('TEAM_ICE_HOCKEY') && (
+            <Badge variant="secondary">{t('sports.TEAM_ICE_HOCKEY')}</Badge>
+          )}
           {drill.distanceMeters && (
             <Badge variant="outline">
               <ChevronRight className="h-3 w-3 mr-1" />
@@ -339,6 +359,11 @@ function DrillDetailSheet({ drill, onClose, onAdd, categoryLabels }: DrillDetail
             <Badge className={categoryColors[drill.category]}>
               {categoryLabels[drill.category]}
             </Badge>
+            {drill.primarySports.includes('TEAM_ICE_HOCKEY') && (
+              <Badge variant="secondary" className="ml-2">
+                {t('sports.TEAM_ICE_HOCKEY')}
+              </Badge>
+            )}
           </div>
         </SheetHeader>
 

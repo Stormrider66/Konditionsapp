@@ -65,6 +65,9 @@ export default function AgilityStudioClient({
   const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(
     searchParams.get('fromCalendar') === 'true'
   )
+  const [builderInitialStep, setBuilderInitialStep] = useState<1 | 2 | 3 | 4>(
+    searchParams.get('fromCalendar') === 'true' ? 1 : 1
+  )
   const [showImporter, setShowImporter] = useState(false)
   const [importedWorkoutSeed, setImportedWorkoutSeed] = useState<{
     initialWorkout: Partial<AgilityWorkout>
@@ -133,7 +136,11 @@ export default function AgilityStudioClient({
             <FileUp className="h-4 w-4 mr-2" />
             Importera pass
           </Button>
-          <Button onClick={() => setShowWorkoutBuilder(true)}>
+          <Button onClick={() => {
+            setImportedWorkoutSeed(null)
+            setBuilderInitialStep(1)
+            setShowWorkoutBuilder(true)
+          }}>
             <Plus className="h-4 w-4 mr-2" />
             {t('createWorkout')}
           </Button>
@@ -195,8 +202,28 @@ export default function AgilityStudioClient({
             searchQuery={searchQuery}
             developmentStage={developmentStage === 'all' ? undefined : developmentStage}
             onAddToWorkout={(drill) => {
+              const isHockeyDrill = drill.primarySports.includes('TEAM_ICE_HOCKEY')
+              setImportedWorkoutSeed({
+                initialWorkout: {
+                  name: isHockeyDrill ? 'Hockey agility pass' : '',
+                  format: isHockeyDrill ? 'PROGRESSIVE' : 'CIRCUIT',
+                  targetSports: isHockeyDrill ? ['TEAM_ICE_HOCKEY'] : [],
+                  primaryFocus: drill.category,
+                  totalDuration: drill.durationSeconds ? Math.max(10, Math.ceil(drill.durationSeconds / 60) + 10) : undefined,
+                  restBetweenDrills: drill.restSeconds ?? 30,
+                  tags: isHockeyDrill ? ['hockey', drill.category.toLowerCase()] : [drill.category.toLowerCase()],
+                },
+                initialDrills: [{
+                  drillId: drill.id,
+                  sectionType: 'MAIN',
+                  sets: drill.defaultSets ?? undefined,
+                  reps: drill.defaultReps ?? undefined,
+                  duration: drill.durationSeconds ?? undefined,
+                  restSeconds: drill.restSeconds ?? undefined,
+                }],
+              })
+              setBuilderInitialStep(3)
               setShowWorkoutBuilder(true)
-              // Could pre-populate workout with this drill
             }}
           />
         </TabsContent>
@@ -236,7 +263,7 @@ export default function AgilityStudioClient({
           // When the importer prefills drills, jump past the format/audience
           // steps — the wizard otherwise discards the seeded drills if the
           // coach doesn't navigate forward.
-          initialStep={importedWorkoutSeed?.initialDrills?.length ? 4 : 1}
+          initialStep={builderInitialStep}
           onSave={(w) => {
             handleWorkoutCreated(w)
             setImportedWorkoutSeed(null)
@@ -244,6 +271,7 @@ export default function AgilityStudioClient({
           onClose={() => {
             setShowWorkoutBuilder(false)
             setImportedWorkoutSeed(null)
+            setBuilderInitialStep(1)
           }}
         />
       )}
@@ -272,6 +300,7 @@ export default function AgilityStudioClient({
               notes: d.notes,
             })),
           })
+          setBuilderInitialStep(4)
           setShowWorkoutBuilder(true)
           if (dropped > 0) {
             toast.warning(
