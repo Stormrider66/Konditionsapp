@@ -7,7 +7,7 @@ import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { PracticeSheetPrintButton } from '@/components/coach/team-calendar/PracticeSheetPrintButton'
+import { PracticeSheetActions } from '@/components/coach/team-calendar/PracticeSheetPrintButton'
 import { IceHockeyRink, type DrillStructure } from '@/components/coach/drills/IceHockeyRink'
 import type { PracticeBlock } from '@/lib/team-calendar/practice-plan'
 
@@ -17,7 +17,12 @@ interface PageProps {
     teamId: string
     eventId: string
   }>
+  searchParams?: Promise<{
+    audience?: string | string[]
+  }>
 }
+
+type PracticeSheetAudience = 'staff' | 'players'
 
 const BLOCK_TYPE_LABELS: Record<string, string> = {
   warmup: 'Uppvärmning',
@@ -76,8 +81,25 @@ function fallbackBlocks(description: string | null): PracticeBlock[] {
   }]
 }
 
-export default async function PracticeSheetPage({ params }: PageProps) {
+function normalizeAudience(value: string | string[] | undefined): PracticeSheetAudience {
+  const audience = Array.isArray(value) ? value[0] : value
+  return audience === 'players' ? 'players' : 'staff'
+}
+
+function uniqueTextValues(values: Array<string | undefined | null>) {
+  return Array.from(new Set(values.map((value) => value?.trim()).filter(Boolean) as string[]))
+}
+
+function summarizeList(values: string[]) {
+  if (values.length === 0) return 'Ej angivet'
+  if (values.length <= 3) return values.join(', ')
+  return `${values.slice(0, 3).join(', ')} +${values.length - 3}`
+}
+
+export default async function PracticeSheetPage({ params, searchParams }: PageProps) {
   const { businessSlug, teamId, eventId } = await params
+  const audience = normalizeAudience((await searchParams)?.audience)
+  const isPlayerVersion = audience === 'players'
   const user = await requireCoach()
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -110,6 +132,11 @@ export default async function PracticeSheetPage({ params }: PageProps) {
   const totalMinutes = practiceBlocks.reduce((sum, block) => sum + (Number(block.duration) || 0), 0)
   const startTime = event.allDay ? null : formatTime(event.startDate)
   const endTime = event.allDay ? null : formatTime(event.endDate)
+  const staffHref = `/${businessSlug}/coach/teams/${teamId}/calendar/${eventId}/practice-sheet`
+  const playerHref = `${staffHref}?audience=players`
+  const focusAreas = uniqueTextValues(practiceBlocks.map((block) => block.focus))
+  const equipment = uniqueTextValues(practiceBlocks.map((block) => block.equipment))
+  const groups = uniqueTextValues(practiceBlocks.map((block) => block.groups))
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-6 text-slate-950 print:bg-white print:px-0 print:py-0">
@@ -121,13 +148,23 @@ export default async function PracticeSheetPage({ params }: PageProps) {
               Till kalendern
             </Link>
           </Button>
-          <PracticeSheetPrintButton />
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant={!isPlayerVersion ? 'default' : 'outline'} size="sm">
+              <Link href={staffHref}>Tränarversion</Link>
+            </Button>
+            <Button asChild variant={isPlayerVersion ? 'default' : 'outline'} size="sm">
+              <Link href={playerHref}>Spelarversion</Link>
+            </Button>
+            <PracticeSheetActions />
+          </div>
         </div>
 
         <header className="border-b pb-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-sm font-medium uppercase tracking-wide text-slate-500">Ispass</p>
+              <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
+                {isPlayerVersion ? 'Spelarversion' : 'Tränarversion'} · Ispass
+              </p>
               <h1 className="mt-1 text-3xl font-bold">{event.title}</h1>
               <p className="mt-2 text-sm text-slate-600">{team.name} · {formatDate(event.startDate)}</p>
             </div>
@@ -148,6 +185,25 @@ export default async function PracticeSheetPage({ params }: PageProps) {
             </div>
           </div>
         </header>
+
+        <section className="mt-5 grid gap-3 text-sm sm:grid-cols-3 print:grid-cols-3">
+          <div className="rounded-md border bg-slate-50 p-3 print:bg-white">
+            <p className="text-xs font-semibold uppercase text-slate-500">Block</p>
+            <p className="mt-1 font-semibold">{practiceBlocks.length} st</p>
+          </div>
+          <div className="rounded-md border bg-slate-50 p-3 print:bg-white">
+            <p className="text-xs font-semibold uppercase text-slate-500">Fokus</p>
+            <p className="mt-1 font-semibold">{summarizeList(focusAreas)}</p>
+          </div>
+          <div className="rounded-md border bg-slate-50 p-3 print:bg-white">
+            <p className="text-xs font-semibold uppercase text-slate-500">
+              {isPlayerVersion ? 'Version' : 'Material/grupper'}
+            </p>
+            <p className="mt-1 font-semibold">
+              {isPlayerVersion ? 'Delningsbar spelarvy' : summarizeList([...equipment, ...groups])}
+            </p>
+          </div>
+        </section>
 
         <section className="mt-6 space-y-3">
           {practiceBlocks.length === 0 ? (
@@ -176,7 +232,7 @@ export default async function PracticeSheetPage({ params }: PageProps) {
                 {block.focus && (
                   <p className="mt-3 text-sm font-medium text-slate-700">Fokus: {block.focus}</p>
                 )}
-                {(block.groups || block.equipment) && (
+                {!isPlayerVersion && (block.groups || block.equipment) && (
                   <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                     {block.groups && (
                       <div className="rounded-md bg-slate-50 p-2 print:border print:bg-white">
@@ -200,7 +256,7 @@ export default async function PracticeSheetPage({ params }: PageProps) {
                     <IceHockeyRink structure={block.drillStructure} width={520} className="mx-auto" />
                   </div>
                 )}
-                {block.coachingPoints && (
+                {!isPlayerVersion && block.coachingPoints && (
                   <div className="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-950 print:border print:bg-white">
                     <span className="font-semibold">Coachingpunkter: </span>
                     {block.coachingPoints}
@@ -212,7 +268,7 @@ export default async function PracticeSheetPage({ params }: PageProps) {
         </section>
 
         <footer className="mt-8 border-t pt-4 text-xs text-slate-500">
-          Skapad av {event.createdBy.name} · Trainomics teamkalender
+          Skapad av {event.createdBy.name} · {isPlayerVersion ? 'Spelarversion' : 'Tränarversion'} · Trainomics teamkalender
         </footer>
       </div>
     </main>
