@@ -32,7 +32,7 @@ import {
   type TeamEventContentStatus,
   type TeamEventType,
 } from '@/lib/team-calendar/event-types'
-import { CheckCircle2, Dumbbell, ExternalLink, HeartPulse, Route, Send, Zap } from 'lucide-react'
+import { CheckCircle2, Dumbbell, ExternalLink, HeartPulse, Plus, Route, Send, Trash2, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -47,6 +47,7 @@ interface EditableTeamEvent {
   allDay: boolean
   contentStatus?: string
   contentOwner?: string | null
+  practicePlan?: PracticeBlock[] | null
   linkedWorkoutType?: string | null
   linkedWorkoutId?: string | null
   linkedWorkoutName?: string | null
@@ -70,6 +71,16 @@ interface EditableTeamEvent {
       notes: string | null
     }>
   } | null
+}
+
+interface PracticeBlock {
+  id: string
+  type: 'warmup' | 'technical' | 'tactical' | 'small_game' | 'special_teams' | 'goalie' | 'cooldown'
+  title: string
+  duration: number
+  focus: string
+  description: string
+  coachingPoints: string
 }
 
 interface EditEventDialogProps {
@@ -147,40 +158,77 @@ function formatDuration(value: number | null) {
   return `${value} min`
 }
 
-function icePracticeTemplate(kind: 'skills' | 'tactical' | 'gamePrep') {
+const PRACTICE_BLOCK_TYPES: Array<{ value: PracticeBlock['type']; label: string }> = [
+  { value: 'warmup', label: 'Uppvärmning' },
+  { value: 'technical', label: 'Teknik' },
+  { value: 'tactical', label: 'Taktik' },
+  { value: 'small_game', label: 'Smålagsspel' },
+  { value: 'special_teams', label: 'Special teams' },
+  { value: 'goalie', label: 'Målvakt' },
+  { value: 'cooldown', label: 'Nedvarvning' },
+]
+
+function blockId() {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+function blockSummary(block: PracticeBlock) {
+  const lines = [`${block.duration} min | ${block.title}`]
+  if (block.focus) lines.push(`Fokus: ${block.focus}`)
+  if (block.description) lines.push(block.description)
+  if (block.coachingPoints) lines.push(`Coaching: ${block.coachingPoints}`)
+  return lines.join('\n')
+}
+
+function practiceBlocksToDescription(blocks: PracticeBlock[]) {
+  return blocks.map(blockSummary).join('\n\n')
+}
+
+function makeBlock(input: Omit<PracticeBlock, 'id'>): PracticeBlock {
+  return { id: blockId(), ...input }
+}
+
+function newPracticeBlock(): PracticeBlock {
+  return makeBlock({
+    type: 'technical',
+    title: 'Nytt block',
+    duration: 10,
+    focus: '',
+    description: '',
+    coachingPoints: '',
+  })
+}
+
+function icePracticeTemplate(kind: 'skills' | 'tactical' | 'gamePrep'): PracticeBlock[] {
   if (kind === 'skills') {
     return [
-      'Fokus: Teknik och fart',
-      '',
-      '0-10 min | Uppvärmning: skridskoteknik + puckkontroll',
-      '10-25 min | Teknikstationer: pass/mottag, skott, riktningsförändringar',
-      '25-40 min | Smålagsspel: 2v2 / 3v3 med korta byten',
-      '40-55 min | Fartmoment: övergångar och avslut',
-      '55-60 min | Nedvarvning + snabb samling',
-    ].join('\n')
+      makeBlock({ type: 'warmup', title: 'Skridskoteknik + pucktouch', duration: 10, focus: 'Aktivering', description: 'Lätta riktningsförändringar, puckkontroll och tempo upp stegvis.', coachingPoints: 'Knä över tå, aktiv klubba, korta byten.' }),
+      makeBlock({ type: 'technical', title: 'Teknikstationer', duration: 15, focus: 'Pass/mottag, skott, riktningsförändringar', description: 'Tre stationer med tydlig rotation och hög repetition.', coachingPoints: 'Kvalitet före fart första varvet, sedan tempo.' }),
+      makeBlock({ type: 'small_game', title: '2v2 / 3v3 korta byten', duration: 15, focus: 'Beslut i små ytor', description: 'Smålagsspel med 30-40 sek byten.', coachingPoints: 'Spelbarhet, snabb återerövring, kommunikation.' }),
+      makeBlock({ type: 'technical', title: 'Fartmoment + avslut', duration: 15, focus: 'Övergångar', description: 'Övergång från fart till avslut med trafik mot mål.', coachingPoints: 'Attackera med fart, andra våg mot retur.' }),
+      makeBlock({ type: 'cooldown', title: 'Nedvarvning + samling', duration: 5, focus: 'Summering', description: 'Lugn åkning och kort samling.', coachingPoints: 'Lyft 1-2 nycklar till nästa pass.' }),
+    ]
   }
 
   if (kind === 'tactical') {
     return [
-      'Fokus: Taktik och lagdelar',
-      '',
-      '0-10 min | Uppvärmning: spelvändningar utan press',
-      '10-25 min | Speluppbyggnad: breakout + första pass',
-      '25-40 min | Forecheck/backcheck: styrning och avstånd',
-      '40-55 min | Special teams / zonspel',
-      '55-60 min | Samling: 1-2 nycklar till nästa match',
-    ].join('\n')
+      makeBlock({ type: 'warmup', title: 'Spelvändningar utan press', duration: 10, focus: 'Timing', description: 'Lugn uppstart med passvägar och uppspel.', coachingPoints: 'Vänd upp tidigt, scan före puck.' }),
+      makeBlock({ type: 'tactical', title: 'Breakout + första pass', duration: 15, focus: 'Speluppbyggnad', description: 'Back-forward-center-positioner med kontrollerad press.', coachingPoints: 'Bredd, understöd, första pass på blad.' }),
+      makeBlock({ type: 'tactical', title: 'Forecheck/backcheck', duration: 15, focus: 'Styrning och avstånd', description: 'Lagdelar jobbar med triggers och hemgångar.', coachingPoints: 'Rätt sida, korta avstånd, tydliga triggers.' }),
+      makeBlock({ type: 'special_teams', title: 'Zonspel / special teams', duration: 15, focus: 'Roller', description: 'Repetera PP/BP eller försvar/anfall i zon.', coachingPoints: 'Tydliga roller och nästa aktion.' }),
+      makeBlock({ type: 'cooldown', title: 'Samling', duration: 5, focus: 'Nycklar', description: '1-2 prioriteringar till nästa match.', coachingPoints: 'Kort och tydligt.' }),
+    ]
   }
 
   return [
-    'Fokus: Matchförberedelse',
-    '',
-    '0-10 min | Aktivering: tempo, pucktouch, målvaktsvärmning',
-    '10-25 min | Matchlika avslut + trafik på mål',
-    '25-40 min | Spelvändningar och defensiva hemgångar',
-    '40-52 min | Powerplay / boxplay / tekningar',
-    '52-60 min | Kort spel + tydlig matchplan',
-  ].join('\n')
+    makeBlock({ type: 'warmup', title: 'Tempo + pucktouch', duration: 10, focus: 'Aktivering', description: 'Matchlik start med målvaktsvärmning integrerad.', coachingPoints: 'Få upp fart utan att slita.' }),
+    makeBlock({ type: 'technical', title: 'Matchlika avslut', duration: 15, focus: 'Trafik på mål', description: 'Avslut med skymning, retur och andra puck.', coachingPoints: 'In på kassen, klubba ledig, stoppa vid mål.' }),
+    makeBlock({ type: 'tactical', title: 'Spelvändningar + hemgångar', duration: 15, focus: 'Matchdetaljer', description: 'Övergångar med defensiv sortering.', coachingPoints: 'Första hem, andra styr, tredje säkrar.' }),
+    makeBlock({ type: 'special_teams', title: 'PP / BP / tekningar', duration: 12, focus: 'Special teams', description: 'Repetera fasta situationer och roller.', coachingPoints: 'Startposition, första beslut, returjobb.' }),
+    makeBlock({ type: 'small_game', title: 'Kort spel + matchplan', duration: 8, focus: 'Energi', description: 'Kort intensivt spel och tydlig matchplan.', coachingPoints: 'Avsluta med självförtroende.' }),
+  ]
 }
 
 interface WorkoutOption {
@@ -212,6 +260,7 @@ export function EditEventDialog({
   const [linkedWorkoutId, setLinkedWorkoutId] = useState<string>('none')
   const [linkedWorkoutName, setLinkedWorkoutName] = useState<string | null>(null)
   const [workoutOptions, setWorkoutOptions] = useState<WorkoutOption[]>([])
+  const [practiceBlocks, setPracticeBlocks] = useState<PracticeBlock[]>([])
   const [loadingWorkouts, setLoadingWorkouts] = useState(false)
   const [assigning, setAssigning] = useState(false)
   const builderLink = builderLinkFor(type, businessSlug)
@@ -244,6 +293,7 @@ export function EditEventDialog({
     )
     setLinkedWorkoutId(event.linkedWorkoutId ?? 'none')
     setLinkedWorkoutName(event.linkedWorkoutName ?? null)
+    setPracticeBlocks(Array.isArray(event.practicePlan) ? event.practicePlan : [])
   }, [event])
 
   useEffect(() => {
@@ -310,6 +360,7 @@ export function EditEventDialog({
           allDay,
           contentStatus,
           contentOwner,
+          practicePlan: isIcePractice ? practiceBlocks : null,
           linkedWorkoutType: linkedWorkoutId === 'none' ? null : linkedWorkoutType,
           linkedWorkoutId: linkedWorkoutId === 'none' ? null : linkedWorkoutId,
           linkedWorkoutName: linkedWorkoutId === 'none' ? null : linkedWorkoutName,
@@ -326,6 +377,30 @@ export function EditEventDialog({
     } finally {
       setLoading(false)
     }
+  }
+
+  const applyPracticeTemplate = (kind: 'skills' | 'tactical' | 'gamePrep') => {
+    const blocks = icePracticeTemplate(kind)
+    setPracticeBlocks(blocks)
+    setDescription(practiceBlocksToDescription(blocks))
+  }
+
+  const updatePracticeBlock = (id: string, patch: Partial<PracticeBlock>) => {
+    const nextBlocks = practiceBlocks.map((block) => block.id === id ? { ...block, ...patch } : block)
+    setPracticeBlocks(nextBlocks)
+    setDescription(practiceBlocksToDescription(nextBlocks))
+  }
+
+  const addPracticeBlock = () => {
+    const nextBlocks = [...practiceBlocks, newPracticeBlock()]
+    setPracticeBlocks(nextBlocks)
+    setDescription(practiceBlocksToDescription(nextBlocks))
+  }
+
+  const removePracticeBlock = (id: string) => {
+    const nextBlocks = practiceBlocks.filter((block) => block.id !== id)
+    setPracticeBlocks(nextBlocks)
+    setDescription(practiceBlocksToDescription(nextBlocks))
   }
 
   const handleAssignToTeam = async () => {
@@ -573,10 +648,15 @@ export function EditEventDialog({
           {isIcePractice && (
             <div className="rounded-md border bg-muted/35 p-3">
               <div className="space-y-3">
-                <div>
-                  <div className="text-sm font-medium">Ispass-plan</div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div className="text-sm font-medium">Ispass-plan</div>
+                    <div className="text-xs text-muted-foreground">
+                      Bygg passet i block med tid, fokus och coachingpunkter.
+                    </div>
+                  </div>
                   <div className="text-xs text-muted-foreground">
-                    Lägg in en enkel struktur som tränarstaben kan justera.
+                    {practiceBlocks.reduce((sum, block) => sum + (Number(block.duration) || 0), 0)} min totalt
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -585,7 +665,7 @@ export function EditEventDialog({
                     variant="outline"
                     size="sm"
                     disabled={!canEdit}
-                    onClick={() => setDescription(icePracticeTemplate('skills'))}
+                    onClick={() => applyPracticeTemplate('skills')}
                   >
                     Teknik + fart
                   </Button>
@@ -594,7 +674,7 @@ export function EditEventDialog({
                     variant="outline"
                     size="sm"
                     disabled={!canEdit}
-                    onClick={() => setDescription(icePracticeTemplate('tactical'))}
+                    onClick={() => applyPracticeTemplate('tactical')}
                   >
                     Taktik
                   </Button>
@@ -603,11 +683,112 @@ export function EditEventDialog({
                     variant="outline"
                     size="sm"
                     disabled={!canEdit}
-                    onClick={() => setDescription(icePracticeTemplate('gamePrep'))}
+                    onClick={() => applyPracticeTemplate('gamePrep')}
                   >
                     Matchförberedelse
                   </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!canEdit}
+                    onClick={addPracticeBlock}
+                  >
+                    <Plus className="mr-1.5 h-3.5 w-3.5" />
+                    Block
+                  </Button>
                 </div>
+
+                {practiceBlocks.length > 0 && (
+                  <div className="space-y-2">
+                    {practiceBlocks.map((block, index) => (
+                      <div key={block.id} className="rounded-md border bg-background p-3">
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                          <div className="text-xs font-medium text-muted-foreground">Block {index + 1}</div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive"
+                            disabled={!canEdit}
+                            onClick={() => removePracticeBlock(block.id)}
+                            aria-label="Ta bort block"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_90px]">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Titel</Label>
+                            <Input
+                              value={block.title}
+                              disabled={!canEdit}
+                              onChange={(e) => updatePracticeBlock(block.id, { title: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Min</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={block.duration}
+                              disabled={!canEdit}
+                              onChange={(e) => updatePracticeBlock(block.id, { duration: Number(e.target.value) || 0 })}
+                            />
+                          </div>
+                        </div>
+                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Blocktyp</Label>
+                            <Select
+                              value={block.type}
+                              disabled={!canEdit}
+                              onValueChange={(value) => updatePracticeBlock(block.id, { type: value as PracticeBlock['type'] })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {PRACTICE_BLOCK_TYPES.map((blockType) => (
+                                  <SelectItem key={blockType.value} value={blockType.value}>
+                                    {blockType.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Fokus</Label>
+                            <Input
+                              value={block.focus}
+                              disabled={!canEdit}
+                              onChange={(e) => updatePracticeBlock(block.id, { focus: e.target.value })}
+                              placeholder="t.ex. breakout, skott, tempo"
+                            />
+                          </div>
+                        </div>
+                        <div className="mt-3 space-y-1">
+                          <Label className="text-xs">Beskrivning</Label>
+                          <Textarea
+                            value={block.description}
+                            disabled={!canEdit}
+                            rows={2}
+                            onChange={(e) => updatePracticeBlock(block.id, { description: e.target.value })}
+                          />
+                        </div>
+                        <div className="mt-3 space-y-1">
+                          <Label className="text-xs">Coachingpunkter</Label>
+                          <Input
+                            value={block.coachingPoints}
+                            disabled={!canEdit}
+                            onChange={(e) => updatePracticeBlock(block.id, { coachingPoints: e.target.value })}
+                            placeholder="1-2 saker tränarna ska trycka på"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -43,6 +43,7 @@ model TeamEvent {
   // Content planning
   contentStatus     String  @default("PLANNED") // PLANNED, NEEDS_CONTENT, CONTENT_READY
   contentOwner      String? // coach, physical_trainer, physio, shared
+  practicePlan      Json?   // Structured practice blocks for ice/on-field sessions
   linkedWorkoutType String? // STRENGTH, CARDIO, HYBRID, AGILITY
   linkedWorkoutId   String?
   linkedWorkoutName String?

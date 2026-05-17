@@ -34,6 +34,7 @@ const updateEventSchema = z.object({
   allDay: z.boolean().optional(),
   contentStatus: z.enum(TEAM_EVENT_CONTENT_STATUSES).optional(),
   contentOwner: z.enum(TEAM_EVENT_CONTENT_OWNERS).optional().nullable(),
+  practicePlan: z.unknown().optional().nullable(),
   linkedWorkoutType: z.enum(['STRENGTH', 'CARDIO', 'HYBRID', 'AGILITY']).optional().nullable(),
   linkedWorkoutId: z.string().uuid().optional().nullable(),
   linkedWorkoutName: z.string().max(200).optional().nullable(),
@@ -111,6 +112,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     if (parsed.data.allDay !== undefined) updateData.allDay = parsed.data.allDay
     if (parsed.data.contentStatus !== undefined) updateData.contentStatus = parsed.data.contentStatus
     if (parsed.data.contentOwner !== undefined) updateData.contentOwner = parsed.data.contentOwner
+    if (parsed.data.practicePlan !== undefined) updateData.practicePlan = parsed.data.practicePlan === null ? null : JSON.parse(JSON.stringify(parsed.data.practicePlan))
     if (parsed.data.linkedWorkoutType !== undefined) updateData.linkedWorkoutType = parsed.data.linkedWorkoutType
     if (parsed.data.linkedWorkoutId !== undefined) updateData.linkedWorkoutId = parsed.data.linkedWorkoutId
     if (parsed.data.linkedWorkoutName !== undefined) updateData.linkedWorkoutName = parsed.data.linkedWorkoutName
