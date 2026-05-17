@@ -65,10 +65,12 @@ import {
   Activity,
   MapPin,
   Copy,
+  Sparkles,
 } from 'lucide-react';
 import { SectionEditor } from './SectionEditor';
 import type { HybridMetconData, HybridSectionData } from '@/types';
 import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton';
+import { HOCKEY_HYBRID_PRESETS, type HockeyHybridPreset } from '@/lib/hockey/hockey-builder-presets';
 
 interface Exercise {
   id: string;
@@ -279,6 +281,46 @@ function createMovementFromExercise(exercise: Exercise, order: number): WorkoutM
     weightMale: exercise.defaultWeightMale,
     weightFemale: exercise.defaultWeightFemale,
   };
+}
+
+function normalizeMovementName(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, '')
+    .replace(/['’]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function findExerciseForHockeyMovement(exercises: Exercise[], exerciseName: string) {
+  const normalized = normalizeMovementName(exerciseName)
+  const aliases: Record<string, string[]> = {
+    'farmer carry': ['farmers carry', 'farmers walk'],
+    'farmers carry': ['farmers carry', 'farmers walk'],
+    'sandbag bear hug carry': ['sandbag carry'],
+    'lateral bound': ['lateral bounds'],
+    'skierg': ['skierg', 'skierg meters', 'skierg calories'],
+  }
+  const targets = new Set([normalized, ...(aliases[normalized] || [])])
+
+  return exercises.find((exercise) => {
+    const names = [
+      exercise.name,
+      exercise.nameSv,
+      exercise.standardAbbreviation,
+    ]
+      .filter((name): name is string => Boolean(name))
+      .map(normalizeMovementName)
+
+    return names.some((name) => targets.has(name) || name.includes(normalized) || normalized.includes(name))
+  })
+}
+
+function metconBlockFormatForPreset(format: HockeyHybridPreset['format']): MetconBlock['format'] {
+  if (format === 'EMOM' || format === 'AMRAP' || format === 'FOR_TIME' || format === 'INTERVALS') {
+    return format
+  }
+  return 'CUSTOM'
 }
 
 function buildInitialMetconBlocks(
@@ -704,6 +746,61 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
     );
   }
 
+  function countMatchedHockeyMovements(preset: HockeyHybridPreset) {
+    return preset.movements.filter((movement) =>
+      findExerciseForHockeyMovement(exercises, movement.exerciseName)
+    ).length;
+  }
+
+  function applyHockeyPreset(preset: HockeyHybridPreset) {
+    const movements = preset.movements
+      .map((movement, index): WorkoutMovement | null => {
+        const exercise = findExerciseForHockeyMovement(exercises, movement.exerciseName);
+        if (!exercise) return null;
+
+        return {
+          ...createMovementFromExercise(exercise, index + 1),
+          reps: movement.reps,
+          calories: movement.calories,
+          distance: movement.distance,
+          duration: movement.duration,
+          weightMale: movement.weightMale,
+          weightFemale: movement.weightFemale,
+          notes: movement.notes,
+        };
+      })
+      .filter((movement): movement is WorkoutMovement => movement !== null);
+
+    setName(preset.name);
+    setDescription(preset.description);
+    setFormat(preset.format);
+    setTimeCap(preset.timeCap);
+    setTotalMinutes(preset.totalMinutes);
+    setTotalRounds(preset.totalRounds);
+    setWorkTime(preset.workTime);
+    setRestTime(preset.restTime);
+    setRepScheme(preset.repScheme || '');
+    setTags(preset.tags);
+
+    if (movements.length > 0) {
+      setMetconBlocks([
+        {
+          id: createTempId('block'),
+          title: preset.name,
+          format: metconBlockFormatForPreset(preset.format),
+          intervalSeconds: preset.format === 'EMOM' ? DEFAULT_EMOM_INTERVAL_SECONDS : undefined,
+          rounds: preset.totalRounds ?? (preset.format === 'EMOM' ? preset.totalMinutes : undefined),
+          workSeconds: preset.workTime,
+          restSeconds: preset.restTime,
+          movements,
+        },
+      ]);
+      setStep(3);
+    } else {
+      setStep(2);
+    }
+  }
+
   async function handleSave() {
     setSaving(true);
     try {
@@ -857,7 +954,37 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
 
       {/* Step 1: Format Selection */}
       {step === 1 && (
-        <div className="space-y-4">
+        <div className="space-y-6">
+          <Card className="border-primary/20 bg-muted/30">
+            <CardContent className="p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold">Hockeymallar</h3>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                {HOCKEY_HYBRID_PRESETS.map((preset) => {
+                  const matched = countMatchedHockeyMovements(preset);
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => applyHockeyPreset(preset)}
+                      className="rounded-md border bg-background p-3 text-left transition hover:border-primary hover:bg-primary/5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium">{preset.name}</p>
+                        <Badge variant="secondary" className="shrink-0 text-xs">
+                          {matched}/{preset.movements.length}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{preset.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
           <h3 className="text-lg font-semibold">Välj Format</h3>
           <div className="grid gap-3 md:grid-cols-2">
             {formatOptions.map((option) => (

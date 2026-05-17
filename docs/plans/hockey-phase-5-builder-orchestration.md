@@ -18,7 +18,7 @@ Good fit for:
 
 Missing hockey polish:
 
-- Hockey presets for 7x40 m, 30-45 s shift repeats, and bench-recovery templates. Initial preset definitions now live in `lib/hockey/hockey-builder-presets.ts`.
+- Hockey presets for 7x40 m, shift-repeat conditioning, and Wattbike power repeats now live in `lib/hockey/hockey-builder-presets.ts` and are exposed as one-click templates in Cardio Studio.
 - A clearer hockey label layer for fatigue drop, resistance, and shift sustainability.
 
 ### Hybrid Studio
@@ -31,7 +31,7 @@ Good fit for:
 
 Missing hockey polish:
 
-- Hockey-specific template tags such as contact-prep circuit, lower-body power circuit, and off-ice compete circuit. Initial sled, contact-prep, and medicine-ball presets now live in `lib/hockey/hockey-builder-presets.ts`.
+- Hockey-specific template tags such as sled drive, contact prep, and off-ice power now live in `lib/hockey/hockey-builder-presets.ts` and are exposed as one-click templates in Hybrid Studio.
 - Better load hints for hockey athletes where the goal is repeat power, not race-style fatigue.
 
 ### Agility Studio
@@ -43,7 +43,7 @@ Good fit for:
 
 Missing hockey polish:
 
-- Seeded hockey drill pack for off-ice edge-control analogs, lateral acceleration, reactive reads, and position-specific patterns. Initial acceleration, 5-10-5, and reactive mirror blueprints now live in `lib/hockey/hockey-builder-presets.ts`.
+- Seeded hockey drill pack for off-ice edge-control analogs, lateral acceleration, reactive reads, and position-specific patterns. Initial acceleration, 5-10-5, and reactive mirror blueprints now live in `lib/hockey/hockey-builder-presets.ts` and are exposed as one-click templates in Agility Studio.
 - A hockey-specific recommendation layer that connects test gaps to drill categories.
 
 ### Strength Studio
@@ -93,8 +93,6 @@ When the floating coach AI is asked for hockey programming, it should:
 
 ## Recommended Next Phases
 
-1. Turn the shared hockey preset definitions into one-click UI templates inside each builder.
-2. Seed a small hockey agility drill pack from the agility blueprints.
-3. Add hockey tags/templates in Hybrid Studio from the shared preset definitions.
-4. Build a hockey weekly orchestration object that can combine cardio, hybrid, agility, strength, and manual blocks into one plan.
-5. Later, build a dedicated on-ice practice planner.
+1. Build a dedicated on-ice practice planner for technical/tactical sessions: rink zones, drill cards, line groups, goalie/position notes, work/rest density, and coach notes.
+2. Build a weekly hockey orchestration view that combines Strength, Cardio, Hybrid, Agility, and manual/on-ice blocks into one plan.
+3. Add a recommendation layer that converts hockey test gaps into suggested templates, for example first-step acceleration, 5-10-5 deceleration, shift-repeat conditioning, or contact-prep circuits.

@@ -25,7 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { GripVertical, Plus, Trash2, Timer, Activity, Footprints, Calendar, Heart, Gauge, Repeat, Download, Loader2, X, Target, ShieldCheck, Zap } from 'lucide-react'
+import { GripVertical, Plus, Trash2, Timer, Activity, Footprints, Calendar, Heart, Gauge, Repeat, Download, Loader2, X, Target, ShieldCheck, Zap, Sparkles } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -42,6 +42,7 @@ import {
 } from '@/lib/strength/exercise-library-filters'
 import type { CardioSessionData, CardioSegment as CardioSegmentType } from '@/types'
 import { PatternBlockDialog, type GeneratedPatternStep } from './PatternBlockDialog'
+import { HOCKEY_CARDIO_PRESETS, type HockeyCardioPreset } from '@/lib/hockey/hockey-builder-presets'
 
 // Types
 type CardioFlatSegment = {
@@ -162,6 +163,64 @@ const AVAILABLE_SEGMENTS = [
   { id: 'seg10', name: 'Stabilitet / Prehab', type: 'PREHAB', defaultDuration: 8, defaultZone: '1' },
   { id: 'seg11', name: 'Plyometri', type: 'PLYOMETRIC', defaultDuration: 8, defaultZone: '1' },
 ]
+
+function secondsToMinutes(seconds?: number) {
+  return seconds ? Number((seconds / 60).toFixed(1)) : undefined
+}
+
+function metersToUiDistance(distance?: number): { distance?: number; distanceUnit: 'km' | 'm' } {
+  if (!distance) return { distance: undefined, distanceUnit: 'km' }
+  if (distance >= 10) return { distance: distance / 1000, distanceUnit: 'm' }
+  return { distance, distanceUnit: 'km' }
+}
+
+function normalizeCardioTargetType(value?: string): CardioChildStep['targetType'] {
+  return value === 'power' || value === 'pace' || value === 'cadence' || value === 'hr'
+    ? value
+    : 'none'
+}
+
+function buildCardioSegmentFromHockeyPreset(
+  segment: HockeyCardioPreset['segments'][number]
+): CardioSegment {
+  if (segment.type === 'REPEAT_GROUP') {
+    return {
+      id: generateId(),
+      type: 'REPEAT_GROUP',
+      repeats: segment.repeats || 1,
+      restBetweenRounds: secondsToMinutes(segment.restBetweenRounds),
+      steps: (segment.steps || []).map((step) => {
+        const distanceInfo = metersToUiDistance(step.distance)
+        return {
+          id: generateId(),
+          type: step.type,
+          duration: secondsToMinutes(step.duration),
+          distance: distanceInfo.distance,
+          distanceUnit: distanceInfo.distanceUnit,
+          calories: step.calories,
+          zone: step.zone ? String(step.zone) : '1',
+          notes: step.notes || '',
+          equipment: step.equipment || '',
+          targetType: normalizeCardioTargetType(step.targetType),
+          targetValue: step.targetValue || '',
+        }
+      }),
+    }
+  }
+
+  const distanceInfo = metersToUiDistance(segment.distance)
+  return {
+    id: generateId(),
+    type: segment.type,
+    duration: secondsToMinutes(segment.duration),
+    distance: distanceInfo.distance,
+    distanceUnit: distanceInfo.distanceUnit,
+    zone: segment.zone ? String(segment.zone) : '1',
+    notes: segment.notes || '',
+    repeats: segment.repeats,
+    restDuration: secondsToMinutes(segment.restDuration),
+  }
+}
 
 // Helper functions for auto-calculation
 const paceToDecimal = (pace: string): number | null => {
@@ -545,6 +604,13 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
     setSegments([...segments, newSegment])
   }
 
+  const applyHockeyPreset = (preset: HockeyCardioPreset) => {
+    setSessionName(preset.name)
+    setDescription(preset.description)
+    setSport(preset.sport)
+    setSegments(preset.segments.map(buildCardioSegmentFromHockeyPreset))
+  }
+
   const removeSegment = (id: string) => {
     setSegments(segments.filter(s => s.id !== id))
   }
@@ -876,6 +942,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
                     <SelectItem value="SKIING">Skidor</SelectItem>
                     <SelectItem value="TRIATHLON">Triathlon</SelectItem>
                     <SelectItem value="HYROX">HYROX</SelectItem>
+                    <SelectItem value="TEAM_ICE_HOCKEY">Ishockey</SelectItem>
                     <SelectItem value="GENERAL_FITNESS">Allmän Kondition</SelectItem>
                   </SelectContent>
                 </Select>
@@ -973,6 +1040,31 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
 
       {/* Sidebar / Tools */}
       <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Hockeymallar
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {HOCKEY_CARDIO_PRESETS.map((preset) => (
+              <Button
+                key={preset.id}
+                type="button"
+                variant="outline"
+                className="h-auto w-full justify-start whitespace-normal px-3 py-2 text-left"
+                onClick={() => applyHockeyPreset(preset)}
+              >
+                <span>
+                  <span className="block font-medium">{preset.name}</span>
+                  <span className="block text-xs text-muted-foreground">{preset.description}</span>
+                </span>
+              </Button>
+            ))}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">Lägg till segment</CardTitle>
