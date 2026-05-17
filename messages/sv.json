@@ -3734,6 +3734,42 @@
       "testScope": {
         "title": "Om detta test",
         "description": "Detta test genomfördes utan VO₂-mätning. Laktat- och pulsmätningar är tillräckliga för att beräkna träningszoner och tröskelvärden. VO₂-mätning krävs endast för VO₂max-bedömning och löpekonomianalys."
+      },
+      "cyclingResults": {
+        "wattsPerKg": "Watt per kg",
+        "evaluation": "Bedömning"
+      },
+      "postTest": {
+        "title": "Eftermätningar (post-max laktat)",
+        "timeAfterTest": "Tid efter test",
+        "heartRate": "Puls (slag/min)",
+        "description": "Topplaktat efter maxbelastning ger en bild av anaerob kapacitet"
+      },
+      "thresholds": {
+        "title": "Tröskelvärden",
+        "aerobicTitle": "Aerob Tröskel ({lactate} mmol/L)",
+        "anaerobicTitle": "Anaerob Tröskel ({lactate} mmol/L)",
+        "heartRate": "Puls:",
+        "speed": "Hastighet:",
+        "power": "Effekt:",
+        "percentOfMaxHeartRate": "% av max puls:",
+        "confidence": "Tillförlitlighet:",
+        "r2": "R² (kurvpassning):",
+        "confidenceValues": {
+          "high": "Hög",
+          "medium": "Medel",
+          "low": "Låg"
+        }
+      },
+      "dmax": {
+        "title": "Om D-max metoden",
+        "description": "D-max är en matematisk metod som identifierar laktattröskeln genom att hitta punkten med maximalt avstånd från baslinjen till den uppmätta laktatkurvan. Detta är särskilt viktigt för vältränade atleter med \"platta\" laktatkurvor, där den traditionella 4 mmol/L-metoden kan överskatta tröskeln och leda till överträning. R² visar hur väl den polynomiska kurvan passar dina data ({fit} passning).",
+        "fitExcellent": "utmärkt",
+        "fitGood": "god"
+      },
+      "thresholdAnalysis": "Tröskelanalys",
+      "trainingZones": {
+        "title": "Träningszoner"
       }
     },
     "vbtSessionHistory": {

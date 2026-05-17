@@ -3734,6 +3734,42 @@
       "testScope": {
         "title": "About this test",
         "description": "This test was completed without VO₂ measurement. Lactate and heart-rate measurements are sufficient for calculating training zones and threshold values. VO₂ measurement is only required for VO₂max assessment and running economy analysis."
+      },
+      "cyclingResults": {
+        "wattsPerKg": "Watts per kg",
+        "evaluation": "Assessment"
+      },
+      "postTest": {
+        "title": "Post-measurements (post-max lactate)",
+        "timeAfterTest": "Time after test",
+        "heartRate": "Heart rate (bpm)",
+        "description": "Peak lactate after maximum load gives an indication of anaerobic capacity"
+      },
+      "thresholds": {
+        "title": "Threshold values",
+        "aerobicTitle": "Aerobic Threshold ({lactate} mmol/L)",
+        "anaerobicTitle": "Anaerobic Threshold ({lactate} mmol/L)",
+        "heartRate": "Heart rate:",
+        "speed": "Speed:",
+        "power": "Power:",
+        "percentOfMaxHeartRate": "% of max HR:",
+        "confidence": "Confidence:",
+        "r2": "R² (curve fit):",
+        "confidenceValues": {
+          "high": "High",
+          "medium": "Medium",
+          "low": "Low"
+        }
+      },
+      "dmax": {
+        "title": "About the D-max method",
+        "description": "D-max is a mathematical method that identifies the lactate threshold by finding the point with maximum distance from the baseline to the measured lactate curve. This is especially important for well-trained athletes with \"flat\" lactate curves, where the traditional 4 mmol/L method can overestimate the threshold and lead to overtraining. R² shows how well the polynomial curve fits your data ({fit} fit).",
+        "fitExcellent": "excellent",
+        "fitGood": "good"
+      },
+      "thresholdAnalysis": "Threshold analysis",
+      "trainingZones": {
+        "title": "Training zones"
       }
     },
     "vbtSessionHistory": {

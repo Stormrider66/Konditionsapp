@@ -228,11 +228,11 @@ export function ReportTemplate({
               <p className="text-2xl font-bold text-yellow-700">{calculations.cyclingData.ftp} watt</p>
             </div>
             <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-              <p className="text-gray-600 text-sm">Watt per kg</p>
+              <p className="text-gray-600 text-sm">{t('cyclingResults.wattsPerKg')}</p>
               <p className="text-2xl font-bold text-purple-700">{calculations.cyclingData.wattsPerKg} W/kg</p>
             </div>
             <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
-              <p className="text-gray-600 text-sm">Bedömning</p>
+              <p className="text-gray-600 text-sm">{t('cyclingResults.evaluation')}</p>
               <p className="text-lg font-bold text-indigo-700">{calculations.cyclingData.evaluation}</p>
             </div>
           </div>
@@ -241,15 +241,15 @@ export function ReportTemplate({
         {/* Post-test measurements (peak lactate after max effort) */}
         {test.postTestMeasurements && Array.isArray(test.postTestMeasurements) && test.postTestMeasurements.length > 0 && (
           <div className="mt-4">
-            <h3 className="font-semibold mb-2">Eftermätningar (post-max laktat)</h3>
+            <h3 className="font-semibold mb-2">{t('postTest.title')}</h3>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-4 py-2 text-left">Tid efter test</th>
+                    <th className="px-4 py-2 text-left">{t('postTest.timeAfterTest')}</th>
                     <th className="px-4 py-2 text-left">Laktat (mmol/L)</th>
                     {test.postTestMeasurements.some((m: { heartRate?: number }) => m.heartRate) && (
-                      <th className="px-4 py-2 text-left">Puls (slag/min)</th>
+                      <th className="px-4 py-2 text-left">{t('postTest.heartRate')}</th>
                     )}
                   </tr>
                 </thead>
@@ -267,7 +267,7 @@ export function ReportTemplate({
               </table>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Topplaktat efter maxbelastning ger en bild av anaerob kapacitet
+              {t('postTest.description')}
             </p>
           </div>
         )}
@@ -275,7 +275,7 @@ export function ReportTemplate({
 
       {/* Tröskelvärden */}
       <section className="mt-6 border-b pb-6" data-pdf-section>
-        <h2 className="text-2xl font-semibold mb-4">Tröskelvärden</h2>
+        <h2 className="text-2xl font-semibold mb-4">{t('thresholds.title')}</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Aerob tröskel */}
@@ -283,7 +283,7 @@ export function ReportTemplate({
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-semibold text-lg">
-                  Aerob Tröskel ({calculations.aerobicThreshold.lactate} mmol/L)
+                  {t('thresholds.aerobicTitle', { lactate: calculations.aerobicThreshold.lactate ?? '-' })}
                 </h3>
                 {(calculations.aerobicThreshold as any).method && (
                   <span className="text-xs px-2 py-1 bg-green-200 text-green-800 rounded-full">
@@ -293,36 +293,36 @@ export function ReportTemplate({
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Puls:</span>
-                  <span className="font-medium">{calculations.aerobicThreshold.heartRate} slag/min</span>
+                  <span className="text-gray-600">{t('thresholds.heartRate')}</span>
+                  <span className="font-medium">{t('testInfo.heartRateValue', { value: calculations.aerobicThreshold.heartRate })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">
-                    {test.testType === 'RUNNING' ? 'Hastighet:' : 'Effekt:'}
+                    {test.testType === 'RUNNING' ? t('thresholds.speed') : t('thresholds.power')}
                   </span>
                   <span className="font-medium">
                     {calculations.aerobicThreshold.value} {calculations.aerobicThreshold.unit}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">% av max puls:</span>
+                  <span className="text-gray-600">{t('thresholds.percentOfMaxHeartRate')}</span>
                   <span className="font-medium">{calculations.aerobicThreshold.percentOfMax}%</span>
                 </div>
                 {(calculations.aerobicThreshold as any).confidence && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Tillförlitlighet:</span>
+                    <span className="text-gray-600">{t('thresholds.confidence')}</span>
                     <span className={`font-medium ${
                       (calculations.aerobicThreshold as any).confidence === 'HIGH' ? 'text-green-700' :
                       (calculations.aerobicThreshold as any).confidence === 'MEDIUM' ? 'text-yellow-700' :
                       'text-orange-700'
                     }`}>
-                      {(calculations.aerobicThreshold as any).confidence}
+                      {t(`thresholds.confidenceValues.${String((calculations.aerobicThreshold as any).confidence).toLowerCase()}`)}
                     </span>
                   </div>
                 )}
                 {(calculations.aerobicThreshold as any).r2 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">R² (kurvpassning):</span>
+                    <span className="text-gray-600">{t('thresholds.r2')}</span>
                     <span className="font-medium">
                       {((calculations.aerobicThreshold as any).r2 * 100).toFixed(1)}%
                     </span>
@@ -337,7 +337,7 @@ export function ReportTemplate({
             <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-semibold text-lg">
-                  Anaerob Tröskel ({calculations.anaerobicThreshold.lactate} mmol/L)
+                  {t('thresholds.anaerobicTitle', { lactate: calculations.anaerobicThreshold.lactate ?? '-' })}
                 </h3>
                 {(calculations.anaerobicThreshold as any).method && (
                   <span className="text-xs px-2 py-1 bg-orange-200 text-orange-800 rounded-full">
@@ -347,38 +347,38 @@ export function ReportTemplate({
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Puls:</span>
+                  <span className="text-gray-600">{t('thresholds.heartRate')}</span>
                   <span className="font-medium">
-                    {calculations.anaerobicThreshold.heartRate} slag/min
+                    {t('testInfo.heartRateValue', { value: calculations.anaerobicThreshold.heartRate })}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">
-                    {test.testType === 'RUNNING' ? 'Hastighet:' : 'Effekt:'}
+                    {test.testType === 'RUNNING' ? t('thresholds.speed') : t('thresholds.power')}
                   </span>
                   <span className="font-medium">
                     {calculations.anaerobicThreshold.value} {calculations.anaerobicThreshold.unit}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">% av max puls:</span>
+                  <span className="text-gray-600">{t('thresholds.percentOfMaxHeartRate')}</span>
                   <span className="font-medium">{calculations.anaerobicThreshold.percentOfMax}%</span>
                 </div>
                 {(calculations.anaerobicThreshold as any).confidence && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Tillförlitlighet:</span>
+                    <span className="text-gray-600">{t('thresholds.confidence')}</span>
                     <span className={`font-medium ${
                       (calculations.anaerobicThreshold as any).confidence === 'HIGH' ? 'text-green-700' :
                       (calculations.anaerobicThreshold as any).confidence === 'MEDIUM' ? 'text-yellow-700' :
                       'text-orange-700'
                     }`}>
-                      {(calculations.anaerobicThreshold as any).confidence}
+                      {t(`thresholds.confidenceValues.${String((calculations.anaerobicThreshold as any).confidence).toLowerCase()}`)}
                     </span>
                   </div>
                 )}
                 {(calculations.anaerobicThreshold as any).r2 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">R² (kurvpassning):</span>
+                    <span className="text-gray-600">{t('thresholds.r2')}</span>
                     <span className="font-medium">
                       {((calculations.anaerobicThreshold as any).r2 * 100).toFixed(1)}%
                     </span>
@@ -398,14 +398,12 @@ export function ReportTemplate({
               <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
-              Om D-max metoden
+              {t('dmax.title')}
             </h4>
             <p className="text-sm text-gray-700">
-              D-max är en matematisk metod som identifierar laktattröskeln genom att hitta punkten med
-              maximalt avstånd från baslinjen till den uppmätta laktatkurvan. Detta är särskilt viktigt
-              för vältränade atleter med &quot;platta&quot; laktatkurvor, där den traditionella 4 mmol/L-metoden
-              kan överskatta tröskeln och leda till överträning.
-              R² visar hur väl den polynomiska kurvan passar dina data ({calculations.dmaxVisualization.r2 >= 0.95 ? 'utmärkt' : 'god'} passning).
+              {t('dmax.description', {
+                fit: calculations.dmaxVisualization.r2 >= 0.95 ? t('dmax.fitExcellent') : t('dmax.fitGood'),
+              })}
             </p>
           </div>
         )}
@@ -422,7 +420,7 @@ export function ReportTemplate({
         <>
           {/* Lactate vs Heart Rate Chart - Primary (most relevant) */}
           <section className="mt-6 border-b pb-6 print:break-inside-avoid" data-pdf-section>
-            <h2 className="text-2xl font-semibold mb-4">Tröskelanalys</h2>
+            <h2 className="text-2xl font-semibold mb-4">{t('thresholdAnalysis')}</h2>
             <div className="bg-white p-4 rounded-lg border">
               <LactateHeartRateChart
                 stages={test.testStages}
@@ -465,7 +463,7 @@ export function ReportTemplate({
 
       {/* Träningszoner */}
       <section className="mt-6 border-b pb-6" data-pdf-section>
-        <h2 className="text-2xl font-semibold mb-4">Träningszoner</h2>
+        <h2 className="text-2xl font-semibold mb-4">{t('trainingZones.title')}</h2>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-100">
