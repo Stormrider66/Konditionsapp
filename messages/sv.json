@@ -222,6 +222,25 @@
         "title": "Mathistorik",
         "subtitle": "Dina livsmedel & näringskällor"
       }
+    },
+    "lactateNew": {
+      "title": "Rapportera laktatvärden",
+      "description": "Registrera dina laktatvärden från ett test. Minst 4 steg krävs för D-max analys.",
+      "tips": {
+        "title": "Tips för bästa resultat:",
+        "stageLength": "Varje steg ska vara 3 minuter långt",
+        "measureAfterStage": "Mät laktat direkt efter varje steg",
+        "increaseGradually": "Öka intensiteten gradvis mellan stegen",
+        "minimumStages": "Minst 4 steg krävs, men 6-8 steg ger bättre analys",
+        "photoVerification": "Ta ett foto på laktatmätaren för verifiering"
+      }
+    },
+    "bodyComposition": {
+      "backToProfile": "Tillbaka till profil",
+      "title": "Ny Mätning",
+      "subtitle": "Kroppssammansättning & Bioimpedans",
+      "formTitle": "Mätningsdata",
+      "formDescription": "Fyll i värden från din bioimpedansvåg. Du behöver inte fylla i alla fält."
     }
   },
   "nav": {

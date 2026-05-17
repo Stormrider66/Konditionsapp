@@ -222,6 +222,25 @@
         "title": "Food history",
         "subtitle": "Your foods & nutrition sources"
       }
+    },
+    "lactateNew": {
+      "title": "Report lactate values",
+      "description": "Register your lactate values from a test. At least 4 stages are required for D-max analysis.",
+      "tips": {
+        "title": "Tips for best results:",
+        "stageLength": "Each stage should be 3 minutes long",
+        "measureAfterStage": "Measure lactate directly after each stage",
+        "increaseGradually": "Increase intensity gradually between stages",
+        "minimumStages": "At least 4 stages are required, but 6-8 stages give better analysis",
+        "photoVerification": "Take a photo of the lactate meter for verification"
+      }
+    },
+    "bodyComposition": {
+      "backToProfile": "Back to profile",
+      "title": "New Measurement",
+      "subtitle": "Body composition & bioimpedance",
+      "formTitle": "Measurement data",
+      "formDescription": "Fill in values from your bioimpedance scale. You do not need to fill in every field."
     }
   },
   "nav": {

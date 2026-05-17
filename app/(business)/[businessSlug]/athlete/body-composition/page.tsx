@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, Scale } from 'lucide-react'
 import Link from 'next/link'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
+import { getTranslations } from '@/i18n/server'
 
 interface BusinessBodyCompositionPageProps {
   params: Promise<{ businessSlug: string }>
@@ -15,6 +16,7 @@ interface BusinessBodyCompositionPageProps {
 
 export default async function BusinessBodyCompositionPage({ params }: BusinessBodyCompositionPageProps) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.bodyComposition')
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
@@ -44,7 +46,7 @@ export default async function BusinessBodyCompositionPage({ params }: BusinessBo
         <Link href={`${basePath}/athlete/profile?tab=body`}>
           <Button variant="ghost" size="sm" className="gap-2 mb-6 text-slate-600 hover:text-slate-950 hover:bg-slate-100 rounded-full px-4 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5">
             <ArrowLeft className="h-4 w-4" />
-            Tillbaka till profil
+            {t('backToProfile')}
           </Button>
         </Link>
 
@@ -55,10 +57,10 @@ export default async function BusinessBodyCompositionPage({ params }: BusinessBo
           </div>
           <div>
             <h1 className="text-3xl font-black italic uppercase tracking-tight text-slate-950 leading-none dark:text-white">
-              Ny Mätning
+              {t('title')}
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">
-              Kroppssammansättning & Bioimpedans
+              {t('subtitle')}
             </p>
           </div>
         </div>
@@ -66,9 +68,9 @@ export default async function BusinessBodyCompositionPage({ params }: BusinessBo
         {/* Form Container */}
         <GlassCard className="border-slate-200 bg-white/80 shadow-sm overflow-hidden ring-1 ring-slate-900/5 dark:border-white/5 dark:bg-black/40 dark:shadow-2xl dark:ring-white/10">
           <GlassCardHeader className="border-b border-slate-200 bg-slate-50 p-6 dark:border-white/5 dark:bg-white/[0.02]">
-            <GlassCardTitle className="text-xl font-black italic tracking-tight text-slate-950 dark:text-white">Mätningsdata</GlassCardTitle>
+            <GlassCardTitle className="text-xl font-black italic tracking-tight text-slate-950 dark:text-white">{t('formTitle')}</GlassCardTitle>
             <GlassCardDescription className="text-slate-500 font-medium">
-              Fyll i värden från din bioimpedansvåg. Du behöver inte fylla i alla fält.
+              {t('formDescription')}
             </GlassCardDescription>
           </GlassCardHeader>
           <GlassCardContent className="p-6">
