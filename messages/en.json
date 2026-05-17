@@ -3185,6 +3185,69 @@
         "removeFailed": "Could not remove workout",
         "generic": "Something went wrong"
       }
+    },
+    "heroWorkoutCard": {
+      "completed": "Completed",
+      "metrics": {
+        "duration": "Duration",
+        "volume": "Volume",
+        "distance": "Distance",
+        "intensity": "Intensity"
+      },
+      "intensity": {
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "threshold": "Threshold",
+        "intense": "Intense",
+        "max": "Max"
+      },
+      "workoutTypes": {
+        "running": "Running",
+        "strength": "Strength",
+        "plyometric": "Plyometric",
+        "core": "Core",
+        "recovery": "Recovery",
+        "cycling": "Cycling",
+        "skiing": "Skiing",
+        "swimming": "Swimming",
+        "triathlon": "Triathlon",
+        "hyrox": "Hyrox",
+        "alternative": "Alternative",
+        "other": "Workout"
+      },
+      "highlights": {
+        "time": "Time",
+        "distance": "Distance",
+        "pace": "Pace",
+        "avgHr": "Avg HR"
+      },
+      "effort": {
+        "light": "Light load",
+        "controlled": "Controlled",
+        "challenging": "Challenging",
+        "veryHard": "Very hard",
+        "maximal": "Maximal"
+      },
+      "actions": {
+        "remove": "Remove workout",
+        "viewDetails": "View details",
+        "startWorkout": "Start workout"
+      }
+    },
+    "removeWorkoutDialog": {
+      "title": "Remove workout?",
+      "description": {
+        "adhoc": "The logged workout cannot be removed from here.",
+        "wod": "The workout is removed from your dashboard.",
+        "customProgram": "The workout is removed permanently.",
+        "program": "The workout is marked as cancelled. Your coach can still see it.",
+        "assignment": "The workout is marked as skipped. Your coach can still see this."
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "remove": "Remove",
+        "removing": "Removing…"
+      }
     }
   },
   "infographic": {

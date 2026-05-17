@@ -12,6 +12,7 @@ import {
   AlertDialogAction,
 } from '@/components/ui/alert-dialog'
 import type { DashboardItem } from '@/types/dashboard-items'
+import { useTranslations } from '@/i18n/client'
 
 interface RemoveWorkoutDialogProps {
   item: DashboardItem | null
@@ -28,21 +29,23 @@ function getItemLabel(item: DashboardItem): string {
   return item.name
 }
 
-function getDescription(item: DashboardItem): string {
+type RemoveWorkoutTranslator = ReturnType<typeof useTranslations>
+
+function getDescription(item: DashboardItem, t: RemoveWorkoutTranslator): string {
   if (item.kind === 'adhoc') {
-    return 'Det loggade passet går inte att ta bort härifrån.'
+    return t('description.adhoc')
   }
   if (item.kind === 'wod') {
-    return 'Passet tas bort från din dashboard.'
+    return t('description.wod')
   }
   if (item.kind === 'program') {
     if (item.workout.isCustom) {
-      return 'Passet tas bort permanent.'
+      return t('description.customProgram')
     }
-    return 'Passet markeras som inställt. Din coach kan fortfarande se det.'
+    return t('description.program')
   }
   // assignment
-  return 'Passet markeras som hoppat. Din coach kan fortfarande se detta.'
+  return t('description.assignment')
 }
 
 export function RemoveWorkoutDialog({
@@ -52,6 +55,8 @@ export function RemoveWorkoutDialog({
   onConfirm,
   isRemoving,
 }: RemoveWorkoutDialogProps) {
+  const t = useTranslations('components.removeWorkoutDialog')
+
   if (!item) return null
   const isUnsupported = item.kind === 'adhoc'
 
@@ -59,15 +64,15 @@ export function RemoveWorkoutDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Ta bort pass?</AlertDialogTitle>
+          <AlertDialogTitle>{t('title')}</AlertDialogTitle>
           <AlertDialogDescription>
             <span className="font-medium text-foreground">{getItemLabel(item)}</span>
             <br />
-            {getDescription(item)}
+            {getDescription(item, t)}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isRemoving}>Avbryt</AlertDialogCancel>
+          <AlertDialogCancel disabled={isRemoving}>{t('actions.cancel')}</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault()
@@ -81,10 +86,10 @@ export function RemoveWorkoutDialog({
             {isRemoving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Tar bort…
+                {t('actions.removing')}
               </>
             ) : (
-              'Ta bort'
+              t('actions.remove')
             )}
           </AlertDialogAction>
         </AlertDialogFooter>

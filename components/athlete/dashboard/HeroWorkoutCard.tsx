@@ -20,6 +20,7 @@ import { ModificationBanner } from '@/components/athlete/workouts/ModificationBa
 import { DashboardVisualLayer } from './DashboardVisualLayer'
 import { getWorkoutVisual } from './dashboard-visuals'
 import { useMemo } from 'react'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 export interface WorkoutModification {
   decision: 'PROCEED_NORMAL' | 'REDUCE_INTENSITY' | 'REDUCE_VOLUME' | 'EASY_DAY' | 'REST'
@@ -35,19 +36,6 @@ interface HeroWorkoutCardProps {
   modification?: WorkoutModification
   basePath?: string
   onRemove?: () => void
-}
-
-// Format intensity for display
-function formatIntensity(intensity: string): string {
-  const intensities: Record<string, string> = {
-    RECOVERY: 'Lätt',
-    EASY: 'Lätt',
-    MODERATE: 'Måttlig',
-    THRESHOLD: 'Tröskel',
-    INTERVAL: 'Intensiv',
-    MAX: 'Max',
-  }
-  return intensities[intensity] || intensity
 }
 
 // Get intensity color class
@@ -155,6 +143,42 @@ function formatVolume(volume: number): string {
 }
 
 export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove }: HeroWorkoutCardProps) {
+  const t = useTranslations('components.heroWorkoutCard')
+  const locale = useLocale()
+  const formatIntensity = (intensity: string): string => {
+    switch (intensity) {
+      case 'RECOVERY':
+      case 'EASY':
+        return t('intensity.easy')
+      case 'MODERATE':
+        return t('intensity.moderate')
+      case 'THRESHOLD':
+        return t('intensity.threshold')
+      case 'INTERVAL':
+        return t('intensity.intense')
+      case 'MAX':
+        return t('intensity.max')
+      default:
+        return intensity
+    }
+  }
+  const formatWorkoutTypeLabel = (type: string): string => {
+    switch (type) {
+      case 'RUNNING': return t('workoutTypes.running')
+      case 'STRENGTH': return t('workoutTypes.strength')
+      case 'PLYOMETRIC': return t('workoutTypes.plyometric')
+      case 'CORE': return t('workoutTypes.core')
+      case 'RECOVERY': return t('workoutTypes.recovery')
+      case 'CYCLING': return t('workoutTypes.cycling')
+      case 'SKIING': return t('workoutTypes.skiing')
+      case 'SWIMMING': return t('workoutTypes.swimming')
+      case 'TRIATHLON': return t('workoutTypes.triathlon')
+      case 'HYROX': return t('workoutTypes.hyrox')
+      case 'ALTERNATIVE': return t('workoutTypes.alternative')
+      case 'OTHER': return t('workoutTypes.other')
+      default: return type
+    }
+  }
   // Generate focus if not already set
   const focus: WorkoutFocus = useMemo(() => {
     if (workout.heroTitle && workout.heroDescription && workout.heroCategory) {
@@ -190,9 +214,9 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
   const volume = estimateVolume(workout.segments)
   const completedLog = workout.logs?.[0]
   const isCompleted = !!completedLog?.completed
-  const completedHighlights = useMemo(() => getCompletedHighlights(completedLog), [completedLog])
+  const completedHighlights = useMemo(() => getCompletedHighlights(completedLog, t), [completedLog, t])
   const completedAtLabel = completedLog?.completedAt
-    ? new Date(completedLog.completedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+    ? new Date(completedLog.completedAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', { day: 'numeric', month: 'short' })
     : null
 
   return (
@@ -204,7 +228,7 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
         <button
           onClick={onRemove}
           className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-white/80 text-slate-600 opacity-100 backdrop-blur sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/20 transition-all"
-          aria-label="Ta bort pass"
+          aria-label={t('actions.remove')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -278,7 +302,7 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-200">
                   <CheckCircle2 className="h-4 w-4" />
-                  Slutfört
+                  {t('completed')}
                   {completedAtLabel ? <span className="text-emerald-700/70 dark:text-emerald-200/70">{completedAtLabel}</span> : null}
                 </div>
                 {completedLog?.notes ? (
@@ -316,7 +340,7 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 md:gap-6 mt-6 md:mt-8">
           {calculatedTotals.duration && (
             <div>
-              <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">Längd</div>
+              <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">{t('metrics.duration')}</div>
               <div className="text-lg md:text-xl font-bold text-slate-950 dark:text-white flex items-center gap-2 transition-colors">
                 <Timer className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
                 {calculatedTotals.duration} min
@@ -326,7 +350,7 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
 
           {volume && (
             <div>
-              <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">Volym</div>
+              <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">{t('metrics.volume')}</div>
               <div className="text-lg md:text-xl font-bold text-slate-950 dark:text-white flex items-center gap-2 transition-colors">
                 <Dumbbell className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
                 {formatVolume(volume)}
@@ -336,7 +360,7 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
 
           {calculatedTotals.distance && !volume && (
             <div>
-              <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">Distans</div>
+              <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">{t('metrics.distance')}</div>
               <div className="text-lg md:text-xl font-bold text-slate-950 dark:text-white flex items-center gap-2 transition-colors">
                 <Route className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
                 {calculatedTotals.distance} km
@@ -345,7 +369,7 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
           )}
 
           <div>
-            <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">Intensitet</div>
+            <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">{t('metrics.intensity')}</div>
             <div className={`text-lg md:text-xl font-bold flex items-center gap-2 ${getIntensityColor(workout.intensity)}`}>
               <Activity className="w-4 h-4 md:w-5 md:h-5" />
               {formatIntensity(workout.intensity)}
@@ -362,14 +386,14 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
                 className="w-full sm:w-auto min-h-[48px] border-slate-300 bg-white/70 text-slate-900 hover:bg-white hover:border-slate-400 dark:border-white/20 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:hover:border-white/30 transition-all"
               >
                 <TrendingUp className="w-4 h-4 mr-2" />
-                Visa detaljer
+                {t('actions.viewDetails')}
               </Button>
             </Link>
           ) : (
             <Link href={`${basePath}/athlete/workouts/${workout.id}/log`}>
               <Button className="w-full sm:w-auto min-h-[48px] bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 border-0 transition-all">
                 <Play className="w-4 h-4 mr-2" />
-                Starta pass
+                {t('actions.startWorkout')}
               </Button>
             </Link>
           )}
@@ -387,49 +411,32 @@ function formatFuelingPrescription(
   return total ? `${hourly} g/h, ${total} g totalt` : `${hourly} g/h`
 }
 
-function getCompletedHighlights(log: DashboardWorkoutWithContext['logs'][number] | undefined) {
+type HeroWorkoutTranslator = ReturnType<typeof useTranslations>
+
+function getCompletedHighlights(log: DashboardWorkoutWithContext['logs'][number] | undefined, t: HeroWorkoutTranslator) {
   if (!log) return []
 
   const highlights: Array<{ label: string; value: string; subvalue?: string }> = []
 
-  if (log.duration) highlights.push({ label: 'Tid', value: `${log.duration} min` })
-  if (log.distance) highlights.push({ label: 'Distans', value: `${log.distance} km` })
-  if (log.avgPace) highlights.push({ label: 'Tempo', value: String(log.avgPace) })
-  if (log.avgHR) highlights.push({ label: 'Snittpuls', value: `${log.avgHR} bpm` })
+  if (log.duration) highlights.push({ label: t('highlights.time'), value: `${log.duration} min` })
+  if (log.distance) highlights.push({ label: t('highlights.distance'), value: `${log.distance} km` })
+  if (log.avgPace) highlights.push({ label: t('highlights.pace'), value: String(log.avgPace) })
+  if (log.avgHR) highlights.push({ label: t('highlights.avgHr'), value: `${log.avgHR} bpm` })
   if (log.perceivedEffort) {
     highlights.push({
       label: 'RPE',
       value: `${log.perceivedEffort}/10`,
-      subvalue: getEffortLabel(log.perceivedEffort),
+      subvalue: getEffortLabel(log.perceivedEffort, t),
     })
   }
 
   return highlights.slice(0, 4)
 }
 
-function getEffortLabel(effort: number): string {
-  if (effort <= 3) return 'Latt belastning'
-  if (effort <= 5) return 'Kontrollerad'
-  if (effort <= 7) return 'Utmanande'
-  if (effort <= 9) return 'Mycket hard'
-  return 'Maximal'
-}
-
-function formatWorkoutTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    RUNNING: 'Lopning',
-    STRENGTH: 'Styrka',
-    PLYOMETRIC: 'Plyometri',
-    CORE: 'Core',
-    RECOVERY: 'Aterhamtning',
-    CYCLING: 'Cykling',
-    SKIING: 'Skidor',
-    SWIMMING: 'Simning',
-    TRIATHLON: 'Triathlon',
-    HYROX: 'Hyrox',
-    ALTERNATIVE: 'Alternativt',
-    OTHER: 'Pass',
-  }
-
-  return labels[type] || type
+function getEffortLabel(effort: number, t: HeroWorkoutTranslator): string {
+  if (effort <= 3) return t('effort.light')
+  if (effort <= 5) return t('effort.controlled')
+  if (effort <= 7) return t('effort.challenging')
+  if (effort <= 9) return t('effort.veryHard')
+  return t('effort.maximal')
 }

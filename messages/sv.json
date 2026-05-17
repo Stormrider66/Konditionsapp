@@ -3185,6 +3185,69 @@
         "removeFailed": "Kunde inte ta bort passet",
         "generic": "Något gick fel"
       }
+    },
+    "heroWorkoutCard": {
+      "completed": "Slutfört",
+      "metrics": {
+        "duration": "Längd",
+        "volume": "Volym",
+        "distance": "Distans",
+        "intensity": "Intensitet"
+      },
+      "intensity": {
+        "easy": "Lätt",
+        "moderate": "Måttlig",
+        "threshold": "Tröskel",
+        "intense": "Intensiv",
+        "max": "Max"
+      },
+      "workoutTypes": {
+        "running": "Löpning",
+        "strength": "Styrka",
+        "plyometric": "Plyometri",
+        "core": "Core",
+        "recovery": "Återhämtning",
+        "cycling": "Cykling",
+        "skiing": "Skidor",
+        "swimming": "Simning",
+        "triathlon": "Triathlon",
+        "hyrox": "Hyrox",
+        "alternative": "Alternativt",
+        "other": "Pass"
+      },
+      "highlights": {
+        "time": "Tid",
+        "distance": "Distans",
+        "pace": "Tempo",
+        "avgHr": "Snittpuls"
+      },
+      "effort": {
+        "light": "Lätt belastning",
+        "controlled": "Kontrollerad",
+        "challenging": "Utmanande",
+        "veryHard": "Mycket hård",
+        "maximal": "Maximal"
+      },
+      "actions": {
+        "remove": "Ta bort pass",
+        "viewDetails": "Visa detaljer",
+        "startWorkout": "Starta pass"
+      }
+    },
+    "removeWorkoutDialog": {
+      "title": "Ta bort pass?",
+      "description": {
+        "adhoc": "Det loggade passet går inte att ta bort härifrån.",
+        "wod": "Passet tas bort från din dashboard.",
+        "customProgram": "Passet tas bort permanent.",
+        "program": "Passet markeras som inställt. Din coach kan fortfarande se det.",
+        "assignment": "Passet markeras som hoppat. Din coach kan fortfarande se detta."
+      },
+      "actions": {
+        "cancel": "Avbryt",
+        "remove": "Ta bort",
+        "removing": "Tar bort…"
+      }
     }
   },
   "infographic": {
