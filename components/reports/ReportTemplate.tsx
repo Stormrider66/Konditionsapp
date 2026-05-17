@@ -2,7 +2,7 @@
 
 import { Client, TestCalculations, Test } from '@/types'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { TestChart } from '../charts/TestChart'
 import { PowerChart } from '../charts/PowerChart'
 import { DmaxCurveChart } from '../charts/DmaxCurveChart'
@@ -15,6 +15,7 @@ import { SubstrateUtilizationChart } from '../charts/SubstrateUtilizationChart'
 import { RaceFuelingEstimateSection } from './fueling/RaceFuelingEstimateSection'
 import { generateFullInterpretation } from '@/lib/calculations/interpretations'
 import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface ReportTemplateProps {
   client: Client
@@ -31,6 +32,9 @@ export function ReportTemplate({
   testLeader,
   organization,
 }: ReportTemplateProps) {
+  const t = useTranslations('components.reportTemplate')
+  const locale = useLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const branding = useBusinessBrandingOptional()
   const birthDate = client.birthDate instanceof Date ? client.birthDate : new Date(client.birthDate as unknown as string)
   const age = Math.floor((Date.now() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
@@ -60,33 +64,33 @@ export function ReportTemplate({
           )}
           <div>
             <h1 className="text-3xl font-bold">{organization}</h1>
-            <p className="text-lg mt-1">Konditionstestrapport</p>
+            <p className="text-lg mt-1">{t('header.title')}</p>
           </div>
         </div>
       </header>
 
       {/* Klientinformation */}
       <section className="mt-6 border-b pb-6" data-pdf-section>
-        <h2 className="text-2xl font-semibold mb-4">Klientinformation</h2>
+        <h2 className="text-2xl font-semibold mb-4">{t('clientInfo.title')}</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-gray-600">Namn</p>
+            <p className="text-gray-600">{t('clientInfo.name')}</p>
             <p className="font-medium">{client.name}</p>
           </div>
           <div>
-            <p className="text-gray-600">Ålder</p>
-            <p className="font-medium">{age} år</p>
+            <p className="text-gray-600">{t('clientInfo.age')}</p>
+            <p className="font-medium">{t('clientInfo.ageValue', { age })}</p>
           </div>
           <div>
-            <p className="text-gray-600">Kön</p>
-            <p className="font-medium">{client.gender === 'MALE' ? 'Man' : 'Kvinna'}</p>
+            <p className="text-gray-600">{t('clientInfo.gender')}</p>
+            <p className="font-medium">{client.gender === 'MALE' ? t('clientInfo.genders.male') : t('clientInfo.genders.female')}</p>
           </div>
           <div>
-            <p className="text-gray-600">Längd</p>
+            <p className="text-gray-600">{t('clientInfo.height')}</p>
             <p className="font-medium">{client.height} cm</p>
           </div>
           <div>
-            <p className="text-gray-600">Vikt</p>
+            <p className="text-gray-600">{t('clientInfo.weight')}</p>
             <p className="font-medium">{client.weight} kg</p>
           </div>
           <div>
@@ -98,30 +102,30 @@ export function ReportTemplate({
 
       {/* Testinformation */}
       <section className="mt-6 border-b pb-6" data-pdf-section>
-        <h2 className="text-2xl font-semibold mb-4">Testinformation</h2>
+        <h2 className="text-2xl font-semibold mb-4">{t('testInfo.title')}</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-gray-600">Testdatum</p>
-            <p className="font-medium">{format(test.testDate, 'PPP', { locale: sv })}</p>
+            <p className="text-gray-600">{t('testInfo.testDate')}</p>
+            <p className="font-medium">{format(test.testDate, 'PPP', { locale: dateLocale })}</p>
           </div>
           <div>
-            <p className="text-gray-600">Testtyp</p>
-            <p className="font-medium">{test.testType === 'RUNNING' ? 'Löpning' : 'Cykling'}</p>
+            <p className="text-gray-600">{t('testInfo.testType')}</p>
+            <p className="font-medium">{t(`testInfo.testTypes.${test.testType.toLowerCase()}`)}</p>
           </div>
           <div>
-            <p className="text-gray-600">Testledare</p>
+            <p className="text-gray-600">{t('testInfo.testLeader')}</p>
             <p className="font-medium">{testLeader}</p>
           </div>
           {test.restingLactate != null && (
             <div>
-              <p className="text-gray-600">Vilolaktat</p>
+              <p className="text-gray-600">{t('testInfo.restingLactate')}</p>
               <p className="font-medium">{test.restingLactate} mmol/L</p>
             </div>
           )}
           {test.restingHeartRate != null && (
             <div>
-              <p className="text-gray-600">Vilopuls</p>
-              <p className="font-medium">{test.restingHeartRate} slag/min</p>
+              <p className="text-gray-600">{t('testInfo.restingHeartRate')}</p>
+              <p className="font-medium">{t('testInfo.heartRateValue', { value: test.restingHeartRate })}</p>
             </div>
           )}
         </div>
@@ -146,15 +150,15 @@ export function ReportTemplate({
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
               <div className="flex-1">
-                <p className="text-sm font-medium text-blue-900">Automatisk baslinjekorrigering</p>
+                <p className="text-sm font-medium text-blue-900">{t('baselineCorrection.title')}</p>
                 <p className="text-sm text-blue-800 mt-1">{warning.message}</p>
                 {warning.details?.correctedStages && warning.details.correctedStages.length > 0 && (
                   <table className="mt-2 text-sm text-blue-900">
                     <thead>
                       <tr>
-                        <th className="pr-4 text-left font-medium">Steg</th>
-                        <th className="pr-4 text-left font-medium">Uppmätt (mmol/L)</th>
-                        <th className="text-left font-medium">Korrigerat (mmol/L)</th>
+                        <th className="pr-4 text-left font-medium">{t('baselineCorrection.stage')}</th>
+                        <th className="pr-4 text-left font-medium">{t('baselineCorrection.measured')}</th>
+                        <th className="text-left font-medium">{t('baselineCorrection.corrected')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -176,11 +180,11 @@ export function ReportTemplate({
 
       {/* Testresultat */}
       <section className="mt-6 border-b pb-6" data-pdf-section>
-        <h2 className="text-2xl font-semibold mb-4">Testresultat</h2>
+        <h2 className="text-2xl font-semibold mb-4">{t('testResults.title')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <p className="text-gray-600 text-sm">Max Puls</p>
-            <p className="text-2xl font-bold text-blue-700">{calculations.maxHR} slag/min</p>
+            <p className="text-gray-600 text-sm">{t('testResults.maxHeartRate')}</p>
+            <p className="text-2xl font-bold text-blue-700">{t('testInfo.heartRateValue', { value: calculations.maxHR })}</p>
           </div>
           {calculations.vo2max && calculations.vo2max > 0 ? (
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
@@ -190,11 +194,11 @@ export function ReportTemplate({
           ) : (
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-300">
               <p className="text-gray-600 text-sm">VO₂max</p>
-              <p className="text-sm text-gray-500 italic mt-1">Ej mätt under testet</p>
+              <p className="text-sm text-gray-500 italic mt-1">{t('testResults.notMeasured')}</p>
             </div>
           )}
           <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-            <p className="text-gray-600 text-sm">Max Laktat</p>
+            <p className="text-gray-600 text-sm">{t('testResults.maxLactate')}</p>
             <p className="text-2xl font-bold text-red-700">{calculations.maxLactate} mmol/L</p>
           </div>
         </div>
@@ -207,10 +211,9 @@ export function ReportTemplate({
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
               <div className="flex-1">
-                <p className="text-sm font-medium text-blue-900">Om detta test</p>
+                <p className="text-sm font-medium text-blue-900">{t('testScope.title')}</p>
                 <p className="text-sm text-blue-800 mt-1">
-                  Detta test genomfördes utan VO₂-mätning. Laktat- och pulsmätningar är tillräckliga för att beräkna
-                  träningszoner och tröskelvärden. VO₂-mätning krävs endast för VO₂max-bedömning och löpekonomianalys.
+                  {t('testScope.description')}
                 </p>
               </div>
             </div>

@@ -3688,6 +3688,54 @@
         "description": "Kroppen kan förbruka mer kolhydrater än magen hinner ta upp. Därför är rekommendationen ett praktiskt intagsmål, medan beräknad KH-förbrukning visar belastningen på glykogenlagren."
       }
     },
+    "reportTemplate": {
+      "header": {
+        "title": "Konditionstestrapport"
+      },
+      "clientInfo": {
+        "title": "Klientinformation",
+        "name": "Namn",
+        "age": "Ålder",
+        "ageValue": "{age} år",
+        "gender": "Kön",
+        "genders": {
+          "male": "Man",
+          "female": "Kvinna"
+        },
+        "height": "Längd",
+        "weight": "Vikt"
+      },
+      "testInfo": {
+        "title": "Testinformation",
+        "testDate": "Testdatum",
+        "testType": "Testtyp",
+        "testLeader": "Testledare",
+        "restingLactate": "Vilolaktat",
+        "restingHeartRate": "Vilopuls",
+        "heartRateValue": "{value} slag/min",
+        "testTypes": {
+          "running": "Löpning",
+          "cycling": "Cykling",
+          "skiing": "Skidåkning"
+        }
+      },
+      "baselineCorrection": {
+        "title": "Automatisk baslinjekorrigering",
+        "stage": "Steg",
+        "measured": "Uppmätt (mmol/L)",
+        "corrected": "Korrigerat (mmol/L)"
+      },
+      "testResults": {
+        "title": "Testresultat",
+        "maxHeartRate": "Max Puls",
+        "notMeasured": "Ej mätt under testet",
+        "maxLactate": "Max Laktat"
+      },
+      "testScope": {
+        "title": "Om detta test",
+        "description": "Detta test genomfördes utan VO₂-mätning. Laktat- och pulsmätningar är tillräckliga för att beräkna träningszoner och tröskelvärden. VO₂-mätning krävs endast för VO₂max-bedömning och löpekonomianalys."
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

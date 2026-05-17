@@ -3688,6 +3688,54 @@
         "description": "The body can burn more carbohydrates than the gut can absorb. The recommendation is therefore a practical intake target, while estimated carb demand shows the load on glycogen stores."
       }
     },
+    "reportTemplate": {
+      "header": {
+        "title": "Fitness test report"
+      },
+      "clientInfo": {
+        "title": "Client information",
+        "name": "Name",
+        "age": "Age",
+        "ageValue": "{age} years",
+        "gender": "Gender",
+        "genders": {
+          "male": "Male",
+          "female": "Female"
+        },
+        "height": "Height",
+        "weight": "Weight"
+      },
+      "testInfo": {
+        "title": "Test information",
+        "testDate": "Test date",
+        "testType": "Test type",
+        "testLeader": "Test leader",
+        "restingLactate": "Resting lactate",
+        "restingHeartRate": "Resting heart rate",
+        "heartRateValue": "{value} bpm",
+        "testTypes": {
+          "running": "Running",
+          "cycling": "Cycling",
+          "skiing": "Skiing"
+        }
+      },
+      "baselineCorrection": {
+        "title": "Automatic baseline correction",
+        "stage": "Stage",
+        "measured": "Measured (mmol/L)",
+        "corrected": "Corrected (mmol/L)"
+      },
+      "testResults": {
+        "title": "Test results",
+        "maxHeartRate": "Max HR",
+        "notMeasured": "Not measured during the test",
+        "maxLactate": "Max lactate"
+      },
+      "testScope": {
+        "title": "About this test",
+        "description": "This test was completed without VO₂ measurement. Lactate and heart-rate measurements are sufficient for calculating training zones and threshold values. VO₂ measurement is only required for VO₂max assessment and running economy analysis."
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",
