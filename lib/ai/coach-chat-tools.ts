@@ -1100,11 +1100,11 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
     }),
 
     createCardioSession: tool({
-      description: 'Skapa ett konditionspass/intervallpass. Sparas i Cardio Studio. Stödjer löpning, cykling, simning, rodd, HYROX m.m. Segmenten kan vara intervaller, steady state, repeat groups (upprepningsblock med flera steg), uppvärmning och nedvarvning.',
+      description: 'Skapa ett konditionspass/intervallpass. Sparas i Cardio Studio. Stödjer löpning, cykling, simning, rodd, HYROX och hockeyspecifika repeated-sprint/shift-repeat-pass. Segmenten kan vara intervaller, steady state, repeat groups (upprepningsblock med flera steg), uppvärmning och nedvarvning.',
       inputSchema: z.object({
         name: z.string().describe('Passnamn på svenska'),
         description: z.string().optional().describe('Kort beskrivning'),
-        sport: z.enum(['RUNNING', 'CYCLING', 'SWIMMING', 'SKIING', 'TRIATHLON', 'HYROX', 'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS']).default('RUNNING').describe('Sport/aktivitet'),
+        sport: z.enum(['RUNNING', 'CYCLING', 'SWIMMING', 'SKIING', 'TRIATHLON', 'HYROX', 'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS', 'TEAM_ICE_HOCKEY']).default('RUNNING').describe('Sport/aktivitet. Använd TEAM_ICE_HOCKEY för hockeyspecifika 7x40, RSA och shift-repeat-pass.'),
         segments: z.array(z.object({
           type: z.enum(['WARMUP', 'COOLDOWN', 'INTERVAL', 'STEADY', 'RECOVERY', 'HILL', 'DRILLS', 'REPEAT_GROUP']).describe('Segmenttyp'),
           duration: z.number().optional().describe('Tid i sekunder'),
@@ -1187,11 +1187,11 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
     }),
 
     createHybridWorkout: tool({
-      description: 'Skapa ett hybridpass/funktionellt pass (CrossFit-stil, HYROX, circuit etc). Sparas i Hybrid Studio. Stödjer AMRAP, For Time, EMOM, Tabata, Chipper. Övningarna definieras med namn — de matchas automatiskt mot övningsbiblioteket.',
+      description: 'Skapa ett hybridpass/funktionellt pass (CrossFit-stil, HYROX, hockey off-ice circuit etc). Sparas i Hybrid Studio. Stödjer AMRAP, For Time, EMOM, Tabata, Chipper, Ladder, Intervals, HYROX-sim och Custom. Använd detta för hockeypass med stationer som sled, carries, SkiErg, medicine ball och mixed circuits. Övningarna definieras med namn — de matchas automatiskt mot övningsbiblioteket.',
       inputSchema: z.object({
         name: z.string().describe('Passnamn'),
         description: z.string().optional(),
-        format: z.enum(['AMRAP', 'FOR_TIME', 'EMOM', 'TABATA', 'CHIPPER']).describe('Passformat'),
+        format: z.enum(['AMRAP', 'FOR_TIME', 'EMOM', 'TABATA', 'CHIPPER', 'LADDER', 'INTERVALS', 'HYROX_SIM', 'CUSTOM']).describe('Passformat'),
         timeCap: z.number().optional().describe('Tidsbegränsning i sekunder (0 = ingen)'),
         workTime: z.number().optional().describe('Arbetstid per intervall (EMOM/Tabata) i sekunder'),
         restTime: z.number().optional().describe('Vilotid per intervall i sekunder'),

@@ -18,7 +18,7 @@ Good fit for:
 
 Missing hockey polish:
 
-- Hockey presets for 7x40 m, 30-45 s shift repeats, and bench-recovery templates.
+- Hockey presets for 7x40 m, 30-45 s shift repeats, and bench-recovery templates. Initial preset definitions now live in `lib/hockey/hockey-builder-presets.ts`.
 - A clearer hockey label layer for fatigue drop, resistance, and shift sustainability.
 
 ### Hybrid Studio
@@ -31,7 +31,7 @@ Good fit for:
 
 Missing hockey polish:
 
-- Hockey-specific template tags such as contact-prep circuit, lower-body power circuit, and off-ice compete circuit.
+- Hockey-specific template tags such as contact-prep circuit, lower-body power circuit, and off-ice compete circuit. Initial sled, contact-prep, and medicine-ball presets now live in `lib/hockey/hockey-builder-presets.ts`.
 - Better load hints for hockey athletes where the goal is repeat power, not race-style fatigue.
 
 ### Agility Studio
@@ -43,7 +43,7 @@ Good fit for:
 
 Missing hockey polish:
 
-- Seeded hockey drill pack for off-ice edge-control analogs, lateral acceleration, reactive reads, and position-specific patterns.
+- Seeded hockey drill pack for off-ice edge-control analogs, lateral acceleration, reactive reads, and position-specific patterns. Initial acceleration, 5-10-5, and reactive mirror blueprints now live in `lib/hockey/hockey-builder-presets.ts`.
 - A hockey-specific recommendation layer that connects test gaps to drill categories.
 
 ### Strength Studio
@@ -93,8 +93,8 @@ When the floating coach AI is asked for hockey programming, it should:
 
 ## Recommended Next Phases
 
-1. Add hockey presets in Cardio Studio for 7x40 m and shift-repeat intervals.
-2. Seed a small hockey agility drill pack.
-3. Add hockey tags/templates in Hybrid Studio.
+1. Turn the shared hockey preset definitions into one-click UI templates inside each builder.
+2. Seed a small hockey agility drill pack from the agility blueprints.
+3. Add hockey tags/templates in Hybrid Studio from the shared preset definitions.
 4. Build a hockey weekly orchestration object that can combine cardio, hybrid, agility, strength, and manual blocks into one plan.
 5. Later, build a dedicated on-ice practice planner.

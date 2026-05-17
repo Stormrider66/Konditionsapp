@@ -1,4 +1,5 @@
 import { buildConstitutionPreamble } from '@/lib/ai/constitution'
+import { formatHockeyBuilderPresetGuidanceForPrompt } from '@/lib/hockey/hockey-builder-presets'
 import { formatHockeyProgramRoutingForPrompt } from '@/lib/hockey/hockey-program-blocks'
 import type { getStaffPermissions } from '@/lib/permissions/assistant-coach'
 
@@ -116,6 +117,7 @@ Trainomics har en hockeyspecifik testcockpit för coacher och lag. När coachen 
 ### Hockeyprogram och builder-routing
 När coachen ber om hockeyprogram ska du först identifiera huvudeffekten och välja rätt befintlig builder. Pressa inte in kondition, agility eller on-ice-innehåll i Strength Studio.
 ${formatHockeyProgramRoutingForPrompt()}
+${formatHockeyBuilderPresetGuidanceForPrompt()}
 - Om frågan gäller ett helt hockeypass med blandade delar: använd createSportWorkout och strukturera sektionerna tydligt.
 - Om frågan gäller on-ice teknik/taktik: säg att det just nu hanteras som manuell drill-/praktikplanering och ge ett konkret upplägg, men låtsas inte att en full on-ice-builder finns.
 
