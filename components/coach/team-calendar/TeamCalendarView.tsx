@@ -223,6 +223,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
   const rangeStartIso = rangeStart.toISOString()
   const rangeEndIso = rangeEnd.toISOString()
   const creatableTypes = calendarPermissions?.creatableTypes ?? DEFAULT_CREATABLE_TYPES
+  const isPhysicalTrainerCalendar = calendarPermissions?.role === 'PHYSICAL_TRAINER'
   const canCreateType = (type: TeamEventType) => creatableTypes.includes(type)
   const canAssignContentType = (type: string) => calendarPermissions?.assignableContentTypes.includes(type as TeamEventType) ?? true
 
@@ -349,6 +350,16 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
               businessSlug={businessSlug}
               onCreated={fetchEvents}
               allowedEventTypes={creatableTypes}
+              defaultType={isPhysicalTrainerCalendar ? 'STRENGTH' : undefined}
+              defaultTitle={isPhysicalTrainerCalendar ? 'Fys' : undefined}
+              defaultContentStatus={isPhysicalTrainerCalendar ? 'NEEDS_CONTENT' : undefined}
+              defaultContentOwner={isPhysicalTrainerCalendar ? 'physical_trainer' : undefined}
+              trigger={
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  {isPhysicalTrainerCalendar ? 'Nytt fyspass' : 'Ny händelse'}
+                </Button>
+              }
             />
           )}
         </div>

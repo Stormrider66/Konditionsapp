@@ -147,6 +147,42 @@ function formatDuration(value: number | null) {
   return `${value} min`
 }
 
+function icePracticeTemplate(kind: 'skills' | 'tactical' | 'gamePrep') {
+  if (kind === 'skills') {
+    return [
+      'Fokus: Teknik och fart',
+      '',
+      '0-10 min | Uppvärmning: skridskoteknik + puckkontroll',
+      '10-25 min | Teknikstationer: pass/mottag, skott, riktningsförändringar',
+      '25-40 min | Smålagsspel: 2v2 / 3v3 med korta byten',
+      '40-55 min | Fartmoment: övergångar och avslut',
+      '55-60 min | Nedvarvning + snabb samling',
+    ].join('\n')
+  }
+
+  if (kind === 'tactical') {
+    return [
+      'Fokus: Taktik och lagdelar',
+      '',
+      '0-10 min | Uppvärmning: spelvändningar utan press',
+      '10-25 min | Speluppbyggnad: breakout + första pass',
+      '25-40 min | Forecheck/backcheck: styrning och avstånd',
+      '40-55 min | Special teams / zonspel',
+      '55-60 min | Samling: 1-2 nycklar till nästa match',
+    ].join('\n')
+  }
+
+  return [
+    'Fokus: Matchförberedelse',
+    '',
+    '0-10 min | Aktivering: tempo, pucktouch, målvaktsvärmning',
+    '10-25 min | Matchlika avslut + trafik på mål',
+    '25-40 min | Spelvändningar och defensiva hemgångar',
+    '40-52 min | Powerplay / boxplay / tekningar',
+    '52-60 min | Kort spel + tydlig matchplan',
+  ].join('\n')
+}
+
 interface WorkoutOption {
   id: string
   name: string
@@ -180,6 +216,7 @@ export function EditEventDialog({
   const [assigning, setAssigning] = useState(false)
   const builderLink = builderLinkFor(type, businessSlug)
   const isPhysicalSession = PHYSICAL_TEAM_EVENT_TYPES.includes(type)
+  const isIcePractice = type === 'PRACTICE' || type === 'ICE_PRACTICE'
   const linkedWorkoutType = workoutTypeForEventType(type)
   const canAssignPersistedWorkout = Boolean(canAssignContent && event?.linkedWorkoutId && event?.linkedWorkoutType && !event.assignedBroadcastId)
   const isAssigned = Boolean(event?.assignedBroadcastId)
@@ -528,6 +565,48 @@ export function EditEventDialog({
                       {canAssignContent ? 'Koppla ett färdigt pass för att kunna tilldela laget.' : 'Din roll kan se passet men inte tilldela workout-innehåll.'}
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isIcePractice && (
+            <div className="rounded-md border bg-muted/35 p-3">
+              <div className="space-y-3">
+                <div>
+                  <div className="text-sm font-medium">Ispass-plan</div>
+                  <div className="text-xs text-muted-foreground">
+                    Lägg in en enkel struktur som tränarstaben kan justera.
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!canEdit}
+                    onClick={() => setDescription(icePracticeTemplate('skills'))}
+                  >
+                    Teknik + fart
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!canEdit}
+                    onClick={() => setDescription(icePracticeTemplate('tactical'))}
+                  >
+                    Taktik
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!canEdit}
+                    onClick={() => setDescription(icePracticeTemplate('gamePrep'))}
+                  >
+                    Matchförberedelse
+                  </Button>
                 </div>
               </div>
             </div>
