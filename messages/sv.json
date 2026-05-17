@@ -3916,6 +3916,59 @@
         "logSet": "Logga set"
       }
     },
+    "workoutStartScreen": {
+      "sections": {
+        "warmup": "Uppvärmning",
+        "main": "Huvudpass",
+        "prehab": "Prehab",
+        "core": "Core",
+        "cooldown": "Nedvarvning"
+      },
+      "phases": {
+        "anatomicalAdaptation": "Anatomisk anpassning",
+        "maxStrength": "Maxstyrka",
+        "power": "Explosivitet",
+        "maintenance": "Underhåll",
+        "taper": "Taper"
+      },
+      "errors": {
+        "generic": "Ett fel uppstod",
+        "loadTitle": "Kunde inte ladda passet"
+      },
+      "actions": {
+        "goBack": "Gå tillbaka",
+        "continueWorkout": "Fortsätt pass",
+        "startWorkout": "Starta pass"
+      },
+      "coachNote": "Coach-anteckning:",
+      "metrics": {
+        "exercises": "Övningar"
+      },
+      "resume": {
+        "title": "Fortsätt där du slutade",
+        "description": "{completed} av {total} set klara ({percent}%)"
+      },
+      "equipment": {
+        "title": "Utrustning som behövs",
+        "barbell": "Skivstång",
+        "dumbbells": "Hantlar",
+        "kettlebell": "Kettlebell",
+        "cableMachine": "Kabelmaskin",
+        "bench": "Träningsbänk",
+        "plyoBox": "Plyo-låda",
+        "resistanceBand": "Motståndsband",
+        "pullupBar": "Stång/Ribba",
+        "rack": "Rack",
+        "step": "Step",
+        "exerciseBall": "Träningsboll",
+        "exerciseMat": "Träningsmatta"
+      },
+      "overview": {
+        "title": "Passöversikt",
+        "exerciseCount": "{count} {count, plural, one {övning} other {övningar}}",
+        "restSeconds": "Vila {seconds}s"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",

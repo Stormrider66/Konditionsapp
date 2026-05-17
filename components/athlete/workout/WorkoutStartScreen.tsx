@@ -29,9 +29,9 @@ import {
   Timer,
   ArrowLeft,
   AlertCircle,
-  Loader2,
   Check,
 } from 'lucide-react'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface Exercise {
   id: string
@@ -87,35 +87,35 @@ interface WorkoutStartScreenProps {
 
 const SECTION_CONFIG = {
   WARMUP: {
-    label: 'Uppvärmning',
+    labelKey: 'sections.warmup',
     icon: Flame,
     color: 'text-yellow-600',
     bgColor: 'bg-yellow-50',
     borderColor: 'border-yellow-200',
   },
   MAIN: {
-    label: 'Huvudpass',
+    labelKey: 'sections.main',
     icon: Dumbbell,
     color: 'text-blue-600',
     bgColor: 'bg-blue-50',
     borderColor: 'border-blue-200',
   },
   PREHAB: {
-    label: 'Prehab',
+    labelKey: 'sections.prehab',
     icon: ShieldCheck,
     color: 'text-teal-600',
     bgColor: 'bg-teal-50',
     borderColor: 'border-teal-200',
   },
   CORE: {
-    label: 'Core',
+    labelKey: 'sections.core',
     icon: Target,
     color: 'text-purple-600',
     bgColor: 'bg-purple-50',
     borderColor: 'border-purple-200',
   },
   COOLDOWN: {
-    label: 'Nedvarvning',
+    labelKey: 'sections.cooldown',
     icon: Timer,
     color: 'text-green-600',
     bgColor: 'bg-green-50',
@@ -123,12 +123,12 @@ const SECTION_CONFIG = {
   },
 }
 
-const PHASE_LABELS: Record<string, { label: string; color: string }> = {
-  ANATOMICAL_ADAPTATION: { label: 'Anatomisk anpassning', color: 'bg-green-100 text-green-800' },
-  MAX_STRENGTH: { label: 'Maxstyrka', color: 'bg-purple-100 text-purple-800' },
-  POWER: { label: 'Explosivitet', color: 'bg-red-100 text-red-800' },
-  MAINTENANCE: { label: 'Underhåll', color: 'bg-blue-100 text-blue-800' },
-  TAPER: { label: 'Taper', color: 'bg-yellow-100 text-yellow-800' },
+const PHASE_LABELS: Record<string, { labelKey: string; color: string }> = {
+  ANATOMICAL_ADAPTATION: { labelKey: 'phases.anatomicalAdaptation', color: 'bg-green-100 text-green-800' },
+  MAX_STRENGTH: { labelKey: 'phases.maxStrength', color: 'bg-purple-100 text-purple-800' },
+  POWER: { labelKey: 'phases.power', color: 'bg-red-100 text-red-800' },
+  MAINTENANCE: { labelKey: 'phases.maintenance', color: 'bg-blue-100 text-blue-800' },
+  TAPER: { labelKey: 'phases.taper', color: 'bg-yellow-100 text-yellow-800' },
 }
 
 export function WorkoutStartScreen({
@@ -136,6 +136,8 @@ export function WorkoutStartScreen({
   onStart,
   onBack,
 }: WorkoutStartScreenProps) {
+  const t = useTranslations('components.workoutStartScreen')
+  const locale = useLocale()
   const [data, setData] = useState<WorkoutData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -157,14 +159,14 @@ export function WorkoutStartScreen({
         const result = await response.json()
         setData(result.data)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
+        setError(err instanceof Error ? err.message : t('errors.generic'))
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchData()
-  }, [assignmentId])
+    void fetchData()
+  }, [assignmentId, t])
 
   // Toggle section expansion
   const toggleSection = (sectionType: string) => {
@@ -193,41 +195,41 @@ export function WorkoutStartScreen({
 
     // Common equipment keywords to look for in exercise names
     const equipmentKeywords: Record<string, string> = {
-      'skivstång': 'Skivstång',
-      'barbell': 'Skivstång',
-      'hantel': 'Hantlar',
-      'dumbbell': 'Hantlar',
-      'kettlebell': 'Kettlebell',
-      'kabel': 'Kabelmaskin',
-      'cable': 'Kabelmaskin',
-      'bänk': 'Träningsbänk',
-      'bench': 'Träningsbänk',
-      'låda': 'Plyo-låda',
-      'box': 'Plyo-låda',
-      'band': 'Motståndsband',
-      'stång': 'Stång/Ribba',
-      'pull-up': 'Pull-up stång',
-      'chinup': 'Pull-up stång',
-      'rack': 'Rack',
-      'step': 'Step',
-      'boll': 'Träningsboll',
-      'matta': 'Träningsmatta',
+      'skivstång': 'barbell',
+      'barbell': 'barbell',
+      'hantel': 'dumbbells',
+      'dumbbell': 'dumbbells',
+      'kettlebell': 'kettlebell',
+      'kabel': 'cableMachine',
+      'cable': 'cableMachine',
+      'bänk': 'bench',
+      'bench': 'bench',
+      'låda': 'plyoBox',
+      'box': 'plyoBox',
+      'band': 'resistanceBand',
+      'stång': 'pullupBar',
+      'pull-up': 'pullupBar',
+      'chinup': 'pullupBar',
+      'rack': 'rack',
+      'step': 'step',
+      'boll': 'exerciseBall',
+      'matta': 'exerciseMat',
     }
 
     const foundEquipment = new Set<string>()
 
     data.exercises.forEach((ex) => {
-      const name = (ex.nameSv || ex.name).toLowerCase()
-      Object.entries(equipmentKeywords).forEach(([keyword, equipment]) => {
+      const name = (locale === 'sv' ? ex.nameSv || ex.name : ex.name).toLowerCase()
+      Object.entries(equipmentKeywords).forEach(([keyword, equipmentKey]) => {
         if (name.includes(keyword)) {
-          foundEquipment.add(equipment)
+          foundEquipment.add(t(`equipment.${equipmentKey}`))
         }
       })
     })
 
     // Always add mat for core/stretching
     if (data.sections.some((s) => s.type === 'PREHAB' || s.type === 'CORE' || s.type === 'COOLDOWN')) {
-      foundEquipment.add('Träningsmatta')
+      foundEquipment.add(t('equipment.exerciseMat'))
     }
 
     return Array.from(foundEquipment).sort()
@@ -260,9 +262,9 @@ export function WorkoutStartScreen({
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="font-medium mb-2">Kunde inte ladda passet</h3>
+            <h3 className="font-medium mb-2">{t('errors.loadTitle')}</h3>
             <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button onClick={onBack}>Gå tillbaka</Button>
+            <Button onClick={onBack}>{t('actions.goBack')}</Button>
           </CardContent>
         </Card>
       </div>
@@ -270,7 +272,7 @@ export function WorkoutStartScreen({
   }
 
   const phaseConfig = PHASE_LABELS[data.workout.phase] || {
-    label: data.workout.phase,
+    labelKey: data.workout.phase,
     color: 'bg-gray-100 text-gray-800',
   }
 
@@ -287,7 +289,7 @@ export function WorkoutStartScreen({
           <h1 className="font-semibold text-lg truncate">{data.workout.name}</h1>
           <div className="flex items-center gap-2 mt-1">
             <Badge className={phaseConfig.color} variant="secondary">
-              {phaseConfig.label}
+              {PHASE_LABELS[data.workout.phase] ? t(phaseConfig.labelKey) : phaseConfig.labelKey}
             </Badge>
             {data.workout.estimatedDuration && (
               <span className="text-sm text-muted-foreground flex items-center gap-1">
@@ -314,7 +316,7 @@ export function WorkoutStartScreen({
             <Card className="border-yellow-200 bg-yellow-50">
               <CardContent className="py-3">
                 <p className="text-xs font-medium text-yellow-800 mb-1">
-                  Coach-anteckning:
+                  {t('coachNote')}
                 </p>
                 <p className="text-sm text-yellow-900">{data.assignment.notes}</p>
               </CardContent>
@@ -326,7 +328,7 @@ export function WorkoutStartScreen({
             <div className="text-center p-3 bg-muted/50 rounded-lg">
               <Dumbbell className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-lg font-semibold">{data.progress.totalExercises}</p>
-              <p className="text-xs text-muted-foreground">Övningar</p>
+              <p className="text-xs text-muted-foreground">{t('metrics.exercises')}</p>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
               <Target className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
@@ -351,10 +353,14 @@ export function WorkoutStartScreen({
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-blue-800">
-                    Fortsätt där du slutade
+                    {t('resume.title')}
                   </p>
                   <p className="text-xs text-blue-700">
-                    {data.progress.completedSets} av {data.progress.totalSetsTarget} set klara ({data.progress.percentComplete}%)
+                    {t('resume.description', {
+                      completed: data.progress.completedSets,
+                      total: data.progress.totalSetsTarget,
+                      percent: data.progress.percentComplete,
+                    })}
                   </p>
                 </div>
               </CardContent>
@@ -366,7 +372,7 @@ export function WorkoutStartScreen({
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Utrustning som behövs
+                  {t('equipment.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -384,7 +390,7 @@ export function WorkoutStartScreen({
           {/* Sections with exercises */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-muted-foreground">
-              Passöversikt
+              {t('overview.title')}
             </h3>
 
             {data.sections.map((section) => {
@@ -411,9 +417,9 @@ export function WorkoutStartScreen({
                             <Icon className={`h-4 w-4 ${config.color}`} />
                           </div>
                           <div className="text-left">
-                            <p className="font-medium">{config.label}</p>
+                            <p className="font-medium">{t(config.labelKey)}</p>
                             <p className="text-xs text-muted-foreground">
-                              {section.exerciseCount} övningar
+                              {t('overview.exerciseCount', { count: section.exerciseCount })}
                               {section.duration && ` • ~${section.duration} min`}
                             </p>
                           </div>
@@ -448,7 +454,7 @@ export function WorkoutStartScreen({
                                 </span>
                                 <div className="flex-1 min-w-0">
                                   <p className={`text-sm font-medium truncate ${isCompleted ? 'text-green-600' : ''}`}>
-                                    {exercise.nameSv || exercise.name}
+                                    {locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name}
                                     {isCompleted && (
                                       <Check className="inline h-4 w-4 ml-1" />
                                     )}
@@ -456,7 +462,7 @@ export function WorkoutStartScreen({
                                   <p className="text-xs text-muted-foreground">
                                     {exercise.sets} × {exercise.repsTarget}
                                     {exercise.weight && ` @ ${exercise.weight} kg`}
-                                    {exercise.restSeconds && ` • Vila ${exercise.restSeconds}s`}
+                                    {exercise.restSeconds && ` • ${t('overview.restSeconds', { seconds: exercise.restSeconds })}`}
                                   </p>
                                 </div>
                               </li>
@@ -481,7 +487,7 @@ export function WorkoutStartScreen({
           onClick={onStart}
         >
           <Play className="h-6 w-6 mr-2" />
-          {data.progress.completedSets > 0 ? 'Fortsätt pass' : 'Starta pass'}
+          {data.progress.completedSets > 0 ? t('actions.continueWorkout') : t('actions.startWorkout')}
         </Button>
       </div>
     </div>

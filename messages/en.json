@@ -3916,6 +3916,59 @@
         "logSet": "Log set"
       }
     },
+    "workoutStartScreen": {
+      "sections": {
+        "warmup": "Warmup",
+        "main": "Main session",
+        "prehab": "Prehab",
+        "core": "Core",
+        "cooldown": "Cooldown"
+      },
+      "phases": {
+        "anatomicalAdaptation": "Anatomical adaptation",
+        "maxStrength": "Max strength",
+        "power": "Power",
+        "maintenance": "Maintenance",
+        "taper": "Taper"
+      },
+      "errors": {
+        "generic": "Something went wrong",
+        "loadTitle": "Could not load the workout"
+      },
+      "actions": {
+        "goBack": "Go back",
+        "continueWorkout": "Continue workout",
+        "startWorkout": "Start workout"
+      },
+      "coachNote": "Coach note:",
+      "metrics": {
+        "exercises": "Exercises"
+      },
+      "resume": {
+        "title": "Continue where you left off",
+        "description": "{completed} of {total} sets complete ({percent}%)"
+      },
+      "equipment": {
+        "title": "Equipment needed",
+        "barbell": "Barbell",
+        "dumbbells": "Dumbbells",
+        "kettlebell": "Kettlebell",
+        "cableMachine": "Cable machine",
+        "bench": "Training bench",
+        "plyoBox": "Plyo box",
+        "resistanceBand": "Resistance band",
+        "pullupBar": "Bar/pull-up bar",
+        "rack": "Rack",
+        "step": "Step",
+        "exerciseBall": "Exercise ball",
+        "exerciseMat": "Exercise mat"
+      },
+      "overview": {
+        "title": "Workout overview",
+        "exerciseCount": "{count, plural, one {# exercise} other {# exercises}}",
+        "restSeconds": "Rest {seconds}s"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",
