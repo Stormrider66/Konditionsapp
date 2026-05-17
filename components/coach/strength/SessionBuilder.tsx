@@ -33,6 +33,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { SessionExportButton } from '@/components/exports/SessionExportButton'
 import { toast } from 'sonner'
 import { filterExercisesByEquipment } from '@/lib/equipment-filter'
+import {
+  PREHAB_STABILITY_FILTER,
+  matchesStrengthLibraryCategoryFilter,
+} from '@/lib/strength/exercise-library-filters'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import type { StrengthSessionData } from '@/types'
 
@@ -133,6 +137,13 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
             category: e.category,
             pillar: e.biomechanicalPillar,
             muscleGroup: e.muscleGroup,
+            description: e.description,
+            instructions: e.instructions,
+            progressionLevel: e.progressionLevel,
+            isRehabExercise: e.isRehabExercise,
+            rehabPhases: e.rehabPhases,
+            targetBodyParts: e.targetBodyParts,
+            contraindications: e.contraindications,
             equipment: e.equipment || 'None',
             defaultSets: 3,
             defaultReps: e.category === 'STRENGTH' ? '8-10' : '10'
@@ -189,7 +200,7 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
   const baseFilteredExercises = availableExercises.filter(ex => {
     const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (ex.muscleGroup && ex.muscleGroup.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesCategory = categoryFilter === 'ALL' || ex.category === categoryFilter
+    const matchesCategory = matchesStrengthLibraryCategoryFilter(ex, categoryFilter)
     const matchesPillar = pillarFilter === 'ALL' || ex.pillar === pillarFilter
     return matchesSearch && matchesCategory && matchesPillar
   })
@@ -488,6 +499,7 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
                     <SelectItem value="ALL">All Categories</SelectItem>
                     <SelectItem value="STRENGTH">Strength</SelectItem>
                     <SelectItem value="PLYOMETRIC">Plyometric</SelectItem>
+                    <SelectItem value={PREHAB_STABILITY_FILTER}>Stability / Prehab</SelectItem>
                     <SelectItem value="CORE">Core</SelectItem>
                     <SelectItem value="RECOVERY">Recovery</SelectItem>
                   </SelectContent>
@@ -692,4 +704,3 @@ function SortableExerciseItem({
     </div>
   )
 }
-
