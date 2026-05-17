@@ -5506,6 +5506,44 @@
         "connectionClosed": "The connection was lost. The program is still being generated in the background."
       }
     },
+    "chatProgramPreviewCard": {
+      "methodologies": {
+        "POLARIZED": "Polarized (80/20)",
+        "NORWEGIAN": "Norwegian double threshold",
+        "CANOVA": "Canova",
+        "PYRAMIDAL": "Pyramidal",
+        "GENERAL": "General"
+      },
+      "saved": {
+        "title": "Program saved!",
+        "summary": "\"{name}\" - {weeks} weeks, starts {startDate}"
+      },
+      "weeks": "{count} weeks",
+      "phaseCount": "{count} phases",
+      "phaseWeeks": "w.{weeks}",
+      "startDateLabel": "Start date:",
+      "hint": "You can ask about the program before saving.",
+      "actions": {
+        "viewProgram": "View program",
+        "showPhases": "Show phases",
+        "hidePhases": "Hide phases",
+        "saveProgram": "Save program"
+      },
+      "toast": {
+        "saved": {
+          "title": "Program saved!",
+          "description": "\"{name}\" has been saved and activated."
+        },
+        "saveFailed": {
+          "title": "Could not save program",
+          "description": "Try again."
+        },
+        "error": {
+          "title": "Save failed",
+          "description": "An unexpected error occurred."
+        }
+      }
+    },
     "chatWorkoutCard": {
       "types": {
         "strength": "Strength",

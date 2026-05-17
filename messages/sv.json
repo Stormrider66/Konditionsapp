@@ -5506,6 +5506,44 @@
         "connectionClosed": "Anslutningen bröts. Programmet genereras fortfarande i bakgrunden."
       }
     },
+    "chatProgramPreviewCard": {
+      "methodologies": {
+        "POLARIZED": "Polariserad (80/20)",
+        "NORWEGIAN": "Norsk dubbeltröskel",
+        "CANOVA": "Canova",
+        "PYRAMIDAL": "Pyramidal",
+        "GENERAL": "Generell"
+      },
+      "saved": {
+        "title": "Program sparat!",
+        "summary": "\"{name}\" - {weeks} veckor, startar {startDate}"
+      },
+      "weeks": "{count} veckor",
+      "phaseCount": "{count} faser",
+      "phaseWeeks": "v.{weeks}",
+      "startDateLabel": "Startdatum:",
+      "hint": "Du kan fråga om programmet innan du sparar.",
+      "actions": {
+        "viewProgram": "Visa program",
+        "showPhases": "Visa faser",
+        "hidePhases": "Dölj faser",
+        "saveProgram": "Spara program"
+      },
+      "toast": {
+        "saved": {
+          "title": "Program sparat!",
+          "description": "\"{name}\" har sparats och aktiverats."
+        },
+        "saveFailed": {
+          "title": "Kunde inte spara programmet",
+          "description": "Försök igen."
+        },
+        "error": {
+          "title": "Fel vid sparning",
+          "description": "Ett oväntat fel uppstod."
+        }
+      }
+    },
     "chatWorkoutCard": {
       "types": {
         "strength": "Styrka",

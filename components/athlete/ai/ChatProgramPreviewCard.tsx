@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from '@/i18n/client'
 import {
   Sparkles,
   Save,
@@ -35,22 +36,22 @@ function getNextMonday(): string {
   return d.toISOString().split('T')[0]
 }
 
-const methodologyLabels: Record<string, string> = {
-  POLARIZED: 'Polariserad (80/20)',
-  NORWEGIAN: 'Norsk dubbeltröskel',
-  CANOVA: 'Canova',
-  PYRAMIDAL: 'Pyramidal',
-  GENERAL: 'Generell',
+const methodologyMessageKeys: Record<string, Parameters<ReturnType<typeof useTranslations>>[0]> = {
+  POLARIZED: 'methodologies.POLARIZED',
+  NORWEGIAN: 'methodologies.NORWEGIAN',
+  CANOVA: 'methodologies.CANOVA',
+  PYRAMIDAL: 'methodologies.PYRAMIDAL',
+  GENERAL: 'methodologies.GENERAL',
 }
 
 export function ChatProgramPreviewCard({
-  sessionId,
   program,
   clientId,
   conversationId,
   basePath,
   onSaved,
 }: ChatProgramPreviewCardProps) {
+  const t = useTranslations('components.chatProgramPreviewCard')
   const { toast } = useToast()
   const router = useRouter()
 
@@ -80,20 +81,20 @@ export function ChatProgramPreviewCard({
         setSavedProgramId(data.program?.id)
         onSaved?.(data.program?.id)
         toast({
-          title: 'Program sparat!',
-          description: `"${program.name}" har sparats och aktiverats.`,
+          title: t('toast.saved.title'),
+          description: t('toast.saved.description', { name: program.name }),
         })
       } else {
         toast({
-          title: 'Kunde inte spara programmet',
-          description: data.error || 'Försök igen.',
+          title: t('toast.saveFailed.title'),
+          description: data.error || t('toast.saveFailed.description'),
           variant: 'destructive',
         })
       }
     } catch {
       toast({
-        title: 'Fel vid sparning',
-        description: 'Ett oväntat fel uppstod.',
+        title: t('toast.error.title'),
+        description: t('toast.error.description'),
         variant: 'destructive',
       })
     } finally {
@@ -111,10 +112,14 @@ export function ChatProgramPreviewCard({
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
-              Program sparat!
+              {t('saved.title')}
             </p>
             <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
-              &quot;{program.name}&quot; — {program.totalWeeks} veckor, startar {startDate}
+              {t('saved.summary', {
+                name: program.name,
+                weeks: program.totalWeeks,
+                startDate,
+              })}
             </p>
           </div>
         </div>
@@ -125,7 +130,7 @@ export function ChatProgramPreviewCard({
           onClick={() => router.push(`${basePath}/athlete/programs/${savedProgramId}`)}
         >
           <ArrowRight className="h-3 w-3 mr-1" />
-          Visa program
+          {t('actions.viewProgram')}
         </Button>
       </div>
     )
@@ -144,18 +149,22 @@ export function ChatProgramPreviewCard({
           </p>
           <div className="flex items-center gap-2 mt-0.5 text-[11px] text-indigo-600 dark:text-indigo-400 flex-wrap">
             <span className="inline-flex items-center gap-0.5">
-              <Calendar className="h-3 w-3" /> {program.totalWeeks} veckor
+              <Calendar className="h-3 w-3" /> {t('weeks', { count: program.totalWeeks })}
             </span>
             {program.methodology && (
               <>
                 <span className="text-indigo-300 dark:text-indigo-600">|</span>
-                <span>{methodologyLabels[program.methodology] || program.methodology}</span>
+                <span>
+                  {methodologyMessageKeys[program.methodology]
+                    ? t(methodologyMessageKeys[program.methodology])
+                    : program.methodology}
+                </span>
               </>
             )}
             {program.phases.length > 0 && (
               <>
                 <span className="text-indigo-300 dark:text-indigo-600">|</span>
-                <span>{program.phases.length} faser</span>
+                <span>{t('phaseCount', { count: program.phases.length })}</span>
               </>
             )}
           </div>
@@ -177,7 +186,7 @@ export function ChatProgramPreviewCard({
             className="flex items-center gap-1 text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 transition-colors"
           >
             {showPhases ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-            {showPhases ? 'Dölj faser' : 'Visa faser'}
+            {showPhases ? t('actions.hidePhases') : t('actions.showPhases')}
           </button>
           {showPhases && (
             <div className="mt-1.5 space-y-1">
@@ -186,7 +195,9 @@ export function ChatProgramPreviewCard({
                   key={i}
                   className="flex items-center gap-2 text-[11px] text-indigo-700 dark:text-indigo-300 bg-indigo-100/50 dark:bg-indigo-500/10 rounded px-2 py-1"
                 >
-                  <span className="font-medium shrink-0">v.{phase.weeks}</span>
+                  <span className="font-medium shrink-0">
+                    {t('phaseWeeks', { weeks: phase.weeks })}
+                  </span>
                   <span className="truncate">{phase.name}</span>
                   {phase.focus && (
                     <span className="text-indigo-500 dark:text-indigo-400 truncate ml-auto">
@@ -203,7 +214,7 @@ export function ChatProgramPreviewCard({
       {/* Start date picker */}
       <div className="flex items-center gap-2 mb-2">
         <label className="text-[11px] text-indigo-600 dark:text-indigo-400 shrink-0">
-          Startdatum:
+          {t('startDateLabel')}
         </label>
         <Input
           type="date"
@@ -215,7 +226,7 @@ export function ChatProgramPreviewCard({
 
       {/* Hint */}
       <p className="text-[10px] text-indigo-500 dark:text-indigo-400 mb-2">
-        Du kan fråga om programmet innan du sparar.
+        {t('hint')}
       </p>
 
       {/* Save button */}
@@ -230,7 +241,7 @@ export function ChatProgramPreviewCard({
         ) : (
           <Save className="h-3 w-3 mr-1" />
         )}
-        Spara program
+        {t('actions.saveProgram')}
       </Button>
     </div>
   )
