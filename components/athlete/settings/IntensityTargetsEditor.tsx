@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Target, RotateCcw, Save, Zap, CheckCircle, Loader2 } from 'lucide-react'
+import { Target, RotateCcw, Save, Zap, Loader2 } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { SportType, IntensityTargets, IntensityMethodology } from '@/types'
 import {
@@ -34,6 +34,7 @@ import {
   normalizeTargets,
 } from '@/lib/training/intensity-targets'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface IntensityTargetsEditorProps {
   /** The sport type this editor is for */
@@ -54,20 +55,21 @@ const INTENSITY_COLORS = {
   hard: '#EF4444',    // Red
 }
 
-const METHODOLOGY_OPTIONS: { value: IntensityMethodology; label: string; description: string }[] = [
-  { value: 'POLARIZED', label: 'Polariserad (80/20)', description: 'Hög volym på lätta pass, begränsade hårda pass (>5h/vecka)' },
-  { value: 'THRESHOLD_FOCUSED', label: 'Tröskel-fokuserad', description: 'Mer tempo/tröskelarbete, bra för HYROX' },
-  { value: 'PYRAMIDAL', label: 'Pyramidal (70/20/10)', description: 'Traditionell fördelning, bra för 3-5h/vecka' },
-  { value: 'HIGH_INTENSITY', label: 'Högintensiv (30/20/50)', description: 'För <3h/vecka - maximera stimulans per minut' },
-  { value: 'BALANCED', label: 'Balanserad', description: 'Jämn fördelning för allmän fitness' },
-  { value: 'CUSTOM', label: 'Anpassad', description: 'Definiera din egen fördelning' },
+const METHODOLOGY_OPTIONS: { value: IntensityMethodology; labelKey: string; descriptionKey: string }[] = [
+  { value: 'POLARIZED', labelKey: 'methodology.polarized.label', descriptionKey: 'methodology.polarized.description' },
+  { value: 'THRESHOLD_FOCUSED', labelKey: 'methodology.thresholdFocused.label', descriptionKey: 'methodology.thresholdFocused.description' },
+  { value: 'PYRAMIDAL', labelKey: 'methodology.pyramidal.label', descriptionKey: 'methodology.pyramidal.description' },
+  { value: 'HIGH_INTENSITY', labelKey: 'methodology.highIntensity.label', descriptionKey: 'methodology.highIntensity.description' },
+  { value: 'BALANCED', labelKey: 'methodology.balanced.label', descriptionKey: 'methodology.balanced.description' },
+  { value: 'CUSTOM', labelKey: 'methodology.custom.label', descriptionKey: 'methodology.custom.description' },
 ]
 
 function PreviewPieChart({ targets }: { targets: IntensityTargets }) {
+  const t = useTranslations('components.intensityTargetsEditor')
   const data = [
-    { name: 'Lågt', value: targets.easyPercent, color: INTENSITY_COLORS.easy },
-    { name: 'Medel', value: targets.moderatePercent, color: INTENSITY_COLORS.moderate },
-    { name: 'Högt', value: targets.hardPercent, color: INTENSITY_COLORS.hard },
+    { name: t('chart.easy'), value: targets.easyPercent, color: INTENSITY_COLORS.easy },
+    { name: t('chart.moderate'), value: targets.moderatePercent, color: INTENSITY_COLORS.moderate },
+    { name: t('chart.hard'), value: targets.hardPercent, color: INTENSITY_COLORS.hard },
   ].filter(d => d.value > 0)
 
   return (
@@ -112,8 +114,9 @@ export function IntensityTargetsEditor({
   currentTargets,
   onSave,
   variant = 'default',
-  clientId,
+  clientId: _clientId,
 }: IntensityTargetsEditorProps) {
+  const t = useTranslations('components.intensityTargetsEditor')
   const defaults = getDefaultTargetsForSport(sport)
 
   const [targets, setTargets] = useState<IntensityTargets>(
@@ -148,7 +151,7 @@ export function IntensityTargetsEditor({
       setTargets(prev => ({
         ...prev,
         methodology: 'CUSTOM',
-        label: 'Anpassad',
+        label: 'CUSTOM',
       }))
     }
   }
@@ -190,7 +193,7 @@ export function IntensityTargetsEditor({
     if (selectedMethodology !== 'CUSTOM') {
       setSelectedMethodology('CUSTOM')
       newTargets.methodology = 'CUSTOM'
-      newTargets.label = 'Anpassad'
+      newTargets.label = 'CUSTOM'
     }
 
     setTargets(newTargets)
@@ -228,6 +231,14 @@ export function IntensityTargetsEditor({
   const CardHeaderComponent = variant === 'glass' ? GlassCardHeader : CardHeader
   const CardTitleComponent = variant === 'glass' ? GlassCardTitle : CardTitle
   const CardContentComponent = variant === 'glass' ? GlassCardContent : CardContent
+  const selectedMethodologyOption = METHODOLOGY_OPTIONS.find(o => o.value === selectedMethodology)
+  const selectedMethodologyLabel = selectedMethodologyOption
+    ? t(selectedMethodologyOption.labelKey)
+    : targets.label || `${targets.easyPercent}/${targets.moderatePercent}/${targets.hardPercent}`
+  const defaultMethodologyOption = METHODOLOGY_OPTIONS.find(o => o.value === (defaults.methodology || 'POLARIZED'))
+  const defaultMethodologyLabel = defaultMethodologyOption
+    ? t(defaultMethodologyOption.labelKey)
+    : defaults.label || `${defaults.easyPercent}/${defaults.moderatePercent}/${defaults.hardPercent}`
 
   return (
     <CardComponent>
@@ -235,11 +246,11 @@ export function IntensityTargetsEditor({
         <div className="flex items-center justify-between">
           <CardTitleComponent className="flex items-center gap-2 text-base">
             <Target className="h-4 w-4 text-orange-500" />
-            Intensitetsfördelning
+            {t('title')}
           </CardTitleComponent>
           {hasChanges && (
             <Badge variant="outline" className="text-orange-600 border-orange-300">
-              Osparade ändringar
+              {t('unsavedChanges')}
             </Badge>
           )}
         </div>
@@ -248,18 +259,18 @@ export function IntensityTargetsEditor({
         {/* Methodology Selector */}
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Träningsmetodik
+            {t('methodologyLabel')}
           </label>
           <Select value={selectedMethodology} onValueChange={handleMethodologyChange}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Välj metodik" />
+              <SelectValue placeholder={t('methodologyPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
               {METHODOLOGY_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   <div className="flex flex-col">
-                    <span>{option.label}</span>
-                    <span className="text-xs text-muted-foreground">{option.description}</span>
+                    <span>{t(option.labelKey)}</span>
+                    <span className="text-xs text-muted-foreground">{t(option.descriptionKey)}</span>
                   </div>
                 </SelectItem>
               ))}
@@ -273,7 +284,7 @@ export function IntensityTargetsEditor({
           <div className="flex-shrink-0">
             <PreviewPieChart targets={targets} />
             <p className="text-center text-xs text-muted-foreground mt-2">
-              Förhandsvisning
+              {t('preview')}
             </p>
           </div>
 
@@ -284,7 +295,7 @@ export function IntensityTargetsEditor({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <span className="text-sm font-medium">Låg intensitet</span>
+                  <span className="text-sm font-medium">{t('intensity.easy.title')}</span>
                 </div>
                 <span className="text-sm font-mono font-bold text-green-600">
                   {targets.easyPercent}%
@@ -302,7 +313,7 @@ export function IntensityTargetsEditor({
                 )}
               />
               <p className="text-[10px] text-muted-foreground">
-                Zon 1-2 • Under LT1 • Lätt/återhämtning
+                {t('intensity.easy.description')}
               </p>
             </div>
 
@@ -311,7 +322,7 @@ export function IntensityTargetsEditor({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                  <span className="text-sm font-medium">Medelintensitet</span>
+                  <span className="text-sm font-medium">{t('intensity.moderate.title')}</span>
                 </div>
                 <span className="text-sm font-mono font-bold text-yellow-600">
                   {targets.moderatePercent}%
@@ -329,7 +340,7 @@ export function IntensityTargetsEditor({
                 )}
               />
               <p className="text-[10px] text-muted-foreground">
-                Zon 3 • LT1-LT2 • Tempo/tröskel
+                {t('intensity.moderate.description')}
               </p>
             </div>
 
@@ -338,7 +349,7 @@ export function IntensityTargetsEditor({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-red-500" />
-                  <span className="text-sm font-medium">Hög intensitet</span>
+                  <span className="text-sm font-medium">{t('intensity.hard.title')}</span>
                 </div>
                 <span className="text-sm font-mono font-bold text-red-600">
                   {targets.hardPercent}%
@@ -356,7 +367,7 @@ export function IntensityTargetsEditor({
                 )}
               />
               <p className="text-[10px] text-muted-foreground">
-                Zon 4-5 • Över LT2 • VO2max/intervall
+                {t('intensity.hard.description')}
               </p>
             </div>
           </div>
@@ -366,11 +377,13 @@ export function IntensityTargetsEditor({
         <div className="flex items-center justify-center gap-2 py-2 bg-muted/30 rounded-lg">
           <Zap className="h-4 w-4 text-orange-500" />
           <span className="text-sm font-medium">
-            {targets.label || `${targets.easyPercent}/${targets.moderatePercent}/${targets.hardPercent}`}
+            {selectedMethodology !== 'CUSTOM'
+              ? selectedMethodologyLabel
+              : `${targets.easyPercent}/${targets.moderatePercent}/${targets.hardPercent}`}
           </span>
           {selectedMethodology !== 'CUSTOM' && (
             <Badge variant="outline" className="text-xs">
-              {METHODOLOGY_OPTIONS.find(o => o.value === selectedMethodology)?.label}
+              {selectedMethodologyLabel}
             </Badge>
           )}
         </div>
@@ -384,7 +397,7 @@ export function IntensityTargetsEditor({
             className="flex-1"
           >
             <RotateCcw className="h-4 w-4 mr-2" />
-            Återställ ({defaults.label})
+            {t('actions.reset', { label: defaultMethodologyLabel })}
           </Button>
           <Button
             size="sm"
@@ -397,7 +410,7 @@ export function IntensityTargetsEditor({
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Spara
+            {t('actions.save')}
           </Button>
         </div>
       </CardContentComponent>

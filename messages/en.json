@@ -7815,6 +7815,62 @@
         }
       }
     },
+    "intensityTargetsEditor": {
+      "title": "Intensity distribution",
+      "unsavedChanges": "Unsaved changes",
+      "methodologyLabel": "Training methodology",
+      "methodologyPlaceholder": "Choose methodology",
+      "preview": "Preview",
+      "chart": {
+        "easy": "Low",
+        "moderate": "Moderate",
+        "hard": "High"
+      },
+      "methodology": {
+        "polarized": {
+          "label": "Polarized (80/20)",
+          "description": "High volume of easy sessions, limited hard sessions (>5h/week)"
+        },
+        "thresholdFocused": {
+          "label": "Threshold-focused",
+          "description": "More tempo/threshold work, good for HYROX"
+        },
+        "pyramidal": {
+          "label": "Pyramidal (70/20/10)",
+          "description": "Traditional distribution, good for 3-5h/week"
+        },
+        "highIntensity": {
+          "label": "High intensity (30/20/50)",
+          "description": "For <3h/week - maximize stimulus per minute"
+        },
+        "balanced": {
+          "label": "Balanced",
+          "description": "Even distribution for general fitness"
+        },
+        "custom": {
+          "label": "Custom",
+          "description": "Define your own distribution"
+        }
+      },
+      "intensity": {
+        "easy": {
+          "title": "Low intensity",
+          "description": "Zone 1-2 • Under LT1 • Easy/recovery"
+        },
+        "moderate": {
+          "title": "Moderate intensity",
+          "description": "Zone 3 • LT1-LT2 • Tempo/threshold"
+        },
+        "hard": {
+          "title": "High intensity",
+          "description": "Zone 4-5 • Over LT2 • VO2max/interval"
+        }
+      },
+      "actions": {
+        "reset": "Reset ({label})",
+        "save": "Save"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

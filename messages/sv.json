@@ -7815,6 +7815,62 @@
         }
       }
     },
+    "intensityTargetsEditor": {
+      "title": "Intensitetsfördelning",
+      "unsavedChanges": "Osparade ändringar",
+      "methodologyLabel": "Träningsmetodik",
+      "methodologyPlaceholder": "Välj metodik",
+      "preview": "Förhandsvisning",
+      "chart": {
+        "easy": "Lågt",
+        "moderate": "Medel",
+        "hard": "Högt"
+      },
+      "methodology": {
+        "polarized": {
+          "label": "Polariserad (80/20)",
+          "description": "Hög volym på lätta pass, begränsade hårda pass (>5h/vecka)"
+        },
+        "thresholdFocused": {
+          "label": "Tröskel-fokuserad",
+          "description": "Mer tempo/tröskelarbete, bra för HYROX"
+        },
+        "pyramidal": {
+          "label": "Pyramidal (70/20/10)",
+          "description": "Traditionell fördelning, bra för 3-5h/vecka"
+        },
+        "highIntensity": {
+          "label": "Högintensiv (30/20/50)",
+          "description": "För <3h/vecka - maximera stimulans per minut"
+        },
+        "balanced": {
+          "label": "Balanserad",
+          "description": "Jämn fördelning för allmän fitness"
+        },
+        "custom": {
+          "label": "Anpassad",
+          "description": "Definiera din egen fördelning"
+        }
+      },
+      "intensity": {
+        "easy": {
+          "title": "Låg intensitet",
+          "description": "Zon 1-2 • Under LT1 • Lätt/återhämtning"
+        },
+        "moderate": {
+          "title": "Medelintensitet",
+          "description": "Zon 3 • LT1-LT2 • Tempo/tröskel"
+        },
+        "hard": {
+          "title": "Hög intensitet",
+          "description": "Zon 4-5 • Över LT2 • VO2max/intervall"
+        }
+      },
+      "actions": {
+        "reset": "Återställ ({label})",
+        "save": "Spara"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",
