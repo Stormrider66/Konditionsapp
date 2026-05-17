@@ -2326,6 +2326,51 @@
       "personalBest": "Ditt rekord: {count} dagar",
       "checkInNow": "Checka in nu"
     },
+    "adHocWorkoutHeroCard": {
+      "badge": "Senast loggat",
+      "title": "Passet är registrerat",
+      "titleWithName": "{name}, passet är registrerat",
+      "description": "{workoutName} är nu med i dagens översikt och din kostplan är justerad efter passet.",
+      "overview": "Passöversikt",
+      "viewDetails": "Visa passdetaljer",
+      "inputTypes": {
+        "photo": "Foto",
+        "screenshot": "Skärmbild",
+        "voice": "Röst",
+        "text": "Text",
+        "stravaImport": "Strava",
+        "garminImport": "Garmin",
+        "concept2Import": "Concept2",
+        "manualForm": "Formulär"
+      },
+      "feelings": {
+        "great": "Kändes fantastiskt",
+        "good": "Kändes bra",
+        "okay": "Kändes okej",
+        "tired": "Kändes tungt",
+        "exhausted": "Tog mycket energi"
+      },
+      "intensities": {
+        "recovery": "Återhämtning",
+        "easy": "Lätt",
+        "moderate": "Måttlig",
+        "threshold": "Tröskel",
+        "interval": "Intervall",
+        "max": "Max"
+      },
+      "types": {
+        "cardio": "Kondition",
+        "strength": "Styrka",
+        "hybrid": "Hybrid",
+        "mixed": "Mixat"
+      },
+      "stats": {
+        "time": "Tid",
+        "distance": "Distans",
+        "energy": "Energi",
+        "feeling": "Känsla"
+      }
+    },
     "createAthleteAccountDialog": {
       "trigger": {
         "sendInvite": "Skicka inbjudan",

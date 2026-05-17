@@ -2326,6 +2326,51 @@
       "personalBest": "Your record: {count} days",
       "checkInNow": "Check in now"
     },
+    "adHocWorkoutHeroCard": {
+      "badge": "Last logged",
+      "title": "Workout registered",
+      "titleWithName": "{name}, workout registered",
+      "description": "{workoutName} is now included in today's overview and your nutrition plan has been adjusted for the workout.",
+      "overview": "Workout overview",
+      "viewDetails": "View workout details",
+      "inputTypes": {
+        "photo": "Photo",
+        "screenshot": "Screenshot",
+        "voice": "Voice",
+        "text": "Text",
+        "stravaImport": "Strava",
+        "garminImport": "Garmin",
+        "concept2Import": "Concept2",
+        "manualForm": "Form"
+      },
+      "feelings": {
+        "great": "Felt fantastic",
+        "good": "Felt good",
+        "okay": "Felt okay",
+        "tired": "Felt heavy",
+        "exhausted": "Took a lot of energy"
+      },
+      "intensities": {
+        "recovery": "Recovery",
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "threshold": "Threshold",
+        "interval": "Interval",
+        "max": "Max"
+      },
+      "types": {
+        "cardio": "Cardio",
+        "strength": "Strength",
+        "hybrid": "Hybrid",
+        "mixed": "Mixed"
+      },
+      "stats": {
+        "time": "Time",
+        "distance": "Distance",
+        "energy": "Energy",
+        "feeling": "Feeling"
+      }
+    },
     "createAthleteAccountDialog": {
       "trigger": {
         "sendInvite": "Send invite",
