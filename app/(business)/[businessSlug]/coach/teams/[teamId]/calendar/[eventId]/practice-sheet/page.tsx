@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PracticeSheetPrintButton } from '@/components/coach/team-calendar/PracticeSheetPrintButton'
+import { IceHockeyRink, type DrillStructure } from '@/components/coach/drills/IceHockeyRink'
 
 interface PageProps {
   params: Promise<{
@@ -26,6 +27,7 @@ interface PracticeBlock {
   description?: string
   coachingPoints?: string
   drillId?: string | null
+  drillStructure?: unknown
 }
 
 const BLOCK_TYPE_LABELS: Record<string, string> = {
@@ -45,6 +47,17 @@ function isPracticeBlock(value: unknown): value is PracticeBlock {
 function parsePracticePlan(value: unknown): PracticeBlock[] {
   if (!Array.isArray(value)) return []
   return value.filter(isPracticeBlock)
+}
+
+function isDrillStructure(value: unknown): value is DrillStructure {
+  return Boolean(
+    value &&
+    typeof value === 'object' &&
+    'players' in value &&
+    'movements' in value &&
+    Array.isArray((value as { players?: unknown }).players) &&
+    Array.isArray((value as { movements?: unknown }).movements)
+  )
 }
 
 function formatDate(date: Date) {
@@ -175,6 +188,11 @@ export default async function PracticeSheetPage({ params }: PageProps) {
                 )}
                 {block.description && (
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">{block.description}</p>
+                )}
+                {isDrillStructure(block.drillStructure) && (
+                  <div className="mt-4 rounded-md border bg-slate-50 p-3 print:bg-white">
+                    <IceHockeyRink structure={block.drillStructure} width={520} className="mx-auto" />
+                  </div>
                 )}
                 {block.coachingPoints && (
                   <div className="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-950 print:border print:bg-white">

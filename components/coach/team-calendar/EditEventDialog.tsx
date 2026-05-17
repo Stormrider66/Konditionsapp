@@ -35,6 +35,7 @@ import {
 import { CheckCircle2, Dumbbell, ExternalLink, HeartPulse, Plus, Printer, Route, Send, Trash2, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { IceHockeyRink, type DrillStructure } from '@/components/coach/drills/IceHockeyRink'
 
 interface EditableTeamEvent {
   id: string
@@ -221,6 +222,17 @@ function blockFromSavedDrill(drill: SavedDrill): PracticeBlock {
     drillId: drill.id,
     drillStructure: drill.structure,
   })
+}
+
+function isDrillStructure(value: unknown): value is DrillStructure {
+  return Boolean(
+    value &&
+    typeof value === 'object' &&
+    'players' in value &&
+    'movements' in value &&
+    Array.isArray((value as { players?: unknown }).players) &&
+    Array.isArray((value as { movements?: unknown }).movements)
+  )
 }
 
 function icePracticeTemplate(kind: 'skills' | 'tactical' | 'gamePrep'): PracticeBlock[] {
@@ -818,6 +830,11 @@ export function EditEventDialog({
                         {block.drillId && (
                           <div className="mt-2 rounded-md bg-blue-50 px-2 py-1 text-xs text-blue-800">
                             Kopplad till sparad övning
+                          </div>
+                        )}
+                        {isDrillStructure(block.drillStructure) && (
+                          <div className="mt-3 rounded-md border bg-slate-50 p-2">
+                            <IceHockeyRink structure={block.drillStructure} width={420} className="mx-auto" />
                           </div>
                         )}
                         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
