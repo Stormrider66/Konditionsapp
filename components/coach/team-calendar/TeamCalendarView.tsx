@@ -5,7 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CreateEventDialog } from './CreateEventDialog'
 import { EditEventDialog } from './EditEventDialog'
-import { TEAM_EVENT_TYPE_COLORS, TEAM_EVENT_TYPE_LABELS, isTeamEventType } from '@/lib/team-calendar/event-types'
+import {
+  TEAM_EVENT_TYPE_COLORS,
+  TEAM_EVENT_TYPE_LABELS,
+  type TeamEventType,
+  isTeamEventType,
+} from '@/lib/team-calendar/event-types'
 import {
   ChevronLeft,
   ChevronRight,
@@ -13,6 +18,7 @@ import {
   Clock,
   Download,
   Trash2,
+  Plus,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -93,6 +99,13 @@ function compactEventText(event: TeamEvent): string {
   const time = event.allDay ? '' : formatTime(event.startDate)
   const location = event.location ? ` ${event.location}` : ''
   return `${time}${time ? ' ' : ''}${event.title}${location}`
+}
+
+function inputDateValue(date: Date): string {
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 interface TeamCalendarViewProps {
@@ -275,25 +288,58 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                 const dayName = date.toLocaleDateString('sv-SE', { weekday: 'short' }).toUpperCase()
                 const weekNumber = Math.ceil((((date.getTime() - new Date(date.getFullYear(), 0, 1).getTime()) / 86400000) + new Date(date.getFullYear(), 0, 1).getDay() + 1) / 7)
 
-                const renderCell = (cellEvents: TeamEvent[]) => (
+                const renderCell = (cellEvents: TeamEvent[], defaultType: TeamEventType) => (
                   <div className="space-y-1">
                     {cellEvents.length === 0 ? (
-                      <span className="text-muted-foreground">—</span>
-                    ) : (
-                      cellEvents.map((event) => {
-                        const typeConf = getTypeConfig(event.type)
-                        return (
+                      <CreateEventDialog
+                        teamId={teamId}
+                        businessSlug={businessSlug}
+                        onCreated={fetchEvents}
+                        defaultDate={inputDateValue(date)}
+                        defaultType={defaultType}
+                        trigger={
                           <button
-                            key={event.id}
                             type="button"
-                            className="block w-full rounded-sm px-1.5 py-1 text-left hover:bg-muted"
-                            onClick={() => setSelectedEvent(event)}
+                            className="flex w-full items-center gap-1 rounded-sm px-1.5 py-1 text-left text-muted-foreground hover:bg-muted hover:text-foreground"
                           >
-                            <span className={`mr-1 inline-block h-2 w-2 rounded-full ${typeConf.color}`} />
-                            <span className="font-medium">{compactEventText(event)}</span>
+                            <Plus className="h-3 w-3" />
+                            Lägg till
                           </button>
-                        )
-                      })
+                        }
+                      />
+                    ) : (
+                      <>
+                        {cellEvents.map((event) => {
+                          const typeConf = getTypeConfig(event.type)
+                          return (
+                            <button
+                              key={event.id}
+                              type="button"
+                              className="block w-full rounded-sm px-1.5 py-1 text-left hover:bg-muted"
+                              onClick={() => setSelectedEvent(event)}
+                            >
+                              <span className={`mr-1 inline-block h-2 w-2 rounded-full ${typeConf.color}`} />
+                              <span className="font-medium">{compactEventText(event)}</span>
+                            </button>
+                          )
+                        })}
+                        <CreateEventDialog
+                          teamId={teamId}
+                          businessSlug={businessSlug}
+                          onCreated={fetchEvents}
+                          defaultDate={inputDateValue(date)}
+                          defaultType={defaultType}
+                          trigger={
+                            <button
+                              type="button"
+                              className="flex w-full items-center gap-1 rounded-sm px-1.5 py-1 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                            >
+                              <Plus className="h-3 w-3" />
+                              Lägg till
+                            </button>
+                          }
+                        />
+                      </>
                     )}
                   </div>
                 )
@@ -303,11 +349,11 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                     <td className="border-r border-t px-2 py-2 text-muted-foreground">{date.getDay() === 1 ? `v.${weekNumber}` : ''}</td>
                     <td className={`border-r border-t px-2 py-2 font-semibold ${date.getDay() === 0 ? 'text-red-600' : ''}`}>{dayName}</td>
                     <td className="border-r border-t px-2 py-2">{date.getDate()}</td>
-                    <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.ice)}</td>
-                    <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.physical)}</td>
-                    <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.team)}</td>
-                    <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.other)}</td>
-                    <td className="border-t bg-amber-50 px-2 py-2 align-top">{renderCell(grouped.annual)}</td>
+                    <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.ice, 'PRACTICE')}</td>
+                    <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.physical, 'STRENGTH')}</td>
+                    <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.team, 'GAME')}</td>
+                    <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.other, 'OTHER')}</td>
+                    <td className="border-t bg-amber-50 px-2 py-2 align-top">{renderCell(grouped.annual, 'ANNUAL_PLAN')}</td>
                   </tr>
                 )
               })}

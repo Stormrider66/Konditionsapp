@@ -19,7 +19,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { TEAM_EVENT_TYPE_LABELS, TEAM_EVENT_TYPES, type TeamEventType } from '@/lib/team-calendar/event-types'
+import {
+  PHYSICAL_TEAM_EVENT_TYPES,
+  TEAM_EVENT_TYPE_LABELS,
+  TEAM_EVENT_TYPES,
+  type TeamEventType,
+} from '@/lib/team-calendar/event-types'
+import { Dumbbell, ExternalLink, HeartPulse, Route, Zap } from 'lucide-react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 
 interface EditableTeamEvent {
@@ -50,6 +57,24 @@ function timeValue(iso: string | null) {
   return new Date(iso).toTimeString().slice(0, 5)
 }
 
+function builderLinkFor(type: TeamEventType, businessSlug?: string) {
+  const coachBase = businessSlug ? `/${businessSlug}/coach` : '/coach'
+
+  if (type === 'STRENGTH' || type === 'PREHAB' || type === 'PLYOMETRICS') {
+    return { href: `${coachBase}/strength`, label: 'Öppna Strength Studio', icon: Dumbbell }
+  }
+  if (type === 'CARDIO' || type === 'INTERVAL_SESSION') {
+    return { href: `${coachBase}/cardio`, label: 'Öppna Cardio Studio', icon: HeartPulse }
+  }
+  if (type === 'HYBRID') {
+    return { href: `${coachBase}/hybrid-studio`, label: 'Öppna Hybrid Studio', icon: Route }
+  }
+  if (type === 'AGILITY') {
+    return { href: `${coachBase}/agility-studio`, label: 'Öppna Agility Studio', icon: Zap }
+  }
+  return null
+}
+
 export function EditEventDialog({
   event,
   teamId,
@@ -66,6 +91,8 @@ export function EditEventDialog({
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
   const [allDay, setAllDay] = useState(false)
+  const builderLink = builderLinkFor(type, businessSlug)
+  const isPhysicalSession = PHYSICAL_TEAM_EVENT_TYPES.includes(type)
 
   useEffect(() => {
     if (!event) return
@@ -157,6 +184,28 @@ export function EditEventDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {isPhysicalSession && (
+            <div className="rounded-md border bg-muted/35 p-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="text-sm font-medium">Fys-pass med byggbart innehåll</div>
+                  <div className="text-xs text-muted-foreground">
+                    Lägg ramen här och bygg passet i rätt studio när innehållet ska fyllas på.
+                  </div>
+                </div>
+                {builderLink && (
+                  <Button asChild variant="outline" size="sm" className="shrink-0">
+                    <Link href={builderLink.href}>
+                      <builderLink.icon className="mr-1.5 h-3.5 w-3.5" />
+                      {builderLink.label}
+                      <ExternalLink className="ml-1.5 h-3 w-3" />
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Datum</Label>

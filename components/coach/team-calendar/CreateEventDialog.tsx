@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -41,17 +41,27 @@ interface CreateEventDialogProps {
   teamId: string
   businessSlug?: string
   onCreated: () => void
+  trigger?: ReactNode
+  defaultDate?: string
+  defaultType?: TeamEventType
 }
 
-export function CreateEventDialog({ teamId, businessSlug, onCreated }: CreateEventDialogProps) {
+export function CreateEventDialog({
+  teamId,
+  businessSlug,
+  onCreated,
+  trigger,
+  defaultDate,
+  defaultType = 'PRACTICE',
+}: CreateEventDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const [title, setTitle] = useState('')
-  const [type, setType] = useState<TeamEventType>('PRACTICE')
+  const [type, setType] = useState<TeamEventType>(defaultType)
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
-  const [startDate, setStartDate] = useState('')
+  const [startDate, setStartDate] = useState(defaultDate ?? '')
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
   const [allDay, setAllDay] = useState(false)
@@ -119,10 +129,10 @@ export function CreateEventDialog({ teamId, businessSlug, onCreated }: CreateEve
 
   const resetForm = () => {
     setTitle('')
-    setType('PRACTICE')
+    setType(defaultType)
     setDescription('')
     setLocation('')
-    setStartDate('')
+    setStartDate(defaultDate ?? '')
     setStartTime('')
     setEndTime('')
     setAllDay(false)
@@ -130,13 +140,23 @@ export function CreateEventDialog({ teamId, businessSlug, onCreated }: CreateEve
     setContentStatus('planned_shell')
   }
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (nextOpen) {
+      setType(defaultType)
+      setStartDate(defaultDate ?? '')
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="h-4 w-4 mr-1.5" />
-          Ny händelse
-        </Button>
+        {trigger ?? (
+          <Button size="sm">
+            <Plus className="h-4 w-4 mr-1.5" />
+            Ny händelse
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
