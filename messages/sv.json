@@ -345,6 +345,38 @@
         "invalidUrl": "Videon kunde inte laddas (ogiltigt URL-format).",
         "accessDenied": "Kunde inte ladda videon (åtkomstfel). Försök igen senare."
       }
+    },
+    "tests": {
+      "backToDashboard": "TILLBAKA TILL DASHBOARD",
+      "titlePrefix": "Mina",
+      "titleAccent": "Konditionstester",
+      "description": "Översikt över alla dina genomförda konditionstester och resultat",
+      "stats": {
+        "totalTests": "Totalt tester",
+        "latestVo2max": "Senaste VO2max",
+        "maxHeartRate": "Max Puls",
+        "improvement": "Förbättring"
+      },
+      "table": {
+        "title": "Alla Tester",
+        "description": "Klicka på ett test för att se detaljerad rapport",
+        "empty": "Inga tester genomförda ännu",
+        "date": "Datum",
+        "type": "Typ",
+        "action": "Åtgärd",
+        "viewReport": "Visa Rapport"
+      },
+      "chart": {
+        "title": "Utveckling",
+        "description": "Din VO2max-progression över tid",
+        "highest": "Högsta värde",
+        "lowest": "Lägsta värde"
+      },
+      "testTypes": {
+        "running": "Löpning",
+        "cycling": "Cykling",
+        "skiing": "Skidåkning"
+      }
     }
   },
   "nav": {

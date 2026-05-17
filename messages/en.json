@@ -345,6 +345,38 @@
         "invalidUrl": "The video could not be loaded (invalid URL format).",
         "accessDenied": "Could not load the video (access error). Try again later."
       }
+    },
+    "tests": {
+      "backToDashboard": "BACK TO DASHBOARD",
+      "titlePrefix": "My",
+      "titleAccent": "Fitness Tests",
+      "description": "Overview of all your completed fitness tests and results",
+      "stats": {
+        "totalTests": "Total tests",
+        "latestVo2max": "Latest VO2max",
+        "maxHeartRate": "Max heart rate",
+        "improvement": "Improvement"
+      },
+      "table": {
+        "title": "All Tests",
+        "description": "Click a test to see the detailed report",
+        "empty": "No tests completed yet",
+        "date": "Date",
+        "type": "Type",
+        "action": "Action",
+        "viewReport": "View Report"
+      },
+      "chart": {
+        "title": "Progress",
+        "description": "Your VO2max progression over time",
+        "highest": "Highest value",
+        "lowest": "Lowest value"
+      },
+      "testTypes": {
+        "running": "Running",
+        "cycling": "Cycling",
+        "skiing": "Skiing"
+      }
     }
   },
   "nav": {
