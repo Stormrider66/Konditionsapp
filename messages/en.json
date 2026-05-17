@@ -3202,6 +3202,19 @@
         "critical": "Critical"
       }
     },
+    "personalRecords": {
+      "title": "Personal records",
+      "description": "Your best performances",
+      "glassDescription": "Your best performances and milestones",
+      "records": {
+        "distance": "Longest distance",
+        "duration": "Longest workout",
+        "pace": "Fastest pace",
+        "avgHR": "Highest average HR",
+        "maxHR": "Highest max HR",
+        "minRPE": "Lowest RPE (hard workout)"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",

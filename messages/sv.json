@@ -3202,6 +3202,19 @@
         "critical": "Kritisk"
       }
     },
+    "personalRecords": {
+      "title": "Personliga rekord",
+      "description": "Dina bästa prestationer",
+      "glassDescription": "Dina bästa prestationer och milstolpar",
+      "records": {
+        "distance": "Längsta distans",
+        "duration": "Längsta pass",
+        "pace": "Snabbaste tempo",
+        "avgHR": "Högsta snitt-puls",
+        "maxHR": "Högsta max-puls",
+        "minRPE": "Lägsta RPE (hårt pass)"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

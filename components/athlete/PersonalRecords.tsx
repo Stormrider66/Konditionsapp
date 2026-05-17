@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Trophy, TrendingUp, Clock, Heart, Zap } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import type { Locale as DateFnsLocale } from 'date-fns'
+import { enUS, sv } from 'date-fns/locale'
 import {
   GlassCard,
   GlassCardHeader,
@@ -13,13 +14,41 @@ import {
   GlassCardDescription
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
+import { getLocale, getTranslations } from '@/i18n/server'
 
 interface PersonalRecordsProps {
   athleteId: string
   variant?: 'default' | 'glass'
 }
 
+type PersonalRecordType = 'distance' | 'duration' | 'pace' | 'avgHR' | 'maxHR' | 'minRPE'
+
+interface PersonalRecord {
+  type: PersonalRecordType
+  value: string
+  workoutName: string
+  date: Date | string
+}
+
+interface WorkoutLogForRecord {
+  distance: number | null
+  duration: number | null
+  avgPace: string | null
+  avgHR: number | null
+  maxHR: number | null
+  perceivedEffort: number | null
+  completedAt: Date | null
+  workout: {
+    name: string
+    type: string
+    intensity: string
+  }
+}
+
 export async function PersonalRecords({ athleteId, variant = 'default' }: PersonalRecordsProps) {
+  const t = await getTranslations('components.personalRecords')
+  const locale = await getLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const isGlass = variant === 'glass'
 
   // Fetch all completed workout logs
@@ -56,16 +85,16 @@ export async function PersonalRecords({ athleteId, variant = 'default' }: Person
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-orange-500" />
-            Personliga rekord
+            {t('title')}
           </GlassCardTitle>
           <GlassCardDescription>
-            Dina bästa prestationer och milstolpar
+            {t('glassDescription')}
           </GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {records.map((record, index) => (
-              <RecordCard key={index} record={record} isGlass={true} />
+              <RecordCard key={index} record={record} isGlass={true} dateLocale={dateLocale} title={t(`records.${record.type}`)} />
             ))}
           </div>
         </GlassCardContent>
@@ -78,16 +107,16 @@ export async function PersonalRecords({ athleteId, variant = 'default' }: Person
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Trophy className="h-5 w-5 text-yellow-500" />
-          Personliga rekord
+          {t('title')}
         </CardTitle>
         <CardDescription>
-          Dina bästa prestationer
+          {t('description')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {records.map((record, index) => (
-            <RecordCard key={index} record={record} />
+            <RecordCard key={index} record={record} dateLocale={dateLocale} title={t(`records.${record.type}`)} />
           ))}
         </div>
       </CardContent>
@@ -95,7 +124,17 @@ export async function PersonalRecords({ athleteId, variant = 'default' }: Person
   )
 }
 
-function RecordCard({ record, isGlass = false }: { record: any; isGlass?: boolean }) {
+function RecordCard({
+  record,
+  title,
+  dateLocale,
+  isGlass = false,
+}: {
+  record: PersonalRecord
+  title: string
+  dateLocale: DateFnsLocale
+  isGlass?: boolean
+}) {
   const icons = {
     distance: TrendingUp,
     duration: Clock,
@@ -127,7 +166,7 @@ function RecordCard({ record, isGlass = false }: { record: any; isGlass?: boolea
         <p className={cn(
           "text-xs font-bold uppercase tracking-wider",
           isGlass ? "text-slate-500" : "text-muted-foreground"
-        )}>{record.title}</p>
+        )}>{title}</p>
         <p className={cn(
           "text-2xl font-black truncate",
           isGlass ? "text-white" : "text-yellow-900"
@@ -144,7 +183,7 @@ function RecordCard({ record, isGlass = false }: { record: any; isGlass?: boolea
           "text-[10px] font-medium mt-1 uppercase tracking-tight",
           isGlass ? "text-slate-500" : "text-muted-foreground"
         )}>
-          {format(new Date(record.date), 'PPP', { locale: sv })}
+          {format(new Date(record.date), 'PPP', { locale: dateLocale })}
         </p>
       </div>
     </div>
@@ -152,8 +191,8 @@ function RecordCard({ record, isGlass = false }: { record: any; isGlass?: boolea
 }
 
 // Calculate personal records from logs
-function calculatePersonalRecords(logs: any[]) {
-  const records: any[] = []
+function calculatePersonalRecords(logs: WorkoutLogForRecord[]): PersonalRecord[] {
+  const records: PersonalRecord[] = []
 
   // Longest distance
   const longestDistance = logs
@@ -163,10 +202,9 @@ function calculatePersonalRecords(logs: any[]) {
   if (longestDistance) {
     records.push({
       type: 'distance',
-      title: 'Längsta distans',
       value: `${longestDistance.distance} km`,
       workoutName: longestDistance.workout.name,
-      date: longestDistance.completedAt,
+      date: longestDistance.completedAt ?? new Date(),
     })
   }
 
@@ -176,14 +214,14 @@ function calculatePersonalRecords(logs: any[]) {
     .sort((a, b) => (b.duration || 0) - (a.duration || 0))[0]
 
   if (longestDuration) {
-    const hours = Math.floor(longestDuration.duration / 60)
-    const mins = longestDuration.duration % 60
+    const duration = longestDuration.duration ?? 0
+    const hours = Math.floor(duration / 60)
+    const mins = duration % 60
     records.push({
       type: 'duration',
-      title: 'Längsta pass',
       value: hours > 0 ? `${hours}h ${mins}min` : `${mins} min`,
       workoutName: longestDuration.workout.name,
-      date: longestDuration.completedAt,
+      date: longestDuration.completedAt ?? new Date(),
     })
   }
 
@@ -191,18 +229,17 @@ function calculatePersonalRecords(logs: any[]) {
   const fastestPace = logs
     .filter(log => log.workout.type === 'RUNNING' && log.avgPace && log.distance && log.distance > 1)
     .sort((a, b) => {
-      const paceA = convertPaceToSeconds(a.avgPace)
-      const paceB = convertPaceToSeconds(b.avgPace)
+      const paceA = convertPaceToSeconds(a.avgPace ?? '')
+      const paceB = convertPaceToSeconds(b.avgPace ?? '')
       return paceA - paceB
     })[0]
 
   if (fastestPace) {
     records.push({
       type: 'pace',
-      title: 'Snabbaste tempo',
-      value: fastestPace.avgPace,
+      value: fastestPace.avgPace ?? '',
       workoutName: fastestPace.workout.name,
-      date: fastestPace.completedAt,
+      date: fastestPace.completedAt ?? new Date(),
     })
   }
 
@@ -214,10 +251,9 @@ function calculatePersonalRecords(logs: any[]) {
   if (highestAvgHR) {
     records.push({
       type: 'avgHR',
-      title: 'Högsta snitt-puls',
       value: `${highestAvgHR.avgHR} bpm`,
       workoutName: highestAvgHR.workout.name,
-      date: highestAvgHR.completedAt,
+      date: highestAvgHR.completedAt ?? new Date(),
     })
   }
 
@@ -229,10 +265,9 @@ function calculatePersonalRecords(logs: any[]) {
   if (highestMaxHR) {
     records.push({
       type: 'maxHR',
-      title: 'Högsta max-puls',
       value: `${highestMaxHR.maxHR} bpm`,
       workoutName: highestMaxHR.workout.name,
-      date: highestMaxHR.completedAt,
+      date: highestMaxHR.completedAt ?? new Date(),
     })
   }
 
@@ -244,10 +279,9 @@ function calculatePersonalRecords(logs: any[]) {
   if (lowestRPEHard) {
     records.push({
       type: 'minRPE',
-      title: 'Lägsta RPE (hårt pass)',
       value: `${lowestRPEHard.perceivedEffort}/10`,
       workoutName: lowestRPEHard.workout.name,
-      date: lowestRPEHard.completedAt,
+      date: lowestRPEHard.completedAt ?? new Date(),
     })
   }
 
