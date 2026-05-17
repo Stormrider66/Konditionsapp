@@ -5364,6 +5364,64 @@
         "retry": "Try again"
       }
     },
+    "adHocWorkoutReview": {
+      "fallbackWorkoutName": "Your workout",
+      "confidence": "{percent}% confidence",
+      "aiInterpretation": "AI interpretation",
+      "warnings": {
+        "title": "Note"
+      },
+      "types": {
+        "cardio": "Cardio",
+        "strength": "Strength",
+        "hybrid": "Functional",
+        "mixed": "Mixed"
+      },
+      "intensities": {
+        "recovery": "Recovery",
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "threshold": "Threshold",
+        "interval": "Interval",
+        "max": "Max"
+      },
+      "metrics": {
+        "time": "Time",
+        "distance": "Distance",
+        "avgHeartRate": "Avg heart rate",
+        "elevationGain": "Elevation gain"
+      },
+      "strength": {
+        "exercises": "Exercises",
+        "newExercise": "New exercise"
+      },
+      "edit": {
+        "title": "Edit details",
+        "duration": "Time (minutes)",
+        "distance": "Distance (km)"
+      },
+      "subjective": {
+        "rpe": "Perceived exertion (RPE)",
+        "easy": "Easy",
+        "feeling": "How did it feel?",
+        "notes": "Notes",
+        "notesPlaceholder": "Optional notes about the workout..."
+      },
+      "feelings": {
+        "great": "Fantastic",
+        "good": "Good",
+        "okay": "Okay",
+        "tired": "Tired",
+        "exhausted": "Exhausted"
+      },
+      "actions": {
+        "show": "Show",
+        "hide": "Hide",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "confirm": "Confirm"
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

@@ -5364,6 +5364,64 @@
         "retry": "Försök igen"
       }
     },
+    "adHocWorkoutReview": {
+      "fallbackWorkoutName": "Ditt pass",
+      "confidence": "{percent}% säkerhet",
+      "aiInterpretation": "AI-tolkning",
+      "warnings": {
+        "title": "Observera"
+      },
+      "types": {
+        "cardio": "Kondition",
+        "strength": "Styrka",
+        "hybrid": "Funktionell",
+        "mixed": "Blandat"
+      },
+      "intensities": {
+        "recovery": "Återhämtning",
+        "easy": "Lätt",
+        "moderate": "Medel",
+        "threshold": "Tröskel",
+        "interval": "Intervall",
+        "max": "Max"
+      },
+      "metrics": {
+        "time": "Tid",
+        "distance": "Distans",
+        "avgHeartRate": "Snitt puls",
+        "elevationGain": "Höjdmeter"
+      },
+      "strength": {
+        "exercises": "Övningar",
+        "newExercise": "Ny övning"
+      },
+      "edit": {
+        "title": "Redigera uppgifter",
+        "duration": "Tid (minuter)",
+        "distance": "Distans (km)"
+      },
+      "subjective": {
+        "rpe": "Upplevd ansträngning (RPE)",
+        "easy": "Lätt",
+        "feeling": "Hur kändes det?",
+        "notes": "Anteckningar",
+        "notesPlaceholder": "Valfria anteckningar om passet..."
+      },
+      "feelings": {
+        "great": "Fantastiskt",
+        "good": "Bra",
+        "okay": "Okej",
+        "tired": "Trött",
+        "exhausted": "Utmattad"
+      },
+      "actions": {
+        "show": "Visa",
+        "hide": "Dölj",
+        "cancel": "Avbryt",
+        "saving": "Sparar...",
+        "confirm": "Bekräfta"
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

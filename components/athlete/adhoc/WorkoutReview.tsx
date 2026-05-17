@@ -17,13 +17,6 @@ import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Loader2,
   Check,
   AlertCircle,
@@ -40,6 +33,7 @@ import {
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { formatParsedWorkoutDistanceKm, getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface WorkoutReviewProps {
   parsedWorkout: ParsedWorkout
@@ -54,27 +48,27 @@ interface WorkoutReviewProps {
 }
 
 const FEELING_OPTIONS = [
-  { value: 'GREAT', label: 'Fantastiskt', emoji: '🔥' },
-  { value: 'GOOD', label: 'Bra', emoji: '😊' },
-  { value: 'OKAY', label: 'Okej', emoji: '😐' },
-  { value: 'TIRED', label: 'Trött', emoji: '😓' },
-  { value: 'EXHAUSTED', label: 'Utmattad', emoji: '😫' },
+  { value: 'GREAT', labelKey: 'great', emoji: '🔥' },
+  { value: 'GOOD', labelKey: 'good', emoji: '😊' },
+  { value: 'OKAY', labelKey: 'okay', emoji: '😐' },
+  { value: 'TIRED', labelKey: 'tired', emoji: '😓' },
+  { value: 'EXHAUSTED', labelKey: 'exhausted', emoji: '😫' },
 ]
 
-const TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  CARDIO: { label: 'Kondition', color: 'bg-blue-500' },
-  STRENGTH: { label: 'Styrka', color: 'bg-orange-500' },
-  HYBRID: { label: 'Funktionell', color: 'bg-purple-500' },
-  MIXED: { label: 'Blandat', color: 'bg-gray-500' },
+const TYPE_LABELS: Record<string, { labelKey: string; color: string }> = {
+  CARDIO: { labelKey: 'cardio', color: 'bg-blue-500' },
+  STRENGTH: { labelKey: 'strength', color: 'bg-orange-500' },
+  HYBRID: { labelKey: 'hybrid', color: 'bg-purple-500' },
+  MIXED: { labelKey: 'mixed', color: 'bg-gray-500' },
 }
 
 const INTENSITY_LABELS: Record<string, string> = {
-  RECOVERY: 'Återhämtning',
-  EASY: 'Lätt',
-  MODERATE: 'Medel',
-  THRESHOLD: 'Tröskel',
-  INTERVAL: 'Intervall',
-  MAX: 'Max',
+  RECOVERY: 'recovery',
+  EASY: 'easy',
+  MODERATE: 'moderate',
+  THRESHOLD: 'threshold',
+  INTERVAL: 'interval',
+  MAX: 'max',
 }
 
 export function WorkoutReview({
@@ -83,6 +77,7 @@ export function WorkoutReview({
   onCancel,
   isSubmitting,
 }: WorkoutReviewProps) {
+  const t = useTranslations('components.adHocWorkoutReview')
   const [editMode, setEditMode] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
 
@@ -125,15 +120,17 @@ export function WorkoutReview({
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2">
-              {parsedWorkout.name || 'Ditt pass'}
+              {parsedWorkout.name || t('fallbackWorkoutName')}
             </CardTitle>
             <div className="flex items-center gap-2">
               <Badge className={cn('text-white', typeInfo.color)}>
-                {typeInfo.label}
+                {t(`types.${typeInfo.labelKey}`)}
               </Badge>
               {parsedWorkout.intensity && (
                 <Badge variant="outline">
-                  {INTENSITY_LABELS[parsedWorkout.intensity] || parsedWorkout.intensity}
+                  {INTENSITY_LABELS[parsedWorkout.intensity]
+                    ? t(`intensities.${INTENSITY_LABELS[parsedWorkout.intensity]}`)
+                    : parsedWorkout.intensity}
                 </Badge>
               )}
             </div>
@@ -151,9 +148,9 @@ export function WorkoutReview({
                   : 'text-red-600'
               )}
             >
-              {confidencePercent}% säkerhet
+              {t('confidence', { percent: confidencePercent })}
             </div>
-            <div className="text-xs text-muted-foreground">AI-tolkning</div>
+            <div className="text-xs text-muted-foreground">{t('aiInterpretation')}</div>
           </div>
         </div>
       </CardHeader>
@@ -166,7 +163,7 @@ export function WorkoutReview({
               <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
               <div className="space-y-1">
                 <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                  Observera
+                  {t('warnings.title')}
                 </p>
                 {parsedWorkout.warnings.map((warning, i) => (
                   <p key={i} className="text-sm text-yellow-700 dark:text-yellow-300">
@@ -185,7 +182,7 @@ export function WorkoutReview({
               <Clock className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm font-medium">{parsedWorkout.duration} min</div>
-                <div className="text-xs text-muted-foreground">Tid</div>
+                <div className="text-xs text-muted-foreground">{t('metrics.time')}</div>
               </div>
             </div>
           )}
@@ -195,7 +192,7 @@ export function WorkoutReview({
               <MapPin className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm font-medium">{formatParsedWorkoutDistanceKm(parsedWorkout)} km</div>
-                <div className="text-xs text-muted-foreground">Distans</div>
+                <div className="text-xs text-muted-foreground">{t('metrics.distance')}</div>
               </div>
             </div>
           )}
@@ -205,7 +202,7 @@ export function WorkoutReview({
               <Heart className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm font-medium">{parsedWorkout.avgHeartRate} bpm</div>
-                <div className="text-xs text-muted-foreground">Snitt puls</div>
+                <div className="text-xs text-muted-foreground">{t('metrics.avgHeartRate')}</div>
               </div>
             </div>
           )}
@@ -215,7 +212,7 @@ export function WorkoutReview({
               <Activity className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm font-medium">{parsedWorkout.elevationGain} m</div>
-                <div className="text-xs text-muted-foreground">Höjdmeter</div>
+                <div className="text-xs text-muted-foreground">{t('metrics.elevationGain')}</div>
               </div>
             </div>
           )}
@@ -226,7 +223,7 @@ export function WorkoutReview({
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Dumbbell className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Övningar</span>
+              <span className="text-sm font-medium">{t('strength.exercises')}</span>
             </div>
             <div className="grid gap-2">
               {parsedWorkout.strengthExercises.map((ex, i) => (
@@ -238,7 +235,7 @@ export function WorkoutReview({
                     <span className="font-medium">{ex.exerciseName}</span>
                     {ex.isCustom && (
                       <Badge variant="outline" className="text-xs">
-                        Ny övning
+                        {t('strength.newExercise')}
                       </Badge>
                     )}
                   </div>
@@ -280,7 +277,7 @@ export function WorkoutReview({
           className="w-full justify-between"
           onClick={() => setShowDetails(!showDetails)}
         >
-          <span className="text-sm">AI-tolkning</span>
+          <span className="text-sm">{t('aiInterpretation')}</span>
           {showDetails ? (
             <ChevronUp className="h-4 w-4" />
           ) : (
@@ -298,17 +295,17 @@ export function WorkoutReview({
 
         {/* Edit mode toggle */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Redigera uppgifter</span>
+          <span className="text-sm font-medium">{t('edit.title')}</span>
           <Button variant="ghost" size="sm" onClick={() => setEditMode(!editMode)}>
             <Edit2 className="h-4 w-4 mr-1" />
-            {editMode ? 'Dölj' : 'Visa'}
+            {editMode ? t('actions.hide') : t('actions.show')}
           </Button>
         </div>
 
         {editMode && (
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="duration">Tid (minuter)</Label>
+              <Label htmlFor="duration">{t('edit.duration')}</Label>
               <Input
                 id="duration"
                 type="number"
@@ -318,7 +315,7 @@ export function WorkoutReview({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="distance">Distans (km)</Label>
+              <Label htmlFor="distance">{t('edit.distance')}</Label>
               <Input
                 id="distance"
                 type="number"
@@ -337,7 +334,7 @@ export function WorkoutReview({
         <div className="space-y-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Upplevd ansträngning (RPE)</Label>
+              <Label>{t('subjective.rpe')}</Label>
               <span className="text-sm font-medium">{rpe}/10</span>
             </div>
             <Slider
@@ -348,13 +345,13 @@ export function WorkoutReview({
               step={1}
             />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Lätt</span>
+              <span>{t('subjective.easy')}</span>
               <span>Max</span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Hur kändes det?</Label>
+            <Label>{t('subjective.feeling')}</Label>
             <div className="flex flex-wrap gap-2">
               {FEELING_OPTIONS.map((option) => (
                 <Button
@@ -363,19 +360,19 @@ export function WorkoutReview({
                   size="sm"
                   onClick={() => setFeeling(option.value)}
                 >
-                  {option.emoji} {option.label}
+                  {option.emoji} {t(`feelings.${option.labelKey}`)}
                 </Button>
               ))}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Anteckningar</Label>
+            <Label htmlFor="notes">{t('subjective.notes')}</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Valfria anteckningar om passet..."
+              placeholder={t('subjective.notesPlaceholder')}
               className="resize-none"
               rows={2}
             />
@@ -385,18 +382,18 @@ export function WorkoutReview({
 
       <CardFooter className="flex gap-3">
         <Button variant="outline" className="flex-1" onClick={onCancel} disabled={isSubmitting}>
-          Avbryt
+          {t('actions.cancel')}
         </Button>
         <Button className="flex-1" onClick={handleConfirm} disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sparar...
+              {t('actions.saving')}
             </>
           ) : (
             <>
               <Check className="mr-2 h-4 w-4" />
-              Bekräfta
+              {t('actions.confirm')}
             </>
           )}
         </Button>
