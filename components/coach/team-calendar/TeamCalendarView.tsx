@@ -388,14 +388,6 @@ const PHYSICAL_QUICK_TYPES: Array<{ type: TeamEventType; title: string; label: s
   { type: 'AGILITY', title: 'Agility', label: 'Agility' },
 ]
 
-const DEFAULT_CREATABLE_TYPES: TeamEventType[] = [
-  ...PHYSICAL_QUICK_TYPES.map((item) => item.type),
-  'PRACTICE',
-  'GAME',
-  'OTHER',
-  'ANNUAL_PLAN',
-]
-
 interface TeamCalendarViewProps {
   teamId: string
   teamName: string
@@ -416,18 +408,21 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
 
   const weekDates = getWeekDates(weekBase)
   const monthDates = getMonthDates(weekBase)
-  const rangeStart = viewMode === 'planning' ? monthDates[0] : weekDates[0]
-  const rangeEnd = new Date(viewMode === 'planning' ? monthDates[monthDates.length - 1] : weekDates[6])
+  const creatableTypes = calendarPermissions?.creatableTypes ?? []
+  const assignableContentTypes = calendarPermissions?.assignableContentTypes ?? []
+  const isStaffPlanningView = creatableTypes.length > 0 || assignableContentTypes.length > 0
+  const effectiveViewMode = isStaffPlanningView ? viewMode : 'week'
+  const rangeStart = effectiveViewMode === 'planning' ? monthDates[0] : weekDates[0]
+  const rangeEnd = new Date(effectiveViewMode === 'planning' ? monthDates[monthDates.length - 1] : weekDates[6])
   rangeEnd.setHours(23, 59, 59, 999)
 
   // Stabilize the ISO strings outside the dep array — react-hooks v6
   // requires deps to be simple expressions (no method calls).
   const rangeStartIso = rangeStart.toISOString()
   const rangeEndIso = rangeEnd.toISOString()
-  const creatableTypes = calendarPermissions?.creatableTypes ?? DEFAULT_CREATABLE_TYPES
   const isPhysicalTrainerCalendar = calendarPermissions?.role === 'PHYSICAL_TRAINER'
   const canCreateType = (type: TeamEventType) => creatableTypes.includes(type)
-  const canAssignContentType = (type: string) => calendarPermissions?.assignableContentTypes.includes(type as TeamEventType) ?? true
+  const canAssignContentType = (type: string) => assignableContentTypes.includes(type as TeamEventType)
   const contentQueue = events
     .filter(eventNeedsContent)
     .filter((event) => queueOwnerFilter === 'all' || event.contentOwner === queueOwnerFilter)
@@ -446,7 +441,9 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
   const planningReviewQueue = events
     .filter(eventNeedsReview)
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-  const visibleEvents = events.filter((event) => eventMatchesPlanningFilter(event, planningFilter))
+  const visibleEvents = isStaffPlanningView
+    ? events.filter((event) => eventMatchesPlanningFilter(event, planningFilter))
+    : events
   const planningFilterCounts = PLANNING_FILTERS.reduce<Record<PlanningFilter, number>>((acc, filter) => {
     acc[filter.value] = events.filter((event) => eventMatchesPlanningFilter(event, filter.value)).length
     return acc
@@ -489,7 +486,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
 
   const navigateWeek = (direction: number) => {
     const next = new Date(weekBase)
-    if (viewMode === 'planning') {
+    if (effectiveViewMode === 'planning') {
       next.setMonth(next.getMonth() + direction)
     } else {
       next.setDate(next.getDate() + direction * 7)
@@ -574,36 +571,38 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
             <ChevronRight className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium ml-2">
-            {viewMode === 'planning'
+            {effectiveViewMode === 'planning'
               ? weekBase.toLocaleDateString('sv-SE', { month: 'long', year: 'numeric' })
               : `${weekDates[0].toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} - ${weekDates[6].toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })}`}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex rounded-md border bg-background p-0.5">
-            <Button
-              variant={viewMode === 'week' ? 'default' : 'ghost'}
-              size="sm"
-              className="h-7 px-3"
-              onClick={() => {
-                setViewMode('week')
-                setLoading(true)
-              }}
-            >
-              Vecka
-            </Button>
-            <Button
-              variant={viewMode === 'planning' ? 'default' : 'ghost'}
-              size="sm"
-              className="h-7 px-3"
-              onClick={() => {
-                setViewMode('planning')
-                setLoading(true)
-              }}
-            >
-              Planering
-            </Button>
-          </div>
+          {isStaffPlanningView && (
+            <div className="flex rounded-md border bg-background p-0.5">
+              <Button
+                variant={viewMode === 'week' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-7 px-3"
+                onClick={() => {
+                  setViewMode('week')
+                  setLoading(true)
+                }}
+              >
+                Vecka
+              </Button>
+              <Button
+                variant={viewMode === 'planning' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-7 px-3"
+                onClick={() => {
+                  setViewMode('planning')
+                  setLoading(true)
+                }}
+              >
+                Planering
+              </Button>
+            </div>
+          )}
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-3.5 w-3.5 mr-1.5" />
             Exportera .ics
@@ -629,31 +628,33 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
         </div>
       </div>
 
-      <div className="rounded-lg border bg-background p-2">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <Filter className="h-3.5 w-3.5" />
-            Visa
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {PLANNING_FILTERS.map((filter) => (
-              <Button
-                key={filter.value}
-                type="button"
-                variant={planningFilter === filter.value ? 'default' : 'outline'}
-                size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={() => setPlanningFilter(filter.value)}
-              >
-                {filter.label}
-                <span className="ml-1 text-[10px] opacity-70">{planningFilterCounts[filter.value]}</span>
-              </Button>
-            ))}
+      {isStaffPlanningView && (
+        <div className="rounded-lg border bg-background p-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <Filter className="h-3.5 w-3.5" />
+              Visa
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {PLANNING_FILTERS.map((filter) => (
+                <Button
+                  key={filter.value}
+                  type="button"
+                  variant={planningFilter === filter.value ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setPlanningFilter(filter.value)}
+                >
+                  {filter.label}
+                  <span className="ml-1 text-[10px] opacity-70">{planningFilterCounts[filter.value]}</span>
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {planningReviewQueue.length > 0 && (
+      {isStaffPlanningView && planningReviewQueue.length > 0 && (
         <div className="rounded-lg border bg-orange-50/70 p-3 text-orange-950">
           <div className="flex flex-col gap-3">
             <div>
@@ -688,7 +689,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
         </div>
       )}
 
-      {readyAssignmentQueue.length > 0 && (
+      {isStaffPlanningView && readyAssignmentQueue.length > 0 && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-emerald-950">
           <div className="flex flex-col gap-3">
             <div>
@@ -762,7 +763,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
         </div>
       )}
 
-      {allOpenContentQueue.length > 0 && (
+      {isStaffPlanningView && allOpenContentQueue.length > 0 && (
         <div className="rounded-lg border bg-amber-50/70 p-3 text-amber-950">
           <div className="flex flex-col gap-3">
             <div>
@@ -892,7 +893,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
             <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
           ))}
         </div>
-      ) : viewMode === 'planning' ? (
+      ) : effectiveViewMode === 'planning' ? (
         <div className="overflow-x-auto rounded-lg border bg-background">
           <table className="w-full min-w-[960px] border-collapse text-sm">
             <thead>

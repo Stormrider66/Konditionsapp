@@ -1,5 +1,5 @@
 import { getAccessibleTeam } from '@/lib/coach/team-access'
-import { getStaffPermissions, type StaffPermissions } from '@/lib/permissions/assistant-coach'
+import { getStaffPermissions, type StaffPermissions, type StaffRole } from '@/lib/permissions/assistant-coach'
 import { PHYSICAL_TEAM_EVENT_TYPES, TEAM_EVENT_TYPES, isTeamEventType } from '@/lib/team-calendar/event-types'
 
 type TeamCalendarAction = 'create' | 'update' | 'delete' | 'assignContent'
@@ -35,12 +35,13 @@ function canWriteType(role: string, eventType: string, action: TeamCalendarActio
 export async function getTeamCalendarPermissionProfile(
   userId: string,
   teamId: string,
-  businessSlug?: string
+  businessSlug?: string,
+  options?: { roleOverride?: StaffRole | null }
 ) {
   const team = await getAccessibleTeam(userId, teamId, businessSlug)
   if (!team) return null
 
-  const permissions = await getStaffPermissions(userId, businessSlug)
+  const permissions = await getStaffPermissions(userId, businessSlug, options)
   const hasScope = hasTeamScope(userId, team, permissions)
 
   return {

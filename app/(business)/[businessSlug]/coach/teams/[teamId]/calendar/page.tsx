@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
+import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 import { TeamCalendarView } from '@/components/coach/team-calendar/TeamCalendarView'
 import { ManageAssistantsDialog } from '@/components/coach/team-calendar/ManageAssistantsDialog'
 import { Button } from '@/components/ui/button'
@@ -23,6 +24,7 @@ export default async function TeamCalendarPage({ params }: PageProps) {
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
+  const previewRole = await getStaffRolePreview(user.id)
 
   const team = await getAccessibleTeam(user.id, teamId, businessSlug)
 
@@ -47,7 +49,9 @@ export default async function TeamCalendarPage({ params }: PageProps) {
             </p>
           </div>
         </div>
-        <ManageAssistantsDialog teamId={team.id} teamName={team.name} />
+        {previewRole !== 'MEMBER' && (
+          <ManageAssistantsDialog teamId={team.id} teamName={team.name} />
+        )}
       </div>
 
       <TeamCalendarView

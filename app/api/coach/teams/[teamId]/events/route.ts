@@ -10,6 +10,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
+import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignment-summary'
 import {
   TEAM_EVENT_CONTENT_OWNERS,
@@ -66,7 +67,10 @@ export async function GET(req: NextRequest, context: RouteContext) {
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
     }
-    const calendarPermissions = await getTeamCalendarPermissionProfile(user.id, teamId, scope.businessSlug)
+    const previewRole = await getStaffRolePreview(user.id)
+    const calendarPermissions = await getTeamCalendarPermissionProfile(user.id, teamId, scope.businessSlug, {
+      roleOverride: previewRole,
+    })
 
     const { searchParams } = new URL(req.url)
     const from = searchParams.get('from')
