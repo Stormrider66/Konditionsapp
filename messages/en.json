@@ -5229,6 +5229,36 @@
         "helper": "Search among 2,500+ foods from the Swedish Food Agency. Description and macros are calculated automatically."
       }
     },
+    "adHocInputMethodSelector": {
+      "title": "Log a workout",
+      "description": "Choose how you want to register your workout",
+      "methods": {
+        "photo": {
+          "label": "Photo",
+          "description": "Take a photo of a whiteboard or paper"
+        },
+        "voice": {
+          "label": "Voice",
+          "description": "Describe the workout with a voice message"
+        },
+        "text": {
+          "label": "Write",
+          "description": "Write a description of the workout"
+        },
+        "strava": {
+          "label": "Strava",
+          "description": "Import from your Strava activity"
+        },
+        "garmin": {
+          "label": "Garmin Connect",
+          "description": "Import from your Garmin Connect activity"
+        },
+        "manual": {
+          "label": "Form",
+          "description": "Fill in a structured form"
+        }
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

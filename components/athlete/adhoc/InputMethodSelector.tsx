@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useTranslations } from '@/i18n/client'
 
 interface InputMethodSelectorProps {
   open: boolean
@@ -37,8 +38,8 @@ interface InputMethodSelectorProps {
 
 interface InputMethod {
   id: 'photo' | 'voice' | 'text' | 'strava' | 'garmin' | 'manual'
-  label: string
-  description: string
+  labelKey: string
+  descriptionKey: string
   icon: React.ReactNode
   color: string
   available: boolean
@@ -47,48 +48,48 @@ interface InputMethod {
 const INPUT_METHODS: InputMethod[] = [
   {
     id: 'photo',
-    label: 'Foto',
-    description: 'Ta en bild av whiteboard eller papper',
+    labelKey: 'photo.label',
+    descriptionKey: 'photo.description',
     icon: <Camera className="h-6 w-6" />,
     color: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
     available: true,
   },
   {
     id: 'voice',
-    label: 'Röst',
-    description: 'Beskriv passet med ett röstmeddelande',
+    labelKey: 'voice.label',
+    descriptionKey: 'voice.description',
     icon: <Mic className="h-6 w-6" />,
     color: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
     available: true,
   },
   {
     id: 'text',
-    label: 'Skriv',
-    description: 'Skriv en beskrivning av passet',
+    labelKey: 'text.label',
+    descriptionKey: 'text.description',
     icon: <FileText className="h-6 w-6" />,
     color: 'bg-green-500/10 text-green-500 border-green-500/20',
     available: true,
   },
   {
     id: 'strava',
-    label: 'Strava',
-    description: 'Importera från din Strava-aktivitet',
+    labelKey: 'strava.label',
+    descriptionKey: 'strava.description',
     icon: <Activity className="h-6 w-6" />,
     color: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
     available: true,
   },
   {
     id: 'garmin',
-    label: 'Garmin Connect',
-    description: 'Importera från din Garmin Connect-aktivitet',
+    labelKey: 'garmin.label',
+    descriptionKey: 'garmin.description',
     icon: <Watch className="h-6 w-6" />,
     color: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
     available: true,
   },
   {
     id: 'manual',
-    label: 'Formulär',
-    description: 'Fyll i ett strukturerat formulär',
+    labelKey: 'manual.label',
+    descriptionKey: 'manual.description',
     icon: <ClipboardList className="h-6 w-6" />,
     color: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
     available: true,
@@ -96,6 +97,7 @@ const INPUT_METHODS: InputMethod[] = [
 ]
 
 export function InputMethodSelector({ open, onOpenChange }: InputMethodSelectorProps) {
+  const t = useTranslations('components.adHocInputMethodSelector')
   const router = useRouter()
   const basePath = useBasePath()
   const [loading, setLoading] = useState<string | null>(null)
@@ -138,9 +140,9 @@ export function InputMethodSelector({ open, onOpenChange }: InputMethodSelectorP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Logga ett pass</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            Välj hur du vill registrera ditt träningspass
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -172,8 +174,8 @@ export function InputMethodSelector({ open, onOpenChange }: InputMethodSelectorP
                 )}
               </div>
               <div className="flex-1 text-left">
-                <div className="font-semibold">{method.label}</div>
-                <div className="text-sm text-muted-foreground">{method.description}</div>
+                <div className="font-semibold">{t(`methods.${method.labelKey}`)}</div>
+                <div className="text-sm text-muted-foreground">{t(`methods.${method.descriptionKey}`)}</div>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </Button>
