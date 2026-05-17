@@ -17,8 +17,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Gauge, ArrowRight, Upload, TrendingUp, Dumbbell } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { enUS, sv } from 'date-fns/locale';
 import { useBasePath } from '@/lib/contexts/BasePathContext';
+import { useLocale, useTranslations } from '@/i18n/client';
 
 interface VBTSession {
   id: string;
@@ -34,6 +35,9 @@ interface VBTSummaryWidgetProps {
 }
 
 export function VBTSummaryWidget({ clientId }: VBTSummaryWidgetProps) {
+  const t = useTranslations('components.vbtSummaryWidget');
+  const locale = useLocale();
+  const dateLocale = locale === 'en' ? enUS : sv;
   const basePath = useBasePath();
   const [sessions, setSessions] = useState<VBTSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,7 +57,7 @@ export function VBTSummaryWidget({ clientId }: VBTSummaryWidgetProps) {
       }
     }
 
-    fetchSessions();
+    void fetchSessions();
   }, [clientId]);
 
   if (isLoading) {
@@ -62,7 +66,7 @@ export function VBTSummaryWidget({ clientId }: VBTSummaryWidgetProps) {
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Gauge className="h-4 w-4" />
-            VBT Data
+            {t('title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -73,7 +77,6 @@ export function VBTSummaryWidget({ clientId }: VBTSummaryWidgetProps) {
   }
 
   const totalRepsLast7Days = sessions.reduce((sum, s) => sum + s.totalReps, 0);
-  const totalSetsLast7Days = sessions.reduce((sum, s) => sum + s.totalSets, 0);
 
   return (
     <Card>
@@ -81,11 +84,11 @@ export function VBTSummaryWidget({ clientId }: VBTSummaryWidgetProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <Gauge className="h-4 w-4" />
-            VBT Data
+            {t('title')}
           </CardTitle>
           <Link href={`${basePath}/athlete/vbt`}>
             <Button variant="ghost" size="sm" className="h-7 text-xs">
-              Visa allt
+              {t('viewAll')}
               <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
           </Link>
@@ -96,12 +99,12 @@ export function VBTSummaryWidget({ clientId }: VBTSummaryWidgetProps) {
           <div className="text-center py-4">
             <Dumbbell className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground mb-3">
-              Ingen VBT-data ännu
+              {t('empty')}
             </p>
             <Link href={`${basePath}/athlete/vbt`}>
               <Button variant="outline" size="sm">
                 <Upload className="mr-2 h-4 w-4" />
-                Ladda upp CSV
+                {t('uploadCsv')}
               </Button>
             </Link>
           </div>
@@ -111,11 +114,11 @@ export function VBTSummaryWidget({ clientId }: VBTSummaryWidgetProps) {
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-muted/50 rounded-lg p-2 text-center">
                 <p className="text-lg font-bold">{sessions.length}</p>
-                <p className="text-xs text-muted-foreground">Pass</p>
+                <p className="text-xs text-muted-foreground">{t('workouts')}</p>
               </div>
               <div className="bg-muted/50 rounded-lg p-2 text-center">
                 <p className="text-lg font-bold">{totalRepsLast7Days}</p>
-                <p className="text-xs text-muted-foreground">Reps</p>
+                <p className="text-xs text-muted-foreground">{t('reps')}</p>
               </div>
             </div>
 
@@ -123,15 +126,15 @@ export function VBTSummaryWidget({ clientId }: VBTSummaryWidgetProps) {
             {sessions[0] && (
               <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">
-                      {sessions[0].exerciseCount} övningar
+                      {t('exerciseCount', { count: sessions[0].exerciseCount })}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(sessions[0].sessionDate), {
                         addSuffix: true,
-                        locale: sv,
+                        locale: dateLocale,
                       })}
                     </p>
                   </div>

@@ -3175,6 +3175,15 @@
       "workoutCount": "{count, plural, =1 {# workout} other {# workouts}}",
       "workoutCountShort": "{count, plural, =1 {workout} other {workouts}}"
     },
+    "vbtSummaryWidget": {
+      "title": "VBT data",
+      "viewAll": "View all",
+      "empty": "No VBT data yet",
+      "uploadCsv": "Upload CSV",
+      "workouts": "Workouts",
+      "reps": "Reps",
+      "exerciseCount": "{count, plural, =1 {# exercise} other {# exercises}}"
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",

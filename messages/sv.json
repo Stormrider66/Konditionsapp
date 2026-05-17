@@ -3175,6 +3175,15 @@
       "workoutCount": "{count, plural, =1 {# pass} other {# pass}}",
       "workoutCountShort": "pass"
     },
+    "vbtSummaryWidget": {
+      "title": "VBT-data",
+      "viewAll": "Visa allt",
+      "empty": "Ingen VBT-data ännu",
+      "uploadCsv": "Ladda upp CSV",
+      "workouts": "Pass",
+      "reps": "Reps",
+      "exerciseCount": "{count, plural, =1 {# övning} other {# övningar}}"
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",
