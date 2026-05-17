@@ -2844,6 +2844,39 @@
         "injuries": "Injuries",
         "last": "Last"
       }
+    },
+    "todayTimeline": {
+      "title": "Schedule",
+      "dates": {
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "yesterday": "Yesterday"
+      },
+      "types": {
+        "strength": "Strength",
+        "cardio": "Cardio",
+        "agility": "Agility",
+        "hybrid": "Hybrid",
+        "external": "External",
+        "session": "Session"
+      },
+      "readiness": {
+        "title": "Team readiness",
+        "high": "{count} high",
+        "medium": "{count} medium",
+        "low": "{count} low"
+      },
+      "empty": {
+        "noSessions": "No sessions",
+        "noSessionsToday": "No sessions today",
+        "description": "Schedule workouts or tests"
+      },
+      "actions": {
+        "createSession": "Create session",
+        "bookTest": "Book test",
+        "viewCalendar": "View calendar"
+      },
+      "athletes": "{count} athletes"
     }
   },
   "infographic": {

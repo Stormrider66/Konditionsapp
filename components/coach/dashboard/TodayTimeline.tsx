@@ -29,7 +29,9 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { format, addDays, subDays, isToday, isTomorrow, isYesterday } from 'date-fns'
+import { enUS } from 'date-fns/locale'
 import { sv } from 'date-fns/locale'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface TimelineAppointment {
   id: string
@@ -73,25 +75,28 @@ const TYPE_COLORS: Record<string, string> = {
   external: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  strength: 'Styrka',
-  cardio: 'Kondition',
-  agility: 'Agility',
-  hybrid: 'Hybrid',
-  external: 'Extern',
-}
+type TodayTimelineTranslator = ReturnType<typeof useTranslations>
 
-function getDateLabel(date: Date): string {
-  if (isToday(date)) return 'Idag'
-  if (isTomorrow(date)) return 'Imorgon'
-  if (isYesterday(date)) return 'Igår'
-  return format(date, 'EEEE d MMM', { locale: sv })
+function getDateLabel(date: Date, t: TodayTimelineTranslator, locale: string): string {
+  if (isToday(date)) return t('dates.today')
+  if (isTomorrow(date)) return t('dates.tomorrow')
+  if (isYesterday(date)) return t('dates.yesterday')
+  return format(date, 'EEEE d MMM', { locale: locale === 'sv' ? sv : enUS })
 }
 
 export function TodayTimeline({ basePath, readinessDistribution }: TodayTimelineProps) {
+  const t = useTranslations('components.todayTimeline')
+  const locale = useLocale()
   const [appointments, setAppointments] = useState<TimelineAppointment[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(new Date())
+  const typeLabels: Record<string, string> = {
+    strength: t('types.strength'),
+    cardio: t('types.cardio'),
+    agility: t('types.agility'),
+    hybrid: t('types.hybrid'),
+    external: t('types.external'),
+  }
 
   const fetchAppointments = useCallback(async (date: Date) => {
     setLoading(true)
@@ -113,14 +118,18 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
   }, [basePath])
 
   useEffect(() => {
-    fetchAppointments(selectedDate)
+    const timeoutId = window.setTimeout(() => {
+      void fetchAppointments(selectedDate)
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [selectedDate, fetchAppointments])
 
   const goToPreviousDay = () => setSelectedDate(prev => subDays(prev, 1))
   const goToNextDay = () => setSelectedDate(prev => addDays(prev, 1))
   const goToToday = () => setSelectedDate(new Date())
 
-  const dateLabel = getDateLabel(selectedDate)
+  const dateLabel = getDateLabel(selectedDate, t, locale)
   const showTodayButton = !isToday(selectedDate)
 
   return (
@@ -129,7 +138,7 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-base flex items-center gap-2">
             <Clock className="h-4 w-4 text-emerald-500" />
-            Schema
+            {t('title')}
           </GlassCardTitle>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToPreviousDay}>
@@ -156,7 +165,7 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
         {readinessDistribution && readinessDistribution.total > 0 && isToday(selectedDate) && (
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 dark:bg-white/5">
             <div className="flex-1">
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">Lagets beredskap</p>
+              <p className="text-xs font-medium text-muted-foreground mb-1.5">{t('readiness.title')}</p>
               <div className="flex h-2 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700">
                 {readinessDistribution.high > 0 && (
                   <div
@@ -180,15 +189,15 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
               <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                  {readinessDistribution.high} hög
+                  {t('readiness.high', { count: readinessDistribution.high })}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-                  {readinessDistribution.medium} medium
+                  {t('readiness.medium', { count: readinessDistribution.medium })}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                  {readinessDistribution.low} låg
+                  {t('readiness.low', { count: readinessDistribution.low })}
                 </span>
               </div>
             </div>
@@ -203,19 +212,21 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
         ) : appointments.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p className="text-sm font-medium">Inga sessioner {isToday(selectedDate) ? 'idag' : ''}</p>
-            <p className="text-xs mt-1 mb-4">Schemalägg pass eller tester</p>
+            <p className="text-sm font-medium">
+              {isToday(selectedDate) ? t('empty.noSessionsToday') : t('empty.noSessions')}
+            </p>
+            <p className="text-xs mt-1 mb-4">{t('empty.description')}</p>
             <div className="flex gap-2 justify-center">
               <Link href={`${basePath}/coach/interval-sessions`}>
                 <Button size="sm" variant="outline" className="text-xs">
                   <Timer className="h-3 w-3 mr-1" />
-                  Skapa session
+                  {t('actions.createSession')}
                 </Button>
               </Link>
               <Link href={`${basePath}/coach/test`}>
                 <Button size="sm" variant="outline" className="text-xs">
                   <ClipboardList className="h-3 w-3 mr-1" />
-                  Boka test
+                  {t('actions.bookTest')}
                 </Button>
               </Link>
             </div>
@@ -245,7 +256,7 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
                       <div className="flex items-center gap-2 mb-1">
                         <Badge className={`text-xs ${TYPE_COLORS[appointment.type] || TYPE_COLORS.external}`}>
                           <Icon className="h-3 w-3 mr-1" />
-                          {TYPE_LABELS[appointment.type] || 'Session'}
+                          {typeLabels[appointment.type] || t('types.session')}
                         </Badge>
                         {appointment.teamName && (
                           <Badge variant="outline" className="text-xs">
@@ -271,7 +282,7 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
                           ) : appointment.athletes.length > 0 ? (
                             <>
                               <Users className="h-3 w-3" />
-                              {appointment.athletes.length} atleter
+                              {t('athletes', { count: appointment.athletes.length })}
                             </>
                           ) : null}
                         </span>
@@ -286,7 +297,7 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
 
         <Link href={`${basePath}/coach/calendar`} className="block pt-2">
           <Button variant="ghost" size="sm" className="text-xs w-full">
-            Visa kalender <ArrowRight className="h-3 w-3 ml-1" />
+            {t('actions.viewCalendar')} <ArrowRight className="h-3 w-3 ml-1" />
           </Button>
         </Link>
       </GlassCardContent>

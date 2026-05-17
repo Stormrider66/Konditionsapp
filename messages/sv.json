@@ -2844,6 +2844,39 @@
         "injuries": "Skador",
         "last": "Senast"
       }
+    },
+    "todayTimeline": {
+      "title": "Schema",
+      "dates": {
+        "today": "Idag",
+        "tomorrow": "Imorgon",
+        "yesterday": "Igår"
+      },
+      "types": {
+        "strength": "Styrka",
+        "cardio": "Kondition",
+        "agility": "Agility",
+        "hybrid": "Hybrid",
+        "external": "Extern",
+        "session": "Session"
+      },
+      "readiness": {
+        "title": "Lagets beredskap",
+        "high": "{count} hög",
+        "medium": "{count} medium",
+        "low": "{count} låg"
+      },
+      "empty": {
+        "noSessions": "Inga sessioner",
+        "noSessionsToday": "Inga sessioner idag",
+        "description": "Schemalägg pass eller tester"
+      },
+      "actions": {
+        "createSession": "Skapa session",
+        "bookTest": "Boka test",
+        "viewCalendar": "Visa kalender"
+      },
+      "athletes": "{count} atleter"
     }
   },
   "infographic": {
