@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import type { DrillStructure } from '@/components/coach/drills/IceHockeyRink'
 import { AthleteDrillViewer } from './AthleteDrillViewer'
 import { ClipboardList, ChevronDown, ChevronUp } from 'lucide-react'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface Drill {
   id: string
@@ -22,8 +23,8 @@ interface AthleteDrillListProps {
   athletePosition?: string // e.g. "LW" — highlight on rink
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+function formatDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', { day: 'numeric', month: 'short' })
 }
 
 const SPORT_LABELS: Record<string, string> = {
@@ -35,6 +36,8 @@ const SPORT_LABELS: Record<string, string> = {
 }
 
 export function AthleteDrillList({ athletePosition }: AthleteDrillListProps) {
+  const t = useTranslations('components.athleteDrillList')
+  const locale = useLocale()
   const [drills, setDrills] = useState<Drill[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -53,7 +56,7 @@ export function AthleteDrillList({ athletePosition }: AthleteDrillListProps) {
         setLoading(false)
       }
     }
-    fetchDrills()
+    void fetchDrills()
   }, [])
 
   if (loading) return null
@@ -64,7 +67,7 @@ export function AthleteDrillList({ athletePosition }: AthleteDrillListProps) {
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <ClipboardList className="h-4 w-4" />
-          Övningar från tränaren
+          {t('title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
@@ -86,7 +89,7 @@ export function AthleteDrillList({ athletePosition }: AthleteDrillListProps) {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {formatDate(drill.createdAt)} · {drill.createdBy.name}
+                    {formatDate(drill.createdAt, locale)} · {drill.createdBy.name}
                     {drill.team && ` · ${drill.team.name}`}
                   </p>
                 </div>
