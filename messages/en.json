@@ -3282,6 +3282,66 @@
         "viewResults": "View results",
         "startWorkout": "Start workout"
       }
+    },
+    "readinessPanel": {
+      "title": "Readiness",
+      "checkIn": {
+        "title": "Do your check-in",
+        "description": "To see your readiness data",
+        "action": "Check in now"
+      },
+      "injury": {
+        "title": "Injury status",
+        "count": "{count, plural, one {# active injury} other {# active injuries}}",
+        "painLevel": "Pain level {pain}/10",
+        "restRecommended": "Rest is recommended for a serious injury",
+        "watchTraining": "Pay attention during training"
+      },
+      "recoveryLevel": "Recovery level",
+      "readiness": {
+        "high": "Excellent - ready for intense training",
+        "normal": "Normal - adjust by feel",
+        "low": "Low - prioritize recovery"
+      },
+      "noData": "No data available",
+      "weeklyLoad": "Weekly load",
+      "load": {
+        "targetReached": "Target load reached",
+        "goodProgress": "Good progress this week",
+        "morePossible": "More training possible"
+      },
+      "muscularStatus": "Muscular Status",
+      "muscular": {
+        "overloaded": "Consider lighter training for overloaded muscle groups",
+        "ready": "All muscle groups are ready for training",
+        "logWorkout": "Log workouts to see muscle status"
+      },
+      "fatigue": {
+        "high": "High",
+        "moderate": "Moderate",
+        "fresh": "Fresh"
+      },
+      "painLocations": {
+        "knee": "Knee",
+        "ankle": "Ankle",
+        "hip": "Hip",
+        "foot": "Foot",
+        "calf": "Calf",
+        "thigh": "Thigh",
+        "hamstring": "Hamstring",
+        "quadriceps": "Quadriceps",
+        "groin": "Groin",
+        "glutes": "Glutes",
+        "shoulder": "Shoulder",
+        "elbow": "Elbow",
+        "wrist": "Wrist",
+        "back": "Back",
+        "lowerBack": "Lower back",
+        "upperBack": "Upper back",
+        "neck": "Neck",
+        "chest": "Chest",
+        "other": "Other"
+      }
     }
   },
   "infographic": {

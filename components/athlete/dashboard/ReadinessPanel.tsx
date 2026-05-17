@@ -18,6 +18,7 @@ import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardContent } from '@/
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { MuscularFatigueData, getFatigueBadgeColor } from '@/lib/hero-card'
+import { useTranslations } from '@/i18n/client'
 
 interface ActiveInjury {
   painLocation: string
@@ -76,15 +77,6 @@ function getLoadColor(current: number, target: number): string {
 }
 
 // Translate fatigue level
-function translateFatigueLevel(level: string): string {
-  const translations: Record<string, string> = {
-    HIGH: 'Hög',
-    MODERATE: 'Måttlig',
-    FRESH: 'Utvilad',
-  }
-  return translations[level] || level
-}
-
 // Get injury severity color
 function getInjurySeverityColor(painLevel: number): string {
   if (painLevel >= 7) return 'text-red-400 bg-red-500/10 border-red-500/20'
@@ -93,34 +85,6 @@ function getInjurySeverityColor(painLevel: number): string {
 }
 
 // Translate pain location to Swedish
-function translatePainLocation(location: string): string {
-  const translations: Record<string, string> = {
-    // Lower body
-    KNEE: 'Knä',
-    ANKLE: 'Fotled',
-    HIP: 'Höft',
-    FOOT: 'Fot',
-    CALF: 'Vad',
-    THIGH: 'Lår',
-    HAMSTRING: 'Baksida lår',
-    QUADRICEPS: 'Framsida lår',
-    GROIN: 'Ljumske',
-    GLUTES: 'Säte',
-    // Upper body
-    SHOULDER: 'Axel',
-    ELBOW: 'Armbåge',
-    WRIST: 'Handled',
-    BACK: 'Rygg',
-    LOWER_BACK: 'Nedre rygg',
-    UPPER_BACK: 'Övre rygg',
-    NECK: 'Nacke',
-    CHEST: 'Bröst',
-    // General
-    OTHER: 'Övrigt',
-  }
-  return translations[location] || location
-}
-
 export function ReadinessPanel({
   readinessScore,
   weeklyTSS,
@@ -130,16 +94,49 @@ export function ReadinessPanel({
   activeInjuries = [],
   basePath = '',
 }: ReadinessPanelProps) {
+  const t = useTranslations('components.readinessPanel')
   const readinessPercentage = readinessScore ? readinessToPercentage(readinessScore) : null
   const readinessColors = readinessScore ? getReadinessColor(readinessScore) : null
   const loadPercentage = weeklyTSS ? Math.min((weeklyTSS / weeklyTSSTarget) * 100, 100) : 0
+  const translateFatigueLevel = (level: string): string => {
+    switch (level) {
+      case 'HIGH': return t('fatigue.high')
+      case 'MODERATE': return t('fatigue.moderate')
+      case 'FRESH': return t('fatigue.fresh')
+      default: return level
+    }
+  }
+  const translatePainLocation = (location: string): string => {
+    switch (location) {
+      case 'KNEE': return t('painLocations.knee')
+      case 'ANKLE': return t('painLocations.ankle')
+      case 'HIP': return t('painLocations.hip')
+      case 'FOOT': return t('painLocations.foot')
+      case 'CALF': return t('painLocations.calf')
+      case 'THIGH': return t('painLocations.thigh')
+      case 'HAMSTRING': return t('painLocations.hamstring')
+      case 'QUADRICEPS': return t('painLocations.quadriceps')
+      case 'GROIN': return t('painLocations.groin')
+      case 'GLUTES': return t('painLocations.glutes')
+      case 'SHOULDER': return t('painLocations.shoulder')
+      case 'ELBOW': return t('painLocations.elbow')
+      case 'WRIST': return t('painLocations.wrist')
+      case 'BACK': return t('painLocations.back')
+      case 'LOWER_BACK': return t('painLocations.lowerBack')
+      case 'UPPER_BACK': return t('painLocations.upperBack')
+      case 'NECK': return t('painLocations.neck')
+      case 'CHEST': return t('painLocations.chest')
+      case 'OTHER': return t('painLocations.other')
+      default: return location
+    }
+  }
 
   return (
     <GlassCard className="rounded-2xl h-full">
       <GlassCardHeader>
         <GlassCardTitle className="text-lg flex items-center gap-2 text-slate-900 dark:text-white transition-colors">
           <TrendingUp className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-          Beredskap
+          {t('title')}
           <InfoTooltip conceptKey="readiness" />
         </GlassCardTitle>
       </GlassCardHeader>
@@ -152,10 +149,10 @@ export function ReadinessPanel({
               <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-orange-700 dark:text-orange-400 font-medium">
-                  Gör din incheckning
+                  {t('checkIn.title')}
                 </p>
                 <p className="text-xs text-orange-600/80 dark:text-slate-400 mt-0.5">
-                  För att se din beredskapsdata
+                  {t('checkIn.description')}
                 </p>
               </div>
             </div>
@@ -164,7 +161,7 @@ export function ReadinessPanel({
                 size="sm"
                 className="w-full mt-3 bg-orange-600 hover:bg-orange-700 text-white border-0 shadow-sm"
               >
-                Checka in nu
+                {t('checkIn.action')}
               </Button>
             </Link>
           </div>
@@ -177,10 +174,10 @@ export function ReadinessPanel({
               <Heart className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-red-700 dark:text-red-400 font-medium">
-                  Skadestatus
+                  {t('injury.title')}
                 </p>
                 <p className="text-xs text-red-600/80 dark:text-slate-400 mt-0.5">
-                  {activeInjuries.length} {activeInjuries.length === 1 ? 'aktiv skada' : 'aktiva skador'}
+                  {t('injury.count', { count: activeInjuries.length })}
                 </p>
               </div>
             </div>
@@ -191,14 +188,14 @@ export function ReadinessPanel({
                   className={`px-2 py-1.5 rounded text-xs border ${getInjurySeverityColor(injury.painLevel)}`}
                 >
                   <span className="font-medium">{translatePainLocation(injury.painLocation)}</span>
-                  <span className="text-slate-500 dark:text-slate-400 ml-1">- Smärtnivå {injury.painLevel}/10</span>
+                  <span className="text-slate-500 dark:text-slate-400 ml-1">- {t('injury.painLevel', { pain: injury.painLevel })}</span>
                 </div>
               ))}
             </div>
             <p className="text-xs text-slate-500 mt-2">
               {activeInjuries.some(i => i.painLevel >= 7)
-                ? 'Vila rekommenderas för allvarlig skada'
-                : 'Var uppmärksam under träning'}
+                ? t('injury.restRecommended')
+                : t('injury.watchTraining')}
             </p>
           </div>
         )}
@@ -207,7 +204,7 @@ export function ReadinessPanel({
         {readinessScore !== null && readinessColors && (
           <div>
             <div className="flex justify-between text-sm mb-2">
-              <span className="text-slate-600 dark:text-slate-400 transition-colors">Återhämtningsnivå</span>
+              <span className="text-slate-600 dark:text-slate-400 transition-colors">{t('recoveryLevel')}</span>
               <span className={`font-bold ${readinessColors.text}`}>
                 {readinessPercentage}%
               </span>
@@ -217,9 +214,9 @@ export function ReadinessPanel({
               className={`h-2 bg-slate-200 dark:bg-slate-800 ${readinessColors.bar} ${readinessColors.glow}`}
             />
             <p className="text-xs text-slate-500 mt-1.5">
-              {readinessScore >= 7 && 'Utmärkt - redo för intensiv träning'}
-              {readinessScore >= 5 && readinessScore < 7 && 'Normal - anpassa efter känsla'}
-              {readinessScore < 5 && 'Låg - prioritera återhämtning'}
+              {readinessScore >= 7 && t('readiness.high')}
+              {readinessScore >= 5 && readinessScore < 7 && t('readiness.normal')}
+              {readinessScore < 5 && t('readiness.low')}
             </p>
           </div>
         )}
@@ -228,12 +225,12 @@ export function ReadinessPanel({
         {readinessScore === null && hasCheckedInToday && (
           <div>
             <div className="flex justify-between text-sm mb-2">
-              <span className="text-slate-600 dark:text-slate-400 transition-colors">Återhämtningsnivå</span>
+              <span className="text-slate-600 dark:text-slate-400 transition-colors">{t('recoveryLevel')}</span>
               <span className="text-slate-500 font-medium">—</span>
             </div>
             <Progress value={0} className="h-2 bg-slate-200 dark:bg-slate-800" />
             <p className="text-xs text-slate-500 mt-1.5">
-              Ingen data tillgänglig
+              {t('noData')}
             </p>
           </div>
         )}
@@ -241,7 +238,7 @@ export function ReadinessPanel({
         {/* Weekly Load */}
         <div>
           <div className="flex justify-between text-sm mb-2">
-            <span className="text-slate-600 dark:text-slate-400 transition-colors">Veckobelastning</span>
+            <span className="text-slate-600 dark:text-slate-400 transition-colors">{t('weeklyLoad')}</span>
             <span className="text-orange-600 dark:text-orange-400 font-bold transition-colors">
               {weeklyTSS !== null ? Math.round(weeklyTSS) : 0} / {weeklyTSSTarget}
             </span>
@@ -251,9 +248,9 @@ export function ReadinessPanel({
             className={`h-2 bg-slate-200 dark:bg-slate-800 ${getLoadColor(weeklyTSS || 0, weeklyTSSTarget)}`}
           />
           <p className="text-xs text-slate-500 mt-1.5">
-            {loadPercentage >= 100 && 'Målbelastning uppnådd'}
-            {loadPercentage >= 70 && loadPercentage < 100 && 'God progression denna vecka'}
-            {loadPercentage < 70 && 'Mer träning möjlig'}
+            {loadPercentage >= 100 && t('load.targetReached')}
+            {loadPercentage >= 70 && loadPercentage < 100 && t('load.goodProgress')}
+            {loadPercentage < 70 && t('load.morePossible')}
           </p>
         </div>
 
@@ -262,7 +259,7 @@ export function ReadinessPanel({
           <div className="pt-4 border-t border-slate-200 dark:border-white/5 transition-colors">
             <h4 className="text-sm font-medium text-slate-900 dark:text-white mb-3 flex items-center gap-2 transition-colors">
               <Activity className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-              Muskulär Status
+              {t('muscularStatus')}
             </h4>
             <div className="flex gap-2 flex-wrap">
               {muscularFatigue.map((fatigue) => (
@@ -279,8 +276,8 @@ export function ReadinessPanel({
             {muscularFatigue.some((f) => f.lastWorked) && (
               <p className="text-xs text-slate-500 mt-3">
                 {muscularFatigue.filter((f) => f.level === 'HIGH').length > 0
-                  ? 'Överväg lättare träning för överbelastade muskelgrupper'
-                  : 'Alla muskelgrupper är redo för träning'}
+                  ? t('muscular.overloaded')
+                  : t('muscular.ready')}
               </p>
             )}
           </div>
@@ -291,10 +288,10 @@ export function ReadinessPanel({
           <div className="pt-4 border-t border-slate-200 dark:border-white/5 transition-colors">
             <h4 className="text-sm font-medium text-slate-900 dark:text-white mb-3 flex items-center gap-2 transition-colors">
               <Activity className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-              Muskulär Status
+              {t('muscularStatus')}
             </h4>
             <p className="text-sm text-slate-500">
-              Logga träningspass för att se muskelstatus
+              {t('muscular.logWorkout')}
             </p>
           </div>
         )}

@@ -3282,6 +3282,66 @@
         "viewResults": "Visa resultat",
         "startWorkout": "Starta pass"
       }
+    },
+    "readinessPanel": {
+      "title": "Beredskap",
+      "checkIn": {
+        "title": "Gör din incheckning",
+        "description": "För att se din beredskapsdata",
+        "action": "Checka in nu"
+      },
+      "injury": {
+        "title": "Skadestatus",
+        "count": "{count, plural, one {# aktiv skada} other {# aktiva skador}}",
+        "painLevel": "Smärtnivå {pain}/10",
+        "restRecommended": "Vila rekommenderas för allvarlig skada",
+        "watchTraining": "Var uppmärksam under träning"
+      },
+      "recoveryLevel": "Återhämtningsnivå",
+      "readiness": {
+        "high": "Utmärkt - redo för intensiv träning",
+        "normal": "Normal - anpassa efter känsla",
+        "low": "Låg - prioritera återhämtning"
+      },
+      "noData": "Ingen data tillgänglig",
+      "weeklyLoad": "Veckobelastning",
+      "load": {
+        "targetReached": "Målbelastning uppnådd",
+        "goodProgress": "God progression denna vecka",
+        "morePossible": "Mer träning möjlig"
+      },
+      "muscularStatus": "Muskulär Status",
+      "muscular": {
+        "overloaded": "Överväg lättare träning för överbelastade muskelgrupper",
+        "ready": "Alla muskelgrupper är redo för träning",
+        "logWorkout": "Logga träningspass för att se muskelstatus"
+      },
+      "fatigue": {
+        "high": "Hög",
+        "moderate": "Måttlig",
+        "fresh": "Utvilad"
+      },
+      "painLocations": {
+        "knee": "Knä",
+        "ankle": "Fotled",
+        "hip": "Höft",
+        "foot": "Fot",
+        "calf": "Vad",
+        "thigh": "Lår",
+        "hamstring": "Baksida lår",
+        "quadriceps": "Framsida lår",
+        "groin": "Ljumske",
+        "glutes": "Säte",
+        "shoulder": "Axel",
+        "elbow": "Armbåge",
+        "wrist": "Handled",
+        "back": "Rygg",
+        "lowerBack": "Nedre rygg",
+        "upperBack": "Övre rygg",
+        "neck": "Nacke",
+        "chest": "Bröst",
+        "other": "Övrigt"
+      }
     }
   },
   "infographic": {
