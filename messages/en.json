@@ -385,6 +385,92 @@
         }
       }
     },
+    "aiInfo": {
+      "title": "AI & Your Plan",
+      "subtitle": "Features & usage",
+      "sections": {
+        "howAiWorks": "How AI works",
+        "yourPlan": "Your plan",
+        "comparePlans": "Compare plans",
+        "byok": "Own API keys",
+        "tips": "Tips"
+      },
+      "coachProvided": {
+        "main": "Your coach provides the AI features through their API keys. You do not need to think about costs - your coach handles that.",
+        "details": "AI models and features are determined by your coach's settings and your subscription level."
+      },
+      "selfManaged": {
+        "intro": "You have two options for AI features:",
+        "platform": {
+          "title": "Platform AI (included)",
+          "description": "AI is included in your subscription with limits based on your level."
+        },
+        "byok": {
+          "title": "Own API keys (unlimited)",
+          "description": "Connect your own keys for unlimited AI usage without tier limits."
+        }
+      },
+      "badges": {
+        "trial": "Trial",
+        "trialWithDays": "Trial ({days} days left)",
+        "active": "Active"
+      },
+      "prices": {
+        "free": "0 SEK/month",
+        "standard": "199 SEK/month",
+        "pro": "399 SEK/month"
+      },
+      "table": {
+        "feature": "Feature"
+      },
+      "byok": {
+        "main": "Connect your own API keys for unlimited AI usage without tier limits. You pay the AI provider directly (Google, Anthropic, OpenAI).",
+        "details": "With your own keys, you can use any model and have no message limits.",
+        "action": "Go to AI settings"
+      },
+      "tips": {
+        "title": "Use AI effectively",
+        "specificQuestions": "Ask specific questions - you get better answers and use fewer messages",
+        "dailyWorkout": "Use \"Today's workout\" instead of chat for quick training sessions",
+        "morningBriefing": "The morning briefing gives daily tips without using your chat messages",
+        "byok": "Consider your own API keys if you want to use AI heavily"
+      },
+      "tierFeatures": {
+        "aiCredits": {
+          "name": "AI credits",
+          "free": "Limited trial",
+          "standard": "Daily usage",
+          "pro": "Larger credit pool"
+        },
+        "dailyWorkouts": {
+          "name": "Daily workouts (WOD)"
+        },
+        "programGeneration": {
+          "name": "Program generation"
+        },
+        "nutritionPlanning": {
+          "name": "Nutrition planning"
+        },
+        "morningBriefing": {
+          "name": "Morning briefing"
+        },
+        "videoAnalysis": {
+          "name": "Video analysis"
+        },
+        "stravaSync": {
+          "name": "Strava sync"
+        },
+        "garminSync": {
+          "name": "Garmin sync"
+        },
+        "trainingLog": {
+          "name": "Training log"
+        },
+        "performanceAnalysis": {
+          "name": "Performance analysis"
+        }
+      }
+    },
     "calendarConnections": {
       "backToCalendar": "BACK TO CALENDAR",
       "titlePrefix": "Calendar",

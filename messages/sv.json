@@ -385,6 +385,92 @@
         }
       }
     },
+    "aiInfo": {
+      "title": "AI & Din Plan",
+      "subtitle": "Funktioner & användning",
+      "sections": {
+        "howAiWorks": "Hur AI fungerar",
+        "yourPlan": "Din plan",
+        "comparePlans": "Jämför planer",
+        "byok": "Egna API-nycklar",
+        "tips": "Tips"
+      },
+      "coachProvided": {
+        "main": "Din coach tillhandahåller AI-funktionerna via sina API-nycklar. Du behöver inte tänka på kostnader - det hanteras av din coach.",
+        "details": "AI-modeller och funktioner bestäms av din coachs inställningar och din prenumerationsnivå."
+      },
+      "selfManaged": {
+        "intro": "Du har två alternativ för AI-funktioner:",
+        "platform": {
+          "title": "Plattformens AI (inkluderat)",
+          "description": "AI ingår i din prenumeration med begränsningar baserat på din nivå."
+        },
+        "byok": {
+          "title": "Egna API-nycklar (obegränsat)",
+          "description": "Koppla dina egna nycklar för obegränsad AI-användning utan tier-begränsningar."
+        }
+      },
+      "badges": {
+        "trial": "Provperiod",
+        "trialWithDays": "Provperiod ({days} dagar kvar)",
+        "active": "Aktiv"
+      },
+      "prices": {
+        "free": "0 kr/mån",
+        "standard": "199 kr/mån",
+        "pro": "399 kr/mån"
+      },
+      "table": {
+        "feature": "Funktion"
+      },
+      "byok": {
+        "main": "Koppla dina egna API-nycklar för obegränsad AI-användning utan tier-begränsningar. Du betalar direkt till AI-leverantören (Google, Anthropic, OpenAI).",
+        "details": "Med egna nycklar kan du använda vilken modell som helst och har inga meddelandegränser.",
+        "action": "Gå till AI-inställningar"
+      },
+      "tips": {
+        "title": "Använd AI effektivt",
+        "specificQuestions": "Ställ specifika frågor - du får bättre svar och använder färre meddelanden",
+        "dailyWorkout": "Använd \"Dagens pass\" istället för chatt för snabba träningspass",
+        "morningBriefing": "Morgonbriefingen ger dagliga tips utan att använda dina chattmeddelanden",
+        "byok": "Överväg egna API-nycklar om du vill använda AI intensivt"
+      },
+      "tierFeatures": {
+        "aiCredits": {
+          "name": "AI-krediter",
+          "free": "Begränsad test",
+          "standard": "Daglig användning",
+          "pro": "Större kreditpott"
+        },
+        "dailyWorkouts": {
+          "name": "Dagliga pass (WOD)"
+        },
+        "programGeneration": {
+          "name": "Programgenerering"
+        },
+        "nutritionPlanning": {
+          "name": "Nutritionsplanering"
+        },
+        "morningBriefing": {
+          "name": "Morgonbriefing"
+        },
+        "videoAnalysis": {
+          "name": "Videoanalys"
+        },
+        "stravaSync": {
+          "name": "Strava-sync"
+        },
+        "garminSync": {
+          "name": "Garmin-sync"
+        },
+        "trainingLog": {
+          "name": "Träningslogg"
+        },
+        "performanceAnalysis": {
+          "name": "Prestationsanalys"
+        }
+      }
+    },
     "calendarConnections": {
       "backToCalendar": "TILLBAKA TILL KALENDERN",
       "titlePrefix": "Kalender",

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { AIChatUsageMeter } from '@/components/athlete/AIChatUsageMeter'
 import { ATHLETE_TIER_FEATURES } from '@/lib/ai/cost-data'
+import { useTranslations } from '@/i18n/client'
 
 interface SubscriptionData {
   hasSubscription: boolean
@@ -25,7 +26,21 @@ interface SubscriptionData {
   assignedCoachId?: string | null
 }
 
+const TIER_FEATURE_KEYS = [
+  'aiCredits',
+  'dailyWorkouts',
+  'programGeneration',
+  'nutritionPlanning',
+  'morningBriefing',
+  'videoAnalysis',
+  'stravaSync',
+  'garminSync',
+  'trainingLog',
+  'performanceAnalysis',
+] as const
+
 export default function AthleteAIInfoPage() {
+  const t = useTranslations('pages.aiInfo')
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -45,6 +60,16 @@ export default function AthleteAIInfoPage() {
   const tier = subscription?.tier || 'FREE'
   const isPro = tier === 'PRO'
   const isStandard = tier === 'STANDARD'
+  const tierFeatures = ATHLETE_TIER_FEATURES.map((feature, index) => {
+    const key = TIER_FEATURE_KEYS[index]
+    return {
+      ...feature,
+      name: t(`tierFeatures.${key}.name`),
+      free: typeof feature.free === 'string' ? t(`tierFeatures.${key}.free`) : feature.free,
+      standard: typeof feature.standard === 'string' ? t(`tierFeatures.${key}.standard`) : feature.standard,
+      pro: typeof feature.pro === 'string' ? t(`tierFeatures.${key}.pro`) : feature.pro,
+    }
+  })
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#050505] text-slate-900 dark:text-slate-200 pb-20 selection:bg-orange-500/30 transition-colors">
@@ -67,8 +92,8 @@ export default function AthleteAIInfoPage() {
               <Sparkles className="h-5 w-5 text-green-600 dark:text-green-400 transition-colors" />
             </div>
             <div>
-              <h1 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white leading-none transition-colors">AI & Din Plan</h1>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1 transition-colors">Funktioner & användning</p>
+              <h1 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white leading-none transition-colors">{t('title')}</h1>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1 transition-colors">{t('subtitle')}</p>
             </div>
           </div>
         </div>
@@ -81,7 +106,7 @@ export default function AthleteAIInfoPage() {
         <section className="space-y-3">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-purple-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Hur AI fungerar</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.howAiWorks')}</h3>
           </div>
           <GlassCard>
             <GlassCardContent className="p-4 pt-4">
@@ -92,29 +117,28 @@ export default function AthleteAIInfoPage() {
               ) : hasCoach ? (
                 <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                   <p>
-                    Din coach tillhandahåller AI-funktionerna via sina API-nycklar.
-                    Du behöver inte tänka på kostnader &mdash; det hanteras av din coach.
+                    {t('coachProvided.main')}
                   </p>
                   <p className="text-xs text-slate-500">
-                    AI-modeller och funktioner bestäms av din coachs inställningar och din prenumerationsnivå.
+                    {t('coachProvided.details')}
                   </p>
                 </div>
               ) : (
                 <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-                  <p>Du har två alternativ för AI-funktioner:</p>
+                  <p>{t('selfManaged.intro')}</p>
                   <div className="space-y-2">
                     <div className="flex items-start gap-2">
                       <Crown className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
                       <div>
-                        <p className="font-semibold text-slate-900 dark:text-white">Plattformens AI (inkluderat)</p>
-                        <p className="text-xs">AI ingår i din prenumeration med begränsningar baserat på din nivå.</p>
+                        <p className="font-semibold text-slate-900 dark:text-white">{t('selfManaged.platform.title')}</p>
+                        <p className="text-xs">{t('selfManaged.platform.description')}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
                       <Key className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
                       <div>
-                        <p className="font-semibold text-slate-900 dark:text-white">Egna API-nycklar (obegränsat)</p>
-                        <p className="text-xs">Koppla dina egna nycklar för obegränsad AI-användning utan tier-begränsningar.</p>
+                        <p className="font-semibold text-slate-900 dark:text-white">{t('selfManaged.byok.title')}</p>
+                        <p className="text-xs">{t('selfManaged.byok.description')}</p>
                       </div>
                     </div>
                   </div>
@@ -128,7 +152,7 @@ export default function AthleteAIInfoPage() {
         <section className="space-y-3">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-green-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Din plan</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.yourPlan')}</h3>
           </div>
           <GlassCard>
             <GlassCardContent className="p-4 pt-4 space-y-4">
@@ -144,17 +168,19 @@ export default function AthleteAIInfoPage() {
                         <span className="font-bold text-lg text-slate-900 dark:text-white">{tier}</span>
                         {subscription?.trialActive && (
                           <Badge className="bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[10px]">
-                            Provperiod{subscription.trialDaysRemaining ? ` (${subscription.trialDaysRemaining} dagar kvar)` : ''}
+                            {subscription.trialDaysRemaining
+                              ? t('badges.trialWithDays', { days: subscription.trialDaysRemaining })
+                              : t('badges.trial')}
                           </Badge>
                         )}
                         {subscription?.status === 'ACTIVE' && (
                           <Badge className="bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30 text-[10px]">
-                            Aktiv
+                            {t('badges.active')}
                           </Badge>
                         )}
                       </div>
-                      {isStandard && <p className="text-xs text-slate-500 mt-1">199 kr/mån</p>}
-                      {isPro && <p className="text-xs text-slate-500 mt-1">399 kr/mån</p>}
+                      {isStandard && <p className="text-xs text-slate-500 mt-1">{t('prices.standard')}</p>}
+                      {isPro && <p className="text-xs text-slate-500 mt-1">{t('prices.pro')}</p>}
                     </div>
                   </div>
 
@@ -174,7 +200,7 @@ export default function AthleteAIInfoPage() {
         <section className="space-y-3">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-blue-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Jämför planer</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.comparePlans')}</h3>
           </div>
           <GlassCard>
             <GlassCardContent className="p-0 pt-0">
@@ -182,23 +208,23 @@ export default function AthleteAIInfoPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-white/10">
-                      <th className="text-left p-3 text-xs font-bold text-slate-500">Funktion</th>
+                      <th className="text-left p-3 text-xs font-bold text-slate-500">{t('table.feature')}</th>
                       <th className="text-center p-3 text-xs font-bold text-slate-500">
                         <div>FREE</div>
-                        <div className="text-[10px] font-normal">0 kr/mån</div>
+                        <div className="text-[10px] font-normal">{t('prices.free')}</div>
                       </th>
                       <th className="text-center p-3 text-xs font-bold text-slate-500">
                         <div>STANDARD</div>
-                        <div className="text-[10px] font-normal">199 kr/mån</div>
+                        <div className="text-[10px] font-normal">{t('prices.standard')}</div>
                       </th>
                       <th className="text-center p-3 text-xs font-bold text-slate-500">
                         <div>PRO</div>
-                        <div className="text-[10px] font-normal">399 kr/mån</div>
+                        <div className="text-[10px] font-normal">{t('prices.pro')}</div>
                       </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {ATHLETE_TIER_FEATURES.map((feature, i) => (
+                    {tierFeatures.map((feature, i) => (
                       <tr key={i} className="border-b border-slate-100 dark:border-white/5 last:border-0">
                         <td className="p-3 text-slate-700 dark:text-slate-300">{feature.name}</td>
                         <td className="p-3 text-center">
@@ -242,7 +268,7 @@ export default function AthleteAIInfoPage() {
           <section className="space-y-3">
             <div className="flex items-center gap-2 px-2">
               <div className="w-1.5 h-4 bg-indigo-500 rounded-full" />
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Egna API-nycklar</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.byok')}</h3>
             </div>
             <GlassCard>
               <GlassCardContent className="p-4 pt-4 space-y-3">
@@ -250,16 +276,15 @@ export default function AthleteAIInfoPage() {
                   <Key className="h-5 w-5 text-indigo-500 mt-0.5 shrink-0" />
                   <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                     <p>
-                      Koppla dina egna API-nycklar för obegränsad AI-användning utan tier-begränsningar.
-                      Du betalar direkt till AI-leverantören (Google, Anthropic, OpenAI).
+                      {t('byok.main')}
                     </p>
                     <p className="text-xs text-slate-500">
-                      Med egna nycklar kan du använda vilken modell som helst och har inga meddelandegränser.
+                      {t('byok.details')}
                     </p>
                     <Link href="/athlete/settings">
                       <Button variant="outline" size="sm" className="mt-2">
                         <Key className="h-3.5 w-3.5 mr-1.5" />
-                        Gå till AI-inställningar
+                        {t('byok.action')}
                       </Button>
                     </Link>
                   </div>
@@ -273,20 +298,20 @@ export default function AthleteAIInfoPage() {
         <section className="space-y-3">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-cyan-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Tips</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.tips')}</h3>
           </div>
           <GlassCard>
             <GlassCardContent className="p-4 pt-4">
               <div className="flex items-start gap-3">
                 <Lightbulb className="h-5 w-5 text-cyan-500 mt-0.5 shrink-0" />
                 <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                  <p className="font-semibold text-slate-900 dark:text-white">Använd AI effektivt</p>
+                  <p className="font-semibold text-slate-900 dark:text-white">{t('tips.title')}</p>
                   <ul className="list-disc pl-4 space-y-1 text-xs">
-                    <li>Ställ specifika frågor &mdash; du får bättre svar och använder färre meddelanden</li>
-                    <li>Använd &quot;Dagens pass&quot; istället för chatt för snabba träningspass</li>
-                    <li>Morgonbriefingen ger dagliga tips utan att använda dina chattmeddelanden</li>
+                    <li>{t('tips.specificQuestions')}</li>
+                    <li>{t('tips.dailyWorkout')}</li>
+                    <li>{t('tips.morningBriefing')}</li>
                     {!hasCoach && (
-                      <li>Överväg egna API-nycklar om du vill använda AI intensivt</li>
+                      <li>{t('tips.byok')}</li>
                     )}
                   </ul>
                 </div>
