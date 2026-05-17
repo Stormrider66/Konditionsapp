@@ -17,6 +17,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { filterExercisesByEquipment } from '@/lib/equipment-filter'
+import {
+  PREHAB_STABILITY_FILTER,
+  matchesStrengthLibraryCategoryFilter,
+} from '@/lib/strength/exercise-library-filters'
 
 interface LocationOption {
   id: string
@@ -57,6 +61,11 @@ export function ExerciseLibrary() {
                     name: e.name,
                     category: e.category,
                     pillar: e.biomechanicalPillar || 'UNKNOWN',
+                    progressionLevel: e.progressionLevel,
+                    isRehabExercise: e.isRehabExercise,
+                    rehabPhases: e.rehabPhases,
+                    targetBodyParts: e.targetBodyParts,
+                    contraindications: e.contraindications,
                     difficulty: e.difficulty || 'Intermediate',
                     muscleGroup: e.muscleGroup || 'General',
                     equipment: e.equipment || 'None',
@@ -115,7 +124,7 @@ export function ExerciseLibrary() {
   const filteredExercises = exercises.filter(ex => {
     const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           ex.muscleGroup.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = categoryFilter === 'ALL' || ex.category === categoryFilter
+    const matchesCategory = matchesStrengthLibraryCategoryFilter(ex, categoryFilter)
     const matchesPillar = pillarFilter === 'ALL' || ex.pillar === pillarFilter
     return matchesSearch && matchesCategory && matchesPillar
   })
@@ -145,6 +154,7 @@ export function ExerciseLibrary() {
             <SelectItem value="ALL">All Categories</SelectItem>
             <SelectItem value="STRENGTH">Strength</SelectItem>
             <SelectItem value="PLYOMETRIC">Plyometric</SelectItem>
+            <SelectItem value={PREHAB_STABILITY_FILTER}>Stability / Prehab</SelectItem>
             <SelectItem value="CORE">Core</SelectItem>
             <SelectItem value="RECOVERY">Recovery</SelectItem>
           </SelectContent>

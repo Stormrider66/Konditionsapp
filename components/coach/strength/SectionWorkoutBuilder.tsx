@@ -89,6 +89,10 @@ import {
 import { toast } from 'sonner'
 import { CustomExerciseCreator } from '@/components/coach/exercise-library/CustomExerciseCreator'
 import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton'
+import {
+  PREHAB_STABILITY_FILTER,
+  matchesStrengthLibraryCategoryFilter,
+} from '@/lib/strength/exercise-library-filters'
 
 // Types
 type SectionType = 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
@@ -160,6 +164,13 @@ interface LibraryExercise {
   category?: string
   pillar?: string
   muscleGroup?: string
+  description?: string
+  instructions?: string
+  progressionLevel?: string
+  isRehabExercise?: boolean
+  rehabPhases?: string[]
+  targetBodyParts?: string[]
+  contraindications?: string[]
   equipmentTypes?: string[]
   iconCategory?: string
 }
@@ -379,7 +390,7 @@ export function SectionWorkoutBuilder({
     const sectionToCategory: Record<SectionType, string> = {
       WARMUP: 'WARMUP',
       MAIN: 'ALL',
-      PREHAB: 'ALL',
+      PREHAB: PREHAB_STABILITY_FILTER,
       CORE: 'CORE',
       COOLDOWN: 'RECOVERY',
     }
@@ -553,9 +564,17 @@ export function SectionWorkoutBuilder({
           exercisesList.map((e: any) => ({
             id: e.id,
             name: e.nameSv || e.name,
+            nameSv: e.nameSv,
             category: e.category,
             pillar: e.biomechanicalPillar,
             muscleGroup: e.muscleGroup,
+            description: e.description,
+            instructions: e.instructions,
+            progressionLevel: e.progressionLevel,
+            isRehabExercise: e.isRehabExercise,
+            rehabPhases: e.rehabPhases,
+            targetBodyParts: e.targetBodyParts,
+            contraindications: e.contraindications,
             equipmentTypes: e.equipmentTypes,
             iconCategory: e.iconCategory,
           }))
@@ -642,7 +661,7 @@ export function SectionWorkoutBuilder({
       const matchesSearch =
         ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (ex.muscleGroup && ex.muscleGroup.toLowerCase().includes(searchTerm.toLowerCase()))
-      const matchesCategory = categoryFilter === 'ALL' || ex.category === categoryFilter
+      const matchesCategory = matchesStrengthLibraryCategoryFilter(ex, categoryFilter)
       return matchesSearch && matchesCategory
     })
   })()
@@ -1312,6 +1331,7 @@ export function SectionWorkoutBuilder({
                   <SelectItem value="WARMUP">Uppvärmning</SelectItem>
                   <SelectItem value="STRENGTH">Styrka</SelectItem>
                   <SelectItem value="PLYOMETRIC">Plyometri</SelectItem>
+                  <SelectItem value={PREHAB_STABILITY_FILTER}>Stabilitet / Prehab</SelectItem>
                   <SelectItem value="CORE">Core</SelectItem>
                   <SelectItem value="RECOVERY">Återhämtning</SelectItem>
                 </SelectContent>
