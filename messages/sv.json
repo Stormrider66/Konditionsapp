@@ -7722,6 +7722,21 @@
         "description": "Utseende vid export till PDF"
       }
     },
+    "locationSettings": {
+      "title": "Välj din gym-plats",
+      "description": "Välj det gym du tränar på för att få WOD-pass anpassade efter tillgänglig utrustning.",
+      "empty": "Ingen gym-anslutning hittades. Kontakta din coach om du tränar på ett gym.",
+      "primary": "Primär",
+      "equipmentCount": "{count} utrustningar",
+      "automatic": {
+        "title": "Automatiskt",
+        "description": "Använd primärt gym"
+      },
+      "errors": {
+        "fetch": "Kunde inte hämta gym-platser",
+        "save": "Kunde inte spara inställningen"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

@@ -12,6 +12,7 @@ import { MapPin, Check, Loader2, Building2, Dumbbell } from 'lucide-react'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface Location {
   id: string
@@ -26,7 +27,8 @@ interface LocationSettingsProps {
   variant?: 'default' | 'glass'
 }
 
-export function LocationSettings({ variant = 'glass' }: LocationSettingsProps) {
+export function LocationSettings({ variant: _variant = 'glass' }: LocationSettingsProps) {
+  const t = useTranslations('components.locationSettings')
   const [locations, setLocations] = useState<Location[]>([])
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null)
   const [savedLocationId, setSavedLocationId] = useState<string | null>(null)
@@ -53,14 +55,14 @@ export function LocationSettings({ variant = 'glass' }: LocationSettingsProps) {
         }
       } catch (err) {
         console.error('Failed to fetch locations:', err)
-        setError('Kunde inte hämta gym-platser')
+        setError(t('errors.fetch'))
       } finally {
         setLoading(false)
       }
     }
 
-    fetchData()
-  }, [])
+    void fetchData()
+  }, [t])
 
   // Save location preference
   const handleSelectLocation = async (locationId: string | null) => {
@@ -82,7 +84,7 @@ export function LocationSettings({ variant = 'glass' }: LocationSettingsProps) {
       setSavedLocationId(locationId)
     } catch (err) {
       console.error('Failed to save location preference:', err)
-      setError('Kunde inte spara inställningen')
+      setError(t('errors.save'))
       // Revert selection
       setSelectedLocationId(savedLocationId)
     } finally {
@@ -110,7 +112,7 @@ export function LocationSettings({ variant = 'glass' }: LocationSettingsProps) {
             <Building2 className="h-6 w-6 text-slate-400" />
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Ingen gym-anslutning hittades. Kontakta din coach om du tränar på ett gym.
+            {t('empty')}
           </p>
         </GlassCardContent>
       </GlassCard>
@@ -126,7 +128,7 @@ export function LocationSettings({ variant = 'glass' }: LocationSettingsProps) {
             <MapPin className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
           </div>
           <div>
-            <p className="font-semibold text-slate-900 dark:text-white">Välj din gym-plats</p>
+            <p className="font-semibold text-slate-900 dark:text-white">{t('title')}</p>
             {businessName && (
               <p className="text-xs text-slate-500 dark:text-slate-400">{businessName}</p>
             )}
@@ -135,7 +137,7 @@ export function LocationSettings({ variant = 'glass' }: LocationSettingsProps) {
 
         {/* Description */}
         <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-          Välj det gym du tränar på för att få WOD-pass anpassade efter tillgänglig utrustning.
+          {t('description')}
         </p>
 
         {/* Error */}
@@ -178,10 +180,10 @@ export function LocationSettings({ variant = 'glass' }: LocationSettingsProps) {
                   ? 'text-cyan-700 dark:text-cyan-300'
                   : 'text-slate-700 dark:text-slate-300'
               )}>
-                Automatiskt
+                {t('automatic.title')}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Använd primärt gym
+                {t('automatic.description')}
               </p>
             </div>
           </button>
@@ -224,7 +226,7 @@ export function LocationSettings({ variant = 'glass' }: LocationSettingsProps) {
                   </p>
                   {location.isPrimary && (
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                      Primär
+                      {t('primary')}
                     </Badge>
                   )}
                 </div>
@@ -234,7 +236,7 @@ export function LocationSettings({ variant = 'glass' }: LocationSettingsProps) {
                   {location.equipmentCount > 0 && (
                     <span className="flex items-center gap-1">
                       <Dumbbell className="h-3 w-3" />
-                      {location.equipmentCount} utrustningar
+                      {t('equipmentCount', { count: location.equipmentCount })}
                     </span>
                   )}
                 </div>

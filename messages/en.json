@@ -7722,6 +7722,21 @@
         "description": "Appearance when exporting to PDF"
       }
     },
+    "locationSettings": {
+      "title": "Choose your gym location",
+      "description": "Choose the gym you train at so WOD workouts can adapt to available equipment.",
+      "empty": "No gym connection found. Contact your coach if you train at a gym.",
+      "primary": "Primary",
+      "equipmentCount": "{count} equipment items",
+      "automatic": {
+        "title": "Automatic",
+        "description": "Use primary gym"
+      },
+      "errors": {
+        "fetch": "Could not fetch gym locations",
+        "save": "Could not save the setting"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
