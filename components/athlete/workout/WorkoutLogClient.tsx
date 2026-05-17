@@ -37,6 +37,7 @@ import { WorkoutLoggingForm } from '@/components/athlete/WorkoutLoggingForm'
 import { WorkoutFocusMode } from './WorkoutFocusMode'
 import { ProgramCompletionCelebration } from './ProgramCompletionCelebration'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 export interface RaceContext {
   isRaceWorkout: boolean
@@ -83,28 +84,28 @@ interface CompletionData {
 
 const SECTION_CONFIG = {
   WARMUP: {
-    label: 'Uppvärmning',
+    labelKey: 'sections.warmup',
     icon: Flame,
     color: 'text-yellow-600',
     bgColor: 'bg-yellow-50 dark:bg-yellow-500/10',
     borderColor: 'border-yellow-200 dark:border-yellow-500/20',
   },
   MAIN: {
-    label: 'Huvudpass',
+    labelKey: 'sections.main',
     icon: Dumbbell,
     color: 'text-blue-600',
     bgColor: 'bg-blue-50 dark:bg-blue-500/10',
     borderColor: 'border-blue-200 dark:border-blue-500/20',
   },
   CORE: {
-    label: 'Core',
+    labelKey: 'sections.core',
     icon: Target,
     color: 'text-purple-600',
     bgColor: 'bg-purple-50 dark:bg-purple-500/10',
     borderColor: 'border-purple-200 dark:border-purple-500/20',
   },
   COOLDOWN: {
-    label: 'Nedvarvning',
+    labelKey: 'sections.cooldown',
     icon: Timer,
     color: 'text-green-600',
     bgColor: 'bg-green-50 dark:bg-green-500/10',
@@ -120,6 +121,8 @@ export function WorkoutLogClient({
   raceContext,
   athleteContext,
 }: WorkoutLogClientProps) {
+  const t = useTranslations('components.workoutLogClient')
+  const locale = useLocale()
   const router = useRouter()
   const contextBasePath = useBasePath()
   const basePath = basePathProp || contextBasePath
@@ -150,7 +153,7 @@ export function WorkoutLogClient({
         }
       } catch (err) {
         console.error('Error checking focus mode:', err)
-        setError(err instanceof Error ? err.message : 'An error occurred')
+        setError(err instanceof Error ? err.message : t('errors.generic'))
         // Fallback to quick log on error
         setViewMode('quicklog')
       } finally {
@@ -158,8 +161,8 @@ export function WorkoutLogClient({
       }
     }
 
-    checkFocusMode()
-  }, [workout.id])
+    void checkFocusMode()
+  }, [workout.id, t])
 
   const toggleSection = (sectionType: string) => {
     setExpandedSections((prev) => {
@@ -234,15 +237,15 @@ export function WorkoutLogClient({
         <div className="flex items-center gap-2 mb-6">
           {focusModeData?.hasExercises && (
             <Button variant="ghost" onClick={() => setViewMode('choosing')}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Tillbaka
+	              <ArrowLeft className="mr-2 h-4 w-4" />
+	              {t('actions.back')}
             </Button>
           )}
           {!focusModeData?.hasExercises && (
             <Link href={`${basePath}/athlete/programs/${workout.day?.week?.program?.id || ''}`}>
               <Button variant="ghost">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Tillbaka till program
+	                <ArrowLeft className="mr-2 h-4 w-4" />
+	                {t('actions.backToProgram')}
               </Button>
             </Link>
           )}
@@ -250,7 +253,7 @@ export function WorkoutLogClient({
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">
-            {existingLog ? 'Redigera träningslogg' : 'Logga träningspass'}
+	            {existingLog ? t('quickLog.editTitle') : t('quickLog.title')}
           </h1>
           <p className="text-muted-foreground">{workout.name}</p>
         </div>
@@ -266,10 +269,10 @@ export function WorkoutLogClient({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-semibold text-blue-900 dark:text-blue-100">
-                      Feedback från coach
+	                      {t('coachFeedback.title')}
                     </h3>
                     <span className="text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-500/20 px-2 py-1 rounded-full">
-                      Ny
+	                      {t('coachFeedback.new')}
                     </span>
                   </div>
                   <p className="text-blue-900 dark:text-blue-100 leading-relaxed whitespace-pre-wrap">
@@ -305,15 +308,15 @@ export function WorkoutLogClient({
       <Link href={`${basePath}/athlete/programs/${workout.day?.week?.program?.id || ''}`}>
         <Button variant="ghost" className="mb-6">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka till program
+	          {t('actions.backToProgram')}
         </Button>
       </Link>
 
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">{workout.name}</h1>
         <div className="flex items-center gap-2">
-          <Badge variant="outline">{formatWorkoutType(workout.type)}</Badge>
-          <Badge variant="outline">{formatIntensity(workout.intensity)}</Badge>
+	          <Badge variant="outline">{formatWorkoutType(workout.type, t)}</Badge>
+	          <Badge variant="outline">{formatIntensity(workout.intensity, t)}</Badge>
           {workout.duration && (
             <span className="text-sm text-muted-foreground flex items-center gap-1">
               <Timer className="h-4 w-4" />
@@ -342,10 +345,14 @@ export function WorkoutLogClient({
             </div>
             <div className="flex-1">
               <p className="font-medium text-blue-800 dark:text-blue-200">
-                Fortsätt där du slutade
+	                {t('resume.title')}
               </p>
               <p className="text-xs text-blue-700 dark:text-blue-300">
-                {focusModeData.progress.completedSets} av {focusModeData.progress.totalSetsTarget} set klara ({focusModeData.progress.percentComplete}%)
+	                {t('resume.description', {
+	                  completed: focusModeData.progress.completedSets,
+	                  total: focusModeData.progress.totalSetsTarget,
+	                  percent: focusModeData.progress.percentComplete,
+	                })}
               </p>
             </div>
           </CardContent>
@@ -355,7 +362,7 @@ export function WorkoutLogClient({
       {/* Workout sections preview */}
       {focusModeData?.sections && focusModeData.sections.length > 0 && (
         <div className="space-y-3 mb-8">
-          <h3 className="text-sm font-medium text-muted-foreground">Passöversikt</h3>
+	          <h3 className="text-sm font-medium text-muted-foreground">{t('overview.title')}</h3>
 
           {focusModeData.sections.map((section: any) => {
             const config = SECTION_CONFIG[section.type as keyof typeof SECTION_CONFIG]
@@ -381,9 +388,9 @@ export function WorkoutLogClient({
                           <Icon className={`h-4 w-4 ${config?.color}`} />
                         </div>
                         <div className="text-left">
-                          <p className="font-medium">{config?.label || section.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {section.exerciseCount} övningar
+	                          <p className="font-medium">{config?.labelKey ? t(config.labelKey) : section.name}</p>
+	                          <p className="text-xs text-muted-foreground">
+	                            {t('overview.exerciseCount', { count: section.exerciseCount })}
                           </p>
                         </div>
                       </div>
@@ -408,12 +415,12 @@ export function WorkoutLogClient({
                             </span>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">
-                                {exercise.nameSv || exercise.name}
+	                                {locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {exercise.sets} × {exercise.repsTarget}
                                 {exercise.weight && ` @ ${exercise.weight}`}
-                                {exercise.restSeconds && ` • Vila ${exercise.restSeconds}s`}
+	                                {exercise.restSeconds && ` • ${t('overview.restSeconds', { seconds: exercise.restSeconds })}`}
                               </p>
                             </div>
                           </li>
@@ -431,7 +438,7 @@ export function WorkoutLogClient({
       {/* Mode selection */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Välj loggningsmetod</CardTitle>
+	          <CardTitle>{t('method.title')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Focus Mode option */}
@@ -443,13 +450,12 @@ export function WorkoutLogClient({
               <Play className="h-6 w-6 text-orange-600 dark:text-orange-500" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-lg mb-1">Fokusläge</h3>
-              <p className="text-sm text-muted-foreground">
-                Guidad träning övning för övning. Logga set, se bilder och instruktioner,
-                vila-timer mellan set.
-              </p>
-              <Badge className="mt-2 bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400 hover:bg-orange-100">
-                Rekommenderas
+	              <h3 className="font-semibold text-lg mb-1">{t('method.focus.title')}</h3>
+	              <p className="text-sm text-muted-foreground">
+	                {t('method.focus.description')}
+	              </p>
+	              <Badge className="mt-2 bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400 hover:bg-orange-100">
+	                {t('method.focus.recommended')}
               </Badge>
             </div>
           </button>
@@ -463,11 +469,10 @@ export function WorkoutLogClient({
               <ClipboardList className="h-6 w-6 text-slate-600 dark:text-slate-400" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-lg mb-1">Snabbloggning</h3>
-              <p className="text-sm text-muted-foreground">
-                Enkel formulärbaserad loggning. Fyll i tid, distans och
-                upplevd ansträngning.
-              </p>
+	              <h3 className="font-semibold text-lg mb-1">{t('method.quick.title')}</h3>
+	              <p className="text-sm text-muted-foreground">
+	                {t('method.quick.description')}
+	              </p>
             </div>
           </button>
         </CardContent>
@@ -477,30 +482,30 @@ export function WorkoutLogClient({
 }
 
 // Helper functions
-function formatWorkoutType(type: string): string {
+function formatWorkoutType(type: string, t: (key: string) => string): string {
   const types: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    STRENGTH: 'Styrka',
-    CORE: 'Core',
-    PLYOMETRIC: 'Plyometri',
-    RECOVERY: 'Återhämtning',
-    SKIING: 'Skidåkning',
-    HYROX: 'HYROX',
-    AGILITY: 'Agility',
-    OTHER: 'Annat',
+    RUNNING: 'workoutTypes.running',
+    CYCLING: 'workoutTypes.cycling',
+    STRENGTH: 'workoutTypes.strength',
+    CORE: 'workoutTypes.core',
+    PLYOMETRIC: 'workoutTypes.plyometric',
+    RECOVERY: 'workoutTypes.recovery',
+    SKIING: 'workoutTypes.skiing',
+    HYROX: 'workoutTypes.hyrox',
+    AGILITY: 'workoutTypes.agility',
+    OTHER: 'workoutTypes.other',
   }
-  return types[type] || type
+  return types[type] ? t(types[type]) : type
 }
 
-function formatIntensity(intensity: string): string {
+function formatIntensity(intensity: string, t: (key: string) => string): string {
   const intensities: Record<string, string> = {
-    RECOVERY: 'Återhämtning',
-    EASY: 'Lätt',
-    MODERATE: 'Måttlig',
-    THRESHOLD: 'Tröskel',
-    INTERVAL: 'Intervall',
-    MAX: 'Max',
+    RECOVERY: 'intensities.recovery',
+    EASY: 'intensities.easy',
+    MODERATE: 'intensities.moderate',
+    THRESHOLD: 'intensities.threshold',
+    INTERVAL: 'intensities.interval',
+    MAX: 'intensities.max',
   }
-  return intensities[intensity] || intensity
+  return intensities[intensity] ? t(intensities[intensity]) : intensity
 }

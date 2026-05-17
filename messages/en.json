@@ -3984,6 +3984,70 @@
       "moreExercises": "+{count, plural, one {# more exercise} other {# more exercises}}",
       "exerciseCount": "{count, plural, one {# exercise} other {# exercises}}"
     },
+    "workoutLogClient": {
+      "sections": {
+        "warmup": "Warmup",
+        "main": "Main session",
+        "core": "Core",
+        "cooldown": "Cooldown"
+      },
+      "errors": {
+        "generic": "Something went wrong"
+      },
+      "actions": {
+        "back": "Back",
+        "backToProgram": "Back to program"
+      },
+      "quickLog": {
+        "title": "Log workout",
+        "editTitle": "Edit workout log"
+      },
+      "coachFeedback": {
+        "title": "Feedback from coach",
+        "new": "New"
+      },
+      "resume": {
+        "title": "Continue where you left off",
+        "description": "{completed} of {total} sets complete ({percent}%)"
+      },
+      "overview": {
+        "title": "Workout overview",
+        "exerciseCount": "{count, plural, one {# exercise} other {# exercises}}",
+        "restSeconds": "Rest {seconds}s"
+      },
+      "method": {
+        "title": "Choose logging method",
+        "focus": {
+          "title": "Focus mode",
+          "description": "Guided training exercise by exercise. Log sets, view images and instructions, and use the rest timer between sets.",
+          "recommended": "Recommended"
+        },
+        "quick": {
+          "title": "Quick log",
+          "description": "Simple form-based logging. Fill in time, distance, and perceived exertion."
+        }
+      },
+      "workoutTypes": {
+        "running": "Running",
+        "cycling": "Cycling",
+        "strength": "Strength",
+        "core": "Core",
+        "plyometric": "Plyometric",
+        "recovery": "Recovery",
+        "skiing": "Skiing",
+        "hyrox": "HYROX",
+        "agility": "Agility",
+        "other": "Other"
+      },
+      "intensities": {
+        "recovery": "Recovery",
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "threshold": "Threshold",
+        "interval": "Interval",
+        "max": "Max"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",

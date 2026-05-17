@@ -3984,6 +3984,70 @@
       "moreExercises": "+{count} fler {count, plural, one {övning} other {övningar}}",
       "exerciseCount": "{count} {count, plural, one {övning} other {övningar}}"
     },
+    "workoutLogClient": {
+      "sections": {
+        "warmup": "Uppvärmning",
+        "main": "Huvudpass",
+        "core": "Core",
+        "cooldown": "Nedvarvning"
+      },
+      "errors": {
+        "generic": "Ett fel uppstod"
+      },
+      "actions": {
+        "back": "Tillbaka",
+        "backToProgram": "Tillbaka till program"
+      },
+      "quickLog": {
+        "title": "Logga träningspass",
+        "editTitle": "Redigera träningslogg"
+      },
+      "coachFeedback": {
+        "title": "Feedback från coach",
+        "new": "Ny"
+      },
+      "resume": {
+        "title": "Fortsätt där du slutade",
+        "description": "{completed} av {total} set klara ({percent}%)"
+      },
+      "overview": {
+        "title": "Passöversikt",
+        "exerciseCount": "{count} {count, plural, one {övning} other {övningar}}",
+        "restSeconds": "Vila {seconds}s"
+      },
+      "method": {
+        "title": "Välj loggningsmetod",
+        "focus": {
+          "title": "Fokusläge",
+          "description": "Guidad träning övning för övning. Logga set, se bilder och instruktioner, vila-timer mellan set.",
+          "recommended": "Rekommenderas"
+        },
+        "quick": {
+          "title": "Snabbloggning",
+          "description": "Enkel formulärbaserad loggning. Fyll i tid, distans och upplevd ansträngning."
+        }
+      },
+      "workoutTypes": {
+        "running": "Löpning",
+        "cycling": "Cykling",
+        "strength": "Styrka",
+        "core": "Core",
+        "plyometric": "Plyometri",
+        "recovery": "Återhämtning",
+        "skiing": "Skidåkning",
+        "hyrox": "HYROX",
+        "agility": "Agility",
+        "other": "Annat"
+      },
+      "intensities": {
+        "recovery": "Återhämtning",
+        "easy": "Lätt",
+        "moderate": "Måttlig",
+        "threshold": "Tröskel",
+        "interval": "Intervall",
+        "max": "Max"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",
