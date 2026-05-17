@@ -7555,6 +7555,65 @@
         "core": "Core"
       }
     },
+    "wodCompletionModal": {
+      "title": "Nice work!",
+      "completedExercises": "{count} exercises completed",
+      "durationLabel": "Workout time",
+      "estimatedDuration": "Estimated time: {minutes} min",
+      "rpeLabel": "How hard did it feel? (RPE)",
+      "rpeScale": {
+        "easy": "Easy",
+        "hard": "Hard"
+      },
+      "estimatedLoad": "Estimated training load",
+      "actions": {
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "saveAndFinish": "Save & finish"
+      },
+      "rpe": {
+        "1": {
+          "label": "Very easy",
+          "description": "Rest"
+        },
+        "2": {
+          "label": "Easy",
+          "description": "Can talk comfortably"
+        },
+        "3": {
+          "label": "Easy",
+          "description": "Comfortable effort"
+        },
+        "4": {
+          "label": "Moderate",
+          "description": "Slightly breathless"
+        },
+        "5": {
+          "label": "Moderate",
+          "description": "Clearly breathless"
+        },
+        "6": {
+          "label": "Challenging",
+          "description": "Short of breath"
+        },
+        "7": {
+          "label": "Hard",
+          "description": "Hard to talk"
+        },
+        "8": {
+          "label": "Very hard",
+          "description": "Can only say a few words"
+        },
+        "9": {
+          "label": "Extremely hard",
+          "description": "Near maximal effort"
+        },
+        "10": {
+          "label": "Maximal",
+          "description": "Everything you had"
+        }
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

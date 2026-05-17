@@ -7555,6 +7555,65 @@
         "core": "Core"
       }
     },
+    "wodCompletionModal": {
+      "title": "Bra jobbat!",
+      "completedExercises": "{count} övningar slutförda",
+      "durationLabel": "Tid för passet",
+      "estimatedDuration": "Beräknad tid: {minutes} min",
+      "rpeLabel": "Hur tungt kändes det? (RPE)",
+      "rpeScale": {
+        "easy": "Lätt",
+        "hard": "Tungt"
+      },
+      "estimatedLoad": "Beräknad träningsbelastning",
+      "actions": {
+        "cancel": "Avbryt",
+        "saving": "Sparar...",
+        "saveAndFinish": "Spara & avsluta"
+      },
+      "rpe": {
+        "1": {
+          "label": "Mycket lätt",
+          "description": "Vila"
+        },
+        "2": {
+          "label": "Lätt",
+          "description": "Kan prata obehindrat"
+        },
+        "3": {
+          "label": "Lätt",
+          "description": "Bekväm ansträngning"
+        },
+        "4": {
+          "label": "Måttligt",
+          "description": "Något andfådd"
+        },
+        "5": {
+          "label": "Måttligt",
+          "description": "Tydligt andfådd"
+        },
+        "6": {
+          "label": "Utmanande",
+          "description": "Kort av andan"
+        },
+        "7": {
+          "label": "Tungt",
+          "description": "Jobbigt att prata"
+        },
+        "8": {
+          "label": "Mycket tungt",
+          "description": "Kan bara säga enstaka ord"
+        },
+        "9": {
+          "label": "Extremt tungt",
+          "description": "Nästan maximal ansträngning"
+        },
+        "10": {
+          "label": "Maximalt",
+          "description": "Allt du hade"
+        }
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

@@ -18,6 +18,7 @@ import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { Slider } from '@/components/ui/slider'
 import { CheckCircle2, Clock, Flame, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface WODCompletionModalProps {
   title: string
@@ -28,20 +29,6 @@ interface WODCompletionModalProps {
   onCancel: () => void
 }
 
-// RPE descriptions (Swedish)
-const RPE_LABELS: Record<number, { label: string; color: string; description: string }> = {
-  1: { label: 'Mycket lätt', color: 'text-green-400', description: 'Vila' },
-  2: { label: 'Lätt', color: 'text-green-500', description: 'Kan prata obehindrat' },
-  3: { label: 'Lätt', color: 'text-green-600', description: 'Bekväm ansträngning' },
-  4: { label: 'Måttligt', color: 'text-yellow-500', description: 'Något andfådd' },
-  5: { label: 'Måttligt', color: 'text-yellow-600', description: 'Tydligt andfådd' },
-  6: { label: 'Utmanande', color: 'text-orange-500', description: 'Kort av andan' },
-  7: { label: 'Tungt', color: 'text-orange-600', description: 'Jobbigt att prata' },
-  8: { label: 'Mycket tungt', color: 'text-red-500', description: 'Kan bara säga enstaka ord' },
-  9: { label: 'Extremt tungt', color: 'text-red-600', description: 'Nästan maximal ansträngning' },
-  10: { label: 'Maximalt', color: 'text-red-700', description: 'Allt du hade' },
-}
-
 export function WODCompletionModal({
   title,
   totalExercises,
@@ -50,11 +37,24 @@ export function WODCompletionModal({
   onComplete,
   onCancel,
 }: WODCompletionModalProps) {
+  const t = useTranslations('components.wodCompletionModal')
   const [sessionRPE, setSessionRPE] = useState(6) // Default to moderate
   const [adjustedDuration, setAdjustedDuration] = useState(actualDuration)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const rpeInfo = RPE_LABELS[sessionRPE]
+  const rpeLabels: Record<number, { label: string; color: string; description: string }> = {
+    1: { label: t('rpe.1.label'), color: 'text-green-400', description: t('rpe.1.description') },
+    2: { label: t('rpe.2.label'), color: 'text-green-500', description: t('rpe.2.description') },
+    3: { label: t('rpe.3.label'), color: 'text-green-600', description: t('rpe.3.description') },
+    4: { label: t('rpe.4.label'), color: 'text-yellow-500', description: t('rpe.4.description') },
+    5: { label: t('rpe.5.label'), color: 'text-yellow-600', description: t('rpe.5.description') },
+    6: { label: t('rpe.6.label'), color: 'text-orange-500', description: t('rpe.6.description') },
+    7: { label: t('rpe.7.label'), color: 'text-orange-600', description: t('rpe.7.description') },
+    8: { label: t('rpe.8.label'), color: 'text-red-500', description: t('rpe.8.description') },
+    9: { label: t('rpe.9.label'), color: 'text-red-600', description: t('rpe.9.description') },
+    10: { label: t('rpe.10.label'), color: 'text-red-700', description: t('rpe.10.description') },
+  }
+  const rpeInfo = rpeLabels[sessionRPE]
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
@@ -78,10 +78,10 @@ export function WODCompletionModal({
           {/* Header */}
           <div className="text-center mb-6">
             <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-1">Bra jobbat!</h2>
+            <h2 className="text-2xl font-bold mb-1">{t('title')}</h2>
             <p className="text-muted-foreground">{title}</p>
             <p className="text-sm text-muted-foreground mt-1">
-              {totalExercises} övningar slutförda
+              {t('completedExercises', { count: totalExercises })}
             </p>
           </div>
 
@@ -89,7 +89,7 @@ export function WODCompletionModal({
           <div className="mb-6">
             <label className="text-sm font-medium mb-2 flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
-              Tid för passet
+              {t('durationLabel')}
             </label>
             <div className="flex items-center gap-3">
               <Button
@@ -114,7 +114,7 @@ export function WODCompletionModal({
             </div>
             {estimatedDuration > 0 && (
               <p className="text-xs text-muted-foreground text-center mt-2">
-                Beräknad tid: {estimatedDuration} min
+                {t('estimatedDuration', { minutes: estimatedDuration })}
               </p>
             )}
           </div>
@@ -123,7 +123,7 @@ export function WODCompletionModal({
           <div className="mb-6">
             <label className="text-sm font-medium mb-2 flex items-center gap-2">
               <Flame className="h-4 w-4 text-muted-foreground" />
-              Hur tungt kändes det? (RPE)
+              {t('rpeLabel')}
             </label>
             <div className="px-2">
               <Slider
@@ -135,8 +135,8 @@ export function WODCompletionModal({
                 className="my-4"
               />
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Lätt</span>
-                <span>Tungt</span>
+                <span>{t('rpeScale.easy')}</span>
+                <span>{t('rpeScale.hard')}</span>
                 <span>Max</span>
               </div>
             </div>
@@ -153,7 +153,7 @@ export function WODCompletionModal({
           {/* Estimated TSS */}
           <div className="mb-6 p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Beräknad träningsbelastning</span>
+              <span className="text-sm font-medium">{t('estimatedLoad')}</span>
               <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
                 {estimatedTSS} TSS
               </span>
@@ -168,7 +168,7 @@ export function WODCompletionModal({
               disabled={isSubmitting}
               className="flex-1"
             >
-              Avbryt
+              {t('actions.cancel')}
             </Button>
             <Button
               onClick={handleSubmit}
@@ -178,12 +178,12 @@ export function WODCompletionModal({
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Sparar...
+                  {t('actions.saving')}
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Spara & avsluta
+                  {t('actions.saveAndFinish')}
                 </>
               )}
             </Button>
