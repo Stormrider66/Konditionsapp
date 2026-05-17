@@ -2579,6 +2579,45 @@
         "sendMessageFailed": "Could not send the message",
         "unexpected": "An unexpected error occurred."
       }
+    },
+    "socialMediaCard": {
+      "title": "Social media",
+      "draftCount": "{count} drafts",
+      "publishedCount": "{count} published",
+      "manage": "Manage",
+      "topicPlaceholder": "Describe what you want to post...",
+      "aiSuggestion": "AI-generated suggestion",
+      "saveDraft": "Save draft",
+      "cancel": "Cancel",
+      "empty": {
+        "title": "No posts yet",
+        "description": "Use AI to create your first post"
+      },
+      "recentPosts": "Recent posts",
+      "statuses": {
+        "draft": "Draft",
+        "approved": "Approved",
+        "queued": "Queued",
+        "published": "Published",
+        "failed": "Failed"
+      }
+    },
+    "bodyCompTrendsCard": {
+      "title": "Body composition",
+      "empty": "No body measurements yet"
+    },
+    "competitionCard": {
+      "title": "Challenges",
+      "activeCount": "{count} active",
+      "manage": "Manage",
+      "empty": {
+        "title": "No active challenges",
+        "description": "Create a challenge to engage your members"
+      },
+      "daysLeft": "{days}d left",
+      "ended": "Ended",
+      "participants": "{count} participants",
+      "noParticipants": "No participants yet"
     }
   },
   "infographic": {

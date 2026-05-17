@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/GlassCard'
 import { Scale, ArrowUp, ArrowDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 export interface BodyCompSummary {
   clientId: string
@@ -37,19 +38,21 @@ function DeltaText({ value, unit, invert }: { value: number | null; unit: string
 }
 
 export function BodyCompTrendsCard({ bodyCompSummary }: BodyCompTrendsCardProps) {
+  const t = useTranslations('components.bodyCompTrendsCard')
+
   return (
     <GlassCard>
       <GlassCardHeader className="pb-2">
         <GlassCardTitle className="text-sm flex items-center gap-2">
           <Scale className="h-4 w-4 text-blue-500" />
-          Kroppssammansättning
+          {t('title')}
         </GlassCardTitle>
       </GlassCardHeader>
       <GlassCardContent>
         {bodyCompSummary.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground">
             <Scale className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Inga kroppsmätningar ännu</p>
+            <p className="text-sm">{t('empty')}</p>
           </div>
         ) : (
           <div className="space-y-2">

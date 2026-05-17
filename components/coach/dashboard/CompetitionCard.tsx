@@ -12,13 +12,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Trophy,
-  Medal,
   Users,
   Loader2,
   Clock,
-  Plus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface CompetitionEntry {
   id: string
@@ -50,7 +49,6 @@ function daysRemaining(endDate: string): number {
   return Math.max(0, Math.ceil((new Date(endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
 }
 
-const rankColors = ['text-yellow-500', 'text-slate-400', 'text-amber-600']
 const rankIcons = ['🥇', '🥈', '🥉']
 
 interface CompetitionCardProps {
@@ -58,6 +56,7 @@ interface CompetitionCardProps {
 }
 
 export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
+  const t = useTranslations('components.competitionCard')
   const [competitions, setCompetitions] = useState<CompetitionData[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -76,7 +75,11 @@ export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
   }, [])
 
   useEffect(() => {
-    fetchCompetitions()
+    const timeoutId = window.setTimeout(() => {
+      void fetchCompetitions()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [fetchCompetitions])
 
   const activeCompetitions = competitions.filter(c => c.isActive && new Date(c.endDate) > new Date())
@@ -87,14 +90,14 @@ export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-base flex items-center gap-2">
             <Trophy className="h-4 w-4 text-yellow-500" />
-            Utmaningar
+            {t('title')}
           </GlassCardTitle>
           <div className="flex items-center gap-1">
             {activeCompetitions.length > 0 && (
-              <Badge variant="secondary" className="text-xs">{activeCompetitions.length} aktiva</Badge>
+              <Badge variant="secondary" className="text-xs">{t('activeCount', { count: activeCompetitions.length })}</Badge>
             )}
             <Link href={`${basePath}/coach/competitions`}>
-              <Button variant="ghost" size="sm" className="text-xs h-6 px-2">Hantera</Button>
+              <Button variant="ghost" size="sm" className="text-xs h-6 px-2">{t('manage')}</Button>
             </Link>
           </div>
         </div>
@@ -107,8 +110,8 @@ export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
         ) : activeCompetitions.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <Trophy className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Inga aktiva utmaningar</p>
-            <p className="text-xs mt-1">Skapa en utmaning för att engagera dina medlemmar</p>
+            <p className="text-sm">{t('empty.title')}</p>
+            <p className="text-xs mt-1">{t('empty.description')}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -127,11 +130,11 @@ export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
                     <div className="text-right">
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        {days > 0 ? `${days}d kvar` : 'Avslutad'}
+                        {days > 0 ? t('daysLeft', { days }) : t('ended')}
                       </div>
                       <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                         <Users className="h-2.5 w-2.5" />
-                        {comp._count.entries} deltagare
+                        {t('participants', { count: comp._count.entries })}
                       </div>
                     </div>
                   </div>
@@ -158,7 +161,7 @@ export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground text-center py-2">Inga deltagare ännu</p>
+                    <p className="text-xs text-muted-foreground text-center py-2">{t('noParticipants')}</p>
                   )}
                 </div>
               )

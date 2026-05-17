@@ -2579,6 +2579,45 @@
         "sendMessageFailed": "Kunde inte skicka meddelandet",
         "unexpected": "Ett oväntat fel inträffade."
       }
+    },
+    "socialMediaCard": {
+      "title": "Sociala medier",
+      "draftCount": "{count} utkast",
+      "publishedCount": "{count} publicerade",
+      "manage": "Hantera",
+      "topicPlaceholder": "Beskriv vad du vill posta...",
+      "aiSuggestion": "AI-genererat förslag",
+      "saveDraft": "Spara utkast",
+      "cancel": "Avbryt",
+      "empty": {
+        "title": "Inga inlägg ännu",
+        "description": "Använd AI för att skapa ditt första inlägg"
+      },
+      "recentPosts": "Senaste inlägg",
+      "statuses": {
+        "draft": "Utkast",
+        "approved": "Godkänt",
+        "queued": "I kö",
+        "published": "Publicerat",
+        "failed": "Misslyckades"
+      }
+    },
+    "bodyCompTrendsCard": {
+      "title": "Kroppssammansättning",
+      "empty": "Inga kroppsmätningar ännu"
+    },
+    "competitionCard": {
+      "title": "Utmaningar",
+      "activeCount": "{count} aktiva",
+      "manage": "Hantera",
+      "empty": {
+        "title": "Inga aktiva utmaningar",
+        "description": "Skapa en utmaning för att engagera dina medlemmar"
+      },
+      "daysLeft": "{days}d kvar",
+      "ended": "Avslutad",
+      "participants": "{count} deltagare",
+      "noParticipants": "Inga deltagare ännu"
     }
   },
   "infographic": {

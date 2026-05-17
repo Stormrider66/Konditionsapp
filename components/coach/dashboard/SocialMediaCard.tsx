@@ -15,7 +15,6 @@ import {
   Share2,
   Sparkles,
   Loader2,
-  Send,
   FileText,
   CheckCircle2,
   AlertCircle,
@@ -23,6 +22,7 @@ import {
   Instagram,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface SocialPostData {
   id: string
@@ -40,12 +40,12 @@ interface SocialPostData {
   }>
 }
 
-const statusConfig: Record<string, { label: string; color: string; icon: typeof FileText }> = {
-  DRAFT: { label: 'Utkast', color: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400', icon: FileText },
-  APPROVED: { label: 'Godkänt', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400', icon: CheckCircle2 },
-  QUEUED: { label: 'I kö', color: 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400', icon: Clock },
-  PUBLISHED: { label: 'Publicerat', color: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400', icon: CheckCircle2 },
-  FAILED: { label: 'Misslyckades', color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', icon: AlertCircle },
+const statusConfig: Record<string, { labelKey: string; color: string; icon: typeof FileText }> = {
+  DRAFT: { labelKey: 'statuses.draft', color: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400', icon: FileText },
+  APPROVED: { labelKey: 'statuses.approved', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400', icon: CheckCircle2 },
+  QUEUED: { labelKey: 'statuses.queued', color: 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400', icon: Clock },
+  PUBLISHED: { labelKey: 'statuses.published', color: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400', icon: CheckCircle2 },
+  FAILED: { labelKey: 'statuses.failed', color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', icon: AlertCircle },
 }
 
 const platformIcons: Record<string, string> = {
@@ -62,6 +62,9 @@ interface SocialMediaCardProps {
 }
 
 export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
+  const t = useTranslations('components.socialMediaCard')
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [posts, setPosts] = useState<SocialPostData[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
@@ -84,7 +87,11 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
   }, [])
 
   useEffect(() => {
-    fetchPosts()
+    const timeoutId = window.setTimeout(() => {
+      void fetchPosts()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [fetchPosts])
 
   const generateCaption = async () => {
@@ -125,7 +132,7 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
       if (res.ok) {
         setGeneratedCaption(null)
         setTopic('')
-        fetchPosts()
+        void fetchPosts()
       }
     } catch {
       // ignore
@@ -144,17 +151,17 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-base flex items-center gap-2">
             <Share2 className="h-4 w-4 text-pink-500" />
-            Sociala medier
+            {t('title')}
           </GlassCardTitle>
           <div className="flex items-center gap-1">
             {draftCount > 0 && (
-              <Badge variant="secondary" className="text-[10px]">{draftCount} utkast</Badge>
+              <Badge variant="secondary" className="text-[10px]">{t('draftCount', { count: draftCount })}</Badge>
             )}
             {publishedCount > 0 && (
-              <Badge className="text-[10px] bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">{publishedCount} publicerade</Badge>
+              <Badge className="text-[10px] bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">{t('publishedCount', { count: publishedCount })}</Badge>
             )}
             <Link href={`${basePath}/coach/social`}>
-              <Button variant="ghost" size="sm" className="text-xs h-6 px-2">Hantera</Button>
+              <Button variant="ghost" size="sm" className="text-xs h-6 px-2">{t('manage')}</Button>
             </Link>
           </div>
         </div>
@@ -164,7 +171,7 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
         <div className="space-y-2 mb-4">
           <div className="flex gap-2">
             <Input
-              placeholder="Beskriv vad du vill posta..."
+              placeholder={t('topicPlaceholder')}
               value={topic}
               onChange={e => setTopic(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && generateCaption()}
@@ -190,15 +197,15 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
           {generatedCaption && (
             <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800/30 space-y-2">
               <p className="text-xs text-purple-700 dark:text-purple-300 font-medium flex items-center gap-1">
-                <Sparkles className="h-3 w-3" /> AI-genererat förslag
+                <Sparkles className="h-3 w-3" /> {t('aiSuggestion')}
               </p>
               <p className="text-sm whitespace-pre-wrap">{generatedCaption}</p>
               <div className="flex gap-2">
                 <Button size="sm" className="h-7 text-xs" onClick={saveAsDraft} disabled={saving}>
-                  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <><FileText className="h-3 w-3 mr-1" /> Spara utkast</>}
+                  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <><FileText className="h-3 w-3 mr-1" /> {t('saveDraft')}</>}
                 </Button>
                 <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setGeneratedCaption(null)}>
-                  Avbryt
+                  {t('cancel')}
                 </Button>
               </div>
             </div>
@@ -213,12 +220,12 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
         ) : recentPosts.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground">
             <Instagram className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Inga inlägg ännu</p>
-            <p className="text-xs mt-1">Använd AI för att skapa ditt första inlägg</p>
+            <p className="text-sm">{t('empty.title')}</p>
+            <p className="text-xs mt-1">{t('empty.description')}</p>
           </div>
         ) : (
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">Senaste inlägg</p>
+            <p className="text-xs font-medium text-muted-foreground">{t('recentPosts')}</p>
             {recentPosts.map(post => {
               const config = statusConfig[post.status] || statusConfig.DRAFT
               const StatusIcon = config.icon
@@ -228,7 +235,7 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs truncate">{post.caption.slice(0, 80)}{post.caption.length > 80 ? '...' : ''}</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <Badge className={cn('text-[10px] h-4', config.color)}>{config.label}</Badge>
+                      <Badge className={cn('text-[10px] h-4', config.color)}>{t(config.labelKey)}</Badge>
                       {post.isAiGenerated && (
                         <Sparkles className="h-2.5 w-2.5 text-purple-500" />
                       )}
@@ -240,7 +247,7 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
                     </div>
                   </div>
                   <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                    {new Date(post.createdAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+                    {new Date(post.createdAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })}
                   </span>
                 </div>
               )
