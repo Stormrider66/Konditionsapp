@@ -13,7 +13,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   Camera,
   Upload,
@@ -24,6 +24,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface PhotoCaptureProps {
   onSubmit: (data: { imageUrl: string; workoutDate: Date }) => Promise<void>
@@ -31,6 +32,8 @@ interface PhotoCaptureProps {
 }
 
 export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
+  const t = useTranslations('components.adHocPhotoCapture')
+  const locale = useLocale()
   const [workoutDate, setWorkoutDate] = useState<Date>(new Date())
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -39,6 +42,7 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+  const dateLocale = locale === 'en' ? enUS : sv
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -46,13 +50,13 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      setError('Vänligen välj en bildfil')
+      setError(t('errors.selectImageFile'))
       return
     }
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      setError('Bilden får inte vara större än 10MB')
+      setError(t('errors.fileTooLarge'))
       return
     }
 
@@ -65,7 +69,7 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
       setImagePreview(e.target?.result as string)
     }
     reader.readAsDataURL(file)
-  }, [])
+  }, [t])
 
   const handleClearImage = () => {
     setImagePreview(null)
@@ -94,7 +98,7 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
 
       if (!uploadRes.ok) {
         const data = await uploadRes.json()
-        throw new Error(data.error || 'Failed to upload image')
+        throw new Error(data.error || t('errors.uploadFailed'))
       }
 
       const uploadData = await uploadRes.json()
@@ -104,7 +108,7 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
       await onSubmit({ imageUrl, workoutDate })
     } catch (error) {
       console.error('Error uploading image:', error)
-      setError(error instanceof Error ? error.message : 'Det gick inte att ladda upp bilden')
+      setError(error instanceof Error ? error.message : t('errors.uploadFailed'))
     } finally {
       setUploading(false)
     }
@@ -117,14 +121,14 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Camera className="h-5 w-5" />
-          Ta en bild
+          {t('title')}
         </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
         {/* Date picker */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">När genomfördes passet?</label>
+          <label className="text-sm font-medium">{t('date.label')}</label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -136,9 +140,9 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {workoutDate ? (
-                  format(workoutDate, 'PPP', { locale: sv })
+                  format(workoutDate, 'PPP', { locale: dateLocale })
                 ) : (
-                  <span>Välj datum</span>
+                  <span>{t('date.placeholder')}</span>
                 )}
               </Button>
             </PopoverTrigger>
@@ -149,7 +153,7 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
                 onSelect={(date) => date && setWorkoutDate(date)}
                 disabled={(date) => date > new Date()}
                 initialFocus
-                locale={sv}
+                locale={dateLocale}
               />
             </PopoverContent>
           </Popover>
@@ -167,7 +171,7 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
                 disabled={isSubmitting}
               >
                 <Camera className="h-8 w-8" />
-                <span>Kamera</span>
+                <span>{t('actions.camera')}</span>
               </Button>
               <input
                 ref={cameraInputRef}
@@ -186,7 +190,7 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
                 disabled={isSubmitting}
               >
                 <Upload className="h-8 w-8" />
-                <span>Välj fil</span>
+                <span>{t('actions.chooseFile')}</span>
               </Button>
               <input
                 ref={fileInputRef}
@@ -198,7 +202,7 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
             </div>
 
             <div className="text-center text-sm text-muted-foreground">
-              <p>Tips: Ta en bild av whiteboard, träningsprogram eller anteckningar</p>
+              <p>{t('tips.photo')}</p>
             </div>
           </div>
         ) : (
@@ -208,7 +212,7 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={imagePreview}
-                alt="Förhandsgranskning"
+                alt={t('previewAlt')}
                 className="w-full h-auto max-h-80 object-contain bg-muted"
               />
               <Button
@@ -231,7 +235,7 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
                 disabled={isSubmitting}
               >
                 <RotateCw className="h-4 w-4 mr-2" />
-                Ta ny bild
+                {t('actions.retake')}
               </Button>
               <Button
                 variant="outline"
@@ -240,7 +244,7 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
                 disabled={isSubmitting}
               >
                 <ImageIcon className="h-4 w-4 mr-2" />
-                Välj annan fil
+                {t('actions.chooseAnotherFile')}
               </Button>
             </div>
           </div>
@@ -263,10 +267,10 @@ export function PhotoCapture({ onSubmit, isProcessing }: PhotoCaptureProps) {
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {uploading ? 'Laddar upp...' : 'Analyserar...'}
+              {uploading ? t('actions.uploading') : t('actions.analyzing')}
             </>
           ) : (
-            'Fortsätt'
+            t('actions.continue')
           )}
         </Button>
       </CardFooter>

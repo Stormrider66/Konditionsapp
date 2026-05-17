@@ -5292,6 +5292,31 @@
         "continue": "Continue"
       }
     },
+    "adHocPhotoCapture": {
+      "title": "Take a photo",
+      "date": {
+        "label": "When did you complete the workout?",
+        "placeholder": "Choose date"
+      },
+      "actions": {
+        "camera": "Camera",
+        "chooseFile": "Choose file",
+        "retake": "Take new photo",
+        "chooseAnotherFile": "Choose another file",
+        "uploading": "Uploading...",
+        "analyzing": "Analyzing...",
+        "continue": "Continue"
+      },
+      "errors": {
+        "selectImageFile": "Please choose an image file",
+        "fileTooLarge": "The image cannot be larger than 10MB",
+        "uploadFailed": "The image could not be uploaded"
+      },
+      "tips": {
+        "photo": "Tip: Take a photo of a whiteboard, training program, or notes"
+      },
+      "previewAlt": "Preview"
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

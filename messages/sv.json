@@ -5292,6 +5292,31 @@
         "continue": "Fortsätt"
       }
     },
+    "adHocPhotoCapture": {
+      "title": "Ta en bild",
+      "date": {
+        "label": "När genomfördes passet?",
+        "placeholder": "Välj datum"
+      },
+      "actions": {
+        "camera": "Kamera",
+        "chooseFile": "Välj fil",
+        "retake": "Ta ny bild",
+        "chooseAnotherFile": "Välj annan fil",
+        "uploading": "Laddar upp...",
+        "analyzing": "Analyserar...",
+        "continue": "Fortsätt"
+      },
+      "errors": {
+        "selectImageFile": "Vänligen välj en bildfil",
+        "fileTooLarge": "Bilden får inte vara större än 10MB",
+        "uploadFailed": "Det gick inte att ladda upp bilden"
+      },
+      "tips": {
+        "photo": "Tips: Ta en bild av whiteboard, träningsprogram eller anteckningar"
+      },
+      "previewAlt": "Förhandsgranskning"
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {
