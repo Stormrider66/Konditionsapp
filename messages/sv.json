@@ -4550,6 +4550,64 @@
         "completed": "Övning slutförd"
       }
     },
+    "agilityDashboard": {
+      "header": {
+        "description": "Historik och framsteg i agility-träning"
+      },
+      "dates": {
+        "today": "Idag",
+        "tomorrow": "Imorgon"
+      },
+      "formats": {
+        "circuit": "Cirkel",
+        "stationRotation": "Stationsrotation",
+        "interval": "Intervall",
+        "progressive": "Progressiv",
+        "reactive": "Reaktiv",
+        "testing": "Testning"
+      },
+      "stats": {
+        "upcoming": "Kommande",
+        "completed": "Slutförda"
+      },
+      "overdue": {
+        "title": "Försenade pass",
+        "description": "Du har {count} {count, plural, one {pass} other {pass}} som är försenade."
+      },
+      "actions": {
+        "complete": "Slutför",
+        "start": "Starta"
+      },
+      "tabs": {
+        "results": "Resultat",
+        "progress": "Framsteg",
+        "assigned": "Tilldelade"
+      },
+      "results": {
+        "emptyTitle": "Inga resultat ännu",
+        "emptyDescription": "Slutför pass eller tidtagningstester för att se dina resultat här.",
+        "workoutResults": "Passresultat",
+        "time": "Tid: {minutes}m {seconds}s"
+      },
+      "timing": {
+        "title": "Tidtagningstester",
+        "fallbackName": "Tidtagningstest"
+      },
+      "records": {
+        "title": "Personliga rekord",
+        "description": "Dina bästa tider per testprotokoll"
+      },
+      "completion": {
+        "title": "Genomförandegrad",
+        "summary": "{completed} av {total} pass slutförda",
+        "empty": "Inga pass tilldelade ännu."
+      },
+      "assigned": {
+        "emptyTitle": "Inga tilldelade pass",
+        "emptyDescription": "Din tränare tilldelar agility-pass här.",
+        "drillCount": "{count} {count, plural, one {övning} other {övningar}}"
+      }
+    },
     "exportDataButton": {
       "trigger": "Exportera data",
       "formatLabel": "Exportformat",

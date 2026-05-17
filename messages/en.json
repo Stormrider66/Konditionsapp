@@ -4550,6 +4550,64 @@
         "completed": "Exercise completed"
       }
     },
+    "agilityDashboard": {
+      "header": {
+        "description": "History and progress in agility training"
+      },
+      "dates": {
+        "today": "Today",
+        "tomorrow": "Tomorrow"
+      },
+      "formats": {
+        "circuit": "Circuit",
+        "stationRotation": "Station rotation",
+        "interval": "Interval",
+        "progressive": "Progressive",
+        "reactive": "Reactive",
+        "testing": "Testing"
+      },
+      "stats": {
+        "upcoming": "Upcoming",
+        "completed": "Completed"
+      },
+      "overdue": {
+        "title": "Overdue workouts",
+        "description": "You have {count, plural, one {# workout} other {# workouts}} overdue."
+      },
+      "actions": {
+        "complete": "Complete",
+        "start": "Start"
+      },
+      "tabs": {
+        "results": "Results",
+        "progress": "Progress",
+        "assigned": "Assigned"
+      },
+      "results": {
+        "emptyTitle": "No results yet",
+        "emptyDescription": "Complete workouts or timing tests to see your results here.",
+        "workoutResults": "Workout results",
+        "time": "Time: {minutes}m {seconds}s"
+      },
+      "timing": {
+        "title": "Timing tests",
+        "fallbackName": "Timing test"
+      },
+      "records": {
+        "title": "Personal records",
+        "description": "Your best times per test protocol"
+      },
+      "completion": {
+        "title": "Completion rate",
+        "summary": "{completed} of {total} workouts completed",
+        "empty": "No workouts assigned yet."
+      },
+      "assigned": {
+        "emptyTitle": "No assigned workouts",
+        "emptyDescription": "Your coach will assign agility workouts here.",
+        "drillCount": "{count, plural, one {# drill} other {# drills}}"
+      }
+    },
     "exportDataButton": {
       "trigger": "Export data",
       "formatLabel": "Export format",

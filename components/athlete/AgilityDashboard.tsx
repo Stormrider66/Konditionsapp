@@ -17,13 +17,13 @@ import {
   Play,
   CheckCircle2,
   Timer,
-  TrendingUp,
-  ChevronRight
+  TrendingUp
 } from 'lucide-react'
 import { format, isToday, isTomorrow, isPast, isFuture } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import Link from 'next/link'
 import type { AgilityWorkoutResult, TimingGateResult } from '@/types'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 // Simplified assignment type for dashboard display (partial workout data from Prisma select)
 interface DashboardAssignment {
@@ -62,12 +62,15 @@ interface AgilityDashboardProps {
 }
 
 export function AgilityDashboard({
-  clientId,
+  clientId: _clientId,
   assignments,
   results,
   timingResults,
   basePath = '/athlete'
 }: AgilityDashboardProps) {
+  const t = useTranslations('components.agilityDashboard')
+  const locale = useLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const [activeTab, setActiveTab] = useState('results')
 
   // Separate assignments into upcoming and completed
@@ -98,18 +101,18 @@ export function AgilityDashboard({
 
   const getAssignmentDateLabel = (date: Date) => {
     const d = new Date(date)
-    if (isToday(d)) return 'Idag'
-    if (isTomorrow(d)) return 'Imorgon'
-    return format(d, 'EEE d MMM', { locale: sv })
+    if (isToday(d)) return t('dates.today')
+    if (isTomorrow(d)) return t('dates.tomorrow')
+    return format(d, 'EEE d MMM', { locale: dateLocale })
   }
 
   const formatLabels: Record<string, string> = {
-    CIRCUIT: 'Cirkel',
-    STATION_ROTATION: 'Stationsrotation',
-    INTERVAL: 'Intervall',
-    PROGRESSIVE: 'Progressiv',
-    REACTIVE: 'Reaktiv',
-    TESTING: 'Testning'
+    CIRCUIT: 'formats.circuit',
+    STATION_ROTATION: 'formats.stationRotation',
+    INTERVAL: 'formats.interval',
+    PROGRESSIVE: 'formats.progressive',
+    REACTIVE: 'formats.reactive',
+    TESTING: 'formats.testing'
   }
 
   return (
@@ -121,7 +124,7 @@ export function AgilityDashboard({
           Agility
         </h1>
         <p className="text-muted-foreground">
-          Historik och framsteg i agility-träning
+          {t('header.description')}
         </p>
       </div>
 
@@ -133,7 +136,7 @@ export function AgilityDashboard({
               <Calendar className="h-5 w-5 text-blue-500" />
               <div>
                 <p className="text-2xl font-bold">{upcomingAssignments.length}</p>
-                <p className="text-xs text-muted-foreground">Kommande</p>
+                <p className="text-xs text-muted-foreground">{t('stats.upcoming')}</p>
               </div>
             </div>
           </CardContent>
@@ -144,7 +147,7 @@ export function AgilityDashboard({
               <CheckCircle2 className="h-5 w-5 text-green-500" />
               <div>
                 <p className="text-2xl font-bold">{completedAssignments.length}</p>
-                <p className="text-xs text-muted-foreground">Slutförda</p>
+                <p className="text-xs text-muted-foreground">{t('stats.completed')}</p>
               </div>
             </div>
           </CardContent>
@@ -177,11 +180,11 @@ export function AgilityDashboard({
       {overdueAssignments.length > 0 && (
         <Card className="border-destructive bg-destructive/5">
           <CardHeader className="pb-2">
-            <CardTitle className="text-destructive text-sm">Försenade pass</CardTitle>
+            <CardTitle className="text-destructive text-sm">{t('overdue.title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-2">
-              Du har {overdueAssignments.length} pass som är försenade.
+              {t('overdue.description', { count: overdueAssignments.length })}
             </p>
             <div className="space-y-2">
               {overdueAssignments.slice(0, 3).map(assignment => (
@@ -189,7 +192,7 @@ export function AgilityDashboard({
                   <span className="text-sm">{assignment.workout.name}</span>
                   <Button size="sm" variant="outline" asChild>
                     <Link href={`${basePath}/agility/${assignment.workoutId}`}>
-                      Slutför
+                      {t('actions.complete')}
                     </Link>
                   </Button>
                 </div>
@@ -202,24 +205,24 @@ export function AgilityDashboard({
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="results">Resultat</TabsTrigger>
-          <TabsTrigger value="progress">Framsteg</TabsTrigger>
-          <TabsTrigger value="assigned">Tilldelade</TabsTrigger>
+          <TabsTrigger value="results">{t('tabs.results')}</TabsTrigger>
+          <TabsTrigger value="progress">{t('tabs.progress')}</TabsTrigger>
+          <TabsTrigger value="assigned">{t('tabs.assigned')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="results" className="mt-6 space-y-4">
           {results.length === 0 && timingResults.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-medium">Inga resultat ännu</h3>
-              <p>Slutför pass eller tidtagningstester för att se dina resultat här.</p>
+              <h3 className="text-lg font-medium">{t('results.emptyTitle')}</h3>
+              <p>{t('results.emptyDescription')}</p>
             </div>
           ) : (
             <div className="space-y-4">
               {/* Workout Results */}
               {results.length > 0 && (
                 <div>
-                  <h3 className="font-semibold mb-3">Passresultat</h3>
+                  <h3 className="font-semibold mb-3">{t('results.workoutResults')}</h3>
                   {results.slice(0, 5).map(result => (
                     <Card key={result.id} className="mb-2">
                       <CardContent className="py-4">
@@ -227,13 +230,16 @@ export function AgilityDashboard({
                           <div>
                             <p className="font-medium">{result.workout.name}</p>
                             <p className="text-sm text-muted-foreground">
-                              {format(new Date(result.completedAt), 'd MMMM yyyy', { locale: sv })}
+                              {format(new Date(result.completedAt), 'd MMMM yyyy', { locale: dateLocale })}
                             </p>
                           </div>
                           <div className="text-right">
                             {result.totalDuration && (
                               <p className="text-sm">
-                                Tid: {Math.floor(result.totalDuration / 60)}m {result.totalDuration % 60}s
+                                {t('results.time', {
+                                  minutes: Math.floor(result.totalDuration / 60),
+                                  seconds: result.totalDuration % 60,
+                                })}
                               </p>
                             )}
                             {result.perceivedEffort && (
@@ -250,17 +256,17 @@ export function AgilityDashboard({
               {/* Timing Results */}
               {timingResults.length > 0 && (
                 <div>
-                  <h3 className="font-semibold mb-3">Tidtagningstester</h3>
+                  <h3 className="font-semibold mb-3">{t('timing.title')}</h3>
                   {timingResults.slice(0, 5).map(result => (
                     <Card key={result.id} className="mb-2">
                       <CardContent className="py-4">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-medium">
-                              {result.testProtocol?.replace(/_/g, ' ') || 'Tidtagningstest'}
+                              {result.testProtocol?.replace(/_/g, ' ') || t('timing.fallbackName')}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {result.session.sessionName || format(new Date(result.session.sessionDate), 'd MMMM yyyy', { locale: sv })}
+                              {result.session.sessionName || format(new Date(result.session.sessionDate), 'd MMMM yyyy', { locale: dateLocale })}
                             </p>
                           </div>
                           <div className="text-right">
@@ -294,18 +300,18 @@ export function AgilityDashboard({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-yellow-500" />
-                  Personliga rekord
+                  {t('records.title')}
                 </CardTitle>
-                <CardDescription>Dina bästa tider per testprotokoll</CardDescription>
+                <CardDescription>{t('records.description')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {personalRecords.map(pr => (
                     <div key={pr.id} className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium">{pr.testProtocol?.replace(/_/g, ' ') || 'Tidtagningstest'}</p>
+                        <p className="font-medium">{pr.testProtocol?.replace(/_/g, ' ') || t('timing.fallbackName')}</p>
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(pr.session.sessionDate), 'd MMMM yyyy', { locale: sv })}
+                          {format(new Date(pr.session.sessionDate), 'd MMMM yyyy', { locale: dateLocale })}
                         </p>
                       </div>
                       <p className="text-xl font-mono font-bold text-yellow-500">
@@ -323,7 +329,7 @@ export function AgilityDashboard({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-green-500" />
-                Genomförandegrad
+                {t('completion.title')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -331,7 +337,10 @@ export function AgilityDashboard({
                 <>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-muted-foreground">
-                      {completedAssignments.length} av {assignments.length} pass slutförda
+                      {t('completion.summary', {
+                        completed: completedAssignments.length,
+                        total: assignments.length,
+                      })}
                     </span>
                     <span className="font-bold">
                       {Math.round((completedAssignments.length / assignments.length) * 100)}%
@@ -343,7 +352,7 @@ export function AgilityDashboard({
                   />
                 </>
               ) : (
-                <p className="text-sm text-muted-foreground">Inga pass tilldelade ännu.</p>
+                <p className="text-sm text-muted-foreground">{t('completion.empty')}</p>
               )}
             </CardContent>
           </Card>
@@ -353,8 +362,8 @@ export function AgilityDashboard({
           {upcomingAssignments.length === 0 && overdueAssignments.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-medium">Inga tilldelade pass</h3>
-              <p>Din tränare tilldelar agility-pass här.</p>
+              <h3 className="text-lg font-medium">{t('assigned.emptyTitle')}</h3>
+              <p>{t('assigned.emptyDescription')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -365,7 +374,9 @@ export function AgilityDashboard({
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <Badge variant="outline">
-                            {formatLabels[assignment.workout.format]}
+                            {formatLabels[assignment.workout.format]
+                              ? t(formatLabels[assignment.workout.format])
+                              : assignment.workout.format}
                           </Badge>
                           <Badge variant="secondary">
                             {getAssignmentDateLabel(new Date(assignment.assignedDate))}
@@ -381,7 +392,7 @@ export function AgilityDashboard({
                           )}
                           {assignment.workout.drills && (
                             <span>
-                              {assignment.workout.drills.length} övningar
+                              {t('assigned.drillCount', { count: assignment.workout.drills.length })}
                             </span>
                           )}
                         </div>
@@ -394,7 +405,7 @@ export function AgilityDashboard({
                       <Button asChild>
                         <Link href={`${basePath}/agility/${assignment.workoutId}`}>
                           <Play className="h-4 w-4 mr-2" />
-                          Starta
+                          {t('actions.start')}
                         </Link>
                       </Button>
                     </div>
