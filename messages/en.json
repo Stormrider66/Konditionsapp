@@ -5038,6 +5038,70 @@
         }
       }
     },
+    "ingredientBuilder": {
+      "actions": {
+        "add": "Add",
+        "myRecipes": "My recipes",
+        "readingRecipe": "Reading recipe…",
+        "uploadRecipeImage": "Upload recipe image",
+        "saveRecipe": "Save recipe",
+        "saving": "Saving…",
+        "save": "Save",
+        "cancel": "Cancel",
+        "fetching": "Fetching…",
+        "refresh": "Refresh",
+        "use": "Use",
+        "estimating": "Estimating…",
+        "estimateWithAi": "Estimate with AI"
+      },
+      "errors": {
+        "fetchRecipes": "Could not fetch recipes",
+        "scanRecipe": "Could not read the recipe",
+        "noIngredients": "No ingredients were found in the image.",
+        "saveRecipe": "Could not save recipe",
+        "pieceGramsRequired": "Enter grams per piece to use the recipe.",
+        "deleteRecipe": "Could not delete recipe",
+        "estimate": "Could not estimate",
+        "noEstimateResult": "No result",
+        "estimateFailed": "AI estimate failed"
+      },
+      "messages": {
+        "recipeSaved": "The recipe was saved. Choose how much you ate before logging the meal.",
+        "recipeAdded": "{name} ({amount}) was added."
+      },
+      "units": {
+        "each": "each",
+        "portion": "serving"
+      },
+      "save": {
+        "title": "Save as recipe",
+        "namePlaceholder": "Recipe name"
+      },
+      "recipes": {
+        "title": "Saved recipes",
+        "empty": "No saved recipes yet.",
+        "totalGrams": " · {grams} g total",
+        "deleteAria": "Delete {name}",
+        "amountAria": "Amount to log",
+        "unitAria": "Unit",
+        "pieceGrams": "Grams per piece",
+        "loggingCalories": "Logging about {calories} kcal from saved recipe"
+      },
+      "macros": {
+        "proteinShort": "P",
+        "carbsShort": "C",
+        "fatShort": "F",
+        "summary": "P {protein} · C {carbs} · F {fat}",
+        "macroWithValue": "{label} {value} g"
+      },
+      "row": {
+        "searchPlaceholder": "Search foods…",
+        "removeIngredientAria": "Remove ingredient",
+        "per100g": "per 100 g",
+        "aiEstimateBadge": "(AI estimate)",
+        "pickOrEstimate": "Choose from the list or let AI estimate."
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

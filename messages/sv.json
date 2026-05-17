@@ -5038,6 +5038,70 @@
         }
       }
     },
+    "ingredientBuilder": {
+      "actions": {
+        "add": "Lägg till",
+        "myRecipes": "Mina recept",
+        "readingRecipe": "Läser receptet…",
+        "uploadRecipeImage": "Ladda upp receptbild",
+        "saveRecipe": "Spara recept",
+        "saving": "Sparar…",
+        "save": "Spara",
+        "cancel": "Avbryt",
+        "fetching": "Hämtar…",
+        "refresh": "Uppdatera",
+        "use": "Använd",
+        "estimating": "Uppskattar…",
+        "estimateWithAi": "Uppskatta med AI"
+      },
+      "errors": {
+        "fetchRecipes": "Kunde inte hämta recept",
+        "scanRecipe": "Kunde inte tolka receptet",
+        "noIngredients": "Inga ingredienser hittades i bilden.",
+        "saveRecipe": "Kunde inte spara recept",
+        "pieceGramsRequired": "Ange gram per styck för att använda receptet.",
+        "deleteRecipe": "Kunde inte ta bort recept",
+        "estimate": "Kunde inte uppskatta",
+        "noEstimateResult": "Inget resultat",
+        "estimateFailed": "AI-uppskattning misslyckades"
+      },
+      "messages": {
+        "recipeSaved": "Receptet sparades. Välj hur mycket du åt innan du loggar måltiden.",
+        "recipeAdded": "{name} ({amount}) lades till."
+      },
+      "units": {
+        "each": "á",
+        "portion": "portion"
+      },
+      "save": {
+        "title": "Spara som recept",
+        "namePlaceholder": "Namn på recept"
+      },
+      "recipes": {
+        "title": "Sparade recept",
+        "empty": "Inga sparade recept ännu.",
+        "totalGrams": " · {grams} g totalt",
+        "deleteAria": "Ta bort {name}",
+        "amountAria": "Mängd att logga",
+        "unitAria": "Enhet",
+        "pieceGrams": "Gram per styck",
+        "loggingCalories": "Loggar ca {calories} kcal från sparat recept"
+      },
+      "macros": {
+        "proteinShort": "P",
+        "carbsShort": "K",
+        "fatShort": "F",
+        "summary": "P {protein} · K {carbs} · F {fat}",
+        "macroWithValue": "{label} {value} g"
+      },
+      "row": {
+        "searchPlaceholder": "Sök livsmedel…",
+        "removeIngredientAria": "Ta bort ingrediens",
+        "per100g": "per 100 g",
+        "aiEstimateBadge": "(AI-uppskattning)",
+        "pickOrEstimate": "Välj från listan eller låt AI uppskatta."
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

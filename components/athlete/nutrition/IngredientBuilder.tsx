@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { BookOpen, Camera, Plus, Save, Sparkles, Trash2, Loader2 } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 import { cn } from '@/lib/utils'
 
 export interface IngredientRow {
@@ -72,6 +73,11 @@ interface RecipeScanIngredient {
 
 type RecipeSource = 'MANUAL' | 'SCAN' | 'MEAL_COPY'
 type RecipeAmountUnit = 'g' | 'st' | 'portion' | 'ml' | 'dl'
+
+interface RecipeAmountLabels {
+  each: string
+  portion: string
+}
 
 interface SavedRecipeIngredient {
   id: string
@@ -277,12 +283,17 @@ function defaultPieceGrams(recipe: SavedRecipe): string {
   return ''
 }
 
-function formatRecipeAmount(amount: number, unit: RecipeAmountUnit, pieceGrams = 0): string {
+function formatRecipeAmount(
+  amount: number,
+  unit: RecipeAmountUnit,
+  pieceGrams = 0,
+  labels: RecipeAmountLabels
+): string {
   if (unit === 'st') {
-    const weight = pieceGrams > 0 ? ` á ${formatGramsForDisplay(pieceGrams)} g` : ''
+    const weight = pieceGrams > 0 ? ` ${labels.each} ${formatGramsForDisplay(pieceGrams)} g` : ''
     return `${formatGramsForDisplay(amount)} st${weight}`
   }
-  if (unit === 'portion') return `${amount} portion`
+  if (unit === 'portion') return `${amount} ${labels.portion}`
   return `${formatGramsForDisplay(amount)} ${unit}`
 }
 
@@ -291,6 +302,8 @@ function formatGramsForDisplay(value: number): string {
 }
 
 export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: IngredientBuilderProps) {
+  const t = useTranslations('components.ingredientBuilder')
+
   const ensureRow = () => {
     if (value.length === 0) onChange([makeRow()])
   }
@@ -337,12 +350,12 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
       const res = await fetch('/api/nutrition/recipes')
       const payload = await res.json().catch(() => null)
       if (!res.ok) {
-        throw new Error(payload?.error || 'Kunde inte hämta recept')
+        throw new Error(payload?.error || t('errors.fetchRecipes'))
       }
       setRecipes((payload?.data ?? []) as SavedRecipe[])
       setRecipesLoaded(true)
     } catch (err) {
-      setRecipeError(err instanceof Error ? err.message : 'Kunde inte hämta recept')
+      setRecipeError(err instanceof Error ? err.message : t('errors.fetchRecipes'))
     } finally {
       setLoadingRecipes(false)
     }
@@ -372,11 +385,11 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
       const res = await fetch('/api/ai/food-scan/recipe', { method: 'POST', body: fd })
       const payload = await res.json().catch(() => null)
       if (!res.ok) {
-        throw new Error(payload?.error || 'Kunde inte tolka receptet')
+        throw new Error(payload?.error || t('errors.scanRecipe'))
       }
       const ingredients = (payload?.ingredients ?? []) as RecipeScanIngredient[]
       if (ingredients.length === 0) {
-        setScanError('Inga ingredienser hittades i bilden.')
+        setScanError(t('errors.noIngredients'))
         return
       }
       // Replace any empty seed rows; append to filled rows.
@@ -415,7 +428,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
       setRecipesOpen(false)
       setSaveOpen(true)
     } catch (err) {
-      setScanError(err instanceof Error ? err.message : 'Kunde inte tolka receptet')
+      setScanError(err instanceof Error ? err.message : t('errors.scanRecipe'))
     } finally {
       setScanning(false)
       // Reset the input so picking the same file twice still triggers onChange.
@@ -443,7 +456,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
       })
       const payload = await res.json().catch(() => null)
       if (!res.ok) {
-        throw new Error(payload?.error || 'Kunde inte spara recept')
+        throw new Error(payload?.error || t('errors.saveRecipe'))
       }
       const recipe = payload?.data as SavedRecipe
       setRecipes((prev) => [recipe, ...prev.filter((r) => r.id !== recipe.id)])
@@ -457,9 +470,9 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
       setRecipePieceGrams(defaultPieceGrams(recipe))
       setRecipesOpen(true)
       onChange([makeRow()])
-      setSaveMessage('Receptet sparades. Välj hur mycket du åt innan du loggar måltiden.')
+      setSaveMessage(t('messages.recipeSaved'))
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Kunde inte spara recept')
+      setSaveError(err instanceof Error ? err.message : t('errors.saveRecipe'))
     } finally {
       setSavingRecipe(false)
     }
@@ -471,14 +484,20 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
     const amount = parsePositiveNumber(recipeAmount, 1)
     const pieceGrams = recipeAmountUnit === 'st' ? parsePositiveNumber(recipePieceGrams, 0) : 0
     if (recipeAmountUnit === 'st' && pieceGrams <= 0) {
-      setRecipeError('Ange gram per styck för att använda receptet.')
+      setRecipeError(t('errors.pieceGramsRequired'))
       return
     }
     const newRows = recipeToIngredientRows(recipe, amount, recipeAmountUnit, pieceGrams)
     const existing = value.filter((r) => r.name.trim().length > 0)
     onChange([...existing, ...newRows])
     setRecipesOpen(false)
-    setSaveMessage(`${recipe.name} (${formatRecipeAmount(amount, recipeAmountUnit, pieceGrams)}) lades till.`)
+    setSaveMessage(t('messages.recipeAdded', {
+      name: recipe.name,
+      amount: formatRecipeAmount(amount, recipeAmountUnit, pieceGrams, {
+        each: t('units.each'),
+        portion: t('units.portion'),
+      }),
+    }))
   }
 
   const deleteRecipe = async (recipeId: string) => {
@@ -487,12 +506,12 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
       const res = await fetch(`/api/nutrition/recipes/${recipeId}`, { method: 'DELETE' })
       const payload = await res.json().catch(() => null)
       if (!res.ok) {
-        throw new Error(payload?.error || 'Kunde inte ta bort recept')
+        throw new Error(payload?.error || t('errors.deleteRecipe'))
       }
       setRecipes((prev) => prev.filter((recipe) => recipe.id !== recipeId))
       setSelectedRecipeId((current) => (current === recipeId ? null : current))
     } catch (err) {
-      setRecipeError(err instanceof Error ? err.message : 'Kunde inte ta bort recept')
+      setRecipeError(err instanceof Error ? err.message : t('errors.deleteRecipe'))
     }
   }
 
@@ -521,7 +540,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
           onClick={() => onChange([...value, makeRow()])}
         >
           <Plus className="h-4 w-4" />
-          Lägg till
+          {t('actions.add')}
         </Button>
         <Button
           type="button"
@@ -531,7 +550,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
           onClick={toggleRecipes}
         >
           {loadingRecipes ? <Loader2 className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
-          Mina recept
+          {t('actions.myRecipes')}
         </Button>
         <Button
           type="button"
@@ -542,7 +561,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
           disabled={scanning}
         >
           {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-          {scanning ? 'Läser receptet…' : 'Ladda upp receptbild'}
+          {scanning ? t('actions.readingRecipe') : t('actions.uploadRecipeImage')}
         </Button>
         <Button
           type="button"
@@ -553,7 +572,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
           disabled={!hasRowsToSave || savingRecipe}
         >
           {savingRecipe ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Spara recept
+          {t('actions.saveRecipe')}
         </Button>
         <input
           ref={fileInputRef}
@@ -570,11 +589,11 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
 
       {saveOpen && (
         <div className="min-w-0 rounded-lg border border-border dark:border-slate-700 bg-muted/30 dark:bg-slate-900/40 p-3 space-y-2">
-          <div className="text-xs font-medium text-foreground dark:text-slate-100">Spara som recept</div>
+          <div className="text-xs font-medium text-foreground dark:text-slate-100">{t('save.title')}</div>
           <Input
             value={saveName}
             onChange={(e) => setSaveName(e.target.value)}
-            placeholder="Namn på recept"
+            placeholder={t('save.namePlaceholder')}
             maxLength={80}
             className="dark:text-white dark:placeholder:text-slate-500"
           />
@@ -586,7 +605,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
               onClick={saveRecipe}
               disabled={savingRecipe || saveName.trim().length < 2}
             >
-              {savingRecipe ? 'Sparar…' : 'Spara'}
+              {savingRecipe ? t('actions.saving') : t('actions.save')}
             </Button>
             <Button
               type="button"
@@ -595,7 +614,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
               className="flex-1 dark:text-slate-200 dark:border-slate-600"
               onClick={() => setSaveOpen(false)}
             >
-              Avbryt
+              {t('actions.cancel')}
             </Button>
           </div>
           {saveError && <div className="text-xs text-red-500">{saveError}</div>}
@@ -605,7 +624,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
       {recipesOpen && (
         <div className="rounded-lg border border-border dark:border-slate-700 bg-muted/30 dark:bg-slate-900/40 p-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <div className="text-xs font-medium text-foreground dark:text-slate-100">Sparade recept</div>
+            <div className="text-xs font-medium text-foreground dark:text-slate-100">{t('recipes.title')}</div>
             <Button
               type="button"
               variant="ghost"
@@ -614,13 +633,13 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
               onClick={() => void loadRecipes()}
               disabled={loadingRecipes}
             >
-              {loadingRecipes ? 'Hämtar…' : 'Uppdatera'}
+              {loadingRecipes ? t('actions.fetching') : t('actions.refresh')}
             </Button>
           </div>
 
           {recipeError && <div className="text-xs text-red-500">{recipeError}</div>}
           {!recipeError && recipesLoaded && recipes.length === 0 && (
-            <div className="text-xs text-muted-foreground">Inga sparade recept ännu.</div>
+            <div className="text-xs text-muted-foreground">{t('recipes.empty')}</div>
           )}
 
           <div className="space-y-1.5 max-h-56 overflow-y-auto overflow-x-hidden overscroll-contain">
@@ -655,9 +674,12 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
                     >
                       <div className="truncate font-medium">{recipe.name}</div>
                       <div className="text-xs text-muted-foreground line-clamp-2">
-                        {Math.round(recipeTotals.calories)} kcal · P {recipeTotals.proteinGrams.toFixed(1)} · K{' '}
-                        {recipeTotals.carbsGrams.toFixed(1)} · F {recipeTotals.fatGrams.toFixed(1)}
-                        {recipeTotalGrams > 0 ? ` · ${Math.round(recipeTotalGrams)} g totalt` : ''}
+                        {Math.round(recipeTotals.calories)} kcal · {t('macros.summary', {
+                          protein: recipeTotals.proteinGrams.toFixed(1),
+                          carbs: recipeTotals.carbsGrams.toFixed(1),
+                          fat: recipeTotals.fatGrams.toFixed(1),
+                        })}
+                        {recipeTotalGrams > 0 ? t('recipes.totalGrams', { grams: Math.round(recipeTotalGrams) }) : ''}
                       </div>
                     </button>
                     <Button
@@ -666,7 +688,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
                       size="icon"
                       className="h-auto w-9 rounded-l-none"
                       onClick={() => void deleteRecipe(recipe.id)}
-                      aria-label={`Ta bort ${recipe.name}`}
+                      aria-label={t('recipes.deleteAria', { name: recipe.name })}
                     >
                       <Trash2 className="h-4 w-4 text-muted-foreground" />
                     </Button>
@@ -682,7 +704,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
                             value={recipeAmount}
                             onChange={(e) => setRecipeAmount(e.target.value)}
                             className="h-8 text-sm dark:text-white"
-                            aria-label="Mängd att logga"
+                            aria-label={t('recipes.amountAria')}
                           />
                         </div>
                         <select
@@ -697,7 +719,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
                             setRecipeError(null)
                           }}
                           className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground dark:border-slate-600 dark:bg-slate-950 dark:text-white"
-                          aria-label="Enhet"
+                          aria-label={t('recipes.unitAria')}
                         >
                           <option value="g">g</option>
                           <option value="st">st</option>
@@ -719,15 +741,15 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
                               setRecipeError(null)
                             }}
                             className="h-8 text-sm dark:text-white"
-                            placeholder="Gram per styck"
-                            aria-label="Gram per styck"
+                            placeholder={t('recipes.pieceGrams')}
+                            aria-label={t('recipes.pieceGrams')}
                           />
                           <span className="text-xs text-muted-foreground">g/st</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2">
                         <div className="min-w-0 flex-1 text-xs text-muted-foreground">
-                          Loggar ca {Math.round(recipeTotals.calories * selectedFactor)} kcal från sparat recept
+                          {t('recipes.loggingCalories', { calories: Math.round(recipeTotals.calories * selectedFactor) })}
                         </div>
                         <Button
                           type="button"
@@ -736,7 +758,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
                           onClick={applySelectedRecipe}
                           disabled={!selectedRecipe}
                         >
-                          Använd
+                          {t('actions.use')}
                         </Button>
                       </div>
                     </div>
@@ -762,9 +784,9 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
 
       <div className="rounded-lg border border-border dark:border-slate-700 p-3 grid grid-cols-4 gap-2 text-center text-xs">
         <Total label="kcal" value={Math.round(totals.calories)} />
-        <Total label="P" value={`${totals.proteinGrams.toFixed(1)} g`} />
-        <Total label="K" value={`${totals.carbsGrams.toFixed(1)} g`} />
-        <Total label="F" value={`${totals.fatGrams.toFixed(1)} g`} />
+        <Total label={t('macros.proteinShort')} value={`${totals.proteinGrams.toFixed(1)} g`} />
+        <Total label={t('macros.carbsShort')} value={`${totals.carbsGrams.toFixed(1)} g`} />
+        <Total label={t('macros.fatShort')} value={`${totals.fatGrams.toFixed(1)} g`} />
       </div>
     </div>
   )
@@ -792,6 +814,7 @@ interface RowEditorProps {
 }
 
 function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
+  const t = useTranslations('components.ingredientBuilder')
   const [query, setQuery] = useState(row.name)
   const [results, setResults] = useState<FoodOption[]>([])
   const [open, setOpen] = useState(false)
@@ -878,7 +901,7 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
       })
       const payload = await res.json().catch(() => null)
       if (!res.ok) {
-        throw new Error(payload?.error || 'Kunde inte uppskatta')
+        throw new Error(payload?.error || t('errors.estimate'))
       }
       const totals = payload?.result?.totals as
         | {
@@ -897,7 +920,7 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
         | { isCompleteProtein?: boolean; proteinSource?: 'ANIMAL' | 'PLANT' | 'MIXED' | 'UNKNOWN' }
         | undefined
       if (!totals || totals.calories == null) {
-        throw new Error('Inget resultat')
+        throw new Error(t('errors.noEstimateResult'))
       }
       const factor = 100 / row.grams
       // Cache per-100g so live grams editing keeps recomputing macros.
@@ -915,7 +938,7 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
         proteinSource: firstItem?.proteinSource,
       })
     } catch (err) {
-      setEstimateError(err instanceof Error ? err.message : 'AI-uppskattning misslyckades')
+      setEstimateError(err instanceof Error ? err.message : t('errors.estimateFailed'))
     } finally {
       setEstimating(false)
     }
@@ -931,7 +954,7 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
         <div className="relative flex-1 min-w-0">
           <Input
             value={query}
-            placeholder="Sök livsmedel…"
+            placeholder={t('row.searchPlaceholder')}
             onChange={(e) => {
               setQuery(e.target.value)
               // Treat free text as a clean break from any picked Food: clear
@@ -983,7 +1006,7 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
           size="icon"
           className="shrink-0 h-9 w-9"
           onClick={onRemove}
-          aria-label="Ta bort ingrediens"
+          aria-label={t('row.removeIngredientAria')}
         >
           <Trash2 className="h-4 w-4 text-muted-foreground" />
         </Button>
@@ -1002,8 +1025,11 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
             >
               <div className="truncate dark:text-slate-100">{food.nameSv}</div>
               <div className="text-xs text-muted-foreground">
-                {Math.round(food.caloriesPer100g)} kcal · P {food.proteinPer100g.toFixed(1)} · K{' '}
-                {food.carbsPer100g.toFixed(1)} · F {food.fatPer100g.toFixed(1)} per 100 g
+                {Math.round(food.caloriesPer100g)} kcal · {t('macros.summary', {
+                  protein: food.proteinPer100g.toFixed(1),
+                  carbs: food.carbsPer100g.toFixed(1),
+                  fat: food.fatPer100g.toFixed(1),
+                })} {t('row.per100g')}
               </div>
             </button>
           ))}
@@ -1013,16 +1039,16 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
       {hasMacros && (
         <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 px-1">
           <span>{Math.round(macros.calories)} kcal</span>
-          <span>P {macros.proteinGrams.toFixed(1)} g</span>
-          <span>K {macros.carbsGrams.toFixed(1)} g</span>
-          <span>F {macros.fatGrams.toFixed(1)} g</span>
-          {isFreeText && <span className="italic">(AI-uppskattning)</span>}
+          <span>{t('macros.macroWithValue', { label: t('macros.proteinShort'), value: macros.proteinGrams.toFixed(1) })}</span>
+          <span>{t('macros.macroWithValue', { label: t('macros.carbsShort'), value: macros.carbsGrams.toFixed(1) })}</span>
+          <span>{t('macros.macroWithValue', { label: t('macros.fatShort'), value: macros.fatGrams.toFixed(1) })}</span>
+          {isFreeText && <span className="italic">{t('row.aiEstimateBadge')}</span>}
         </div>
       )}
       {isFreeText && !hasMacros && (
         <div className="flex items-center justify-between gap-2 px-1">
           <span className="text-xs text-amber-600 dark:text-amber-400">
-            Välj från listan eller låt AI uppskatta.
+            {t('row.pickOrEstimate')}
           </span>
           <Button
             type="button"
@@ -1037,7 +1063,7 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
             ) : (
               <Sparkles className="h-3 w-3" />
             )}
-            {estimating ? 'Uppskattar…' : 'Uppskatta med AI'}
+            {estimating ? t('actions.estimating') : t('actions.estimateWithAi')}
           </Button>
         </div>
       )}
