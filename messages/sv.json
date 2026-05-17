@@ -4615,6 +4615,21 @@
       },
       "totalKg": "{kg} kg totalt"
     },
+    "nutritionTrendChart": {
+      "metrics": {
+        "calories": "Kalorier",
+        "protein": "Protein",
+        "carbs": "Kolhydrater",
+        "fat": "Fett"
+      },
+      "empty": "Börja logga måltider för att se trender",
+      "title": "Näringstrender",
+      "target": "Mål",
+      "targetValue": "Mål: {value}",
+      "average": "Snitt: {value} {unit}/dag",
+      "averageTarget": "Snittmål: {value} {unit}/dag",
+      "goalPerDay": "Mål: {value} {unit}/dag"
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

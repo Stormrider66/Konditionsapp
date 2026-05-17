@@ -4615,6 +4615,21 @@
       },
       "totalKg": "{kg} kg total"
     },
+    "nutritionTrendChart": {
+      "metrics": {
+        "calories": "Calories",
+        "protein": "Protein",
+        "carbs": "Carbohydrates",
+        "fat": "Fat"
+      },
+      "empty": "Start logging meals to see trends",
+      "title": "Nutrition trends",
+      "target": "Target",
+      "targetValue": "Target: {value}",
+      "average": "Avg: {value} {unit}/day",
+      "averageTarget": "Avg target: {value} {unit}/day",
+      "goalPerDay": "Target: {value} {unit}/day"
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

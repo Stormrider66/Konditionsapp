@@ -16,6 +16,7 @@ import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Utensils } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface DailyData {
   date: string
@@ -49,21 +50,21 @@ interface NutritionTrendChartProps {
 type MetricKey = 'calories' | 'proteinGrams' | 'carbsGrams' | 'fatGrams'
 type TargetKey = 'caloriesKcal' | 'proteinG' | 'carbsG' | 'fatG'
 
-const TABS: { key: MetricKey; label: string; color: string; unit: string; goalKey: MetricKey; targetKey: TargetKey }[] = [
-  { key: 'calories', label: 'Kalorier', color: '#f97316', unit: 'kcal', goalKey: 'calories', targetKey: 'caloriesKcal' },
-  { key: 'proteinGrams', label: 'Protein', color: '#3b82f6', unit: 'g', goalKey: 'proteinGrams', targetKey: 'proteinG' },
-  { key: 'carbsGrams', label: 'Kolhydrater', color: '#f59e0b', unit: 'g', goalKey: 'carbsGrams', targetKey: 'carbsG' },
-  { key: 'fatGrams', label: 'Fett', color: '#10b981', unit: 'g', goalKey: 'fatGrams', targetKey: 'fatG' },
+const TABS: { key: MetricKey; labelKey: string; color: string; unit: string; goalKey: MetricKey; targetKey: TargetKey }[] = [
+  { key: 'calories', labelKey: 'metrics.calories', color: '#f97316', unit: 'kcal', goalKey: 'calories', targetKey: 'caloriesKcal' },
+  { key: 'proteinGrams', labelKey: 'metrics.protein', color: '#3b82f6', unit: 'g', goalKey: 'proteinGrams', targetKey: 'proteinG' },
+  { key: 'carbsGrams', labelKey: 'metrics.carbs', color: '#f59e0b', unit: 'g', goalKey: 'carbsGrams', targetKey: 'carbsG' },
+  { key: 'fatGrams', labelKey: 'metrics.fat', color: '#10b981', unit: 'g', goalKey: 'fatGrams', targetKey: 'fatG' },
 ]
 
-function formatDateLabel(dateStr: string): string {
+function formatDateLabel(dateStr: string, locale: string): string {
   const d = new Date(dateStr)
-  const day = d.getDate()
-  const months = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec']
-  return `${day} ${months[d.getMonth()]}`
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(d)
 }
 
 export function NutritionTrendChart({ dailyData, goals, dailyTargets, variant = 'default' }: NutritionTrendChartProps) {
+  const t = useTranslations('components.nutritionTrendChart')
+  const locale = useLocale()
   const [selectedTab, setSelectedTab] = useState<MetricKey>('calories')
   const isGlass = variant === 'glass'
 
@@ -76,7 +77,7 @@ export function NutritionTrendChart({ dailyData, goals, dailyTargets, variant = 
   const chartData = dailyData.map(d => {
     const dayTarget = targetByDate.get(d.date)
     return {
-      date: formatDateLabel(d.date),
+      date: formatDateLabel(d.date, locale),
       value: d[selectedTab],
       target: dayTarget ? dayTarget[activeTab.targetKey] : goalValue,
     }
@@ -99,7 +100,7 @@ export function NutritionTrendChart({ dailyData, goals, dailyTargets, variant = 
           <div className="flex flex-col items-center justify-center text-center space-y-2 py-8">
             <Utensils className={cn("h-10 w-10", isGlass ? "text-slate-500" : "text-muted-foreground")} />
             <p className={cn("text-sm", isGlass ? "text-slate-400" : "text-muted-foreground")}>
-              Börja logga måltider för att se trender
+              {t('empty')}
             </p>
           </div>
         </Content>
@@ -111,7 +112,7 @@ export function NutritionTrendChart({ dailyData, goals, dailyTargets, variant = 
     <Wrapper>
       <Header className="pb-2">
         <Title className={cn("text-base", isGlass && "text-cyan-600 dark:text-cyan-400 transition-colors")}>
-          Näringstrender
+          {t('title')}
         </Title>
       </Header>
       <Content>
@@ -128,7 +129,7 @@ export function NutritionTrendChart({ dailyData, goals, dailyTargets, variant = 
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
               )}
             >
-              {tab.label}
+              {t(tab.labelKey)}
             </button>
           ))}
         </div>
@@ -160,7 +161,7 @@ export function NutritionTrendChart({ dailyData, goals, dailyTargets, variant = 
                   color: isGlass ? '#e2e8f0' : '#0f172a',
                 }}
                 formatter={(value: number, name: string) => {
-                  const label = name === 'target' ? 'Mål' : activeTab.label
+                  const label = name === 'target' ? t('target') : t(activeTab.labelKey)
                   return [`${Math.round(value)} ${activeTab.unit}`, label]
                 }}
               />
@@ -171,7 +172,7 @@ export function NutritionTrendChart({ dailyData, goals, dailyTargets, variant = 
                   strokeDasharray="5 5"
                   strokeOpacity={0.7}
                   label={{
-                    value: `Mål: ${goalValue}`,
+                    value: t('targetValue', { value: goalValue }),
                     position: 'right',
                     fill: isGlass ? '#94a3b8' : '#64748b',
                     fontSize: 10,
@@ -206,10 +207,15 @@ export function NutritionTrendChart({ dailyData, goals, dailyTargets, variant = 
         {chartData.length > 0 && (
           <div className={cn("mt-3 flex justify-between text-xs", isGlass ? "text-slate-400" : "text-muted-foreground")}>
             <span>
-              Snitt: {Math.round(chartData.reduce((s, d) => s + d.value, 0) / chartData.length)} {activeTab.unit}/dag
+              {t('average', {
+                value: Math.round(chartData.reduce((s, d) => s + d.value, 0) / chartData.length),
+                unit: activeTab.unit,
+              })}
             </span>
             <span>
-              {hasPerDayTargets ? `Snittmål: ${avgTarget}` : `Mål: ${goalValue}`} {activeTab.unit}/dag
+              {hasPerDayTargets
+                ? t('averageTarget', { value: avgTarget, unit: activeTab.unit })
+                : t('goalPerDay', { value: goalValue, unit: activeTab.unit })}
             </span>
           </div>
         )}
