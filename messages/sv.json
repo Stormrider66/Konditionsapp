@@ -7706,6 +7706,10 @@
         "generic": "Något gick fel"
       }
     },
+    "restTimer": {
+      "rest": "Vila",
+      "skipRest": "Hoppa över vila"
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

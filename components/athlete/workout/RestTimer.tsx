@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Play, Pause, SkipForward, Plus, Minus, Volume2, VolumeX } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 interface RestTimerProps {
   initialSeconds: number
@@ -24,6 +25,7 @@ export function RestTimer({
   onSkip,
   autoStart = true,
 }: RestTimerProps) {
+  const t = useTranslations('components.restTimer')
   const [seconds, setSeconds] = useState(initialSeconds)
   const [isRunning, setIsRunning] = useState(autoStart)
   const [isMuted, setIsMuted] = useState(false)
@@ -62,7 +64,7 @@ export function RestTimer({
       oscillator.start()
       setTimeout(() => {
         oscillator.stop()
-        audioContext.close()
+        void audioContext.close()
       }, duration)
     } catch {
       // Audio context not supported
@@ -189,7 +191,7 @@ export function RestTimer({
           <span className={`text-5xl font-bold tabular-nums ${getColor()}`}>
             {formatTime(seconds)}
           </span>
-          <span className="text-sm text-muted-foreground mt-1">Vila</span>
+          <span className="text-sm text-muted-foreground mt-1">{t('rest')}</span>
         </div>
       </div>
 
@@ -241,7 +243,7 @@ export function RestTimer({
         </Button>
         <Button variant="secondary" onClick={onSkip}>
           <SkipForward className="h-4 w-4 mr-2" />
-          Hoppa över vila
+          {t('skipRest')}
         </Button>
       </div>
     </div>

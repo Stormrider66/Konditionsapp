@@ -7706,6 +7706,10 @@
         "generic": "Something went wrong"
       }
     },
+    "restTimer": {
+      "rest": "Rest",
+      "skipRest": "Skip rest"
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
