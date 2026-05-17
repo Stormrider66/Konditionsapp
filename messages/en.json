@@ -4894,6 +4894,39 @@
         "stable": "Stable"
       }
     },
+    "deficitSurplusTracker": {
+      "title": "Calorie balance",
+      "empty": "Start logging meals to track your calorie balance.",
+      "goalDescription": "Goal: {goal} ({change} kg/week)",
+      "goals": {
+        "deficit": "Deficit",
+        "surplus": "Surplus",
+        "maintenance": "Maintenance"
+      },
+      "status": {
+        "onTrack": "On track",
+        "needsAdjustment": "Needs adjustment"
+      },
+      "averageDailyBalance": "Average daily balance",
+      "dailyTarget": "Target: {balance} kcal",
+      "targetPerWeek": "Target weight/week",
+      "expectedPerWeek": "Expected/week",
+      "targetAccuracy": "Target accuracy",
+      "daysDeficit": "days in deficit",
+      "daysSurplus": "days in surplus",
+      "timeToGoal": {
+        "title": "Estimated time to goal",
+        "description": "At your current pace, you will reach {targetWeight} kg in about <strong>{weeks} weeks</strong> (current: {currentWeight} kg)"
+      },
+      "tips": {
+        "deficitCalories": "• Aim for a 500-750 kcal deficit/day for sustainable weight loss",
+        "deficitProtein": "• Keep protein intake high to preserve muscle mass",
+        "surplusCalories": "• A 300-500 kcal surplus optimizes muscle growth without too much fat gain",
+        "surplusStrength": "• Combine with strength training for best results",
+        "maintenanceVariation": "• Small day-to-day variations are normal",
+        "maintenanceWeeklyAverage": "• Focus on the weekly average rather than daily numbers"
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

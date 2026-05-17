@@ -4894,6 +4894,39 @@
         "stable": "Stabilt"
       }
     },
+    "deficitSurplusTracker": {
+      "title": "Kaloribalans",
+      "empty": "Börja logga måltider för att spåra din kaloribalans.",
+      "goalDescription": "Mål: {goal} ({change} kg/vecka)",
+      "goals": {
+        "deficit": "Underskott",
+        "surplus": "Överskott",
+        "maintenance": "Underhåll"
+      },
+      "status": {
+        "onTrack": "På rätt spår",
+        "needsAdjustment": "Behöver justering"
+      },
+      "averageDailyBalance": "Genomsnittlig daglig balans",
+      "dailyTarget": "Mål: {balance} kcal",
+      "targetPerWeek": "Målvikt/vecka",
+      "expectedPerWeek": "Förväntad/vecka",
+      "targetAccuracy": "Träffsäkerhet mot mål",
+      "daysDeficit": "dagar underskott",
+      "daysSurplus": "dagar överskott",
+      "timeToGoal": {
+        "title": "Uppskattad tid till mål",
+        "description": "Vid nuvarande takt når du {targetWeight} kg om cirka <strong>{weeks} veckor</strong> (nuvarande: {currentWeight} kg)"
+      },
+      "tips": {
+        "deficitCalories": "• Sikta på 500-750 kcal underskott/dag för hållbar viktminskning",
+        "deficitProtein": "• Behåll proteinintaget högt för att bevara muskelmassa",
+        "surplusCalories": "• 300-500 kcal överskott optimerar muskeltillväxt utan för mycket fett",
+        "surplusStrength": "• Kombinera med styrketräning för bäst resultat",
+        "maintenanceVariation": "• Små variationer dag för dag är normalt",
+        "maintenanceWeeklyAverage": "• Fokusera på veckosnittet snarare än dagliga siffror"
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

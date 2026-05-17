@@ -16,6 +16,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface DailyCalorieData {
   date: string
@@ -45,6 +46,7 @@ export function DeficitSurplusTracker({
   className,
   variant = 'default',
 }: DeficitSurplusTrackerProps) {
+  const t = useTranslations('components.deficitSurplusTracker')
   const isGlass = variant === 'glass'
   const analysis = useMemo(() => {
     if (dailyData.length === 0) return null
@@ -102,7 +104,6 @@ export function DeficitSurplusTracker({
   const Description = isGlass ? GlassCardDescription : CardDescription
   const Content = isGlass ? GlassCardContent : CardContent
   const mutedText = isGlass ? 'text-slate-400' : 'text-muted-foreground'
-  const mainText = isGlass ? 'text-white' : ''
 
   if (!analysis) {
     return (
@@ -110,12 +111,12 @@ export function DeficitSurplusTracker({
         <Header>
           <Title className="flex items-center gap-2">
             <Scale className="h-5 w-5" />
-            Kaloribalans
+            {t('title')}
           </Title>
         </Header>
         <Content>
           <p className={mutedText}>
-            Börja logga måltider för att spåra din kaloribalans.
+            {t('empty')}
           </p>
         </Content>
       </Wrapper>
@@ -123,7 +124,7 @@ export function DeficitSurplusTracker({
   }
 
   const isOnTrack = analysis.targetAccuracy >= 70
-  const goalLabel = goal === 'deficit' ? 'Underskott' : goal === 'surplus' ? 'Överskott' : 'Underhåll'
+  const goalLabel = goal === 'deficit' ? t('goals.deficit') : goal === 'surplus' ? t('goals.surplus') : t('goals.maintenance')
 
   return (
     <Wrapper className={className}>
@@ -132,10 +133,13 @@ export function DeficitSurplusTracker({
           <div>
             <Title className="flex items-center gap-2">
               <Scale className="h-5 w-5" />
-              Kaloribalans
+              {t('title')}
             </Title>
             <Description>
-              Mål: {goalLabel} ({targetWeeklyChange > 0 ? '+' : ''}{targetWeeklyChange} kg/vecka)
+              {t('goalDescription', {
+                goal: goalLabel,
+                change: `${targetWeeklyChange > 0 ? '+' : ''}${targetWeeklyChange}`,
+              })}
             </Description>
           </div>
           <Badge variant={isOnTrack ? 'default' : 'secondary'}>
@@ -144,7 +148,7 @@ export function DeficitSurplusTracker({
             ) : (
               <AlertTriangle className="h-3 w-3 mr-1" />
             )}
-            {isOnTrack ? 'På rätt spår' : 'Behöver justering'}
+            {isOnTrack ? t('status.onTrack') : t('status.needsAdjustment')}
           </Badge>
         </div>
       </Header>
@@ -152,7 +156,7 @@ export function DeficitSurplusTracker({
         {/* Daily Balance Gauge */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">Genomsnittlig daglig balans</span>
+            <span className="font-medium">{t('averageDailyBalance')}</span>
             <span className={cn(
               "font-bold",
               analysis.avgDailyBalance < 0 ? "text-blue-500" : analysis.avgDailyBalance > 0 ? "text-orange-500" : "text-green-500"
@@ -165,7 +169,9 @@ export function DeficitSurplusTracker({
           <div className="relative h-8 bg-muted rounded-full overflow-hidden">
             <div className="absolute inset-0 flex items-center justify-center z-10">
               <span className="text-xs font-medium">
-                Mål: {analysis.targetDailyBalance > 0 ? '+' : ''}{analysis.targetDailyBalance} kcal
+                {t('dailyTarget', {
+                  balance: `${analysis.targetDailyBalance > 0 ? '+' : ''}${analysis.targetDailyBalance}`,
+                })}
               </span>
             </div>
             {/* Balance bar */}
@@ -185,11 +191,11 @@ export function DeficitSurplusTracker({
           <div className="flex justify-between text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <TrendingDown className="h-3 w-3 text-blue-500" />
-              Underskott
+              {t('goals.deficit')}
             </span>
             <span className="flex items-center gap-1">
               <TrendingUp className="h-3 w-3 text-orange-500" />
-              Överskott
+              {t('goals.surplus')}
             </span>
           </div>
         </div>
@@ -199,7 +205,7 @@ export function DeficitSurplusTracker({
           <div className="p-3 rounded-lg bg-muted/50 text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
               <Target className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Målvikt/vecka</span>
+              <span className="text-xs text-muted-foreground">{t('targetPerWeek')}</span>
             </div>
             <p className="text-lg font-bold">
               {targetWeeklyChange > 0 ? '+' : ''}{targetWeeklyChange} kg
@@ -208,7 +214,7 @@ export function DeficitSurplusTracker({
           <div className="p-3 rounded-lg bg-muted/50 text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
               <Flame className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Förväntad/vecka</span>
+              <span className="text-xs text-muted-foreground">{t('expectedPerWeek')}</span>
             </div>
             <p className={cn(
               "text-lg font-bold",
@@ -224,7 +230,7 @@ export function DeficitSurplusTracker({
         {/* Target Accuracy */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span>Träffsäkerhet mot mål</span>
+            <span>{t('targetAccuracy')}</span>
             <span className="font-medium">{analysis.targetAccuracy}%</span>
           </div>
           <Progress value={analysis.targetAccuracy} className="h-2" />
@@ -234,12 +240,12 @@ export function DeficitSurplusTracker({
         <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
           <div className="text-center flex-1">
             <p className="text-2xl font-bold text-blue-500">{analysis.daysInDeficit}</p>
-            <p className="text-xs text-muted-foreground">dagar underskott</p>
+            <p className="text-xs text-muted-foreground">{t('daysDeficit')}</p>
           </div>
           <div className="w-px h-8 bg-border" />
           <div className="text-center flex-1">
             <p className="text-2xl font-bold text-orange-500">{analysis.daysInSurplus}</p>
-            <p className="text-xs text-muted-foreground">dagar överskott</p>
+            <p className="text-xs text-muted-foreground">{t('daysSurplus')}</p>
           </div>
         </div>
 
@@ -248,14 +254,15 @@ export function DeficitSurplusTracker({
           <div className="p-3 rounded-lg border">
             <div className="flex items-center gap-2 mb-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium text-sm">Uppskattad tid till mål</span>
+              <span className="font-medium text-sm">{t('timeToGoal.title')}</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Vid nuvarande takt når du {targetWeight} kg om cirka{' '}
-              <span className="font-medium text-foreground">
-                {Math.round(analysis.weeksToGoal)} veckor
-              </span>{' '}
-              (nuvarande: {currentWeight} kg)
+              {t.rich('timeToGoal.description', {
+                targetWeight,
+                currentWeight,
+                weeks: Math.round(analysis.weeksToGoal),
+                strong: (chunks) => <span className="font-medium text-foreground">{chunks}</span>,
+              })}
             </p>
           </div>
         )}
@@ -264,20 +271,20 @@ export function DeficitSurplusTracker({
         <div className="text-xs text-muted-foreground space-y-1">
           {goal === 'deficit' && (
             <>
-              <p>• Sikta på 500-750 kcal underskott/dag för hållbar viktminskning</p>
-              <p>• Behåll proteinintaget högt för att bevara muskelmassa</p>
+              <p>{t('tips.deficitCalories')}</p>
+              <p>{t('tips.deficitProtein')}</p>
             </>
           )}
           {goal === 'surplus' && (
             <>
-              <p>• 300-500 kcal överskott optimerar muskeltillväxt utan för mycket fett</p>
-              <p>• Kombinera med styrketräning för bäst resultat</p>
+              <p>{t('tips.surplusCalories')}</p>
+              <p>{t('tips.surplusStrength')}</p>
             </>
           )}
           {goal === 'maintenance' && (
             <>
-              <p>• Små variationer dag för dag är normalt</p>
-              <p>• Fokusera på veckosnittet snarare än dagliga siffror</p>
+              <p>{t('tips.maintenanceVariation')}</p>
+              <p>{t('tips.maintenanceWeeklyAverage')}</p>
             </>
           )}
         </div>
