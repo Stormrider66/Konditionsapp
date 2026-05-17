@@ -299,6 +299,34 @@
       "backToPrograms": "Tillbaka till mina program",
       "title": "Importera ett träningsprogram",
       "description": "Har du fått ett program som PDF, Excel, skärmdump eller skrivet för hand? Släpp det här — AI:n tolkar upplägget och lägger det i din kalender så fort du publicerar."
+    },
+    "programs": {
+      "titlePrefix": "Mina",
+      "titleAccent": "Program",
+      "description": "Alla dina träningsprogram samlade på ett ställe. Följ din utveckling och se kommande utmaningar.",
+      "importProgram": "Importera program",
+      "status": {
+        "upcoming": "Kommande",
+        "ended": "Avslutat",
+        "active": "Aktivt",
+        "inactive": "Inaktivt"
+      },
+      "card": {
+        "length": "Längd",
+        "weeks": "{count} veckor",
+        "current": "Nuvarande",
+        "week": "Vecka {week}",
+        "openProgram": "Gå till program"
+      },
+      "empty": {
+        "title": "Inga program ännu",
+        "description": "Din coach har inte skapat några träningsprogram åt dig ännu. De dyker upp här så snart de är klara."
+      },
+      "sections": {
+        "active": "Aktiva Program",
+        "upcoming": "Kommande Program",
+        "past": "Avslutade Program"
+      }
     }
   },
   "nav": {

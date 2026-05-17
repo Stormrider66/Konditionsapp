@@ -1,5 +1,5 @@
 // app/(business)/[businessSlug]/athlete/programs/page.tsx
-import { redirect, notFound } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar, Clock, ArrowRight, CheckCircle2, Play, Upload } from 'lucide-react'
 import { format, differenceInWeeks, isWithinInterval } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   GlassCard,
   GlassCardHeader,
@@ -16,6 +16,7 @@ import {
   GlassCardContent,
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
+import { getLocale, getTranslations } from '@/i18n/server'
 
 interface BusinessProgramsPageProps {
   params: Promise<{ businessSlug: string }>
@@ -23,6 +24,9 @@ interface BusinessProgramsPageProps {
 
 export default async function BusinessAthleteProgramsPage({ params }: BusinessProgramsPageProps) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.programs')
+  const locale = await getLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
@@ -72,15 +76,15 @@ export default async function BusinessAthleteProgramsPage({ params }: BusinessPr
 
   const getProgramStatus = (program: typeof programs[0]) => {
     if (program.startDate > now) {
-      return { label: 'Kommande', variant: 'secondary' as const }
+      return { state: 'upcoming' as const, label: t('status.upcoming'), variant: 'secondary' as const }
     }
     if (program.endDate < now) {
-      return { label: 'Avslutat', variant: 'outline' as const }
+      return { state: 'ended' as const, label: t('status.ended'), variant: 'outline' as const }
     }
     if (program.isActive) {
-      return { label: 'Aktivt', variant: 'default' as const }
+      return { state: 'active' as const, label: t('status.active'), variant: 'default' as const }
     }
-    return { label: 'Inaktivt', variant: 'outline' as const }
+    return { state: 'inactive' as const, label: t('status.inactive'), variant: 'outline' as const }
   }
 
   const getCurrentWeek = (program: typeof programs[0]) => {
@@ -92,7 +96,7 @@ export default async function BusinessAthleteProgramsPage({ params }: BusinessPr
   const ProgramCard = ({ program }: { program: typeof programs[0] }) => {
     const status = getProgramStatus(program)
     const currentWeek = getCurrentWeek(program)
-    const isActive = status.label === 'Aktivt'
+    const isActive = status.state === 'active'
 
     return (
       <Link href={`${basePath}/athlete/programs/${program.id}`} className="block group">
@@ -109,14 +113,14 @@ export default async function BusinessAthleteProgramsPage({ params }: BusinessPr
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
                   <Calendar className="h-3 w-3 text-blue-600 dark:text-blue-500" />
                   <span>
-                    {format(program.startDate, 'd MMM yyyy', { locale: sv })} — {format(program.endDate, 'd MMM yyyy', { locale: sv })}
+                    {format(program.startDate, 'd MMM yyyy', { locale: dateLocale })} — {format(program.endDate, 'd MMM yyyy', { locale: dateLocale })}
                   </span>
                 </div>
               </div>
               <Badge className={cn(
                 "rounded-xl h-7 px-3 text-[10px] font-black uppercase tracking-widest border-0 transition-colors",
-                status.label === 'Aktivt' ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
-                  status.label === 'Kommande' ? "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400" :
+                status.state === 'active' ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
+                  status.state === 'upcoming' ? "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400" :
                     "bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-500"
               )}>
                 {status.label}
@@ -126,18 +130,18 @@ export default async function BusinessAthleteProgramsPage({ params }: BusinessPr
           <GlassCardContent>
             <div className="flex items-center gap-6 mb-6">
               <div className="space-y-1">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Längd</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t('card.length')}</p>
                 <div className="flex items-center gap-2 text-slate-900 dark:text-white font-black transition-colors">
                   <Clock className="h-4 w-4 text-blue-600 dark:text-blue-500" />
-                  <span>{program._count.weeks} veckor</span>
+                  <span>{t('card.weeks', { count: program._count.weeks })}</span>
                 </div>
               </div>
               {currentWeek && (
                 <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Nuvarande</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t('card.current')}</p>
                   <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-black transition-colors">
                     <Play className="h-4 w-4 fill-current" />
-                    <span>Vecka {currentWeek}</span>
+                    <span>{t('card.week', { week: currentWeek })}</span>
                   </div>
                 </div>
               )}
@@ -168,7 +172,7 @@ export default async function BusinessAthleteProgramsPage({ params }: BusinessPr
 
             <div className="mt-8 flex justify-end">
               <div className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-500 flex items-center gap-2 group-hover:gap-3 transition-all">
-                Gå till program <ArrowRight className="h-3 w-3" />
+                {t('card.openProgram')} <ArrowRight className="h-3 w-3" />
               </div>
             </div>
           </GlassCardContent>
@@ -183,16 +187,16 @@ export default async function BusinessAthleteProgramsPage({ params }: BusinessPr
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none mb-4 transition-colors">
-              Mina <span className="text-blue-600 dark:text-blue-500 italic">Program</span>
+              {t('titlePrefix')} <span className="text-blue-600 dark:text-blue-500 italic">{t('titleAccent')}</span>
             </h1>
             <p className="text-slate-600 dark:text-slate-400 font-medium text-sm max-w-md transition-colors">
-              Alla dina träningsprogram samlade på ett ställe. Följ din utveckling och se kommande utmaningar.
+              {t('description')}
             </p>
           </div>
           <Link href={`${basePath}/athlete/programs/import`} className="shrink-0">
             <Button size="lg" variant="outline" className="w-full sm:w-auto">
               <Upload className="mr-2 h-5 w-5" />
-              Importera program
+              {t('importProgram')}
             </Button>
           </Link>
         </div>
@@ -204,9 +208,9 @@ export default async function BusinessAthleteProgramsPage({ params }: BusinessPr
             <div className="w-20 h-20 rounded-3xl bg-slate-100 border-slate-200 dark:bg-white/5 dark:border-white/5 flex items-center justify-center mx-auto mb-6 transition-colors">
               <Calendar className="h-10 w-10 text-slate-400 dark:text-slate-500" />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight transition-colors">Inga program ännu</h3>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight transition-colors">{t('empty.title')}</h3>
             <p className="text-slate-600 dark:text-slate-500 max-w-xs mx-auto font-medium transition-colors">
-              Din coach har inte skapat några träningsprogram åt dig ännu. De dyker upp här så snart de är klara.
+              {t('empty.description')}
             </p>
           </GlassCardContent>
         </GlassCard>
@@ -219,7 +223,7 @@ export default async function BusinessAthleteProgramsPage({ params }: BusinessPr
                 <div className="h-px flex-1 bg-slate-200 dark:bg-white/5 transition-colors" />
                 <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 dark:text-blue-500 flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10 transition-colors">
                   <Play className="h-3 w-3 fill-current" />
-                  Aktiva Program
+                  {t('sections.active')}
                 </h2>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-white/5 transition-colors" />
               </div>
@@ -238,7 +242,7 @@ export default async function BusinessAthleteProgramsPage({ params }: BusinessPr
                 <div className="h-px flex-1 bg-slate-200 dark:bg-white/5 transition-colors" />
                 <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 dark:text-blue-400 flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 border-slate-200 dark:bg-white/5 dark:border-white/5 transition-colors">
                   <Clock className="h-3 w-3" />
-                  Kommande Program
+                  {t('sections.upcoming')}
                 </h2>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-white/5 transition-colors" />
               </div>
@@ -257,7 +261,7 @@ export default async function BusinessAthleteProgramsPage({ params }: BusinessPr
                 <div className="h-px flex-1 bg-slate-200 dark:bg-white/5 transition-colors" />
                 <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-slate-500 flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 border-slate-200 dark:bg-white/5 dark:border-white/5 transition-colors">
                   <CheckCircle2 className="h-3 w-3" />
-                  Avslutade Program
+                  {t('sections.past')}
                 </h2>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-white/5 transition-colors" />
               </div>

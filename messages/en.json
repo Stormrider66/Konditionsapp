@@ -299,6 +299,34 @@
       "backToPrograms": "Back to my programs",
       "title": "Import a training program",
       "description": "Have you received a program as a PDF, Excel file, screenshot, or handwritten text? Drop it here — the AI interprets the structure and adds it to your calendar as soon as you publish."
+    },
+    "programs": {
+      "titlePrefix": "My",
+      "titleAccent": "Programs",
+      "description": "All your training programs in one place. Follow your progress and see upcoming challenges.",
+      "importProgram": "Import program",
+      "status": {
+        "upcoming": "Upcoming",
+        "ended": "Ended",
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "card": {
+        "length": "Length",
+        "weeks": "{count, plural, one {# week} other {# weeks}}",
+        "current": "Current",
+        "week": "Week {week}",
+        "openProgram": "Go to program"
+      },
+      "empty": {
+        "title": "No programs yet",
+        "description": "Your coach has not created any training programs for you yet. They will appear here as soon as they are ready."
+      },
+      "sections": {
+        "active": "Active Programs",
+        "upcoming": "Upcoming Programs",
+        "past": "Completed Programs"
+      }
     }
   },
   "nav": {
