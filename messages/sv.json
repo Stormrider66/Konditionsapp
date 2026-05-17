@@ -4405,6 +4405,33 @@
       "workouts": "Pass",
       "total": "Totalt"
     },
+    "concept2Dashboard": {
+      "equipment": {
+        "all": "All utrustning",
+        "rower": "RowErg",
+        "skierg": "SkiErg",
+        "bike": "BikeErg"
+      },
+      "errors": {
+        "fetch": "Kunde inte hämta Concept2-data",
+        "generic": "Ett fel uppstod",
+        "syncFailed": "Synkronisering misslyckades"
+      },
+      "actions": {
+        "back": "Tillbaka",
+        "retry": "Försök igen",
+        "sync": "Synka",
+        "syncing": "Synkar..."
+      },
+      "empty": {
+        "title": "Ingen Concept2-data",
+        "description": "Anslut ditt Concept2 Logbook-konto för att synkronisera träningsdata."
+      },
+      "workoutCount": "{count} {count, plural, one {pass} other {pass}}",
+      "recent": {
+        "title": "Senaste pass"
+      }
+    },
     "exportDataButton": {
       "trigger": "Exportera data",
       "formatLabel": "Exportformat",

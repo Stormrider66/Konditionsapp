@@ -4405,6 +4405,33 @@
       "workouts": "Workouts",
       "total": "Total"
     },
+    "concept2Dashboard": {
+      "equipment": {
+        "all": "All equipment",
+        "rower": "RowErg",
+        "skierg": "SkiErg",
+        "bike": "BikeErg"
+      },
+      "errors": {
+        "fetch": "Could not fetch Concept2 data",
+        "generic": "Something went wrong",
+        "syncFailed": "Sync failed"
+      },
+      "actions": {
+        "back": "Back",
+        "retry": "Try again",
+        "sync": "Sync",
+        "syncing": "Syncing..."
+      },
+      "empty": {
+        "title": "No Concept2 data",
+        "description": "Connect your Concept2 Logbook account to sync training data."
+      },
+      "workoutCount": "{count, plural, one {# workout} other {# workouts}}",
+      "recent": {
+        "title": "Recent workouts"
+      }
+    },
     "exportDataButton": {
       "trigger": "Export data",
       "formatLabel": "Export format",

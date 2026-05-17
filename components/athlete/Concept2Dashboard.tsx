@@ -26,8 +26,9 @@ import { Concept2EquipmentChart } from './Concept2EquipmentChart';
 import { Concept2PaceAnalysis } from './Concept2PaceAnalysis';
 import { Concept2ResultDetail } from './Concept2ResultDetail';
 import { Ship, RefreshCw, ArrowLeft, Calendar, Clock, TrendingUp } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { format } from 'date-fns';
+import { enUS, sv } from 'date-fns/locale';
+import { useLocale, useTranslations } from '@/i18n/client';
 
 interface SplitData {
   type?: string;
@@ -65,13 +66,14 @@ interface Concept2DashboardProps {
 }
 
 const EQUIPMENT_OPTIONS = [
-  { value: 'all', label: 'All utrustning' },
-  { value: 'rower', label: 'RowErg' },
-  { value: 'skierg', label: 'SkiErg' },
-  { value: 'bike', label: 'BikeErg' },
+  { value: 'all', labelKey: 'equipment.all' },
+  { value: 'rower', labelKey: 'equipment.rower' },
+  { value: 'skierg', labelKey: 'equipment.skierg' },
+  { value: 'bike', labelKey: 'equipment.bike' },
 ];
 
 export function Concept2Dashboard({ clientId }: Concept2DashboardProps) {
+  const t = useTranslations('components.concept2Dashboard');
   const [results, setResults] = useState<Concept2Result[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,20 +96,20 @@ export function Concept2Dashboard({ clientId }: Concept2DashboardProps) {
           setResults([]);
           return;
         }
-        throw new Error('Kunde inte hämta Concept2-data');
+        throw new Error(t('errors.fetch'));
       }
 
       const data = await response.json();
       setResults(data.results || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod');
+      setError(err instanceof Error ? err.message : t('errors.generic'));
     } finally {
       setIsLoading(false);
     }
-  }, [clientId]);
+  }, [clientId, t]);
 
   useEffect(() => {
-    fetchResults();
+    void fetchResults();
   }, [fetchResults]);
 
   const handleSync = async () => {
@@ -120,13 +122,13 @@ export function Concept2Dashboard({ clientId }: Concept2DashboardProps) {
       });
 
       if (!response.ok) {
-        throw new Error('Synkronisering misslyckades');
+        throw new Error(t('errors.syncFailed'));
       }
 
       // Refresh results after sync
       await fetchResults();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Synkronisering misslyckades');
+      setError(err instanceof Error ? err.message : t('errors.syncFailed'));
     } finally {
       setIsSyncing(false);
     }
@@ -147,7 +149,7 @@ export function Concept2Dashboard({ clientId }: Concept2DashboardProps) {
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Tillbaka
+          {t('actions.back')}
         </Button>
         <Concept2ResultDetail result={selectedResult} />
       </div>
@@ -174,7 +176,7 @@ export function Concept2Dashboard({ clientId }: Concept2DashboardProps) {
           <div className="text-center space-y-4">
             <Ship className="mx-auto h-12 w-12 text-muted-foreground" />
             <p className="text-muted-foreground">{error}</p>
-            <Button onClick={fetchResults}>Försök igen</Button>
+            <Button onClick={() => void fetchResults()}>{t('actions.retry')}</Button>
           </div>
         </CardContent>
       </Card>
@@ -187,9 +189,9 @@ export function Concept2Dashboard({ clientId }: Concept2DashboardProps) {
         <CardContent className="py-8">
           <div className="text-center space-y-4">
             <Ship className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="font-medium">Ingen Concept2-data</h3>
+            <h3 className="font-medium">{t('empty.title')}</h3>
             <p className="text-sm text-muted-foreground">
-              Anslut ditt Concept2 Logbook-konto för att synkronisera träningsdata.
+              {t('empty.description')}
             </p>
           </div>
         </CardContent>
@@ -204,7 +206,7 @@ export function Concept2Dashboard({ clientId }: Concept2DashboardProps) {
         <div className="flex items-center gap-3">
           <Ship className="h-6 w-6" />
           <h2 className="text-lg font-semibold">Concept2</h2>
-          <Badge variant="outline">{results.length} pass</Badge>
+          <Badge variant="outline">{t('workoutCount', { count: results.length })}</Badge>
         </div>
         <div className="flex items-center gap-3">
           <Select value={equipmentFilter} onValueChange={setEquipmentFilter}>
@@ -214,7 +216,7 @@ export function Concept2Dashboard({ clientId }: Concept2DashboardProps) {
             <SelectContent>
               {EQUIPMENT_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -226,7 +228,7 @@ export function Concept2Dashboard({ clientId }: Concept2DashboardProps) {
             disabled={isSyncing}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Synkar...' : 'Synka'}
+            {isSyncing ? t('actions.syncing') : t('actions.sync')}
           </Button>
         </div>
       </div>
@@ -245,7 +247,7 @@ export function Concept2Dashboard({ clientId }: Concept2DashboardProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Senaste pass
+            {t('recent.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -271,6 +273,8 @@ function ResultRow({
   result: Concept2Result;
   onClick: () => void;
 }) {
+  const locale = useLocale();
+  const dateLocale = locale === 'en' ? enUS : sv;
   const equipmentLabels: Record<string, string> = {
     rower: 'RowErg',
     skierg: 'SkiErg',
@@ -305,7 +309,7 @@ function ResultRow({
       <div className="flex items-center gap-3">
         <div className="text-center w-12">
           <p className="text-xs text-muted-foreground">
-            {format(new Date(result.date), 'd MMM', { locale: sv })}
+            {format(new Date(result.date), 'd MMM', { locale: dateLocale })}
           </p>
         </div>
         <div>
