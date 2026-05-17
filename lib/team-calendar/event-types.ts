@@ -64,6 +64,36 @@ export const PHYSICAL_TEAM_EVENT_TYPES: TeamEventType[] = [
   'INTERVAL_SESSION',
 ]
 
+export const TEAM_EVENT_CONTENT_STATUSES = [
+  'PLANNED',
+  'NEEDS_CONTENT',
+  'CONTENT_READY',
+] as const
+
+export type TeamEventContentStatus = (typeof TEAM_EVENT_CONTENT_STATUSES)[number]
+
+export const TEAM_EVENT_CONTENT_STATUS_LABELS: Record<TeamEventContentStatus, string> = {
+  PLANNED: 'Planerad ram',
+  NEEDS_CONTENT: 'Behöver innehåll',
+  CONTENT_READY: 'Innehåll klart',
+}
+
+export const TEAM_EVENT_CONTENT_OWNERS = [
+  'coach',
+  'physical_trainer',
+  'physio',
+  'shared',
+] as const
+
+export type TeamEventContentOwner = (typeof TEAM_EVENT_CONTENT_OWNERS)[number]
+
+export const TEAM_EVENT_CONTENT_OWNER_LABELS: Record<TeamEventContentOwner, string> = {
+  coach: 'Tränarstab',
+  physical_trainer: 'Fystränare',
+  physio: 'Fysioterapeut',
+  shared: 'Delat ansvar',
+}
+
 export function isTeamEventType(value: string): value is TeamEventType {
   return TEAM_EVENT_TYPES.some((type) => type === value)
 }

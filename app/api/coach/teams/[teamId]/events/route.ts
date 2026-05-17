@@ -10,7 +10,11 @@ import { requireCoach } from '@/lib/auth-utils'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { getAccessibleTeam, getWritableTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
-import { TEAM_EVENT_TYPES } from '@/lib/team-calendar/event-types'
+import {
+  TEAM_EVENT_CONTENT_OWNERS,
+  TEAM_EVENT_CONTENT_STATUSES,
+  TEAM_EVENT_TYPES,
+} from '@/lib/team-calendar/event-types'
 import { z } from 'zod'
 
 interface RouteContext {
@@ -28,6 +32,11 @@ const createEventSchema = z.object({
   isRecurring: z.boolean().default(false),
   recurrenceRule: z.string().max(200).optional(),
   intervalSessionId: z.string().uuid().optional(),
+  contentStatus: z.enum(TEAM_EVENT_CONTENT_STATUSES).optional(),
+  contentOwner: z.enum(TEAM_EVENT_CONTENT_OWNERS).optional(),
+  linkedWorkoutType: z.enum(['STRENGTH', 'CARDIO', 'HYBRID', 'AGILITY']).optional().nullable(),
+  linkedWorkoutId: z.string().uuid().optional().nullable(),
+  linkedWorkoutName: z.string().max(200).optional().nullable(),
   attendance: z.array(z.object({
     clientId: z.string().uuid(),
     status: z.enum(['ATTENDING', 'ABSENT', 'UNKNOWN']),
@@ -112,6 +121,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
         isRecurring: parsed.data.isRecurring,
         recurrenceRule: parsed.data.recurrenceRule,
         intervalSessionId: parsed.data.intervalSessionId,
+        contentStatus: parsed.data.contentStatus,
+        contentOwner: parsed.data.contentOwner,
+        linkedWorkoutType: parsed.data.linkedWorkoutType,
+        linkedWorkoutId: parsed.data.linkedWorkoutId,
+        linkedWorkoutName: parsed.data.linkedWorkoutName,
         attendance: parsed.data.attendance ? JSON.parse(JSON.stringify(parsed.data.attendance)) : null,
       },
       include: {

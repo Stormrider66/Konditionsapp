@@ -20,22 +20,19 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { TEAM_EVENT_TYPE_LABELS, TEAM_EVENT_TYPES, type TeamEventType } from '@/lib/team-calendar/event-types'
+import {
+  TEAM_EVENT_CONTENT_OWNER_LABELS,
+  TEAM_EVENT_CONTENT_OWNERS,
+  TEAM_EVENT_CONTENT_STATUS_LABELS,
+  TEAM_EVENT_CONTENT_STATUSES,
+  TEAM_EVENT_TYPE_LABELS,
+  TEAM_EVENT_TYPES,
+  type TeamEventContentOwner,
+  type TeamEventContentStatus,
+  type TeamEventType,
+} from '@/lib/team-calendar/event-types'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
-
-const CONTENT_OWNER_OPTIONS = [
-  { value: 'coach', label: 'Tränarstab' },
-  { value: 'physical_trainer', label: 'Fystränare' },
-  { value: 'physio', label: 'Fysioterapeut' },
-  { value: 'shared', label: 'Delat ansvar' },
-]
-
-const CONTENT_STATUS_OPTIONS = [
-  { value: 'planned_shell', label: 'Planerad ram' },
-  { value: 'needs_content', label: 'Behöver innehåll' },
-  { value: 'content_added', label: 'Innehåll klart' },
-]
 
 interface CreateEventDialogProps {
   teamId: string
@@ -65,19 +62,8 @@ export function CreateEventDialog({
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
   const [allDay, setAllDay] = useState(false)
-  const [contentOwner, setContentOwner] = useState('physical_trainer')
-  const [contentStatus, setContentStatus] = useState('planned_shell')
-
-  const buildDescription = () => {
-    const ownerLabel = CONTENT_OWNER_OPTIONS.find((option) => option.value === contentOwner)?.label ?? 'Delat ansvar'
-    const statusLabel = CONTENT_STATUS_OPTIONS.find((option) => option.value === contentStatus)?.label ?? 'Planerad ram'
-    const planningLines = [
-      `Planeringsstatus: ${statusLabel}`,
-      `Innehållsansvarig: ${ownerLabel}`,
-    ]
-    const notes = description.trim()
-    return notes ? `${planningLines.join('\n')}\n\n${notes}` : planningLines.join('\n')
-  }
+  const [contentOwner, setContentOwner] = useState<TeamEventContentOwner>('physical_trainer')
+  const [contentStatus, setContentStatus] = useState<TeamEventContentStatus>('PLANNED')
 
   const handleCreate = async () => {
     if (!title.trim() || !startDate) {
@@ -106,11 +92,13 @@ export function CreateEventDialog({
         body: JSON.stringify({
           title: title.trim(),
           type,
-          description: buildDescription(),
+          description: description.trim() || undefined,
           location: location.trim() || undefined,
           startDate: startDateTime,
           endDate: endDateTime,
           allDay,
+          contentStatus,
+          contentOwner,
         }),
       })
 
@@ -137,7 +125,7 @@ export function CreateEventDialog({
     setEndTime('')
     setAllDay(false)
     setContentOwner('physical_trainer')
-    setContentStatus('planned_shell')
+    setContentStatus('PLANNED')
   }
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -192,14 +180,14 @@ export function CreateEventDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Status</Label>
-              <Select value={contentStatus} onValueChange={setContentStatus}>
+              <Select value={contentStatus} onValueChange={(value) => setContentStatus(value as TeamEventContentStatus)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CONTENT_STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                  {TEAM_EVENT_CONTENT_STATUSES.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {TEAM_EVENT_CONTENT_STATUS_LABELS[status]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -207,14 +195,14 @@ export function CreateEventDialog({
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Innehåll</Label>
-              <Select value={contentOwner} onValueChange={setContentOwner}>
+              <Select value={contentOwner} onValueChange={(value) => setContentOwner(value as TeamEventContentOwner)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CONTENT_OWNER_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                  {TEAM_EVENT_CONTENT_OWNERS.map((owner) => (
+                    <SelectItem key={owner} value={owner}>
+                      {TEAM_EVENT_CONTENT_OWNER_LABELS[owner]}
                     </SelectItem>
                   ))}
                 </SelectContent>

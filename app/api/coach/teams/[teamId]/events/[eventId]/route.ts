@@ -11,7 +11,11 @@ import { requireCoach } from '@/lib/auth-utils'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { getAccessibleTeam, getWritableTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
-import { TEAM_EVENT_TYPES } from '@/lib/team-calendar/event-types'
+import {
+  TEAM_EVENT_CONTENT_OWNERS,
+  TEAM_EVENT_CONTENT_STATUSES,
+  TEAM_EVENT_TYPES,
+} from '@/lib/team-calendar/event-types'
 import { z } from 'zod'
 
 interface RouteContext {
@@ -26,6 +30,11 @@ const updateEventSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional().nullable(),
   allDay: z.boolean().optional(),
+  contentStatus: z.enum(TEAM_EVENT_CONTENT_STATUSES).optional(),
+  contentOwner: z.enum(TEAM_EVENT_CONTENT_OWNERS).optional().nullable(),
+  linkedWorkoutType: z.enum(['STRENGTH', 'CARDIO', 'HYBRID', 'AGILITY']).optional().nullable(),
+  linkedWorkoutId: z.string().uuid().optional().nullable(),
+  linkedWorkoutName: z.string().max(200).optional().nullable(),
   attendance: z.array(z.object({
     clientId: z.string().uuid(),
     status: z.enum(['ATTENDING', 'ABSENT', 'UNKNOWN']),
@@ -95,6 +104,11 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     if (parsed.data.startDate !== undefined) updateData.startDate = new Date(parsed.data.startDate)
     if (parsed.data.endDate !== undefined) updateData.endDate = parsed.data.endDate ? new Date(parsed.data.endDate) : null
     if (parsed.data.allDay !== undefined) updateData.allDay = parsed.data.allDay
+    if (parsed.data.contentStatus !== undefined) updateData.contentStatus = parsed.data.contentStatus
+    if (parsed.data.contentOwner !== undefined) updateData.contentOwner = parsed.data.contentOwner
+    if (parsed.data.linkedWorkoutType !== undefined) updateData.linkedWorkoutType = parsed.data.linkedWorkoutType
+    if (parsed.data.linkedWorkoutId !== undefined) updateData.linkedWorkoutId = parsed.data.linkedWorkoutId
+    if (parsed.data.linkedWorkoutName !== undefined) updateData.linkedWorkoutName = parsed.data.linkedWorkoutName
     if (parsed.data.attendance !== undefined) updateData.attendance = JSON.parse(JSON.stringify(parsed.data.attendance))
 
     const existingEvent = await prisma.teamEvent.findFirst({

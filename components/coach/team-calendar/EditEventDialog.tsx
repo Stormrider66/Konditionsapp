@@ -21,8 +21,14 @@ import {
 import { Switch } from '@/components/ui/switch'
 import {
   PHYSICAL_TEAM_EVENT_TYPES,
+  TEAM_EVENT_CONTENT_OWNER_LABELS,
+  TEAM_EVENT_CONTENT_OWNERS,
+  TEAM_EVENT_CONTENT_STATUS_LABELS,
+  TEAM_EVENT_CONTENT_STATUSES,
   TEAM_EVENT_TYPE_LABELS,
   TEAM_EVENT_TYPES,
+  type TeamEventContentOwner,
+  type TeamEventContentStatus,
   type TeamEventType,
 } from '@/lib/team-calendar/event-types'
 import { Dumbbell, ExternalLink, HeartPulse, Route, Zap } from 'lucide-react'
@@ -38,6 +44,11 @@ interface EditableTeamEvent {
   startDate: string
   endDate: string | null
   allDay: boolean
+  contentStatus?: string
+  contentOwner?: string | null
+  linkedWorkoutType?: string | null
+  linkedWorkoutId?: string | null
+  linkedWorkoutName?: string | null
 }
 
 interface EditEventDialogProps {
@@ -75,6 +86,20 @@ function builderLinkFor(type: TeamEventType, businessSlug?: string) {
   return null
 }
 
+function workoutTypeForEventType(type: TeamEventType): 'STRENGTH' | 'CARDIO' | 'HYBRID' | 'AGILITY' | null {
+  if (type === 'STRENGTH' || type === 'PREHAB' || type === 'PLYOMETRICS') return 'STRENGTH'
+  if (type === 'CARDIO' || type === 'INTERVAL_SESSION') return 'CARDIO'
+  if (type === 'HYBRID') return 'HYBRID'
+  if (type === 'AGILITY') return 'AGILITY'
+  return null
+}
+
+interface WorkoutOption {
+  id: string
+  name: string
+  description: string | null
+}
+
 export function EditEventDialog({
   event,
   teamId,
@@ -91,8 +116,15 @@ export function EditEventDialog({
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
   const [allDay, setAllDay] = useState(false)
+  const [contentStatus, setContentStatus] = useState<TeamEventContentStatus>('PLANNED')
+  const [contentOwner, setContentOwner] = useState<TeamEventContentOwner>('physical_trainer')
+  const [linkedWorkoutId, setLinkedWorkoutId] = useState<string>('none')
+  const [linkedWorkoutName, setLinkedWorkoutName] = useState<string | null>(null)
+  const [workoutOptions, setWorkoutOptions] = useState<WorkoutOption[]>([])
+  const [loadingWorkouts, setLoadingWorkouts] = useState(false)
   const builderLink = builderLinkFor(type, businessSlug)
   const isPhysicalSession = PHYSICAL_TEAM_EVENT_TYPES.includes(type)
+  const linkedWorkoutType = workoutTypeForEventType(type)
 
   useEffect(() => {
     if (!event) return
@@ -104,7 +136,46 @@ export function EditEventDialog({
     setStartTime(timeValue(event.startDate))
     setEndTime(timeValue(event.endDate))
     setAllDay(event.allDay)
+    setContentStatus(
+      TEAM_EVENT_CONTENT_STATUSES.includes(event.contentStatus as TeamEventContentStatus)
+        ? event.contentStatus as TeamEventContentStatus
+        : 'PLANNED'
+    )
+    setContentOwner(
+      TEAM_EVENT_CONTENT_OWNERS.includes(event.contentOwner as TeamEventContentOwner)
+        ? event.contentOwner as TeamEventContentOwner
+        : 'physical_trainer'
+    )
+    setLinkedWorkoutId(event.linkedWorkoutId ?? 'none')
+    setLinkedWorkoutName(event.linkedWorkoutName ?? null)
   }, [event])
+
+  useEffect(() => {
+    if (!event || !isPhysicalSession || !linkedWorkoutType) {
+      setWorkoutOptions([])
+      return
+    }
+
+    const loadOptions = async () => {
+      setLoadingWorkouts(true)
+      try {
+        const params = new URLSearchParams({ type: linkedWorkoutType })
+        if (businessSlug) params.set('businessSlug', businessSlug)
+        const res = await fetch(`/api/coach/teams/${teamId}/events/workout-options?${params}`, {
+          headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
+        })
+        if (!res.ok) throw new Error('Failed')
+        const data = await res.json()
+        setWorkoutOptions(data.workouts || [])
+      } catch {
+        toast.error('Kunde inte hämta pass att koppla')
+      } finally {
+        setLoadingWorkouts(false)
+      }
+    }
+
+    void loadOptions()
+  }, [event, isPhysicalSession, linkedWorkoutType, teamId, businessSlug])
 
   const handleUpdate = async () => {
     if (!event || !title.trim() || !startDate) {
@@ -137,6 +208,11 @@ export function EditEventDialog({
           startDate: startDateTime,
           endDate: endDateTime,
           allDay,
+          contentStatus,
+          contentOwner,
+          linkedWorkoutType: linkedWorkoutId === 'none' ? null : linkedWorkoutType,
+          linkedWorkoutId: linkedWorkoutId === 'none' ? null : linkedWorkoutId,
+          linkedWorkoutName: linkedWorkoutId === 'none' ? null : linkedWorkoutName,
         }),
       })
 
@@ -187,22 +263,87 @@ export function EditEventDialog({
 
           {isPhysicalSession && (
             <div className="rounded-md border bg-muted/35 p-3">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="text-sm font-medium">Fys-pass med byggbart innehåll</div>
-                  <div className="text-xs text-muted-foreground">
-                    Lägg ramen här och bygg passet i rätt studio när innehållet ska fyllas på.
+              <div className="space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="text-sm font-medium">Fys-pass med byggbart innehåll</div>
+                    <div className="text-xs text-muted-foreground">
+                      Koppla ett färdigt pass eller öppna rätt studio för att bygga innehållet.
+                    </div>
+                  </div>
+                  {builderLink && (
+                    <Button asChild variant="outline" size="sm" className="shrink-0">
+                      <Link href={builderLink.href}>
+                        <builderLink.icon className="mr-1.5 h-3.5 w-3.5" />
+                        {builderLink.label}
+                        <ExternalLink className="ml-1.5 h-3 w-3" />
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Status</Label>
+                    <Select value={contentStatus} onValueChange={(value) => setContentStatus(value as TeamEventContentStatus)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TEAM_EVENT_CONTENT_STATUSES.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {TEAM_EVENT_CONTENT_STATUS_LABELS[status]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Innehållsansvarig</Label>
+                    <Select value={contentOwner} onValueChange={(value) => setContentOwner(value as TeamEventContentOwner)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TEAM_EVENT_CONTENT_OWNERS.map((owner) => (
+                          <SelectItem key={owner} value={owner}>
+                            {TEAM_EVENT_CONTENT_OWNER_LABELS[owner]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-                {builderLink && (
-                  <Button asChild variant="outline" size="sm" className="shrink-0">
-                    <Link href={builderLink.href}>
-                      <builderLink.icon className="mr-1.5 h-3.5 w-3.5" />
-                      {builderLink.label}
-                      <ExternalLink className="ml-1.5 h-3 w-3" />
-                    </Link>
-                  </Button>
-                )}
+
+                <div className="space-y-1">
+                  <Label className="text-xs">Kopplat pass</Label>
+                  <Select
+                    value={linkedWorkoutId}
+                    onValueChange={(value) => {
+                      setLinkedWorkoutId(value)
+                      const selected = workoutOptions.find((option) => option.id === value)
+                      setLinkedWorkoutName(selected?.name ?? null)
+                      if (value !== 'none') setContentStatus('CONTENT_READY')
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={loadingWorkouts ? 'Hämtar pass...' : 'Välj pass'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Inget kopplat pass</SelectItem>
+                      {workoutOptions.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {linkedWorkoutName && (
+                    <div className="text-xs text-muted-foreground">
+                      Kopplat: {linkedWorkoutName}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

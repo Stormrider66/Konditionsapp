@@ -6,8 +6,13 @@ import { Badge } from '@/components/ui/badge'
 import { CreateEventDialog } from './CreateEventDialog'
 import { EditEventDialog } from './EditEventDialog'
 import {
+  PHYSICAL_TEAM_EVENT_TYPES,
+  TEAM_EVENT_CONTENT_OWNER_LABELS,
+  TEAM_EVENT_CONTENT_STATUS_LABELS,
   TEAM_EVENT_TYPE_COLORS,
   TEAM_EVENT_TYPE_LABELS,
+  type TeamEventContentOwner,
+  type TeamEventContentStatus,
   type TeamEventType,
   isTeamEventType,
 } from '@/lib/team-calendar/event-types'
@@ -31,6 +36,11 @@ interface TeamEvent {
   startDate: string
   endDate: string | null
   allDay: boolean
+  contentStatus?: string
+  contentOwner?: string | null
+  linkedWorkoutType?: string | null
+  linkedWorkoutId?: string | null
+  linkedWorkoutName?: string | null
   createdBy: { name: string }
   intervalSession: { id: string; name: string; status: string } | null
 }
@@ -101,6 +111,25 @@ function compactEventText(event: TeamEvent): string {
   return `${time}${time ? ' ' : ''}${event.title}${location}`
 }
 
+function eventNeedsContent(event: TeamEvent): boolean {
+  if (!PHYSICAL_TEAM_EVENT_TYPES.includes(event.type as TeamEventType)) return false
+  return event.contentStatus !== 'CONTENT_READY' || !event.linkedWorkoutId
+}
+
+function contentStatusLabel(status: string | undefined): string {
+  if (status && status in TEAM_EVENT_CONTENT_STATUS_LABELS) {
+    return TEAM_EVENT_CONTENT_STATUS_LABELS[status as TeamEventContentStatus]
+  }
+  return TEAM_EVENT_CONTENT_STATUS_LABELS.PLANNED
+}
+
+function contentOwnerLabel(owner: string | null | undefined): string {
+  if (owner && owner in TEAM_EVENT_CONTENT_OWNER_LABELS) {
+    return TEAM_EVENT_CONTENT_OWNER_LABELS[owner as TeamEventContentOwner]
+  }
+  return TEAM_EVENT_CONTENT_OWNER_LABELS.physical_trainer
+}
+
 function inputDateValue(date: Date): string {
   const year = date.getFullYear()
   const month = `${date.getMonth() + 1}`.padStart(2, '0')
@@ -120,6 +149,9 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
   const [weekBase, setWeekBase] = useState(new Date())
   const [selectedEvent, setSelectedEvent] = useState<TeamEvent | null>(null)
   const [viewMode, setViewMode] = useState<'week' | 'planning'>('week')
+  const contentQueue = events
+    .filter(eventNeedsContent)
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
 
   const weekDates = getWeekDates(weekBase)
   const monthDates = getMonthDates(weekBase)
@@ -252,6 +284,34 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
         </div>
       </div>
 
+      {contentQueue.length > 0 && (
+        <div className="rounded-lg border bg-amber-50/70 p-3 text-amber-950">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold">Fys-pass som behöver innehåll</div>
+              <div className="text-xs text-amber-900/80">
+                {contentQueue.length} planerade pass saknar kopplat workout-innehåll.
+              </div>
+            </div>
+            <div className="flex max-w-full flex-wrap gap-2">
+              {contentQueue.slice(0, 6).map((event) => (
+                <button
+                  key={event.id}
+                  type="button"
+                  className="rounded-md border border-amber-300 bg-white/70 px-2.5 py-1.5 text-left text-xs shadow-sm hover:bg-white"
+                  onClick={() => setSelectedEvent(event)}
+                >
+                  <div className="font-medium">{event.title}</div>
+                  <div className="text-amber-900/75">
+                    {new Date(event.startDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} · {contentOwnerLabel(event.contentOwner)}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Calendar view */}
       {loading ? (
         <div className="space-y-2">
@@ -320,6 +380,11 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                             >
                               <span className={`mr-1 inline-block h-2 w-2 rounded-full ${typeConf.color}`} />
                               <span className="font-medium">{compactEventText(event)}</span>
+                              {eventNeedsContent(event) && (
+                                <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] text-amber-800">
+                                  {contentStatusLabel(event.contentStatus)}
+                                </span>
+                              )}
                             </button>
                           )
                         })}
@@ -418,6 +483,11 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                                 <Badge variant="outline" className="text-[10px] shrink-0">
                                   {typeConf.label}
                                 </Badge>
+                                {eventNeedsContent(event) && (
+                                  <Badge variant="outline" className="shrink-0 border-amber-300 bg-amber-50 text-[10px] text-amber-800">
+                                    {contentStatusLabel(event.contentStatus)}
+                                  </Badge>
+                                )}
                               </div>
                               <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                                 {!event.allDay && (
@@ -437,6 +507,11 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                               {descriptionLine && (
                                 <div className="text-xs text-muted-foreground mt-1 truncate">
                                   {descriptionLine}
+                                </div>
+                              )}
+                              {event.linkedWorkoutName && (
+                                <div className="text-xs text-muted-foreground mt-1 truncate">
+                                  Kopplat pass: {event.linkedWorkoutName}
                                 </div>
                               )}
                             </div>

@@ -40,6 +40,13 @@ model TeamEvent {
   type        String  @default("PRACTICE") // See lib/team-calendar/event-types.ts
   location    String?
 
+  // Content planning
+  contentStatus     String  @default("PLANNED") // PLANNED, NEEDS_CONTENT, CONTENT_READY
+  contentOwner      String? // coach, physical_trainer, physio, shared
+  linkedWorkoutType String? // STRENGTH, CARDIO, HYBRID, AGILITY
+  linkedWorkoutId   String?
+  linkedWorkoutName String?
+
   // Date/time
   startDate DateTime
   endDate   DateTime?
@@ -68,6 +75,7 @@ model TeamEvent {
 
   @@index([teamId, startDate])
   @@index([teamId, type])
+  @@index([teamId, contentStatus])
   @@index([createdById])
 }
 
