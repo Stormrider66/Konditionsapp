@@ -21,6 +21,7 @@ import {
   Clock,
   CheckCircle2,
 } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 interface WeeklyCheckInProps {
   onSubmit: (data: CheckInData) => Promise<void>
@@ -39,11 +40,11 @@ interface CheckInData {
 }
 
 const MEASUREMENT_TIMES = [
-  { value: 'MORNING_FASTED', label: 'Morgon (fastande)' },
-  { value: 'MORNING_AFTER_BATHROOM', label: 'Morgon (efter toalettbesök)' },
-  { value: 'EVENING', label: 'Kväll' },
-  { value: 'POST_WORKOUT', label: 'Efter träning' },
-  { value: 'OTHER', label: 'Annan tid' },
+  { value: 'MORNING_FASTED', labelKey: 'measurementTimes.morningFasted' },
+  { value: 'MORNING_AFTER_BATHROOM', labelKey: 'measurementTimes.morningAfterBathroom' },
+  { value: 'EVENING', labelKey: 'measurementTimes.evening' },
+  { value: 'POST_WORKOUT', labelKey: 'measurementTimes.postWorkout' },
+  { value: 'OTHER', labelKey: 'measurementTimes.other' },
 ]
 
 function InputWithIcon({
@@ -89,6 +90,8 @@ function InputWithIcon({
 }
 
 export function WeeklyCheckIn({ onSubmit, lastMeasurementDate, className }: WeeklyCheckInProps) {
+  const t = useTranslations('components.weeklyCheckIn')
+  const [now] = useState(() => Date.now())
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [formData, setFormData] = useState({
@@ -102,7 +105,7 @@ export function WeeklyCheckIn({ onSubmit, lastMeasurementDate, className }: Week
   })
 
   const daysSinceLastMeasurement = lastMeasurementDate
-    ? Math.floor((Date.now() - lastMeasurementDate.getTime()) / (1000 * 60 * 60 * 24))
+    ? Math.floor((now - lastMeasurementDate.getTime()) / (1000 * 60 * 60 * 24))
     : null
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -150,9 +153,9 @@ export function WeeklyCheckIn({ onSubmit, lastMeasurementDate, className }: Week
             <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
               <CheckCircle2 className="h-8 w-8 text-green-600" />
             </div>
-            <h3 className="font-semibold text-lg mb-1">Mätning sparad!</h3>
+            <h3 className="font-semibold text-lg mb-1">{t('successTitle')}</h3>
             <p className="text-muted-foreground">
-              Bra jobbat med att hålla koll på din progress.
+              {t('successDescription')}
             </p>
           </div>
         </CardContent>
@@ -165,19 +168,19 @@ export function WeeklyCheckIn({ onSubmit, lastMeasurementDate, className }: Week
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Scale className="h-5 w-5" />
-          Veckans check-in
+          {t('title')}
         </CardTitle>
         <CardDescription>
           {daysSinceLastMeasurement !== null ? (
             daysSinceLastMeasurement === 0 ? (
-              'Du har redan mätt idag'
+              t('lastMeasurement.today')
             ) : daysSinceLastMeasurement === 1 ? (
-              'Senaste mätning: igår'
+              t('lastMeasurement.yesterday')
             ) : (
-              `Senaste mätning: ${daysSinceLastMeasurement} dagar sedan`
+              t('lastMeasurement.daysAgo', { count: daysSinceLastMeasurement })
             )
           ) : (
-            'Logga din första mätning'
+            t('lastMeasurement.first')
           )}
         </CardDescription>
       </CardHeader>
@@ -185,7 +188,7 @@ export function WeeklyCheckIn({ onSubmit, lastMeasurementDate, className }: Week
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Date */}
           <div className="space-y-2">
-            <Label htmlFor="date">Datum</Label>
+            <Label htmlFor="date">{t('date')}</Label>
             <Input
               id="date"
               type="date"
@@ -198,7 +201,7 @@ export function WeeklyCheckIn({ onSubmit, lastMeasurementDate, className }: Week
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
-              Tid för mätning
+              {t('measurementTime')}
             </Label>
             <Select
               value={formData.measurementTime}
@@ -210,7 +213,7 @@ export function WeeklyCheckIn({ onSubmit, lastMeasurementDate, className }: Week
               <SelectContent>
                 {MEASUREMENT_TIMES.map((time) => (
                   <SelectItem key={time.value} value={time.value}>
-                    {time.label}
+                    {t(time.labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -221,7 +224,7 @@ export function WeeklyCheckIn({ onSubmit, lastMeasurementDate, className }: Week
           <div className="grid gap-4 sm:grid-cols-2">
             <InputWithIcon
               icon={Scale}
-              label="Vikt"
+              label={t('fields.weight')}
               value={formData.weightKg}
               onChange={(v) => setFormData(prev => ({ ...prev, weightKg: v }))}
               placeholder="82.5"
@@ -230,7 +233,7 @@ export function WeeklyCheckIn({ onSubmit, lastMeasurementDate, className }: Week
 
             <InputWithIcon
               icon={Percent}
-              label="Kroppsfett"
+              label={t('fields.bodyFat')}
               value={formData.bodyFatPercent}
               onChange={(v) => setFormData(prev => ({ ...prev, bodyFatPercent: v }))}
               placeholder="18.5"
@@ -239,7 +242,7 @@ export function WeeklyCheckIn({ onSubmit, lastMeasurementDate, className }: Week
 
             <InputWithIcon
               icon={Dumbbell}
-              label="Muskelmassa"
+              label={t('fields.muscleMass')}
               value={formData.muscleMassKg}
               onChange={(v) => setFormData(prev => ({ ...prev, muscleMassKg: v }))}
               placeholder="35.0"
@@ -248,7 +251,7 @@ export function WeeklyCheckIn({ onSubmit, lastMeasurementDate, className }: Week
 
             <InputWithIcon
               icon={Droplet}
-              label="Vattenhalt"
+              label={t('fields.water')}
               value={formData.waterPercent}
               onChange={(v) => setFormData(prev => ({ ...prev, waterPercent: v }))}
               placeholder="55.0"
@@ -258,28 +261,28 @@ export function WeeklyCheckIn({ onSubmit, lastMeasurementDate, className }: Week
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label htmlFor="notes">Anteckningar (valfritt)</Label>
+            <Label htmlFor="notes">{t('notesLabel')}</Label>
             <Textarea
               id="notes"
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="T.ex. Kände mig svullen idag, åt sent igår..."
+              placeholder={t('notesPlaceholder')}
               rows={2}
             />
           </div>
 
           {/* Tips */}
           <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-            <strong>Tips för konsekventa mätningar:</strong>
+            <strong>{t('tips.title')}</strong>
             <ul className="mt-1 space-y-0.5 list-disc list-inside">
-              <li>Mät samma tid varje vecka</li>
-              <li>Morgon före frukost ger mest konsekventa resultat</li>
-              <li>Undvik mätning direkt efter träning</li>
+              <li>{t('tips.sameTime')}</li>
+              <li>{t('tips.morning')}</li>
+              <li>{t('tips.avoidPostWorkout')}</li>
             </ul>
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Sparar...' : 'Spara mätning'}
+            {isLoading ? t('saving') : t('save')}
           </Button>
         </form>
       </CardContent>

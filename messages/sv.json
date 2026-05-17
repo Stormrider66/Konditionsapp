@@ -3042,6 +3042,42 @@
         "unknown": "Behöver mer data"
       }
     },
+    "weeklyCheckIn": {
+      "title": "Veckans check-in",
+      "successTitle": "Mätning sparad!",
+      "successDescription": "Bra jobbat med att hålla koll på din progress.",
+      "date": "Datum",
+      "measurementTime": "Tid för mätning",
+      "notesLabel": "Anteckningar (valfritt)",
+      "notesPlaceholder": "T.ex. Kände mig svullen idag, åt sent igår...",
+      "saving": "Sparar...",
+      "save": "Spara mätning",
+      "lastMeasurement": {
+        "today": "Du har redan mätt idag",
+        "yesterday": "Senaste mätning: igår",
+        "daysAgo": "Senaste mätning: {count, plural, =1 {# dag sedan} other {# dagar sedan}}",
+        "first": "Logga din första mätning"
+      },
+      "measurementTimes": {
+        "morningFasted": "Morgon (fastande)",
+        "morningAfterBathroom": "Morgon (efter toalettbesök)",
+        "evening": "Kväll",
+        "postWorkout": "Efter träning",
+        "other": "Annan tid"
+      },
+      "fields": {
+        "weight": "Vikt",
+        "bodyFat": "Kroppsfett",
+        "muscleMass": "Muskelmassa",
+        "water": "Vattenhalt"
+      },
+      "tips": {
+        "title": "Tips för konsekventa mätningar:",
+        "sameTime": "Mät samma tid varje vecka",
+        "morning": "Morgon före frukost ger mest konsekventa resultat",
+        "avoidPostWorkout": "Undvik mätning direkt efter träning"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

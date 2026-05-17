@@ -3042,6 +3042,42 @@
         "unknown": "Needs more data"
       }
     },
+    "weeklyCheckIn": {
+      "title": "Weekly check-in",
+      "successTitle": "Measurement saved!",
+      "successDescription": "Good job keeping track of your progress.",
+      "date": "Date",
+      "measurementTime": "Measurement time",
+      "notesLabel": "Notes (optional)",
+      "notesPlaceholder": "E.g. Felt bloated today, ate late yesterday...",
+      "saving": "Saving...",
+      "save": "Save measurement",
+      "lastMeasurement": {
+        "today": "You have already measured today",
+        "yesterday": "Last measurement: yesterday",
+        "daysAgo": "Last measurement: {count, plural, =1 {# day ago} other {# days ago}}",
+        "first": "Log your first measurement"
+      },
+      "measurementTimes": {
+        "morningFasted": "Morning (fasted)",
+        "morningAfterBathroom": "Morning (after bathroom)",
+        "evening": "Evening",
+        "postWorkout": "After training",
+        "other": "Other time"
+      },
+      "fields": {
+        "weight": "Weight",
+        "bodyFat": "Body fat",
+        "muscleMass": "Muscle mass",
+        "water": "Water percentage"
+      },
+      "tips": {
+        "title": "Tips for consistent measurements:",
+        "sameTime": "Measure at the same time every week",
+        "morning": "Morning before breakfast gives the most consistent results",
+        "avoidPostWorkout": "Avoid measuring directly after training"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",
