@@ -2380,6 +2380,179 @@
         "feeling": "Känsla"
       }
     },
+    "restDayHeroCard": {
+      "badges": {
+        "recentActivity": "Senaste pass",
+        "restDay": "Vilodag",
+        "openDay": "Öppen dag"
+      },
+      "messages": {
+        "recovery": {
+          "strategicRest": {
+            "title": "Strategisk Vila",
+            "description": "Kvalitetssömn och bra kost idag ger kraft till morgondagens träning."
+          },
+          "activeRecovery": {
+            "title": "Aktiv Återhämtning",
+            "description": "Lätt rörelse och stretching rekommenderas för optimal återhämtning."
+          },
+          "recharge": {
+            "title": "Ladda Batterierna",
+            "description": "Fokusera på hydration och näringsrik mat idag."
+          },
+          "mentalPrep": {
+            "title": "Mental Förberedelse",
+            "description": "Visualisera dina mål och kommande träningspass."
+          }
+        },
+        "open": {
+          "smartTraining": {
+            "title": "Bra läge för smart träning",
+            "description": "Du har inget schemalagt pass idag. Välj en insats som stärker kontinuiteten utan att störa återhämtningen."
+          },
+          "keepRhythm": {
+            "title": "Håll rytmen",
+            "description": "En lugn, kontrollerad aktivitet kan ge bra effekt även på dagar utan fast schema."
+          },
+          "capacity": {
+            "title": "Kapacitet att använda",
+            "description": "Din status ser stabil ut. Om du vill träna idag, välj kvalitet framför slumpmässig volym."
+          }
+        }
+      },
+      "descriptions": {
+        "swimming": "Bra sömn, bra mat och lugn rörlighet idag ger bättre kvalitet i nästa simpass.",
+        "cycling": "Ladda med sömn, energi och återhämtning i benen så att nästa cykelpass får rätt tryck.",
+        "triathlon": "Återhämta systematiskt idag så att du kan möta nästa disciplin med bättre kvalitet.",
+        "hyrox": "Ge kroppen en dag att återställa styrka, engine och grepp inför nästa HYROX-pass.",
+        "functional": "Återhämtning idag skapar bättre kvalitet i nästa pass med styrka, puls och teknik.",
+        "strength": "Bra återhämtning idag ger bättre kraftutveckling och kvalitet i nästa styrkepass.",
+        "skiing": "Kvalitetssömn och bra energi idag ger bättre tryck och teknik i nästa skidpass.",
+        "racket": "Lätt återhämtning idag ger bättre tajming, fotarbete och kvalitet i nästa racketpass.",
+        "team": "Återhämtning idag ger bättre explosivitet och kvalitet i nästa lagträning."
+      },
+      "hints": {
+        "rest": {
+          "low": {
+            "swimming": "Prioritera sömn, vätska och lätt rörlighet för axlar och bröstrygg så att du är fräsch till nästa simpass.",
+            "cycling": "Fokusera på återhämtning i ben, höfter och energiintag så att du är redo för nästa kvalitetspass på cykeln.",
+            "triathlon": "Låt kroppen absorbera belastningen idag. Enkel mobilitet och bra energi hjälper dig tillbaka starkare i alla tre disciplinerna.",
+            "functional": "Återhämtning i dag ger bättre kvalitet i nästa kombination av styrka och engine. Håll dig till lätt rörlighet och bra mat.",
+            "strength": "Ge nervsystem, muskler och leder tid att återhämta sig idag så att nästa styrkepass kan genomföras med kvalitet.",
+            "skiing": "Prioritera lugn återhämtning, bränsle och rörlighet för höfter, fotleder och överkropp inför nästa skidpass.",
+            "racket": "Återhämta underben, axlar och bål idag så att du får bättre kvalitet i nästa pass med riktningsförändringar och slag.",
+            "team": "Låt senor, muskler och nervsystem få återhämtning idag så att du kan vara snabb och explosiv nästa lagpass.",
+            "running": "Ge senor, vader och fötter lugn belastning idag så att du får bättre kvalitet i nästa löppass.",
+            "default": "Prioritera sömn, vätska och lätt rörlighet idag så att kroppen hinner absorbera träningen."
+          },
+          "normal": {
+            "swimming": "Använd vilodagen till att återställa axlar, rygg och energi så att nästa simpass får bättre kvalitet.",
+            "cycling": "Vilodagen hjälper benen att svara bättre på nästa tröskel-, VO2- eller distanspass på cykeln.",
+            "triathlon": "Återhämtning idag stärker din helhet över simning, cykel och löpning och gör nästa nyckelpass mer värdefullt.",
+            "hyrox": "Vilodagen låter styrka, engine och tålighet byggas upp inför nästa HYROX-pass.",
+            "functional": "Återhämtning idag förbättrar kvaliteten i nästa pass med styrka, puls och teknik.",
+            "strength": "Musklerna blir starkare när du återhämtar dig. En lugn dag idag höjer kvaliteten i nästa lyft.",
+            "skiing": "Vilodagen ger plats för bättre teknik och kraftutveckling i nästa skid- eller stakpass.",
+            "racket": "Återhämtning idag hjälper dig vara snabbare i fotarbete och skarpare i tajming nästa pass.",
+            "team": "Vilodagen ger bättre explosivitet, beslutsförmåga och tålighet till nästa lagträning.",
+            "running": "Dina muskler, senor och energisystem bygger kapacitet medan du vilar inför nästa löppass.",
+            "default": "Dina muskler anpassar sig och blir starkare medan du vilar."
+          }
+        },
+        "open": {
+          "low": "Din status talar för låg belastning idag. Välj rörlighet, lätt cirkulation eller teknik med låg stress.",
+          "high": {
+            "cycling": "Bra dag för ett kort kvalitetspass på cykel, kadensarbete eller ett kontrollerat tröskelblock.",
+            "swimming": "Bra dag för teknikserier, fartkänsla eller ett kort kvalitativt simpass.",
+            "triathlon": "Välj en tydlig disciplin idag, till exempel ett kort kvalitetspass eller övergångsarbete med kontroll.",
+            "functional": "Bra läge för teknik under puls, stationsarbete eller ett kort styrke- och engine-pass.",
+            "strength": "Bra dag för ett fokuserat styrkepass med kvalitet i huvudlyften eller kompletterande arbete.",
+            "skiing": "Bra dag för stakstyrka, teknikintervaller eller ett kort kvalitetspass på rullskidor/skierg.",
+            "racket": "Bra dag för fotarbete, riktningsförändringar och korta intensiva sekvenser med god kvalitet.",
+            "team": "Bra dag för accelerationer, teknik i matchsituationer eller ett kort styrke- och power-pass.",
+            "running": "Bra dag för strides, backteknik eller ett kort kvalitativt löppass om du vill hålla rytmen.",
+            "default": "Din status ser bra ut för ett kort kvalitativt pass, teknikblock eller fokuserad styrka."
+          },
+          "normal": {
+            "cycling": "En lugn distansrunda, teknik på trainer eller rörlighet för höft och fotled passar bra idag.",
+            "swimming": "Fokusera på teknik, vattenläge och lugn aerob volym om du vill träna idag.",
+            "triathlon": "En lugn disciplin i zon 1-2 eller teknikarbete ger bäst effekt utan att störa helheten.",
+            "functional": "Håll det enkelt idag: lätt engine, rörlighet och tekniskt rena repetitioner.",
+            "strength": "Teknikset, bålstabilitet och lätt kompletteringsstyrka passar bättre idag än hög belastning.",
+            "skiing": "Lugn aerob träning och teknikfokus ger mest värde idag.",
+            "racket": "Prioritera rörelsekvalitet, lättare slagvolym och skadeförebyggande arbete idag.",
+            "team": "Lätt fotarbete, mobilitet och skadeförebyggande arbete passar bättre än extra högintensiv volym idag.",
+            "running": "Lugn jogg, promenad eller löpskolning ger mer än att jaga extra belastning idag.",
+            "default": "Lågintensiv träning, teknikarbete eller rörlighet passar bäst idag."
+          }
+        }
+      },
+      "dates": {
+        "tomorrow": "Imorgon",
+        "dayAfterTomorrow": "I övermorgon"
+      },
+      "intensities": {
+        "easy": "Lätt",
+        "moderate": "Måttlig",
+        "threshold": "Tröskel",
+        "interval": "Intervall",
+        "max": "Max"
+      },
+      "stats": {
+        "duration": "Längd",
+        "distance": "Distans",
+        "heartRate": "Puls",
+        "load": "Belastning"
+      },
+      "actions": {
+        "createDailyWorkout": "Skapa Dagens Pass",
+        "remaining": "{count} kvar",
+        "viewCalendar": "Visa kalender"
+      },
+      "nextWorkout": "Nästa pass",
+      "aiWorkout": "AI-Pass",
+      "empty": "Inga kommande pass schemalagda",
+      "recentActivity": {
+        "title": "Senaste passet: {type}",
+        "descriptionNoMetrics": "Ditt senaste registrerade pass var {type}. Använd det som utgångspunkt för dagens beslut.",
+        "descriptionWithMetrics": "{metrics}. Det ger en bättre referens för hur resten av dagen bör disponeras.",
+        "hints": {
+          "lowReadiness": "Kroppen har redan fått belastning nyligen. Prioritera återhämtning, vätska och lågintensiv rörelse innan du lägger på mer.",
+          "highLoad": "Det senaste passet var belastande. Om du tränar igen idag, håll nästa insats kort, kontrollerad och kompletterande.",
+          "default": "Använd senaste passet som kompass. Om du väljer att träna igen idag, komplettera snarare än att duplicera belastningen."
+        },
+        "types": {
+          "running": "Löpning",
+          "cycling": "Cykel",
+          "swimming": "Simning",
+          "strength": "Styrka",
+          "crossTraining": "Alternativträning",
+          "skiing": "Skidträning",
+          "rowing": "Rodd",
+          "recovery": "Återhämtning",
+          "other": "Träning"
+        },
+        "sources": {
+          "manual": "Manuell",
+          "strava": "Strava",
+          "garmin": "Garmin Connect",
+          "concept2": "Concept2",
+          "ai": "AI-pass",
+          "adhoc": "Manuell logg"
+        }
+      },
+      "assignmentTypes": {
+        "strength": "Styrka",
+        "cardio": "Cardio",
+        "hybrid": "Hybrid",
+        "agility": "Agility"
+      },
+      "wodModes": {
+        "structured": "Strukturerat",
+        "casual": "Avslappnat",
+        "fun": "Bara kul!"
+      }
+    },
     "createAthleteAccountDialog": {
       "trigger": {
         "sendInvite": "Skicka inbjudan",

@@ -23,14 +23,13 @@ import { DashboardVisualLayer } from './DashboardVisualLayer'
 import { getRestDayVisual } from './dashboard-visuals'
 import type { WODResponse } from '@/types/wod'
 import type { DashboardRecentActivitySummary } from '@/types/dashboard-recent-activity'
+import { useLocale, useTranslations } from '@/i18n/client'
 import {
   DashboardItem,
   getAssignmentRoute,
-  getAssignmentTypeLabel,
   getAssignmentTypeIcon,
   getAssignmentTypeBadgeStyle,
   getWODRoute,
-  getWODModeLabel,
 } from '@/types/dashboard-items'
 
 interface RestDayHeroCardProps {
@@ -48,48 +47,41 @@ interface RestDayHeroCardProps {
 // Recovery messages based on readiness score
 const RECOVERY_MESSAGES = [
   {
-    title: 'Strategisk Vila',
-    description: 'Kvalitetssömn och bra kost idag ger kraft till morgondagens träning.',
-    tip: 'Dina muskler anpassar sig och blir starkare medan du vilar.',
+    titleKey: 'messages.recovery.strategicRest.title',
+    descriptionKey: 'messages.recovery.strategicRest.description',
     icon: Moon,
   },
   {
-    title: 'Aktiv Återhämtning',
-    description: 'Lätt rörelse och stretching rekommenderas för optimal återhämtning.',
-    tip: 'Foam rolling kan hjälpa med muskelstelhet.',
+    titleKey: 'messages.recovery.activeRecovery.title',
+    descriptionKey: 'messages.recovery.activeRecovery.description',
     icon: Heart,
   },
   {
-    title: 'Ladda Batterierna',
-    description: 'Fokusera på hydration och näringsrik mat idag.',
-    tip: 'Protein och kolhydrater hjälper muskelåterhämtning.',
+    titleKey: 'messages.recovery.recharge.title',
+    descriptionKey: 'messages.recovery.recharge.description',
     icon: Battery,
   },
   {
-    title: 'Mental Förberedelse',
-    description: 'Visualisera dina mål och kommande träningspass.',
-    tip: 'Mental träning är lika viktig som fysisk.',
+    titleKey: 'messages.recovery.mentalPrep.title',
+    descriptionKey: 'messages.recovery.mentalPrep.description',
     icon: Sparkles,
   },
 ]
 
 const OPEN_DAY_MESSAGES = [
   {
-    title: 'Bra läge för smart träning',
-    description: 'Du har inget schemalagt pass idag. Välj en insats som stärker kontinuiteten utan att störa återhämtningen.',
-    tip: 'Prioritera ett pass som matchar din nuvarande energi och din långsiktiga profil.',
+    titleKey: 'messages.open.smartTraining.title',
+    descriptionKey: 'messages.open.smartTraining.description',
     icon: Sparkles,
   },
   {
-    title: 'Håll rytmen',
-    description: 'En lugn, kontrollerad aktivitet kan ge bra effekt även på dagar utan fast schema.',
-    tip: '20-40 minuter lätt arbete, teknik eller rörlighet räcker långt.',
+    titleKey: 'messages.open.keepRhythm.title',
+    descriptionKey: 'messages.open.keepRhythm.description',
     icon: Heart,
   },
   {
-    title: 'Kapacitet att använda',
-    description: 'Din status ser stabil ut. Om du vill träna idag, välj kvalitet framför slumpmässig volym.',
-    tip: 'Korta kvalitetspass, drills eller styrka med god teknik ger bäst utväxling.',
+    titleKey: 'messages.open.capacity.title',
+    descriptionKey: 'messages.open.capacity.description',
     icon: Zap,
   },
 ]
@@ -116,105 +108,105 @@ function getRecoveryMessage(readinessScore: number | null) {
   return RECOVERY_MESSAGES[0]
 }
 
-function getSportAwareRestDayHint(sportType: string | undefined, readinessScore: number | null): string {
+function getSportAwareRestDayHintKey(sportType: string | undefined, readinessScore: number | null): string {
   if (readinessScore !== null && readinessScore < 5) {
     switch (sportType) {
       case 'SWIMMING':
-        return 'Prioritera sömn, vätska och lätt rörlighet för axlar och bröstrygg så att du är fräsch till nästa simpass.'
+        return 'hints.rest.low.swimming'
       case 'CYCLING':
-        return 'Fokusera på återhämtning i ben, höfter och energiintag så att du är redo för nästa kvalitetspass på cykeln.'
+        return 'hints.rest.low.cycling'
       case 'TRIATHLON':
-        return 'Låt kroppen absorbera belastningen idag. Enkel mobilitet och bra energi hjälper dig tillbaka starkare i alla tre disciplinerna.'
+        return 'hints.rest.low.triathlon'
       case 'HYROX':
       case 'FUNCTIONAL_FITNESS':
       case 'GENERAL_FITNESS':
-        return 'Återhämtning i dag ger bättre kvalitet i nästa kombination av styrka och engine. Håll dig till lätt rörlighet och bra mat.'
+        return 'hints.rest.low.functional'
       case 'STRENGTH':
-        return 'Ge nervsystem, muskler och leder tid att återhämta sig idag så att nästa styrkepass kan genomföras med kvalitet.'
+        return 'hints.rest.low.strength'
       case 'SKIING':
-        return 'Prioritera lugn återhämtning, bränsle och rörlighet för höfter, fotleder och överkropp inför nästa skidpass.'
+        return 'hints.rest.low.skiing'
       case 'TENNIS':
       case 'PADEL':
-        return 'Återhämta underben, axlar och bål idag så att du får bättre kvalitet i nästa pass med riktningsförändringar och slag.'
+        return 'hints.rest.low.racket'
       case 'TEAM_FOOTBALL':
       case 'TEAM_ICE_HOCKEY':
       case 'TEAM_HANDBALL':
       case 'TEAM_FLOORBALL':
       case 'TEAM_BASKETBALL':
       case 'TEAM_VOLLEYBALL':
-        return 'Låt senor, muskler och nervsystem få återhämtning idag så att du kan vara snabb och explosiv nästa lagpass.'
+        return 'hints.rest.low.team'
       case 'RUNNING':
-        return 'Ge senor, vader och fötter lugn belastning idag så att du får bättre kvalitet i nästa löppass.'
+        return 'hints.rest.low.running'
       default:
-        return 'Prioritera sömn, vätska och lätt rörlighet idag så att kroppen hinner absorbera träningen.'
+        return 'hints.rest.low.default'
     }
   }
 
   switch (sportType) {
     case 'SWIMMING':
-      return 'Använd vilodagen till att återställa axlar, rygg och energi så att nästa simpass får bättre kvalitet.'
+      return 'hints.rest.normal.swimming'
     case 'CYCLING':
-      return 'Vilodagen hjälper benen att svara bättre på nästa tröskel-, VO2- eller distanspass på cykeln.'
+      return 'hints.rest.normal.cycling'
     case 'TRIATHLON':
-      return 'Återhämtning idag stärker din helhet över simning, cykel och löpning och gör nästa nyckelpass mer värdefullt.'
+      return 'hints.rest.normal.triathlon'
     case 'HYROX':
-      return 'Vilodagen låter styrka, engine och tålighet byggas upp inför nästa HYROX-pass.'
+      return 'hints.rest.normal.hyrox'
     case 'FUNCTIONAL_FITNESS':
     case 'GENERAL_FITNESS':
-      return 'Återhämtning idag förbättrar kvaliteten i nästa pass med styrka, puls och teknik.'
+      return 'hints.rest.normal.functional'
     case 'STRENGTH':
-      return 'Musklerna blir starkare när du återhämtar dig. En lugn dag idag höjer kvaliteten i nästa lyft.'
+      return 'hints.rest.normal.strength'
     case 'SKIING':
-      return 'Vilodagen ger plats för bättre teknik och kraftutveckling i nästa skid- eller stakpass.'
+      return 'hints.rest.normal.skiing'
     case 'TENNIS':
     case 'PADEL':
-      return 'Återhämtning idag hjälper dig vara snabbare i fotarbete och skarpare i tajming nästa pass.'
+      return 'hints.rest.normal.racket'
     case 'TEAM_FOOTBALL':
     case 'TEAM_ICE_HOCKEY':
     case 'TEAM_HANDBALL':
     case 'TEAM_FLOORBALL':
     case 'TEAM_BASKETBALL':
     case 'TEAM_VOLLEYBALL':
-      return 'Vilodagen ger bättre explosivitet, beslutsförmåga och tålighet till nästa lagträning.'
+      return 'hints.rest.normal.team'
     case 'RUNNING':
-      return 'Dina muskler, senor och energisystem bygger kapacitet medan du vilar inför nästa löppass.'
+      return 'hints.rest.normal.running'
     default:
-      return 'Dina muskler anpassar sig och blir starkare medan du vilar.'
+      return 'hints.rest.normal.default'
   }
 }
 
-function getSportAwareRestDayDescription(
+function getSportAwareRestDayDescriptionKey(
   sportType: string | undefined,
-  fallbackDescription: string
+  fallbackDescriptionKey: string
 ): string {
   switch (sportType) {
     case 'SWIMMING':
-      return 'Bra sömn, bra mat och lugn rörlighet idag ger bättre kvalitet i nästa simpass.'
+      return 'descriptions.swimming'
     case 'CYCLING':
-      return 'Ladda med sömn, energi och återhämtning i benen så att nästa cykelpass får rätt tryck.'
+      return 'descriptions.cycling'
     case 'TRIATHLON':
-      return 'Återhämta systematiskt idag så att du kan möta nästa disciplin med bättre kvalitet.'
+      return 'descriptions.triathlon'
     case 'HYROX':
-      return 'Ge kroppen en dag att återställa styrka, engine och grepp inför nästa HYROX-pass.'
+      return 'descriptions.hyrox'
     case 'FUNCTIONAL_FITNESS':
     case 'GENERAL_FITNESS':
-      return 'Återhämtning idag skapar bättre kvalitet i nästa pass med styrka, puls och teknik.'
+      return 'descriptions.functional'
     case 'STRENGTH':
-      return 'Bra återhämtning idag ger bättre kraftutveckling och kvalitet i nästa styrkepass.'
+      return 'descriptions.strength'
     case 'SKIING':
-      return 'Kvalitetssömn och bra energi idag ger bättre tryck och teknik i nästa skidpass.'
+      return 'descriptions.skiing'
     case 'TENNIS':
     case 'PADEL':
-      return 'Lätt återhämtning idag ger bättre tajming, fotarbete och kvalitet i nästa racketpass.'
+      return 'descriptions.racket'
     case 'TEAM_FOOTBALL':
     case 'TEAM_ICE_HOCKEY':
     case 'TEAM_HANDBALL':
     case 'TEAM_FLOORBALL':
     case 'TEAM_BASKETBALL':
     case 'TEAM_VOLLEYBALL':
-      return 'Återhämtning idag ger bättre explosivitet och kvalitet i nästa lagträning.'
+      return 'descriptions.team'
     default:
-      return fallbackDescription
+      return fallbackDescriptionKey
   }
 }
 
@@ -251,80 +243,62 @@ function renderBadgeIcon(hasRecentActivity: boolean, mode: RestDayHeroCardProps[
   return <Sparkles className={className} />
 }
 
-function getSportAwareOpenDayHint(sportType: string | undefined, readinessScore: number | null): string {
+function getSportAwareOpenDayHintKey(sportType: string | undefined, readinessScore: number | null): string {
   if (readinessScore !== null && readinessScore < 5) {
-    return 'Din status talar för låg belastning idag. Välj rörlighet, lätt cirkulation eller teknik med låg stress.'
+    return 'hints.open.low'
   }
 
+  const isHighReadiness = readinessScore !== null && readinessScore >= 7
   switch (sportType) {
     case 'CYCLING':
-      return readinessScore !== null && readinessScore >= 7
-        ? 'Bra dag för ett kort kvalitetspass på cykel, kadensarbete eller ett kontrollerat tröskelblock.'
-        : 'En lugn distansrunda, teknik på trainer eller rörlighet för höft och fotled passar bra idag.'
+      return isHighReadiness ? 'hints.open.high.cycling' : 'hints.open.normal.cycling'
     case 'SWIMMING':
-      return readinessScore !== null && readinessScore >= 7
-        ? 'Bra dag för teknikserier, fartkänsla eller ett kort kvalitativt simpass.'
-        : 'Fokusera på teknik, vattenläge och lugn aerob volym om du vill träna idag.'
+      return isHighReadiness ? 'hints.open.high.swimming' : 'hints.open.normal.swimming'
     case 'TRIATHLON':
-      return readinessScore !== null && readinessScore >= 7
-        ? 'Välj en tydlig disciplin idag, till exempel ett kort kvalitetspass eller övergångsarbete med kontroll.'
-        : 'En lugn disciplin i zon 1-2 eller teknikarbete ger bäst effekt utan att störa helheten.'
+      return isHighReadiness ? 'hints.open.high.triathlon' : 'hints.open.normal.triathlon'
     case 'HYROX':
     case 'FUNCTIONAL_FITNESS':
     case 'GENERAL_FITNESS':
-      return readinessScore !== null && readinessScore >= 7
-        ? 'Bra läge för teknik under puls, stationsarbete eller ett kort styrke- och engine-pass.'
-        : 'Håll det enkelt idag: lätt engine, rörlighet och tekniskt rena repetitioner.'
+      return isHighReadiness ? 'hints.open.high.functional' : 'hints.open.normal.functional'
     case 'STRENGTH':
-      return readinessScore !== null && readinessScore >= 7
-        ? 'Bra dag för ett fokuserat styrkepass med kvalitet i huvudlyften eller kompletterande arbete.'
-        : 'Teknikset, bålstabilitet och lätt kompletteringsstyrka passar bättre idag än hög belastning.'
+      return isHighReadiness ? 'hints.open.high.strength' : 'hints.open.normal.strength'
     case 'SKIING':
-      return readinessScore !== null && readinessScore >= 7
-        ? 'Bra dag för stakstyrka, teknikintervaller eller ett kort kvalitetspass på rullskidor/skierg.'
-        : 'Lugn aerob träning och teknikfokus ger mest värde idag.'
+      return isHighReadiness ? 'hints.open.high.skiing' : 'hints.open.normal.skiing'
     case 'TENNIS':
     case 'PADEL':
-      return readinessScore !== null && readinessScore >= 7
-        ? 'Bra dag för fotarbete, riktningsförändringar och korta intensiva sekvenser med god kvalitet.'
-        : 'Prioritera rörelsekvalitet, lättare slagvolym och skadeförebyggande arbete idag.'
+      return isHighReadiness ? 'hints.open.high.racket' : 'hints.open.normal.racket'
     case 'TEAM_FOOTBALL':
     case 'TEAM_ICE_HOCKEY':
     case 'TEAM_HANDBALL':
     case 'TEAM_FLOORBALL':
     case 'TEAM_BASKETBALL':
     case 'TEAM_VOLLEYBALL':
-      return readinessScore !== null && readinessScore >= 7
-        ? 'Bra dag för accelerationer, teknik i matchsituationer eller ett kort styrke- och power-pass.'
-        : 'Lätt fotarbete, mobilitet och skadeförebyggande arbete passar bättre än extra högintensiv volym idag.'
+      return isHighReadiness ? 'hints.open.high.team' : 'hints.open.normal.team'
     case 'RUNNING':
-      return readinessScore !== null && readinessScore >= 7
-        ? 'Bra dag för strides, backteknik eller ett kort kvalitativt löppass om du vill hålla rytmen.'
-        : 'Lugn jogg, promenad eller löpskolning ger mer än att jaga extra belastning idag.'
+      return isHighReadiness ? 'hints.open.high.running' : 'hints.open.normal.running'
     default:
-      return readinessScore !== null && readinessScore >= 7
-        ? 'Din status ser bra ut för ett kort kvalitativt pass, teknikblock eller fokuserad styrka.'
-        : 'Lågintensiv träning, teknikarbete eller rörlighet passar bäst idag.'
+      return isHighReadiness ? 'hints.open.high.default' : 'hints.open.normal.default'
   }
 }
 
 // Format date for next workout display (absolute format, hydration-safe)
-function formatNextWorkoutDate(date: Date): string {
-  const workoutDate = new Date(date)
-  const dayNames = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag']
-  const monthNames = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec']
-  return `${dayNames[workoutDate.getDay()]} ${workoutDate.getDate()} ${monthNames[workoutDate.getMonth()]}`
+function formatNextWorkoutDate(date: Date, locale: string): string {
+  return new Intl.DateTimeFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(date))
 }
 
 // Relative date label (client-only, uses current time)
-function getRelativeDateLabel(date: Date): string | null {
+function getRelativeDateLabel(date: Date, tr: (key: string) => string): string | null {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const workoutDate = new Date(date)
   workoutDate.setHours(0, 0, 0, 0)
   const diffDays = Math.round((workoutDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-  if (diffDays === 1) return 'Imorgon'
-  if (diffDays === 2) return 'I övermorgon'
+  if (diffDays === 1) return tr('dates.tomorrow')
+  if (diffDays === 2) return tr('dates.dayAfterTomorrow')
   return null
 }
 
@@ -341,16 +315,16 @@ function getIntensityBadgeStyle(intensity: string): string {
   return styles[intensity] || 'bg-slate-500/10 border-slate-500/20 text-slate-400'
 }
 
-function formatIntensity(intensity: string): string {
-  const intensities: Record<string, string> = {
-    RECOVERY: 'Lätt',
-    EASY: 'Lätt',
-    MODERATE: 'Måttlig',
-    THRESHOLD: 'Tröskel',
-    INTERVAL: 'Intervall',
-    MAX: 'Max',
+function formatIntensity(intensity: string, tr: (key: string) => string): string {
+  const intensityKeys: Record<string, string> = {
+    RECOVERY: 'intensities.easy',
+    EASY: 'intensities.easy',
+    MODERATE: 'intensities.moderate',
+    THRESHOLD: 'intensities.threshold',
+    INTERVAL: 'intensities.interval',
+    MAX: 'intensities.max',
   }
-  return intensities[intensity] || intensity
+  return intensityKeys[intensity] ? tr(intensityKeys[intensity]) : intensity
 }
 
 export function RestDayHeroCard({
@@ -363,22 +337,25 @@ export function RestDayHeroCard({
   sportType,
   recentActivity,
 }: RestDayHeroCardProps) {
+  const t = useTranslations('components.restDayHeroCard')
+  const locale = useLocale()
+  const tr = t as (key: string, values?: Record<string, unknown>) => string
   const message = useMemo(
     () => mode === 'rest-day' ? getRecoveryMessage(readinessScore) : getOpenDayMessage(readinessScore),
     [mode, readinessScore]
   )
   const hasRecentActivity = !!recentActivity
-  const badgeLabel = hasRecentActivity ? 'Senaste pass' : mode === 'rest-day' ? 'Vilodag' : 'Öppen dag'
+  const badgeLabel = hasRecentActivity ? t('badges.recentActivity') : mode === 'rest-day' ? t('badges.restDay') : t('badges.openDay')
   const description = hasRecentActivity
-    ? buildRecentActivityDescription(recentActivity)
+    ? buildRecentActivityDescription(recentActivity, tr)
     : mode === 'rest-day'
-      ? getSportAwareRestDayDescription(sportType, message.description)
-      : message.description
+      ? tr(getSportAwareRestDayDescriptionKey(sportType, message.descriptionKey))
+      : tr(message.descriptionKey)
   const contextualHint = hasRecentActivity
-    ? getRecentActivityHint(recentActivity, readinessScore)
+    ? getRecentActivityHint(recentActivity, readinessScore, tr)
     : mode === 'open-day'
-      ? getSportAwareOpenDayHint(sportType, readinessScore)
-      : getSportAwareRestDayHint(sportType, readinessScore)
+      ? tr(getSportAwareOpenDayHintKey(sportType, readinessScore))
+      : tr(getSportAwareRestDayHintKey(sportType, readinessScore))
   const visual = getRestDayVisual({
     mode,
     sportType,
@@ -397,8 +374,8 @@ export function RestDayHeroCard({
       : nextItem.kind === 'assignment'
         ? nextItem.assignedDate
         : nextItem.createdAt
-    return getRelativeDateLabel(date)
-  }, [isHydrated, nextItem])
+    return getRelativeDateLabel(date, tr)
+  }, [isHydrated, nextItem, tr])
 
   // WOD state
   const [showWODModal, setShowWODModal] = useState(false)
@@ -467,7 +444,7 @@ export function RestDayHeroCard({
             </div>
             <div>
               <h2 className="text-2xl md:text-3xl font-bold text-slate-950 dark:text-white mb-2 transition-colors">
-                {hasRecentActivity ? buildRecentActivityTitle(recentActivity) : message.title}
+                {hasRecentActivity ? buildRecentActivityTitle(recentActivity, tr) : tr(message.titleKey)}
               </h2>
               <p className="text-slate-600 dark:text-slate-200 max-w-md text-sm md:text-base transition-colors">
                 {description}
@@ -478,10 +455,10 @@ export function RestDayHeroCard({
           {recentActivity && (
             <div className="mb-4 flex flex-wrap gap-2">
               <Badge variant="secondary" className="bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15">
-                {formatRecentActivitySource(recentActivity.source)}
+                {formatRecentActivitySource(recentActivity.source, tr)}
               </Badge>
               <Badge variant="secondary" className="bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15">
-                {formatRecentActivityDate(recentActivity.date)}
+                {formatRecentActivityDate(recentActivity.date, locale)}
               </Badge>
               {recentActivity.deviceModel ? (
                 <Badge variant="secondary" className="bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15">
@@ -496,7 +473,7 @@ export function RestDayHeroCard({
               {recentActivity.durationMinutes ? (
                 <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
-                    Längd
+                    {t('stats.duration')}
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
                     <Timer className="h-4 w-4 text-cyan-500" />
@@ -507,7 +484,7 @@ export function RestDayHeroCard({
               {recentActivity.distanceKm ? (
                 <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
-                    Distans
+                    {t('stats.distance')}
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
                     <Route className="h-4 w-4 text-cyan-500" />
@@ -518,7 +495,7 @@ export function RestDayHeroCard({
               {recentActivity.avgHR ? (
                 <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
-                    Puls
+                    {t('stats.heartRate')}
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
                     <Heart className="h-4 w-4 text-cyan-500" />
@@ -529,7 +506,7 @@ export function RestDayHeroCard({
               {recentActivity.tss ? (
                 <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
-                    Belastning
+                    {t('stats.load')}
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
                     <Zap className="h-4 w-4 text-cyan-500" />
@@ -556,10 +533,10 @@ export function RestDayHeroCard({
               className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0 shadow-lg shadow-orange-500/20"
             >
               <Zap className="w-4 h-4 mr-2" />
-              Skapa Dagens Pass
+              {t('actions.createDailyWorkout')}
               {!wodIsUnlimited && (
                 <Badge variant="secondary" className="ml-2 bg-white/20 text-white text-xs">
-                  {wodRemainingCount} kvar
+                  {t('actions.remaining', { count: wodRemainingCount })}
                 </Badge>
               )}
             </Button>
@@ -571,7 +548,7 @@ export function RestDayHeroCard({
           <div className="mt-6 pt-6 border-t border-slate-200/80 dark:border-white/10 transition-colors">
             <h3 className="text-sm font-medium text-slate-500 dark:text-slate-300/80 mb-3 flex items-center gap-2 transition-colors">
               <Calendar className="w-4 h-4" />
-              Nästa pass
+              {t('nextWorkout')}
             </h3>
 
             <Link href={`${basePath}/athlete/workouts/${nextItem.workout.id}`}>
@@ -580,10 +557,10 @@ export function RestDayHeroCard({
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <span className="text-xs text-orange-300 font-medium transition-colors">
-                        {relativeDateLabel || formatNextWorkoutDate(nextItem.workout.dayDate)}
+                        {relativeDateLabel || formatNextWorkoutDate(nextItem.workout.dayDate, locale)}
                       </span>
                       <span className={`px-2 py-0.5 rounded text-xs border ${getIntensityBadgeStyle(nextItem.workout.intensity)}`}>
-                        {formatIntensity(nextItem.workout.intensity)}
+                        {formatIntensity(nextItem.workout.intensity, tr)}
                       </span>
                     </div>
                     <h4 className="font-semibold text-slate-950 dark:text-white truncate group-hover/next:text-orange-700 dark:group-hover/next:text-orange-200 transition-colors">
@@ -618,7 +595,7 @@ export function RestDayHeroCard({
             <div className="mt-6 pt-6 border-t border-slate-200/80 dark:border-white/10 transition-colors">
               <h3 className="text-sm font-medium text-slate-500 dark:text-slate-300/80 mb-3 flex items-center gap-2 transition-colors">
                 <Calendar className="w-4 h-4" />
-                Nästa pass
+                {t('nextWorkout')}
               </h3>
 
               <Link href={getAssignmentRoute(nextItem, basePath)}>
@@ -627,11 +604,11 @@ export function RestDayHeroCard({
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <span className="text-xs text-orange-300 font-medium transition-colors">
-                          {relativeDateLabel || formatNextWorkoutDate(nextItem.assignedDate)}
+                          {relativeDateLabel || formatNextWorkoutDate(nextItem.assignedDate, locale)}
                         </span>
                         <span className={`px-2 py-0.5 rounded text-xs border inline-flex items-center gap-1 ${nextBadgeStyle}`}>
                           <NextTypeIcon className="w-3 h-3" />
-                          {getAssignmentTypeLabel(nextItem.assignmentType)}
+                          {formatAssignmentType(nextItem.assignmentType, tr)}
                         </span>
                       </div>
                       <h4 className="font-semibold text-slate-950 dark:text-white truncate group-hover/next:text-orange-700 dark:group-hover/next:text-orange-200 transition-colors">
@@ -658,7 +635,7 @@ export function RestDayHeroCard({
           <div className="mt-6 pt-6 border-t border-slate-200/80 dark:border-white/10 transition-colors">
             <h3 className="text-sm font-medium text-slate-500 dark:text-slate-300/80 mb-3 flex items-center gap-2 transition-colors">
               <Calendar className="w-4 h-4" />
-              Nästa pass
+              {t('nextWorkout')}
             </h3>
 
             <Link href={getWODRoute(nextItem, basePath)}>
@@ -667,18 +644,18 @@ export function RestDayHeroCard({
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <span className="text-xs text-emerald-300 font-medium transition-colors">
-                        {relativeDateLabel || formatNextWorkoutDate(nextItem.createdAt)}
+                        {relativeDateLabel || formatNextWorkoutDate(nextItem.createdAt, locale)}
                       </span>
                       <span className="px-2 py-0.5 rounded text-xs border bg-emerald-500/10 border-emerald-500/20 text-emerald-400 inline-flex items-center gap-1">
                         <Sparkles className="w-3 h-3" />
-                        AI-Pass
+                        {t('aiWorkout')}
                       </span>
                     </div>
                     <h4 className="font-semibold text-slate-950 dark:text-white truncate group-hover/next:text-emerald-700 dark:group-hover/next:text-emerald-200 transition-colors">
                       {nextItem.title}
                     </h4>
                     <p className="text-sm text-slate-500 dark:text-slate-300 truncate">
-                      {getWODModeLabel(nextItem.mode)}
+                      {formatWODMode(nextItem.mode, tr)}
                     </p>
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-500 dark:text-slate-300 group-hover/next:text-emerald-700 dark:group-hover/next:text-emerald-200 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
@@ -696,7 +673,7 @@ export function RestDayHeroCard({
         {!nextItem && (
           <div className="mt-6 pt-6 border-t border-slate-200/80 dark:border-white/10 transition-colors">
             <p className="text-sm text-slate-500 dark:text-slate-300 text-center">
-              Inga kommande pass schemalagda
+              {t('empty')}
             </p>
             <Link href={`${basePath}/athlete/calendar`}>
               <Button
@@ -704,7 +681,7 @@ export function RestDayHeroCard({
                 className="w-full mt-3 border-slate-300 bg-white/70 text-slate-900 hover:bg-white hover:border-slate-400 dark:border-white/20 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:hover:border-white/30 transition-all"
               >
                 <Calendar className="w-4 h-4 mr-2" />
-                Visa kalender
+                {t('actions.viewCalendar')}
               </Button>
             </Link>
           </div>
@@ -723,12 +700,17 @@ export function RestDayHeroCard({
   )
 }
 
-function buildRecentActivityTitle(activity: DashboardRecentActivitySummary): string {
-  const label = formatRecentActivityType(activity.type)
-  return `Senaste passet: ${label}`
+function buildRecentActivityTitle(
+  activity: DashboardRecentActivitySummary,
+  tr: (key: string, values?: Record<string, unknown>) => string
+): string {
+  return tr('recentActivity.title', { type: formatRecentActivityType(activity.type, tr) })
 }
 
-function buildRecentActivityDescription(activity: DashboardRecentActivitySummary): string {
+function buildRecentActivityDescription(
+  activity: DashboardRecentActivitySummary,
+  tr: (key: string, values?: Record<string, unknown>) => string
+): string {
   const metrics = [
     activity.durationMinutes ? `${activity.durationMinutes} min` : null,
     activity.distanceKm ? `${activity.distanceKm} km` : null,
@@ -737,56 +719,84 @@ function buildRecentActivityDescription(activity: DashboardRecentActivitySummary
   ].filter(Boolean)
 
   if (metrics.length === 0) {
-    return `Ditt senaste registrerade pass var ${formatRecentActivityType(activity.type).toLowerCase()}. Använd det som utgångspunkt för dagens beslut.`
+    return tr('recentActivity.descriptionNoMetrics', {
+      type: formatRecentActivityType(activity.type, tr).toLowerCase(),
+    })
   }
 
-  return `${metrics.join(' • ')}. Det ger en bättre referens för hur resten av dagen bör disponeras.`
+  return tr('recentActivity.descriptionWithMetrics', { metrics: metrics.join(' • ') })
 }
 
-function getRecentActivityHint(activity: DashboardRecentActivitySummary, readinessScore: number | null): string {
+function getRecentActivityHint(
+  activity: DashboardRecentActivitySummary,
+  readinessScore: number | null,
+  tr: (key: string) => string
+): string {
   if (readinessScore !== null && readinessScore < 5) {
-    return 'Kroppen har redan fått belastning nyligen. Prioritera återhämtning, vätska och lågintensiv rörelse innan du lägger på mer.'
+    return tr('recentActivity.hints.lowReadiness')
   }
 
   if ((activity.tss || 0) >= 70) {
-    return 'Det senaste passet var belastande. Om du tränar igen idag, håll nästa insats kort, kontrollerad och kompletterande.'
+    return tr('recentActivity.hints.highLoad')
   }
 
-  return 'Använd senaste passet som kompass. Om du väljer att träna igen idag, komplettera snarare än att duplicera belastningen.'
+  return tr('recentActivity.hints.default')
 }
 
-function formatRecentActivityType(type: string): string {
-  const labels: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykel',
-    SWIMMING: 'Simning',
-    STRENGTH: 'Styrka',
-    CROSS_TRAINING: 'Alternativträning',
-    SKIING: 'Skidträning',
-    ROWING: 'Rodd',
-    RECOVERY: 'Återhämtning',
-    OTHER: 'Träning',
+function formatRecentActivityType(type: string, tr: (key: string) => string): string {
+  const labelKeys: Record<string, string> = {
+    RUNNING: 'recentActivity.types.running',
+    CYCLING: 'recentActivity.types.cycling',
+    SWIMMING: 'recentActivity.types.swimming',
+    STRENGTH: 'recentActivity.types.strength',
+    CROSS_TRAINING: 'recentActivity.types.crossTraining',
+    SKIING: 'recentActivity.types.skiing',
+    ROWING: 'recentActivity.types.rowing',
+    RECOVERY: 'recentActivity.types.recovery',
+    OTHER: 'recentActivity.types.other',
   }
-  return labels[type] || type.replace(/_/g, ' ').toLowerCase()
+  return labelKeys[type] ? tr(labelKeys[type]) : type.replace(/_/g, ' ').toLowerCase()
 }
 
-function formatRecentActivitySource(source: DashboardRecentActivitySummary['source']): string {
-  const labels: Record<DashboardRecentActivitySummary['source'], string> = {
-    manual: 'Manuell',
-    strava: 'Strava',
-    garmin: 'Garmin Connect',
-    concept2: 'Concept2',
-    ai: 'AI-pass',
-    adhoc: 'Manuell logg',
+function formatRecentActivitySource(
+  source: DashboardRecentActivitySummary['source'],
+  tr: (key: string) => string
+): string {
+  const labelKeys: Record<DashboardRecentActivitySummary['source'], string> = {
+    manual: 'recentActivity.sources.manual',
+    strava: 'recentActivity.sources.strava',
+    garmin: 'recentActivity.sources.garmin',
+    concept2: 'recentActivity.sources.concept2',
+    ai: 'recentActivity.sources.ai',
+    adhoc: 'recentActivity.sources.adhoc',
   }
-  return labels[source]
+  return tr(labelKeys[source])
 }
 
-function formatRecentActivityDate(date: Date): string {
-  return new Intl.DateTimeFormat('sv-SE', {
+function formatRecentActivityDate(date: Date, locale: string): string {
+  return new Intl.DateTimeFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(date))
+}
+
+function formatAssignmentType(type: string, tr: (key: string) => string): string {
+  switch (type) {
+    case 'strength': return tr('assignmentTypes.strength')
+    case 'cardio': return tr('assignmentTypes.cardio')
+    case 'hybrid': return tr('assignmentTypes.hybrid')
+    case 'agility': return tr('assignmentTypes.agility')
+    default: return type
+  }
+}
+
+function formatWODMode(mode: string, tr: (key: string) => string): string {
+  switch (mode) {
+    case 'STRUCTURED': return tr('wodModes.structured')
+    case 'CASUAL': return tr('wodModes.casual')
+    case 'FUN': return tr('wodModes.fun')
+    default: return mode
+  }
 }

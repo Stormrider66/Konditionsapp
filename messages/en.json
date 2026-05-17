@@ -2380,6 +2380,179 @@
         "feeling": "Feeling"
       }
     },
+    "restDayHeroCard": {
+      "badges": {
+        "recentActivity": "Latest workout",
+        "restDay": "Rest day",
+        "openDay": "Open day"
+      },
+      "messages": {
+        "recovery": {
+          "strategicRest": {
+            "title": "Strategic Rest",
+            "description": "Quality sleep and good nutrition today power tomorrow's training."
+          },
+          "activeRecovery": {
+            "title": "Active Recovery",
+            "description": "Light movement and stretching are recommended for optimal recovery."
+          },
+          "recharge": {
+            "title": "Recharge",
+            "description": "Focus on hydration and nutrient-dense food today."
+          },
+          "mentalPrep": {
+            "title": "Mental Preparation",
+            "description": "Visualize your goals and upcoming training sessions."
+          }
+        },
+        "open": {
+          "smartTraining": {
+            "title": "Good moment for smart training",
+            "description": "You do not have a scheduled workout today. Choose an effort that strengthens consistency without disrupting recovery."
+          },
+          "keepRhythm": {
+            "title": "Keep the rhythm",
+            "description": "A calm, controlled activity can be effective even on days without a fixed schedule."
+          },
+          "capacity": {
+            "title": "Capacity to use",
+            "description": "Your status looks stable. If you want to train today, choose quality over random volume."
+          }
+        }
+      },
+      "descriptions": {
+        "swimming": "Good sleep, good food, and calm mobility today improve the quality of your next swim.",
+        "cycling": "Load up with sleep, energy, and leg recovery so your next ride has the right pressure.",
+        "triathlon": "Recover systematically today so you can meet the next discipline with better quality.",
+        "hyrox": "Give your body a day to restore strength, engine, and grip before the next HYROX workout.",
+        "functional": "Recovery today creates better quality in your next session with strength, heart rate, and technique.",
+        "strength": "Good recovery today improves power development and quality in your next strength session.",
+        "skiing": "Quality sleep and good energy today create better pressure and technique in your next ski session.",
+        "racket": "Light recovery today improves timing, footwork, and quality in your next racket session.",
+        "team": "Recovery today improves explosiveness and quality in your next team training."
+      },
+      "hints": {
+        "rest": {
+          "low": {
+            "swimming": "Prioritize sleep, fluids, and light mobility for shoulders and thoracic spine so you are fresh for your next swim.",
+            "cycling": "Focus on leg and hip recovery plus energy intake so you are ready for the next quality ride.",
+            "triathlon": "Let your body absorb today's load. Simple mobility and good energy help you come back stronger across all three disciplines.",
+            "functional": "Recovery today improves quality in the next combination of strength and engine. Stick to light mobility and good food.",
+            "strength": "Give your nervous system, muscles, and joints time to recover today so the next strength session can be done with quality.",
+            "skiing": "Prioritize calm recovery, fuel, and mobility for hips, ankles, and upper body before the next ski session.",
+            "racket": "Recover lower legs, shoulders, and trunk today so your next session with direction changes and shots has better quality.",
+            "team": "Let tendons, muscles, and nervous system recover today so you can be quick and explosive in the next team session.",
+            "running": "Give tendons, calves, and feet calm loading today so your next run has better quality.",
+            "default": "Prioritize sleep, fluids, and light mobility today so your body has time to absorb the training."
+          },
+          "normal": {
+            "swimming": "Use the rest day to reset shoulders, back, and energy so your next swim has better quality.",
+            "cycling": "The rest day helps your legs respond better to the next threshold, VO2, or endurance ride.",
+            "triathlon": "Recovery today strengthens your whole system across swimming, cycling, and running, making the next key session more valuable.",
+            "hyrox": "The rest day lets strength, engine, and durability build before the next HYROX workout.",
+            "functional": "Recovery today improves quality in your next session with strength, heart rate, and technique.",
+            "strength": "Muscles get stronger when you recover. A calm day today improves quality in the next lift.",
+            "skiing": "The rest day creates room for better technique and power development in the next ski or poling session.",
+            "racket": "Recovery today helps you be quicker in footwork and sharper in timing next session.",
+            "team": "The rest day improves explosiveness, decision-making, and durability for the next team training.",
+            "running": "Your muscles, tendons, and energy systems build capacity while you rest before the next run.",
+            "default": "Your muscles adapt and get stronger while you rest."
+          }
+        },
+        "open": {
+          "low": "Your status points to low load today. Choose mobility, light circulation, or low-stress technique.",
+          "high": {
+            "cycling": "Good day for a short quality ride, cadence work, or a controlled threshold block.",
+            "swimming": "Good day for technique sets, pace feel, or a short quality swim.",
+            "triathlon": "Choose a clear discipline today, such as a short quality session or transition work with control.",
+            "functional": "Good moment for technique under heart rate, station work, or a short strength-and-engine session.",
+            "strength": "Good day for a focused strength session with quality in the main lifts or accessory work.",
+            "skiing": "Good day for poling strength, technique intervals, or a short quality session on rollerskis/skierg.",
+            "racket": "Good day for footwork, direction changes, and short intense sequences with strong quality.",
+            "team": "Good day for accelerations, match-situation technique, or a short strength-and-power session.",
+            "running": "Good day for strides, hill technique, or a short quality run if you want to keep rhythm.",
+            "default": "Your status looks good for a short quality session, technique block, or focused strength."
+          },
+          "normal": {
+            "cycling": "An easy endurance ride, trainer technique, or hip and ankle mobility fits well today.",
+            "swimming": "Focus on technique, body position, and calm aerobic volume if you want to train today.",
+            "triathlon": "A calm discipline in zone 1-2 or technique work gives the best effect without disrupting the whole plan.",
+            "functional": "Keep it simple today: light engine, mobility, and technically clean reps.",
+            "strength": "Technique sets, trunk stability, and light accessory strength fit better today than high load.",
+            "skiing": "Calm aerobic training and technique focus give the most value today.",
+            "racket": "Prioritize movement quality, lighter shot volume, and injury-prevention work today.",
+            "team": "Light footwork, mobility, and injury-prevention work fit better than extra high-intensity volume today.",
+            "running": "An easy jog, walk, or running drills gives more value than chasing extra load today.",
+            "default": "Low-intensity training, technique work, or mobility fits best today."
+          }
+        }
+      },
+      "dates": {
+        "tomorrow": "Tomorrow",
+        "dayAfterTomorrow": "The day after tomorrow"
+      },
+      "intensities": {
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "threshold": "Threshold",
+        "interval": "Interval",
+        "max": "Max"
+      },
+      "stats": {
+        "duration": "Duration",
+        "distance": "Distance",
+        "heartRate": "Heart rate",
+        "load": "Load"
+      },
+      "actions": {
+        "createDailyWorkout": "Create Daily Workout",
+        "remaining": "{count} left",
+        "viewCalendar": "View calendar"
+      },
+      "nextWorkout": "Next workout",
+      "aiWorkout": "AI workout",
+      "empty": "No upcoming workouts scheduled",
+      "recentActivity": {
+        "title": "Latest workout: {type}",
+        "descriptionNoMetrics": "Your latest registered workout was {type}. Use it as the starting point for today's decision.",
+        "descriptionWithMetrics": "{metrics}. This gives a better reference for how the rest of the day should be managed.",
+        "hints": {
+          "lowReadiness": "Your body has already had load recently. Prioritize recovery, fluids, and low-intensity movement before adding more.",
+          "highLoad": "The latest workout was demanding. If you train again today, keep the next effort short, controlled, and complementary.",
+          "default": "Use the latest workout as your compass. If you choose to train again today, complement rather than duplicate the load."
+        },
+        "types": {
+          "running": "Running",
+          "cycling": "Cycling",
+          "swimming": "Swimming",
+          "strength": "Strength",
+          "crossTraining": "Cross-training",
+          "skiing": "Ski training",
+          "rowing": "Rowing",
+          "recovery": "Recovery",
+          "other": "Training"
+        },
+        "sources": {
+          "manual": "Manual",
+          "strava": "Strava",
+          "garmin": "Garmin Connect",
+          "concept2": "Concept2",
+          "ai": "AI workout",
+          "adhoc": "Manual log"
+        }
+      },
+      "assignmentTypes": {
+        "strength": "Strength",
+        "cardio": "Cardio",
+        "hybrid": "Hybrid",
+        "agility": "Agility"
+      },
+      "wodModes": {
+        "structured": "Structured",
+        "casual": "Casual",
+        "fun": "Just for fun!"
+      }
+    },
     "createAthleteAccountDialog": {
       "trigger": {
         "sendInvite": "Send invite",
