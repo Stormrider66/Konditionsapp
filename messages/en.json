@@ -4516,6 +4516,40 @@
         "activeMinutes": "Active minutes"
       }
     },
+    "rehabExercisePlayer": {
+      "navigation": {
+        "previous": "Previous",
+        "exercise": "Exercise",
+        "next": "Next"
+      },
+      "video": {
+        "empty": "No video available"
+      },
+      "prescription": {
+        "hold": "{seconds}s hold"
+      },
+      "sections": {
+        "instructions": "Instructions",
+        "physioNote": "Physio note"
+      },
+      "pain": {
+        "title": "Log pain",
+        "during": "Pain during the exercise",
+        "after": "Pain after the exercise",
+        "none": "No pain",
+        "acceptable": "Acceptable: ≤{value}",
+        "extreme": "Extreme pain",
+        "warning": "Pain exceeds the acceptable level. Consider reducing the load."
+      },
+      "notes": {
+        "label": "Notes (optional)",
+        "placeholder": "How did the exercise feel? Anything to note..."
+      },
+      "actions": {
+        "complete": "Complete exercise",
+        "completed": "Exercise completed"
+      }
+    },
     "exportDataButton": {
       "trigger": "Export data",
       "formatLabel": "Export format",

@@ -4516,6 +4516,40 @@
         "activeMinutes": "Aktiva minuter"
       }
     },
+    "rehabExercisePlayer": {
+      "navigation": {
+        "previous": "Föregående",
+        "exercise": "Övning",
+        "next": "Nästa"
+      },
+      "video": {
+        "empty": "Ingen video tillgänglig"
+      },
+      "prescription": {
+        "hold": "{seconds}s håll"
+      },
+      "sections": {
+        "instructions": "Instruktioner",
+        "physioNote": "Fysionot"
+      },
+      "pain": {
+        "title": "Logga smärta",
+        "during": "Smärta under övningen",
+        "after": "Smärta efter övningen",
+        "none": "Ingen smärta",
+        "acceptable": "Acceptabel: ≤{value}",
+        "extreme": "Extrem smärta",
+        "warning": "Smärtan överstiger acceptabel nivå. Överväg att minska belastningen."
+      },
+      "notes": {
+        "label": "Anteckningar (valfritt)",
+        "placeholder": "Hur kändes övningen? Något att notera..."
+      },
+      "actions": {
+        "complete": "Slutför övning",
+        "completed": "Övning slutförd"
+      }
+    },
     "exportDataButton": {
       "trigger": "Exportera data",
       "formatLabel": "Exportformat",

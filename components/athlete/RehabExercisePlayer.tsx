@@ -20,8 +20,6 @@ import {
   GlassCardContent,
 } from '@/components/ui/GlassCard'
 import {
-  Play,
-  Pause,
   SkipBack,
   SkipForward,
   CheckCircle2,
@@ -33,6 +31,7 @@ import {
   Repeat,
   Info,
 } from 'lucide-react'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface RehabExercise {
   id: string
@@ -79,8 +78,9 @@ export function RehabExercisePlayer({
   onNext,
   variant = 'glass',
 }: RehabExercisePlayerProps) {
+  const t = useTranslations('components.rehabExercisePlayer')
+  const locale = useLocale()
   const isGlass = variant === 'glass'
-  const [isPlaying, setIsPlaying] = useState(false)
   const [currentSet, setCurrentSet] = useState(1)
   const [painDuring, setPainDuring] = useState(0)
   const [painAfter, setPainAfter] = useState(0)
@@ -116,8 +116,11 @@ export function RehabExercisePlayer({
     }
   }
 
-  const exerciseName = exercise.exercise.nameSv || exercise.exercise.name
-  const instructions = exercise.exercise.instructionsSv || exercise.exercise.instructions
+  const exerciseName = locale === 'sv' && exercise.exercise.nameSv ? exercise.exercise.nameSv : exercise.exercise.name
+  const instructions =
+    locale === 'sv' && exercise.exercise.instructionsSv
+      ? exercise.exercise.instructionsSv
+      : exercise.exercise.instructions
 
   return (
     <div className="space-y-4">
@@ -130,12 +133,12 @@ export function RehabExercisePlayer({
           className="text-slate-400 hover:text-white"
         >
           <ChevronLeft className="h-5 w-5 mr-1" />
-          Föregående
+          {t('navigation.previous')}
         </Button>
 
         <div className="text-center">
           <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
-            Övning
+            {t('navigation.exercise')}
           </span>
           <p className="text-lg font-black text-white tabular-nums">
             {exerciseIndex + 1} / {totalExercises}
@@ -148,7 +151,7 @@ export function RehabExercisePlayer({
           disabled={exerciseIndex === totalExercises - 1}
           className="text-slate-400 hover:text-white"
         >
-          Nästa
+          {t('navigation.next')}
           <ChevronRight className="h-5 w-5 ml-1" />
         </Button>
       </div>
@@ -169,7 +172,7 @@ export function RehabExercisePlayer({
             <div className="aspect-video bg-slate-900 rounded-t-3xl flex items-center justify-center">
               <div className="text-center">
                 <Dumbbell className="h-16 w-16 text-slate-700 mx-auto mb-3" />
-                <p className="text-slate-500">Ingen video tillgänglig</p>
+                <p className="text-slate-500">{t('video.empty')}</p>
               </div>
             </div>
           )}
@@ -192,7 +195,7 @@ export function RehabExercisePlayer({
                 {exercise.holdSeconds && (
                   <div className="flex items-center gap-1.5 text-sm text-slate-400">
                     <Clock className="h-4 w-4" />
-                    <span>{exercise.holdSeconds}s håll</span>
+                    <span>{t('prescription.hold', { seconds: exercise.holdSeconds })}</span>
                   </div>
                 )}
               </div>
@@ -234,7 +237,7 @@ export function RehabExercisePlayer({
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="h-4 w-4 text-blue-500" />
                   <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500">
-                    Instruktioner
+                    {t('sections.instructions')}
                   </span>
                 </div>
                 <p className="text-sm text-slate-300 whitespace-pre-line">{instructions}</p>
@@ -260,7 +263,7 @@ export function RehabExercisePlayer({
             {exercise.notes && (
               <div className="p-4 rounded-2xl bg-yellow-500/5 border border-yellow-500/10">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-yellow-500 mb-1">
-                  Fysionot
+                  {t('sections.physioNote')}
                 </p>
                 <p className="text-sm text-slate-300">{exercise.notes}</p>
               </div>
@@ -273,14 +276,14 @@ export function RehabExercisePlayer({
       <GlassCard className={cn(!isGlass && 'bg-card')}>
         <GlassCardHeader>
           <GlassCardTitle className="text-lg font-black tracking-tight">
-            Logga smärta
+            {t('pain.title')}
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent className="space-y-6">
           {/* Pain during */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-bold text-slate-400">Smärta under övningen</span>
+              <span className="text-sm font-bold text-slate-400">{t('pain.during')}</span>
               <span className={cn('text-2xl font-black tabular-nums', getPainColor(painDuring, acceptablePainDuring))}>
                 {painDuring}
               </span>
@@ -294,14 +297,14 @@ export function RehabExercisePlayer({
               className="[&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-4 [&_[role=slider]]:border-teal-600 [&_[role=slider]]:bg-white"
             />
             <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
-              <span>Ingen smärta</span>
-              <span>Acceptabel: ≤{acceptablePainDuring}</span>
-              <span>Extrem smärta</span>
+              <span>{t('pain.none')}</span>
+              <span>{t('pain.acceptable', { value: acceptablePainDuring })}</span>
+              <span>{t('pain.extreme')}</span>
             </div>
             {painDuring > acceptablePainDuring && (
               <div className="flex items-center gap-2 text-xs text-yellow-400">
                 <AlertCircle className="h-4 w-4" />
-                <span>Smärtan överstiger acceptabel nivå. Överväg att minska belastningen.</span>
+                <span>{t('pain.warning')}</span>
               </div>
             )}
           </div>
@@ -309,7 +312,7 @@ export function RehabExercisePlayer({
           {/* Pain after */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-bold text-slate-400">Smärta efter övningen</span>
+              <span className="text-sm font-bold text-slate-400">{t('pain.after')}</span>
               <span className={cn('text-2xl font-black tabular-nums', getPainColor(painAfter, acceptablePainAfter))}>
                 {painAfter}
               </span>
@@ -323,21 +326,21 @@ export function RehabExercisePlayer({
               className="[&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-4 [&_[role=slider]]:border-teal-600 [&_[role=slider]]:bg-white"
             />
             <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
-              <span>Ingen smärta</span>
-              <span>Acceptabel: ≤{acceptablePainAfter}</span>
-              <span>Extrem smärta</span>
+              <span>{t('pain.none')}</span>
+              <span>{t('pain.acceptable', { value: acceptablePainAfter })}</span>
+              <span>{t('pain.extreme')}</span>
             </div>
           </div>
 
           {/* Notes */}
           <div>
             <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-2 block">
-              Anteckningar (valfritt)
+              {t('notes.label')}
             </label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Hur kändes övningen? Något att notera..."
+              placeholder={t('notes.placeholder')}
               className="bg-white/5 border-white/10 min-h-[80px] rounded-xl text-white"
             />
           </div>
@@ -356,10 +359,10 @@ export function RehabExercisePlayer({
             {isCompleted ? (
               <>
                 <CheckCircle2 className="h-5 w-5 mr-2" />
-                Övning slutförd
+                {t('actions.completed')}
               </>
             ) : (
-              'Slutför övning'
+              t('actions.complete')
             )}
           </Button>
         </GlassCardContent>
