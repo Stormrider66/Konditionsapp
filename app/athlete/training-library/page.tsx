@@ -6,10 +6,15 @@ import { getAthleteSelfServiceAccess } from '@/lib/auth/tier-utils'
 import { prisma } from '@/lib/prisma'
 import { TrainingLibraryClient } from '@/components/athlete/TrainingLibraryClient'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Träningsbibliotek | Athlete',
-  description: 'All din träning samlad på ett ställe',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.trainingLibrary')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 async function getLibraryData(clientId: string) {

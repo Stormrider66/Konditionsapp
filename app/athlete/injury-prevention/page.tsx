@@ -3,10 +3,15 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { InjuryPreventionDashboard } from '@/components/athlete/injury-prevention'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Skadeförebyggande | Atlet',
-  description: 'Övervaka din belastning och förebygg skador',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.injuryPrevention')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 export default async function InjuryPreventionPage() {

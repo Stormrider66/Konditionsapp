@@ -11,10 +11,15 @@ import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { getAthleteSelfServiceAccess } from '@/lib/auth/tier-utils'
 import { AthleteCardioClient } from '@/components/athlete/cardio/AthleteCardioClient'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Cardio Pass | Trainomics',
-  description: 'Dina löppass, cykelpass och simpass',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.cardio')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 export default async function AthleteCardioPage() {

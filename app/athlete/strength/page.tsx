@@ -11,10 +11,15 @@ import { getAthleteSelfServiceAccess } from '@/lib/auth/tier-utils'
 import { prisma } from '@/lib/prisma'
 import { AthleteStrengthClient } from './client'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Styrketräning | Athlete',
-  description: 'Bläddra och schemalägg styrkepass',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.strength')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 async function getAthleteData(clientId: string) {
@@ -83,6 +88,7 @@ async function getAthleteData(clientId: string) {
 }
 
 export default async function AthleteStrengthPage() {
+  const t = await getTranslations('metadata.athlete.strength')
   const { clientId } = await requireAthleteOrCoachInAthleteMode()
   const data = await getAthleteData(clientId)
   const { tier: subscriptionTier, enabled: selfServiceEnabled } = await getAthleteSelfServiceAccess(clientId)
@@ -91,10 +97,10 @@ export default async function AthleteStrengthPage() {
     <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 max-w-7xl">
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Styrketräning
+          {t('title')}
         </h1>
         <p className="text-muted-foreground mt-2">
-          Bläddra mallar och schemalägg dina styrkepass
+          {t('description')}
         </p>
       </div>
 

@@ -4,10 +4,15 @@ import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { AthleteSettingsClient } from './AthleteSettingsClient'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Inställningar | Atlet',
-  description: 'Hantera dina inställningar',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.settings')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 export default async function AthleteSettingsPage() {

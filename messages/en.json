@@ -50,6 +50,30 @@
     "monthly": "Monthly",
     "yearly": "Yearly"
   },
+  "metadata": {
+    "athlete": {
+      "injuryPrevention": {
+        "title": "Injury Prevention | Athlete",
+        "description": "Monitor your load and prevent injuries"
+      },
+      "strength": {
+        "title": "Strength Training | Athlete",
+        "description": "Browse and schedule strength sessions"
+      },
+      "settings": {
+        "title": "Settings | Athlete",
+        "description": "Manage your settings"
+      },
+      "trainingLibrary": {
+        "title": "Training Library | Athlete",
+        "description": "All your training in one place"
+      },
+      "cardio": {
+        "title": "Cardio Sessions | Trainomics",
+        "description": "Your running, cycling, and swimming sessions"
+      }
+    }
+  },
   "home": {
     "welcomeBack": "Welcome back!",
     "overview": "Here is an overview of your business",

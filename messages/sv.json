@@ -50,6 +50,30 @@
     "monthly": "Månadsvis",
     "yearly": "Årsvis"
   },
+  "metadata": {
+    "athlete": {
+      "injuryPrevention": {
+        "title": "Skadeförebyggande | Atlet",
+        "description": "Övervaka din belastning och förebygg skador"
+      },
+      "strength": {
+        "title": "Styrketräning | Athlete",
+        "description": "Bläddra och schemalägg styrkepass"
+      },
+      "settings": {
+        "title": "Inställningar | Atlet",
+        "description": "Hantera dina inställningar"
+      },
+      "trainingLibrary": {
+        "title": "Träningsbibliotek | Athlete",
+        "description": "All din träning samlad på ett ställe"
+      },
+      "cardio": {
+        "title": "Cardio Pass | Trainomics",
+        "description": "Dina löppass, cykelpass och simpass"
+      }
+    }
+  },
   "home": {
     "welcomeBack": "Välkommen tillbaka!",
     "overview": "Här är en översikt av din verksamhet",
