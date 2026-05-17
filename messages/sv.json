@@ -2869,6 +2869,22 @@
         "padel": "Padel"
       }
     },
+    "athleteStats": {
+      "workoutsThisWeek": "Pass denna vecka",
+      "plannedWorkouts": "{completed}/{planned} planerade",
+      "totalDistance": "Total distans",
+      "plannedDistance": "av {distance} km planerat",
+      "totalTime": "Total tid",
+      "plannedTime": "Planerat: {duration}",
+      "viewHistory": "Se historik",
+      "averageRpe": "Genomsnittlig RPE",
+      "load": {
+        "high": "Hög belastning",
+        "moderate": "Moderat belastning",
+        "low": "Låg belastning",
+        "noData": "Inga data"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Kosttajming",
       "subtitle": {

@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Activity, Clock, MapPin, Zap, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useTranslations } from '@/i18n/client'
 
 interface AthleteStatsProps {
   totalWorkouts: number
@@ -26,6 +27,7 @@ export function AthleteStats({
   plannedDuration = 0,
 }: AthleteStatsProps) {
   const basePath = useBasePath()
+  const t = useTranslations('components.athleteStats')
   // Calculate completion percentages
   const workoutCompletion = plannedWorkouts > 0 ? Math.round((totalWorkouts / plannedWorkouts) * 100) : 0
   const distanceCompletion = plannedDistance > 0 ? Math.round((totalDistance / plannedDistance) * 100) : 0
@@ -37,14 +39,14 @@ export function AthleteStats({
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm">Pass denna vecka</p>
+              <p className="text-blue-100 text-sm">{t('workoutsThisWeek')}</p>
               <p className="text-3xl font-bold">{totalWorkouts}</p>
             </div>
             <Activity className="h-8 w-8 opacity-80" />
           </div>
           <div className="mt-2 flex items-center justify-between">
             <span className="text-xs text-blue-100">
-              {totalWorkouts}/{plannedWorkouts} planerade
+              {t('plannedWorkouts', { completed: totalWorkouts, planned: plannedWorkouts })}
             </span>
             {workoutCompletion > 0 && (
               <span className="text-xs text-blue-100">{workoutCompletion}%</span>
@@ -65,14 +67,14 @@ export function AthleteStats({
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm">Total distans</p>
+              <p className="text-green-100 text-sm">{t('totalDistance')}</p>
               <p className="text-3xl font-bold">{totalDistance.toFixed(1)}<span className="text-lg ml-1">km</span></p>
             </div>
             <MapPin className="h-8 w-8 opacity-80" />
           </div>
           <div className="mt-2 flex items-center justify-between">
             <span className="text-xs text-green-100">
-              av {plannedDistance.toFixed(1)} km planerat
+              {t('plannedDistance', { distance: plannedDistance.toFixed(1) })}
             </span>
             {distanceCompletion > 0 && (
               <span className="text-xs text-green-100">{distanceCompletion}%</span>
@@ -93,18 +95,18 @@ export function AthleteStats({
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-orange-100 text-sm">Total tid</p>
+              <p className="text-orange-100 text-sm">{t('totalTime')}</p>
               <p className="text-3xl font-bold">{formatDuration(totalDuration)}</p>
             </div>
             <Clock className="h-8 w-8 opacity-80" />
           </div>
           <div className="mt-2">
             <span className="text-xs text-orange-100">
-              Planerat: {formatDuration(plannedDuration)}
+              {t('plannedTime', { duration: formatDuration(plannedDuration) })}
             </span>
           </div>
           <Link href={`${basePath}/athlete/history`} className="text-xs text-orange-100 hover:text-white flex items-center gap-1 mt-1">
-            Se historik <ArrowRight className="h-3 w-3" />
+            {t('viewHistory')} <ArrowRight className="h-3 w-3" />
           </Link>
         </CardContent>
       </Card>
@@ -115,7 +117,7 @@ export function AthleteStats({
           <div className="flex items-center justify-between">
             <div>
               <p className={`text-sm ${avgEffort > 7 ? 'text-red-100' : avgEffort > 0 ? 'text-purple-100' : 'text-slate-100'}`}>
-                Genomsnittlig RPE
+                {t('averageRpe')}
               </p>
               <p className="text-3xl font-bold">{avgEffort > 0 ? avgEffort : '-'}<span className="text-lg ml-1">/10</span></p>
             </div>
@@ -123,7 +125,7 @@ export function AthleteStats({
           </div>
           <div className="mt-2">
             <span className={`text-xs ${avgEffort > 7 ? 'text-red-100' : avgEffort > 0 ? 'text-purple-100' : 'text-slate-100'}`}>
-              {avgEffort > 7 ? 'Hög belastning' : avgEffort > 5 ? 'Moderat belastning' : avgEffort > 0 ? 'Låg belastning' : 'Inga data'}
+              {getLoadLabel(avgEffort, t)}
             </span>
           </div>
           {avgEffort > 0 && (
@@ -138,6 +140,13 @@ export function AthleteStats({
       </Card>
     </div>
   )
+}
+
+function getLoadLabel(avgEffort: number, t: (key: string) => string): string {
+  if (avgEffort > 7) return t('load.high')
+  if (avgEffort > 5) return t('load.moderate')
+  if (avgEffort > 0) return t('load.low')
+  return t('load.noData')
 }
 
 function formatDuration(minutes: number): string {

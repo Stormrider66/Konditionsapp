@@ -2869,6 +2869,22 @@
         "padel": "Padel"
       }
     },
+    "athleteStats": {
+      "workoutsThisWeek": "Workouts this week",
+      "plannedWorkouts": "{completed}/{planned} planned",
+      "totalDistance": "Total distance",
+      "plannedDistance": "of {distance} km planned",
+      "totalTime": "Total time",
+      "plannedTime": "Planned: {duration}",
+      "viewHistory": "View history",
+      "averageRpe": "Average RPE",
+      "load": {
+        "high": "High load",
+        "moderate": "Moderate load",
+        "low": "Low load",
+        "noData": "No data"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Nutrition timing",
       "subtitle": {
