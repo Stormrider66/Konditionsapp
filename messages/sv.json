@@ -3226,6 +3226,67 @@
         "stable": "Stabil"
       }
     },
+    "publicReportView": {
+      "banner": {
+        "subtitle": "Din personliga testrapport"
+      },
+      "actions": {
+        "createFreeAccount": "Skapa gratis konto",
+        "startNow": "Börja nu",
+        "tryPro": "Prova Pro"
+      },
+      "cta": {
+        "title": "Vill du få ut mer av dina resultat?",
+        "description": "Skapa ett konto för att spara dina rapporter, få AI-drivna träningsrekommendationer och följa din utveckling över tid."
+      },
+      "tiers": {
+        "perMonth": "/månad",
+        "free": {
+          "name": "Gratis",
+          "badge": "Grundläggande",
+          "description": "Perfekt för att komma igång",
+          "price": "0 kr"
+        },
+        "standard": {
+          "name": "Standard",
+          "badge": "Populärast",
+          "description": "För den aktiva atleten",
+          "price": "199 kr"
+        },
+        "pro": {
+          "name": "Pro",
+          "badge": "Premium",
+          "description": "Maximera din potential",
+          "price": "399 kr"
+        }
+      },
+      "features": {
+        "saveReports": "Spara alla dina rapporter",
+        "viewHistory": "Se din historik",
+        "basicStats": "Grundläggande statistik",
+        "aiCoaching": "AI-coaching",
+        "trainingLogging": "Träningsloggning",
+        "everythingFree": "Allt i Gratis",
+        "aiCoachingQuota": "AI-coaching (50 meddelanden/månad)",
+        "dailyTrainingLogging": "Daglig träningsloggning",
+        "dailyCheckIn": "Daglig check-in",
+        "videoAnalysis": "Videoanalys",
+        "everythingStandard": "Allt i Standard",
+        "largerAiCredits": "Större AI-kreditpott",
+        "aiVideoAnalysis": "Videoanalys med AI",
+        "stravaGarminSync": "Strava & Garmin-synkning",
+        "advancedPlanning": "Avancerad träningsplanering"
+      },
+      "trust": {
+        "freeTrial": "14 dagars gratis provperiod på alla betalplaner",
+        "noCommitment": "Ingen bindningstid - avsluta när du vill"
+      },
+      "footer": {
+        "copyright": "© {year} {organization}. Alla rättigheter förbehållna.",
+        "privacy": "Integritetspolicy",
+        "terms": "Användarvillkor"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

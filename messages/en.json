@@ -3226,6 +3226,67 @@
         "stable": "Stable"
       }
     },
+    "publicReportView": {
+      "banner": {
+        "subtitle": "Your personal test report"
+      },
+      "actions": {
+        "createFreeAccount": "Create free account",
+        "startNow": "Start now",
+        "tryPro": "Try Pro"
+      },
+      "cta": {
+        "title": "Want to get more out of your results?",
+        "description": "Create an account to save your reports, get AI-powered training recommendations, and follow your progress over time."
+      },
+      "tiers": {
+        "perMonth": "/month",
+        "free": {
+          "name": "Free",
+          "badge": "Basic",
+          "description": "Perfect for getting started",
+          "price": "SEK 0"
+        },
+        "standard": {
+          "name": "Standard",
+          "badge": "Most popular",
+          "description": "For the active athlete",
+          "price": "SEK 199"
+        },
+        "pro": {
+          "name": "Pro",
+          "badge": "Premium",
+          "description": "Maximize your potential",
+          "price": "SEK 399"
+        }
+      },
+      "features": {
+        "saveReports": "Save all your reports",
+        "viewHistory": "View your history",
+        "basicStats": "Basic statistics",
+        "aiCoaching": "AI coaching",
+        "trainingLogging": "Training logging",
+        "everythingFree": "Everything in Free",
+        "aiCoachingQuota": "AI coaching (50 messages/month)",
+        "dailyTrainingLogging": "Daily training logging",
+        "dailyCheckIn": "Daily check-in",
+        "videoAnalysis": "Video analysis",
+        "everythingStandard": "Everything in Standard",
+        "largerAiCredits": "Larger AI credit pool",
+        "aiVideoAnalysis": "AI video analysis",
+        "stravaGarminSync": "Strava & Garmin sync",
+        "advancedPlanning": "Advanced training planning"
+      },
+      "trust": {
+        "freeTrial": "14-day free trial on all paid plans",
+        "noCommitment": "No lock-in period - cancel whenever you want"
+      },
+      "footer": {
+        "copyright": "© {year} {organization}. All rights reserved.",
+        "privacy": "Privacy policy",
+        "terms": "Terms of service"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",

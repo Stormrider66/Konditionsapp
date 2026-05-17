@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Sparkles, Calendar, MessageCircle, Video, Activity } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from '@/i18n/client';
 
 // Use generic types to avoid Prisma null/undefined mismatches
 interface PublicReportViewProps {
@@ -33,6 +34,8 @@ export function PublicReportView({
   location: _location,
   organization,
 }: PublicReportViewProps) {
+  const t = useTranslations('components.publicReportView');
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Banner */}
@@ -40,11 +43,11 @@ export function PublicReportView({
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold">{organization}</h1>
-            <p className="text-sm text-blue-100">Din personliga testrapport</p>
+            <p className="text-sm text-blue-100">{t('banner.subtitle')}</p>
           </div>
           <Link href="/signup">
             <Button variant="secondary" size="sm">
-              Skapa gratis konto
+              {t('actions.createFreeAccount')}
             </Button>
           </Link>
         </div>
@@ -66,11 +69,10 @@ export function PublicReportView({
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Vill du få ut mer av dina resultat?
+              {t('cta.title')}
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Skapa ett konto för att spara dina rapporter, få AI-drivna träningsrekommendationer
-              och följa din utveckling över tid.
+              {t('cta.description')}
             </p>
           </div>
 
@@ -80,25 +82,25 @@ export function PublicReportView({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  Gratis
-                  <Badge variant="secondary">Grundläggande</Badge>
+                  {t('tiers.free.name')}
+                  <Badge variant="secondary">{t('tiers.free.badge')}</Badge>
                 </CardTitle>
-                <CardDescription>Perfekt för att komma igång</CardDescription>
+                <CardDescription>{t('tiers.free.description')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold mb-4">
-                  0 kr<span className="text-sm font-normal text-gray-500">/månad</span>
+                  {t('tiers.free.price')}<span className="text-sm font-normal text-gray-500">{t('tiers.perMonth')}</span>
                 </p>
                 <ul className="space-y-2 mb-6">
-                  <FeatureItem included>Spara alla dina rapporter</FeatureItem>
-                  <FeatureItem included>Se din historik</FeatureItem>
-                  <FeatureItem included>Grundläggande statistik</FeatureItem>
-                  <FeatureItem>AI-coaching</FeatureItem>
-                  <FeatureItem>Träningsloggning</FeatureItem>
+                  <FeatureItem included>{t('features.saveReports')}</FeatureItem>
+                  <FeatureItem included>{t('features.viewHistory')}</FeatureItem>
+                  <FeatureItem included>{t('features.basicStats')}</FeatureItem>
+                  <FeatureItem>{t('features.aiCoaching')}</FeatureItem>
+                  <FeatureItem>{t('features.trainingLogging')}</FeatureItem>
                 </ul>
                 <Link href="/signup?tier=free" className="block">
                   <Button variant="outline" className="w-full">
-                    Skapa gratis konto
+                    {t('actions.createFreeAccount')}
                   </Button>
                 </Link>
               </CardContent>
@@ -108,34 +110,34 @@ export function PublicReportView({
             <Card className="border-blue-200 shadow-lg">
               <CardHeader className="bg-blue-50 rounded-t-lg">
                 <CardTitle className="flex items-center justify-between">
-                  Standard
-                  <Badge className="bg-blue-600">Populärast</Badge>
+                  {t('tiers.standard.name')}
+                  <Badge className="bg-blue-600">{t('tiers.standard.badge')}</Badge>
                 </CardTitle>
-                <CardDescription>För den aktiva atleten</CardDescription>
+                <CardDescription>{t('tiers.standard.description')}</CardDescription>
               </CardHeader>
               <CardContent className="pt-6">
                 <p className="text-3xl font-bold mb-4">
-                  199 kr<span className="text-sm font-normal text-gray-500">/månad</span>
+                  {t('tiers.standard.price')}<span className="text-sm font-normal text-gray-500">{t('tiers.perMonth')}</span>
                 </p>
                 <ul className="space-y-2 mb-6">
-                  <FeatureItem included>Allt i Gratis</FeatureItem>
+                  <FeatureItem included>{t('features.everythingFree')}</FeatureItem>
                   <FeatureItem included>
                     <MessageCircle className="h-4 w-4 inline mr-1" />
-                    AI-coaching (50 meddelanden/månad)
+                    {t('features.aiCoachingQuota')}
                   </FeatureItem>
                   <FeatureItem included>
                     <Activity className="h-4 w-4 inline mr-1" />
-                    Daglig träningsloggning
+                    {t('features.dailyTrainingLogging')}
                   </FeatureItem>
                   <FeatureItem included>
                     <Calendar className="h-4 w-4 inline mr-1" />
-                    Daglig check-in
+                    {t('features.dailyCheckIn')}
                   </FeatureItem>
-                  <FeatureItem>Videoanalys</FeatureItem>
+                  <FeatureItem>{t('features.videoAnalysis')}</FeatureItem>
                 </ul>
                 <Link href="/signup?tier=standard" className="block">
                   <Button className="w-full">
-                    Börja nu
+                    {t('actions.startNow')}
                   </Button>
                 </Link>
               </CardContent>
@@ -145,34 +147,34 @@ export function PublicReportView({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  Pro
+                  {t('tiers.pro.name')}
                   <Badge variant="outline" className="border-purple-300 text-purple-700">
                     <Sparkles className="h-3 w-3 mr-1" />
-                    Premium
+                    {t('tiers.pro.badge')}
                   </Badge>
                 </CardTitle>
-                <CardDescription>Maximera din potential</CardDescription>
+                <CardDescription>{t('tiers.pro.description')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold mb-4">
-                  399 kr<span className="text-sm font-normal text-gray-500">/månad</span>
+                  {t('tiers.pro.price')}<span className="text-sm font-normal text-gray-500">{t('tiers.perMonth')}</span>
                 </p>
                 <ul className="space-y-2 mb-6">
-                  <FeatureItem included>Allt i Standard</FeatureItem>
+                  <FeatureItem included>{t('features.everythingStandard')}</FeatureItem>
                   <FeatureItem included>
                     <MessageCircle className="h-4 w-4 inline mr-1" />
-                    Större AI-kreditpott
+                    {t('features.largerAiCredits')}
                   </FeatureItem>
                   <FeatureItem included>
                     <Video className="h-4 w-4 inline mr-1" />
-                    Videoanalys med AI
+                    {t('features.aiVideoAnalysis')}
                   </FeatureItem>
-                  <FeatureItem included>Strava & Garmin-synkning</FeatureItem>
-                  <FeatureItem included>Avancerad träningsplanering</FeatureItem>
+                  <FeatureItem included>{t('features.stravaGarminSync')}</FeatureItem>
+                  <FeatureItem included>{t('features.advancedPlanning')}</FeatureItem>
                 </ul>
                 <Link href="/signup?tier=pro" className="block">
                   <Button variant="outline" className="w-full border-purple-300 text-purple-700 hover:bg-purple-50">
-                    Prova Pro
+                    {t('actions.tryPro')}
                   </Button>
                 </Link>
               </CardContent>
@@ -181,8 +183,8 @@ export function PublicReportView({
 
           {/* Trust Indicators */}
           <div className="text-center text-sm text-gray-500">
-            <p className="mb-2">14 dagars gratis provperiod på alla betalplaner</p>
-            <p>Ingen bindningstid - avsluta när du vill</p>
+            <p className="mb-2">{t('trust.freeTrial')}</p>
+            <p>{t('trust.noCommitment')}</p>
           </div>
         </div>
       </div>
@@ -190,11 +192,11 @@ export function PublicReportView({
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 py-8 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <p className="mb-2">© {new Date().getFullYear()} {organization}. Alla rättigheter förbehållna.</p>
+          <p className="mb-2">{t('footer.copyright', { year: new Date().getFullYear(), organization })}</p>
           <p className="text-sm">
-            <Link href="/privacy" className="hover:text-white">Integritetspolicy</Link>
+            <Link href="/privacy" className="hover:text-white">{t('footer.privacy')}</Link>
             {' · '}
-            <Link href="/terms" className="hover:text-white">Användarvillkor</Link>
+            <Link href="/terms" className="hover:text-white">{t('footer.terms')}</Link>
           </p>
         </div>
       </footer>
