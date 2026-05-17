@@ -7512,6 +7512,12 @@
         "max": "Maximal"
       }
     },
+    "headlessVoiceCoachLauncher": {
+      "startTitle": "Starta AI-röstcoach"
+    },
+    "voicePreferenceSelector": {
+      "title": "AI-röstcoach"
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

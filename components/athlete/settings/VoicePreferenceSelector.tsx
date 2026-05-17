@@ -10,14 +10,16 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { VoiceOption } from '@/lib/ai/live-voice-coaching/voices'
+import { useTranslations } from '@/i18n/client'
 
 export function VoicePreferenceSelector() {
+  const t = useTranslations('components.voicePreferenceSelector')
   const [voices, setVoices] = useState<VoiceOption[]>([])
   const [selected, setSelected] = useState<string>('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    fetch('/api/athlete/settings/voice-preference')
+    void fetch('/api/athlete/settings/voice-preference')
       .then((r) => r.json())
       .then((data) => {
         setVoices(data.available || [])
@@ -45,7 +47,7 @@ export function VoicePreferenceSelector() {
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-        AI-Röstcoach
+        {t('title')}
       </h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {voices.map((voice) => (

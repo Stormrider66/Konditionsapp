@@ -7512,6 +7512,12 @@
         "max": "Maximal"
       }
     },
+    "headlessVoiceCoachLauncher": {
+      "startTitle": "Start AI voice coach"
+    },
+    "voicePreferenceSelector": {
+      "title": "AI voice coach"
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

@@ -12,6 +12,7 @@ import { Radio } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AudioCaptureManager } from '@/lib/ai/live-voice-coaching/audio-capture'
 import { HeadlessVoiceCoach } from './HeadlessVoiceCoach'
+import { useTranslations } from '@/i18n/client'
 
 interface HeadlessVoiceCoachLauncherProps {
   assignmentId: string
@@ -22,6 +23,7 @@ export function HeadlessVoiceCoachLauncher({
   assignmentId,
   workoutType,
 }: HeadlessVoiceCoachLauncherProps) {
+  const t = useTranslations('components.headlessVoiceCoachLauncher')
   const [active, setActive] = useState(false)
 
   // Only show if browser supports audio capture
@@ -37,7 +39,7 @@ export function HeadlessVoiceCoachLauncher({
         onClick={() => setActive(true)}
         disabled={active}
         className="h-9 w-9"
-        title="Starta AI-Röstcoach"
+        title={t('startTitle')}
       >
         <Radio className="h-4 w-4" />
       </Button>
