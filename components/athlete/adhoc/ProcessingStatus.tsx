@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 type ProcessingState = 'processing' | 'success' | 'error'
 
@@ -31,6 +32,8 @@ export function ProcessingStatus({
   onContinue,
   className,
 }: ProcessingStatusProps) {
+  const t = useTranslations('components.adHocProcessingStatus')
+
   return (
     <Card className={cn('w-full max-w-md mx-auto', className)}>
       <CardContent className="pt-6">
@@ -45,9 +48,9 @@ export function ProcessingStatus({
                 <div className="absolute inset-0 h-16 w-16 rounded-full bg-primary/20 animate-ping" />
               </div>
               <div className="space-y-1">
-                <h3 className="font-semibold">Analyserar ditt pass</h3>
+                <h3 className="font-semibold">{t('processing.title')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {message || 'AI:n tolkar din beskrivning...'}
+                  {message || t('processing.message')}
                 </p>
               </div>
               {/* Progress dots */}
@@ -65,14 +68,14 @@ export function ProcessingStatus({
                 <CheckCircle2 className="h-8 w-8 text-green-500" />
               </div>
               <div className="space-y-1">
-                <h3 className="font-semibold text-green-600">Klart!</h3>
+                <h3 className="font-semibold text-green-600">{t('success.title')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {message || 'Passet har analyserats framgångsrikt'}
+                  {message || t('success.message')}
                 </p>
               </div>
               {onContinue && (
                 <Button onClick={onContinue}>
-                  Fortsätt
+                  {t('actions.continue')}
                 </Button>
               )}
             </>
@@ -84,15 +87,15 @@ export function ProcessingStatus({
                 <AlertCircle className="h-8 w-8 text-red-500" />
               </div>
               <div className="space-y-1">
-                <h3 className="font-semibold text-red-600">Något gick fel</h3>
+                <h3 className="font-semibold text-red-600">{t('error.title')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {errorMessage || 'Det gick inte att analysera passet'}
+                  {errorMessage || t('error.message')}
                 </p>
               </div>
               {onRetry && (
                 <Button variant="outline" onClick={onRetry}>
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Försök igen
+                  {t('actions.retry')}
                 </Button>
               )}
             </>

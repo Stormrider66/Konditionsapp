@@ -5346,6 +5346,24 @@
         "feel": "Berätta hur tungt eller lätt det kändes"
       }
     },
+    "adHocProcessingStatus": {
+      "processing": {
+        "title": "Analyserar ditt pass",
+        "message": "AI:n tolkar din beskrivning..."
+      },
+      "success": {
+        "title": "Klart!",
+        "message": "Passet har analyserats framgångsrikt"
+      },
+      "error": {
+        "title": "Något gick fel",
+        "message": "Det gick inte att analysera passet"
+      },
+      "actions": {
+        "continue": "Fortsätt",
+        "retry": "Försök igen"
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

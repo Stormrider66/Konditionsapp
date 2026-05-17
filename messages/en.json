@@ -5346,6 +5346,24 @@
         "feel": "Say how hard or easy it felt"
       }
     },
+    "adHocProcessingStatus": {
+      "processing": {
+        "title": "Analyzing your workout",
+        "message": "The AI is interpreting your description..."
+      },
+      "success": {
+        "title": "Done!",
+        "message": "The workout was analyzed successfully"
+      },
+      "error": {
+        "title": "Something went wrong",
+        "message": "The workout could not be analyzed"
+      },
+      "actions": {
+        "continue": "Continue",
+        "retry": "Try again"
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {
