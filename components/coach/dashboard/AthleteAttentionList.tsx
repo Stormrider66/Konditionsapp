@@ -8,7 +8,6 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
-  HeartPulse,
   MessageSquare,
   TrendingUp,
   UserX,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { PTClientStatus } from '@/components/coach/dashboard/ClientStatusCard'
+import { useTranslations } from '@/i18n/client'
 
 interface AttentionItem {
   clientId: string
@@ -27,19 +27,19 @@ interface AttentionItem {
   score: number
 }
 
-function buildAttentionItems(clients: PTClientStatus[], basePath: string): AttentionItem[] {
+type AttentionTranslator = ReturnType<typeof useTranslations>
+
+function buildAttentionItems(clients: PTClientStatus[], basePath: string, t: AttentionTranslator): AttentionItem[] {
   const items: AttentionItem[] = []
 
   for (const c of clients) {
-    const firstName = c.name.split(' ')[0]
-
     if (c.readinessScore !== null && c.readinessScore < 40) {
       items.push({
         clientId: c.id,
         clientName: c.name,
-        reason: `Låg beredskap (${c.readinessScore})`,
+        reason: t('reasons.lowReadiness', { score: c.readinessScore }),
         severity: 'critical',
-        actionLabel: 'Visa profil',
+        actionLabel: t('actions.viewProfile'),
         actionHref: `${basePath}/coach/clients/${c.id}`,
         score: 8,
       })
@@ -49,9 +49,9 @@ function buildAttentionItems(clients: PTClientStatus[], basePath: string): Atten
       items.push({
         clientId: c.id,
         clientName: c.name,
-        reason: `Kritisk belastning (ACWR ${c.acwr?.toFixed(2)})`,
+        reason: t('reasons.criticalLoad', { acwr: c.acwr?.toFixed(2) ?? '-' }),
         severity: 'critical',
-        actionLabel: 'Visa profil',
+        actionLabel: t('actions.viewProfile'),
         actionHref: `${basePath}/coach/clients/${c.id}`,
         score: 7,
       })
@@ -59,9 +59,9 @@ function buildAttentionItems(clients: PTClientStatus[], basePath: string): Atten
       items.push({
         clientId: c.id,
         clientName: c.name,
-        reason: `Hög belastning (ACWR ${c.acwr?.toFixed(2)})`,
+        reason: t('reasons.highLoad', { acwr: c.acwr?.toFixed(2) ?? '-' }),
         severity: 'warning',
-        actionLabel: 'Visa profil',
+        actionLabel: t('actions.viewProfile'),
         actionHref: `${basePath}/coach/clients/${c.id}`,
         score: 5,
       })
@@ -71,9 +71,9 @@ function buildAttentionItems(clients: PTClientStatus[], basePath: string): Atten
       items.push({
         clientId: c.id,
         clientName: c.name,
-        reason: `${c.injuryCount} aktiv ${c.injuryCount === 1 ? 'skada' : 'skador'}`,
+        reason: t('reasons.activeInjuries', { count: c.injuryCount }),
         severity: 'warning',
-        actionLabel: 'Visa profil',
+        actionLabel: t('actions.viewProfile'),
         actionHref: `${basePath}/coach/clients/${c.id}`,
         score: 4,
       })
@@ -83,9 +83,9 @@ function buildAttentionItems(clients: PTClientStatus[], basePath: string): Atten
       items.push({
         clientId: c.id,
         clientName: c.name,
-        reason: `${c.pendingFeedbackCount} pass utan feedback`,
+        reason: t('reasons.pendingFeedback', { count: c.pendingFeedbackCount }),
         severity: 'info',
-        actionLabel: 'Ge feedback',
+        actionLabel: t('actions.giveFeedback'),
         actionHref: `${basePath}/coach/athletes/${c.id}/logs`,
         score: 3,
       })
@@ -95,9 +95,9 @@ function buildAttentionItems(clients: PTClientStatus[], basePath: string): Atten
       items.push({
         clientId: c.id,
         clientName: c.name,
-        reason: `Ingen aktivitet på ${c.daysSinceLastActivity} dagar`,
+        reason: t('reasons.inactiveDays', { days: c.daysSinceLastActivity }),
         severity: 'inactive',
-        actionLabel: 'Visa profil',
+        actionLabel: t('actions.viewProfile'),
         actionHref: `${basePath}/coach/clients/${c.id}`,
         score: c.daysSinceLastActivity > 14 ? 6 : 2,
       })
@@ -162,6 +162,7 @@ interface AthleteAttentionListProps {
 }
 
 export function AthleteAttentionList({ basePath }: AthleteAttentionListProps) {
+  const t = useTranslations('components.athleteAttentionList')
   const [roster, setRoster] = useState<PTClientStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(true)
@@ -185,10 +186,14 @@ export function AthleteAttentionList({ basePath }: AthleteAttentionListProps) {
         setLoading(false)
       }
     }
-    fetchRoster()
+    const timeoutId = window.setTimeout(() => {
+      void fetchRoster()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [basePath])
 
-  const items = useMemo(() => buildAttentionItems(roster, basePath), [roster, basePath])
+  const items = useMemo(() => buildAttentionItems(roster, basePath, t), [roster, basePath, t])
   const displayItems = items.slice(0, 5)
 
   if (loading || displayItems.length === 0) return null
@@ -200,7 +205,7 @@ export function AthleteAttentionList({ basePath }: AthleteAttentionListProps) {
         className="flex items-center gap-2 mb-3 text-sm font-semibold dark:text-slate-200 hover:text-slate-700 dark:hover:text-white transition-colors"
       >
         <AlertTriangle className="h-4 w-4 text-amber-500" />
-        Behöver uppmärksamhet
+        {t('title')}
         <Badge variant="secondary" className="text-xs">{items.length}</Badge>
         {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
       </button>
@@ -236,7 +241,7 @@ export function AthleteAttentionList({ basePath }: AthleteAttentionListProps) {
           })}
           {items.length > 5 && (
             <p className="text-xs text-muted-foreground text-center pt-1">
-              +{items.length - 5} fler
+              {t('more', { count: items.length - 5 })}
             </p>
           )}
         </div>

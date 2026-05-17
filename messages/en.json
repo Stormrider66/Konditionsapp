@@ -2725,6 +2725,42 @@
       "openMostImportant": "Open most important",
       "emptyQueue": "No urgent operator cases right now.",
       "nextMove": "Next move"
+    },
+    "athleteAttentionList": {
+      "title": "Needs attention",
+      "more": "+{count} more",
+      "actions": {
+        "viewProfile": "View profile",
+        "giveFeedback": "Give feedback"
+      },
+      "reasons": {
+        "lowReadiness": "Low readiness ({score})",
+        "criticalLoad": "Critical load (ACWR {acwr})",
+        "highLoad": "High load (ACWR {acwr})",
+        "activeInjuries": "{count, plural, one {# active injury} other {# active injuries}}",
+        "pendingFeedback": "{count} workouts without feedback",
+        "inactiveDays": "No activity for {days} days"
+      }
+    },
+    "clientStatusGrid": {
+      "title": "Clients",
+      "more": "+{count} more",
+      "empty": {
+        "noClients": "No clients",
+        "noFilterMatches": "No clients match the filter"
+      },
+      "filters": {
+        "all": "All",
+        "attention": "Needs attention"
+      },
+      "chips": {
+        "lowReadiness": "{name}: low readiness ({score})",
+        "criticalLoad": "{name}: critical load",
+        "highLoad": "{name}: high load",
+        "pendingFeedback": "{name}: {count} workouts without feedback",
+        "activeInjury": "{name}: {count, plural, one {# active injury} other {# active injuries}}",
+        "inactive": "{name}: inactive {days}d"
+      }
     }
   },
   "infographic": {

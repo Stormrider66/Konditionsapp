@@ -12,6 +12,7 @@ import {
 import { cn } from '@/lib/utils'
 import { ClientStatusCard, type PTClientStatus } from '@/components/coach/dashboard/ClientStatusCard'
 import { AthleteDetailSheet } from '@/components/coach/dashboard/AthleteDetailSheet'
+import { useTranslations } from '@/i18n/client'
 
 type FilterType = 'all' | 'attention'
 
@@ -52,41 +53,45 @@ interface AttentionChip {
   color: string
 }
 
-function buildAttentionChips(clients: PTClientStatus[]): AttentionChip[] {
+type ClientStatusGridTranslator = ReturnType<typeof useTranslations>
+
+function buildAttentionChips(clients: PTClientStatus[], t: ClientStatusGridTranslator): AttentionChip[] {
   const chips: AttentionChip[] = []
   for (const c of clients) {
+    const firstName = c.name.split(' ')[0]
+
     if (c.readinessScore !== null && c.readinessScore < 40) {
       chips.push({
         clientId: c.id,
-        label: `${c.name.split(' ')[0]}: Låg beredskap (${c.readinessScore})`,
+        label: t('chips.lowReadiness', { name: firstName, score: c.readinessScore }),
         color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
       })
     }
     if (c.acwrZone === 'DANGER' || c.acwrZone === 'CRITICAL') {
       chips.push({
         clientId: c.id,
-        label: `${c.name.split(' ')[0]}: ${c.acwrZone === 'CRITICAL' ? 'Kritisk' : 'Hög'} belastning`,
+        label: t(c.acwrZone === 'CRITICAL' ? 'chips.criticalLoad' : 'chips.highLoad', { name: firstName }),
         color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
       })
     }
     if (c.pendingFeedbackCount > 0) {
       chips.push({
         clientId: c.id,
-        label: `${c.name.split(' ')[0]}: ${c.pendingFeedbackCount} pass utan feedback`,
+        label: t('chips.pendingFeedback', { name: firstName, count: c.pendingFeedbackCount }),
         color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
       })
     }
     if (c.injuryCount > 0) {
       chips.push({
         clientId: c.id,
-        label: `${c.name.split(' ')[0]}: ${c.injuryCount} aktiv skada`,
+        label: t('chips.activeInjury', { name: firstName, count: c.injuryCount }),
         color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
       })
     }
     if (c.engagementLevel === 'INACTIVE' && c.daysSinceLastActivity !== null && c.daysSinceLastActivity > 7) {
       chips.push({
         clientId: c.id,
-        label: `${c.name.split(' ')[0]}: Inaktiv ${c.daysSinceLastActivity}d`,
+        label: t('chips.inactive', { name: firstName, days: c.daysSinceLastActivity }),
         color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400',
       })
     }
@@ -95,6 +100,7 @@ function buildAttentionChips(clients: PTClientStatus[]): AttentionChip[] {
 }
 
 export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
+  const t = useTranslations('components.clientStatusGrid')
   const [roster, setRoster] = useState<PTClientStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<FilterType>('all')
@@ -120,9 +126,17 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
   }, [basePath])
 
   useEffect(() => {
-    fetchRoster()
-    const interval = setInterval(fetchRoster, 60000)
-    return () => clearInterval(interval)
+    const timeoutId = window.setTimeout(() => {
+      void fetchRoster()
+    }, 0)
+    const interval = window.setInterval(() => {
+      void fetchRoster()
+    }, 60000)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      window.clearInterval(interval)
+    }
   }, [fetchRoster])
 
   const filtered = useMemo(() => {
@@ -135,7 +149,7 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
     return result
   }, [roster, filter])
 
-  const attentionChips = useMemo(() => buildAttentionChips(roster), [roster])
+  const attentionChips = useMemo(() => buildAttentionChips(roster, t), [roster, t])
   const attentionCount = useMemo(() => roster.filter(needsAttention).length, [roster])
 
   if (loading) {
@@ -150,7 +164,7 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
     return (
       <div className="text-center py-12 text-muted-foreground">
         <Users className="h-10 w-10 mx-auto mb-2 opacity-50" />
-        <p className="text-sm">Inga klienter</p>
+        <p className="text-sm">{t('empty.noClients')}</p>
       </div>
     )
   }
@@ -170,7 +184,7 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
           ))}
           {attentionChips.length > 6 && (
             <Badge variant="secondary" className="text-[11px] whitespace-nowrap">
-              +{attentionChips.length - 6} fler
+              {t('more', { count: attentionChips.length - 6 })}
             </Badge>
           )}
         </div>
@@ -181,7 +195,7 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold dark:text-slate-200 flex items-center gap-2">
             <Users className="h-4 w-4 text-blue-500" />
-            Klienter
+            {t('title')}
             <Badge variant="secondary" className="text-xs">{roster.length}</Badge>
           </h3>
         </div>
@@ -192,7 +206,7 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
             className="text-xs h-7"
             onClick={() => setFilter('all')}
           >
-            Alla
+            {t('filters.all')}
           </Button>
           <Button
             variant={filter === 'attention' ? 'default' : 'ghost'}
@@ -201,7 +215,7 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
             onClick={() => setFilter('attention')}
           >
             <Filter className="h-3 w-3 mr-1" />
-            Behöver uppmärksamhet
+            {t('filters.attention')}
             {attentionCount > 0 && (
               <Badge variant="outline" className="ml-1 text-[10px] h-4 px-1">
                 {attentionCount}
@@ -215,7 +229,7 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
       {filtered.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">Inga klienter matchar filtret</p>
+          <p className="text-sm">{t('empty.noFilterMatches')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

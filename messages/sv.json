@@ -2725,6 +2725,42 @@
       "openMostImportant": "Öppna viktigaste",
       "emptyQueue": "Inga akuta operatorärenden just nu.",
       "nextMove": "Nästa drag"
+    },
+    "athleteAttentionList": {
+      "title": "Behöver uppmärksamhet",
+      "more": "+{count} fler",
+      "actions": {
+        "viewProfile": "Visa profil",
+        "giveFeedback": "Ge feedback"
+      },
+      "reasons": {
+        "lowReadiness": "Låg beredskap ({score})",
+        "criticalLoad": "Kritisk belastning (ACWR {acwr})",
+        "highLoad": "Hög belastning (ACWR {acwr})",
+        "activeInjuries": "{count, plural, one {# aktiv skada} other {# aktiva skador}}",
+        "pendingFeedback": "{count} pass utan feedback",
+        "inactiveDays": "Ingen aktivitet på {days} dagar"
+      }
+    },
+    "clientStatusGrid": {
+      "title": "Klienter",
+      "more": "+{count} fler",
+      "empty": {
+        "noClients": "Inga klienter",
+        "noFilterMatches": "Inga klienter matchar filtret"
+      },
+      "filters": {
+        "all": "Alla",
+        "attention": "Behöver uppmärksamhet"
+      },
+      "chips": {
+        "lowReadiness": "{name}: Låg beredskap ({score})",
+        "criticalLoad": "{name}: Kritisk belastning",
+        "highLoad": "{name}: Hög belastning",
+        "pendingFeedback": "{name}: {count} pass utan feedback",
+        "activeInjury": "{name}: {count, plural, one {# aktiv skada} other {# aktiva skador}}",
+        "inactive": "{name}: Inaktiv {days}d"
+      }
     }
   },
   "infographic": {
