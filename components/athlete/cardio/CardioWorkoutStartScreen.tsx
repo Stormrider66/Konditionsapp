@@ -18,15 +18,14 @@ import {
 import {
   Clock,
   Route,
-  Heart,
   Zap,
   Play,
   X,
-  ChevronRight,
   Activity,
   Layers,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
@@ -63,23 +62,23 @@ const SEGMENT_COLORS: Record<SegmentType, string> = {
 }
 
 const SEGMENT_NAMES: Record<SegmentType, string> = {
-  WARMUP: 'Uppvärmning',
-  COOLDOWN: 'Nedvarvning',
-  INTERVAL: 'Intervall',
-  STEADY: 'Jämnt tempo',
-  RECOVERY: 'Återhämtning',
-  HILL: 'Backar',
-  DRILLS: 'Övningar',
-  CORE: 'Core',
-  PREHAB: 'Stabilitet / Prehab',
-  PLYOMETRIC: 'Plyometri',
+  WARMUP: 'segments.warmup',
+  COOLDOWN: 'segments.cooldown',
+  INTERVAL: 'segments.interval',
+  STEADY: 'segments.steady',
+  RECOVERY: 'segments.recovery',
+  HILL: 'segments.hill',
+  DRILLS: 'segments.drills',
+  CORE: 'segments.core',
+  PREHAB: 'segments.prehab',
+  PLYOMETRIC: 'segments.plyometric',
 }
 
 const SPORT_NAMES: Record<string, string> = {
-  RUNNING: 'Löpning',
-  CYCLING: 'Cykling',
-  SWIMMING: 'Simning',
-  SKIING: 'Längdskidor',
+  RUNNING: 'sports.running',
+  CYCLING: 'sports.cycling',
+  SWIMMING: 'sports.swimming',
+  SKIING: 'sports.skiing',
 }
 
 export function CardioWorkoutStartScreen({
@@ -93,6 +92,8 @@ export function CardioWorkoutStartScreen({
   onStart,
   onCancel,
 }: CardioWorkoutStartScreenProps) {
+  const t = useTranslations('components.cardioWorkoutStartScreen')
+
   // Format duration in minutes
   const formatDuration = (seconds: number) => {
     const mins = Math.round(seconds / 60)
@@ -129,7 +130,9 @@ export function CardioWorkoutStartScreen({
         <Button variant="ghost" size="icon" onClick={onCancel} className="hover:bg-slate-100 dark:hover:bg-white/10">
           <X className="h-5 w-5 text-slate-700 dark:text-slate-300" />
         </Button>
-        <h1 className="font-black tracking-tight text-slate-900 dark:text-white uppercase">Förbered dig</h1>
+        <h1 className="font-black tracking-tight text-slate-900 dark:text-white uppercase">
+          {t('title')}
+        </h1>
         <div className="w-10" /> {/* Spacer */}
       </div>
 
@@ -138,7 +141,7 @@ export function CardioWorkoutStartScreen({
         {/* Session info */}
         <div className="text-center space-y-3 pt-4">
           <Badge variant="outline" className="text-xs font-bold border-slate-200 dark:border-white/10 px-3 py-1">
-            {SPORT_NAMES[sport] || sport}
+            {SPORT_NAMES[sport] ? t(SPORT_NAMES[sport]) : sport}
           </Badge>
           <h2 className="text-3xl font-black text-slate-900 dark:text-white italic uppercase tracking-tighter leading-none">{sessionName}</h2>
           {description && (
@@ -154,7 +157,9 @@ export function CardioWorkoutStartScreen({
               <p className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
                 {totalDuration ? formatDuration(totalDuration) : '-'}
               </p>
-              <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Tid</p>
+              <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
+                {t('stats.time')}
+              </p>
             </GlassCardContent>
           </GlassCard>
           <GlassCard className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/5">
@@ -163,14 +168,18 @@ export function CardioWorkoutStartScreen({
               <p className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
                 {totalDistance ? formatDistance(totalDistance) : '-'}
               </p>
-              <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Distans</p>
+              <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
+                {t('stats.distance')}
+              </p>
             </GlassCardContent>
           </GlassCard>
           <GlassCard className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/5">
             <GlassCardContent className="p-4 text-center">
               <Layers className="h-5 w-5 mx-auto text-purple-500 mb-2" />
               <p className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{segments.length}</p>
-              <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Segment</p>
+              <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
+                {t('stats.segments')}
+              </p>
             </GlassCardContent>
           </GlassCard>
         </div>
@@ -180,7 +189,7 @@ export function CardioWorkoutStartScreen({
           <GlassCardHeader className="pb-2">
             <GlassCardTitle className="text-lg font-black flex items-center gap-2">
               <Zap className="h-4 w-4 text-amber-500" />
-              Segmentöversikt
+              {t('overview.title')}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent className="pt-2">
@@ -192,7 +201,7 @@ export function CardioWorkoutStartScreen({
                 >
                   <div className="flex items-center gap-2">
                     <Badge className={cn('text-[10px] font-bold uppercase tracking-wider border-0', SEGMENT_COLORS[type as SegmentType])}>
-                      {SEGMENT_NAMES[type as SegmentType] || type}
+                      {SEGMENT_NAMES[type as SegmentType] ? t(SEGMENT_NAMES[type as SegmentType]) : type}
                     </Badge>
                     <span className="text-xs font-bold text-slate-400">×{data.count}</span>
                   </div>
@@ -211,7 +220,7 @@ export function CardioWorkoutStartScreen({
             <GlassCardHeader className="pb-2">
               <GlassCardTitle className="text-lg font-black flex items-center gap-2">
                 <Activity className="h-4 w-4 text-red-500" />
-                Zonfördelning
+                {t('zones.title')}
               </GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent className="pt-2">
@@ -223,7 +232,9 @@ export function CardioWorkoutStartScreen({
                   return (
                     <div key={zone} className="space-y-1">
                       <div className="flex items-center justify-between text-xs font-medium">
-                        <span className="text-slate-600 dark:text-slate-300 font-bold">Zon {zone}</span>
+                        <span className="text-slate-600 dark:text-slate-300 font-bold">
+                          {t('zones.zone', { zone })}
+                        </span>
                         <span className="text-slate-400">
                           {formatDuration(zoneTime)} ({Math.round(percentage)}%)
                         </span>
@@ -252,7 +263,7 @@ export function CardioWorkoutStartScreen({
         {/* Segment list preview */}
         <GlassCard>
           <GlassCardHeader className="pb-2">
-            <GlassCardTitle className="text-lg font-black">Segment i ordning</GlassCardTitle>
+            <GlassCardTitle className="text-lg font-black">{t('list.title')}</GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent className="pt-2">
             <div className="space-y-1 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
@@ -268,7 +279,7 @@ export function CardioWorkoutStartScreen({
                     <Badge
                       className={cn('text-[10px] font-bold uppercase tracking-wider border-0', SEGMENT_COLORS[segment.type])}
                     >
-                      {SEGMENT_NAMES[segment.type] || segment.type}
+                      {SEGMENT_NAMES[segment.type] ? t(SEGMENT_NAMES[segment.type]) : segment.type}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-3 text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -288,7 +299,7 @@ export function CardioWorkoutStartScreen({
               ))}
               {segments.length > 10 && (
                 <p className="text-xs font-medium text-slate-400 text-center py-2">
-                  +{segments.length - 10} fler segment
+                  {t('list.moreSegments', { count: segments.length - 10 })}
                 </p>
               )}
             </div>
@@ -304,7 +315,7 @@ export function CardioWorkoutStartScreen({
           onClick={onStart}
         >
           <Play className="h-5 w-5 mr-2 fill-current" />
-          Starta träningspass
+          {t('actions.startWorkout')}
         </Button>
       </div>
     </div>

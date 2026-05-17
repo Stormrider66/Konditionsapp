@@ -4264,6 +4264,46 @@
         "complete": "Slutför"
       }
     },
+    "cardioWorkoutStartScreen": {
+      "title": "Förbered dig",
+      "sports": {
+        "running": "Löpning",
+        "cycling": "Cykling",
+        "swimming": "Simning",
+        "skiing": "Längdskidor"
+      },
+      "segments": {
+        "warmup": "Uppvärmning",
+        "cooldown": "Nedvarvning",
+        "interval": "Intervall",
+        "steady": "Jämnt tempo",
+        "recovery": "Återhämtning",
+        "hill": "Backar",
+        "drills": "Övningar",
+        "core": "Core",
+        "prehab": "Stabilitet / Prehab",
+        "plyometric": "Plyometri"
+      },
+      "stats": {
+        "time": "Tid",
+        "distance": "Distans",
+        "segments": "Segment"
+      },
+      "overview": {
+        "title": "Segmentöversikt"
+      },
+      "zones": {
+        "title": "Zonfördelning",
+        "zone": "Zon {zone}"
+      },
+      "list": {
+        "title": "Segment i ordning",
+        "moreSegments": "+{count} fler {count, plural, one {segment} other {segment}}"
+      },
+      "actions": {
+        "startWorkout": "Starta träningspass"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",

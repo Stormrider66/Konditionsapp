@@ -4264,6 +4264,46 @@
         "complete": "Complete"
       }
     },
+    "cardioWorkoutStartScreen": {
+      "title": "Get ready",
+      "sports": {
+        "running": "Running",
+        "cycling": "Cycling",
+        "swimming": "Swimming",
+        "skiing": "Cross-country skiing"
+      },
+      "segments": {
+        "warmup": "Warmup",
+        "cooldown": "Cooldown",
+        "interval": "Interval",
+        "steady": "Steady pace",
+        "recovery": "Recovery",
+        "hill": "Hills",
+        "drills": "Drills",
+        "core": "Core",
+        "prehab": "Stability / Prehab",
+        "plyometric": "Plyometrics"
+      },
+      "stats": {
+        "time": "Time",
+        "distance": "Distance",
+        "segments": "Segments"
+      },
+      "overview": {
+        "title": "Segment overview"
+      },
+      "zones": {
+        "title": "Zone distribution",
+        "zone": "Zone {zone}"
+      },
+      "list": {
+        "title": "Segments in order",
+        "moreSegments": "+{count, plural, one {# more segment} other {# more segments}}"
+      },
+      "actions": {
+        "startWorkout": "Start workout"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",
