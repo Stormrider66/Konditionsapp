@@ -28,7 +28,7 @@ import {
   readFutureCompletionWarning,
 } from '@/lib/workouts/future-completion-client'
 
-type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS'
+type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB'
 
 interface CardioSegment {
   type: SegmentType
@@ -150,6 +150,8 @@ export function AthleteCardioClient({
     RECOVERY: 'Återhämtning',
     HILL: 'Backar',
     DRILLS: 'Övningar',
+    CORE: 'Core',
+    PREHAB: 'Stabilitet / Prehab',
   }
 
   // Transform raw segments to FocusModeSegment format

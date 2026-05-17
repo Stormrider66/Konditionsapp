@@ -212,7 +212,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     let garminWorkoutPayload: ReturnType<typeof serializeWorkoutToGarmin> | null = null;
     if (pushToGarmin && garminTokensByAthlete.size > 0) {
       const segments = (session.segments as unknown as CardioSegment[]) || [];
-      const garminSegments = segments.map((s) => {
+      const garminSegments = segments
+        .filter((s) => s.type !== 'CORE' && s.type !== 'PREHAB')
+        .map((s) => {
         // REPEAT_GROUP: multi-step repeat block
         if (s.type === 'REPEAT_GROUP' && s.steps && s.steps.length > 0) {
           const childSteps = s.steps.map((step) => {

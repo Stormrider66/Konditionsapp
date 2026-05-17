@@ -25,7 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { GripVertical, Plus, Trash2, Timer, Activity, Footprints, Calendar, Heart, Gauge, Repeat, Download, Loader2, X } from 'lucide-react'
+import { GripVertical, Plus, Trash2, Timer, Activity, Footprints, Calendar, Heart, Gauge, Repeat, Download, Loader2, X, Target, ShieldCheck } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -36,6 +36,10 @@ import { sv } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { SessionExportButton } from '@/components/exports/SessionExportButton'
 import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton'
+import {
+  PREHAB_STABILITY_FILTER,
+  matchesStrengthLibraryCategoryFilter,
+} from '@/lib/strength/exercise-library-filters'
 import type { CardioSessionData, CardioSegment as CardioSegmentType } from '@/types'
 import { PatternBlockDialog, type GeneratedPatternStep } from './PatternBlockDialog'
 
@@ -54,6 +58,40 @@ type CardioFlatSegment = {
   repeats?: number // for intervals
   restDuration?: number // min, for interval repeats
   distanceUnit?: 'km' | 'm'
+}
+
+type CardioSupplementalExercise = {
+  id: string
+  exerciseId: string
+  name: string
+  sets: number
+  reps: string
+  restSeconds: number
+  notes?: string
+}
+
+type LibraryExercise = {
+  id: string
+  name: string
+  nameSv?: string | null
+  category?: string | null
+  muscleGroup?: string | null
+  description?: string | null
+  instructions?: string | null
+  pillar?: string | null
+  progressionLevel?: string | null
+  isRehabExercise?: boolean | null
+  rehabPhases?: string[] | null
+  targetBodyParts?: string[] | null
+  contraindications?: string[] | null
+}
+
+type CardioExerciseBlock = {
+  id: string
+  type: 'CORE' | 'PREHAB'
+  duration?: number // minutes
+  notes?: string
+  exercises: CardioSupplementalExercise[]
 }
 
 type CardioChildStep = {
@@ -98,10 +136,14 @@ type CardioRepeatGroup = {
   steps: CardioChildStep[]
 }
 
-type CardioSegment = CardioFlatSegment | CardioRepeatGroup
+type CardioSegment = CardioFlatSegment | CardioRepeatGroup | CardioExerciseBlock
 
 function isRepeatGroup(seg: CardioSegment): seg is CardioRepeatGroup {
   return seg.type === 'REPEAT_GROUP'
+}
+
+function isExerciseBlock(seg: CardioSegment): seg is CardioExerciseBlock {
+  return seg.type === 'CORE' || seg.type === 'PREHAB'
 }
 
 const generateId = () => Math.random().toString(36).substr(2, 9)
@@ -116,6 +158,8 @@ const AVAILABLE_SEGMENTS = [
   { id: 'seg6', name: 'Hill Sprints', type: 'HILL', defaultDuration: 0, defaultZone: '5', notes: 'Max effort uphill' },
   { id: 'seg7', name: 'Running Drills', type: 'DRILLS', defaultDuration: 10, defaultZone: '1', notes: 'Focus on technique' },
   { id: 'seg8', name: 'Repeat Group', type: 'REPEAT_GROUP', defaultDuration: 0, defaultZone: '1' },
+  { id: 'seg9', name: 'Core section', type: 'CORE', defaultDuration: 8, defaultZone: '1' },
+  { id: 'seg10', name: 'Stabilitet / Prehab', type: 'PREHAB', defaultDuration: 8, defaultZone: '1' },
 ]
 
 // Helper functions for auto-calculation
@@ -158,6 +202,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
   const [isSaving, setIsSaving] = useState(false)
   const [userZones, setUserZones] = useState<any>(null)
   const [patternDialogOpen, setPatternDialogOpen] = useState(false)
+  const [availableExercises, setAvailableExercises] = useState<LibraryExercise[]>([])
 
   // Load initial data when editing
   useEffect(() => {
@@ -167,6 +212,23 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
       setSport(initialData.sport || 'RUNNING')
       setSegments(
         initialData.segments.map((s: any) => {
+          if (s.type === 'CORE' || s.type === 'PREHAB') {
+            return {
+              id: s.id || generateId(),
+              type: s.type,
+              duration: s.duration ? s.duration / 60 : undefined,
+              notes: s.notes || '',
+              exercises: (s.exercises || []).map((exercise: any) => ({
+                id: exercise.id || generateId(),
+                exerciseId: exercise.exerciseId,
+                name: exercise.name,
+                sets: exercise.sets || 2,
+                reps: exercise.reps || '8-12',
+                restSeconds: exercise.restSeconds || 30,
+                notes: exercise.notes || '',
+              })),
+            } as CardioExerciseBlock
+          }
           if (s.type === 'REPEAT_GROUP') {
             return {
               id: s.id || generateId(),
@@ -215,6 +277,36 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
       setSegments([])
     }
   }, [initialData])
+
+  useEffect(() => {
+    async function fetchExercises() {
+      try {
+        const res = await fetch('/api/exercises?limit=500')
+        if (!res.ok) return
+
+        const data = await res.json()
+        const exercisesList = Array.isArray(data) ? data : (data.exercises || [])
+        setAvailableExercises(exercisesList.map((e: any) => ({
+          id: e.id,
+          name: e.nameSv || e.name,
+          nameSv: e.nameSv,
+          category: e.category,
+          muscleGroup: e.muscleGroup,
+          description: e.description,
+          instructions: e.instructions,
+          pillar: e.biomechanicalPillar,
+          progressionLevel: e.progressionLevel,
+          isRehabExercise: e.isRehabExercise,
+          rehabPhases: e.rehabPhases,
+          targetBodyParts: e.targetBodyParts,
+          contraindications: e.contraindications,
+        })))
+      } catch (error) {
+        console.error('Failed to fetch supplemental exercises', error)
+      }
+    }
+    fetchExercises()
+  }, [])
 
   useEffect(() => {
     async function loadWorkout() {
@@ -305,6 +397,23 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
               equipment: step.equipment || undefined,
               targetType: step.targetType && step.targetType !== 'none' ? step.targetType : undefined,
               targetValue: step.targetValue || undefined,
+            })),
+          }
+        }
+        if (isExerciseBlock(s)) {
+          return {
+            id: s.id,
+            type: s.type,
+            duration: s.duration ? Math.round(s.duration * 60) : undefined,
+            notes: s.notes || undefined,
+            exercises: s.exercises.map((exercise) => ({
+              id: exercise.id,
+              exerciseId: exercise.exerciseId,
+              name: exercise.name,
+              sets: exercise.sets,
+              reps: exercise.reps,
+              restSeconds: exercise.restSeconds,
+              notes: exercise.notes || undefined,
             })),
           }
         }
@@ -404,6 +513,20 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
         ],
       }
       setSegments([...segments, newGroup])
+      return
+    }
+
+    if (template.type === 'CORE' || template.type === 'PREHAB') {
+      const newBlock: CardioExerciseBlock = {
+        id: generateId(),
+        type: template.type,
+        duration: template.defaultDuration || undefined,
+        notes: template.type === 'PREHAB'
+          ? 'Ledkontroll, vävnadskapacitet och riskområden kopplat till konditionspasset.'
+          : 'Core-kontroll som stödjer hållning, kraftöverföring och teknikkvalitet.',
+        exercises: [],
+      }
+      setSegments([...segments, newBlock])
       return
     }
 
@@ -539,7 +662,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
 
   const updateSegment = (id: string, field: keyof CardioFlatSegment, value: any) => {
     setSegments(segments.map(s => {
-      if (s.id !== id || isRepeatGroup(s)) return s
+      if (s.id !== id || isRepeatGroup(s) || isExerciseBlock(s)) return s
 
       const updated = { ...s }
 
@@ -589,9 +712,58 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
     }))
   }
 
+  const updateExerciseBlock = (blockId: string, field: 'duration' | 'notes', value: number | string) => {
+    setSegments(segments.map((s) => {
+      if (s.id !== blockId || !isExerciseBlock(s)) return s
+      return { ...s, [field]: value }
+    }))
+  }
+
+  const addSupplementalExercise = (blockId: string, exerciseId: string) => {
+    const template = availableExercises.find((exercise) => exercise.id === exerciseId)
+    if (!template) return
+
+    setSegments(segments.map((s) => {
+      if (s.id !== blockId || !isExerciseBlock(s)) return s
+      const newExercise: CardioSupplementalExercise = {
+        id: generateId(),
+        exerciseId: template.id,
+        name: template.name,
+        sets: 2,
+        reps: s.type === 'PREHAB' ? '8-12 kontrollerat' : '10-15',
+        restSeconds: 30,
+      }
+      return { ...s, exercises: [...s.exercises, newExercise] }
+    }))
+  }
+
+  const updateSupplementalExercise = (
+    blockId: string,
+    itemId: string,
+    field: keyof Omit<CardioSupplementalExercise, 'id' | 'exerciseId' | 'name'>,
+    value: string | number
+  ) => {
+    setSegments(segments.map((s) => {
+      if (s.id !== blockId || !isExerciseBlock(s)) return s
+      return {
+        ...s,
+        exercises: s.exercises.map((exercise) =>
+          exercise.id === itemId ? { ...exercise, [field]: value } : exercise
+        ),
+      }
+    }))
+  }
+
+  const removeSupplementalExercise = (blockId: string, itemId: string) => {
+    setSegments(segments.map((s) => {
+      if (s.id !== blockId || !isExerciseBlock(s)) return s
+      return { ...s, exercises: s.exercises.filter((exercise) => exercise.id !== itemId) }
+    }))
+  }
+
   const calculateSegment = (id: string, triggeredField: keyof CardioFlatSegment) => {
     setSegments(currentSegments => currentSegments.map(s => {
-      if (s.id !== id || isRepeatGroup(s)) return s
+      if (s.id !== id || isRepeatGroup(s) || isExerciseBlock(s)) return s
 
       const updated = { ...s }
       
@@ -747,6 +919,17 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
                             onRemoveStep={removeChildStep}
                             onAddRestAfter={addRestAfterStep}
                           />
+                        ) : isExerciseBlock(segment) ? (
+                          <SortableExerciseBlockItem
+                            key={segment.id}
+                            block={segment}
+                            availableExercises={availableExercises}
+                            onRemove={() => removeSegment(segment.id)}
+                            onUpdateBlock={updateExerciseBlock}
+                            onAddExercise={addSupplementalExercise}
+                            onUpdateExercise={updateSupplementalExercise}
+                            onRemoveExercise={removeSupplementalExercise}
+                          />
                         ) : (
                           <SortableSegmentItem
                             key={segment.id}
@@ -766,6 +949,9 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
                           const seg = segments.find(s => s.id === activeId)!
                           if (isRepeatGroup(seg)) {
                             return <div className="bg-card border-2 border-indigo-400 rounded-md p-3 shadow-lg"><Badge className="bg-indigo-500 text-white">Repeat Group x{seg.repeats}</Badge></div>
+                          }
+                          if (isExerciseBlock(seg)) {
+                            return <div className="bg-card border-2 border-teal-400 rounded-md p-3 shadow-lg"><Badge className="bg-teal-500 text-white">{seg.type === 'PREHAB' ? 'Stabilitet / Prehab' : 'Core'}</Badge></div>
                           }
                           return <SortableSegmentItem segment={seg} onRemove={() => {}} onUpdate={() => {}} onCalculate={() => {}} isOverlay />
                         })()}
@@ -822,6 +1008,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
                     const roundRest = s.restBetweenRounds || 0
                     return acc + (stepsDur * s.repeats) + (roundRest * Math.max(s.repeats - 1, 0))
                   }
+                  if (isExerciseBlock(s)) return acc + (s.duration || 0)
                   const reps = s.repeats && s.repeats > 1 ? s.repeats : 1
                   const dur = (s.duration || 0) * reps
                   const rest = (s.restDuration || 0) * (reps > 1 ? reps - 1 : 0)
@@ -837,6 +1024,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
                     const stepsDist = s.steps.reduce((sum, step) => sum + (step.distance || 0), 0)
                     return acc + stepsDist * s.repeats
                   }
+                  if (isExerciseBlock(s)) return acc
                   const reps = s.repeats && s.repeats > 1 ? s.repeats : 1
                   return acc + (s.distance || 0) * reps
                 }, 0).toFixed(1)} km
@@ -845,7 +1033,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Snittzon:</span>
               <span className="font-medium">
-                Z{Math.round(segments.reduce((acc, s) => acc + (isRepeatGroup(s) ? 0 : parseInt(s.zone || '0')), 0) / (segments.filter(s => !isRepeatGroup(s)).length || 1))}
+                Z{Math.round(segments.reduce((acc, s) => acc + (!isRepeatGroup(s) && !isExerciseBlock(s) ? parseInt(s.zone || '0') : 0), 0) / (segments.filter(s => !isRepeatGroup(s) && !isExerciseBlock(s)).length || 1))}
               </span>
             </div>
             <div className="flex gap-2 mt-4">
@@ -1086,6 +1274,153 @@ function SortableSegmentItem({
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function SortableExerciseBlockItem({
+  block,
+  availableExercises,
+  onRemove,
+  onUpdateBlock,
+  onAddExercise,
+  onUpdateExercise,
+  onRemoveExercise,
+}: {
+  block: CardioExerciseBlock
+  availableExercises: LibraryExercise[]
+  onRemove: () => void
+  onUpdateBlock: (blockId: string, field: 'duration' | 'notes', value: number | string) => void
+  onAddExercise: (blockId: string, exerciseId: string) => void
+  onUpdateExercise: (
+    blockId: string,
+    itemId: string,
+    field: keyof Omit<CardioSupplementalExercise, 'id' | 'exerciseId' | 'name'>,
+    value: string | number
+  ) => void
+  onRemoveExercise: (blockId: string, itemId: string) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: block.id })
+  const style = { transform: CSS.Transform.toString(transform), transition }
+  const isPrehab = block.type === 'PREHAB'
+  const Icon = isPrehab ? ShieldCheck : Target
+  const filteredExercises = availableExercises.filter((exercise) =>
+    isPrehab
+      ? matchesStrengthLibraryCategoryFilter(exercise, PREHAB_STABILITY_FILTER)
+      : matchesStrengthLibraryCategoryFilter(exercise, 'CORE')
+  )
+
+  return (
+    <div ref={setNodeRef} style={style} className={`bg-card border rounded-md p-3 space-y-3 ${isPrehab ? 'border-teal-300' : 'border-purple-300'}`}>
+      <div className="flex items-center gap-3">
+        <div {...attributes} {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground">
+          <GripVertical className="h-5 w-5" />
+        </div>
+        <Badge className={`${isPrehab ? 'bg-teal-500' : 'bg-purple-500'} text-white`}>
+          <Icon className="h-3 w-3 mr-1" />
+          {isPrehab ? 'Stabilitet / Prehab' : 'Core'}
+        </Badge>
+        <div className="ml-auto flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground">Tid</Label>
+          <Input
+            type="number"
+            min={0}
+            className="h-7 w-16 text-sm"
+            value={block.duration || ''}
+            onChange={(e) => onUpdateBlock(block.id, 'duration', parseFloat(e.target.value) || 0)}
+            placeholder="min"
+          />
+          <span className="text-xs text-muted-foreground">min</span>
+          <Button variant="ghost" size="sm" onClick={onRemove} className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <Textarea
+        value={block.notes || ''}
+        onChange={(e) => onUpdateBlock(block.id, 'notes', e.target.value)}
+        className="min-h-[64px] text-sm"
+        placeholder={isPrehab ? 'Syfte, riskområde eller coachnotering...' : 'Syfte eller coachnotering...'}
+      />
+
+      <div className="flex gap-2">
+        <Select onValueChange={(exerciseId) => onAddExercise(block.id, exerciseId)}>
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue placeholder={isPrehab ? 'Lägg till prehabövning...' : 'Lägg till coreövning...'} />
+          </SelectTrigger>
+          <SelectContent>
+            {filteredExercises.map((exercise) => (
+              <SelectItem key={exercise.id} value={exercise.id}>
+                {exercise.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {block.exercises.length > 0 ? (
+        <div className="space-y-2">
+          {block.exercises.map((exercise) => (
+            <div key={exercise.id} className="rounded-md border bg-muted/20 p-2 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-medium text-sm">{exercise.name}</div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                  onClick={() => onRemoveExercise(block.id, exercise.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Set</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    className="h-7 text-sm"
+                    value={exercise.sets}
+                    onChange={(e) => onUpdateExercise(block.id, exercise.id, 'sets', parseInt(e.target.value) || 1)}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Reps/tid</Label>
+                  <Input
+                    className="h-7 text-sm"
+                    value={exercise.reps}
+                    onChange={(e) => onUpdateExercise(block.id, exercise.id, 'reps', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Vila (s)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    className="h-7 text-sm"
+                    value={exercise.restSeconds}
+                    onChange={(e) => onUpdateExercise(block.id, exercise.id, 'restSeconds', parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Notering</Label>
+                  <Input
+                    className="h-7 text-sm"
+                    value={exercise.notes || ''}
+                    onChange={(e) => onUpdateExercise(block.id, exercise.id, 'notes', e.target.value)}
+                    placeholder="valfritt"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
+          Lägg till övningar som hör till konditionspasset.
+        </div>
+      )}
     </div>
   )
 }

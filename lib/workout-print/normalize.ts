@@ -53,6 +53,8 @@ const CARDIO_SEGMENT_LABELS: Record<string, string> = {
   RECOVERY: 'Återhämtning',
   HILL: 'Backe',
   DRILLS: 'Löpskolning',
+  CORE: 'Core',
+  PREHAB: 'Stabilitet / Prehab',
   REST: 'Vila',
   REPEAT_GROUP: 'Repetitionsblock',
 }
@@ -155,6 +157,23 @@ function normalizeStrengthSection(title: string, data: unknown, fallbackExercise
 }
 
 function normalizeCardioSegment(segment: Record<string, unknown>, index: number): PrintableWorkoutItem {
+  if (segment.type === 'CORE' || segment.type === 'PREHAB') {
+    const exercises = asArray(segment.exercises)
+    return {
+      title: `${index + 1}. ${CARDIO_SEGMENT_LABELS[String(segment.type)]}`,
+      details: joinDetails([
+        formatDuration(asNumber(segment.duration)),
+        ...exercises.map((exercise) => {
+          const title = asString(exercise.name) || asString(exercise.exerciseName) || 'Övning'
+          const sets = asNumber(exercise.sets)
+          const reps = asString(exercise.reps)
+          return [title, sets ? `${sets} set` : undefined, reps].filter(Boolean).join(' • ')
+        }),
+      ]),
+      notes: asString(segment.notes),
+    }
+  }
+
   if (segment.type === 'REPEAT_GROUP') {
     const steps = asArray(segment.steps)
     const repeats = asNumber(segment.repeats) || 1

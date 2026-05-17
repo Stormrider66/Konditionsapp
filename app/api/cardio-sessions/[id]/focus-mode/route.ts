@@ -14,6 +14,12 @@ interface CardioSegmentData {
   pace?: string      // e.g., "5:30" per km
   zone?: number      // 1-5
   notes?: string
+  exercises?: Array<{
+    name?: string
+    sets?: number
+    reps?: string
+    notes?: string
+  }>
   // Flat segment repeat fields
   repeats?: number
   restDuration?: number // seconds
@@ -67,6 +73,8 @@ const SEGMENT_TYPE_NAMES: Record<string, string> = {
   REST: 'Vila',
   HILL: 'Backe',
   DRILLS: 'Övningar',
+  CORE: 'Core',
+  PREHAB: 'Stabilitet / Prehab',
 }
 
 /**
@@ -290,7 +298,15 @@ export async function GET(
       const log = segmentLogMap.get(globalIndex)
       const segmentType = (seg.type?.toUpperCase() || 'STEADY') as CardioSegmentType
       const calLabel = seg.calories ? `${seg.calories} cal` : ''
-      const noteParts = [seg.notes, calLabel].filter(Boolean)
+      const exerciseLabel = seg.exercises?.length
+        ? seg.exercises.map((exercise) => [
+          exercise.name,
+          exercise.sets ? `${exercise.sets} set` : undefined,
+          exercise.reps,
+          exercise.notes,
+        ].filter(Boolean).join(' • ')).join(' — ')
+        : ''
+      const noteParts = [seg.notes, exerciseLabel, calLabel].filter(Boolean)
 
       focusModeSegments.push({
         id: seg.id || `segment-${globalIndex}`,

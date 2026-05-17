@@ -1646,7 +1646,7 @@ export interface StrengthSessionAssignmentData {
 // CARDIO SESSION TYPES
 // ============================================
 
-export type CardioSegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS'
+export type CardioSegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB'
 
 export interface CardioSegment {
   id: string
@@ -1656,6 +1656,15 @@ export interface CardioSegment {
   pace?: string
   zone?: number
   notes?: string
+  exercises?: Array<{
+    id?: string
+    exerciseId: string
+    name: string
+    sets?: number
+    reps?: string
+    restSeconds?: number
+    notes?: string
+  }>
 }
 
 export interface CardioSessionData {

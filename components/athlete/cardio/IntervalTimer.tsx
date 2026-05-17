@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS'
+type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB'
 
 interface IntervalTimerProps {
   /** Duration in seconds */
@@ -103,6 +103,18 @@ const SEGMENT_COLORS: Record<SegmentType, { bg: string; text: string; stroke: st
     stroke: 'stroke-purple-500',
     badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
   },
+  CORE: {
+    bg: 'bg-violet-500/10',
+    text: 'text-violet-500',
+    stroke: 'stroke-violet-500',
+    badge: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
+  },
+  PREHAB: {
+    bg: 'bg-teal-500/10',
+    text: 'text-teal-500',
+    stroke: 'stroke-teal-500',
+    badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+  },
 }
 
 const SEGMENT_NAMES: Record<SegmentType, string> = {
@@ -113,6 +125,8 @@ const SEGMENT_NAMES: Record<SegmentType, string> = {
   RECOVERY: 'Återhämtning',
   HILL: 'Backe',
   DRILLS: 'Övningar',
+  CORE: 'Core',
+  PREHAB: 'Stabilitet / Prehab',
 }
 
 const ZONE_COLORS = [

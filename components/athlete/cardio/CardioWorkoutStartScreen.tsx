@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS'
+type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB'
 
 interface Segment {
   type: SegmentType
@@ -57,6 +57,8 @@ const SEGMENT_COLORS: Record<SegmentType, string> = {
   RECOVERY: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400',
   HILL: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400',
   DRILLS: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400',
+  CORE: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400',
+  PREHAB: 'bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-400',
 }
 
 const SEGMENT_NAMES: Record<SegmentType, string> = {
@@ -67,6 +69,8 @@ const SEGMENT_NAMES: Record<SegmentType, string> = {
   RECOVERY: 'Återhämtning',
   HILL: 'Backar',
   DRILLS: 'Övningar',
+  CORE: 'Core',
+  PREHAB: 'Stabilitet / Prehab',
 }
 
 const SPORT_NAMES: Record<string, string> = {

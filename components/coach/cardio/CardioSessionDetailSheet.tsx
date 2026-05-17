@@ -73,6 +73,8 @@ const segmentTypeLabels: Record<string, { label: string; color: string }> = {
   HILL: { label: 'Backe', color: 'bg-orange-500' },
   DRILLS: { label: 'Teknik', color: 'bg-purple-500' },
   REPEAT_GROUP: { label: 'Repetitionsblock', color: 'bg-indigo-500' },
+  CORE: { label: 'Core', color: 'bg-purple-500' },
+  PREHAB: { label: 'Stabilitet / Prehab', color: 'bg-teal-500' },
 };
 
 const zoneColors: Record<number, string> = {
@@ -376,6 +378,7 @@ export function CardioSessionDetailSheet({
 
                   // Regular flat segment
                   const typeInfo = segmentTypeLabels[segment.type] || { label: segment.type, color: 'bg-gray-500' };
+                  const exercises = Array.isArray(segment.exercises) ? segment.exercises : [];
                   return (
                     <li key={segment.id || i} className="flex items-start gap-3 text-sm">
                       <span className="w-5 flex-shrink-0 font-medium" style={{ color: theme.colors.textMuted }}>
@@ -397,6 +400,18 @@ export function CardioSessionDetailSheet({
                           {segment.distance && ` • ${formatDistance(segment.distance)}`}
                           {segment.pace && ` @ ${segment.pace}`}
                         </div>
+                        {exercises.length > 0 && (
+                          <ul className="mt-2 space-y-1">
+                            {exercises.map((exercise, index) => (
+                              <li key={exercise.id || `${exercise.exerciseId}-${index}`} className="text-xs" style={{ color: theme.colors.textMuted }}>
+                                {exercise.name}
+                                {exercise.sets ? ` • ${exercise.sets} set` : ''}
+                                {exercise.reps ? ` x ${exercise.reps}` : ''}
+                                {exercise.notes ? ` • ${exercise.notes}` : ''}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                         {segment.notes && (
                           <div className="text-xs italic mt-1" style={{ color: theme.colors.textMuted }}>
                             {segment.notes}
