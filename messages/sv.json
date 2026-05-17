@@ -154,6 +154,14 @@
     "workoutDetail": {
       "metadataTitle": "Pass | Athlete",
       "metadataDescription": "Detaljer för träningspass"
+    },
+    "dashboard": {
+      "welcomeBack": "Välkommen tillbaka",
+      "quickActions": {
+        "nutritionStats": "Koststatistik",
+        "startSession": "Starta pass",
+        "findSession": "Hitta pass"
+      }
     }
   },
   "nav": {

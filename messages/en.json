@@ -154,6 +154,14 @@
     "workoutDetail": {
       "metadataTitle": "Workout | Athlete",
       "metadataDescription": "Workout details"
+    },
+    "dashboard": {
+      "welcomeBack": "Welcome back",
+      "quickActions": {
+        "nutritionStats": "Nutrition stats",
+        "startSession": "Start session",
+        "findSession": "Find session"
+      }
     }
   },
   "nav": {

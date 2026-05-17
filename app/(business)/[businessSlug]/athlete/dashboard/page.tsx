@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
+import { getTranslations } from '@/i18n/server'
 import { SportType } from '@prisma/client'
 import { addDays, startOfDay, endOfDay, subDays, format, differenceInWeeks } from 'date-fns'
 import { tzSafeDayStart, tzSafeDayEnd } from '@/lib/date-utils'
@@ -79,6 +80,7 @@ interface BusinessAthleteDashboardProps {
 
 export default async function BusinessAthleteDashboardPage({ params }: BusinessAthleteDashboardProps) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.dashboard')
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
@@ -142,7 +144,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         <div className="flex flex-col gap-4 mb-8">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
-              Välkommen tillbaka <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-emerald-400 dark:to-teal-500">{client.name.split(' ')[0]}</span>
+              {t('welcomeBack')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-emerald-400 dark:to-teal-500">{client.name.split(' ')[0]}</span>
             </h1>
             <p className="text-slate-500 dark:text-slate-400 flex items-center gap-2 transition-colors">
               <CalendarDays className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
@@ -153,7 +155,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
           </div>
           <QuickActionsGrid
             sessionHref={`${basePath}/athlete/nutrition`}
-            sessionLabel="Koststatistik"
+            sessionLabel={t('quickActions.nutritionStats')}
           />
           <AICreditStatusCard basePath={basePath} compact />
         </div>
@@ -717,7 +719,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
       <div className="flex flex-col gap-4 mb-8">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
-            Välkommen tillbaka <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 dark:from-orange-400 dark:to-red-500">{client.name.split(' ')[0]}</span>
+            {t('welcomeBack')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 dark:from-orange-400 dark:to-red-500">{client.name.split(' ')[0]}</span>
           </h1>
           <p className="text-slate-500 dark:text-slate-400 flex items-center gap-2 transition-colors">
             <CalendarDays className="w-4 h-4 text-orange-600 dark:text-orange-500" />
@@ -734,9 +736,9 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
                 ? getAssignmentRoute(firstActionableItem, basePath)
                 : firstActionableItem?.kind === 'wod'
                   ? getWODRoute(firstActionableItem, basePath)
-                  : `${basePath}/athlete/browse-workouts`
+                : `${basePath}/athlete/browse-workouts`
           }
-          sessionLabel={firstActionableItem ? 'Starta pass' : 'Hitta pass'}
+          sessionLabel={firstActionableItem ? t('quickActions.startSession') : t('quickActions.findSession')}
         />
         <AICreditStatusCard basePath={basePath} compact />
       </div>
