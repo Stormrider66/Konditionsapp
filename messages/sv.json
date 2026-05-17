@@ -2919,6 +2919,57 @@
       "emptyDescription": "Logga ditt första träningspass för att komma igång",
       "feedbackLabel": "Feedback från tränare:"
     },
+    "activeRestrictionsCard": {
+      "title": "Aktiva träningsrestriktioner",
+      "description": "Dessa begränsningar gäller för din träning just nu.",
+      "validUntil": "Gäller till: {date}",
+      "daysRemaining": "{count, plural, =1 {# dag kvar} other {# dagar kvar}}",
+      "createdBy": "Skapad av {name} ({role})",
+      "contactPhysio": "Kontakta fysioterapeut",
+      "errors": {
+        "fetchFailed": "Kunde inte hämta restriktioner"
+      },
+      "roles": {
+        "physio": "Fysioterapeut",
+        "coach": "Coach"
+      },
+      "restrictionTypes": {
+        "noRunning": "Ingen löpning",
+        "noJumping": "Inga hopp",
+        "noImpact": "Ingen stötbelastning",
+        "noUpperBody": "Ingen överkroppsträning",
+        "noLowerBody": "Ingen underkroppsträning",
+        "reducedVolume": "Reducerad volym",
+        "reducedIntensity": "Reducerad intensitet",
+        "modifiedOnly": "Endast modifierade övningar",
+        "specificExercises": "Specifika övningar begränsade",
+        "custom": "Anpassad restriktion"
+      },
+      "severity": {
+        "mild": "Lindrig",
+        "moderate": "Måttlig",
+        "severe": "Allvarlig",
+        "complete": "Total"
+      },
+      "bodyParts": {
+        "ankle": "Fotled",
+        "knee": "Knä",
+        "hip": "Höft",
+        "lowerBack": "Ländrygg",
+        "upperBack": "Övre rygg",
+        "shoulder": "Axel",
+        "elbow": "Armbåge",
+        "wrist": "Handled",
+        "neck": "Nacke",
+        "groin": "Ljumske",
+        "hamstring": "Baksida lår",
+        "quadriceps": "Framsida lår",
+        "calf": "Vad",
+        "achilles": "Akillessena",
+        "foot": "Fot",
+        "shin": "Skenben"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

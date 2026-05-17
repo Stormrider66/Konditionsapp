@@ -24,8 +24,8 @@ import {
   MessageCircle,
   Loader2,
   ShieldAlert,
-  Activity,
 } from 'lucide-react'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface Restriction {
   id: string
@@ -50,17 +50,17 @@ interface ActiveRestrictionsCardProps {
   compact?: boolean
 }
 
-const RESTRICTION_TYPE_LABELS: Record<string, string> = {
-  NO_RUNNING: 'Ingen löpning',
-  NO_JUMPING: 'Inga hopp',
-  NO_IMPACT: 'Ingen stötbelastning',
-  NO_UPPER_BODY: 'Ingen överkroppsträning',
-  NO_LOWER_BODY: 'Ingen underkroppsträning',
-  REDUCED_VOLUME: 'Reducerad volym',
-  REDUCED_INTENSITY: 'Reducerad intensitet',
-  MODIFIED_ONLY: 'Endast modifierade övningar',
-  SPECIFIC_EXERCISES: 'Specifika övningar begränsade',
-  CUSTOM: 'Anpassad restriktion',
+const RESTRICTION_TYPE_KEYS: Record<string, string> = {
+  NO_RUNNING: 'restrictionTypes.noRunning',
+  NO_JUMPING: 'restrictionTypes.noJumping',
+  NO_IMPACT: 'restrictionTypes.noImpact',
+  NO_UPPER_BODY: 'restrictionTypes.noUpperBody',
+  NO_LOWER_BODY: 'restrictionTypes.noLowerBody',
+  REDUCED_VOLUME: 'restrictionTypes.reducedVolume',
+  REDUCED_INTENSITY: 'restrictionTypes.reducedIntensity',
+  MODIFIED_ONLY: 'restrictionTypes.modifiedOnly',
+  SPECIFIC_EXERCISES: 'restrictionTypes.specificExercises',
+  CUSTOM: 'restrictionTypes.custom',
 }
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -70,30 +70,30 @@ const SEVERITY_COLORS: Record<string, string> = {
   COMPLETE: 'bg-red-600/20 text-red-500 border-red-600/30',
 }
 
-const SEVERITY_LABELS: Record<string, string> = {
-  MILD: 'Lindrig',
-  MODERATE: 'Måttlig',
-  SEVERE: 'Allvarlig',
-  COMPLETE: 'Total',
+const SEVERITY_KEYS: Record<string, string> = {
+  MILD: 'severity.mild',
+  MODERATE: 'severity.moderate',
+  SEVERE: 'severity.severe',
+  COMPLETE: 'severity.complete',
 }
 
-const BODY_PART_LABELS: Record<string, string> = {
-  ANKLE: 'Fotled',
-  KNEE: 'Knä',
-  HIP: 'Höft',
-  LOWER_BACK: 'Ländrygg',
-  UPPER_BACK: 'Övre rygg',
-  SHOULDER: 'Axel',
-  ELBOW: 'Armbåge',
-  WRIST: 'Handled',
-  NECK: 'Nacke',
-  GROIN: 'Ljumske',
-  HAMSTRING: 'Baksida lår',
-  QUADRICEPS: 'Framsida lår',
-  CALF: 'Vad',
-  ACHILLES: 'Akillessena',
-  FOOT: 'Fot',
-  SHIN: 'Skenben',
+const BODY_PART_KEYS: Record<string, string> = {
+  ANKLE: 'bodyParts.ankle',
+  KNEE: 'bodyParts.knee',
+  HIP: 'bodyParts.hip',
+  LOWER_BACK: 'bodyParts.lowerBack',
+  UPPER_BACK: 'bodyParts.upperBack',
+  SHOULDER: 'bodyParts.shoulder',
+  ELBOW: 'bodyParts.elbow',
+  WRIST: 'bodyParts.wrist',
+  NECK: 'bodyParts.neck',
+  GROIN: 'bodyParts.groin',
+  HAMSTRING: 'bodyParts.hamstring',
+  QUADRICEPS: 'bodyParts.quadriceps',
+  CALF: 'bodyParts.calf',
+  ACHILLES: 'bodyParts.achilles',
+  FOOT: 'bodyParts.foot',
+  SHIN: 'bodyParts.shin',
 }
 
 export function ActiveRestrictionsCard({
@@ -102,6 +102,8 @@ export function ActiveRestrictionsCard({
   variant = 'glass',
   compact = false,
 }: ActiveRestrictionsCardProps) {
+  const t = useTranslations('components.activeRestrictionsCard')
+  const locale = useLocale()
   const isGlass = variant === 'glass'
   const [restrictions, setRestrictions] = useState<Restriction[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -127,14 +129,14 @@ export function ActiveRestrictionsCard({
         setRestrictions(data.restrictions || [])
       } catch (err) {
         console.error('Error fetching restrictions:', err)
-        setError('Kunde inte hämta restriktioner')
+        setError(t('errors.fetchFailed'))
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchRestrictions()
-  }, [clientId])
+    void fetchRestrictions()
+  }, [clientId, t])
 
   // Don't render if no restrictions
   if (!isLoading && restrictions.length === 0) {
@@ -142,7 +144,7 @@ export function ActiveRestrictionsCard({
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('sv-SE', {
+    return new Date(dateString).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -176,11 +178,11 @@ export function ActiveRestrictionsCard({
       <GlassCardHeader className={compact ? 'pb-2' : ''}>
         <GlassCardTitle className="text-lg font-black tracking-tight flex items-center gap-2">
           <ShieldAlert className="h-5 w-5 text-orange-500" />
-          Aktiva träningsrestriktioner
+          {t('title')}
         </GlassCardTitle>
         {!compact && (
           <GlassCardDescription className="text-slate-400">
-            Dessa begränsningar gäller för din träning just nu.
+            {t('description')}
           </GlassCardDescription>
         )}
       </GlassCardHeader>
@@ -196,14 +198,16 @@ export function ActiveRestrictionsCard({
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-orange-500" />
                 <span className="font-bold text-white">
-                  {RESTRICTION_TYPE_LABELS[restriction.type] || restriction.type}
+                  {RESTRICTION_TYPE_KEYS[restriction.type]
+                    ? t(RESTRICTION_TYPE_KEYS[restriction.type])
+                    : restriction.type}
                 </span>
               </div>
               <Badge
                 variant="outline"
                 className={cn('text-[10px] font-bold', SEVERITY_COLORS[restriction.severity])}
               >
-                {SEVERITY_LABELS[restriction.severity]}
+                {t(SEVERITY_KEYS[restriction.severity])}
               </Badge>
             </div>
 
@@ -221,7 +225,7 @@ export function ActiveRestrictionsCard({
                     variant="outline"
                     className="text-[10px] border-orange-500/20 text-orange-400 bg-orange-500/10"
                   >
-                    {BODY_PART_LABELS[part] || part}
+                    {BODY_PART_KEYS[part] ? t(BODY_PART_KEYS[part]) : part}
                   </Badge>
                 ))}
               </div>
@@ -232,11 +236,11 @@ export function ActiveRestrictionsCard({
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="h-3.5 w-3.5 text-slate-500" />
                 <span className="text-slate-500">
-                  Gäller till: {formatDate(restriction.endDate)}
+                  {t('validUntil', { date: formatDate(restriction.endDate) })}
                 </span>
                 {getDaysRemaining(restriction.endDate) > 0 && (
                   <Badge variant="outline" className="text-[10px] border-white/10 text-slate-400">
-                    {getDaysRemaining(restriction.endDate)} dagar kvar
+                    {t('daysRemaining', { count: getDaysRemaining(restriction.endDate) })}
                   </Badge>
                 )}
               </div>
@@ -245,7 +249,10 @@ export function ActiveRestrictionsCard({
             {/* Created by */}
             {restriction.createdBy && !compact && (
               <div className="text-xs text-slate-600">
-                Skapad av {restriction.createdBy.name} ({restriction.createdBy.role === 'PHYSIO' ? 'Fysioterapeut' : 'Coach'})
+                {t('createdBy', {
+                  name: restriction.createdBy.name,
+                  role: restriction.createdBy.role === 'PHYSIO' ? t('roles.physio') : t('roles.coach'),
+                })}
               </div>
             )}
           </div>
@@ -259,7 +266,7 @@ export function ActiveRestrictionsCard({
             className="w-full border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
           >
             <MessageCircle className="h-4 w-4 mr-2" />
-            Kontakta fysioterapeut
+            {t('contactPhysio')}
           </Button>
         )}
       </GlassCardContent>

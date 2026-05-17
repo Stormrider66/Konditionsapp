@@ -2919,6 +2919,57 @@
       "emptyDescription": "Log your first workout to get started",
       "feedbackLabel": "Coach feedback:"
     },
+    "activeRestrictionsCard": {
+      "title": "Active training restrictions",
+      "description": "These restrictions apply to your training right now.",
+      "validUntil": "Valid until: {date}",
+      "daysRemaining": "{count, plural, =1 {# day left} other {# days left}}",
+      "createdBy": "Created by {name} ({role})",
+      "contactPhysio": "Contact physiotherapist",
+      "errors": {
+        "fetchFailed": "Could not fetch restrictions"
+      },
+      "roles": {
+        "physio": "Physiotherapist",
+        "coach": "Coach"
+      },
+      "restrictionTypes": {
+        "noRunning": "No running",
+        "noJumping": "No jumping",
+        "noImpact": "No impact",
+        "noUpperBody": "No upper-body training",
+        "noLowerBody": "No lower-body training",
+        "reducedVolume": "Reduced volume",
+        "reducedIntensity": "Reduced intensity",
+        "modifiedOnly": "Modified exercises only",
+        "specificExercises": "Specific exercises restricted",
+        "custom": "Custom restriction"
+      },
+      "severity": {
+        "mild": "Mild",
+        "moderate": "Moderate",
+        "severe": "Severe",
+        "complete": "Complete"
+      },
+      "bodyParts": {
+        "ankle": "Ankle",
+        "knee": "Knee",
+        "hip": "Hip",
+        "lowerBack": "Lower back",
+        "upperBack": "Upper back",
+        "shoulder": "Shoulder",
+        "elbow": "Elbow",
+        "wrist": "Wrist",
+        "neck": "Neck",
+        "groin": "Groin",
+        "hamstring": "Hamstring",
+        "quadriceps": "Quadriceps",
+        "calf": "Calf",
+        "achilles": "Achilles tendon",
+        "foot": "Foot",
+        "shin": "Shin"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",
