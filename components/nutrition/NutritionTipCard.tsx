@@ -26,8 +26,8 @@ import {
   X,
 } from 'lucide-react'
 import type { NutritionTip, NutritionTipType, TipPriority } from '@/lib/nutrition-timing'
-import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface NutritionTipCardProps {
   tip: NutritionTip
@@ -38,22 +38,19 @@ interface NutritionTipCardProps {
   className?: string
 }
 
-/**
- * Get icon for tip type
- */
-function getTipIcon(type: NutritionTipType) {
+function TipIcon({ type, className }: { type: NutritionTipType; className?: string }) {
   switch (type) {
     case 'PRE_WORKOUT':
     case 'POST_WORKOUT':
-      return Utensils
+      return <Utensils className={className} />
     case 'HYDRATION':
-      return Droplets
+      return <Droplets className={className} />
     case 'RECOVERY_DAY':
-      return Battery
+      return <Battery className={className} />
     case 'RACE_PREP':
-      return Dumbbell
+      return <Dumbbell className={className} />
     default:
-      return Utensils
+      return <Utensils className={className} />
   }
 }
 
@@ -89,19 +86,16 @@ function getPriorityStyles(priority: TipPriority, isGlass: boolean = false): {
   }
 }
 
-/**
- * Get Swedish label for priority
- */
-function getPriorityLabel(priority: TipPriority): string {
+function getPriorityLabelKey(priority: TipPriority): string {
   switch (priority) {
     case 'HIGH':
-      return 'Viktigt'
+      return 'priorities.high'
     case 'MEDIUM':
-      return 'Tips'
+      return 'priorities.medium'
     case 'LOW':
-      return 'Info'
+      return 'priorities.low'
     default:
-      return 'Tips'
+      return 'priorities.medium'
   }
 }
 
@@ -142,13 +136,13 @@ export function NutritionTipCard({
   variant = 'default',
   className = '',
 }: NutritionTipCardProps) {
+  const t = useTranslations('components.nutritionTipCard')
   const [isExpanded, setIsExpanded] = useState(!compact)
   const [isDismissed, setIsDismissed] = useState(false)
   const isGlass = variant === 'glass'
 
   if (isDismissed) return null
 
-  const Icon = getTipIcon(tip.type)
   const priorityStyles = getPriorityStyles(tip.priority, isGlass)
   const borderClass = getCardBorderClass(tip.priority, isGlass)
 
@@ -164,7 +158,7 @@ export function NutritionTipCard({
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 flex-1">
               <div className="flex-shrink-0 p-1.5 rounded-full bg-slate-100 dark:bg-slate-800/50 transition-colors">
-                <Icon className="h-4 w-4 text-slate-500 dark:text-slate-300 transition-colors" />
+                <TipIcon type={tip.type} className="h-4 w-4 text-slate-500 dark:text-slate-300 transition-colors" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -175,14 +169,14 @@ export function NutritionTipCard({
                     variant="outline"
                     className={`text-xs px-1.5 py-0 ${priorityStyles.className}`}
                   >
-                    {getPriorityLabel(tip.priority)}
+                    {t(getPriorityLabelKey(tip.priority))}
                   </Badge>
                 </div>
                 {/* Workout context if available */}
                 {tip.workoutContext && (
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 transition-colors">
                     {tip.workoutContext.name}
-                    {tip.workoutContext.time && ` kl ${tip.workoutContext.time}`}
+                    {tip.workoutContext.time && t('workoutTime', { time: tip.workoutContext.time })}
                     {tip.workoutContext.intensity && ` (${tip.workoutContext.intensity})`}
                   </p>
                 )}
@@ -197,7 +191,7 @@ export function NutritionTipCard({
                   size="icon"
                   className="h-6 w-6 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
                   onClick={() => setIsExpanded(!isExpanded)}
-                  aria-label={isExpanded ? 'Minimera' : 'Expandera'}
+                  aria-label={isExpanded ? t('actions.collapse') : t('actions.expand')}
                 >
                   {isExpanded ? (
                     <ChevronUp className="h-3.5 w-3.5" />
@@ -212,7 +206,7 @@ export function NutritionTipCard({
                   size="icon"
                   className="h-6 w-6 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
                   onClick={handleDismiss}
-                  aria-label="Stäng"
+                  aria-label={t('actions.close')}
                 >
                   <X className="h-3.5 w-3.5" />
                 </Button>
@@ -240,7 +234,7 @@ export function NutritionTipCard({
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 flex-1">
             <div className="flex-shrink-0 p-1.5 rounded-full bg-slate-100">
-              <Icon className="h-4 w-4 text-slate-600" />
+              <TipIcon type={tip.type} className="h-4 w-4 text-slate-600" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -251,14 +245,14 @@ export function NutritionTipCard({
                   variant="outline"
                   className={`text-xs px-1.5 py-0 ${priorityStyles.className}`}
                 >
-                  {getPriorityLabel(tip.priority)}
+                  {t(getPriorityLabelKey(tip.priority))}
                 </Badge>
               </div>
               {/* Workout context if available */}
               {tip.workoutContext && (
                 <p className="text-xs text-slate-500 mt-0.5">
                   {tip.workoutContext.name}
-                  {tip.workoutContext.time && ` kl ${tip.workoutContext.time}`}
+                  {tip.workoutContext.time && t('workoutTime', { time: tip.workoutContext.time })}
                   {tip.workoutContext.intensity && ` (${tip.workoutContext.intensity})`}
                 </p>
               )}
@@ -273,7 +267,7 @@ export function NutritionTipCard({
                 size="icon"
                 className="h-6 w-6"
                 onClick={() => setIsExpanded(!isExpanded)}
-                aria-label={isExpanded ? 'Minimera' : 'Expandera'}
+                aria-label={isExpanded ? t('actions.collapse') : t('actions.expand')}
               >
                 {isExpanded ? (
                   <ChevronUp className="h-3.5 w-3.5" />
@@ -288,7 +282,7 @@ export function NutritionTipCard({
                 size="icon"
                 className="h-6 w-6 text-slate-400 hover:text-slate-600"
                 onClick={handleDismiss}
-                aria-label="Stäng"
+                aria-label={t('actions.close')}
               >
                 <X className="h-3.5 w-3.5" />
               </Button>

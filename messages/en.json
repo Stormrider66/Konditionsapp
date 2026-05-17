@@ -4630,6 +4630,19 @@
       "averageTarget": "Avg target: {value} {unit}/day",
       "goalPerDay": "Target: {value} {unit}/day"
     },
+    "nutritionTipCard": {
+      "priorities": {
+        "high": "Important",
+        "medium": "Tip",
+        "low": "Info"
+      },
+      "actions": {
+        "collapse": "Collapse",
+        "expand": "Expand",
+        "close": "Close"
+      },
+      "workoutTime": " at {time}"
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

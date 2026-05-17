@@ -4630,6 +4630,19 @@
       "averageTarget": "Snittmål: {value} {unit}/dag",
       "goalPerDay": "Mål: {value} {unit}/dag"
     },
+    "nutritionTipCard": {
+      "priorities": {
+        "high": "Viktigt",
+        "medium": "Tips",
+        "low": "Info"
+      },
+      "actions": {
+        "collapse": "Minimera",
+        "expand": "Expandera",
+        "close": "Stäng"
+      },
+      "workoutTime": " kl {time}"
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {
