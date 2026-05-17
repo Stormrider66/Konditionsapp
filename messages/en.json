@@ -4208,6 +4208,58 @@
         "description": "Your wrapped — monthly and yearly overview"
       }
     },
+    "macroPieChart": {
+      "title": "Macro split",
+      "macros": {
+        "protein": "Protein",
+        "carbs": "Carbohydrates",
+        "carbsShort": "Carbs",
+        "fat": "Fat"
+      }
+    },
+    "mealFrequencyChart": {
+      "title": "Meal types",
+      "mealTypes": {
+        "breakfast": "Breakfast",
+        "morningSnack": "AM snack",
+        "lunch": "Lunch",
+        "afternoonSnack": "PM snack",
+        "preWorkout": "Pre-workout",
+        "postWorkout": "Post-workout",
+        "dinner": "Dinner",
+        "eveningSnack": "Evening"
+      },
+      "tooltip": {
+        "count": "Count",
+        "averageCalories": "Avg kcal"
+      }
+    },
+    "workoutNutritionCard": {
+      "foodCarbs": "({grams}g C)",
+      "macroBadges": {
+        "carbs": "{grams}g carbohydrates",
+        "protein": "{grams}g protein",
+        "hydration": "{amount}ml fluid"
+      },
+      "intensities": {
+        "recovery": "Recovery",
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "threshold": "Threshold",
+        "interval": "Interval",
+        "max": "Max"
+      },
+      "sources": {
+        "adHoc": "Logged workout",
+        "aiWod": "AI workout"
+      },
+      "sections": {
+        "preWorkout": "Before workout",
+        "duringWorkout": "During workout",
+        "postWorkout": "After workout"
+      },
+      "compact": "Compact view..."
+    },
     "nutritionTimingCard": {
       "title": "Nutrition timing",
       "subtitle": {

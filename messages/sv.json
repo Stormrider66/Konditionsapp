@@ -4208,6 +4208,58 @@
         "description": "Din wrapped — månads- och årsöversikt"
       }
     },
+    "macroPieChart": {
+      "title": "Makrofördelning",
+      "macros": {
+        "protein": "Protein",
+        "carbs": "Kolhydrater",
+        "carbsShort": "Kolhydr.",
+        "fat": "Fett"
+      }
+    },
+    "mealFrequencyChart": {
+      "title": "Måltidstyper",
+      "mealTypes": {
+        "breakfast": "Frukost",
+        "morningSnack": "FM-mål",
+        "lunch": "Lunch",
+        "afternoonSnack": "EM-mål",
+        "preWorkout": "Före trn.",
+        "postWorkout": "Efter trn.",
+        "dinner": "Middag",
+        "eveningSnack": "Kväll"
+      },
+      "tooltip": {
+        "count": "Antal",
+        "averageCalories": "Snitt kcal"
+      }
+    },
+    "workoutNutritionCard": {
+      "foodCarbs": "({grams}g K)",
+      "macroBadges": {
+        "carbs": "{grams}g kolhydrater",
+        "protein": "{grams}g protein",
+        "hydration": "{amount}ml vätska"
+      },
+      "intensities": {
+        "recovery": "Återhämtning",
+        "easy": "Lätt",
+        "moderate": "Måttligt",
+        "threshold": "Tröskel",
+        "interval": "Intervall",
+        "max": "Max"
+      },
+      "sources": {
+        "adHoc": "Loggat pass",
+        "aiWod": "AI-pass"
+      },
+      "sections": {
+        "preWorkout": "Före passet",
+        "duringWorkout": "Under passet",
+        "postWorkout": "Efter passet"
+      },
+      "compact": "Kompakt vy..."
+    },
     "nutritionTimingCard": {
       "title": "Kosttajming",
       "subtitle": {

@@ -9,21 +9,18 @@
 
 'use client'
 
-import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import {
   Clock,
-  Utensils,
   Zap,
   RefreshCw,
-  ChevronDown,
   Dumbbell,
   Timer,
 } from 'lucide-react'
 import type { NutritionGuidance, WorkoutContext, FoodSuggestion } from '@/lib/nutrition-timing'
+import { useTranslations } from '@/i18n/client'
 
 interface WorkoutNutritionCardProps {
   workout: WorkoutContext
@@ -35,10 +32,11 @@ interface WorkoutNutritionCardProps {
 }
 
 function FoodSuggestionChip({ food, isGlass }: { food: FoodSuggestion, isGlass?: boolean }) {
+  const t = useTranslations('components.workoutNutritionCard')
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-1 ${isGlass ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' : 'bg-slate-100 text-slate-700'} text-xs rounded-md transition-colors`}>
       {food.nameSv}
-      {food.carbsG && <span className="text-slate-500">({food.carbsG}g K)</span>}
+      {food.carbsG && <span className="text-slate-500">{t('foodCarbs', { grams: food.carbsG })}</span>}
     </span>
   )
 }
@@ -66,6 +64,7 @@ function GuidanceSection({
   foodSuggestions?: FoodSuggestion[]
   isGlass?: boolean
 }) {
+  const t = useTranslations('components.workoutNutritionCard')
   return (
     <div className="space-y-2">
       <div className="flex items-start gap-3">
@@ -86,17 +85,17 @@ function GuidanceSection({
             <div className="flex flex-wrap gap-2 mt-2">
               {carbsG && (
                 <Badge variant="outline" className={`text-xs ${isGlass ? 'bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                  {carbsG}g kolhydrater
+                  {t('macroBadges.carbs', { grams: carbsG })}
                 </Badge>
               )}
               {proteinG && (
                 <Badge variant="outline" className={`text-xs ${isGlass ? 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-500/20' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                  {proteinG}g protein
+                  {t('macroBadges.protein', { grams: proteinG })}
                 </Badge>
               )}
               {hydrationMl && (
                 <Badge variant="outline" className={`text-xs ${isGlass ? 'bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/20' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                  {hydrationMl}ml vätska
+                  {t('macroBadges.hydration', { amount: hydrationMl })}
                 </Badge>
               )}
             </div>
@@ -133,31 +132,31 @@ function getIntensityColor(intensity: string): string {
   }
 }
 
-function getIntensityLabel(intensity: string): string {
+function getIntensityLabel(intensity: string, t: ReturnType<typeof useTranslations>): string {
   switch (intensity) {
     case 'RECOVERY':
-      return 'Återhämtning'
+      return t('intensities.recovery')
     case 'EASY':
-      return 'Lätt'
+      return t('intensities.easy')
     case 'MODERATE':
-      return 'Måttligt'
+      return t('intensities.moderate')
     case 'THRESHOLD':
-      return 'Tröskel'
+      return t('intensities.threshold')
     case 'INTERVAL':
-      return 'Intervall'
+      return t('intensities.interval')
     case 'MAX':
-      return 'Max'
+      return t('intensities.max')
     default:
       return intensity
   }
 }
 
-function getSourceLabel(workout: WorkoutContext): string | null {
+function getSourceLabel(workout: WorkoutContext, t: ReturnType<typeof useTranslations>): string | null {
   switch (workout.source) {
     case 'AD_HOC':
-      return 'Loggat pass'
+      return t('sources.adHoc')
     case 'AI_WOD':
-      return 'AI-pass'
+      return t('sources.aiWod')
     default:
       return null
   }
@@ -171,11 +170,11 @@ export function WorkoutNutritionCard({
   compact = false,
   variant = 'default'
 }: WorkoutNutritionCardProps) {
-  const [isExpanded, setIsExpanded] = useState(!compact)
+  const t = useTranslations('components.workoutNutritionCard')
   const isGlass = variant === 'glass'
 
   const hasGuidance = preWorkout || duringWorkout || postWorkout
-  const sourceLabel = getSourceLabel(workout)
+  const sourceLabel = getSourceLabel(workout, t)
 
   if (!hasGuidance) {
     return null
@@ -185,7 +184,7 @@ export function WorkoutNutritionCard({
     <div className="space-y-4">
       {preWorkout && (
         <GuidanceSection
-          title="Före passet"
+          title={t('sections.preWorkout')}
           icon={<Clock className="h-4 w-4 text-amber-500" />}
           iconBg="bg-amber-50"
           timing={preWorkout.timingLabel}
@@ -201,7 +200,7 @@ export function WorkoutNutritionCard({
         <>
           <div className={`border-t ${isGlass ? 'border-slate-200 dark:border-white/10' : ''}`} />
           <GuidanceSection
-            title="Under passet"
+            title={t('sections.duringWorkout')}
             icon={<Zap className="h-4 w-4 text-blue-500" />}
             iconBg="bg-blue-50"
             recommendation={duringWorkout.recommendation}
@@ -217,7 +216,7 @@ export function WorkoutNutritionCard({
         <>
           <div className={`border-t ${isGlass ? 'border-slate-200 dark:border-white/10' : ''}`} />
           <GuidanceSection
-            title="Efter passet"
+            title={t('sections.postWorkout')}
             icon={<RefreshCw className="h-4 w-4 text-green-500" />}
             iconBg="bg-green-50"
             timing={postWorkout.timingLabel}
@@ -239,7 +238,7 @@ export function WorkoutNutritionCard({
       <Card className="bg-white shadow-sm border-l-4 border-l-emerald-500">
         <CardContent className="p-3">
           {/* Compact not fully glassified yet as I'm focusing on dashboard main view */}
-          <p>Compact view...</p>
+          <p>{t('compact')}</p>
         </CardContent>
       </Card>
     )
@@ -272,7 +271,7 @@ export function WorkoutNutritionCard({
                 </span>
               )}
               <Badge className={getIntensityColor(workout.intensity)}>
-                {getIntensityLabel(workout.intensity)}
+                {getIntensityLabel(workout.intensity, t)}
               </Badge>
             </div>
           </div>
@@ -300,7 +299,7 @@ export function WorkoutNutritionCard({
               </span>
             )}
             <Badge className={getIntensityColor(workout.intensity)}>
-              {getIntensityLabel(workout.intensity)}
+              {getIntensityLabel(workout.intensity, t)}
             </Badge>
           </div>
         </div>

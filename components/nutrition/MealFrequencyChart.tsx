@@ -2,6 +2,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { useTranslations } from '@/i18n/client'
 
 interface MealTypeDist {
   mealType: string
@@ -13,18 +14,8 @@ interface MealFrequencyChartProps {
   distribution: MealTypeDist[]
 }
 
-const MEAL_TYPE_LABELS: Record<string, string> = {
-  BREAKFAST: 'Frukost',
-  MORNING_SNACK: 'FM-mål',
-  LUNCH: 'Lunch',
-  AFTERNOON_SNACK: 'EM-mål',
-  PRE_WORKOUT: 'Före trn.',
-  POST_WORKOUT: 'Efter trn.',
-  DINNER: 'Middag',
-  EVENING_SNACK: 'Kväll',
-}
-
 export function MealFrequencyChart({ distribution }: MealFrequencyChartProps) {
+  const t = useTranslations('components.mealFrequencyChart')
   const axisColor = 'hsl(var(--muted-foreground))'
   const gridColor = 'hsl(var(--border))'
   const tooltipStyle = {
@@ -34,8 +25,18 @@ export function MealFrequencyChart({ distribution }: MealFrequencyChartProps) {
     color: 'hsl(var(--popover-foreground))',
     fontSize: 12,
   }
+  const mealTypeLabels: Record<string, string> = {
+    BREAKFAST: t('mealTypes.breakfast'),
+    MORNING_SNACK: t('mealTypes.morningSnack'),
+    LUNCH: t('mealTypes.lunch'),
+    AFTERNOON_SNACK: t('mealTypes.afternoonSnack'),
+    PRE_WORKOUT: t('mealTypes.preWorkout'),
+    POST_WORKOUT: t('mealTypes.postWorkout'),
+    DINNER: t('mealTypes.dinner'),
+    EVENING_SNACK: t('mealTypes.eveningSnack'),
+  }
   const data = distribution.map((d) => ({
-    name: MEAL_TYPE_LABELS[d.mealType] || d.mealType,
+    name: mealTypeLabels[d.mealType] || d.mealType,
     count: d.count,
     avgCalories: d.avgCalories,
   }))
@@ -43,7 +44,7 @@ export function MealFrequencyChart({ distribution }: MealFrequencyChartProps) {
   return (
     <GlassCard>
       <GlassCardHeader className="pb-2">
-        <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400">Måltidstyper</GlassCardTitle>
+        <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400">{t('title')}</GlassCardTitle>
       </GlassCardHeader>
       <GlassCardContent>
         <div className="h-52">
@@ -65,8 +66,8 @@ export function MealFrequencyChart({ distribution }: MealFrequencyChartProps) {
               <Tooltip
                 contentStyle={tooltipStyle}
                 formatter={(value: number, name: string) => {
-                  if (name === 'count') return [value, 'Antal']
-                  return [`${value} kcal`, 'Snitt kcal']
+                  if (name === 'count') return [value, t('tooltip.count')]
+                  return [`${value} kcal`, t('tooltip.averageCalories')]
                 }}
               />
               <Bar dataKey="count" fill="rgba(6,182,212,0.5)" radius={[0, 4, 4, 0]} name="count" />

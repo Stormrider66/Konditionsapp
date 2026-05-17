@@ -2,6 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { useTranslations } from '@/i18n/client'
 
 interface MacroRatio {
   proteinPercent: number
@@ -20,6 +21,7 @@ const COLORS = {
 }
 
 export function MacroPieChart({ macroRatio }: MacroPieChartProps) {
+  const t = useTranslations('components.macroPieChart')
   const tooltipStyle = {
     backgroundColor: 'hsl(var(--popover))',
     border: '1px solid hsl(var(--border))',
@@ -28,15 +30,15 @@ export function MacroPieChart({ macroRatio }: MacroPieChartProps) {
     fontSize: 12,
   }
   const data = [
-    { name: 'Protein', value: macroRatio.proteinPercent, color: COLORS.protein },
-    { name: 'Kolhydrater', value: macroRatio.carbsPercent, color: COLORS.carbs },
-    { name: 'Fett', value: macroRatio.fatPercent, color: COLORS.fat },
+    { name: t('macros.protein'), value: macroRatio.proteinPercent, color: COLORS.protein },
+    { name: t('macros.carbs'), value: macroRatio.carbsPercent, color: COLORS.carbs },
+    { name: t('macros.fat'), value: macroRatio.fatPercent, color: COLORS.fat },
   ]
 
   return (
     <GlassCard>
       <GlassCardHeader className="pb-2">
-        <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400">Makrofördelning</GlassCardTitle>
+        <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400">{t('title')}</GlassCardTitle>
       </GlassCardHeader>
       <GlassCardContent>
         <div className="h-52">
@@ -70,15 +72,15 @@ export function MacroPieChart({ macroRatio }: MacroPieChartProps) {
         <div className="grid grid-cols-3 gap-2 text-center mt-2">
           <div>
             <p className="text-lg font-bold text-blue-400">{macroRatio.proteinPercent}%</p>
-            <p className="text-[10px] text-slate-500">Protein</p>
+            <p className="text-[10px] text-slate-500">{t('macros.protein')}</p>
           </div>
           <div>
             <p className="text-lg font-bold text-amber-400">{macroRatio.carbsPercent}%</p>
-            <p className="text-[10px] text-slate-500">Kolhydr.</p>
+            <p className="text-[10px] text-slate-500">{t('macros.carbsShort')}</p>
           </div>
           <div>
             <p className="text-lg font-bold text-red-400">{macroRatio.fatPercent}%</p>
-            <p className="text-[10px] text-slate-500">Fett</p>
+            <p className="text-[10px] text-slate-500">{t('macros.fat')}</p>
           </div>
         </div>
       </GlassCardContent>
