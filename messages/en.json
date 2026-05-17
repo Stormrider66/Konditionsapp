@@ -4261,6 +4261,46 @@
       "categoryFallback": "Uncategorized",
       "totalGrams": "{grams}g total"
     },
+    "nutritionTargets": {
+      "titles": {
+        "dailyTargets": "Today's targets",
+        "dailyNutritionNeeds": "Today's nutrition needs"
+      },
+      "badges": {
+        "restDay": "Rest day"
+      },
+      "macros": {
+        "calories": "Calories",
+        "protein": "Protein",
+        "carbs": "Carbohydrates",
+        "fat": "Fat",
+        "hydration": "Fluid"
+      },
+      "calorie": {
+        "consumedToday": "Calories today",
+        "totalEnergyNeed": "Total energy need",
+        "sources": {
+          "baseline": "Baseline need {kcal} kcal",
+          "lifestyle": "{kcal} kcal from lifestyle",
+          "training": "{kcal} kcal from training",
+          "carbTarget": "{kcal} kcal for carbohydrate target",
+          "targetAdjustment": "{kcal} kcal target adjustment"
+        }
+      },
+      "progress": {
+        "reached": "Target reached!",
+        "remaining": "{amount} {unit} left"
+      },
+      "macroDistribution": {
+        "title": "Macro split",
+        "percentTitle": "{label} {percent}%"
+      },
+      "hydration": {
+        "need": "Fluid need",
+        "liters": "{amount} liters",
+        "glasses": "{count} glasses of water"
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

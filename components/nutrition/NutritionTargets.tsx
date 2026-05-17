@@ -12,7 +12,7 @@ import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/
 import { Progress } from '@/components/ui/progress'
 import { Flame, Beef, Wheat, Droplets, CircleDot } from 'lucide-react'
 import type { DailyMacroTargets } from '@/lib/nutrition-timing'
-import { Skeleton } from '@/components/ui/skeleton'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface ConsumedMacros {
   calories: number
@@ -37,9 +37,10 @@ interface MacroItemProps {
   color: string
   bgColor: string
   isGlass?: boolean
+  locale: string
 }
 
-function MacroItem({ label, value, unit, icon, color, bgColor, isGlass }: MacroItemProps) {
+function MacroItem({ label, value, unit, icon, color, bgColor, isGlass, locale }: MacroItemProps) {
   return (
     <div className="flex items-center gap-3">
       <div className={`p-2 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : bgColor}`}>
@@ -48,7 +49,7 @@ function MacroItem({ label, value, unit, icon, color, bgColor, isGlass }: MacroI
       <div className="flex-1">
         <p className={`text-xs ${isGlass ? 'text-slate-500 dark:text-slate-400' : 'text-slate-500'}`}>{label}</p>
         <p className={`font-semibold ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'}`}>
-          {value.toLocaleString('sv-SE')}
+          {value.toLocaleString(locale)}
           <span className={`text-xs font-normal ml-1 ${isGlass ? 'text-slate-500 dark:text-slate-400' : 'text-slate-500'}`}>{unit}</span>
         </p>
       </div>
@@ -56,7 +57,19 @@ function MacroItem({ label, value, unit, icon, color, bgColor, isGlass }: MacroI
   )
 }
 
-function MacroProgressItem({ label, consumed, target, unit, icon, color, progressColor, isGlass }: {
+function MacroProgressItem({
+  label,
+  consumed,
+  target,
+  unit,
+  icon,
+  color,
+  progressColor,
+  isGlass,
+  locale,
+  reachedLabel,
+  remainingLabel,
+}: {
   label: string
   consumed: number
   target: number
@@ -65,6 +78,9 @@ function MacroProgressItem({ label, consumed, target, unit, icon, color, progres
   color: string
   progressColor: string
   isGlass?: boolean
+  locale: string
+  reachedLabel: string
+  remainingLabel: (values: { amount: number; unit: string }) => string
 }) {
   const pct = target > 0 ? Math.min(100, Math.round((consumed / target) * 100)) : 0
   const remaining = Math.max(0, target - consumed)
@@ -78,18 +94,20 @@ function MacroProgressItem({ label, consumed, target, unit, icon, color, progres
           <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>{label}</span>
         </div>
         <span className={`text-xs font-medium ${isGlass ? 'text-slate-500 dark:text-slate-400' : 'text-slate-500'}`}>
-          {Math.round(consumed)} / {target} {unit}
+          {Math.round(consumed).toLocaleString(locale)} / {target.toLocaleString(locale)} {unit}
         </span>
       </div>
       <Progress value={pct} className={`h-2 ${progressColor}`} />
       <p className={`text-xs ${reached ? 'text-green-600 dark:text-green-400' : isGlass ? 'text-slate-500 dark:text-slate-400' : 'text-slate-500'}`}>
-        {reached ? 'Mål nått!' : `${Math.round(remaining)} ${unit} kvar`}
+        {reached ? reachedLabel : remainingLabel({ amount: Math.round(remaining), unit })}
       </p>
     </div>
   )
 }
 
 export function NutritionTargets({ targets, consumed, isRestDay = false, compact = false, variant = 'default' }: NutritionTargetsProps) {
+  const t = useTranslations('components.nutritionTargets')
+  const locale = useLocale()
   const isGlass = variant === 'glass'
   const workoutEnergyKcal = targets.workoutEnergyKcal ?? targets.workoutAdjustmentKcal
   const fuelingAdjustmentKcal = targets.fuelingAdjustmentKcal ?? 0
@@ -106,10 +124,10 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
         <GlassCard>
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-sm text-white">Dagens mål</h4>
+              <h4 className="font-medium text-sm text-white">{t('titles.dailyTargets')}</h4>
               {isRestDay && (
                 <span className="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">
-                  Vilodag
+                  {t('badges.restDay')}
                 </span>
               )}
             </div>
@@ -117,40 +135,44 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
             <div className="grid grid-cols-2 gap-3">
               {/* ... items ... */}
               <MacroItem
-                label="Kalorier"
+                label={t('macros.calories')}
                 value={targets.caloriesKcal}
                 unit="kcal"
                 icon={<Flame className="h-4 w-4" />}
                 color="text-orange-500"
                 bgColor="bg-orange-950/30"
                 isGlass={true}
+                locale={locale}
               />
               <MacroItem
-                label="Protein"
+                label={t('macros.protein')}
                 value={targets.proteinG}
                 unit="g"
                 icon={<Beef className="h-4 w-4" />}
                 color="text-red-500"
                 bgColor="bg-red-950/30"
                 isGlass={true}
+                locale={locale}
               />
               <MacroItem
-                label="Kolhydrater"
+                label={t('macros.carbs')}
                 value={targets.carbsG}
                 unit="g"
                 icon={<Wheat className="h-4 w-4" />}
                 color="text-amber-500"
                 bgColor="bg-amber-950/30"
                 isGlass={true}
+                locale={locale}
               />
               <MacroItem
-                label="Vätska"
+                label={t('macros.hydration')}
                 value={Math.round(targets.hydrationMl / 100) / 10}
                 unit="L"
                 icon={<Droplets className="h-4 w-4" />}
                 color="text-blue-500"
                 bgColor="bg-blue-950/30"
                 isGlass={true}
+                locale={locale}
               />
             </div>
           </GlassCardContent>
@@ -162,46 +184,50 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
       <Card className="bg-white shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="font-medium text-sm text-slate-900">Dagens mål</h4>
+            <h4 className="font-medium text-sm text-slate-900">{t('titles.dailyTargets')}</h4>
             {isRestDay && (
               <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
-                Vilodag
+                {t('badges.restDay')}
               </span>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <MacroItem
-              label="Kalorier"
+              label={t('macros.calories')}
               value={targets.caloriesKcal}
               unit="kcal"
               icon={<Flame className="h-4 w-4" />}
               color="text-orange-600"
               bgColor="bg-orange-50"
+              locale={locale}
             />
             <MacroItem
-              label="Protein"
+              label={t('macros.protein')}
               value={targets.proteinG}
               unit="g"
               icon={<Beef className="h-4 w-4" />}
               color="text-red-600"
               bgColor="bg-red-50"
+              locale={locale}
             />
             <MacroItem
-              label="Kolhydrater"
+              label={t('macros.carbs')}
               value={targets.carbsG}
               unit="g"
               icon={<Wheat className="h-4 w-4" />}
               color="text-amber-600"
               bgColor="bg-amber-50"
+              locale={locale}
             />
             <MacroItem
-              label="Vätska"
+              label={t('macros.hydration')}
               value={Math.round(targets.hydrationMl / 100) / 10}
               unit="L"
               icon={<Droplets className="h-4 w-4" />}
               color="text-blue-600"
               bgColor="bg-blue-50"
+              locale={locale}
             />
           </div>
         </CardContent>
@@ -221,38 +247,38 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
         </div>
         <div className="flex-1">
           <p className={`text-xs ${isGlass ? 'text-orange-700 dark:text-orange-300' : 'text-orange-700'}`}>
-            {consumed ? 'Kalorier idag' : 'Totalt energibehov'}
+            {consumed ? t('calorie.consumedToday') : t('calorie.totalEnergyNeed')}
           </p>
           <p className={`text-2xl font-bold ${isGlass ? 'text-orange-900 dark:text-orange-100' : 'text-orange-900'}`}>
-            {consumed ? `${consumed.calories.toLocaleString('sv-SE')} / ` : ''}
-            {targets.caloriesKcal.toLocaleString('sv-SE')}
+            {consumed ? `${consumed.calories.toLocaleString(locale)} / ` : ''}
+            {targets.caloriesKcal.toLocaleString(locale)}
             <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-orange-700 dark:text-orange-300' : ''}`}>kcal</span>
           </p>
           {(workoutEnergyKcal > 0 || fuelingAdjustmentKcal !== 0 || targets.lifestyleAdjustmentKcal > 0) && (
             <p className={`text-xs mt-0.5 ${isGlass ? 'text-orange-700 dark:text-orange-300' : 'text-orange-700'}`}>
-              Basbehov {targets.baselineKcal.toLocaleString('sv-SE')} kcal
+              {t('calorie.sources.baseline', { kcal: targets.baselineKcal.toLocaleString(locale) })}
               {targets.lifestyleAdjustmentKcal > 0 && (
                 <>
                   <span className="mx-1">+</span>
-                  <span className="font-medium">{targets.lifestyleAdjustmentKcal.toLocaleString('sv-SE')} kcal från livsstil</span>
+                  <span className="font-medium">{t('calorie.sources.lifestyle', { kcal: targets.lifestyleAdjustmentKcal.toLocaleString(locale) })}</span>
                 </>
               )}
               {workoutEnergyKcal > 0 && (
                 <>
                   <span className="mx-1">+</span>
-                  <span className="font-medium">{workoutEnergyKcal.toLocaleString('sv-SE')} kcal från träning</span>
+                  <span className="font-medium">{t('calorie.sources.training', { kcal: workoutEnergyKcal.toLocaleString(locale) })}</span>
                 </>
               )}
               {fuelingAdjustmentKcal > 0 && (
                 <>
                   <span className="mx-1">+</span>
-                  <span className="font-medium">{fuelingAdjustmentKcal.toLocaleString('sv-SE')} kcal för kolhydratmål</span>
+                  <span className="font-medium">{t('calorie.sources.carbTarget', { kcal: fuelingAdjustmentKcal.toLocaleString(locale) })}</span>
                 </>
               )}
               {fuelingAdjustmentKcal < 0 && (
                 <>
                   <span className="mx-1">-</span>
-                  <span className="font-medium">{Math.abs(fuelingAdjustmentKcal).toLocaleString('sv-SE')} kcal måljustering</span>
+                  <span className="font-medium">{t('calorie.sources.targetAdjustment', { kcal: Math.abs(fuelingAdjustmentKcal).toLocaleString(locale) })}</span>
                 </>
               )}
             </p>
@@ -261,7 +287,9 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
             <div className="mt-2">
               <Progress value={caloriePct} className="h-2" />
               <p className={`text-xs mt-1 ${consumed.calories >= targets.caloriesKcal ? 'text-green-600 dark:text-green-400' : isGlass ? 'text-orange-700 dark:text-orange-300' : 'text-orange-700'}`}>
-                {consumed.calories >= targets.caloriesKcal ? 'Mål nått!' : `${Math.round(targets.caloriesKcal - consumed.calories)} kcal kvar`}
+                {consumed.calories >= targets.caloriesKcal
+                  ? t('progress.reached')
+                  : t('progress.remaining', { amount: Math.round(targets.caloriesKcal - consumed.calories).toLocaleString(locale), unit: 'kcal' })}
               </p>
             </div>
           )}
@@ -270,36 +298,36 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
 
       {/* Macro distribution bar */}
       <div className="space-y-2">
-        <p className={`text-xs font-medium ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-500'}`}>Makrofördelning</p>
+        <p className={`text-xs font-medium ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-500'}`}>{t('macroDistribution.title')}</p>
         <div className="flex h-3 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-800">
           <div
             className="bg-amber-500 transition-all"
             style={{ width: `${carbPercent}%` }}
-            title={`Kolhydrater ${carbPercent}%`}
+            title={t('macroDistribution.percentTitle', { label: t('macros.carbs'), percent: carbPercent })}
           />
           <div
             className="bg-red-500 transition-all"
             style={{ width: `${proteinPercent}%` }}
-            title={`Protein ${proteinPercent}%`}
+            title={t('macroDistribution.percentTitle', { label: t('macros.protein'), percent: proteinPercent })}
           />
           <div
             className="bg-emerald-500 transition-all"
             style={{ width: `${fatPercent}%` }}
-            title={`Fett ${fatPercent}%`}
+            title={t('macroDistribution.percentTitle', { label: t('macros.fat'), percent: fatPercent })}
           />
         </div>
         <div className={`flex justify-between text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-500'}`}>
           <span className="flex items-center gap-1">
             <CircleDot className="h-2.5 w-2.5 text-amber-500" />
-            Kolhydrater {carbPercent}%
+            {t('macroDistribution.percentTitle', { label: t('macros.carbs'), percent: carbPercent })}
           </span>
           <span className="flex items-center gap-1">
             <CircleDot className="h-2.5 w-2.5 text-red-500" />
-            Protein {proteinPercent}%
+            {t('macroDistribution.percentTitle', { label: t('macros.protein'), percent: proteinPercent })}
           </span>
           <span className="flex items-center gap-1">
             <CircleDot className="h-2.5 w-2.5 text-emerald-500" />
-            Fett {fatPercent}%
+            {t('macroDistribution.percentTitle', { label: t('macros.fat'), percent: fatPercent })}
           </span>
         </div>
       </div>
@@ -308,7 +336,7 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
       {consumed ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
           <MacroProgressItem
-            label="Kolhydrater"
+            label={t('macros.carbs')}
             consumed={consumed.carbsGrams}
             target={targets.carbsG}
             unit="g"
@@ -316,9 +344,15 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
             color="text-amber-500"
             progressColor="[&>div]:bg-amber-500"
             isGlass={isGlass}
+            locale={locale}
+            reachedLabel={t('progress.reached')}
+            remainingLabel={(values) => t('progress.remaining', {
+              amount: values.amount.toLocaleString(locale),
+              unit: values.unit,
+            })}
           />
           <MacroProgressItem
-            label="Protein"
+            label={t('macros.protein')}
             consumed={consumed.proteinGrams}
             target={targets.proteinG}
             unit="g"
@@ -326,9 +360,15 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
             color="text-red-500"
             progressColor="[&>div]:bg-red-500"
             isGlass={isGlass}
+            locale={locale}
+            reachedLabel={t('progress.reached')}
+            remainingLabel={(values) => t('progress.remaining', {
+              amount: values.amount.toLocaleString(locale),
+              unit: values.unit,
+            })}
           />
           <MacroProgressItem
-            label="Fett"
+            label={t('macros.fat')}
             consumed={consumed.fatGrams}
             target={targets.fatG}
             unit="g"
@@ -336,6 +376,12 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
             color="text-emerald-500"
             progressColor="[&>div]:bg-emerald-500"
             isGlass={isGlass}
+            locale={locale}
+            reachedLabel={t('progress.reached')}
+            remainingLabel={(values) => t('progress.remaining', {
+              amount: values.amount.toLocaleString(locale),
+              unit: values.unit,
+            })}
           />
         </div>
       ) : (
@@ -343,7 +389,7 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
           <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : 'bg-slate-50'}`}>
             <div className="flex items-center gap-2">
               <Wheat className="h-4 w-4 text-amber-500" />
-              <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>Kolhydrater</span>
+              <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>{t('macros.carbs')}</span>
             </div>
             <p className={`text-xl font-semibold ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'}`}>
               {targets.carbsG}
@@ -354,7 +400,7 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
           <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : 'bg-slate-50'}`}>
             <div className="flex items-center gap-2">
               <Beef className="h-4 w-4 text-red-500" />
-              <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>Protein</span>
+              <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>{t('macros.protein')}</span>
             </div>
             <p className={`text-xl font-semibold ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'}`}>
               {targets.proteinG}
@@ -365,7 +411,7 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
           <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : 'bg-slate-50'}`}>
             <div className="flex items-center gap-2">
               <CircleDot className="h-4 w-4 text-emerald-500" />
-              <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>Fett</span>
+              <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>{t('macros.fat')}</span>
             </div>
             <p className={`text-xl font-semibold ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'}`}>
               {targets.fatG}
@@ -381,13 +427,13 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
           <Droplets className={`h-4 w-4 ${isGlass ? 'text-blue-600 dark:text-blue-400' : 'text-blue-600'}`} />
         </div>
         <div className="flex-1">
-          <p className={`text-xs ${isGlass ? 'text-blue-700 dark:text-blue-300' : 'text-blue-700'}`}>Vätskebehov</p>
+          <p className={`text-xs ${isGlass ? 'text-blue-700 dark:text-blue-300' : 'text-blue-700'}`}>{t('hydration.need')}</p>
           <p className={`font-semibold ${isGlass ? 'text-blue-900 dark:text-blue-100' : 'text-blue-900'}`}>
-            {(targets.hydrationMl / 1000).toFixed(1)} liter
+            {t('hydration.liters', { amount: (targets.hydrationMl / 1000).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}
           </p>
         </div>
         <p className={`text-xs ${isGlass ? 'text-blue-700 dark:text-blue-300' : 'text-blue-600'}`}>
-          {Math.round(targets.hydrationMl / 250)} glas vatten
+          {t('hydration.glasses', { count: Math.round(targets.hydrationMl / 250).toLocaleString(locale) })}
         </p>
       </div>
     </>
@@ -398,10 +444,10 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
       <GlassCard>
         <GlassCardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <GlassCardTitle className="text-base text-cyan-400">Dagens näringsbehov</GlassCardTitle>
+            <GlassCardTitle className="text-base text-cyan-400">{t('titles.dailyNutritionNeeds')}</GlassCardTitle>
             {isRestDay && (
               <span className="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">
-                Vilodag
+                {t('badges.restDay')}
               </span>
             )}
           </div>
@@ -417,10 +463,10 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
     <Card className="bg-white shadow-sm">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Dagens näringsbehov</CardTitle>
+          <CardTitle className="text-base">{t('titles.dailyNutritionNeeds')}</CardTitle>
           {isRestDay && (
             <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
-              Vilodag
+              {t('badges.restDay')}
             </span>
           )}
         </div>

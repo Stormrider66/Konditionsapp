@@ -4261,6 +4261,46 @@
       "categoryFallback": "Okategoriserad",
       "totalGrams": "{grams}g totalt"
     },
+    "nutritionTargets": {
+      "titles": {
+        "dailyTargets": "Dagens mål",
+        "dailyNutritionNeeds": "Dagens näringsbehov"
+      },
+      "badges": {
+        "restDay": "Vilodag"
+      },
+      "macros": {
+        "calories": "Kalorier",
+        "protein": "Protein",
+        "carbs": "Kolhydrater",
+        "fat": "Fett",
+        "hydration": "Vätska"
+      },
+      "calorie": {
+        "consumedToday": "Kalorier idag",
+        "totalEnergyNeed": "Totalt energibehov",
+        "sources": {
+          "baseline": "Basbehov {kcal} kcal",
+          "lifestyle": "{kcal} kcal från livsstil",
+          "training": "{kcal} kcal från träning",
+          "carbTarget": "{kcal} kcal för kolhydratmål",
+          "targetAdjustment": "{kcal} kcal måljustering"
+        }
+      },
+      "progress": {
+        "reached": "Mål nått!",
+        "remaining": "{amount} {unit} kvar"
+      },
+      "macroDistribution": {
+        "title": "Makrofördelning",
+        "percentTitle": "{label} {percent}%"
+      },
+      "hydration": {
+        "need": "Vätskebehov",
+        "liters": "{amount} liter",
+        "glasses": "{count} glas vatten"
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {
