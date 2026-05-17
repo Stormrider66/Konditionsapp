@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/GlassCard'
 import { openCoachFloatingChat } from '@/lib/events/coach-floating-chat'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 import type {
   CoachOperatorBriefData,
   CoachOperatorBriefItem,
@@ -57,16 +58,16 @@ const toneStyles: Record<CoachOperatorBriefData['tone'], {
   },
 }
 
-const priorityLabel: Record<CoachOperatorBriefItem['priority'], string> = {
-  critical: 'Akut',
-  high: 'Hög',
-  medium: 'Granska',
-  low: 'Snart',
-}
-
 export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
+  const t = useTranslations('components.coachOperatorBrief')
   const tone = toneStyles[data.tone]
   const hasQueue = data.topItems.length > 0
+  const priorityLabel: Record<CoachOperatorBriefItem['priority'], string> = {
+    critical: t('priority.critical'),
+    high: t('priority.high'),
+    medium: t('priority.medium'),
+    low: t('priority.low'),
+  }
 
   return (
     <GlassCard className={cn('rounded-lg border', tone.shell)} data-ai-operator-brief>
@@ -80,7 +81,7 @@ export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
               <div className="flex flex-wrap items-center gap-2">
                 <GlassCardTitle className="text-base">AI coach operator</GlassCardTitle>
                 <Badge className={cn('border-0 text-[10px]', tone.badge)}>
-                  {data.summary.queueCount > 0 ? `${data.summary.queueCount} ärenden` : 'Stabilt'}
+                  {data.summary.queueCount > 0 ? t('queueCount', { count: data.summary.queueCount }) : t('stable')}
                 </Badge>
               </div>
               <GlassCardDescription className={cn('mt-1 text-sm font-medium', tone.accent)}>
@@ -93,8 +94,8 @@ export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
           </div>
 
           <div className="grid grid-cols-3 gap-2 sm:min-w-[260px]">
-            <OperatorMetric label="Akut" value={data.summary.urgentCount} tone={data.tone === 'risk' ? 'risk' : 'neutral'} />
-            <OperatorMetric label="Granska" value={data.summary.reviewCount} tone={data.summary.reviewCount > 0 ? 'watch' : 'neutral'} />
+            <OperatorMetric label={t('metrics.urgent')} value={data.summary.urgentCount} tone={data.tone === 'risk' ? 'risk' : 'neutral'} />
+            <OperatorMetric label={t('metrics.review')} value={data.summary.reviewCount} tone={data.summary.reviewCount > 0 ? 'watch' : 'neutral'} />
             <OperatorMetric label="Alerts" value={data.summary.activeAlerts} tone={data.summary.activeAlerts > 0 ? 'watch' : 'neutral'} />
           </div>
         </div>
@@ -106,11 +107,11 @@ export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
                 <ShieldAlert className="h-4 w-4" />
-                Proaktiv kö
+                {t('queueTitle')}
               </h2>
               {hasQueue && (
                 <Link href={data.topItems[0].href} className="text-xs font-medium text-primary hover:underline">
-                  Öppna viktigaste
+                  {t('openMostImportant')}
                 </Link>
               )}
             </div>
@@ -118,13 +119,13 @@ export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
             {hasQueue ? (
               <div className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white/70 dark:divide-white/10 dark:border-white/10 dark:bg-slate-950/40">
                 {data.topItems.map(item => (
-                  <OperatorQueueRow key={item.id} item={item} />
+                  <OperatorQueueRow key={item.id} item={item} priorityLabel={priorityLabel} />
                 ))}
               </div>
             ) : (
               <div className="rounded-lg border border-emerald-200 bg-white/60 p-4 text-sm text-emerald-800 dark:border-emerald-900/70 dark:bg-slate-950/40 dark:text-emerald-100">
                 <CheckCircle2 className="mb-2 h-5 w-5" />
-                Inga akuta operatorärenden just nu.
+                {t('emptyQueue')}
               </div>
             )}
           </section>
@@ -132,7 +133,7 @@ export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
           <section className="xl:col-span-2">
             <div className="mb-3 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-cyan-500" />
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Nästa drag</h2>
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t('nextMove')}</h2>
             </div>
 
             <div className="space-y-2">
@@ -183,7 +184,13 @@ function OperatorMetric({
   )
 }
 
-function OperatorQueueRow({ item }: { item: CoachOperatorBriefItem }) {
+function OperatorQueueRow({
+  item,
+  priorityLabel,
+}: {
+  item: CoachOperatorBriefItem
+  priorityLabel: Record<CoachOperatorBriefItem['priority'], string>
+}) {
   const isUrgent = item.priority === 'critical' || item.priority === 'high'
 
   return (

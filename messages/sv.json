@@ -1260,6 +1260,18 @@
     "recentActivity": "Senaste aktiviteten",
     "workoutsLoggedLast7Days": "Pass loggade senaste 7 dagarna",
     "noWorkoutsLoggedYet": "Inga pass loggade ännu",
+    "ptDashboard": {
+      "recentTests": {
+        "title": "Senaste tester",
+        "empty": "Inga tester senaste 30 dagarna",
+        "createNew": "Skapa nytt test"
+      },
+      "upcomingEvents": {
+        "title": "Kommande händelser",
+        "empty": "Inga händelser nästa 7 dagar",
+        "viewCalendar": "Visa kalender"
+      }
+    },
     "dashboardStats": {
       "activeAssignments": "Aktiva pass",
       "scheduledAndPending": "Schemalagda & väntande",
@@ -2695,6 +2707,24 @@
       "more": "+{count} fler",
       "showCompleted": "Visa {count} slutförda",
       "hideCompleted": "Dölj {count} slutförda"
+    },
+    "coachOperatorBrief": {
+      "stable": "Stabilt",
+      "queueCount": "{count} ärenden",
+      "metrics": {
+        "urgent": "Akut",
+        "review": "Granska"
+      },
+      "priority": {
+        "critical": "Akut",
+        "high": "Hög",
+        "medium": "Granska",
+        "low": "Snart"
+      },
+      "queueTitle": "Proaktiv kö",
+      "openMostImportant": "Öppna viktigaste",
+      "emptyQueue": "Inga akuta operatorärenden just nu.",
+      "nextMove": "Nästa drag"
     }
   },
   "infographic": {

@@ -21,6 +21,9 @@ import { CoachQuickActions } from '@/components/coach/dashboard/CoachQuickAction
 import { AthleteAttentionList } from '@/components/coach/dashboard/AthleteAttentionList'
 import { ClientStatusGrid } from '@/components/coach/dashboard/ClientStatusGrid'
 import { cn } from '@/lib/utils'
+import { getTranslations } from '@/i18n/server'
+
+type CoachTranslator = Awaited<ReturnType<typeof getTranslations>>
 
 interface PTDashboardLayoutProps {
   basePath: string
@@ -42,6 +45,7 @@ interface PTDashboardLayoutProps {
   pendingFeedbackCount: number
   visible?: Set<string>
   orderMap?: Map<string, number>
+  t: CoachTranslator
 }
 
 export function PTDashboardLayout({
@@ -52,6 +56,7 @@ export function PTDashboardLayout({
   pendingFeedbackCount,
   visible,
   orderMap,
+  t,
 }: PTDashboardLayoutProps) {
   // If no preferences passed, render everything (backwards compat).
   const isVisible = (key: string) => (visible ? visible.has(key) : true)
@@ -90,13 +95,13 @@ export function PTDashboardLayout({
           <GlassCardHeader className="pb-2">
             <GlassCardTitle className="text-sm flex items-center gap-2">
               <Gauge className="h-4 w-4 text-cyan-500" />
-              Senaste tester
+              {t('ptDashboard.recentTests.title')}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
             {recentTests.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Inga tester senaste 30 dagarna
+                {t('ptDashboard.recentTests.empty')}
               </p>
             ) : (
               <div className="space-y-2">
@@ -123,7 +128,7 @@ export function PTDashboardLayout({
                 ))}
                 <Link href={`${basePath}/coach/test`} className="block text-center">
                   <Button variant="ghost" size="sm" className="text-xs w-full">
-                    Skapa nytt test <ArrowRight className="h-3 w-3 ml-1" />
+                    {t('ptDashboard.recentTests.createNew')} <ArrowRight className="h-3 w-3 ml-1" />
                   </Button>
                 </Link>
               </div>
@@ -139,14 +144,14 @@ export function PTDashboardLayout({
           <GlassCardHeader className="pb-3">
             <GlassCardTitle className="text-base flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-purple-500" />
-              Kommande händelser
+              {t('ptDashboard.upcomingEvents.title')}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
             {upcomingEvents.length === 0 ? (
               <div className="text-center py-4 text-muted-foreground">
                 <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Inga händelser nästa 7 dagar</p>
+                <p className="text-sm">{t('ptDashboard.upcomingEvents.empty')}</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -177,7 +182,7 @@ export function PTDashboardLayout({
                 })}
                 <Link href={`${basePath}/coach/calendar`} className="block">
                   <Button variant="ghost" size="sm" className="text-xs w-full">
-                    Visa kalender <ArrowRight className="h-3 w-3 ml-1" />
+                    {t('ptDashboard.upcomingEvents.viewCalendar')} <ArrowRight className="h-3 w-3 ml-1" />
                   </Button>
                 </Link>
               </div>

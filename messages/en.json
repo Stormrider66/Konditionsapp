@@ -1260,6 +1260,18 @@
     "recentActivity": "Recent activity",
     "workoutsLoggedLast7Days": "Workouts logged in the last 7 days",
     "noWorkoutsLoggedYet": "No workouts logged yet",
+    "ptDashboard": {
+      "recentTests": {
+        "title": "Recent tests",
+        "empty": "No tests in the last 30 days",
+        "createNew": "Create new test"
+      },
+      "upcomingEvents": {
+        "title": "Upcoming events",
+        "empty": "No events in the next 7 days",
+        "viewCalendar": "View calendar"
+      }
+    },
     "dashboardStats": {
       "activeAssignments": "Active sessions",
       "scheduledAndPending": "Scheduled & pending",
@@ -2695,6 +2707,24 @@
       "more": "+{count} more",
       "showCompleted": "Show {count} completed",
       "hideCompleted": "Hide {count} completed"
+    },
+    "coachOperatorBrief": {
+      "stable": "Stable",
+      "queueCount": "{count} cases",
+      "metrics": {
+        "urgent": "Urgent",
+        "review": "Review"
+      },
+      "priority": {
+        "critical": "Urgent",
+        "high": "High",
+        "medium": "Review",
+        "low": "Soon"
+      },
+      "queueTitle": "Proactive queue",
+      "openMostImportant": "Open most important",
+      "emptyQueue": "No urgent operator cases right now.",
+      "nextMove": "Next move"
     }
   },
   "infographic": {

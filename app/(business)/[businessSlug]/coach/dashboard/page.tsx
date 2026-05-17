@@ -748,6 +748,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
             pendingFeedbackCount={logsNeedingFeedback.length}
             visible={visible}
             orderMap={orderMap}
+            t={t}
           />
         )}
 
