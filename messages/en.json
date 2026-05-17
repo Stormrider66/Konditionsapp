@@ -4260,6 +4260,17 @@
       },
       "compact": "Compact view..."
     },
+    "proteinTimingCard": {
+      "title": "Protein: training vs rest",
+      "workoutDays": "Training days",
+      "restDays": "Rest days",
+      "daysCount": "({count} days)",
+      "diff": {
+        "positive": "+{diff}g protein on training days",
+        "negative": "{diff}g protein on training days",
+        "same": "Same protein intake regardless of training"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Nutrition timing",
       "subtitle": {

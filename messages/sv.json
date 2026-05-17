@@ -4260,6 +4260,17 @@
       },
       "compact": "Kompakt vy..."
     },
+    "proteinTimingCard": {
+      "title": "Protein: träning vs vila",
+      "workoutDays": "Träningsdagar",
+      "restDays": "Vilodagar",
+      "daysCount": "({count} dagar)",
+      "diff": {
+        "positive": "+{diff}g protein på träningsdagar",
+        "negative": "{diff}g protein på träningsdagar",
+        "same": "Samma proteinintag oavsett träning"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Kosttajming",
       "subtitle": {
