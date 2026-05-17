@@ -7395,6 +7395,30 @@
         "high": "Hög prioritet"
       }
     },
+    "trainingTrendChart": {
+      "title": "Träningstrend",
+      "description": "Senaste {weeks} veckorna",
+      "empty": "Minst 2 veckors data krävs för att visa trender",
+      "metrics": {
+        "distance": "Distans",
+        "duration": "Tid",
+        "workouts": "Pass"
+      },
+      "units": {
+        "hours": " tim"
+      },
+      "trend": {
+        "up": "Ökande",
+        "down": "Minskande",
+        "stable": "Stabil"
+      },
+      "summary": {
+        "avgTss": "Avg TSS/vecka",
+        "avgKm": "Avg km/vecka",
+        "avgHours": "Avg tim/vecka",
+        "avgWorkouts": "Avg pass/vecka"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

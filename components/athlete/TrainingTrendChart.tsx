@@ -12,7 +12,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { enUS, sv } from 'date-fns/locale';
 import {
   ComposedChart,
   Line,
@@ -37,6 +37,7 @@ import {
   BarChart3,
   Activity,
 } from 'lucide-react';
+import { useLocale, useTranslations } from '@/i18n/client';
 
 interface WeeklySummary {
   id: string;
@@ -61,18 +62,11 @@ interface TrainingTrendChartProps {
 
 type MetricType = 'tss' | 'distance' | 'duration' | 'workouts';
 
-const METRIC_CONFIG: Record<MetricType, { label: string; color: string; unit: string }> = {
-  tss: { label: 'TSS', color: '#f97316', unit: '' },
-  distance: { label: 'Distans', color: '#3b82f6', unit: ' km' },
-  duration: { label: 'Tid', color: '#10b981', unit: ' tim' },
-  workouts: { label: 'Pass', color: '#8b5cf6', unit: '' },
-};
-
 const ACWR_ZONES = {
-  low: { min: 0, max: 0.8, color: 'rgba(59, 130, 246, 0.1)', label: 'Understimulering' },
-  optimal: { min: 0.8, max: 1.3, color: 'rgba(16, 185, 129, 0.1)', label: 'Optimal' },
-  high: { min: 1.3, max: 1.5, color: 'rgba(245, 158, 11, 0.1)', label: 'Hog risk' },
-  danger: { min: 1.5, max: 2.5, color: 'rgba(239, 68, 68, 0.1)', label: 'Farlig' },
+  low: { min: 0, max: 0.8, color: 'rgba(59, 130, 246, 0.1)' },
+  optimal: { min: 0.8, max: 1.3, color: 'rgba(16, 185, 129, 0.1)' },
+  high: { min: 1.3, max: 1.5, color: 'rgba(245, 158, 11, 0.1)' },
+  danger: { min: 1.5, max: 2.5, color: 'rgba(239, 68, 68, 0.1)' },
 };
 
 function calculateTrend(data: number[]): 'up' | 'down' | 'stable' {
@@ -92,12 +86,18 @@ function calculateTrend(data: number[]): 'up' | 'down' | 'stable' {
   return 'stable';
 }
 
-function TrendIndicator({ trend }: { trend: 'up' | 'down' | 'stable' }) {
+function TrendIndicator({
+  trend,
+  labels,
+}: {
+  trend: 'up' | 'down' | 'stable';
+  labels: Record<'up' | 'down' | 'stable', string>;
+}) {
   if (trend === 'up') {
     return (
       <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
         <TrendingUp className="h-3 w-3 mr-1" />
-        Okande
+        {labels.up}
       </Badge>
     );
   }
@@ -105,21 +105,21 @@ function TrendIndicator({ trend }: { trend: 'up' | 'down' | 'stable' }) {
     return (
       <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50">
         <TrendingDown className="h-3 w-3 mr-1" />
-        Minskande
+        {labels.down}
       </Badge>
     );
   }
   return (
     <Badge variant="outline" className="text-gray-600 border-gray-200 bg-gray-50">
       <Minus className="h-3 w-3 mr-1" />
-      Stabil
+      {labels.stable}
     </Badge>
   );
 }
 
-function formatWeekLabel(weekStart: string): string {
+function formatWeekLabel(weekStart: string, locale: string): string {
   const date = new Date(weekStart);
-  return format(date, 'd MMM', { locale: sv });
+  return format(date, 'd MMM', { locale: locale === 'en' ? enUS : sv });
 }
 
 export function TrainingTrendChart({
@@ -127,10 +127,12 @@ export function TrainingTrendChart({
   variant = 'default',
   weeks = 12,
 }: TrainingTrendChartProps) {
+  const t = useTranslations('components.trainingTrendChart');
+  const locale = useLocale();
   const [summaries, setSummaries] = useState<WeeklySummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('tss');
-  const [showACWR, setShowACWR] = useState(true);
+  const showACWR = true;
 
   const fetchSummaries = useCallback(async () => {
     try {
@@ -151,13 +153,13 @@ export function TrainingTrendChart({
   }, [clientId, weeks]);
 
   useEffect(() => {
-    fetchSummaries();
+    void fetchSummaries();
   }, [fetchSummaries]);
 
   const chartData = useMemo(() => {
     return summaries.map((summary) => ({
       week: `V${summary.weekNumber}`,
-      weekLabel: formatWeekLabel(summary.weekStart),
+      weekLabel: formatWeekLabel(summary.weekStart, locale),
       tss: Math.round(summary.totalTSS),
       distance: parseFloat(summary.totalDistance.toFixed(1)),
       duration: parseFloat((summary.totalDuration / 60).toFixed(1)),
@@ -167,7 +169,17 @@ export function TrainingTrendChart({
       polarization: summary.polarizationRatio,
       compliance: summary.compliancePercent,
     }));
-  }, [summaries]);
+  }, [locale, summaries]);
+
+  const metricConfig = useMemo(
+    () => ({
+      tss: { label: 'TSS', color: '#f97316', unit: '' },
+      distance: { label: t('metrics.distance'), color: '#3b82f6', unit: ' km' },
+      duration: { label: t('metrics.duration'), color: '#10b981', unit: t('units.hours') },
+      workouts: { label: t('metrics.workouts'), color: '#8b5cf6', unit: '' },
+    }),
+    [t]
+  );
 
   const trend = useMemo(() => {
     const values = chartData.map((d) => {
@@ -210,14 +222,14 @@ export function TrainingTrendChart({
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            Traningstrend
+            {t('title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <Activity className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">
-              Minst 2 veckors data kravs for att visa trender
+              {t('empty')}
             </p>
           </div>
         </CardContent>
@@ -225,7 +237,7 @@ export function TrainingTrendChart({
     );
   }
 
-  const metricConfig = METRIC_CONFIG[selectedMetric] || METRIC_CONFIG.tss;
+  const selectedMetricConfig = metricConfig[selectedMetric] || metricConfig.tss;
 
   return (
     <Card className={cardClass}>
@@ -234,12 +246,19 @@ export function TrainingTrendChart({
           <div>
             <CardTitle className="text-base flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
-              Traningstrend
+              {t('title')}
             </CardTitle>
-            <CardDescription>Senaste {weeks} veckorna</CardDescription>
+            <CardDescription>{t('description', { weeks })}</CardDescription>
           </div>
           <div className="flex items-center gap-3">
-            <TrendIndicator trend={trend} />
+            <TrendIndicator
+              trend={trend}
+              labels={{
+                up: t('trend.up'),
+                down: t('trend.down'),
+                stable: t('trend.stable'),
+              }}
+            />
             <Tabs
               value={selectedMetric}
               onValueChange={(value) => setSelectedMetric(value as MetricType)}
@@ -249,13 +268,13 @@ export function TrainingTrendChart({
                   TSS
                 </TabsTrigger>
                 <TabsTrigger value="distance" className="text-xs px-2 h-6">
-                  Distans
+                  {t('metrics.distance')}
                 </TabsTrigger>
                 <TabsTrigger value="duration" className="text-xs px-2 h-6">
-                  Tid
+                  {t('metrics.duration')}
                 </TabsTrigger>
                 <TabsTrigger value="workouts" className="text-xs px-2 h-6">
-                  Pass
+                  {t('metrics.workouts')}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -333,8 +352,8 @@ export function TrainingTrendChart({
                 }}
                 formatter={(value: number, name: string) => {
                   if (name === 'ACWR') return [value?.toFixed(2), name];
-                  if (name === metricConfig.label)
-                    return [`${value}${metricConfig.unit}`, name];
+                  if (name === selectedMetricConfig.label)
+                    return [`${value}${selectedMetricConfig.unit}`, name];
                   return [value, name];
                 }}
               />
@@ -347,8 +366,8 @@ export function TrainingTrendChart({
               <Bar
                 yAxisId="left"
                 dataKey={selectedMetric}
-                fill={metricConfig.color}
-                name={metricConfig.label}
+                fill={selectedMetricConfig.color}
+                name={selectedMetricConfig.label}
                 radius={[4, 4, 0, 0]}
                 opacity={0.9}
               />
@@ -377,25 +396,25 @@ export function TrainingTrendChart({
             <p className="text-lg font-bold">
               {Math.round(chartData.reduce((sum, d) => sum + d.tss, 0) / chartData.length)}
             </p>
-            <p className="text-xs text-muted-foreground">Avg TSS/vecka</p>
+            <p className="text-xs text-muted-foreground">{t('summary.avgTss')}</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-bold">
               {(chartData.reduce((sum, d) => sum + d.distance, 0) / chartData.length).toFixed(0)}
             </p>
-            <p className="text-xs text-muted-foreground">Avg km/vecka</p>
+            <p className="text-xs text-muted-foreground">{t('summary.avgKm')}</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-bold">
               {(chartData.reduce((sum, d) => sum + d.duration, 0) / chartData.length).toFixed(1)}
             </p>
-            <p className="text-xs text-muted-foreground">Avg tim/vecka</p>
+            <p className="text-xs text-muted-foreground">{t('summary.avgHours')}</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-bold">
               {(chartData.reduce((sum, d) => sum + d.workouts, 0) / chartData.length).toFixed(1)}
             </p>
-            <p className="text-xs text-muted-foreground">Avg pass/vecka</p>
+            <p className="text-xs text-muted-foreground">{t('summary.avgWorkouts')}</p>
           </div>
         </div>
       </CardContent>

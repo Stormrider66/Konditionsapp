@@ -7395,6 +7395,30 @@
         "high": "High priority"
       }
     },
+    "trainingTrendChart": {
+      "title": "Training trend",
+      "description": "Last {weeks} weeks",
+      "empty": "At least 2 weeks of data are required to show trends",
+      "metrics": {
+        "distance": "Distance",
+        "duration": "Time",
+        "workouts": "Workouts"
+      },
+      "units": {
+        "hours": " hrs"
+      },
+      "trend": {
+        "up": "Increasing",
+        "down": "Decreasing",
+        "stable": "Stable"
+      },
+      "summary": {
+        "avgTss": "Avg TSS/week",
+        "avgKm": "Avg km/week",
+        "avgHours": "Avg hrs/week",
+        "avgWorkouts": "Avg workouts/week"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
