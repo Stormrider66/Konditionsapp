@@ -3192,6 +3192,16 @@
       "messageCount": "{used}/{limit} messages",
       "label": "AI chat"
     },
+    "acwrGauge": {
+      "noData": "No data",
+      "zones": {
+        "detraining": "Detraining",
+        "optimal": "Optimal",
+        "caution": "Caution",
+        "danger": "Danger",
+        "critical": "Critical"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",

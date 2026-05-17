@@ -16,6 +16,7 @@
 
 import { cn } from '@/lib/utils'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { useTranslations } from '@/i18n/client'
 
 type ACWRZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL'
 
@@ -25,35 +26,37 @@ interface ACWRGaugeProps {
   className?: string
 }
 
-const ZONE_COLORS: Record<ACWRZone, { bg: string; text: string; label: string }> = {
+const ZONE_COLORS: Record<ACWRZone, { bg: string; text: string; labelKey: string }> = {
   DETRAINING: {
     bg: 'text-gray-400',
     text: 'text-gray-600',
-    label: 'Avträning',
+    labelKey: 'zones.detraining',
   },
   OPTIMAL: {
     bg: 'text-green-500',
     text: 'text-green-600',
-    label: 'Optimal',
+    labelKey: 'zones.optimal',
   },
   CAUTION: {
     bg: 'text-yellow-500',
     text: 'text-yellow-600',
-    label: 'Varning',
+    labelKey: 'zones.caution',
   },
   DANGER: {
     bg: 'text-orange-500',
     text: 'text-orange-600',
-    label: 'Fara',
+    labelKey: 'zones.danger',
   },
   CRITICAL: {
     bg: 'text-red-500',
     text: 'text-red-600',
-    label: 'Kritisk',
+    labelKey: 'zones.critical',
   },
 }
 
 export function ACWRGauge({ value, zone, className }: ACWRGaugeProps) {
+  const t = useTranslations('components.acwrGauge')
+
   // Clamp value between 0 and 2.5 for display purposes
   const displayValue = value !== null ? Math.min(Math.max(value, 0), 2.5) : 0
 
@@ -212,7 +215,7 @@ export function ACWRGauge({ value, zone, className }: ACWRGaugeProps) {
           {value !== null ? value.toFixed(2) : '—'}
         </div>
         <div className={cn('text-sm font-medium', value !== null ? zoneConfig.text : 'text-muted-foreground')}>
-          {zone ? zoneConfig.label : 'Ingen data'} <InfoTooltip conceptKey="acwr" />
+          {zone ? t(zoneConfig.labelKey) : t('noData')} <InfoTooltip conceptKey="acwr" />
         </div>
       </div>
     </div>

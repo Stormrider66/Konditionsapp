@@ -3192,6 +3192,16 @@
       "messageCount": "{used}/{limit} meddelanden",
       "label": "AI-chatt"
     },
+    "acwrGauge": {
+      "noData": "Ingen data",
+      "zones": {
+        "detraining": "Avträning",
+        "optimal": "Optimal",
+        "caution": "Varning",
+        "danger": "Fara",
+        "critical": "Kritisk"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",
