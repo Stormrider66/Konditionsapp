@@ -3078,6 +3078,41 @@
         "avoidPostWorkout": "Avoid measuring directly after training"
       }
     },
+    "raceEquivalentCalculator": {
+      "title": "Race calculator",
+      "description": "Enter a time and see how it compares across other distances",
+      "distance": "Distance",
+      "timeLabel": "Time (MM:SS or HH:MM:SS)",
+      "vsCurrent": "{delta} vs current",
+      "equivalentTimes": "Equivalent times",
+      "trainingPaces": "Training paces",
+      "invalidTimePrefix": "Enter a valid time (e.g.",
+      "distances": {
+        "1500m": "1,500 m",
+        "mile": "Mile",
+        "3k": "3 km",
+        "5k": "5 km",
+        "10k": "10 km",
+        "15k": "15 km",
+        "10mile": "10 miles",
+        "halfMarathon": "Half marathon",
+        "marathon": "Marathon"
+      },
+      "categories": {
+        "worldClass": "World class",
+        "elite": "Elite",
+        "advanced": "Advanced",
+        "intermediate": "Intermediate",
+        "recreational": "Recreational",
+        "beginner": "Beginner"
+      },
+      "paces": {
+        "easy": "Easy (E)",
+        "marathon": "Marathon (M)",
+        "threshold": "Threshold (T)",
+        "interval": "Interval (I)"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",
