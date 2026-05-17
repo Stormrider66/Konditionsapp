@@ -3,6 +3,7 @@
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { useTranslations } from '@/i18n/client'
 
 interface AIChatUsageMeterProps {
   used: number
@@ -17,14 +18,15 @@ export function AIChatUsageMeter({
   limit,
   className,
   showLabel = true,
-  locale = 'sv',
 }: AIChatUsageMeterProps) {
+  const t = useTranslations('components.aiChatUsageMeter')
+
   // Unlimited usage
   if (limit === undefined || limit === -1) {
     return (
       <div className={cn('flex items-center gap-2 text-sm', className)}>
         <span className="text-muted-foreground">
-          {locale === 'sv' ? 'Obegränsad AI-chatt' : 'Unlimited AI chat'}
+          {t('unlimitedChat')}
         </span>
       </div>
     )
@@ -41,14 +43,9 @@ export function AIChatUsageMeter({
   }
 
   const getStatusText = () => {
-    if (locale === 'sv') {
-      if (isAtLimit) return 'Månadsgräns nådd'
-      if (isNearLimit) return 'Nästan slut'
-      return `${used}/${limit} meddelanden`
-    }
-    if (isAtLimit) return 'Monthly limit reached'
-    if (isNearLimit) return 'Almost at limit'
-    return `${used}/${limit} messages`
+    if (isAtLimit) return t('monthlyLimitReached')
+    if (isNearLimit) return t('almostAtLimit')
+    return t('messageCount', { used, limit })
   }
 
   return (
@@ -56,7 +53,7 @@ export function AIChatUsageMeter({
       {showLabel && (
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground flex items-center gap-1.5">
-            {locale === 'sv' ? 'AI-chatt' : 'AI Chat'} <InfoTooltip conceptKey="tokenBudget" />
+            {t('label')} <InfoTooltip conceptKey="tokenBudget" />
           </span>
           <span
             className={cn(
@@ -89,12 +86,13 @@ export function AIChatUsageCompact({
   used,
   limit,
   className,
-  locale = 'sv',
 }: Omit<AIChatUsageMeterProps, 'showLabel'>) {
+  const t = useTranslations('components.aiChatUsageMeter')
+
   if (limit === undefined || limit === -1) {
     return (
       <span className={cn('text-xs text-muted-foreground', className)}>
-        {locale === 'sv' ? 'Obegränsad' : 'Unlimited'}
+        {t('unlimited')}
       </span>
     )
   }

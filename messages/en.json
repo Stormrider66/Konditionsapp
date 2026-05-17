@@ -3184,6 +3184,14 @@
       "reps": "Reps",
       "exerciseCount": "{count, plural, =1 {# exercise} other {# exercises}}"
     },
+    "aiChatUsageMeter": {
+      "unlimitedChat": "Unlimited AI chat",
+      "unlimited": "Unlimited",
+      "monthlyLimitReached": "Monthly limit reached",
+      "almostAtLimit": "Almost at limit",
+      "messageCount": "{used}/{limit} messages",
+      "label": "AI chat"
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",

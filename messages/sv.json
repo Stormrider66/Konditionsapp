@@ -3184,6 +3184,14 @@
       "reps": "Reps",
       "exerciseCount": "{count, plural, =1 {# övning} other {# övningar}}"
     },
+    "aiChatUsageMeter": {
+      "unlimitedChat": "Obegränsad AI-chatt",
+      "unlimited": "Obegränsad",
+      "monthlyLimitReached": "Månadsgräns nådd",
+      "almostAtLimit": "Nästan slut",
+      "messageCount": "{used}/{limit} meddelanden",
+      "label": "AI-chatt"
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",
