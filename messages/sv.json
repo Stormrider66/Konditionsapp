@@ -4547,6 +4547,74 @@
         "saveGoals": "Kunde inte spara mål"
       }
     },
+    "nutritionWrappedPage": {
+      "months": {
+        "january": "Januari",
+        "february": "Februari",
+        "march": "Mars",
+        "april": "April",
+        "may": "Maj",
+        "june": "Juni",
+        "july": "Juli",
+        "august": "Augusti",
+        "september": "September",
+        "october": "Oktober",
+        "november": "November",
+        "december": "December"
+      },
+      "mealTypes": {
+        "breakfast": "Frukost",
+        "morningSnack": "Fm-mellanmål",
+        "lunch": "Lunch",
+        "afternoonSnack": "Em-mellanmål",
+        "preWorkout": "Före träning",
+        "postWorkout": "Efter träning",
+        "dinner": "Middag",
+        "eveningSnack": "Kvällsmellanmål"
+      },
+      "categories": {
+        "protein": "Protein",
+        "carb": "Kolhydrater",
+        "fat": "Fett",
+        "vegetable": "Grönsaker",
+        "fruit": "Frukt",
+        "dairy": "Mejeri",
+        "grain": "Spannmål",
+        "beverage": "Dryck",
+        "other": "Övrigt"
+      },
+      "empty": {
+        "title": "Ingen kostsammanfattning ännu",
+        "description": "Börja logga mat med fotoskannern så skapar vi din första sammanfattning"
+      },
+      "period": {
+        "placeholder": "Välj period",
+        "yearly": "{year} (Helår)",
+        "monthly": "{month} {year}"
+      },
+      "stats": {
+        "meals": "Måltider",
+        "daysLogged": "Dagar loggade",
+        "avgKcalPerDay": "Snitt kcal/dag",
+        "avgProteinPerDay": "Snitt protein/dag",
+        "longestStreakDays": "Längsta svit (dagar)",
+        "uniqueFoods": "Unika livsmedel"
+      },
+      "sections": {
+        "favoriteFoods": "Dina favoritmat",
+        "proteinSources": "Dina proteinkällor",
+        "mealDistribution": "Måltidsfördelning",
+        "foodCategories": "Livsmedelskategorier",
+        "didYouKnow": "Visste du att...",
+        "totalConsumed": "Totalt konsumerat"
+      },
+      "macros": {
+        "protein": "Protein",
+        "carbsShort": "Kolhydr.",
+        "fat": "Fett"
+      },
+      "totalKg": "{kg} kg totalt"
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

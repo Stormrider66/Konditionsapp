@@ -4547,6 +4547,74 @@
         "saveGoals": "Could not save goals"
       }
     },
+    "nutritionWrappedPage": {
+      "months": {
+        "january": "January",
+        "february": "February",
+        "march": "March",
+        "april": "April",
+        "may": "May",
+        "june": "June",
+        "july": "July",
+        "august": "August",
+        "september": "September",
+        "october": "October",
+        "november": "November",
+        "december": "December"
+      },
+      "mealTypes": {
+        "breakfast": "Breakfast",
+        "morningSnack": "AM snack",
+        "lunch": "Lunch",
+        "afternoonSnack": "PM snack",
+        "preWorkout": "Pre-workout",
+        "postWorkout": "Post-workout",
+        "dinner": "Dinner",
+        "eveningSnack": "Evening snack"
+      },
+      "categories": {
+        "protein": "Protein",
+        "carb": "Carbohydrates",
+        "fat": "Fat",
+        "vegetable": "Vegetables",
+        "fruit": "Fruit",
+        "dairy": "Dairy",
+        "grain": "Grains",
+        "beverage": "Beverage",
+        "other": "Other"
+      },
+      "empty": {
+        "title": "No nutrition summary yet",
+        "description": "Start logging food with the photo scanner and we will create your first summary"
+      },
+      "period": {
+        "placeholder": "Choose period",
+        "yearly": "{year} (Full year)",
+        "monthly": "{month} {year}"
+      },
+      "stats": {
+        "meals": "Meals",
+        "daysLogged": "Days logged",
+        "avgKcalPerDay": "Avg kcal/day",
+        "avgProteinPerDay": "Avg protein/day",
+        "longestStreakDays": "Longest streak (days)",
+        "uniqueFoods": "Unique foods"
+      },
+      "sections": {
+        "favoriteFoods": "Your favorite foods",
+        "proteinSources": "Your protein sources",
+        "mealDistribution": "Meal distribution",
+        "foodCategories": "Food categories",
+        "didYouKnow": "Did you know...",
+        "totalConsumed": "Total consumed"
+      },
+      "macros": {
+        "protein": "Protein",
+        "carbsShort": "Carbs",
+        "fat": "Fat"
+      },
+      "totalKg": "{kg} kg total"
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {
