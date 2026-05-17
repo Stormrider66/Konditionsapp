@@ -380,9 +380,16 @@ export function EditEventDialog({
 
                 <div className="rounded-md border bg-background p-3">
                   {isAssigned ? (
-                    <div className="flex items-center gap-2 text-sm text-emerald-700">
-                      <CheckCircle2 className="h-4 w-4" />
-                      Passet är tilldelat laget.
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-sm text-emerald-700">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Passet är tilldelat laget.
+                      </div>
+                      {event?.assignedAt && (
+                        <div className="text-xs text-muted-foreground">
+                          Tilldelat {new Date(event.assignedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </div>
+                      )}
                     </div>
                   ) : canAssignPersistedWorkout ? (
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

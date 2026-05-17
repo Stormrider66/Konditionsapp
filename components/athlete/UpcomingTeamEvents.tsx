@@ -3,8 +3,14 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { TEAM_EVENT_TYPE_COLORS, TEAM_EVENT_TYPE_LABELS, isTeamEventType } from '@/lib/team-calendar/event-types'
-import { Calendar, MapPin, Clock } from 'lucide-react'
+import {
+  TEAM_EVENT_CONTENT_STATUS_LABELS,
+  TEAM_EVENT_TYPE_COLORS,
+  TEAM_EVENT_TYPE_LABELS,
+  type TeamEventContentStatus,
+  isTeamEventType,
+} from '@/lib/team-calendar/event-types'
+import { Calendar, MapPin, Clock, CheckCircle2 } from 'lucide-react'
 
 interface TeamEvent {
   id: string
@@ -12,9 +18,22 @@ interface TeamEvent {
   title: string
   type: string
   location: string | null
+  contentStatus?: string
+  linkedWorkoutType?: string | null
+  linkedWorkoutId?: string | null
+  linkedWorkoutName?: string | null
+  assignedBroadcastId?: string | null
+  assignedAt?: string | null
   startDate: string
   endDate: string | null
   allDay: boolean
+}
+
+function contentStatusLabel(status: string | undefined): string {
+  if (status && status in TEAM_EVENT_CONTENT_STATUS_LABELS) {
+    return TEAM_EVENT_CONTENT_STATUS_LABELS[status as TeamEventContentStatus]
+  }
+  return ''
 }
 
 function getTypeConfig(type: string) {
@@ -84,6 +103,11 @@ export function UpcomingTeamEvents() {
                 <div className="flex items-center gap-1.5">
                   <span className="font-medium text-sm truncate">{event.title}</span>
                   <Badge variant="outline" className="text-[9px] shrink-0">{typeConf.label}</Badge>
+                  {event.assignedBroadcastId && (
+                    <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-[9px] text-emerald-700 shrink-0">
+                      Tilldelat
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                   <span>{formatEventDate(event.startDate)}</span>
@@ -100,6 +124,15 @@ export function UpcomingTeamEvents() {
                     </span>
                   )}
                 </div>
+                {event.linkedWorkoutName && (
+                  <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                    {event.assignedBroadcastId && <CheckCircle2 className="h-3 w-3 text-emerald-600" />}
+                    <span className="truncate">
+                      {event.assignedBroadcastId ? 'Pass: ' : `${contentStatusLabel(event.contentStatus)}: `}
+                      {event.linkedWorkoutName}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )
