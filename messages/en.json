@@ -2764,6 +2764,14 @@
       "videoAnalysis": "Video Analysis",
       "describeMeal": "Describe your meal"
     },
+    "concept2SummaryWidget": {
+      "viewAll": "View all",
+      "connectLogbook": "Connect Concept2 Logbook",
+      "connect": "Connect",
+      "empty": "No Concept2 data yet",
+      "workouts": "Workouts",
+      "total": "Total"
+    },
     "nutritionTimingCard": {
       "title": "Nutrition timing",
       "subtitle": {

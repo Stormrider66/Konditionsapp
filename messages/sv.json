@@ -2764,6 +2764,14 @@
       "videoAnalysis": "Video Analys",
       "describeMeal": "Beskriv din måltid"
     },
+    "concept2SummaryWidget": {
+      "viewAll": "Visa allt",
+      "connectLogbook": "Anslut Concept2 Logbook",
+      "connect": "Anslut",
+      "empty": "Ingen Concept2-data ännu",
+      "workouts": "Pass",
+      "total": "Totalt"
+    },
     "nutritionTimingCard": {
       "title": "Kosttajming",
       "subtitle": {

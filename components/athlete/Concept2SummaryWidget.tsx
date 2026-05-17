@@ -16,9 +16,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Ship, ArrowRight, Activity, Timer } from 'lucide-react';
+import { Ship, ArrowRight, Activity } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { enUS, sv } from 'date-fns/locale';
+import { useLocale, useTranslations } from '@/i18n/client';
 
 interface Concept2Result {
   id: string;
@@ -40,17 +41,6 @@ function formatDistance(meters: number): string {
   return `${meters} m`;
 }
 
-function formatDuration(tenths: number): string {
-  const totalMinutes = Math.floor(tenths / 600);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  return `${minutes} min`;
-}
-
 const EQUIPMENT_LABELS: Record<string, string> = {
   rower: 'RowErg',
   skierg: 'SkiErg',
@@ -59,6 +49,9 @@ const EQUIPMENT_LABELS: Record<string, string> = {
 
 export function Concept2SummaryWidget({ clientId }: Concept2SummaryWidgetProps) {
   const basePath = useBasePath();
+  const t = useTranslations('components.concept2SummaryWidget');
+  const locale = useLocale();
+  const dateLocale = locale === 'en' ? enUS : sv;
   const [results, setResults] = useState<Concept2Result[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(true);
@@ -86,7 +79,7 @@ export function Concept2SummaryWidget({ clientId }: Concept2SummaryWidgetProps) 
       }
     }
 
-    fetchResults();
+    void fetchResults();
   }, [clientId]);
 
   if (isLoading) {
@@ -106,7 +99,6 @@ export function Concept2SummaryWidget({ clientId }: Concept2SummaryWidgetProps) 
   }
 
   const totalDistance = results.reduce((sum, r) => sum + r.distance, 0);
-  const totalTime = results.reduce((sum, r) => sum + r.time, 0);
 
   return (
     <Card>
@@ -118,7 +110,7 @@ export function Concept2SummaryWidget({ clientId }: Concept2SummaryWidgetProps) 
           </CardTitle>
           <Link href={`${basePath}/athlete/concept2`}>
             <Button variant="ghost" size="sm" className="h-7 text-xs">
-              Visa allt
+              {t('viewAll')}
               <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
           </Link>
@@ -129,11 +121,11 @@ export function Concept2SummaryWidget({ clientId }: Concept2SummaryWidgetProps) 
           <div className="text-center py-4">
             <Ship className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground mb-3">
-              Anslut Concept2 Logbook
+              {t('connectLogbook')}
             </p>
             <Link href={`${basePath}/athlete/settings`}>
               <Button variant="outline" size="sm">
-                Anslut
+                {t('connect')}
               </Button>
             </Link>
           </div>
@@ -141,7 +133,7 @@ export function Concept2SummaryWidget({ clientId }: Concept2SummaryWidgetProps) 
           <div className="text-center py-4">
             <Ship className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">
-              Ingen Concept2-data ännu
+              {t('empty')}
             </p>
           </div>
         ) : (
@@ -150,11 +142,11 @@ export function Concept2SummaryWidget({ clientId }: Concept2SummaryWidgetProps) 
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-muted/50 rounded-lg p-2 text-center">
                 <p className="text-lg font-bold">{results.length}</p>
-                <p className="text-xs text-muted-foreground">Pass</p>
+                <p className="text-xs text-muted-foreground">{t('workouts')}</p>
               </div>
               <div className="bg-muted/50 rounded-lg p-2 text-center">
                 <p className="text-lg font-bold">{formatDistance(totalDistance)}</p>
-                <p className="text-xs text-muted-foreground">Totalt</p>
+                <p className="text-xs text-muted-foreground">{t('total')}</p>
               </div>
             </div>
 
@@ -170,7 +162,7 @@ export function Concept2SummaryWidget({ clientId }: Concept2SummaryWidgetProps) 
                     <p className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(results[0].date), {
                         addSuffix: true,
-                        locale: sv,
+                        locale: dateLocale,
                       })}
                     </p>
                   </div>
