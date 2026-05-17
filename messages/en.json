@@ -3860,6 +3860,23 @@
         "positiveTrend": "Positive trend"
       }
     },
+    "upcomingWorkouts": {
+      "title": "Upcoming workouts",
+      "emptyTitle": "No upcoming workouts scheduled",
+      "titleWithDays": "Upcoming workouts ({days} days)",
+      "aiPass": "AI-pass",
+      "intensities": {
+        "recovery": "Recovery",
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "threshold": "Threshold",
+        "interval": "Interval"
+      },
+      "fueling": {
+        "perHour": "{hourly} g/h",
+        "withTotal": "{hourly} g/h, {total} g total"
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Training library",

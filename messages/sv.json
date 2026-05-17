@@ -3860,6 +3860,23 @@
         "positiveTrend": "Positiv trend"
       }
     },
+    "upcomingWorkouts": {
+      "title": "Kommande pass",
+      "emptyTitle": "Inga kommande pass inplanerade",
+      "titleWithDays": "Kommande pass ({days} dagar)",
+      "aiPass": "AI-pass",
+      "intensities": {
+        "recovery": "Återhämtning",
+        "easy": "Lätt",
+        "moderate": "Måttlig",
+        "threshold": "Tröskel",
+        "interval": "Intervall"
+      },
+      "fueling": {
+        "perHour": "{hourly} g/h",
+        "withTotal": "{hourly} g/h, {total} g totalt"
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Träningsbibliotek",

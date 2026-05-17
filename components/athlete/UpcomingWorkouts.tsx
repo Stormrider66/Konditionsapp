@@ -6,11 +6,13 @@ import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/
 import { Badge } from '@/components/ui/badge'
 import { CalendarDays, Clock, MapPin, Calendar, ChevronRight, Timer, Sparkles, Utensils, Dumbbell, Heart, Flame, Zap } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv as svLocale } from 'date-fns/locale'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import { cn } from '@/lib/utils'
+import { useLocale } from 'next-intl'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { useTranslations } from '@/i18n/client'
 import { DashboardVisualRail } from '@/components/athlete/dashboard/DashboardVisualLayer'
 import { getDashboardItemVisual } from '@/components/athlete/dashboard/dashboard-visuals'
 import {
@@ -43,7 +45,22 @@ function renderAssignmentTypeIcon(type: Extract<DashboardItem, { kind: 'assignme
   }
 }
 
-function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: DashboardItem; theme: typeof MINIMALIST_WHITE_THEME, variant?: 'default' | 'glass', basePath?: string }) {
+function ItemRow({
+  item,
+  theme,
+  variant = 'default',
+  basePath = '',
+  locale,
+  t,
+}: {
+  item: DashboardItem
+  theme: typeof MINIMALIST_WHITE_THEME
+  variant?: 'default' | 'glass'
+  basePath?: string
+  locale: string
+  t: (key: string, values?: Record<string, number>) => string
+}) {
+  const dateLocale = locale === 'sv' ? svLocale : enUS
   const visual = getDashboardItemVisual(item)
 
   // WOD items
@@ -61,13 +78,13 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
                 {item.title}
               </span>
               <Badge variant="secondary" className="text-xs bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/20">
-                {format(new Date(item.createdAt), 'EEE d MMM', { locale: sv })}
+              {format(new Date(item.createdAt), 'EEE d MMM', { locale: dateLocale })}
               </Badge>
             </div>
             <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
               <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-xs ${badgeStyle}`}>
                 <Sparkles className="h-3 w-3" />
-                AI-Pass
+                {t('aiPass')}
               </span>
               <span className="text-emerald-400">{getWODModeLabel(item.mode)}</span>
               <span>• {item.requestedDuration} min</span>
@@ -99,7 +116,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
           </span>
           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs ${badgeStyle}`}>
             <Sparkles className="h-3 w-3" />
-            AI-Pass
+                {t('aiPass')}
           </span>
         </div>
         <div
@@ -129,7 +146,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
                 {item.name}
               </span>
               <Badge variant="secondary" className="text-xs bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/20">
-                {format(new Date(item.assignedDate), 'EEE d MMM', { locale: sv })}
+                {format(new Date(item.assignedDate), 'EEE d MMM', { locale: dateLocale })}
               </Badge>
             </div>
             <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
@@ -214,7 +231,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
               {workout.name}
             </span>
             <Badge variant="secondary" className="text-xs bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/20">
-              {format(new Date(workout.dayDate || workout.day.date), 'EEE d MMM', { locale: sv })}
+              {format(new Date(workout.dayDate || workout.day.date), 'EEE d MMM', { locale: dateLocale })}
             </Badge>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
@@ -235,7 +252,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
             {fuelingPrescription && (
               <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-300">
                 <Utensils className="h-3 w-3" />
-                {formatFuelingPrescription(fuelingPrescription)}
+                {formatFuelingPrescription(fuelingPrescription, t)}
               </span>
             )}
           </div>
@@ -268,7 +285,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
           variant="outline"
           className={getIntensityBadgeClass(workout.intensity)}
         >
-          {formatIntensity(workout.intensity)}
+          {formatIntensity(workout.intensity, t)}
         </Badge>
       </div>
       <div
@@ -290,7 +307,7 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
         {fuelingPrescription && (
           <span className="flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-orange-700">
             <Utensils className="h-3 w-3" />
-            {formatFuelingPrescription(fuelingPrescription)}
+            {formatFuelingPrescription(fuelingPrescription, t)}
           </span>
         )}
       </div>
@@ -299,11 +316,14 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
 }
 
 function formatFuelingPrescription(
-  prescription: NonNullable<Extract<DashboardItem, { kind: 'program' }>['workout']['fuelingPrescription']>
+  prescription: NonNullable<Extract<DashboardItem, { kind: 'program' }>['workout']['fuelingPrescription']>,
+  t: (key: string, values?: Record<string, number>) => string
 ): string {
   const hourly = Math.round(prescription.targetCarbsGPerHour)
   const total = prescription.targetCarbsTotalG ? Math.round(prescription.targetCarbsTotalG) : null
-  return total ? `${hourly} g/h, ${total} g totalt` : `${hourly} g/h`
+  return total
+    ? t('fueling.withTotal', { hourly, total })
+    : t('fueling.perHour', { hourly })
 }
 
 function getItemId(item: DashboardItem): string {
@@ -327,6 +347,8 @@ function getItemDateKey(item: DashboardItem): string {
 export function UpcomingWorkouts({ items, className, variant = 'default', basePath = '' }: UpcomingWorkoutsProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+  const locale = useLocale()
+  const t = useTranslations('components.upcomingWorkouts')
 
   if (items.length === 0) {
     if (variant === 'glass') {
@@ -335,12 +357,12 @@ export function UpcomingWorkouts({ items, className, variant = 'default', basePa
           <GlassCardHeader>
             <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
               <Calendar className="h-5 w-5 text-blue-400" />
-              Kommande pass
+              {t('title')}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
             <p className="text-center py-8 text-slate-500">
-              Inga kommande pass inplanerade
+              {t('emptyTitle')}
             </p>
           </GlassCardContent>
         </GlassCard>
@@ -361,12 +383,12 @@ export function UpcomingWorkouts({ items, className, variant = 'default', basePa
             style={{ color: theme.colors.textPrimary }}
           >
             <CalendarDays className="h-5 w-5" />
-            Kommande pass
+            {t('title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-center py-8" style={{ color: theme.colors.textMuted }}>
-            Inga kommande pass inplanerade
+            {t('emptyTitle')}
           </p>
         </CardContent>
       </Card>
@@ -379,12 +401,20 @@ export function UpcomingWorkouts({ items, className, variant = 'default', basePa
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
             <Calendar className="h-5 w-5 text-blue-400" />
-            Kommande pass
+            {t('title')}
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent className="space-y-4">
           {items.slice(0, 5).map((item) => (
-            <ItemRow key={getItemId(item)} item={item} theme={theme} variant="glass" basePath={basePath} />
+            <ItemRow
+              key={getItemId(item)}
+              item={item}
+              theme={theme}
+              variant="glass"
+              basePath={basePath}
+              locale={locale}
+              t={t}
+            />
           ))}
         </GlassCardContent>
       </GlassCard>
@@ -414,7 +444,7 @@ export function UpcomingWorkouts({ items, className, variant = 'default', basePa
           style={{ color: theme.colors.textPrimary }}
         >
           <CalendarDays className="h-5 w-5" />
-          Kommande pass (7 dagar)
+          {t('titleWithDays', { days: 7 })}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -424,11 +454,18 @@ export function UpcomingWorkouts({ items, className, variant = 'default', basePa
               className="font-semibold text-sm"
               style={{ color: theme.colors.textPrimary }}
             >
-              {format(new Date(dateKey), 'EEEE d MMMM', { locale: sv })}
+              {format(new Date(dateKey), 'EEEE d MMMM', { locale: locale === 'sv' ? svLocale : enUS })}
             </h4>
             <div className="space-y-2">
               {dayItems.map((item) => (
-                <ItemRow key={getItemId(item)} item={item} theme={theme} basePath={basePath} />
+                <ItemRow
+                  key={getItemId(item)}
+                  item={item}
+                  theme={theme}
+                  basePath={basePath}
+                  locale={locale}
+                  t={t}
+                />
               ))}
             </div>
           </div>
@@ -438,13 +475,13 @@ export function UpcomingWorkouts({ items, className, variant = 'default', basePa
   )
 }
 
-function formatIntensity(intensity: string): string {
+function formatIntensity(intensity: string, t: (key: string, values?: Record<string, number>) => string): string {
   const intensities: Record<string, string> = {
-    RECOVERY: 'Återhämtning',
-    EASY: 'Lätt',
-    MODERATE: 'Måttlig',
-    THRESHOLD: 'Tröskel',
-    INTERVAL: 'Intervall',
+    RECOVERY: t('intensities.recovery'),
+    EASY: t('intensities.easy'),
+    MODERATE: t('intensities.moderate'),
+    THRESHOLD: t('intensities.threshold'),
+    INTERVAL: t('intensities.interval'),
     MAX: 'Max',
   }
   return intensities[intensity] || intensity
