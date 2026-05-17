@@ -10,12 +10,14 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { performAllCalculations } from '@/lib/calculations';
 import { PublicReportView } from '@/components/reports/PublicReportView';
+import { getTranslations } from '@/i18n/server';
 
 interface PageProps {
   params: Promise<{ token: string }>;
 }
 
 export default async function PublicReportPage({ params }: PageProps) {
+  const t = await getTranslations('pages.publicReport');
   const { token } = await params;
 
   // Find test by public token
@@ -56,17 +58,16 @@ export default async function PublicReportPage({ params }: PageProps) {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Länken har gått ut
+            {t('expired.title')}
           </h1>
           <p className="text-gray-600 mb-6">
-            Den här rapportlänken är inte längre giltig. Kontakta din coach för
-            att få en ny länk.
+            {t('expired.description')}
           </p>
           <Link
             href="/signup"
             className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
           >
-            Skapa konto för att spara dina rapporter
+            {t('expired.createAccount')}
           </Link>
         </div>
       </div>
@@ -85,7 +86,7 @@ export default async function PublicReportPage({ params }: PageProps) {
 
   // Determine test leader name
   const testLeaderName =
-    test.tester?.name || test.testLeader || test.user?.name || 'Okänd';
+    test.tester?.name || test.testLeader || test.user?.name || t('unknown');
 
   // Determine location
   const locationName =
@@ -107,6 +108,7 @@ export default async function PublicReportPage({ params }: PageProps) {
 }
 
 export async function generateMetadata({ params }: PageProps) {
+  const t = await getTranslations('metadata.report.public');
   const { token } = await params;
 
   const test = await prisma.test.findUnique({
@@ -120,12 +122,12 @@ export async function generateMetadata({ params }: PageProps) {
 
   if (!test) {
     return {
-      title: 'Rapport ej hittad',
+      title: t('notFoundTitle'),
     };
   }
 
   return {
-    title: `Konditionstestrapport - ${test.client.name}`,
-    description: 'Din personliga konditionstestrapport från Trainomics',
+    title: t('title', { clientName: test.client.name }),
+    description: t('description'),
   };
 }

@@ -106,6 +106,13 @@
         "title": "Samlad Kalender — Trainomics",
         "description": "Se ditt schema från alla organisationer på ett ställe."
       }
+    },
+    "report": {
+      "public": {
+        "notFoundTitle": "Rapport ej hittad",
+        "title": "Konditionstestrapport - {clientName}",
+        "description": "Din personliga konditionstestrapport från Trainomics"
+      }
     }
   },
   "pages": {
@@ -281,6 +288,14 @@
       "noCoach": {
         "title": "Ingen coach kopplad",
         "description": "Du behöver en tilldelad coach för att kunna använda meddelandefunktionen."
+      }
+    },
+    "publicReport": {
+      "unknown": "Okänd",
+      "expired": {
+        "title": "Länken har gått ut",
+        "description": "Den här rapportlänken är inte längre giltig. Kontakta din coach för att få en ny länk.",
+        "createAccount": "Skapa konto för att spara dina rapporter"
       }
     }
   },

@@ -106,6 +106,13 @@
         "title": "Unified Calendar — Trainomics",
         "description": "See your schedule from all organizations in one place."
       }
+    },
+    "report": {
+      "public": {
+        "notFoundTitle": "Report not found",
+        "title": "Fitness test report - {clientName}",
+        "description": "Your personal fitness test report from Trainomics"
+      }
     }
   },
   "pages": {
@@ -281,6 +288,14 @@
       "noCoach": {
         "title": "No coach connected",
         "description": "You need an assigned coach to use the messaging feature."
+      }
+    },
+    "publicReport": {
+      "unknown": "Unknown",
+      "expired": {
+        "title": "The link has expired",
+        "description": "This report link is no longer valid. Contact your coach to get a new link.",
+        "createAccount": "Create an account to save your reports"
       }
     }
   },
