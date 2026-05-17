@@ -19,6 +19,7 @@ import {
   Legend,
   Tooltip,
 } from 'recharts';
+import { useTranslations } from '@/i18n/client';
 
 interface Concept2Result {
   type: string;
@@ -64,6 +65,8 @@ function formatDuration(tenths: number): string {
 }
 
 export function Concept2EquipmentChart({ results }: Concept2EquipmentChartProps) {
+  const t = useTranslations('components.concept2EquipmentChart');
+
   const equipmentStats = useMemo(() => {
     const stats = new Map<
       string,
@@ -116,12 +119,12 @@ export function Concept2EquipmentChart({ results }: Concept2EquipmentChartProps)
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            Utrustningsfördelning
+            {t('title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground text-center py-4">
-            Ingen Concept2-data ännu
+            {t('empty')}
           </p>
         </CardContent>
       </Card>
@@ -133,7 +136,7 @@ export function Concept2EquipmentChart({ results }: Concept2EquipmentChartProps)
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Activity className="h-5 w-5" />
-          Utrustningsfördelning
+          {t('title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -141,15 +144,15 @@ export function Concept2EquipmentChart({ results }: Concept2EquipmentChartProps)
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
             <p className="text-2xl font-bold">{totalWorkouts}</p>
-            <p className="text-xs text-muted-foreground">Pass</p>
+            <p className="text-xs text-muted-foreground">{t('workouts')}</p>
           </div>
           <div>
             <p className="text-2xl font-bold">{formatDistance(totalDistance)}</p>
-            <p className="text-xs text-muted-foreground">Total distans</p>
+            <p className="text-xs text-muted-foreground">{t('totalDistance')}</p>
           </div>
           <div>
             <p className="text-2xl font-bold">{formatDuration(totalTime)}</p>
-            <p className="text-xs text-muted-foreground">Total tid</p>
+            <p className="text-xs text-muted-foreground">{t('totalTime')}</p>
           </div>
         </div>
 
@@ -172,7 +175,7 @@ export function Concept2EquipmentChart({ results }: Concept2EquipmentChartProps)
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value: number) => [`${value} pass`, '']}
+                  formatter={(value: number) => [t('workoutCount', { count: value }), '']}
                   contentStyle={{
                     backgroundColor: 'hsl(var(--background))',
                     border: '1px solid hsl(var(--border))',
@@ -210,7 +213,10 @@ export function Concept2EquipmentChart({ results }: Concept2EquipmentChartProps)
                   </div>
                   <div className="text-right text-sm">
                     <span className="font-medium">{stat.count}</span>
-                    <span className="text-muted-foreground"> pass</span>
+                    <span className="text-muted-foreground">
+                      {' '}
+                      {t('workoutCountShort', { count: stat.count })}
+                    </span>
                   </div>
                 </div>
                 <Progress value={percentage} className="h-2" />

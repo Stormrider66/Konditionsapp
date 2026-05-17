@@ -3166,6 +3166,15 @@
         }
       }
     },
+    "concept2EquipmentChart": {
+      "title": "Equipment breakdown",
+      "empty": "No Concept2 data yet",
+      "workouts": "Workouts",
+      "totalDistance": "Total distance",
+      "totalTime": "Total time",
+      "workoutCount": "{count, plural, =1 {# workout} other {# workouts}}",
+      "workoutCountShort": "{count, plural, =1 {workout} other {workouts}}"
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",

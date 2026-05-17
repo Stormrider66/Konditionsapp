@@ -3166,6 +3166,15 @@
         }
       }
     },
+    "concept2EquipmentChart": {
+      "title": "Utrustningsfördelning",
+      "empty": "Ingen Concept2-data ännu",
+      "workouts": "Pass",
+      "totalDistance": "Total distans",
+      "totalTime": "Total tid",
+      "workoutCount": "{count, plural, =1 {# pass} other {# pass}}",
+      "workoutCountShort": "pass"
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",
