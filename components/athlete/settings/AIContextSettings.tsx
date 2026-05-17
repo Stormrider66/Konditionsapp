@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface AIContextSettingsProps {
   clientId: string
@@ -39,59 +40,74 @@ interface SportProfileData {
 }
 
 const MAX_LENGTH = 1000
+const PROFILE_STALE_THRESHOLD = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
 
 // Equipment options
 const EQUIPMENT_OPTIONS = [
-  { id: 'treadmill', label: 'Löpband' },
-  { id: 'bike_trainer', label: 'Cykeltrainer/Spinningcykel' },
-  { id: 'rower', label: 'Roddmaskin' },
-  { id: 'skiErg', label: 'SkiErg' },
-  { id: 'pool', label: 'Simbassäng' },
-  { id: 'gym', label: 'Gym (fria vikter)' },
-  { id: 'resistance_bands', label: 'Gummiband' },
-  { id: 'kettlebell', label: 'Kettlebells' },
-  { id: 'pullup_bar', label: 'Chinsstång' },
-  { id: 'box', label: 'Plyo-box' },
-  { id: 'trx', label: 'TRX/Slingsystem' },
-  { id: 'foam_roller', label: 'Foam roller' },
+  { id: 'treadmill', labelKey: 'equipment.treadmill' },
+  { id: 'bike_trainer', labelKey: 'equipment.bikeTrainer' },
+  { id: 'rower', labelKey: 'equipment.rower' },
+  { id: 'skiErg', labelKey: 'equipment.skiErg' },
+  { id: 'pool', labelKey: 'equipment.pool' },
+  { id: 'gym', labelKey: 'equipment.gym' },
+  { id: 'resistance_bands', labelKey: 'equipment.resistanceBands' },
+  { id: 'kettlebell', labelKey: 'equipment.kettlebell' },
+  { id: 'pullup_bar', labelKey: 'equipment.pullupBar' },
+  { id: 'box', labelKey: 'equipment.box' },
+  { id: 'trx', labelKey: 'equipment.trx' },
+  { id: 'foam_roller', labelKey: 'equipment.foamRoller' },
 ]
 
 // Workout type preferences
 const WORKOUT_TYPES = {
   running: [
-    { id: 'easy_runs', label: 'Lugna löppass' },
-    { id: 'tempo', label: 'Tempo/Tröskelpass' },
-    { id: 'intervals', label: 'Intervaller' },
-    { id: 'long_runs', label: 'Långpass' },
-    { id: 'fartlek', label: 'Fartlek' },
-    { id: 'hill_repeats', label: 'Backträning' },
-    { id: 'track', label: 'Banträning' },
-    { id: 'trail', label: 'Terrängträning' },
+    { id: 'easy_runs', labelKey: 'workoutTypes.running.easyRuns' },
+    { id: 'tempo', labelKey: 'workoutTypes.running.tempo' },
+    { id: 'intervals', labelKey: 'workoutTypes.running.intervals' },
+    { id: 'long_runs', labelKey: 'workoutTypes.running.longRuns' },
+    { id: 'fartlek', labelKey: 'workoutTypes.running.fartlek' },
+    { id: 'hill_repeats', labelKey: 'workoutTypes.running.hillRepeats' },
+    { id: 'track', labelKey: 'workoutTypes.running.track' },
+    { id: 'trail', labelKey: 'workoutTypes.running.trail' },
   ],
   strength: [
-    { id: 'compound', label: 'Grundövningar (squat, deadlift, etc.)' },
-    { id: 'isolation', label: 'Isolationsövningar' },
-    { id: 'plyometrics', label: 'Plyometri/Hopp' },
-    { id: 'core', label: 'Core-träning' },
-    { id: 'mobility', label: 'Rörlighet/Mobility' },
-    { id: 'circuits', label: 'Cirkelträning' },
-    { id: 'bodyweight', label: 'Kroppsviktsträning' },
+    { id: 'compound', labelKey: 'workoutTypes.strength.compound' },
+    { id: 'isolation', labelKey: 'workoutTypes.strength.isolation' },
+    { id: 'plyometrics', labelKey: 'workoutTypes.strength.plyometrics' },
+    { id: 'core', labelKey: 'workoutTypes.strength.core' },
+    { id: 'mobility', labelKey: 'workoutTypes.strength.mobility' },
+    { id: 'circuits', labelKey: 'workoutTypes.strength.circuits' },
+    { id: 'bodyweight', labelKey: 'workoutTypes.strength.bodyweight' },
   ],
 }
 
 // Time of day preferences
 const TIME_PREFERENCES = [
-  { id: 'early_morning', label: 'Tidig morgon (05-07)' },
-  { id: 'morning', label: 'Förmiddag (07-12)' },
-  { id: 'lunch', label: 'Lunch (12-14)' },
-  { id: 'afternoon', label: 'Eftermiddag (14-17)' },
-  { id: 'evening', label: 'Kväll (17-20)' },
-  { id: 'late_evening', label: 'Sen kväll (20+)' },
-  { id: 'flexible', label: 'Flexibel' },
+  { id: 'early_morning', labelKey: 'timePreferences.earlyMorning' },
+  { id: 'morning', labelKey: 'timePreferences.morning' },
+  { id: 'lunch', labelKey: 'timePreferences.lunch' },
+  { id: 'afternoon', labelKey: 'timePreferences.afternoon' },
+  { id: 'evening', labelKey: 'timePreferences.evening' },
+  { id: 'late_evening', labelKey: 'timePreferences.lateEvening' },
+  { id: 'flexible', labelKey: 'timePreferences.flexible' },
 ]
 
-export function AIContextSettings({ clientId, variant = 'default' }: AIContextSettingsProps) {
+const VARIETY_OPTIONS = [
+  { id: 'consistent', labelKey: 'variety.consistent.label', descKey: 'variety.consistent.description' },
+  { id: 'balanced', labelKey: 'variety.balanced.label', descKey: 'variety.balanced.description' },
+  { id: 'varied', labelKey: 'variety.varied.label', descKey: 'variety.varied.description' },
+]
+
+const FEEDBACK_OPTIONS = [
+  { id: 'data_driven', labelKey: 'feedback.dataDriven.label', descKey: 'feedback.dataDriven.description' },
+  { id: 'encouraging', labelKey: 'feedback.encouraging.label', descKey: 'feedback.encouraging.description' },
+  { id: 'direct', labelKey: 'feedback.direct.label', descKey: 'feedback.direct.description' },
+]
+
+export function AIContextSettings({ clientId }: AIContextSettingsProps) {
   const { toast } = useToast()
+  const t = useTranslations('components.aiContextSettings')
+  const locale = useLocale()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
@@ -195,7 +211,7 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
       }
     }
 
-    fetchData()
+    void fetchData()
   }, [clientId])
 
   // Capture original sport snapshot once loading finishes
@@ -291,17 +307,17 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
         setOriginalSport(sportSnapshot())
         setHasChanges(false)
         toast({
-          title: 'Sparad!',
-          description: 'Din AI-profil har uppdaterats.',
+          title: t('toast.saved.title'),
+          description: t('toast.saved.description'),
         })
       } else {
-        throw new Error('Kunde inte spara alla ändringar')
+        throw new Error(t('toast.saveAllError'))
       }
     } catch (error) {
       console.error('Error saving AI context:', error)
       toast({
-        title: 'Fel',
-        description: 'Kunde inte spara profilen. Försök igen.',
+        title: t('toast.error.title'),
+        description: t('toast.error.description'),
         variant: 'destructive',
       })
     } finally {
@@ -311,7 +327,7 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
 
   const isStale =
     profileData.profileLastUpdated &&
-    new Date(profileData.profileLastUpdated) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
+    new Date(profileData.profileLastUpdated) < PROFILE_STALE_THRESHOLD
 
   // ── Loading skeleton ──
   if (loading) {
@@ -378,11 +394,10 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
             </div>
             <div>
               <p className="font-semibold text-slate-900 dark:text-white text-sm">
-                Hjälp AI:n att förstå dig bättre
+                {t('info.title')}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Informationen du delar här används för att personalisera AI-coachens råd, träningsprogram och dagliga pass.
-                Ju mer du berättar, desto bättre kan AI:n hjälpa dig.
+                {t('info.description')}
               </p>
             </div>
           </div>
@@ -396,7 +411,7 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
             <div className="flex items-center gap-3">
               <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0" />
               <p className="text-sm text-amber-600 dark:text-amber-400">
-                Din profil uppdaterades för mer än 6 månader sedan. Överväg att uppdatera den för bättre AI-rekommendationer.
+                {t('staleWarning')}
               </p>
             </div>
           </GlassCardContent>
@@ -410,19 +425,19 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="background" className="flex items-center gap-1.5 text-xs">
                 <User className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Bakgrund</span>
+                <span className="hidden sm:inline">{t('tabs.background')}</span>
               </TabsTrigger>
               <TabsTrigger value="training" className="flex items-center gap-1.5 text-xs">
                 <Dumbbell className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Träning</span>
+                <span className="hidden sm:inline">{t('tabs.training')}</span>
               </TabsTrigger>
               <TabsTrigger value="physical" className="flex items-center gap-1.5 text-xs">
                 <Heart className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Fysiskt</span>
+                <span className="hidden sm:inline">{t('tabs.physical')}</span>
               </TabsTrigger>
               <TabsTrigger value="motivation" className="flex items-center gap-1.5 text-xs">
                 <Lightbulb className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Motivation</span>
+                <span className="hidden sm:inline">{t('tabs.motivation')}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -430,27 +445,27 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
             <TabsContent value="background" className="space-y-5 mt-4">
               {renderTextarea(
                 'trainingBackground',
-                'Träningsbakgrund',
+                t('fields.trainingBackground.label'),
                 profileData.trainingBackground || '',
                 (v) => handleProfileChange('trainingBackground', v),
-                'Beskriv din träningshistorik... t.ex. "Jag har sprungit i 5 år, började med 5 km-lopp och har gradvis byggt upp till halvmaraton."',
-                'Din träningsresa hittills - vad har du gjort, hur länge, vilken bakgrund?',
+                t('fields.trainingBackground.placeholder'),
+                t('fields.trainingBackground.hint'),
               )}
               {renderTextarea(
                 'longTermAmbitions',
-                'Långsiktiga ambitioner',
+                t('fields.longTermAmbitions.label'),
                 profileData.longTermAmbitions || '',
                 (v) => handleProfileChange('longTermAmbitions', v),
-                'Vad drömmer du om att uppnå? t.ex. "Springa ett ultramaraton, kvalificera mig till Boston Marathon."',
-                'Dina stora mål och drömmar inom träning',
+                t('fields.longTermAmbitions.placeholder'),
+                t('fields.longTermAmbitions.hint'),
               )}
               {renderTextarea(
                 'seasonalFocus',
-                'Fokus denna säsong',
+                t('fields.seasonalFocus.label'),
                 profileData.seasonalFocus || '',
                 (v) => handleProfileChange('seasonalFocus', v),
-                'Vad fokuserar du på just nu? t.ex. "Bygga aerob bas under vintern, förbättra löpekonomi."',
-                'Dina prioriteringar och mål för den aktuella träningsperioden',
+                t('fields.seasonalFocus.placeholder'),
+                t('fields.seasonalFocus.hint'),
               )}
             </TabsContent>
 
@@ -458,12 +473,12 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
             <TabsContent value="training" className="space-y-5 mt-4">
               {/* Preferred Workout Types */}
               <div className="space-y-3">
-                <Label className="text-sm font-semibold">Favorittyper av pass</Label>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">Välj de typer av träning du föredrar (påverkar programförslag)</p>
+                <Label className="text-sm font-semibold">{t('workoutTypes.label')}</Label>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">{t('workoutTypes.description')}</p>
 
                 <div className="space-y-4">
                   <div>
-                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">Löpning/Kondition</p>
+                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">{t('workoutTypes.running.label')}</p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {WORKOUT_TYPES.running.map((type) => (
                         <div
@@ -476,14 +491,14 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
                               : 'bg-white border-slate-200 hover:border-slate-300 dark:bg-white/5 dark:border-white/10 dark:hover:border-white/20'
                           )}
                         >
-                          {type.label}
+                          {t(type.labelKey)}
                         </div>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">Styrka</p>
+                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">{t('workoutTypes.strength.label')}</p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {WORKOUT_TYPES.strength.map((type) => (
                         <div
@@ -496,7 +511,7 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
                               : 'bg-white border-slate-200 hover:border-slate-300 dark:bg-white/5 dark:border-white/10 dark:hover:border-white/20'
                           )}
                         >
-                          {type.label}
+                          {t(type.labelKey)}
                         </div>
                       ))}
                     </div>
@@ -507,34 +522,34 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
               {/* Favorite Exercises */}
               {renderTextarea(
                 'favoriteExercises',
-                'Favoritövningar',
+                t('fields.favoriteExercises.label'),
                 favoriteExercises,
                 setFavoriteExercises,
-                't.ex. Squats, Deadlifts, Pull-ups, Löpintervaller på bana...',
-                'Övningar du gillar och vill ha mer av i dina program',
+                t('fields.favoriteExercises.placeholder'),
+                t('fields.favoriteExercises.hint'),
               )}
 
               {/* Duration & Time */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="workoutDuration" className="text-sm font-semibold">Föredragen passlängd</Label>
+                  <Label htmlFor="workoutDuration" className="text-sm font-semibold">{t('duration.label')}</Label>
                   <Select value={workoutDurationMin} onValueChange={setWorkoutDurationMin}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="30">30 minuter</SelectItem>
-                      <SelectItem value="45">45 minuter</SelectItem>
-                      <SelectItem value="60">60 minuter</SelectItem>
-                      <SelectItem value="75">75 minuter</SelectItem>
-                      <SelectItem value="90">90 minuter</SelectItem>
-                      <SelectItem value="120">2 timmar</SelectItem>
+                      <SelectItem value="30">{t('duration.minutes', { count: 30 })}</SelectItem>
+                      <SelectItem value="45">{t('duration.minutes', { count: 45 })}</SelectItem>
+                      <SelectItem value="60">{t('duration.minutes', { count: 60 })}</SelectItem>
+                      <SelectItem value="75">{t('duration.minutes', { count: 75 })}</SelectItem>
+                      <SelectItem value="90">{t('duration.minutes', { count: 90 })}</SelectItem>
+                      <SelectItem value="120">{t('duration.hours', { count: 2 })}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="timeOfDay" className="text-sm font-semibold">Föredragen träningstid</Label>
+                  <Label htmlFor="timeOfDay" className="text-sm font-semibold">{t('timeOfDay.label')}</Label>
                   <Select value={preferredTimeOfDay} onValueChange={setPreferredTimeOfDay}>
                     <SelectTrigger>
                       <SelectValue />
@@ -542,7 +557,7 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
                     <SelectContent>
                       {TIME_PREFERENCES.map((time) => (
                         <SelectItem key={time.id} value={time.id}>
-                          {time.label}
+                          {t(time.labelKey)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -552,7 +567,7 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
 
               {/* Equipment */}
               <div className="space-y-3">
-                <Label className="text-sm font-semibold">Tillgänglig utrustning</Label>
+                <Label className="text-sm font-semibold">{t('equipment.label')}</Label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {EQUIPMENT_OPTIONS.map((equip) => (
                     <div
@@ -565,7 +580,7 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
                           : 'bg-white border-slate-200 hover:border-slate-300 dark:bg-white/5 dark:border-white/10 dark:hover:border-white/20'
                       )}
                     >
-                      {equip.label}
+                      {t(equip.labelKey)}
                     </div>
                   ))}
                 </div>
@@ -574,11 +589,11 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
               {/* Training Preferences free-text */}
               {renderTextarea(
                 'trainingPreferences',
-                'Träningspreferenser (fritext)',
+                t('fields.trainingPreferences.label'),
                 profileData.trainingPreferences || '',
                 (v) => handleProfileChange('trainingPreferences', v),
-                'Vad gillar och ogillar du? t.ex. "Föredrar morgonlöpning, undviker löpband, gillar längre lugna löpningar i skogen."',
-                'Fritext-nyanser utöver valen ovan',
+                t('fields.trainingPreferences.placeholder'),
+                t('fields.trainingPreferences.hint'),
               )}
             </TabsContent>
 
@@ -586,55 +601,55 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
             <TabsContent value="physical" className="space-y-5 mt-4">
               {renderTextarea(
                 'weakPoints',
-                'Svagheter / Områden att förbättra',
+                t('fields.weakPoints.label'),
                 weakPoints,
                 setWeakPoints,
-                't.ex. Svag core, dålig löpekonomi i backar, bristande höftrörlighet...',
-                'AI kommer fokusera på dessa områden i dina program',
+                t('fields.weakPoints.placeholder'),
+                t('fields.weakPoints.hint'),
                 <Target className="h-4 w-4 text-orange-500" />,
               )}
               {renderTextarea(
                 'strongPoints',
-                'Styrkor',
+                t('fields.strongPoints.label'),
                 strongPoints,
                 setStrongPoints,
-                't.ex. Bra uthållighet, stark överkropp, bra löpteknik på plan mark...',
-                'Dina starka sidor som AI kan bygga vidare på',
+                t('fields.strongPoints.placeholder'),
+                t('fields.strongPoints.hint'),
                 <ThumbsUp className="h-4 w-4 text-green-500" />,
               )}
               {renderTextarea(
                 'injuriesLimitations',
-                'Skador / Begränsningar',
+                t('fields.injuriesLimitations.label'),
                 injuriesLimitations,
                 setInjuriesLimitations,
-                't.ex. Tidigare knäskada, ryggproblem, återkommande hälseneinflammation...',
-                'AI kommer undvika övningar som belastar dessa områden',
+                t('fields.injuriesLimitations.placeholder'),
+                t('fields.injuriesLimitations.hint'),
                 <AlertCircle className="h-4 w-4 text-red-500" />,
               )}
               {renderTextarea(
                 'areasToAvoid',
-                'Övningar/rörelser att undvika',
+                t('fields.areasToAvoid.label'),
                 areasToAvoid,
                 setAreasToAvoid,
-                't.ex. Burpees, djupa squats, höga hopp, löpning på hårt underlag...',
-                'Specifika övningar eller rörelser som AI ska undvika',
+                t('fields.areasToAvoid.placeholder'),
+                t('fields.areasToAvoid.hint'),
               )}
               {renderTextarea(
                 'constraints',
-                'Begränsningar (schema/livssituation)',
+                t('fields.constraints.label'),
                 profileData.constraints || '',
                 (v) => handleProfileChange('constraints', v),
-                'Vilka begränsningar har du? t.ex. "Kan bara träna 4-5 dagar/vecka, har småbarn, begränsad tillgång till gym."',
-                'Tidsbegränsningar, utrustning, eller andra faktorer som påverkar din träning',
+                t('fields.constraints.placeholder'),
+                t('fields.constraints.hint'),
                 <Clock className="h-4 w-4 text-amber-500" />,
               )}
               {renderTextarea(
                 'dietaryNotes',
-                'Kost & näring',
+                t('fields.dietaryNotes.label'),
                 profileData.dietaryNotes || '',
                 (v) => handleProfileChange('dietaryNotes', v),
-                'Kostpreferenser eller restriktioner? t.ex. "Vegetarian, laktosintolerant, föredrar kolhydrater före kvällspass."',
-                'Matpreferenser, allergier, eller kostvanor som är relevanta för träningen',
+                t('fields.dietaryNotes.placeholder'),
+                t('fields.dietaryNotes.hint'),
               )}
             </TabsContent>
 
@@ -642,22 +657,18 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
             <TabsContent value="motivation" className="space-y-5 mt-4">
               {renderTextarea(
                 'personalMotivations',
-                'Vad motiverar dig?',
+                t('fields.personalMotivations.label'),
                 profileData.personalMotivations || '',
                 (v) => handleProfileChange('personalMotivations', v),
-                't.ex. Att slå personliga rekord, träna med andra, se framsteg vecka för vecka, utomhusträning...',
-                'Dina drivkrafter och varför träning är viktigt för dig',
+                t('fields.personalMotivations.placeholder'),
+                t('fields.personalMotivations.hint'),
               )}
 
               {/* Workout Variety Preference */}
               <div className="space-y-2">
-                <Label className="text-sm font-semibold">Variation i träning</Label>
+                <Label className="text-sm font-semibold">{t('variety.label')}</Label>
                 <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'consistent', label: 'Konsekvent', desc: 'Samma struktur varje vecka' },
-                    { id: 'balanced', label: 'Balanserad', desc: 'Viss variation inom ramarna' },
-                    { id: 'varied', label: 'Varierad', desc: 'Mycket variation och nya utmaningar' },
-                  ].map((option) => (
+                  {VARIETY_OPTIONS.map((option) => (
                     <div
                       key={option.id}
                       onClick={() => setWorkoutVarietyPreference(option.id)}
@@ -668,8 +679,8 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
                           : 'bg-white border-slate-200 hover:border-slate-300 dark:bg-white/5 dark:border-white/10 dark:hover:border-white/20'
                       )}
                     >
-                      <p className="font-medium text-sm">{option.label}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{option.desc}</p>
+                      <p className="font-medium text-sm">{t(option.labelKey)}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{t(option.descKey)}</p>
                     </div>
                   ))}
                 </div>
@@ -677,13 +688,9 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
 
               {/* Feedback Style */}
               <div className="space-y-2">
-                <Label className="text-sm font-semibold">Feedbackstil</Label>
+                <Label className="text-sm font-semibold">{t('feedback.label')}</Label>
                 <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'data_driven', label: 'Datadriven', desc: 'Fokus på siffror och statistik' },
-                    { id: 'encouraging', label: 'Uppmuntrande', desc: 'Positivt och motiverande' },
-                    { id: 'direct', label: 'Direkt', desc: 'Rakt på sak, inga omsvep' },
-                  ].map((option) => (
+                  {FEEDBACK_OPTIONS.map((option) => (
                     <div
                       key={option.id}
                       onClick={() => setFeedbackStyle(option.id)}
@@ -694,8 +701,8 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
                           : 'bg-white border-slate-200 hover:border-slate-300 dark:bg-white/5 dark:border-white/10 dark:hover:border-white/20'
                       )}
                     >
-                      <p className="font-medium text-sm">{option.label}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{option.desc}</p>
+                      <p className="font-medium text-sm">{t(option.labelKey)}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{t(option.descKey)}</p>
                     </div>
                   ))}
                 </div>
@@ -704,11 +711,11 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
               {/* Additional Notes */}
               {renderTextarea(
                 'additionalNotes',
-                'Övriga anteckningar för AI',
+                t('fields.additionalNotes.label'),
                 additionalNotes,
                 setAdditionalNotes,
-                'Annat som AI bör veta om dig, din livsstil, eller dina träningsmål...',
-                'Fritext som hjälper AI att förstå dig bättre',
+                t('fields.additionalNotes.placeholder'),
+                t('fields.additionalNotes.hint'),
               )}
             </TabsContent>
           </Tabs>
@@ -730,12 +737,12 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
           {saving ? (
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Sparar...
+              {t('actions.saving')}
             </div>
           ) : (
             <div className="flex items-center gap-2">
               <Save className="h-4 w-4" />
-              {hasChanges ? 'Spara ändringar' : 'Inga ändringar'}
+              {hasChanges ? t('actions.saveChanges') : t('actions.noChanges')}
             </div>
           )}
         </Button>
@@ -744,11 +751,12 @@ export function AIContextSettings({ clientId, variant = 'default' }: AIContextSe
       {/* Last updated */}
       {profileData.profileLastUpdated && (
         <p className="text-center text-[10px] text-slate-400 dark:text-slate-500">
-          Senast uppdaterad:{' '}
-          {new Date(profileData.profileLastUpdated).toLocaleDateString('sv-SE', {
+          {t('lastUpdated', {
+            date: new Date(profileData.profileLastUpdated).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
+            }),
           })}
         </p>
       )}

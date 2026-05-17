@@ -8527,6 +8527,190 @@
         "description": "Vi använder endast officiella API:er med OAuth-autentisering. Din data lagras säkert och delas aldrig med tredje part. Du kan när som helst koppla bort en integration för att stoppa synkroniseringen."
       }
     },
+    "aiContextSettings": {
+      "info": {
+        "title": "Hjälp AI:n att förstå dig bättre",
+        "description": "Informationen du delar här används för att personalisera AI-coachens råd, träningsprogram och dagliga pass. Ju mer du berättar, desto bättre kan AI:n hjälpa dig."
+      },
+      "staleWarning": "Din profil uppdaterades för mer än 6 månader sedan. Överväg att uppdatera den för bättre AI-rekommendationer.",
+      "tabs": {
+        "background": "Bakgrund",
+        "training": "Träning",
+        "physical": "Fysiskt",
+        "motivation": "Motivation"
+      },
+      "toast": {
+        "saved": {
+          "title": "Sparad!",
+          "description": "Din AI-profil har uppdaterats."
+        },
+        "saveAllError": "Kunde inte spara alla ändringar",
+        "error": {
+          "title": "Fel",
+          "description": "Kunde inte spara profilen. Försök igen."
+        }
+      },
+      "fields": {
+        "trainingBackground": {
+          "label": "Träningsbakgrund",
+          "placeholder": "Beskriv din träningshistorik... t.ex. \"Jag har sprungit i 5 år, började med 5 km-lopp och har gradvis byggt upp till halvmaraton.\"",
+          "hint": "Din träningsresa hittills - vad har du gjort, hur länge, vilken bakgrund?"
+        },
+        "longTermAmbitions": {
+          "label": "Långsiktiga ambitioner",
+          "placeholder": "Vad drömmer du om att uppnå? t.ex. \"Springa ett ultramaraton, kvalificera mig till Boston Marathon.\"",
+          "hint": "Dina stora mål och drömmar inom träning"
+        },
+        "seasonalFocus": {
+          "label": "Fokus denna säsong",
+          "placeholder": "Vad fokuserar du på just nu? t.ex. \"Bygga aerob bas under vintern, förbättra löpekonomi.\"",
+          "hint": "Dina prioriteringar och mål för den aktuella träningsperioden"
+        },
+        "favoriteExercises": {
+          "label": "Favoritövningar",
+          "placeholder": "t.ex. Squats, Deadlifts, Pull-ups, Löpintervaller på bana...",
+          "hint": "Övningar du gillar och vill ha mer av i dina program"
+        },
+        "trainingPreferences": {
+          "label": "Träningspreferenser (fritext)",
+          "placeholder": "Vad gillar och ogillar du? t.ex. \"Föredrar morgonlöpning, undviker löpband, gillar längre lugna löpningar i skogen.\"",
+          "hint": "Fritext-nyanser utöver valen ovan"
+        },
+        "weakPoints": {
+          "label": "Svagheter / Områden att förbättra",
+          "placeholder": "t.ex. Svag core, dålig löpekonomi i backar, bristande höftrörlighet...",
+          "hint": "AI kommer fokusera på dessa områden i dina program"
+        },
+        "strongPoints": {
+          "label": "Styrkor",
+          "placeholder": "t.ex. Bra uthållighet, stark överkropp, bra löpteknik på plan mark...",
+          "hint": "Dina starka sidor som AI kan bygga vidare på"
+        },
+        "injuriesLimitations": {
+          "label": "Skador / Begränsningar",
+          "placeholder": "t.ex. Tidigare knäskada, ryggproblem, återkommande hälseneinflammation...",
+          "hint": "AI kommer undvika övningar som belastar dessa områden"
+        },
+        "areasToAvoid": {
+          "label": "Övningar/rörelser att undvika",
+          "placeholder": "t.ex. Burpees, djupa squats, höga hopp, löpning på hårt underlag...",
+          "hint": "Specifika övningar eller rörelser som AI ska undvika"
+        },
+        "constraints": {
+          "label": "Begränsningar (schema/livssituation)",
+          "placeholder": "Vilka begränsningar har du? t.ex. \"Kan bara träna 4-5 dagar/vecka, har småbarn, begränsad tillgång till gym.\"",
+          "hint": "Tidsbegränsningar, utrustning, eller andra faktorer som påverkar din träning"
+        },
+        "dietaryNotes": {
+          "label": "Kost & näring",
+          "placeholder": "Kostpreferenser eller restriktioner? t.ex. \"Vegetarian, laktosintolerant, föredrar kolhydrater före kvällspass.\"",
+          "hint": "Matpreferenser, allergier, eller kostvanor som är relevanta för träningen"
+        },
+        "personalMotivations": {
+          "label": "Vad motiverar dig?",
+          "placeholder": "t.ex. Att slå personliga rekord, träna med andra, se framsteg vecka för vecka, utomhusträning...",
+          "hint": "Dina drivkrafter och varför träning är viktigt för dig"
+        },
+        "additionalNotes": {
+          "label": "Övriga anteckningar för AI",
+          "placeholder": "Annat som AI bör veta om dig, din livsstil, eller dina träningsmål...",
+          "hint": "Fritext som hjälper AI att förstå dig bättre"
+        }
+      },
+      "workoutTypes": {
+        "label": "Favorittyper av pass",
+        "description": "Välj de typer av träning du föredrar (påverkar programförslag)",
+        "running": {
+          "label": "Löpning/Kondition",
+          "easyRuns": "Lugna löppass",
+          "tempo": "Tempo/Tröskelpass",
+          "intervals": "Intervaller",
+          "longRuns": "Långpass",
+          "fartlek": "Fartlek",
+          "hillRepeats": "Backträning",
+          "track": "Banträning",
+          "trail": "Terrängträning"
+        },
+        "strength": {
+          "label": "Styrka",
+          "compound": "Grundövningar (squat, deadlift, etc.)",
+          "isolation": "Isolationsövningar",
+          "plyometrics": "Plyometri/Hopp",
+          "core": "Core-träning",
+          "mobility": "Rörlighet/Mobility",
+          "circuits": "Cirkelträning",
+          "bodyweight": "Kroppsviktsträning"
+        }
+      },
+      "duration": {
+        "label": "Föredragen passlängd",
+        "minutes": "{count} minuter",
+        "hours": "{count} timmar"
+      },
+      "timeOfDay": {
+        "label": "Föredragen träningstid"
+      },
+      "timePreferences": {
+        "earlyMorning": "Tidig morgon (05-07)",
+        "morning": "Förmiddag (07-12)",
+        "lunch": "Lunch (12-14)",
+        "afternoon": "Eftermiddag (14-17)",
+        "evening": "Kväll (17-20)",
+        "lateEvening": "Sen kväll (20+)",
+        "flexible": "Flexibel"
+      },
+      "equipment": {
+        "label": "Tillgänglig utrustning",
+        "treadmill": "Löpband",
+        "bikeTrainer": "Cykeltrainer/Spinningcykel",
+        "rower": "Roddmaskin",
+        "skiErg": "SkiErg",
+        "pool": "Simbassäng",
+        "gym": "Gym (fria vikter)",
+        "resistanceBands": "Gummiband",
+        "kettlebell": "Kettlebells",
+        "pullupBar": "Chinsstång",
+        "box": "Plyo-box",
+        "trx": "TRX/Slingsystem",
+        "foamRoller": "Foam roller"
+      },
+      "variety": {
+        "label": "Variation i träning",
+        "consistent": {
+          "label": "Konsekvent",
+          "description": "Samma struktur varje vecka"
+        },
+        "balanced": {
+          "label": "Balanserad",
+          "description": "Viss variation inom ramarna"
+        },
+        "varied": {
+          "label": "Varierad",
+          "description": "Mycket variation och nya utmaningar"
+        }
+      },
+      "feedback": {
+        "label": "Feedbackstil",
+        "dataDriven": {
+          "label": "Datadriven",
+          "description": "Fokus på siffror och statistik"
+        },
+        "encouraging": {
+          "label": "Uppmuntrande",
+          "description": "Positivt och motiverande"
+        },
+        "direct": {
+          "label": "Direkt",
+          "description": "Rakt på sak, inga omsvep"
+        }
+      },
+      "actions": {
+        "saving": "Sparar...",
+        "saveChanges": "Spara ändringar",
+        "noChanges": "Inga ändringar"
+      },
+      "lastUpdated": "Senast uppdaterad: {date}"
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

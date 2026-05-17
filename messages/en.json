@@ -8527,6 +8527,190 @@
         "description": "We only use official APIs with OAuth authentication. Your data is stored securely and never shared with third parties. You can disconnect an integration at any time to stop syncing."
       }
     },
+    "aiContextSettings": {
+      "info": {
+        "title": "Help AI understand you better",
+        "description": "The information you share here is used to personalize the AI coach's advice, training programs, and daily workouts. The more you share, the better AI can help you."
+      },
+      "staleWarning": "Your profile was updated more than 6 months ago. Consider updating it for better AI recommendations.",
+      "tabs": {
+        "background": "Background",
+        "training": "Training",
+        "physical": "Physical",
+        "motivation": "Motivation"
+      },
+      "toast": {
+        "saved": {
+          "title": "Saved!",
+          "description": "Your AI profile has been updated."
+        },
+        "saveAllError": "Could not save all changes",
+        "error": {
+          "title": "Error",
+          "description": "Could not save the profile. Try again."
+        }
+      },
+      "fields": {
+        "trainingBackground": {
+          "label": "Training background",
+          "placeholder": "Describe your training history... e.g. \"I have been running for 5 years, started with 5K races, and gradually built up to half marathons.\"",
+          "hint": "Your training journey so far - what have you done, for how long, and what is your background?"
+        },
+        "longTermAmbitions": {
+          "label": "Long-term ambitions",
+          "placeholder": "What do you dream of achieving? e.g. \"Run an ultramarathon, qualify for the Boston Marathon.\"",
+          "hint": "Your big goals and dreams in training"
+        },
+        "seasonalFocus": {
+          "label": "Focus this season",
+          "placeholder": "What are you focusing on right now? e.g. \"Build aerobic base during winter, improve running economy.\"",
+          "hint": "Your priorities and goals for the current training period"
+        },
+        "favoriteExercises": {
+          "label": "Favorite exercises",
+          "placeholder": "e.g. Squats, deadlifts, pull-ups, track running intervals...",
+          "hint": "Exercises you like and want more of in your programs"
+        },
+        "trainingPreferences": {
+          "label": "Training preferences (free text)",
+          "placeholder": "What do you like and dislike? e.g. \"Prefer morning runs, avoid treadmills, like longer easy runs in the forest.\"",
+          "hint": "Free-text nuance beyond the choices above"
+        },
+        "weakPoints": {
+          "label": "Weaknesses / areas to improve",
+          "placeholder": "e.g. Weak core, poor running economy on hills, limited hip mobility...",
+          "hint": "AI will focus on these areas in your programs"
+        },
+        "strongPoints": {
+          "label": "Strengths",
+          "placeholder": "e.g. Good endurance, strong upper body, good running technique on flat ground...",
+          "hint": "Your strengths that AI can build on"
+        },
+        "injuriesLimitations": {
+          "label": "Injuries / limitations",
+          "placeholder": "e.g. Previous knee injury, back problems, recurring Achilles tendinitis...",
+          "hint": "AI will avoid exercises that stress these areas"
+        },
+        "areasToAvoid": {
+          "label": "Exercises/movements to avoid",
+          "placeholder": "e.g. Burpees, deep squats, high jumps, running on hard surfaces...",
+          "hint": "Specific exercises or movements AI should avoid"
+        },
+        "constraints": {
+          "label": "Constraints (schedule/life situation)",
+          "placeholder": "What constraints do you have? e.g. \"Can only train 4-5 days/week, have young children, limited gym access.\"",
+          "hint": "Time limits, equipment, or other factors that affect your training"
+        },
+        "dietaryNotes": {
+          "label": "Food & nutrition",
+          "placeholder": "Food preferences or restrictions? e.g. \"Vegetarian, lactose intolerant, prefer carbs before evening workouts.\"",
+          "hint": "Food preferences, allergies, or diet habits that are relevant to training"
+        },
+        "personalMotivations": {
+          "label": "What motivates you?",
+          "placeholder": "e.g. Setting personal records, training with others, seeing week-to-week progress, outdoor training...",
+          "hint": "Your drivers and why training matters to you"
+        },
+        "additionalNotes": {
+          "label": "Other notes for AI",
+          "placeholder": "Anything else AI should know about you, your lifestyle, or your training goals...",
+          "hint": "Free text that helps AI understand you better"
+        }
+      },
+      "workoutTypes": {
+        "label": "Favorite workout types",
+        "description": "Choose the types of training you prefer (affects program suggestions)",
+        "running": {
+          "label": "Running/conditioning",
+          "easyRuns": "Easy runs",
+          "tempo": "Tempo/threshold sessions",
+          "intervals": "Intervals",
+          "longRuns": "Long runs",
+          "fartlek": "Fartlek",
+          "hillRepeats": "Hill repeats",
+          "track": "Track training",
+          "trail": "Trail running"
+        },
+        "strength": {
+          "label": "Strength",
+          "compound": "Compound lifts (squat, deadlift, etc.)",
+          "isolation": "Isolation exercises",
+          "plyometrics": "Plyometrics/jumps",
+          "core": "Core training",
+          "mobility": "Mobility",
+          "circuits": "Circuit training",
+          "bodyweight": "Bodyweight training"
+        }
+      },
+      "duration": {
+        "label": "Preferred workout length",
+        "minutes": "{count} minutes",
+        "hours": "{count} hours"
+      },
+      "timeOfDay": {
+        "label": "Preferred training time"
+      },
+      "timePreferences": {
+        "earlyMorning": "Early morning (05-07)",
+        "morning": "Morning (07-12)",
+        "lunch": "Lunch (12-14)",
+        "afternoon": "Afternoon (14-17)",
+        "evening": "Evening (17-20)",
+        "lateEvening": "Late evening (20+)",
+        "flexible": "Flexible"
+      },
+      "equipment": {
+        "label": "Available equipment",
+        "treadmill": "Treadmill",
+        "bikeTrainer": "Bike trainer/spin bike",
+        "rower": "Rowing machine",
+        "skiErg": "SkiErg",
+        "pool": "Swimming pool",
+        "gym": "Gym (free weights)",
+        "resistanceBands": "Resistance bands",
+        "kettlebell": "Kettlebells",
+        "pullupBar": "Pull-up bar",
+        "box": "Plyo box",
+        "trx": "TRX/suspension system",
+        "foamRoller": "Foam roller"
+      },
+      "variety": {
+        "label": "Training variety",
+        "consistent": {
+          "label": "Consistent",
+          "description": "Same structure every week"
+        },
+        "balanced": {
+          "label": "Balanced",
+          "description": "Some variation within a framework"
+        },
+        "varied": {
+          "label": "Varied",
+          "description": "Lots of variation and new challenges"
+        }
+      },
+      "feedback": {
+        "label": "Feedback style",
+        "dataDriven": {
+          "label": "Data-driven",
+          "description": "Focus on numbers and statistics"
+        },
+        "encouraging": {
+          "label": "Encouraging",
+          "description": "Positive and motivating"
+        },
+        "direct": {
+          "label": "Direct",
+          "description": "Straight to the point, no fluff"
+        }
+      },
+      "actions": {
+        "saving": "Saving...",
+        "saveChanges": "Save changes",
+        "noChanges": "No changes"
+      },
+      "lastUpdated": "Last updated: {date}"
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
