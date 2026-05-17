@@ -31,6 +31,7 @@ import type {
 import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog'
 import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutDialog'
 import { toAgilityWorkoutBundle } from '@/components/workouts/import/converters'
+import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calendar/TeamCalendarStudioContextBanner'
 
 interface Athlete {
   id: string
@@ -120,6 +121,8 @@ export default function AgilityStudioClient({
 
   return (
     <div className="container mx-auto py-6 space-y-6">
+      <TeamCalendarStudioContextBanner />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

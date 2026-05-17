@@ -180,20 +180,27 @@ function contentOwnerLabel(owner: string | null | undefined): string {
   return TEAM_EVENT_CONTENT_OWNER_LABELS.physical_trainer
 }
 
-function builderLinkForEvent(type: string, businessSlug?: string): { href: string; label: string } | null {
+function builderLinkForEvent(event: TeamEvent, teamId: string, businessSlug?: string): { href: string; label: string } | null {
   const coachBase = businessSlug ? `/${businessSlug}/coach` : '/coach'
+  const query = new URLSearchParams({
+    fromTeamCalendar: 'true',
+    teamEventId: event.id,
+    teamId,
+    date: event.startDate,
+    eventTitle: event.title,
+  })
 
-  if (type === 'STRENGTH' || type === 'PREHAB' || type === 'PLYOMETRICS') {
-    return { href: `${coachBase}/strength`, label: 'Strength Studio' }
+  if (event.type === 'STRENGTH' || event.type === 'PREHAB' || event.type === 'PLYOMETRICS') {
+    return { href: `${coachBase}/strength?${query}`, label: 'Strength Studio' }
   }
-  if (type === 'CARDIO' || type === 'INTERVAL_SESSION') {
-    return { href: `${coachBase}/cardio`, label: 'Cardio Studio' }
+  if (event.type === 'CARDIO' || event.type === 'INTERVAL_SESSION') {
+    return { href: `${coachBase}/cardio?${query}`, label: 'Cardio Studio' }
   }
-  if (type === 'HYBRID') {
-    return { href: `${coachBase}/hybrid-studio`, label: 'Hybrid Studio' }
+  if (event.type === 'HYBRID') {
+    return { href: `${coachBase}/hybrid-studio?${query}`, label: 'Hybrid Studio' }
   }
-  if (type === 'AGILITY') {
-    return { href: `${coachBase}/agility-studio`, label: 'Agility Studio' }
+  if (event.type === 'AGILITY') {
+    return { href: `${coachBase}/agility-studio?${query}`, label: 'Agility Studio' }
   }
   return null
 }
@@ -710,7 +717,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                 <div className="text-xs text-amber-900/75">Inga pass matchar filtret.</div>
               ) : (
                 contentQueue.slice(0, 8).map((event) => {
-                  const builderLink = builderLinkForEvent(event.type, businessSlug)
+                  const builderLink = builderLinkForEvent(event, teamId, businessSlug)
                   const typeConfig = getTypeConfig(event.type)
                   return (
                     <div

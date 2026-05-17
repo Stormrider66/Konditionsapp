@@ -71,6 +71,7 @@ import type { HybridWorkoutWithSections, HybridMetconData, HybridSectionData } f
 import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog';
 import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutDialog';
 import { toHybridBuilderInitialData } from '@/components/workouts/import/converters';
+import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calendar/TeamCalendarStudioContextBanner';
 
 interface HybridMovement {
   id: string;
@@ -332,6 +333,8 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
 
   return (
     <div className="space-y-6">
+      <TeamCalendarStudioContextBanner />
+
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>

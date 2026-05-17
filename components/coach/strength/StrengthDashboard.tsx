@@ -32,6 +32,7 @@ import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog
 import { MuscleGroupDashboard } from '@/components/strength/MuscleGroupDashboard'
 import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutDialog'
 import { toStrengthSessionData } from '@/components/workouts/import/converters'
+import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calendar/TeamCalendarStudioContextBanner'
 
 const ProgressionDashboard = dynamic(
   () => import('@/components/coach/progression/ProgressionDashboard').then(mod => mod.ProgressionDashboard),
@@ -484,6 +485,8 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
 
   return (
     <div className="container mx-auto py-6 px-4 space-y-8">
+      <TeamCalendarStudioContextBanner />
+
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Strength Studio</h1>
