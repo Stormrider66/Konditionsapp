@@ -5539,6 +5539,35 @@
         }
       }
     },
+    "memoryIndicator": {
+      "title": "AI-minnen",
+      "subtitle": "Saker jag kommer ihåg om dig",
+      "triggerTitle": "{count} minnen lagrade",
+      "countBadge": "{count} st",
+      "deleteAria": "Ta bort minne",
+      "summaryTitle": "Veckans sammanfattning",
+      "types": {
+        "injuryMention": "Skada",
+        "goalStatement": "Mål",
+        "preference": "Preferens",
+        "lifeEvent": "Livshändelse",
+        "feedback": "Feedback",
+        "milestone": "Milstolpe",
+        "equipment": "Utrustning",
+        "limitation": "Begränsning",
+        "personalFact": "Personligt"
+      },
+      "toast": {
+        "deleted": {
+          "title": "Minne borttaget",
+          "description": "Minnet har tagits bort."
+        },
+        "deleteFailed": {
+          "title": "Kunde inte ta bort minnet",
+          "description": "Försök igen senare."
+        }
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

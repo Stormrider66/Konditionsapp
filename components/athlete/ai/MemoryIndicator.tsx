@@ -12,6 +12,7 @@ import {
 import { Brain, Loader2, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface Memory {
   id: string
@@ -28,17 +29,16 @@ interface MemoryIndicatorProps {
   className?: string
 }
 
-// Memory type labels (Swedish)
 const MEMORY_TYPE_LABELS: Record<string, string> = {
-  INJURY_MENTION: 'Skada',
-  GOAL_STATEMENT: 'Mål',
-  PREFERENCE: 'Preferens',
-  LIFE_EVENT: 'Livshändelse',
-  FEEDBACK: 'Feedback',
-  MILESTONE: 'Milstolpe',
-  EQUIPMENT: 'Utrustning',
-  LIMITATION: 'Begränsning',
-  PERSONAL_FACT: 'Personligt',
+  INJURY_MENTION: 'injuryMention',
+  GOAL_STATEMENT: 'goalStatement',
+  PREFERENCE: 'preference',
+  LIFE_EVENT: 'lifeEvent',
+  FEEDBACK: 'feedback',
+  MILESTONE: 'milestone',
+  EQUIPMENT: 'equipment',
+  LIMITATION: 'limitation',
+  PERSONAL_FACT: 'personalFact',
 }
 
 // Memory type colors
@@ -55,6 +55,8 @@ const MEMORY_TYPE_COLORS: Record<string, string> = {
 }
 
 export function MemoryIndicator({ clientId, onMemoryContextReady, className }: MemoryIndicatorProps) {
+  const t = useTranslations('components.memoryIndicator')
+  const locale = useLocale()
   const { toast } = useToast()
   const [memories, setMemories] = useState<Memory[]>([])
   const [summary, setSummary] = useState<string | null>(null)
@@ -105,14 +107,14 @@ export function MemoryIndicator({ clientId, onMemoryContextReady, className }: M
       }
       setMemories((prev) => prev.filter((m) => m.id !== memoryId))
       toast({
-        title: 'Minne borttaget',
-        description: 'Minnet har tagits bort.',
+        title: t('toast.deleted.title'),
+        description: t('toast.deleted.description'),
       })
     } catch (error) {
       console.error('Error deleting memory:', error)
       toast({
-        title: 'Kunde inte ta bort minnet',
-        description: 'Försök igen senare.',
+        title: t('toast.deleteFailed.title'),
+        description: t('toast.deleteFailed.description'),
         variant: 'destructive',
       })
     } finally {
@@ -141,7 +143,7 @@ export function MemoryIndicator({ clientId, onMemoryContextReady, className }: M
             'after:rounded-full after:bg-amber-400 after:animate-pulse',
             className || 'h-8 w-8'
           )}
-          title={`${memories.length} minnen lagrade`}
+          title={t('triggerTitle', { count: memories.length })}
         >
           <Brain className="h-4 w-4" />
         </Button>
@@ -151,14 +153,14 @@ export function MemoryIndicator({ clientId, onMemoryContextReady, className }: M
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Brain className="h-4 w-4 text-amber-500" />
-              <span className="font-medium text-sm">AI-minnen</span>
+              <span className="font-medium text-sm">{t('title')}</span>
             </div>
             <Badge variant="secondary" className="text-xs">
-              {memories.length} st
+              {t('countBadge', { count: memories.length })}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Saker jag kommer ihåg om dig
+            {t('subtitle')}
           </p>
         </div>
 
@@ -175,7 +177,9 @@ export function MemoryIndicator({ clientId, onMemoryContextReady, className }: M
                       variant="secondary"
                       className={cn('text-[10px] mb-1', MEMORY_TYPE_COLORS[memory.memoryType])}
                     >
-                      {MEMORY_TYPE_LABELS[memory.memoryType] || memory.memoryType}
+                      {MEMORY_TYPE_LABELS[memory.memoryType]
+                        ? t(`types.${MEMORY_TYPE_LABELS[memory.memoryType]}`)
+                        : memory.memoryType}
                     </Badge>
                     <p className="text-sm leading-snug">{memory.content}</p>
                     {memory.context && (
@@ -190,6 +194,7 @@ export function MemoryIndicator({ clientId, onMemoryContextReady, className }: M
                     className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
                     onClick={() => handleDeleteMemory(memory.id)}
                     disabled={isDeleting === memory.id}
+                    aria-label={t('deleteAria')}
                   >
                     {isDeleting === memory.id ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -213,7 +218,7 @@ export function MemoryIndicator({ clientId, onMemoryContextReady, className }: M
                     ))}
                   </div>
                   <span className="text-[10px] text-muted-foreground">
-                    {new Date(memory.extractedAt).toLocaleDateString('sv-SE')}
+                    {new Date(memory.extractedAt).toLocaleDateString(locale)}
                   </span>
                 </div>
               </div>
@@ -223,7 +228,7 @@ export function MemoryIndicator({ clientId, onMemoryContextReady, className }: M
 
         {summary && (
           <div className="p-3 border-t bg-muted/30">
-            <p className="text-xs font-medium mb-1">Veckans sammanfattning</p>
+            <p className="text-xs font-medium mb-1">{t('summaryTitle')}</p>
             <p className="text-xs text-muted-foreground">{summary}</p>
           </div>
         )}

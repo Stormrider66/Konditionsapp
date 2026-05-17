@@ -5539,6 +5539,35 @@
         }
       }
     },
+    "memoryIndicator": {
+      "title": "AI memories",
+      "subtitle": "Things I remember about you",
+      "triggerTitle": "{count} stored memories",
+      "countBadge": "{count}",
+      "deleteAria": "Delete memory",
+      "summaryTitle": "This week's summary",
+      "types": {
+        "injuryMention": "Injury",
+        "goalStatement": "Goal",
+        "preference": "Preference",
+        "lifeEvent": "Life event",
+        "feedback": "Feedback",
+        "milestone": "Milestone",
+        "equipment": "Equipment",
+        "limitation": "Limitation",
+        "personalFact": "Personal"
+      },
+      "toast": {
+        "deleted": {
+          "title": "Memory deleted",
+          "description": "The memory has been deleted."
+        },
+        "deleteFailed": {
+          "title": "Could not delete memory",
+          "description": "Try again later."
+        }
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {
