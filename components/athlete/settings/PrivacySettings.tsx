@@ -6,11 +6,12 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, Shield, Eye, EyeOff, Users } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 interface Permission {
   key: string
-  label: string
-  description: string
+  labelKey: string
+  descriptionKey: string
   defaultValue: boolean
   sensitive?: boolean
 }
@@ -18,50 +19,51 @@ interface Permission {
 const PERMISSIONS: Permission[] = [
   {
     key: 'shareFoodDetails',
-    label: 'Matdetaljer',
-    description: 'Individuella livsmedel, portioner och näringskällor',
+    labelKey: 'permissions.shareFoodDetails.label',
+    descriptionKey: 'permissions.shareFoodDetails.description',
     defaultValue: true,
   },
   {
     key: 'shareFoodSummaries',
-    label: 'Kostsammanfattningar',
-    description: 'Månads- och årssammanfattningar, topplivsmedel, trender',
+    labelKey: 'permissions.shareFoodSummaries.label',
+    descriptionKey: 'permissions.shareFoodSummaries.description',
     defaultValue: true,
   },
   {
     key: 'shareBodyComposition',
-    label: 'Kroppssammansättning',
-    description: 'Vikt, kroppsfett, muskelmassa och bioimpedansdata',
+    labelKey: 'permissions.shareBodyComposition.label',
+    descriptionKey: 'permissions.shareBodyComposition.description',
     defaultValue: true,
   },
   {
     key: 'shareWorkoutNotes',
-    label: 'Träningsanteckningar',
-    description: 'Personliga kommentarer och RPE-bedömningar på pass',
+    labelKey: 'permissions.shareWorkoutNotes.label',
+    descriptionKey: 'permissions.shareWorkoutNotes.description',
     defaultValue: true,
   },
   {
     key: 'shareDailyCheckIns',
-    label: 'Dagliga incheckningar',
-    description: 'Beredskap, humör, sömn och energinivåer',
+    labelKey: 'permissions.shareDailyCheckIns.label',
+    descriptionKey: 'permissions.shareDailyCheckIns.description',
     defaultValue: true,
   },
   {
     key: 'shareInjuryDetails',
-    label: 'Skadeinformation',
-    description: 'Smärtrapporter, skadebedömningar och rehabilitering',
+    labelKey: 'permissions.shareInjuryDetails.label',
+    descriptionKey: 'permissions.shareInjuryDetails.description',
     defaultValue: true,
   },
   {
     key: 'shareMenstrualData',
-    label: 'Menstruationsdata',
-    description: 'Menscykeldata och relaterade symptom',
+    labelKey: 'permissions.shareMenstrualData.label',
+    descriptionKey: 'permissions.shareMenstrualData.description',
     defaultValue: false,
     sensitive: true,
   },
 ]
 
 export function PrivacySettings() {
+  const t = useTranslations('components.privacySettings')
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -84,7 +86,7 @@ export function PrivacySettings() {
         setLoading(false)
       }
     }
-    fetchPermissions()
+    void fetchPermissions()
   }, [])
 
   const handleToggle = async (key: string, value: boolean) => {
@@ -98,15 +100,15 @@ export function PrivacySettings() {
       })
       if (!response.ok) throw new Error()
       toast({
-        title: 'Sparad',
-        description: `Inställning uppdaterad`,
+        title: t('toast.savedTitle'),
+        description: t('toast.savedDescription'),
       })
     } catch {
       // Revert on failure
       setPermissions((prev) => ({ ...prev, [key]: !value }))
       toast({
-        title: 'Fel',
-        description: 'Kunde inte spara inställning',
+        title: t('toast.errorTitle'),
+        description: t('toast.errorDescription'),
         variant: 'destructive',
       })
     } finally {
@@ -128,9 +130,9 @@ export function PrivacySettings() {
         body: JSON.stringify(allOn),
       })
       if (!response.ok) throw new Error()
-      toast({ title: 'Alla behörigheter aktiverade' })
+      toast({ title: t('toast.allEnabled') })
     } catch {
-      toast({ title: 'Fel', variant: 'destructive' })
+      toast({ title: t('toast.errorTitle'), variant: 'destructive' })
     } finally {
       setSaving(false)
     }
@@ -150,9 +152,9 @@ export function PrivacySettings() {
         body: JSON.stringify(allOff),
       })
       if (!response.ok) throw new Error()
-      toast({ title: 'Alla behörigheter inaktiverade' })
+      toast({ title: t('toast.allDisabled') })
     } catch {
-      toast({ title: 'Fel', variant: 'destructive' })
+      toast({ title: t('toast.errorTitle'), variant: 'destructive' })
     } finally {
       setSaving(false)
     }
@@ -178,19 +180,19 @@ export function PrivacySettings() {
             {hasCoach ? (
               <>
                 <p className="text-sm font-medium text-slate-900 dark:text-white">
-                  Din coach: {coachName}
+                  {t('coach.active', { coachName: coachName ?? '' })}
                 </p>
                 <p className="text-xs text-slate-500">
-                  Styr vilken data din coach kan se nedan
+                  {t('coach.activeDescription')}
                 </p>
               </>
             ) : (
               <>
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Ingen aktiv coach
+                  {t('coach.none')}
                 </p>
                 <p className="text-xs text-slate-500">
-                  Dessa inställningar aktiveras när du har en coach
+                  {t('coach.noneDescription')}
                 </p>
               </>
             )}
@@ -208,7 +210,7 @@ export function PrivacySettings() {
           disabled={saving}
         >
           <Eye className="h-3.5 w-3.5" />
-          Dela allt
+          {t('actions.shareAll')}
         </Button>
         <Button
           variant="outline"
@@ -218,7 +220,7 @@ export function PrivacySettings() {
           disabled={saving}
         >
           <EyeOff className="h-3.5 w-3.5" />
-          Dela inget
+          {t('actions.shareNone')}
         </Button>
       </div>
 
@@ -227,10 +229,10 @@ export function PrivacySettings() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
             <Shield className="h-4 w-4 text-cyan-400" />
-            Delningsinställningar
+            {t('title')}
           </CardTitle>
           <CardDescription className="text-slate-600 dark:text-slate-400">
-            Välj vilken information din coach får se
+            {t('description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-1">
@@ -242,8 +244,8 @@ export function PrivacySettings() {
               }`}
             >
               <div className="space-y-0.5 flex-1 mr-4">
-                <p className="text-sm font-medium text-slate-900 dark:text-white">{perm.label}</p>
-                <p className="text-xs text-slate-500">{perm.description}</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">{t(perm.labelKey)}</p>
+                <p className="text-xs text-slate-500">{t(perm.descriptionKey)}</p>
               </div>
               <Switch
                 checked={permissions[perm.key] ?? perm.defaultValue}

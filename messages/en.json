@@ -7737,6 +7737,58 @@
         "save": "Could not save the setting"
       }
     },
+    "privacySettings": {
+      "title": "Sharing settings",
+      "description": "Choose what information your coach can see",
+      "coach": {
+        "active": "Your coach: {coachName}",
+        "activeDescription": "Control what data your coach can see below",
+        "none": "No active coach",
+        "noneDescription": "These settings become active when you have a coach"
+      },
+      "actions": {
+        "shareAll": "Share all",
+        "shareNone": "Share none"
+      },
+      "toast": {
+        "savedTitle": "Saved",
+        "savedDescription": "Setting updated",
+        "errorTitle": "Error",
+        "errorDescription": "Could not save setting",
+        "allEnabled": "All permissions enabled",
+        "allDisabled": "All permissions disabled"
+      },
+      "permissions": {
+        "shareFoodDetails": {
+          "label": "Food details",
+          "description": "Individual foods, portions, and nutrient sources"
+        },
+        "shareFoodSummaries": {
+          "label": "Nutrition summaries",
+          "description": "Monthly and yearly summaries, top foods, trends"
+        },
+        "shareBodyComposition": {
+          "label": "Body composition",
+          "description": "Weight, body fat, muscle mass, and bioimpedance data"
+        },
+        "shareWorkoutNotes": {
+          "label": "Workout notes",
+          "description": "Personal comments and RPE ratings on workouts"
+        },
+        "shareDailyCheckIns": {
+          "label": "Daily check-ins",
+          "description": "Readiness, mood, sleep, and energy levels"
+        },
+        "shareInjuryDetails": {
+          "label": "Injury information",
+          "description": "Pain reports, injury assessments, and rehabilitation"
+        },
+        "shareMenstrualData": {
+          "label": "Menstrual data",
+          "description": "Cycle data and related symptoms"
+        }
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

@@ -7737,6 +7737,58 @@
         "save": "Kunde inte spara inställningen"
       }
     },
+    "privacySettings": {
+      "title": "Delningsinställningar",
+      "description": "Välj vilken information din coach får se",
+      "coach": {
+        "active": "Din coach: {coachName}",
+        "activeDescription": "Styr vilken data din coach kan se nedan",
+        "none": "Ingen aktiv coach",
+        "noneDescription": "Dessa inställningar aktiveras när du har en coach"
+      },
+      "actions": {
+        "shareAll": "Dela allt",
+        "shareNone": "Dela inget"
+      },
+      "toast": {
+        "savedTitle": "Sparad",
+        "savedDescription": "Inställning uppdaterad",
+        "errorTitle": "Fel",
+        "errorDescription": "Kunde inte spara inställning",
+        "allEnabled": "Alla behörigheter aktiverade",
+        "allDisabled": "Alla behörigheter inaktiverade"
+      },
+      "permissions": {
+        "shareFoodDetails": {
+          "label": "Matdetaljer",
+          "description": "Individuella livsmedel, portioner och näringskällor"
+        },
+        "shareFoodSummaries": {
+          "label": "Kostsammanfattningar",
+          "description": "Månads- och årssammanfattningar, topplivsmedel, trender"
+        },
+        "shareBodyComposition": {
+          "label": "Kroppssammansättning",
+          "description": "Vikt, kroppsfett, muskelmassa och bioimpedansdata"
+        },
+        "shareWorkoutNotes": {
+          "label": "Träningsanteckningar",
+          "description": "Personliga kommentarer och RPE-bedömningar på pass"
+        },
+        "shareDailyCheckIns": {
+          "label": "Dagliga incheckningar",
+          "description": "Beredskap, humör, sömn och energinivåer"
+        },
+        "shareInjuryDetails": {
+          "label": "Skadeinformation",
+          "description": "Smärtrapporter, skadebedömningar och rehabilitering"
+        },
+        "shareMenstrualData": {
+          "label": "Menstruationsdata",
+          "description": "Menscykeldata och relaterade symptom"
+        }
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",
