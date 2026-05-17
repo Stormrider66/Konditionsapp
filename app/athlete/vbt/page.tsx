@@ -1,13 +1,19 @@
 // app/athlete/vbt/page.tsx
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils';
 import { VBTDashboard } from '@/components/athlete/VBTDashboard';
+import { getTranslations } from '@/i18n/server';
 
-export const metadata = {
-  title: 'VBT Data | Trainomics',
-  description: 'Velocity-Based Training data och analys',
-};
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.vbt');
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  };
+}
 
 export default async function AthleteVBTPage() {
+  const t = await getTranslations('pages.vbt');
   const { clientId } = await requireAthleteOrCoachInAthleteMode();
 
   return (
@@ -15,7 +21,7 @@ export default async function AthleteVBTPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold">VBT Data</h1>
         <p className="text-muted-foreground text-sm">
-          Velocity-Based Training - hastighetsbaserad styrketräning
+          {t('description')}
         </p>
       </div>
 

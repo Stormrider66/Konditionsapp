@@ -99,6 +99,14 @@
       "calendarConnections": {
         "title": "Calendar Connections | Trainomics",
         "description": "Connect external calendars to see all events in one place"
+      },
+      "vbt": {
+        "title": "VBT Data | Trainomics",
+        "description": "Velocity-Based Training data and analysis"
+      },
+      "concept2": {
+        "title": "Concept2 | Trainomics",
+        "description": "Concept2 Logbook data and analysis"
       }
     },
     "my": {
@@ -297,6 +305,29 @@
         "description": "This report link is no longer valid. Contact your coach to get a new link.",
         "createAccount": "Create an account to save your reports"
       }
+    },
+    "checkIn": {
+      "titlePrefix": "Daily",
+      "titleAccent": "Check-in",
+      "description": "Take 60 seconds to log how you feel. We adapt your training in real time based on your recovery."
+    },
+    "athleteCalendar": {
+      "backToDashboard": "BACK TO DASHBOARD",
+      "titlePrefix": "My",
+      "titleAccent": "Calendar",
+      "description": "See all your workouts, competitions, and events in one place",
+      "connectCalendars": "Connect calendars"
+    },
+    "vbt": {
+      "description": "Velocity-Based Training - speed-based strength training"
+    },
+    "concept2": {
+      "description": "RowErg, SkiErg, and BikeErg training data"
+    },
+    "nutrition": {
+      "backToDashboard": "Back to dashboard",
+      "title": "Nutrition stats",
+      "subtitle": "Trends, goals & distribution"
     }
   },
   "home": {

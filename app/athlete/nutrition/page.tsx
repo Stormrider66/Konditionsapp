@@ -3,8 +3,10 @@ import { NutritionStatsPage } from '@/components/nutrition/NutritionStatsPage'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
+import { getTranslations } from '@/i18n/server'
 
 export default async function NutritionPage() {
+  const t = await getTranslations('pages.nutrition')
   const { clientId } = await requireAthleteOrCoachInAthleteMode()
 
   return (
@@ -18,7 +20,7 @@ export default async function NutritionPage() {
         <Link href="/athlete/dashboard">
           <Button variant="ghost" size="sm" className="gap-2 mb-6 text-slate-600 hover:text-slate-950 hover:bg-slate-100 rounded-full px-4 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5">
             <ArrowLeft className="h-4 w-4" />
-            Tillbaka till dashboard
+            {t('backToDashboard')}
           </Button>
         </Link>
 
@@ -28,10 +30,10 @@ export default async function NutritionPage() {
           </div>
           <div>
             <h1 className="text-3xl font-black italic uppercase tracking-tight text-slate-950 leading-none dark:text-white">
-              Koststatistik
+              {t('title')}
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">
-              Trender, mål & fördelning
+              {t('subtitle')}
             </p>
           </div>
         </div>

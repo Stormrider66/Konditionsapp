@@ -1,13 +1,19 @@
 // app/athlete/concept2/page.tsx
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils';
 import { Concept2Dashboard } from '@/components/athlete/Concept2Dashboard';
+import { getTranslations } from '@/i18n/server';
 
-export const metadata = {
-  title: 'Concept2 | Trainomics',
-  description: 'Concept2 Logbook data och analys',
-};
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.concept2');
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  };
+}
 
 export default async function AthleteConcept2Page() {
+  const t = await getTranslations('pages.concept2');
   const { clientId } = await requireAthleteOrCoachInAthleteMode();
 
   return (
@@ -15,7 +21,7 @@ export default async function AthleteConcept2Page() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Concept2</h1>
         <p className="text-muted-foreground text-sm">
-          RowErg, SkiErg och BikeErg träningsdata
+          {t('description')}
         </p>
       </div>
 

@@ -99,6 +99,14 @@
       "calendarConnections": {
         "title": "Kalenderanslutningar | Trainomics",
         "description": "Anslut externa kalendrar för att se alla händelser på ett ställe"
+      },
+      "vbt": {
+        "title": "VBT Data | Trainomics",
+        "description": "Velocity-Based Training data och analys"
+      },
+      "concept2": {
+        "title": "Concept2 | Trainomics",
+        "description": "Concept2 Logbook data och analys"
       }
     },
     "my": {
@@ -297,6 +305,29 @@
         "description": "Den här rapportlänken är inte längre giltig. Kontakta din coach för att få en ny länk.",
         "createAccount": "Skapa konto för att spara dina rapporter"
       }
+    },
+    "checkIn": {
+      "titlePrefix": "Daglig",
+      "titleAccent": "Check-in",
+      "description": "Ta 60 sekunder för att logga ditt mående. Vi anpassar din träning i realtid baserat på din återhämtning."
+    },
+    "athleteCalendar": {
+      "backToDashboard": "TILLBAKA TILL DASHBOARD",
+      "titlePrefix": "Min",
+      "titleAccent": "Kalender",
+      "description": "Se alla dina träningspass, tävlingar och händelser på ett ställe",
+      "connectCalendars": "Anslut kalendrar"
+    },
+    "vbt": {
+      "description": "Velocity-Based Training - hastighetsbaserad styrketräning"
+    },
+    "concept2": {
+      "description": "RowErg, SkiErg och BikeErg träningsdata"
+    },
+    "nutrition": {
+      "backToDashboard": "Tillbaka till dashboard",
+      "title": "Koststatistik",
+      "subtitle": "Trender, mål & fördelning"
     }
   },
   "home": {
