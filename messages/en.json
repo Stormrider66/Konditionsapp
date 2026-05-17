@@ -3870,6 +3870,26 @@
         "viewDetails": "View details"
       }
     },
+    "workoutSegments": {
+      "title": "Workout structure",
+      "segmentTypes": {
+        "warmup": "Warmup",
+        "interval": "Interval",
+        "cooldown": "Cooldown",
+        "work": "Work",
+        "rest": "Rest",
+        "exercise": "Exercise"
+      },
+      "details": {
+        "restSeconds": "{seconds}s rest"
+      },
+      "intervalFallback": "Interval",
+      "summary": {
+        "intervalCount": "{count, plural, one {# interval} other {# intervals}}",
+        "glassSuffix": "included in this workout. Tap the camera icon at each interval to scan your lactate value directly during the workout.",
+        "defaultSuffix": "in this workout. Tap the camera icon at each interval to scan your lactate value."
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",

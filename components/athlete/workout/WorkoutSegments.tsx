@@ -17,10 +17,9 @@ import {
   GlassCardHeader,
   GlassCardTitle,
   GlassCardContent,
-  GlassCardDescription
 } from '@/components/ui/GlassCard';
 import { ClipboardList, Clock, Zap, Activity, Info } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useTranslations } from '@/i18n/client';
 
 interface WorkoutSegment {
   id: string;
@@ -52,6 +51,7 @@ export function WorkoutSegments({
   workoutName,
   variant = 'default',
 }: WorkoutSegmentsProps) {
+  const t = useTranslations('components.workoutSegments');
   const isGlass = variant === 'glass';
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
@@ -61,18 +61,18 @@ export function WorkoutSegments({
 
   function formatSegmentType(type: string): string {
     const types: Record<string, string> = {
-      warmup: 'Uppvärmning',
-      interval: 'Intervall',
-      cooldown: 'Nedvärmning',
-      work: 'Arbete',
-      rest: 'Vila',
-      exercise: 'Övning',
-      WARMUP: 'Uppvärmning',
-      INTERVAL: 'Intervall',
-      COOLDOWN: 'Nedvärmning',
-      WORK: 'Arbete',
-      REST: 'Vila',
-      EXERCISE: 'Övning',
+      warmup: t('segmentTypes.warmup'),
+      interval: t('segmentTypes.interval'),
+      cooldown: t('segmentTypes.cooldown'),
+      work: t('segmentTypes.work'),
+      rest: t('segmentTypes.rest'),
+      exercise: t('segmentTypes.exercise'),
+      WARMUP: t('segmentTypes.warmup'),
+      INTERVAL: t('segmentTypes.interval'),
+      COOLDOWN: t('segmentTypes.cooldown'),
+      WORK: t('segmentTypes.work'),
+      REST: t('segmentTypes.rest'),
+      EXERCISE: t('segmentTypes.exercise'),
     };
     return types[type] || type;
   }
@@ -87,7 +87,7 @@ export function WorkoutSegments({
         <GlassCardHeader className="pb-4">
           <GlassCardTitle className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2 transition-colors">
             <ClipboardList className="h-5 w-5 text-blue-600 dark:text-blue-500" />
-            Pass-struktur
+            {t('title')}
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent>
@@ -151,7 +151,7 @@ export function WorkoutSegments({
                         )}
                         {segment.rest && (
                           <span className="text-slate-500 dark:text-slate-500 italic">
-                            {segment.rest}s vila
+                            {t('details.restSeconds', { seconds: segment.rest })}
                           </span>
                         )}
                       </div>
@@ -165,7 +165,7 @@ export function WorkoutSegments({
                         clientId={clientId}
                         workoutId={workoutId}
                         intervalNumber={currentIntervalNumber}
-                        segmentDescription={`${workoutName || 'Intervall'} #${currentIntervalNumber}`}
+                        segmentDescription={`${workoutName || t('intervalFallback')} #${currentIntervalNumber}`}
                       />
                     </div>
                   )}
@@ -180,8 +180,7 @@ export function WorkoutSegments({
               <div className="flex items-start gap-4 p-4 rounded-2xl bg-blue-50 border border-blue-100 dark:bg-blue-500/5 dark:border-blue-500/10 transition-colors">
                 <Info className="h-5 w-5 text-blue-600 dark:text-blue-500 shrink-0 mt-0.5 transition-colors" />
                 <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed transition-colors">
-                  <span className="font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest transition-colors">{intervalCounter} intervall</span> ingår i detta pass.
-                  Tryck på kameraikonen vid varje intervall för att scanna ditt laktatvärde direkt under passet.
+	                  <span className="font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest transition-colors">{t('summary.intervalCount', { count: intervalCounter })}</span> {t('summary.glassSuffix')}
                 </p>
               </div>
             </div>
@@ -199,7 +198,7 @@ export function WorkoutSegments({
       }}
     >
       <CardHeader>
-        <CardTitle style={{ color: theme.colors.textPrimary }}>Pass-struktur</CardTitle>
+        <CardTitle style={{ color: theme.colors.textPrimary }}>{t('title')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
@@ -252,7 +251,7 @@ export function WorkoutSegments({
                     {segment.sets && segment.repsCount && (
                       <> • {segment.sets} set × {segment.repsCount} reps</>
                     )}
-                    {segment.rest && ` • ${segment.rest}s vila`}
+                    {segment.rest && ` • ${t('details.restSeconds', { seconds: segment.rest })}`}
                   </p>
                 </div>
 
@@ -263,7 +262,7 @@ export function WorkoutSegments({
                       clientId={clientId}
                       workoutId={workoutId}
                       intervalNumber={currentIntervalNumber}
-                      segmentDescription={`${workoutName || 'Intervall'} #${currentIntervalNumber}`}
+                      segmentDescription={`${workoutName || t('intervalFallback')} #${currentIntervalNumber}`}
                     />
                   </div>
                 )}
@@ -279,8 +278,7 @@ export function WorkoutSegments({
             style={{ borderColor: theme.colors.border }}
           >
             <p className="text-xs" style={{ color: theme.colors.textMuted }}>
-              <span className="font-medium">{intervalCounter} intervall</span> i detta pass.
-              Tryck på kameraikonen vid varje intervall för att scanna ditt laktatvärde.
+              <span className="font-medium">{t('summary.intervalCount', { count: intervalCounter })}</span> {t('summary.defaultSuffix')}
             </p>
           </div>
         )}

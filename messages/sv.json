@@ -3870,6 +3870,26 @@
         "viewDetails": "Visa detaljer"
       }
     },
+    "workoutSegments": {
+      "title": "Pass-struktur",
+      "segmentTypes": {
+        "warmup": "Uppvärmning",
+        "interval": "Intervall",
+        "cooldown": "Nedvärmning",
+        "work": "Arbete",
+        "rest": "Vila",
+        "exercise": "Övning"
+      },
+      "details": {
+        "restSeconds": "{seconds}s vila"
+      },
+      "intervalFallback": "Intervall",
+      "summary": {
+        "intervalCount": "{count} {count, plural, one {intervall} other {intervall}}",
+        "glassSuffix": "ingår i detta pass. Tryck på kameraikonen vid varje intervall för att scanna ditt laktatvärde direkt under passet.",
+        "defaultSuffix": "i detta pass. Tryck på kameraikonen vid varje intervall för att scanna ditt laktatvärde."
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",
