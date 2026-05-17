@@ -3777,6 +3777,35 @@
         "connectWithServiceError": "Could not connect to {service}"
       }
     },
+    "shareAchievementButton": {
+      "dialog": {
+        "title": "Share achievement",
+        "description": "Create a public link to share on social media"
+      },
+      "actions": {
+        "create": "Create share link",
+        "revoke": "Remove link"
+      },
+      "expiresAt": "The link is valid until {date}",
+      "toasts": {
+        "errorTitle": "Error",
+        "createFailed": "Could not create share link",
+        "revokeFailed": "Could not remove the link",
+        "copyFailed": "Could not copy the link",
+        "linkCreated": {
+          "title": "Share link created",
+          "description": "The link is valid for 90 days"
+        },
+        "linkRevoked": {
+          "title": "Link removed",
+          "description": "The share link has been removed"
+        },
+        "copied": {
+          "title": "Copied!",
+          "description": "The link has been copied to your clipboard"
+        }
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Training library",

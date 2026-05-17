@@ -3777,6 +3777,35 @@
         "connectWithServiceError": "Kunde inte ansluta till {service}"
       }
     },
+    "shareAchievementButton": {
+      "dialog": {
+        "title": "Dela prestation",
+        "description": "Skapa en publik länk att dela på sociala medier"
+      },
+      "actions": {
+        "create": "Skapa delningslänk",
+        "revoke": "Ta bort länk"
+      },
+      "expiresAt": "Länken är giltig till {date}",
+      "toasts": {
+        "errorTitle": "Fel",
+        "createFailed": "Kunde inte skapa delningslänk",
+        "revokeFailed": "Kunde inte ta bort länken",
+        "copyFailed": "Kunde inte kopiera länken",
+        "linkCreated": {
+          "title": "Delningslänk skapad",
+          "description": "Länken är giltig i 90 dagar"
+        },
+        "linkRevoked": {
+          "title": "Länk borttagen",
+          "description": "Delningslänken har tagits bort"
+        },
+        "copied": {
+          "title": "Kopierad!",
+          "description": "Länken har kopierats till urklipp"
+        }
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Träningsbibliotek",

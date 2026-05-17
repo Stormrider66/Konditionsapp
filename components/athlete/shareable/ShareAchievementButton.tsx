@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import { useLocale, useTranslations } from '@/i18n/client'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -48,6 +49,8 @@ export function ShareAchievementButton({
   streakData,
   athleteName,
 }: ShareAchievementButtonProps) {
+  const t = useTranslations('components.shareAchievementButton')
+  const locale = useLocale()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -108,27 +111,27 @@ export function ShareAchievementButton({
         setShareId(data.id)
         setExpiresAt(data.expiresAt)
         toast({
-          title: 'Delningslänk skapad',
-          description: 'Länken är giltig i 90 dagar',
+          title: t('toasts.linkCreated.title'),
+          description: t('toasts.linkCreated.description'),
         })
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte skapa delningslänk',
+          title: t('toasts.errorTitle'),
+          description: data.error || t('toasts.createFailed'),
           variant: 'destructive',
         })
       }
     } catch (error) {
       console.error('Error generating share link:', error)
       toast({
-        title: 'Fel',
-        description: 'Kunde inte skapa delningslänk',
+        title: t('toasts.errorTitle'),
+        description: t('toasts.createFailed'),
         variant: 'destructive',
       })
     } finally {
       setIsGenerating(false)
     }
-  }, [type, title, description, contextData, streakData, toast])
+  }, [type, title, description, contextData, streakData, toast, t])
 
   const revokeLink = async () => {
     if (!shareId) return
@@ -144,21 +147,21 @@ export function ShareAchievementButton({
         setShareId(null)
         setExpiresAt(null)
         toast({
-          title: 'Länk borttagen',
-          description: 'Delningslänken har tagits bort',
+          title: t('toasts.linkRevoked.title'),
+          description: t('toasts.linkRevoked.description'),
         })
       } else {
         const data = await response.json()
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte ta bort länken',
+          title: t('toasts.errorTitle'),
+          description: data.error || t('toasts.revokeFailed'),
           variant: 'destructive',
         })
       }
     } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte ta bort länken',
+        title: t('toasts.errorTitle'),
+        description: t('toasts.revokeFailed'),
         variant: 'destructive',
       })
     } finally {
@@ -171,15 +174,15 @@ export function ShareAchievementButton({
     try {
       await navigator.clipboard.writeText(shareLink)
       setCopied(true)
-      toast({ title: 'Kopierad!', description: 'Länken har kopierats till urklipp' })
+      toast({ title: t('toasts.copied.title'), description: t('toasts.copied.description') })
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast({ title: 'Fel', description: 'Kunde inte kopiera länken', variant: 'destructive' })
+      toast({ title: t('toasts.errorTitle'), description: t('toasts.copyFailed'), variant: 'destructive' })
     }
   }
 
   const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString('sv-SE', {
+    new Date(dateString).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -194,9 +197,9 @@ export function ShareAchievementButton({
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Dela prestation</DialogTitle>
+          <DialogTitle>{t('dialog.title')}</DialogTitle>
           <DialogDescription>
-            Skapa en publik länk att dela på sociala medier
+            {t('dialog.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -273,7 +276,7 @@ export function ShareAchievementButton({
 
               {expiresAt && (
                 <p className="text-sm text-muted-foreground">
-                  Länken är giltig till {formatDate(expiresAt)}
+                  {t('expiresAt', { date: formatDate(expiresAt) })}
                 </p>
               )}
 
@@ -289,7 +292,7 @@ export function ShareAchievementButton({
                 ) : (
                   <Trash2 className="h-4 w-4 mr-2" />
                 )}
-                Ta bort länk
+                {t('actions.revoke')}
               </Button>
             </>
           ) : (
@@ -303,7 +306,7 @@ export function ShareAchievementButton({
               ) : (
                 <Link2 className="h-4 w-4 mr-2" />
               )}
-              Skapa delningslänk
+              {t('actions.create')}
             </Button>
           )}
         </div>
