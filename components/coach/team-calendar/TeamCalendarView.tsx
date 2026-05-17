@@ -506,7 +506,9 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
       if (res.ok) {
         setEvents((prev) => prev.filter((e) => e.id !== eventId))
         toast.success('Händelse borttagen')
+        return
       }
+      toast.error('Kunde inte ta bort händelse')
     } catch {
       toast.error('Kunde inte ta bort händelse')
     }
@@ -831,7 +833,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                   return (
                     <div
                       key={event.id}
-                      className="rounded-md border border-amber-300 bg-white/70 px-2.5 py-2 text-xs shadow-sm"
+                      className="relative rounded-md border border-amber-300 bg-white/70 px-2.5 py-2 pr-8 text-xs shadow-sm"
                     >
                       <button
                         type="button"
@@ -852,6 +854,22 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                           {contentOwnerLabel(event.contentOwner)} · {contentStatusLabel(event.contentStatus)}
                         </div>
                       </button>
+                      {canCreateType(event.type as TeamEventType) && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1.5 top-1.5 h-6 w-6 p-0 text-amber-900/55 hover:bg-red-50 hover:text-destructive"
+                          aria-label={`Ta bort ${event.title}`}
+                          title="Ta bort"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void handleDelete(event.id)
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         <Button
                           type="button"
