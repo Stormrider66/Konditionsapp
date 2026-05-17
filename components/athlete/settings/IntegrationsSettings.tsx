@@ -10,9 +10,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, Link2, Unlink, Activity, RefreshCw, CheckCircle2, XCircle, Waves, Moon } from 'lucide-react'
+import { Loader2, Link2, Unlink, Activity, RefreshCw, Waves, Moon } from 'lucide-react'
 import Image from 'next/image'
 import { IntegrationsHelpModal } from './IntegrationsHelpModal'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 type RecoverySourcePref = 'AUTO' | 'GARMIN' | 'OURA'
 
@@ -33,10 +34,6 @@ interface IntegrationStatus {
 
 import {
   GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardContent,
-  GlassCardDescription
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
 
@@ -48,6 +45,8 @@ interface IntegrationsSettingsProps {
 
 export function IntegrationsSettings({ clientId, businessSlug, variant = 'default' }: IntegrationsSettingsProps) {
   const { toast } = useToast()
+  const t = useTranslations('components.integrationsSettings')
+  const locale = useLocale()
   const isGlass = variant === 'glass'
   const [stravaStatus, setStravaStatus] = useState<IntegrationStatus | null>(null)
   const [garminStatus, setGarminStatus] = useState<IntegrationStatus | null>(null)
@@ -116,11 +115,11 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
 
   // Fetch integration status on mount
   useEffect(() => {
-    fetchStravaStatus()
-    fetchGarminStatus()
-    fetchConcept2Status()
-    fetchOuraStatus()
-    fetchRecoverySource()
+    void fetchStravaStatus()
+    void fetchGarminStatus()
+    void fetchConcept2Status()
+    void fetchOuraStatus()
+    void fetchRecoverySource()
   }, [fetchStravaStatus, fetchGarminStatus, fetchConcept2Status, fetchOuraStatus, fetchRecoverySource])
 
   const connectStrava = async () => {
@@ -137,15 +136,15 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
         window.location.href = data.authUrl
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte ansluta till Strava',
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.connectError', { service: 'Strava' }),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte ansluta till Strava',
+        title: t('toast.errorTitle'),
+        description: t('toast.connectError', { service: 'Strava' }),
         variant: 'destructive',
       })
     } finally {
@@ -163,21 +162,21 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
       if (response.ok) {
         setStravaStatus({ connected: false })
         toast({
-          title: 'Strava bortkopplad',
-          description: 'Din Strava-anslutning har tagits bort',
+          title: t('toast.disconnectedTitle', { service: 'Strava' }),
+          description: t('toast.disconnectedDescription', { service: 'Strava' }),
         })
       } else {
         const data = await response.json()
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte koppla bort Strava',
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.disconnectError', { service: 'Strava' }),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte koppla bort Strava',
+        title: t('toast.errorTitle'),
+        description: t('toast.disconnectError', { service: 'Strava' }),
         variant: 'destructive',
       })
     } finally {
@@ -197,21 +196,21 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
 
       if (response.ok) {
         toast({
-          title: 'Synkronisering klar',
-          description: `${data.synced || 0} aktiviteter synkroniserade`,
+          title: t('toast.syncComplete'),
+          description: t('toast.activitiesSynced', { count: data.synced || 0 }),
         })
-        fetchStravaStatus()
+        void fetchStravaStatus()
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte synkronisera',
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.syncError'),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte synkronisera med Strava',
+        title: t('toast.errorTitle'),
+        description: t('toast.syncWithServiceError', { service: 'Strava' }),
         variant: 'destructive',
       })
     } finally {
@@ -233,15 +232,15 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
         window.location.href = data.authUrl
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte ansluta till Garmin',
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.connectError', { service: 'Garmin' }),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte ansluta till Garmin',
+        title: t('toast.errorTitle'),
+        description: t('toast.connectError', { service: 'Garmin' }),
         variant: 'destructive',
       })
     } finally {
@@ -258,23 +257,23 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
 
       if (response.ok) {
         setGarminStatus({ connected: false })
-        fetchRecoverySource()
+        void fetchRecoverySource()
         toast({
-          title: 'Garmin bortkopplad',
-          description: 'Din Garmin-anslutning har tagits bort',
+          title: t('toast.disconnectedTitle', { service: 'Garmin' }),
+          description: t('toast.disconnectedDescription', { service: 'Garmin' }),
         })
       } else {
         const data = await response.json()
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte koppla bort Garmin',
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.disconnectError', { service: 'Garmin' }),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte koppla bort Garmin',
+        title: t('toast.errorTitle'),
+        description: t('toast.disconnectError', { service: 'Garmin' }),
         variant: 'destructive',
       })
     } finally {
@@ -294,21 +293,21 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
 
       if (response.ok) {
         toast({
-          title: 'Synkbegäran skickad',
-          description: 'Garmin-data kommer att anlända via push inom kort.',
+          title: t('toast.syncRequestSent'),
+          description: t('toast.garminPushDescription'),
         })
-        fetchGarminStatus()
+        void fetchGarminStatus()
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte synkronisera',
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.syncError'),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte synkronisera med Garmin',
+        title: t('toast.errorTitle'),
+        description: t('toast.syncWithServiceError', { service: 'Garmin' }),
         variant: 'destructive',
       })
     } finally {
@@ -330,15 +329,15 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
         window.location.href = data.authUrl
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte ansluta till Concept2',
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.connectError', { service: 'Concept2' }),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte ansluta till Concept2',
+        title: t('toast.errorTitle'),
+        description: t('toast.connectError', { service: 'Concept2' }),
         variant: 'destructive',
       })
     } finally {
@@ -356,21 +355,21 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
       if (response.ok) {
         setConcept2Status({ connected: false })
         toast({
-          title: 'Concept2 bortkopplad',
-          description: 'Din Concept2-anslutning har tagits bort. Historiska resultat bevaras.',
+          title: t('toast.disconnectedTitle', { service: 'Concept2' }),
+          description: t('toast.concept2DisconnectedDescription'),
         })
       } else {
         const data = await response.json()
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte koppla bort Concept2',
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.disconnectError', { service: 'Concept2' }),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte koppla bort Concept2',
+        title: t('toast.errorTitle'),
+        description: t('toast.disconnectError', { service: 'Concept2' }),
         variant: 'destructive',
       })
     } finally {
@@ -390,21 +389,21 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
 
       if (response.ok) {
         toast({
-          title: 'Synkronisering klar',
-          description: `${data.synced || 0} träningspass synkroniserade`,
+          title: t('toast.syncComplete'),
+          description: t('toast.workoutsSynced', { count: data.synced || 0 }),
         })
-        fetchConcept2Status()
+        void fetchConcept2Status()
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte synkronisera',
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.syncError'),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte synkronisera med Concept2',
+        title: t('toast.errorTitle'),
+        description: t('toast.syncWithServiceError', { service: 'Concept2' }),
         variant: 'destructive',
       })
     } finally {
@@ -426,15 +425,15 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
         window.location.href = data.authUrl
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte ansluta till Oura',
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.connectError', { service: 'Oura' }),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte ansluta till Oura',
+        title: t('toast.errorTitle'),
+        description: t('toast.connectError', { service: 'Oura' }),
         variant: 'destructive',
       })
     } finally {
@@ -451,23 +450,23 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
 
       if (response.ok) {
         setOuraStatus({ connected: false })
-        fetchRecoverySource()
+        void fetchRecoverySource()
         toast({
-          title: 'Oura bortkopplad',
-          description: 'Din Oura-anslutning har tagits bort. Historisk data bevaras.',
+          title: t('toast.disconnectedTitle', { service: 'Oura' }),
+          description: t('toast.ouraDisconnectedDescription'),
         })
       } else {
         const data = await response.json()
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte koppla bort Oura',
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.disconnectError', { service: 'Oura' }),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte koppla bort Oura',
+        title: t('toast.errorTitle'),
+        description: t('toast.disconnectError', { service: 'Oura' }),
         variant: 'destructive',
       })
     } finally {
@@ -487,22 +486,22 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
 
       if (response.ok) {
         toast({
-          title: 'Synkronisering klar',
-          description: `${data.synced || 0} dagar uppdaterade`,
+          title: t('toast.syncComplete'),
+          description: t('toast.daysUpdated', { count: data.synced || 0 }),
         })
-        fetchOuraStatus()
-        fetchRecoverySource()
+        void fetchOuraStatus()
+        void fetchRecoverySource()
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte synkronisera',
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.syncError'),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte synkronisera med Oura',
+        title: t('toast.errorTitle'),
+        description: t('toast.syncWithServiceError', { service: 'Oura' }),
         variant: 'destructive',
       })
     } finally {
@@ -525,23 +524,23 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
           prev ? { ...prev, preferred: source, resolved: data.resolved } : prev,
         )
         toast({
-          title: 'Återhämtningskälla uppdaterad',
+          title: t('toast.recoverySourceUpdated'),
           description:
             source === 'AUTO'
-              ? 'Vi väljer automatiskt (Oura före Garmin)'
-              : `Använder ${source === 'OURA' ? 'Oura' : 'Garmin'} för HRV, vilopuls och sömn`,
+              ? t('toast.recoverySourceAuto')
+              : t('toast.recoverySourceManual', { service: source === 'OURA' ? 'Oura' : 'Garmin' }),
         })
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte uppdatera',
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.updateError'),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte uppdatera återhämtningskälla',
+        title: t('toast.errorTitle'),
+        description: t('toast.recoverySourceUpdateError'),
         variant: 'destructive',
       })
     } finally {
@@ -550,8 +549,8 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
   }
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Aldrig'
-    return new Date(dateString).toLocaleDateString('sv-SE', {
+    if (!dateString) return t('never')
+    return new Date(dateString).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -566,12 +565,12 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
         <div className="flex items-center justify-between">
           <CardTitle className={cn("flex items-center gap-2", isGlass ? "text-white font-black uppercase italic tracking-tight" : "")}>
             <Link2 className={cn("h-5 w-5", isGlass ? "text-blue-500" : "")} />
-            Integrationer
+            {t('title')}
           </CardTitle>
           <IntegrationsHelpModal />
         </div>
         <CardDescription className={cn(isGlass ? "text-slate-500 font-medium" : "")}>
-          Anslut dina träningsappar för att synkronisera aktiviteter och hälsodata
+          {t('description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -587,17 +586,17 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                   "font-black uppercase italic tracking-tight text-sm",
                   isGlass ? "text-white" : "text-slate-900"
                 )}>
-                  Återhämtningskälla
+                  {t('recovery.title')}
                 </h3>
                 <p className={cn(
                   "text-xs mt-1",
                   isGlass ? "text-slate-400" : "text-muted-foreground"
                 )}>
-                  Vilken enhet ska leverera HRV, vilopuls och sömn?
+                  {t('recovery.description')}
                   {recoverySource.resolved && (
                     <>{' '}
                       <span className={cn("font-semibold", isGlass ? "text-emerald-400" : "text-emerald-600")}>
-                        Aktiv: {recoverySource.resolved === 'OURA' ? 'Oura' : 'Garmin'}
+                        {t('recovery.active', { service: recoverySource.resolved === 'OURA' ? 'Oura' : 'Garmin' })}
                       </span>
                     </>
                   )}
@@ -640,7 +639,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
               <div>
                 <h3 className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-slate-900")}>Strava</h3>
                 <p className={cn("text-xs", isGlass ? "text-slate-500" : "text-muted-foreground")}>
-                  Synkronisera löpning och cykling
+                  {t('services.strava.description')}
                 </p>
               </div>
             </div>
@@ -648,12 +647,12 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
               {stravaStatus?.connected ? (
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-500">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  Ansluten
+                  {t('status.connected')}
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600">
                   <span className="w-2 h-2 rounded-full bg-slate-700" />
-                  Frånkopplad
+                  {t('status.disconnected')}
                 </div>
               )}
             </div>
@@ -664,7 +663,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
               "mt-3 pt-3 border-t text-[10px] font-black uppercase tracking-widest",
               isGlass ? "border-white/5 text-slate-500" : "text-muted-foreground"
             )}>
-              <p>Senaste synk: {formatDate(stravaStatus.lastSyncAt)}</p>
+              <p>{t('lastSync', { date: formatDate(stravaStatus.lastSyncAt) })}</p>
             </div>
           )}
 
@@ -683,7 +682,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                   ) : (
                     <RefreshCw className="h-3.5 w-3.5 mr-2" />
                   )}
-                  Synka nu
+                  {t('actions.syncNow')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -697,7 +696,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                   ) : (
                     <Unlink className="h-3.5 w-3.5 mr-2" />
                   )}
-                  Koppla bort
+                  {t('actions.disconnect')}
                 </Button>
               </>
             ) : (
@@ -715,7 +714,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                 ) : (
                   <Link2 className="h-3.5 w-3.5 mr-2" />
                 )}
-                Anslut Strava
+                {t('actions.connect', { service: 'Strava' })}
               </Button>
             )}
           </div>
@@ -744,7 +743,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
               <div>
                 <h3 className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-slate-900")}>Garmin Connect&trade;</h3>
                 <p className={cn("text-xs", isGlass ? "text-slate-500" : "text-muted-foreground")}>
-                  Synkronisera HRV, sömn och aktiviteter
+                  {t('services.garmin.description')}
                 </p>
               </div>
             </div>
@@ -752,12 +751,12 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
               {garminStatus?.connected ? (
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-500">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  Ansluten
+                  {t('status.connected')}
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600">
                   <span className="w-2 h-2 rounded-full bg-slate-700" />
-                  Frånkopplad
+                  {t('status.disconnected')}
                 </div>
               )}
             </div>
@@ -768,7 +767,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
               "mt-3 pt-3 border-t text-[10px] font-black uppercase tracking-widest",
               isGlass ? "border-white/5 text-slate-500" : "text-muted-foreground"
             )}>
-              <p>Senaste synk: {formatDate(garminStatus.lastSyncAt)}</p>
+              <p>{t('lastSync', { date: formatDate(garminStatus.lastSyncAt) })}</p>
             </div>
           )}
 
@@ -787,7 +786,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                   ) : (
                     <RefreshCw className="h-3.5 w-3.5 mr-2" />
                   )}
-                  Synka nu
+                  {t('actions.syncNow')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -801,7 +800,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                   ) : (
                     <Unlink className="h-3.5 w-3.5 mr-2" />
                   )}
-                  Koppla bort
+                  {t('actions.disconnect')}
                 </Button>
               </>
             ) : (
@@ -819,7 +818,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                 ) : (
                   <Link2 className="h-3.5 w-3.5 mr-2" />
                 )}
-                Anslut Garmin Connect
+                {t('actions.connect', { service: 'Garmin Connect' })}
               </Button>
             )}
           </div>
@@ -841,7 +840,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
               <div>
                 <h3 className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-slate-900")}>Concept2</h3>
                 <p className={cn("text-xs", isGlass ? "text-slate-500" : "text-muted-foreground")}>
-                  Synkronisera roddpass
+                  {t('services.concept2.description')}
                 </p>
               </div>
             </div>
@@ -849,12 +848,12 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
               {concept2Status?.connected ? (
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-500">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  Ansluten
+                  {t('status.connected')}
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600">
                   <span className="w-2 h-2 rounded-full bg-slate-700" />
-                  Frånkopplad
+                  {t('status.disconnected')}
                 </div>
               )}
             </div>
@@ -870,14 +869,14 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                   "text-[10px] font-black uppercase tracking-widest",
                   isGlass ? "text-slate-500" : "text-muted-foreground"
                 )}>
-                  <p>Senaste synk: {formatDate(concept2Status.lastSyncAt)}</p>
+                  <p>{t('lastSync', { date: formatDate(concept2Status.lastSyncAt) })}</p>
                 </div>
                 {concept2Status.resultCount !== undefined && concept2Status.resultCount > 0 && (
                   <div className={cn(
                     "text-[10px] font-black uppercase tracking-widest",
                     isGlass ? "text-cyan-400" : "text-cyan-600"
                   )}>
-                    {concept2Status.resultCount} pass
+                    {t('workoutCount', { count: concept2Status.resultCount })}
                   </div>
                 )}
               </div>
@@ -893,7 +892,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                           : "bg-slate-100 text-slate-600"
                       )}
                     >
-                      {type === 'rower' ? 'Rodd' : type === 'skierg' ? 'SkiErg' : type === 'bike' ? 'BikeErg' : type}: {count as number}
+                      {type === 'rower' ? t('resultTypes.rower') : type === 'skierg' ? 'SkiErg' : type === 'bike' ? 'BikeErg' : type}: {count as number}
                     </span>
                   ))}
                 </div>
@@ -916,7 +915,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                   ) : (
                     <RefreshCw className="h-3.5 w-3.5 mr-2" />
                   )}
-                  Synka nu
+                  {t('actions.syncNow')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -930,7 +929,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                   ) : (
                     <Unlink className="h-3.5 w-3.5 mr-2" />
                   )}
-                  Koppla bort
+                  {t('actions.disconnect')}
                 </Button>
               </>
             ) : (
@@ -948,7 +947,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                 ) : (
                   <Link2 className="h-3.5 w-3.5 mr-2" />
                 )}
-                Anslut Concept2
+                {t('actions.connect', { service: 'Concept2' })}
               </Button>
             )}
           </div>
@@ -970,7 +969,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
               <div>
                 <h3 className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-slate-900")}>Oura Ring</h3>
                 <p className={cn("text-xs", isGlass ? "text-slate-500" : "text-muted-foreground")}>
-                  Synkronisera HRV, vilopuls, sömn och beredskap
+                  {t('services.oura.description')}
                 </p>
               </div>
             </div>
@@ -978,12 +977,12 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
               {ouraStatus?.connected ? (
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-500">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  Ansluten
+                  {t('status.connected')}
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600">
                   <span className="w-2 h-2 rounded-full bg-slate-700" />
-                  Frånkopplad
+                  {t('status.disconnected')}
                 </div>
               )}
             </div>
@@ -994,7 +993,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
               "mt-3 pt-3 border-t text-[10px] font-black uppercase tracking-widest",
               isGlass ? "border-white/5 text-slate-500" : "text-muted-foreground"
             )}>
-              <p>Senaste synk: {formatDate(ouraStatus.lastSyncAt)}</p>
+              <p>{t('lastSync', { date: formatDate(ouraStatus.lastSyncAt) })}</p>
             </div>
           )}
 
@@ -1013,7 +1012,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                   ) : (
                     <RefreshCw className="h-3.5 w-3.5 mr-2" />
                   )}
-                  Synka nu
+                  {t('actions.syncNow')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -1027,7 +1026,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                   ) : (
                     <Unlink className="h-3.5 w-3.5 mr-2" />
                   )}
-                  Koppla bort
+                  {t('actions.disconnect')}
                 </Button>
               </>
             ) : (
@@ -1045,7 +1044,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                 ) : (
                   <Link2 className="h-3.5 w-3.5 mr-2" />
                 )}
-                Anslut Oura Ring
+                {t('actions.connect', { service: 'Oura Ring' })}
               </Button>
             )}
           </div>

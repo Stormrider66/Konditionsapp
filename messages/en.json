@@ -8351,6 +8351,66 @@
         }
       }
     },
+    "integrationsSettings": {
+      "title": "Integrations",
+      "description": "Connect your training apps to sync activities and health data",
+      "never": "Never",
+      "lastSync": "Last sync: {date}",
+      "workoutCount": "{count} workouts",
+      "status": {
+        "connected": "Connected",
+        "disconnected": "Disconnected"
+      },
+      "actions": {
+        "syncNow": "Sync now",
+        "disconnect": "Disconnect",
+        "connect": "Connect {service}"
+      },
+      "recovery": {
+        "title": "Recovery source",
+        "description": "Which device should provide HRV, resting heart rate, and sleep?",
+        "active": "Active: {service}"
+      },
+      "services": {
+        "strava": {
+          "description": "Sync running and cycling"
+        },
+        "garmin": {
+          "description": "Sync HRV, sleep, and activities"
+        },
+        "concept2": {
+          "description": "Sync rowing workouts"
+        },
+        "oura": {
+          "description": "Sync HRV, resting heart rate, sleep, and readiness"
+        }
+      },
+      "resultTypes": {
+        "rower": "Rowing"
+      },
+      "toast": {
+        "errorTitle": "Error",
+        "connectError": "Could not connect to {service}",
+        "disconnectError": "Could not disconnect {service}",
+        "disconnectedTitle": "{service} disconnected",
+        "disconnectedDescription": "Your {service} connection has been removed",
+        "concept2DisconnectedDescription": "Your Concept2 connection has been removed. Historical results are kept.",
+        "ouraDisconnectedDescription": "Your Oura connection has been removed. Historical data is kept.",
+        "syncComplete": "Sync complete",
+        "activitiesSynced": "{count} activities synced",
+        "workoutsSynced": "{count} workouts synced",
+        "daysUpdated": "{count} days updated",
+        "syncError": "Could not sync",
+        "syncWithServiceError": "Could not sync with {service}",
+        "syncRequestSent": "Sync request sent",
+        "garminPushDescription": "Garmin data will arrive by push shortly.",
+        "recoverySourceUpdated": "Recovery source updated",
+        "recoverySourceAuto": "We choose automatically (Oura before Garmin)",
+        "recoverySourceManual": "Using {service} for HRV, resting heart rate, and sleep",
+        "updateError": "Could not update",
+        "recoverySourceUpdateError": "Could not update recovery source"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

@@ -8351,6 +8351,66 @@
         }
       }
     },
+    "integrationsSettings": {
+      "title": "Integrationer",
+      "description": "Anslut dina träningsappar för att synkronisera aktiviteter och hälsodata",
+      "never": "Aldrig",
+      "lastSync": "Senaste synk: {date}",
+      "workoutCount": "{count} pass",
+      "status": {
+        "connected": "Ansluten",
+        "disconnected": "Frånkopplad"
+      },
+      "actions": {
+        "syncNow": "Synka nu",
+        "disconnect": "Koppla bort",
+        "connect": "Anslut {service}"
+      },
+      "recovery": {
+        "title": "Återhämtningskälla",
+        "description": "Vilken enhet ska leverera HRV, vilopuls och sömn?",
+        "active": "Aktiv: {service}"
+      },
+      "services": {
+        "strava": {
+          "description": "Synkronisera löpning och cykling"
+        },
+        "garmin": {
+          "description": "Synkronisera HRV, sömn och aktiviteter"
+        },
+        "concept2": {
+          "description": "Synkronisera roddpass"
+        },
+        "oura": {
+          "description": "Synkronisera HRV, vilopuls, sömn och beredskap"
+        }
+      },
+      "resultTypes": {
+        "rower": "Rodd"
+      },
+      "toast": {
+        "errorTitle": "Fel",
+        "connectError": "Kunde inte ansluta till {service}",
+        "disconnectError": "Kunde inte koppla bort {service}",
+        "disconnectedTitle": "{service} bortkopplad",
+        "disconnectedDescription": "Din {service}-anslutning har tagits bort",
+        "concept2DisconnectedDescription": "Din Concept2-anslutning har tagits bort. Historiska resultat bevaras.",
+        "ouraDisconnectedDescription": "Din Oura-anslutning har tagits bort. Historisk data bevaras.",
+        "syncComplete": "Synkronisering klar",
+        "activitiesSynced": "{count} aktiviteter synkroniserade",
+        "workoutsSynced": "{count} träningspass synkroniserade",
+        "daysUpdated": "{count} dagar uppdaterade",
+        "syncError": "Kunde inte synkronisera",
+        "syncWithServiceError": "Kunde inte synkronisera med {service}",
+        "syncRequestSent": "Synkbegäran skickad",
+        "garminPushDescription": "Garmin-data kommer att anlända via push inom kort.",
+        "recoverySourceUpdated": "Återhämtningskälla uppdaterad",
+        "recoverySourceAuto": "Vi väljer automatiskt (Oura före Garmin)",
+        "recoverySourceManual": "Använder {service} för HRV, vilopuls och sömn",
+        "updateError": "Kunde inte uppdatera",
+        "recoverySourceUpdateError": "Kunde inte uppdatera återhämtningskälla"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",
