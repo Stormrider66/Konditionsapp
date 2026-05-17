@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowUpRight, Coins, RefreshCw, Sparkles } from 'lucide-
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 type AthleteTier = 'FREE' | 'STANDARD' | 'PRO' | 'ELITE'
 
@@ -46,23 +47,23 @@ interface AICreditStatusCardProps {
   compact?: boolean
 }
 
-function formatSek(value: number): string {
+function formatSek(value: number, locale: string): string {
   if (!Number.isFinite(value)) return '0 kr'
-  return `${Math.max(0, value).toLocaleString('sv-SE', {
+  return `${Math.max(0, value).toLocaleString(locale === 'en' ? 'en-US' : 'sv-SE', {
     maximumFractionDigits: value < 10 ? 2 : 0,
   })} kr`
 }
 
-function formatPeriodEnd(value: string): string {
+function formatPeriodEnd(value: string, locale: string, fallback: string): string {
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'nästa månad'
-  return date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+  if (Number.isNaN(date.getTime())) return fallback
+  return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', { day: 'numeric', month: 'short' })
 }
 
-function formatShortDate(value: string): string {
+function formatShortDate(value: string, locale: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+  return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', { day: 'numeric', month: 'short' })
 }
 
 export function AICreditStatusCard({
@@ -70,6 +71,8 @@ export function AICreditStatusCard({
   className,
   compact = false,
 }: AICreditStatusCardProps) {
+  const t = useTranslations('components.aiCreditStatusCard')
+  const locale = useLocale()
   const [data, setData] = useState<AllowancePayload | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -96,37 +99,40 @@ export function AICreditStatusCard({
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return
         if (isMounted) {
-          setError('Kunde inte hämta AI-krediter just nu.')
+          setError(t('errors.fetchFailed'))
         }
       } finally {
         if (isMounted) setIsLoading(false)
       }
     }
 
-    loadAllowance()
+    const timeoutId = window.setTimeout(() => {
+      void loadAllowance()
+    }, 0)
 
     return () => {
       isMounted = false
+      window.clearTimeout(timeoutId)
       controller.abort()
     }
-  }, [])
+  }, [t])
 
   const status = useMemo(() => {
-    if (!data) return { tone: 'neutral' as const, label: 'AI-krediter' }
+    if (!data) return { tone: 'neutral' as const, label: t('status.default') }
     const allowance = data.allowance
     const remaining = Math.max(allowance.remainingSek, 0)
 
     if (remaining <= 0 || allowance.status !== 'ACTIVE' || allowance.usage.alertLevel === 'EXHAUSTED') {
-      return { tone: 'empty' as const, label: 'Slut på AI-krediter' }
+      return { tone: 'empty' as const, label: t('status.exhausted') }
     }
     if (allowance.usage.alertLevel === 'LOW') {
-      return { tone: 'low' as const, label: 'Lågt saldo' }
+      return { tone: 'low' as const, label: t('status.low') }
     }
     if (allowance.usage.alertLevel === 'NOTICE') {
-      return { tone: 'watch' as const, label: 'AI-krediter' }
+      return { tone: 'watch' as const, label: t('status.default') }
     }
-    return { tone: 'healthy' as const, label: 'AI-krediter' }
-  }, [data])
+    return { tone: 'healthy' as const, label: t('status.default') }
+  }, [data, t])
 
   if (isLoading) {
     return (
@@ -153,7 +159,7 @@ export function AICreditStatusCard({
       )}>
         <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
           <RefreshCw className="h-4 w-4" />
-          <span>{error ?? 'AI-krediter är tillfälligt otillgängliga.'}</span>
+          <span>{error ?? t('errors.unavailable')}</span>
         </div>
       </div>
     )
@@ -166,7 +172,7 @@ export function AICreditStatusCard({
     ? Math.min(100, Math.max(0, ((totalBudget - remaining) / totalBudget) * 100))
     : 100
   const subscriptionHref = `${basePath}/athlete/subscription`
-  const periodEnd = formatPeriodEnd(allowance.periodEnd)
+  const periodEnd = formatPeriodEnd(allowance.periodEnd, locale, t('dates.nextMonth'))
 
   return (
     <section
@@ -179,7 +185,7 @@ export function AICreditStatusCard({
             : 'border-slate-200/70 bg-white/70 dark:border-white/10 dark:bg-white/5',
         className,
       )}
-      aria-label="AI-krediter"
+      aria-label={t('ariaLabel')}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
@@ -205,7 +211,7 @@ export function AICreditStatusCard({
               </span>
             </div>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              {formatSek(remaining)} kvar till {periodEnd}
+              {t('remainingUntil', { amount: formatSek(remaining, locale), date: periodEnd })}
             </p>
           </div>
         </div>
@@ -213,7 +219,7 @@ export function AICreditStatusCard({
         {!compact && (
           <Button asChild size="sm" variant={status.tone === 'healthy' ? 'outline' : 'default'}>
             <Link href={subscriptionHref}>
-              <span>Hantera</span>
+              <span>{t('actions.manage')}</span>
               <ArrowUpRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>
@@ -223,8 +229,8 @@ export function AICreditStatusCard({
       <div className="mt-4 space-y-2">
         <Progress value={100 - usedPercent} className="h-2" />
         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-          <span>{formatSek(allowance.includedUsedSek)} använt</span>
-          <span>{formatSek(allowance.includedBudgetSek)} ingår/mån</span>
+          <span>{t('usage.used', { amount: formatSek(allowance.includedUsedSek, locale) })}</span>
+          <span>{t('usage.included', { amount: formatSek(allowance.includedBudgetSek, locale) })}</span>
         </div>
       </div>
 
@@ -240,10 +246,10 @@ export function AICreditStatusCard({
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <p>
                 {allowance.usage.alertLevel === 'EXHAUSTED'
-                  ? 'AI-krediterna är slut för perioden. Fyll på eller uppgradera för att fortsätta med tyngre AI-funktioner.'
+                  ? t('alerts.exhausted')
                   : allowance.usage.alertLevel === 'LOW'
-                    ? 'Du har använt över 90% av månadens AI-krediter. Fyll på i tid om du använder mat-skanner, videoanalys eller röstcoach ofta.'
-                    : 'Du har använt över 80% av månadens AI-krediter. Håll koll om du planerar fler AI-tunga pass den här perioden.'}
+                    ? t('alerts.low')
+                    : t('alerts.notice')}
               </p>
             </div>
           )}
@@ -251,26 +257,26 @@ export function AICreditStatusCard({
           <div className="flex items-start gap-2 rounded-xl bg-slate-950/[0.03] p-3 text-xs text-slate-600 dark:bg-white/[0.04] dark:text-slate-300">
             <Coins className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              AI-krediter används av mat-skanner, videoanalys, röstcoach, programimport och andra tyngre AI-funktioner.
-              {allowance.topUpBalanceSek > 0 ? ` Extra saldo: ${formatSek(allowance.topUpBalanceSek)}.` : ''}
+              {t('description.base')}
+              {allowance.topUpBalanceSek > 0 ? ` ${t('description.extraBalance', { amount: formatSek(allowance.topUpBalanceSek, locale) })}` : ''}
             </p>
           </div>
 
           {data.recentTopUps.length > 0 && (
             <div className="rounded-xl border border-slate-200/70 bg-white/60 p-3 text-xs dark:border-white/10 dark:bg-white/5">
               <p className="mb-2 font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Senaste påfyllningar
+                {t('topUps.title')}
               </p>
               <div className="space-y-2">
                 {data.recentTopUps.map((purchase) => (
                   <div key={purchase.id} className="flex items-center justify-between gap-3 text-slate-700 dark:text-slate-200">
                     <div>
-                      <p className="font-semibold">{formatSek(purchase.creditsSek)} krediter</p>
+                      <p className="font-semibold">{t('topUps.credits', { amount: formatSek(purchase.creditsSek, locale) })}</p>
                       <p className="text-slate-500 dark:text-slate-400">
-                        {formatShortDate(purchase.createdAt)} · {purchase.status.toLowerCase()}
+                        {formatShortDate(purchase.createdAt, locale)} · {purchase.status.toLowerCase()}
                       </p>
                     </div>
-                    <span className="font-semibold">{formatSek(purchase.creditsRemainingSek)} kvar</span>
+                    <span className="font-semibold">{t('topUps.remaining', { amount: formatSek(purchase.creditsRemainingSek, locale) })}</span>
                   </div>
                 ))}
               </div>
@@ -281,7 +287,7 @@ export function AICreditStatusCard({
 
       {compact && status.tone !== 'healthy' && (
         <Button asChild size="sm" className="mt-4 w-full">
-          <Link href={subscriptionHref}>Uppgradera eller fyll på</Link>
+          <Link href={subscriptionHref}>{t('actions.upgradeOrTopUp')}</Link>
         </Button>
       )}
     </section>

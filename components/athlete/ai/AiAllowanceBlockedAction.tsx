@@ -5,6 +5,7 @@ import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 export interface AiAllowanceAction {
   label: string
@@ -20,16 +21,15 @@ interface AiAllowanceBlockedActionProps {
   className?: string
 }
 
-const fallbackLabel = 'Hantera AI-krediter'
-
 export function AiAllowanceBlockedAction({
   action,
-  message = 'AI-krediterna är slut för perioden.',
+  message,
   size = 'sm',
   tone = 'amber',
   variant = 'button',
   className,
 }: AiAllowanceBlockedActionProps) {
+  const t = useTranslations('components.aiAllowanceBlockedAction')
   const router = useRouter()
   const basePath = useBasePath()
 
@@ -51,7 +51,7 @@ export function AiAllowanceBlockedAction({
       className={buttonClassName}
       onClick={() => router.push(href)}
     >
-      {action.label || fallbackLabel}
+      {action.label || t('fallbackLabel')}
     </Button>
   )
 
@@ -70,7 +70,7 @@ export function AiAllowanceBlockedAction({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <span className="flex min-w-0 items-start gap-2">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{message}</span>
+          <span>{message ?? t('defaultMessage')}</span>
         </span>
         {button}
       </div>

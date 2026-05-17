@@ -3086,6 +3086,48 @@
     "infoTooltip": {
       "ariaLabel": "Information om {title}",
       "readMore": "Läs mer"
+    },
+    "aiCreditStatusCard": {
+      "ariaLabel": "AI-krediter",
+      "status": {
+        "default": "AI-krediter",
+        "exhausted": "Slut på AI-krediter",
+        "low": "Lågt saldo"
+      },
+      "errors": {
+        "fetchFailed": "Kunde inte hämta AI-krediter just nu.",
+        "unavailable": "AI-krediter är tillfälligt otillgängliga."
+      },
+      "dates": {
+        "nextMonth": "nästa månad"
+      },
+      "remainingUntil": "{amount} kvar till {date}",
+      "actions": {
+        "manage": "Hantera",
+        "upgradeOrTopUp": "Uppgradera eller fyll på"
+      },
+      "usage": {
+        "used": "{amount} använt",
+        "included": "{amount} ingår/mån"
+      },
+      "alerts": {
+        "exhausted": "AI-krediterna är slut för perioden. Fyll på eller uppgradera för att fortsätta med tyngre AI-funktioner.",
+        "low": "Du har använt över 90% av månadens AI-krediter. Fyll på i tid om du använder mat-skanner, videoanalys eller röstcoach ofta.",
+        "notice": "Du har använt över 80% av månadens AI-krediter. Håll koll om du planerar fler AI-tunga pass den här perioden."
+      },
+      "description": {
+        "base": "AI-krediter används av mat-skanner, videoanalys, röstcoach, programimport och andra tyngre AI-funktioner.",
+        "extraBalance": "Extra saldo: {amount}."
+      },
+      "topUps": {
+        "title": "Senaste påfyllningar",
+        "credits": "{amount} krediter",
+        "remaining": "{amount} kvar"
+      }
+    },
+    "aiAllowanceBlockedAction": {
+      "fallbackLabel": "Hantera AI-krediter",
+      "defaultMessage": "AI-krediterna är slut för perioden."
     }
   },
   "infographic": {
