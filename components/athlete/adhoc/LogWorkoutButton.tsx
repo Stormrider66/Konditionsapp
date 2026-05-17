@@ -13,6 +13,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Dumbbell } from 'lucide-react'
 import { InputMethodSelector } from './InputMethodSelector'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface LogWorkoutButtonProps {
   variant?: 'card' | 'fab' | 'button' | 'inline'
@@ -20,6 +21,7 @@ interface LogWorkoutButtonProps {
 }
 
 export function LogWorkoutButton({ variant = 'card', className }: LogWorkoutButtonProps) {
+  const t = useTranslations('components.adHocLogWorkoutButton')
   const [open, setOpen] = useState(false)
 
   if (variant === 'fab') {
@@ -35,7 +37,7 @@ export function LogWorkoutButton({ variant = 'card', className }: LogWorkoutButt
           onClick={() => setOpen(true)}
         >
           <Plus className="h-6 w-6" />
-          <span className="sr-only">Logga ett pass</span>
+          <span className="sr-only">{t('logWorkout')}</span>
         </Button>
         <InputMethodSelector open={open} onOpenChange={setOpen} />
       </>
@@ -47,7 +49,7 @@ export function LogWorkoutButton({ variant = 'card', className }: LogWorkoutButt
       <>
         <Button onClick={() => setOpen(true)} className={className}>
           <Plus className="h-4 w-4 mr-2" />
-          Logga ett pass
+          {t('logWorkout')}
         </Button>
         <InputMethodSelector open={open} onOpenChange={setOpen} />
       </>
@@ -59,7 +61,7 @@ export function LogWorkoutButton({ variant = 'card', className }: LogWorkoutButt
       <>
         <Button variant="ghost" onClick={() => setOpen(true)} className={className}>
           <Plus className="h-4 w-4 mr-2" />
-          Logga pass
+          {t('log')}
         </Button>
         <InputMethodSelector open={open} onOpenChange={setOpen} />
       </>
@@ -82,9 +84,9 @@ export function LogWorkoutButton({ variant = 'card', className }: LogWorkoutButt
               <Dumbbell className="h-6 w-6" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold">Logga ett pass</h3>
+              <h3 className="font-semibold">{t('logWorkout')}</h3>
               <p className="text-sm text-muted-foreground">
-                Registrera ett träningspass du gjort
+                {t('description')}
               </p>
             </div>
             <Plus className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />

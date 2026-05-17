@@ -5259,6 +5259,11 @@
         }
       }
     },
+    "adHocLogWorkoutButton": {
+      "logWorkout": "Logga ett pass",
+      "log": "Logga pass",
+      "description": "Registrera ett träningspass du gjort"
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

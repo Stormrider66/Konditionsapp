@@ -5259,6 +5259,11 @@
         }
       }
     },
+    "adHocLogWorkoutButton": {
+      "logWorkout": "Log a workout",
+      "log": "Log workout",
+      "description": "Register a workout you completed"
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {
