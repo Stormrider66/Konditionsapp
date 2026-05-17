@@ -2970,6 +2970,43 @@
         "shin": "Shin"
       }
     },
+    "performancePredictionCard": {
+      "title": "Performance prediction",
+      "prediction2k": "2K prediction",
+      "compactImprovement": "+{percent}% in {weeks}w",
+      "basedOnCp": "Based on CP: {power} W",
+      "averagePower": "{power} W avg",
+      "distancePredictionsUnavailable": "Distance predictions are available for Concept2 machines",
+      "cpModelInfo": "Based on the CP model: P(t) = CP + W'/t. Longer durations approach CP ({power} W).",
+      "forecastFor": "Forecast for:",
+      "weekShort": "{weeks}w",
+      "now": "Now",
+      "inWeeks": "In {weeks} weeks",
+      "confidence": "Confidence",
+      "factors": "Factors",
+      "recommendations": "Recommendations",
+      "tabs": {
+        "times": "Times",
+        "power": "Power",
+        "forecast": "Forecast"
+      },
+      "confidenceLevels": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "ergometers": {
+        "rower": "Row erg",
+        "skiErg": "SkiErg",
+        "bikeErg": "BikeErg",
+        "wattbike": "Wattbike",
+        "airBike": "Air Bike"
+      },
+      "errors": {
+        "noCpData": "Complete a CP test to see predictions",
+        "fetchFailed": "Could not fetch predictions"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",

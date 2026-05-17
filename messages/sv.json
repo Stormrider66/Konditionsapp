@@ -2970,6 +2970,43 @@
         "shin": "Skenben"
       }
     },
+    "performancePredictionCard": {
+      "title": "Prestationsprediktion",
+      "prediction2k": "Prediktion 2K",
+      "compactImprovement": "+{percent}% om {weeks} v",
+      "basedOnCp": "Baserat på CP: {power} W",
+      "averagePower": "{power} W snitt",
+      "distancePredictionsUnavailable": "Distansprediktioner tillgängliga för Concept2-maskiner",
+      "cpModelInfo": "Baserat på CP-modellen: P(t) = CP + W'/t. Längre tider närmar sig CP ({power} W).",
+      "forecastFor": "Prognos för:",
+      "weekShort": "{weeks} v",
+      "now": "Nu",
+      "inWeeks": "Om {weeks} veckor",
+      "confidence": "Konfidens",
+      "factors": "Faktorer",
+      "recommendations": "Rekommendationer",
+      "tabs": {
+        "times": "Tider",
+        "power": "Effekt",
+        "forecast": "Prognos"
+      },
+      "confidenceLevels": {
+        "high": "Hög",
+        "medium": "Medel",
+        "low": "Låg"
+      },
+      "ergometers": {
+        "rower": "Roddmaskin",
+        "skiErg": "SkiErg",
+        "bikeErg": "BikeErg",
+        "wattbike": "Wattbike",
+        "airBike": "Air Bike"
+      },
+      "errors": {
+        "noCpData": "Genomför ett CP-test för att se prediktioner",
+        "fetchFailed": "Kunde inte hämta prediktioner"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

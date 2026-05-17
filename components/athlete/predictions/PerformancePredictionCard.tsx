@@ -28,7 +28,6 @@ import {
   Brain,
   TrendingUp,
   Clock,
-  Zap,
   Target,
   ChevronRight,
   Info,
@@ -37,6 +36,7 @@ import {
   Bike,
   Dumbbell,
 } from 'lucide-react';
+import { useTranslations } from '@/i18n/client';
 
 interface PowerPrediction {
   duration: number;
@@ -87,12 +87,12 @@ interface PerformancePredictionCardProps {
   variant?: 'default' | 'compact' | 'glass';
 }
 
-const ERGOMETER_CONFIG: Record<ErgometerType, { label: string; icon: React.ReactNode }> = {
-  CONCEPT2_ROW: { label: 'Roddmaskin', icon: <Ship className="h-4 w-4" /> },
-  CONCEPT2_SKIERG: { label: 'SkiErg', icon: <Mountain className="h-4 w-4" /> },
-  CONCEPT2_BIKEERG: { label: 'BikeErg', icon: <Bike className="h-4 w-4" /> },
-  WATTBIKE: { label: 'Wattbike', icon: <Bike className="h-4 w-4" /> },
-  ASSAULT_BIKE: { label: 'Air Bike', icon: <Dumbbell className="h-4 w-4" /> },
+const ERGOMETER_CONFIG: Record<ErgometerType, { labelKey: string; icon: React.ReactNode }> = {
+  CONCEPT2_ROW: { labelKey: 'ergometers.rower', icon: <Ship className="h-4 w-4" /> },
+  CONCEPT2_SKIERG: { labelKey: 'ergometers.skiErg', icon: <Mountain className="h-4 w-4" /> },
+  CONCEPT2_BIKEERG: { labelKey: 'ergometers.bikeErg', icon: <Bike className="h-4 w-4" /> },
+  WATTBIKE: { labelKey: 'ergometers.wattbike', icon: <Bike className="h-4 w-4" /> },
+  ASSAULT_BIKE: { labelKey: 'ergometers.airBike', icon: <Dumbbell className="h-4 w-4" /> },
 };
 
 const ZONE_COLORS: Record<number, string> = {
@@ -109,6 +109,7 @@ export function PerformancePredictionCard({
   ergometerType: initialErgometerType,
   variant = 'default',
 }: PerformancePredictionCardProps) {
+  const t = useTranslations('components.performancePredictionCard');
   const [ergometerType, setErgometerType] = useState<ErgometerType>(
     initialErgometerType || 'CONCEPT2_ROW'
   );
@@ -143,9 +144,9 @@ export function PerformancePredictionCard({
 
       if (!res.ok) {
         if (data.code === 'NO_CP_DATA') {
-          setError('Genomfor ett CP-test for att se prediktioner');
+          setError(t('errors.noCpData'));
         } else {
-          setError(data.error || 'Kunde inte hamta prediktioner');
+          setError(data.error || t('errors.fetchFailed'));
         }
         return;
       }
@@ -156,14 +157,14 @@ export function PerformancePredictionCard({
       setImprovement(data.improvement || null);
     } catch (err) {
       console.error('Failed to fetch predictions:', err);
-      setError('Kunde inte hamta prediktioner');
+      setError(t('errors.fetchFailed'));
     } finally {
       setIsLoading(false);
     }
-  }, [clientId, ergometerType, projectionWeeks]);
+  }, [clientId, ergometerType, projectionWeeks, t]);
 
   useEffect(() => {
-    fetchPredictions();
+    void fetchPredictions();
   }, [fetchPredictions]);
 
   const cardClass = variant === 'glass'
@@ -190,7 +191,7 @@ export function PerformancePredictionCard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5" />
-            Prestationsprediktion
+            {t('title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -216,7 +217,7 @@ export function PerformancePredictionCard({
                 <Brain className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Prediktion 2K</p>
+                <p className="text-sm text-muted-foreground">{t('prediction2k')}</p>
                 <p className="text-xl font-bold font-mono">
                   {prediction2K?.predictedTimeFormatted || '-'}
                 </p>
@@ -225,7 +226,10 @@ export function PerformancePredictionCard({
             {improvement && (
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                 <TrendingUp className="h-3 w-3 mr-1" />
-                +{improvement.cpImprovementPercent}% om {projectionWeeks}v
+                {t('compactImprovement', {
+                  percent: improvement.cpImprovementPercent,
+                  weeks: projectionWeeks,
+                })}
               </Badge>
             )}
           </div>
@@ -241,10 +245,10 @@ export function PerformancePredictionCard({
           <div>
             <CardTitle className="flex items-center gap-2">
               <Brain className="h-5 w-5" />
-              Prestationsprediktion
+              {t('title')}
             </CardTitle>
             <CardDescription>
-              Baserat pa CP: {threshold?.criticalPower}W
+              {t('basedOnCp', { power: threshold?.criticalPower ?? '-' })}
             </CardDescription>
           </div>
 
@@ -261,7 +265,7 @@ export function PerformancePredictionCard({
                   <SelectItem key={type} value={type}>
                     <div className="flex items-center gap-2">
                       {config.icon}
-                      {config.label}
+                      {t(config.labelKey)}
                     </div>
                   </SelectItem>
                 ))}
@@ -274,9 +278,9 @@ export function PerformancePredictionCard({
       <CardContent>
         <Tabs defaultValue="predictions" className="space-y-4">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="predictions">Tider</TabsTrigger>
-            <TabsTrigger value="power">Effekt</TabsTrigger>
-            <TabsTrigger value="improvement">Prognos</TabsTrigger>
+            <TabsTrigger value="predictions">{t('tabs.times')}</TabsTrigger>
+            <TabsTrigger value="power">{t('tabs.power')}</TabsTrigger>
+            <TabsTrigger value="improvement">{t('tabs.forecast')}</TabsTrigger>
           </TabsList>
 
           {/* Distance Predictions Tab */}
@@ -298,14 +302,14 @@ export function PerformancePredictionCard({
                       {pred.predictedPaceFormatted}
                     </p>
                     <Badge variant="outline" className="mt-2 text-xs">
-                      {pred.avgPower}W snitt
+                      {t('averagePower', { power: pred.avgPower })}
                     </Badge>
                   </div>
                 ))}
               </div>
             ) : (
               <p className="text-center text-muted-foreground py-4">
-                Distansprediktioner tillgangliga for Concept2-maskiner
+                {t('distancePredictionsUnavailable')}
               </p>
             )}
           </TabsContent>
@@ -340,8 +344,7 @@ export function PerformancePredictionCard({
               <div className="flex items-start gap-2">
                 <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
                 <p>
-                  Baserat pa CP-modellen: P(t) = CP + W&apos;/t.
-                  Langre tider narmar sig CP ({threshold?.criticalPower}W).
+                  {t('cpModelInfo', { power: threshold?.criticalPower ?? '-' })}
                 </p>
               </div>
             </div>
@@ -351,7 +354,7 @@ export function PerformancePredictionCard({
           <TabsContent value="improvement" className="space-y-4">
             {/* Projection period selector */}
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-sm text-muted-foreground">Prognos for:</span>
+              <span className="text-sm text-muted-foreground">{t('forecastFor')}</span>
               <div className="flex gap-1">
                 {[8, 12, 16, 24].map((weeks) => (
                   <Button
@@ -360,7 +363,7 @@ export function PerformancePredictionCard({
                     size="sm"
                     onClick={() => setProjectionWeeks(weeks)}
                   >
-                    {weeks}v
+                    {t('weekShort', { weeks })}
                   </Button>
                 ))}
               </div>
@@ -371,12 +374,14 @@ export function PerformancePredictionCard({
                 {/* Main projection */}
                 <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Nu</p>
+                    <p className="text-sm text-muted-foreground">{t('now')}</p>
                     <p className="text-2xl font-bold">{improvement.currentCP}W</p>
                     <p className="text-xs text-muted-foreground">Critical Power</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Om {projectionWeeks} veckor</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t('inWeeks', { weeks: projectionWeeks })}
+                    </p>
                     <p className="text-2xl font-bold text-green-600">
                       {improvement.projectedCP}W
                     </p>
@@ -391,7 +396,7 @@ export function PerformancePredictionCard({
                   <div className="flex items-center justify-between p-3 rounded-lg border bg-primary/5">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-primary" />
-                      <span>Prediktion 2K</span>
+                      <span>{t('prediction2k')}</span>
                     </div>
                     <div className="text-right">
                       <span className="font-bold font-mono">{improvement.predicted2KTime}</span>
@@ -406,7 +411,7 @@ export function PerformancePredictionCard({
 
                 {/* Confidence */}
                 <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                  <span className="text-sm">Konfidens</span>
+                  <span className="text-sm">{t('confidence')}</span>
                   <Badge
                     variant="outline"
                     className={
@@ -418,10 +423,10 @@ export function PerformancePredictionCard({
                     }
                   >
                     {improvement.confidence === 'HIGH'
-                      ? 'Hog'
+                      ? t('confidenceLevels.high')
                       : improvement.confidence === 'MEDIUM'
-                      ? 'Medel'
-                      : 'Lag'}{' '}
+                      ? t('confidenceLevels.medium')
+                      : t('confidenceLevels.low')}{' '}
                     ({Math.round(improvement.confidenceScore * 100)}%)
                   </Badge>
                 </div>
@@ -429,7 +434,7 @@ export function PerformancePredictionCard({
                 {/* Factors */}
                 {improvement.factors.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-sm font-medium">Faktorer</p>
+                    <p className="text-sm font-medium">{t('factors')}</p>
                     {improvement.factors.slice(0, 4).map((factor, idx) => (
                       <div
                         key={idx}
@@ -462,7 +467,7 @@ export function PerformancePredictionCard({
                 {/* Recommendations */}
                 {improvement.recommendations.length > 0 && (
                   <div className="p-3 bg-blue-50 rounded-lg space-y-2">
-                    <p className="text-sm font-medium text-blue-900">Rekommendationer</p>
+                    <p className="text-sm font-medium text-blue-900">{t('recommendations')}</p>
                     {improvement.recommendations.map((rec, idx) => (
                       <div key={idx} className="flex items-start gap-2 text-sm text-blue-800">
                         <ChevronRight className="h-4 w-4 mt-0.5 flex-shrink-0" />
