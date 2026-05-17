@@ -40,12 +40,12 @@ import {
   useVoiceCoach,
   buildSegmentStartCue,
   buildSegmentCompleteCue,
-  buildSessionStartCue,
   buildSessionCompleteCue,
 } from '@/hooks/use-voice-coach'
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
 import { LiveVoiceCoachButton } from './LiveVoiceCoachButton'
+import { useTranslations } from '@/i18n/client'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
@@ -111,21 +111,22 @@ type ViewState = 'timer' | 'logging' | 'complete'
 export function CardioFocusModeWorkout({
   assignmentId,
   sessionName,
-  sessionDescription,
-  sport,
+  sessionDescription: _sessionDescription,
+  sport: _sport,
   segments: initialSegments,
   initialSegmentIndex = 0,
   onClose,
   onComplete,
   onSegmentComplete,
 }: CardioFocusModeWorkoutProps) {
+  const t = useTranslations('components.cardioFocusModeWorkout')
   const [segments, setSegments] = useState<FocusModeSegment[]>(initialSegments)
   const [currentIndex, setCurrentIndex] = useState(initialSegmentIndex)
   const [viewState, setViewState] = useState<ViewState>('timer')
   const [showExitDialog, setShowExitDialog] = useState(false)
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [sessionRPE, setSessionRPE] = useState(5)
-  const [sessionNotes, setSessionNotes] = useState('')
+  const [sessionNotes, _setSessionNotes] = useState('')
   const [timerElapsed, setTimerElapsed] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -351,7 +352,7 @@ export function CardioFocusModeWorkout({
         <div className="text-center">
           <h1 className="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-wide">{sessionName}</h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            Segment {currentIndex + 1} av {segments.length}
+            {t('segmentCounter', { current: currentIndex + 1, total: segments.length })}
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -381,7 +382,7 @@ export function CardioFocusModeWorkout({
                 'hover:bg-slate-100 dark:hover:bg-white/10',
                 voice.enabled && 'text-blue-500'
               )}
-              title={voice.enabled ? 'Voice coach on' : 'Voice coach off'}
+              title={voice.enabled ? t('voice.on') : t('voice.off')}
             >
               {voice.enabled ? <Headphones className="h-5 w-5" /> : <HeadphoneOff className="h-5 w-5 text-slate-400" />}
             </Button>
@@ -460,7 +461,7 @@ export function CardioFocusModeWorkout({
             )}
             <Button size="lg" onClick={handleTimerComplete} className="w-full h-14 text-lg font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-600/20">
               <CheckCircle2 className="h-5 w-5 mr-2" />
-              Markera som slutförd
+              {t('actions.markComplete')}
             </Button>
           </div>
         ) : (
@@ -503,7 +504,7 @@ export function CardioFocusModeWorkout({
                   .reduce((sum, s) => sum + (s.plannedDuration || 0), 0)
               )
               : '-'
-            } kvar
+            } {t('remaining')}
           </span>
         </div>
 
@@ -522,16 +523,15 @@ export function CardioFocusModeWorkout({
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Avsluta pass?</AlertDialogTitle>
+            <AlertDialogTitle>{t('exitDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Du har slutfört {completedCount} av {segments.length} segment.
-              Din framsteg sparas och du kan fortsätta senare.
+              {t('exitDialog.description', { completed: completedCount, total: segments.length })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Fortsätt träna</AlertDialogCancel>
+            <AlertDialogCancel>{t('exitDialog.continue')}</AlertDialogCancel>
             <AlertDialogAction onClick={() => { liveCoach.disconnect(); onClose() }}>
-              Avsluta
+              {t('exitDialog.exit')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -543,10 +543,10 @@ export function CardioFocusModeWorkout({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-              Pass slutfört!
+              {t('completeDialog.title')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Bra jobbat! Du har slutfört alla {segments.length} segment.
+              {t('completeDialog.description', { total: segments.length })}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -556,7 +556,7 @@ export function CardioFocusModeWorkout({
               <div className="flex items-center justify-between">
                 <Label className="flex items-center gap-2">
                   <Activity className="h-4 w-4" />
-                  Hur tungt kändes passet? (RPE)
+                  {t('completeDialog.rpeQuestion')}
                 </Label>
                 <Badge variant="outline" className="text-lg px-3">
                   {sessionRPE}
@@ -571,16 +571,16 @@ export function CardioFocusModeWorkout({
                 className="w-full"
               />
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Lätt</span>
-                <span>Måttligt</span>
-                <span>Hårt</span>
+                <span>{t('rpe.easy')}</span>
+                <span>{t('rpe.moderate')}</span>
+                <span>{t('rpe.hard')}</span>
               </div>
             </div>
           </div>
 
           <AlertDialogFooter>
             <AlertDialogAction onClick={handleFinalComplete} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              Slutför pass
+              {t('actions.finishWorkout')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

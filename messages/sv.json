@@ -4325,6 +4325,34 @@
         "skip": "Hoppa över"
       }
     },
+    "cardioFocusModeWorkout": {
+      "segmentCounter": "Segment {current} av {total}",
+      "remaining": "kvar",
+      "voice": {
+        "on": "Röstcoach på",
+        "off": "Röstcoach av"
+      },
+      "actions": {
+        "markComplete": "Markera som slutförd",
+        "finishWorkout": "Slutför pass"
+      },
+      "exitDialog": {
+        "title": "Avsluta pass?",
+        "description": "Du har slutfört {completed} av {total} segment. Dina framsteg sparas och du kan fortsätta senare.",
+        "continue": "Fortsätt träna",
+        "exit": "Avsluta"
+      },
+      "completeDialog": {
+        "title": "Pass slutfört!",
+        "description": "Bra jobbat! Du har slutfört alla {total} segment.",
+        "rpeQuestion": "Hur tungt kändes passet? (RPE)"
+      },
+      "rpe": {
+        "easy": "Lätt",
+        "moderate": "Måttligt",
+        "hard": "Hårt"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",

@@ -4325,6 +4325,34 @@
         "skip": "Skip"
       }
     },
+    "cardioFocusModeWorkout": {
+      "segmentCounter": "Segment {current} of {total}",
+      "remaining": "remaining",
+      "voice": {
+        "on": "Voice coach on",
+        "off": "Voice coach off"
+      },
+      "actions": {
+        "markComplete": "Mark as completed",
+        "finishWorkout": "Finish workout"
+      },
+      "exitDialog": {
+        "title": "Exit workout?",
+        "description": "You have completed {completed} of {total} segments. Your progress is saved and you can continue later.",
+        "continue": "Continue training",
+        "exit": "Exit"
+      },
+      "completeDialog": {
+        "title": "Workout complete!",
+        "description": "Good work! You have completed all {total} segments.",
+        "rpeQuestion": "How hard did the workout feel? (RPE)"
+      },
+      "rpe": {
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "hard": "Hard"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",
