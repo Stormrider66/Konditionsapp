@@ -253,6 +253,35 @@
         "saving": "Saving...",
         "save": "Save settings"
       }
+    },
+    "athleteMessages": {
+      "title": "Messages",
+      "description": "Direct contact with your main coach",
+      "errors": {
+        "fetchFailed": "Failed to fetch messages",
+        "sendFailed": "Failed to send message",
+        "generic": "Something went wrong"
+      },
+      "toasts": {
+        "fetchFailed": "Could not fetch messages",
+        "sentTitle": "Message sent",
+        "sentDescription": "Your message has been sent to your coach.",
+        "sendFailed": "Could not send message"
+      },
+      "empty": {
+        "title": "No messages yet",
+        "description": "Start the conversation by sending a message below"
+      },
+      "workoutReference": "Reference: {workout}",
+      "replyPlaceholder": "Write a message...",
+      "actions": {
+        "sending": "Sending...",
+        "send": "Send message"
+      },
+      "noCoach": {
+        "title": "No coach connected",
+        "description": "You need an assigned coach to use the messaging feature."
+      }
     }
   },
   "home": {

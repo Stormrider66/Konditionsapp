@@ -253,6 +253,35 @@
         "saving": "Sparar...",
         "save": "Spara inställningar"
       }
+    },
+    "athleteMessages": {
+      "title": "Meddelanden",
+      "description": "Direktkontakt med din huvudcoach",
+      "errors": {
+        "fetchFailed": "Misslyckades med att hämta meddelanden",
+        "sendFailed": "Misslyckades med att skicka meddelande",
+        "generic": "Ett fel uppstod"
+      },
+      "toasts": {
+        "fetchFailed": "Kunde inte hämta meddelanden",
+        "sentTitle": "Meddelande skickat",
+        "sentDescription": "Ditt meddelande har skickats till din coach.",
+        "sendFailed": "Kunde inte skicka meddelande"
+      },
+      "empty": {
+        "title": "Inga meddelanden ännu",
+        "description": "Börja konversationen genom att skicka ett meddelande nedan"
+      },
+      "workoutReference": "Referens: {workout}",
+      "replyPlaceholder": "Skriv ett meddelande...",
+      "actions": {
+        "sending": "Skickar...",
+        "send": "Skicka meddelande"
+      },
+      "noCoach": {
+        "title": "Ingen coach kopplad",
+        "description": "Du behöver en tilldelad coach för att kunna använda meddelandefunktionen."
+      }
     }
   },
   "home": {

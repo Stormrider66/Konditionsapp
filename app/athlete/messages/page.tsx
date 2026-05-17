@@ -2,8 +2,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -11,7 +10,8 @@ import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { Loader2, MessageSquare, User, Dumbbell, Clock, MailOpen, Mail, Send, ShieldAlert } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface MessageUser {
   id: string
@@ -36,7 +36,9 @@ interface Message {
 }
 
 export default function AthleteMessagesPage() {
-  const router = useRouter()
+  const t = useTranslations('pages.athleteMessages')
+  const locale = useLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const { toast } = useToast()
 
   const [loading, setLoading] = useState(true)
@@ -44,7 +46,6 @@ export default function AthleteMessagesPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [replyText, setReplyText] = useState('')
   const [coachInfo, setCoachInfo] = useState<{ id: string; name: string; email: string } | null>(null)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   // Fetch coach info directly from API
   const fetchCoachInfo = useCallback(async () => {
@@ -73,7 +74,7 @@ export default function AthleteMessagesPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Misslyckades med att hämta meddelanden')
+        throw new Error(result.error || t('errors.fetchFailed'))
       }
 
       const fetchedMessages = result.data as Message[]
@@ -82,12 +83,6 @@ export default function AthleteMessagesPage() {
       // Determine current user and coach from messages
       if (fetchedMessages.length > 0) {
         const firstMessage = fetchedMessages[0]
-
-        // Current user is the athlete
-        const userId = firstMessage.sender.role === 'ATHLETE'
-          ? firstMessage.senderId
-          : firstMessage.receiverId
-        setCurrentUserId(userId)
 
         // Coach is the other person in the conversation
         const coach = firstMessage.sender.role === 'COACH' || firstMessage.sender.role === 'ADMIN'
@@ -104,20 +99,20 @@ export default function AthleteMessagesPage() {
         await fetchCoachInfo()
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Ett fel uppstod'
+      const errorMessage = error instanceof Error ? error.message : t('errors.generic')
       console.error('Error fetching messages:', error)
       toast({
-        title: 'Kunde inte hämta meddelanden',
+        title: t('toasts.fetchFailed'),
         description: errorMessage,
         variant: 'destructive',
       })
     } finally {
       setLoading(false)
     }
-  }, [toast, fetchCoachInfo])
+  }, [toast, fetchCoachInfo, t])
 
   useEffect(() => {
-    fetchMessages()
+    void fetchMessages()
   }, [fetchMessages])
 
   const markMessagesAsRead = useCallback(async (messagesToProcess: Message[]) => {
@@ -144,7 +139,7 @@ export default function AthleteMessagesPage() {
 
   useEffect(() => {
     if (messages.length === 0) return
-    markMessagesAsRead(messages)
+    void markMessagesAsRead(messages)
   }, [messages, markMessagesAsRead])
 
   async function sendMessage() {
@@ -167,21 +162,21 @@ export default function AthleteMessagesPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Misslyckades med att skicka meddelande')
+        throw new Error(result.error || t('errors.sendFailed'))
       }
 
       toast({
-        title: 'Meddelande skickat',
-        description: 'Ditt meddelande har skickats till din coach.',
+        title: t('toasts.sentTitle'),
+        description: t('toasts.sentDescription'),
       })
 
       setReplyText('')
       await fetchMessages()
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Ett fel uppstod'
+      const errorMessage = error instanceof Error ? error.message : t('errors.generic')
       console.error('Error sending message:', error)
       toast({
-        title: 'Kunde inte skicka meddelande',
+        title: t('toasts.sendFailed'),
         description: errorMessage,
         variant: 'destructive',
       })
@@ -214,11 +209,11 @@ export default function AthleteMessagesPage() {
                 <MessageSquare className="h-6 w-6 text-orange-400" />
               </div>
               <h1 className="text-4xl font-black tracking-tight text-slate-950 uppercase italic dark:text-white">
-                Meddelanden
+                {t('title')}
               </h1>
             </div>
             <p className="text-slate-600 font-medium ml-1 dark:text-slate-400">
-              Direktkontakt med din huvudcoach
+              {t('description')}
             </p>
           </div>
         </div>
@@ -245,15 +240,14 @@ export default function AthleteMessagesPage() {
                       <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 dark:bg-white/5">
                         <MessageSquare className="h-10 w-10 text-slate-600" />
                       </div>
-                      <p className="text-slate-600 font-bold uppercase tracking-wider text-sm dark:text-slate-400">Inga meddelanden ännu</p>
-                      <p className="text-slate-500 text-xs mt-2">Börja konversationen genom att skicka ett meddelande nedan</p>
+                      <p className="text-slate-600 font-bold uppercase tracking-wider text-sm dark:text-slate-400">{t('empty.title')}</p>
+                      <p className="text-slate-500 text-xs mt-2">{t('empty.description')}</p>
                     </div>
                   ) : (
                     <div className="space-y-6">
                       {messages
                         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
                         .map((msg) => {
-                          const isCoach = msg.sender.role === 'COACH' || msg.sender.role === 'ADMIN'
                           const isAthlete = msg.sender.role === 'ATHLETE'
                           return (
                             <div
@@ -280,7 +274,7 @@ export default function AthleteMessagesPage() {
                                     isAthlete ? 'bg-black/20 text-orange-100' : 'bg-slate-100 text-blue-600 dark:bg-white/5 dark:text-blue-400'
                                   )}>
                                     <Dumbbell className="h-3 w-3" />
-                                    <span>Referens: {msg.relatedWorkout.name}</span>
+                                    <span>{t('workoutReference', { workout: msg.relatedWorkout.name })}</span>
                                   </div>
                                 )}
 
@@ -293,7 +287,7 @@ export default function AthleteMessagesPage() {
                                   isAthlete ? 'text-orange-100' : 'text-slate-500'
                                 )}>
                                   <Clock className="h-3 w-3" />
-                                  <span>{format(new Date(msg.createdAt), 'HH:mm • d MMM', { locale: sv })}</span>
+                                  <span>{format(new Date(msg.createdAt), 'HH:mm • d MMM', { locale: dateLocale })}</span>
 
                                   {isAthlete && (
                                     <div className="ml-auto">
@@ -317,7 +311,7 @@ export default function AthleteMessagesPage() {
                 <div className="p-6 bg-slate-50 border-t border-slate-200 dark:bg-white/[0.02] dark:border-white/5">
                   <div className="relative group">
                     <Textarea
-                      placeholder="Skriv ett meddelande..."
+                      placeholder={t('replyPlaceholder')}
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
                       rows={3}
@@ -346,12 +340,12 @@ export default function AthleteMessagesPage() {
                       {sending ? (
                         <>
                           <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-                          Skickar...
+                          {t('actions.sending')}
                         </>
                       ) : (
                         <>
                           <Send className="h-3.5 w-3.5 mr-2" />
-                          Skicka meddelande
+                          {t('actions.send')}
                         </>
                       )}
                     </Button>
@@ -364,9 +358,9 @@ export default function AthleteMessagesPage() {
               <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-8 dark:bg-white/5">
                 <ShieldAlert className="h-10 w-10 text-slate-600" />
               </div>
-              <h3 className="text-2xl font-black italic tracking-tight text-slate-950 mb-2 uppercase dark:text-white">Ingen coach kopplad</h3>
+              <h3 className="text-2xl font-black italic tracking-tight text-slate-950 mb-2 uppercase dark:text-white">{t('noCoach.title')}</h3>
               <p className="text-slate-500 max-w-sm text-sm font-medium">
-                Du behöver en tilldelad coach för att kunna använda meddelandefunktionen.
+                {t('noCoach.description')}
               </p>
             </GlassCardContent>
           )}
