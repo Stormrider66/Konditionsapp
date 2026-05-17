@@ -14,6 +14,7 @@ import { useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Flame, Dumbbell, Timer, Target, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface FormattedWorkoutInstructionsProps {
   instructions: string
@@ -43,6 +44,20 @@ const SECTION_CONFIG: Record<string, { icon: React.ElementType; color: string; b
   CARDIO: { icon: Zap, color: 'text-orange-600', bgColor: 'bg-orange-500/10' },
 }
 
+const SECTION_TITLE_KEYS: Record<string, string> = {
+  PASS: 'sections.workout',
+  UPPVÄRMNING: 'sections.warmup',
+  WARMUP: 'sections.warmup',
+  HUVUDPASS: 'sections.main',
+  MAIN: 'sections.main',
+  STYRKA: 'sections.strength',
+  CORE: 'sections.core',
+  NEDVARVNING: 'sections.cooldown',
+  COOLDOWN: 'sections.cooldown',
+  KONDITION: 'sections.cardio',
+  CARDIO: 'sections.cardio',
+}
+
 function parseWorkoutInstructions(instructions: string): ParsedSection[] {
   const sections: ParsedSection[] = []
 
@@ -59,7 +74,7 @@ function parseWorkoutInstructions(instructions: string): ParsedSection[] {
 
     if (items.length > 0) {
       sections.push({
-        title: 'Pass',
+        title: 'PASS',
         icon: Dumbbell,
         color: 'text-blue-600',
         bgColor: 'bg-blue-500/10',
@@ -88,7 +103,7 @@ function parseWorkoutInstructions(instructions: string): ParsedSection[] {
       }
 
       sections.push({
-        title: formatSectionTitle(sectionTitle),
+        title: sectionTitle,
         icon: config.icon,
         color: config.color,
         bgColor: config.bgColor,
@@ -98,22 +113,6 @@ function parseWorkoutInstructions(instructions: string): ParsedSection[] {
   }
 
   return sections
-}
-
-function formatSectionTitle(title: string): string {
-  const titles: Record<string, string> = {
-    UPPVÄRMNING: 'Uppvärmning',
-    WARMUP: 'Uppvärmning',
-    HUVUDPASS: 'Huvudpass',
-    MAIN: 'Huvudpass',
-    STYRKA: 'Styrka',
-    CORE: 'Core',
-    NEDVARVNING: 'Nedvarvning',
-    COOLDOWN: 'Nedvarvning',
-    KONDITION: 'Kondition',
-    CARDIO: 'Kondition',
-  }
-  return titles[title] || title.charAt(0) + title.slice(1).toLowerCase()
 }
 
 function formatExerciseItem(item: string): { name: string; details?: string } {
@@ -134,7 +133,13 @@ export function FormattedWorkoutInstructions({
   maxItems = 4,
   className
 }: FormattedWorkoutInstructionsProps) {
+  const t = useTranslations('components.formattedWorkoutInstructions')
   const sections = useMemo(() => parseWorkoutInstructions(instructions), [instructions])
+
+  const formatSectionTitle = (title: string): string => {
+    const key = SECTION_TITLE_KEYS[title]
+    return key ? t(key) : title.charAt(0) + title.slice(1).toLowerCase()
+  }
 
   if (sections.length === 0) {
     return null
@@ -155,17 +160,17 @@ export function FormattedWorkoutInstructions({
               className={cn('text-xs', section.bgColor, section.color)}
             >
               <section.icon className="h-3 w-3 mr-1" />
-              {section.title} ({section.items.length})
+              {formatSectionTitle(section.title)} ({section.items.length})
             </Badge>
           ))}
           {sections.length > 2 && (
             <Badge variant="outline" className="text-xs">
-              +{sections.length - 2} sektioner
+              {t('moreSections', { count: sections.length - 2 })}
             </Badge>
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          {totalItems} övningar totalt
+          {t('totalExercises', { count: totalItems })}
         </p>
       </div>
     )
@@ -187,7 +192,7 @@ export function FormattedWorkoutInstructions({
                   <Icon className={cn('h-3 w-3', section.color)} />
                 </div>
                 <span className="text-xs font-medium text-muted-foreground">
-                  {section.title}
+                  {formatSectionTitle(section.title)}
                 </span>
               </div>
               <div className="pl-6 space-y-1">
@@ -206,7 +211,7 @@ export function FormattedWorkoutInstructions({
                 })}
                 {hasMore && (
                   <p className="text-xs text-muted-foreground italic">
-                    +{section.items.length - maxItems} fler övningar
+                    {t('moreExercises', { count: section.items.length - maxItems })}
                   </p>
                 )}
               </div>
@@ -235,10 +240,10 @@ export function FormattedWorkoutInstructions({
             <div className="flex items-center gap-2">
               <Icon className={cn('h-4 w-4', section.color)} />
               <span className={cn('text-sm font-semibold', section.color)}>
-                {section.title}
+                {formatSectionTitle(section.title)}
               </span>
               <Badge variant="outline" className="ml-auto text-xs">
-                {section.items.length} övningar
+                {t('exerciseCount', { count: section.items.length })}
               </Badge>
             </div>
             <ul className="space-y-1.5">

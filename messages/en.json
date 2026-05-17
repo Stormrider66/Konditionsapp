@@ -3969,6 +3969,21 @@
         "restSeconds": "Rest {seconds}s"
       }
     },
+    "formattedWorkoutInstructions": {
+      "sections": {
+        "workout": "Workout",
+        "warmup": "Warmup",
+        "main": "Main session",
+        "strength": "Strength",
+        "core": "Core",
+        "cooldown": "Cooldown",
+        "cardio": "Cardio"
+      },
+      "moreSections": "+{count, plural, one {# section} other {# sections}}",
+      "totalExercises": "{count, plural, one {# exercise} other {# exercises}} total",
+      "moreExercises": "+{count, plural, one {# more exercise} other {# more exercises}}",
+      "exerciseCount": "{count, plural, one {# exercise} other {# exercises}}"
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",
