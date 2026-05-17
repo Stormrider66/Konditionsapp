@@ -20,27 +20,24 @@ import { Button } from '@/components/ui/button'
 import { Utensils, Clock, Droplets, X, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useLocale, useTranslations } from '@/i18n/client'
 import type { DailyNutritionGuidance } from '@/lib/nutrition-timing'
 
 const DISMISS_KEY = 'nutritionTimingDismissed'
 
 export function NutritionTimingCard() {
   const basePath = useBasePath()
+  const t = useTranslations('components.nutritionTimingCard')
+  const locale = useLocale()
   const [guidance, setGuidance] = useState<DailyNutritionGuidance | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isDismissed, setIsDismissed] = useState(false)
+  const [isDismissed, setIsDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return sessionStorage.getItem(DISMISS_KEY) === new Date().toDateString()
+  })
   const [isExpanded, setIsExpanded] = useState(false)
 
   useEffect(() => {
-    // Check sessionStorage for dismissed state (resets daily)
-    if (typeof window !== 'undefined') {
-      const dismissed = sessionStorage.getItem(DISMISS_KEY)
-      if (dismissed === new Date().toDateString()) {
-        setIsDismissed(true)
-        setIsLoading(false)
-        return
-      }
-    }
+    if (isDismissed) return
 
     async function fetchGuidance() {
       try {
@@ -51,13 +48,11 @@ export function NutritionTimingCard() {
         }
       } catch (error) {
         console.error('Error fetching nutrition guidance:', error)
-      } finally {
-        setIsLoading(false)
       }
     }
 
-    fetchGuidance()
-  }, [])
+    void fetchGuidance()
+  }, [isDismissed])
 
   const handleDismiss = () => {
     if (typeof window !== 'undefined') {
@@ -66,8 +61,8 @@ export function NutritionTimingCard() {
     setIsDismissed(true)
   }
 
-  // Don't show if loading, dismissed, rest day, or no workouts
-  if (isLoading || isDismissed) return null
+  // Don't show if dismissed, rest day, or no workouts
+  if (isDismissed) return null
   if (!guidance || guidance.isRestDay || guidance.todaysWorkouts.length === 0) return null
 
   const upcomingWorkout = guidance.todaysWorkouts.find((workout) => workout.status !== 'COMPLETED')
@@ -102,15 +97,22 @@ export function NutritionTimingCard() {
 
   // Get intensity label
   const getIntensityLabel = (intensity: string) => {
-    const labels: Record<string, string> = {
-      RECOVERY: 'Återhämtning',
-      EASY: 'Lätt',
-      MODERATE: 'Medel',
-      THRESHOLD: 'Tröskel',
-      INTERVAL: 'Intervall',
-      MAX: 'Maximal',
+    switch (intensity) {
+      case 'RECOVERY':
+        return t('intensities.recovery')
+      case 'EASY':
+        return t('intensities.easy')
+      case 'MODERATE':
+        return t('intensities.moderate')
+      case 'THRESHOLD':
+        return t('intensities.threshold')
+      case 'INTERVAL':
+        return t('intensities.interval')
+      case 'MAX':
+        return t('intensities.max')
+      default:
+        return intensity
     }
-    return labels[intensity] || intensity
   }
 
   return (
@@ -127,14 +129,14 @@ export function NutritionTimingCard() {
             </div>
             <div>
               <h3 className="font-semibold text-emerald-900 dark:text-emerald-100">
-                Nutrition Timing
+                {t('title')}
               </h3>
               <p className="text-xs text-emerald-600 dark:text-emerald-400">
                 {isPostWorkoutMode
-                  ? 'Återhämtning efter dagens pass'
+                  ? t('subtitle.recovery')
                   : hasScheduledTime
-                    ? `Träning kl ${formatHour(workoutHour!)}`
-                    : 'Dagens träning'}
+                    ? t('subtitle.trainingAt', { time: formatHour(workoutHour!) })
+                    : t('subtitle.todaysTraining')}
               </p>
             </div>
           </div>
@@ -166,17 +168,22 @@ export function NutritionTimingCard() {
           <div>
             <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
               {isPostWorkoutMode
-                ? (postWorkout?.timingLabel || 'Ät inom 30-60 minuter efter passet')
+                ? (postWorkout?.timingLabel || t('timing.eatWithinRecoveryWindow'))
                 : mealDeadline !== null
-                  ? `Ät senast kl ${formatHour(mealDeadline)}`
-                  : 'Ät 2-3 timmar före passet'}
+                  ? t('timing.eatBy', { time: formatHour(mealDeadline) })
+                  : t('timing.eatBeforeWorkout')}
             </p>
             <p className="text-xs text-emerald-700 dark:text-emerald-300">
               {isPostWorkoutMode
                 ? (postWorkout?.recommendation ||
-                  `${postWorkout?.carbsTargetG ? `${postWorkout.carbsTargetG}g` : '60-80g'} kolhydrater och ${postWorkout?.proteinTargetG ? `${postWorkout.proteinTargetG}g` : '20-30g'} protein för återhämtning`)
+                  t('recommendations.recovery', {
+                    carbs: postWorkout?.carbsTargetG ? `${postWorkout.carbsTargetG}g` : '60-80g',
+                    protein: postWorkout?.proteinTargetG ? `${postWorkout.proteinTargetG}g` : '20-30g',
+                  }))
                 : (preWorkout?.recommendation ||
-                  `${preWorkout?.carbsTargetG ? `${preWorkout.carbsTargetG}g` : '60-80g'} kolhydrater (pasta, ris, potatis)`)}
+                  t('recommendations.preWorkout', {
+                    carbs: preWorkout?.carbsTargetG ? `${preWorkout.carbsTargetG}g` : '60-80g',
+                  }))}
             </p>
           </div>
         </div>
@@ -186,8 +193,8 @@ export function NutritionTimingCard() {
           <Droplets className="h-4 w-4 text-cyan-600 dark:text-cyan-400 mt-0.5 flex-shrink-0" />
           <p className="text-sm text-emerald-700 dark:text-emerald-300">
             {isPostWorkoutMode
-              ? `Drick ${postWorkout?.hydrationMl || 500}ml vätska efter passet och fortsätt fylla på under eftermiddagen`
-              : `Drick ${preWorkout?.hydrationMl || 500}ml vatten innan passet`}
+              ? t('hydration.afterWorkout', { amount: postWorkout?.hydrationMl || 500 })
+              : t('hydration.beforeWorkout', { amount: preWorkout?.hydrationMl || 500 })}
           </p>
         </div>
 
@@ -202,12 +209,12 @@ export function NutritionTimingCard() {
             {(isPostWorkoutMode ? postWorkout : preWorkout)?.foodSuggestions && ((isPostWorkoutMode ? postWorkout : preWorkout)?.foodSuggestions.length || 0) > 0 && (
               <div>
                 <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300 mb-1">
-                  Förslag:
+                  {t('suggestions')}
                 </p>
                 <ul className="text-xs text-emerald-700 dark:text-emerald-300 space-y-0.5">
                   {(isPostWorkoutMode ? postWorkout : preWorkout)!.foodSuggestions.slice(0, 4).map((food, i) => (
                     <li key={i}>
-                      • {food.nameSv} ({food.portion})
+                      - {locale === 'en' ? food.nameEn : food.nameSv} ({food.portion})
                     </li>
                   ))}
                 </ul>
@@ -235,7 +242,7 @@ export function NutritionTimingCard() {
               <ChevronDown
                 className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
               />
-              {isExpanded ? 'Visa mindre' : 'Visa mer'}
+              {isExpanded ? t('showLess') : t('showMore')}
             </Button>
           )}
           <Button
@@ -246,7 +253,7 @@ export function NutritionTimingCard() {
                        dark:border-emerald-700 dark:hover:bg-emerald-900/50
                        text-emerald-700 dark:text-emerald-300 ml-auto"
           >
-            <Link href={`${basePath}/athlete/settings/nutrition`}>Kostinställningar</Link>
+            <Link href={`${basePath}/athlete/settings/nutrition`}>{t('nutritionSettings')}</Link>
           </Button>
         </div>
       </CardContent>

@@ -2764,6 +2764,39 @@
       "videoAnalysis": "Video Analys",
       "describeMeal": "Beskriv din måltid"
     },
+    "nutritionTimingCard": {
+      "title": "Kosttajming",
+      "subtitle": {
+        "recovery": "Återhämtning efter dagens pass",
+        "trainingAt": "Träning kl {time}",
+        "todaysTraining": "Dagens träning"
+      },
+      "intensities": {
+        "recovery": "Återhämtning",
+        "easy": "Lätt",
+        "moderate": "Medel",
+        "threshold": "Tröskel",
+        "interval": "Intervall",
+        "max": "Maximal"
+      },
+      "timing": {
+        "eatWithinRecoveryWindow": "Ät inom 30-60 minuter efter passet",
+        "eatBy": "Ät senast kl {time}",
+        "eatBeforeWorkout": "Ät 2-3 timmar före passet"
+      },
+      "recommendations": {
+        "recovery": "{carbs} kolhydrater och {protein} protein för återhämtning",
+        "preWorkout": "{carbs} kolhydrater (pasta, ris, potatis)"
+      },
+      "hydration": {
+        "afterWorkout": "Drick {amount}ml vätska efter passet och fortsätt fylla på under eftermiddagen",
+        "beforeWorkout": "Drick {amount}ml vatten innan passet"
+      },
+      "suggestions": "Förslag:",
+      "showLess": "Visa mindre",
+      "showMore": "Visa mer",
+      "nutritionSettings": "Kostinställningar"
+    },
     "accountabilityStreakWidget": {
       "error": "Kunde inte ladda streak-data",
       "share": {
