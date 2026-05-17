@@ -2339,6 +2339,27 @@
         "networkErrorTitle": "Network error",
         "networkErrorDescription": "Could not connect to the server"
       }
+    },
+    "appointmentSchedulingFields": {
+      "startTime": "Start time",
+      "duration": "Duration",
+      "durationPlaceholder": "Select duration",
+      "durations": {
+        "minutes30": "30 minutes",
+        "minutes45": "45 minutes",
+        "hour1": "1 hour",
+        "hour1Minutes15": "1 hour 15 min",
+        "hours1Half": "1.5 hours",
+        "hours2": "2 hours"
+      },
+      "endTime": "End time: {time}",
+      "location": "Location",
+      "locationPlaceholder": "Select location (optional)",
+      "noLocation": "No location",
+      "customLocation": "Other location...",
+      "customLocationPlaceholder": "Enter location (e.g. Main gym)",
+      "chooseFromList": "Choose from list instead",
+      "addToAthleteCalendar": "Add to athlete calendar"
     }
   },
   "infographic": {

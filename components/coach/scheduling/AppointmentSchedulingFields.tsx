@@ -10,12 +10,13 @@
  * - Calendar event checkbox
  */
 
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Clock, MapPin, Calendar } from 'lucide-react';
+import { useTranslations } from '@/i18n/client';
 
 interface Location {
   id: string;
@@ -35,14 +36,13 @@ interface AppointmentSchedulingFieldsProps {
   onCreateCalendarEventChange: (create: boolean) => void;
 }
 
-// Common durations in minutes
 const DURATION_OPTIONS = [
-  { value: '30', label: '30 minuter' },
-  { value: '45', label: '45 minuter' },
-  { value: '60', label: '1 timme' },
-  { value: '75', label: '1 timme 15 min' },
-  { value: '90', label: '1,5 timmar' },
-  { value: '120', label: '2 timmar' },
+  { value: '30', labelKey: 'minutes30' },
+  { value: '45', labelKey: 'minutes45' },
+  { value: '60', labelKey: 'hour1' },
+  { value: '75', labelKey: 'hour1Minutes15' },
+  { value: '90', labelKey: 'hours1Half' },
+  { value: '120', labelKey: 'hours2' },
 ];
 
 function addMinutesToTime(time: string, minutes: number): string {
@@ -66,25 +66,12 @@ export function AppointmentSchedulingFields({
   onLocationNameChange,
   onCreateCalendarEventChange,
 }: AppointmentSchedulingFieldsProps) {
+  const t = useTranslations('components.appointmentSchedulingFields');
   const [locations, setLocations] = useState<Location[]>([]);
-  const [loadingLocations, setLoadingLocations] = useState(false);
   const [useCustomLocation, setUseCustomLocation] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState<string>('60');
 
-  useEffect(() => {
-    fetchLocations();
-  }, []);
-
-  // Sync end time when start time or duration changes
-  useEffect(() => {
-    if (startTime && selectedDuration) {
-      const newEndTime = addMinutesToTime(startTime, parseInt(selectedDuration, 10));
-      onEndTimeChange(newEndTime);
-    }
-  }, [startTime, selectedDuration, onEndTimeChange]);
-
-  async function fetchLocations() {
-    setLoadingLocations(true);
+  const fetchLocations = useCallback(async () => {
     try {
       const response = await fetch('/api/locations');
       if (response.ok) {
@@ -93,10 +80,24 @@ export function AppointmentSchedulingFields({
       }
     } catch (error) {
       console.error('Failed to fetch locations:', error);
-    } finally {
-      setLoadingLocations(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void fetchLocations();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchLocations]);
+
+  // Sync end time when start time or duration changes
+  useEffect(() => {
+    if (startTime && selectedDuration) {
+      const newEndTime = addMinutesToTime(startTime, parseInt(selectedDuration, 10));
+      onEndTimeChange(newEndTime);
+    }
+  }, [startTime, selectedDuration, onEndTimeChange]);
 
   function handleLocationChange(value: string) {
     if (value === 'custom') {
@@ -115,7 +116,7 @@ export function AppointmentSchedulingFields({
       <div className="space-y-2">
         <Label htmlFor="startTime" className="flex items-center gap-2">
           <Clock className="h-4 w-4" />
-          Starttid
+          {t('startTime')}
         </Label>
         <Input
           id="startTime"
@@ -128,22 +129,22 @@ export function AppointmentSchedulingFields({
 
       {/* Duration */}
       <div className="space-y-2">
-        <Label htmlFor="duration">Längd</Label>
+        <Label htmlFor="duration">{t('duration')}</Label>
         <Select value={selectedDuration} onValueChange={setSelectedDuration}>
           <SelectTrigger>
-            <SelectValue placeholder="Välj längd" />
+            <SelectValue placeholder={t('durationPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
             {DURATION_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
-                {option.label}
+                {t(`durations.${option.labelKey}`)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         {startTime && endTime && (
           <p className="text-xs text-muted-foreground">
-            Sluttid: {endTime}
+            {t('endTime', { time: endTime })}
           </p>
         )}
       </div>
@@ -152,21 +153,21 @@ export function AppointmentSchedulingFields({
       <div className="space-y-2">
         <Label htmlFor="location" className="flex items-center gap-2">
           <MapPin className="h-4 w-4" />
-          Plats
+          {t('location')}
         </Label>
         {locations.length > 0 && !useCustomLocation ? (
           <Select value={locationId || 'none'} onValueChange={handleLocationChange}>
             <SelectTrigger>
-              <SelectValue placeholder="Välj plats (valfritt)" />
+              <SelectValue placeholder={t('locationPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">Ingen plats</SelectItem>
+              <SelectItem value="none">{t('noLocation')}</SelectItem>
               {locations.map((location) => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.name}
                 </SelectItem>
               ))}
-              <SelectItem value="custom">Annan plats...</SelectItem>
+              <SelectItem value="custom">{t('customLocation')}</SelectItem>
             </SelectContent>
           </Select>
         ) : (
@@ -174,7 +175,7 @@ export function AppointmentSchedulingFields({
             <Input
               id="locationName"
               type="text"
-              placeholder="Ange plats (t.ex. Huvudgymmet)"
+              placeholder={t('customLocationPlaceholder')}
               value={locationName}
               onChange={(e) => onLocationNameChange(e.target.value)}
             />
@@ -187,7 +188,7 @@ export function AppointmentSchedulingFields({
                   onLocationNameChange('');
                 }}
               >
-                Välj från lista istället
+                {t('chooseFromList')}
               </button>
             )}
           </div>
@@ -203,7 +204,7 @@ export function AppointmentSchedulingFields({
         />
         <Label htmlFor="createCalendarEvent" className="flex items-center gap-2 cursor-pointer">
           <Calendar className="h-4 w-4" />
-          Lägg till i atletens kalender
+          {t('addToAthleteCalendar')}
         </Label>
       </div>
     </div>

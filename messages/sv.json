@@ -2339,6 +2339,27 @@
         "networkErrorTitle": "Nätverksfel",
         "networkErrorDescription": "Kunde inte ansluta till servern"
       }
+    },
+    "appointmentSchedulingFields": {
+      "startTime": "Starttid",
+      "duration": "Längd",
+      "durationPlaceholder": "Välj längd",
+      "durations": {
+        "minutes30": "30 minuter",
+        "minutes45": "45 minuter",
+        "hour1": "1 timme",
+        "hour1Minutes15": "1 timme 15 min",
+        "hours1Half": "1,5 timmar",
+        "hours2": "2 timmar"
+      },
+      "endTime": "Sluttid: {time}",
+      "location": "Plats",
+      "locationPlaceholder": "Välj plats (valfritt)",
+      "noLocation": "Ingen plats",
+      "customLocation": "Annan plats...",
+      "customLocationPlaceholder": "Ange plats (t.ex. Huvudgymmet)",
+      "chooseFromList": "Välj från lista istället",
+      "addToAthleteCalendar": "Lägg till i atletens kalender"
     }
   },
   "infographic": {
