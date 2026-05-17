@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CreateEventDialog } from './CreateEventDialog'
 import { EditEventDialog } from './EditEventDialog'
+import Link from 'next/link'
 import {
   PHYSICAL_TEAM_EVENT_TYPES,
   TEAM_EVENT_CONTENT_OWNERS,
@@ -25,6 +26,7 @@ import {
   MapPin,
   Clock,
   Download,
+  ExternalLink,
   Trash2,
   Plus,
   Filter,
@@ -176,6 +178,24 @@ function contentOwnerLabel(owner: string | null | undefined): string {
     return TEAM_EVENT_CONTENT_OWNER_LABELS[owner as TeamEventContentOwner]
   }
   return TEAM_EVENT_CONTENT_OWNER_LABELS.physical_trainer
+}
+
+function builderLinkForEvent(type: string, businessSlug?: string): { href: string; label: string } | null {
+  const coachBase = businessSlug ? `/${businessSlug}/coach` : '/coach'
+
+  if (type === 'STRENGTH' || type === 'PREHAB' || type === 'PLYOMETRICS') {
+    return { href: `${coachBase}/strength`, label: 'Strength Studio' }
+  }
+  if (type === 'CARDIO' || type === 'INTERVAL_SESSION') {
+    return { href: `${coachBase}/cardio`, label: 'Cardio Studio' }
+  }
+  if (type === 'HYBRID') {
+    return { href: `${coachBase}/hybrid-studio`, label: 'Hybrid Studio' }
+  }
+  if (type === 'AGILITY') {
+    return { href: `${coachBase}/agility-studio`, label: 'Agility Studio' }
+  }
+  return null
 }
 
 function assignmentProgressLabel(event: TeamEvent): string | null {
@@ -689,19 +709,55 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
               {contentQueue.length === 0 ? (
                 <div className="text-xs text-amber-900/75">Inga pass matchar filtret.</div>
               ) : (
-                contentQueue.slice(0, 8).map((event) => (
-                  <button
-                    key={event.id}
-                    type="button"
-                    className="rounded-md border border-amber-300 bg-white/70 px-2.5 py-1.5 text-left text-xs shadow-sm hover:bg-white"
-                    onClick={() => setSelectedEvent(event)}
-                  >
-                    <div className="font-medium">{event.title}</div>
-                    <div className="text-amber-900/75">
-                      {new Date(event.startDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} · {contentOwnerLabel(event.contentOwner)} · {contentStatusLabel(event.contentStatus)}
+                contentQueue.slice(0, 8).map((event) => {
+                  const builderLink = builderLinkForEvent(event.type, businessSlug)
+                  const typeConfig = getTypeConfig(event.type)
+                  return (
+                    <div
+                      key={event.id}
+                      className="rounded-md border border-amber-300 bg-white/70 px-2.5 py-2 text-xs shadow-sm"
+                    >
+                      <button
+                        type="button"
+                        className="block w-full text-left hover:text-amber-700"
+                        onClick={() => setSelectedEvent(event)}
+                      >
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={`inline-block h-2 w-2 rounded-full ${typeConfig.color}`} />
+                          <span className="font-medium">{event.title}</span>
+                          <Badge variant="outline" className="border-amber-300 bg-amber-50 text-[10px] text-amber-800">
+                            {typeConfig.label}
+                          </Badge>
+                        </div>
+                        <div className="mt-1 text-amber-900/75">
+                          {new Date(event.startDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+                          {!event.allDay && ` ${formatTime(event.startDate)}`}
+                          {' · '}
+                          {contentOwnerLabel(event.contentOwner)} · {contentStatusLabel(event.contentStatus)}
+                        </div>
+                      </button>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setSelectedEvent(event)}
+                        >
+                          Planera
+                        </Button>
+                        {builderLink && (
+                          <Button asChild type="button" variant="outline" size="sm" className="h-7 px-2 text-xs">
+                            <Link href={builderLink.href}>
+                              {builderLink.label}
+                              <ExternalLink className="ml-1 h-3 w-3" />
+                            </Link>
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </button>
-                ))
+                  )
+                })
               )}
             </div>
           </div>
