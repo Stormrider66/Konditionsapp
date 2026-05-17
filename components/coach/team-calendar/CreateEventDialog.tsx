@@ -31,7 +31,7 @@ import {
   type TeamEventContentStatus,
   type TeamEventType,
 } from '@/lib/team-calendar/event-types'
-import { Plus } from 'lucide-react'
+import { Plus, Repeat } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   icePracticeTemplate,
@@ -81,6 +81,8 @@ export function CreateEventDialog({
   const [contentOwner, setContentOwner] = useState<TeamEventContentOwner>(defaultContentOwner)
   const [contentStatus, setContentStatus] = useState<TeamEventContentStatus>(defaultContentStatus)
   const [practiceBlocks, setPracticeBlocks] = useState<PracticeBlock[]>([])
+  const [repeatWeekly, setRepeatWeekly] = useState(false)
+  const [repeatWeeks, setRepeatWeeks] = useState('4')
   const isIcePractice = type === 'PRACTICE' || type === 'ICE_PRACTICE'
   const practiceMinutes = practiceBlocks.reduce((sum, block) => sum + (Number(block.duration) || 0), 0)
 
@@ -97,6 +99,11 @@ export function CreateEventDialog({
     }
     if (!availableEventTypes.includes(type)) {
       toast.error('Din roll kan inte skapa den här typen av händelse')
+      return
+    }
+    const recurrenceCount = repeatWeekly ? Number.parseInt(repeatWeeks, 10) : 1
+    if (repeatWeekly && (!Number.isFinite(recurrenceCount) || recurrenceCount < 2 || recurrenceCount > 52)) {
+      toast.error('Välj mellan 2 och 52 veckor')
       return
     }
 
@@ -129,17 +136,24 @@ export function CreateEventDialog({
           contentStatus,
           contentOwner,
           practicePlan: isIcePractice ? practiceBlocks : null,
+          recurrenceCount: repeatWeekly ? recurrenceCount : undefined,
+          recurrenceIntervalWeeks: repeatWeekly ? 1 : undefined,
         }),
       })
 
-      if (!res.ok) throw new Error('Failed')
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        throw new Error(data?.message || data?.error || 'Failed')
+      }
 
-      toast.success('Händelse skapad')
+      const data = await res.json().catch(() => null)
+      const createdCount = data?.count ?? 1
+      toast.success(createdCount > 1 ? `${createdCount} händelser skapade` : 'Händelse skapad')
       setOpen(false)
       resetForm()
       onCreated()
-    } catch {
-      toast.error('Kunde inte skapa händelse')
+    } catch (error) {
+      toast.error(error instanceof Error && error.message !== 'Failed' ? error.message : 'Kunde inte skapa händelse')
     } finally {
       setLoading(false)
     }
@@ -157,6 +171,8 @@ export function CreateEventDialog({
     setContentOwner(defaultContentOwner)
     setContentStatus(defaultContentStatus)
     setPracticeBlocks([])
+    setRepeatWeekly(false)
+    setRepeatWeeks('4')
   }
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -168,6 +184,8 @@ export function CreateEventDialog({
       setContentOwner(defaultContentOwner)
       setContentStatus(defaultContentStatus)
       setPracticeBlocks([])
+      setRepeatWeekly(false)
+      setRepeatWeeks('4')
     }
   }
 
@@ -296,6 +314,42 @@ export function CreateEventDialog({
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
+          </div>
+
+          <div className="rounded-md border bg-muted/30 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Repeat className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <Label htmlFor="repeat-weekly" className="text-sm">Upprepa varje vecka</Label>
+                  <div className="text-xs text-muted-foreground">
+                    Skapa samma pass framåt i kalendern.
+                  </div>
+                </div>
+              </div>
+              <Switch
+                id="repeat-weekly"
+                checked={repeatWeekly}
+                onCheckedChange={setRepeatWeekly}
+              />
+            </div>
+            {repeatWeekly && (
+              <div className="mt-3 grid grid-cols-[1fr_auto] items-end gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Antal veckor</Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={52}
+                    value={repeatWeeks}
+                    onChange={(e) => setRepeatWeeks(e.target.value)}
+                  />
+                </div>
+                <div className="pb-2 text-xs text-muted-foreground">
+                  inkl. första passet
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

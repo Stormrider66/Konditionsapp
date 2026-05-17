@@ -33,6 +33,8 @@ const createEventSchema = z.object({
   allDay: z.boolean().default(false),
   isRecurring: z.boolean().default(false),
   recurrenceRule: z.string().max(200).optional(),
+  recurrenceCount: z.number().int().min(1).max(52).optional(),
+  recurrenceIntervalWeeks: z.number().int().min(1).max(12).optional(),
   intervalSessionId: z.string().uuid().optional(),
   contentStatus: z.enum(TEAM_EVENT_CONTENT_STATUSES).optional(),
   contentOwner: z.enum(TEAM_EVENT_CONTENT_OWNERS).optional(),
@@ -45,6 +47,12 @@ const createEventSchema = z.object({
     status: z.enum(['ATTENDING', 'ABSENT', 'UNKNOWN']),
   })).optional(),
 })
+
+function addWeeks(date: Date, weeks: number) {
+  const next = new Date(date)
+  next.setDate(next.getDate() + weeks * 7)
+  return next
+}
 
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
@@ -120,37 +128,83 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const team = await getTeamCalendarWritableTeam(user.id, teamId, scope.businessSlug, parsed.data.type, 'create')
 
     if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Din roll kan inte skapa den här typen av händelse för laget' }, { status: 403 })
     }
 
-    const event = await prisma.teamEvent.create({
-      data: {
-        teamId,
-        createdById: user.id,
-        title: parsed.data.title,
-        description: parsed.data.description,
-        type: parsed.data.type,
-        location: parsed.data.location,
-        startDate: new Date(parsed.data.startDate),
-        endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
-        allDay: parsed.data.allDay,
-        isRecurring: parsed.data.isRecurring,
-        recurrenceRule: parsed.data.recurrenceRule,
-        intervalSessionId: parsed.data.intervalSessionId,
-        contentStatus: parsed.data.contentStatus,
-        contentOwner: parsed.data.contentOwner,
-        practicePlan: parsed.data.practicePlan === undefined ? undefined : JSON.parse(JSON.stringify(parsed.data.practicePlan)),
-        linkedWorkoutType: parsed.data.linkedWorkoutType,
-        linkedWorkoutId: parsed.data.linkedWorkoutId,
-        linkedWorkoutName: parsed.data.linkedWorkoutName,
-        attendance: parsed.data.attendance ? JSON.parse(JSON.stringify(parsed.data.attendance)) : null,
-      },
-      include: {
-        createdBy: { select: { name: true } },
-      },
+    const startDate = new Date(parsed.data.startDate)
+    const endDate = parsed.data.endDate ? new Date(parsed.data.endDate) : null
+    if (Number.isNaN(startDate.getTime()) || (endDate && Number.isNaN(endDate.getTime()))) {
+      return NextResponse.json({ error: 'Ogiltigt datum eller tid' }, { status: 400 })
+    }
+    if (endDate && endDate <= startDate) {
+      return NextResponse.json({ error: 'Sluttid måste vara efter starttid' }, { status: 400 })
+    }
+
+    const recurrenceCount = parsed.data.recurrenceCount ?? 1
+    const recurrenceIntervalWeeks = parsed.data.recurrenceIntervalWeeks ?? 1
+    const isRecurring = parsed.data.isRecurring || recurrenceCount > 1
+    const recurrenceRule = isRecurring
+      ? parsed.data.recurrenceRule ?? `FREQ=WEEKLY;INTERVAL=${recurrenceIntervalWeeks};COUNT=${recurrenceCount}`
+      : parsed.data.recurrenceRule
+
+    const baseData = {
+      teamId,
+      createdById: user.id,
+      title: parsed.data.title,
+      description: parsed.data.description,
+      type: parsed.data.type,
+      location: parsed.data.location,
+      startDate,
+      endDate,
+      allDay: parsed.data.allDay,
+      isRecurring,
+      recurrenceRule,
+      intervalSessionId: parsed.data.intervalSessionId,
+      contentStatus: parsed.data.contentStatus,
+      contentOwner: parsed.data.contentOwner,
+      practicePlan: parsed.data.practicePlan === undefined ? undefined : JSON.parse(JSON.stringify(parsed.data.practicePlan)),
+      linkedWorkoutType: parsed.data.linkedWorkoutType,
+      linkedWorkoutId: parsed.data.linkedWorkoutId,
+      linkedWorkoutName: parsed.data.linkedWorkoutName,
+      attendance: parsed.data.attendance ? JSON.parse(JSON.stringify(parsed.data.attendance)) : null,
+    }
+
+    const events = await prisma.$transaction(async (tx) => {
+      const parent = await tx.teamEvent.create({
+        data: baseData,
+        include: {
+          createdBy: { select: { name: true } },
+        },
+      })
+
+      if (recurrenceCount <= 1) return [parent]
+
+      const children = await Promise.all(
+        Array.from({ length: recurrenceCount - 1 }, (_, index) => {
+          const weekOffset = (index + 1) * recurrenceIntervalWeeks
+          return tx.teamEvent.create({
+            data: {
+              ...baseData,
+              startDate: addWeeks(startDate, weekOffset),
+              endDate: endDate ? addWeeks(endDate, weekOffset) : null,
+              intervalSessionId: undefined,
+              recurrenceParentId: parent.id,
+            },
+            include: {
+              createdBy: { select: { name: true } },
+            },
+          })
+        })
+      )
+
+      return [parent, ...children]
     })
 
-    return NextResponse.json({ event: { ...event, assignmentSummary: null } }, { status: 201 })
+    return NextResponse.json({
+      event: { ...events[0], assignmentSummary: null },
+      events: events.map((event) => ({ ...event, assignmentSummary: null })),
+      count: events.length,
+    }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
