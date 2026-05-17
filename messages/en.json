@@ -210,7 +210,98 @@
       "titlePrefix": "Calendar",
       "titleAccent": "connections",
       "description": "Connect your external calendars to see work, private events, and other blockers together with your training schedule.",
-      "loading": "Loading connections..."
+      "loading": "Loading connections...",
+      "confirmDelete": "Are you sure? All imported events from this calendar will be removed.",
+      "connectionsTitle": "Your connections",
+      "eventCount": "{count} events",
+      "lastSync": "Last sync: {date}",
+      "syncError": "Sync error",
+      "syncNow": "Sync now",
+      "alerts": {
+        "googleConnectedTitle": "Google Calendar connected!",
+        "namedCalendarConnected": "The calendar \"{name}\" has been connected.",
+        "calendarConnected": "Your calendar has been connected.",
+        "errorTitle": "Something went wrong",
+        "oauthDenied": "You denied calendar access.",
+        "googleNotConfigured": "Google Calendar is not configured.",
+        "tokenExchangeFailed": "Could not connect to Google.",
+        "calendarFetchFailed": "Could not fetch calendars.",
+        "unexpectedError": "An unexpected error occurred."
+      },
+      "toast": {
+        "errorTitle": "Error",
+        "missingIcalUrl": "Enter an iCal URL",
+        "missingCalendarName": "Enter a name for the calendar",
+        "createConnectionError": "Could not create connection",
+        "calendarConnected": "Calendar connected",
+        "eventsImported": "{count} events imported",
+        "syncComplete": "Sync complete",
+        "syncStats": "{created} new, {updated} updated, {deleted} deleted",
+        "syncErrorTitle": "Sync error",
+        "syncErrorDescription": "Could not sync the calendar",
+        "connectionDeleted": "Connection deleted",
+        "eventsDeleted": "{count} events deleted",
+        "deleteConnectionError": "Could not delete the connection"
+      },
+      "addCard": {
+        "title": "Connect new calendar",
+        "description": "Import events from Google, Outlook, or iCal.",
+        "addButton": "Add"
+      },
+      "dialog": {
+        "titlePrefix": "Connect",
+        "titleAccent": "Calendar",
+        "description": "Choose how you want to connect your calendar",
+        "connectionType": "Connection type",
+        "calendarName": "Calendar name",
+        "calendarNamePlaceholder": "e.g. Work calendar",
+        "icalUrl": "iCal URL",
+        "icalHelp": "Find your iCal URL in the calendar settings.",
+        "importAs": "Import as",
+        "impact": "Impact",
+        "cancel": "Cancel",
+        "connectCalendar": "Connect Calendar",
+        "signIn": "Sign in"
+      },
+      "providers": {
+        "icalDefault": "iCal URL (Default)"
+      },
+      "importTypes": {
+        "externalEvent": "External events",
+        "workBlocker": "Work blockers",
+        "personalBlocker": "Personal events",
+        "travel": "Travel"
+      },
+      "impact": {
+        "normal": "Normal",
+        "modified": "Modified",
+        "reduced": "Reduced",
+        "noTraining": "No training"
+      },
+      "empty": {
+        "title": "No calendars connected yet",
+        "description": "Click \"Add\" to start syncing your events"
+      },
+      "status": {
+        "active": "Active",
+        "paused": "Paused"
+      },
+      "help": {
+        "title": "How do I find my iCal URL?",
+        "google": {
+          "before": "Settings → Calendar settings → Integrate calendar →",
+          "highlight": "Secret address in iCal format"
+        },
+        "outlook": {
+          "before": "Settings → Calendar → Shared calendars → Publish a calendar →",
+          "highlight": "Choose iCal format"
+        },
+        "apple": {
+          "before": "iCloud.com → Calendar → Share calendar →",
+          "highlight": "Public calendar",
+          "after": "(replace webcal:// with https://)"
+        }
+      }
     },
     "logWorkout": {
       "title": "Log a workout",

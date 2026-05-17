@@ -210,7 +210,98 @@
       "titlePrefix": "Kalender",
       "titleAccent": "anslutningar",
       "description": "Anslut dina externa kalendrar för att se arbete, privata händelser och andra blockerare tillsammans med ditt träningsschema.",
-      "loading": "Laddar anslutningar..."
+      "loading": "Laddar anslutningar...",
+      "confirmDelete": "Är du säker? Alla importerade händelser från denna kalender kommer att tas bort.",
+      "connectionsTitle": "Dina anslutningar",
+      "eventCount": "{count} händelser",
+      "lastSync": "Senaste synk: {date}",
+      "syncError": "Fel vid synk",
+      "syncNow": "Synka nu",
+      "alerts": {
+        "googleConnectedTitle": "Google Calendar ansluten!",
+        "namedCalendarConnected": "Kalendern \"{name}\" har anslutits.",
+        "calendarConnected": "Din kalender har anslutits.",
+        "errorTitle": "Något gick fel",
+        "oauthDenied": "Du nekade åtkomst till kalendern.",
+        "googleNotConfigured": "Google Calendar är inte konfigurerat.",
+        "tokenExchangeFailed": "Kunde inte ansluta till Google.",
+        "calendarFetchFailed": "Kunde inte hämta kalendrar.",
+        "unexpectedError": "Ett oväntat fel inträffade."
+      },
+      "toast": {
+        "errorTitle": "Fel",
+        "missingIcalUrl": "Ange en iCal-URL",
+        "missingCalendarName": "Ange ett namn för kalendern",
+        "createConnectionError": "Kunde inte skapa anslutning",
+        "calendarConnected": "Kalender ansluten",
+        "eventsImported": "{count} händelser importerade",
+        "syncComplete": "Synkning klar",
+        "syncStats": "{created} nya, {updated} uppdaterade, {deleted} borttagna",
+        "syncErrorTitle": "Synkningsfel",
+        "syncErrorDescription": "Kunde inte synka kalendern",
+        "connectionDeleted": "Anslutning borttagen",
+        "eventsDeleted": "{count} händelser borttagna",
+        "deleteConnectionError": "Kunde inte ta bort anslutningen"
+      },
+      "addCard": {
+        "title": "Anslut ny kalender",
+        "description": "Importera händelser från Google, Outlook eller iCal.",
+        "addButton": "Lägg till"
+      },
+      "dialog": {
+        "titlePrefix": "Anslut",
+        "titleAccent": "Kalender",
+        "description": "Välj hur du vill ansluta din kalender",
+        "connectionType": "Typ av anslutning",
+        "calendarName": "Namn på kalendern",
+        "calendarNamePlaceholder": "t.ex. Arbetskalender",
+        "icalUrl": "iCal URL",
+        "icalHelp": "Hitta din iCal-URL i kalenderinställningarna.",
+        "importAs": "Importera som",
+        "impact": "Påverkan",
+        "cancel": "Avbryt",
+        "connectCalendar": "Anslut Kalender",
+        "signIn": "Logga in"
+      },
+      "providers": {
+        "icalDefault": "iCal URL (Standard)"
+      },
+      "importTypes": {
+        "externalEvent": "Externa händelser",
+        "workBlocker": "Arbetsblockerare",
+        "personalBlocker": "Personliga händelser",
+        "travel": "Resor"
+      },
+      "impact": {
+        "normal": "Normal",
+        "modified": "Modifierad",
+        "reduced": "Reducerad",
+        "noTraining": "Ingen träning"
+      },
+      "empty": {
+        "title": "Inga kalendrar anslutna ännu",
+        "description": "Klicka \"Lägg till\" för att börja synka dina händelser"
+      },
+      "status": {
+        "active": "Aktiv",
+        "paused": "Pausad"
+      },
+      "help": {
+        "title": "Hur hittar jag min iCal-URL?",
+        "google": {
+          "before": "Inställningar → Kalenderinställningar → Integrera kalender →",
+          "highlight": "Hemlig adress i iCal-format"
+        },
+        "outlook": {
+          "before": "Inställningar → Kalender → Delade kalendrar → Publicera en kalender →",
+          "highlight": "Välj iCal-format"
+        },
+        "apple": {
+          "before": "iCloud.com → Kalender → Dela kalender →",
+          "highlight": "Offentlig kalender",
+          "after": "(ersätt webcal:// med https://)"
+        }
+      }
     },
     "logWorkout": {
       "title": "Logga ett pass",
