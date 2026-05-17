@@ -42,7 +42,8 @@ export async function getTeamCalendarPermissionProfile(
   if (!team) return null
 
   const permissions = await getStaffPermissions(userId, businessSlug, options)
-  const hasScope = hasTeamScope(userId, team, permissions)
+  const isRolePreview = Boolean(options?.roleOverride)
+  const hasScope = isRolePreview || hasTeamScope(userId, team, permissions)
 
   return {
     role: permissions.role,
