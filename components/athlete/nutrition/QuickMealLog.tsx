@@ -45,6 +45,7 @@ import {
   isAiAllowanceExhaustedError,
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 export interface EditMealData {
   id: string
@@ -137,25 +138,28 @@ function formatYesterdayItem(item: YesterdayMealItem): string {
   return portion ? `${item.name} (${portion}, ${grams})` : `${item.name} ${grams}`
 }
 
-function getYesterdayAmountSummary(meal: YesterdayMeal): string | null {
+function getYesterdayAmountSummary(
+  meal: YesterdayMeal,
+  labels: { extra: (count: number) => string; total: string }
+): string | null {
   if (!meal.items || meal.items.length === 0) return null
 
   const totalGrams = meal.items.reduce((sum, item) => sum + item.estimatedGrams, 0)
   const itemPreview = meal.items.slice(0, 3).map(formatYesterdayItem).join(', ')
-  const extraCount = meal.items.length > 3 ? ` +${meal.items.length - 3} till` : ''
+  const extraCount = meal.items.length > 3 ? labels.extra(meal.items.length - 3) : ''
 
-  return `${formatGrams(Math.round(totalGrams * 10) / 10)} g totalt · ${itemPreview}${extraCount}`
+  return `${formatGrams(Math.round(totalGrams * 10) / 10)} g ${labels.total} · ${itemPreview}${extraCount}`
 }
 
-const MEAL_TYPE_CONFIG: Record<MealType, { icon: typeof Sunrise; label: string; color: string }> = {
-  BREAKFAST: { icon: Sunrise, label: 'Frukost', color: 'bg-yellow-500' },
-  MORNING_SNACK: { icon: Coffee, label: 'Förmiddagsfika', color: 'bg-orange-400' },
-  LUNCH: { icon: Sun, label: 'Lunch', color: 'bg-orange-500' },
-  AFTERNOON_SNACK: { icon: Apple, label: 'Mellanmål', color: 'bg-green-500' },
-  PRE_WORKOUT: { icon: Dumbbell, label: 'Pre-workout', color: 'bg-blue-500' },
-  POST_WORKOUT: { icon: Dumbbell, label: 'Post-workout', color: 'bg-purple-500' },
-  DINNER: { icon: Moon, label: 'Middag', color: 'bg-indigo-500' },
-  EVENING_SNACK: { icon: UtensilsCrossed, label: 'Kvällssnack', color: 'bg-gray-500' },
+const MEAL_TYPE_CONFIG: Record<MealType, { icon: typeof Sunrise; labelKey: string; color: string }> = {
+  BREAKFAST: { icon: Sunrise, labelKey: 'breakfast', color: 'bg-yellow-500' },
+  MORNING_SNACK: { icon: Coffee, labelKey: 'morningSnack', color: 'bg-orange-400' },
+  LUNCH: { icon: Sun, labelKey: 'lunch', color: 'bg-orange-500' },
+  AFTERNOON_SNACK: { icon: Apple, labelKey: 'afternoonSnack', color: 'bg-green-500' },
+  PRE_WORKOUT: { icon: Dumbbell, labelKey: 'preWorkout', color: 'bg-blue-500' },
+  POST_WORKOUT: { icon: Dumbbell, labelKey: 'postWorkout', color: 'bg-purple-500' },
+  DINNER: { icon: Moon, labelKey: 'dinner', color: 'bg-indigo-500' },
+  EVENING_SNACK: { icon: UtensilsCrossed, labelKey: 'eveningSnack', color: 'bg-gray-500' },
 }
 
 const QUICK_MEALS = [
@@ -246,6 +250,8 @@ export function QuickMealLog({
   defaultTab = 'text',
   recipeScanRequestKey = 0,
 }: QuickMealLogProps) {
+  const t = useTranslations('components.quickMealLog')
+  const locale = useLocale()
   const isEditMode = !!editMeal
   const initialDateValue = toDateInputValue(date)
   const [isLoading, setIsLoading] = useState(false)
@@ -276,7 +282,7 @@ export function QuickMealLog({
     isPostWorkout: false,
     notes: '',
   })
-  const selectedDateLabel = dateInputValueToDate(selectedDate || initialDateValue).toLocaleDateString('sv-SE', {
+  const selectedDateLabel = dateInputValueToDate(selectedDate || initialDateValue).toLocaleDateString(locale, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -382,7 +388,12 @@ export function QuickMealLog({
   // Yesterday's meals, keyed by meal type so switching type updates the repeat option.
   const [yesterdayMeals, setYesterdayMeals] = useState<Record<string, YesterdayMeal>>({})
   const yesterdayMeal = yesterdayMeals[formData.mealType] || null
-  const yesterdayAmountSummary = yesterdayMeal ? getYesterdayAmountSummary(yesterdayMeal) : null
+  const yesterdayAmountSummary = yesterdayMeal
+    ? getYesterdayAmountSummary(yesterdayMeal, {
+        extra: (count) => t('yesterday.extraCount', { count }),
+        total: t('yesterday.total'),
+      })
+    : null
 
   // Fetch personalized meals + yesterday's meals when dialog opens
   useEffect(() => {
@@ -418,7 +429,7 @@ export function QuickMealLog({
   }, [open, recipeScanRequestKey])
 
   const quickMeals = personalMeals || QUICK_MEALS
-  const quickMealsLabel = personalMeals ? 'Dina vanligaste' : 'Snabbval'
+  const quickMealsLabel = personalMeals ? t('quickMeals.personal') : t('quickMeals.quick')
 
   const handleQuickMealSelect = (meal: typeof QUICK_MEALS[0]) => {
     setFormData(prev => ({
@@ -534,7 +545,7 @@ export function QuickMealLog({
         const body = await res.json().catch(() => null)
         const allowanceError = parseAiAllowanceError(body)
         if (allowanceError) throw allowanceError
-        throw new Error(body?.error || 'Kunde inte analysera måltiden')
+        throw new Error(body?.error || t('errors.analyzeMeal'))
       }
 
       const data = await res.json()
@@ -563,8 +574,8 @@ export function QuickMealLog({
       if (isAiAllowanceExhaustedError(err)) {
         setError(`${err.message} ${getAiAllowanceUpgradeMessage(err)}`)
       } else {
-        const message = err instanceof Error ? err.message : 'AI-analys misslyckades'
-        setError(`${message}. Du kan fortfarande logga måltiden utan AI eller fylla i makron manuellt.`)
+        const message = err instanceof Error ? err.message : t('errors.aiAnalysisFailed')
+        setError(t('errors.aiFallback', { message }))
         setShowMacros(true)
       }
     } finally {
@@ -642,13 +653,13 @@ export function QuickMealLog({
 
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        throw new Error(body?.error || 'Kunde inte spara måltiden. Försök igen.')
+        throw new Error(body?.error || t('errors.saveMeal'))
       }
 
       onMealSaved?.()
       handleClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Något gick fel. Försök igen.')
+      setError(err instanceof Error ? err.message : t('errors.generic'))
     } finally {
       setIsLoading(false)
     }
@@ -687,16 +698,16 @@ export function QuickMealLog({
               type="button"
               onClick={handleClose}
               className="flex-shrink-0 -ml-2 -mt-1 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent dark:hover:bg-slate-700 transition-colors"
-              aria-label="Tillbaka"
+              aria-label={t('actions.back')}
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex-1 min-w-0">
               <DialogTitle className="dark:text-slate-100 text-left">
-                {isEditMode ? 'Redigera måltid' : 'Logga måltid'}
+                {isEditMode ? t('title.edit') : t('title.log')}
               </DialogTitle>
               <DialogDescription className="dark:text-slate-400 text-left">
-                {isEditMode ? 'Uppdatera måltiden' : selectedDateLabel}
+                {isEditMode ? t('description.edit') : selectedDateLabel}
               </DialogDescription>
             </div>
           </div>
@@ -712,7 +723,7 @@ export function QuickMealLog({
 
           {!isEditMode && (
             <div className="space-y-2">
-              <Label htmlFor="meal-date" className="dark:text-slate-200">Datum</Label>
+              <Label htmlFor="meal-date" className="dark:text-slate-200">{t('fields.date')}</Label>
               <Input
                 id="meal-date"
                 type="date"
@@ -725,7 +736,7 @@ export function QuickMealLog({
 
           {/* Meal Type Selection */}
           <div className="space-y-2">
-            <Label className="dark:text-slate-200">Måltidstyp</Label>
+            <Label className="dark:text-slate-200">{t('fields.mealType')}</Label>
             <div className="grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-4 gap-2">
               {(Object.entries(MEAL_TYPE_CONFIG) as [MealType, typeof MEAL_TYPE_CONFIG[MealType]][]).map(
                 ([type, config]) => {
@@ -746,7 +757,7 @@ export function QuickMealLog({
                         <Icon className="h-3 w-3" />
                       </div>
                       <span className="font-medium truncate w-full text-center dark:text-slate-200">
-                        {config.label}
+                        {t(`mealTypes.${config.labelKey}`)}
                       </span>
                     </button>
                   )
@@ -758,8 +769,8 @@ export function QuickMealLog({
           {/* Tabs: free-text description vs structured ingredient list */}
           <Tabs value={tab} onValueChange={(v) => setTab(v as MealLogTab)} className="min-w-0">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="text">Beskrivning</TabsTrigger>
-              <TabsTrigger value="ingredients">Ingredienser</TabsTrigger>
+              <TabsTrigger value="text">{t('tabs.description')}</TabsTrigger>
+              <TabsTrigger value="ingredients">{t('tabs.ingredients')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="text" className="space-y-4">
@@ -772,9 +783,9 @@ export function QuickMealLog({
                 >
                   <Camera className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="min-w-0 flex-1">
-                    <span className="block font-medium">Ladda upp bild på recept</span>
+                    <span className="block font-medium">{t('recipeUpload.title')}</span>
                     <span className="block text-xs text-muted-foreground">
-                      Skanna ett fotograferat recept och spara det bland dina recept.
+                      {t('recipeUpload.description')}
                     </span>
                   </span>
                 </Button>
@@ -790,7 +801,7 @@ export function QuickMealLog({
                   <Repeat className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="min-w-0 flex-1 text-left">
                     <span className="block truncate">
-                      Samma som igår: <span className="font-medium">{yesterdayMeal.description}</span>
+                      {t('yesterday.sameAsYesterday')} <span className="font-medium">{yesterdayMeal.description}</span>
                     </span>
                     {yesterdayAmountSummary && (
                       <span className="mt-0.5 block truncate text-xs text-muted-foreground">
@@ -825,7 +836,7 @@ export function QuickMealLog({
           {/* Quick meal item breakdown (editable weights) */}
           {selectedQuickMealItems && selectedQuickMealItems.length > 0 && (
             <div className="space-y-2 rounded-lg border border-border/50 dark:border-slate-700 p-3 bg-muted/30 dark:bg-slate-800/50">
-              <Label className="text-xs text-muted-foreground">Innehåll (justera vikter)</Label>
+              <Label className="text-xs text-muted-foreground">{t('quickMealItems.title')}</Label>
               <div className="space-y-1.5">
                 {selectedQuickMealItems.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs">
@@ -846,19 +857,19 @@ export function QuickMealLog({
                 ))}
               </div>
               <p className="text-[10px] text-muted-foreground mt-1">
-                Ändra gram för att justera makron automatiskt
+                {t('quickMealItems.helper')}
               </p>
             </div>
           )}
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description" className="dark:text-slate-200">Beskrivning *</Label>
+            <Label htmlFor="description" className="dark:text-slate-200">{t('fields.descriptionRequired')}</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Vad åt du?"
+              placeholder={t('fields.descriptionPlaceholder')}
               rows={2}
               className="dark:text-white dark:placeholder:text-slate-500"
             />
@@ -866,7 +877,7 @@ export function QuickMealLog({
 
           {/* Time */}
           <div className="space-y-2">
-            <Label htmlFor="time" className="dark:text-slate-200">Tid (valfritt)</Label>
+            <Label htmlFor="time" className="dark:text-slate-200">{t('fields.timeOptional')}</Label>
             <Input
               id="time"
               type="time"
@@ -891,16 +902,16 @@ export function QuickMealLog({
                 <Sparkles className="h-4 w-4" />
               )}
               {isAnalyzing
-                ? 'Analyserar...'
+                ? t('actions.analyzing')
                 : formData.calories
-                  ? 'Analysera om med AI'
-                  : 'Uppskatta med AI'}
+                  ? t('actions.reanalyzeWithAi')
+                  : t('actions.estimateWithAi')}
             </Button>
           )}
 
           {/* Toggle for macros */}
           <div className="flex items-center justify-between">
-            <Label className="dark:text-slate-200">Lägg till makron</Label>
+            <Label className="dark:text-slate-200">{t('fields.addMacros')}</Label>
             <Switch
               checked={showMacros}
               onCheckedChange={setShowMacros}
@@ -911,7 +922,7 @@ export function QuickMealLog({
           {showMacros && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="calories" className="dark:text-slate-200">Kalorier</Label>
+                <Label htmlFor="calories" className="dark:text-slate-200">{t('macros.calories')}</Label>
                 <Input
                   id="calories"
                   type="number"
@@ -922,7 +933,7 @@ export function QuickMealLog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="protein" className="dark:text-slate-200">Protein</Label>
+                <Label htmlFor="protein" className="dark:text-slate-200">{t('macros.protein')}</Label>
                 <Input
                   id="protein"
                   type="number"
@@ -934,7 +945,7 @@ export function QuickMealLog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="carbs" className="dark:text-slate-200">Kolhydrater</Label>
+                <Label htmlFor="carbs" className="dark:text-slate-200">{t('macros.carbs')}</Label>
                 <Input
                   id="carbs"
                   type="number"
@@ -946,7 +957,7 @@ export function QuickMealLog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="fat" className="dark:text-slate-200">Fett</Label>
+                <Label htmlFor="fat" className="dark:text-slate-200">{t('macros.fat')}</Label>
                 <Input
                   id="fat"
                   type="number"
@@ -963,7 +974,7 @@ export function QuickMealLog({
 
             <TabsContent value="ingredients" className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                Sök bland 2 500+ livsmedel från Livsmedelsverket. Beskrivning och makron räknas automatiskt.
+                {t('ingredients.helper')}
               </p>
               <IngredientBuilder
                 value={ingredients}
@@ -998,7 +1009,7 @@ export function QuickMealLog({
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>
-            Avbryt
+            {t('actions.cancel')}
           </Button>
           <Button
             onClick={handleSubmit}
@@ -1009,7 +1020,7 @@ export function QuickMealLog({
                 : !formData.description.trim())
             }
           >
-            {isLoading ? 'Sparar...' : isEditMode ? 'Spara ändringar' : 'Logga måltid'}
+            {isLoading ? t('actions.saving') : isEditMode ? t('actions.saveChanges') : t('actions.logMeal')}
           </Button>
         </DialogFooter>
       </DialogContent>

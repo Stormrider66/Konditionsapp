@@ -5102,6 +5102,80 @@
         "pickOrEstimate": "Choose from the list or let AI estimate."
       }
     },
+    "quickMealLog": {
+      "title": {
+        "log": "Log meal",
+        "edit": "Edit meal"
+      },
+      "description": {
+        "edit": "Update the meal"
+      },
+      "actions": {
+        "back": "Back",
+        "cancel": "Cancel",
+        "analyzing": "Analyzing...",
+        "reanalyzeWithAi": "Analyze again with AI",
+        "estimateWithAi": "Estimate with AI",
+        "saving": "Saving...",
+        "saveChanges": "Save changes",
+        "logMeal": "Log meal"
+      },
+      "errors": {
+        "analyzeMeal": "Could not analyze the meal",
+        "aiAnalysisFailed": "AI analysis failed",
+        "aiFallback": "{message}. You can still log the meal without AI or enter macros manually.",
+        "saveMeal": "Could not save the meal. Try again.",
+        "generic": "Something went wrong. Try again."
+      },
+      "fields": {
+        "date": "Date",
+        "mealType": "Meal type",
+        "descriptionRequired": "Description *",
+        "descriptionPlaceholder": "What did you eat?",
+        "timeOptional": "Time (optional)",
+        "addMacros": "Add macros"
+      },
+      "mealTypes": {
+        "breakfast": "Breakfast",
+        "morningSnack": "Morning snack",
+        "lunch": "Lunch",
+        "afternoonSnack": "Snack",
+        "preWorkout": "Pre-workout",
+        "postWorkout": "Post-workout",
+        "dinner": "Dinner",
+        "eveningSnack": "Evening snack"
+      },
+      "tabs": {
+        "description": "Description",
+        "ingredients": "Ingredients"
+      },
+      "recipeUpload": {
+        "title": "Upload recipe image",
+        "description": "Scan a photographed recipe and save it to your recipes."
+      },
+      "yesterday": {
+        "sameAsYesterday": "Same as yesterday:",
+        "total": "total",
+        "extraCount": " +{count} more"
+      },
+      "quickMeals": {
+        "personal": "Your most common",
+        "quick": "Quick picks"
+      },
+      "quickMealItems": {
+        "title": "Contents (adjust weights)",
+        "helper": "Change grams to adjust macros automatically"
+      },
+      "macros": {
+        "calories": "Calories",
+        "protein": "Protein",
+        "carbs": "Carbohydrates",
+        "fat": "Fat"
+      },
+      "ingredients": {
+        "helper": "Search among 2,500+ foods from the Swedish Food Agency. Description and macros are calculated automatically."
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

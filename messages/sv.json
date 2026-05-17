@@ -5102,6 +5102,80 @@
         "pickOrEstimate": "Välj från listan eller låt AI uppskatta."
       }
     },
+    "quickMealLog": {
+      "title": {
+        "log": "Logga måltid",
+        "edit": "Redigera måltid"
+      },
+      "description": {
+        "edit": "Uppdatera måltiden"
+      },
+      "actions": {
+        "back": "Tillbaka",
+        "cancel": "Avbryt",
+        "analyzing": "Analyserar...",
+        "reanalyzeWithAi": "Analysera om med AI",
+        "estimateWithAi": "Uppskatta med AI",
+        "saving": "Sparar...",
+        "saveChanges": "Spara ändringar",
+        "logMeal": "Logga måltid"
+      },
+      "errors": {
+        "analyzeMeal": "Kunde inte analysera måltiden",
+        "aiAnalysisFailed": "AI-analys misslyckades",
+        "aiFallback": "{message}. Du kan fortfarande logga måltiden utan AI eller fylla i makron manuellt.",
+        "saveMeal": "Kunde inte spara måltiden. Försök igen.",
+        "generic": "Något gick fel. Försök igen."
+      },
+      "fields": {
+        "date": "Datum",
+        "mealType": "Måltidstyp",
+        "descriptionRequired": "Beskrivning *",
+        "descriptionPlaceholder": "Vad åt du?",
+        "timeOptional": "Tid (valfritt)",
+        "addMacros": "Lägg till makron"
+      },
+      "mealTypes": {
+        "breakfast": "Frukost",
+        "morningSnack": "Förmiddagsfika",
+        "lunch": "Lunch",
+        "afternoonSnack": "Mellanmål",
+        "preWorkout": "Pre-workout",
+        "postWorkout": "Post-workout",
+        "dinner": "Middag",
+        "eveningSnack": "Kvällssnack"
+      },
+      "tabs": {
+        "description": "Beskrivning",
+        "ingredients": "Ingredienser"
+      },
+      "recipeUpload": {
+        "title": "Ladda upp bild på recept",
+        "description": "Skanna ett fotograferat recept och spara det bland dina recept."
+      },
+      "yesterday": {
+        "sameAsYesterday": "Samma som igår:",
+        "total": "totalt",
+        "extraCount": " +{count} till"
+      },
+      "quickMeals": {
+        "personal": "Dina vanligaste",
+        "quick": "Snabbval"
+      },
+      "quickMealItems": {
+        "title": "Innehåll (justera vikter)",
+        "helper": "Ändra gram för att justera makron automatiskt"
+      },
+      "macros": {
+        "calories": "Kalorier",
+        "protein": "Protein",
+        "carbs": "Kolhydrater",
+        "fat": "Fett"
+      },
+      "ingredients": {
+        "helper": "Sök bland 2 500+ livsmedel från Livsmedelsverket. Beskrivning och makron räknas automatiskt."
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {
