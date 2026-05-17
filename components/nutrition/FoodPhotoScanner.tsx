@@ -62,18 +62,19 @@ import {
 } from '@/lib/ai/billing/client-errors'
 import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 type Step = 'CAPTURE' | 'ANALYZING' | 'REVIEW' | 'SAVING' | 'DONE'
 
 const MEAL_TYPE_LABELS: Record<string, string> = {
-  BREAKFAST: 'Frukost',
-  MORNING_SNACK: 'Förmiddagsmellanmål',
-  LUNCH: 'Lunch',
-  AFTERNOON_SNACK: 'Eftermiddagsmellanmål',
-  PRE_WORKOUT: 'Före träning',
-  POST_WORKOUT: 'Efter träning',
-  DINNER: 'Middag',
-  EVENING_SNACK: 'Kvällsmellanmål',
+  BREAKFAST: 'mealTypes.breakfast',
+  MORNING_SNACK: 'mealTypes.morningSnack',
+  LUNCH: 'mealTypes.lunch',
+  AFTERNOON_SNACK: 'mealTypes.afternoonSnack',
+  PRE_WORKOUT: 'mealTypes.preWorkout',
+  POST_WORKOUT: 'mealTypes.postWorkout',
+  DINNER: 'mealTypes.dinner',
+  EVENING_SNACK: 'mealTypes.eveningSnack',
 }
 
 const scannerLabelClass = 'text-xs font-medium text-slate-600 dark:text-slate-400'
@@ -95,7 +96,7 @@ const nutrientPer100g = (value: number, grams: number) => {
   return roundTo((value / grams) * 100, 1)
 }
 
-const makeSuggestedRecipeName = (mealDescription: string, items: EditableFoodItem[]) => {
+const makeSuggestedRecipeName = (mealDescription: string, items: EditableFoodItem[], fallbackName: string) => {
   const description = mealDescription.trim()
   if (description.length >= 2) return description.slice(0, 80)
 
@@ -105,7 +106,7 @@ const makeSuggestedRecipeName = (mealDescription: string, items: EditableFoodIte
     .slice(0, 3)
     .join(', ')
 
-  return (names || 'Skannat recept').slice(0, 80)
+  return (names || fallbackName).slice(0, 80)
 }
 
 const foodItemsToRecipeItems = (items: EditableFoodItem[]) =>
@@ -218,6 +219,8 @@ export function FoodPhotoScanner({
   defaultDate,
   redirectPathOnSave,
 }: FoodPhotoScannerProps) {
+  const t = useTranslations('components.foodPhotoScanner')
+  const locale = useLocale()
   const router = useRouter()
   const fileInputId = useId()
   const cameraInputId = useId()
@@ -249,7 +252,7 @@ export function FoodPhotoScanner({
   const [items, setItems] = useState<EditableFoodItem[]>([])
   const [mealType, setMealType] = useState(defaultMealType || guessDefaultMealType())
   const [mealTime, setMealTime] = useState(
-    new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+    new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
   )
   const [mealDate] = useState(defaultDate || new Date().toISOString().split('T')[0])
   const [mealDescription, setMealDescription] = useState('')
@@ -341,7 +344,6 @@ export function FoodPhotoScanner({
   useEffect(() => {
     return () => {
       revokePreviewUrl()
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       cameraStreamRef.current?.getTracks().forEach((t) => t.stop())
     }
   }, [revokePreviewUrl])
@@ -443,13 +445,13 @@ export function FoodPhotoScanner({
     if (!file) return
 
     if (!file.type.startsWith('image/')) {
-      showError('Vänligen välj en bildfil')
+      showError(t('errors.selectImageFile'))
       event.target.value = ''
       return
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      showError('Bilden får inte vara större än 10MB')
+      showError(t('errors.imageTooLarge'))
       event.target.value = ''
       return
     }
@@ -462,7 +464,7 @@ export function FoodPhotoScanner({
     setSelectedImage(file)
     void normalizeSelectedImage(file, requestId)
     event.target.value = ''
-  }, [normalizeSelectedImage, setSelectedImage, clearSessionStorage, clearError, showError])
+  }, [normalizeSelectedImage, setSelectedImage, clearSessionStorage, clearError, showError, t])
 
   const handleAnalyze = async () => {
     if (!imageFile) return
@@ -486,13 +488,13 @@ export function FoodPhotoScanner({
       })
 
       if (response.status === 429) {
-        showError('För många förfrågningar. Försök igen om en stund.')
+        showError(t('errors.tooManyRequests'))
         setStep('CAPTURE')
         return
       }
 
       if (response.status === 401) {
-        showError('Du behöver aktivera atletläge för att skanna mat. Gå till inställningar och aktivera atletläge.')
+        showError(t('errors.athleteModeRequired'))
         setStep('CAPTURE')
         return
       }
@@ -505,7 +507,7 @@ export function FoodPhotoScanner({
           setStep('CAPTURE')
           return
         }
-        showError(data?.error || 'Kunde inte analysera bilden. Försök igen.')
+        showError(data?.error || t('errors.analyzeFailed'))
         setStep('CAPTURE')
         return
       }
@@ -514,7 +516,7 @@ export function FoodPhotoScanner({
       const result: FoodPhotoAnalysisResult = data.result
 
       if (!result.success) {
-        showError('Kunde inte identifiera mat. Försök ta en ny bild.')
+        showError(t('errors.noFoodIdentified'))
         setStep('CAPTURE')
         return
       }
@@ -544,7 +546,7 @@ export function FoodPhotoScanner({
 
       setStep('REVIEW')
     } catch {
-      showError('Ett nätverksfel uppstod. Kontrollera din anslutning och försök igen.')
+      showError(t('errors.network'))
       setStep('CAPTURE')
     }
   }
@@ -605,7 +607,7 @@ export function FoodPhotoScanner({
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Kunde inte spara måltiden')
+        throw new Error(data.error || t('errors.saveMeal'))
       }
 
       const data = await response.json()
@@ -653,7 +655,7 @@ export function FoodPhotoScanner({
 
       setStep('DONE')
     } catch (err) {
-      showError(err instanceof Error ? err.message : 'Kunde inte spara måltiden')
+      showError(err instanceof Error ? err.message : t('errors.saveMeal'))
       setStep('REVIEW')
     }
   }
@@ -671,7 +673,7 @@ export function FoodPhotoScanner({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: makeSuggestedRecipeName(mealDescription, items),
+          name: makeSuggestedRecipeName(mealDescription, items, t('recipe.scannedRecipeFallback')),
           description: notes.trim() || undefined,
           baseServings: 1,
           source: 'SCAN',
@@ -681,13 +683,13 @@ export function FoodPhotoScanner({
 
       const data = await response.json().catch(() => null)
       if (!response.ok) {
-        throw new Error(data?.error || 'Kunde inte spara recept')
+        throw new Error(data?.error || t('errors.saveRecipe'))
       }
 
-      const savedName = typeof data?.data?.name === 'string' ? data.data.name : 'Receptet'
-      setRecipeSaveMessage(`${savedName} sparades bland dina recept.`)
+      const savedName = typeof data?.data?.name === 'string' ? data.data.name : t('recipe.defaultName')
+      setRecipeSaveMessage(t('recipe.saved', { name: savedName }))
     } catch (err) {
-      setRecipeSaveError(err instanceof Error ? err.message : 'Kunde inte spara recept')
+      setRecipeSaveError(err instanceof Error ? err.message : t('errors.saveRecipe'))
     } finally {
       setIsSavingRecipe(false)
     }
@@ -777,7 +779,7 @@ export function FoodPhotoScanner({
       })
     } catch {
       setShowNativeCameraFallback(true)
-      showError('Kameran kunde inte öppnas i webbläsaren. Tryck på Öppna kamera-app eller välj en bild.')
+      showError(t('errors.cameraOpenFailed'))
     }
   }
 
@@ -876,7 +878,7 @@ export function FoodPhotoScanner({
           const data = await response.json().catch(() => null)
           const allowanceError = parseAiAllowanceError(data)
           if (allowanceError) throw allowanceError
-          throw new Error(data?.error || 'Kunde inte uppdatera analysen')
+          throw new Error(data?.error || t('errors.updateAnalysis'))
         }
 
         const data = await response.json()
@@ -885,7 +887,7 @@ export function FoodPhotoScanner({
         // For refinements, use the returned items even if success is false —
         // we already know food exists from the original analysis.
         if (!result.success && (!result.items || result.items.length === 0)) {
-          showError('Kunde inte uppdatera analysen utifrån korrigeringen. Försök beskriva ändringen mer exakt.')
+          showError(t('errors.refineSpecific'))
           return
         }
 
@@ -906,14 +908,14 @@ export function FoodPhotoScanner({
           err.name === 'AbortError'
         throw new Error(
           isAbort
-            ? 'Uppdateringen tog för lång tid. Försök igen med en kortare korrigering.'
+            ? t('errors.refineTimeout')
             : err instanceof Error
               ? err.message
-              : 'Kunde inte nå servern. Kontrollera din anslutning och försök igen.'
+              : t('errors.serverUnreachable')
         )
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Kunde inte uppdatera analysen'
+      const message = err instanceof Error ? err.message : t('errors.updateAnalysis')
       if (isAiAllowanceExhaustedError(err)) {
         showAiAllowanceError(err)
       } else {
@@ -948,7 +950,7 @@ export function FoodPhotoScanner({
       mediaRecorder.start()
       setIsRecording(true)
     } catch {
-      showError('Kunde inte starta mikrofonen. Kontrollera behörigheter.')
+      showError(t('errors.microphoneStart'))
     }
   }
 
@@ -976,7 +978,7 @@ export function FoodPhotoScanner({
         const data = await response.json().catch(() => null)
         const allowanceError = parseAiAllowanceError(data)
         if (allowanceError) throw allowanceError
-        throw new Error(data?.error || 'Kunde inte transkribera')
+        throw new Error(data?.error || t('errors.transcribe'))
       }
 
       const data = await response.json()
@@ -984,7 +986,7 @@ export function FoodPhotoScanner({
         setRefinementText((prev) => (prev ? `${prev} ${data.text}` : data.text))
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Kunde inte transkribera ljudet'
+      const message = err instanceof Error ? err.message : t('errors.transcribeAudio')
       if (isAiAllowanceExhaustedError(err)) {
         showAiAllowanceError(err)
       } else {
@@ -1060,7 +1062,7 @@ export function FoodPhotoScanner({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={imagePreview}
-                    alt="Förhandsgranskning"
+                    alt={t('image.previewAlt')}
                     className="w-full h-auto max-h-64 object-contain bg-slate-100 dark:bg-black/20"
                   />
                   <Button
@@ -1075,16 +1077,16 @@ export function FoodPhotoScanner({
               ) : (
                 <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center dark:border-white/10 dark:bg-black/20">
                   <Camera className="mx-auto h-7 w-7 text-slate-500 dark:text-slate-400" />
-                  <p className="mt-3 text-sm font-medium text-slate-900 dark:text-white">Bild vald</p>
+                  <p className="mt-3 text-sm font-medium text-slate-900 dark:text-white">{t('capture.imageSelected')}</p>
                   <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                    Förhandsgranskningen kunde inte visas, men du kan fortfarande analysera bilden.
+                    {t('capture.previewUnavailable')}
                   </p>
                   <Button
                     variant="outline"
                     className="mt-4 border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                     onClick={handleReset}
                   >
-                    Välj annan bild
+                    {t('capture.chooseDifferentImage')}
                   </Button>
                 </div>
               )}
@@ -1096,19 +1098,19 @@ export function FoodPhotoScanner({
                   className="flex items-center gap-1.5 text-xs text-slate-600 transition-colors hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
                 >
                   {showContextInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                  {showContextInput ? 'Dölj kontext' : 'Lägg till kontext (valfritt)'}
+                  {showContextInput ? t('capture.hideContext') : t('capture.addContext')}
                 </button>
                 {showContextInput && (
                   <Textarea
                     value={userContext}
                     onChange={(e) => setUserContext(e.target.value)}
-                    placeholder="T.ex. &quot;Köttet är 200g älgfärs&quot;, &quot;Riset är 150g kokt&quot;, &quot;Tillagat i olivolja&quot;"
+                    placeholder={t('capture.contextPlaceholder')}
                     className={cn(scannerControlClass, 'text-sm min-h-[60px]')}
                   />
                 )}
                 {userContext.trim() && !showContextInput && (
                   <p className="text-[11px] text-cyan-400 truncate">
-                    Kontext: {userContext.trim()}
+                    {t('capture.contextPreview', { context: userContext.trim() })}
                   </p>
                 )}
               </div>
@@ -1117,14 +1119,13 @@ export function FoodPhotoScanner({
                 className="w-full gap-2"
                 onClick={handleAnalyze}
               >
-                Analysera måltid
+                {t('actions.analyzeMeal')}
               </Button>
             </div>
           ) : (
             <div className="space-y-3">
               {showInlineCamera ? (
                 <div className="relative rounded-lg overflow-hidden border border-slate-200 bg-slate-100 dark:border-white/10 dark:bg-black">
-                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                   <video
                     ref={videoRef}
                     autoPlay
@@ -1171,7 +1172,7 @@ export function FoodPhotoScanner({
                       onClick={handleOpenCamera}
                     >
                       <Camera className="h-7 w-7" />
-                      <span className="text-sm">Kamera</span>
+                      <span className="text-sm">{t('capture.camera')}</span>
                     </Button>
 
                     <Button
@@ -1181,7 +1182,7 @@ export function FoodPhotoScanner({
                     >
                       <label htmlFor={fileInputId} role="button" tabIndex={0}>
                         <Upload className="h-7 w-7" />
-                        <span className="text-sm">Välj bild</span>
+                        <span className="text-sm">{t('capture.chooseImage')}</span>
                       </label>
                     </Button>
                   </div>
@@ -1193,7 +1194,7 @@ export function FoodPhotoScanner({
                     >
                       <label htmlFor={cameraInputId} role="button" tabIndex={0}>
                         <Camera className="h-4 w-4" />
-                        <span>Öppna kamera-app</span>
+                        <span>{t('capture.openCameraApp')}</span>
                       </label>
                     </Button>
                   )}
@@ -1218,7 +1219,7 @@ export function FoodPhotoScanner({
                 </>
               )}
               <p className="text-center text-xs text-slate-500 dark:text-slate-400">
-                Ta en bild av din måltid för att automatiskt uppskatta kalorier och makros
+                {t('capture.description')}
               </p>
             </div>
           )}
@@ -1233,13 +1234,13 @@ export function FoodPhotoScanner({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={imagePreview}
-                alt="Analyserar"
+                alt={t('image.analyzingAlt')}
                 className="w-full h-auto max-h-40 object-contain bg-slate-100 dark:bg-black/20"
               />
             </div>
           )}
           <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-          <p className="text-sm text-slate-600 dark:text-slate-300">Analyserar din måltid...</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">{t('analyzing')}</p>
         </div>
       )}
 
@@ -1252,7 +1253,7 @@ export function FoodPhotoScanner({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={imagePreview}
-                alt="Måltid"
+                alt={t('image.mealAlt')}
                 className="w-full h-auto max-h-32 object-contain bg-slate-100 dark:bg-black/20"
               />
             </div>
@@ -1265,21 +1266,21 @@ export function FoodPhotoScanner({
                 <>
               <div className={`h-2 w-2 rounded-full ${confidence >= 0.7 ? 'bg-green-400' : confidence >= 0.4 ? 'bg-yellow-400' : 'bg-red-400'}`} />
               <span className="text-slate-600 dark:text-slate-400">
-                Konfidensgrad: {Math.round(confidence * 100)}%
+                {t('review.confidence', { percent: Math.round(confidence * 100) })}
               </span>
                 </>
               )}
               {memoryUsed && (
                 <span
                   className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-violet-700 dark:border-violet-400/30 dark:bg-violet-400/10 dark:text-violet-300"
-                  title="Analysen använde din mathistorik för att förbättra träffsäkerheten"
+                  title={t('review.personalizedTitle')}
                 >
-                  Personaliserad
+                  {t('review.personalized')}
                 </span>
               )}
               {enhancedMode && (
                 <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-400/10 dark:text-cyan-300">
-                  Detaljerad makroanalys aktiv
+                  {t('review.enhancedMode')}
                 </span>
               )}
             </div>
@@ -1287,12 +1288,12 @@ export function FoodPhotoScanner({
 
           {/* Inline refinement */}
           <div className="space-y-2">
-            <label className={scannerLabelClass}>Korrigera eller lägg till</label>
+            <label className={scannerLabelClass}>{t('review.refineLabel')}</label>
             <div className="flex gap-2">
               <Textarea
                 value={refinementText}
                 onChange={(e) => setRefinementText(e.target.value)}
-                placeholder="T.ex. &quot;det finns också smör på brödet&quot; eller &quot;portionen var större&quot;"
+                placeholder={t('review.refinePlaceholder')}
                 className={cn(scannerControlClass, 'text-sm min-h-[44px] max-h-[80px] flex-1')}
                 disabled={isRefining || isTranscribing}
               />
@@ -1308,7 +1309,7 @@ export function FoodPhotoScanner({
                   )}
                   onClick={isRecording ? handleStopRecording : handleStartRecording}
                   disabled={isRefining || isTranscribing}
-                  title={isRecording ? 'Stoppa inspelning' : 'Spela in röstkorrigering'}
+                  title={isRecording ? t('actions.stopRecording') : t('actions.recordVoiceCorrection')}
                 >
                   {isTranscribing ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1324,7 +1325,7 @@ export function FoodPhotoScanner({
                   className={cn('h-[21px] w-10', scannerIconButtonClass)}
                   onClick={handleRefine}
                   disabled={!refinementText.trim() || isRefining}
-                  title="Uppdatera analys"
+                  title={t('actions.updateAnalysis')}
                 >
                   {isRefining ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1342,7 +1343,7 @@ export function FoodPhotoScanner({
                 disabled={isRefining || isTranscribing}
               >
                 {isRefining && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                Uppdatera analys
+                {t('actions.updateAnalysis')}
               </Button>
             )}
 
@@ -1365,22 +1366,22 @@ export function FoodPhotoScanner({
           {/* Meal type and time */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className={scannerLabelClass}>Måltidstyp</label>
+              <label className={scannerLabelClass}>{t('review.mealType')}</label>
               <Select value={mealType} onValueChange={setMealType}>
                 <SelectTrigger className={scannerControlClass}>
-                  <SelectValue placeholder="Välj typ" />
+                  <SelectValue placeholder={t('review.mealTypePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(MEAL_TYPE_LABELS).map(([value, label]) => (
+                  {Object.entries(MEAL_TYPE_LABELS).map(([value, labelKey]) => (
                     <SelectItem key={value} value={value}>
-                      {label}
+                      {t(labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <label className={scannerLabelClass}>Tid</label>
+              <label className={scannerLabelClass}>{t('review.time')}</label>
               <Input
                 type="time"
                 value={mealTime}
@@ -1394,7 +1395,7 @@ export function FoodPhotoScanner({
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <label className={scannerLabelClass}>
-                Identifierade livsmedel ({items.length})
+                {t('review.identifiedFoods', { count: items.length })}
               </label>
               <Button
                 type="button"
@@ -1409,7 +1410,7 @@ export function FoodPhotoScanner({
                 ) : (
                   <Save className="h-3.5 w-3.5" />
                 )}
-                Spara recept
+                {t('actions.saveRecipe')}
               </Button>
             </div>
             {recipeSaveMessage && (
@@ -1637,14 +1638,14 @@ export function FoodPhotoScanner({
               onClick={handleReset}
             >
               <RotateCw className="h-4 w-4 mr-2" />
-              Ny bild
+              {t('actions.newImage')}
             </Button>
             <Button
               className="flex-1"
               onClick={handleSave}
               disabled={items.length === 0}
             >
-              Spara måltid
+              {t('actions.saveMeal')}
             </Button>
           </div>
         </div>
@@ -1654,7 +1655,7 @@ export function FoodPhotoScanner({
       {step === 'SAVING' && (
         <div className="flex flex-col items-center justify-center py-8 space-y-3">
           <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-          <p className="text-sm text-slate-600 dark:text-slate-300">Sparar måltid...</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">{t('saving')}</p>
         </div>
       )}
 
@@ -1665,9 +1666,9 @@ export function FoodPhotoScanner({
             <Check className="h-8 w-8 text-green-400" />
           </div>
           <div className="text-center">
-            <p className="font-medium text-slate-950 dark:text-white">Måltid sparad!</p>
+            <p className="font-medium text-slate-950 dark:text-white">{t('done.title')}</p>
             <p className="text-sm text-slate-600 mt-1 dark:text-slate-400">
-              {Math.round(totals.calories)} kcal registrerade
+              {t('done.caloriesRegistered', { calories: Math.round(totals.calories) })}
             </p>
           </div>
           <div className="flex gap-2">
@@ -1676,10 +1677,10 @@ export function FoodPhotoScanner({
               className="border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               onClick={handleReset}
             >
-              Skanna en till
+              {t('actions.scanAnother')}
             </Button>
             <Button onClick={onClose}>
-              Klar
+              {t('actions.done')}
             </Button>
           </div>
         </div>

@@ -4695,6 +4695,89 @@
       },
       "tipsTitle": "Tips for today"
     },
+    "foodPhotoScanner": {
+      "mealTypes": {
+        "breakfast": "Breakfast",
+        "morningSnack": "Morning snack",
+        "lunch": "Lunch",
+        "afternoonSnack": "Afternoon snack",
+        "preWorkout": "Pre-workout",
+        "postWorkout": "Post-workout",
+        "dinner": "Dinner",
+        "eveningSnack": "Evening snack"
+      },
+      "errors": {
+        "selectImageFile": "Please choose an image file",
+        "imageTooLarge": "The image cannot be larger than 10MB",
+        "tooManyRequests": "Too many requests. Try again in a moment.",
+        "athleteModeRequired": "You need to activate athlete mode to scan food. Go to settings and activate athlete mode.",
+        "analyzeFailed": "Could not analyze the image. Try again.",
+        "noFoodIdentified": "Could not identify food. Try taking a new photo.",
+        "network": "A network error occurred. Check your connection and try again.",
+        "saveMeal": "Could not save the meal",
+        "saveRecipe": "Could not save recipe",
+        "cameraOpenFailed": "The camera could not be opened in the browser. Tap Open camera app or choose an image.",
+        "updateAnalysis": "Could not update the analysis",
+        "refineSpecific": "Could not update the analysis from the correction. Try describing the change more precisely.",
+        "refineTimeout": "The update took too long. Try again with a shorter correction.",
+        "serverUnreachable": "Could not reach the server. Check your connection and try again.",
+        "microphoneStart": "Could not start the microphone. Check permissions.",
+        "transcribe": "Could not transcribe",
+        "transcribeAudio": "Could not transcribe the audio"
+      },
+      "recipe": {
+        "defaultName": "The recipe",
+        "scannedRecipeFallback": "Scanned recipe",
+        "saved": "{name} was saved to your recipes."
+      },
+      "image": {
+        "previewAlt": "Preview",
+        "analyzingAlt": "Analyzing",
+        "mealAlt": "Meal"
+      },
+      "capture": {
+        "imageSelected": "Image selected",
+        "previewUnavailable": "The preview could not be shown, but you can still analyze the image.",
+        "chooseDifferentImage": "Choose different image",
+        "hideContext": "Hide context",
+        "addContext": "Add context (optional)",
+        "contextPlaceholder": "E.g. \"The meat is 200g ground venison\", \"The rice is 150g cooked\", \"Cooked in olive oil\"",
+        "contextPreview": "Context: {context}",
+        "camera": "Camera",
+        "chooseImage": "Choose image",
+        "openCameraApp": "Open camera app",
+        "description": "Take a photo of your meal to automatically estimate calories and macros"
+      },
+      "actions": {
+        "analyzeMeal": "Analyze meal",
+        "stopRecording": "Stop recording",
+        "recordVoiceCorrection": "Record voice correction",
+        "updateAnalysis": "Update analysis",
+        "saveRecipe": "Save recipe",
+        "newImage": "New image",
+        "saveMeal": "Save meal",
+        "scanAnother": "Scan another",
+        "done": "Done"
+      },
+      "analyzing": "Analyzing your meal...",
+      "saving": "Saving meal...",
+      "review": {
+        "confidence": "Confidence: {percent}%",
+        "personalizedTitle": "The analysis used your food history to improve accuracy",
+        "personalized": "Personalized",
+        "enhancedMode": "Detailed macro analysis active",
+        "refineLabel": "Correct or add",
+        "refinePlaceholder": "E.g. \"there is also butter on the bread\" or \"the portion was larger\"",
+        "mealType": "Meal type",
+        "mealTypePlaceholder": "Choose type",
+        "time": "Time",
+        "identifiedFoods": "Identified foods ({count})"
+      },
+      "done": {
+        "title": "Meal saved!",
+        "caloriesRegistered": "{calories} kcal registered"
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {
