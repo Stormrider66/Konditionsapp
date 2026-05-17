@@ -2618,6 +2618,51 @@
       "ended": "Avslutad",
       "participants": "{count} deltagare",
       "noParticipants": "Inga deltagare ännu"
+    },
+    "gymClassesCard": {
+      "title": "Gruppträning idag",
+      "empty": {
+        "title": "Inga gruppklasser idag",
+        "description": "Skapa klasser för att visa dem här"
+      },
+      "checkedIn": "{count} incheckade"
+    },
+    "teamTestsAndActivity": {
+      "dates": {
+        "today": "Idag",
+        "tomorrow": "Imorgon"
+      },
+      "upcomingTests": {
+        "title": "Kommande tester",
+        "newTest": "Nytt test",
+        "emptyTitle": "Inga tester planerade",
+        "emptyDescription": "Planera nästa lagtest när det passar kalendern."
+      },
+      "recentActivity": {
+        "title": "Senaste lagaktivitet",
+        "programs": "Program",
+        "emptyTitle": "Ingen lagaktivitet ännu",
+        "emptyDescription": "Tilldelade lagpass visas här."
+      }
+    },
+    "teamPulsePanel": {
+      "title": "Lagpuls",
+      "readiness": {
+        "ready": "Redo",
+        "monitor": "Bevaka",
+        "low": "Låg"
+      },
+      "signals": {
+        "injuryFlags": "Skadeflaggor",
+        "lowReadinessTeams": "Lag med låg beredskap",
+        "missedWorkoutTeams": "Lag med missade pass",
+        "unreadTeamMessages": "Olästa lagmeddelanden",
+        "workoutsWithoutFeedback": "Pass utan feedback"
+      },
+      "needsAction": "Behöver åtgärd",
+      "attentionItems": "{count} saker",
+      "noUrgentAction": "Inga lag kräver akut åtgärd just nu.",
+      "messageGroup": "Meddela grupp"
     }
   },
   "infographic": {

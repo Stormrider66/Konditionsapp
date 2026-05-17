@@ -8,18 +8,15 @@ import {
   GlassCardTitle,
 } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import {
   Calendar,
   Users,
   Clock,
   MapPin,
   Loader2,
-  Plus,
-  ArrowRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import Link from 'next/link'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface ClassSchedule {
   id: string
@@ -34,17 +31,6 @@ interface ClassSchedule {
   checkedInCount: number
   status: string
   color: string | null
-}
-
-const classTypeLabels: Record<string, string> = {
-  SPINNING: 'Spinning',
-  HIIT: 'HIIT',
-  YOGA: 'Yoga',
-  CIRCUIT: 'Cirkelträning',
-  CROSSFIT: 'CrossFit',
-  BODY_PUMP: 'Body Pump',
-  STRETCHING: 'Stretching',
-  OTHER: 'Övrigt',
 }
 
 const classTypeColors: Record<string, string> = {
@@ -62,7 +48,10 @@ interface GymClassesCardProps {
   basePath: string
 }
 
-export function GymClassesCard({ basePath }: GymClassesCardProps) {
+export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
+  const t = useTranslations('components.gymClassesCard')
+  const locale = useLocale()
+  const timeLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [classes, setClasses] = useState<ClassSchedule[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -112,7 +101,11 @@ export function GymClassesCard({ basePath }: GymClassesCardProps) {
   }, [])
 
   useEffect(() => {
-    fetchClasses()
+    const timeoutId = window.setTimeout(() => {
+      void fetchClasses()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [fetchClasses])
 
   return (
@@ -121,7 +114,7 @@ export function GymClassesCard({ basePath }: GymClassesCardProps) {
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-base flex items-center gap-2">
             <Calendar className="h-4 w-4 text-purple-500" />
-            Gruppträning idag
+            {t('title')}
           </GlassCardTitle>
           {classes.length > 0 && (
             <Badge variant="secondary" className="text-xs">{classes.length}</Badge>
@@ -136,8 +129,8 @@ export function GymClassesCard({ basePath }: GymClassesCardProps) {
         ) : classes.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Inga gruppklasser idag</p>
-            <p className="text-xs mt-1">Skapa klasser för att visa dem här</p>
+            <p className="text-sm">{t('empty.title')}</p>
+            <p className="text-xs mt-1">{t('empty.description')}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -152,7 +145,7 @@ export function GymClassesCard({ basePath }: GymClassesCardProps) {
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="flex items-center gap-0.5">
                       <Clock className="h-3 w-3" />
-                      {new Date(cls.startTime).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(cls.startTime).toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     {cls.locationName && (
                       <span className="flex items-center gap-0.5">
@@ -173,7 +166,7 @@ export function GymClassesCard({ basePath }: GymClassesCardProps) {
                     </span>
                   </div>
                   {cls.checkedInCount > 0 && (
-                    <p className="text-[10px] text-green-600">{cls.checkedInCount} incheckade</p>
+                    <p className="text-[10px] text-green-600">{t('checkedIn', { count: cls.checkedInCount })}</p>
                   )}
                 </div>
               </div>

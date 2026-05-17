@@ -2618,6 +2618,51 @@
       "ended": "Ended",
       "participants": "{count} participants",
       "noParticipants": "No participants yet"
+    },
+    "gymClassesCard": {
+      "title": "Group classes today",
+      "empty": {
+        "title": "No group classes today",
+        "description": "Create classes to show them here"
+      },
+      "checkedIn": "{count} checked in"
+    },
+    "teamTestsAndActivity": {
+      "dates": {
+        "today": "Today",
+        "tomorrow": "Tomorrow"
+      },
+      "upcomingTests": {
+        "title": "Upcoming tests",
+        "newTest": "New test",
+        "emptyTitle": "No tests planned",
+        "emptyDescription": "Plan the next team test when it fits the calendar."
+      },
+      "recentActivity": {
+        "title": "Recent team activity",
+        "programs": "Programs",
+        "emptyTitle": "No team activity yet",
+        "emptyDescription": "Assigned team workouts will appear here."
+      }
+    },
+    "teamPulsePanel": {
+      "title": "Team pulse",
+      "readiness": {
+        "ready": "Ready",
+        "monitor": "Monitor",
+        "low": "Low"
+      },
+      "signals": {
+        "injuryFlags": "Injury flags",
+        "lowReadinessTeams": "Teams with low readiness",
+        "missedWorkoutTeams": "Teams with missed workouts",
+        "unreadTeamMessages": "Unread team messages",
+        "workoutsWithoutFeedback": "Workouts without feedback"
+      },
+      "needsAction": "Needs action",
+      "attentionItems": "{count} items",
+      "noUrgentAction": "No teams need urgent action right now.",
+      "messageGroup": "Message group"
     }
   },
   "infographic": {
