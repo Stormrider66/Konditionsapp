@@ -4353,6 +4353,50 @@
         "hard": "Hard"
       }
     },
+    "athleteCardioClient": {
+      "header": {
+        "description": "Your running, cycling, and other cardio sessions"
+      },
+      "tabs": {
+        "history": "History",
+        "templates": "Templates",
+        "assigned": "Assigned"
+      },
+      "segments": {
+        "warmup": "Warmup",
+        "cooldown": "Cooldown",
+        "interval": "Interval",
+        "steady": "Steady pace",
+        "recovery": "Recovery",
+        "hill": "Hills",
+        "drills": "Drills",
+        "core": "Core",
+        "prehab": "Stability / Prehab",
+        "plyometric": "Plyometrics"
+      },
+      "toasts": {
+        "errorTitle": "Error",
+        "fetchError": "Could not fetch your cardio sessions",
+        "startFocusError": "Could not start Focus Mode",
+        "completeTitle": "Workout complete!",
+        "completeDescription": "Good work! Your workout has been saved.",
+        "saveError": "Could not save the workout"
+      },
+      "upcoming": {
+        "emptyTitle": "No upcoming workouts",
+        "emptyDescription": "Your coach has not assigned any cardio workouts yet."
+      },
+      "history": {
+        "emptyTitle": "No history yet",
+        "emptyDescription": "Completed workouts will appear here.",
+        "completedBadge": "Completed"
+      },
+      "templates": {
+        "title": "Template library",
+        "description": "Browse system templates and create your own workouts.",
+        "browse": "Browse templates"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",

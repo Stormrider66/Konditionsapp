@@ -27,6 +27,7 @@ import {
   confirmFutureCompletion,
   readFutureCompletionWarning,
 } from '@/lib/workouts/future-completion-client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
@@ -91,6 +92,8 @@ export function AthleteCardioClient({
   clientId,
   canAccessTemplates = false,
 }: AthleteCardioClientProps) {
+  const t = useTranslations('components.athleteCardioClient')
+  const locale = useLocale()
   const { toast } = useToast()
 
   // State
@@ -119,17 +122,17 @@ export function AthleteCardioClient({
       }
     } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte hämta dina cardiopass',
+        title: t('toasts.errorTitle'),
+        description: t('toasts.fetchError'),
         variant: 'destructive',
       })
     } finally {
       setLoading(false)
     }
-  }, [clientId, toast])
+  }, [clientId, toast, t])
 
   useEffect(() => {
-    fetchAssignments()
+    void fetchAssignments()
   }, [fetchAssignments])
 
   // Start focus mode
@@ -141,18 +144,18 @@ export function AthleteCardioClient({
     setShowStartScreen(true)
   }
 
-  // Segment type names in Swedish
+  // Segment type names
   const SEGMENT_TYPE_NAMES: Record<SegmentType, string> = {
-    WARMUP: 'Uppvärmning',
-    COOLDOWN: 'Nedvarvning',
-    INTERVAL: 'Intervall',
-    STEADY: 'Jämnt tempo',
-    RECOVERY: 'Återhämtning',
-    HILL: 'Backar',
-    DRILLS: 'Övningar',
-    CORE: 'Core',
-    PREHAB: 'Stabilitet / Prehab',
-    PLYOMETRIC: 'Plyometri',
+    WARMUP: 'segments.warmup',
+    COOLDOWN: 'segments.cooldown',
+    INTERVAL: 'segments.interval',
+    STEADY: 'segments.steady',
+    RECOVERY: 'segments.recovery',
+    HILL: 'segments.hill',
+    DRILLS: 'segments.drills',
+    CORE: 'segments.core',
+    PREHAB: 'segments.prehab',
+    PLYOMETRIC: 'segments.plyometric',
   }
 
   // Transform raw segments to FocusModeSegment format
@@ -166,7 +169,7 @@ export function AthleteCardioClient({
         id: existingLog?.id || `seg-${index}`,
         index,
         type: seg.type,
-        typeName: SEGMENT_TYPE_NAMES[seg.type] || seg.type,
+        typeName: SEGMENT_TYPE_NAMES[seg.type] ? t(SEGMENT_TYPE_NAMES[seg.type]) : seg.type,
         plannedDuration: seg.plannedDuration,
         plannedDistance: seg.plannedDistance,
         plannedZone: seg.plannedZone,
@@ -210,8 +213,8 @@ export function AthleteCardioClient({
       }
     } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte starta Focus Mode',
+        title: t('toasts.errorTitle'),
+        description: t('toasts.startFocusError'),
         variant: 'destructive',
       })
     }
@@ -249,16 +252,16 @@ export function AthleteCardioClient({
       if (!response.ok) throw new Error('Failed to complete session')
 
       toast({
-        title: 'Pass slutfört!',
-        description: 'Bra jobbat! Ditt pass har sparats.',
+        title: t('toasts.completeTitle'),
+        description: t('toasts.completeDescription'),
       })
 
       // Refresh assignments
-      fetchAssignments()
+      void fetchAssignments()
     } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte spara passet',
+        title: t('toasts.errorTitle'),
+        description: t('toasts.saveError'),
         variant: 'destructive',
       })
     } finally {
@@ -355,7 +358,7 @@ export function AthleteCardioClient({
           setFocusModeData(null)
         }}
         onCompleted={() => {
-          fetchAssignments()
+          void fetchAssignments()
         }}
       />
     )
@@ -368,7 +371,7 @@ export function AthleteCardioClient({
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900 dark:text-white uppercase italic">Cardio Pass</h1>
         <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">
-          Dina löppass, cykelpass och andra konditionspass
+          {t('header.description')}
         </p>
       </div>
 
@@ -380,7 +383,7 @@ export function AthleteCardioClient({
             className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
           >
             <History className="h-4 w-4" />
-            <span className="hidden sm:inline">Historik</span>
+            <span className="hidden sm:inline">{t('tabs.history')}</span>
           </TabsTrigger>
           {canAccessTemplates && (
             <TabsTrigger
@@ -388,7 +391,7 @@ export function AthleteCardioClient({
               className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
             >
               <Library className="h-4 w-4" />
-              <span className="hidden sm:inline">Mallar</span>
+              <span className="hidden sm:inline">{t('tabs.templates')}</span>
             </TabsTrigger>
           )}
           <TabsTrigger
@@ -396,7 +399,7 @@ export function AthleteCardioClient({
             className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
           >
             <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Tilldelade</span>
+            <span className="hidden sm:inline">{t('tabs.assigned')}</span>
             {upcomingAssignments.length > 0 && (
               <Badge variant="secondary" className="ml-1 bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-100">
                 {upcomingAssignments.length}
@@ -412,9 +415,9 @@ export function AthleteCardioClient({
               <div className="w-16 h-16 bg-slate-100 dark:bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Activity className="h-8 w-8 text-slate-300 dark:text-slate-500" />
               </div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Inga kommande pass</h3>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">{t('upcoming.emptyTitle')}</h3>
               <p className="text-slate-500 dark:text-slate-400 font-medium max-w-sm mx-auto">
-                Din tränare har inte tilldelat några cardiopass ännu.
+                {t('upcoming.emptyDescription')}
               </p>
             </div>
           ) : (
@@ -451,9 +454,9 @@ export function AthleteCardioClient({
               <div className="w-16 h-16 bg-slate-100 dark:bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <History className="h-8 w-8 text-slate-300 dark:text-slate-500" />
               </div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Ingen historik ännu</h3>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">{t('history.emptyTitle')}</h3>
               <p className="text-slate-500 dark:text-slate-400 font-medium">
-                Slutförda pass visas här.
+                {t('history.emptyDescription')}
               </p>
             </div>
           ) : (
@@ -472,7 +475,7 @@ export function AthleteCardioClient({
                       <div className="flex items-center gap-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">
                         <span className="flex items-center gap-1.5">
                           <Calendar className="h-3 w-3" />
-                          {new Date(assignment.assignedDate).toLocaleDateString('sv-SE')}
+                          {new Date(assignment.assignedDate).toLocaleDateString(locale)}
                         </span>
                         {assignment.session.totalDuration && (
                           <span className="flex items-center gap-1.5">
@@ -483,7 +486,9 @@ export function AthleteCardioClient({
                       </div>
                     </div>
                   </div>
-                  <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/30 font-bold uppercase tracking-wide">Slutförd</Badge>
+                  <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/30 font-bold uppercase tracking-wide">
+                    {t('history.completedBadge')}
+                  </Badge>
                 </div>
               ))}
             </div>
@@ -497,12 +502,12 @@ export function AthleteCardioClient({
               <div className="w-16 h-16 bg-slate-100 dark:bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Library className="h-8 w-8 text-slate-300 dark:text-slate-500" />
               </div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Mallbibliotek</h3>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">{t('templates.title')}</h3>
               <p className="text-slate-500 dark:text-slate-400 font-medium mb-6">
-                Bläddra bland systemmallar och skapa egna pass.
+                {t('templates.description')}
               </p>
               <Button variant="outline" className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-white/5 dark:border-white/10 dark:text-white dark:hover:bg-white/10 font-bold">
-                Bläddra mallar
+                {t('templates.browse')}
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             </div>

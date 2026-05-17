@@ -4353,6 +4353,50 @@
         "hard": "Hårt"
       }
     },
+    "athleteCardioClient": {
+      "header": {
+        "description": "Dina löppass, cykelpass och andra konditionspass"
+      },
+      "tabs": {
+        "history": "Historik",
+        "templates": "Mallar",
+        "assigned": "Tilldelade"
+      },
+      "segments": {
+        "warmup": "Uppvärmning",
+        "cooldown": "Nedvarvning",
+        "interval": "Intervall",
+        "steady": "Jämnt tempo",
+        "recovery": "Återhämtning",
+        "hill": "Backar",
+        "drills": "Övningar",
+        "core": "Core",
+        "prehab": "Stabilitet / Prehab",
+        "plyometric": "Plyometri"
+      },
+      "toasts": {
+        "errorTitle": "Fel",
+        "fetchError": "Kunde inte hämta dina cardiopass",
+        "startFocusError": "Kunde inte starta Focus Mode",
+        "completeTitle": "Pass slutfört!",
+        "completeDescription": "Bra jobbat! Ditt pass har sparats.",
+        "saveError": "Kunde inte spara passet"
+      },
+      "upcoming": {
+        "emptyTitle": "Inga kommande pass",
+        "emptyDescription": "Din tränare har inte tilldelat några cardiopass ännu."
+      },
+      "history": {
+        "emptyTitle": "Ingen historik ännu",
+        "emptyDescription": "Slutförda pass visas här.",
+        "completedBadge": "Slutförd"
+      },
+      "templates": {
+        "title": "Mallbibliotek",
+        "description": "Bläddra bland systemmallar och skapa egna pass.",
+        "browse": "Bläddra mallar"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",
