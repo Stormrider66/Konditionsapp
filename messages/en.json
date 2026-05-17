@@ -3649,6 +3649,70 @@
       "videoAnalysis": "Video Analysis",
       "describeMeal": "Describe your meal"
     },
+    "optimizeWorkoutButton": {
+      "actions": {
+        "optimize": "Optimize",
+        "optimizeWorkout": "Optimize workout"
+      },
+      "title": "Smart Optimization",
+      "readiness": "Readiness",
+      "recommendations": "Recommendations",
+      "restStronglyRecommended": "Rest is strongly recommended",
+      "states": {
+        "analyzing": "Analyzing readiness..."
+      },
+      "readinessLabels": {
+        "notReported": "Not reported",
+        "rested": "Rested",
+        "normal": "Normal",
+        "tired": "Tired"
+      },
+      "urgency": {
+        "immediate": "Important",
+        "recommended": "Suggestion",
+        "optional": "Optional"
+      },
+      "fallback": {
+        "values": {
+          "planned": "Planned",
+          "easyRecovery": "Easy/Recovery"
+        },
+        "reduceIntensity": {
+          "title": "Reduce intensity",
+          "description": "Your readiness is low. Consider doing this workout at a lower intensity.",
+          "reason": "Readiness {score}/100 indicates a need for recovery"
+        },
+        "reduceVolume": {
+          "title": "Reduce volume",
+          "description": "Consider shortening the session or doing fewer intervals.",
+          "reason": "Readiness {score}/100 - moderate adjustment recommended"
+        },
+        "addRecovery": {
+          "title": "Add extra recovery",
+          "description": "High muscular fatigue detected. Plan in extra rest.",
+          "reason": "Muscular fatigue is above normal, rest is needed"
+        },
+        "proceed": {
+          "title": "Proceed as planned",
+          "description": "No adjustments needed. You seem ready for the workout!",
+          "reason": "All indicators look good"
+        },
+        "noData": {
+          "description": "No readiness data available. Listen to your body.",
+          "reason": "Not enough data for analysis",
+          "summary": "No readiness data available"
+        },
+        "summary": {
+          "complete": "Analysis complete"
+        }
+      },
+      "confirm": {
+        "title": "Apply optimization?",
+        "reason": "Reason: {reason}",
+        "cancel": "Cancel",
+        "apply": "Apply"
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Training library",

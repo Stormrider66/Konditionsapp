@@ -3649,6 +3649,70 @@
       "videoAnalysis": "Video Analys",
       "describeMeal": "Beskriv din måltid"
     },
+    "optimizeWorkoutButton": {
+      "actions": {
+        "optimize": "Optimera",
+        "optimizeWorkout": "Optimera pass"
+      },
+      "title": "Smart Optimering",
+      "readiness": "Beredskap",
+      "recommendations": "Rekommendationer",
+      "restStronglyRecommended": "Vila rekommenderas starkt",
+      "states": {
+        "analyzing": "Analyserar beredskap..."
+      },
+      "readinessLabels": {
+        "notReported": "Ej rapporterad",
+        "rested": "Utvilad",
+        "normal": "Normal",
+        "tired": "Trött"
+      },
+      "urgency": {
+        "immediate": "Viktigt",
+        "recommended": "Förslag",
+        "optional": "Valfritt"
+      },
+      "fallback": {
+        "values": {
+          "planned": "Planerad",
+          "easyRecovery": "Lätt/Återhämtning"
+        },
+        "reduceIntensity": {
+          "title": "Sänk intensiteten",
+          "description": "Din beredskap är låg. Överväg att köra passet på lägre intensitet.",
+          "reason": "Beredskap {score}/100 indikerar behov av återhämtning"
+        },
+        "reduceVolume": {
+          "title": "Minska volymen",
+          "description": "Överväg att korta ner passet eller ta färre intervaller.",
+          "reason": "Beredskap {score}/100 - moderat anpassning rekommenderas"
+        },
+        "addRecovery": {
+          "title": "Lägg till extra återhämtning",
+          "description": "Hög muskulär trötthet detekterad. Planera in extra vila.",
+          "reason": "Muskulär trötthet över normalt, vila behövs"
+        },
+        "proceed": {
+          "title": "Fortsätt som planerat",
+          "description": "Inga justeringar behövs. Du verkar redo för passet!",
+          "reason": "Alla indikatorer ser bra ut"
+        },
+        "noData": {
+          "description": "Ingen beredskapsdata tillgänglig. Lyssna på kroppen.",
+          "reason": "Otillräcklig data för analys",
+          "summary": "Ingen beredskapsdata tillgänglig"
+        },
+        "summary": {
+          "complete": "Analys slutförd"
+        }
+      },
+      "confirm": {
+        "title": "Tillämpa optimering?",
+        "reason": "Anledning: {reason}",
+        "cancel": "Avbryt",
+        "apply": "Tillämpa"
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Träningsbibliotek",

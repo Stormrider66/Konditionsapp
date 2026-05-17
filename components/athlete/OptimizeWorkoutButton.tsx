@@ -9,6 +9,7 @@
  */
 
 import { useState } from 'react'
+import { useTranslations } from '@/i18n/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -85,11 +86,11 @@ function getReadinessIcon(score: number | null) {
   return <BatteryLow className="h-4 w-4 text-orange-500" />
 }
 
-function getReadinessLabel(score: number | null) {
-  if (score === null) return 'Ej rapporterad'
-  if (score >= 80) return 'Utvilad'
-  if (score >= 60) return 'Normal'
-  return 'Trött'
+function getReadinessLabel(score: number | null, t: (key: string) => string) {
+  if (score === null) return t('readinessLabels.notReported')
+  if (score >= 80) return t('readinessLabels.rested')
+  if (score >= 60) return t('readinessLabels.normal')
+  return t('readinessLabels.tired')
 }
 
 function getUrgencyColor(urgency: string) {
@@ -127,6 +128,7 @@ export function OptimizeWorkoutButton({
   className,
   onOptimize,
 }: OptimizeWorkoutButtonProps) {
+  const t = useTranslations('components.optimizeWorkoutButton')
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [data, setData] = useState<OptimizationResponse | null>(null)
@@ -159,7 +161,7 @@ export function OptimizeWorkoutButton({
         const fallbackData = await generateLocalOptimization(clientId)
         setData(fallbackData)
       }
-    } catch (err) {
+    } catch {
       // Fallback to local analysis
       const fallbackData = await generateLocalOptimization(clientId)
       setData(fallbackData)
@@ -171,7 +173,7 @@ export function OptimizeWorkoutButton({
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open)
     if (open) {
-      fetchOptimization()
+      void fetchOptimization()
     }
   }
 
@@ -208,21 +210,21 @@ export function OptimizeWorkoutButton({
         suggestions.push({
           type: 'reduce_intensity',
           urgency: 'immediate',
-          title: 'Sänk intensiteten',
-          description: 'Din beredskap är låg. Överväg att köra passet på lägre intensitet.',
-          originalValue: plannedIntensity || 'Planerad',
-          suggestedValue: 'Lätt/Återhämtning',
+          title: t('fallback.reduceIntensity.title'),
+          description: t('fallback.reduceIntensity.description'),
+          originalValue: plannedIntensity || t('fallback.values.planned'),
+          suggestedValue: t('fallback.values.easyRecovery'),
           confidence: 0.85,
-          reason: `Beredskap ${readinessScore}/100 indikerar behov av återhämtning`,
+          reason: t('fallback.reduceIntensity.reason', { score: readinessScore }),
         })
       } else if (readinessScore !== null && readinessScore < 70) {
         suggestions.push({
           type: 'reduce_volume',
           urgency: 'recommended',
-          title: 'Minska volymen',
-          description: 'Överväg att korta ner passet eller ta färre intervaller.',
+          title: t('fallback.reduceVolume.title'),
+          description: t('fallback.reduceVolume.description'),
           confidence: 0.7,
-          reason: `Beredskap ${readinessScore}/100 - moderat anpassning rekommenderas`,
+          reason: t('fallback.reduceVolume.reason', { score: readinessScore }),
         })
       }
 
@@ -230,10 +232,10 @@ export function OptimizeWorkoutButton({
         suggestions.push({
           type: 'add_recovery',
           urgency: 'recommended',
-          title: 'Lägg till extra återhämtning',
-          description: 'Hög muskulär trötthet detekterad. Planera in extra vila.',
+          title: t('fallback.addRecovery.title'),
+          description: t('fallback.addRecovery.description'),
           confidence: 0.75,
-          reason: 'Muskulär trötthet över normalt, vila behövs',
+          reason: t('fallback.addRecovery.reason'),
         })
       }
 
@@ -241,10 +243,10 @@ export function OptimizeWorkoutButton({
         suggestions.push({
           type: 'proceed_as_planned',
           urgency: 'optional',
-          title: 'Fortsätt som planerat',
-          description: 'Inga justeringar behövs. Du verkar redo för passet!',
+          title: t('fallback.proceed.title'),
+          description: t('fallback.proceed.description'),
           confidence: 0.9,
-          reason: 'Alla indikatorer ser bra ut',
+          reason: t('fallback.proceed.reason'),
         })
       }
 
@@ -257,7 +259,7 @@ export function OptimizeWorkoutButton({
           acwr: null,
         },
         suggestions,
-        summary: suggestions[0]?.description || 'Analys slutförd',
+        summary: suggestions[0]?.description || t('fallback.summary.complete'),
         canProceed: readinessScore === null || readinessScore >= 50,
       }
     } catch {
@@ -267,12 +269,12 @@ export function OptimizeWorkoutButton({
         suggestions: [{
           type: 'proceed_as_planned',
           urgency: 'optional',
-          title: 'Fortsätt som planerat',
-          description: 'Ingen beredskapsdata tillgänglig. Lyssna på kroppen.',
+          title: t('fallback.proceed.title'),
+          description: t('fallback.noData.description'),
           confidence: 0.5,
-          reason: 'Otillräcklig data för analys',
+          reason: t('fallback.noData.reason'),
         }],
-        summary: 'Ingen beredskapsdata tillgänglig',
+        summary: t('fallback.noData.summary'),
         canProceed: true,
       }
     }
@@ -287,7 +289,7 @@ export function OptimizeWorkoutButton({
               variant="ghost"
               size="icon"
               className={cn('h-8 w-8', className)}
-              title="Optimera pass"
+              title={t('actions.optimizeWorkout')}
             >
               <Sparkles className="h-4 w-4" />
             </Button>
@@ -323,7 +325,7 @@ export function OptimizeWorkoutButton({
               className={cn('h-7 text-xs gap-1', className)}
             >
               <Sparkles className="h-3 w-3" />
-              Optimera
+              {t('actions.optimize')}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-80" align="end">
@@ -356,7 +358,7 @@ export function OptimizeWorkoutButton({
             className={cn('gap-2', className)}
           >
             <Sparkles className="h-4 w-4" />
-            Optimera pass
+            {t('actions.optimizeWorkout')}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-96" align="end">
@@ -391,11 +393,13 @@ function OptimizationContent({
   data: OptimizationResponse | null
   onApply: (suggestion: OptimizationSuggestion) => void
 }) {
+  const t = useTranslations('components.optimizeWorkoutButton')
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-6">
         <Loader2 className="h-6 w-6 animate-spin text-blue-500 mb-2" />
-        <p className="text-sm text-muted-foreground">Analyserar beredskap...</p>
+        <p className="text-sm text-muted-foreground">{t('states.analyzing')}</p>
       </div>
     )
   }
@@ -415,11 +419,11 @@ function OptimizationContent({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold">Smart Optimering</h4>
+        <h4 className="text-sm font-semibold">{t('title')}</h4>
         {data.readiness.score !== null && (
           <Badge variant="secondary" className="gap-1">
             {getReadinessIcon(data.readiness.score)}
-            {getReadinessLabel(data.readiness.score)}
+            {getReadinessLabel(data.readiness.score, t)}
           </Badge>
         )}
       </div>
@@ -428,7 +432,7 @@ function OptimizationContent({
       {data.readiness.score !== null && (
         <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-muted-foreground">Beredskap</span>
+            <span className="text-xs text-muted-foreground">{t('readiness')}</span>
             <span className="text-sm font-bold">{data.readiness.score}/100</span>
           </div>
           <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -446,7 +450,7 @@ function OptimizationContent({
 
       {/* Suggestions */}
       <div className="space-y-2">
-        <p className="text-xs text-muted-foreground font-medium">Rekommendationer</p>
+        <p className="text-xs text-muted-foreground font-medium">{t('recommendations')}</p>
         {data.suggestions.map((suggestion, index) => (
           <button
             key={index}
@@ -459,8 +463,7 @@ function OptimizationContent({
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-sm font-medium">{suggestion.title}</span>
                   <Badge className={cn('text-[10px] h-4 px-1', getUrgencyColor(suggestion.urgency))}>
-                    {suggestion.urgency === 'immediate' ? 'Viktigt' :
-                     suggestion.urgency === 'recommended' ? 'Förslag' : 'Valfritt'}
+                    {t(`urgency.${suggestion.urgency}`)}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground line-clamp-2">
@@ -486,7 +489,7 @@ function OptimizationContent({
         <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
           <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
             <AlertTriangle className="h-4 w-4" />
-            <span className="text-xs font-medium">Vila rekommenderas starkt</span>
+            <span className="text-xs font-medium">{t('restStronglyRecommended')}</span>
           </div>
         </div>
       )}
@@ -506,25 +509,27 @@ function ConfirmDialog({
   suggestion: OptimizationSuggestion | null
   onConfirm: () => void
 }) {
+  const t = useTranslations('components.optimizeWorkoutButton')
+
   if (!suggestion) return null
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Tillämpa optimering?</AlertDialogTitle>
+          <AlertDialogTitle>{t('confirm.title')}</AlertDialogTitle>
           <AlertDialogDescription>
             {suggestion.description}
             <br /><br />
             <span className="text-xs text-muted-foreground">
-              Anledning: {suggestion.reason}
+              {t('confirm.reason', { reason: suggestion.reason })}
             </span>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Avbryt</AlertDialogCancel>
+          <AlertDialogCancel>{t('confirm.cancel')}</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm}>
-            Tillämpa
+            {t('confirm.apply')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
