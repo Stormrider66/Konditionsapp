@@ -4208,6 +4208,59 @@
         "description": "Your wrapped — monthly and yearly overview"
       }
     },
+    "foodHistoryPage": {
+      "ranges": {
+        "sevenDays": "Last 7 days",
+        "thirtyDays": "Last 30 days",
+        "ninetyDays": "Last 3 months",
+        "oneYear": "Last year",
+        "allTime": "All time"
+      },
+      "views": {
+        "topFoods": "Top foods",
+        "nutrientSources": "Nutrition sources",
+        "timeline": "History"
+      },
+      "mealTypes": {
+        "breakfast": "Breakfast",
+        "morningSnack": "AM snack",
+        "lunch": "Lunch",
+        "afternoonSnack": "PM snack",
+        "preWorkout": "Pre-workout",
+        "postWorkout": "Post-workout",
+        "dinner": "Dinner",
+        "eveningSnack": "Evening snack"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "stats": {
+        "uniqueFoods": "Unique foods",
+        "totalLogged": "Total logged"
+      },
+      "empty": {
+        "title": "No food history yet",
+        "description": "Scan your food with the photo feature and we will start saving what you eat",
+        "noData": "No data yet"
+      },
+      "topFoods": {
+        "title": "Most eaten foods",
+        "countLabel": "Count",
+        "tooltipCountTotal": "{count} times ({grams}g total)"
+      },
+      "nutrientSources": {
+        "protein": "Protein sources",
+        "carbs": "Carbohydrate sources",
+        "fat": "Fat sources"
+      },
+      "timeline": {
+        "totalCalories": "Total: {calories} kcal"
+      },
+      "confirmDeleteMeal": "Delete this meal?",
+      "categoryFallback": "Uncategorized",
+      "totalGrams": "{grams}g total"
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -22,6 +21,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface TopFood {
   name: string
@@ -63,17 +63,17 @@ interface TimelineMeal {
 type View = 'top-foods' | 'nutrient-sources' | 'timeline'
 
 const RANGES = [
-  { value: '7d', label: 'Senaste 7 dagarna' },
-  { value: '30d', label: 'Senaste 30 dagarna' },
-  { value: '90d', label: 'Senaste 3 månaderna' },
-  { value: '365d', label: 'Senaste året' },
-  { value: 'all', label: 'Alla tider' },
+  { value: '7d', labelKey: 'ranges.sevenDays' },
+  { value: '30d', labelKey: 'ranges.thirtyDays' },
+  { value: '90d', labelKey: 'ranges.ninetyDays' },
+  { value: '365d', labelKey: 'ranges.oneYear' },
+  { value: 'all', labelKey: 'ranges.allTime' },
 ]
 
-const VIEWS: { value: View; label: string; icon: typeof UtensilsCrossed }[] = [
-  { value: 'top-foods', label: 'Topplivsmedel', icon: TrendingUp },
-  { value: 'nutrient-sources', label: 'Näringskällor', icon: PieChart },
-  { value: 'timeline', label: 'Historik', icon: UtensilsCrossed },
+const VIEWS: { value: View; labelKey: string; icon: typeof UtensilsCrossed }[] = [
+  { value: 'top-foods', labelKey: 'views.topFoods', icon: TrendingUp },
+  { value: 'nutrient-sources', labelKey: 'views.nutrientSources', icon: PieChart },
+  { value: 'timeline', labelKey: 'views.timeline', icon: UtensilsCrossed },
 ]
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -88,15 +88,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   OTHER: '#94a3b8',
 }
 
-const MEAL_TYPE_LABELS: Record<string, string> = {
-  BREAKFAST: 'Frukost',
-  MORNING_SNACK: 'Fm-mellis',
-  LUNCH: 'Lunch',
-  AFTERNOON_SNACK: 'Em-mellis',
-  PRE_WORKOUT: 'Före träning',
-  POST_WORKOUT: 'Efter träning',
-  DINNER: 'Middag',
-  EVENING_SNACK: 'Kvällsmellis',
+const MEAL_TYPE_LABEL_KEYS: Record<string, string> = {
+  BREAKFAST: 'mealTypes.breakfast',
+  MORNING_SNACK: 'mealTypes.morningSnack',
+  LUNCH: 'mealTypes.lunch',
+  AFTERNOON_SNACK: 'mealTypes.afternoonSnack',
+  PRE_WORKOUT: 'mealTypes.preWorkout',
+  POST_WORKOUT: 'mealTypes.postWorkout',
+  DINNER: 'mealTypes.dinner',
+  EVENING_SNACK: 'mealTypes.eveningSnack',
 }
 
 const BAR_COLORS = [
@@ -107,6 +107,8 @@ const BAR_COLORS = [
 ]
 
 export function FoodHistoryPage() {
+  const t = useTranslations('components.foodHistoryPage')
+  const locale = useLocale()
   const [view, setView] = useState<View>('top-foods')
   const [range, setRange] = useState('30d')
   const [loading, setLoading] = useState(true)
@@ -126,7 +128,7 @@ export function FoodHistoryPage() {
   const [deletingMealId, setDeletingMealId] = useState<string | null>(null)
 
   const handleDeleteMeal = async (mealId: string) => {
-    if (!confirm('Ta bort denna måltid?')) return
+    if (!confirm(t('confirmDeleteMeal'))) return
     setDeletingMealId(mealId)
     try {
       const res = await fetch(`/api/meals/${mealId}`, { method: 'DELETE' })
@@ -169,7 +171,7 @@ export function FoodHistoryPage() {
   }, [view, range])
 
   useEffect(() => {
-    fetchData()
+    void fetchData()
   }, [fetchData])
 
   return (
@@ -190,7 +192,7 @@ export function FoodHistoryPage() {
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
-                {v.label}
+                {t(v.labelKey)}
               </button>
             )
           })}
@@ -202,7 +204,7 @@ export function FoodHistoryPage() {
           <SelectContent>
             {RANGES.map((r) => (
               <SelectItem key={r.value} value={r.value}>
-                {r.label}
+                {t(r.labelKey)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -222,13 +224,13 @@ export function FoodHistoryPage() {
                 <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
                   <CardContent className="p-4 text-center">
                     <p className="text-2xl font-bold text-slate-900 dark:text-white">{topFoodsData.totalUniqueItems}</p>
-                    <p className="text-xs text-slate-400">Unika livsmedel</p>
+                    <p className="text-xs text-slate-400">{t('stats.uniqueFoods')}</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
                   <CardContent className="p-4 text-center">
                     <p className="text-2xl font-bold text-slate-900 dark:text-white">{topFoodsData.totalItemCount}</p>
-                    <p className="text-xs text-slate-400">Totalt loggade</p>
+                    <p className="text-xs text-slate-400">{t('stats.totalLogged')}</p>
                   </CardContent>
                 </Card>
               </div>
@@ -237,9 +239,9 @@ export function FoodHistoryPage() {
                 <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
                   <CardContent className="p-8 text-center">
                     <UtensilsCrossed className="h-8 w-8 text-slate-500 mx-auto mb-3" />
-                    <p className="text-slate-600 dark:text-slate-400">Ingen mathistorik ännu</p>
+                    <p className="text-slate-600 dark:text-slate-400">{t('empty.title')}</p>
                     <p className="text-xs text-slate-500 mt-1">
-                      Skanna din mat med fotofunktionen så börjar vi spara vad du äter
+                      {t('empty.description')}
                     </p>
                   </CardContent>
                 </Card>
@@ -247,7 +249,7 @@ export function FoodHistoryPage() {
                 <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm text-slate-700 dark:text-slate-300">
-                      Mest ätna livsmedel
+                      {t('topFoods.title')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -274,10 +276,13 @@ export function FoodHistoryPage() {
                             }}
                             formatter={(value: number, _name: string, entry: { payload?: TopFood }) => {
                               const item = entry.payload
-                              if (!item) return [`${value}`, 'Antal']
+                              if (!item) return [`${value}`, t('topFoods.countLabel')]
                               return [
-                                `${value} gånger (${Math.round(item.totalGrams)}g totalt)`,
-                                'Antal',
+                                t('topFoods.tooltipCountTotal', {
+                                  count: value,
+                                  grams: Math.round(item.totalGrams),
+                                }),
+                                t('topFoods.countLabel'),
                               ]
                             }}
                           />
@@ -311,7 +316,7 @@ export function FoodHistoryPage() {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-slate-900 truncate dark:text-white">{food.name}</p>
                             <p className="text-[10px] text-slate-500">
-                              {food.category || 'Okategoriserad'} · {Math.round(food.totalGrams)}g totalt
+                              {food.category || t('categoryFallback')} · {t('totalGrams', { grams: Math.round(food.totalGrams) })}
                             </p>
                           </div>
                           <div className="text-right">
@@ -333,25 +338,28 @@ export function FoodHistoryPage() {
           {view === 'nutrient-sources' && nutrientData && (
             <div className="space-y-4">
               <NutrientSourceCard
-                title="Proteinkällor"
+                title={t('nutrientSources.protein')}
                 color="text-blue-400"
-                totalGrams={nutrientData.totals.proteinGrams}
                 sources={nutrientData.proteinSources}
                 barColor="#60a5fa"
+                emptyLabel={t('empty.noData')}
+                totalLabel={t('totalGrams', { grams: nutrientData.totals.proteinGrams })}
               />
               <NutrientSourceCard
-                title="Kolhydratkällor"
+                title={t('nutrientSources.carbs')}
                 color="text-amber-400"
-                totalGrams={nutrientData.totals.carbsGrams}
                 sources={nutrientData.carbSources}
                 barColor="#fbbf24"
+                emptyLabel={t('empty.noData')}
+                totalLabel={t('totalGrams', { grams: nutrientData.totals.carbsGrams })}
               />
               <NutrientSourceCard
-                title="Fettkällor"
+                title={t('nutrientSources.fat')}
                 color="text-rose-400"
-                totalGrams={nutrientData.totals.fatGrams}
                 sources={nutrientData.fatSources}
                 barColor="#f87171"
+                emptyLabel={t('empty.noData')}
+                totalLabel={t('totalGrams', { grams: nutrientData.totals.fatGrams })}
               />
             </div>
           )}
@@ -364,7 +372,7 @@ export function FoodHistoryPage() {
                 <Card className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
                   <CardContent className="p-8 text-center">
                     <UtensilsCrossed className="h-8 w-8 text-slate-500 mx-auto mb-3" />
-                    <p className="text-slate-600 dark:text-slate-400">Ingen mathistorik ännu</p>
+                    <p className="text-slate-600 dark:text-slate-400">{t('empty.title')}</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -374,7 +382,7 @@ export function FoodHistoryPage() {
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-medium text-cyan-400">
-                            {MEAL_TYPE_LABELS[meal.mealType] || meal.mealType}
+                            {MEAL_TYPE_LABEL_KEYS[meal.mealType] ? t(MEAL_TYPE_LABEL_KEYS[meal.mealType]) : meal.mealType}
                           </span>
                           {meal.time && (
                             <span className="text-xs text-slate-500">{meal.time}</span>
@@ -399,7 +407,7 @@ export function FoodHistoryPage() {
                                 : null,
                             })}
                             className="p-1 rounded hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity dark:hover:bg-white/10"
-                            title="Redigera"
+                            title={t('actions.edit')}
                           >
                             <Pencil className="h-3.5 w-3.5 text-slate-400 hover:text-cyan-400" />
                           </button>
@@ -407,12 +415,12 @@ export function FoodHistoryPage() {
                             onClick={() => handleDeleteMeal(meal.id)}
                             disabled={deletingMealId === meal.id}
                             className="p-1 rounded hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity dark:hover:bg-white/10"
-                            title="Ta bort"
+                            title={t('actions.delete')}
                           >
                             <Trash2 className="h-3.5 w-3.5 text-slate-400 hover:text-red-400" />
                           </button>
                           <span className="text-xs text-slate-500">
-                            {new Date(meal.date).toLocaleDateString('sv-SE')}
+                            {new Date(meal.date).toLocaleDateString(locale)}
                           </span>
                         </div>
                       </div>
@@ -448,7 +456,7 @@ export function FoodHistoryPage() {
                       )}
                       {meal.calories != null && (
                         <div className="mt-2 pt-2 border-t border-slate-200 text-xs text-slate-600 dark:border-white/5 dark:text-slate-400">
-                          Totalt: {meal.calories} kcal
+                          {t('timeline.totalCalories', { calories: meal.calories })}
                         </div>
                       )}
                     </CardContent>
@@ -462,7 +470,7 @@ export function FoodHistoryPage() {
                 onClose={() => setEditingMeal(null)}
                 onMealSaved={() => {
                   setEditingMeal(null)
-                  fetchData()
+                  void fetchData()
                 }}
                 editMeal={editingMeal}
                 date={new Date()}
@@ -479,15 +487,17 @@ export function FoodHistoryPage() {
 function NutrientSourceCard({
   title,
   color,
-  totalGrams,
   sources,
   barColor,
+  emptyLabel,
+  totalLabel,
 }: {
   title: string
   color: string
-  totalGrams: number
   sources: NutrientSource[]
   barColor: string
+  emptyLabel: string
+  totalLabel: string
 }) {
   if (sources.length === 0) {
     return (
@@ -496,7 +506,7 @@ function NutrientSourceCard({
           <CardTitle className={`text-sm ${color}`}>{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-xs text-slate-500">Ingen data ännu</p>
+          <p className="text-xs text-slate-500">{emptyLabel}</p>
         </CardContent>
       </Card>
     )
@@ -508,7 +518,7 @@ function NutrientSourceCard({
         <CardTitle className={`text-sm ${color}`}>
           {title}
           <span className="text-slate-500 font-normal ml-2">
-            ({totalGrams}g totalt)
+            ({totalLabel})
           </span>
         </CardTitle>
       </CardHeader>

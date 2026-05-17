@@ -4208,6 +4208,59 @@
         "description": "Din wrapped — månads- och årsöversikt"
       }
     },
+    "foodHistoryPage": {
+      "ranges": {
+        "sevenDays": "Senaste 7 dagarna",
+        "thirtyDays": "Senaste 30 dagarna",
+        "ninetyDays": "Senaste 3 månaderna",
+        "oneYear": "Senaste året",
+        "allTime": "Alla tider"
+      },
+      "views": {
+        "topFoods": "Topplivsmedel",
+        "nutrientSources": "Näringskällor",
+        "timeline": "Historik"
+      },
+      "mealTypes": {
+        "breakfast": "Frukost",
+        "morningSnack": "Fm-mellis",
+        "lunch": "Lunch",
+        "afternoonSnack": "Em-mellis",
+        "preWorkout": "Före träning",
+        "postWorkout": "Efter träning",
+        "dinner": "Middag",
+        "eveningSnack": "Kvällsmellis"
+      },
+      "actions": {
+        "edit": "Redigera",
+        "delete": "Ta bort"
+      },
+      "stats": {
+        "uniqueFoods": "Unika livsmedel",
+        "totalLogged": "Totalt loggade"
+      },
+      "empty": {
+        "title": "Ingen mathistorik ännu",
+        "description": "Skanna din mat med fotofunktionen så börjar vi spara vad du äter",
+        "noData": "Ingen data ännu"
+      },
+      "topFoods": {
+        "title": "Mest ätna livsmedel",
+        "countLabel": "Antal",
+        "tooltipCountTotal": "{count} gånger ({grams}g totalt)"
+      },
+      "nutrientSources": {
+        "protein": "Proteinkällor",
+        "carbs": "Kolhydratkällor",
+        "fat": "Fettkällor"
+      },
+      "timeline": {
+        "totalCalories": "Totalt: {calories} kcal"
+      },
+      "confirmDeleteMeal": "Ta bort denna måltid?",
+      "categoryFallback": "Okategoriserad",
+      "totalGrams": "{grams}g totalt"
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {
