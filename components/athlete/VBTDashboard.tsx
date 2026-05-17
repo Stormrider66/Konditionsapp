@@ -16,12 +16,26 @@ import { VBTUploadWidget } from './VBTUploadWidget';
 import { VBTSessionHistory } from './VBTSessionHistory';
 import { VBTProgressionWidget } from './VBTProgressionWidget';
 import { Upload, History, TrendingUp, Gauge } from 'lucide-react';
+import { useTranslations } from '@/i18n/client';
 
 interface VBTDashboardProps {
   clientId: string;
 }
 
+interface VBTExerciseSummary {
+  exerciseId: string;
+  exerciseName: string;
+  recommended1RM?: number;
+  velocityTrend?: 'IMPROVING' | 'STABLE' | 'DECLINING' | null;
+}
+
+interface VBTProgressionSummary {
+  exercisesWithVBT: number;
+  exerciseSummaries: VBTExerciseSummary[];
+}
+
 export function VBTDashboard({ clientId }: VBTDashboardProps) {
+  const t = useTranslations('components.vbtDashboard');
   const [activeTab, setActiveTab] = useState('upload');
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -50,15 +64,15 @@ export function VBTDashboard({ clientId }: VBTDashboardProps) {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="upload" className="flex items-center gap-2">
             <Upload className="h-4 w-4" />
-            Ladda upp
+            {t('tabs.upload')}
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="h-4 w-4" />
-            Historik
+            {t('tabs.history')}
           </TabsTrigger>
           <TabsTrigger value="progression" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
-            Progression
+            {t('tabs.progression')}
           </TabsTrigger>
         </TabsList>
 
@@ -89,8 +103,9 @@ export function VBTDashboard({ clientId }: VBTDashboardProps) {
  * VBT Progression View - Full page progression display
  */
 function VBTProgressionView({ clientId }: { clientId: string }) {
+  const t = useTranslations('components.vbtDashboard');
   const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<VBTProgressionSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch summary on mount
@@ -101,8 +116,8 @@ function VBTProgressionView({ clientId }: { clientId: string }) {
           `/api/athlete/vbt/progression?clientId=${clientId}&type=summary`
         );
         if (response.ok) {
-          const result = await response.json();
-          setData(result.data);
+          const result = await response.json() as { data?: VBTProgressionSummary };
+          setData(result.data ?? null);
         }
       } catch (error) {
         console.error('Failed to fetch progression data:', error);
@@ -110,7 +125,7 @@ function VBTProgressionView({ clientId }: { clientId: string }) {
         setIsLoading(false);
       }
     }
-    fetchData();
+    void fetchData();
   }, [clientId]);
 
   if (isLoading) {
@@ -128,9 +143,9 @@ function VBTProgressionView({ clientId }: { clientId: string }) {
     return (
       <div className="text-center py-12">
         <Gauge className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="font-medium mb-2">Ingen progressionsdata</h3>
+        <h3 className="font-medium mb-2">{t('emptyProgressionTitle')}</h3>
         <p className="text-sm text-muted-foreground">
-          Ladda upp VBT-data för att börja spåra din styrketräningsprogression
+          {t('emptyProgressionDescription')}
         </p>
       </div>
     );
@@ -143,9 +158,9 @@ function VBTProgressionView({ clientId }: { clientId: string }) {
 
       {/* Exercise List */}
       <div className="space-y-4">
-        <h3 className="font-medium">Övningsöversikt</h3>
+        <h3 className="font-medium">{t('exerciseOverview')}</h3>
         <div className="grid gap-3">
-          {data.exerciseSummaries.map((exercise: any) => (
+          {data.exerciseSummaries.map((exercise) => (
             <ExerciseCard
               key={exercise.exerciseId}
               exercise={exercise}
@@ -158,6 +173,7 @@ function VBTProgressionView({ clientId }: { clientId: string }) {
                 )
               }
               clientId={clientId}
+              t={t}
             />
           ))}
         </div>
@@ -179,11 +195,13 @@ function ExerciseCard({
   isSelected,
   onClick,
   clientId,
+  t,
 }: {
-  exercise: any;
+  exercise: VBTExerciseSummary;
   isSelected: boolean;
   onClick: () => void;
   clientId: string;
+  t: (key: string) => string;
 }) {
   const TREND_COLORS = {
     IMPROVING: 'text-green-600 bg-green-50',
@@ -207,7 +225,7 @@ function ExerciseCard({
               <div>
                 <p className="font-medium">{exercise.exerciseName}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  {exercise.recommended1RM > 0 && (
+                  {(exercise.recommended1RM ?? 0) > 0 && (
                     <Badge variant="outline" className="text-xs">
                       e1RM: {exercise.recommended1RM} kg
                     </Badge>
@@ -215,10 +233,10 @@ function ExerciseCard({
                   {exercise.velocityTrend && (
                     <Badge className={`text-xs ${trendClass}`}>
                       {exercise.velocityTrend === 'IMPROVING'
-                        ? 'Förbättras'
+                        ? t('trends.improving')
                         : exercise.velocityTrend === 'DECLINING'
-                        ? 'Sjunker'
-                        : 'Stabil'}
+                        ? t('trends.declining')
+                        : t('trends.stable')}
                     </Badge>
                   )}
                 </div>

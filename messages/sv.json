@@ -2898,6 +2898,21 @@
         "generic": "Ett fel uppstod"
       }
     },
+    "vbtDashboard": {
+      "tabs": {
+        "upload": "Ladda upp",
+        "history": "Historik",
+        "progression": "Progression"
+      },
+      "emptyProgressionTitle": "Ingen progressionsdata",
+      "emptyProgressionDescription": "Ladda upp VBT-data för att börja spåra din styrketräningsprogression",
+      "exerciseOverview": "Övningsöversikt",
+      "trends": {
+        "improving": "Förbättras",
+        "declining": "Sjunker",
+        "stable": "Stabil"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Kosttajming",
       "subtitle": {

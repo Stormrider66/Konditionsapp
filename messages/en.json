@@ -2898,6 +2898,21 @@
         "generic": "Something went wrong"
       }
     },
+    "vbtDashboard": {
+      "tabs": {
+        "upload": "Upload",
+        "history": "History",
+        "progression": "Progression"
+      },
+      "emptyProgressionTitle": "No progression data",
+      "emptyProgressionDescription": "Upload VBT data to start tracking your strength training progression",
+      "exerciseOverview": "Exercise overview",
+      "trends": {
+        "improving": "Improving",
+        "declining": "Declining",
+        "stable": "Stable"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Nutrition timing",
       "subtitle": {
