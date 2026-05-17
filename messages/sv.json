@@ -3713,6 +3713,44 @@
         "apply": "Tillämpa"
       }
     },
+    "trainingLoadWidget": {
+      "title": "Träningsbelastning",
+      "period": {
+        "last7Days": "Senaste 7 dagarna"
+      },
+      "metrics": {
+        "weeklyTss": "TSS denna vecka",
+        "dailyAverage": "snitt/dag",
+        "acwr": "ACWR (Akut:Kronisk)"
+      },
+      "empty": {
+        "noData": "Ingen träningsdata tillgänglig",
+        "connect": "Anslut Strava eller Garmin för att se din belastning"
+      },
+      "errors": {
+        "loadFailed": "Kunde inte ladda träningsbelastning"
+      },
+      "risk": {
+        "low": "Låg belastning",
+        "optimal": "Optimal",
+        "high": "Hög belastning",
+        "veryHigh": "Varning!",
+        "insufficientData": "Otillräcklig data",
+        "unknown": "Okänd"
+      },
+      "acwr": {
+        "insufficientData": "Minst 21 dagars data krävs för tillförlitlig ACWR",
+        "low": "0.8 (Låg)",
+        "optimal": "0.8-1.3 (Optimal)",
+        "high": "1.5+ (Hög)"
+      },
+      "activityBreakdown": "Per aktivitetstyp",
+      "trend": {
+        "increasing": "Din belastning ökar - övervaka återhämtning",
+        "decreasing": "Din belastning minskar - bra för återhämtning",
+        "stable": "Din belastning är stabil"
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Träningsbibliotek",

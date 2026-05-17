@@ -16,6 +16,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from '@/i18n/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
@@ -42,6 +43,7 @@ interface TrainingLoadWidgetProps {
 }
 
 export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLoadWidgetProps) {
+  const t = useTranslations('components.trainingLoadWidget')
   const [data, setData] = useState<TrainingLoadData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -59,14 +61,46 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
         setData(result)
       } catch (err) {
         console.error('Error fetching training load:', err)
-        setError('Kunde inte ladda träningsbelastning')
+        setError(t('errors.loadFailed'))
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchTrainingLoad()
-  }, [clientId])
+    void fetchTrainingLoad()
+  }, [clientId, t])
+
+  const title = t('title')
+  const noDataText = t('empty.noData')
+  const connectText = t('empty.connect')
+
+  const getRiskConfig = (level: string) => {
+    switch (level) {
+      case 'low':
+        return { color: 'text-blue-600', bg: 'bg-blue-100', label: t('risk.low'), icon: '💤' }
+      case 'optimal':
+        return { color: 'text-green-600', bg: 'bg-green-100', label: t('risk.optimal'), icon: '✅' }
+      case 'high':
+        return { color: 'text-orange-600', bg: 'bg-orange-100', label: t('risk.high'), icon: '⚠️' }
+      case 'very_high':
+        return { color: 'text-red-600', bg: 'bg-red-100', label: t('risk.veryHigh'), icon: '🔴' }
+      case 'insufficient_data':
+        return { color: 'text-gray-600', bg: 'bg-gray-100', label: t('risk.insufficientData'), icon: '📊' }
+      default:
+        return { color: 'text-gray-600', bg: 'bg-gray-100', label: t('risk.unknown'), icon: '❓' }
+    }
+  }
+
+  const getTrendText = (trend: TrainingLoadData['trend']) => {
+    switch (trend) {
+      case 'increasing':
+        return t('trend.increasing')
+      case 'decreasing':
+        return t('trend.decreasing')
+      default:
+        return t('trend.stable')
+    }
+  }
 
   if (isLoading) {
     if (variant === 'glass') {
@@ -75,7 +109,7 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
           <GlassCardHeader>
             <GlassCardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Träningsbelastning
+              {title}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
@@ -89,7 +123,7 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Träningsbelastning
+            {title}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -106,17 +140,17 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
           <GlassCardHeader>
             <GlassCardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Träningsbelastning
+              {title}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
             <div className="text-center py-6">
               <Activity className="h-10 w-10 text-slate-500 mx-auto mb-2" />
               <p className="text-sm text-slate-400">
-                {error || 'Ingen träningsdata tillgänglig'}
+                {error || noDataText}
               </p>
               <p className="text-xs text-slate-500 mt-1">
-                Anslut Strava eller Garmin för att se din belastning
+                {connectText}
               </p>
             </div>
           </GlassCardContent>
@@ -128,39 +162,22 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Träningsbelastning
+            {title}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-6">
             <Activity className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
-              {error || 'Ingen träningsdata tillgänglig'}
+              {error || noDataText}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Anslut Strava eller Garmin för att se din belastning
+              {connectText}
             </p>
           </div>
         </CardContent>
       </Card>
     )
-  }
-
-  const getRiskConfig = (level: string) => {
-    switch (level) {
-      case 'low':
-        return { color: 'text-blue-600', bg: 'bg-blue-100', label: 'Låg belastning', icon: '💤' }
-      case 'optimal':
-        return { color: 'text-green-600', bg: 'bg-green-100', label: 'Optimal', icon: '✅' }
-      case 'high':
-        return { color: 'text-orange-600', bg: 'bg-orange-100', label: 'Hög belastning', icon: '⚠️' }
-      case 'very_high':
-        return { color: 'text-red-600', bg: 'bg-red-100', label: 'Varning!', icon: '🔴' }
-      case 'insufficient_data':
-        return { color: 'text-gray-600', bg: 'bg-gray-100', label: 'Otillräcklig data', icon: '📊' }
-      default:
-        return { color: 'text-gray-600', bg: 'bg-gray-100', label: 'Okänd', icon: '❓' }
-    }
   }
 
   const riskConfig = getRiskConfig(data.riskLevel)
@@ -173,39 +190,39 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
           <div className="flex items-center justify-between">
             <GlassCardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-cyan-400" />
-              Träningsbelastning
+              {title}
               <InfoTooltip conceptKey="tss" />
             </GlassCardTitle>
             <Badge className={`${riskConfig.bg} ${riskConfig.color} border-0`}>
               {riskConfig.icon} {riskConfig.label}
             </Badge>
           </div>
-          <p className="text-sm text-slate-400">Senaste 7 dagarna</p>
+          <p className="text-sm text-slate-400">{t('period.last7Days')}</p>
         </GlassCardHeader>
         <GlassCardContent className="space-y-4">
           {/* Weekly TSS */}
           <div className="flex items-center justify-between text-slate-900 dark:text-white transition-colors">
             <div>
               <p className="text-3xl font-bold">{data.weeklyTSS}</p>
-              <p className="text-sm text-slate-600 dark:text-slate-400 transition-colors">TSS denna vecka</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400 transition-colors">{t('metrics.weeklyTss')}</p>
             </div>
             <div className="text-right">
               <p className="text-lg font-medium">{data.dailyAvgTSS}</p>
-              <p className="text-xs text-slate-600 dark:text-slate-400 transition-colors">snitt/dag</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 transition-colors">{t('metrics.dailyAverage')}</p>
             </div>
           </div>
 
           {/* ACWR */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-400 transition-colors">ACWR (Akut:Kronisk)</span>
+              <span className="text-slate-600 dark:text-slate-400 transition-colors">{t('metrics.acwr')}</span>
               {data.riskLevel !== 'insufficient_data' && (
                 <span className="font-medium text-slate-900 dark:text-white transition-colors">{data.acwr.toFixed(2)}</span>
               )}
             </div>
             {data.riskLevel === 'insufficient_data' ? (
               <p className="text-xs text-slate-500">
-                Minst 21 dagars data krävs för tillförlitlig ACWR
+                {t('acwr.insufficientData')}
               </p>
             ) : (
               <>
@@ -215,9 +232,9 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
                   <div className="absolute top-0 left-[53%] w-[27%] h-2 border-l-2 border-r-2 border-green-500/50 opacity-50" />
                 </div>
                 <div className="flex justify-between text-xs text-slate-500">
-                  <span>0.8 (Låg)</span>
-                  <span className="text-green-600 dark:text-green-500">0.8-1.3 (Optimal)</span>
-                  <span>1.5+ (Hög)</span>
+                  <span>{t('acwr.low')}</span>
+                  <span className="text-green-600 dark:text-green-500">{t('acwr.optimal')}</span>
+                  <span>{t('acwr.high')}</span>
                 </div>
               </>
             )}
@@ -226,7 +243,7 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
           {/* Activity breakdown */}
           {Object.keys(data.byType).length > 0 && (
             <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-white/10 transition-colors">
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300 transition-colors">Per aktivitetstyp</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300 transition-colors">{t('activityBreakdown')}</p>
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(data.byType).slice(0, 4).map(([type, stats]) => (
                   <div key={type} className="flex items-center justify-between text-sm">
@@ -248,11 +265,7 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
               <Activity className="h-4 w-4 text-blue-600 dark:text-blue-500" />
             )}
             <p className="text-xs text-slate-500">
-              {data.trend === 'increasing'
-                ? 'Din belastning ökar - övervaka återhämtning'
-                : data.trend === 'decreasing'
-                  ? 'Din belastning minskar - bra för återhämtning'
-                  : 'Din belastning är stabil'}
+              {getTrendText(data.trend)}
             </p>
           </div>
 
@@ -268,39 +281,39 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Träningsbelastning
+            {title}
             <InfoTooltip conceptKey="tss" />
           </CardTitle>
           <Badge className={`${riskConfig.bg} ${riskConfig.color}`}>
             {riskConfig.icon} {riskConfig.label}
           </Badge>
         </div>
-        <CardDescription>Senaste 7 dagarna</CardDescription>
+        <CardDescription>{t('period.last7Days')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Weekly TSS */}
         <div className="flex items-center justify-between">
           <div>
             <p className="text-3xl font-bold">{data.weeklyTSS}</p>
-            <p className="text-sm text-muted-foreground">TSS denna vecka</p>
+            <p className="text-sm text-muted-foreground">{t('metrics.weeklyTss')}</p>
           </div>
           <div className="text-right">
             <p className="text-lg font-medium">{data.dailyAvgTSS}</p>
-            <p className="text-xs text-muted-foreground">snitt/dag</p>
+            <p className="text-xs text-muted-foreground">{t('metrics.dailyAverage')}</p>
           </div>
         </div>
 
         {/* ACWR */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">ACWR (Akut:Kronisk)</span>
+            <span className="text-muted-foreground">{t('metrics.acwr')}</span>
             {data.riskLevel !== 'insufficient_data' && (
               <span className="font-medium">{data.acwr.toFixed(2)}</span>
             )}
           </div>
           {data.riskLevel === 'insufficient_data' ? (
             <p className="text-xs text-muted-foreground">
-              Minst 21 dagars data krävs för tillförlitlig ACWR
+              {t('acwr.insufficientData')}
             </p>
           ) : (
             <>
@@ -310,9 +323,9 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
                 <div className="absolute top-0 left-[53%] w-[27%] h-2 border-l-2 border-r-2 border-green-500 opacity-50" />
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>0.8 (Låg)</span>
-                <span className="text-green-600">0.8-1.3 (Optimal)</span>
-                <span>1.5+ (Hög)</span>
+                <span>{t('acwr.low')}</span>
+                <span className="text-green-600">{t('acwr.optimal')}</span>
+                <span>{t('acwr.high')}</span>
               </div>
             </>
           )}
@@ -321,7 +334,7 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
         {/* Activity breakdown */}
         {Object.keys(data.byType).length > 0 && (
           <div className="space-y-2 pt-2 border-t">
-            <p className="text-sm font-medium">Per aktivitetstyp</p>
+            <p className="text-sm font-medium">{t('activityBreakdown')}</p>
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(data.byType).slice(0, 4).map(([type, stats]) => (
                 <div key={type} className="flex items-center justify-between text-sm">
@@ -343,11 +356,7 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
             <Activity className="h-4 w-4 text-blue-500" />
           )}
           <p className="text-xs text-muted-foreground">
-            {data.trend === 'increasing'
-              ? 'Din belastning ökar - övervaka återhämtning'
-              : data.trend === 'decreasing'
-                ? 'Din belastning minskar - bra för återhämtning'
-                : 'Din belastning är stabil'}
+            {getTrendText(data.trend)}
           </p>
         </div>
 
