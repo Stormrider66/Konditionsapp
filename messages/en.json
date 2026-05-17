@@ -7518,6 +7518,43 @@
     "voicePreferenceSelector": {
       "title": "AI voice coach"
     },
+    "wodHistorySummary": {
+      "title": "AI workout history",
+      "seeAll": "See all",
+      "stats": {
+        "thisWeek": "{count} this week",
+        "total": "{count} total"
+      },
+      "empty": "No completed AI workouts yet"
+    },
+    "wodHistorySection": {
+      "empty": {
+        "title": "No AI workouts yet",
+        "description": "Generated AI workouts will appear here."
+      },
+      "emptyFilter": "No workouts with the selected type.",
+      "showAll": "Show all AI workouts",
+      "filters": {
+        "all": "All"
+      },
+      "mode": {
+        "structured": "Structured",
+        "casual": "Casual",
+        "fun": "Just for fun!"
+      },
+      "status": {
+        "generated": "Generated",
+        "started": "In progress",
+        "completed": "Completed",
+        "abandoned": "Abandoned"
+      },
+      "workoutType": {
+        "strength": "Strength",
+        "cardio": "Cardio",
+        "mixed": "Mixed",
+        "core": "Core"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

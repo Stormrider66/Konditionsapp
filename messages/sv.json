@@ -7518,6 +7518,43 @@
     "voicePreferenceSelector": {
       "title": "AI-röstcoach"
     },
+    "wodHistorySummary": {
+      "title": "AI-pass historik",
+      "seeAll": "Se alla",
+      "stats": {
+        "thisWeek": "{count} denna vecka",
+        "total": "{count} totalt"
+      },
+      "empty": "Inga slutförda AI-pass ännu"
+    },
+    "wodHistorySection": {
+      "empty": {
+        "title": "Inga AI-pass ännu",
+        "description": "Genererade AI-pass visas här."
+      },
+      "emptyFilter": "Inga pass med vald typ.",
+      "showAll": "Visa alla AI-pass",
+      "filters": {
+        "all": "Alla"
+      },
+      "mode": {
+        "structured": "Strukturerat",
+        "casual": "Avslappnat",
+        "fun": "Bara kul!"
+      },
+      "status": {
+        "generated": "Genererat",
+        "started": "Pågår",
+        "completed": "Slutfört",
+        "abandoned": "Avbrutet"
+      },
+      "workoutType": {
+        "strength": "Styrka",
+        "cardio": "Kondition",
+        "mixed": "Mixat",
+        "core": "Core"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

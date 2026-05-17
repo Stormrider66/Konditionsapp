@@ -10,11 +10,12 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { Sparkles, Clock, CheckCircle2, Play, Star, Dumbbell, Heart, Shuffle, Target } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 export interface WODSummaryItem {
   id: string
@@ -34,26 +35,6 @@ interface WODHistorySectionProps {
   basePath: string
 }
 
-const modeLabels: Record<string, string> = {
-  STRUCTURED: 'Strukturerat',
-  CASUAL: 'Avslappnat',
-  FUN: 'Bara kul!',
-}
-
-const statusLabels: Record<string, string> = {
-  GENERATED: 'Genererat',
-  STARTED: 'Pågår',
-  COMPLETED: 'Slutfört',
-  ABANDONED: 'Avbrutet',
-}
-
-const workoutTypeLabels: Record<string, string> = {
-  strength: 'Styrka',
-  cardio: 'Kondition',
-  mixed: 'Mixat',
-  core: 'Core',
-}
-
 const workoutTypeIcons: Record<string, typeof Dumbbell> = {
   strength: Dumbbell,
   cardio: Heart,
@@ -61,16 +42,39 @@ const workoutTypeIcons: Record<string, typeof Dumbbell> = {
   core: Target,
 }
 
-const WORKOUT_TYPE_FILTERS = [
-  { value: 'all', label: 'Alla' },
-  { value: 'strength', label: 'Styrka' },
-  { value: 'cardio', label: 'Kondition' },
-  { value: 'mixed', label: 'Mixat' },
-  { value: 'core', label: 'Core' },
-]
-
 export function WODHistorySection({ wodHistory, basePath }: WODHistorySectionProps) {
+  const t = useTranslations('components.wodHistorySection')
+  const locale = useLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const [typeFilter, setTypeFilter] = useState<string>('all')
+
+  const modeLabels: Record<string, string> = {
+    STRUCTURED: t('mode.structured'),
+    CASUAL: t('mode.casual'),
+    FUN: t('mode.fun'),
+  }
+
+  const statusLabels: Record<string, string> = {
+    GENERATED: t('status.generated'),
+    STARTED: t('status.started'),
+    COMPLETED: t('status.completed'),
+    ABANDONED: t('status.abandoned'),
+  }
+
+  const workoutTypeLabels: Record<string, string> = {
+    strength: t('workoutType.strength'),
+    cardio: t('workoutType.cardio'),
+    mixed: t('workoutType.mixed'),
+    core: t('workoutType.core'),
+  }
+
+  const workoutTypeFilters = [
+    { value: 'all', label: t('filters.all') },
+    { value: 'strength', label: t('workoutType.strength') },
+    { value: 'cardio', label: t('workoutType.cardio') },
+    { value: 'mixed', label: t('workoutType.mixed') },
+    { value: 'core', label: t('workoutType.core') },
+  ]
 
   const filteredHistory = typeFilter === 'all'
     ? wodHistory
@@ -83,10 +87,10 @@ export function WODHistorySection({ wodHistory, basePath }: WODHistorySectionPro
           <Sparkles className="h-8 w-8 text-emerald-400" />
         </div>
         <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">
-          Inga AI-Pass ännu
+          {t('empty.title')}
         </h3>
         <p className="text-slate-500 dark:text-slate-400 font-medium">
-          Genererade AI-pass visas här.
+          {t('empty.description')}
         </p>
       </div>
     )
@@ -96,7 +100,7 @@ export function WODHistorySection({ wodHistory, basePath }: WODHistorySectionPro
     <div className="space-y-3">
       {/* Workout type filter */}
       <div className="flex flex-wrap gap-2">
-        {WORKOUT_TYPE_FILTERS.map(f => (
+        {workoutTypeFilters.map(f => (
           <button
             key={f.value}
             onClick={() => setTypeFilter(f.value)}
@@ -114,7 +118,7 @@ export function WODHistorySection({ wodHistory, basePath }: WODHistorySectionPro
 
       {filteredHistory.length === 0 && (
         <div className="text-center py-8 text-sm text-muted-foreground">
-          Inga pass med vald typ.
+          {t('emptyFilter')}
         </div>
       )}
 
@@ -164,7 +168,7 @@ export function WODHistorySection({ wodHistory, basePath }: WODHistorySectionPro
                       </span>
                     )
                   })()}
-                  <span>{format(createdDate, 'd MMM yyyy', { locale: sv })}</span>
+                  <span>{format(createdDate, 'd MMM yyyy', { locale: dateLocale })}</span>
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {wod.actualDuration || wod.requestedDuration} min
@@ -186,7 +190,7 @@ export function WODHistorySection({ wodHistory, basePath }: WODHistorySectionPro
         <div className="text-center pt-4">
           <Link href={`${basePath}/athlete/wod/history`}>
             <Button variant="outline" size="sm" className="font-bold">
-              Visa alla AI-Pass
+              {t('showAll')}
             </Button>
           </Link>
         </div>
