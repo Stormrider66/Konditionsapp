@@ -4301,6 +4301,41 @@
         "glasses": "{count} glas vatten"
       }
     },
+    "lifestyleActivitySelector": {
+      "title": "Livsstil & vardagsaktivitet",
+      "description": "Hur aktiv är din vardag <em>utanför</em> träningen? Påverkar ditt dagliga kaloribehov ovanpå basbehovet. Träningen läggs till separat.",
+      "options": {
+        "sedentary": {
+          "label": "Stillasittande",
+          "description": "Skrivbordsjobb, mest sittande (~3-5 000 steg/dag)"
+        },
+        "lightlyActive": {
+          "label": "Lätt aktiv",
+          "description": "Mest sittande men promenader/stående pauser (~5-8 000 steg/dag)"
+        },
+        "moderatelyActive": {
+          "label": "Måttligt aktiv",
+          "description": "På fötterna större delen av dagen (~8-12 000 steg/dag)"
+        },
+        "veryActive": {
+          "label": "Mycket aktiv",
+          "description": "Fysiskt arbete - lager, vård, byggarbete (~12 000+ steg/dag)"
+        }
+      },
+      "actions": {
+        "save": "Spara"
+      },
+      "toast": {
+        "saved": {
+          "title": "Sparad!",
+          "description": "Din livsstil har uppdaterats."
+        },
+        "error": {
+          "title": "Fel",
+          "description": "Kunde inte spara livsstilsinställningen. Försök igen."
+        }
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

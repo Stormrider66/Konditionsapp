@@ -7,29 +7,30 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { Footprints, Loader2 } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 type LifestyleActivity = 'SEDENTARY' | 'LIGHTLY_ACTIVE' | 'MODERATELY_ACTIVE' | 'VERY_ACTIVE'
 
-const OPTIONS: { value: LifestyleActivity; label: string; description: string }[] = [
+const OPTIONS: { value: LifestyleActivity; labelKey: string; descriptionKey: string }[] = [
   {
     value: 'SEDENTARY',
-    label: 'Stillasittande',
-    description: 'Skrivbordsjobb, mest sittande (~3–5 000 steg/dag)',
+    labelKey: 'options.sedentary.label',
+    descriptionKey: 'options.sedentary.description',
   },
   {
     value: 'LIGHTLY_ACTIVE',
-    label: 'Lätt aktiv',
-    description: 'Mest sittande men promenader/stående pauser (~5–8 000 steg/dag)',
+    labelKey: 'options.lightlyActive.label',
+    descriptionKey: 'options.lightlyActive.description',
   },
   {
     value: 'MODERATELY_ACTIVE',
-    label: 'Måttligt aktiv',
-    description: 'På fötterna större delen av dagen (~8–12 000 steg/dag)',
+    labelKey: 'options.moderatelyActive.label',
+    descriptionKey: 'options.moderatelyActive.description',
   },
   {
     value: 'VERY_ACTIVE',
-    label: 'Mycket aktiv',
-    description: 'Fysiskt arbete – lager, vård, byggarbete (~12 000+ steg/dag)',
+    labelKey: 'options.veryActive.label',
+    descriptionKey: 'options.veryActive.description',
   },
 ]
 
@@ -39,6 +40,7 @@ interface LifestyleActivitySelectorProps {
 }
 
 export function LifestyleActivitySelector({ clientId, initialValue = 'SEDENTARY' }: LifestyleActivitySelectorProps) {
+  const t = useTranslations('components.lifestyleActivitySelector')
   const { toast } = useToast()
   const [value, setValue] = useState<LifestyleActivity>(initialValue)
   const [saving, setSaving] = useState(false)
@@ -53,11 +55,11 @@ export function LifestyleActivitySelector({ clientId, initialValue = 'SEDENTARY'
         body: JSON.stringify({ lifestyleActivity: value }),
       })
       if (!res.ok) throw new Error('Failed')
-      toast({ title: 'Sparad!', description: 'Din livsstil har uppdaterats.' })
+      toast({ title: t('toast.saved.title'), description: t('toast.saved.description') })
     } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte spara livsstilsinställningen. Försök igen.',
+        title: t('toast.error.title'),
+        description: t('toast.error.description'),
         variant: 'destructive',
       })
     } finally {
@@ -70,11 +72,12 @@ export function LifestyleActivitySelector({ clientId, initialValue = 'SEDENTARY'
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Footprints className="h-4 w-4 text-orange-500" />
-          Livsstil & vardagsaktivitet
+          {t('title')}
         </CardTitle>
         <CardDescription>
-          Hur aktiv är din vardag <em>utanför</em> träningen? Påverkar ditt dagliga
-          kaloribehov ovanpå basbehovet. Träningen läggs till separat.
+          {t.rich('description', {
+            em: (chunks) => <em>{chunks}</em>,
+          })}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -87,8 +90,8 @@ export function LifestyleActivitySelector({ clientId, initialValue = 'SEDENTARY'
             >
               <RadioGroupItem value={opt.value} id={`lifestyle-${opt.value}`} className="mt-0.5" />
               <div className="space-y-0.5">
-                <div className="font-medium text-sm">{opt.label}</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">{opt.description}</div>
+                <div className="font-medium text-sm">{t(opt.labelKey)}</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">{t(opt.descriptionKey)}</div>
               </div>
             </Label>
           ))}
@@ -97,7 +100,7 @@ export function LifestyleActivitySelector({ clientId, initialValue = 'SEDENTARY'
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={!dirty || saving} size="sm">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Spara
+            {t('actions.save')}
           </Button>
         </div>
       </CardContent>

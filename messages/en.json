@@ -4301,6 +4301,41 @@
         "glasses": "{count} glasses of water"
       }
     },
+    "lifestyleActivitySelector": {
+      "title": "Lifestyle & daily activity",
+      "description": "How active is your day <em>outside</em> training? This affects your daily calorie need on top of your baseline need. Training is added separately.",
+      "options": {
+        "sedentary": {
+          "label": "Sedentary",
+          "description": "Desk job, mostly sitting (~3-5,000 steps/day)"
+        },
+        "lightlyActive": {
+          "label": "Lightly active",
+          "description": "Mostly sitting but walks/standing breaks (~5-8,000 steps/day)"
+        },
+        "moderatelyActive": {
+          "label": "Moderately active",
+          "description": "On your feet most of the day (~8-12,000 steps/day)"
+        },
+        "veryActive": {
+          "label": "Very active",
+          "description": "Physical work - warehouse, care, construction (~12,000+ steps/day)"
+        }
+      },
+      "actions": {
+        "save": "Save"
+      },
+      "toast": {
+        "saved": {
+          "title": "Saved!",
+          "description": "Your lifestyle has been updated."
+        },
+        "error": {
+          "title": "Error",
+          "description": "Could not save the lifestyle setting. Try again."
+        }
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {
