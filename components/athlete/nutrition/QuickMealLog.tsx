@@ -116,6 +116,26 @@ interface YesterdayMeal {
   items?: YesterdayMealItem[]
 }
 
+interface QuickMealItem {
+  name: string
+  translationKey?: string
+  grams: number
+  kcal: number
+  p: number
+  c: number
+  f: number
+}
+
+interface QuickMeal {
+  description: string
+  translationKey?: string
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  items?: QuickMealItem[]
+}
+
 function formatGrams(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }
@@ -162,80 +182,88 @@ const MEAL_TYPE_CONFIG: Record<MealType, { icon: typeof Sunrise; labelKey: strin
   EVENING_SNACK: { icon: UtensilsCrossed, labelKey: 'eveningSnack', color: 'bg-gray-500' },
 }
 
-const QUICK_MEALS = [
+const QUICK_MEALS: QuickMeal[] = [
   {
-    description: 'Havregrynsgröt med banan',
+    translationKey: 'oatmealBanana',
+    description: 'oatmealBanana',
     calories: 350, protein: 12, carbs: 55, fat: 8,
     items: [
-      { name: 'Havregryn', grams: 80, kcal: 280, p: 10, c: 48, f: 6 },
-      { name: 'Mjölk (1.5%)', grams: 150, kcal: 62, p: 5, c: 7, f: 2 },
-      { name: 'Banan', grams: 100, kcal: 89, p: 1, c: 23, f: 0 },
+      { translationKey: 'oats', name: 'oats', grams: 80, kcal: 280, p: 10, c: 48, f: 6 },
+      { translationKey: 'milk15', name: 'milk15', grams: 150, kcal: 62, p: 5, c: 7, f: 2 },
+      { translationKey: 'banana', name: 'banana', grams: 100, kcal: 89, p: 1, c: 23, f: 0 },
     ],
   },
   {
-    description: 'Ägg och rostat bröd',
+    translationKey: 'eggToast',
+    description: 'eggToast',
     calories: 400, protein: 20, carbs: 30, fat: 22,
     items: [
-      { name: 'Ägg (stekt)', grams: 120, kcal: 216, p: 15, c: 1, f: 17 },
-      { name: 'Rostbröd', grams: 60, kcal: 155, p: 5, c: 29, f: 2 },
-      { name: 'Smör', grams: 10, kcal: 72, p: 0, c: 0, f: 8 },
+      { translationKey: 'friedEgg', name: 'friedEgg', grams: 120, kcal: 216, p: 15, c: 1, f: 17 },
+      { translationKey: 'toast', name: 'toast', grams: 60, kcal: 155, p: 5, c: 29, f: 2 },
+      { translationKey: 'butter', name: 'butter', grams: 10, kcal: 72, p: 0, c: 0, f: 8 },
     ],
   },
   {
+    translationKey: 'proteinShake',
     description: 'Proteinshake',
     calories: 200, protein: 30, carbs: 10, fat: 3,
     items: [
-      { name: 'Proteinpulver', grams: 35, kcal: 130, p: 27, c: 3, f: 1 },
-      { name: 'Mjölk (1.5%)', grams: 200, kcal: 82, p: 7, c: 10, f: 2 },
+      { translationKey: 'proteinPowder', name: 'proteinPowder', grams: 35, kcal: 130, p: 27, c: 3, f: 1 },
+      { translationKey: 'milk15', name: 'milk15', grams: 200, kcal: 82, p: 7, c: 10, f: 2 },
     ],
   },
   {
-    description: 'Kycklingbowl med ris',
+    translationKey: 'chickenRiceBowl',
+    description: 'chickenRiceBowl',
     calories: 550, protein: 40, carbs: 60, fat: 12,
     items: [
-      { name: 'Kycklingbröst', grams: 150, kcal: 165, p: 31, c: 0, f: 4 },
-      { name: 'Ris (kokt)', grams: 200, kcal: 260, p: 5, c: 56, f: 1 },
-      { name: 'Grönsaker', grams: 100, kcal: 35, p: 2, c: 6, f: 0 },
-      { name: 'Olivolja', grams: 10, kcal: 88, p: 0, c: 0, f: 10 },
+      { translationKey: 'chickenBreast', name: 'chickenBreast', grams: 150, kcal: 165, p: 31, c: 0, f: 4 },
+      { translationKey: 'cookedRice', name: 'cookedRice', grams: 200, kcal: 260, p: 5, c: 56, f: 1 },
+      { translationKey: 'vegetables', name: 'vegetables', grams: 100, kcal: 35, p: 2, c: 6, f: 0 },
+      { translationKey: 'oliveOil', name: 'oliveOil', grams: 10, kcal: 88, p: 0, c: 0, f: 10 },
     ],
   },
   {
+    translationKey: 'salmonSalad',
     description: 'Sallad med lax',
     calories: 450, protein: 35, carbs: 15, fat: 28,
     items: [
-      { name: 'Laxfilé', grams: 150, kcal: 312, p: 30, c: 0, f: 21 },
-      { name: 'Blandad sallad', grams: 100, kcal: 20, p: 1, c: 3, f: 0 },
-      { name: 'Avokado', grams: 50, kcal: 80, p: 1, c: 4, f: 7 },
-      { name: 'Olivolja (dressing)', grams: 10, kcal: 88, p: 0, c: 0, f: 10 },
+      { translationKey: 'salmonFillet', name: 'salmonFillet', grams: 150, kcal: 312, p: 30, c: 0, f: 21 },
+      { translationKey: 'mixedSalad', name: 'mixedSalad', grams: 100, kcal: 20, p: 1, c: 3, f: 0 },
+      { translationKey: 'avocado', name: 'avocado', grams: 50, kcal: 80, p: 1, c: 4, f: 7 },
+      { translationKey: 'oliveOilDressing', name: 'oliveOilDressing', grams: 10, kcal: 88, p: 0, c: 0, f: 10 },
     ],
   },
   {
-    description: 'Kvarg med bär',
+    translationKey: 'quarkBerries',
+    description: 'quarkBerries',
     calories: 180, protein: 20, carbs: 15, fat: 2,
     items: [
-      { name: 'Kvarg (naturell)', grams: 200, kcal: 120, p: 20, c: 6, f: 0 },
-      { name: 'Blandade bär', grams: 80, kcal: 36, p: 1, c: 8, f: 0 },
-      { name: 'Honung', grams: 10, kcal: 30, p: 0, c: 8, f: 0 },
+      { translationKey: 'plainQuark', name: 'plainQuark', grams: 200, kcal: 120, p: 20, c: 6, f: 0 },
+      { translationKey: 'mixedBerries', name: 'mixedBerries', grams: 80, kcal: 36, p: 1, c: 8, f: 0 },
+      { translationKey: 'honey', name: 'honey', grams: 10, kcal: 30, p: 0, c: 8, f: 0 },
     ],
   },
   {
-    description: 'Smörgås med ost och skinka',
+    translationKey: 'cheeseHamSandwich',
+    description: 'cheeseHamSandwich',
     calories: 320, protein: 18, carbs: 28, fat: 16,
     items: [
-      { name: 'Bröd', grams: 60, kcal: 155, p: 5, c: 28, f: 2 },
-      { name: 'Ost', grams: 25, kcal: 90, p: 6, c: 0, f: 7 },
-      { name: 'Skinka', grams: 30, kcal: 36, p: 6, c: 1, f: 1 },
-      { name: 'Smör', grams: 8, kcal: 58, p: 0, c: 0, f: 6 },
+      { translationKey: 'bread', name: 'bread', grams: 60, kcal: 155, p: 5, c: 28, f: 2 },
+      { translationKey: 'cheese', name: 'cheese', grams: 25, kcal: 90, p: 6, c: 0, f: 7 },
+      { translationKey: 'ham', name: 'ham', grams: 30, kcal: 36, p: 6, c: 1, f: 1 },
+      { translationKey: 'butter', name: 'butter', grams: 8, kcal: 58, p: 0, c: 0, f: 6 },
     ],
   },
   {
-    description: 'Pasta med köttfärssås',
+    translationKey: 'pastaMeatSauce',
+    description: 'pastaMeatSauce',
     calories: 600, protein: 30, carbs: 70, fat: 20,
     items: [
-      { name: 'Pasta (kokt)', grams: 200, kcal: 262, p: 9, c: 52, f: 2 },
-      { name: 'Köttfärs (nöt)', grams: 100, kcal: 205, p: 17, c: 0, f: 15 },
-      { name: 'Tomatsås', grams: 100, kcal: 40, p: 1, c: 8, f: 1 },
-      { name: 'Riven ost', grams: 15, kcal: 56, p: 4, c: 0, f: 4 },
+      { translationKey: 'cookedPasta', name: 'cookedPasta', grams: 200, kcal: 262, p: 9, c: 52, f: 2 },
+      { translationKey: 'groundBeef', name: 'groundBeef', grams: 100, kcal: 205, p: 17, c: 0, f: 15 },
+      { translationKey: 'tomatoSauce', name: 'tomatoSauce', grams: 100, kcal: 40, p: 1, c: 8, f: 1 },
+      { translationKey: 'gratedCheese', name: 'gratedCheese', grams: 15, kcal: 56, p: 4, c: 0, f: 4 },
     ],
   },
 ]
@@ -378,11 +406,11 @@ export function QuickMealLog({
   }, [open])
 
   // Personalized quick meals
-  const [personalMeals, setPersonalMeals] = useState<typeof QUICK_MEALS | null>(null)
+  const [personalMeals, setPersonalMeals] = useState<QuickMeal[] | null>(null)
 
   // Selected quick meal breakdown (so user can see and edit what was assumed)
   const [selectedQuickMealItems, setSelectedQuickMealItems] = useState<
-    Array<{ name: string; grams: number; kcal: number; p: number; c: number; f: number }> | null
+    QuickMealItem[] | null
   >(null)
 
   // Yesterday's meals, keyed by meal type so switching type updates the repeat option.
@@ -430,18 +458,23 @@ export function QuickMealLog({
 
   const quickMeals = personalMeals || QUICK_MEALS
   const quickMealsLabel = personalMeals ? t('quickMeals.personal') : t('quickMeals.quick')
+  const getQuickMealDescription = (meal: QuickMeal) =>
+    meal.translationKey ? t(`quickMeals.suggestions.${meal.translationKey}.description`) : meal.description
+  const getQuickMealItemName = (item: QuickMealItem) =>
+    item.translationKey ? t(`quickMeals.items.${item.translationKey}`) : item.name
 
-  const handleQuickMealSelect = (meal: typeof QUICK_MEALS[0]) => {
+  const handleQuickMealSelect = (meal: QuickMeal) => {
+    const description = getQuickMealDescription(meal)
     setFormData(prev => ({
       ...prev,
-      description: meal.description,
+      description,
       calories: meal.calories.toString(),
       proteinGrams: meal.protein.toString(),
       carbsGrams: meal.carbs.toString(),
       fatGrams: meal.fat.toString(),
     }))
     setShowMacros(true)
-    setSelectedQuickMealItems(meal.items || null)
+    setSelectedQuickMealItems(meal.items?.map((item) => ({ ...item, name: getQuickMealItemName(item) })) || null)
   }
 
   const openRecipeImageUpload = () => {
@@ -817,18 +850,23 @@ export function QuickMealLog({
             <Label className="text-sm text-muted-foreground">{quickMealsLabel}</Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {quickMeals.slice(0, 6).map((meal) => (
-                <Button
-                  key={meal.description}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleQuickMealSelect(meal)}
-                  className={cn(
-                    "text-xs justify-start min-w-0 w-full dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700",
-                    formData.description === meal.description && "border-primary bg-primary/5 dark:bg-primary/15 dark:text-white"
-                  )}
-                >
-                  <span className="truncate block w-full text-left">{meal.description}</span>
-                </Button>
+                (() => {
+                  const mealDescription = getQuickMealDescription(meal)
+                  return (
+                    <Button
+                      key={meal.translationKey || meal.description}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleQuickMealSelect(meal)}
+                      className={cn(
+                        "text-xs justify-start min-w-0 w-full dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700",
+                        formData.description === mealDescription && "border-primary bg-primary/5 dark:bg-primary/15 dark:text-white"
+                      )}
+                    >
+                      <span className="truncate block w-full text-left">{mealDescription}</span>
+                    </Button>
+                  )
+                })()
               ))}
             </div>
           </div>

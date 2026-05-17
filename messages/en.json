@@ -5160,7 +5160,60 @@
       },
       "quickMeals": {
         "personal": "Your most common",
-        "quick": "Quick picks"
+        "quick": "Quick picks",
+        "suggestions": {
+          "oatmealBanana": {
+            "description": "Oatmeal porridge with banana"
+          },
+          "eggToast": {
+            "description": "Egg and toast"
+          },
+          "proteinShake": {
+            "description": "Protein shake"
+          },
+          "chickenRiceBowl": {
+            "description": "Chicken rice bowl"
+          },
+          "salmonSalad": {
+            "description": "Salmon salad"
+          },
+          "quarkBerries": {
+            "description": "Quark with berries"
+          },
+          "cheeseHamSandwich": {
+            "description": "Cheese and ham sandwich"
+          },
+          "pastaMeatSauce": {
+            "description": "Pasta with meat sauce"
+          }
+        },
+        "items": {
+          "oats": "Oats",
+          "milk15": "Milk (1.5%)",
+          "banana": "Banana",
+          "friedEgg": "Egg (fried)",
+          "toast": "Toast",
+          "butter": "Butter",
+          "proteinPowder": "Protein powder",
+          "chickenBreast": "Chicken breast",
+          "cookedRice": "Rice (cooked)",
+          "vegetables": "Vegetables",
+          "oliveOil": "Olive oil",
+          "salmonFillet": "Salmon fillet",
+          "mixedSalad": "Mixed salad",
+          "avocado": "Avocado",
+          "oliveOilDressing": "Olive oil (dressing)",
+          "plainQuark": "Quark (plain)",
+          "mixedBerries": "Mixed berries",
+          "honey": "Honey",
+          "bread": "Bread",
+          "cheese": "Cheese",
+          "ham": "Ham",
+          "cookedPasta": "Pasta (cooked)",
+          "groundBeef": "Ground beef",
+          "tomatoSauce": "Tomato sauce",
+          "gratedCheese": "Grated cheese"
+        }
       },
       "quickMealItems": {
         "title": "Contents (adjust weights)",

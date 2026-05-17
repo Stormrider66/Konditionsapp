@@ -5160,7 +5160,60 @@
       },
       "quickMeals": {
         "personal": "Dina vanligaste",
-        "quick": "Snabbval"
+        "quick": "Snabbval",
+        "suggestions": {
+          "oatmealBanana": {
+            "description": "Havregrynsgröt med banan"
+          },
+          "eggToast": {
+            "description": "Ägg och rostat bröd"
+          },
+          "proteinShake": {
+            "description": "Proteinshake"
+          },
+          "chickenRiceBowl": {
+            "description": "Kycklingbowl med ris"
+          },
+          "salmonSalad": {
+            "description": "Sallad med lax"
+          },
+          "quarkBerries": {
+            "description": "Kvarg med bär"
+          },
+          "cheeseHamSandwich": {
+            "description": "Smörgås med ost och skinka"
+          },
+          "pastaMeatSauce": {
+            "description": "Pasta med köttfärssås"
+          }
+        },
+        "items": {
+          "oats": "Havregryn",
+          "milk15": "Mjölk (1.5%)",
+          "banana": "Banan",
+          "friedEgg": "Ägg (stekt)",
+          "toast": "Rostbröd",
+          "butter": "Smör",
+          "proteinPowder": "Proteinpulver",
+          "chickenBreast": "Kycklingbröst",
+          "cookedRice": "Ris (kokt)",
+          "vegetables": "Grönsaker",
+          "oliveOil": "Olivolja",
+          "salmonFillet": "Laxfilé",
+          "mixedSalad": "Blandad sallad",
+          "avocado": "Avokado",
+          "oliveOilDressing": "Olivolja (dressing)",
+          "plainQuark": "Kvarg (naturell)",
+          "mixedBerries": "Blandade bär",
+          "honey": "Honung",
+          "bread": "Bröd",
+          "cheese": "Ost",
+          "ham": "Skinka",
+          "cookedPasta": "Pasta (kokt)",
+          "groundBeef": "Köttfärs (nöt)",
+          "tomatoSauce": "Tomatsås",
+          "gratedCheese": "Riven ost"
+        }
       },
       "quickMealItems": {
         "title": "Innehåll (justera vikter)",
