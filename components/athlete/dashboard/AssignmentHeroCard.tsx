@@ -9,9 +9,9 @@ import { getAssignmentVisual } from './dashboard-visuals'
 import {
   DashboardAssignment,
   getAssignmentRoute,
-  getAssignmentTypeLabel,
   getAssignmentTypeBadgeStyle,
 } from '@/types/dashboard-items'
+import { useTranslations } from '@/i18n/client'
 
 interface AssignmentHeroCardProps {
   assignment: DashboardAssignment
@@ -34,8 +34,16 @@ function renderAssignmentTypeIcon(type: DashboardAssignment['assignmentType'], c
 }
 
 export function AssignmentHeroCard({ assignment, basePath = '', onRemove }: AssignmentHeroCardProps) {
+  const t = useTranslations('components.assignmentHeroCard')
   const isCompleted = assignment.status === 'COMPLETED'
-  const typeLabel = getAssignmentTypeLabel(assignment.assignmentType)
+  const typeLabel = (() => {
+    switch (assignment.assignmentType) {
+      case 'strength': return t('types.strength')
+      case 'cardio': return t('types.cardio')
+      case 'hybrid': return t('types.hybrid')
+      case 'agility': return t('types.agility')
+    }
+  })()
   const badgeStyle = getAssignmentTypeBadgeStyle(assignment.assignmentType)
   const route = getAssignmentRoute(assignment, basePath)
   const visual = getAssignmentVisual(assignment.assignmentType, assignment.sport || assignment.name)
@@ -49,7 +57,7 @@ export function AssignmentHeroCard({ assignment, basePath = '', onRemove }: Assi
         <button
           onClick={onRemove}
           className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-white/80 text-slate-600 opacity-100 backdrop-blur sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/20 transition-all"
-          aria-label="Ta bort pass"
+          aria-label={t('actions.remove')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -100,7 +108,7 @@ export function AssignmentHeroCard({ assignment, basePath = '', onRemove }: Assi
           {isCompleted && (
             <div className="inline-flex items-center gap-2 mt-3 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-200 text-emerald-700 dark:border-emerald-300/20 dark:text-emerald-200 text-xs font-medium backdrop-blur transition-colors">
               <TrendingUp className="w-3 h-3" />
-              Slutfört
+              {t('completed')}
             </div>
           )}
         </div>
@@ -109,7 +117,7 @@ export function AssignmentHeroCard({ assignment, basePath = '', onRemove }: Assi
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 md:gap-6 mt-6 md:mt-8">
           {assignment.duration && (
             <div>
-              <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">Längd</div>
+              <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">{t('metrics.duration')}</div>
               <div className="text-lg md:text-xl font-bold text-slate-950 dark:text-white flex items-center gap-2 transition-colors">
                 <Timer className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
                 {assignment.duration} min
@@ -121,7 +129,7 @@ export function AssignmentHeroCard({ assignment, basePath = '', onRemove }: Assi
           {(assignment.phase || assignment.format || assignment.sport) && (
             <div>
               <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">
-                {assignment.phase ? 'Fas' : assignment.sport ? 'Sport' : 'Format'}
+                {assignment.phase ? t('metrics.phase') : assignment.sport ? t('metrics.sport') : t('metrics.format')}
               </div>
               <div className="text-lg md:text-xl font-bold text-slate-950 dark:text-white flex items-center gap-2 transition-colors">
                 {renderAssignmentTypeIcon(assignment.assignmentType, 'w-4 h-4 md:w-5 md:h-5 text-orange-400')}
@@ -140,14 +148,14 @@ export function AssignmentHeroCard({ assignment, basePath = '', onRemove }: Assi
                 className="w-full sm:w-auto min-h-[48px] border-slate-300 bg-white/70 text-slate-900 hover:bg-white hover:border-slate-400 dark:border-white/20 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:hover:border-white/30 transition-all"
               >
                 <TrendingUp className="w-4 h-4 mr-2" />
-                Visa resultat
+                {t('actions.viewResults')}
               </Button>
             </Link>
           ) : (
             <Link href={route}>
               <Button className="w-full sm:w-auto min-h-[48px] bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 border-0 transition-all">
                 <Play className="w-4 h-4 mr-2" />
-                Starta pass
+                {t('actions.startWorkout')}
               </Button>
             </Link>
           )}

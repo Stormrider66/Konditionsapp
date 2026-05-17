@@ -3248,6 +3248,40 @@
         "remove": "Remove",
         "removing": "Removing…"
       }
+    },
+    "garminHealthCard": {
+      "restingHr": "Resting HR",
+      "sleep": "Sleep",
+      "quality": "Quality: {score}/10",
+      "sleepDetails": "Sleep details",
+      "deepSleep": "Deep sleep",
+      "lightSleep": "Light",
+      "hrvStatus": {
+        "balanced": "Balanced",
+        "high": "High",
+        "low": "Low",
+        "unbalanced": "Unbalanced"
+      }
+    },
+    "assignmentHeroCard": {
+      "completed": "Completed",
+      "types": {
+        "strength": "Strength",
+        "cardio": "Cardio",
+        "hybrid": "Hybrid",
+        "agility": "Agility"
+      },
+      "metrics": {
+        "duration": "Duration",
+        "phase": "Phase",
+        "sport": "Sport",
+        "format": "Format"
+      },
+      "actions": {
+        "remove": "Remove workout",
+        "viewResults": "View results",
+        "startWorkout": "Start workout"
+      }
     }
   },
   "infographic": {

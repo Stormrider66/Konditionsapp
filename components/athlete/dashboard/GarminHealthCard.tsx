@@ -10,6 +10,7 @@
 import { Activity, Heart, Moon, Brain } from 'lucide-react'
 import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardContent } from '@/components/ui/GlassCard'
 import { GarminAttribution } from '@/components/ui/GarminAttribution'
+import { useTranslations } from '@/i18n/client'
 
 interface GarminHealthCardProps {
   hrvRMSSD?: number | null
@@ -39,12 +40,14 @@ function getHRVStatusColor(status: string | null | undefined): string {
   }
 }
 
-function getHRVStatusLabel(status: string | null | undefined): string {
+type GarminHealthTranslator = ReturnType<typeof useTranslations>
+
+function getHRVStatusLabel(status: string | null | undefined, t: GarminHealthTranslator): string {
   switch (status) {
-    case 'BALANCED': return 'Balanserad'
-    case 'HIGH': return 'Hög'
-    case 'LOW': return 'Låg'
-    case 'UNBALANCED': return 'Obalanserad'
+    case 'BALANCED': return t('hrvStatus.balanced')
+    case 'HIGH': return t('hrvStatus.high')
+    case 'LOW': return t('hrvStatus.low')
+    case 'UNBALANCED': return t('hrvStatus.unbalanced')
     default: return ''
   }
 }
@@ -58,6 +61,7 @@ export function GarminHealthCard({
   stress,
   sleepDetails,
 }: GarminHealthCardProps) {
+  const t = useTranslations('components.garminHealthCard')
   const hasData = hrvRMSSD || restingHR || sleepHours || stress
 
   if (!hasData) return null
@@ -83,7 +87,7 @@ export function GarminHealthCard({
               <div className="text-xl font-black text-slate-950 dark:text-white">{Math.round(hrvRMSSD)} <span className="text-sm font-medium text-slate-500">ms</span></div>
               {hrvStatus && (
                 <div className={`text-[10px] font-bold uppercase tracking-wider ${getHRVStatusColor(hrvStatus)}`}>
-                  {getHRVStatusLabel(hrvStatus)}
+                  {getHRVStatusLabel(hrvStatus, t)}
                 </div>
               )}
             </div>
@@ -94,7 +98,7 @@ export function GarminHealthCard({
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 text-xs text-slate-500">
                 <Heart className="h-3.5 w-3.5 text-red-400" />
-                Vilo-HR
+                {t('restingHr')}
               </div>
               <div className="text-xl font-black text-slate-950 dark:text-white">{restingHR} <span className="text-sm font-medium text-slate-500">bpm</span></div>
             </div>
@@ -105,12 +109,12 @@ export function GarminHealthCard({
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 text-xs text-slate-500">
                 <Moon className="h-3.5 w-3.5 text-indigo-400" />
-                Sömn
+                {t('sleep')}
               </div>
               <div className="text-xl font-black text-slate-950 dark:text-white">{sleepHours.toFixed(1)} <span className="text-sm font-medium text-slate-500">h</span></div>
               {sleepQuality && (
                 <div className="text-[10px] font-bold text-slate-500">
-                  Kvalitet: {sleepQuality}/10
+                  {t('quality', { score: sleepQuality })}
                 </div>
               )}
             </div>
@@ -132,12 +136,12 @@ export function GarminHealthCard({
         {sleepDetails && (sleepDetails.deepSleepMinutes || sleepDetails.remSleepMinutes) && (
           <div className="mt-4 pt-3 border-t border-slate-200 dark:border-white/5">
             <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">
-              Sömndetaljer
+              {t('sleepDetails')}
             </div>
             <div className="grid grid-cols-3 gap-2 text-xs">
               {sleepDetails.deepSleepMinutes !== undefined && (
                 <div>
-                  <div className="text-slate-500">Djupsömn</div>
+                  <div className="text-slate-500">{t('deepSleep')}</div>
                   <div className="font-bold text-slate-950 dark:text-white">{Math.round(sleepDetails.deepSleepMinutes)} min</div>
                 </div>
               )}
@@ -149,7 +153,7 @@ export function GarminHealthCard({
               )}
               {sleepDetails.lightSleepMinutes !== undefined && (
                 <div>
-                  <div className="text-slate-500">Lätt</div>
+                  <div className="text-slate-500">{t('lightSleep')}</div>
                   <div className="font-bold text-slate-950 dark:text-white">{Math.round(sleepDetails.lightSleepMinutes)} min</div>
                 </div>
               )}

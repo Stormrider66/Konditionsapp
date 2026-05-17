@@ -3248,6 +3248,40 @@
         "remove": "Ta bort",
         "removing": "Tar bort…"
       }
+    },
+    "garminHealthCard": {
+      "restingHr": "Vilo-HR",
+      "sleep": "Sömn",
+      "quality": "Kvalitet: {score}/10",
+      "sleepDetails": "Sömndetaljer",
+      "deepSleep": "Djupsömn",
+      "lightSleep": "Lätt",
+      "hrvStatus": {
+        "balanced": "Balanserad",
+        "high": "Hög",
+        "low": "Låg",
+        "unbalanced": "Obalanserad"
+      }
+    },
+    "assignmentHeroCard": {
+      "completed": "Slutfört",
+      "types": {
+        "strength": "Styrka",
+        "cardio": "Kondition",
+        "hybrid": "Hybrid",
+        "agility": "Agility"
+      },
+      "metrics": {
+        "duration": "Längd",
+        "phase": "Fas",
+        "sport": "Sport",
+        "format": "Format"
+      },
+      "actions": {
+        "remove": "Ta bort pass",
+        "viewResults": "Visa resultat",
+        "startWorkout": "Starta pass"
+      }
     }
   },
   "infographic": {
