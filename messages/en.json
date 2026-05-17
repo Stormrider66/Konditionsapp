@@ -4708,6 +4708,7 @@
       },
       "errors": {
         "selectImageFile": "Please choose an image file",
+        "readImageFile": "Could not read image file",
         "imageTooLarge": "The image cannot be larger than 10MB",
         "tooManyRequests": "Too many requests. Try again in a moment.",
         "athleteModeRequired": "You need to activate athlete mode to scan food. Go to settings and activate athlete mode.",
@@ -4761,6 +4762,13 @@
       },
       "analyzing": "Analyzing your meal...",
       "saving": "Saving meal...",
+      "macros": {
+        "protein": "Protein",
+        "carbs": "Carbohydrates",
+        "carbsShort": "Carbs",
+        "fat": "Fat",
+        "fiber": "Fiber"
+      },
       "review": {
         "confidence": "Confidence: {percent}%",
         "personalizedTitle": "The analysis used your food history to improve accuracy",
@@ -4771,7 +4779,23 @@
         "mealType": "Meal type",
         "mealTypePlaceholder": "Choose type",
         "time": "Time",
-        "identifiedFoods": "Identified foods ({count})"
+        "identifiedFoods": "Identified foods ({count})",
+        "detailedAnalysis": "Detailed analysis",
+        "fatBreakdown": "{saturated}g saturated, {mono}g monounsaturated, {poly}g polyunsaturated",
+        "carbBreakdown": "{sugar}g sugar, {complex}g complex",
+        "noItemFatBreakdown": "No detailed fat breakdown was returned for this food item.",
+        "noItemCarbBreakdown": "No detailed carbohydrate breakdown was returned for this food item.",
+        "proteinQualityUnknown": "Protein quality was not specified by the analysis.",
+        "completeProtein": "Complete protein source",
+        "incompleteProtein": "Incomplete protein",
+        "detailedTotals": "Detailed total summary",
+        "noTotalFatBreakdown": "No detailed fat breakdown was returned in this analysis.",
+        "noTotalCarbBreakdown": "No detailed carbohydrate breakdown was returned in this analysis.",
+        "portionCalibrationTitle": "Gemini and your previous food history were combined to provide more realistic portion sizes.",
+        "portionCalibrationOne": "1 portion size adjusted based on your history",
+        "portionCalibrationMany": "{count} portion sizes adjusted based on your history",
+        "notes": "Notes",
+        "notesPlaceholder": "Optional notes..."
       },
       "done": {
         "title": "Meal saved!",

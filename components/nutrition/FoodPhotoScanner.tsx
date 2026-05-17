@@ -131,7 +131,7 @@ interface FoodPhotoScannerProps {
   redirectPathOnSave?: string
 }
 
-const readFileAsDataUrl = (file: File, timeoutMs?: number) =>
+const readFileAsDataUrl = (file: File, timeoutMs: number | undefined, readErrorMessage: string) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -139,7 +139,7 @@ const readFileAsDataUrl = (file: File, timeoutMs?: number) =>
     if (timeoutMs) {
       timer = setTimeout(() => {
         reader.abort()
-        reject(new Error('Timeout reading file'))
+        reject(new Error(readErrorMessage))
       }, timeoutMs)
     }
 
@@ -150,11 +150,11 @@ const readFileAsDataUrl = (file: File, timeoutMs?: number) =>
         return
       }
 
-      reject(new Error('Kunde inte läsa bildfilen'))
+      reject(new Error(readErrorMessage))
     }
     reader.onerror = () => {
       if (timer) clearTimeout(timer)
-      reject(new Error('Kunde inte läsa bildfilen'))
+      reject(new Error(readErrorMessage))
     }
     reader.onabort = () => {
       if (timer) clearTimeout(timer)
@@ -163,9 +163,9 @@ const readFileAsDataUrl = (file: File, timeoutMs?: number) =>
     reader.readAsDataURL(file)
   })
 
-const normalizeImageToJpeg = async (file: File) => {
+const normalizeImageToJpeg = async (file: File, readErrorMessage: string) => {
   try {
-    const dataUrl = await readFileAsDataUrl(file)
+    const dataUrl = await readFileAsDataUrl(file, undefined, readErrorMessage)
 
     return await new Promise<File | null>((resolve) => {
       const img = new Image()
@@ -349,7 +349,7 @@ export function FoodPhotoScanner({
   }, [revokePreviewUrl])
 
   const normalizeSelectedImage = useCallback(async (file: File, requestId: number) => {
-    const normalizedFile = await normalizeImageToJpeg(file)
+    const normalizedFile = await normalizeImageToJpeg(file, t('errors.readImageFile'))
     if (!normalizedFile || selectionRequestIdRef.current !== requestId) {
       return
     }
@@ -365,7 +365,7 @@ export function FoodPhotoScanner({
         setImagePreview(null)
       }
     }
-  }, [revokePreviewUrl])
+  }, [revokePreviewUrl, t])
 
   const setSelectedImage = useCallback((file: File) => {
     setImageFile(file)
@@ -1475,7 +1475,7 @@ export function FoodPhotoScanner({
                           />
                         </div>
                         <div className="space-y-0.5">
-                          <label className={scannerMicroLabelClass}>Protein</label>
+                          <label className={scannerMicroLabelClass}>{t('macros.protein')}</label>
                           <Input
                             type="number"
                             value={item.proteinGrams}
@@ -1484,7 +1484,7 @@ export function FoodPhotoScanner({
                           />
                         </div>
                         <div className="space-y-0.5">
-                          <label className={scannerMicroLabelClass}>Kolhydr.</label>
+                          <label className={scannerMicroLabelClass}>{t('macros.carbsShort')}</label>
                           <Input
                             type="number"
                             value={item.carbsGrams}
@@ -1493,7 +1493,7 @@ export function FoodPhotoScanner({
                           />
                         </div>
                         <div className="space-y-0.5">
-                          <label className={scannerMicroLabelClass}>Fett</label>
+                          <label className={scannerMicroLabelClass}>{t('macros.fat')}</label>
                           <Input
                             type="number"
                             value={item.fatGrams}
@@ -1502,7 +1502,7 @@ export function FoodPhotoScanner({
                           />
                         </div>
                         <div className="space-y-0.5">
-                          <label className={scannerMicroLabelClass}>Fiber</label>
+                          <label className={scannerMicroLabelClass}>{t('macros.fiber')}</label>
                           <Input
                             type="number"
                             value={item.fiberGrams}
@@ -1525,29 +1525,36 @@ export function FoodPhotoScanner({
                             })}
                           >
                             {expandedItems.has(index) ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                            Detaljerad analys
+                            {t('review.detailedAnalysis')}
                           </button>
                           {expandedItems.has(index) && (
                             <div className={cn('mt-1.5 p-2 rounded space-y-1.5', scannerPanelClass)}>
                               <div className="text-[10px]">
-                                <span className="font-medium">Fett:</span>{' '}
+                                <span className="font-medium">{t('macros.fat')}:</span>{' '}
                                 {item.saturatedFatGrams != null || item.monounsaturatedFatGrams != null || item.polyunsaturatedFatGrams != null
-                                  ? `${item.saturatedFatGrams?.toFixed(1) ?? '0.0'}g mättat, ${item.monounsaturatedFatGrams?.toFixed(1) ?? '0.0'}g enkelomättat, ${item.polyunsaturatedFatGrams?.toFixed(1) ?? '0.0'}g fleromättat`
-                                  : 'Ingen detaljerad fettfördelning returnerades för denna matvara.'}
+                                  ? t('review.fatBreakdown', {
+                                    saturated: item.saturatedFatGrams?.toFixed(1) ?? '0.0',
+                                    mono: item.monounsaturatedFatGrams?.toFixed(1) ?? '0.0',
+                                    poly: item.polyunsaturatedFatGrams?.toFixed(1) ?? '0.0',
+                                  })
+                                  : t('review.noItemFatBreakdown')}
                               </div>
                               <div className="text-[10px]">
-                                <span className="font-medium">Kolhydrater:</span>{' '}
+                                <span className="font-medium">{t('macros.carbs')}:</span>{' '}
                                 {item.sugarGrams != null || item.complexCarbsGrams != null
-                                  ? `${item.sugarGrams?.toFixed(1) ?? '0.0'}g socker, ${item.complexCarbsGrams?.toFixed(1) ?? '0.0'}g komplexa`
-                                  : 'Ingen detaljerad kolhydratfördelning returnerades för denna matvara.'}
+                                  ? t('review.carbBreakdown', {
+                                    sugar: item.sugarGrams?.toFixed(1) ?? '0.0',
+                                    complex: item.complexCarbsGrams?.toFixed(1) ?? '0.0',
+                                  })
+                                  : t('review.noItemCarbBreakdown')}
                               </div>
                               <div className="text-[10px]">
-                                <span className="font-medium">Protein:</span>{' '}
+                                <span className="font-medium">{t('macros.protein')}:</span>{' '}
                                 {item.isCompleteProtein == null
-                                  ? 'Proteinkvalitet ej specificerad av analysen.'
+                                  ? t('review.proteinQualityUnknown')
                                   : item.isCompleteProtein
-                                    ? 'Komplett proteinkälla'
-                                    : 'Ej komplett protein'}
+                                    ? t('review.completeProtein')
+                                    : t('review.incompleteProtein')}
                               </div>
                             </div>
                           )}
@@ -1570,37 +1577,44 @@ export function FoodPhotoScanner({
                 </div>
                 <div>
                   <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{Math.round(totals.proteinGrams)}g</p>
-                  <p className={scannerMicroLabelClass}>Protein</p>
+                  <p className={scannerMicroLabelClass}>{t('macros.protein')}</p>
                 </div>
                 <div>
                   <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{Math.round(totals.carbsGrams)}g</p>
-                  <p className={scannerMicroLabelClass}>Kolhydr.</p>
+                  <p className={scannerMicroLabelClass}>{t('macros.carbsShort')}</p>
                 </div>
                 <div>
                   <p className="text-lg font-bold text-rose-600 dark:text-rose-400">{Math.round(totals.fatGrams)}g</p>
-                  <p className={scannerMicroLabelClass}>Fett</p>
+                  <p className={scannerMicroLabelClass}>{t('macros.fat')}</p>
                 </div>
                 <div>
                   <p className="text-lg font-bold text-green-600 dark:text-green-400">{Math.round(totals.fiberGrams)}g</p>
-                  <p className={scannerMicroLabelClass}>Fiber</p>
+                  <p className={scannerMicroLabelClass}>{t('macros.fiber')}</p>
                 </div>
               </div>
               {enhancedMode && (
                 <div className={cn('mt-3 rounded p-2 text-[10px] space-y-1.5', scannerPanelClass)}>
                   <div>
-                    <span className="font-medium text-slate-700 dark:text-slate-300">Detaljerad totalsammanfattning:</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300">{t('review.detailedTotals')}:</span>
                   </div>
                   <div>
-                    <span className="font-medium">Fett:</span>{' '}
+                    <span className="font-medium">{t('macros.fat')}:</span>{' '}
                     {hasEnhancedTotals
-                      ? `${totals.saturatedFatGrams?.toFixed(1) ?? '0.0'}g mättat, ${totals.monounsaturatedFatGrams?.toFixed(1) ?? '0.0'}g enkelomättat, ${totals.polyunsaturatedFatGrams?.toFixed(1) ?? '0.0'}g fleromättat`
-                      : 'Ingen detaljerad fettfördelning returnerades i denna analys.'}
+                      ? t('review.fatBreakdown', {
+                        saturated: totals.saturatedFatGrams?.toFixed(1) ?? '0.0',
+                        mono: totals.monounsaturatedFatGrams?.toFixed(1) ?? '0.0',
+                        poly: totals.polyunsaturatedFatGrams?.toFixed(1) ?? '0.0',
+                      })
+                      : t('review.noTotalFatBreakdown')}
                   </div>
                   <div>
-                    <span className="font-medium">Kolhydrater:</span>{' '}
+                    <span className="font-medium">{t('macros.carbs')}:</span>{' '}
                     {hasEnhancedTotals
-                      ? `${totals.sugarGrams?.toFixed(1) ?? '0.0'}g socker, ${totals.complexCarbsGrams?.toFixed(1) ?? '0.0'}g komplexa`
-                      : 'Ingen detaljerad kolhydratfördelning returnerades i denna analys.'}
+                      ? t('review.carbBreakdown', {
+                        sugar: totals.sugarGrams?.toFixed(1) ?? '0.0',
+                        complex: totals.complexCarbsGrams?.toFixed(1) ?? '0.0',
+                      })
+                      : t('review.noTotalCarbBreakdown')}
                   </div>
                 </div>
               )}
@@ -1611,21 +1625,21 @@ export function FoodPhotoScanner({
           {portionSnapCount > 0 && (
             <p
               className="text-center text-[11px] font-medium text-violet-700 dark:text-violet-300/80"
-              title="Gemini och din tidigare mathistorik vägdes samman för att ge mer realistiska portionsstorlekar."
+              title={t('review.portionCalibrationTitle')}
             >
               {portionSnapCount === 1
-                ? '1 portionsstorlek justerad efter din historik'
-                : `${portionSnapCount} portionsstorlekar justerade efter din historik`}
+                ? t('review.portionCalibrationOne')
+                : t('review.portionCalibrationMany', { count: portionSnapCount })}
             </p>
           )}
 
           {/* Notes */}
           <div className="space-y-1">
-            <label className={scannerLabelClass}>Anteckningar</label>
+            <label className={scannerLabelClass}>{t('review.notes')}</label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Valfria anteckningar..."
+              placeholder={t('review.notesPlaceholder')}
               className={cn(scannerControlClass, 'text-sm min-h-[60px]')}
             />
           </div>

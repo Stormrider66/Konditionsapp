@@ -4708,6 +4708,7 @@
       },
       "errors": {
         "selectImageFile": "Vänligen välj en bildfil",
+        "readImageFile": "Kunde inte läsa bildfilen",
         "imageTooLarge": "Bilden får inte vara större än 10MB",
         "tooManyRequests": "För många förfrågningar. Försök igen om en stund.",
         "athleteModeRequired": "Du behöver aktivera atletläge för att skanna mat. Gå till inställningar och aktivera atletläge.",
@@ -4761,6 +4762,13 @@
       },
       "analyzing": "Analyserar din måltid...",
       "saving": "Sparar måltid...",
+      "macros": {
+        "protein": "Protein",
+        "carbs": "Kolhydrater",
+        "carbsShort": "Kolhydr.",
+        "fat": "Fett",
+        "fiber": "Fiber"
+      },
       "review": {
         "confidence": "Konfidensgrad: {percent}%",
         "personalizedTitle": "Analysen använde din mathistorik för att förbättra träffsäkerheten",
@@ -4771,7 +4779,23 @@
         "mealType": "Måltidstyp",
         "mealTypePlaceholder": "Välj typ",
         "time": "Tid",
-        "identifiedFoods": "Identifierade livsmedel ({count})"
+        "identifiedFoods": "Identifierade livsmedel ({count})",
+        "detailedAnalysis": "Detaljerad analys",
+        "fatBreakdown": "{saturated}g mättat, {mono}g enkelomättat, {poly}g fleromättat",
+        "carbBreakdown": "{sugar}g socker, {complex}g komplexa",
+        "noItemFatBreakdown": "Ingen detaljerad fettfördelning returnerades för denna matvara.",
+        "noItemCarbBreakdown": "Ingen detaljerad kolhydratfördelning returnerades för denna matvara.",
+        "proteinQualityUnknown": "Proteinkvalitet ej specificerad av analysen.",
+        "completeProtein": "Komplett proteinkälla",
+        "incompleteProtein": "Ej komplett protein",
+        "detailedTotals": "Detaljerad totalsammanfattning",
+        "noTotalFatBreakdown": "Ingen detaljerad fettfördelning returnerades i denna analys.",
+        "noTotalCarbBreakdown": "Ingen detaljerad kolhydratfördelning returnerades i denna analys.",
+        "portionCalibrationTitle": "Gemini och din tidigare mathistorik vägdes samman för att ge mer realistiska portionsstorlekar.",
+        "portionCalibrationOne": "1 portionsstorlek justerad efter din historik",
+        "portionCalibrationMany": "{count} portionsstorlekar justerade efter din historik",
+        "notes": "Anteckningar",
+        "notesPlaceholder": "Valfria anteckningar..."
       },
       "done": {
         "title": "Måltid sparad!",
