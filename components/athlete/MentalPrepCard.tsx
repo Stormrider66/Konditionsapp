@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { MENTAL_PREP_CHAT_EVENT, type MentalPrepChatEvent } from '@/lib/events/mental-prep-chat'
+import { useTranslations } from '@/i18n/client'
 
 interface MentalPrepContent {
   title: string
@@ -42,29 +43,30 @@ interface MentalPrepNotification {
 const PREP_TYPE_CONFIG = {
   VISUALIZATION: {
     icon: Eye,
-    label: 'Visualisering',
-    description: 'Guidad mental bild av ditt lopp',
+    labelKey: 'prepTypes.visualization.label',
+    descriptionKey: 'prepTypes.visualization.description',
   },
   RACE_PLAN: {
     icon: Target,
-    label: 'Tävlingsplan',
-    description: 'Strategi och pacing för loppet',
+    labelKey: 'prepTypes.racePlan.label',
+    descriptionKey: 'prepTypes.racePlan.description',
   },
   AFFIRMATIONS: {
     icon: Sparkles,
-    label: 'Affirmationer',
-    description: 'Styrka och självförtroende inför start',
+    labelKey: 'prepTypes.affirmations.label',
+    descriptionKey: 'prepTypes.affirmations.description',
   },
 }
 
 const DISTANCE_LABELS: Record<string, string> = {
   '5K': '5 km',
   '10K': '10 km',
-  HALF: 'Halvmaraton',
-  MARATHON: 'Maraton',
+  HALF: 'distances.half',
+  MARATHON: 'distances.marathon',
 }
 
 export function MentalPrepCard() {
+  const t = useTranslations('components.mentalPrepCard')
   const [notification, setNotification] = useState<MentalPrepNotification | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isDismissing, setIsDismissing] = useState(false)
@@ -128,7 +130,7 @@ export function MentalPrepCard() {
       }
     }
 
-    fetchMentalPrep()
+    void fetchMentalPrep()
   }, [])
 
   async function handleDismiss() {
@@ -178,7 +180,8 @@ export function MentalPrepCard() {
 
   const config = PREP_TYPE_CONFIG[notification.prepType] || PREP_TYPE_CONFIG.VISUALIZATION
   const Icon = config.icon
-  const distanceLabel = DISTANCE_LABELS[notification.distance] || notification.distance
+  const distanceLabel = DISTANCE_LABELS[notification.distance]
+  const distance = distanceLabel?.includes('.') ? t(distanceLabel) : distanceLabel || notification.distance
   const dayNumber = Math.max(1, Math.min(3, 4 - notification.daysUntilRace))
 
   const progressDots = [
@@ -200,27 +203,27 @@ export function MentalPrepCard() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
               <h3 className="font-semibold text-sm text-purple-900 dark:text-purple-100">
-                Mental förberedelse
+                {t('title')}
               </h3>
               <Badge
                 variant="secondary"
                 className="bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 text-[10px] px-1.5 py-0"
               >
-                {distanceLabel}
+                {distance}
               </Badge>
             </div>
 
             <p className="text-xs text-purple-700 dark:text-purple-300 truncate">
               {notification.raceName} — {notification.daysUntilRace === 1
-                ? 'imorgon'
-                : `${notification.daysUntilRace} dagar kvar`}
+                ? t('tomorrow')
+                : t('daysRemaining', { days: notification.daysUntilRace })}
             </p>
 
             {/* Prep type + progress */}
             <div className="flex items-center gap-3 mt-1.5">
               <div className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400">
                 <Icon className="h-3 w-3" />
-                <span>{config.label}</span>
+                <span>{t(config.labelKey)}</span>
               </div>
               <div className="flex items-center gap-1">
                 {progressDots.map((dot, index) => (
@@ -249,7 +252,7 @@ export function MentalPrepCard() {
               onClick={handleStartMentalPrep}
             >
               <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-              Starta
+              {t('actions.start')}
             </Button>
             <Button
               variant="ghost"

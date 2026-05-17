@@ -4475,6 +4475,32 @@
         "hideDetails": "Dölj detaljer"
       }
     },
+    "mentalPrepCard": {
+      "title": "Mental förberedelse",
+      "tomorrow": "imorgon",
+      "daysRemaining": "{days} dagar kvar",
+      "prepTypes": {
+        "visualization": {
+          "label": "Visualisering",
+          "description": "Guidad mental bild av ditt lopp"
+        },
+        "racePlan": {
+          "label": "Tävlingsplan",
+          "description": "Strategi och pacing för loppet"
+        },
+        "affirmations": {
+          "label": "Affirmationer",
+          "description": "Styrka och självförtroende inför start"
+        }
+      },
+      "distances": {
+        "half": "Halvmaraton",
+        "marathon": "Maraton"
+      },
+      "actions": {
+        "start": "Starta"
+      }
+    },
     "exportDataButton": {
       "trigger": "Exportera data",
       "formatLabel": "Exportformat",

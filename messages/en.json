@@ -4475,6 +4475,32 @@
         "hideDetails": "Hide details"
       }
     },
+    "mentalPrepCard": {
+      "title": "Mental preparation",
+      "tomorrow": "tomorrow",
+      "daysRemaining": "{days} days remaining",
+      "prepTypes": {
+        "visualization": {
+          "label": "Visualization",
+          "description": "Guided mental picture of your race"
+        },
+        "racePlan": {
+          "label": "Race plan",
+          "description": "Strategy and pacing for the race"
+        },
+        "affirmations": {
+          "label": "Affirmations",
+          "description": "Strength and confidence before the start"
+        }
+      },
+      "distances": {
+        "half": "Half marathon",
+        "marathon": "Marathon"
+      },
+      "actions": {
+        "start": "Start"
+      }
+    },
     "exportDataButton": {
       "trigger": "Export data",
       "formatLabel": "Export format",
