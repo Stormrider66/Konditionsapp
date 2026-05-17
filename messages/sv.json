@@ -4160,6 +4160,62 @@
         "veryHard": "Mycket svårt"
       }
     },
+    "programCompletionCelebration": {
+      "goalAssessment": {
+        "exceeded": "Mål överträffat!",
+        "met": "Mål uppnått!",
+        "close": "Nära målet",
+        "missed": "Fortsätt kämpa"
+      },
+      "goalTypes": {
+        "halfMarathon": "Halvmaraton",
+        "marathon": "Maraton",
+        "cycling": "Cykling",
+        "skiing": "Skidåkning"
+      },
+      "hero": {
+        "title": "Grattis! Du har slutfört"
+      },
+      "race": {
+        "finishTime": "Din sluttid",
+        "goalTime": "Mål: {time}"
+      },
+      "vdot": {
+        "title": "Din VDOT",
+        "description": "Löpzoner och träningstempo uppdaterade"
+      },
+      "stats": {
+        "title": "Din resa i siffror",
+        "workouts": "Träningspass",
+        "totalPlanned": "Totalt planerade",
+        "completed": "Genomfört",
+        "programDone": "Program klart!"
+      },
+      "ai": {
+        "loading": "Förbereder ett personligt meddelande..."
+      },
+      "next": {
+        "title": "Vad vill du göra nu?",
+        "coach": {
+          "title": "Meddela din coach",
+          "notifiedTitle": "Coach meddelad!",
+          "description": "Be din coach skapa ett nytt träningsprogram åt dig",
+          "notifiedDescription": "Din coach har fått en notis om att du vill ha ett nytt program"
+        },
+        "newProgram": {
+          "title": "Skapa nytt program",
+          "description": "Låt AI skapa ett nytt träningsprogram baserat på dina mål"
+        },
+        "break": {
+          "title": "Ta en paus",
+          "description": "Vila och återhämta dig innan nästa steg"
+        },
+        "freeTraining": {
+          "title": "Träna fritt",
+          "description": "Använd dagens pass (WOD) och egna pass"
+        }
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",

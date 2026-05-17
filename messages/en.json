@@ -4160,6 +4160,62 @@
         "veryHard": "Very hard"
       }
     },
+    "programCompletionCelebration": {
+      "goalAssessment": {
+        "exceeded": "Goal exceeded!",
+        "met": "Goal achieved!",
+        "close": "Close to the goal",
+        "missed": "Keep going"
+      },
+      "goalTypes": {
+        "halfMarathon": "Half marathon",
+        "marathon": "Marathon",
+        "cycling": "Cycling",
+        "skiing": "Skiing"
+      },
+      "hero": {
+        "title": "Congratulations! You completed"
+      },
+      "race": {
+        "finishTime": "Your finish time",
+        "goalTime": "Goal: {time}"
+      },
+      "vdot": {
+        "title": "Your VDOT",
+        "description": "Running zones and training paces updated"
+      },
+      "stats": {
+        "title": "Your journey in numbers",
+        "workouts": "Workouts",
+        "totalPlanned": "Total planned",
+        "completed": "Completed",
+        "programDone": "Program complete!"
+      },
+      "ai": {
+        "loading": "Preparing a personal message..."
+      },
+      "next": {
+        "title": "What do you want to do now?",
+        "coach": {
+          "title": "Notify your coach",
+          "notifiedTitle": "Coach notified!",
+          "description": "Ask your coach to create a new training program for you",
+          "notifiedDescription": "Your coach has received a notification that you want a new program"
+        },
+        "newProgram": {
+          "title": "Create new program",
+          "description": "Let AI create a new training program based on your goals"
+        },
+        "break": {
+          "title": "Take a break",
+          "description": "Rest and recover before the next step"
+        },
+        "freeTraining": {
+          "title": "Train freely",
+          "description": "Use today's workout (WOD) and your own workouts"
+        }
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",

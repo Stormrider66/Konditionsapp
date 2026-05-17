@@ -20,6 +20,7 @@ import {
 import { cn } from '@/lib/utils'
 import { NewProgramDialog } from './NewProgramDialog'
 import type { AthleteContext } from './WorkoutLogClient'
+import { useTranslations } from '@/i18n/client'
 
 interface RaceContext {
   isRaceWorkout: boolean
@@ -55,6 +56,11 @@ interface ProgramCompletionCelebrationProps {
 }
 
 // Confetti CSS animation (pure CSS, no external deps)
+function seededRandom(seed: number) {
+  const value = Math.sin(seed) * 10000
+  return value - Math.floor(value)
+}
+
 function ConfettiEffect() {
   const colors = [
     'bg-yellow-400',
@@ -71,10 +77,12 @@ function ConfettiEffect() {
     <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
       {Array.from({ length: 50 }).map((_, i) => {
         const color = colors[i % colors.length]
-        const left = Math.random() * 100
-        const delay = Math.random() * 3
-        const duration = 2 + Math.random() * 3
-        const size = 6 + Math.random() * 8
+        const left = seededRandom(i + 1) * 100
+        const delay = seededRandom(i + 101) * 3
+        const duration = 2 + seededRandom(i + 201) * 3
+        const size = 6 + seededRandom(i + 301) * 8
+        const rotation = seededRandom(i + 401) * 360
+        const drift = seededRandom(i + 501) > 0.5 ? 80 : -80
 
         return (
           <div
@@ -86,7 +94,8 @@ function ConfettiEffect() {
               width: `${size}px`,
               height: `${size * 0.6}px`,
               animation: `confetti-fall ${duration}s ease-in ${delay}s forwards`,
-              transform: `rotate(${Math.random() * 360}deg)`,
+              transform: `rotate(${rotation}deg)`,
+              ['--confetti-drift' as string]: `${drift}px`,
             }}
           />
         )
@@ -101,7 +110,7 @@ function ConfettiEffect() {
           100% {
             top: 110vh;
             opacity: 0;
-            transform: rotate(720deg) translateX(${Math.random() > 0.5 ? '' : '-'}80px);
+            transform: rotate(720deg) translateX(var(--confetti-drift));
           }
         }
       `}</style>
@@ -111,40 +120,41 @@ function ConfettiEffect() {
 
 const GOAL_ASSESSMENT_CONFIG = {
   EXCEEDED: {
-    label: 'Mål överträffat!',
+    labelKey: 'goalAssessment.exceeded',
     color: 'bg-green-500 text-white',
     icon: TrendingUp,
   },
   MET: {
-    label: 'Mål uppnått!',
+    labelKey: 'goalAssessment.met',
     color: 'bg-blue-500 text-white',
     icon: CheckCircle2,
   },
   CLOSE: {
-    label: 'Nära målet',
+    labelKey: 'goalAssessment.close',
     color: 'bg-yellow-500 text-white',
     icon: Target,
   },
   MISSED: {
-    label: 'Fortsätt kämpa',
+    labelKey: 'goalAssessment.missed',
     color: 'bg-orange-500 text-white',
     icon: Target,
   },
 }
 
-function formatGoalType(goalType: string | null | undefined): string {
+function formatGoalType(goalType: string | null | undefined, t: (key: string) => string): string {
   const types: Record<string, string> = {
     '5k': '5 km',
     '10k': '10 km',
     '5K': '5 km',
     '10K': '10 km',
-    'half-marathon': 'Halvmaraton',
-    marathon: 'Maraton',
+    'half-marathon': 'goalTypes.halfMarathon',
+    marathon: 'goalTypes.marathon',
     fitness: 'Fitness',
-    cycling: 'Cykling',
-    skiing: 'Skidåkning',
+    cycling: 'goalTypes.cycling',
+    skiing: 'goalTypes.skiing',
   }
-  return types[goalType || ''] || goalType || ''
+  const label = types[goalType || '']
+  return label ? (label.includes('.') ? t(label) : label) : goalType || ''
 }
 
 export function ProgramCompletionCelebration({
@@ -154,6 +164,7 @@ export function ProgramCompletionCelebration({
   basePath,
   athleteContext,
 }: ProgramCompletionCelebrationProps) {
+  const t = useTranslations('components.programCompletionCelebration')
   const router = useRouter()
   const [showConfetti, setShowConfetti] = useState(true)
   const [aiMessage, setAiMessage] = useState<string | null>(null)
@@ -200,12 +211,8 @@ export function ProgramCompletionCelebration({
       }
     }
 
-    fetchCompletion()
+    void fetchCompletion()
   }, [raceContext.programId, raceResult])
-
-  const totalWeeks = Math.ceil(
-    (raceContext.completedWorkouts + 1) / (raceContext.totalWorkouts / 12 || 1)
-  )
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-2xl">
@@ -217,14 +224,14 @@ export function ProgramCompletionCelebration({
           <PartyPopper className="h-10 w-10 text-white" />
         </div>
         <h1 className="text-3xl font-bold mb-2">
-          Grattis! Du har slutfört
+          {t('hero.title')}
         </h1>
         <h2 className="text-2xl font-semibold text-primary">
           {raceContext.programName}
         </h2>
         {raceContext.goalType && (
           <Badge variant="secondary" className="mt-3 text-sm px-3 py-1">
-            {formatGoalType(raceContext.goalType)}
+            {formatGoalType(raceContext.goalType, t)}
           </Badge>
         )}
       </div>
@@ -234,7 +241,7 @@ export function ProgramCompletionCelebration({
         <Card className="mb-6 border-2 border-yellow-400 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
           <CardContent className="pt-6 text-center">
             <Trophy className="h-8 w-8 text-yellow-600 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground mb-1">Din sluttid</p>
+            <p className="text-sm text-muted-foreground mb-1">{t('race.finishTime')}</p>
             <p className="text-5xl font-bold tracking-tight mb-3">
               {raceResult.finishTime}
             </p>
@@ -245,12 +252,12 @@ export function ProgramCompletionCelebration({
                   GOAL_ASSESSMENT_CONFIG[raceResult.goalAssessment].color
                 )}
               >
-                {GOAL_ASSESSMENT_CONFIG[raceResult.goalAssessment].label}
+                {t(GOAL_ASSESSMENT_CONFIG[raceResult.goalAssessment].labelKey)}
               </Badge>
             )}
             {raceResult.goalTime && (
               <p className="text-sm text-muted-foreground mt-2">
-                Mål: {raceResult.goalTime}
+                {t('race.goalTime', { time: raceResult.goalTime })}
               </p>
             )}
           </CardContent>
@@ -262,12 +269,12 @@ export function ProgramCompletionCelebration({
         <Card className="mb-6 border-2 border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
           <CardContent className="pt-6 text-center">
             <TrendingUp className="h-8 w-8 text-blue-600 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground mb-1">Din VDOT</p>
+            <p className="text-sm text-muted-foreground mb-1">{t('vdot.title')}</p>
             <p className="text-5xl font-bold tracking-tight mb-2">
               {vdotData.vdot.toFixed(1)}
             </p>
             <p className="text-sm text-muted-foreground">
-              Löpzoner och träningstempo uppdaterade
+              {t('vdot.description')}
             </p>
           </CardContent>
         </Card>
@@ -276,17 +283,17 @@ export function ProgramCompletionCelebration({
       {/* Program Summary Stats */}
       <Card className="mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
         <CardContent className="pt-6">
-          <h3 className="font-semibold mb-4 text-center">Din resa i siffror</h3>
+          <h3 className="font-semibold mb-4 text-center">{t('stats.title')}</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center p-4 rounded-lg bg-muted/50">
               <Dumbbell className="h-5 w-5 mx-auto mb-1 text-blue-500" />
               <p className="text-2xl font-bold">{raceContext.completedWorkouts + 1}</p>
-              <p className="text-xs text-muted-foreground">Träningspass</p>
+              <p className="text-xs text-muted-foreground">{t('stats.workouts')}</p>
             </div>
             <div className="text-center p-4 rounded-lg bg-muted/50">
               <Calendar className="h-5 w-5 mx-auto mb-1 text-green-500" />
               <p className="text-2xl font-bold">{raceContext.totalWorkouts}</p>
-              <p className="text-xs text-muted-foreground">Totalt planerade</p>
+              <p className="text-xs text-muted-foreground">{t('stats.totalPlanned')}</p>
             </div>
             <div className="text-center p-4 rounded-lg bg-muted/50">
               <CheckCircle2 className="h-5 w-5 mx-auto mb-1 text-purple-500" />
@@ -296,12 +303,12 @@ export function ProgramCompletionCelebration({
                 )}
                 %
               </p>
-              <p className="text-xs text-muted-foreground">Genomfört</p>
+              <p className="text-xs text-muted-foreground">{t('stats.completed')}</p>
             </div>
             <div className="text-center p-4 rounded-lg bg-muted/50">
               <Trophy className="h-5 w-5 mx-auto mb-1 text-yellow-500" />
               <p className="text-2xl font-bold">1</p>
-              <p className="text-xs text-muted-foreground">Program klart!</p>
+              <p className="text-xs text-muted-foreground">{t('stats.programDone')}</p>
             </div>
           </div>
         </CardContent>
@@ -319,7 +326,7 @@ export function ProgramCompletionCelebration({
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
               <span className="text-sm text-muted-foreground">
-                Förbereder ett personligt meddelande...
+                {t('ai.loading')}
               </span>
             </div>
           ) : aiMessage ? (
@@ -332,7 +339,7 @@ export function ProgramCompletionCelebration({
 
       {/* What's Next? Section */}
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
-        <h3 className="text-lg font-semibold text-center mb-4">Vad vill du göra nu?</h3>
+        <h3 className="text-lg font-semibold text-center mb-4">{t('next.title')}</h3>
         <div className="space-y-3">
           {/* Option 1: Create new program OR Notify coach */}
           {athleteContext?.hasCoach && !athleteContext?.isAICoached ? (
@@ -367,12 +374,12 @@ export function ProgramCompletionCelebration({
               </div>
               <div className="flex-1">
                 <h4 className="font-semibold text-base mb-1">
-                  {coachNotified ? 'Coach meddelad!' : 'Meddela din coach'}
+                  {coachNotified ? t('next.coach.notifiedTitle') : t('next.coach.title')}
                 </h4>
                 <p className="text-sm text-muted-foreground">
                   {coachNotified
-                    ? 'Din coach har fått en notis om att du vill ha ett nytt program'
-                    : 'Be din coach skapa ett nytt träningsprogram åt dig'}
+                    ? t('next.coach.notifiedDescription')
+                    : t('next.coach.description')}
                 </p>
               </div>
             </button>
@@ -385,9 +392,9 @@ export function ProgramCompletionCelebration({
                 <Sparkles className="h-6 w-6 text-purple-600 dark:text-purple-500" />
               </div>
               <div className="flex-1">
-                <h4 className="font-semibold text-base mb-1">Skapa nytt program</h4>
+                <h4 className="font-semibold text-base mb-1">{t('next.newProgram.title')}</h4>
                 <p className="text-sm text-muted-foreground">
-                  Låt AI skapa ett nytt träningsprogram baserat på dina mål
+                  {t('next.newProgram.description')}
                 </p>
               </div>
             </button>
@@ -405,9 +412,9 @@ export function ProgramCompletionCelebration({
               <Coffee className="h-6 w-6 text-amber-600 dark:text-amber-500" />
             </div>
             <div className="flex-1">
-              <h4 className="font-semibold text-base mb-1">Ta en paus</h4>
+              <h4 className="font-semibold text-base mb-1">{t('next.break.title')}</h4>
               <p className="text-sm text-muted-foreground">
-                Vila och återhämta dig innan nästa steg
+                {t('next.break.description')}
               </p>
             </div>
           </button>
@@ -424,9 +431,9 @@ export function ProgramCompletionCelebration({
               <Dumbbell className="h-6 w-6 text-green-600 dark:text-green-500" />
             </div>
             <div className="flex-1">
-              <h4 className="font-semibold text-base mb-1">Träna fritt</h4>
+              <h4 className="font-semibold text-base mb-1">{t('next.freeTraining.title')}</h4>
               <p className="text-sm text-muted-foreground">
-                Använd dagens pass (WOD) och egna pass
+                {t('next.freeTraining.description')}
               </p>
             </div>
           </button>
