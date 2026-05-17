@@ -2885,6 +2885,34 @@
         "noData": "Inga data"
       }
     },
+    "workoutHistoryCharts": {
+      "weeklyVolume": {
+        "title": "Veckovis volym",
+        "description": "Totalt antal kilometer och minuter per vecka"
+      },
+      "rpeTrend": {
+        "title": "RPE-trend",
+        "description": "Upplevd ansträngning över tid"
+      },
+      "paceProgression": {
+        "title": "Tempoutveckling (Löpning)",
+        "description": "Genomsnittligt tempo per vecka för löppass"
+      },
+      "empty": {
+        "noData": "Ingen data tillgänglig",
+        "noRpeData": "Ingen RPE-data tillgänglig"
+      },
+      "series": {
+        "distance": "Distans (km)",
+        "time": "Tid (min)",
+        "averageRpe": "Snitt RPE",
+        "pace": "Tempo",
+        "averagePace": "Snitt-tempo"
+      },
+      "axis": {
+        "pace": "Tempo (min/km)"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

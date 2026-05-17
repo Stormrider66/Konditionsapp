@@ -2885,6 +2885,34 @@
         "noData": "No data"
       }
     },
+    "workoutHistoryCharts": {
+      "weeklyVolume": {
+        "title": "Weekly volume",
+        "description": "Total kilometers and minutes per week"
+      },
+      "rpeTrend": {
+        "title": "RPE trend",
+        "description": "Perceived effort over time"
+      },
+      "paceProgression": {
+        "title": "Pace progression (Running)",
+        "description": "Average weekly pace for running workouts"
+      },
+      "empty": {
+        "noData": "No data available",
+        "noRpeData": "No RPE data available"
+      },
+      "series": {
+        "distance": "Distance (km)",
+        "time": "Time (min)",
+        "averageRpe": "Average RPE",
+        "pace": "Pace",
+        "averagePace": "Average pace"
+      },
+      "axis": {
+        "pace": "Pace (min/km)"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",

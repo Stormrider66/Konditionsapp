@@ -2,7 +2,6 @@
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import {
   LineChart,
   Line,
@@ -15,9 +14,11 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
-import { format, startOfWeek, endOfWeek, eachWeekOfInterval, subWeeks } from 'date-fns'
-import { sv } from 'date-fns/locale'
-import { TrendingUp, Zap, Clock, MapPin } from 'lucide-react'
+import { format, startOfWeek } from 'date-fns'
+import { enUS, sv } from 'date-fns/locale'
+import type { Locale as DateFnsLocale } from 'date-fns'
+import { TrendingUp, Zap, Clock } from 'lucide-react'
+import { useLocale, useTranslations } from '@/i18n/client'
 import {
   GlassCard,
   GlassCardHeader,
@@ -27,22 +28,36 @@ import {
 } from '@/components/ui/GlassCard'
 
 interface WorkoutHistoryChartsProps {
-  logs: any[]
+  logs: WorkoutChartLog[]
   timeframe: string
   variant?: 'default' | 'glass'
 }
 
-export function WorkoutHistoryCharts({ logs, timeframe, variant = 'default' }: WorkoutHistoryChartsProps) {
+interface WorkoutChartLog {
+  completedAt: Date | string
+  distance?: number | null
+  duration?: number | null
+  perceivedEffort?: number | null
+  avgPace?: string | null
+  workout: {
+    type: string
+  }
+}
+
+export function WorkoutHistoryCharts({ logs, timeframe: _timeframe, variant = 'default' }: WorkoutHistoryChartsProps) {
+  const t = useTranslations('components.workoutHistoryCharts')
+  const locale = useLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const isGlass = variant === 'glass'
 
   // Prepare data for weekly volume chart
-  const weeklyVolumeData = prepareWeeklyVolumeData(logs, timeframe)
+  const weeklyVolumeData = prepareWeeklyVolumeData(logs, dateLocale)
 
   // Prepare data for RPE trend chart
-  const rpeTrendData = prepareRPETrendData(logs, timeframe)
+  const rpeTrendData = prepareRPETrendData(logs, dateLocale)
 
   // Prepare data for pace progression (running only)
-  const paceProgressionData = preparePaceProgressionData(logs, timeframe)
+  const paceProgressionData = preparePaceProgressionData(logs, dateLocale)
 
   const chartGridColor = isGlass ? "rgba(255, 255, 255, 0.05)" : "#e0e0e0"
   const chartTextColor = isGlass ? "#94a3b8" : "#888"
@@ -89,12 +104,12 @@ export function WorkoutHistoryCharts({ logs, timeframe, variant = 'default' }: W
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
       {/* Weekly Volume Chart */}
       {renderCard(
-        "Veckovis volym",
-        "Totalt antal kilometer och minuter per vecka",
+        t('weeklyVolume.title'),
+        t('weeklyVolume.description'),
         <TrendingUp className="h-5 w-5 text-blue-400" />,
         weeklyVolumeData.length === 0 ? (
           <div className="h-[300px] flex items-center justify-center text-slate-500 font-medium italic">
-            Ingen data tillgänglig
+            {t('empty.noData')}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
@@ -137,14 +152,14 @@ export function WorkoutHistoryCharts({ logs, timeframe, variant = 'default' }: W
                 yAxisId="left"
                 dataKey="distance"
                 fill="#3b82f6"
-                name="Distans (km)"
+                name={t('series.distance')}
                 radius={[4, 4, 0, 0]}
               />
               <Bar
                 yAxisId="right"
                 dataKey="duration"
                 fill="#f59e0b"
-                name="Tid (min)"
+                name={t('series.time')}
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>
@@ -154,12 +169,12 @@ export function WorkoutHistoryCharts({ logs, timeframe, variant = 'default' }: W
 
       {/* RPE Trend Chart */}
       {renderCard(
-        "RPE-trend",
-        "Upplevd ansträngning över tid",
+        t('rpeTrend.title'),
+        t('rpeTrend.description'),
         <Zap className="h-5 w-5 text-red-400" />,
         rpeTrendData.length === 0 ? (
           <div className="h-[300px] flex items-center justify-center text-slate-500 font-medium italic">
-            Ingen RPE-data tillgänglig
+            {t('empty.noRpeData')}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
@@ -195,7 +210,7 @@ export function WorkoutHistoryCharts({ logs, timeframe, variant = 'default' }: W
                 dataKey="avgRPE"
                 stroke="#ef4444"
                 strokeWidth={3}
-                name="Snitt RPE"
+                name={t('series.averageRpe')}
                 dot={{ r: 4, fill: "#ef4444", strokeWidth: 0 }}
                 activeDot={{ r: 6, strokeWidth: 0 }}
               />
@@ -215,8 +230,8 @@ export function WorkoutHistoryCharts({ logs, timeframe, variant = 'default' }: W
 
       {/* Pace Progression Chart (Running only) */}
       {paceProgressionData.length > 0 && renderCard(
-        "Tempoutveckling (Löpning)",
-        "Genomsnittligt tempo per vecka för löppass",
+        t('paceProgression.title'),
+        t('paceProgression.description'),
         <Clock className="h-5 w-5 text-emerald-400" />,
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={paceProgressionData}>
@@ -231,7 +246,7 @@ export function WorkoutHistoryCharts({ logs, timeframe, variant = 'default' }: W
               tick={{ fontSize: 10, fill: chartTextColor, fontWeight: 600 }}
               axisLine={false}
               tickLine={false}
-              label={{ value: 'Tempo (min/km)', angle: -90, position: 'insideLeft', fill: chartTextColor, fontSize: 10, fontWeight: 700 }}
+              label={{ value: t('axis.pace'), angle: -90, position: 'insideLeft', fill: chartTextColor, fontSize: 10, fontWeight: 700 }}
               domain={['dataMin - 0.5', 'dataMax + 0.5']}
             />
             <Tooltip
@@ -243,7 +258,7 @@ export function WorkoutHistoryCharts({ logs, timeframe, variant = 'default' }: W
                 color: isGlass ? '#fff' : '#000'
               }}
               itemStyle={{ fontSize: '12px', fontWeight: 600 }}
-              formatter={(value: any) => [`${value.toFixed(2)} min/km`, 'Tempo']}
+              formatter={(value: number | string) => [`${Number(value).toFixed(2)} min/km`, t('series.pace')]}
             />
             <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 600, color: chartTextColor }} />
             <Line
@@ -251,7 +266,7 @@ export function WorkoutHistoryCharts({ logs, timeframe, variant = 'default' }: W
               dataKey="avgPace"
               stroke="#10b981"
               strokeWidth={3}
-              name="Snitt-tempo"
+              name={t('series.averagePace')}
               dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }}
               activeDot={{ r: 6, strokeWidth: 0 }}
             />
@@ -264,7 +279,7 @@ export function WorkoutHistoryCharts({ logs, timeframe, variant = 'default' }: W
 }
 
 // Helper function to prepare weekly volume data ... (rest of the functions stay the same)
-function prepareWeeklyVolumeData(logs: any[], timeframe: string) {
+function prepareWeeklyVolumeData(logs: WorkoutChartLog[], dateLocale: DateFnsLocale) {
   if (logs.length === 0) return []
 
   // Group logs by week
@@ -287,7 +302,7 @@ function prepareWeeklyVolumeData(logs: any[], timeframe: string) {
   // Convert to array and sort by week
   const result = Array.from(weeklyData.entries())
     .map(([weekKey, data]) => ({
-      week: format(new Date(weekKey), 'MMM d', { locale: sv }),
+      week: format(new Date(weekKey), 'MMM d', { locale: dateLocale }),
       distance: parseFloat(data.distance.toFixed(1)),
       duration: data.duration,
       count: data.count,
@@ -297,10 +312,10 @@ function prepareWeeklyVolumeData(logs: any[], timeframe: string) {
   return result
 }
 
-function prepareRPETrendData(logs: any[], timeframe: string) {
+function prepareRPETrendData(logs: WorkoutChartLog[], dateLocale: DateFnsLocale) {
   if (logs.length === 0) return []
 
-  const logsWithRPE = logs.filter(log => log.perceivedEffort)
+  const logsWithRPE = logs.filter((log): log is WorkoutChartLog & { perceivedEffort: number } => typeof log.perceivedEffort === 'number')
   if (logsWithRPE.length === 0) return []
 
   const weeklyRPE = new Map<string, number[]>()
@@ -318,7 +333,7 @@ function prepareRPETrendData(logs: any[], timeframe: string) {
 
   const result = Array.from(weeklyRPE.entries())
     .map(([weekKey, rpeValues]) => ({
-      week: format(new Date(weekKey), 'MMM d', { locale: sv }),
+      week: format(new Date(weekKey), 'MMM d', { locale: dateLocale }),
       avgRPE: parseFloat((rpeValues.reduce((a, b) => a + b, 0) / rpeValues.length).toFixed(1)),
       maxRPE: Math.max(...rpeValues),
       minRPE: Math.min(...rpeValues),
@@ -328,9 +343,13 @@ function prepareRPETrendData(logs: any[], timeframe: string) {
   return result
 }
 
-function preparePaceProgressionData(logs: any[], timeframe: string) {
+function preparePaceProgressionData(logs: WorkoutChartLog[], dateLocale: DateFnsLocale) {
   const runningLogs = logs.filter(
-    log => log.workout.type === 'RUNNING' && log.avgPace && log.distance && log.duration
+    (log): log is WorkoutChartLog & { avgPace: string; distance: number; duration: number } =>
+      log.workout.type === 'RUNNING' &&
+      typeof log.avgPace === 'string' &&
+      typeof log.distance === 'number' &&
+      typeof log.duration === 'number'
   )
 
   if (runningLogs.length === 0) return []
@@ -360,7 +379,7 @@ function preparePaceProgressionData(logs: any[], timeframe: string) {
       }, 0) / totalDistance
 
       return {
-        week: format(new Date(weekKey), 'MMM d', { locale: sv }),
+        week: format(new Date(weekKey), 'MMM d', { locale: dateLocale }),
         avgPace: parseFloat(weightedPace.toFixed(2)),
       }
     })
