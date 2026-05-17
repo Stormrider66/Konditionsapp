@@ -1,6 +1,6 @@
 'use client'
 
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -32,7 +32,7 @@ import {
   type TeamEventContentStatus,
   type TeamEventType,
 } from '@/lib/team-calendar/event-types'
-import { Plus, Repeat } from 'lucide-react'
+import { MapPin, Plus, Repeat } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   icePracticeTemplate,
@@ -53,6 +53,16 @@ interface CreateEventDialogProps {
   defaultContentOwner?: TeamEventContentOwner
   allowedEventTypes?: TeamEventType[]
 }
+
+interface CalendarLocationOption {
+  id: string
+  name: string
+  source: 'gym' | 'team'
+  description: string | null
+  isPrimary: boolean
+}
+
+const CUSTOM_LOCATION_VALUE = '__custom__'
 
 export function CreateEventDialog({
   teamId,
@@ -76,6 +86,9 @@ export function CreateEventDialog({
   const [type, setType] = useState<TeamEventType>(initialType)
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
+  const [locationMode, setLocationMode] = useState(CUSTOM_LOCATION_VALUE)
+  const [locationOptions, setLocationOptions] = useState<CalendarLocationOption[]>([])
+  const [saveCustomLocation, setSaveCustomLocation] = useState(false)
   const [startDate, setStartDate] = useState(defaultDate ?? '')
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
@@ -87,6 +100,33 @@ export function CreateEventDialog({
   const [repeatWeeks, setRepeatWeeks] = useState('4')
   const isIcePractice = type === 'PRACTICE' || type === 'ICE_PRACTICE'
   const practiceMinutes = practiceBlocks.reduce((sum, block) => sum + (Number(block.duration) || 0), 0)
+
+  useEffect(() => {
+    if (!open) return
+
+    let cancelled = false
+    const loadLocations = async () => {
+      try {
+        const params = new URLSearchParams()
+        if (businessSlug) params.set('businessSlug', businessSlug)
+        const res = await fetch(`/api/coach/teams/${teamId}/locations${params.size ? `?${params}` : ''}`, {
+          headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        if (!cancelled) {
+          setLocationOptions(data.locations || [])
+        }
+      } catch {
+        if (!cancelled) setLocationOptions([])
+      }
+    }
+
+    void loadLocations()
+    return () => {
+      cancelled = true
+    }
+  }, [open, teamId, businessSlug])
 
   const applyPracticeTemplate = (kind: PracticeTemplateKind) => {
     const blocks = icePracticeTemplate(kind)
@@ -117,6 +157,28 @@ export function CreateEventDialog({
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 20000)
     try {
+      if (saveCustomLocation && location.trim()) {
+        const params = new URLSearchParams()
+        if (businessSlug) params.set('businessSlug', businessSlug)
+        const locationRes = await fetch(`/api/coach/teams/${teamId}/locations${params.size ? `?${params}` : ''}`, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
+          },
+          body: JSON.stringify({ name: location.trim() }),
+        }).catch(() => null)
+        if (locationRes?.ok) {
+          const data = await locationRes.json().catch(() => null)
+          if (data?.location) {
+            setLocationOptions((prev) => (
+              prev.some((option) => option.id === data.location.id) ? prev : [...prev, data.location]
+            ))
+          }
+        }
+      }
+
       const startDateTime = allDay
         ? `${startDate}T00:00:00`
         : `${startDate}T${startTime || '09:00'}:00`
@@ -178,9 +240,11 @@ export function CreateEventDialog({
   const resetForm = () => {
     setTitle(defaultTitle)
     setType(initialType)
-    setDescription('')
-    setLocation('')
-    setStartDate(defaultDate ?? '')
+      setDescription('')
+      setLocation('')
+      setLocationMode(CUSTOM_LOCATION_VALUE)
+      setSaveCustomLocation(false)
+      setStartDate(defaultDate ?? '')
     setStartTime('')
     setEndTime('')
     setAllDay(false)
@@ -198,6 +262,9 @@ export function CreateEventDialog({
       setTitle(defaultTitle)
       setType(initialType)
       setStartDate(defaultDate ?? '')
+      setLocation('')
+      setLocationMode(CUSTOM_LOCATION_VALUE)
+      setSaveCustomLocation(false)
       setContentOwner(defaultContentOwner)
       setContentStatus(defaultContentStatus)
       setPracticeBlocks([])
@@ -402,11 +469,63 @@ export function CreateEventDialog({
 
           <div className="space-y-2">
             <Label>Plats (valfritt)</Label>
-            <Input
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="t.ex. Isrinken, Gymmet"
-            />
+            <Select
+              value={locationMode}
+              onValueChange={(value) => {
+                setLocationMode(value)
+                setSaveCustomLocation(false)
+                if (value === CUSTOM_LOCATION_VALUE) {
+                  setLocation('')
+                  return
+                }
+                const selectedLocation = locationOptions.find((option) => option.id === value)
+                setLocation(selectedLocation?.name ?? '')
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Välj plats" />
+              </SelectTrigger>
+              <SelectContent>
+                {locationOptions.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.name}{option.isPrimary ? ' · huvudplats' : ''}
+                  </SelectItem>
+                ))}
+                <SelectItem value={CUSTOM_LOCATION_VALUE}>
+                  Annan plats...
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            {locationMode !== CUSTOM_LOCATION_VALUE && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5" />
+                {locationOptions.find((option) => option.id === locationMode)?.description || 'Bokas mot denna plats i kalendern.'}
+              </div>
+            )}
+            {locationMode === CUSTOM_LOCATION_VALUE && (
+              <div className="space-y-2">
+                <Input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="t.ex. Fri vikten, Is A, Hall B"
+                />
+                {location.trim() && (
+                  <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 p-2">
+                    <div className="text-xs text-muted-foreground">
+                      Spara platsen i gymmets platslista för framtida bokningar.
+                    </div>
+                    <Switch
+                      checked={saveCustomLocation}
+                      onCheckedChange={setSaveCustomLocation}
+                      aria-label="Spara ny plats"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground">
+              Kalendern stoppar dubbelbokningar på samma plats och tid.
+            </div>
           </div>
 
           <div className="space-y-2">

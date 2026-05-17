@@ -12,6 +12,7 @@ import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignment-summary'
+import { findTeamCalendarLocationConflicts, formatLocationConflictMessage } from '@/lib/team-calendar/location-conflicts'
 import {
   TEAM_EVENT_CONTENT_OWNERS,
   TEAM_EVENT_CONTENT_STATUSES,
@@ -150,6 +151,34 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const recurrenceRule = isRecurring
       ? parsed.data.recurrenceRule ?? `FREQ=WEEKLY;INTERVAL=${recurrenceIntervalWeeks};COUNT=${recurrenceCount}`
       : parsed.data.recurrenceRule
+    const proposedInstances = Array.from({ length: recurrenceCount }, (_, index) => {
+      const weekOffset = index * recurrenceIntervalWeeks
+      return {
+        startDate: addWeeks(startDate, weekOffset),
+        endDate: endDate ? addWeeks(endDate, weekOffset) : null,
+      }
+    })
+    const locationConflicts = (await Promise.all(proposedInstances.map((instance) => (
+      findTeamCalendarLocationConflicts({
+        teamId,
+        location: parsed.data.location,
+        startDate: instance.startDate,
+        endDate: instance.endDate,
+        allDay: parsed.data.allDay,
+      })
+    )))).flat()
+
+    if (locationConflicts.length > 0) {
+      return NextResponse.json({
+        error: formatLocationConflictMessage(locationConflicts),
+        code: 'LOCATION_CONFLICT',
+        conflicts: locationConflicts.map((conflict) => ({
+          ...conflict,
+          startDate: conflict.startDate.toISOString(),
+          endDate: conflict.endDate?.toISOString() ?? null,
+        })),
+      }, { status: 409 })
+    }
     const practicePlan = parsed.data.practicePlan == null
       ? undefined
       : JSON.parse(JSON.stringify(parsed.data.practicePlan))

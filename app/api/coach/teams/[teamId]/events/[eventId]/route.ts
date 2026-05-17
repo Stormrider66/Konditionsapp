@@ -12,6 +12,7 @@ import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignment-summary'
+import { findTeamCalendarLocationConflicts, formatLocationConflictMessage } from '@/lib/team-calendar/location-conflicts'
 import {
   TEAM_EVENT_CONTENT_OWNERS,
   TEAM_EVENT_CONTENT_STATUSES,
@@ -120,7 +121,14 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
     const existingEvent = await prisma.teamEvent.findFirst({
       where: { id: eventId, teamId },
-      select: { id: true, type: true },
+      select: {
+        id: true,
+        type: true,
+        location: true,
+        startDate: true,
+        endDate: true,
+        allDay: true,
+      },
     })
 
     if (!existingEvent) {
@@ -146,6 +154,34 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       if (!contentTeam) {
         return NextResponse.json({ error: 'Team not found' }, { status: 404 })
       }
+    }
+
+    const targetStartDate = parsed.data.startDate ? new Date(parsed.data.startDate) : existingEvent.startDate
+    const targetEndDate = parsed.data.endDate !== undefined
+      ? parsed.data.endDate ? new Date(parsed.data.endDate) : null
+      : existingEvent.endDate
+    const targetAllDay = parsed.data.allDay ?? existingEvent.allDay
+    const targetLocation = parsed.data.location !== undefined ? parsed.data.location : existingEvent.location
+
+    const locationConflicts = await findTeamCalendarLocationConflicts({
+      teamId,
+      location: targetLocation,
+      startDate: targetStartDate,
+      endDate: targetEndDate,
+      allDay: targetAllDay,
+      excludeEventId: eventId,
+    })
+
+    if (locationConflicts.length > 0) {
+      return NextResponse.json({
+        error: formatLocationConflictMessage(locationConflicts),
+        code: 'LOCATION_CONFLICT',
+        conflicts: locationConflicts.map((conflict) => ({
+          ...conflict,
+          startDate: conflict.startDate.toISOString(),
+          endDate: conflict.endDate?.toISOString() ?? null,
+        })),
+      }, { status: 409 })
     }
 
     const event = await prisma.teamEvent.update({
