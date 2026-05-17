@@ -2813,6 +2813,40 @@
         "max": "Max"
       }
     },
+    "businessAthleteHeader": {
+      "fallbackAthlete": "Atlet",
+      "groups": {
+        "training": "Träning",
+        "more": "Mer"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "checkIn": "Check-in",
+        "calendar": "Kalender",
+        "history": "Historik",
+        "myPrs": "Mina PR",
+        "programs": "Program",
+        "aiWorkouts": "AI-pass",
+        "trainingLibrary": "Träningsbibliotek",
+        "vbtData": "VBT-data",
+        "videoAnalysis": "Videoanalys",
+        "myProfile": "Min profil",
+        "myCoach": "Min coach",
+        "testsReports": "Tester & rapporter",
+        "lactateTest": "Laktattest",
+        "messages": "Meddelanden",
+        "settings": "Inställningar"
+      },
+      "userMenu": {
+        "profile": "Profil",
+        "settings": "Inställningar",
+        "logOut": "Logga ut"
+      },
+      "mobile": {
+        "toggleMenu": "Växla meny",
+        "navigationMenu": "Navigationsmeny"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Kosttajming",
       "subtitle": {

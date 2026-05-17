@@ -47,6 +47,8 @@ import { SportSwitcher } from './SportSwitcher'
 import { SportType } from '@prisma/client'
 import { AthleteModeToggle } from '@/components/coach/AthleteModeToggle'
 import { getAthleteTestsHref } from '@/lib/athlete-tests/navigation'
+import { useTranslations } from '@/i18n/client'
+import type { User } from '@supabase/supabase-js'
 
 interface SportProfile {
     primarySport: SportType
@@ -54,7 +56,7 @@ interface SportProfile {
 }
 
 interface BusinessAthleteHeaderProps {
-    user: any
+    user: User | null
     athleteName: string | undefined
     clientName?: string
     clientId?: string
@@ -76,8 +78,9 @@ export function BusinessAthleteHeader({
 }: BusinessAthleteHeaderProps) {
     const pathname = usePathname()
     const router = useRouter()
+    const t = useTranslations('components.businessAthleteHeader')
     const [isOpen, setIsOpen] = useState(false)
-    const displayName = clientName || athleteName || user?.email || 'Athlete'
+    const displayName = clientName || athleteName || user?.email || t('fallbackAthlete')
 
     // Base path for all business-scoped routes
     const basePath = `/${businessSlug}`
@@ -91,37 +94,37 @@ export function BusinessAthleteHeader({
 
     // Top Level Links - using business-scoped URLs
     const mainNavItems = [
-        { href: `${basePath}/athlete/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
-        { href: `${basePath}/athlete/check-in`, label: 'Check-in', icon: CheckCircle },
-        { href: `${basePath}/athlete/calendar`, label: 'Kalender', icon: Calendar },
+        { href: `${basePath}/athlete/dashboard`, label: t('nav.dashboard'), icon: LayoutDashboard },
+        { href: `${basePath}/athlete/check-in`, label: t('nav.checkIn'), icon: CheckCircle },
+        { href: `${basePath}/athlete/calendar`, label: t('nav.calendar'), icon: Calendar },
     ]
 
     // Dropdown Groups - using business-scoped URLs
     const navGroups = {
         training: {
-            label: 'Träning',
+            label: t('groups.training'),
             icon: Activity,
             items: [
-                { href: `${basePath}/athlete/history`, label: 'Historik', icon: TrendingUp },
-                { href: `${basePath}/athlete/prs`, label: 'Mina PR', icon: Trophy },
-                { href: `${basePath}/athlete/programs`, label: 'Program', icon: ClipboardList },
-                { href: `${basePath}/athlete/wod/history`, label: 'AI-Pass', icon: Sparkles },
-                { href: `${basePath}/athlete/training-library`, label: 'Träningsbibliotek', icon: Library },
-                { href: `${basePath}/athlete/vbt`, label: 'VBT Data', icon: Gauge },
+                { href: `${basePath}/athlete/history`, label: t('nav.history'), icon: TrendingUp },
+                { href: `${basePath}/athlete/prs`, label: t('nav.myPrs'), icon: Trophy },
+                { href: `${basePath}/athlete/programs`, label: t('nav.programs'), icon: ClipboardList },
+                { href: `${basePath}/athlete/wod/history`, label: t('nav.aiWorkouts'), icon: Sparkles },
+                { href: `${basePath}/athlete/training-library`, label: t('nav.trainingLibrary'), icon: Library },
+                { href: `${basePath}/athlete/vbt`, label: t('nav.vbtData'), icon: Gauge },
                 { href: `${basePath}/athlete/concept2`, label: 'Concept2', icon: Ship },
-                { href: `${basePath}/athlete/video-analysis`, label: 'Videoanalys', icon: Video },
+                { href: `${basePath}/athlete/video-analysis`, label: t('nav.videoAnalysis'), icon: Video },
             ]
         },
         more: {
-            label: 'Mer',
+            label: t('groups.more'),
             icon: Menu,
             items: [
-                { href: `${basePath}/athlete/profile`, label: 'Min Profil', icon: UserIcon },
-                { href: `${basePath}/athlete/my-coach`, label: 'Min Coach', icon: HeartHandshake },
-                { href: athleteTestsHref, label: 'Tester & Rapporter', icon: FlaskConical },
-                { href: `${basePath}/athlete/lactate/new`, label: 'Laktattest', icon: Droplet },
-                { href: `${basePath}/athlete/messages`, label: 'Meddelanden', icon: MessageSquare },
-                { href: `${basePath}/athlete/settings`, label: 'Inställningar', icon: Settings },
+                { href: `${basePath}/athlete/profile`, label: t('nav.myProfile'), icon: UserIcon },
+                { href: `${basePath}/athlete/my-coach`, label: t('nav.myCoach'), icon: HeartHandshake },
+                { href: athleteTestsHref, label: t('nav.testsReports'), icon: FlaskConical },
+                { href: `${basePath}/athlete/lactate/new`, label: t('nav.lactateTest'), icon: Droplet },
+                { href: `${basePath}/athlete/messages`, label: t('nav.messages'), icon: MessageSquare },
+                { href: `${basePath}/athlete/settings`, label: t('nav.settings'), icon: Settings },
             ]
         }
     }
@@ -280,13 +283,13 @@ export function BusinessAthleteHeader({
                                 <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
                                     <Link href={`${basePath}/athlete/profile`}>
                                         <UserIcon className="mr-2 h-4 w-4" />
-                                        <span>Profile</span>
+                                        <span>{t('userMenu.profile')}</span>
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
                                     <Link href={`${basePath}/athlete/settings`}>
                                         <Settings className="mr-2 h-4 w-4" />
-                                        <span>Settings</span>
+                                        <span>{t('userMenu.settings')}</span>
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-white/10" />
@@ -294,7 +297,7 @@ export function BusinessAthleteHeader({
                                 <DropdownMenuSeparator className="bg-white/10" />
                                 <DropdownMenuItem onClick={handleSignOut} className="text-red-400 focus:bg-red-500/10 focus:text-red-400 cursor-pointer">
                                     <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Log out</span>
+                                    <span>{t('userMenu.logOut')}</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -305,11 +308,11 @@ export function BusinessAthleteHeader({
                         <SheetTrigger asChild>
                             <Button variant="ghost" size="icon" className="xl:hidden text-slate-300 hover:text-white hover:bg-white/10">
                                 <Menu className="h-6 w-6" />
-                                <span className="sr-only">Toggle menu</span>
+                                <span className="sr-only">{t('mobile.toggleMenu')}</span>
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="right" className="bg-slate-950 border-l border-white/10 text-slate-200 w-[300px] overflow-y-auto" aria-describedby={undefined}>
-                            <SheetTitle className="sr-only">Navigation menu</SheetTitle>
+                            <SheetTitle className="sr-only">{t('mobile.navigationMenu')}</SheetTitle>
                             <div className="flex flex-col gap-6 mt-8">
                                 <div className="flex items-center justify-between px-4">
                                     <span className="font-bold text-lg">{businessName}</span>
@@ -362,12 +365,12 @@ export function BusinessAthleteHeader({
                                     <button
                                         onClick={() => {
                                             setIsOpen(false)
-                                            handleSignOut()
+                                            void handleSignOut()
                                         }}
                                         className="flex items-center gap-3 py-3 rounded-lg text-red-400 hover:bg-red-500/10 w-full text-left"
                                     >
                                         <LogOut className="w-5 h-5" />
-                                        Log out
+                                        {t('userMenu.logOut')}
                                     </button>
                                 </div>
                             </div>

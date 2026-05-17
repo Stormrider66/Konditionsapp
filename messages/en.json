@@ -2813,6 +2813,40 @@
         "max": "Max"
       }
     },
+    "businessAthleteHeader": {
+      "fallbackAthlete": "Athlete",
+      "groups": {
+        "training": "Training",
+        "more": "More"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "checkIn": "Check-in",
+        "calendar": "Calendar",
+        "history": "History",
+        "myPrs": "My PRs",
+        "programs": "Programs",
+        "aiWorkouts": "AI workouts",
+        "trainingLibrary": "Training library",
+        "vbtData": "VBT data",
+        "videoAnalysis": "Video analysis",
+        "myProfile": "My profile",
+        "myCoach": "My coach",
+        "testsReports": "Tests & reports",
+        "lactateTest": "Lactate test",
+        "messages": "Messages",
+        "settings": "Settings"
+      },
+      "userMenu": {
+        "profile": "Profile",
+        "settings": "Settings",
+        "logOut": "Log out"
+      },
+      "mobile": {
+        "toggleMenu": "Toggle menu",
+        "navigationMenu": "Navigation menu"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Nutrition timing",
       "subtitle": {
