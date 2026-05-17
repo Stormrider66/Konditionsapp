@@ -7680,6 +7680,32 @@
         "remove": "Ta bort favorit"
       }
     },
+    "newProgramDialog": {
+      "title": "Skapa nytt program",
+      "description": "Välj mål och inställningar för ditt nya träningsprogram",
+      "goalLabel": "Mål",
+      "raceNameLabel": "Tävling (valfritt)",
+      "raceNamePlaceholder": "t.ex. Stockholm Marathon",
+      "raceDateLabel": "Datum",
+      "weeklyDaysLabel": "Träningsdagar/vecka",
+      "daysPerWeek": "{count} dagar/vecka",
+      "goals": {
+        "endurance": "Kondition",
+        "stamina": "Uthållighet",
+        "speed": "Snabbhet",
+        "racePrep": "Tävlingsförberedelse",
+        "strength": "Styrka",
+        "generalFitness": "Allmän fitness"
+      },
+      "actions": {
+        "create": "Skapa program",
+        "creating": "Skapar program..."
+      },
+      "errors": {
+        "generation": "Kunde inte starta programgenerering",
+        "generic": "Något gick fel"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

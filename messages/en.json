@@ -7680,6 +7680,32 @@
         "remove": "Remove favorite"
       }
     },
+    "newProgramDialog": {
+      "title": "Create new program",
+      "description": "Choose goals and settings for your new training program",
+      "goalLabel": "Goal",
+      "raceNameLabel": "Race (optional)",
+      "raceNamePlaceholder": "e.g. Stockholm Marathon",
+      "raceDateLabel": "Date",
+      "weeklyDaysLabel": "Training days/week",
+      "daysPerWeek": "{count} days/week",
+      "goals": {
+        "endurance": "Fitness",
+        "stamina": "Endurance",
+        "speed": "Speed",
+        "racePrep": "Race preparation",
+        "strength": "Strength",
+        "generalFitness": "General fitness"
+      },
+      "actions": {
+        "create": "Create program",
+        "creating": "Creating program..."
+      },
+      "errors": {
+        "generation": "Could not start program generation",
+        "generic": "Something went wrong"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

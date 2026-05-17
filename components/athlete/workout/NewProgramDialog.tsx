@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Loader2 } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 interface NewProgramDialogProps {
   open: boolean
@@ -32,12 +33,12 @@ interface NewProgramDialogProps {
 }
 
 const GOAL_OPTIONS = [
-  { value: 'endurance', label: 'Kondition' },
-  { value: 'stamina', label: 'Uthållighet' },
-  { value: 'speed', label: 'Snabbhet' },
-  { value: 'race-prep', label: 'Tävlingsförberedelse' },
-  { value: 'strength', label: 'Styrka' },
-  { value: 'general-fitness', label: 'Allmän fitness' },
+  { value: 'endurance', labelKey: 'goals.endurance' },
+  { value: 'stamina', labelKey: 'goals.stamina' },
+  { value: 'speed', labelKey: 'goals.speed' },
+  { value: 'race-prep', labelKey: 'goals.racePrep' },
+  { value: 'strength', labelKey: 'goals.strength' },
+  { value: 'general-fitness', labelKey: 'goals.generalFitness' },
 ]
 
 export function NewProgramDialog({
@@ -46,8 +47,9 @@ export function NewProgramDialog({
   isAICoached,
   primarySport,
   basePath,
-  completedProgramId,
+  completedProgramId: _completedProgramId,
 }: NewProgramDialogProps) {
+  const t = useTranslations('components.newProgramDialog')
   const router = useRouter()
   const [goal, setGoal] = useState('endurance')
   const [raceName, setRaceName] = useState('')
@@ -76,7 +78,7 @@ export function NewProgramDialog({
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
-          throw new Error(data.error || 'Kunde inte starta programgenerering')
+          throw new Error(data.error || t('errors.generation'))
         }
 
         const data = await res.json()
@@ -102,7 +104,7 @@ export function NewProgramDialog({
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
-          throw new Error(data.error || 'Kunde inte starta programgenerering')
+          throw new Error(data.error || t('errors.generation'))
         }
 
         const data = await res.json()
@@ -115,7 +117,7 @@ export function NewProgramDialog({
 
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Något gick fel')
+      setError(err instanceof Error ? err.message : t('errors.generic'))
     } finally {
       setIsSubmitting(false)
     }
@@ -125,16 +127,16 @@ export function NewProgramDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Skapa nytt program</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            Välj mål och inställningar för ditt nya träningsprogram
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
           {/* Goal selection */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Mål</Label>
+            <Label className="text-sm font-medium">{t('goalLabel')}</Label>
             <RadioGroup value={goal} onValueChange={setGoal} className="grid gap-2">
               {GOAL_OPTIONS.map((option) => (
                 <label
@@ -142,7 +144,7 @@ export function NewProgramDialog({
                   className="flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
                 >
                   <RadioGroupItem value={option.value} />
-                  <span className="text-sm">{option.label}</span>
+                  <span className="text-sm">{t(option.labelKey)}</span>
                 </label>
               ))}
             </RadioGroup>
@@ -152,16 +154,16 @@ export function NewProgramDialog({
           {goal === 'race-prep' && (
             <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="space-y-1.5">
-                <Label htmlFor="race-name" className="text-sm">Tävling (valfritt)</Label>
+                <Label htmlFor="race-name" className="text-sm">{t('raceNameLabel')}</Label>
                 <Input
                   id="race-name"
-                  placeholder="t.ex. Stockholm Marathon"
+                  placeholder={t('raceNamePlaceholder')}
                   value={raceName}
                   onChange={(e) => setRaceName(e.target.value)}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="race-date" className="text-sm">Datum</Label>
+                <Label htmlFor="race-date" className="text-sm">{t('raceDateLabel')}</Label>
                 <Input
                   id="race-date"
                   type="date"
@@ -174,7 +176,7 @@ export function NewProgramDialog({
 
           {/* Weekly days */}
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium">Träningsdagar/vecka</Label>
+            <Label className="text-sm font-medium">{t('weeklyDaysLabel')}</Label>
             <Select value={weeklyDays} onValueChange={setWeeklyDays}>
               <SelectTrigger>
                 <SelectValue />
@@ -182,7 +184,7 @@ export function NewProgramDialog({
               <SelectContent>
                 {[2, 3, 4, 5, 6, 7].map((n) => (
                   <SelectItem key={n} value={String(n)}>
-                    {n} dagar/vecka
+                    {t('daysPerWeek', { count: n })}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -201,10 +203,10 @@ export function NewProgramDialog({
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Skapar program...
+                {t('actions.creating')}
               </>
             ) : (
-              'Skapa program'
+              t('actions.create')
             )}
           </Button>
         </div>
