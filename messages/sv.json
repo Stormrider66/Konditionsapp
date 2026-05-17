@@ -7632,6 +7632,28 @@
         "remove": "Ta bort favorit"
       }
     },
+    "browseWorkoutsClient": {
+      "title": "Hitta pass",
+      "subtitle": "Utforska färdiga träningspass att köra direkt",
+      "searchPlaceholder": "Sök pass...",
+      "filters": {
+        "all": "Alla",
+        "favorites": "Favoriter",
+        "yourSport": "Din sport",
+        "strength": "Styrka",
+        "cardio": "Cardio",
+        "functional": "Funktionell",
+        "core": "Core",
+        "stretching": "Stretching"
+      },
+      "empty": {
+        "search": "Inga pass hittades för \"{query}\"",
+        "favorites": "Du har inga favoriter ännu. Tryck på hjärtat för att spara pass.",
+        "sport": "Inga sportspecifika pass hittades.",
+        "noSport": "Ingen sport vald i din profil.",
+        "category": "Inga pass hittades i denna kategori."
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

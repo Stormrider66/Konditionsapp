@@ -7632,6 +7632,28 @@
         "remove": "Remove favorite"
       }
     },
+    "browseWorkoutsClient": {
+      "title": "Find workouts",
+      "subtitle": "Explore ready-made workouts you can start right away",
+      "searchPlaceholder": "Search workouts...",
+      "filters": {
+        "all": "All",
+        "favorites": "Favorites",
+        "yourSport": "Your sport",
+        "strength": "Strength",
+        "cardio": "Cardio",
+        "functional": "Functional",
+        "core": "Core",
+        "stretching": "Stretching"
+      },
+      "empty": {
+        "search": "No workouts found for \"{query}\"",
+        "favorites": "You do not have any favorites yet. Tap the heart to save workouts.",
+        "sport": "No sport-specific workouts found.",
+        "noSport": "No sport selected in your profile.",
+        "category": "No workouts found in this category."
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

@@ -3,18 +3,19 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Search, Heart, Dumbbell, Activity, Flame, Target, StretchHorizontal, Trophy } from 'lucide-react'
 import { WorkoutTemplateCard, type WorkoutTemplateSummary } from './WorkoutTemplateCard'
+import { useTranslations } from '@/i18n/client'
 
 type CategoryFilter = 'alla' | 'favoriter' | 'din-sport' | 'STRENGTH' | 'CARDIO' | 'FUNCTIONAL' | 'CORE' | 'STRETCHING'
 
-const CATEGORY_FILTERS: { value: CategoryFilter; label: string; icon: React.ElementType }[] = [
-  { value: 'alla', label: 'Alla', icon: Flame },
-  { value: 'favoriter', label: 'Favoriter', icon: Heart },
-  { value: 'din-sport', label: 'Din sport', icon: Trophy },
-  { value: 'STRENGTH', label: 'Styrka', icon: Dumbbell },
-  { value: 'CARDIO', label: 'Cardio', icon: Activity },
-  { value: 'FUNCTIONAL', label: 'Funktionell', icon: Flame },
-  { value: 'CORE', label: 'Core', icon: Target },
-  { value: 'STRETCHING', label: 'Stretching', icon: StretchHorizontal },
+const CATEGORY_FILTERS: { value: CategoryFilter; labelKey: string; icon: React.ElementType }[] = [
+  { value: 'alla', labelKey: 'filters.all', icon: Flame },
+  { value: 'favoriter', labelKey: 'filters.favorites', icon: Heart },
+  { value: 'din-sport', labelKey: 'filters.yourSport', icon: Trophy },
+  { value: 'STRENGTH', labelKey: 'filters.strength', icon: Dumbbell },
+  { value: 'CARDIO', labelKey: 'filters.cardio', icon: Activity },
+  { value: 'FUNCTIONAL', labelKey: 'filters.functional', icon: Flame },
+  { value: 'CORE', labelKey: 'filters.core', icon: Target },
+  { value: 'STRETCHING', labelKey: 'filters.stretching', icon: StretchHorizontal },
 ]
 
 interface BrowseWorkoutsClientProps {
@@ -22,6 +23,7 @@ interface BrowseWorkoutsClientProps {
 }
 
 export function BrowseWorkoutsClient({ athleteSport }: BrowseWorkoutsClientProps) {
+  const t = useTranslations('components.browseWorkoutsClient')
   const [templates, setTemplates] = useState<WorkoutTemplateSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState<CategoryFilter>('alla')
@@ -64,7 +66,7 @@ export function BrowseWorkoutsClient({ athleteSport }: BrowseWorkoutsClientProps
   }, [category, debouncedQuery, athleteSport])
 
   useEffect(() => {
-    fetchTemplates()
+    void fetchTemplates()
   }, [fetchTemplates])
 
   const handleToggleFavorite = async (templateId: string) => {
@@ -98,11 +100,11 @@ export function BrowseWorkoutsClient({ athleteSport }: BrowseWorkoutsClientProps
   }
 
   const getEmptyMessage = () => {
-    if (debouncedQuery) return `Inga pass hittades för "${debouncedQuery}"`
+    if (debouncedQuery) return t('empty.search', { query: debouncedQuery })
     switch (category) {
-      case 'favoriter': return 'Du har inga favoriter ännu. Tryck på hjärtat för att spara pass.'
-      case 'din-sport': return athleteSport ? 'Inga sportspecifika pass hittades.' : 'Ingen sport vald i din profil.'
-      default: return 'Inga pass hittades i denna kategori.'
+      case 'favoriter': return t('empty.favorites')
+      case 'din-sport': return athleteSport ? t('empty.sport') : t('empty.noSport')
+      default: return t('empty.category')
     }
   }
 
@@ -111,10 +113,10 @@ export function BrowseWorkoutsClient({ athleteSport }: BrowseWorkoutsClientProps
       {/* Header */}
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
-          Hitta pass
+          {t('title')}
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1">
-          Utforska färdiga träningspass att köra direkt
+          {t('subtitle')}
         </p>
       </div>
 
@@ -123,7 +125,7 @@ export function BrowseWorkoutsClient({ athleteSport }: BrowseWorkoutsClientProps
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <input
           type="text"
-          placeholder="Sök pass..."
+          placeholder={t('searchPlaceholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800/50 ring-1 ring-black/5 dark:ring-white/5 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
@@ -134,7 +136,7 @@ export function BrowseWorkoutsClient({ athleteSport }: BrowseWorkoutsClientProps
       <div className="flex flex-wrap gap-2">
         {CATEGORY_FILTERS.map((filter) => {
           const isActive = category === filter.value
-          // Hide "Din sport" if no sport set
+          // Hide the sport filter if no sport is set
           if (filter.value === 'din-sport' && !athleteSport) return null
 
           return (
@@ -148,7 +150,7 @@ export function BrowseWorkoutsClient({ athleteSport }: BrowseWorkoutsClientProps
               }`}
             >
               <filter.icon className="h-3.5 w-3.5" />
-              {filter.label}
+              {t(filter.labelKey)}
             </button>
           )
         })}
