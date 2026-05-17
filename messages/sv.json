@@ -2913,6 +2913,52 @@
         "stable": "Stabil"
       }
     },
+    "vbtProgressionWidget": {
+      "title": "VBT-progression",
+      "emptyDescription": "Ladda upp VBT-data för att se progression",
+      "goToVbt": "Gå till VBT",
+      "viewAll": "Visa allt",
+      "vbtSessions": "VBT-pass",
+      "exercises": "Övningar",
+      "topExercises": "Toppövningar",
+      "noExerciseData": "Ingen VBT-data för denna övning",
+      "repBasedOneRm": "Rep-baserad 1RM",
+      "velocityTrend": "Hastighetstrend",
+      "latestSevenDays": "Senaste 7 dagar: {velocity} m/s",
+      "previousSevenDays": "Föregående 7 dagar: {velocity} m/s",
+      "recommendedOneRm": "Rekommenderad 1RM: {value} kg",
+      "trends": {
+        "improving": "Förbättras",
+        "stable": "Stabil",
+        "declining": "Sjunkande"
+      },
+      "confidence": {
+        "high": "Hög tillförlitlighet",
+        "medium": "Måttlig tillförlitlighet",
+        "low": "Låg tillförlitlighet"
+      },
+      "recommendations": {
+        "title": "Rekommendationer",
+        "nextSessionLoad": "Nästa pass belastning:",
+        "targetVelocity": "Målhastighet:",
+        "velocityLossTarget": "Hastighetsförlust mål:",
+        "readiness": "Beredskap:"
+      },
+      "readiness": {
+        "fresh": "Utvilad",
+        "fatigued": "Trött",
+        "normal": "Normal"
+      },
+      "recommendationSources": {
+        "vbt": "VBT-baserad",
+        "combined": "Kombinerad",
+        "repBased": "Rep-baserad"
+      },
+      "errors": {
+        "fetchFailed": "Kunde inte hämta VBT-progressionsdata",
+        "generic": "Ett fel uppstod"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Kosttajming",
       "subtitle": {

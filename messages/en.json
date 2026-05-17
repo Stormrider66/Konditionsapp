@@ -2913,6 +2913,52 @@
         "stable": "Stable"
       }
     },
+    "vbtProgressionWidget": {
+      "title": "VBT progression",
+      "emptyDescription": "Upload VBT data to see progression",
+      "goToVbt": "Go to VBT",
+      "viewAll": "View all",
+      "vbtSessions": "VBT sessions",
+      "exercises": "Exercises",
+      "topExercises": "Top exercises",
+      "noExerciseData": "No VBT data for this exercise",
+      "repBasedOneRm": "Rep-based 1RM",
+      "velocityTrend": "Velocity trend",
+      "latestSevenDays": "Last 7 days: {velocity} m/s",
+      "previousSevenDays": "Previous 7 days: {velocity} m/s",
+      "recommendedOneRm": "Recommended 1RM: {value} kg",
+      "trends": {
+        "improving": "Improving",
+        "stable": "Stable",
+        "declining": "Declining"
+      },
+      "confidence": {
+        "high": "High confidence",
+        "medium": "Moderate confidence",
+        "low": "Low confidence"
+      },
+      "recommendations": {
+        "title": "Recommendations",
+        "nextSessionLoad": "Next session load:",
+        "targetVelocity": "Target velocity:",
+        "velocityLossTarget": "Velocity loss target:",
+        "readiness": "Readiness:"
+      },
+      "readiness": {
+        "fresh": "Fresh",
+        "fatigued": "Fatigued",
+        "normal": "Normal"
+      },
+      "recommendationSources": {
+        "vbt": "VBT-based",
+        "combined": "Combined",
+        "repBased": "Rep-based"
+      },
+      "errors": {
+        "fetchFailed": "Could not fetch VBT progression data",
+        "generic": "Something went wrong"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Nutrition timing",
       "subtitle": {
