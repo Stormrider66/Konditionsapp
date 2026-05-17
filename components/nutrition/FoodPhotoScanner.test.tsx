@@ -4,7 +4,9 @@ import React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { NextIntlClientProvider } from 'next-intl'
 import { FoodPhotoScanner } from './FoodPhotoScanner'
+import messages from '@/messages/sv.json'
 
 const pushMock = vi.fn()
 const baseAnalysisResult = {
@@ -38,6 +40,14 @@ const baseAnalysisResult = {
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: pushMock }),
 }))
+
+function renderScanner(props: React.ComponentProps<typeof FoodPhotoScanner> = {}) {
+  return render(
+    <NextIntlClientProvider locale="sv" messages={messages}>
+      <FoodPhotoScanner {...props} />
+    </NextIntlClientProvider>
+  )
+}
 
 describe('FoodPhotoScanner', () => {
   let refineRequestBody: Record<string, unknown> | null
@@ -192,13 +202,11 @@ describe('FoodPhotoScanner', () => {
     const onClose = vi.fn()
     const onMealSaved = vi.fn()
 
-    const { container } = render(
-      <FoodPhotoScanner
-        onClose={onClose}
-        onMealSaved={onMealSaved}
-        redirectPathOnSave="/athlete/dashboard"
-      />
-    )
+    const { container } = renderScanner({
+      onClose,
+      onMealSaved,
+      redirectPathOnSave: '/athlete/dashboard',
+    })
 
     const fileInput = container.querySelector('input[type="file"]:not([capture])')
     expect(fileInput).not.toBeNull()
@@ -224,7 +232,7 @@ describe('FoodPhotoScanner', () => {
       throw new Error('preview failed')
     })
 
-    const { container } = render(<FoodPhotoScanner />)
+    const { container } = renderScanner()
 
     const fileInput = container.querySelector('input[type="file"]:not([capture])')
     expect(fileInput).not.toBeNull()
@@ -261,7 +269,7 @@ describe('FoodPhotoScanner', () => {
     })
 
     try {
-      const { container } = render(<FoodPhotoScanner />)
+      const { container } = renderScanner()
 
       await user.click(screen.getByRole('button', { name: /^kamera$/i }))
 
@@ -294,7 +302,7 @@ describe('FoodPhotoScanner', () => {
       }),
     } as Response))
 
-    const { container } = render(<FoodPhotoScanner />)
+    const { container } = renderScanner()
 
     const fileInput = container.querySelector('input[type="file"]:not([capture])')
     expect(fileInput).not.toBeNull()
@@ -313,7 +321,7 @@ describe('FoodPhotoScanner', () => {
   it('saves reviewed food scan items as a recipe', async () => {
     const user = userEvent.setup()
 
-    const { container } = render(<FoodPhotoScanner />)
+    const { container } = renderScanner()
 
     const fileInput = container.querySelector('input[type="file"]:not([capture])')
     expect(fileInput).not.toBeNull()
@@ -351,7 +359,7 @@ describe('FoodPhotoScanner', () => {
   it('updates the review state through the fast text-only refine path', async () => {
     const user = userEvent.setup()
 
-    const { container } = render(<FoodPhotoScanner />)
+    const { container } = renderScanner()
 
     const fileInput = container.querySelector('input[type="file"]:not([capture])')
     expect(fileInput).not.toBeNull()
@@ -400,7 +408,7 @@ describe('FoodPhotoScanner', () => {
 
     const user = userEvent.setup()
 
-    const { container } = render(<FoodPhotoScanner />)
+    const { container } = renderScanner()
 
     const fileInput = container.querySelector('input[type="file"]:not([capture])')
     expect(fileInput).not.toBeNull()
