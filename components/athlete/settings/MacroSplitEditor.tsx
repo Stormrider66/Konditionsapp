@@ -29,6 +29,7 @@ import { RotateCcw, Save, Loader2, UtensilsCrossed } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface MacroSplitEditorProps {
   clientId: string
@@ -59,14 +60,14 @@ const MACRO_PRESETS: Record<Exclude<PresetKey, 'CUSTOM'>, MacroValues> = {
   KETO: { protein: 25, carbs: 5, fat: 70 },
 }
 
-const PRESET_OPTIONS: { value: PresetKey; label: string; description: string }[] = [
-  { value: 'BALANCED', label: 'Balanserad', description: '25/45/30 — Generell hälsa' },
-  { value: 'HIGH_PROTEIN', label: 'Hög protein', description: '35/40/25 — Muskeluppbyggnad' },
-  { value: 'LOW_CARB', label: 'Låg kolhydrat', description: '30/30/40 — Viktnedgång' },
-  { value: 'ENDURANCE', label: 'Uthållighet', description: '20/55/25 — Konditionsidrott' },
-  { value: 'STRENGTH', label: 'Styrka', description: '30/45/25 — Styrketräning' },
-  { value: 'KETO', label: 'Keto', description: '25/5/70 — Ketogen kost' },
-  { value: 'CUSTOM', label: 'Anpassad', description: 'Definiera din egen fördelning' },
+const PRESET_OPTIONS: { value: PresetKey; labelKey: string; descriptionKey: string }[] = [
+  { value: 'BALANCED', labelKey: 'presets.balanced.label', descriptionKey: 'presets.balanced.description' },
+  { value: 'HIGH_PROTEIN', labelKey: 'presets.highProtein.label', descriptionKey: 'presets.highProtein.description' },
+  { value: 'LOW_CARB', labelKey: 'presets.lowCarb.label', descriptionKey: 'presets.lowCarb.description' },
+  { value: 'ENDURANCE', labelKey: 'presets.endurance.label', descriptionKey: 'presets.endurance.description' },
+  { value: 'STRENGTH', labelKey: 'presets.strength.label', descriptionKey: 'presets.strength.description' },
+  { value: 'KETO', labelKey: 'presets.keto.label', descriptionKey: 'presets.keto.description' },
+  { value: 'CUSTOM', labelKey: 'presets.custom.label', descriptionKey: 'presets.custom.description' },
 ]
 
 const MACRO_COLORS = {
@@ -78,11 +79,21 @@ const MACRO_COLORS = {
 // Calories per gram
 const CAL_PER_GRAM = { protein: 4, carbs: 4, fat: 9 }
 
+function detectPreset(v: MacroValues): PresetKey {
+  for (const [key, preset] of Object.entries(MACRO_PRESETS)) {
+    if (preset.protein === v.protein && preset.carbs === v.carbs && preset.fat === v.fat) {
+      return key as PresetKey
+    }
+  }
+  return 'CUSTOM'
+}
+
 function MacroPieChart({ values }: { values: MacroValues }) {
+  const t = useTranslations('components.macroSplitEditor')
   const data = [
-    { name: 'Protein', value: values.protein, color: MACRO_COLORS.protein },
-    { name: 'Kolhydrater', value: values.carbs, color: MACRO_COLORS.carbs },
-    { name: 'Fett', value: values.fat, color: MACRO_COLORS.fat },
+    { name: t('macros.protein'), value: values.protein, color: MACRO_COLORS.protein },
+    { name: t('macros.carbs'), value: values.carbs, color: MACRO_COLORS.carbs },
+    { name: t('macros.fat'), value: values.fat, color: MACRO_COLORS.fat },
   ].filter(d => d.value > 0)
 
   return (
@@ -122,8 +133,9 @@ function MacroPieChart({ values }: { values: MacroValues }) {
   )
 }
 
-export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEditorProps) {
+export function MacroSplitEditor({ clientId: _clientId, variant = 'default' }: MacroSplitEditorProps) {
   const { toast } = useToast()
+  const t = useTranslations('components.macroSplitEditor')
 
   const [values, setValues] = useState<MacroValues>({ protein: 25, carbs: 45, fat: 30 })
   const [savedValues, setSavedValues] = useState<MacroValues>({ protein: 25, carbs: 45, fat: 30 })
@@ -202,17 +214,8 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
         setIsLoading(false)
       }
     }
-    fetchGoals()
+    void fetchGoals()
   }, [])
-
-  function detectPreset(v: MacroValues): PresetKey {
-    for (const [key, preset] of Object.entries(MACRO_PRESETS)) {
-      if (preset.protein === v.protein && preset.carbs === v.carbs && preset.fat === v.fat) {
-        return key as PresetKey
-      }
-    }
-    return 'CUSTOM'
-  }
 
   function handlePresetChange(preset: PresetKey) {
     setSelectedPreset(preset)
@@ -302,13 +305,13 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
       setSavedPreset(selectedPreset)
 
       toast({
-        title: 'Sparad!',
-        description: 'Din makrofördelning har uppdaterats.',
+        title: t('toast.saved.title'),
+        description: t('toast.saved.description'),
       })
     } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte spara makrofördelningen. Försök igen.',
+        title: t('toast.error.title'),
+        description: t('toast.error.description'),
         variant: 'destructive',
       })
     } finally {
@@ -328,6 +331,10 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
   const CardHeaderComponent = variant === 'glass' ? GlassCardHeader : CardHeader
   const CardTitleComponent = variant === 'glass' ? GlassCardTitle : CardTitle
   const CardContentComponent = variant === 'glass' ? GlassCardContent : CardContent
+  const selectedPresetOption = PRESET_OPTIONS.find(o => o.value === selectedPreset)
+  const selectedPresetLabel = selectedPresetOption
+    ? t(selectedPresetOption.labelKey)
+    : `${values.protein}/${values.carbs}/${values.fat}`
 
   if (isLoading) {
     return (
@@ -345,11 +352,11 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
         <div className="flex items-center justify-between">
           <CardTitleComponent className="flex items-center gap-2 text-base">
             <UtensilsCrossed className="h-4 w-4 text-emerald-500" />
-            Makrofördelning
+            {t('title')}
           </CardTitleComponent>
           {hasChanges && (
             <Badge variant="outline" className="text-emerald-600 border-emerald-300">
-              Osparade ändringar
+              {t('unsavedChanges')}
             </Badge>
           )}
         </div>
@@ -358,18 +365,18 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
         {/* Preset Selector */}
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Kostprofil
+            {t('profileLabel')}
           </label>
           <Select value={selectedPreset} onValueChange={(v) => handlePresetChange(v as PresetKey)}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Välj profil" />
+              <SelectValue placeholder={t('profilePlaceholder')} />
             </SelectTrigger>
             <SelectContent>
               {PRESET_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   <div className="flex flex-col">
-                    <span>{option.label}</span>
-                    <span className="text-xs text-muted-foreground">{option.description}</span>
+                    <span>{t(option.labelKey)}</span>
+                    <span className="text-xs text-muted-foreground">{t(option.descriptionKey)}</span>
                   </div>
                 </SelectItem>
               ))}
@@ -383,7 +390,7 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
           <div className="flex-shrink-0">
             <MacroPieChart values={values} />
             <p className="text-center text-xs text-muted-foreground mt-2">
-              Förhandsvisning
+              {t('preview')}
             </p>
           </div>
 
@@ -394,7 +401,7 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: MACRO_COLORS.protein }} />
-                  <span className="text-sm font-medium">Protein</span>
+                  <span className="text-sm font-medium">{t('macros.protein')}</span>
                 </div>
                 <span className="text-sm font-mono font-bold text-blue-600">
                   {values.protein}%
@@ -413,7 +420,7 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
               />
               {getGramsPerKg(values.protein, CAL_PER_GRAM.protein) && (
                 <p className="text-[10px] text-muted-foreground">
-                  {getGramsPerKg(values.protein, CAL_PER_GRAM.protein)} g/kg kroppsvikt
+                  {t('gramsPerKg', { value: getGramsPerKg(values.protein, CAL_PER_GRAM.protein) || '' })}
                 </p>
               )}
             </div>
@@ -423,7 +430,7 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: MACRO_COLORS.carbs }} />
-                  <span className="text-sm font-medium">Kolhydrater</span>
+                  <span className="text-sm font-medium">{t('macros.carbs')}</span>
                 </div>
                 <span className="text-sm font-mono font-bold text-amber-600">
                   {values.carbs}%
@@ -442,7 +449,7 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
               />
               {getGramsPerKg(values.carbs, CAL_PER_GRAM.carbs) && (
                 <p className="text-[10px] text-muted-foreground">
-                  {getGramsPerKg(values.carbs, CAL_PER_GRAM.carbs)} g/kg kroppsvikt
+                  {t('gramsPerKg', { value: getGramsPerKg(values.carbs, CAL_PER_GRAM.carbs) || '' })}
                 </p>
               )}
             </div>
@@ -452,7 +459,7 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: MACRO_COLORS.fat }} />
-                  <span className="text-sm font-medium">Fett</span>
+                  <span className="text-sm font-medium">{t('macros.fat')}</span>
                 </div>
                 <span className="text-sm font-mono font-bold text-rose-600">
                   {values.fat}%
@@ -471,7 +478,7 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
               />
               {getGramsPerKg(values.fat, CAL_PER_GRAM.fat) && (
                 <p className="text-[10px] text-muted-foreground">
-                  {getGramsPerKg(values.fat, CAL_PER_GRAM.fat)} g/kg kroppsvikt
+                  {t('gramsPerKg', { value: getGramsPerKg(values.fat, CAL_PER_GRAM.fat) || '' })}
                 </p>
               )}
             </div>
@@ -486,7 +493,7 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
           </span>
           {selectedPreset !== 'CUSTOM' && (
             <Badge variant="outline" className="text-xs">
-              {PRESET_OPTIONS.find(o => o.value === selectedPreset)?.label}
+              {selectedPresetLabel}
             </Badge>
           )}
         </div>
@@ -500,7 +507,7 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
             className="flex-1"
           >
             <RotateCcw className="h-4 w-4 mr-2" />
-            Återställ
+            {t('actions.reset')}
           </Button>
           <Button
             size="sm"
@@ -513,7 +520,7 @@ export function MacroSplitEditor({ clientId, variant = 'default' }: MacroSplitEd
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Spara
+            {t('actions.save')}
           </Button>
         </div>
       </CardContentComponent>

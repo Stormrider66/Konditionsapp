@@ -7871,6 +7871,63 @@
         "save": "Save"
       }
     },
+    "macroSplitEditor": {
+      "title": "Macro split",
+      "unsavedChanges": "Unsaved changes",
+      "profileLabel": "Nutrition profile",
+      "profilePlaceholder": "Choose profile",
+      "preview": "Preview",
+      "gramsPerKg": "{value} g/kg body weight",
+      "macros": {
+        "protein": "Protein",
+        "carbs": "Carbs",
+        "fat": "Fat"
+      },
+      "presets": {
+        "balanced": {
+          "label": "Balanced",
+          "description": "25/45/30 - General health"
+        },
+        "highProtein": {
+          "label": "High protein",
+          "description": "35/40/25 - Muscle building"
+        },
+        "lowCarb": {
+          "label": "Low carb",
+          "description": "30/30/40 - Weight loss"
+        },
+        "endurance": {
+          "label": "Endurance",
+          "description": "20/55/25 - Endurance sports"
+        },
+        "strength": {
+          "label": "Strength",
+          "description": "30/45/25 - Strength training"
+        },
+        "keto": {
+          "label": "Keto",
+          "description": "25/5/70 - Ketogenic diet"
+        },
+        "custom": {
+          "label": "Custom",
+          "description": "Define your own distribution"
+        }
+      },
+      "actions": {
+        "reset": "Reset",
+        "save": "Save"
+      },
+      "toast": {
+        "saved": {
+          "title": "Saved!",
+          "description": "Your macro split has been updated."
+        },
+        "error": {
+          "title": "Error",
+          "description": "Could not save the macro split. Try again."
+        }
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

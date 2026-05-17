@@ -7871,6 +7871,63 @@
         "save": "Spara"
       }
     },
+    "macroSplitEditor": {
+      "title": "Makrofördelning",
+      "unsavedChanges": "Osparade ändringar",
+      "profileLabel": "Kostprofil",
+      "profilePlaceholder": "Välj profil",
+      "preview": "Förhandsvisning",
+      "gramsPerKg": "{value} g/kg kroppsvikt",
+      "macros": {
+        "protein": "Protein",
+        "carbs": "Kolhydrater",
+        "fat": "Fett"
+      },
+      "presets": {
+        "balanced": {
+          "label": "Balanserad",
+          "description": "25/45/30 - Generell hälsa"
+        },
+        "highProtein": {
+          "label": "Hög protein",
+          "description": "35/40/25 - Muskeluppbyggnad"
+        },
+        "lowCarb": {
+          "label": "Låg kolhydrat",
+          "description": "30/30/40 - Viktnedgång"
+        },
+        "endurance": {
+          "label": "Uthållighet",
+          "description": "20/55/25 - Konditionsidrott"
+        },
+        "strength": {
+          "label": "Styrka",
+          "description": "30/45/25 - Styrketräning"
+        },
+        "keto": {
+          "label": "Keto",
+          "description": "25/5/70 - Ketogen kost"
+        },
+        "custom": {
+          "label": "Anpassad",
+          "description": "Definiera din egen fördelning"
+        }
+      },
+      "actions": {
+        "reset": "Återställ",
+        "save": "Spara"
+      },
+      "toast": {
+        "saved": {
+          "title": "Sparad!",
+          "description": "Din makrofördelning har uppdaterats."
+        },
+        "error": {
+          "title": "Fel",
+          "description": "Kunde inte spara makrofördelningen. Försök igen."
+        }
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",
