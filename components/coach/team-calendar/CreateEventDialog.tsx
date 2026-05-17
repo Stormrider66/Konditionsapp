@@ -40,6 +40,7 @@ import {
   type PracticeBlock,
   type PracticeTemplateKind,
 } from '@/lib/team-calendar/practice-plan'
+import { localDateTimeInputToIso } from '@/lib/team-calendar/date-time'
 
 interface CreateEventDialogProps {
   teamId: string
@@ -180,11 +181,11 @@ export function CreateEventDialog({
       }
 
       const startDateTime = allDay
-        ? `${startDate}T00:00:00`
-        : `${startDate}T${startTime || '09:00'}:00`
+        ? localDateTimeInputToIso(startDate)
+        : localDateTimeInputToIso(startDate, startTime || '09:00')
 
       const endDateTime = endTime && !allDay
-        ? `${startDate}T${endTime}:00`
+        ? localDateTimeInputToIso(startDate, endTime)
         : undefined
 
       const params = new URLSearchParams()
@@ -240,11 +241,11 @@ export function CreateEventDialog({
   const resetForm = () => {
     setTitle(defaultTitle)
     setType(initialType)
-      setDescription('')
-      setLocation('')
-      setLocationMode(CUSTOM_LOCATION_VALUE)
-      setSaveCustomLocation(false)
-      setStartDate(defaultDate ?? '')
+    setDescription('')
+    setLocation('')
+    setLocationMode(CUSTOM_LOCATION_VALUE)
+    setSaveCustomLocation(false)
+    setStartDate(defaultDate ?? '')
     setStartTime('')
     setEndTime('')
     setAllDay(false)

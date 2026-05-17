@@ -44,6 +44,7 @@ import {
   type PracticeBlock,
   type PracticeTemplateKind,
 } from '@/lib/team-calendar/practice-plan'
+import { inputDateValue, inputTimeValue, localDateTimeInputToIso } from '@/lib/team-calendar/date-time'
 
 interface EditableTeamEvent {
   id: string
@@ -97,15 +98,6 @@ interface EditEventDialogProps {
   canAssignContent?: boolean
   onOpenChange: (open: boolean) => void
   onUpdated: () => void
-}
-
-function dateValue(iso: string) {
-  return new Date(iso).toISOString().slice(0, 10)
-}
-
-function timeValue(iso: string | null) {
-  if (!iso) return ''
-  return new Date(iso).toTimeString().slice(0, 5)
 }
 
 function addDaysToIso(iso: string, days: number) {
@@ -257,9 +249,9 @@ export function EditEventDialog({
     setType(TEAM_EVENT_TYPES.includes(event.type as TeamEventType) ? event.type as TeamEventType : 'OTHER')
     setDescription(event.description ?? '')
     setLocation(event.location ?? '')
-    setStartDate(dateValue(event.startDate))
-    setStartTime(timeValue(event.startDate))
-    setEndTime(timeValue(event.endDate))
+    setStartDate(inputDateValue(new Date(event.startDate)))
+    setStartTime(inputTimeValue(event.startDate))
+    setEndTime(inputTimeValue(event.endDate))
     setAllDay(event.allDay)
     setContentStatus(
       TEAM_EVENT_CONTENT_STATUSES.includes(event.contentStatus as TeamEventContentStatus)
@@ -336,10 +328,10 @@ export function EditEventDialog({
     setLoading(true)
     try {
       const startDateTime = allDay
-        ? `${startDate}T00:00:00`
-        : `${startDate}T${startTime || '09:00'}:00`
+        ? localDateTimeInputToIso(startDate)
+        : localDateTimeInputToIso(startDate, startTime || '09:00')
       const endDateTime = endTime && !allDay
-        ? `${startDate}T${endTime}:00`
+        ? localDateTimeInputToIso(startDate, endTime)
         : null
 
       const params = new URLSearchParams()

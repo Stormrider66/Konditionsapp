@@ -36,6 +36,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import type { PracticeBlock } from '@/lib/team-calendar/practice-plan'
+import { inputDateValue } from '@/lib/team-calendar/date-time'
 
 interface TeamEvent {
   id: string
@@ -371,13 +372,6 @@ const PLANNING_FILTERS: Array<{ value: PlanningFilter; label: string }> = [
   { value: 'ice', label: 'Is' },
   { value: 'physical', label: 'Fys' },
 ]
-
-function inputDateValue(date: Date): string {
-  const year = date.getFullYear()
-  const month = `${date.getMonth() + 1}`.padStart(2, '0')
-  const day = `${date.getDate()}`.padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 const PHYSICAL_QUICK_TYPES: Array<{ type: TeamEventType; title: string; label: string }> = [
   { type: 'STRENGTH', title: 'Styrka', label: 'Styrka' },
