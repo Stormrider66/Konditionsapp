@@ -4432,6 +4432,41 @@
         "title": "Senaste pass"
       }
     },
+    "concept2PaceAnalysis": {
+      "title": "Tempoanalys",
+      "tabs": {
+        "trend": "Trend",
+        "best": "Bästa tempo",
+        "distribution": "Fördelning"
+      },
+      "trend": {
+        "faster": "{seconds}s snabbare",
+        "slower": "{seconds}s långsammare",
+        "stable": "Stabilt"
+      },
+      "tooltip": {
+        "pace": "Tempo: {pace}"
+      },
+      "best": {
+        "basedOn": "Baserat på pass med minst 2000m distans"
+      },
+      "distribution": {
+        "buckets": {
+          "under145": "under 1:45",
+          "over245": "över 2:45"
+        },
+        "tooltip": {
+          "workouts": "{count} {count, plural, one {pass} other {pass}}",
+          "count": "Antal"
+        }
+      },
+      "empty": {
+        "noData": "Ingen Concept2-data ännu",
+        "notEnoughTrendData": "Inte tillräckligt med data för trendanalys",
+        "noLongWorkouts": "Inga pass med 2000m+ ännu",
+        "noPaceData": "Ingen tempodata tillgänglig"
+      }
+    },
     "exportDataButton": {
       "trigger": "Exportera data",
       "formatLabel": "Exportformat",

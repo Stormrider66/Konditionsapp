@@ -27,8 +27,9 @@ import {
   Bar,
   Cell,
 } from 'recharts';
-import { format, subDays } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { format } from 'date-fns';
+import { enUS, sv } from 'date-fns/locale';
+import { useLocale, useTranslations } from '@/i18n/client';
 
 interface Concept2Result {
   id: string;
@@ -64,24 +65,13 @@ function formatPace(secondsPer500m: number): string {
   return `${minutes}:${seconds.toFixed(1).padStart(4, '0')}`;
 }
 
-/**
- * Convert pace to seconds for chart axis
- */
-function paceToSeconds(pace: number): number {
-  return pace;
-}
-
-/**
- * Format pace for tooltip
- */
-function formatPaceTooltip(value: number): string {
-  return `${formatPace(value)}/500m`;
-}
-
 export function Concept2PaceAnalysis({
   results,
   equipmentFilter,
 }: Concept2PaceAnalysisProps) {
+  const t = useTranslations('components.concept2PaceAnalysis');
+  const locale = useLocale();
+  const dateLocale = locale === 'en' ? enUS : sv;
   const [selectedTab, setSelectedTab] = useState('trend');
 
   // Filter results by equipment if specified
@@ -105,13 +95,13 @@ export function Concept2PaceAnalysis({
   // Prepare trend data (last 30 results)
   const trendData = useMemo(() => {
     return resultsWithPace.slice(-30).map((r) => ({
-      date: format(new Date(r.date), 'd MMM', { locale: sv }),
-      fullDate: format(new Date(r.date), 'd MMMM yyyy', { locale: sv }),
+      date: format(new Date(r.date), 'd MMM', { locale: dateLocale }),
+      fullDate: format(new Date(r.date), 'd MMMM yyyy', { locale: dateLocale }),
       pace: Math.round(r.calculatedPace * 10) / 10,
       type: r.type,
       distance: r.distance,
     }));
-  }, [resultsWithPace]);
+  }, [dateLocale, resultsWithPace]);
 
   // Calculate best paces by equipment type
   const bestPaces = useMemo(() => {
@@ -140,29 +130,29 @@ export function Concept2PaceAnalysis({
   // Calculate pace distribution (buckets)
   const paceDistribution = useMemo(() => {
     const buckets: Record<string, number> = {
-      'under 1:45': 0,
+      [t('distribution.buckets.under145')]: 0,
       '1:45-2:00': 0,
       '2:00-2:15': 0,
       '2:15-2:30': 0,
       '2:30-2:45': 0,
-      'over 2:45': 0,
+      [t('distribution.buckets.over245')]: 0,
     };
 
     for (const r of resultsWithPace) {
       const pace = r.calculatedPace;
-      if (pace < 105) buckets['under 1:45']++;
+      if (pace < 105) buckets[t('distribution.buckets.under145')]++;
       else if (pace < 120) buckets['1:45-2:00']++;
       else if (pace < 135) buckets['2:00-2:15']++;
       else if (pace < 150) buckets['2:15-2:30']++;
       else if (pace < 165) buckets['2:30-2:45']++;
-      else buckets['over 2:45']++;
+      else buckets[t('distribution.buckets.over245')]++;
     }
 
     return Object.entries(buckets).map(([label, count]) => ({
       label,
       count,
     }));
-  }, [resultsWithPace]);
+  }, [resultsWithPace, t]);
 
   // Calculate trend (is pace improving?)
   const paceTrend = useMemo(() => {
@@ -194,12 +184,12 @@ export function Concept2PaceAnalysis({
         <CardHeader>
           <CardTitle className="flex items-center gap-1.5">
             <Gauge className="h-5 w-5" />
-            Tempoanalys <InfoTooltip conceptKey="splitPace" />
+            {t('title')} <InfoTooltip conceptKey="splitPace" />
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground text-center py-4">
-            Ingen Concept2-data ännu
+            {t('empty.noData')}
           </p>
         </CardContent>
       </Card>
@@ -212,7 +202,7 @@ export function Concept2PaceAnalysis({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-1.5">
             <Gauge className="h-5 w-5" />
-            Tempoanalys <InfoTooltip conceptKey="splitPace" />
+            {t('title')} <InfoTooltip conceptKey="splitPace" />
           </CardTitle>
           {paceTrend && (
             <Badge
@@ -228,19 +218,19 @@ export function Concept2PaceAnalysis({
               {paceTrend.direction === 'improving' && (
                 <>
                   <TrendingDown className="h-3 w-3 mr-1" />
-                  {paceTrend.change.toFixed(1)}s snabbare
+                  {t('trend.faster', { seconds: paceTrend.change.toFixed(1) })}
                 </>
               )}
               {paceTrend.direction === 'declining' && (
                 <>
                   <TrendingUp className="h-3 w-3 mr-1" />
-                  {paceTrend.change.toFixed(1)}s långsammare
+                  {t('trend.slower', { seconds: paceTrend.change.toFixed(1) })}
                 </>
               )}
               {paceTrend.direction === 'stable' && (
                 <>
                   <Minus className="h-3 w-3 mr-1" />
-                  Stabilt
+                  {t('trend.stable')}
                 </>
               )}
             </Badge>
@@ -250,9 +240,9 @@ export function Concept2PaceAnalysis({
       <CardContent>
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="trend">Trend</TabsTrigger>
-            <TabsTrigger value="best">Bästa tempo</TabsTrigger>
-            <TabsTrigger value="distribution">Fördelning</TabsTrigger>
+            <TabsTrigger value="trend">{t('tabs.trend')}</TabsTrigger>
+            <TabsTrigger value="best">{t('tabs.best')}</TabsTrigger>
+            <TabsTrigger value="distribution">{t('tabs.distribution')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="trend" className="pt-4">
@@ -283,7 +273,7 @@ export function Concept2PaceAnalysis({
                                 {data.fullDate}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                Tempo: {formatPace(data.pace)}
+                                {t('tooltip.pace', { pace: formatPace(data.pace) })}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {(data.distance / 1000).toFixed(1)} km
@@ -307,7 +297,7 @@ export function Concept2PaceAnalysis({
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-8">
-                Inte tillräckligt med data för trendanalys
+                {t('empty.notEnoughTrendData')}
               </p>
             )}
           </TabsContent>
@@ -340,12 +330,12 @@ export function Concept2PaceAnalysis({
                   </div>
                 ))}
                 <p className="text-xs text-muted-foreground text-center mt-2">
-                  Baserat på pass med minst 2000m distans
+                  {t('best.basedOn')}
                 </p>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-8">
-                Inga pass med 2000m+ ännu
+                {t('empty.noLongWorkouts')}
               </p>
             )}
           </TabsContent>
@@ -364,7 +354,10 @@ export function Concept2PaceAnalysis({
                       width={80}
                     />
                     <Tooltip
-                      formatter={(value: number) => [`${value} pass`, 'Antal']}
+                      formatter={(value: number) => [
+                        t('distribution.tooltip.workouts', { count: value }),
+                        t('distribution.tooltip.count'),
+                      ]}
                       contentStyle={{
                         backgroundColor: 'hsl(var(--background))',
                         border: '1px solid hsl(var(--border))',
@@ -384,7 +377,7 @@ export function Concept2PaceAnalysis({
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-8">
-                Ingen tempodata tillgänglig
+                {t('empty.noPaceData')}
               </p>
             )}
           </TabsContent>

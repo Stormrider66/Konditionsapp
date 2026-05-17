@@ -4432,6 +4432,41 @@
         "title": "Recent workouts"
       }
     },
+    "concept2PaceAnalysis": {
+      "title": "Pace analysis",
+      "tabs": {
+        "trend": "Trend",
+        "best": "Best pace",
+        "distribution": "Distribution"
+      },
+      "trend": {
+        "faster": "{seconds}s faster",
+        "slower": "{seconds}s slower",
+        "stable": "Stable"
+      },
+      "tooltip": {
+        "pace": "Pace: {pace}"
+      },
+      "best": {
+        "basedOn": "Based on workouts with at least 2000m distance"
+      },
+      "distribution": {
+        "buckets": {
+          "under145": "under 1:45",
+          "over245": "over 2:45"
+        },
+        "tooltip": {
+          "workouts": "{count, plural, one {# workout} other {# workouts}}",
+          "count": "Count"
+        }
+      },
+      "empty": {
+        "noData": "No Concept2 data yet",
+        "notEnoughTrendData": "Not enough data for trend analysis",
+        "noLongWorkouts": "No workouts of 2000m+ yet",
+        "noPaceData": "No pace data available"
+      }
+    },
     "exportDataButton": {
       "trigger": "Export data",
       "formatLabel": "Export format",
