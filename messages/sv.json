@@ -2309,6 +2309,23 @@
       "programs": "Program",
       "tests": "Tester"
     },
+    "quickActionsGrid": {
+      "logWorkout": "Logga pass",
+      "logFood": "Logga mat",
+      "videoAnalysis": "Video Analys",
+      "describeMeal": "Beskriv din måltid"
+    },
+    "accountabilityStreakWidget": {
+      "error": "Kunde inte ladda streak-data",
+      "share": {
+        "title": "{count} dagars streak",
+        "description": "Jag håller min streak levande!"
+      },
+      "dayUnit": "{count, plural, one {dag} other {dagar}}",
+      "newRecord": "Nytt rekord!",
+      "personalBest": "Ditt rekord: {count} dagar",
+      "checkInNow": "Checka in nu"
+    },
     "createAthleteAccountDialog": {
       "trigger": {
         "sendInvite": "Skicka inbjudan",

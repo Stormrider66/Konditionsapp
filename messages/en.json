@@ -2309,6 +2309,23 @@
       "programs": "Programs",
       "tests": "Tests"
     },
+    "quickActionsGrid": {
+      "logWorkout": "Log workout",
+      "logFood": "Log food",
+      "videoAnalysis": "Video Analysis",
+      "describeMeal": "Describe your meal"
+    },
+    "accountabilityStreakWidget": {
+      "error": "Could not load streak data",
+      "share": {
+        "title": "{count}-day streak",
+        "description": "I am keeping my streak alive!"
+      },
+      "dayUnit": "{count, plural, one {day} other {days}}",
+      "newRecord": "New record!",
+      "personalBest": "Your record: {count} days",
+      "checkInNow": "Check in now"
+    },
     "createAthleteAccountDialog": {
       "trigger": {
         "sendInvite": "Send invite",

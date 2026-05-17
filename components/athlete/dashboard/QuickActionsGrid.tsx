@@ -9,6 +9,7 @@ import { MealInputMethodSelector, type MealInputMethod } from '@/components/athl
 import { VoiceMealCapture } from '@/components/athlete/nutrition/VoiceMealCapture'
 import { QuickMealLog } from '@/components/athlete/nutrition/QuickMealLog'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { useTranslations } from '@/i18n/client'
 
 interface QuickActionsGridProps {
   sessionHref: string
@@ -20,6 +21,7 @@ const TILE_BASE =
 
 export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGridProps) {
   const basePath = useBasePath()
+  const t = useTranslations('components.quickActionsGrid')
 
   const [workoutSelectorOpen, setWorkoutSelectorOpen] = useState(false)
   const [mealSelectorOpen, setMealSelectorOpen] = useState(false)
@@ -52,23 +54,23 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
-        {/* Logga pass */}
+        {/* Log workout */}
         <button onClick={() => setWorkoutSelectorOpen(true)} className={TILE_BASE}>
           <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-500/10 dark:bg-slate-400/10">
             <Plus className="h-5 w-5 text-slate-600 dark:text-slate-300" />
           </div>
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Logga pass</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('logWorkout')}</span>
         </button>
 
-        {/* Logga mat */}
+        {/* Log food */}
         <button onClick={() => setMealSelectorOpen(true)} className={TILE_BASE}>
           <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-emerald-500/10">
             <Utensils className="h-5 w-5 text-emerald-500" />
           </div>
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Logga mat</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('logFood')}</span>
         </button>
 
-        {/* Starta / Hitta pass */}
+        {/* Start / find session */}
         <Link href={sessionHref} className={TILE_BASE}>
           <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-orange-500/10">
             <Zap className="h-5 w-5 text-orange-500" />
@@ -76,12 +78,12 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{sessionLabel}</span>
         </Link>
 
-        {/* Video Analys */}
+        {/* Video analysis */}
         <Link href={`${basePath}/athlete/video-analysis`} className={TILE_BASE}>
           <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-purple-500/10">
             <Video className="h-5 w-5 text-purple-500" />
           </div>
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Video Analys</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('videoAnalysis')}</span>
         </Link>
       </div>
 
@@ -104,7 +106,7 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
           onCloseAutoFocus={(e) => e.preventDefault()}
         >
           <SheetHeader>
-            <SheetTitle className="text-white">Beskriv din måltid</SheetTitle>
+            <SheetTitle className="text-white">{t('describeMeal')}</SheetTitle>
           </SheetHeader>
           <VoiceMealCapture
             onMealSaved={() => {

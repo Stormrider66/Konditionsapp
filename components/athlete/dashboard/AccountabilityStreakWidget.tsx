@@ -11,7 +11,6 @@
  * - Check-in CTA if not done today
  */
 
-import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -22,6 +21,7 @@ import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { StreakCalendar } from './StreakCalendar'
 import { ShareAchievementButton } from '@/components/athlete/shareable/ShareAchievementButton'
 import type { StreakResponse } from '@/types/streak'
+import { useTranslations } from '@/i18n/client'
 
 interface AccountabilityStreakWidgetProps {
   clientId?: string
@@ -32,6 +32,7 @@ interface AccountabilityStreakWidgetProps {
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function AccountabilityStreakWidget({ className, basePath = '' }: AccountabilityStreakWidgetProps) {
+  const t = useTranslations('components.accountabilityStreakWidget')
   const { data, error, isLoading } = useSWR<StreakResponse>(
     '/api/athlete/streaks',
     fetcher,
@@ -58,7 +59,7 @@ export function AccountabilityStreakWidget({ className, basePath = '' }: Account
       <GlassCard className={className}>
         <GlassCardContent className="flex flex-col items-center justify-center py-6 text-muted-foreground">
           <AlertCircle className="h-6 w-6 mb-2 text-red-500" />
-          <p className="text-sm">Kunde inte ladda streak-data</p>
+          <p className="text-sm">{t('error')}</p>
         </GlassCardContent>
       </GlassCard>
     )
@@ -82,8 +83,8 @@ export function AccountabilityStreakWidget({ className, basePath = '' }: Account
           {data?.data && data.data.currentStreak > 0 && (
             <ShareAchievementButton
               type="STREAK"
-              title={`${data.data.currentStreak} dagars streak`}
-              description="Jag håller min streak levande!"
+              title={t('share.title', { count: data.data.currentStreak })}
+              description={t('share.description')}
               streakData={{
                 currentStreak: data.data.currentStreak,
                 personalBest: data.data.personalBest,
@@ -113,7 +114,7 @@ export function AccountabilityStreakWidget({ className, basePath = '' }: Account
               {currentStreak}
             </span>
             <span className="text-lg text-muted-foreground">
-              {currentStreak === 1 ? 'dag' : 'dagar'}
+              {t('dayUnit', { count: currentStreak })}
             </span>
           </div>
 
@@ -123,9 +124,9 @@ export function AccountabilityStreakWidget({ className, basePath = '' }: Account
               <Trophy className="h-3 w-3 text-amber-500" />
               <span>
                 {isNewRecord ? (
-                  <span className="text-amber-500 font-medium">Nytt rekord!</span>
+                  <span className="text-amber-500 font-medium">{t('newRecord')}</span>
                 ) : (
-                  `Ditt rekord: ${personalBest} dagar`
+                  t('personalBest', { count: personalBest })
                 )}
               </span>
             </div>
@@ -152,7 +153,7 @@ export function AccountabilityStreakWidget({ className, basePath = '' }: Account
               className="w-full bg-orange-500 hover:bg-orange-600 text-white"
             >
               <Flame className="h-4 w-4 mr-2" />
-              Checka in nu
+              {t('checkInNow')}
             </Button>
           </Link>
         )}
