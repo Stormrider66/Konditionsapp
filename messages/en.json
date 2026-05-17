@@ -262,6 +262,23 @@
       "metadataDescription": "Browse and schedule strength workouts",
       "title": "Strength training",
       "description": "Browse templates and schedule your strength workouts"
+    },
+    "calendar": {
+      "backToDashboard": "BACK TO DASHBOARD",
+      "titlePrefix": "My",
+      "titleAccent": "Calendar",
+      "description": "See all your workouts, competitions, and events in one place",
+      "connectCalendars": "Connect calendars"
+    },
+    "vbt": {
+      "metadataTitle": "VBT Data | Trainomics",
+      "metadataDescription": "Velocity-Based Training data and analysis",
+      "description": "Velocity-Based Training - speed-based strength training"
+    },
+    "concept2": {
+      "metadataTitle": "Concept2 | Trainomics",
+      "metadataDescription": "Concept2 Logbook data and analysis",
+      "description": "RowErg, SkiErg, and BikeErg training data"
     }
   },
   "nav": {

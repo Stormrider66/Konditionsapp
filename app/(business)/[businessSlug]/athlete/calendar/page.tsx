@@ -7,6 +7,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { UnifiedCalendar } from '@/components/calendar'
 import { Button } from '@/components/ui/button'
+import { getTranslations } from '@/i18n/server'
 
 interface BusinessCalendarPageProps {
   params: Promise<{ businessSlug: string }>
@@ -14,6 +15,7 @@ interface BusinessCalendarPageProps {
 
 export default async function BusinessAthleteCalendarPage({ params }: BusinessCalendarPageProps) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.calendar')
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
@@ -47,7 +49,7 @@ export default async function BusinessAthleteCalendarPage({ params }: BusinessCa
         <Link href={`${basePath}/athlete/dashboard`}>
           <Button variant="ghost" className="mb-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 group transition-all">
             <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-            TILLBAKA TILL DASHBOARD
+            {t('backToDashboard')}
           </Button>
         </Link>
 
@@ -58,17 +60,17 @@ export default async function BusinessAthleteCalendarPage({ params }: BusinessCa
             </div>
             <div>
               <h1 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tighter mb-1 transition-colors">
-                Min <span className="text-orange-600 dark:text-orange-400 transition-colors">Kalender</span>
+                {t('titlePrefix')} <span className="text-orange-600 dark:text-orange-400 transition-colors">{t('titleAccent')}</span>
               </h1>
               <p className="text-slate-600 dark:text-slate-400 font-medium transition-colors">
-                Se alla dina träningspass, tävlingar och händelser på ett ställe
+                {t('description')}
               </p>
             </div>
           </div>
           <Link href={`${basePath}/athlete/settings/calendars`}>
             <Button variant="ghost" className="h-11 px-6 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 dark:hover:border-white/20 text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-300 transition-all shadow-sm dark:shadow-none">
               <Settings className="h-4 w-4 mr-2" />
-              Anslut kalendrar
+              {t('connectCalendars')}
             </Button>
           </Link>
         </div>

@@ -3,10 +3,14 @@ import { notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { VBTDashboard } from '@/components/athlete/VBTDashboard'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'VBT Data | Trainomics',
-  description: 'Velocity-Based Training data och analys',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.vbt')
+  return {
+    title: t('metadataTitle'),
+    description: t('metadataDescription'),
+  }
 }
 
 interface BusinessVBTPageProps {
@@ -15,6 +19,7 @@ interface BusinessVBTPageProps {
 
 export default async function BusinessVBTPage({ params }: BusinessVBTPageProps) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.vbt')
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
@@ -28,7 +33,7 @@ export default async function BusinessVBTPage({ params }: BusinessVBTPageProps) 
       <div className="mb-6">
         <h1 className="text-2xl font-bold">VBT Data</h1>
         <p className="text-muted-foreground text-sm">
-          Velocity-Based Training - hastighetsbaserad styrketräning
+          {t('description')}
         </p>
       </div>
 

@@ -262,6 +262,23 @@
       "metadataDescription": "Bläddra och schemalägg styrkepass",
       "title": "Styrketräning",
       "description": "Bläddra mallar och schemalägg dina styrkepass"
+    },
+    "calendar": {
+      "backToDashboard": "TILLBAKA TILL DASHBOARD",
+      "titlePrefix": "Min",
+      "titleAccent": "Kalender",
+      "description": "Se alla dina träningspass, tävlingar och händelser på ett ställe",
+      "connectCalendars": "Anslut kalendrar"
+    },
+    "vbt": {
+      "metadataTitle": "VBT Data | Trainomics",
+      "metadataDescription": "Velocity-Based Training data och analys",
+      "description": "Velocity-Based Training - hastighetsbaserad styrketräning"
+    },
+    "concept2": {
+      "metadataTitle": "Concept2 | Trainomics",
+      "metadataDescription": "Concept2 Logbook data och analys",
+      "description": "RowErg, SkiErg och BikeErg träningsdata"
     }
   },
   "nav": {

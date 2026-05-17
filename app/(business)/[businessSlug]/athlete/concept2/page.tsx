@@ -3,10 +3,14 @@ import { notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { Concept2Dashboard } from '@/components/athlete/Concept2Dashboard'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Concept2 | Trainomics',
-  description: 'Concept2 Logbook data och analys',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.concept2')
+  return {
+    title: t('metadataTitle'),
+    description: t('metadataDescription'),
+  }
 }
 
 interface BusinessConcept2PageProps {
@@ -15,6 +19,7 @@ interface BusinessConcept2PageProps {
 
 export default async function BusinessConcept2Page({ params }: BusinessConcept2PageProps) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.concept2')
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
@@ -28,7 +33,7 @@ export default async function BusinessConcept2Page({ params }: BusinessConcept2P
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Concept2</h1>
         <p className="text-muted-foreground text-sm">
-          RowErg, SkiErg och BikeErg träningsdata
+          {t('description')}
         </p>
       </div>
 
