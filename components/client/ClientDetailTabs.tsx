@@ -4,6 +4,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { LayoutGrid, Calendar, BarChart3, Folder, TestTube } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 // `analysis` replaces the old `logs` tab. Old `?tab=logs` URLs are
 // soft-redirected to analysis below so deep links don't break.
@@ -21,15 +22,16 @@ interface ClientDetailTabsProps {
   defaultTab?: ClientDetailTab
 }
 
-const TAB_CONFIG: { value: ClientDetailTab; label: string; icon: React.ElementType }[] = [
-  { value: 'overview', label: 'Översikt', icon: LayoutGrid },
-  { value: 'calendar', label: 'Kalender', icon: Calendar },
-  { value: 'analysis', label: 'Analys', icon: BarChart3 },
-  { value: 'programs', label: 'Program', icon: Folder },
-  { value: 'tests', label: 'Tester', icon: TestTube },
+const TAB_CONFIG: { value: ClientDetailTab; labelKey: string; icon: React.ElementType }[] = [
+  { value: 'overview', labelKey: 'overview', icon: LayoutGrid },
+  { value: 'calendar', labelKey: 'calendar', icon: Calendar },
+  { value: 'analysis', labelKey: 'analysis', icon: BarChart3 },
+  { value: 'programs', labelKey: 'programs', icon: Folder },
+  { value: 'tests', labelKey: 'tests', icon: TestTube },
 ]
 
-export function ClientDetailTabs({ clientId, content, defaultTab = 'overview' }: ClientDetailTabsProps) {
+export function ClientDetailTabs({ clientId: _clientId, content, defaultTab = 'overview' }: ClientDetailTabsProps) {
+  const t = useTranslations('components.clientDetailTabs')
   const router = useRouter()
   const searchParams = useSearchParams()
   const pathname = usePathname()
@@ -61,7 +63,7 @@ export function ClientDetailTabs({ clientId, content, defaultTab = 'overview' }:
       {/* Tab Navigation */}
       <div className="sticky top-0 z-10 bg-gray-50 pb-3 sm:pb-4">
         <TabsList className="w-full h-auto p-1 bg-white shadow-sm rounded-lg border border-gray-200 grid grid-cols-5 gap-0.5 sm:gap-1">
-          {TAB_CONFIG.map(({ value, label, icon: Icon }) => (
+          {TAB_CONFIG.map(({ value, labelKey, icon: Icon }) => (
             <TabsTrigger
               key={value}
               value={value}
@@ -73,7 +75,7 @@ export function ClientDetailTabs({ clientId, content, defaultTab = 'overview' }:
               )}
             >
               <Icon className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">{label}</span>
+              <span className="text-[10px] sm:text-sm truncate">{t(labelKey)}</span>
             </TabsTrigger>
           ))}
         </TabsList>

@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, UserPlus, Mail, Check, AlertCircle, MessageCircle, Smartphone, Copy } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useTranslations } from '@/i18n/client'
 
 interface CreateAthleteAccountDialogProps {
   clientId: string
@@ -59,6 +60,7 @@ export function CreateAthleteAccountDialog({
   onAccountCreated,
   trigger,
 }: CreateAthleteAccountDialogProps) {
+  const t = useTranslations('components.createAthleteAccountDialog')
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -78,8 +80,8 @@ export function CreateAthleteAccountDialog({
     if (!text) return
     await navigator.clipboard.writeText(text)
     toast({
-      title: 'Inbjudan kopierad',
-      description: 'Texten är redo att klistras in i valfri kanal.',
+      title: t('toasts.inviteCopiedTitle'),
+      description: t('toasts.inviteCopiedDescription'),
     })
   }
 
@@ -92,8 +94,8 @@ export function CreateAthleteAccountDialog({
   const handleSubmit = async (method: InviteMethod) => {
     if (!email) {
       toast({
-        title: 'E-post krävs',
-        description: 'Ange en e-postadress för atletkontot',
+        title: t('toasts.emailRequiredTitle'),
+        description: t('toasts.emailRequiredDescription'),
         variant: 'destructive',
       })
       return
@@ -127,26 +129,26 @@ export function CreateAthleteAccountDialog({
         }
         toast({
           title: method === 'email'
-            ? (hasExistingAccount ? 'Inbjudan skickad!' : 'Atletkonto skapat!')
-            : (hasExistingAccount ? 'Inbjudningslänk skapad!' : 'Atletkonto skapat!'),
+            ? (hasExistingAccount ? t('toasts.inviteSentTitle') : t('toasts.accountCreatedTitle'))
+            : (hasExistingAccount ? t('toasts.inviteLinkCreatedTitle') : t('toasts.accountCreatedTitle')),
           description: data.message || (
             method === 'email'
-              ? `En inbjudan har skickats till ${email}`
-              : 'Dela texten via SMS eller WhatsApp.'
+              ? t('toasts.inviteSentDescription', { email })
+              : t('toasts.shareTextDescription')
           ),
         })
         onAccountCreated?.()
       } else {
         toast({
-          title: hasExistingAccount ? 'Kunde inte skicka inbjudan' : 'Kunde inte skapa konto',
-          description: data.error || 'Ett fel uppstod',
+          title: hasExistingAccount ? t('toasts.inviteFailedTitle') : t('toasts.accountCreateFailedTitle'),
+          description: data.error || t('toasts.genericError'),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Nätverksfel',
-        description: 'Kunde inte ansluta till servern',
+        title: t('toasts.networkErrorTitle'),
+        description: t('toasts.networkErrorDescription'),
         variant: 'destructive',
       })
     } finally {
@@ -176,19 +178,19 @@ export function CreateAthleteAccountDialog({
             ) : (
               <UserPlus className="w-4 h-4 mr-2" />
             )}
-            {hasExistingAccount ? 'Skicka inbjudan' : 'Bjud in atlet'}
+            {hasExistingAccount ? t('trigger.sendInvite') : t('trigger.inviteAthlete')}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {hasExistingAccount ? 'Skicka inbjudan' : 'Skapa och bjud in atlet'}
+            {hasExistingAccount ? t('dialog.sendInviteTitle') : t('dialog.createAndInviteTitle')}
           </DialogTitle>
           <DialogDescription>
             {hasExistingAccount
-              ? <>Skicka en ny inloggningslänk till <strong>{clientName}</strong>. E-postadressen synkas från klientprofilen först.</>
-              : <>Skapa ett inloggningskonto för <strong>{clientName}</strong> och skicka en säker inbjudningslänk.</>}
+              ? <>{t('dialog.sendInviteDescriptionPrefix')} <strong>{clientName}</strong>. {t('dialog.sendInviteDescriptionSuffix')}</>
+              : <>{t('dialog.createDescriptionPrefix')} <strong>{clientName}</strong> {t('dialog.createDescriptionSuffix')}</>}
           </DialogDescription>
         </DialogHeader>
 
@@ -199,22 +201,22 @@ export function CreateAthleteAccountDialog({
               <AlertDescription className="text-green-800">
                 {createdAccount.method === 'email'
                   ? createdAccount.mode === 'created'
-                    ? 'Atletkontot har skapats och inbjudan har skickats via e-post.'
-                    : 'Inbjudan har skickats via e-post.'
+                    ? t('success.createdEmail')
+                    : t('success.invitedEmail')
                   : createdAccount.mode === 'created'
-                    ? 'Atletkontot har skapats. Dela inbjudan via SMS eller WhatsApp.'
-                    : 'Inbjudningslänken är redo att delas.'}
+                    ? t('success.createdShare')
+                    : t('success.linkReady')}
               </AlertDescription>
             </Alert>
 
             <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
               <div>
-                <Label className="text-xs text-gray-500">E-post</Label>
+                <Label className="text-xs text-gray-500">{t('fields.email')}</Label>
                 <p className="font-medium">{createdAccount.email}</p>
               </div>
               {createdAccount.inviteText && (
                 <div>
-                  <Label className="text-xs text-gray-500">Inbjudningstext</Label>
+                  <Label className="text-xs text-gray-500">{t('fields.inviteText')}</Label>
                   <p className="mt-1 whitespace-pre-line rounded-md border bg-white p-3 text-sm">
                     {createdAccount.inviteText}
                   </p>
@@ -223,7 +225,7 @@ export function CreateAthleteAccountDialog({
             </div>
 
             <p className="text-sm text-gray-500">
-              Atleten väljer sitt eget lösenord via länken. Inga lösenord visas eller delas av coachen.
+              {t('passwordHelp')}
             </p>
 
             <DialogFooter>
@@ -240,12 +242,12 @@ export function CreateAthleteAccountDialog({
                     </Button>
                     <Button variant="outline" onClick={() => copyInvite(createdAccount.inviteText)}>
                       <Copy className="w-4 h-4 mr-2" />
-                      Kopiera
+                      {t('actions.copy')}
                     </Button>
                   </>
                 )}
                 <Button onClick={handleClose}>
-                  Stäng
+                  {t('actions.close')}
                 </Button>
               </div>
             </DialogFooter>
@@ -253,7 +255,7 @@ export function CreateAthleteAccountDialog({
         ) : (
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="athlete-email">E-postadress</Label>
+              <Label htmlFor="athlete-email">{t('fields.emailAddress')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -268,21 +270,21 @@ export function CreateAthleteAccountDialog({
               </div>
               <p className="text-xs text-gray-500">
                 {hasExistingAccount
-                  ? 'Ändra e-post i klientprofilen om adressen inte stämmer.'
-                  : 'Adressen sparas på klientprofilen och används för atletens inloggning.'}
+                  ? t('emailHelp.existing')
+                  : t('emailHelp.new')}
               </p>
             </div>
 
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Välj hur coachen vill dela inbjudan. SMS och WhatsApp öppnar en färdig text med säker länk, så atleten slipper leta i skräppost.
+                {t('shareHelp')}
               </AlertDescription>
             </Alert>
 
             <DialogFooter className="flex-col gap-2 sm:flex-col sm:gap-2">
               <Button variant="outline" onClick={handleClose} disabled={isLoading}>
-                Avbryt
+                {t('actions.cancel')}
               </Button>
               <div className="grid w-full gap-2 sm:grid-cols-3">
                 <Button onClick={() => handleSubmit('sms')} disabled={isLoading || !email}>
@@ -305,12 +307,12 @@ export function CreateAthleteAccountDialog({
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Skickar...
+                      {t('actions.sending')}
                     </>
                   ) : (
                     <>
                       <Mail className="w-4 h-4 mr-2" />
-                      E-post
+                      {t('actions.email')}
                     </>
                   )}
                 </Button>

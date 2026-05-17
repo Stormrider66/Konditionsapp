@@ -2278,6 +2278,69 @@
       "developing": "Developing"
     }
   },
+  "components": {
+    "clientDetailTabs": {
+      "overview": "Overview",
+      "calendar": "Calendar",
+      "analysis": "Analysis",
+      "programs": "Programs",
+      "tests": "Tests"
+    },
+    "createAthleteAccountDialog": {
+      "trigger": {
+        "sendInvite": "Send invite",
+        "inviteAthlete": "Invite athlete"
+      },
+      "dialog": {
+        "sendInviteTitle": "Send invite",
+        "createAndInviteTitle": "Create and invite athlete",
+        "sendInviteDescriptionPrefix": "Send a new sign-in link to",
+        "sendInviteDescriptionSuffix": "The email address is synced from the client profile first.",
+        "createDescriptionPrefix": "Create a sign-in account for",
+        "createDescriptionSuffix": "and send a secure invite link."
+      },
+      "success": {
+        "createdEmail": "The athlete account has been created and the invite was sent by email.",
+        "invitedEmail": "The invite was sent by email.",
+        "createdShare": "The athlete account has been created. Share the invite by SMS or WhatsApp.",
+        "linkReady": "The invite link is ready to share."
+      },
+      "fields": {
+        "email": "Email",
+        "emailAddress": "Email address",
+        "inviteText": "Invite text"
+      },
+      "emailHelp": {
+        "existing": "Change the email in the client profile if the address is wrong.",
+        "new": "The address is saved to the client profile and used for the athlete sign-in."
+      },
+      "passwordHelp": "The athlete chooses their own password through the link. No passwords are shown or shared by the coach.",
+      "shareHelp": "Choose how the coach wants to share the invite. SMS and WhatsApp open a prepared message with a secure link, so the athlete does not need to search spam.",
+      "actions": {
+        "copy": "Copy",
+        "close": "Close",
+        "cancel": "Cancel",
+        "sending": "Sending...",
+        "email": "Email"
+      },
+      "toasts": {
+        "inviteCopiedTitle": "Invite copied",
+        "inviteCopiedDescription": "The text is ready to paste into any channel.",
+        "emailRequiredTitle": "Email required",
+        "emailRequiredDescription": "Enter an email address for the athlete account",
+        "inviteSentTitle": "Invite sent!",
+        "accountCreatedTitle": "Athlete account created!",
+        "inviteLinkCreatedTitle": "Invite link created!",
+        "inviteSentDescription": "An invite has been sent to {email}",
+        "shareTextDescription": "Share the text by SMS or WhatsApp.",
+        "inviteFailedTitle": "Could not send invite",
+        "accountCreateFailedTitle": "Could not create account",
+        "genericError": "An error occurred",
+        "networkErrorTitle": "Network error",
+        "networkErrorDescription": "Could not connect to the server"
+      }
+    }
+  },
   "infographic": {
     "title": "Program Overview",
     "generate": "Generate",

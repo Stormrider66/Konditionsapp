@@ -2278,6 +2278,69 @@
       "developing": "Utveckling"
     }
   },
+  "components": {
+    "clientDetailTabs": {
+      "overview": "Översikt",
+      "calendar": "Kalender",
+      "analysis": "Analys",
+      "programs": "Program",
+      "tests": "Tester"
+    },
+    "createAthleteAccountDialog": {
+      "trigger": {
+        "sendInvite": "Skicka inbjudan",
+        "inviteAthlete": "Bjud in atlet"
+      },
+      "dialog": {
+        "sendInviteTitle": "Skicka inbjudan",
+        "createAndInviteTitle": "Skapa och bjud in atlet",
+        "sendInviteDescriptionPrefix": "Skicka en ny inloggningslänk till",
+        "sendInviteDescriptionSuffix": "E-postadressen synkas från klientprofilen först.",
+        "createDescriptionPrefix": "Skapa ett inloggningskonto för",
+        "createDescriptionSuffix": "och skicka en säker inbjudningslänk."
+      },
+      "success": {
+        "createdEmail": "Atletkontot har skapats och inbjudan har skickats via e-post.",
+        "invitedEmail": "Inbjudan har skickats via e-post.",
+        "createdShare": "Atletkontot har skapats. Dela inbjudan via SMS eller WhatsApp.",
+        "linkReady": "Inbjudningslänken är redo att delas."
+      },
+      "fields": {
+        "email": "E-post",
+        "emailAddress": "E-postadress",
+        "inviteText": "Inbjudningstext"
+      },
+      "emailHelp": {
+        "existing": "Ändra e-post i klientprofilen om adressen inte stämmer.",
+        "new": "Adressen sparas på klientprofilen och används för atletens inloggning."
+      },
+      "passwordHelp": "Atleten väljer sitt eget lösenord via länken. Inga lösenord visas eller delas av coachen.",
+      "shareHelp": "Välj hur coachen vill dela inbjudan. SMS och WhatsApp öppnar en färdig text med säker länk, så atleten slipper leta i skräppost.",
+      "actions": {
+        "copy": "Kopiera",
+        "close": "Stäng",
+        "cancel": "Avbryt",
+        "sending": "Skickar...",
+        "email": "E-post"
+      },
+      "toasts": {
+        "inviteCopiedTitle": "Inbjudan kopierad",
+        "inviteCopiedDescription": "Texten är redo att klistras in i valfri kanal.",
+        "emailRequiredTitle": "E-post krävs",
+        "emailRequiredDescription": "Ange en e-postadress för atletkontot",
+        "inviteSentTitle": "Inbjudan skickad!",
+        "accountCreatedTitle": "Atletkonto skapat!",
+        "inviteLinkCreatedTitle": "Inbjudningslänk skapad!",
+        "inviteSentDescription": "En inbjudan har skickats till {email}",
+        "shareTextDescription": "Dela texten via SMS eller WhatsApp.",
+        "inviteFailedTitle": "Kunde inte skicka inbjudan",
+        "accountCreateFailedTitle": "Kunde inte skapa konto",
+        "genericError": "Ett fel uppstod",
+        "networkErrorTitle": "Nätverksfel",
+        "networkErrorDescription": "Kunde inte ansluta till servern"
+      }
+    }
+  },
   "infographic": {
     "title": "Programöversikt",
     "generate": "Skapa",
