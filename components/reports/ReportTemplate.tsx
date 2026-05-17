@@ -247,7 +247,7 @@ export function ReportTemplate({
                 <thead className="bg-gray-100">
                   <tr>
                     <th className="px-4 py-2 text-left">{t('postTest.timeAfterTest')}</th>
-                    <th className="px-4 py-2 text-left">Laktat (mmol/L)</th>
+                    <th className="px-4 py-2 text-left">{t('postTest.lactate')}</th>
                     {test.postTestMeasurements.some((m: { heartRate?: number }) => m.heartRate) && (
                       <th className="px-4 py-2 text-left">{t('postTest.heartRate')}</th>
                     )}
@@ -468,23 +468,23 @@ export function ReportTemplate({
           <table className="w-full">
             <thead className="bg-gray-100">
               <tr>
-                <th className="px-4 py-2 text-left">Zon</th>
-                <th className="px-4 py-2 text-left">Intensitet</th>
-                <th className="px-4 py-2 text-left">Puls</th>
-                <th className="px-4 py-2 text-left">% av max</th>
+                <th className="px-4 py-2 text-left">{t('trainingZones.zone')}</th>
+                <th className="px-4 py-2 text-left">{t('trainingZones.intensity')}</th>
+                <th className="px-4 py-2 text-left">{t('trainingZones.heartRate')}</th>
+                <th className="px-4 py-2 text-left">{t('trainingZones.percentOfMax')}</th>
                 {test.testType === 'RUNNING' ? (
-                  <th className="px-4 py-2 text-left">Hastighet</th>
+                  <th className="px-4 py-2 text-left">{t('trainingZones.speed')}</th>
                 ) : (
-                  <th className="px-4 py-2 text-left">Effekt</th>
+                  <th className="px-4 py-2 text-left">{t('trainingZones.power')}</th>
                 )}
-                <th className="px-4 py-2 text-left">Effekt</th>
+                <th className="px-4 py-2 text-left">{t('trainingZones.effect')}</th>
               </tr>
             </thead>
             <tbody>
               {calculations.trainingZones.map((zone) => (
                 <tr key={zone.zone} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-2 font-medium">
-                    Zon {zone.zone}: {zone.name}
+                    {t('trainingZones.zoneValue', { zone: zone.zone })}: {zone.name}
                   </td>
                   <td className="px-4 py-2">{zone.intensity}</td>
                   <td className="px-4 py-2">
@@ -508,7 +508,7 @@ export function ReportTemplate({
 
       {/* Diagram */}
       <section className="mt-6 pb-6 print:break-before-page" data-pdf-section>
-        <h2 className="text-2xl font-semibold mb-4">Testdiagram</h2>
+        <h2 className="text-2xl font-semibold mb-4">{t('charts.title')}</h2>
         {test.testType === 'CYCLING' ? (
           <PowerChart
             data={test.testStages}
@@ -524,16 +524,16 @@ export function ReportTemplate({
       {test.testStages.some(s => s.rer != null || s.ve != null || s.fatPercent != null) && (
         <>
           <section className="mt-6 border-b pb-6" data-pdf-section>
-            <h2 className="text-2xl font-semibold mb-4">Metabol analys</h2>
+            <h2 className="text-2xl font-semibold mb-4">{t('metabolic.title')}</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-100">
                   <tr>
                     <th className="px-3 py-2 text-left">
-                      {test.testType === 'RUNNING' ? 'Hastighet' : test.testType === 'CYCLING' ? 'Effekt' : 'Tempo'}
+                      {test.testType === 'RUNNING' ? t('trainingZones.speed') : test.testType === 'CYCLING' ? t('trainingZones.power') : t('metabolic.pace')}
                     </th>
-                    <th className="px-3 py-2 text-left">Puls</th>
-                    <th className="px-3 py-2 text-left">Laktat</th>
+                    <th className="px-3 py-2 text-left">{t('trainingZones.heartRate')}</th>
+                    <th className="px-3 py-2 text-left">{t('metabolic.lactate')}</th>
                     {test.testStages.some(s => s.vo2 != null) && (
                       <th className="px-3 py-2 text-left">VO₂</th>
                     )}
@@ -547,10 +547,10 @@ export function ReportTemplate({
                       <th className="px-3 py-2 text-left">VCO₂</th>
                     )}
                     {test.testStages.some(s => s.fatPercent != null) && (
-                      <th className="px-3 py-2 text-left">Fett%</th>
+                      <th className="px-3 py-2 text-left">{t('metabolic.fatPercent')}</th>
                     )}
                     {test.testStages.some(s => s.choPercent != null) && (
-                      <th className="px-3 py-2 text-left">KH%</th>
+                      <th className="px-3 py-2 text-left">{t('metabolic.carbPercent')}</th>
                     )}
                     {test.testStages.some(s => s.respiratoryRate != null) && (
                       <th className="px-3 py-2 text-left">Rf</th>
@@ -607,7 +607,7 @@ export function ReportTemplate({
           {/* Substrate Utilization Chart */}
           {test.testStages.some(s => s.fatPercent != null && s.choPercent != null) && (
             <section className="mt-6 border-b pb-6 print:break-inside-avoid" data-pdf-section>
-              <h2 className="text-2xl font-semibold mb-4">Substratanvändning</h2>
+              <h2 className="text-2xl font-semibold mb-4">{t('substrate.title')}</h2>
               <div className="bg-white p-4 rounded-lg border">
                 <SubstrateUtilizationChart
                   stages={test.testStages}
@@ -616,9 +616,9 @@ export function ReportTemplate({
               </div>
               <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="text-sm text-gray-700">
-                  Diagrammet visar andelen fett- och kolhydratförbränning vid varje intensitet.
-                  <strong> Crossover-punkten</strong> är där kolhydratförbränningen övertar fettförbränningen —
-                  under denna intensitet dominerar fettoxidation, vilket är viktigt för grundträning och uthållighet.
+                  {t.rich('substrate.description', {
+                    strong: (chunks) => <strong>{chunks}</strong>,
+                  })}
                 </p>
               </div>
             </section>
@@ -631,22 +631,22 @@ export function ReportTemplate({
       {/* Power Zones (endast för cykeltester) */}
       {test.testType === 'CYCLING' && calculations.cyclingData && calculations.cyclingData.powerZones && (
         <section className="mt-6 border-b pb-6" data-pdf-section>
-          <h2 className="text-2xl font-semibold mb-4">Power Zones (baserat på FTP)</h2>
+          <h2 className="text-2xl font-semibold mb-4">{t('powerZones.title')}</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="px-4 py-2 text-left">Zon</th>
-                  <th className="px-4 py-2 text-left">% av FTP</th>
-                  <th className="px-4 py-2 text-left">Effekt (watt)</th>
-                  <th className="px-4 py-2 text-left">Beskrivning</th>
+                  <th className="px-4 py-2 text-left">{t('trainingZones.zone')}</th>
+                  <th className="px-4 py-2 text-left">{t('powerZones.percentOfFtp')}</th>
+                  <th className="px-4 py-2 text-left">{t('powerZones.powerWatts')}</th>
+                  <th className="px-4 py-2 text-left">{t('powerZones.description')}</th>
                 </tr>
               </thead>
               <tbody>
                 {calculations.cyclingData.powerZones.map((zone) => (
                   <tr key={zone.zone} className="border-b hover:bg-gray-50">
                     <td className="px-4 py-2 font-medium">
-                      Zon {zone.zone}: {zone.name}
+                      {t('trainingZones.zoneValue', { zone: zone.zone })}: {zone.name}
                     </td>
                     <td className="px-4 py-2">
                       {zone.percentMin} - {zone.percentMax}%
@@ -667,15 +667,15 @@ export function ReportTemplate({
       {test.testType === 'RUNNING' && calculations.economyData && calculations.economyData.length > 0 && (
         <>
           <section className="mt-6 border-b pb-6" data-pdf-section>
-            <h2 className="text-2xl font-semibold mb-4">Löpekonomi</h2>
+            <h2 className="text-2xl font-semibold mb-4">{t('runningEconomy.title')}</h2>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-4 py-2 text-left">Hastighet (km/h)</th>
+                    <th className="px-4 py-2 text-left">{t('runningEconomy.speed')}</th>
                     <th className="px-4 py-2 text-left">VO₂ (ml/kg/min)</th>
-                    <th className="px-4 py-2 text-left">Ekonomi (ml/kg/km)</th>
-                    <th className="px-4 py-2 text-left">Bedömning</th>
+                    <th className="px-4 py-2 text-left">{t('runningEconomy.economy')}</th>
+                    <th className="px-4 py-2 text-left">{t('cyclingResults.evaluation')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -699,43 +699,43 @@ export function ReportTemplate({
                 <svg className="w-4 h-4 mr-2 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
-                Om löpekonomi
+                {t('runningEconomy.aboutTitle')}
               </h4>
               <div className="text-sm text-gray-700 space-y-2">
                 <p>
-                  <strong>Löpekonomi</strong> mäter hur effektivt din kropp använder syre vid löpning.
-                  Värdet anges i ml O₂ per kg kroppsvikt per kilometer (ml/kg/km) och visar hur mycket
-                  syre som krävs för att springa en kilometer i given hastighet.
+                  {t.rich('runningEconomy.description1', {
+                    strong: (chunks) => <strong>{chunks}</strong>,
+                  })}
                 </p>
                 <p>
-                  <strong>Lägre värde = bättre ekonomi.</strong> En löpare med god ekonomi förbrukar
-                  mindre energi vid samma hastighet jämfört med en löpare med sämre ekonomi.
+                  {t.rich('runningEconomy.description2', {
+                    strong: (chunks) => <strong>{chunks}</strong>,
+                  })}
                 </p>
                 <div className="mt-3 grid grid-cols-2 gap-4">
                   <div>
-                    <p className="font-medium text-gray-800 mb-1">Referensvärden:</p>
+                    <p className="font-medium text-gray-800 mb-1">{t('runningEconomy.referenceValues')}</p>
                     <ul className="text-xs space-y-1 text-gray-600">
-                      <li>• <span className="text-green-600 font-medium">Utmärkt:</span> &lt;180 ml/kg/km</li>
-                      <li>• <span className="text-green-600 font-medium">Mycket god:</span> 180-195 ml/kg/km</li>
-                      <li>• <span className="text-blue-600 font-medium">God:</span> 195-210 ml/kg/km</li>
-                      <li>• <span className="text-yellow-600 font-medium">Acceptabel:</span> 210-230 ml/kg/km</li>
-                      <li>• <span className="text-red-600 font-medium">Förbättringspotential:</span> &gt;230 ml/kg/km</li>
+                      <li>• <span className="text-green-600 font-medium">{t('runningEconomy.ratings.excellent')}</span> &lt;180 ml/kg/km</li>
+                      <li>• <span className="text-green-600 font-medium">{t('runningEconomy.ratings.veryGood')}</span> 180-195 ml/kg/km</li>
+                      <li>• <span className="text-blue-600 font-medium">{t('runningEconomy.ratings.good')}</span> 195-210 ml/kg/km</li>
+                      <li>• <span className="text-yellow-600 font-medium">{t('runningEconomy.ratings.acceptable')}</span> 210-230 ml/kg/km</li>
+                      <li>• <span className="text-red-600 font-medium">{t('runningEconomy.ratings.improvement')}</span> &gt;230 ml/kg/km</li>
                     </ul>
                   </div>
                   <div>
-                    <p className="font-medium text-gray-800 mb-1">Påverkande faktorer:</p>
+                    <p className="font-medium text-gray-800 mb-1">{t('runningEconomy.factorsTitle')}</p>
                     <ul className="text-xs space-y-1 text-gray-600">
-                      <li>• Löpteknik och steglängd</li>
-                      <li>• Muskelstyvhet och elasticitet</li>
-                      <li>• Kroppsvikt och sammansättning</li>
-                      <li>• Skoval och underlag</li>
-                      <li>• Träningshistorik och anpassning</li>
+                      <li>• {t('runningEconomy.factors.technique')}</li>
+                      <li>• {t('runningEconomy.factors.stiffness')}</li>
+                      <li>• {t('runningEconomy.factors.bodyWeight')}</li>
+                      <li>• {t('runningEconomy.factors.shoes')}</li>
+                      <li>• {t('runningEconomy.factors.trainingHistory')}</li>
                     </ul>
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-3 italic">
-                  Löpekonomi kan förbättras genom plyometrisk träning, styrketräning för ben och core,
-                  samt teknisk löpträning med fokus på kadensoptimering.
+                  {t('runningEconomy.improvementNote')}
                 </p>
               </div>
             </div>
@@ -759,9 +759,9 @@ export function ReportTemplate({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <div>
-              <p className="font-semibold text-blue-900">Rekommenderat nästa test</p>
+              <p className="font-semibold text-blue-900">{t('nextTest.title')}</p>
               <p className="text-blue-800">
-                {format(new Date(test.recommendedNextTestDate), 'PPP', { locale: sv })}
+                {format(new Date(test.recommendedNextTestDate), 'PPP', { locale: dateLocale })}
               </p>
             </div>
           </div>
@@ -770,7 +770,7 @@ export function ReportTemplate({
 
       {/* Footer */}
       <footer className="mt-8 pt-6 border-t text-sm text-gray-600" data-pdf-section>
-        <p>Rapport genererad: {format(new Date(), 'PPP', { locale: sv })}</p>
+        <p>{t('footer.generated', { date: format(new Date(), 'PPP', { locale: dateLocale }) })}</p>
         <p className="mt-2">© {new Date().getFullYear()} {organization}</p>
       </footer>
     </div>

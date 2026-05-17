@@ -3742,6 +3742,7 @@
       "postTest": {
         "title": "Eftermätningar (post-max laktat)",
         "timeAfterTest": "Tid efter test",
+        "lactate": "Laktat (mmol/L)",
         "heartRate": "Puls (slag/min)",
         "description": "Topplaktat efter maxbelastning ger en bild av anaerob kapacitet"
       },
@@ -3769,7 +3770,66 @@
       },
       "thresholdAnalysis": "Tröskelanalys",
       "trainingZones": {
-        "title": "Träningszoner"
+        "title": "Träningszoner",
+        "zone": "Zon",
+        "zoneValue": "Zon {zone}",
+        "intensity": "Intensitet",
+        "heartRate": "Puls",
+        "percentOfMax": "% av max",
+        "speed": "Hastighet",
+        "power": "Effekt",
+        "effect": "Effekt"
+      },
+      "charts": {
+        "title": "Testdiagram"
+      },
+      "metabolic": {
+        "title": "Metabol analys",
+        "pace": "Tempo",
+        "lactate": "Laktat",
+        "fatPercent": "Fett%",
+        "carbPercent": "KH%"
+      },
+      "substrate": {
+        "title": "Substratanvändning",
+        "description": "Diagrammet visar andelen fett- och kolhydratförbränning vid varje intensitet. <strong> Crossover-punkten</strong> är där kolhydratförbränningen övertar fettförbränningen — under denna intensitet dominerar fettoxidation, vilket är viktigt för grundträning och uthållighet."
+      },
+      "powerZones": {
+        "title": "Power Zones (baserat på FTP)",
+        "percentOfFtp": "% av FTP",
+        "powerWatts": "Effekt (watt)",
+        "description": "Beskrivning"
+      },
+      "runningEconomy": {
+        "title": "Löpekonomi",
+        "speed": "Hastighet (km/h)",
+        "economy": "Ekonomi (ml/kg/km)",
+        "aboutTitle": "Om löpekonomi",
+        "description1": "<strong>Löpekonomi</strong> mäter hur effektivt din kropp använder syre vid löpning. Värdet anges i ml O₂ per kg kroppsvikt per kilometer (ml/kg/km) och visar hur mycket syre som krävs för att springa en kilometer i given hastighet.",
+        "description2": "<strong>Lägre värde = bättre ekonomi.</strong> En löpare med god ekonomi förbrukar mindre energi vid samma hastighet jämfört med en löpare med sämre ekonomi.",
+        "referenceValues": "Referensvärden:",
+        "ratings": {
+          "excellent": "Utmärkt:",
+          "veryGood": "Mycket god:",
+          "good": "God:",
+          "acceptable": "Acceptabel:",
+          "improvement": "Förbättringspotential:"
+        },
+        "factorsTitle": "Påverkande faktorer:",
+        "factors": {
+          "technique": "Löpteknik och steglängd",
+          "stiffness": "Muskelstyvhet och elasticitet",
+          "bodyWeight": "Kroppsvikt och sammansättning",
+          "shoes": "Skoval och underlag",
+          "trainingHistory": "Träningshistorik och anpassning"
+        },
+        "improvementNote": "Löpekonomi kan förbättras genom plyometrisk träning, styrketräning för ben och core, samt teknisk löpträning med fokus på kadensoptimering."
+      },
+      "nextTest": {
+        "title": "Rekommenderat nästa test"
+      },
+      "footer": {
+        "generated": "Rapport genererad: {date}"
       }
     },
     "vbtSessionHistory": {

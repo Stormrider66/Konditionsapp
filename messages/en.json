@@ -3742,6 +3742,7 @@
       "postTest": {
         "title": "Post-measurements (post-max lactate)",
         "timeAfterTest": "Time after test",
+        "lactate": "Lactate (mmol/L)",
         "heartRate": "Heart rate (bpm)",
         "description": "Peak lactate after maximum load gives an indication of anaerobic capacity"
       },
@@ -3769,7 +3770,66 @@
       },
       "thresholdAnalysis": "Threshold analysis",
       "trainingZones": {
-        "title": "Training zones"
+        "title": "Training zones",
+        "zone": "Zone",
+        "zoneValue": "Zone {zone}",
+        "intensity": "Intensity",
+        "heartRate": "Heart rate",
+        "percentOfMax": "% of max",
+        "speed": "Speed",
+        "power": "Power",
+        "effect": "Effect"
+      },
+      "charts": {
+        "title": "Test charts"
+      },
+      "metabolic": {
+        "title": "Metabolic analysis",
+        "pace": "Pace",
+        "lactate": "Lactate",
+        "fatPercent": "Fat%",
+        "carbPercent": "Carb%"
+      },
+      "substrate": {
+        "title": "Substrate utilization",
+        "description": "The chart shows the share of fat and carbohydrate combustion at each intensity. <strong> The crossover point</strong> is where carbohydrate combustion overtakes fat combustion — below this intensity, fat oxidation dominates, which is important for base training and endurance."
+      },
+      "powerZones": {
+        "title": "Power zones (based on FTP)",
+        "percentOfFtp": "% of FTP",
+        "powerWatts": "Power (watts)",
+        "description": "Description"
+      },
+      "runningEconomy": {
+        "title": "Running economy",
+        "speed": "Speed (km/h)",
+        "economy": "Economy (ml/kg/km)",
+        "aboutTitle": "About running economy",
+        "description1": "<strong>Running economy</strong> measures how efficiently your body uses oxygen while running. The value is given in ml O₂ per kg body weight per kilometer (ml/kg/km) and shows how much oxygen is required to run one kilometer at a given speed.",
+        "description2": "<strong>Lower value = better economy.</strong> A runner with good economy uses less energy at the same speed compared with a runner with poorer economy.",
+        "referenceValues": "Reference values:",
+        "ratings": {
+          "excellent": "Excellent:",
+          "veryGood": "Very good:",
+          "good": "Good:",
+          "acceptable": "Acceptable:",
+          "improvement": "Improvement potential:"
+        },
+        "factorsTitle": "Influencing factors:",
+        "factors": {
+          "technique": "Running technique and stride length",
+          "stiffness": "Muscle stiffness and elasticity",
+          "bodyWeight": "Body weight and composition",
+          "shoes": "Shoe choice and surface",
+          "trainingHistory": "Training history and adaptation"
+        },
+        "improvementNote": "Running economy can be improved through plyometric training, strength training for legs and core, and technical running drills focused on cadence optimization."
+      },
+      "nextTest": {
+        "title": "Recommended next test"
+      },
+      "footer": {
+        "generated": "Report generated: {date}"
       }
     },
     "vbtSessionHistory": {
