@@ -7419,6 +7419,32 @@
         "avgWorkouts": "Avg workouts/week"
       }
     },
+    "zoneDistributionChart": {
+      "emptyTitle": "HR zones",
+      "title": "Time in HR zones",
+      "description": "Training time distribution by intensity zone",
+      "empty": "No zone data available yet",
+      "total": "Total",
+      "period": {
+        "week": "Week",
+        "month": "Month",
+        "year": "Year",
+        "weekPrefix": "W"
+      },
+      "zones": {
+        "zone1": "Zone 1 (Recovery)",
+        "zone2": "Zone 2 (Aerobic base)",
+        "zone3": "Zone 3 (Tempo)",
+        "zone4": "Zone 4 (Threshold)",
+        "zone5": "Zone 5 (VO2max)"
+      },
+      "summary": {
+        "low": "Low (Z1-Z2)",
+        "tempo": "Tempo (Z3)",
+        "high": "High (Z4-Z5)",
+        "polarization": "Polarization"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

@@ -31,10 +31,9 @@ import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import {
   Heart,
   Activity,
-  TrendingUp,
-  Clock,
   Zap,
 } from 'lucide-react';
+import { useLocale, useTranslations } from '@/i18n/client';
 
 interface ZoneDistribution {
   periodStart: string;
@@ -65,14 +64,6 @@ const ZONE_COLORS = {
   zone5: '#ef4444', // Red - VO2max
 };
 
-const ZONE_NAMES = {
-  zone1: 'Zon 1 (Aterhamtning)',
-  zone2: 'Zon 2 (Aerob bas)',
-  zone3: 'Zon 3 (Tempo)',
-  zone4: 'Zon 4 (Troskel)',
-  zone5: 'Zon 5 (VO2max)',
-};
-
 const ZONE_SHORT_NAMES = {
   zone1: 'Z1',
   zone2: 'Z2',
@@ -88,13 +79,13 @@ function formatDuration(minutes: number): string {
   return `${hours}h ${mins}m`;
 }
 
-function formatPeriodLabel(periodStart: string, period: string): string {
+function formatPeriodLabel(periodStart: string, period: string, locale: string, weekPrefix: string): string {
   const date = new Date(periodStart);
   if (period === 'week') {
-    return `V${getWeekNumber(date)}`;
+    return `${weekPrefix}${getWeekNumber(date)}`;
   }
   if (period === 'month') {
-    return date.toLocaleDateString('sv-SE', { month: 'short' });
+    return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', { month: 'short' });
   }
   return date.getFullYear().toString();
 }
@@ -107,13 +98,21 @@ function getWeekNumber(date: Date): number {
   return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
-function DonutChart({ data }: { data: ZoneDistribution }) {
+function DonutChart({
+  data,
+  totalLabel,
+  zoneLabels,
+}: {
+  data: ZoneDistribution;
+  totalLabel: string;
+  zoneLabels: Record<keyof typeof ZONE_SHORT_NAMES, string>;
+}) {
   const chartData = [
-    { name: 'Zon 1', value: data.zone1Minutes, color: ZONE_COLORS.zone1 },
-    { name: 'Zon 2', value: data.zone2Minutes, color: ZONE_COLORS.zone2 },
-    { name: 'Zon 3', value: data.zone3Minutes, color: ZONE_COLORS.zone3 },
-    { name: 'Zon 4', value: data.zone4Minutes, color: ZONE_COLORS.zone4 },
-    { name: 'Zon 5', value: data.zone5Minutes, color: ZONE_COLORS.zone5 },
+    { name: zoneLabels.zone1, value: data.zone1Minutes, color: ZONE_COLORS.zone1 },
+    { name: zoneLabels.zone2, value: data.zone2Minutes, color: ZONE_COLORS.zone2 },
+    { name: zoneLabels.zone3, value: data.zone3Minutes, color: ZONE_COLORS.zone3 },
+    { name: zoneLabels.zone4, value: data.zone4Minutes, color: ZONE_COLORS.zone4 },
+    { name: zoneLabels.zone5, value: data.zone5Minutes, color: ZONE_COLORS.zone5 },
   ].filter(d => d.value > 0);
 
   const totalMinutes = data.totalMinutes;
@@ -149,7 +148,7 @@ function DonutChart({ data }: { data: ZoneDistribution }) {
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-lg font-bold">{formatDuration(totalMinutes)}</span>
-          <span className="text-xs text-muted-foreground">Total</span>
+          <span className="text-xs text-muted-foreground">{totalLabel}</span>
         </div>
       </div>
 
@@ -183,10 +182,23 @@ export function ZoneDistributionChart({
   variant = 'default',
   chartType = 'bar',
 }: ZoneDistributionChartProps) {
+  const t = useTranslations('components.zoneDistributionChart');
+  const locale = useLocale();
   const [distributions, setDistributions] = useState<ZoneDistribution[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>(period);
-  const [displayMode, setDisplayMode] = useState<'bar' | 'donut'>(chartType);
+  const displayMode = chartType;
+
+  const zoneLabels = useMemo(
+    () => ({
+      zone1: t('zones.zone1'),
+      zone2: t('zones.zone2'),
+      zone3: t('zones.zone3'),
+      zone4: t('zones.zone4'),
+      zone5: t('zones.zone5'),
+    }),
+    [t]
+  );
 
   const fetchDistributions = useCallback(async () => {
     try {
@@ -207,12 +219,12 @@ export function ZoneDistributionChart({
   }, [clientId, selectedPeriod, count]);
 
   useEffect(() => {
-    fetchDistributions();
+    void fetchDistributions();
   }, [fetchDistributions]);
 
   const chartData = useMemo(() => {
     return distributions.map((dist) => ({
-      period: formatPeriodLabel(dist.periodStart, selectedPeriod),
+      period: formatPeriodLabel(dist.periodStart, selectedPeriod, locale, t('period.weekPrefix')),
       zone1: Math.round(dist.zone1Minutes),
       zone2: Math.round(dist.zone2Minutes),
       zone3: Math.round(dist.zone3Minutes),
@@ -221,7 +233,7 @@ export function ZoneDistributionChart({
       total: dist.totalMinutes,
       polarization: dist.polarizationRatio,
     }));
-  }, [distributions, selectedPeriod]);
+  }, [distributions, locale, selectedPeriod, t]);
 
   const currentPeriodData = distributions[distributions.length - 1];
   const isPolarized = currentPeriodData?.polarizationRatio && currentPeriodData.polarizationRatio >= 75;
@@ -251,14 +263,14 @@ export function ZoneDistributionChart({
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Heart className="h-4 w-4" />
-            HR-zoner
+            {t('emptyTitle')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <Activity className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">
-              Ingen zondata tillganglig annu
+              {t('empty')}
             </p>
           </div>
         </CardContent>
@@ -273,11 +285,11 @@ export function ZoneDistributionChart({
           <div>
             <CardTitle className="text-base flex items-center gap-2">
               <Heart className="h-4 w-4" />
-              Tid i HR-zoner
+              {t('title')}
               <InfoTooltip conceptKey="trainingZones" />
             </CardTitle>
             <CardDescription>
-              Fordelning av traningstid per intensitetszon
+              {t('description')}
             </CardDescription>
           </div>
           <div className="flex items-center gap-3">
@@ -293,13 +305,13 @@ export function ZoneDistributionChart({
             >
               <TabsList className="h-8">
                 <TabsTrigger value="week" className="text-xs px-2 h-6">
-                  Vecka
+                  {t('period.week')}
                 </TabsTrigger>
                 <TabsTrigger value="month" className="text-xs px-2 h-6">
-                  Manad
+                  {t('period.month')}
                 </TabsTrigger>
                 <TabsTrigger value="year" className="text-xs px-2 h-6">
-                  Ar
+                  {t('period.year')}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -309,7 +321,11 @@ export function ZoneDistributionChart({
 
       <CardContent>
         {displayMode === 'donut' && currentPeriodData ? (
-          <DonutChart data={currentPeriodData} />
+          <DonutChart
+            data={currentPeriodData}
+            totalLabel={t('total')}
+            zoneLabels={zoneLabels}
+          />
         ) : (
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -339,7 +355,7 @@ export function ZoneDistributionChart({
                   }}
                   formatter={(value: number, name: string) => [
                     formatDuration(value),
-                    ZONE_NAMES[name as keyof typeof ZONE_NAMES] || name,
+                    zoneLabels[name as keyof typeof zoneLabels] || name,
                   ]}
                 />
                 <Legend
@@ -364,25 +380,25 @@ export function ZoneDistributionChart({
               <p className="text-lg font-bold text-green-600">
                 {formatDuration(currentPeriodData.zone1Minutes + currentPeriodData.zone2Minutes)}
               </p>
-              <p className="text-xs text-muted-foreground">Lagt (Z1-Z2)</p>
+              <p className="text-xs text-muted-foreground">{t('summary.low')}</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-bold text-yellow-600">
                 {formatDuration(currentPeriodData.zone3Minutes)}
               </p>
-              <p className="text-xs text-muted-foreground">Tempo (Z3)</p>
+              <p className="text-xs text-muted-foreground">{t('summary.tempo')}</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-bold text-red-600">
                 {formatDuration(currentPeriodData.zone4Minutes + currentPeriodData.zone5Minutes)}
               </p>
-              <p className="text-xs text-muted-foreground">Hogt (Z4-Z5)</p>
+              <p className="text-xs text-muted-foreground">{t('summary.high')}</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-bold">
                 {currentPeriodData.polarizationRatio?.toFixed(0) || '-'}%
               </p>
-              <p className="text-xs text-muted-foreground">Polarisering</p>
+              <p className="text-xs text-muted-foreground">{t('summary.polarization')}</p>
             </div>
           </div>
         )}

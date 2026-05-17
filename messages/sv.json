@@ -7419,6 +7419,32 @@
         "avgWorkouts": "Avg pass/vecka"
       }
     },
+    "zoneDistributionChart": {
+      "emptyTitle": "HR-zoner",
+      "title": "Tid i HR-zoner",
+      "description": "Fördelning av träningstid per intensitetszon",
+      "empty": "Ingen zondata tillgänglig ännu",
+      "total": "Total",
+      "period": {
+        "week": "Vecka",
+        "month": "Månad",
+        "year": "År",
+        "weekPrefix": "V"
+      },
+      "zones": {
+        "zone1": "Zon 1 (Återhämtning)",
+        "zone2": "Zon 2 (Aerob bas)",
+        "zone3": "Zon 3 (Tempo)",
+        "zone4": "Zon 4 (Tröskel)",
+        "zone5": "Zon 5 (VO2max)"
+      },
+      "summary": {
+        "low": "Lågt (Z1-Z2)",
+        "tempo": "Tempo (Z3)",
+        "high": "Högt (Z4-Z5)",
+        "polarization": "Polarisering"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",
