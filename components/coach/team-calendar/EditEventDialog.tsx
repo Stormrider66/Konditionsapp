@@ -51,6 +51,11 @@ interface EditableTeamEvent {
   linkedWorkoutName?: string | null
   assignedBroadcastId?: string | null
   assignedAt?: string | null
+  assignmentSummary?: {
+    totalAssigned: number
+    totalCompleted: number
+    completionRate: number
+  } | null
 }
 
 interface EditEventDialogProps {
@@ -130,6 +135,7 @@ export function EditEventDialog({
   const linkedWorkoutType = workoutTypeForEventType(type)
   const canAssignPersistedWorkout = Boolean(event?.linkedWorkoutId && event?.linkedWorkoutType && !event.assignedBroadcastId)
   const isAssigned = Boolean(event?.assignedBroadcastId)
+  const assignmentSummary = event?.assignmentSummary
 
   useEffect(() => {
     if (!event) return
@@ -380,11 +386,27 @@ export function EditEventDialog({
 
                 <div className="rounded-md border bg-background p-3">
                   {isAssigned ? (
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm text-emerald-700">
                         <CheckCircle2 className="h-4 w-4" />
                         Passet är tilldelat laget.
                       </div>
+                      {assignmentSummary && (
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Genomförande</span>
+                            <span className="font-medium text-foreground">
+                              {assignmentSummary.totalCompleted}/{assignmentSummary.totalAssigned} klara · {assignmentSummary.completionRate}%
+                            </span>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full bg-emerald-500"
+                              style={{ width: `${Math.min(100, Math.max(0, assignmentSummary.completionRate))}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
                       {event?.assignedAt && (
                         <div className="text-xs text-muted-foreground">
                           Tilldelat {new Date(event.assignedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })}

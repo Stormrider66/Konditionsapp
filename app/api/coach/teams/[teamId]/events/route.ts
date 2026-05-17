@@ -10,6 +10,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { getAccessibleTeam, getWritableTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
+import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignment-summary'
 import {
   TEAM_EVENT_CONTENT_OWNERS,
   TEAM_EVENT_CONTENT_STATUSES,
@@ -75,7 +76,18 @@ export async function GET(req: NextRequest, context: RouteContext) {
       orderBy: { startDate: 'asc' },
     })
 
-    return NextResponse.json({ events })
+    const assignmentSummaries = await getTeamCalendarAssignmentSummaries(
+      events.map((event) => event.assignedBroadcastId)
+    )
+
+    return NextResponse.json({
+      events: events.map((event) => ({
+        ...event,
+        assignmentSummary: event.assignedBroadcastId
+          ? assignmentSummaries.get(event.assignedBroadcastId) ?? null
+          : null,
+      })),
+    })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -133,7 +145,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       },
     })
 
-    return NextResponse.json({ event }, { status: 201 })
+    return NextResponse.json({ event: { ...event, assignmentSummary: null } }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

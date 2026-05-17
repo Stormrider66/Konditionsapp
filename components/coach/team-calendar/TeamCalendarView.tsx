@@ -45,6 +45,11 @@ interface TeamEvent {
   linkedWorkoutName?: string | null
   assignedBroadcastId?: string | null
   assignedAt?: string | null
+  assignmentSummary?: {
+    totalAssigned: number
+    totalCompleted: number
+    completionRate: number
+  } | null
   createdBy: { name: string }
   intervalSession: { id: string; name: string; status: string } | null
 }
@@ -133,6 +138,11 @@ function contentOwnerLabel(owner: string | null | undefined): string {
     return TEAM_EVENT_CONTENT_OWNER_LABELS[owner as TeamEventContentOwner]
   }
   return TEAM_EVENT_CONTENT_OWNER_LABELS.physical_trainer
+}
+
+function assignmentProgressLabel(event: TeamEvent): string | null {
+  if (!event.assignmentSummary) return null
+  return `${event.assignmentSummary.totalCompleted}/${event.assignmentSummary.totalAssigned} klara`
 }
 
 function inputDateValue(date: Date): string {
@@ -499,7 +509,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                               )}
                               {event.assignedBroadcastId && (
                                 <span className="ml-1 rounded bg-emerald-100 px-1 text-[10px] text-emerald-800">
-                                  Tilldelat
+                                  {assignmentProgressLabel(event) ?? 'Tilldelat'}
                                 </span>
                               )}
                             </button>
@@ -592,7 +602,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                                 )}
                                 {event.assignedBroadcastId && (
                                   <Badge variant="outline" className="shrink-0 border-emerald-300 bg-emerald-50 text-[10px] text-emerald-800">
-                                    Tilldelat
+                                    {assignmentProgressLabel(event) ?? 'Tilldelat'}
                                   </Badge>
                                 )}
                               </div>
