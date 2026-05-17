@@ -20,14 +20,20 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
+  ClipboardList,
   MapPin,
   Clock,
   Download,
   Trash2,
   Plus,
   Filter,
+  Send,
+  TriangleAlert,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import type { PracticeBlock } from '@/lib/team-calendar/practice-plan'
 
 interface TeamEvent {
   id: string
@@ -40,6 +46,7 @@ interface TeamEvent {
   allDay: boolean
   contentStatus?: string
   contentOwner?: string | null
+  practicePlan?: PracticeBlock[] | null
   linkedWorkoutType?: string | null
   linkedWorkoutId?: string | null
   linkedWorkoutName?: string | null
@@ -164,6 +171,100 @@ function contentOwnerLabel(owner: string | null | undefined): string {
 function assignmentProgressLabel(event: TeamEvent): string | null {
   if (!event.assignmentSummary) return null
   return `${event.assignmentSummary.totalCompleted}/${event.assignmentSummary.totalAssigned} klara`
+}
+
+function hasPracticePlan(event: TeamEvent): boolean {
+  return Array.isArray(event.practicePlan) && event.practicePlan.length > 0
+}
+
+function isIcePracticeEvent(event: TeamEvent): boolean {
+  return event.type === 'PRACTICE' || event.type === 'ICE_PRACTICE'
+}
+
+function isPhysicalEvent(event: TeamEvent): boolean {
+  return PHYSICAL_TEAM_EVENT_TYPES.includes(event.type as TeamEventType)
+}
+
+function getPlanningBadges(event: TeamEvent): Array<{
+  key: string
+  label: string
+  icon: LucideIcon
+  className: string
+}> {
+  const badges: Array<{
+    key: string
+    label: string
+    icon: LucideIcon
+    className: string
+  }> = []
+
+  if (isIcePracticeEvent(event)) {
+    if (hasPracticePlan(event)) {
+      badges.push({
+        key: 'practice-plan',
+        label: 'Plan',
+        icon: ClipboardList,
+        className: 'border-blue-300 bg-blue-50 text-blue-800',
+      })
+    } else {
+      badges.push({
+        key: 'missing-practice-plan',
+        label: 'Saknar plan',
+        icon: TriangleAlert,
+        className: 'border-amber-300 bg-amber-50 text-amber-800',
+      })
+    }
+  }
+
+  if (isPhysicalEvent(event)) {
+    if (event.assignedBroadcastId) {
+      badges.push({
+        key: 'assigned',
+        label: assignmentProgressLabel(event) ?? 'Tilldelat',
+        icon: Send,
+        className: 'border-emerald-300 bg-emerald-50 text-emerald-800',
+      })
+    } else if (event.linkedWorkoutId && event.contentStatus === 'CONTENT_READY') {
+      badges.push({
+        key: 'ready',
+        label: 'Klar',
+        icon: CheckCircle2,
+        className: 'border-emerald-300 bg-emerald-50 text-emerald-800',
+      })
+    } else if (eventNeedsContent(event)) {
+      badges.push({
+        key: 'needs-content',
+        label: contentStatusLabel(event.contentStatus),
+        icon: TriangleAlert,
+        className: 'border-amber-300 bg-amber-50 text-amber-800',
+      })
+    }
+  }
+
+  return badges
+}
+
+function PlanningBadges({ event, compact = false }: { event: TeamEvent; compact?: boolean }) {
+  const badges = getPlanningBadges(event)
+  if (badges.length === 0) return null
+
+  return (
+    <div className={`flex flex-wrap gap-1 ${compact ? 'mt-1' : ''}`}>
+      {badges.map((badge) => {
+        const Icon = badge.icon
+        return (
+          <Badge
+            key={badge.key}
+            variant="outline"
+            className={`shrink-0 gap-1 ${compact ? 'px-1 py-0 text-[10px]' : 'text-[10px]'} ${badge.className}`}
+          >
+            <Icon className={compact ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
+            {badge.label}
+          </Badge>
+        )
+      })}
+    </div>
+  )
 }
 
 function inputDateValue(date: Date): string {
@@ -560,16 +661,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                             >
                               <span className={`mr-1 inline-block h-2 w-2 rounded-full ${typeConf.color}`} />
                               <span className="font-medium">{compactEventText(event)}</span>
-                              {eventNeedsContent(event) && (
-                                <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] text-amber-800">
-                                  {contentStatusLabel(event.contentStatus)}
-                                </span>
-                              )}
-                              {event.assignedBroadcastId && (
-                                <span className="ml-1 rounded bg-emerald-100 px-1 text-[10px] text-emerald-800">
-                                  {assignmentProgressLabel(event) ?? 'Tilldelat'}
-                                </span>
-                              )}
+                              <PlanningBadges event={event} compact />
                             </button>
                           )
                         })}
@@ -653,16 +745,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                                 <Badge variant="outline" className="text-[10px] shrink-0">
                                   {typeConf.label}
                                 </Badge>
-                                {eventNeedsContent(event) && (
-                                  <Badge variant="outline" className="shrink-0 border-amber-300 bg-amber-50 text-[10px] text-amber-800">
-                                    {contentStatusLabel(event.contentStatus)}
-                                  </Badge>
-                                )}
-                                {event.assignedBroadcastId && (
-                                  <Badge variant="outline" className="shrink-0 border-emerald-300 bg-emerald-50 text-[10px] text-emerald-800">
-                                    {assignmentProgressLabel(event) ?? 'Tilldelat'}
-                                  </Badge>
-                                )}
+                                <PlanningBadges event={event} />
                               </div>
                               <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                                 {!event.allDay && (
