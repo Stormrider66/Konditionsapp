@@ -3717,6 +3717,59 @@
         "loading": "Loading progression..."
       }
     },
+    "strengthTemplateSelector": {
+      "categories": {
+        "runner": "Runner",
+        "beginner": "Beginner",
+        "marathon": "Marathon",
+        "injuryPrevention": "Injury prevention",
+        "power": "Power",
+        "maintenance": "Maintenance"
+      },
+      "levels": {
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced",
+        "elite": "Elite"
+      },
+      "errors": {
+        "fetchTemplates": "Could not fetch templates",
+        "upgradeRequired": "You need a PRO subscription to use this feature.",
+        "assignFailed": "Could not assign the workout",
+        "generic": "Something went wrong. Try again."
+      },
+      "search": {
+        "placeholder": "Search templates..."
+      },
+      "filters": {
+        "categoryPlaceholder": "Category",
+        "allCategories": "All categories"
+      },
+      "empty": "No templates found.",
+      "metrics": {
+        "exercises": "Exercises",
+        "perWeek": "/week"
+      },
+      "badges": {
+        "warmup": "Warmup",
+        "coreExercises": "Core exercises",
+        "cooldown": "Cooldown"
+      },
+      "actions": {
+        "chooseTemplate": "Choose this template",
+        "cancel": "Cancel",
+        "scheduling": "Scheduling...",
+        "schedule": "Schedule workout"
+      },
+      "dialog": {
+        "title": "Schedule strength session",
+        "success": "Workout scheduled!",
+        "dateLabel": "Choose date",
+        "includes": "The workout includes:",
+        "exerciseCount": "{count, plural, one {# exercise} other {# exercises}}",
+        "estimatedTime": "Estimated time: {minutes} min"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",

@@ -3717,6 +3717,59 @@
         "loading": "Laddar progression..."
       }
     },
+    "strengthTemplateSelector": {
+      "categories": {
+        "runner": "Löpare",
+        "beginner": "Nybörjare",
+        "marathon": "Maraton",
+        "injuryPrevention": "Skadeprevention",
+        "power": "Kraft",
+        "maintenance": "Underhåll"
+      },
+      "levels": {
+        "beginner": "Nybörjare",
+        "intermediate": "Mellan",
+        "advanced": "Avancerad",
+        "elite": "Elit"
+      },
+      "errors": {
+        "fetchTemplates": "Kunde inte hämta mallar",
+        "upgradeRequired": "Du behöver PRO-prenumeration för att använda denna funktion.",
+        "assignFailed": "Kunde inte tilldela passet",
+        "generic": "Ett fel uppstod. Försök igen."
+      },
+      "search": {
+        "placeholder": "Sök mallar..."
+      },
+      "filters": {
+        "categoryPlaceholder": "Kategori",
+        "allCategories": "Alla kategorier"
+      },
+      "empty": "Inga mallar hittades.",
+      "metrics": {
+        "exercises": "Övningar",
+        "perWeek": "/vecka"
+      },
+      "badges": {
+        "warmup": "Uppvärmning",
+        "coreExercises": "Core-övningar",
+        "cooldown": "Nedvarvning"
+      },
+      "actions": {
+        "chooseTemplate": "Välj denna mall",
+        "cancel": "Avbryt",
+        "scheduling": "Schemalägger...",
+        "schedule": "Schemalägg pass"
+      },
+      "dialog": {
+        "title": "Schemalägg styrkepass",
+        "success": "Pass schemalagt!",
+        "dateLabel": "Välj datum",
+        "includes": "Passet innehåller:",
+        "exerciseCount": "{count} {count, plural, one {övning} other {övningar}}",
+        "estimatedTime": "Uppskattad tid: {minutes} min"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",

@@ -53,7 +53,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface TemplateSummary {
   id: string
@@ -75,20 +75,20 @@ interface TemplateSummary {
   isSystemTemplate: boolean
 }
 
-const CATEGORY_LABELS: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  RUNNER: { label: 'Löpare', icon: TrendingUp, color: 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400' },
-  BEGINNER: { label: 'Nybörjare', icon: Target, color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400' },
-  MARATHON: { label: 'Maraton', icon: Target, color: 'bg-purple-100 text-purple-800 dark:bg-purple-500/10 dark:text-purple-400' },
-  INJURY_PREVENTION: { label: 'Skadeprevention', icon: Shield, color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/10 dark:text-yellow-400' },
-  POWER: { label: 'Kraft', icon: Zap, color: 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400' },
-  MAINTENANCE: { label: 'Underhåll', icon: Dumbbell, color: 'bg-slate-100 text-slate-800 dark:bg-white/5 dark:text-slate-400' },
+const CATEGORY_LABELS: Record<string, { labelKey: string; icon: React.ElementType; color: string }> = {
+  RUNNER: { labelKey: 'categories.runner', icon: TrendingUp, color: 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400' },
+  BEGINNER: { labelKey: 'categories.beginner', icon: Target, color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400' },
+  MARATHON: { labelKey: 'categories.marathon', icon: Target, color: 'bg-purple-100 text-purple-800 dark:bg-purple-500/10 dark:text-purple-400' },
+  INJURY_PREVENTION: { labelKey: 'categories.injuryPrevention', icon: Shield, color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/10 dark:text-yellow-400' },
+  POWER: { labelKey: 'categories.power', icon: Zap, color: 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400' },
+  MAINTENANCE: { labelKey: 'categories.maintenance', icon: Dumbbell, color: 'bg-slate-100 text-slate-800 dark:bg-white/5 dark:text-slate-400' },
 }
 
 const LEVEL_LABELS: Record<string, string> = {
-  BEGINNER: 'Nybörjare',
-  INTERMEDIATE: 'Mellan',
-  ADVANCED: 'Avancerad',
-  ELITE: 'Elit',
+  BEGINNER: 'levels.beginner',
+  INTERMEDIATE: 'levels.intermediate',
+  ADVANCED: 'levels.advanced',
+  ELITE: 'levels.elite',
 }
 
 interface StrengthTemplateSelectorProps {
@@ -96,6 +96,8 @@ interface StrengthTemplateSelectorProps {
 }
 
 export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelectorProps) {
+  const t = useTranslations('components.strengthTemplateSelector')
+  const locale = useLocale()
   const [templates, setTemplates] = useState<TemplateSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -121,15 +123,15 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
 
         const result = await response.json()
         setTemplates(result.data || [])
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
+      } catch (_err) {
+        setError(t('errors.fetchTemplates'))
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchTemplates()
-  }, [categoryFilter, searchQuery])
+    void fetchTemplates()
+  }, [categoryFilter, searchQuery, t])
 
   // Handle template assignment
   const handleAssign = async () => {
@@ -152,9 +154,9 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
 
       if (!response.ok) {
         if (result.upgradeRequired) {
-          setAssignError('Du behöver PRO-prenumeration för att använda denna funktion.')
+          setAssignError(t('errors.upgradeRequired'))
         } else {
-          setAssignError(result.error || 'Kunde inte tilldela passet')
+          setAssignError(result.error || t('errors.assignFailed'))
         }
         return
       }
@@ -165,8 +167,8 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
         setAssignSuccess(false)
         if (onAssigned) onAssigned()
       }, 1500)
-    } catch (err) {
-      setAssignError('Ett fel uppstod. Försök igen.')
+    } catch (_err) {
+      setAssignError(t('errors.generic'))
     } finally {
       setIsAssigning(false)
     }
@@ -177,8 +179,8 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
     return (
-      t.nameSv.toLowerCase().includes(query) ||
-      t.descriptionSv.toLowerCase().includes(query) ||
+      (locale === 'sv' ? t.nameSv : t.name).toLowerCase().includes(query) ||
+      (locale === 'sv' ? t.descriptionSv : t.description).toLowerCase().includes(query) ||
       t.tags.some((tag) => tag.includes(query))
     )
   })
@@ -214,7 +216,7 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-slate-400" />
           <Input
-            placeholder="Sök mallar..."
+            placeholder={t('search.placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 bg-white border-slate-200 dark:bg-white/5 dark:border-white/10"
@@ -222,13 +224,13 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
         </div>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
           <SelectTrigger className="w-full sm:w-48 bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
-            <SelectValue placeholder="Kategori" />
+            <SelectValue placeholder={t('filters.categoryPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">Alla kategorier</SelectItem>
-            {Object.entries(CATEGORY_LABELS).map(([key, { label }]) => (
+            <SelectItem value="ALL">{t('filters.allCategories')}</SelectItem>
+            {Object.entries(CATEGORY_LABELS).map(([key, { labelKey }]) => (
               <SelectItem key={key} value={key}>
-                {label}
+                {t(labelKey)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -239,18 +241,20 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
       {filteredTemplates.length === 0 ? (
         <Card className="bg-slate-50 border-slate-200 dark:bg-white/5 dark:border-white/10">
           <CardContent className="pt-6 text-center">
-            <p className="text-slate-500 dark:text-slate-400">Inga mallar hittades.</p>
+            <p className="text-slate-500 dark:text-slate-400">{t('empty')}</p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
           {filteredTemplates.map((template) => {
             const categoryInfo = CATEGORY_LABELS[template.category] || {
-              label: template.category,
+              labelKey: template.category,
               icon: Dumbbell,
               color: 'bg-gray-100 text-gray-800',
             }
             const CategoryIcon = categoryInfo.icon
+            const templateName = locale === 'sv' ? template.nameSv : template.name
+            const templateDescription = locale === 'sv' ? template.descriptionSv : template.description
 
             return (
               <GlassCard
@@ -264,15 +268,15 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <Badge className={`${categoryInfo.color} border-0 font-bold tracking-tight px-2`}>
                           <CategoryIcon className="h-3 w-3 mr-1" />
-                          {categoryInfo.label}
+                          {CATEGORY_LABELS[template.category] ? t(categoryInfo.labelKey) : categoryInfo.labelKey}
                         </Badge>
                         <Badge variant="outline" className="border-slate-200 text-slate-600 dark:border-white/10 dark:text-slate-400 font-bold uppercase tracking-tight text-[10px]">
-                          {LEVEL_LABELS[template.athleteLevel]}
+                          {LEVEL_LABELS[template.athleteLevel] ? t(LEVEL_LABELS[template.athleteLevel]) : template.athleteLevel}
                         </Badge>
                       </div>
-                      <GlassCardTitle className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{template.nameSv}</GlassCardTitle>
+                      <GlassCardTitle className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{templateName}</GlassCardTitle>
                       <GlassCardDescription className="line-clamp-2 mt-1 text-slate-500 dark:text-slate-400">
-                        {template.descriptionSv}
+                        {templateDescription}
                       </GlassCardDescription>
                     </div>
                   </div>
@@ -283,7 +287,7 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
                     <div className="text-center p-2 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
                       <Dumbbell className="h-4 w-4 mx-auto mb-1 text-slate-400 dark:text-slate-500" />
                       <p className="text-sm font-black text-slate-700 dark:text-slate-300">{template.exerciseCount}</p>
-                      <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-500">Övningar</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-500">{t('metrics.exercises')}</p>
                     </div>
                     <div className="text-center p-2 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
                       <Clock className="h-4 w-4 mx-auto mb-1 text-slate-400 dark:text-slate-500" />
@@ -293,7 +297,7 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
                     <div className="text-center p-2 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
                       <Calendar className="h-4 w-4 mx-auto mb-1 text-slate-400 dark:text-slate-500" />
                       <p className="text-sm font-black text-slate-700 dark:text-slate-300">{template.sessionsPerWeek}x</p>
-                      <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-500">/vecka</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-500">{t('metrics.perWeek')}</p>
                     </div>
                   </div>
 
@@ -301,7 +305,7 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
                     {template.includesWarmup && (
                       <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-tight border-slate-200 text-slate-500 dark:border-white/10 dark:text-slate-400">
                         <Flame className="h-3 w-3 mr-1 text-amber-500" />
-                        Uppvärmning
+                        {t('badges.warmup')}
                       </Badge>
                     )}
                     {template.includesCore && (
@@ -313,7 +317,7 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
                     {template.includesCooldown && (
                       <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-tight border-slate-200 text-slate-500 dark:border-white/10 dark:text-slate-400">
                         <Timer className="h-3 w-3 mr-1 text-green-500" />
-                        Nedvarvning
+                        {t('badges.cooldown')}
                       </Badge>
                     )}
                   </div>
@@ -321,7 +325,7 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
 
                 <GlassCardFooter className="pt-0">
                   <Button className="w-full bg-white border-slate-200 text-slate-900 hover:bg-slate-50 dark:bg-white/10 dark:border-white/10 dark:text-white dark:hover:bg-white/20 font-bold shadow-sm" variant="outline">
-                    Välj denna mall
+                    {t('actions.chooseTemplate')}
                   </Button>
                 </GlassCardFooter>
               </GlassCard>
@@ -334,22 +338,22 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
       <Dialog open={!!selectedTemplate} onOpenChange={() => setSelectedTemplate(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Schemalägg styrkepass</DialogTitle>
+            <DialogTitle>{t('dialog.title')}</DialogTitle>
             <DialogDescription>
-              {selectedTemplate?.nameSv} - {selectedTemplate?.estimatedDuration} min
+              {selectedTemplate ? (locale === 'sv' ? selectedTemplate.nameSv : selectedTemplate.name) : ''} - {selectedTemplate?.estimatedDuration} min
             </DialogDescription>
           </DialogHeader>
 
           {assignSuccess ? (
             <div className="py-8 text-center">
               <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <p className="text-lg font-medium text-green-800">Pass schemalagt!</p>
+              <p className="text-lg font-medium text-green-800">{t('dialog.success')}</p>
             </div>
           ) : (
             <>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="date">Välj datum</Label>
+                  <Label htmlFor="date">{t('dialog.dateLabel')}</Label>
                   <Input
                     id="date"
                     type="date"
@@ -361,13 +365,13 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
 
                 {selectedTemplate && (
                   <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                    <p className="text-sm font-medium">Passet innehåller:</p>
+                    <p className="text-sm font-medium">{t('dialog.includes')}</p>
                     <ul className="text-sm text-muted-foreground space-y-1">
-                      <li>- {selectedTemplate.exerciseCount} övningar</li>
-                      <li>- Uppskattad tid: {selectedTemplate.estimatedDuration} min</li>
-                      {selectedTemplate.includesWarmup && <li>- Uppvärmning</li>}
-                      {selectedTemplate.includesCore && <li>- Core-övningar</li>}
-                      {selectedTemplate.includesCooldown && <li>- Nedvarvning</li>}
+                      <li>- {t('dialog.exerciseCount', { count: selectedTemplate.exerciseCount })}</li>
+                      <li>- {t('dialog.estimatedTime', { minutes: selectedTemplate.estimatedDuration })}</li>
+                      {selectedTemplate.includesWarmup && <li>- {t('badges.warmup')}</li>}
+                      {selectedTemplate.includesCore && <li>- {t('badges.coreExercises')}</li>}
+                      {selectedTemplate.includesCooldown && <li>- {t('badges.cooldown')}</li>}
                     </ul>
                   </div>
                 )}
@@ -381,18 +385,18 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
 
               <DialogFooter>
                 <Button variant="outline" onClick={() => setSelectedTemplate(null)}>
-                  Avbryt
+                  {t('actions.cancel')}
                 </Button>
                 <Button onClick={handleAssign} disabled={isAssigning}>
                   {isAssigning ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Schemalägger...
+                      {t('actions.scheduling')}
                     </>
                   ) : (
                     <>
                       <Calendar className="h-4 w-4 mr-2" />
-                      Schemalägg pass
+                      {t('actions.schedule')}
                     </>
                   )}
                 </Button>
