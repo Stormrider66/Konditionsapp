@@ -36,7 +36,9 @@ import {
   CalendarCheck,
 } from 'lucide-react';
 import { format, addDays, subDays, isToday, isTomorrow, isYesterday } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { enUS, sv } from 'date-fns/locale';
+import type { Locale } from 'date-fns';
+import { useLocale, useTranslations } from '@/i18n/client';
 
 interface TodaysAppointment {
   id: string;
@@ -77,14 +79,6 @@ const TYPE_COLORS: Record<string, string> = {
   external: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  strength: 'Styrka',
-  cardio: 'Kondition',
-  agility: 'Agility',
-  hybrid: 'Hybrid',
-  external: 'Extern',
-};
-
 const SOURCE_LABELS: Record<string, string> = {
   BOKADIREKT: 'Bokadirekt',
   ZOEZI: 'Zoezi',
@@ -94,14 +88,17 @@ const SOURCE_LABELS: Record<string, string> = {
   ICAL_URL: 'Kalender',
 };
 
-function getDateLabel(date: Date): string {
-  if (isToday(date)) return 'Idag';
-  if (isTomorrow(date)) return 'Imorgon';
-  if (isYesterday(date)) return 'Igår';
-  return format(date, 'd MMM', { locale: sv });
+function getDateLabel(date: Date, locale: Locale, today: string, tomorrow: string, yesterday: string): string {
+  if (isToday(date)) return today;
+  if (isTomorrow(date)) return tomorrow;
+  if (isYesterday(date)) return yesterday;
+  return format(date, 'd MMM', { locale });
 }
 
 export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: TodaysAppointmentsCardProps) {
+  const t = useTranslations('components.todaysAppointmentsCard');
+  const locale = useLocale();
+  const dateLocale = locale === 'sv' ? sv : enUS;
   const [appointments, setAppointments] = useState<TodaysAppointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -123,7 +120,11 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
   }, []);
 
   useEffect(() => {
-    fetchAppointments(selectedDate);
+    const timeoutId = window.setTimeout(() => {
+      void fetchAppointments(selectedDate);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [selectedDate, fetchAppointments]);
 
   const goToPreviousDay = () => setSelectedDate(prev => subDays(prev, 1));
@@ -132,7 +133,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
 
   // Compact variant for Performance Insights Row
   if (variant === 'compact') {
-    const dateLabel = getDateLabel(selectedDate);
+    const dateLabel = getDateLabel(selectedDate, dateLocale, t('dates.today'), t('dates.tomorrow'), t('dates.yesterday'));
     const showTodayButton = !isToday(selectedDate);
 
     return (
@@ -141,7 +142,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
           <div className="flex items-center justify-between">
             <GlassCardTitle className="text-sm flex items-center gap-2">
               <Clock className="h-4 w-4 text-emerald-500" />
-              Bokningar
+              {t('title')}
             </GlassCardTitle>
             {/* Date Navigation */}
             <div className="flex items-center gap-1">
@@ -181,7 +182,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
             </div>
           ) : appointments.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Inga schemalagda pass {isToday(selectedDate) ? 'idag' : ''}
+              {isToday(selectedDate) ? t('empty.noneToday') : t('empty.none')}
             </p>
           ) : (
             <div className="space-y-2">
@@ -193,7 +194,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
                   : `${appointment.startTime} • ${appointment.athletes.length === 1
                       ? appointment.athletes[0].name
                       : appointment.athletes.length > 0
-                        ? `${appointment.athletes.length} atleter`
+                        ? t('athleteCount', { count: appointment.athletes.length })
                         : appointment.locationName || ''}`;
                 return (
                   <div
@@ -219,7 +220,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
               })}
               <Link href={`${basePath}/coach/calendar`} className="block text-center">
                 <Button variant="ghost" size="sm" className="text-xs w-full">
-                  {appointments.length > 3 ? `+${appointments.length - 3} fler` : 'Visa kalender'} <ArrowRight className="h-3 w-3 ml-1" />
+                  {appointments.length > 3 ? t('more', { count: appointments.length - 3 }) : t('viewCalendar')} <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>
               </Link>
             </div>
@@ -230,10 +231,10 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
   }
 
   // Default variant
-  const dateLabel = getDateLabel(selectedDate);
+  const dateLabel = getDateLabel(selectedDate, dateLocale, t('dates.today'), t('dates.tomorrow'), t('dates.yesterday'));
   const showTodayButton = !isToday(selectedDate);
 
-  const DateNavigation = () => (
+  const renderDateNavigation = () => (
     <div className="flex items-center gap-1">
       <Button
         variant="ghost"
@@ -271,9 +272,9 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
           <div className="flex items-center justify-between">
             <GlassCardTitle className="text-base flex items-center gap-2">
               <Clock className="h-4 w-4 text-emerald-500" />
-              Bokningar
+              {t('title')}
             </GlassCardTitle>
-            <DateNavigation />
+            {renderDateNavigation()}
           </div>
         </GlassCardHeader>
         <GlassCardContent>
@@ -292,17 +293,17 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
           <div className="flex items-center justify-between">
             <GlassCardTitle className="text-base flex items-center gap-2">
               <Clock className="h-4 w-4 text-emerald-500" />
-              Bokningar
+              {t('title')}
             </GlassCardTitle>
-            <DateNavigation />
+            {renderDateNavigation()}
           </div>
         </GlassCardHeader>
         <GlassCardContent>
           <div className="text-center py-6 text-muted-foreground">
             <Calendar className="h-10 w-10 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Inga schemalagda pass {isToday(selectedDate) ? 'idag' : ''}</p>
+            <p className="text-sm">{isToday(selectedDate) ? t('empty.noneToday') : t('empty.none')}</p>
             <p className="text-xs mt-1">
-              Schemalägg pass genom att ange tid vid tilldelning
+              {t('empty.description')}
             </p>
           </div>
         </GlassCardContent>
@@ -316,10 +317,10 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-base flex items-center gap-2">
             <Clock className="h-4 w-4 text-emerald-500" />
-            Bokningar
+            {t('title')}
           </GlassCardTitle>
           <div className="flex items-center gap-2">
-            <DateNavigation />
+            {renderDateNavigation()}
             <Badge variant="secondary" className="text-xs">
               {appointments.length}
             </Badge>
@@ -348,7 +349,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
                 <div className="flex items-center gap-2 mb-1">
                   <Badge className={`text-xs ${TYPE_COLORS[appointment.type]}`}>
                     <Icon className="h-3 w-3 mr-1" />
-                    {TYPE_LABELS[appointment.type]}
+                    {t(`types.${appointment.type}`)}
                   </Badge>
                   {appointment.teamName && (
                     <Badge variant="outline" className="text-xs">
@@ -378,7 +379,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
                     ) : (
                       <>
                         <Users className="h-3 w-3" />
-                        {appointment.athletes.length} atleter
+                        {t('athleteCount', { count: appointment.athletes.length })}
                       </>
                     )}
                   </span>
@@ -390,13 +391,13 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
 
         {appointments.length > 5 && (
           <p className="text-xs text-muted-foreground text-center pt-1">
-            + {appointments.length - 5} fler bokningar
+            {t('moreAppointments', { count: appointments.length - 5 })}
           </p>
         )}
 
         <Link href={`${basePath}/coach/calendar`} className="block pt-2">
           <Button variant="ghost" size="sm" className="text-xs w-full">
-            Visa kalender <ArrowRight className="h-3 w-3 ml-1" />
+            {t('viewCalendar')} <ArrowRight className="h-3 w-3 ml-1" />
           </Button>
         </Link>
       </GlassCardContent>

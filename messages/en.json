@@ -2663,6 +2663,38 @@
       "attentionItems": "{count} items",
       "noUrgentAction": "No teams need urgent action right now.",
       "messageGroup": "Message group"
+    },
+    "todaysAppointmentsCard": {
+      "title": "Bookings",
+      "dates": {
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "yesterday": "Yesterday"
+      },
+      "empty": {
+        "none": "No scheduled workouts",
+        "noneToday": "No scheduled workouts today",
+        "description": "Schedule workouts by adding a time during assignment"
+      },
+      "types": {
+        "strength": "Strength",
+        "cardio": "Cardio",
+        "agility": "Agility",
+        "hybrid": "Hybrid",
+        "external": "External"
+      },
+      "athleteCount": "{count} athletes",
+      "more": "+{count} more",
+      "moreAppointments": "+ {count} more bookings",
+      "viewCalendar": "View calendar"
+    },
+    "coachTaskCard": {
+      "title": "To do",
+      "newTaskPlaceholder": "New task...",
+      "empty": "No tasks",
+      "more": "+{count} more",
+      "showCompleted": "Show {count} completed",
+      "hideCompleted": "Hide {count} completed"
     }
   },
   "infographic": {

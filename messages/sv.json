@@ -2663,6 +2663,38 @@
       "attentionItems": "{count} saker",
       "noUrgentAction": "Inga lag kräver akut åtgärd just nu.",
       "messageGroup": "Meddela grupp"
+    },
+    "todaysAppointmentsCard": {
+      "title": "Bokningar",
+      "dates": {
+        "today": "Idag",
+        "tomorrow": "Imorgon",
+        "yesterday": "Igår"
+      },
+      "empty": {
+        "none": "Inga schemalagda pass",
+        "noneToday": "Inga schemalagda pass idag",
+        "description": "Schemalägg pass genom att ange tid vid tilldelning"
+      },
+      "types": {
+        "strength": "Styrka",
+        "cardio": "Kondition",
+        "agility": "Agility",
+        "hybrid": "Hybrid",
+        "external": "Extern"
+      },
+      "athleteCount": "{count} atleter",
+      "more": "+{count} fler",
+      "moreAppointments": "+ {count} fler bokningar",
+      "viewCalendar": "Visa kalender"
+    },
+    "coachTaskCard": {
+      "title": "Att göra",
+      "newTaskPlaceholder": "Ny uppgift...",
+      "empty": "Inga uppgifter",
+      "more": "+{count} fler",
+      "showCompleted": "Visa {count} slutförda",
+      "hideCompleted": "Dölj {count} slutförda"
     }
   },
   "infographic": {

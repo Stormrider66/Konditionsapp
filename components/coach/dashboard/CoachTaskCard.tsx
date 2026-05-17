@@ -20,6 +20,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface CoachTaskData {
   id: string
@@ -52,6 +53,9 @@ const priorityDots: Record<string, string> = {
 }
 
 export function CoachTaskCard() {
+  const t = useTranslations('components.coachTaskCard')
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [tasks, setTasks] = useState<CoachTaskData[]>([])
   const [loading, setLoading] = useState(true)
   const [newTitle, setNewTitle] = useState('')
@@ -73,7 +77,11 @@ export function CoachTaskCard() {
   }, [])
 
   useEffect(() => {
-    fetchTasks()
+    const timeoutId = window.setTimeout(() => {
+      void fetchTasks()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [fetchTasks])
 
   const addTask = async () => {
@@ -87,7 +95,7 @@ export function CoachTaskCard() {
       })
       if (res.ok) {
         setNewTitle('')
-        fetchTasks()
+        void fetchTasks()
       }
     } catch {
       // ignore
@@ -107,9 +115,9 @@ export function CoachTaskCard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: task.id, status: newStatus }),
       })
-      fetchTasks()
+      void fetchTasks()
     } catch {
-      fetchTasks()
+      void fetchTasks()
     }
   }
 
@@ -122,7 +130,7 @@ export function CoachTaskCard() {
         body: JSON.stringify({ id }),
       })
     } catch {
-      fetchTasks()
+      void fetchTasks()
     }
   }
 
@@ -135,7 +143,7 @@ export function CoachTaskCard() {
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-base flex items-center gap-2">
             <ListTodo className="h-4 w-4 text-blue-500" />
-            Att göra
+            {t('title')}
           </GlassCardTitle>
           {pendingTasks.length > 0 && (
             <Badge variant="secondary" className="text-xs">{pendingTasks.length}</Badge>
@@ -146,13 +154,15 @@ export function CoachTaskCard() {
         {/* Add task */}
         <div className="flex gap-2 mb-3">
           <Input
-            placeholder="Ny uppgift..."
+            placeholder={t('newTaskPlaceholder')}
             value={newTitle}
             onChange={e => setNewTitle(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addTask()}
+            onKeyDown={e => {
+              if (e.key === 'Enter') void addTask()
+            }}
             className="h-8 text-sm"
           />
-          <Button size="sm" className="h-8 px-2" onClick={addTask} disabled={adding || !newTitle.trim()}>
+          <Button size="sm" className="h-8 px-2" onClick={() => void addTask()} disabled={adding || !newTitle.trim()}>
             {adding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
           </Button>
         </div>
@@ -164,17 +174,17 @@ export function CoachTaskCard() {
         ) : pendingTasks.length === 0 && completedTasks.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground">
             <ListTodo className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Inga uppgifter</p>
+            <p className="text-sm">{t('empty')}</p>
           </div>
         ) : (
           <div className="space-y-1">
             {/* Pending tasks */}
             {pendingTasks.slice(0, 8).map(task => (
-              <TaskRow key={task.id} task={task} onToggle={toggleTask} onDelete={deleteTask} />
+              <TaskRow key={task.id} task={task} onToggle={toggleTask} onDelete={deleteTask} dateLocale={dateLocale} />
             ))}
             {pendingTasks.length > 8 && (
               <p className="text-xs text-muted-foreground text-center pt-1">
-                +{pendingTasks.length - 8} fler
+                {t('more', { count: pendingTasks.length - 8 })}
               </p>
             )}
 
@@ -185,10 +195,10 @@ export function CoachTaskCard() {
                   onClick={() => setShowCompleted(!showCompleted)}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors pt-2 w-full text-left"
                 >
-                  {showCompleted ? 'Dölj' : 'Visa'} {completedTasks.length} slutförda
+                  {showCompleted ? t('hideCompleted', { count: completedTasks.length }) : t('showCompleted', { count: completedTasks.length })}
                 </button>
                 {showCompleted && completedTasks.slice(0, 5).map(task => (
-                  <TaskRow key={task.id} task={task} onToggle={toggleTask} onDelete={deleteTask} />
+                  <TaskRow key={task.id} task={task} onToggle={toggleTask} onDelete={deleteTask} dateLocale={dateLocale} />
                 ))}
               </>
             )}
@@ -199,16 +209,17 @@ export function CoachTaskCard() {
   )
 }
 
-function TaskRow({ task, onToggle, onDelete }: {
+function TaskRow({ task, onToggle, onDelete, dateLocale }: {
   task: CoachTaskData
   onToggle: (task: CoachTaskData) => void
   onDelete: (id: string) => void
+  dateLocale: string
 }) {
   const isCompleted = task.status === 'COMPLETED'
 
   return (
     <div className="flex items-center gap-2 py-1.5 group">
-      <button onClick={() => onToggle(task)} className="flex-shrink-0">
+      <button onClick={() => void onToggle(task)} className="flex-shrink-0">
         {isCompleted ? (
           <CheckCircle2 className="h-4 w-4 text-green-500" />
         ) : (
@@ -231,7 +242,7 @@ function TaskRow({ task, onToggle, onDelete }: {
           )}
           {task.dueDate && (
             <span className="text-[10px] text-muted-foreground">
-              {new Date(task.dueDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+              {new Date(task.dueDate).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })}
             </span>
           )}
         </div>
@@ -240,7 +251,7 @@ function TaskRow({ task, onToggle, onDelete }: {
         <div className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', priorityDots[task.priority])} />
       )}
       <button
-        onClick={() => onDelete(task.id)}
+        onClick={() => void onDelete(task.id)}
         className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
       >
         <Trash2 className="h-3 w-3 text-muted-foreground hover:text-red-500" />
