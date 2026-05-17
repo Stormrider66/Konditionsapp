@@ -82,7 +82,7 @@ interface TeamCalendarPermissions {
   assignableContentTypes: TeamEventType[]
 }
 
-type PlanningFilter = 'all' | 'iceMissingPlan' | 'needsContent' | 'ready' | 'assigned' | 'ice' | 'physical'
+type PlanningFilter = 'all' | 'needsReview' | 'iceMissingPlan' | 'needsContent' | 'ready' | 'assigned' | 'ice' | 'physical'
 
 function getTypeConfig(type: string) {
   if (isTeamEventType(type)) {
@@ -100,6 +100,14 @@ function firstDescriptionLine(description: string | null): string | null {
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+}
+
+function eventDurationMinutes(event: TeamEvent): number | null {
+  if (event.allDay || !event.endDate) return null
+  const start = new Date(event.startDate).getTime()
+  const end = new Date(event.endDate).getTime()
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null
+  return Math.round((end - start) / 60000)
 }
 
 function getWeekDates(baseDate: Date): Date[] {
@@ -187,6 +195,42 @@ function isPhysicalEvent(event: TeamEvent): boolean {
   return PHYSICAL_TEAM_EVENT_TYPES.includes(event.type as TeamEventType)
 }
 
+function practiceBlockMinutes(event: TeamEvent): number {
+  if (!Array.isArray(event.practicePlan)) return 0
+  return event.practicePlan.reduce((sum, block) => sum + (Number(block.duration) || 0), 0)
+}
+
+function getPlanningIssues(event: TeamEvent): string[] {
+  const issues: string[] = []
+
+  if (isIcePracticeEvent(event)) {
+    if (!hasPracticePlan(event)) {
+      issues.push('Saknar blockplan')
+    } else if (Array.isArray(event.practicePlan)) {
+      const missingGroups = event.practicePlan.filter((block) => !block.groups?.trim()).length
+      const missingEquipment = event.practicePlan.filter((block) => !block.equipment?.trim()).length
+      const eventMinutes = eventDurationMinutes(event)
+      const blockMinutes = practiceBlockMinutes(event)
+
+      if (missingGroups > 0) issues.push(`${missingGroups} block saknar grupp`)
+      if (missingEquipment > 0) issues.push(`${missingEquipment} block saknar material`)
+      if (eventMinutes !== null && blockMinutes > 0 && Math.abs(eventMinutes - blockMinutes) >= 10) {
+        issues.push(`Blocktid ${blockMinutes} min / kalender ${eventMinutes} min`)
+      }
+    }
+  }
+
+  if (isPhysicalEvent(event) && event.contentStatus === 'CONTENT_READY' && !event.linkedWorkoutId && !event.assignedBroadcastId) {
+    issues.push('Markerad klar utan kopplat pass')
+  }
+
+  return issues
+}
+
+function eventNeedsReview(event: TeamEvent): boolean {
+  return getPlanningIssues(event).length > 0
+}
+
 function getPlanningBadges(event: TeamEvent): Array<{
   key: string
   label: string
@@ -216,6 +260,15 @@ function getPlanningBadges(event: TeamEvent): Array<{
         className: 'border-amber-300 bg-amber-50 text-amber-800',
       })
     }
+  }
+
+  if (eventNeedsReview(event)) {
+    badges.push({
+      key: 'needs-review',
+      label: 'Kontroll',
+      icon: TriangleAlert,
+      className: 'border-orange-300 bg-orange-50 text-orange-800',
+    })
   }
 
   if (isPhysicalEvent(event)) {
@@ -271,6 +324,7 @@ function PlanningBadges({ event, compact = false }: { event: TeamEvent; compact?
 
 function eventMatchesPlanningFilter(event: TeamEvent, filter: PlanningFilter): boolean {
   if (filter === 'all') return true
+  if (filter === 'needsReview') return eventNeedsReview(event)
   if (filter === 'iceMissingPlan') return isIcePracticeEvent(event) && !hasPracticePlan(event)
   if (filter === 'needsContent') return eventNeedsContent(event)
   if (filter === 'ready') return isPhysicalEvent(event) && Boolean(event.linkedWorkoutId) && event.contentStatus === 'CONTENT_READY' && !event.assignedBroadcastId
@@ -282,6 +336,7 @@ function eventMatchesPlanningFilter(event: TeamEvent, filter: PlanningFilter): b
 
 const PLANNING_FILTERS: Array<{ value: PlanningFilter; label: string }> = [
   { value: 'all', label: 'Alla' },
+  { value: 'needsReview', label: 'Kontroll' },
   { value: 'iceMissingPlan', label: 'Saknar isplan' },
   { value: 'needsContent', label: 'Behöver innehåll' },
   { value: 'ready', label: 'Klara fys' },
@@ -336,12 +391,16 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
     .filter((event) => queueStatusFilter === 'open' || event.contentStatus === queueStatusFilter)
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
   const allOpenContentQueue = events.filter(eventNeedsContent)
+  const planningReviewQueue = events
+    .filter(eventNeedsReview)
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
   const visibleEvents = events.filter((event) => eventMatchesPlanningFilter(event, planningFilter))
   const planningFilterCounts = PLANNING_FILTERS.reduce<Record<PlanningFilter, number>>((acc, filter) => {
     acc[filter.value] = events.filter((event) => eventMatchesPlanningFilter(event, filter.value)).length
     return acc
   }, {
     all: 0,
+    needsReview: 0,
     iceMissingPlan: 0,
     needsContent: 0,
     ready: 0,
@@ -526,6 +585,41 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
           </div>
         </div>
       </div>
+
+      {planningReviewQueue.length > 0 && (
+        <div className="rounded-lg border bg-orange-50/70 p-3 text-orange-950">
+          <div className="flex flex-col gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <TriangleAlert className="h-4 w-4" />
+                Planeringskontroll
+              </div>
+              <div className="text-xs text-orange-900/80">
+                {planningReviewQueue.length} pass har detaljer som bör kontrolleras innan publicering.
+              </div>
+            </div>
+
+            <div className="flex max-w-full flex-wrap gap-2">
+              {planningReviewQueue.slice(0, 8).map((event) => {
+                const issues = getPlanningIssues(event)
+                return (
+                  <button
+                    key={event.id}
+                    type="button"
+                    className="rounded-md border border-orange-300 bg-white/70 px-2.5 py-1.5 text-left text-xs shadow-sm hover:bg-white"
+                    onClick={() => setSelectedEvent(event)}
+                  >
+                    <div className="font-medium">{event.title}</div>
+                    <div className="text-orange-900/75">
+                      {new Date(event.startDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} · {issues.slice(0, 2).join(' · ')}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {allOpenContentQueue.length > 0 && (
         <div className="rounded-lg border bg-amber-50/70 p-3 text-amber-950">
