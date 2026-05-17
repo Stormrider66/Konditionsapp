@@ -3001,6 +3001,25 @@
         "generic": "Something went wrong"
       }
     },
+    "modificationBanner": {
+      "titles": {
+        "reduceIntensity": "Workout adjusted - lower intensity",
+        "reduceVolume": "Workout adjusted - lower volume",
+        "easyDay": "Workout changed to easier training",
+        "rest": "Recommended rest",
+        "default": "Workout modified"
+      },
+      "descriptions": {
+        "reduceIntensity": "Based on your readiness, intensity has been lowered for better recovery.",
+        "reduceVolume": "Based on your readiness, the workout duration has been reduced.",
+        "easyDay": "Based on your readiness, an easier workout is recommended instead.",
+        "rest": "Your readiness indicates that you need rest. Skip today's workout and recover.",
+        "default": "The workout has been adjusted based on your current readiness."
+      },
+      "intensity": "Intensity: {value}%",
+      "volume": "Volume: {value}%",
+      "reasons": "Reasons:"
+    },
     "nutritionTimingCard": {
       "title": "Nutrition timing",
       "subtitle": {

@@ -3001,6 +3001,25 @@
         "generic": "Ett fel uppstod"
       }
     },
+    "modificationBanner": {
+      "titles": {
+        "reduceIntensity": "Passet har anpassats - lägre intensitet",
+        "reduceVolume": "Passet har anpassats - mindre volym",
+        "easyDay": "Passet har bytts till lättare träning",
+        "rest": "Rekommenderad vila",
+        "default": "Passet har modifierats"
+      },
+      "descriptions": {
+        "reduceIntensity": "Baserat på din beredskap har intensiteten sänkts för bättre återhämtning.",
+        "reduceVolume": "Baserat på din beredskap har passets längd reducerats.",
+        "easyDay": "Baserat på din beredskap rekommenderas ett lättare pass istället.",
+        "rest": "Din beredskap indikerar att du behöver vila. Skippa dagens pass och återhämta dig.",
+        "default": "Passet har anpassats efter din aktuella beredskap."
+      },
+      "intensity": "Intensitet: {value}%",
+      "volume": "Volym: {value}%",
+      "reasons": "Anledningar:"
+    },
     "nutritionTimingCard": {
       "title": "Kosttajming",
       "subtitle": {

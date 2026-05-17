@@ -6,9 +6,10 @@
  * Displays when a workout has been modified based on readiness assessment
  */
 
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, TrendingDown, Info } from 'lucide-react';
+import { useTranslations } from '@/i18n/client';
 
 interface ModificationBannerProps {
   modification: {
@@ -16,20 +17,28 @@ interface ModificationBannerProps {
     reasoning: string[];
     intensityAdjustment?: number;
     volumeAdjustment?: number;
-    originalWorkout?: any;
-    modifiedWorkout?: any;
+    originalWorkout?: unknown;
+    modifiedWorkout?: unknown;
   };
 }
 
 export function ModificationBanner({ modification }: ModificationBannerProps) {
+  const t = useTranslations('components.modificationBanner');
+
   if (modification.decision === 'PROCEED_NORMAL') {
     return null; // No modification needed
   }
 
-  const getSeverity = (decision: string): 'default' | 'warning' | 'destructive' => {
+  const getAlertVariant = (decision: string): 'default' | 'destructive' => {
     if (decision === 'REST') return 'destructive';
-    if (decision === 'EASY_DAY' || decision === 'REDUCE_VOLUME') return 'warning';
     return 'default';
+  };
+
+  const getSeverityClass = (decision: string): string => {
+    if (decision === 'EASY_DAY' || decision === 'REDUCE_VOLUME') {
+      return 'border-yellow-300 text-yellow-800 dark:border-yellow-700 dark:text-yellow-200';
+    }
+    return '';
   };
 
   const getIcon = (decision: string) => {
@@ -38,27 +47,37 @@ export function ModificationBanner({ modification }: ModificationBannerProps) {
   };
 
   const getTitle = (decision: string): string => {
-    const titles: Record<string, string> = {
-      'REDUCE_INTENSITY': 'Passet har anpassats - lägre intensitet',
-      'REDUCE_VOLUME': 'Passet har anpassats - mindre volym',
-      'EASY_DAY': 'Passet har bytts till lättare träning',
-      'REST': '⚠️ Rekommenderad vila'
-    };
-    return titles[decision] || 'Passet har modifierats';
+    switch (decision) {
+      case 'REDUCE_INTENSITY':
+        return t('titles.reduceIntensity')
+      case 'REDUCE_VOLUME':
+        return t('titles.reduceVolume')
+      case 'EASY_DAY':
+        return t('titles.easyDay')
+      case 'REST':
+        return t('titles.rest')
+      default:
+        return t('titles.default')
+    }
   };
 
   const getDescription = (decision: string): string => {
-    const descriptions: Record<string, string> = {
-      'REDUCE_INTENSITY': 'Baserat på din beredskap har intensiteten sänkts för bättre återhämtning.',
-      'REDUCE_VOLUME': 'Baserat på din beredskap har passets längd reducerats.',
-      'EASY_DAY': 'Baserat på din beredskap rekommenderas ett lättare pass istället.',
-      'REST': 'Din beredskap indikerar att du behöver vila. Skippa dagens pass och återhämta dig.'
-    };
-    return descriptions[decision] || 'Passet har anpassats efter din aktuella beredskap.';
+    switch (decision) {
+      case 'REDUCE_INTENSITY':
+        return t('descriptions.reduceIntensity')
+      case 'REDUCE_VOLUME':
+        return t('descriptions.reduceVolume')
+      case 'EASY_DAY':
+        return t('descriptions.easyDay')
+      case 'REST':
+        return t('descriptions.rest')
+      default:
+        return t('descriptions.default')
+    }
   };
 
   return (
-    <Alert variant={getSeverity(modification.decision) as any} className="mb-4">
+    <Alert variant={getAlertVariant(modification.decision)} className={`mb-4 ${getSeverityClass(modification.decision)}`}>
       <div className="flex items-start gap-3">
         {getIcon(modification.decision)}
         <div className="flex-1">
@@ -71,13 +90,13 @@ export function ModificationBanner({ modification }: ModificationBannerProps) {
               {modification.intensityAdjustment && modification.intensityAdjustment < 0 && (
                 <Badge variant="outline" className="text-xs">
                   <TrendingDown className="h-3 w-3 mr-1" />
-                  Intensitet: {modification.intensityAdjustment}%
+                  {t('intensity', { value: modification.intensityAdjustment })}
                 </Badge>
               )}
               {modification.volumeAdjustment && modification.volumeAdjustment < 0 && (
                 <Badge variant="outline" className="text-xs">
                   <TrendingDown className="h-3 w-3 mr-1" />
-                  Volym: {modification.volumeAdjustment}%
+                  {t('volume', { value: modification.volumeAdjustment })}
                 </Badge>
               )}
             </div>
@@ -87,7 +106,7 @@ export function ModificationBanner({ modification }: ModificationBannerProps) {
           <div className="space-y-1">
             <p className="text-xs font-medium flex items-center gap-1">
               <Info className="h-3 w-3" />
-              Anledningar:
+              {t('reasons')}
             </p>
             <ul className="text-xs space-y-1 ml-4">
               {modification.reasoning.map((reason, i) => (
