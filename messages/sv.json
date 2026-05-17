@@ -256,6 +256,12 @@
       "backToSettings": "Tillbaka till inställningar",
       "title": "Integritet",
       "subtitle": "Styr vad din coach kan se"
+    },
+    "strength": {
+      "metadataTitle": "Styrketräning | Athlete",
+      "metadataDescription": "Bläddra och schemalägg styrkepass",
+      "title": "Styrketräning",
+      "description": "Bläddra mallar och schemalägg dina styrkepass"
     }
   },
   "nav": {

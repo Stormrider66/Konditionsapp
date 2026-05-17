@@ -256,6 +256,12 @@
       "backToSettings": "Back to settings",
       "title": "Privacy",
       "subtitle": "Control what your coach can see"
+    },
+    "strength": {
+      "metadataTitle": "Strength training | Athlete",
+      "metadataDescription": "Browse and schedule strength workouts",
+      "title": "Strength training",
+      "description": "Browse templates and schedule your strength workouts"
     }
   },
   "nav": {

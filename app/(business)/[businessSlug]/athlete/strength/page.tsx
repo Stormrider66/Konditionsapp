@@ -14,10 +14,14 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { AthleteStrengthClient } from '@/app/athlete/strength/client'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Styrketräning | Athlete',
-  description: 'Bläddra och schemalägg styrkepass',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.strength')
+  return {
+    title: t('metadataTitle'),
+    description: t('metadataDescription'),
+  }
 }
 
 interface BusinessStrengthPageProps {
@@ -91,6 +95,7 @@ async function getAthleteData(clientId: string) {
 
 export default async function BusinessStrengthPage({ params }: BusinessStrengthPageProps) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.strength')
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
@@ -107,10 +112,10 @@ export default async function BusinessStrengthPage({ params }: BusinessStrengthP
     <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 max-w-7xl">
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Styrketräning
+          {t('title')}
         </h1>
         <p className="text-muted-foreground mt-2">
-          Bläddra mallar och schemalägg dina styrkepass
+          {t('description')}
         </p>
       </div>
 
