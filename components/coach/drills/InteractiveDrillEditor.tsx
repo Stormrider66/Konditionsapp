@@ -5,11 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -24,6 +19,8 @@ import {
   Trash2,
   Undo2,
   RotateCcw,
+  ShieldPlus,
+  UsersRound,
 } from 'lucide-react'
 import type { DrillStructure } from './IceHockeyRink'
 import {
@@ -53,6 +50,8 @@ interface Movement {
   toX: number
   toY: number
   type: MovementType
+  playerId?: string | null
+  phase?: number
   color?: string
   dashed?: boolean
 }
@@ -102,6 +101,27 @@ function getMovementStyles(sportType?: DrillSportType): Record<MovementType, { l
 
 const ZONE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
 
+const HOCKEY_ATTACK_UNIT: Player[] = [
+  { id: 'preset-home-lw', x: 58, y: 22, label: 'LW', team: 'home' },
+  { id: 'preset-home-c', x: 50, y: 42.5, label: 'C', team: 'home' },
+  { id: 'preset-home-rw', x: 58, y: 63, label: 'RW', team: 'home' },
+  { id: 'preset-home-ld', x: 35, y: 29, label: 'LD', team: 'home' },
+  { id: 'preset-home-rd', x: 35, y: 56, label: 'RD', team: 'home' },
+]
+
+const HOCKEY_DEFENSE_UNIT: Player[] = [
+  { id: 'preset-away-lw', x: 126, y: 23, label: 'LW', team: 'away' },
+  { id: 'preset-away-c', x: 136, y: 42.5, label: 'C', team: 'away' },
+  { id: 'preset-away-rw', x: 126, y: 62, label: 'RW', team: 'away' },
+  { id: 'preset-away-ld', x: 154, y: 30, label: 'D1', team: 'away' },
+  { id: 'preset-away-rd', x: 154, y: 55, label: 'D2', team: 'away' },
+  { id: 'preset-away-g', x: 189, y: 42.5, label: 'G', team: 'away' },
+]
+
+function clonePresetPlayer(player: Player): Player {
+  return { ...player, id: nextId(player.id) }
+}
+
 // ─── Component ──────────────────────────────────────────────────────────
 
 export function InteractiveDrillEditor({
@@ -128,10 +148,11 @@ export function InteractiveDrillEditor({
   const [playerTeam, setPlayerTeam] = useState<PlayerTeam>('home')
   const [zoneColor, setZoneColor] = useState(ZONE_COLORS[0])
   const [annotationText, setAnnotationText] = useState('')
+  const [movementPhase, setMovementPhase] = useState(1)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
-  const [movementStart, setMovementStart] = useState<{ x: number; y: number } | null>(null)
+  const [movementStart, setMovementStart] = useState<{ x: number; y: number; playerId?: string | null } | null>(null)
   const [zoneStart, setZoneStart] = useState<{ x: number; y: number } | null>(null)
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
 
@@ -173,6 +194,21 @@ export function InteractiveDrillEditor({
     emitChange([], [], [], [])
   }, [pushHistory, emitChange])
 
+  const addHockeyPreset = useCallback(
+    (kind: 'attack' | 'defense' | 'fiveOnFive') => {
+      pushHistory()
+      const presetPlayers = kind === 'attack'
+          ? HOCKEY_ATTACK_UNIT
+          : kind === 'defense'
+          ? HOCKEY_DEFENSE_UNIT
+          : [...HOCKEY_ATTACK_UNIT, ...HOCKEY_DEFENSE_UNIT]
+      const updated = [...players, ...presetPlayers.map(clonePresetPlayer)]
+      setPlayers(updated)
+      emitChange(updated, movements, zones, annotations)
+    },
+    [pushHistory, players, movements, zones, annotations, emitChange]
+  )
+
   // ─── SVG coordinate conversion ────────────────────────────────────
 
   const svgPoint = useCallback(
@@ -190,7 +226,7 @@ export function InteractiveDrillEditor({
         y: Math.max(0, Math.min(SURFACE_H, Math.round(svgPt.y * 2) / 2)),
       }
     },
-    []
+    [SURFACE_W, SURFACE_H]
   )
 
   // ─── Find element at position ─────────────────────────────────────
@@ -244,7 +280,12 @@ export function InteractiveDrillEditor({
 
       if (activeTool === 'movement') {
         if (!movementStart) {
-          setMovementStart(pos)
+          const startPlayer = movementType === 'skate' ? findPlayerAt(pos.x, pos.y, 5) : null
+          setMovementStart({
+            x: startPlayer?.x ?? pos.x,
+            y: startPlayer?.y ?? pos.y,
+            playerId: startPlayer?.id ?? null,
+          })
         } else {
           pushHistory()
           const newMovement: Movement = {
@@ -254,6 +295,8 @@ export function InteractiveDrillEditor({
             toX: pos.x,
             toY: pos.y,
             type: movementType,
+            playerId: movementType === 'skate' ? movementStart.playerId ?? null : null,
+            phase: movementPhase,
             dashed: movementType === 'pass',
           }
           const updated = [...movements, newMovement]
@@ -312,7 +355,7 @@ export function InteractiveDrillEditor({
       activeTool, svgPoint, findPlayerAt, pushHistory, emitChange,
       players, movements, zones, annotations,
       playerLabel, playerTeam, movementType, movementStart,
-      zoneStart, zoneColor, annotationText,
+      zoneStart, zoneColor, annotationText, movementPhase,
     ]
   )
 
@@ -430,6 +473,11 @@ export function InteractiveDrillEditor({
     [players, selectedId]
   )
 
+  const selectedMovement = useMemo(
+    () => movements.find((m) => m.id === selectedId) || null,
+    [movements, selectedId]
+  )
+
   const updateSelectedPlayer = useCallback(
     (updates: Partial<Player>) => {
       pushHistory()
@@ -438,6 +486,18 @@ export function InteractiveDrillEditor({
       )
       setPlayers(updated)
       emitChange(updated, movements, zones, annotations)
+    },
+    [selectedId, pushHistory, players, movements, zones, annotations, emitChange]
+  )
+
+  const updateSelectedMovement = useCallback(
+    (updates: Partial<Movement>) => {
+      pushHistory()
+      const updated = movements.map((m) =>
+        m.id === selectedId ? { ...m, ...updates } : m
+      )
+      setMovements(updated)
+      emitChange(players, updated, zones, annotations)
     },
     [selectedId, pushHistory, players, movements, zones, annotations, emitChange]
   )
@@ -577,33 +637,97 @@ export function InteractiveDrillEditor({
                   Borta
                 </Button>
               </div>
+              {sportType === 'ICE_HOCKEY' && (
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-xs">Snabbt:</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1 text-xs"
+                    onClick={() => addHockeyPreset('attack')}
+                  >
+                    <UsersRound className="h-3.5 w-3.5" />
+                    Anfall 5
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1 text-xs"
+                    onClick={() => addHockeyPreset('defense')}
+                  >
+                    <ShieldPlus className="h-3.5 w-3.5" />
+                    Försvar 5
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1 text-xs"
+                    onClick={() => addHockeyPreset('fiveOnFive')}
+                  >
+                    5v5
+                  </Button>
+                </div>
+              )}
             </>
           )}
 
           {activeTool === 'movement' && (
-            <div className="flex items-center gap-1.5">
-              <Label className="text-xs whitespace-nowrap">Typ:</Label>
-              {(Object.keys(MOVEMENT_STYLES) as MovementType[]).map((t) => (
+            <>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs whitespace-nowrap">Typ:</Label>
+                {(Object.keys(MOVEMENT_STYLES) as MovementType[]).map((t) => (
+                  <Button
+                    key={t}
+                    variant={movementType === t ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => setMovementType(t)}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: MOVEMENT_STYLES[t].color }}
+                    />
+                    {MOVEMENT_STYLES[t].label}
+                  </Button>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs whitespace-nowrap">Steg:</Label>
                 <Button
-                  key={t}
-                  variant={movementType === t ? 'default' : 'outline'}
+                  type="button"
+                  variant="outline"
                   size="sm"
-                  className="h-7 text-xs gap-1"
-                  onClick={() => setMovementType(t)}
+                  className="h-7 w-7 p-0"
+                  onClick={() => setMovementPhase((value) => Math.max(1, value - 1))}
                 >
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: MOVEMENT_STYLES[t].color }}
-                  />
-                  {MOVEMENT_STYLES[t].label}
+                  -
                 </Button>
-              ))}
+                <Input
+                  type="number"
+                  min={1}
+                  value={movementPhase}
+                  onChange={(e) => setMovementPhase(Math.max(1, Number(e.target.value) || 1))}
+                  className="h-7 w-16 text-xs"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setMovementPhase((value) => value + 1)}
+                >
+                  +
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Samma steg spelas samtidigt
+                </span>
+              </div>
               {movementStart && (
-                <span className="text-xs text-muted-foreground ml-2">
+                <span className="text-xs text-muted-foreground">
                   Klicka på slutpunkt...
                 </span>
               )}
-            </div>
+            </>
           )}
 
           {activeTool === 'zone' && (
@@ -642,7 +766,7 @@ export function InteractiveDrillEditor({
 
           {activeTool === 'select' && !selectedId && (
             <span className="text-xs text-muted-foreground">
-              Klicka på en spelare för att välja och dra
+              Klicka på en spelare eller rörelse för att välja
             </span>
           )}
         </div>
@@ -687,6 +811,57 @@ export function InteractiveDrillEditor({
                 Borta
               </Button>
             </div>
+          </div>
+        )}
+
+        {activeTool === 'select' && selectedMovement && (
+          <div className="flex flex-wrap items-center gap-2 p-2 bg-muted/50 rounded-md">
+            <Label className="text-xs font-medium">Vald rörelse:</Label>
+            <div className="flex items-center gap-1">
+              <Label className="text-xs">Typ:</Label>
+              {(Object.keys(MOVEMENT_STYLES) as MovementType[]).map((t) => (
+                <Button
+                  key={t}
+                  variant={selectedMovement.type === t ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-6 text-[10px] px-2"
+                  onClick={() => updateSelectedMovement({
+                    type: t,
+                    dashed: t === 'pass',
+                    playerId: t === 'skate' ? selectedMovement.playerId ?? null : null,
+                  })}
+                >
+                  {MOVEMENT_STYLES[t].label}
+                </Button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1">
+              <Label className="text-xs">Steg:</Label>
+              <Input
+                type="number"
+                min={1}
+                value={selectedMovement.phase ?? 1}
+                onChange={(e) => updateSelectedMovement({ phase: Math.max(1, Number(e.target.value) || 1) })}
+                className="h-6 w-16 text-[10px]"
+              />
+            </div>
+            {selectedMovement.type === 'skate' && (
+              <div className="flex items-center gap-1">
+                <Label className="text-xs">Spelare:</Label>
+                <select
+                  value={selectedMovement.playerId ?? 'auto'}
+                  onChange={(e) => updateSelectedMovement({ playerId: e.target.value === 'auto' ? null : e.target.value })}
+                  className="h-6 rounded border bg-background px-2 text-[10px]"
+                >
+                  <option value="auto">Auto</option>
+                  {players.map((player) => (
+                    <option key={player.id} value={player.id}>
+                      {player.label} ({player.team === 'home' ? 'röd' : 'blå'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         )}
 
@@ -820,6 +995,28 @@ export function InteractiveDrillEditor({
                     stroke="transparent"
                     strokeWidth={3}
                   />
+                  {m.phase && (
+                    <g>
+                      <circle
+                        cx={(m.fromX + m.toX) / 2}
+                        cy={(m.fromY + m.toY) / 2}
+                        r="2.3"
+                        fill="white"
+                        stroke={selectedId === m.id ? '#000' : color}
+                        strokeWidth="0.4"
+                      />
+                      <text
+                        x={(m.fromX + m.toX) / 2}
+                        y={(m.fromY + m.toY) / 2 + 0.8}
+                        textAnchor="middle"
+                        fontSize="2.4"
+                        fill={selectedId === m.id ? '#000' : color}
+                        fontWeight="700"
+                      >
+                        {m.phase}
+                      </text>
+                    </g>
+                  )}
                 </g>
               )
             })}

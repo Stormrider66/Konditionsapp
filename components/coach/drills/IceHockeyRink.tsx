@@ -25,6 +25,8 @@ interface Movement {
   toX: number
   toY: number
   type: 'skate' | 'pass' | 'shot' | 'puck'
+  playerId?: string | null
+  phase?: number
   color?: string
   dashed?: boolean
 }
@@ -61,7 +63,6 @@ interface IceHockeyRinkProps {
 
 export function IceHockeyRink({ structure, width = 600, className = '' }: IceHockeyRinkProps) {
   const height = (width / 200) * 85
-  const scale = width / 200
 
   return (
     <svg
@@ -154,17 +155,40 @@ export function IceHockeyRink({ structure, width = 600, className = '' }: IceHoc
         const color = m.color || (m.type === 'pass' ? '#2563eb' : m.type === 'shot' ? '#dc2626' : '#1a1a1a')
         const markerId = m.type === 'pass' ? 'arrowPass' : m.type === 'shot' ? 'arrowShot' : 'arrowSkate'
         return (
-          <line
-            key={m.id}
-            x1={m.fromX}
-            y1={m.fromY}
-            x2={m.toX}
-            y2={m.toY}
-            stroke={color}
-            strokeWidth={m.type === 'shot' ? '0.8' : '0.6'}
-            strokeDasharray={m.dashed || m.type === 'pass' ? '1.5 1' : undefined}
-            markerEnd={`url(#${markerId})`}
-          />
+          <g key={m.id}>
+            <line
+              x1={m.fromX}
+              y1={m.fromY}
+              x2={m.toX}
+              y2={m.toY}
+              stroke={color}
+              strokeWidth={m.type === 'shot' ? '0.8' : '0.6'}
+              strokeDasharray={m.dashed || m.type === 'pass' ? '1.5 1' : undefined}
+              markerEnd={`url(#${markerId})`}
+            />
+            {m.phase && (
+              <g>
+                <circle
+                  cx={(m.fromX + m.toX) / 2}
+                  cy={(m.fromY + m.toY) / 2}
+                  r="2.3"
+                  fill="white"
+                  stroke={color}
+                  strokeWidth="0.35"
+                />
+                <text
+                  x={(m.fromX + m.toX) / 2}
+                  y={(m.fromY + m.toY) / 2 + 0.8}
+                  textAnchor="middle"
+                  fontSize="2.4"
+                  fill={color}
+                  fontWeight="700"
+                >
+                  {m.phase}
+                </text>
+              </g>
+            )}
+          </g>
         )
       })}
 

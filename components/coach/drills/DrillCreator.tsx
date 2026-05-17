@@ -19,6 +19,7 @@ import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 import { InteractiveDrillEditor } from './InteractiveDrillEditor'
 import { toast } from 'sonner'
 import { DRILL_SPORTS } from '@/lib/drills/templates'
+import type { DrillSportType } from '@/remotion/drills/surfaces'
 
 interface Team {
   id: string
@@ -30,7 +31,7 @@ interface DrillCreatorProps {
   businessSlug?: string
 }
 
-export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
+export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreatorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -40,7 +41,7 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
   const [teamId, setTeamId] = useState('')
   const [structure, setStructure] = useState<DrillStructure | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
-  const [sourceImageUrl, setSourceImageUrl] = useState<string | null>(null)
+  const [sourceImageUrl] = useState<string | null>(null)
   const [showAnimation, setShowAnimation] = useState(false)
   const [editorMode, setEditorMode] = useState(false)
   const [textPrompt, setTextPrompt] = useState('')
@@ -331,11 +332,13 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
                 description={description || undefined}
                 structure={structure}
                 locale="sv"
+                sportType={sportType as DrillSportType}
               />
             ) : (
               <InteractiveDrillEditor
                 initialStructure={structure}
                 onChange={(s) => setStructure(s)}
+                sportType={sportType as DrillSportType}
               />
             )}
           </CardContent>
@@ -370,6 +373,7 @@ export function DrillCreator({ teams, businessSlug }: DrillCreatorProps) {
                     description={description || undefined}
                     structure={structure}
                     locale="sv"
+                    sportType={sportType as DrillSportType}
                   />
                 ) : (
                   <IceHockeyRink structure={structure} className="mx-auto" />

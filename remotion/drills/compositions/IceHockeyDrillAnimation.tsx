@@ -51,6 +51,8 @@ interface Movement {
   toX: number;
   toY: number;
   type: "skate" | "pass" | "shot" | "puck";
+  playerId?: string | null;
+  phase?: number;
   color?: string;
   dashed?: boolean;
 }
@@ -100,10 +102,10 @@ const HOLD_END = 60; // frames to hold at end (show completion badge)
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
 /**
- * Build a sequenced timeline from the movements array.
- * Each movement gets a startFrame / endFrame so they play one after another,
- * grouped by "phase" — movements that share a fromX/fromY with a player
- * that just finished moving are considered the next phase.
+ * Build a timeline from the movements array.
+ * Legacy drills without phase values still play one movement after another.
+ * New living-play drills can set the same phase number on several movements,
+ * and those movements animate at the same time.
  */
 function buildTimeline(movements: Movement[]) {
   let currentFrame = PLAYER_APPEAR_DURATION + 10; // start after players appear
@@ -113,11 +115,29 @@ function buildTimeline(movements: Movement[]) {
     endFrame: number;
   }[] = [];
 
-  for (let i = 0; i < movements.length; i++) {
-    const m = movements[i];
+  const hasExplicitPhases = movements.some((m) => typeof m.phase === "number" && m.phase > 0);
+
+  if (!hasExplicitPhases) {
+    for (let i = 0; i < movements.length; i++) {
+      const m = movements[i];
+      const start = currentFrame;
+      const end = start + MOVEMENT_DURATION;
+      timeline.push({ movement: m, startFrame: start, endFrame: end });
+      currentFrame = end + PHASE_GAP;
+    }
+
+    return { timeline, totalFrames: currentFrame + HOLD_END };
+  }
+
+  const phaseOrder = Array.from(new Set(movements.map((m, index) => m.phase ?? index + 1))).sort((a, b) => a - b);
+
+  for (const phase of phaseOrder) {
+    const phaseMovements = movements.filter((m, index) => (m.phase ?? index + 1) === phase);
     const start = currentFrame;
     const end = start + MOVEMENT_DURATION;
-    timeline.push({ movement: m, startFrame: start, endFrame: end });
+    for (const movement of phaseMovements) {
+      timeline.push({ movement, startFrame: start, endFrame: end });
+    }
     currentFrame = end + PHASE_GAP;
   }
 
@@ -133,99 +153,69 @@ function computePlayerPositions(
   timeline: { movement: Movement; startFrame: number; endFrame: number }[],
   frame: number
 ): Map<string, { x: number; y: number }> {
-  // Start with initial positions
   const positions = new Map<string, { x: number; y: number }>();
   for (const p of players) {
     positions.set(p.id, { x: p.x, y: p.y });
   }
 
-  // For each "skate" movement, find the player closest to fromX/fromY
-  // and move them to toX/toY during the movement's frame range.
-  for (const entry of timeline) {
-    const m = entry.movement;
-    if (m.type !== "skate") continue;
+  const phaseStarts = Array.from(new Set(timeline.map((entry) => entry.startFrame))).sort((a, b) => a - b);
 
-    // Find which player this movement applies to — closest to from position
-    let bestId: string | null = null;
-    let bestDist = Infinity;
-    for (const p of players) {
-      const pos = positions.get(p.id)!;
-      // Use the position *before* this movement starts
-      // Snapshot positions at startFrame - 1
-      const snappedPos = computePositionAt(
-        p,
-        timeline.filter((t) => t.startFrame < entry.startFrame && t.movement.type === "skate"),
-        entry.startFrame - 1
-      );
-      const dx = snappedPos.x - m.fromX;
-      const dy = snappedPos.y - m.fromY;
-      const dist = dx * dx + dy * dy;
-      if (dist < bestDist) {
-        bestDist = dist;
-        bestId = p.id;
+  for (const phaseStart of phaseStarts) {
+    const entries = timeline.filter((entry) => entry.startFrame === phaseStart && entry.movement.type === "skate");
+    if (entries.length === 0) continue;
+
+    const basePositions = new Map(positions);
+    const usedPlayerIds = new Set<string>();
+    const assignments = entries.map((entry) => {
+      const explicitPlayer = entry.movement.playerId && players.some((p) => p.id === entry.movement.playerId)
+        ? entry.movement.playerId
+        : null;
+
+      if (explicitPlayer && !usedPlayerIds.has(explicitPlayer)) {
+        usedPlayerIds.add(explicitPlayer);
+        return { entry, playerId: explicitPlayer };
       }
-    }
 
-    if (!bestId) continue;
+      let bestId: string | null = null;
+      let bestDist = Infinity;
+      for (const p of players) {
+        if (usedPlayerIds.has(p.id)) continue;
+        const pos = basePositions.get(p.id)!;
+        const dx = pos.x - entry.movement.fromX;
+        const dy = pos.y - entry.movement.fromY;
+        const dist = dx * dx + dy * dy;
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestId = p.id;
+        }
+      }
 
-    // Apply interpolation for this frame
-    if (frame >= entry.startFrame) {
+      if (bestId) usedPlayerIds.add(bestId);
+      return { entry, playerId: bestId };
+    });
+
+    if (frame < phaseStart) continue;
+
+    for (const assignment of assignments) {
+      if (!assignment.playerId) continue;
+      const { entry } = assignment;
+      const basePos = basePositions.get(assignment.playerId);
+      if (!basePos) continue;
+
       const progress = interpolate(
         frame,
         [entry.startFrame, entry.endFrame],
         [0, 1],
         { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
       );
-      const currentPos = positions.get(bestId)!;
-      // Before this movement: keep position from previous movements
-      const basePos = computePositionAt(
-        players.find((p) => p.id === bestId)!,
-        timeline.filter((t) => t.startFrame < entry.startFrame && t.movement.type === "skate"),
-        entry.startFrame
-      );
-      positions.set(bestId, {
-        x: interpolate(progress, [0, 1], [basePos.x, m.toX]),
-        y: interpolate(progress, [0, 1], [basePos.y, m.toY]),
+      positions.set(assignment.playerId, {
+        x: interpolate(progress, [0, 1], [basePos.x, entry.movement.toX]),
+        y: interpolate(progress, [0, 1], [basePos.y, entry.movement.toY]),
       });
     }
   }
 
   return positions;
-}
-
-/**
- * Compute where a single player is at a given frame, considering
- * only the provided skate movements that have already started.
- */
-function computePositionAt(
-  player: Player,
-  skateMovements: { movement: Movement; startFrame: number; endFrame: number }[],
-  atFrame: number
-): { x: number; y: number } {
-  let pos = { x: player.x, y: player.y };
-
-  for (const entry of skateMovements) {
-    const m = entry.movement;
-    // Check if this movement is for this player (closest to current pos)
-    const dx = pos.x - m.fromX;
-    const dy = pos.y - m.fromY;
-    if (dx * dx + dy * dy > 100) continue; // too far, not this player
-
-    if (atFrame >= entry.startFrame) {
-      const progress = interpolate(
-        atFrame,
-        [entry.startFrame, entry.endFrame],
-        [0, 1],
-        { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-      );
-      pos = {
-        x: interpolate(progress, [0, 1], [m.fromX, m.toX]),
-        y: interpolate(progress, [0, 1], [m.fromY, m.toY]),
-      };
-    }
-  }
-
-  return pos;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────
@@ -299,12 +289,15 @@ export const IceHockeyDrillAnimation: React.FC<IceHockeyDrillAnimationProps> = (
 
   // Build phase labels from movements (sport-aware)
   const phases = useMemo(() => {
-    return timeline.map((entry, i) => {
-      const typeLabel = sportLabels[entry.movement.type] || entry.movement.type;
+    const phaseStarts = Array.from(new Set(timeline.map((entry) => entry.startFrame))).sort((a, b) => a - b);
+    return phaseStarts.map((startFrame, i) => {
+      const entries = timeline.filter((entry) => entry.startFrame === startFrame);
+      const firstType = entries[0]?.movement.type ?? "skate";
+      const typeLabel = sportLabels[firstType] || firstType;
       return {
-        label: `${i + 1}. ${typeLabel}`,
-        startFrame: entry.startFrame,
-        endFrame: entry.endFrame,
+        label: entries.length > 1 ? `${i + 1}. ${entries.length} rörelser` : `${i + 1}. ${typeLabel}`,
+        startFrame,
+        endFrame: Math.max(...entries.map((entry) => entry.endFrame)),
       };
     });
   }, [timeline, sportLabels]);

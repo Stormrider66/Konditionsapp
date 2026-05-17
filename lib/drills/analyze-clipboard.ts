@@ -31,7 +31,7 @@ Return ONLY valid JSON with this structure:
     { "id": "p1", "x": 100, "y": 42, "label": "C", "team": "home" }
   ],
   "movements": [
-    { "id": "m1", "fromX": 100, "fromY": 42, "toX": 150, "toY": 30, "type": "skate" }
+    { "id": "m1", "fromX": 100, "fromY": 42, "toX": 150, "toY": 30, "type": "skate", "playerId": "p1", "phase": 1 }
   ],
   "zones": [
     { "id": "z1", "x": 135, "y": 0, "width": 65, "height": 85, "color": "#22c55e", "label": "Offensiv zon" }
@@ -44,6 +44,9 @@ Return ONLY valid JSON with this structure:
 Player labels: Use standard hockey abbreviations (C, LW, RW, LD, RD, G) or numbers (1-6).
 Movement types: "skate" (solid arrow), "pass" (dashed blue), "shot" (red arrow), "puck" (dotted).
 Team: "home" (red) for the team executing the drill, "away" (blue) for opponents/passive players.
+For skating movements, set "playerId" to the moving player's id.
+Use "phase" to show timing: all movements with the same phase happen simultaneously, later phases happen after earlier phases.
+Include all visible defenders/opponents and their movement routes when pressure or defensive timing is shown.
 
 If the image is unclear, make your best interpretation. Include all visible players, arrows, and text.
 Write the description in Swedish.`

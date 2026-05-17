@@ -74,7 +74,7 @@ Return ONLY valid JSON with this structure:
     { "id": "p1", "x": 100, "y": 42, "label": "C", "team": "home" }
   ],
   "movements": [
-    { "id": "m1", "fromX": 100, "fromY": 42, "toX": 150, "toY": 30, "type": "skate" }
+    { "id": "m1", "fromX": 100, "fromY": 42, "toX": 150, "toY": 30, "type": "skate", "playerId": "p1", "phase": 1 }
   ],
   "zones": [
     { "id": "z1", "x": 135, "y": 0, "width": 65, "height": 85, "color": "#22c55e", "label": "Zone label" }
@@ -88,7 +88,10 @@ Guidelines:
 - Movement types: "skate" (player skating/running, solid arrow), "pass" (pass, dashed blue), "shot" (shot on goal, red arrow), "puck" (ball/puck movement, dotted)
 - Team: "home" (red) = team executing the drill, "away" (blue) = opponents/passive players
 - Place players in realistic starting positions for the described drill
-- Order movements logically (they will be animated sequentially)
+- Include defenders/opponents when the drill needs pressure, backcheck, forecheck, 1v1, 2v1, 3v2, 5v5, or tactical realism
+- For skating/running movements, set "playerId" to the moving player's id
+- Use "phase" to show living play: all movements with the same phase happen at the same time; later phases happen after earlier phases
+- Give every active player a skate movement in the relevant phase when they should move, including defenders
 - Use zones to highlight tactical areas
 - Add annotations for coaching cues
 - Write all text in Swedish
