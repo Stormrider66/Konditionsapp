@@ -3341,6 +3341,17 @@
         "weeks": "{weeks} weeks"
       }
     },
+    "paceZones": {
+      "title": "Practical pace zones",
+      "description": "Based on your threshold values, these are the recommended paces for different training types:",
+      "table": {
+        "trainingType": "Training type",
+        "pace": "Pace",
+        "zone": "Zone",
+        "description": "Description"
+      },
+      "note": "These paces are calculated from your individual threshold values. Heart-rate zones provide more precise guidance during training, especially in variable conditions."
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",

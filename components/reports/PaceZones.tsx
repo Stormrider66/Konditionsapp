@@ -1,32 +1,35 @@
 'use client'
 
 import { PaceZone } from '@/lib/calculations/interpretations'
+import { useTranslations } from '@/i18n/client'
 
 interface PaceZonesProps {
   paceZones: PaceZone[]
 }
 
 export function PaceZones({ paceZones }: PaceZonesProps) {
+  const t = useTranslations('components.paceZones')
+
   if (paceZones.length === 0) {
     return null
   }
 
   return (
     <section className="mt-6 border-b pb-6 print:break-inside-avoid" data-pdf-section>
-      <h2 className="text-2xl font-semibold mb-4">Praktiska Tempozoner</h2>
+      <h2 className="text-2xl font-semibold mb-4">{t('title')}</h2>
 
       <p className="text-sm text-gray-600 mb-4">
-        Baserat pa dina troskelvarden, rekommenderade tempo for olika traningstyper:
+        {t('description')}
       </p>
 
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Traningstyp</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Tempo</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Zon</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 hidden md:table-cell">Beskrivning</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{t('table.trainingType')}</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{t('table.pace')}</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{t('table.zone')}</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 hidden md:table-cell">{t('table.description')}</th>
             </tr>
           </thead>
           <tbody>
@@ -68,7 +71,7 @@ export function PaceZones({ paceZones }: PaceZonesProps) {
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
           </svg>
           <p className="text-sm text-blue-800">
-            Dessa tempo ar beraknade fran dina individuella troskelvarden. Pulszoner ger mer exakt styrning under traning, sarskilt vid varierande forhallanden.
+            {t('note')}
           </p>
         </div>
       </div>

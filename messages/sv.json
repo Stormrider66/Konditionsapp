@@ -3341,6 +3341,17 @@
         "weeks": "{weeks} veckor"
       }
     },
+    "paceZones": {
+      "title": "Praktiska tempozoner",
+      "description": "Baserat på dina tröskelvärden rekommenderas tempo för olika träningstyper:",
+      "table": {
+        "trainingType": "Träningstyp",
+        "pace": "Tempo",
+        "zone": "Zon",
+        "description": "Beskrivning"
+      },
+      "note": "Dessa tempo är beräknade från dina individuella tröskelvärden. Pulszoner ger mer exakt styrning under träning, särskilt vid varierande förhållanden."
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",
