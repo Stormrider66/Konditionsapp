@@ -4677,6 +4677,41 @@
         "improvable": "Can improve"
       }
     },
+    "glassHeader": {
+      "fallbackName": "Athlete",
+      "groups": {
+        "training": "Training",
+        "more": "More"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "checkIn": "Check-in",
+        "calendar": "Calendar",
+        "history": "History",
+        "prs": "My PRs",
+        "programs": "Programs",
+        "aiWorkouts": "AI workouts",
+        "trainingLibrary": "Training library",
+        "vbtData": "VBT Data",
+        "concept2": "Concept2",
+        "videoAnalysis": "Video analysis",
+        "profile": "My profile",
+        "testsReports": "Tests & reports",
+        "lactateTest": "Lactate test",
+        "messages": "Messages",
+        "settings": "Settings"
+      },
+      "account": {
+        "profile": "Profile",
+        "settings": "Settings",
+        "logOut": "Log out"
+      },
+      "mobile": {
+        "toggleMenu": "Toggle menu",
+        "navigationMenu": "Navigation menu",
+        "menu": "Menu"
+      }
+    },
     "exportDataButton": {
       "trigger": "Export data",
       "formatLabel": "Export format",

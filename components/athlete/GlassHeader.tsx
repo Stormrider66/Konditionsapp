@@ -41,12 +41,12 @@ import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { NotificationBell } from '@/components/calendar/NotificationsPanel'
-import { Badge } from '@/components/ui/badge'
 import { SportSwitcher } from './SportSwitcher'
 import { SportType } from '@prisma/client'
 import { TrialBadge } from '@/components/ui/TrialBadge'
 import { AthleteModeToggle } from '@/components/coach/AthleteModeToggle'
 import { getAthleteTestsHref } from '@/lib/athlete-tests/navigation'
+import { useTranslations } from '@/i18n/client'
 
 interface SportProfile {
     primarySport: SportType
@@ -62,6 +62,7 @@ interface GlassHeaderProps {
 }
 
 export function GlassHeader({ user, athleteName, clientName, clientId, sportProfile }: GlassHeaderProps) {
+    const t = useTranslations('components.glassHeader')
     const pathname = usePathname()
     const router = useRouter()
     const [isOpen, setIsOpen] = useState(false)
@@ -69,7 +70,7 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
         trialActive: boolean
         trialDaysRemaining: number | null
     } | null>(null)
-    const displayName = clientName || athleteName || user?.email || 'Athlete'
+    const displayName = clientName || athleteName || user?.email || t('fallbackName')
     const athleteTestsHref = getAthleteTestsHref('', sportProfile)
 
     // Fetch subscription status for trial badge
@@ -89,7 +90,7 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                 console.error('Failed to fetch subscription status:', error)
             }
         }
-        fetchSubscriptionStatus()
+        void fetchSubscriptionStatus()
     }, [])
 
     const handleSignOut = async () => {
@@ -100,36 +101,36 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
 
     // Top Level Links
     const mainNavItems = [
-        { href: '/athlete/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { href: '/athlete/check-in', label: 'Check-in', icon: CheckCircle },
-        { href: '/athlete/calendar', label: 'Kalender', icon: Calendar },
+        { href: '/athlete/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
+        { href: '/athlete/check-in', label: t('nav.checkIn'), icon: CheckCircle },
+        { href: '/athlete/calendar', label: t('nav.calendar'), icon: Calendar },
     ]
 
     // Dropdown Groups
     const navGroups = {
         training: {
-            label: 'Träning',
+            label: t('groups.training'),
             icon: Activity,
             items: [
-                { href: '/athlete/history', label: 'Historik', icon: TrendingUp },
-                { href: '/athlete/prs', label: 'Mina PR', icon: Trophy },
-                { href: '/athlete/programs', label: 'Program', icon: ClipboardList },
-                { href: '/athlete/wod/history', label: 'AI-Pass', icon: Sparkles },
-                { href: '/athlete/training-library', label: 'Träningsbibliotek', icon: Library },
-                { href: '/athlete/vbt', label: 'VBT Data', icon: Gauge },
-                { href: '/athlete/concept2', label: 'Concept2', icon: Ship },
-                { href: '/athlete/video-analysis', label: 'Videoanalys', icon: Video },
+                { href: '/athlete/history', label: t('nav.history'), icon: TrendingUp },
+                { href: '/athlete/prs', label: t('nav.prs'), icon: Trophy },
+                { href: '/athlete/programs', label: t('nav.programs'), icon: ClipboardList },
+                { href: '/athlete/wod/history', label: t('nav.aiWorkouts'), icon: Sparkles },
+                { href: '/athlete/training-library', label: t('nav.trainingLibrary'), icon: Library },
+                { href: '/athlete/vbt', label: t('nav.vbtData'), icon: Gauge },
+                { href: '/athlete/concept2', label: t('nav.concept2'), icon: Ship },
+                { href: '/athlete/video-analysis', label: t('nav.videoAnalysis'), icon: Video },
             ]
         },
         more: {
-            label: 'Mer',
+            label: t('groups.more'),
             icon: Menu,
             items: [
-                { href: '/athlete/profile', label: 'Min Profil', icon: UserIcon },
-                { href: athleteTestsHref, label: 'Tester & Rapporter', icon: FlaskConical },
-                { href: '/athlete/lactate/new', label: 'Laktattest', icon: Droplet },
-                { href: '/athlete/messages', label: 'Meddelanden', icon: MessageSquare },
-                { href: '/athlete/settings', label: 'Inställningar', icon: Settings },
+                { href: '/athlete/profile', label: t('nav.profile'), icon: UserIcon },
+                { href: athleteTestsHref, label: t('nav.testsReports'), icon: FlaskConical },
+                { href: '/athlete/lactate/new', label: t('nav.lactateTest'), icon: Droplet },
+                { href: '/athlete/messages', label: t('nav.messages'), icon: MessageSquare },
+                { href: '/athlete/settings', label: t('nav.settings'), icon: Settings },
             ]
         }
     }
@@ -281,13 +282,13 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                                 <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
                                     <Link href="/athlete/profile">
                                         <UserIcon className="mr-2 h-4 w-4" />
-                                        <span>Profile</span>
+                                        <span>{t('account.profile')}</span>
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
                                     <Link href="/athlete/settings">
                                         <Settings className="mr-2 h-4 w-4" />
-                                        <span>Settings</span>
+                                        <span>{t('account.settings')}</span>
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-white/10" />
@@ -295,7 +296,7 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                                 <DropdownMenuSeparator className="bg-white/10" />
                                 <DropdownMenuItem onClick={handleSignOut} className="text-red-400 focus:bg-red-500/10 focus:text-red-400 cursor-pointer">
                                     <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Log out</span>
+                                    <span>{t('account.logOut')}</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -306,14 +307,14 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                         <SheetTrigger asChild>
                             <Button variant="ghost" size="icon" className="lg:hidden text-slate-300 hover:text-white hover:bg-white/10">
                                 <Menu className="h-6 w-6" />
-                                <span className="sr-only">Toggle menu</span>
+                                <span className="sr-only">{t('mobile.toggleMenu')}</span>
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="right" className="bg-slate-950 border-l border-white/10 text-slate-200 w-[300px] overflow-y-auto" aria-describedby={undefined}>
-                            <SheetTitle className="sr-only">Navigation menu</SheetTitle>
+                            <SheetTitle className="sr-only">{t('mobile.navigationMenu')}</SheetTitle>
                             <div className="flex flex-col gap-6 mt-8">
                                 <div className="flex items-center justify-between px-4">
-                                    <span className="font-bold text-lg">Menu</span>
+                                    <span className="font-bold text-lg">{t('mobile.menu')}</span>
                                     <div className="flex gap-1">
                                         <LanguageSwitcher showLabel={false} variant="ghost" />
                                         <NotificationBell clientId={clientId} />
@@ -373,12 +374,12 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                                     <button
                                         onClick={() => {
                                             setIsOpen(false)
-                                            handleSignOut()
+                                            void handleSignOut()
                                         }}
                                         className="flex items-center gap-3 py-3 rounded-lg text-red-400 hover:bg-red-500/10 w-full text-left"
                                     >
                                         <LogOut className="w-5 h-5" />
-                                        Log out
+                                        {t('account.logOut')}
                                     </button>
                                 </div>
                             </div>

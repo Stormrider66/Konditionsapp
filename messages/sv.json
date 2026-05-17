@@ -4677,6 +4677,41 @@
         "improvable": "Förbättringsbar"
       }
     },
+    "glassHeader": {
+      "fallbackName": "Athlete",
+      "groups": {
+        "training": "Träning",
+        "more": "Mer"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "checkIn": "Check-in",
+        "calendar": "Kalender",
+        "history": "Historik",
+        "prs": "Mina PR",
+        "programs": "Program",
+        "aiWorkouts": "AI-Pass",
+        "trainingLibrary": "Träningsbibliotek",
+        "vbtData": "VBT Data",
+        "concept2": "Concept2",
+        "videoAnalysis": "Videoanalys",
+        "profile": "Min Profil",
+        "testsReports": "Tester & Rapporter",
+        "lactateTest": "Laktattest",
+        "messages": "Meddelanden",
+        "settings": "Inställningar"
+      },
+      "account": {
+        "profile": "Profil",
+        "settings": "Inställningar",
+        "logOut": "Logga ut"
+      },
+      "mobile": {
+        "toggleMenu": "Växla meny",
+        "navigationMenu": "Navigationsmeny",
+        "menu": "Meny"
+      }
+    },
     "exportDataButton": {
       "trigger": "Exportera data",
       "formatLabel": "Exportformat",
