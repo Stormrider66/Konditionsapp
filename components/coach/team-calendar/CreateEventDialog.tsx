@@ -33,6 +33,12 @@ import {
 } from '@/lib/team-calendar/event-types'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  icePracticeTemplate,
+  practiceBlocksToDescription,
+  type PracticeBlock,
+  type PracticeTemplateKind,
+} from '@/lib/team-calendar/practice-plan'
 
 interface CreateEventDialogProps {
   teamId: string
@@ -74,6 +80,15 @@ export function CreateEventDialog({
   const [allDay, setAllDay] = useState(false)
   const [contentOwner, setContentOwner] = useState<TeamEventContentOwner>(defaultContentOwner)
   const [contentStatus, setContentStatus] = useState<TeamEventContentStatus>(defaultContentStatus)
+  const [practiceBlocks, setPracticeBlocks] = useState<PracticeBlock[]>([])
+  const isIcePractice = type === 'PRACTICE' || type === 'ICE_PRACTICE'
+  const practiceMinutes = practiceBlocks.reduce((sum, block) => sum + (Number(block.duration) || 0), 0)
+
+  const applyPracticeTemplate = (kind: PracticeTemplateKind) => {
+    const blocks = icePracticeTemplate(kind)
+    setPracticeBlocks(blocks)
+    setDescription(practiceBlocksToDescription(blocks))
+  }
 
   const handleCreate = async () => {
     if (!title.trim() || !startDate) {
@@ -113,6 +128,7 @@ export function CreateEventDialog({
           allDay,
           contentStatus,
           contentOwner,
+          practicePlan: isIcePractice ? practiceBlocks : null,
         }),
       })
 
@@ -140,6 +156,7 @@ export function CreateEventDialog({
     setAllDay(false)
     setContentOwner(defaultContentOwner)
     setContentStatus(defaultContentStatus)
+    setPracticeBlocks([])
   }
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -150,6 +167,7 @@ export function CreateEventDialog({
       setStartDate(defaultDate ?? '')
       setContentOwner(defaultContentOwner)
       setContentStatus(defaultContentStatus)
+      setPracticeBlocks([])
     }
   }
 
@@ -226,6 +244,50 @@ export function CreateEventDialog({
               </Select>
             </div>
           </div>
+
+          {isIcePractice && (
+            <div className="rounded-md border bg-muted/35 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-medium">Ispass-mall</div>
+                  <div className="text-xs text-muted-foreground">
+                    Lägg in en färdig blockplan direkt när händelsen skapas.
+                  </div>
+                </div>
+                {practiceBlocks.length > 0 && (
+                  <div className="shrink-0 rounded-full bg-background px-2 py-1 text-xs text-muted-foreground">
+                    {practiceBlocks.length} block · {practiceMinutes} min
+                  </div>
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => applyPracticeTemplate('skills')}
+                >
+                  Teknik + fart
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => applyPracticeTemplate('tactical')}
+                >
+                  Taktik
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => applyPracticeTemplate('gamePrep')}
+                >
+                  Matchförberedelse
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Datum</Label>

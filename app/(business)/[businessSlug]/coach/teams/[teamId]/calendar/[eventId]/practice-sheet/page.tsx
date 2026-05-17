@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PracticeSheetPrintButton } from '@/components/coach/team-calendar/PracticeSheetPrintButton'
 import { IceHockeyRink, type DrillStructure } from '@/components/coach/drills/IceHockeyRink'
+import type { PracticeBlock } from '@/lib/team-calendar/practice-plan'
 
 interface PageProps {
   params: Promise<{
@@ -16,20 +17,6 @@ interface PageProps {
     teamId: string
     eventId: string
   }>
-}
-
-interface PracticeBlock {
-  id?: string
-  type?: string
-  title?: string
-  duration?: number
-  focus?: string
-  groups?: string
-  equipment?: string
-  description?: string
-  coachingPoints?: string
-  drillId?: string | null
-  drillStructure?: unknown
 }
 
 const BLOCK_TYPE_LABELS: Record<string, string> = {
@@ -79,6 +66,7 @@ function formatTime(date: Date | null) {
 function fallbackBlocks(description: string | null): PracticeBlock[] {
   if (!description?.trim()) return []
   return [{
+    id: 'fallback-plan',
     type: 'tactical',
     title: 'Plan och innehåll',
     duration: 0,
