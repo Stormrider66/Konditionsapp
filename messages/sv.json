@@ -3841,6 +3841,25 @@
         }
       }
     },
+    "patternAlertCard": {
+      "patternCount": "Baserat på {count} {count, plural, one {mönster} other {mönster}} i din data",
+      "morePatterns": "+{count} till",
+      "actions": {
+        "showRecommendations": "Visa rekommendationer",
+        "hideRecommendations": "Dölj rekommendationer"
+      },
+      "patterns": {
+        "sleepDegradation": "Sömnproblem",
+        "fatigueAccumulation": "Ökande trötthet",
+        "sorenessBuildUp": "Muskelömhet",
+        "stressEscalation": "Ökande stress",
+        "moodDecline": "Humörförändring",
+        "motivationDrop": "Minskad motivation",
+        "overtrainingRisk": "Överträningsrisk",
+        "recoveryNeeded": "Vila behövs",
+        "positiveTrend": "Positiv trend"
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Träningsbibliotek",

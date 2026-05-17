@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from '@/i18n/client'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -62,19 +63,8 @@ const patternIcons: Record<string, React.ReactNode> = {
   POSITIVE_TREND: <TrendingUp className="h-4 w-4" />,
 }
 
-const patternLabels: Record<string, string> = {
-  SLEEP_DEGRADATION: 'Sömnproblem',
-  FATIGUE_ACCUMULATION: 'Ökande trötthet',
-  SORENESS_BUILDUP: 'Muskelömhet',
-  STRESS_ESCALATION: 'Ökande stress',
-  MOOD_DECLINE: 'Humörförändring',
-  MOTIVATION_DROP: 'Minskad motivation',
-  OVERTRAINING_RISK: 'Överträningsrisk',
-  RECOVERY_NEEDED: 'Vila behövs',
-  POSITIVE_TREND: 'Positiv trend',
-}
-
 export function PatternAlertCard() {
+  const t = useTranslations('components.patternAlertCard')
   const router = useRouter()
   const basePath = useBasePath()
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -97,7 +87,7 @@ export function PatternAlertCard() {
           // Mark as read
           for (const n of patternAlerts) {
             if (!n.readAt) {
-              fetch(`/api/athlete/notifications/${n.id}`, {
+              void fetch(`/api/athlete/notifications/${n.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'read' }),
@@ -112,7 +102,7 @@ export function PatternAlertCard() {
       }
     }
 
-    fetchNotifications()
+    void fetchNotifications()
   }, [])
 
   async function handleDismiss(id: string) {
@@ -188,6 +178,31 @@ export function PatternAlertCard() {
     }
   }
 
+  function getPatternLabel(type: string) {
+    switch (type) {
+      case 'SLEEP_DEGRADATION':
+        return t('patterns.sleepDegradation')
+      case 'FATIGUE_ACCUMULATION':
+        return t('patterns.fatigueAccumulation')
+      case 'SORENESS_BUILDUP':
+        return t('patterns.sorenessBuildUp')
+      case 'STRESS_ESCALATION':
+        return t('patterns.stressEscalation')
+      case 'MOOD_DECLINE':
+        return t('patterns.moodDecline')
+      case 'MOTIVATION_DROP':
+        return t('patterns.motivationDrop')
+      case 'OVERTRAINING_RISK':
+        return t('patterns.overtrainingRisk')
+      case 'RECOVERY_NEEDED':
+        return t('patterns.recoveryNeeded')
+      case 'POSITIVE_TREND':
+        return t('patterns.positiveTrend')
+      default:
+        return type
+    }
+  }
+
   // Don't render if loading or no notifications
   if (isLoading || notifications.length === 0) {
     return null
@@ -236,7 +251,7 @@ export function PatternAlertCard() {
                       {notification.title}
                     </h3>
                     <p className={cn('text-xs opacity-70', textClass)}>
-                      Baserat på {patterns.length} mönster i din data
+                      {t('patternCount', { count: patterns.length })}
                     </p>
                   </div>
                 </div>
@@ -275,12 +290,12 @@ export function PatternAlertCard() {
                       className={cn('text-xs', getSeverityColor(pattern.severity))}
                     >
                       {patternIcons[pattern.type] || <Activity className="h-3 w-3 mr-1" />}
-                      <span className="ml-1">{patternLabels[pattern.type] || pattern.type}</span>
+                      <span className="ml-1">{getPatternLabel(pattern.type)}</span>
                     </Badge>
                   ))}
                   {patterns.length > 3 && (
                     <Badge variant="secondary" className="text-xs bg-gray-100 dark:bg-gray-800">
-                      +{patterns.length - 3} till
+                      {t('morePatterns', { count: patterns.length - 3 })}
                     </Badge>
                   )}
                 </div>
@@ -299,7 +314,7 @@ export function PatternAlertCard() {
                     <ChevronRight
                       className={cn('h-3 w-3 transition-transform', isExpanded && 'rotate-90')}
                     />
-                    {isExpanded ? 'Dölj rekommendationer' : 'Visa rekommendationer'}
+                    {isExpanded ? t('actions.hideRecommendations') : t('actions.showRecommendations')}
                   </button>
                   {isExpanded && (
                     <ul className="mt-2 space-y-1 pl-4">

@@ -3841,6 +3841,25 @@
         }
       }
     },
+    "patternAlertCard": {
+      "patternCount": "Based on {count} {count, plural, one {pattern} other {patterns}} in your data",
+      "morePatterns": "+{count} more",
+      "actions": {
+        "showRecommendations": "Show recommendations",
+        "hideRecommendations": "Hide recommendations"
+      },
+      "patterns": {
+        "sleepDegradation": "Sleep issues",
+        "fatigueAccumulation": "Increasing fatigue",
+        "sorenessBuildUp": "Muscle soreness",
+        "stressEscalation": "Increasing stress",
+        "moodDecline": "Mood change",
+        "motivationDrop": "Lower motivation",
+        "overtrainingRisk": "Overtraining risk",
+        "recoveryNeeded": "Rest needed",
+        "positiveTrend": "Positive trend"
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Training library",
