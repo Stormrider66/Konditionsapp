@@ -6975,6 +6975,58 @@
         "startFocusMode": "Start Focus Mode"
       }
     },
+    "hybridWorkoutStartScreen": {
+      "title": "Get ready",
+      "formats": {
+        "forTime": {
+          "label": "For Time",
+          "description": "Complete as fast as possible"
+        },
+        "amrap": {
+          "label": "AMRAP",
+          "description": "As many rounds as possible"
+        },
+        "emom": {
+          "label": "EMOM",
+          "description": "Every minute on the minute"
+        },
+        "tabata": {
+          "label": "Tabata",
+          "description": "20s work / 10s rest x 8"
+        },
+        "chipper": {
+          "label": "Chipper",
+          "description": "Work through the list"
+        },
+        "ladder": {
+          "label": "Ladder",
+          "description": "Ascending/descending reps"
+        },
+        "intervals": {
+          "label": "Intervals",
+          "description": "Work and rest"
+        },
+        "hyroxSim": {
+          "label": "HYROX Sim",
+          "description": "HYROX-like format"
+        }
+      },
+      "stats": {
+        "timeCap": "Time cap",
+        "rounds": "Rounds",
+        "exercises": "Exercises"
+      },
+      "repScheme": "Rep scheme",
+      "exercisesTitle": "Exercises",
+      "scalingNotes": "Scaling notes",
+      "included": {
+        "warmup": "Warmup included",
+        "cooldown": "Cooldown included"
+      },
+      "actions": {
+        "startWorkout": "Start workout"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

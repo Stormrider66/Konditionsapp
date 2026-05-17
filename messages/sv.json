@@ -6975,6 +6975,58 @@
         "startFocusMode": "Starta Focus Mode"
       }
     },
+    "hybridWorkoutStartScreen": {
+      "title": "Förbered dig",
+      "formats": {
+        "forTime": {
+          "label": "For Time",
+          "description": "Slutför så snabbt som möjligt"
+        },
+        "amrap": {
+          "label": "AMRAP",
+          "description": "Så många rundor som möjligt"
+        },
+        "emom": {
+          "label": "EMOM",
+          "description": "Varje minut på minuten"
+        },
+        "tabata": {
+          "label": "Tabata",
+          "description": "20s arbete / 10s vila x 8"
+        },
+        "chipper": {
+          "label": "Chipper",
+          "description": "Arbeta igenom listan"
+        },
+        "ladder": {
+          "label": "Ladder",
+          "description": "Stigande/fallande reps"
+        },
+        "intervals": {
+          "label": "Intervaller",
+          "description": "Arbete och vila"
+        },
+        "hyroxSim": {
+          "label": "HYROX Sim",
+          "description": "HYROX-liknande format"
+        }
+      },
+      "stats": {
+        "timeCap": "Tidsgräns",
+        "rounds": "Rundor",
+        "exercises": "Övningar"
+      },
+      "repScheme": "Rep-schema",
+      "exercisesTitle": "Övningar",
+      "scalingNotes": "Skalningsnoteringar",
+      "included": {
+        "warmup": "Uppvärmning inkluderad",
+        "cooldown": "Nedvarvning inkluderad"
+      },
+      "actions": {
+        "startWorkout": "Starta pass"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

@@ -20,6 +20,7 @@ import {
   Flame,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 type HybridFormat =
   | 'FOR_TIME'
@@ -61,57 +62,59 @@ interface HybridWorkoutStartScreenProps {
 
 const FORMAT_INFO: Record<
   HybridFormat,
-  { label: string; description: string; badge: string; icon: React.ReactNode }
+  { labelKey: TranslationKey; descriptionKey: TranslationKey; badge: string; icon: React.ReactNode }
 > = {
   FOR_TIME: {
-    label: 'For Time',
-    description: 'Slutför så snabbt som möjligt',
+    labelKey: 'formats.forTime.label',
+    descriptionKey: 'formats.forTime.description',
     badge: 'bg-blue-100 text-blue-700',
     icon: <Timer className="h-4 w-4" />,
   },
   AMRAP: {
-    label: 'AMRAP',
-    description: 'Så många rundor som möjligt',
+    labelKey: 'formats.amrap.label',
+    descriptionKey: 'formats.amrap.description',
     badge: 'bg-red-100 text-red-700',
     icon: <Repeat className="h-4 w-4" />,
   },
   EMOM: {
-    label: 'EMOM',
-    description: 'Varje minut på minuten',
+    labelKey: 'formats.emom.label',
+    descriptionKey: 'formats.emom.description',
     badge: 'bg-green-100 text-green-700',
     icon: <Clock className="h-4 w-4" />,
   },
   TABATA: {
-    label: 'Tabata',
-    description: '20s arbete / 10s vila x 8',
+    labelKey: 'formats.tabata.label',
+    descriptionKey: 'formats.tabata.description',
     badge: 'bg-orange-100 text-orange-700',
     icon: <Flame className="h-4 w-4" />,
   },
   CHIPPER: {
-    label: 'Chipper',
-    description: 'Arbeta igenom listan',
+    labelKey: 'formats.chipper.label',
+    descriptionKey: 'formats.chipper.description',
     badge: 'bg-purple-100 text-purple-700',
     icon: <Target className="h-4 w-4" />,
   },
   LADDER: {
-    label: 'Ladder',
-    description: 'Stigande/fallande reps',
+    labelKey: 'formats.ladder.label',
+    descriptionKey: 'formats.ladder.description',
     badge: 'bg-indigo-100 text-indigo-700',
     icon: <Target className="h-4 w-4" />,
   },
   INTERVALS: {
-    label: 'Intervaller',
-    description: 'Arbete och vila',
+    labelKey: 'formats.intervals.label',
+    descriptionKey: 'formats.intervals.description',
     badge: 'bg-teal-100 text-teal-700',
     icon: <Timer className="h-4 w-4" />,
   },
   HYROX_SIM: {
-    label: 'HYROX Sim',
-    description: 'HYROX-liknande format',
+    labelKey: 'formats.hyroxSim.label',
+    descriptionKey: 'formats.hyroxSim.description',
     badge: 'bg-yellow-100 text-yellow-700',
     icon: <Flame className="h-4 w-4" />,
   },
 }
+
+type TranslationKey = Parameters<ReturnType<typeof useTranslations>>[0]
 
 const SCALING_BADGES: Record<string, string> = {
   RX: 'bg-green-100 text-green-700',
@@ -137,6 +140,7 @@ export function HybridWorkoutStartScreen({
   onStart,
   onCancel,
 }: HybridWorkoutStartScreenProps) {
+  const t = useTranslations('components.hybridWorkoutStartScreen')
   const formatInfo = FORMAT_INFO[format]
 
   // Format time
@@ -150,10 +154,6 @@ export function HybridWorkoutStartScreen({
     return `${mins} min`
   }
 
-  // Calculate totals
-  const totalReps = movements.reduce((sum, m) => sum + (m.reps || 0), 0)
-  const totalCalories = movements.reduce((sum, m) => sum + (m.calories || 0), 0)
-
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
       {/* Header */}
@@ -161,7 +161,7 @@ export function HybridWorkoutStartScreen({
         <Button variant="ghost" size="icon" onClick={onCancel}>
           <X className="h-5 w-5" />
         </Button>
-        <h1 className="font-semibold">Förbered dig</h1>
+        <h1 className="font-semibold">{t('title')}</h1>
         <div className="w-10" />
       </div>
 
@@ -172,7 +172,7 @@ export function HybridWorkoutStartScreen({
           <div className="flex items-center justify-center gap-2">
             <Badge className={cn(formatInfo.badge)}>
               {formatInfo.icon}
-              <span className="ml-1">{formatInfo.label}</span>
+              <span className="ml-1">{t(formatInfo.labelKey)}</span>
             </Badge>
             <Badge className={cn(SCALING_BADGES[scalingLevel])}>
               {scalingLevel}
@@ -182,7 +182,7 @@ export function HybridWorkoutStartScreen({
             )}
           </div>
           <h2 className="text-2xl font-bold">{workoutName}</h2>
-          <p className="text-sm text-muted-foreground">{formatInfo.description}</p>
+          <p className="text-sm text-muted-foreground">{t(formatInfo.descriptionKey)}</p>
           {description && (
             <p className="text-sm text-muted-foreground mt-2">{description}</p>
           )}
@@ -195,7 +195,7 @@ export function HybridWorkoutStartScreen({
               <CardContent className="p-4 text-center">
                 <Clock className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
                 <p className="text-lg font-bold">{formatTime(timeCap)}</p>
-                <p className="text-xs text-muted-foreground">Tidsgräns</p>
+                <p className="text-xs text-muted-foreground">{t('stats.timeCap')}</p>
               </CardContent>
             </Card>
           )}
@@ -204,7 +204,7 @@ export function HybridWorkoutStartScreen({
               <CardContent className="p-4 text-center">
                 <Repeat className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
                 <p className="text-lg font-bold">{totalRounds}</p>
-                <p className="text-xs text-muted-foreground">Rundor</p>
+                <p className="text-xs text-muted-foreground">{t('stats.rounds')}</p>
               </CardContent>
             </Card>
           )}
@@ -212,7 +212,7 @@ export function HybridWorkoutStartScreen({
             <CardContent className="p-4 text-center">
               <Dumbbell className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
               <p className="text-lg font-bold">{movements.length}</p>
-              <p className="text-xs text-muted-foreground">Övningar</p>
+              <p className="text-xs text-muted-foreground">{t('stats.exercises')}</p>
             </CardContent>
           </Card>
         </div>
@@ -222,7 +222,7 @@ export function HybridWorkoutStartScreen({
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-xs text-muted-foreground uppercase mb-1">
-                Rep-schema
+                {t('repScheme')}
               </p>
               <p className="text-2xl font-bold">{repScheme}</p>
             </CardContent>
@@ -234,7 +234,7 @@ export function HybridWorkoutStartScreen({
           <CardContent className="p-4">
             <h3 className="font-medium mb-3 flex items-center gap-2">
               <Target className="h-4 w-4" />
-              Övningar
+              {t('exercisesTitle')}
             </h3>
             <div className="space-y-3">
               {movements.map((movement, index) => (
@@ -275,7 +275,7 @@ export function HybridWorkoutStartScreen({
         {scalingNotes && (
           <Card>
             <CardContent className="p-4">
-              <h3 className="font-medium mb-2 text-sm">Skalningsnoteringar</h3>
+              <h3 className="font-medium mb-2 text-sm">{t('scalingNotes')}</h3>
               <p className="text-sm text-muted-foreground">{scalingNotes}</p>
             </CardContent>
           </Card>
@@ -286,12 +286,12 @@ export function HybridWorkoutStartScreen({
           <div className="flex gap-2">
             {!!warmupData && (
               <Badge variant="outline" className="text-xs">
-                Uppvärmning inkluderad
+                {t('included.warmup')}
               </Badge>
             )}
             {!!cooldownData && (
               <Badge variant="outline" className="text-xs">
-                Nedvarvning inkluderad
+                {t('included.cooldown')}
               </Badge>
             )}
           </div>
@@ -302,7 +302,7 @@ export function HybridWorkoutStartScreen({
       <div className="p-4 border-t bg-background">
         <Button size="lg" className="w-full h-14 text-lg" onClick={onStart}>
           <Play className="h-5 w-5 mr-2" />
-          Starta pass
+          {t('actions.startWorkout')}
         </Button>
       </div>
     </div>
