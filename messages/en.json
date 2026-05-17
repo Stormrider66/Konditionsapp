@@ -4927,6 +4927,47 @@
         "maintenanceWeeklyAverage": "• Focus on the weekly average rather than daily numbers"
       }
     },
+    "dailyNutritionCard": {
+      "title": "Nutrition today",
+      "confirmDelete": "Delete this meal?",
+      "loggedMeals": "Logged meals",
+      "emptyMeals": "No meals logged yet today",
+      "mealTypes": {
+        "breakfast": "Breakfast",
+        "morningSnack": "Snack",
+        "lunch": "Lunch",
+        "afternoonSnack": "Snack",
+        "preWorkout": "Pre-workout",
+        "postWorkout": "Post-workout",
+        "dinner": "Dinner",
+        "eveningSnack": "Evening snack"
+      },
+      "actions": {
+        "log": "Log"
+      },
+      "macros": {
+        "calories": "Calories",
+        "protein": "Protein",
+        "carbs": "Carbohydrates",
+        "fat": "Fat"
+      },
+      "macro": {
+        "remaining": "{amount} {unit} left",
+        "targetReached": "Target reached!"
+      },
+      "tips": {
+        "preWorkout": "Eat a light meal around {hour}:00 with 40-50g carbs and 20g protein. Avoid fat close to training.",
+        "postWorkout": "After training: Eat 20-40g protein and 50-100g carbs within 2 hours for optimal recovery.",
+        "remainingProtein": "You have {grams}g protein left - focus on protein-rich meals for the rest of the day.",
+        "overCalories": "You have exceeded today's calorie target. That's okay, focus on balance across the week."
+      },
+      "meal": {
+        "protein": "{grams}g protein",
+        "saturatedFat": "Fat: {grams}g saturated",
+        "sugar": "{grams}g sugar",
+        "completeProtein": "Complete protein"
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

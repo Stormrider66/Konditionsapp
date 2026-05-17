@@ -4927,6 +4927,47 @@
         "maintenanceWeeklyAverage": "• Fokusera på veckosnittet snarare än dagliga siffror"
       }
     },
+    "dailyNutritionCard": {
+      "title": "Nutrition idag",
+      "confirmDelete": "Ta bort denna måltid?",
+      "loggedMeals": "Loggade måltider",
+      "emptyMeals": "Inga måltider loggade än idag",
+      "mealTypes": {
+        "breakfast": "Frukost",
+        "morningSnack": "Fika",
+        "lunch": "Lunch",
+        "afternoonSnack": "Mellanmål",
+        "preWorkout": "Pre-workout",
+        "postWorkout": "Post-workout",
+        "dinner": "Middag",
+        "eveningSnack": "Kvällssnack"
+      },
+      "actions": {
+        "log": "Logga"
+      },
+      "macros": {
+        "calories": "Kalorier",
+        "protein": "Protein",
+        "carbs": "Kolhydrater",
+        "fat": "Fett"
+      },
+      "macro": {
+        "remaining": "{amount} {unit} kvar",
+        "targetReached": "Mål nått!"
+      },
+      "tips": {
+        "preWorkout": "Ät en lätt måltid ~{hour}:00 med 40-50g kolhydrater och 20g protein. Undvik fett nära träningen.",
+        "postWorkout": "Efter träningen: Ät 20-40g protein och 50-100g kolhydrater inom 2 timmar för optimal återhämtning.",
+        "remainingProtein": "Du har {grams}g protein kvar - fokusera på proteinrika måltider resten av dagen.",
+        "overCalories": "Du har överskridit kalorimålet idag. Det är okej, fokusera på balans över veckan."
+      },
+      "meal": {
+        "protein": "{grams}g protein",
+        "saturatedFat": "Fett: {grams}g mättat",
+        "sugar": "{grams}g socker",
+        "completeProtein": "Komplett protein"
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

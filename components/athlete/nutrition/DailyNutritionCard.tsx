@@ -13,7 +13,6 @@ import {
   Wheat,
   Droplet as OilIcon,
   Dumbbell,
-  ChevronRight,
   Sparkles,
   Trash2,
   Pencil,
@@ -27,6 +26,7 @@ import {
 import { QuickMealLog, type EditMealData } from './QuickMealLog'
 import { MealType } from '@prisma/client'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface MealLog {
   id: string
@@ -88,14 +88,14 @@ const MEAL_TYPE_ICONS: Record<MealType, typeof Sunrise> = {
 }
 
 const MEAL_TYPE_LABELS: Record<MealType, string> = {
-  BREAKFAST: 'Frukost',
-  MORNING_SNACK: 'Fika',
-  LUNCH: 'Lunch',
-  AFTERNOON_SNACK: 'Mellanmål',
-  PRE_WORKOUT: 'Pre-workout',
-  POST_WORKOUT: 'Post-workout',
-  DINNER: 'Middag',
-  EVENING_SNACK: 'Kvällssnack',
+  BREAKFAST: 'mealTypes.breakfast',
+  MORNING_SNACK: 'mealTypes.morningSnack',
+  LUNCH: 'mealTypes.lunch',
+  AFTERNOON_SNACK: 'mealTypes.afternoonSnack',
+  PRE_WORKOUT: 'mealTypes.preWorkout',
+  POST_WORKOUT: 'mealTypes.postWorkout',
+  DINNER: 'mealTypes.dinner',
+  EVENING_SNACK: 'mealTypes.eveningSnack',
 }
 
 function MacroBar({
@@ -113,6 +113,7 @@ function MacroBar({
   icon: typeof Flame
   unit?: string
 }) {
+  const t = useTranslations('components.dailyNutritionCard')
   const percentage = Math.min(100, (current / target) * 100)
   const remaining = Math.max(0, target - current)
 
@@ -129,7 +130,7 @@ function MacroBar({
       </div>
       <Progress value={percentage} className="h-2" />
       <p className="text-xs text-muted-foreground">
-        {remaining > 0 ? `${remaining.toFixed(0)} ${unit} kvar` : 'Mål nått!'}
+        {remaining > 0 ? t('macro.remaining', { amount: remaining.toFixed(0), unit }) : t('macro.targetReached')}
       </p>
     </div>
   )
@@ -141,6 +142,8 @@ export function DailyNutritionCard({
   workoutInfo,
   className,
 }: DailyNutritionCardProps) {
+  const t = useTranslations('components.dailyNutritionCard')
+  const locale = useLocale()
   const [meals, setMeals] = useState<MealLog[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showAddMeal, setShowAddMeal] = useState(false)
@@ -189,11 +192,11 @@ export function DailyNutritionCard({
   }, [dateStr])
 
   useEffect(() => {
-    fetchMeals()
+    void fetchMeals()
   }, [fetchMeals])
 
   const handleDeleteMeal = async (mealId: string) => {
-    if (!confirm('Ta bort denna måltid?')) return
+    if (!confirm(t('confirmDelete'))) return
 
     const response = await fetch(`/api/meals/${mealId}`, {
       method: 'DELETE',
@@ -224,20 +227,20 @@ export function DailyNutritionCard({
       const now = new Date().getHours()
 
       if (now < workoutHour - 2) {
-        return `Ät en lätt måltid ~${workoutHour - 2}:00 med 40-50g kolhydrater och 20g protein. Undvik fett nära träningen.`
+        return t('tips.preWorkout', { hour: workoutHour - 2 })
       }
 
       if (now >= workoutHour && now <= workoutHour + 1) {
-        return 'Efter träningen: Ät 20-40g protein och 50-100g kolhydrater inom 2 timmar för optimal återhämtning.'
+        return t('tips.postWorkout')
       }
     }
 
     if (remainingProtein > 60) {
-      return `Du har ${remainingProtein.toFixed(0)}g protein kvar - fokusera på proteinrika måltider resten av dagen.`
+      return t('tips.remainingProtein', { grams: remainingProtein.toFixed(0) })
     }
 
     if (remainingCalories < 0) {
-      return 'Du har överskridit kalorimålet idag. Det är okej, fokusera på balans över veckan.'
+      return t('tips.overCalories')
     }
 
     return null
@@ -265,9 +268,9 @@ export function DailyNutritionCard({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Nutrition idag</CardTitle>
+            <CardTitle>{t('title')}</CardTitle>
             <CardDescription className="flex items-center gap-2">
-              {date.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'short' })}
+              {date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'short' })}
               {workoutInfo?.hasWorkout && (
                 <Badge variant="secondary" className="text-xs">
                   <Dumbbell className="h-3 w-3 mr-1" />
@@ -278,7 +281,7 @@ export function DailyNutritionCard({
           </div>
           <Button size="sm" onClick={() => setShowAddMeal(true)}>
             <Plus className="h-4 w-4 mr-1" />
-            Logga
+            {t('actions.log')}
           </Button>
         </div>
       </CardHeader>
@@ -286,7 +289,7 @@ export function DailyNutritionCard({
         {/* Macro Progress */}
         <div className="space-y-4">
           <MacroBar
-            label="Kalorier"
+            label={t('macros.calories')}
             current={dailyTotals.calories}
             target={adjustedGoals.calories}
             color="text-orange-500"
@@ -294,21 +297,21 @@ export function DailyNutritionCard({
             unit="kcal"
           />
           <MacroBar
-            label="Protein"
+            label={t('macros.protein')}
             current={dailyTotals.proteinGrams}
             target={adjustedGoals.proteinGrams}
             color="text-red-500"
             icon={Beef}
           />
           <MacroBar
-            label="Kolhydrater"
+            label={t('macros.carbs')}
             current={dailyTotals.carbsGrams}
             target={adjustedGoals.carbsGrams}
             color="text-yellow-500"
             icon={Wheat}
           />
           <MacroBar
-            label="Fett"
+            label={t('macros.fat')}
             current={dailyTotals.fatGrams}
             target={adjustedGoals.fatGrams}
             color="text-blue-500"
@@ -328,10 +331,10 @@ export function DailyNutritionCard({
 
         {/* Meal List */}
         <div className="space-y-2">
-          <h4 className="font-medium text-sm text-muted-foreground">Loggade måltider</h4>
+          <h4 className="font-medium text-sm text-muted-foreground">{t('loggedMeals')}</h4>
           {meals.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">
-              Inga måltider loggade än idag
+              {t('emptyMeals')}
             </p>
           ) : (
             <div className="space-y-2">
@@ -358,16 +361,16 @@ export function DailyNutritionCard({
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{MEAL_TYPE_LABELS[meal.mealType]}</span>
+                        <span>{t(MEAL_TYPE_LABELS[meal.mealType])}</span>
                         {meal.time && <span>• {meal.time}</span>}
                         {meal.calories && <span>• {meal.calories} kcal</span>}
-                        {meal.proteinGrams && <span>• {meal.proteinGrams}g protein</span>}
+                        {meal.proteinGrams && <span>• {t('meal.protein', { grams: meal.proteinGrams })}</span>}
                       </div>
                       {meal.saturatedFatGrams != null && (
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
-                          <span>Fett: {meal.saturatedFatGrams}g mättat</span>
-                          {meal.sugarGrams != null && <span>• {meal.sugarGrams}g socker</span>}
-                          {meal.isCompleteProtein && <span>• Komplett protein</span>}
+                          <span>{t('meal.saturatedFat', { grams: meal.saturatedFatGrams })}</span>
+                          {meal.sugarGrams != null && <span>• {t('meal.sugar', { grams: meal.sugarGrams })}</span>}
+                          {meal.isCompleteProtein && <span>• {t('meal.completeProtein')}</span>}
                         </div>
                       )}
                     </div>
@@ -413,7 +416,7 @@ export function DailyNutritionCard({
         onClose={() => setShowAddMeal(false)}
         onMealSaved={() => {
           setShowAddMeal(false)
-          fetchMeals()
+          void fetchMeals()
         }}
         date={date}
       />
@@ -424,7 +427,7 @@ export function DailyNutritionCard({
           onClose={() => setEditingMeal(null)}
           onMealSaved={() => {
             setEditingMeal(null)
-            fetchMeals()
+            void fetchMeals()
           }}
           editMeal={editingMeal}
           date={date}
