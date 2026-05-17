@@ -49,6 +49,19 @@ interface TeamEvent {
     totalAssigned: number
     totalCompleted: number
     completionRate: number
+    athletes: Array<{
+      assignmentId: string
+      athleteId: string
+      athleteName: string
+      jerseyNumber: number | null
+      position: string | null
+      workoutType: string
+      status: string
+      completedAt: string | null
+      rpe: number | null
+      duration: number | null
+      notes: string | null
+    }>
   } | null
   createdBy: { name: string }
   intervalSession: { id: string; name: string; status: string } | null

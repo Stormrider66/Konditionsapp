@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -55,6 +56,19 @@ interface EditableTeamEvent {
     totalAssigned: number
     totalCompleted: number
     completionRate: number
+    athletes: Array<{
+      assignmentId: string
+      athleteId: string
+      athleteName: string
+      jerseyNumber: number | null
+      position: string | null
+      workoutType: string
+      status: string
+      completedAt: string | null
+      rpe: number | null
+      duration: number | null
+      notes: string | null
+    }>
   } | null
 }
 
@@ -99,6 +113,36 @@ function workoutTypeForEventType(type: TeamEventType): 'STRENGTH' | 'CARDIO' | '
   if (type === 'HYBRID') return 'HYBRID'
   if (type === 'AGILITY') return 'AGILITY'
   return null
+}
+
+function assignmentStatusLabel(status: string) {
+  switch (status) {
+    case 'COMPLETED':
+      return 'Klar'
+    case 'SKIPPED':
+      return 'Skippad'
+    case 'SCHEDULED':
+      return 'Bekräftad'
+    case 'IN_PROGRESS':
+      return 'Pågår'
+    case 'MODIFIED':
+      return 'Ändrad'
+    default:
+      return 'Ej klar'
+  }
+}
+
+function assignmentStatusClass(status: string) {
+  if (status === 'COMPLETED') return 'border-emerald-300 bg-emerald-50 text-emerald-800'
+  if (status === 'SKIPPED') return 'border-rose-300 bg-rose-50 text-rose-800'
+  if (status === 'IN_PROGRESS' || status === 'SCHEDULED') return 'border-blue-300 bg-blue-50 text-blue-800'
+  return 'border-slate-300 bg-slate-50 text-slate-700'
+}
+
+function formatDuration(value: number | null) {
+  if (!value) return null
+  if (value > 300) return `${Math.round(value / 60)} min`
+  return `${value} min`
 }
 
 interface WorkoutOption {
@@ -412,6 +456,49 @@ export function EditEventDialog({
                           Tilldelat {new Date(event.assignedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </div>
                       )}
+                      {assignmentSummary?.athletes?.length ? (
+                        <div className="mt-3 space-y-2">
+                          <div className="text-xs font-medium text-muted-foreground">Spelarstatus</div>
+                          <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
+                            {assignmentSummary.athletes.map((athlete) => {
+                              const duration = formatDuration(athlete.duration)
+                              return (
+                                <div key={athlete.assignmentId} className="rounded-md border bg-muted/20 p-2">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <div className="truncate text-sm font-medium">
+                                        {athlete.jerseyNumber ? `#${athlete.jerseyNumber} ` : ''}{athlete.athleteName}
+                                      </div>
+                                      {athlete.position && (
+                                        <div className="text-xs text-muted-foreground">{athlete.position}</div>
+                                      )}
+                                    </div>
+                                    <Badge variant="outline" className={`shrink-0 text-[10px] ${assignmentStatusClass(athlete.status)}`}>
+                                      {assignmentStatusLabel(athlete.status)}
+                                    </Badge>
+                                  </div>
+                                  {(athlete.rpe || duration || athlete.completedAt) && (
+                                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                      {athlete.rpe && <span>RPE {athlete.rpe}/10</span>}
+                                      {duration && <span>{duration}</span>}
+                                      {athlete.completedAt && (
+                                        <span>
+                                          Klar {new Date(athlete.completedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {athlete.notes && (
+                                    <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                      {athlete.notes}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   ) : canAssignPersistedWorkout ? (
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
