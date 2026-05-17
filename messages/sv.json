@@ -7286,6 +7286,65 @@
         "critical": "Kritisk"
       }
     },
+    "injuryStatusCard": {
+      "phases": {
+        "acute": "Akut fas",
+        "subacute": "Subakut fas",
+        "chronic": "Kronisk fas",
+        "recovery": "Återhämtning"
+      },
+      "bodyParts": {
+        "plantarFascia": "Fotsulefascian",
+        "achilles": "Hälsenan",
+        "itBand": "IT-bandet",
+        "knee": "Knäet",
+        "hip": "Höften",
+        "lowerBack": "Ländryggen",
+        "calf": "Vaden",
+        "hamstring": "Bakre låret",
+        "quadriceps": "Framsida lår",
+        "shin": "Smalbenet",
+        "ankle": "Fotleden",
+        "foot": "Foten",
+        "shoulder": "Axeln",
+        "elbow": "Armbågen",
+        "wrist": "Handleden"
+      },
+      "injuryTypes": {
+        "stressFracture": "Stressfraktur",
+        "tendinopathy": "Tendinopati",
+        "muscleStrain": "Muskelskada",
+        "plantarFasciitis": "Plantarfasciit",
+        "achillesTendinopathy": "Akillestendinopati",
+        "shinSplints": "Medial tibialt stressyndrom",
+        "runnersKnee": "Löparknä",
+        "itBandSyndrome": "IT-bandssyndrom",
+        "sprain": "Stukning",
+        "overuse": "Överbelastning"
+      },
+      "unknownLocation": "Okänd plats",
+      "injury": "Skada",
+      "status": {
+        "active": "Aktiv",
+        "monitored": "Övervakas"
+      },
+      "painLevel": "Smärtnivå",
+      "phase": "Fas",
+      "phaseScale": {
+        "acute": "Akut",
+        "recovered": "Återställd"
+      },
+      "duration": {
+        "today": "Började idag",
+        "yesterday": "Började igår",
+        "daysAgo": "{days} dagar sedan"
+      },
+      "empty": {
+        "title": "Inga aktiva skador",
+        "description": "Fortsätt träna smart för att hålla dig skadefri!"
+      },
+      "listTitle": "Aktiva skador ({count})"
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

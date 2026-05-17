@@ -7286,6 +7286,65 @@
         "critical": "Critical"
       }
     },
+    "injuryStatusCard": {
+      "phases": {
+        "acute": "Acute phase",
+        "subacute": "Subacute phase",
+        "chronic": "Chronic phase",
+        "recovery": "Recovery"
+      },
+      "bodyParts": {
+        "plantarFascia": "Plantar fascia",
+        "achilles": "Achilles",
+        "itBand": "IT band",
+        "knee": "Knee",
+        "hip": "Hip",
+        "lowerBack": "Lower back",
+        "calf": "Calf",
+        "hamstring": "Hamstring",
+        "quadriceps": "Quadriceps",
+        "shin": "Shin",
+        "ankle": "Ankle",
+        "foot": "Foot",
+        "shoulder": "Shoulder",
+        "elbow": "Elbow",
+        "wrist": "Wrist"
+      },
+      "injuryTypes": {
+        "stressFracture": "Stress fracture",
+        "tendinopathy": "Tendinopathy",
+        "muscleStrain": "Muscle strain",
+        "plantarFasciitis": "Plantar fasciitis",
+        "achillesTendinopathy": "Achilles tendinopathy",
+        "shinSplints": "Medial tibial stress syndrome",
+        "runnersKnee": "Runner's knee",
+        "itBandSyndrome": "IT band syndrome",
+        "sprain": "Sprain",
+        "overuse": "Overuse"
+      },
+      "unknownLocation": "Unknown location",
+      "injury": "Injury",
+      "status": {
+        "active": "Active",
+        "monitored": "Monitored"
+      },
+      "painLevel": "Pain level",
+      "phase": "Phase",
+      "phaseScale": {
+        "acute": "Acute",
+        "recovered": "Recovered"
+      },
+      "duration": {
+        "today": "Started today",
+        "yesterday": "Started yesterday",
+        "daysAgo": "{days} days ago"
+      },
+      "empty": {
+        "title": "No active injuries",
+        "description": "Keep training smart to stay injury-free."
+      },
+      "listTitle": "Active injuries ({count})"
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

@@ -9,6 +9,7 @@
 import { AlertTriangle, Activity, Calendar } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface Injury {
   id: string
@@ -27,60 +28,62 @@ interface InjuryStatusCardProps {
 }
 
 // Map injury phases to display info
-const PHASE_INFO: Record<string, { label: string; progress: number; color: string }> = {
+type TranslationKey = Parameters<ReturnType<typeof useTranslations>>[0]
+
+const PHASE_INFO: Record<string, { labelKey: TranslationKey; progress: number; color: string }> = {
   ACUTE: {
-    label: 'Akut fas',
+    labelKey: 'phases.acute',
     progress: 10,
     color: 'bg-red-500',
   },
   SUBACUTE: {
-    label: 'Subakut fas',
+    labelKey: 'phases.subacute',
     progress: 35,
     color: 'bg-orange-500',
   },
   CHRONIC: {
-    label: 'Kronisk fas',
+    labelKey: 'phases.chronic',
     progress: 60,
     color: 'bg-yellow-500',
   },
   RECOVERY: {
-    label: 'Återhämtning',
+    labelKey: 'phases.recovery',
     progress: 85,
     color: 'bg-green-500',
   },
 }
 
 // Map body parts to Swedish
-const BODY_PART_LABELS: Record<string, string> = {
-  PLANTAR_FASCIA: 'Fotsulefascian',
-  ACHILLES: 'Hälsenan',
-  IT_BAND: 'IT-bandet',
-  KNEE: 'Knäet',
-  HIP: 'Höften',
-  LOWER_BACK: 'Ländryggen',
-  CALF: 'Vaden',
-  HAMSTRING: 'Bakre låret',
-  QUADRICEPS: 'Framsida lår',
-  SHIN: 'Smalbenet',
-  ANKLE: 'Fotleden',
-  FOOT: 'Foten',
-  SHOULDER: 'Axeln',
-  ELBOW: 'Armbågen',
-  WRIST: 'Handleden',
+const BODY_PART_KEYS: Record<string, TranslationKey> = {
+  PLANTAR_FASCIA: 'bodyParts.plantarFascia',
+  ACHILLES: 'bodyParts.achilles',
+  IT_BAND: 'bodyParts.itBand',
+  KNEE: 'bodyParts.knee',
+  HIP: 'bodyParts.hip',
+  LOWER_BACK: 'bodyParts.lowerBack',
+  CALF: 'bodyParts.calf',
+  HAMSTRING: 'bodyParts.hamstring',
+  QUADRICEPS: 'bodyParts.quadriceps',
+  SHIN: 'bodyParts.shin',
+  ANKLE: 'bodyParts.ankle',
+  FOOT: 'bodyParts.foot',
+  SHOULDER: 'bodyParts.shoulder',
+  ELBOW: 'bodyParts.elbow',
+  WRIST: 'bodyParts.wrist',
 }
 
 // Map injury types to Swedish
-const INJURY_TYPE_LABELS: Record<string, string> = {
-  STRESS_FRACTURE: 'Stressfraktur',
-  TENDINOPATHY: 'Tendinopati',
-  MUSCLE_STRAIN: 'Muskelskada',
-  PLANTAR_FASCIITIS: 'Plantarfasciit',
-  ACHILLES_TENDINOPATHY: 'Akillestendinopati',
-  SHIN_SPLINTS: 'Medial tibialt stressyndrom',
-  RUNNERS_KNEE: 'Löparknä',
-  IT_BAND_SYNDROME: 'IT-bandssyndrom',
-  SPRAIN: 'Stukning',
-  OVERUSE: 'Överbelastning',
+const INJURY_TYPE_KEYS: Record<string, TranslationKey> = {
+  STRESS_FRACTURE: 'injuryTypes.stressFracture',
+  TENDINOPATHY: 'injuryTypes.tendinopathy',
+  MUSCLE_STRAIN: 'injuryTypes.muscleStrain',
+  PLANTAR_FASCIITIS: 'injuryTypes.plantarFasciitis',
+  ACHILLES_TENDINOPATHY: 'injuryTypes.achillesTendinopathy',
+  SHIN_SPLINTS: 'injuryTypes.shinSplints',
+  RUNNERS_KNEE: 'injuryTypes.runnersKnee',
+  IT_BAND_SYNDROME: 'injuryTypes.itBandSyndrome',
+  SPRAIN: 'injuryTypes.sprain',
+  OVERUSE: 'injuryTypes.overuse',
 }
 
 function getPainLevelColor(painLevel: number): string {
@@ -90,19 +93,17 @@ function getPainLevelColor(painLevel: number): string {
   return 'text-red-500'
 }
 
-function getPainLevelLabel(painLevel: number): string {
-  if (painLevel <= 2) return 'Lindrig'
-  if (painLevel <= 4) return 'Måttlig'
-  if (painLevel <= 6) return 'Betydande'
-  return 'Svår'
-}
-
 export function InjuryStatusCard({ injury, className }: InjuryStatusCardProps) {
+  const t = useTranslations('components.injuryStatusCard')
   const phaseInfo = injury.phase ? PHASE_INFO[injury.phase] : null
-  const bodyPartLabel = injury.bodyPart ? BODY_PART_LABELS[injury.bodyPart] || injury.bodyPart : 'Okänd plats'
+  const bodyPartLabel = injury.bodyPart && BODY_PART_KEYS[injury.bodyPart]
+    ? t(BODY_PART_KEYS[injury.bodyPart])
+    : injury.bodyPart || t('unknownLocation')
   const injuryTypeLabel = injury.injuryType
-    ? INJURY_TYPE_LABELS[injury.injuryType] || injury.injuryType
-    : 'Skada'
+    ? INJURY_TYPE_KEYS[injury.injuryType]
+      ? t(INJURY_TYPE_KEYS[injury.injuryType])
+      : injury.injuryType
+    : t('injury')
 
   const daysSinceStart = Math.floor(
     (new Date().getTime() - new Date(injury.startDate).getTime()) / (1000 * 60 * 60 * 24)
@@ -138,14 +139,14 @@ export function InjuryStatusCard({ injury, className }: InjuryStatusCardProps) {
             )}
           >
             <Activity className="h-3 w-3" />
-            {injury.status === 'ACTIVE' ? 'Aktiv' : 'Övervakas'}
+            {injury.status === 'ACTIVE' ? t('status.active') : t('status.monitored')}
           </span>
         </div>
       </div>
 
       {/* Pain level indicator */}
       <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">Smärtnivå</span>
+        <span className="text-muted-foreground">{t('painLevel')}</span>
         <div className="flex items-center gap-2">
           <div className="flex gap-0.5">
             {[...Array(10)].map((_, i) => (
@@ -170,13 +171,13 @@ export function InjuryStatusCard({ injury, className }: InjuryStatusCardProps) {
       {phaseInfo && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Fas</span>
-            <span className="font-medium">{phaseInfo.label}</span>
+            <span className="text-muted-foreground">{t('phase')}</span>
+            <span className="font-medium">{t(phaseInfo.labelKey)}</span>
           </div>
           <Progress value={phaseInfo.progress} className="h-2" />
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Akut</span>
-            <span>Återställd</span>
+            <span>{t('phaseScale.acute')}</span>
+            <span>{t('phaseScale.recovered')}</span>
           </div>
         </div>
       )}
@@ -186,10 +187,10 @@ export function InjuryStatusCard({ injury, className }: InjuryStatusCardProps) {
         <Calendar className="h-3 w-3" />
         <span>
           {daysSinceStart === 0
-            ? 'Började idag'
+            ? t('duration.today')
             : daysSinceStart === 1
-              ? 'Började igår'
-              : `${daysSinceStart} dagar sedan`}
+              ? t('duration.yesterday')
+              : t('duration.daysAgo', { days: daysSinceStart })}
         </span>
       </div>
     </div>
@@ -205,12 +206,14 @@ interface InjuryStatusListProps {
 }
 
 export function InjuryStatusList({ injuries, className }: InjuryStatusListProps) {
+  const t = useTranslations('components.injuryStatusCard')
+
   if (injuries.length === 0) {
     return (
       <div className={cn('text-center py-6 text-muted-foreground', className)}>
         <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
-        <p className="text-sm">Inga aktiva skador</p>
-        <p className="text-xs mt-1">Fortsätt träna smart för att hålla dig skadefri!</p>
+        <p className="text-sm">{t('empty.title')}</p>
+        <p className="text-xs mt-1">{t('empty.description')}</p>
       </div>
     )
   }
@@ -218,7 +221,7 @@ export function InjuryStatusList({ injuries, className }: InjuryStatusListProps)
   return (
     <div className={cn('space-y-3', className)}>
       <h3 className="text-sm font-medium text-muted-foreground">
-        Aktiva skador ({injuries.length})
+        {t('listTitle', { count: injuries.length })}
       </h3>
       {injuries.map((injury) => (
         <InjuryStatusCard key={injury.id} injury={injury} />
