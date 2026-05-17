@@ -4107,6 +4107,59 @@
         "veryHard": "Mycket svårt"
       }
     },
+    "focusModeWorkout": {
+      "sections": {
+        "warmup": "Uppvärmning",
+        "main": "Huvudpass",
+        "core": "Core",
+        "prehab": "Prehab",
+        "cooldown": "Nedvarvning"
+      },
+      "loading": "Laddar pass...",
+      "errors": {
+        "generic": "Ett fel uppstod",
+        "loadTitle": "Kunde inte ladda passet"
+      },
+      "actions": {
+        "goBack": "Gå tillbaka",
+        "finish": "Avsluta",
+        "nextExercise": "Nästa övning",
+        "finishWorkout": "Avsluta pass",
+        "previous": "Föregående",
+        "next": "Nästa",
+        "continueTraining": "Fortsätt träna"
+      },
+      "progress": {
+        "exerciseCounter": "Övning {current} av {total}",
+        "percentComplete": "{percent}% klart"
+      },
+      "sets": {
+        "current": "Aktuellt",
+        "waiting": "Väntar"
+      },
+      "rest": {
+        "label": "Vila: {seconds} sekunder"
+      },
+      "exerciseComplete": {
+        "title": "Övning klar!"
+      },
+      "instructions": {
+        "show": "Visa instruktioner",
+        "empty": "Inga instruktioner tillgängliga."
+      },
+      "completeDialog": {
+        "title": "Avsluta pass",
+        "allDone": "Bra jobbat! Alla övningar är klara.",
+        "partial": "Du har gjort {completed} av {total} set.",
+        "rpeQuestion": "Hur svårt var passet? (RPE)"
+      },
+      "rpe": {
+        "easy": "Lätt",
+        "moderate": "Måttligt",
+        "hard": "Svårt",
+        "veryHard": "Mycket svårt"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",

@@ -13,7 +13,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
@@ -51,6 +50,7 @@ import {
   confirmFutureCompletion,
   readFutureCompletionWarning,
 } from '@/lib/workouts/future-completion-client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface FocusModeExercise {
   id: string
@@ -122,35 +122,35 @@ interface FocusModeWorkoutProps {
 
 const SECTION_CONFIG = {
   WARMUP: {
-    label: 'Uppvärmning',
+    labelKey: 'sections.warmup',
     color: 'bg-amber-500',
     textColor: 'text-amber-500',
     bgColor: 'bg-amber-500/10',
     icon: Flame,
   },
   MAIN: {
-    label: 'Huvudpass',
+    labelKey: 'sections.main',
     color: 'bg-primary',
     textColor: 'text-primary',
     bgColor: 'bg-primary/10',
     icon: Dumbbell,
   },
   CORE: {
-    label: 'Core',
+    labelKey: 'sections.core',
     color: 'bg-purple-500',
     textColor: 'text-purple-500',
     bgColor: 'bg-purple-500/10',
     icon: Target,
   },
   PREHAB: {
-    label: 'Prehab',
+    labelKey: 'sections.prehab',
     color: 'bg-teal-500',
     textColor: 'text-teal-500',
     bgColor: 'bg-teal-500/10',
     icon: ShieldCheck,
   },
   COOLDOWN: {
-    label: 'Nedvarvning',
+    labelKey: 'sections.cooldown',
     color: 'bg-emerald-500',
     textColor: 'text-emerald-500',
     bgColor: 'bg-emerald-500/10',
@@ -163,6 +163,8 @@ export function FocusModeWorkout({
   onClose,
   basePath: basePathProp = '',
 }: FocusModeWorkoutProps) {
+  const t = useTranslations('components.focusModeWorkout')
+  const locale = useLocale()
   const contextBasePath = useBasePath()
   const basePath = basePathProp || contextBasePath
   const router = useRouter()
@@ -276,14 +278,14 @@ export function FocusModeWorkout({
         setCurrentIndex(result.data.progress.currentExerciseIndex)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : t('errors.generic'))
     } finally {
       setIsLoading(false)
     }
-  }, [assignmentId])
+  }, [assignmentId, t])
 
   useEffect(() => {
-    fetchWorkoutData()
+    void fetchWorkoutData()
   }, [fetchWorkoutData])
 
   // Current exercise
@@ -391,7 +393,7 @@ export function FocusModeWorkout({
       <div className="fixed inset-0 bg-background z-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Laddar pass...</p>
+          <p className="text-muted-foreground">{t('loading')}</p>
         </div>
       </div>
     )
@@ -404,9 +406,9 @@ export function FocusModeWorkout({
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="font-medium mb-2">Kunde inte ladda passet</h3>
+            <h3 className="font-medium mb-2">{t('errors.loadTitle')}</h3>
             <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button onClick={handleClose}>Gå tillbaka</Button>
+            <Button onClick={handleClose}>{t('actions.goBack')}</Button>
           </CardContent>
         </Card>
       </div>
@@ -440,7 +442,7 @@ export function FocusModeWorkout({
         <div className="text-center flex-1">
           <p className="font-medium text-sm">{data.workout.name}</p>
           <Badge className={`${sectionConfig.color} text-white text-xs`}>
-            {sectionConfig.label}
+            {t(sectionConfig.labelKey)}
           </Badge>
         </div>
         <div className="flex items-center gap-1">
@@ -464,7 +466,7 @@ export function FocusModeWorkout({
             size="sm"
             onClick={() => { liveCoach.disconnect(); setShowCompleteDialog(true) }}
           >
-            Avsluta
+            {t('actions.finish')}
           </Button>
         </div>
       </header>
@@ -473,9 +475,9 @@ export function FocusModeWorkout({
       <div className="px-4 py-2 bg-muted/30">
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
           <span>
-            Övning {currentIndex + 1} av {data.exercises.length}
+            {t('progress.exerciseCounter', { current: currentIndex + 1, total: data.exercises.length })}
           </span>
-          <span>{data.progress.percentComplete}% klart</span>
+          <span>{t('progress.percentComplete', { percent: data.progress.percentComplete })}</span>
         </div>
         <Progress value={data.progress.percentComplete} className="h-2" />
       </div>
@@ -589,7 +591,7 @@ export function FocusModeWorkout({
                   /* Fallback: Text-only display when no images */
                   <div className="text-center">
                     <h2 className="text-2xl font-bold">
-                      {currentExercise.nameSv || currentExercise.name}
+                      {locale === 'sv' ? currentExercise.nameSv || currentExercise.name : currentExercise.name}
                     </h2>
                     <p className="text-muted-foreground">
                       {currentExercise.sets} set × {currentExercise.repsTarget} reps
@@ -611,7 +613,7 @@ export function FocusModeWorkout({
                     onClick={() => setShowInstructions(true)}
                   >
                     <Info className="h-4 w-4 mr-2" />
-                    Visa instruktioner
+                    {t('instructions.show')}
                   </Button>
                 )}
 
@@ -643,7 +645,7 @@ export function FocusModeWorkout({
                           </div>
                         ) : (
                           <p className="text-xs text-muted-foreground">
-                            {isCurrent ? 'Aktuellt' : 'Väntar'}
+                            {isCurrent ? t('sets.current') : t('sets.waiting')}
                           </p>
                         )}
                       </div>
@@ -654,7 +656,7 @@ export function FocusModeWorkout({
                 {/* Rest time info */}
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                   <Timer className="h-4 w-4" />
-                  <span>Vila: {currentExercise.restSeconds} sekunder</span>
+                  <span>{t('rest.label', { seconds: currentExercise.restSeconds })}</span>
                 </div>
 
                 {/* Set logging form */}
@@ -676,14 +678,14 @@ export function FocusModeWorkout({
                     <CardContent className="pt-6 text-center">
                       <CheckCircle2 className="h-12 w-12 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
                       <p className="font-medium text-emerald-700 dark:text-emerald-300">
-                        Övning klar!
+                        {t('exerciseComplete.title')}
                       </p>
                       {currentIndex < data.exercises.length - 1 ? (
                         <Button
                           className="mt-4"
                           onClick={goToNext}
                         >
-                          Nästa övning
+                          {t('actions.nextExercise')}
                           <ChevronRight className="ml-2 h-4 w-4" />
                         </Button>
                       ) : (
@@ -691,7 +693,7 @@ export function FocusModeWorkout({
                           className="mt-4"
                           onClick={() => setShowCompleteDialog(true)}
                         >
-                          Avsluta pass
+                          {t('actions.finishWorkout')}
                         </Button>
                       )}
                     </CardContent>
@@ -720,7 +722,7 @@ export function FocusModeWorkout({
             disabled={currentIndex === 0}
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
-            Föregående
+            {t('actions.previous')}
           </Button>
           <Button
             variant="secondary"
@@ -728,7 +730,7 @@ export function FocusModeWorkout({
             onClick={goToNext}
             disabled={currentIndex >= data.exercises.length - 1}
           >
-            Nästa
+            {t('actions.next')}
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </footer>
@@ -739,7 +741,7 @@ export function FocusModeWorkout({
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {currentExercise?.nameSv || currentExercise?.name}
+              {currentExercise ? (locale === 'sv' ? currentExercise.nameSv || currentExercise.name : currentExercise.name) : ''}
             </DialogTitle>
           </DialogHeader>
           {currentExercise?.videoUrl && (
@@ -757,7 +759,7 @@ export function FocusModeWorkout({
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Inga instruktioner tillgängliga.
+              {t('instructions.empty')}
             </p>
           )}
         </DialogContent>
@@ -767,17 +769,17 @@ export function FocusModeWorkout({
       <Dialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Avsluta pass</DialogTitle>
+            <DialogTitle>{t('completeDialog.title')}</DialogTitle>
             <DialogDescription>
               {data.progress.isComplete
-                ? 'Bra jobbat! Alla övningar är klara.'
-                : `Du har gjort ${data.progress.completedSets} av ${data.progress.totalSetsTarget} set.`}
+                ? t('completeDialog.allDone')
+                : t('completeDialog.partial', { completed: data.progress.completedSets, total: data.progress.totalSetsTarget })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4">
             <label className="text-sm font-medium mb-2 block">
-              Hur svårt var passet? (RPE)
+              {t('completeDialog.rpeQuestion')}
             </label>
             <div className="flex items-center gap-2">
               {[5, 6, 7, 8, 9, 10].map((rpe) => (
@@ -794,12 +796,12 @@ export function FocusModeWorkout({
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {sessionRPE <= 6
-                ? 'Lätt'
+                ? t('rpe.easy')
                 : sessionRPE <= 7
-                  ? 'Måttligt'
+                  ? t('rpe.moderate')
                   : sessionRPE <= 8
-                    ? 'Svårt'
-                    : 'Mycket svårt'}
+                    ? t('rpe.hard')
+                    : t('rpe.veryHard')}
             </p>
           </div>
 
@@ -809,7 +811,7 @@ export function FocusModeWorkout({
               className="text-foreground"
               onClick={() => setShowCompleteDialog(false)}
             >
-              Fortsätt träna
+              {t('actions.continueTraining')}
             </Button>
             <Button onClick={handleComplete} disabled={isCompleting}>
               {isCompleting ? (
@@ -817,7 +819,7 @@ export function FocusModeWorkout({
               ) : (
                 <CheckCircle2 className="h-4 w-4 mr-2" />
               )}
-              Avsluta
+              {t('actions.finish')}
             </Button>
           </DialogFooter>
         </DialogContent>

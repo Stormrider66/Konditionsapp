@@ -4107,6 +4107,59 @@
         "veryHard": "Very hard"
       }
     },
+    "focusModeWorkout": {
+      "sections": {
+        "warmup": "Warmup",
+        "main": "Main session",
+        "core": "Core",
+        "prehab": "Prehab",
+        "cooldown": "Cooldown"
+      },
+      "loading": "Loading workout...",
+      "errors": {
+        "generic": "Something went wrong",
+        "loadTitle": "Could not load the workout"
+      },
+      "actions": {
+        "goBack": "Go back",
+        "finish": "Finish",
+        "nextExercise": "Next exercise",
+        "finishWorkout": "Finish workout",
+        "previous": "Previous",
+        "next": "Next",
+        "continueTraining": "Continue training"
+      },
+      "progress": {
+        "exerciseCounter": "Exercise {current} of {total}",
+        "percentComplete": "{percent}% complete"
+      },
+      "sets": {
+        "current": "Current",
+        "waiting": "Waiting"
+      },
+      "rest": {
+        "label": "Rest: {seconds} seconds"
+      },
+      "exerciseComplete": {
+        "title": "Exercise done!"
+      },
+      "instructions": {
+        "show": "Show instructions",
+        "empty": "No instructions available."
+      },
+      "completeDialog": {
+        "title": "Finish workout",
+        "allDone": "Good work! All exercises are done.",
+        "partial": "You have completed {completed} of {total} sets.",
+        "rpeQuestion": "How hard was the workout? (RPE)"
+      },
+      "rpe": {
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "hard": "Hard",
+        "veryHard": "Very hard"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",
