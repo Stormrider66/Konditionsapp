@@ -20,6 +20,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface RosterAthlete {
   id: string
@@ -50,28 +51,31 @@ function getReadinessColor(score: number | null): string {
   return 'bg-red-500'
 }
 
-function getAcwrBadge(zone: string | null): { color: string; label: string } {
+function getAcwrBadgeColor(zone: string | null): string {
   switch (zone) {
-    case 'OPTIMAL': return { color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', label: 'Optimal' }
-    case 'CAUTION': return { color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', label: 'Varning' }
-    case 'DANGER': return { color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', label: 'Fara' }
-    case 'CRITICAL': return { color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', label: 'Kritisk' }
-    default: return { color: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400', label: '-' }
+    case 'OPTIMAL': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+    case 'CAUTION': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+    case 'DANGER': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+    case 'CRITICAL': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+    default: return 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
   }
 }
 
-function formatLastActivity(dateStr: string | null): string {
+type TeamRosterGridTranslator = ReturnType<typeof useTranslations>
+
+function formatLastActivity(dateStr: string | null, t: TeamRosterGridTranslator): string {
   if (!dateStr) return '-'
   const date = new Date(dateStr)
   const now = new Date()
   const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
-  if (diffDays === 0) return 'Idag'
-  if (diffDays === 1) return 'Igår'
-  if (diffDays < 7) return `${diffDays}d sedan`
-  return `${Math.floor(diffDays / 7)}v sedan`
+  if (diffDays === 0) return t('dates.today')
+  if (diffDays === 1) return t('dates.yesterday')
+  if (diffDays < 7) return t('dates.daysAgo', { days: diffDays })
+  return t('dates.weeksAgo', { weeks: Math.floor(diffDays / 7) })
 }
 
 export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProps) {
+  const t = useTranslations('components.teamRosterGrid')
   const router = useRouter()
   const [roster, setRoster] = useState<RosterAthlete[]>([])
   const [loading, setLoading] = useState(true)
@@ -97,9 +101,17 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
   }, [basePath])
 
   useEffect(() => {
-    fetchRoster()
-    const interval = setInterval(fetchRoster, 60000) // refresh every 60s
-    return () => clearInterval(interval)
+    const timeoutId = window.setTimeout(() => {
+      void fetchRoster()
+    }, 0)
+    const interval = window.setInterval(() => {
+      void fetchRoster()
+    }, 60000)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      window.clearInterval(interval)
+    }
   }, [fetchRoster])
 
   const filtered = useMemo(() => {
@@ -147,16 +159,16 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
     }
   }
 
-  const SortIcon = ({ field }: { field: SortField }) => {
+  const renderSortIcon = (field: SortField) => {
     if (sortField !== field) return null
     return sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
   }
 
   const filters: { key: FilterType; label: string; icon?: typeof AlertTriangle }[] = [
-    { key: 'all', label: 'Alla' },
-    { key: 'attention', label: 'Uppmärksamhet', icon: AlertTriangle },
-    { key: 'injured', label: 'Skadade', icon: HeartPulse },
-    { key: 'high-load', label: 'Hög belastning', icon: Activity },
+    { key: 'all', label: t('filters.all') },
+    { key: 'attention', label: t('filters.attention'), icon: AlertTriangle },
+    { key: 'injured', label: t('filters.injured'), icon: HeartPulse },
+    { key: 'high-load', label: t('filters.highLoad'), icon: Activity },
   ]
 
   return (
@@ -165,7 +177,7 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-sm flex items-center gap-2">
             <Users className="h-4 w-4 text-blue-500" />
-            Trupp
+            {t('title')}
             <Badge variant="secondary" className="text-xs">{roster.length}</Badge>
           </GlassCardTitle>
         </div>
@@ -193,7 +205,7 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
           </div>
         ) : filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            {filter === 'all' ? 'Inga atleter' : 'Inga atleter matchar filtret'}
+            {filter === 'all' ? t('empty.noAthletes') : t('empty.noFilterMatches')}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -202,30 +214,30 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
                 <tr className="text-xs text-muted-foreground border-b dark:border-white/10">
                   <th className="text-left py-2 pr-2">
                     <button onClick={() => toggleSort('name')} className="flex items-center gap-1 hover:text-foreground">
-                      Namn <SortIcon field="name" />
+                      {t('columns.name')} {renderSortIcon('name')}
                     </button>
                   </th>
                   <th className="text-center py-2 px-2">
                     <button onClick={() => toggleSort('readiness')} className="flex items-center gap-1 hover:text-foreground mx-auto">
-                      Beredskap <SortIcon field="readiness" />
+                      {t('columns.readiness')} {renderSortIcon('readiness')}
                     </button>
                   </th>
                   {!compact && (
                     <th className="text-center py-2 px-2">
                       <button onClick={() => toggleSort('acwr')} className="flex items-center gap-1 hover:text-foreground mx-auto">
-                        ACWR <SortIcon field="acwr" />
+                        ACWR {renderSortIcon('acwr')}
                       </button>
                     </th>
                   )}
                   <th className="text-center py-2 px-2">
                     <button onClick={() => toggleSort('injury')} className="flex items-center gap-1 hover:text-foreground mx-auto">
-                      Skador <SortIcon field="injury" />
+                      {t('columns.injuries')} {renderSortIcon('injury')}
                     </button>
                   </th>
                   {!compact && (
                     <th className="text-right py-2 pl-2">
                       <button onClick={() => toggleSort('activity')} className="flex items-center gap-1 hover:text-foreground ml-auto">
-                        Senast <SortIcon field="activity" />
+                        {t('columns.last')} {renderSortIcon('activity')}
                       </button>
                     </th>
                   )}
@@ -233,7 +245,7 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
               </thead>
               <tbody>
                 {filtered.slice(0, compact ? 8 : undefined).map(athlete => {
-                  const acwrBadge = getAcwrBadge(athlete.acwrZone)
+                  const acwrBadgeColor = getAcwrBadgeColor(athlete.acwrZone)
                   return (
                     <tr
                       key={athlete.id}
@@ -258,8 +270,8 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
                       </td>
                       {!compact && (
                         <td className="text-center py-2 px-2">
-                          <Badge className={cn('text-[10px]', acwrBadge.color)}>
-                            {athlete.acwr !== null ? athlete.acwr.toFixed(2) : acwrBadge.label}
+                          <Badge className={cn('text-[10px]', acwrBadgeColor)}>
+                            {athlete.acwr !== null ? athlete.acwr.toFixed(2) : '-'}
                           </Badge>
                         </td>
                       )}
@@ -275,7 +287,7 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
                       </td>
                       {!compact && (
                         <td className="text-right py-2 pl-2 text-xs text-muted-foreground">
-                          {formatLastActivity(athlete.lastActivity)}
+                          {formatLastActivity(athlete.lastActivity, t)}
                         </td>
                       )}
                     </tr>
@@ -285,7 +297,7 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
             </table>
             {compact && filtered.length > 8 && (
               <p className="text-xs text-muted-foreground text-center pt-2">
-                + {filtered.length - 8} fler atleter
+                {t('moreAthletes', { count: filtered.length - 8 })}
               </p>
             )}
           </div>

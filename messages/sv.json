@@ -2818,6 +2818,32 @@
         "giveFeedback": "Ge feedback",
         "getStarted": "Kom igång"
       }
+    },
+    "teamRosterGrid": {
+      "title": "Trupp",
+      "moreAthletes": "+ {count} fler atleter",
+      "dates": {
+        "today": "Idag",
+        "yesterday": "Igår",
+        "daysAgo": "{days}d sedan",
+        "weeksAgo": "{weeks}v sedan"
+      },
+      "filters": {
+        "all": "Alla",
+        "attention": "Uppmärksamhet",
+        "injured": "Skadade",
+        "highLoad": "Hög belastning"
+      },
+      "empty": {
+        "noAthletes": "Inga atleter",
+        "noFilterMatches": "Inga atleter matchar filtret"
+      },
+      "columns": {
+        "name": "Namn",
+        "readiness": "Beredskap",
+        "injuries": "Skador",
+        "last": "Senast"
+      }
     }
   },
   "infographic": {

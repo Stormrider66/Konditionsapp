@@ -2818,6 +2818,32 @@
         "giveFeedback": "Give feedback",
         "getStarted": "Get started"
       }
+    },
+    "teamRosterGrid": {
+      "title": "Roster",
+      "moreAthletes": "+ {count} more athletes",
+      "dates": {
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "daysAgo": "{days}d ago",
+        "weeksAgo": "{weeks}w ago"
+      },
+      "filters": {
+        "all": "All",
+        "attention": "Attention",
+        "injured": "Injured",
+        "highLoad": "High load"
+      },
+      "empty": {
+        "noAthletes": "No athletes",
+        "noFilterMatches": "No athletes match the filter"
+      },
+      "columns": {
+        "name": "Name",
+        "readiness": "Readiness",
+        "injuries": "Injuries",
+        "last": "Last"
+      }
     }
   },
   "infographic": {
