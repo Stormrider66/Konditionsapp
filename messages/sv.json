@@ -7158,6 +7158,110 @@
       },
       "resultCount": "{count, plural, one {# gång genomfört} other {# gånger genomfört}}"
     },
+    "hybridWorkoutDetail": {
+      "formats": {
+        "amrap": "AMRAP",
+        "forTime": "På Tid",
+        "emom": "EMOM",
+        "tabata": "Tabata",
+        "chipper": "Chipper",
+        "ladder": "Stege",
+        "intervals": "Intervaller",
+        "hyrox": "HYROX",
+        "custom": "Anpassad"
+      },
+      "scaling": {
+        "rx": "Rx (förskrivet)",
+        "scaled": "Scaled (anpassad)",
+        "foundations": "Foundations (nybörjare)",
+        "custom": "Egen anpassning"
+      },
+      "actions": {
+        "timer": "Timer",
+        "logResult": "Logga Resultat",
+        "log": "Logga",
+        "saving": "Sparar...",
+        "saveResult": "Spara Resultat"
+      },
+      "timerDialog": {
+        "title": "Workout Timer - {name}",
+        "description": "Starta timern när du börjar passet."
+      },
+      "logDialog": {
+        "title": "Logga Resultat - {name}",
+        "description": "Fyll i ditt resultat och välj skalningsnivå."
+      },
+      "personalRecord": "Personligt Rekord",
+      "tabs": {
+        "workout": "Pass",
+        "history": "Historik ({count})"
+      },
+      "details": {
+        "title": "Passdetaljer",
+        "time": "Tid:",
+        "rounds": "Rundor:"
+      },
+      "movements": {
+        "title": "Rörelser"
+      },
+      "history": {
+        "title": "Din Historik",
+        "empty": "Du har inte loggat detta pass än.",
+        "logFirst": "Logga ditt första resultat"
+      },
+      "form": {
+        "scalingLevel": "Skalningsnivå",
+        "chooseScaling": "Välj skalning",
+        "describeCustomBelow": "Beskriv dina anpassningar nedan",
+        "result": "Resultat",
+        "minutes": "Min",
+        "seconds": "Sek",
+        "rounds": "Rundor",
+        "reps": "Reps",
+        "personalBest": "Ditt PR: {score} ({scaling})",
+        "rpe": "RPE (upplevd ansträngning, 1-10)",
+        "chooseRpe": "Välj RPE",
+        "notes": "Anteckningar (valfritt)",
+        "notesPlaceholder": "Hur kändes passet? Något att notera?"
+      },
+      "customScaling": {
+        "title": "Egen Anpassning",
+        "description": "Beskriv vilka ändringar du gjorde från det föreskrivna passet.",
+        "notesLabel": "Beskrivning av anpassningar *",
+        "notesPlaceholder": "T.ex. 'Använde 30kg istället för 43kg på thrusters, band-assisted pull-ups'",
+        "specificChanges": "Specifika ändringar per rörelse",
+        "from": "Från",
+        "to": "Till"
+      },
+      "modificationTypes": {
+        "weight": "Vikt",
+        "reps": "Reps",
+        "substitute": "Ersättning",
+        "skip": "Hoppade över"
+      },
+      "toast": {
+        "invalidTime": "Ange en giltig tid",
+        "newPrTitle": "Nytt personligt rekord! 🎉",
+        "newPrDescription": "Du slog ditt tidigare PR med {diff}",
+        "logged": "Resultat loggat!",
+        "logFailed": "Kunde inte logga resultat"
+      },
+      "scoreDiff": {
+        "rounds": "{sign}{count} rundor"
+      },
+      "rpeLabels": {
+        "1": "Mycket lätt",
+        "2": "Lätt",
+        "3": "Lätt-måttlig",
+        "4": "Måttlig",
+        "5": "Någorlunda krävande",
+        "6": "Krävande",
+        "7": "Ansträngande",
+        "8": "Mycket ansträngande",
+        "9": "Extremt ansträngande",
+        "10": "Maximal ansträngning"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

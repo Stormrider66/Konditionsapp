@@ -56,6 +56,7 @@ import {
   confirmFutureCompletion,
   readFutureCompletionWarning,
 } from '@/lib/workouts/future-completion-client';
+import { useLocale, useTranslations } from '@/i18n/client';
 
 interface HybridMovement {
   id: string;
@@ -128,23 +129,25 @@ interface HybridWorkoutDetailProps {
   basePath?: string;
 }
 
-const formatLabels: Record<string, { label: string; labelSv: string; icon: React.ReactNode }> = {
-  AMRAP: { label: 'AMRAP', labelSv: 'AMRAP', icon: <Repeat className="h-5 w-5" /> },
-  FOR_TIME: { label: 'For Time', labelSv: 'På Tid', icon: <Timer className="h-5 w-5" /> },
-  EMOM: { label: 'EMOM', labelSv: 'EMOM', icon: <Clock className="h-5 w-5" /> },
-  TABATA: { label: 'Tabata', labelSv: 'Tabata', icon: <Zap className="h-5 w-5" /> },
-  CHIPPER: { label: 'Chipper', labelSv: 'Chipper', icon: <Target className="h-5 w-5" /> },
-  LADDER: { label: 'Ladder', labelSv: 'Stege', icon: <Dumbbell className="h-5 w-5" /> },
-  INTERVALS: { label: 'Intervals', labelSv: 'Intervaller', icon: <Zap className="h-5 w-5" /> },
-  HYROX_SIM: { label: 'HYROX', labelSv: 'HYROX', icon: <Trophy className="h-5 w-5" /> },
-  CUSTOM: { label: 'Custom', labelSv: 'Anpassad', icon: <Dumbbell className="h-5 w-5" /> },
+type TranslationKey = Parameters<ReturnType<typeof useTranslations>>[0]
+
+const formatLabels: Record<string, { labelKey: TranslationKey; icon: React.ReactNode }> = {
+  AMRAP: { labelKey: 'formats.amrap', icon: <Repeat className="h-5 w-5" /> },
+  FOR_TIME: { labelKey: 'formats.forTime', icon: <Timer className="h-5 w-5" /> },
+  EMOM: { labelKey: 'formats.emom', icon: <Clock className="h-5 w-5" /> },
+  TABATA: { labelKey: 'formats.tabata', icon: <Zap className="h-5 w-5" /> },
+  CHIPPER: { labelKey: 'formats.chipper', icon: <Target className="h-5 w-5" /> },
+  LADDER: { labelKey: 'formats.ladder', icon: <Dumbbell className="h-5 w-5" /> },
+  INTERVALS: { labelKey: 'formats.intervals', icon: <Zap className="h-5 w-5" /> },
+  HYROX_SIM: { labelKey: 'formats.hyrox', icon: <Trophy className="h-5 w-5" /> },
+  CUSTOM: { labelKey: 'formats.custom', icon: <Dumbbell className="h-5 w-5" /> },
 };
 
-const scalingLabels: Record<string, { label: string; labelSv: string; color: string }> = {
-  RX: { label: 'Rx', labelSv: 'Rx (förskrivet)', color: 'bg-green-500' },
-  SCALED: { label: 'Scaled', labelSv: 'Scaled (anpassad)', color: 'bg-yellow-500' },
-  FOUNDATIONS: { label: 'Foundations', labelSv: 'Foundations (nybörjare)', color: 'bg-blue-500' },
-  CUSTOM: { label: 'Custom', labelSv: 'Egen anpassning', color: 'bg-purple-500' },
+const scalingLabels: Record<string, { labelKey: TranslationKey; color: string }> = {
+  RX: { labelKey: 'scaling.rx', color: 'bg-green-500' },
+  SCALED: { labelKey: 'scaling.scaled', color: 'bg-yellow-500' },
+  FOUNDATIONS: { labelKey: 'scaling.foundations', color: 'bg-blue-500' },
+  CUSTOM: { labelKey: 'scaling.custom', color: 'bg-purple-500' },
 };
 
 // Map workout format to timer mode
@@ -168,6 +171,8 @@ function getTimerMode(format: string): 'FOR_TIME' | 'AMRAP' | 'EMOM' | 'TABATA' 
 }
 
 export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath = '' }: HybridWorkoutDetailProps) {
+  const t = useTranslations('components.hybridWorkoutDetail');
+  const locale = useLocale();
   const router = useRouter();
   const [isLoggingOpen, setIsLoggingOpen] = useState(false);
   const [isTimerOpen, setIsTimerOpen] = useState(false);
@@ -197,7 +202,7 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
           </div>
           <div className="flex items-center gap-2 mt-1 text-muted-foreground">
             {formatLabels[workout.format]?.icon}
-            <span>{formatLabels[workout.format]?.labelSv || workout.format}</span>
+            <span>{formatLabels[workout.format] ? t(formatLabels[workout.format].labelKey) : workout.format}</span>
             {workout.isBenchmark && (
               <Badge variant="secondary">{workout.benchmarkSource}</Badge>
             )}
@@ -209,14 +214,14 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
             <DialogTrigger asChild>
               <Button variant="outline" size="lg" className="gap-2">
                 <StopCircle className="h-5 w-5" />
-                <span className="hidden sm:inline">Timer</span>
+                <span className="hidden sm:inline">{t('actions.timer')}</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Workout Timer - {workout.name}</DialogTitle>
+                <DialogTitle>{t('timerDialog.title', { name: workout.name })}</DialogTitle>
                 <DialogDescription>
-                  Starta timern när du börjar passet.
+                  {t('timerDialog.description')}
                 </DialogDescription>
               </DialogHeader>
               <WorkoutTimer
@@ -243,15 +248,15 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
             <DialogTrigger asChild>
               <Button size="lg" className="gap-2">
                 <Play className="h-5 w-5" />
-                <span className="hidden sm:inline">Logga Resultat</span>
-                <span className="sm:hidden">Logga</span>
+                <span className="hidden sm:inline">{t('actions.logResult')}</span>
+                <span className="sm:hidden">{t('actions.log')}</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Logga Resultat - {workout.name}</DialogTitle>
+                <DialogTitle>{t('logDialog.title', { name: workout.name })}</DialogTitle>
                 <DialogDescription>
-                  Fyll i ditt resultat och välj skalningsnivå.
+                  {t('logDialog.description')}
                 </DialogDescription>
               </DialogHeader>
               <ScoreLoggingForm
@@ -278,9 +283,9 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
               <div className="flex items-center gap-3">
                 <Medal className="h-8 w-8 text-yellow-600" />
                 <div>
-                  <div className="font-semibold text-yellow-800">Personligt Rekord</div>
+                  <div className="font-semibold text-yellow-800">{t('personalRecord')}</div>
                   <div className="text-sm text-yellow-700">
-                    {new Date(personalBest.completedAt).toLocaleDateString('sv-SE')}
+                    {new Date(personalBest.completedAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE')}
                   </div>
                 </div>
               </div>
@@ -289,7 +294,9 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
                   {formatScore(personalBest, workout.format)}
                 </div>
                 <Badge className={`${scalingLabels[personalBest.scalingLevel]?.color} text-white`}>
-                  {scalingLabels[personalBest.scalingLevel]?.label}
+                  {scalingLabels[personalBest.scalingLevel]
+                    ? t(scalingLabels[personalBest.scalingLevel].labelKey)
+                    : personalBest.scalingLevel}
                 </Badge>
               </div>
             </div>
@@ -300,9 +307,9 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="workout">Pass</TabsTrigger>
+          <TabsTrigger value="workout">{t('tabs.workout')}</TabsTrigger>
           <TabsTrigger value="history">
-            Historik ({workout.results?.length || 0})
+            {t('tabs.history', { count: workout.results?.length || 0 })}
           </TabsTrigger>
         </TabsList>
 
@@ -313,7 +320,7 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   {formatLabels[workout.format]?.icon}
-                  Passdetaljer
+                  {t('details.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -324,7 +331,7 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   {workout.totalMinutes && (
                     <div>
-                      <span className="text-muted-foreground">Tid:</span>{' '}
+                      <span className="text-muted-foreground">{t('details.time')}</span>{' '}
                       <span className="font-medium">{workout.totalMinutes} min</span>
                     </div>
                   )}
@@ -336,7 +343,7 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
                   )}
                   {workout.totalRounds && (
                     <div>
-                      <span className="text-muted-foreground">Rundor:</span>{' '}
+                      <span className="text-muted-foreground">{t('details.rounds')}</span>{' '}
                       <span className="font-medium">{workout.totalRounds}</span>
                     </div>
                   )}
@@ -350,7 +357,9 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
 
                 <div>
                   <Badge className={`${scalingLabels[workout.scalingLevel]?.color} text-white`}>
-                    {scalingLabels[workout.scalingLevel]?.label}
+                    {scalingLabels[workout.scalingLevel]
+                      ? t(scalingLabels[workout.scalingLevel].labelKey)
+                      : workout.scalingLevel}
                   </Badge>
                 </div>
               </CardContent>
@@ -361,7 +370,7 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Dumbbell className="h-5 w-5" />
-                  Rörelser
+                  {t('movements.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -380,7 +389,7 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <History className="h-5 w-5" />
-                Din Historik
+                {t('history.title')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -396,7 +405,7 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
                           {result.isPR && <Medal className="h-5 w-5 text-yellow-600" />}
                           <div>
                             <div className="font-medium">
-                              {new Date(result.completedAt).toLocaleDateString('sv-SE', {
+                              {new Date(result.completedAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
                                 weekday: 'long',
                                 year: 'numeric',
                                 month: 'long',
@@ -418,7 +427,9 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
                             variant="outline"
                             className={`${scalingLabels[result.scalingLevel]?.color} text-white text-xs`}
                           >
-                            {scalingLabels[result.scalingLevel]?.label}
+                            {scalingLabels[result.scalingLevel]
+                              ? t(scalingLabels[result.scalingLevel].labelKey)
+                              : result.scalingLevel}
                           </Badge>
                           {result.perceivedEffort && (
                             <div className="text-xs text-muted-foreground mt-1">
@@ -439,13 +450,13 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Du har inte loggat detta pass än.</p>
+                  <p>{t('history.empty')}</p>
                   <Button
                     variant="outline"
                     className="mt-4"
                     onClick={() => setIsLoggingOpen(true)}
                   >
-                    Logga ditt första resultat
+                    {t('history.logFirst')}
                   </Button>
                 </div>
               )}
@@ -513,7 +524,8 @@ interface ScoreLoggingFormProps {
   onSuccess: () => void;
 }
 
-function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSuccess }: ScoreLoggingFormProps) {
+function ScoreLoggingForm({ workout, personalBest, initialTimeMs, onSuccess }: ScoreLoggingFormProps) {
+  const t = useTranslations('components.hybridWorkoutDetail');
   const [loading, setLoading] = useState(false);
   const [scalingLevel, setScalingLevel] = useState<string>(workout.scalingLevel);
   const [showCustomScaling, setShowCustomScaling] = useState(false);
@@ -585,7 +597,7 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
       if (scoreType === 'TIME') {
         const totalSeconds = (parseInt(minutes) || 0) * 60 + (parseInt(seconds) || 0);
         if (totalSeconds <= 0) {
-          toast.error('Ange en giltig tid');
+          toast.error(t('toast.invalidTime'));
           setLoading(false);
           return;
         }
@@ -630,17 +642,19 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
       }
 
       if (data.result.isPR) {
-        toast.success('Nytt personligt rekord! 🎉', {
-          description: `Du slog ditt tidigare PR med ${formatScoreDiff(data.previousBest, data.result, workout.format)}`,
+        toast.success(t('toast.newPrTitle'), {
+          description: t('toast.newPrDescription', {
+            diff: formatScoreDiff(data.previousBest, data.result, workout.format, t),
+          }),
         });
       } else {
-        toast.success('Resultat loggat!');
+        toast.success(t('toast.logged'));
       }
 
       onSuccess();
     } catch (error) {
       console.error('Failed to log result:', error);
-      toast.error('Kunde inte logga resultat');
+      toast.error(t('toast.logFailed'));
     } finally {
       setLoading(false);
     }
@@ -650,15 +664,15 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Scaling Level */}
       <div className="space-y-2">
-        <Label>Skalningsnivå</Label>
+        <Label>{t('form.scalingLevel')}</Label>
         <Select value={scalingLevel} onValueChange={handleScalingChange}>
           <SelectTrigger>
-            <SelectValue placeholder="Välj skalning" />
+            <SelectValue placeholder={t('form.chooseScaling')} />
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(scalingLabels).map(([key, { labelSv }]) => (
+            {Object.entries(scalingLabels).map(([key, { labelKey }]) => (
               <SelectItem key={key} value={key}>
-                {labelSv}
+                {t(labelKey)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -666,7 +680,7 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
         {scalingLevel === 'CUSTOM' && (
           <p className="text-sm text-purple-600 flex items-center gap-1">
             <AlertCircle className="h-4 w-4" />
-            Beskriv dina anpassningar nedan
+            {t('form.describeCustomBelow')}
           </p>
         )}
       </div>
@@ -677,18 +691,18 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Edit className="h-4 w-4" />
-              Egen Anpassning
+              {t('customScaling.title')}
             </CardTitle>
             <CardDescription>
-              Beskriv vilka ändringar du gjorde från det föreskrivna passet.
+              {t('customScaling.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="scalingNotes">Beskrivning av anpassningar *</Label>
+              <Label htmlFor="scalingNotes">{t('customScaling.notesLabel')}</Label>
               <Textarea
                 id="scalingNotes"
-                placeholder="T.ex. 'Använde 30kg istället för 43kg på thrusters, band-assisted pull-ups'"
+                placeholder={t('customScaling.notesPlaceholder')}
                 value={scalingNotes}
                 onChange={(e) => setScalingNotes(e.target.value)}
                 className="mt-1"
@@ -698,7 +712,7 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
 
             {/* Per-movement modifications */}
             <div>
-              <Label className="mb-2 block">Specifika ändringar per rörelse</Label>
+              <Label className="mb-2 block">{t('customScaling.specificChanges')}</Label>
               <div className="space-y-2">
                 {workout.movements.map((movement) => {
                   const existingMod = modifications.find((m) => m.movementId === movement.id);
@@ -745,20 +759,20 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="weight">Vikt</SelectItem>
-                            <SelectItem value="reps">Reps</SelectItem>
-                            <SelectItem value="substitute">Ersättning</SelectItem>
-                            <SelectItem value="skip">Hoppade över</SelectItem>
+                            <SelectItem value="weight">{t('modificationTypes.weight')}</SelectItem>
+                            <SelectItem value="reps">{t('modificationTypes.reps')}</SelectItem>
+                            <SelectItem value="substitute">{t('modificationTypes.substitute')}</SelectItem>
+                            <SelectItem value="skip">{t('modificationTypes.skip')}</SelectItem>
                           </SelectContent>
                         </Select>
                         <Input
-                          placeholder="Från"
+                          placeholder={t('customScaling.from')}
                           value={mod.originalValue}
                           onChange={(e) => updateModification(index, 'originalValue', e.target.value)}
                           className="h-9"
                         />
                         <Input
-                          placeholder="Till"
+                          placeholder={t('customScaling.to')}
                           value={mod.newValue}
                           onChange={(e) => updateModification(index, 'newValue', e.target.value)}
                           className="h-9"
@@ -775,13 +789,13 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
 
       {/* Score Input */}
       <div className="space-y-2">
-        <Label>Resultat</Label>
+        <Label>{t('form.result')}</Label>
         {scoreType === 'TIME' && (
           <div className="flex items-center gap-2">
             <div className="flex-1">
               <Input
                 type="number"
-                placeholder="Min"
+                placeholder={t('form.minutes')}
                 value={minutes}
                 onChange={(e) => setMinutes(e.target.value)}
                 min="0"
@@ -792,7 +806,7 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
             <div className="flex-1">
               <Input
                 type="number"
-                placeholder="Sek"
+                placeholder={t('form.seconds')}
                 value={seconds}
                 onChange={(e) => setSeconds(e.target.value)}
                 min="0"
@@ -806,7 +820,7 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
         {scoreType === 'ROUNDS_REPS' && (
           <div className="flex items-center gap-2">
             <div className="flex-1">
-              <Label className="text-xs text-muted-foreground">Rundor</Label>
+              <Label className="text-xs text-muted-foreground">{t('form.rounds')}</Label>
               <Input
                 type="number"
                 placeholder="0"
@@ -818,7 +832,7 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
             </div>
             <span className="text-2xl font-bold mt-5">+</span>
             <div className="flex-1">
-              <Label className="text-xs text-muted-foreground">Reps</Label>
+              <Label className="text-xs text-muted-foreground">{t('form.reps')}</Label>
               <Input
                 type="number"
                 placeholder="0"
@@ -834,22 +848,27 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
         {/* Show PR comparison */}
         {personalBest && (
           <p className="text-sm text-muted-foreground">
-            Ditt PR: {formatScore(personalBest, workout.format)} ({scalingLabels[personalBest.scalingLevel]?.label})
+            {t('form.personalBest', {
+              score: formatScore(personalBest, workout.format),
+              scaling: scalingLabels[personalBest.scalingLevel]
+                ? t(scalingLabels[personalBest.scalingLevel].labelKey)
+                : personalBest.scalingLevel,
+            })}
           </p>
         )}
       </div>
 
       {/* RPE */}
       <div className="space-y-2">
-        <Label>RPE (upplevd ansträngning, 1-10)</Label>
+        <Label>{t('form.rpe')}</Label>
         <Select value={rpe} onValueChange={setRpe}>
           <SelectTrigger>
-            <SelectValue placeholder="Välj RPE" />
+            <SelectValue placeholder={t('form.chooseRpe')} />
           </SelectTrigger>
           <SelectContent>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
               <SelectItem key={n} value={n.toString()}>
-                {n} - {getRpeLabel(n)}
+                {n} - {getRpeLabel(n, t)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -858,10 +877,10 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
 
       {/* Notes */}
       <div className="space-y-2">
-        <Label htmlFor="notes">Anteckningar (valfritt)</Label>
+        <Label htmlFor="notes">{t('form.notes')}</Label>
         <Textarea
           id="notes"
-          placeholder="Hur kändes passet? Något att notera?"
+          placeholder={t('form.notesPlaceholder')}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
@@ -871,11 +890,11 @@ function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSu
       {/* Submit */}
       <Button type="submit" className="w-full h-12" disabled={loading}>
         {loading ? (
-          'Sparar...'
+          t('actions.saving')
         ) : (
           <>
             <Save className="h-5 w-5 mr-2" />
-            Spara Resultat
+            {t('actions.saveResult')}
           </>
         )}
       </Button>
@@ -921,7 +940,8 @@ function formatScore(result: HybridWorkoutResult, format: string): string {
 function formatScoreDiff(
   previous: HybridWorkoutResult | null,
   current: HybridWorkoutResult,
-  format: string
+  format: string,
+  t: ReturnType<typeof useTranslations>
 ): string {
   if (!previous) return '';
 
@@ -936,24 +956,24 @@ function formatScoreDiff(
     const currentTotal = (current.roundsCompleted || 0) * 100 + (current.repsCompleted || 0);
     const previousTotal = (previous.roundsCompleted || 0) * 100 + (previous.repsCompleted || 0);
     const diff = currentTotal - previousTotal;
-    return `${diff > 0 ? '+' : ''}${Math.floor(diff / 100)} rundor`;
+    return t('scoreDiff.rounds', { count: Math.floor(diff / 100), sign: diff > 0 ? '+' : '' });
   }
 
   return '';
 }
 
-function getRpeLabel(rpe: number): string {
-  const labels: Record<number, string> = {
-    1: 'Mycket lätt',
-    2: 'Lätt',
-    3: 'Lätt-måttlig',
-    4: 'Måttlig',
-    5: 'Någorlunda krävande',
-    6: 'Krävande',
-    7: 'Ansträngande',
-    8: 'Mycket ansträngande',
-    9: 'Extremt ansträngande',
-    10: 'Maximal ansträngning',
+function getRpeLabel(rpe: number, t: ReturnType<typeof useTranslations>): string {
+  const keys: Record<number, TranslationKey> = {
+    1: 'rpeLabels.1',
+    2: 'rpeLabels.2',
+    3: 'rpeLabels.3',
+    4: 'rpeLabels.4',
+    5: 'rpeLabels.5',
+    6: 'rpeLabels.6',
+    7: 'rpeLabels.7',
+    8: 'rpeLabels.8',
+    9: 'rpeLabels.9',
+    10: 'rpeLabels.10',
   };
-  return labels[rpe] || '';
+  return keys[rpe] ? t(keys[rpe]) : '';
 }

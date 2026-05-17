@@ -7158,6 +7158,110 @@
       },
       "resultCount": "{count, plural, one {# time completed} other {# times completed}}"
     },
+    "hybridWorkoutDetail": {
+      "formats": {
+        "amrap": "AMRAP",
+        "forTime": "For Time",
+        "emom": "EMOM",
+        "tabata": "Tabata",
+        "chipper": "Chipper",
+        "ladder": "Ladder",
+        "intervals": "Intervals",
+        "hyrox": "HYROX",
+        "custom": "Custom"
+      },
+      "scaling": {
+        "rx": "Rx (prescribed)",
+        "scaled": "Scaled",
+        "foundations": "Foundations",
+        "custom": "Custom scaling"
+      },
+      "actions": {
+        "timer": "Timer",
+        "logResult": "Log result",
+        "log": "Log",
+        "saving": "Saving...",
+        "saveResult": "Save result"
+      },
+      "timerDialog": {
+        "title": "Workout timer - {name}",
+        "description": "Start the timer when you begin the workout."
+      },
+      "logDialog": {
+        "title": "Log result - {name}",
+        "description": "Enter your result and choose a scaling level."
+      },
+      "personalRecord": "Personal record",
+      "tabs": {
+        "workout": "Workout",
+        "history": "History ({count})"
+      },
+      "details": {
+        "title": "Workout details",
+        "time": "Time:",
+        "rounds": "Rounds:"
+      },
+      "movements": {
+        "title": "Movements"
+      },
+      "history": {
+        "title": "Your history",
+        "empty": "You have not logged this workout yet.",
+        "logFirst": "Log your first result"
+      },
+      "form": {
+        "scalingLevel": "Scaling level",
+        "chooseScaling": "Choose scaling",
+        "describeCustomBelow": "Describe your modifications below",
+        "result": "Result",
+        "minutes": "Min",
+        "seconds": "Sec",
+        "rounds": "Rounds",
+        "reps": "Reps",
+        "personalBest": "Your PR: {score} ({scaling})",
+        "rpe": "RPE (perceived exertion, 1-10)",
+        "chooseRpe": "Choose RPE",
+        "notes": "Notes (optional)",
+        "notesPlaceholder": "How did the workout feel? Anything to note?"
+      },
+      "customScaling": {
+        "title": "Custom scaling",
+        "description": "Describe what you changed from the prescribed workout.",
+        "notesLabel": "Modification description *",
+        "notesPlaceholder": "E.g. 'Used 30kg instead of 43kg on thrusters, band-assisted pull-ups'",
+        "specificChanges": "Specific changes per movement",
+        "from": "From",
+        "to": "To"
+      },
+      "modificationTypes": {
+        "weight": "Weight",
+        "reps": "Reps",
+        "substitute": "Substitution",
+        "skip": "Skipped"
+      },
+      "toast": {
+        "invalidTime": "Enter a valid time",
+        "newPrTitle": "New personal record! 🎉",
+        "newPrDescription": "You beat your previous PR by {diff}",
+        "logged": "Result logged!",
+        "logFailed": "Could not log result"
+      },
+      "scoreDiff": {
+        "rounds": "{sign}{count} rounds"
+      },
+      "rpeLabels": {
+        "1": "Very easy",
+        "2": "Easy",
+        "3": "Easy-moderate",
+        "4": "Moderate",
+        "5": "Somewhat demanding",
+        "6": "Demanding",
+        "7": "Hard",
+        "8": "Very hard",
+        "9": "Extremely hard",
+        "10": "Maximum effort"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
