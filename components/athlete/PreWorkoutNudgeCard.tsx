@@ -17,6 +17,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useTranslations } from '@/i18n/client'
 
 interface ContextData {
   workoutId: string
@@ -43,6 +44,7 @@ interface Notification {
 }
 
 export function PreWorkoutNudgeCard() {
+  const t = useTranslations('components.preWorkoutNudgeCard')
   const router = useRouter()
   const basePath = useBasePath()
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -65,7 +67,7 @@ export function PreWorkoutNudgeCard() {
           // Mark as read
           for (const n of preWorkoutNotifications) {
             if (!n.readAt) {
-              fetch(`/api/athlete/notifications/${n.id}`, {
+              void fetch(`/api/athlete/notifications/${n.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'read' }),
@@ -80,7 +82,7 @@ export function PreWorkoutNudgeCard() {
       }
     }
 
-    fetchNotifications()
+    void fetchNotifications()
   }, [])
 
   async function handleDismiss(id: string) {
@@ -119,16 +121,16 @@ export function PreWorkoutNudgeCard() {
     const scheduled = new Date(scheduledFor)
     const diffMs = scheduled.getTime() - now.getTime()
 
-    if (diffMs <= 0) return 'Nu'
+    if (diffMs <= 0) return t('time.now')
 
     const diffMinutes = Math.floor(diffMs / (1000 * 60))
     const hours = Math.floor(diffMinutes / 60)
     const minutes = diffMinutes % 60
 
     if (hours > 0) {
-      return `${hours}h ${minutes}min`
+      return t('time.hoursMinutes', { hours, minutes })
     }
-    return `${minutes} min`
+    return t('time.minutes', { minutes })
   }
 
   function getWorkoutTypeIcon(type: string) {
@@ -177,7 +179,7 @@ export function PreWorkoutNudgeCard() {
                     </h3>
                     <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300">
                       <Timer className="h-3 w-3" />
-                      <span>Om {timeUntil}</span>
+                      <span>{t('timeUntil', { time: timeUntil })}</span>
                       {context?.workoutName && (
                         <>
                           <span className="text-blue-400">•</span>
@@ -227,7 +229,7 @@ export function PreWorkoutNudgeCard() {
                     <ChevronRight
                       className={cn('h-3 w-3 transition-transform', isExpanded && 'rotate-90')}
                     />
-                    {isExpanded ? 'Dölj tips' : 'Visa förberedelsetips'}
+                    {isExpanded ? t('tips.hide') : t('tips.show')}
                   </button>
                   {isExpanded && (
                     <ul className="mt-2 space-y-1 pl-4">
@@ -252,7 +254,7 @@ export function PreWorkoutNudgeCard() {
                       variant="secondary"
                       className="bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200 text-xs"
                     >
-                      Hög prioritet
+                      {t('priority.high')}
                     </Badge>
                   )}
                   <Badge

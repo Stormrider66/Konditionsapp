@@ -7366,6 +7366,21 @@
     "athleteDrillList": {
       "title": "Övningar från tränaren"
     },
+    "preWorkoutNudgeCard": {
+      "time": {
+        "now": "Nu",
+        "hoursMinutes": "{hours}h {minutes}min",
+        "minutes": "{minutes} min"
+      },
+      "timeUntil": "Om {time}",
+      "tips": {
+        "show": "Visa förberedelsetips",
+        "hide": "Dölj tips"
+      },
+      "priority": {
+        "high": "Hög prioritet"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

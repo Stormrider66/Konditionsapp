@@ -7366,6 +7366,21 @@
     "athleteDrillList": {
       "title": "Drills from your coach"
     },
+    "preWorkoutNudgeCard": {
+      "time": {
+        "now": "Now",
+        "hoursMinutes": "{hours}h {minutes}min",
+        "minutes": "{minutes} min"
+      },
+      "timeUntil": "In {time}",
+      "tips": {
+        "show": "Show preparation tips",
+        "hide": "Hide tips"
+      },
+      "priority": {
+        "high": "High priority"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
