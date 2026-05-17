@@ -17,6 +17,7 @@ import { AIRecommendations } from './AIRecommendations'
 import { cn } from '@/lib/utils'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
+import { useTranslations } from '@/i18n/client'
 
 type ACWRZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL'
 type RiskLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'VERY_HIGH'
@@ -65,6 +66,7 @@ interface InjuryPreventionDashboardProps {
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboardProps) {
+  const t = useTranslations('components.injuryPreventionDashboard')
   const pageCtx = usePageContextOptional()
   const { data, error, isLoading } = useSWR<InjuryPreventionResponse>(
     '/api/athlete/injury-prevention',
@@ -116,7 +118,7 @@ export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboa
     return (
       <div className={cn('flex flex-col items-center justify-center py-12 text-muted-foreground', className)}>
         <AlertCircle className="h-8 w-8 mb-2 text-red-500" />
-        <p className="text-sm">Kunde inte ladda skadeförebyggande data</p>
+        <p className="text-sm">{t('error')}</p>
       </div>
     )
   }
@@ -129,9 +131,9 @@ export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboa
       <div className="flex items-center gap-3">
         <Shield className="h-6 w-6 text-primary" />
         <div>
-          <h1 className="text-xl font-bold">Skadeförebyggande</h1>
+          <h1 className="text-xl font-bold">{t('header.title')}</h1>
           <p className="text-sm text-muted-foreground">
-            Övervaka din belastning och håll dig skadefri
+            {t('header.description')}
           </p>
         </div>
       </div>
@@ -142,7 +144,7 @@ export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboa
         <GlassCard>
           <GlassCardHeader>
             <GlassCardTitle className="text-sm">
-              Belastningskvot (ACWR) <InfoTooltip conceptKey="acwr" />
+              {t('cards.acwrTitle')} <InfoTooltip conceptKey="acwr" />
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
@@ -151,8 +153,7 @@ export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboa
               zone={acwr.zone}
             />
             <p className="text-xs text-center text-muted-foreground mt-4">
-              Akut:Kronisk belastningskvot mäter din senaste veckas belastning
-              jämfört med de senaste 4 veckornas genomsnitt.
+              {t('cards.acwrDescription')}
             </p>
           </GlassCardContent>
         </GlassCard>
@@ -161,7 +162,7 @@ export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboa
         <GlassCard>
           <GlassCardHeader>
             <GlassCardTitle className="text-sm">
-              Belastningsutveckling
+              {t('cards.loadTrendTitle')}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
@@ -179,7 +180,7 @@ export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboa
         <GlassCard>
           <GlassCardHeader>
             <GlassCardTitle className="text-sm">
-              Aktiva skador <InfoTooltip conceptKey="delawarePain" />
+              {t('cards.activeInjuriesTitle')} <InfoTooltip conceptKey="delawarePain" />
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
@@ -191,7 +192,7 @@ export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboa
         <GlassCard>
           <GlassCardHeader>
             <GlassCardTitle className="text-sm">
-              Rekommendationer
+              {t('cards.recommendationsTitle')}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
@@ -203,10 +204,10 @@ export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboa
       {/* Info footer */}
       <div className="text-xs text-muted-foreground text-center space-y-1">
         <p>
-          ACWR beräknas automatiskt varje natt baserat på din loggade träning.
+          {t('footer.calculation')}
         </p>
         <p>
-          Optimal zon: 0.8–1.3 | Varning: 0.5–0.8 & 1.3–1.5 | Fara: &gt;1.5
+          {t('footer.zones')}
         </p>
       </div>
     </div>
