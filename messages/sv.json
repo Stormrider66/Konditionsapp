@@ -6783,6 +6783,86 @@
       "fallbackLabel": "Hantera AI-krediter",
       "defaultMessage": "AI-krediterna är slut för perioden."
     },
+    "athleteFloatingChat": {
+      "header": {
+        "title": "AI-assistent",
+        "newConversation": "Ny konversation",
+        "minimize": "Minimera chatten",
+        "expand": "Expandera chatten",
+        "close": "Stäng chatten"
+      },
+      "model": {
+        "fallbackTier": "Balanserad",
+        "chooseQuality": "Välj AI-kvalitet",
+        "recommended": "Rek."
+      },
+      "accessUnavailable": {
+        "title": "AI-funktionen inte tillgänglig",
+        "description": "Din coach har inte aktiverat AI-funktionen ännu. Kontakta din coach för mer information."
+      },
+      "subscription": {
+        "title": "Prenumeration krävs",
+        "description": "Uppgradera din prenumeration för att fortsätta använda AI-chatten.",
+        "action": "Uppgradera prenumeration"
+      },
+      "consent": {
+        "title": "Samtycke krävs",
+        "heading": "Databehandling för AI-chatt",
+        "description": "Din träningsdata skickas till en extern AI-tjänst för analys. Enligt GDPR behöver vi ditt samtycke.",
+        "trainingDataLabel": "Behandla min träningsdata",
+        "trainingDataDescription": "Tillåt att träningshistorik, testresultat och prestationsdata skickas till AI-tjänsten.",
+        "healthDataLabel": "Behandla hälsodata",
+        "healthDataDescription": "Tillåt att hälsorelaterad data som beredskapspoäng, trötthet och skadestatus skickas.",
+        "approve": "Godkänn",
+        "revokeHint": "Du kan återkalla ditt samtycke när som helst via inställningar."
+      },
+      "operatorBanner": {
+        "active": "Voice operator aktiv: mikrofon, auto-send och röstsvar är på",
+        "confirming": "Bekräftar åtgärder"
+      },
+      "realtime": {
+        "active": "Live voice aktiv",
+        "stopped": "Live voice är avstängd.",
+        "stop": "Stoppa"
+      },
+      "empty": {
+        "greeting": "Hej!",
+        "greetingWithName": "Hej, {name}!",
+        "description": "Jag är din AI-träningsassistent. Jag kan hjälpa dig förstå din träning, förklara pass och analysera dina data."
+      },
+      "programError": {
+        "title": "Programgenereringen kunde inte startas",
+        "retry": "Försök igen senare.",
+        "manageCredits": "Hantera AI-krediter"
+      },
+      "programDetected": {
+        "weeks": "{count} veckor",
+        "save": "Spara program"
+      },
+      "input": {
+        "placeholder": "Skriv ett meddelande..."
+      },
+      "voice": {
+        "recording": "Spelar in {duration}",
+        "transcribingMessage": "Skriver ut röstmeddelandet...",
+        "stopRecording": "Stoppa inspelning",
+        "transcribingLabel": "Transkriberar röst",
+        "startInput": "Starta röstinmatning",
+        "spokenRepliesOff": "Stäng av röstsvar",
+        "spokenRepliesOn": "Slå på röstsvar",
+        "autoSendOff": "Stäng av automatisk röstsändning",
+        "autoSendOn": "Slå på automatisk röstsändning",
+        "operatorOff": "Stäng av voice operator",
+        "operatorOn": "Slå på voice operator",
+        "realtimeOff": "Stäng av live voice",
+        "realtimeOn": "Starta live voice",
+        "autoSendPending": "Skickar röstmeddelandet snart...",
+        "cancel": "Avbryt",
+        "readingAnswer": "Läser upp svaret...",
+        "creatingAiVoice": "Skapar AI-röst...",
+        "aiGenerated": "Rösten är AI-genererad."
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

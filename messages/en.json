@@ -6783,6 +6783,86 @@
       "fallbackLabel": "Manage AI credits",
       "defaultMessage": "AI credits are exhausted for this period."
     },
+    "athleteFloatingChat": {
+      "header": {
+        "title": "AI assistant",
+        "newConversation": "New conversation",
+        "minimize": "Minimize chat",
+        "expand": "Expand chat",
+        "close": "Close chat"
+      },
+      "model": {
+        "fallbackTier": "Balanced",
+        "chooseQuality": "Choose AI quality",
+        "recommended": "Rec."
+      },
+      "accessUnavailable": {
+        "title": "AI feature unavailable",
+        "description": "Your coach has not enabled the AI feature yet. Contact your coach for more information."
+      },
+      "subscription": {
+        "title": "Subscription required",
+        "description": "Upgrade your subscription to keep using the AI chat.",
+        "action": "Upgrade subscription"
+      },
+      "consent": {
+        "title": "Consent required",
+        "heading": "Data processing for AI chat",
+        "description": "Your training data is sent to an external AI service for analysis. Under GDPR, we need your consent.",
+        "trainingDataLabel": "Process my training data",
+        "trainingDataDescription": "Allow training history, test results, and performance data to be sent to the AI service.",
+        "healthDataLabel": "Process health data",
+        "healthDataDescription": "Allow health-related data such as readiness score, fatigue, and injury status to be sent.",
+        "approve": "Approve",
+        "revokeHint": "You can revoke your consent at any time in settings."
+      },
+      "operatorBanner": {
+        "active": "Voice operator active: microphone, auto-send, and spoken replies are on",
+        "confirming": "Confirming actions"
+      },
+      "realtime": {
+        "active": "Live voice active",
+        "stopped": "Live voice is off.",
+        "stop": "Stop"
+      },
+      "empty": {
+        "greeting": "Hi!",
+        "greetingWithName": "Hi, {name}!",
+        "description": "I am your AI training assistant. I can help you understand your training, explain workouts, and analyze your data."
+      },
+      "programError": {
+        "title": "Program generation could not start",
+        "retry": "Try again later.",
+        "manageCredits": "Manage AI credits"
+      },
+      "programDetected": {
+        "weeks": "{count} weeks",
+        "save": "Save program"
+      },
+      "input": {
+        "placeholder": "Write a message..."
+      },
+      "voice": {
+        "recording": "Recording {duration}",
+        "transcribingMessage": "Transcribing voice message...",
+        "stopRecording": "Stop recording",
+        "transcribingLabel": "Transcribing voice",
+        "startInput": "Start voice input",
+        "spokenRepliesOff": "Turn off spoken replies",
+        "spokenRepliesOn": "Turn on spoken replies",
+        "autoSendOff": "Turn off automatic voice sending",
+        "autoSendOn": "Turn on automatic voice sending",
+        "operatorOff": "Turn off voice operator",
+        "operatorOn": "Turn on voice operator",
+        "realtimeOff": "Turn off live voice",
+        "realtimeOn": "Start live voice",
+        "autoSendPending": "Sending voice message soon...",
+        "cancel": "Cancel",
+        "readingAnswer": "Reading the answer...",
+        "creatingAiVoice": "Creating AI voice...",
+        "aiGenerated": "The voice is AI-generated."
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

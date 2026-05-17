@@ -68,6 +68,7 @@ import {
   hasRealtimeUsageTokens,
 } from '@/lib/ai/realtime-voice-client'
 import { AISkillPicker, type AISkillOption } from '@/components/ai/AISkillPicker'
+import { useTranslations } from '@/i18n/client'
 
 interface AthleteFloatingChatProps {
   clientId: string
@@ -140,6 +141,7 @@ export function AthleteFloatingChat({
   clientId,
   athleteName,
 }: AthleteFloatingChatProps) {
+  const t = useTranslations('components.athleteFloatingChat')
   const { toast } = useToast()
   const basePath = useBasePath()
   const {
@@ -1438,7 +1440,7 @@ export function AthleteFloatingChat({
   function renderModelBadge() {
     if (!configReady) return null
 
-    const tierLabel = INTENT_TIER_LABELS[selectedIntent]?.label || 'Balanserad'
+    const tierLabel = INTENT_TIER_LABELS[selectedIntent]?.label || t('model.fallbackTier')
     const badgeClassName = 'shrink-0 border border-white/30 bg-white/95 text-[11px] font-semibold text-orange-700 shadow-sm'
 
     // Only 1 intent available → static badge
@@ -1460,7 +1462,9 @@ export function AthleteFloatingChat({
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-56 p-2" align="start" side="bottom">
-          <p className="text-xs font-medium text-muted-foreground px-2 py-1 mb-1">Välj AI-kvalitet</p>
+          <p className="text-xs font-medium text-muted-foreground px-2 py-1 mb-1">
+            {t('model.chooseQuality')}
+          </p>
           {availableIntents.map((tier) => (
             <button
               key={tier.intent}
@@ -1472,7 +1476,9 @@ export function AthleteFloatingChat({
             >
               <span className="flex-1 truncate">{tier.label}</span>
               {tier.intent === 'balanced' && (
-                <Badge variant="outline" className="text-[10px] px-1 py-0">Rek.</Badge>
+                <Badge variant="outline" className="text-[10px] px-1 py-0">
+                  {t('model.recommended')}
+                </Badge>
               )}
               {tier.intent === selectedIntent && (
                 <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
@@ -1485,29 +1491,29 @@ export function AthleteFloatingChat({
   }
 
   const voiceStatusMessage = isVoiceRecording
-    ? `Spelar in ${formatVoiceDuration(voiceDuration)}`
+    ? t('voice.recording', { duration: formatVoiceDuration(voiceDuration) })
     : isTranscribingVoice
-      ? 'Skriver ut röstmeddelandet...'
+      ? t('voice.transcribingMessage')
       : voiceRecorderError
         ? voiceRecorderError
         : null
   const voiceButtonLabel = isVoiceRecording
-    ? 'Stoppa inspelning'
+    ? t('voice.stopRecording')
     : isTranscribingVoice
-      ? 'Transkriberar röst'
-      : 'Starta röstinmatning'
+      ? t('voice.transcribingLabel')
+      : t('voice.startInput')
   const spokenRepliesLabel = isSpokenRepliesEnabled
-    ? 'Stäng av röstsvar'
-    : 'Slå på röstsvar'
+    ? t('voice.spokenRepliesOff')
+    : t('voice.spokenRepliesOn')
   const voiceAutoSendLabel = isVoiceAutoSendEnabled
-    ? 'Stäng av automatisk röstsändning'
-    : 'Slå på automatisk röstsändning'
+    ? t('voice.autoSendOff')
+    : t('voice.autoSendOn')
   const voiceOperatorModeLabel = isVoiceOperatorModeEnabled
-    ? 'Stäng av voice operator'
-    : 'Slå på voice operator'
+    ? t('voice.operatorOff')
+    : t('voice.operatorOn')
   const realtimeVoiceLabel = isRealtimeVoiceActive || isRealtimeVoiceConnecting
-    ? 'Stäng av live voice'
-    : 'Starta live voice'
+    ? t('voice.realtimeOff')
+    : t('voice.realtimeOn')
 
   // Don't render if AI is not configured
   if (!isOpen && hasAIAccess === false) {
@@ -1545,7 +1551,7 @@ export function AthleteFloatingChat({
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
           <div className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-white" />
-            <span className="font-semibold text-white">AI-assistent</span>
+            <span className="font-semibold text-white">{t('header.title')}</span>
           </div>
           <Button
             variant="ghost"
@@ -1577,7 +1583,7 @@ export function AthleteFloatingChat({
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
           <div className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-white" />
-            <span className="font-semibold text-white">AI-assistent</span>
+            <span className="font-semibold text-white">{t('header.title')}</span>
           </div>
           <Button
             variant="ghost"
@@ -1591,9 +1597,9 @@ export function AthleteFloatingChat({
         <div className="flex-1 flex items-center justify-center p-6 text-center">
           <div>
             <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="font-semibold mb-2">AI-funktionen inte tillgänglig</h3>
+            <h3 className="font-semibold mb-2">{t('accessUnavailable.title')}</h3>
             <p className="text-sm text-muted-foreground">
-              Din coach har inte aktiverat AI-funktionen ännu. Kontakta din coach för mer information.
+              {t('accessUnavailable.description')}
             </p>
           </div>
         </div>
@@ -1615,7 +1621,7 @@ export function AthleteFloatingChat({
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-lg">
           <div className="flex items-center gap-2">
             <Lock className="h-5 w-5 text-white" />
-            <span className="font-semibold text-white">Prenumeration krävs</span>
+            <span className="font-semibold text-white">{t('subscription.title')}</span>
           </div>
           <Button
             variant="ghost"
@@ -1634,7 +1640,7 @@ export function AthleteFloatingChat({
             <Lock className="h-12 w-12 mx-auto mb-4 text-amber-500" />
             <h3 className="font-semibold mb-2">{subscriptionError.message}</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Uppgradera din prenumeration för att fortsätta använda AI-chatten.
+              {t('subscription.description')}
             </p>
             {subscriptionStatus && subscriptionStatus.limit > 0 && (
               <div className="mb-4">
@@ -1646,7 +1652,7 @@ export function AthleteFloatingChat({
             )}
             <Link href={`${basePath}${subscriptionError.upgradeUrl || '/athlete/subscription'}`}>
               <Button className="bg-amber-600 hover:bg-amber-700">
-                {subscriptionError.actionLabel || 'Uppgradera prenumeration'}
+                {subscriptionError.actionLabel || t('subscription.action')}
               </Button>
             </Link>
           </div>
@@ -1669,7 +1675,7 @@ export function AthleteFloatingChat({
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-white" />
-            <span className="font-semibold text-white">Samtycke krävs</span>
+            <span className="font-semibold text-white">{t('consent.title')}</span>
           </div>
           <Button
             variant="ghost"
@@ -1683,9 +1689,9 @@ export function AthleteFloatingChat({
         <div className="flex-1 p-5 overflow-y-auto">
           <div className="text-center mb-4">
             <ShieldCheck className="h-10 w-10 mx-auto mb-3 text-emerald-600" />
-            <h3 className="font-semibold mb-1">Databehandling för AI-chatt</h3>
+            <h3 className="font-semibold mb-1">{t('consent.heading')}</h3>
             <p className="text-xs text-muted-foreground">
-              Din träningsdata skickas till en extern AI-tjänst för analys. Enligt GDPR behöver vi ditt samtycke.
+              {t('consent.description')}
             </p>
           </div>
           <div className="space-y-3 mb-4">
@@ -1696,9 +1702,9 @@ export function AthleteFloatingChat({
                 className="mt-0.5"
               />
               <div>
-                <span className="text-sm font-medium">Behandla min träningsdata</span>
+                <span className="text-sm font-medium">{t('consent.trainingDataLabel')}</span>
                 <p className="text-xs text-muted-foreground">
-                  Tillåt att träningshistorik, testresultat och prestationsdata skickas till AI-tjänsten.
+                  {t('consent.trainingDataDescription')}
                 </p>
               </div>
             </label>
@@ -1709,9 +1715,9 @@ export function AthleteFloatingChat({
                 className="mt-0.5"
               />
               <div>
-                <span className="text-sm font-medium">Behandla hälsodata</span>
+                <span className="text-sm font-medium">{t('consent.healthDataLabel')}</span>
                 <p className="text-xs text-muted-foreground">
-                  Tillåt att hälsorelaterad data som beredskapspoäng, trötthet och skadestatus skickas.
+                  {t('consent.healthDataDescription')}
                 </p>
               </div>
             </label>
@@ -1726,10 +1732,10 @@ export function AthleteFloatingChat({
             ) : (
               <ShieldCheck className="h-4 w-4 mr-2" />
             )}
-            Godkänn
+            {t('consent.approve')}
           </Button>
           <p className="text-[10px] text-muted-foreground text-center mt-2">
-            Du kan återkalla ditt samtycke när som helst via inställningar.
+            {t('consent.revokeHint')}
           </p>
         </div>
       </div>
@@ -1759,7 +1765,7 @@ export function AthleteFloatingChat({
             )}
           >
             <Bot className="h-5 w-5 shrink-0 text-white" />
-            <span className="truncate font-semibold text-white">AI-assistent</span>
+            <span className="truncate font-semibold text-white">{t('header.title')}</span>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <Button
@@ -1767,8 +1773,8 @@ export function AthleteFloatingChat({
               size="icon"
               onClick={handleNewChat}
               className="h-8 w-8 text-white hover:bg-white/20"
-              title="Ny konversation"
-              aria-label="Ny konversation"
+              title={t('header.newConversation')}
+              aria-label={t('header.newConversation')}
             >
               <MessageSquare className="h-4 w-4" />
             </Button>
@@ -1777,8 +1783,8 @@ export function AthleteFloatingChat({
               size="icon"
               onClick={() => setIsExpanded(!isExpanded)}
               className="h-8 w-8 text-white hover:bg-white/20"
-              title={isExpanded ? 'Minimera chatten' : 'Expandera chatten'}
-              aria-label={isExpanded ? 'Minimera chatten' : 'Expandera chatten'}
+              title={isExpanded ? t('header.minimize') : t('header.expand')}
+              aria-label={isExpanded ? t('header.minimize') : t('header.expand')}
             >
               {isExpanded ? (
                 <Minimize2 className="h-4 w-4" />
@@ -1791,8 +1797,8 @@ export function AthleteFloatingChat({
               size="icon"
               onClick={handleClose}
               className="h-8 w-8 text-white hover:bg-white/20"
-              title="Stäng chatten"
-              aria-label="Stäng chatten"
+              title={t('header.close')}
+              aria-label={t('header.close')}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -1888,10 +1894,10 @@ export function AthleteFloatingChat({
         <div className="px-3 py-2 border-b bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Headphones className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">Voice operator aktiv: mikrofon, auto-send och röstsvar är på</span>
+            <span className="truncate">{t('operatorBanner.active')}</span>
           </div>
           <span className="shrink-0 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium">
-            Bekräftar åtgärder
+            {t('operatorBanner.confirming')}
           </span>
         </div>
       )}
@@ -1905,7 +1911,7 @@ export function AthleteFloatingChat({
               <Radio className="h-3.5 w-3.5 shrink-0" />
             )}
             <span className="truncate">
-              {realtimeVoiceStatus || 'Live voice aktiv'}
+              {realtimeVoiceStatus || t('realtime.active')}
             </span>
           </div>
           {(isRealtimeVoiceActive || isRealtimeVoiceConnecting) && (
@@ -1913,10 +1919,10 @@ export function AthleteFloatingChat({
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => stopRealtimeVoice('Live voice är avstängd.', 'user_stopped')}
+              onClick={() => stopRealtimeVoice(t('realtime.stopped'), 'user_stopped')}
               className="h-6 px-2 text-xs hover:bg-emerald-500/10"
             >
-              Stoppa
+              {t('realtime.stop')}
             </Button>
           )}
         </div>
@@ -1927,9 +1933,11 @@ export function AthleteFloatingChat({
         {messages.length === 0 && assistantNotices.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <Sparkles className="h-10 w-10 text-emerald-500 mb-3" />
-            <h3 className="font-medium mb-1">Hej{athleteName ? `, ${athleteName}` : ''}!</h3>
+            <h3 className="font-medium mb-1">
+              {athleteName ? t('empty.greetingWithName', { name: athleteName }) : t('empty.greeting')}
+            </h3>
             <p className="text-sm text-muted-foreground max-w-[280px] mb-4">
-              Jag är din AI-träningsassistent. Jag kan hjälpa dig förstå din träning, förklara pass och analysera dina data.
+              {t('empty.description')}
             </p>
             {showVoiceGuideCard && (
               <VoiceModesGuide
@@ -2041,17 +2049,17 @@ export function AthleteFloatingChat({
                         <Lock className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-300" />
                         <div className="min-w-0 space-y-2">
                           <p className="text-sm font-semibold text-red-900 dark:text-red-100">
-                            Programgenereringen kunde inte startas
+                            {t('programError.title')}
                           </p>
                           <p className="text-xs text-red-700 dark:text-red-200">
-                            {programError.error || 'Försök igen senare.'}
+                            {programError.error || t('programError.retry')}
                             {programError.upgradeMessage ? ` ${programError.upgradeMessage}` : ''}
                           </p>
                           <AiAllowanceBlockedAction
                             action={
                               programError.actionUrl
                                 ? {
-                                    label: programError.actionLabel || 'Hantera AI-krediter',
+                                    label: programError.actionLabel || t('programError.manageCredits'),
                                     url: programError.actionUrl,
                                   }
                                 : null
@@ -2102,7 +2110,7 @@ export function AthleteFloatingChat({
                   {detectedProgram.program.name}
                 </p>
                 <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                  {detectedProgram.program.totalWeeks} veckor
+                  {t('programDetected.weeks', { count: detectedProgram.program.totalWeeks })}
                 </p>
               </div>
             </div>
@@ -2117,7 +2125,7 @@ export function AthleteFloatingChat({
               ) : (
                 <Save className="h-3 w-3 mr-1" />
               )}
-              Spara program
+              {t('programDetected.save')}
             </Button>
           </div>
         </div>
@@ -2144,7 +2152,7 @@ export function AthleteFloatingChat({
                 setInput(e.target.value)
               }}
               onKeyDown={handleKeyDown}
-              placeholder="Skriv ett meddelande..."
+              placeholder={t('input.placeholder')}
               className="min-h-[44px] max-h-[120px] resize-none"
               disabled={isLoading}
             />
@@ -2192,7 +2200,7 @@ export function AthleteFloatingChat({
           )}
           {isVoiceAutoSendPending && (
             <div className="flex items-center justify-between gap-2 rounded-md bg-blue-500/10 px-3 py-2 text-xs text-blue-700 dark:text-blue-300">
-              <span>Skickar röstmeddelandet snart...</span>
+              <span>{t('voice.autoSendPending')}</span>
               <Button
                 type="button"
                 variant="ghost"
@@ -2200,14 +2208,14 @@ export function AthleteFloatingChat({
                 onClick={cancelVoiceAutoSend}
                 className="h-6 px-2 text-xs hover:bg-blue-500/10"
               >
-                Avbryt
+                {t('voice.cancel')}
               </Button>
             </div>
           )}
           {isSpokenRepliesEnabled && (isGeneratingAssistantAudio || isSpeakingAssistant || voicePlaybackStatus) && (
             <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-              {voicePlaybackStatus || (isSpeakingAssistant ? 'Läser upp svaret...' : 'Skapar AI-röst...')}
-              <span className="ml-1">Rösten är AI-genererad.</span>
+              {voicePlaybackStatus || (isSpeakingAssistant ? t('voice.readingAnswer') : t('voice.creatingAiVoice'))}
+              <span className="ml-1">{t('voice.aiGenerated')}</span>
             </div>
           )}
         </div>
