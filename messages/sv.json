@@ -153,7 +153,66 @@
     },
     "workoutDetail": {
       "metadataTitle": "Pass | Athlete",
-      "metadataDescription": "Detaljer för träningspass"
+      "metadataDescription": "Detaljer för träningspass",
+      "programOverview": "Programöversikt",
+      "week": "Vecka",
+      "day": "Dag",
+      "completed": "Passet slutfört",
+      "instructions": "Instruktioner",
+      "noInstructions": "Inga specifika instruktioner angivna.",
+      "plannedGoals": "Planerade mål",
+      "time": "Tid",
+      "distance": "Distans",
+      "logWorkout": "Logga detta pass",
+      "completedLog": "Genomförd logg",
+      "edit": "Redigera",
+      "loggedTime": "Loggad tid",
+      "loggedDistance": "Loggad distans",
+      "pace": "Tempo",
+      "averageHeartRate": "Snittpuls",
+      "perceivedEffort": "Upplevd ansträngning (RPE)",
+      "emotionalDifficulty": "Känslomässig svårighet",
+      "feeling": "Känsla",
+      "notes": "Anteckningar",
+      "integrationsData": "Integrationer och data",
+      "viewOnStrava": "Visa på Strava",
+      "dataFile": "Datafil",
+      "coachFeedback": "Feedback från coach",
+      "privateLog": "Privat logg",
+      "timestamp": "Tidpunkt",
+      "editLog": "Redigera logg",
+      "logCompletedWorkout": "Logga genomfört pass",
+      "workoutTypes": {
+        "running": "Löpning",
+        "cycling": "Cykling",
+        "strength": "Styrka",
+        "core": "Core",
+        "plyometric": "Plyometri",
+        "recovery": "Återhämtning",
+        "skiing": "Skidåkning",
+        "other": "Annat"
+      },
+      "intensities": {
+        "recovery": "Återhämtning",
+        "easy": "Lätt",
+        "moderate": "Måttlig",
+        "threshold": "Tröskel",
+        "interval": "Intervall",
+        "max": "Maximal"
+      },
+      "effortLabels": {
+        "veryEasy": "Mycket lätt",
+        "easy": "Lätt",
+        "moderate": "Måttlig",
+        "hard": "Hård",
+        "max": "Maximal"
+      },
+      "difficultyLabels": {
+        "easierThanPlanned": "Lättare än planerat",
+        "asPlanned": "Som planerat",
+        "tough": "Slitigt",
+        "veryTough": "Väldigt tufft"
+      }
     },
     "dashboard": {
       "welcomeBack": "Välkommen tillbaka",

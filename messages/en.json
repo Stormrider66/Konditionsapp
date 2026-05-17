@@ -153,7 +153,66 @@
     },
     "workoutDetail": {
       "metadataTitle": "Workout | Athlete",
-      "metadataDescription": "Workout details"
+      "metadataDescription": "Workout details",
+      "programOverview": "Program overview",
+      "week": "Week",
+      "day": "Day",
+      "completed": "Workout completed",
+      "instructions": "Instructions",
+      "noInstructions": "No specific instructions provided.",
+      "plannedGoals": "Planned goals",
+      "time": "Time",
+      "distance": "Distance",
+      "logWorkout": "Log this workout",
+      "completedLog": "Completed log",
+      "edit": "Edit",
+      "loggedTime": "Logged time",
+      "loggedDistance": "Logged distance",
+      "pace": "Pace",
+      "averageHeartRate": "Average HR",
+      "perceivedEffort": "Perceived effort (RPE)",
+      "emotionalDifficulty": "Emotional difficulty",
+      "feeling": "Feeling",
+      "notes": "Notes",
+      "integrationsData": "Integrations and data",
+      "viewOnStrava": "View on Strava",
+      "dataFile": "Data file",
+      "coachFeedback": "Coach feedback",
+      "privateLog": "Private log",
+      "timestamp": "Timestamp",
+      "editLog": "Edit log",
+      "logCompletedWorkout": "Log completed workout",
+      "workoutTypes": {
+        "running": "Running",
+        "cycling": "Cycling",
+        "strength": "Strength",
+        "core": "Core",
+        "plyometric": "Plyometrics",
+        "recovery": "Recovery",
+        "skiing": "Skiing",
+        "other": "Other"
+      },
+      "intensities": {
+        "recovery": "Recovery",
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "threshold": "Threshold",
+        "interval": "Interval",
+        "max": "Maximal"
+      },
+      "effortLabels": {
+        "veryEasy": "Very easy",
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "hard": "Hard",
+        "max": "Maximal"
+      },
+      "difficultyLabels": {
+        "easierThanPlanned": "Easier than planned",
+        "asPlanned": "As planned",
+        "tough": "Tough",
+        "veryTough": "Very tough"
+      }
     },
     "dashboard": {
       "welcomeBack": "Welcome back",
