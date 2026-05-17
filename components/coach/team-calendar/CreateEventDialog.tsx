@@ -144,7 +144,7 @@ export function CreateEventDialog({
           allDay,
           contentStatus,
           contentOwner,
-          practicePlan: isIcePractice ? practiceBlocks : null,
+          practicePlan: isIcePractice ? practiceBlocks : undefined,
           recurrenceCount: repeatWeekly ? recurrenceCount : undefined,
           recurrenceIntervalWeeks: repeatWeekly ? 1 : undefined,
         }),

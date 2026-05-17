@@ -146,6 +146,12 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const recurrenceRule = isRecurring
       ? parsed.data.recurrenceRule ?? `FREQ=WEEKLY;INTERVAL=${recurrenceIntervalWeeks};COUNT=${recurrenceCount}`
       : parsed.data.recurrenceRule
+    const practicePlan = parsed.data.practicePlan == null
+      ? undefined
+      : JSON.parse(JSON.stringify(parsed.data.practicePlan))
+    const attendance = parsed.data.attendance
+      ? JSON.parse(JSON.stringify(parsed.data.attendance))
+      : undefined
 
     const baseData = {
       teamId,
@@ -162,11 +168,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
       intervalSessionId: parsed.data.intervalSessionId,
       contentStatus: parsed.data.contentStatus,
       contentOwner: parsed.data.contentOwner,
-      practicePlan: parsed.data.practicePlan === undefined ? undefined : JSON.parse(JSON.stringify(parsed.data.practicePlan)),
+      practicePlan,
       linkedWorkoutType: parsed.data.linkedWorkoutType,
       linkedWorkoutId: parsed.data.linkedWorkoutId,
       linkedWorkoutName: parsed.data.linkedWorkoutName,
-      attendance: parsed.data.attendance ? JSON.parse(JSON.stringify(parsed.data.attendance)) : null,
+      attendance,
     }
 
     const events = await prisma.$transaction(async (tx) => {
@@ -210,6 +216,6 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     console.error('Error creating team event:', error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: 'Kunde inte spara händelsen i databasen' }, { status: 500 })
   }
 }
