@@ -1260,6 +1260,17 @@
     "recentActivity": "Senaste aktiviteten",
     "workoutsLoggedLast7Days": "Pass loggade senaste 7 dagarna",
     "noWorkoutsLoggedYet": "Inga pass loggade ännu",
+    "dashboardStats": {
+      "activeAssignments": "Aktiva pass",
+      "scheduledAndPending": "Schemalagda & väntande",
+      "prsThisWeek": "PRs denna vecka",
+      "newPersonalRecords": "Nya personliga rekord",
+      "allSources": "Alla källor",
+      "readiness": "Beredskap",
+      "teamReadinessToday": "Lagets beredskap idag",
+      "plateaus": "Platåer",
+      "stalledExercises": "Övningar som stagnerat"
+    },
     "dashboardSignals": {
       "assignedWorkout": "Tilldelat pass",
       "logsNeedingFeedback": "{count} genomförda pass väntar på coachfeedback",
@@ -2452,6 +2463,32 @@
       "errors": {
         "fetchLoad": "Kunde inte hämta belastning"
       }
+    },
+    "teamQuickAccess": {
+      "title": "Mina lag",
+      "allTeams": "Alla lag",
+      "teamFallback": "Lag",
+      "empty": {
+        "title": "Inga lag ännu",
+        "description": "Skapa ett lag för snabb åtkomst här.",
+        "manageTeams": "Hantera lag"
+      },
+      "sports": {
+        "football": "Fotboll",
+        "iceHockey": "Ishockey",
+        "handball": "Handboll",
+        "floorball": "Innebandy",
+        "basketball": "Basket",
+        "volleyball": "Volleyboll",
+        "running": "Löpning",
+        "cycling": "Cykling",
+        "skiing": "Skidor",
+        "swimming": "Simning",
+        "fitness": "Fitness",
+        "strength": "Styrka"
+      },
+      "missedWorkouts": "{count} missade",
+      "unreadMessages": "{count} olästa"
     }
   },
   "infographic": {

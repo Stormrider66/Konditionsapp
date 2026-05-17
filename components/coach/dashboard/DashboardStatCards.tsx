@@ -68,12 +68,12 @@ export function DashboardStatCards({
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm">Aktiva pass</p>
+                <p className="text-green-100 text-sm">{t('dashboardStats.activeAssignments')}</p>
                 <p className="text-3xl font-bold">{gymStats.activeAssignments}</p>
               </div>
               <Dumbbell className="h-8 w-8 opacity-80" />
             </div>
-            <p className="text-xs text-green-100 mt-2">Schemalagda & väntande</p>
+            <p className="text-xs text-green-100 mt-2">{t('dashboardStats.scheduledAndPending')}</p>
           </GlassCardContent>
         </GlassCard>
       ) : (
@@ -101,12 +101,12 @@ export function DashboardStatCards({
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-yellow-100 text-sm">PRs denna vecka</p>
+                <p className="text-yellow-100 text-sm">{t('dashboardStats.prsThisWeek')}</p>
                 <p className="text-3xl font-bold">{gymStats.prsThisWeek}</p>
               </div>
               <Trophy className="h-8 w-8 opacity-80" />
             </div>
-            <p className="text-xs text-yellow-100 mt-2">Nya personliga rekord</p>
+            <p className="text-xs text-yellow-100 mt-2">{t('dashboardStats.newPersonalRecords')}</p>
           </GlassCardContent>
         </GlassCard>
       ) : (
@@ -121,7 +121,7 @@ export function DashboardStatCards({
             </div>
             <p className="text-xs text-purple-100 mt-2">
               {totalActivitiesThisWeek !== undefined && totalActivitiesThisWeek !== completedLogsThisWeek
-                ? 'Alla källor'
+                ? t('dashboardStats.allSources')
                 : t('completedByAthletes')
               }
             </p>
@@ -135,7 +135,7 @@ export function DashboardStatCards({
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-teal-100 text-sm">Beredskap</p>
+                <p className="text-teal-100 text-sm">{t('dashboardStats.readiness')}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-green-300" />
@@ -153,7 +153,7 @@ export function DashboardStatCards({
               </div>
               <Activity className="h-8 w-8 opacity-80" />
             </div>
-            <p className="text-xs text-teal-100 mt-2">Lagets beredskap idag</p>
+            <p className="text-xs text-teal-100 mt-2">{t('dashboardStats.teamReadinessToday')}</p>
           </GlassCardContent>
         </GlassCard>
       ) : mode === 'GYM' && gymStats ? (
@@ -167,14 +167,14 @@ export function DashboardStatCards({
             <div className="flex items-center justify-between">
               <div>
                 <p className={gymStats.plateauCount > 0 ? 'text-amber-100 text-sm' : 'text-slate-100 text-sm'}>
-                  Platåer
+                  {t('dashboardStats.plateaus')}
                 </p>
                 <p className="text-3xl font-bold">{gymStats.plateauCount}</p>
               </div>
               <AlertTriangle className="h-8 w-8 opacity-80" />
             </div>
             <p className={`text-xs mt-2 ${gymStats.plateauCount > 0 ? 'text-amber-100' : 'text-slate-100'}`}>
-              Övningar som stagnerat
+              {t('dashboardStats.stalledExercises')}
             </p>
           </GlassCardContent>
         </GlassCard>

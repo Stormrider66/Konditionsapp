@@ -17,24 +17,23 @@ import {
   TeamCoachActionDialog,
   type TeamCoachAction,
 } from '@/components/coach/dashboard/TeamCoachActionDialog'
+import { useTranslations } from '@/i18n/client'
 
 type TeamSummary = TeamDashboardData['teams'][number]
 
-const sportLabels: Record<string, string> = {
-  TEAM_FOOTBALL: 'Fotboll',
-  TEAM_ICE_HOCKEY: 'Ishockey',
-  TEAM_HANDBALL: 'Handboll',
-  TEAM_FLOORBALL: 'Innebandy',
-  TEAM_BASKETBALL: 'Basket',
-  TEAM_VOLLEYBALL: 'Volleyboll',
-  RUNNING: 'Löpning',
-  CYCLING: 'Cykling',
-  SKIING: 'Skidor',
-  SWIMMING: 'Simning',
-  TRIATHLON: 'Triathlon',
-  HYROX: 'HYROX',
-  GENERAL_FITNESS: 'Fitness',
-  STRENGTH: 'Styrka',
+const sportLabelKeys: Record<string, string> = {
+  TEAM_FOOTBALL: 'football',
+  TEAM_ICE_HOCKEY: 'iceHockey',
+  TEAM_HANDBALL: 'handball',
+  TEAM_FLOORBALL: 'floorball',
+  TEAM_BASKETBALL: 'basketball',
+  TEAM_VOLLEYBALL: 'volleyball',
+  RUNNING: 'running',
+  CYCLING: 'cycling',
+  SKIING: 'skiing',
+  SWIMMING: 'swimming',
+  GENERAL_FITNESS: 'fitness',
+  STRENGTH: 'strength',
 }
 
 function readinessTone(team: TeamSummary) {
@@ -46,6 +45,7 @@ function readinessTone(team: TeamSummary) {
 }
 
 export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: TeamSummary[] }) {
+  const t = useTranslations('components.teamQuickAccess')
   const [activeAction, setActiveAction] = useState<TeamCoachAction | null>(null)
   const [activeTeamId, setActiveTeamId] = useState<string | undefined>()
 
@@ -61,11 +61,11 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
           <div className="flex items-center justify-between gap-3">
             <GlassCardTitle className="text-base flex items-center gap-2">
               <Users className="h-4 w-4 text-blue-500" />
-              Mina lag
+              {t('title')}
             </GlassCardTitle>
             <Link href={`${basePath}/coach/teams`}>
               <Button variant="ghost" size="sm" className="h-8 text-xs">
-                Alla lag <ArrowRight className="h-3 w-3 ml-1" />
+                {t('allTeams')} <ArrowRight className="h-3 w-3 ml-1" />
               </Button>
             </Link>
           </div>
@@ -73,10 +73,10 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
         <GlassCardContent>
           {teams.length === 0 ? (
             <div className="rounded-lg border border-dashed p-6 text-center dark:border-white/10">
-              <p className="text-sm font-medium dark:text-slate-200">Inga lag ännu</p>
-              <p className="text-xs text-muted-foreground mt-1">Skapa ett lag för snabb åtkomst här.</p>
+              <p className="text-sm font-medium dark:text-slate-200">{t('empty.title')}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('empty.description')}</p>
               <Link href={`${basePath}/coach/teams`} className="inline-flex mt-4">
-                <Button size="sm" variant="outline">Hantera lag</Button>
+                <Button size="sm" variant="outline">{t('empty.manageTeams')}</Button>
               </Link>
             </div>
           ) : (
@@ -94,7 +94,11 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold dark:text-slate-100">{team.name}</p>
                       <p className="text-[11px] text-muted-foreground">
-                        {team.sportType ? sportLabels[team.sportType] ?? team.sportType : 'Lag'}
+                        {team.sportType
+                          ? sportLabelKeys[team.sportType]
+                            ? t(`sports.${sportLabelKeys[team.sportType]}`)
+                            : team.sportType
+                          : t('teamFallback')}
                       </p>
                     </div>
                     {team.attentionCount > 0 && (
@@ -134,10 +138,10 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
 
                   <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
                     <span className="rounded-md bg-white/70 px-2 py-1 text-muted-foreground dark:bg-white/5">
-                      {team.missedWorkoutCount} missade
+                      {t('missedWorkouts', { count: team.missedWorkoutCount })}
                     </span>
                     <span className="rounded-md bg-white/70 px-2 py-1 text-muted-foreground dark:bg-white/5">
-                      {team.unreadMessageCount} olästa
+                      {t('unreadMessages', { count: team.unreadMessageCount })}
                     </span>
                   </div>
 

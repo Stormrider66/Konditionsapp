@@ -1260,6 +1260,17 @@
     "recentActivity": "Recent activity",
     "workoutsLoggedLast7Days": "Workouts logged in the last 7 days",
     "noWorkoutsLoggedYet": "No workouts logged yet",
+    "dashboardStats": {
+      "activeAssignments": "Active sessions",
+      "scheduledAndPending": "Scheduled & pending",
+      "prsThisWeek": "PRs this week",
+      "newPersonalRecords": "New personal records",
+      "allSources": "All sources",
+      "readiness": "Readiness",
+      "teamReadinessToday": "Team readiness today",
+      "plateaus": "Plateaus",
+      "stalledExercises": "Exercises that have stalled"
+    },
     "dashboardSignals": {
       "assignedWorkout": "Assigned workout",
       "logsNeedingFeedback": "{count} completed workouts are waiting for coach feedback",
@@ -2452,6 +2463,32 @@
       "errors": {
         "fetchLoad": "Could not fetch load"
       }
+    },
+    "teamQuickAccess": {
+      "title": "My teams",
+      "allTeams": "All teams",
+      "teamFallback": "Team",
+      "empty": {
+        "title": "No teams yet",
+        "description": "Create a team for quick access here.",
+        "manageTeams": "Manage teams"
+      },
+      "sports": {
+        "football": "Football",
+        "iceHockey": "Ice hockey",
+        "handball": "Handball",
+        "floorball": "Floorball",
+        "basketball": "Basketball",
+        "volleyball": "Volleyball",
+        "running": "Running",
+        "cycling": "Cycling",
+        "skiing": "Skiing",
+        "swimming": "Swimming",
+        "fitness": "Fitness",
+        "strength": "Strength"
+      },
+      "missedWorkouts": "{count} missed",
+      "unreadMessages": "{count} unread"
     }
   },
   "infographic": {
