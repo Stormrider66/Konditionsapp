@@ -4246,6 +4246,24 @@
         "startFocusMode": "Starta Focus Mode"
       }
     },
+    "segmentLoggingForm": {
+      "segmentCounter": "Segment {number}",
+      "title": "Logga resultat",
+      "planned": "Planerat",
+      "zone": "Zon {zone}",
+      "fields": {
+        "duration": "Tid (min)",
+        "distance": "Distans (km)",
+        "avgHeartRate": "Snitt puls",
+        "maxHeartRate": "Max puls",
+        "notes": "Anteckningar (valfritt)",
+        "notesPlaceholder": "Hur kändes segmentet?"
+      },
+      "actions": {
+        "skip": "Hoppa över",
+        "complete": "Slutför"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",

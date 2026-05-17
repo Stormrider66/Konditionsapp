@@ -22,6 +22,7 @@ import {
   SkipForward,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
@@ -72,6 +73,7 @@ export function SegmentLoggingForm({
   onSubmit,
   onSkip,
 }: SegmentLoggingFormProps) {
+  const t = useTranslations('components.segmentLoggingForm')
   const [actualDuration, setActualDuration] = useState<string>(
     timerDuration ? String(Math.round(timerDuration / 60)) : ''
   )
@@ -118,17 +120,17 @@ export function SegmentLoggingForm({
             {typeName}
           </Badge>
           <span className="text-sm text-muted-foreground">
-            Segment {segmentIndex + 1}
+            {t('segmentCounter', { number: segmentIndex + 1 })}
           </span>
         </div>
-        <CardTitle className="text-lg">Logga resultat</CardTitle>
+        <CardTitle className="text-lg">{t('title')}</CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
         {/* Planned values reference */}
         <div className="p-3 bg-muted/50 rounded-lg space-y-2">
           <p className="text-xs font-medium text-muted-foreground uppercase">
-            Planerat
+            {t('planned')}
           </p>
           <div className="flex flex-wrap gap-3 text-sm">
             {plannedDuration && (
@@ -152,7 +154,7 @@ export function SegmentLoggingForm({
             {plannedZone && (
               <div className="flex items-center gap-1">
                 <Heart className="h-3 w-3 text-muted-foreground" />
-                Zon {plannedZone}
+                {t('zone', { zone: plannedZone })}
               </div>
             )}
           </div>
@@ -162,7 +164,7 @@ export function SegmentLoggingForm({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="duration" className="text-sm font-medium text-foreground flex items-center gap-1">
-              <Clock className="h-3 w-3" /> Tid (min)
+              <Clock className="h-3 w-3" /> {t('fields.duration')}
             </Label>
             <Input
               id="duration"
@@ -178,7 +180,7 @@ export function SegmentLoggingForm({
 
           <div className="space-y-2">
             <Label htmlFor="distance" className="text-sm font-medium text-foreground flex items-center gap-1">
-              <Route className="h-3 w-3" /> Distans (km)
+              <Route className="h-3 w-3" /> {t('fields.distance')}
             </Label>
             <Input
               id="distance"
@@ -195,7 +197,7 @@ export function SegmentLoggingForm({
 
           <div className="space-y-2">
             <Label htmlFor="avgHR" className="text-sm font-medium text-foreground flex items-center gap-1">
-              <Heart className="h-3 w-3" /> Snitt puls
+              <Heart className="h-3 w-3" /> {t('fields.avgHeartRate')}
             </Label>
             <Input
               id="avgHR"
@@ -211,7 +213,7 @@ export function SegmentLoggingForm({
 
           <div className="space-y-2">
             <Label htmlFor="maxHR" className="text-sm font-medium text-foreground flex items-center gap-1">
-              <Heart className="h-3 w-3" /> Max puls
+              <Heart className="h-3 w-3" /> {t('fields.maxHeartRate')}
             </Label>
             <Input
               id="maxHR"
@@ -229,11 +231,11 @@ export function SegmentLoggingForm({
         {/* Notes */}
         <div className="space-y-2">
           <Label htmlFor="notes" className="text-sm font-medium text-foreground">
-            Anteckningar (valfritt)
+            {t('fields.notes')}
           </Label>
           <Textarea
             id="notes"
-            placeholder="Hur kändes segmentet?"
+            placeholder={t('fields.notesPlaceholder')}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
@@ -248,14 +250,14 @@ export function SegmentLoggingForm({
             onClick={onSkip}
           >
             <SkipForward className="h-4 w-4 mr-2" />
-            Hoppa över
+            {t('actions.skip')}
           </Button>
           <Button
             className="flex-1 h-12"
             onClick={handleSubmit}
           >
             <Check className="h-4 w-4 mr-2" />
-            Slutför
+            {t('actions.complete')}
           </Button>
         </div>
       </CardContent>

@@ -4246,6 +4246,24 @@
         "startFocusMode": "Start Focus Mode"
       }
     },
+    "segmentLoggingForm": {
+      "segmentCounter": "Segment {number}",
+      "title": "Log result",
+      "planned": "Planned",
+      "zone": "Zone {zone}",
+      "fields": {
+        "duration": "Time (min)",
+        "distance": "Distance (km)",
+        "avgHeartRate": "Avg heart rate",
+        "maxHeartRate": "Max heart rate",
+        "notes": "Notes (optional)",
+        "notesPlaceholder": "How did the segment feel?"
+      },
+      "actions": {
+        "skip": "Skip",
+        "complete": "Complete"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",
