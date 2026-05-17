@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 import { HeroWorkoutCard } from './HeroWorkoutCard'
 import { AssignmentHeroCard } from './AssignmentHeroCard'
 import { WODHeroCard } from './WODHeroCard'
@@ -34,6 +35,7 @@ function buildPayload(item: DashboardItem) {
 }
 
 export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderProps) {
+  const t = useTranslations('components.heroCardSlider')
   // Auto-focus on first incomplete item
   const initialIndex = items.findIndex(item => !isItemCompleted(item))
   const [activeIndex, setActiveIndex] = useState(Math.max(0, initialIndex))
@@ -46,7 +48,11 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
   // Update activeIndex if items change (e.g. new WOD created via chat)
   useEffect(() => {
     if (activeIndex >= items.length) {
-      setActiveIndex(Math.max(0, items.length - 1))
+      const timeoutId = window.setTimeout(() => {
+        setActiveIndex(Math.max(0, items.length - 1))
+      }, 0)
+
+      return () => window.clearTimeout(timeoutId)
     }
   }, [items.length, activeIndex])
 
@@ -82,15 +88,15 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
     try {
       const result = await removeDashboardItem(payload)
       if (!result.success) {
-        toast.error(result.error || 'Kunde inte ta bort passet')
+        toast.error(result.error || t('errors.removeFailed'))
       }
     } catch {
-      toast.error('Något gick fel')
+      toast.error(t('errors.generic'))
     } finally {
       setIsRemoving(false)
       setRemoveTarget(null)
     }
-  }, [removeTarget])
+  }, [removeTarget, t])
 
   const handleRemoveRequest = useCallback((item: DashboardItem) => {
     setRemoveTarget(item)
@@ -127,7 +133,7 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
           size="icon"
           className="absolute left-2 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 rounded-full bg-white/80 shadow-md hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 sm:inline-flex"
           onClick={goPrev}
-          aria-label="Föregående kort"
+          aria-label={t('previous')}
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -138,7 +144,7 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
           size="icon"
           className="absolute right-2 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 rounded-full bg-white/80 shadow-md hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 sm:inline-flex"
           onClick={goNext}
-          aria-label="Nästa kort"
+          aria-label={t('next')}
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
@@ -169,14 +175,14 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
                       ? 'bg-emerald-400/60'
                       : 'bg-slate-300 dark:bg-slate-600'
                 )}
-                aria-label={`Pass ${i + 1}`}
+                aria-label={t('workoutLabel', { index: i + 1 })}
               />
             )
           })}
         </div>
         {items.length > 1 && (
           <span className="w-full text-center text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground sm:hidden">
-            Svep for att byta pass
+            {t('swipeHint')}
           </span>
         )}
       </div>

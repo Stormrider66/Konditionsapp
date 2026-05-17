@@ -3150,6 +3150,41 @@
         "balanced": "Balanserad",
         "stressful": "Stressig"
       }
+    },
+    "wodHeroCard": {
+      "badge": "AI-Genererat Pass",
+      "completed": "Slutfört",
+      "metrics": {
+        "duration": "Längd",
+        "mode": "Läge"
+      },
+      "modes": {
+        "structured": "Strukturerat",
+        "casual": "Avslappnat",
+        "fun": "Bara kul!"
+      },
+      "workoutTypes": {
+        "strength": "Styrka",
+        "cardio": "Kondition",
+        "mixed": "Mixat",
+        "core": "Core"
+      },
+      "actions": {
+        "remove": "Ta bort pass",
+        "viewResults": "Visa resultat",
+        "continueWorkout": "Fortsätt pass",
+        "startWorkout": "Starta pass"
+      }
+    },
+    "heroCardSlider": {
+      "previous": "Föregående kort",
+      "next": "Nästa kort",
+      "workoutLabel": "Pass {index}",
+      "swipeHint": "Svep för att byta pass",
+      "errors": {
+        "removeFailed": "Kunde inte ta bort passet",
+        "generic": "Något gick fel"
+      }
     }
   },
   "infographic": {

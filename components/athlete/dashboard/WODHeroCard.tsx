@@ -13,12 +13,8 @@ import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { DashboardVisualLayer } from './DashboardVisualLayer'
 import { getWorkoutVisual } from './dashboard-visuals'
-import {
-  DashboardWOD,
-  getWODRoute,
-  getWODModeLabel,
-  getWODWorkoutTypeLabel,
-} from '@/types/dashboard-items'
+import { DashboardWOD, getWODRoute } from '@/types/dashboard-items'
+import { useTranslations } from '@/i18n/client'
 
 interface WODHeroCardProps {
   wod: DashboardWOD
@@ -28,6 +24,7 @@ interface WODHeroCardProps {
 }
 
 export function WODHeroCard({ wod, basePath = '', onRemove }: WODHeroCardProps) {
+  const t = useTranslations('components.wodHeroCard')
   const isCompleted = wod.status === 'COMPLETED'
   const isStarted = wod.status === 'STARTED'
   const route = getWODRoute(wod, basePath)
@@ -36,6 +33,22 @@ export function WODHeroCard({ wod, basePath = '', onRemove }: WODHeroCardProps) 
     intensity: wod.intensityAdjusted,
     name: wod.title,
   })
+  const modeLabel = (() => {
+    switch (wod.mode) {
+      case 'STRUCTURED': return t('modes.structured')
+      case 'CASUAL': return t('modes.casual')
+      case 'FUN': return t('modes.fun')
+    }
+  })()
+  const workoutTypeLabel = (() => {
+    switch (wod.workoutType) {
+      case 'cardio': return t('workoutTypes.cardio')
+      case 'mixed': return t('workoutTypes.mixed')
+      case 'core': return t('workoutTypes.core')
+      case 'strength':
+      default: return t('workoutTypes.strength')
+    }
+  })()
 
   return (
     <GlassCard className="lg:col-span-2 rounded-2xl group overflow-hidden bg-white/95 text-slate-950 ring-slate-900/10 dark:bg-slate-950 dark:text-white dark:ring-white/10 transition-all">
@@ -46,7 +59,7 @@ export function WODHeroCard({ wod, basePath = '', onRemove }: WODHeroCardProps) 
         <button
           onClick={onRemove}
           className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-white/80 text-slate-600 opacity-100 backdrop-blur sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/20 transition-all"
-          aria-label="Ta bort pass"
+          aria-label={t('actions.remove')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -60,7 +73,7 @@ export function WODHeroCard({ wod, basePath = '', onRemove }: WODHeroCardProps) 
           {/* AI WOD Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-200 text-emerald-700 dark:border-emerald-300/20 dark:text-emerald-200 text-xs font-bold uppercase tracking-wider mb-4 backdrop-blur transition-colors">
             <Sparkles className="w-3 h-3" />
-            AI-Genererat Pass
+            {t('badge')}
           </div>
 
           {/* Title */}
@@ -79,11 +92,11 @@ export function WODHeroCard({ wod, basePath = '', onRemove }: WODHeroCardProps) 
           <div className="flex flex-wrap items-center gap-2 mt-3">
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-200 text-xs font-medium backdrop-blur">
               <Sparkles className="w-3 h-3" />
-              {getWODModeLabel(wod.mode)}
+              {modeLabel}
             </span>
             {wod.workoutType && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-200 text-xs font-medium backdrop-blur">
-                {getWODWorkoutTypeLabel(wod.workoutType)}
+                {workoutTypeLabel}
               </span>
             )}
             {wod.intensityAdjusted && (
@@ -98,7 +111,7 @@ export function WODHeroCard({ wod, basePath = '', onRemove }: WODHeroCardProps) 
           {isCompleted && (
             <div className="inline-flex items-center gap-2 mt-3 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-200 text-emerald-700 dark:border-emerald-300/20 dark:text-emerald-200 text-xs font-medium backdrop-blur transition-colors">
               <TrendingUp className="w-3 h-3" />
-              Slutfört
+              {t('completed')}
             </div>
           )}
         </div>
@@ -106,7 +119,7 @@ export function WODHeroCard({ wod, basePath = '', onRemove }: WODHeroCardProps) 
         {/* Metrics Row */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 md:gap-6 mt-6 md:mt-8">
           <div>
-            <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">Längd</div>
+            <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">{t('metrics.duration')}</div>
             <div className="text-lg md:text-xl font-bold text-slate-950 dark:text-white flex items-center gap-2 transition-colors">
               <Timer className="w-4 h-4 md:w-5 md:h-5 text-emerald-300" />
               {wod.actualDuration || wod.requestedDuration} min
@@ -124,10 +137,10 @@ export function WODHeroCard({ wod, basePath = '', onRemove }: WODHeroCardProps) 
           )}
 
           <div>
-            <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">Läge</div>
+            <div className="text-slate-500 dark:text-slate-300/70 text-xs uppercase tracking-wider mb-1">{t('metrics.mode')}</div>
             <div className="text-lg md:text-xl font-bold text-emerald-300 flex items-center gap-2">
               <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
-              {getWODModeLabel(wod.mode)}
+              {modeLabel}
             </div>
           </div>
         </div>
@@ -141,14 +154,14 @@ export function WODHeroCard({ wod, basePath = '', onRemove }: WODHeroCardProps) 
                 className="w-full sm:w-auto min-h-[48px] border-slate-300 bg-white/70 text-slate-900 hover:bg-white hover:border-slate-400 dark:border-white/20 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:hover:border-white/30 transition-all"
               >
                 <TrendingUp className="w-4 h-4 mr-2" />
-                Visa resultat
+                {t('actions.viewResults')}
               </Button>
             </Link>
           ) : (
             <Link href={route}>
               <Button className="w-full sm:w-auto min-h-[48px] bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 border-0 transition-all">
                 <Play className="w-4 h-4 mr-2" />
-                {isStarted ? 'Fortsätt pass' : 'Starta pass'}
+                {isStarted ? t('actions.continueWorkout') : t('actions.startWorkout')}
               </Button>
             </Link>
           )}

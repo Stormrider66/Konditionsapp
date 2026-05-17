@@ -3150,6 +3150,41 @@
         "balanced": "Balanced",
         "stressful": "Stressful"
       }
+    },
+    "wodHeroCard": {
+      "badge": "AI-Generated Workout",
+      "completed": "Completed",
+      "metrics": {
+        "duration": "Duration",
+        "mode": "Mode"
+      },
+      "modes": {
+        "structured": "Structured",
+        "casual": "Casual",
+        "fun": "Just for fun!"
+      },
+      "workoutTypes": {
+        "strength": "Strength",
+        "cardio": "Cardio",
+        "mixed": "Mixed",
+        "core": "Core"
+      },
+      "actions": {
+        "remove": "Remove workout",
+        "viewResults": "View results",
+        "continueWorkout": "Continue workout",
+        "startWorkout": "Start workout"
+      }
+    },
+    "heroCardSlider": {
+      "previous": "Previous card",
+      "next": "Next card",
+      "workoutLabel": "Workout {index}",
+      "swipeHint": "Swipe to switch workout",
+      "errors": {
+        "removeFailed": "Could not remove workout",
+        "generic": "Something went wrong"
+      }
     }
   },
   "infographic": {
