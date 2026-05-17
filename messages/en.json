@@ -672,6 +672,95 @@
         "elevationGain": "Elevation gain"
       }
     },
+    "matches": {
+      "title": "Match schedule",
+      "description": "Manage your matches and log results",
+      "home": "Home",
+      "away": "Away",
+      "actions": {
+        "addMatch": "Add match",
+        "add": "Add",
+        "cancel": "Cancel",
+        "save": "Save",
+        "delete": "Delete"
+      },
+      "stats": {
+        "played": "Matches played",
+        "upcoming": "Upcoming",
+        "goalsAssists": "Goals + Assists",
+        "playingTime": "Playing time"
+      },
+      "tabs": {
+        "upcoming": "Upcoming ({count})",
+        "past": "Played ({count})"
+      },
+      "empty": {
+        "upcomingTitle": "No upcoming matches",
+        "upcomingDescription": "Add your next match to keep track of the schedule",
+        "pastTitle": "No played matches",
+        "pastDescription": "Log results after your matches"
+      },
+      "status": {
+        "upcoming": "Upcoming",
+        "logResult": "Log result"
+      },
+      "dateLabels": {
+        "today": "Today",
+        "tomorrow": "Tomorrow"
+      },
+      "addDialog": {
+        "title": "Add match",
+        "description": "Fill in match information"
+      },
+      "fields": {
+        "opponent": "Opponent",
+        "homeOrAway": "Home or away",
+        "date": "Date",
+        "time": "Time",
+        "venue": "Venue",
+        "competition": "Competition",
+        "matchday": "Matchday"
+      },
+      "placeholders": {
+        "opponent": "e.g. Arsenal, Barcelona",
+        "venue": "e.g. National Arena",
+        "competition": "e.g. League match",
+        "matchday": "e.g. 15",
+        "result": "e.g. 3-2, W 2-1",
+        "minutesPlayed": "e.g. 90",
+        "distanceKm": "e.g. 10.5",
+        "sprintDistance": "e.g. 850",
+        "maxSpeed": "e.g. 32.5"
+      },
+      "detail": {
+        "tabs": {
+          "result": "Result",
+          "stats": "Stats"
+        },
+        "fields": {
+          "result": "Match result",
+          "goals": "Goals",
+          "assists": "Assists",
+          "minutesPlayed": "Playing time (minutes)",
+          "penaltyMinutes": "Penalty minutes",
+          "distanceKm": "Total distance (km)",
+          "sprintDistance": "Sprint distance (m)",
+          "maxSpeed": "Max speed (km/h)"
+        },
+        "resultHelp": "Enter the final result, e.g. \"3-2\" or \"W 2-1\"",
+        "genericStats": "Basic stats (goals, assists, playing time) are logged under the \"Result\" tab."
+      },
+      "deleteDialog": {
+        "title": "Delete match?",
+        "description": "Are you sure you want to delete the match against {opponent}? This cannot be undone."
+      },
+      "errors": {
+        "createFailed": "Could not create match",
+        "saveFailed": "Could not save changes",
+        "deleteFailed": "Could not delete match",
+        "generic": "Something went wrong"
+      }
+    },
     "dashboard": {
       "welcomeBack": "Welcome back",
       "quickActions": {

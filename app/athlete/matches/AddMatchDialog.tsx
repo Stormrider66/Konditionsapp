@@ -12,9 +12,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { Loader2, Home, Plane } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface Match {
   id: string
@@ -46,6 +46,7 @@ export function AddMatchDialog({
   onOpenChange,
   onMatchAdded,
 }: AddMatchDialogProps) {
+  const t = useTranslations('pages.athlete.matches')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -94,13 +95,13 @@ export function AddMatchDialog({
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Kunde inte skapa match')
+        throw new Error(data.error || t('errors.createFailed'))
       }
 
       onMatchAdded(data)
       resetForm()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : t('errors.generic'))
     } finally {
       setIsLoading(false)
     }
@@ -113,19 +114,19 @@ export function AddMatchDialog({
     }}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Lägg till match</DialogTitle>
+          <DialogTitle>{t('addDialog.title')}</DialogTitle>
           <DialogDescription>
-            Fyll i information om matchen
+            {t('addDialog.description')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Opponent */}
           <div className="space-y-2">
-            <Label htmlFor="opponent">Motståndare *</Label>
+            <Label htmlFor="opponent">{t('fields.opponent')} *</Label>
             <Input
               id="opponent"
-              placeholder="t.ex. AIK, Djurgården"
+              placeholder={t('placeholders.opponent')}
               value={opponent}
               onChange={(e) => setOpponent(e.target.value)}
               required
@@ -134,7 +135,7 @@ export function AddMatchDialog({
 
           {/* Home/Away Toggle */}
           <div className="space-y-2">
-            <Label>Hemma eller borta</Label>
+            <Label>{t('fields.homeOrAway')}</Label>
             <div className="flex items-center gap-4 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
               <button
                 type="button"
@@ -147,7 +148,7 @@ export function AddMatchDialog({
                 )}
               >
                 <Home className="h-4 w-4" />
-                Hemma
+                {t('home')}
               </button>
               <button
                 type="button"
@@ -160,7 +161,7 @@ export function AddMatchDialog({
                 )}
               >
                 <Plane className="h-4 w-4" />
-                Borta
+                {t('away')}
               </button>
             </div>
           </div>
@@ -168,7 +169,7 @@ export function AddMatchDialog({
           {/* Date and Time */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="date">Datum *</Label>
+              <Label htmlFor="date">{t('fields.date')} *</Label>
               <Input
                 id="date"
                 type="date"
@@ -178,7 +179,7 @@ export function AddMatchDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="time">Tid *</Label>
+              <Label htmlFor="time">{t('fields.time')} *</Label>
               <Input
                 id="time"
                 type="time"
@@ -191,10 +192,10 @@ export function AddMatchDialog({
 
           {/* Venue */}
           <div className="space-y-2">
-            <Label htmlFor="venue">Arena</Label>
+            <Label htmlFor="venue">{t('fields.venue')}</Label>
             <Input
               id="venue"
-              placeholder="t.ex. Friends Arena"
+              placeholder={t('placeholders.venue')}
               value={venue}
               onChange={(e) => setVenue(e.target.value)}
             />
@@ -203,20 +204,20 @@ export function AddMatchDialog({
           {/* Competition and Matchday */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="competition">Tävling</Label>
+              <Label htmlFor="competition">{t('fields.competition')}</Label>
               <Input
                 id="competition"
-                placeholder="t.ex. Allsvenskan"
+                placeholder={t('placeholders.competition')}
                 value={competition}
                 onChange={(e) => setCompetition(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="matchday">Omgång</Label>
+              <Label htmlFor="matchday">{t('fields.matchday')}</Label>
               <Input
                 id="matchday"
                 type="number"
-                placeholder="t.ex. 15"
+                placeholder={t('placeholders.matchday')}
                 value={matchday}
                 onChange={(e) => setMatchday(e.target.value)}
               />
@@ -229,11 +230,11 @@ export function AddMatchDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Avbryt
+              {t('actions.cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Lägg till
+              {t('actions.add')}
             </Button>
           </DialogFooter>
         </form>

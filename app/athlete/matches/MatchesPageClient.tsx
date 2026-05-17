@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -15,18 +15,15 @@ import {
   MapPin,
   Home,
   Plane,
-  ChevronRight,
   TrendingUp,
   Activity,
-  Pencil,
-  Trash2,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { format, isPast, isToday, isTomorrow, isThisWeek } from 'date-fns'
-import { sv } from 'date-fns/locale'
-import Link from 'next/link'
+import { format, isToday, isTomorrow } from 'date-fns'
+import { enUS, sv } from 'date-fns/locale'
+import type { Locale as DateFnsLocale } from 'date-fns'
 import { AddMatchDialog } from './AddMatchDialog'
 import { MatchDetailDialog } from './MatchDetailDialog'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface Match {
   id: string
@@ -65,19 +62,22 @@ interface MatchesPageClientProps {
   basePath?: string
 }
 
-function getDateLabel(date: Date): string {
-  if (isToday(date)) return 'Idag'
-  if (isTomorrow(date)) return 'Imorgon'
-  return format(date, 'EEEE d MMMM', { locale: sv })
+function getDateLabel(date: Date, t: ReturnType<typeof useTranslations>, dateLocale: DateFnsLocale): string {
+  if (isToday(date)) return t('dateLabels.today')
+  if (isTomorrow(date)) return t('dateLabels.tomorrow')
+  return format(date, 'EEEE d MMMM', { locale: dateLocale })
 }
 
 export function MatchesPageClient({
   matches: initialMatches,
   stats,
-  clientId,
+  clientId: _clientId,
   sportType,
   basePath = '',
 }: MatchesPageClientProps) {
+  const t = useTranslations('pages.athlete.matches')
+  const locale = useLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const searchParams = useSearchParams()
   const router = useRouter()
   const [matches, setMatches] = useState(initialMatches)
@@ -122,15 +122,15 @@ export function MatchesPageClient({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
-            Matchschema
+            {t('title')}
           </h1>
           <p className="text-slate-500 dark:text-slate-400">
-            Hantera dina matcher och logga resultat
+            {t('description')}
           </p>
         </div>
         <Button onClick={() => setShowAddDialog(true)} className="bg-blue-600 hover:bg-blue-700">
           <Plus className="h-4 w-4 mr-2" />
-          Lägg till match
+          {t('actions.addMatch')}
         </Button>
       </div>
 
@@ -140,7 +140,7 @@ export function MatchesPageClient({
           <GlassCardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Matcher spelat</p>
+                <p className="text-xs text-muted-foreground">{t('stats.played')}</p>
                 <p className="text-2xl font-bold">{stats.completedMatches}</p>
               </div>
               <Trophy className="h-8 w-8 text-yellow-500 opacity-50" />
@@ -152,7 +152,7 @@ export function MatchesPageClient({
           <GlassCardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Kommande</p>
+                <p className="text-xs text-muted-foreground">{t('stats.upcoming')}</p>
                 <p className="text-2xl font-bold">{stats.upcomingMatches}</p>
               </div>
               <Calendar className="h-8 w-8 text-blue-500 opacity-50" />
@@ -164,7 +164,7 @@ export function MatchesPageClient({
           <GlassCardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Mål + Assist</p>
+                <p className="text-xs text-muted-foreground">{t('stats.goalsAssists')}</p>
                 <p className="text-2xl font-bold">
                   {stats.totalGoals} + {stats.totalAssists}
                 </p>
@@ -178,7 +178,7 @@ export function MatchesPageClient({
           <GlassCardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Speltid</p>
+                <p className="text-xs text-muted-foreground">{t('stats.playingTime')}</p>
                 <p className="text-2xl font-bold">
                   {Math.round(stats.totalMinutesPlayed)}
                   <span className="text-sm font-normal text-muted-foreground"> min</span>
@@ -195,11 +195,11 @@ export function MatchesPageClient({
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="upcoming" className="gap-2">
             <Calendar className="h-4 w-4" />
-            Kommande ({upcomingMatches.length})
+            {t('tabs.upcoming', { count: upcomingMatches.length })}
           </TabsTrigger>
           <TabsTrigger value="past" className="gap-2">
             <Trophy className="h-4 w-4" />
-            Spelade ({pastMatches.length})
+            {t('tabs.past', { count: pastMatches.length })}
           </TabsTrigger>
         </TabsList>
 
@@ -209,13 +209,13 @@ export function MatchesPageClient({
             <GlassCard>
               <GlassCardContent className="py-12 text-center">
                 <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <h3 className="text-lg font-medium mb-2">Inga kommande matcher</h3>
+                <h3 className="text-lg font-medium mb-2">{t('empty.upcomingTitle')}</h3>
                 <p className="text-muted-foreground mb-4">
-                  Lägg till din nästa match för att hålla koll på schemat
+                  {t('empty.upcomingDescription')}
                 </p>
                 <Button onClick={() => setShowAddDialog(true)} variant="outline">
                   <Plus className="h-4 w-4 mr-2" />
-                  Lägg till match
+                  {t('actions.addMatch')}
                 </Button>
               </GlassCardContent>
             </GlassCard>
@@ -228,6 +228,8 @@ export function MatchesPageClient({
                   match={match}
                   onClick={() => setSelectedMatch(match)}
                   isUpcoming
+                  t={t}
+                  dateLocale={dateLocale}
                 />
               ))
           )}
@@ -239,9 +241,9 @@ export function MatchesPageClient({
             <GlassCard>
               <GlassCardContent className="py-12 text-center">
                 <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <h3 className="text-lg font-medium mb-2">Inga spelade matcher</h3>
+                <h3 className="text-lg font-medium mb-2">{t('empty.pastTitle')}</h3>
                 <p className="text-muted-foreground">
-                  Logga resultat efter dina matcher
+                  {t('empty.pastDescription')}
                 </p>
               </GlassCardContent>
             </GlassCard>
@@ -254,6 +256,8 @@ export function MatchesPageClient({
                   match={match}
                   onClick={() => setSelectedMatch(match)}
                   showStats={isFootball || isHockey}
+                  t={t}
+                  dateLocale={dateLocale}
                 />
               ))
           )}
@@ -288,11 +292,15 @@ function MatchCard({
   onClick,
   isUpcoming = false,
   showStats = false,
+  t,
+  dateLocale,
 }: {
   match: Match
   onClick: () => void
   isUpcoming?: boolean
   showStats?: boolean
+  t: ReturnType<typeof useTranslations>
+  dateLocale: DateFnsLocale
 }) {
   const matchDate = new Date(match.scheduledDate)
 
@@ -306,12 +314,12 @@ function MatchCard({
               {match.isHome ? (
                 <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
                   <Home className="h-3 w-3 mr-1" />
-                  Hemma
+                  {t('home')}
                 </Badge>
               ) : (
                 <Badge variant="secondary" className="bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300">
                   <Plane className="h-3 w-3 mr-1" />
-                  Borta
+                  {t('away')}
                 </Badge>
               )}
               {match.competition && (
@@ -326,7 +334,7 @@ function MatchCard({
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                {getDateLabel(matchDate)} {format(matchDate, 'HH:mm')}
+                {getDateLabel(matchDate, t, dateLocale)} {format(matchDate, 'HH:mm')}
               </span>
               {match.venue && (
                 <span className="flex items-center gap-1">
@@ -350,11 +358,11 @@ function MatchCard({
               </div>
             ) : isUpcoming ? (
               <Badge variant="outline" className="text-blue-600 border-blue-600">
-                Kommande
+                {t('status.upcoming')}
               </Badge>
             ) : (
               <Badge variant="outline" className="text-orange-600 border-orange-600">
-                Logga resultat
+                {t('status.logResult')}
               </Badge>
             )}
           </div>

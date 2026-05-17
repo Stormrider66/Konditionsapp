@@ -33,13 +33,11 @@ import {
   MapPin,
   Trophy,
   Trash2,
-  Clock,
-  Target,
   Activity,
-  TrendingUp,
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface Match {
   id: string
@@ -77,6 +75,9 @@ export function MatchDetailDialog({
   onMatchDeleted,
   sportType,
 }: MatchDetailDialogProps) {
+  const t = useTranslations('pages.athlete.matches')
+  const locale = useLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState(match.result ? 'stats' : 'result')
@@ -120,12 +121,12 @@ export function MatchDetailDialog({
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Kunde inte spara ändringar')
+        throw new Error(data.error || t('errors.saveFailed'))
       }
 
       onMatchUpdated(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : t('errors.generic'))
     } finally {
       setIsLoading(false)
     }
@@ -141,12 +142,12 @@ export function MatchDetailDialog({
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Kunde inte ta bort match')
+        throw new Error(data.error || t('errors.deleteFailed'))
       }
 
       onMatchDeleted(match.id)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : t('errors.generic'))
       setIsLoading(false)
     }
   }
@@ -159,12 +160,12 @@ export function MatchDetailDialog({
             {match.isHome ? (
               <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
                 <Home className="h-3 w-3 mr-1" />
-                Hemma
+                {t('home')}
               </Badge>
             ) : (
               <Badge variant="secondary" className="bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300">
                 <Plane className="h-3 w-3 mr-1" />
-                Borta
+                {t('away')}
               </Badge>
             )}
             {match.competition && (
@@ -177,7 +178,7 @@ export function MatchDetailDialog({
           <DialogDescription className="flex items-center gap-4">
             <span className="flex items-center gap-1">
               <Calendar className="h-4 w-4" />
-              {format(matchDate, 'EEEE d MMMM HH:mm', { locale: sv })}
+              {format(matchDate, 'EEEE d MMMM HH:mm', { locale: dateLocale })}
             </span>
             {match.venue && (
               <span className="flex items-center gap-1">
@@ -192,32 +193,32 @@ export function MatchDetailDialog({
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="result" className="gap-2">
               <Trophy className="h-4 w-4" />
-              Resultat
+              {t('detail.tabs.result')}
             </TabsTrigger>
             <TabsTrigger value="stats" className="gap-2">
               <Activity className="h-4 w-4" />
-              Statistik
+              {t('detail.tabs.stats')}
             </TabsTrigger>
           </TabsList>
 
           {/* Result Tab */}
           <TabsContent value="result" className="space-y-4 pt-4">
             <div className="space-y-2">
-              <Label htmlFor="result">Matchresultat</Label>
+              <Label htmlFor="result">{t('detail.fields.result')}</Label>
               <Input
                 id="result"
-                placeholder="t.ex. 3-2, V 2-1"
+                placeholder={t('placeholders.result')}
                 value={result}
                 onChange={(e) => setResult(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Ange slutresultat, t.ex. &quot;3-2&quot; eller &quot;V 2-1&quot;
+                {t('detail.resultHelp')}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="goals">Mål</Label>
+                <Label htmlFor="goals">{t('detail.fields.goals')}</Label>
                 <Input
                   id="goals"
                   type="number"
@@ -228,7 +229,7 @@ export function MatchDetailDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="assists">Assist</Label>
+                <Label htmlFor="assists">{t('detail.fields.assists')}</Label>
                 <Input
                   id="assists"
                   type="number"
@@ -241,13 +242,13 @@ export function MatchDetailDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="minutesPlayed">Speltid (minuter)</Label>
+              <Label htmlFor="minutesPlayed">{t('detail.fields.minutesPlayed')}</Label>
               <Input
                 id="minutesPlayed"
                 type="number"
                 min="0"
                 step="0.5"
-                placeholder="t.ex. 90"
+                placeholder={t('placeholders.minutesPlayed')}
                 value={minutesPlayed}
                 onChange={(e) => setMinutesPlayed(e.target.value)}
               />
@@ -271,7 +272,7 @@ export function MatchDetailDialog({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="penaltyMinutes">Utvisningsminuter</Label>
+                    <Label htmlFor="penaltyMinutes">{t('detail.fields.penaltyMinutes')}</Label>
                     <Input
                       id="penaltyMinutes"
                       type="number"
@@ -289,13 +290,13 @@ export function MatchDetailDialog({
             {isFootball && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="distanceKm">Total distans (km)</Label>
+                  <Label htmlFor="distanceKm">{t('detail.fields.distanceKm')}</Label>
                   <Input
                     id="distanceKm"
                     type="number"
                     min="0"
                     step="0.1"
-                    placeholder="t.ex. 10.5"
+                    placeholder={t('placeholders.distanceKm')}
                     value={distanceKm}
                     onChange={(e) => setDistanceKm(e.target.value)}
                   />
@@ -303,24 +304,24 @@ export function MatchDetailDialog({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="sprintDistance">Sprintdistans (m)</Label>
+                    <Label htmlFor="sprintDistance">{t('detail.fields.sprintDistance')}</Label>
                     <Input
                       id="sprintDistance"
                       type="number"
                       min="0"
-                      placeholder="t.ex. 850"
+                      placeholder={t('placeholders.sprintDistance')}
                       value={sprintDistance}
                       onChange={(e) => setSprintDistance(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="maxSpeed">Max hastighet (km/h)</Label>
+                    <Label htmlFor="maxSpeed">{t('detail.fields.maxSpeed')}</Label>
                     <Input
                       id="maxSpeed"
                       type="number"
                       min="0"
                       step="0.1"
-                      placeholder="t.ex. 32.5"
+                      placeholder={t('placeholders.maxSpeed')}
                       value={maxSpeed}
                       onChange={(e) => setMaxSpeed(e.target.value)}
                     />
@@ -332,7 +333,7 @@ export function MatchDetailDialog({
             {/* Generic stats for other sports */}
             {!isHockey && !isFootball && (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Grundläggande statistik (mål, assist, speltid) loggas under &quot;Resultat&quot;-fliken.
+                {t('detail.genericStats')}
               </p>
             )}
           </TabsContent>
@@ -347,24 +348,23 @@ export function MatchDetailDialog({
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50">
                 <Trash2 className="h-4 w-4 mr-2" />
-                Ta bort
+                {t('actions.delete')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Ta bort match?</AlertDialogTitle>
+                <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Är du säker på att du vill ta bort matchen mot {match.opponent}?
-                  Detta kan inte ångras.
+                  {t('deleteDialog.description', { opponent: match.opponent })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                <AlertDialogCancel>{t('actions.cancel')}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDelete}
                   className="bg-red-600 hover:bg-red-700"
                 >
-                  Ta bort
+                  {t('actions.delete')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -372,11 +372,11 @@ export function MatchDetailDialog({
 
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Avbryt
+              {t('actions.cancel')}
             </Button>
             <Button onClick={handleSave} disabled={isLoading}>
               {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Spara
+              {t('actions.save')}
             </Button>
           </div>
         </DialogFooter>

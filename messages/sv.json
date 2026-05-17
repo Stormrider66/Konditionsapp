@@ -672,6 +672,95 @@
         "elevationGain": "Höjdmeter"
       }
     },
+    "matches": {
+      "title": "Matchschema",
+      "description": "Hantera dina matcher och logga resultat",
+      "home": "Hemma",
+      "away": "Borta",
+      "actions": {
+        "addMatch": "Lägg till match",
+        "add": "Lägg till",
+        "cancel": "Avbryt",
+        "save": "Spara",
+        "delete": "Ta bort"
+      },
+      "stats": {
+        "played": "Matcher spelat",
+        "upcoming": "Kommande",
+        "goalsAssists": "Mål + Assist",
+        "playingTime": "Speltid"
+      },
+      "tabs": {
+        "upcoming": "Kommande ({count})",
+        "past": "Spelade ({count})"
+      },
+      "empty": {
+        "upcomingTitle": "Inga kommande matcher",
+        "upcomingDescription": "Lägg till din nästa match för att hålla koll på schemat",
+        "pastTitle": "Inga spelade matcher",
+        "pastDescription": "Logga resultat efter dina matcher"
+      },
+      "status": {
+        "upcoming": "Kommande",
+        "logResult": "Logga resultat"
+      },
+      "dateLabels": {
+        "today": "Idag",
+        "tomorrow": "Imorgon"
+      },
+      "addDialog": {
+        "title": "Lägg till match",
+        "description": "Fyll i information om matchen"
+      },
+      "fields": {
+        "opponent": "Motståndare",
+        "homeOrAway": "Hemma eller borta",
+        "date": "Datum",
+        "time": "Tid",
+        "venue": "Arena",
+        "competition": "Tävling",
+        "matchday": "Omgång"
+      },
+      "placeholders": {
+        "opponent": "t.ex. AIK, Djurgården",
+        "venue": "t.ex. Friends Arena",
+        "competition": "t.ex. Allsvenskan",
+        "matchday": "t.ex. 15",
+        "result": "t.ex. 3-2, V 2-1",
+        "minutesPlayed": "t.ex. 90",
+        "distanceKm": "t.ex. 10.5",
+        "sprintDistance": "t.ex. 850",
+        "maxSpeed": "t.ex. 32.5"
+      },
+      "detail": {
+        "tabs": {
+          "result": "Resultat",
+          "stats": "Statistik"
+        },
+        "fields": {
+          "result": "Matchresultat",
+          "goals": "Mål",
+          "assists": "Assist",
+          "minutesPlayed": "Speltid (minuter)",
+          "penaltyMinutes": "Utvisningsminuter",
+          "distanceKm": "Total distans (km)",
+          "sprintDistance": "Sprintdistans (m)",
+          "maxSpeed": "Max hastighet (km/h)"
+        },
+        "resultHelp": "Ange slutresultat, t.ex. \"3-2\" eller \"V 2-1\"",
+        "genericStats": "Grundläggande statistik (mål, assist, speltid) loggas under \"Resultat\"-fliken."
+      },
+      "deleteDialog": {
+        "title": "Ta bort match?",
+        "description": "Är du säker på att du vill ta bort matchen mot {opponent}? Detta kan inte ångras."
+      },
+      "errors": {
+        "createFailed": "Kunde inte skapa match",
+        "saveFailed": "Kunde inte spara ändringar",
+        "deleteFailed": "Kunde inte ta bort match",
+        "generic": "Ett fel uppstod"
+      }
+    },
     "dashboard": {
       "welcomeBack": "Välkommen tillbaka",
       "quickActions": {
