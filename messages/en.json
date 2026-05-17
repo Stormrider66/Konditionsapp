@@ -4216,6 +4216,36 @@
         }
       }
     },
+    "cardioSessionCard": {
+      "status": {
+        "pending": "Planned",
+        "scheduled": "In progress",
+        "completed": "Completed",
+        "skipped": "Skipped",
+        "modified": "Modified"
+      },
+      "sports": {
+        "running": "Running",
+        "cycling": "Cycling",
+        "swimming": "Swimming",
+        "skiing": "Cross-country skiing"
+      },
+      "dates": {
+        "today": "Today",
+        "tomorrow": "Tomorrow"
+      },
+      "stats": {
+        "segments": "{count, plural, one {# segment} other {# segments}}"
+      },
+      "progress": {
+        "label": "Progress"
+      },
+      "actions": {
+        "completed": "Completed",
+        "continueWorkout": "Continue workout",
+        "startFocusMode": "Start Focus Mode"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",

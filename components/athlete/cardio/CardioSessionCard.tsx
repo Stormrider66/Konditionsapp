@@ -1,3 +1,4 @@
+'use client'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,11 +18,11 @@ import {
   Calendar,
   Zap,
   CheckCircle2,
-  SkipForward,
   MapPin,
   Timer,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 type AssignmentStatus = 'PENDING' | 'SCHEDULED' | 'COMPLETED' | 'SKIPPED' | 'MODIFIED'
@@ -48,19 +49,19 @@ interface CardioSessionCardProps {
   onStartFocusMode: (assignmentId: string) => void
 }
 
-const STATUS_BADGES: Record<AssignmentStatus, { label: string; className: string }> = {
-  PENDING: { label: 'Planerad', className: 'bg-slate-100 text-slate-700 dark:bg-white/5 dark:text-slate-300' },
-  SCHEDULED: { label: 'Pågående', className: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' },
-  COMPLETED: { label: 'Slutförd', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' },
-  SKIPPED: { label: 'Hoppades över', className: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' },
-  MODIFIED: { label: 'Modifierad', className: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400' },
+const STATUS_BADGES: Record<AssignmentStatus, { labelKey: string; className: string }> = {
+  PENDING: { labelKey: 'status.pending', className: 'bg-slate-100 text-slate-700 dark:bg-white/5 dark:text-slate-300' },
+  SCHEDULED: { labelKey: 'status.scheduled', className: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' },
+  COMPLETED: { labelKey: 'status.completed', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' },
+  SKIPPED: { labelKey: 'status.skipped', className: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' },
+  MODIFIED: { labelKey: 'status.modified', className: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400' },
 }
 
 const SPORT_NAMES: Record<string, string> = {
-  RUNNING: 'Löpning',
-  CYCLING: 'Cykling',
-  SWIMMING: 'Simning',
-  SKIING: 'Längdskidor',
+  RUNNING: 'sports.running',
+  CYCLING: 'sports.cycling',
+  SWIMMING: 'sports.swimming',
+  SKIING: 'sports.skiing',
 }
 
 const SEGMENT_COLORS: Record<SegmentType, string> = {
@@ -78,7 +79,7 @@ const SEGMENT_COLORS: Record<SegmentType, string> = {
 
 export function CardioSessionCard({
   id,
-  sessionId,
+  sessionId: _sessionId,
   sessionName,
   description,
   sport,
@@ -96,6 +97,8 @@ export function CardioSessionCard({
   location,
   onStartFocusMode,
 }: CardioSessionCardProps) {
+  const t = useTranslations('components.cardioSessionCard')
+  const locale = useLocale()
   const isCompleted = status === 'COMPLETED'
   const isInProgress = status === 'SCHEDULED'
   const progressPercent = segmentCount > 0 ? (completedSegments / segmentCount) * 100 : 0
@@ -127,12 +130,12 @@ export function CardioSessionCard({
     tomorrow.setDate(tomorrow.getDate() + 1)
 
     if (date.toDateString() === today.toDateString()) {
-      return 'Idag'
+      return t('dates.today')
     }
     if (date.toDateString() === tomorrow.toDateString()) {
-      return 'Imorgon'
+      return t('dates.tomorrow')
     }
-    return date.toLocaleDateString('sv-SE', {
+    return date.toLocaleDateString(locale, {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
@@ -153,11 +156,11 @@ export function CardioSessionCard({
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className="text-xs font-bold text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10">
-                {SPORT_NAMES[sport] || sport}
+                {SPORT_NAMES[sport] ? t(SPORT_NAMES[sport]) : sport}
               </Badge>
               <Badge className={cn('text-[10px] font-black uppercase tracking-wider', STATUS_BADGES[status].className)}>
                 {isCompleted && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                {STATUS_BADGES[status].label}
+                {t(STATUS_BADGES[status].labelKey)}
               </Badge>
             </div>
             <GlassCardTitle className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{sessionName}</GlassCardTitle>
@@ -206,7 +209,7 @@ export function CardioSessionCard({
           )}
           <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
             <Zap className="h-3.5 w-3.5 text-amber-500" />
-            {segmentCount} segment
+            {t('stats.segments', { count: segmentCount })}
           </div>
         </div>
 
@@ -227,7 +230,7 @@ export function CardioSessionCard({
         {isInProgress && segmentCount > 0 && (
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
-              <span>Framsteg</span>
+              <span>{t('progress.label')}</span>
               <span>{completedSegments}/{segmentCount}</span>
             </div>
             <Progress value={progressPercent} className="h-1.5" />
@@ -246,13 +249,13 @@ export function CardioSessionCard({
         {isCompleted ? (
           <Button variant="outline" className="w-full bg-slate-50 border-slate-200 text-slate-500 dark:bg-white/5 dark:border-white/10 dark:text-slate-400" disabled>
             <CheckCircle2 className="h-4 w-4 mr-2" />
-            Slutförd
+            {t('actions.completed')}
           </Button>
         ) : isInProgress ? (
           <div className="flex gap-2">
             <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20" onClick={() => onStartFocusMode(id)}>
               <Play className="h-4 w-4 mr-2" />
-              Fortsätt pass
+              {t('actions.continueWorkout')}
             </Button>
             <HeadlessVoiceCoachLauncher assignmentId={id} workoutType="cardio" />
           </div>
@@ -260,7 +263,7 @@ export function CardioSessionCard({
           <div className="flex gap-2">
             <Button className="flex-1 bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 shadow-lg transition-all" onClick={() => onStartFocusMode(id)}>
               <Play className="h-4 w-4 mr-2" />
-              Starta Focus Mode
+              {t('actions.startFocusMode')}
             </Button>
             <HeadlessVoiceCoachLauncher assignmentId={id} workoutType="cardio" />
           </div>

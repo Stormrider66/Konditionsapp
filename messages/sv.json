@@ -4216,6 +4216,36 @@
         }
       }
     },
+    "cardioSessionCard": {
+      "status": {
+        "pending": "Planerad",
+        "scheduled": "Pågående",
+        "completed": "Slutförd",
+        "skipped": "Hoppades över",
+        "modified": "Modifierad"
+      },
+      "sports": {
+        "running": "Löpning",
+        "cycling": "Cykling",
+        "swimming": "Simning",
+        "skiing": "Längdskidor"
+      },
+      "dates": {
+        "today": "Idag",
+        "tomorrow": "Imorgon"
+      },
+      "stats": {
+        "segments": "{count} {count, plural, one {segment} other {segment}}"
+      },
+      "progress": {
+        "label": "Framsteg"
+      },
+      "actions": {
+        "completed": "Slutförd",
+        "continueWorkout": "Fortsätt pass",
+        "startFocusMode": "Starta Focus Mode"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",
