@@ -3327,6 +3327,20 @@
         "sending": "Sending..."
       }
     },
+    "trainingFocus": {
+      "title": "Training focus",
+      "description": "Based on your test results, we recommend focusing on the following areas:",
+      "primaryFocus": "Primary focus",
+      "secondaryFocus": "Secondary focus",
+      "cta": {
+        "title": "Want a tailored training program?",
+        "description": "Contact your coach for personal program planning based on these test results. An individually adapted program optimizes your training and helps you reach your goals faster."
+      },
+      "followUp": {
+        "label": "Recommended follow-up:",
+        "weeks": "{weeks} weeks"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",

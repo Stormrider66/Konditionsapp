@@ -3327,6 +3327,20 @@
         "sending": "Skickar..."
       }
     },
+    "trainingFocus": {
+      "title": "Träningsfokus",
+      "description": "Baserat på dina testresultat rekommenderas fokus på följande områden:",
+      "primaryFocus": "Primärt fokus",
+      "secondaryFocus": "Sekundärt fokus",
+      "cta": {
+        "title": "Vill du ha ett skräddarsytt träningsprogram?",
+        "description": "Kontakta din coach för personlig programläggning baserad på dessa testresultat. Ett individuellt anpassat program optimerar din träning och hjälper dig nå dina mål snabbare."
+      },
+      "followUp": {
+        "label": "Rekommenderad uppföljning:",
+        "weeks": "{weeks} veckor"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

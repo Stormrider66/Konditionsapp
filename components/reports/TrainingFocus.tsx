@@ -1,18 +1,21 @@
 'use client'
 
 import { TrainingFocus as TrainingFocusType } from '@/lib/calculations/interpretations'
+import { useTranslations } from '@/i18n/client'
 
 interface TrainingFocusProps {
   trainingFocus: TrainingFocusType
 }
 
 export function TrainingFocus({ trainingFocus }: TrainingFocusProps) {
+  const t = useTranslations('components.trainingFocus')
+
   return (
     <section className="mt-6 border-b pb-6 print:break-inside-avoid" data-pdf-section>
-      <h2 className="text-2xl font-semibold mb-4">Traningsfokus</h2>
+      <h2 className="text-2xl font-semibold mb-4">{t('title')}</h2>
 
       <p className="text-sm text-gray-600 mb-4">
-        Baserat pa dina testresultat rekommenderas fokus pa foljande omraden:
+        {t('description')}
       </p>
 
       <div className="space-y-4">
@@ -26,7 +29,7 @@ export function TrainingFocus({ trainingFocus }: TrainingFocusProps) {
             </div>
             <div className="flex-1">
               <div className="flex items-center mb-1">
-                <span className="text-xs font-medium text-blue-600 uppercase tracking-wide">Primärt fokus</span>
+                <span className="text-xs font-medium text-blue-600 uppercase tracking-wide">{t('primaryFocus')}</span>
               </div>
               <h3 className="font-semibold text-lg text-blue-900">{trainingFocus.primaryFocus}</h3>
               <p className="text-sm text-blue-800 mt-1">{trainingFocus.primaryRationale}</p>
@@ -44,7 +47,7 @@ export function TrainingFocus({ trainingFocus }: TrainingFocusProps) {
             </div>
             <div className="flex-1">
               <div className="flex items-center mb-1">
-                <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">Sekundart fokus</span>
+                <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">{t('secondaryFocus')}</span>
               </div>
               <h3 className="font-semibold text-lg text-slate-800">{trainingFocus.secondaryFocus}</h3>
               <p className="text-sm text-slate-700 mt-1">{trainingFocus.secondaryRationale}</p>
@@ -63,11 +66,10 @@ export function TrainingFocus({ trainingFocus }: TrainingFocusProps) {
           </div>
           <div className="flex-1">
             <h4 className="font-semibold text-indigo-900 mb-1">
-              Vill du ha ett skraddarsytt traningsprogram?
+              {t('cta.title')}
             </h4>
             <p className="text-sm text-indigo-800">
-              Kontakta din coach for personlig programlaggning baserad pa dessa testresultat.
-              Ett individuellt anpassat program optimerar din traning och hjalper dig na dina mal snabbare.
+              {t('cta.description')}
             </p>
           </div>
         </div>
@@ -78,7 +80,7 @@ export function TrainingFocus({ trainingFocus }: TrainingFocusProps) {
         <svg className="w-4 h-4 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
         </svg>
-        <span>Rekommenderad uppfoljning: <strong>{trainingFocus.followUpWeeks} veckor</strong></span>
+        <span>{t('followUp.label')} <strong>{t('followUp.weeks', { weeks: trainingFocus.followUpWeeks })}</strong></span>
       </div>
     </section>
   )
