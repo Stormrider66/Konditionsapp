@@ -890,6 +890,7 @@
       },
       "sections": {
         "details": "Detaljer",
+        "overview": "Passöversikt",
         "strengthWorkout": "Styrkepass ({count} {count, plural, one {övning} other {övningar}})",
         "cardioWorkout": "Konditionspass ({count} {count, plural, one {segment} other {segment}})",
         "movements": "Rörelser ({count} st)",

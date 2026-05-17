@@ -890,6 +890,7 @@
       },
       "sections": {
         "details": "Details",
+        "overview": "Workout overview",
         "strengthWorkout": "Strength workout ({count, plural, one {# exercise} other {# exercises}})",
         "cardioWorkout": "Cardio workout ({count, plural, one {# segment} other {# segments}})",
         "movements": "Movements ({count})",
