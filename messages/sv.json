@@ -3806,6 +3806,41 @@
         }
       }
     },
+    "postWorkoutCheckCard": {
+      "time": {
+        "hoursAgo": "{count}h sedan",
+        "minutesAgo": "{count} min sedan"
+      },
+      "actions": {
+        "giveFeedback": "Ge feedback",
+        "hideForm": "Dölj formulär",
+        "submit": "Skicka feedback",
+        "sending": "Skickar..."
+      },
+      "fields": {
+        "overallFeeling": "Hur kändes passet överlag?",
+        "energy": "Energinivå under passet?",
+        "difficulty": "Hur tungt kändes det?",
+        "pain": "Smärta eller obehag? (valfritt)",
+        "notes": "Övriga anteckningar (valfritt)"
+      },
+      "placeholders": {
+        "pain": "Beskriv eventuell smärta eller obehag...",
+        "notes": "Något annat du vill notera..."
+      },
+      "scales": {
+        "energy": {
+          "exhausted": "Utmattad",
+          "normal": "Normal",
+          "energized": "Energisk"
+        },
+        "difficulty": {
+          "easy": "Lätt",
+          "planned": "Som planerat",
+          "extremelyHeavy": "Extremt tungt"
+        }
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Träningsbibliotek",

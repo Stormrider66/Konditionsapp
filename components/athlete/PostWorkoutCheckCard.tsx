@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from '@/i18n/client'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -45,10 +46,9 @@ interface Notification {
 }
 
 const feelingEmojis = ['😫', '😔', '😐', '🙂', '😊', '😄', '🤩', '💪', '🔥', '⭐']
-const energyLabels = ['Utmattad', '', '', '', 'Normal', '', '', '', '', 'Energisk']
-const difficultyLabels = ['Lätt', '', '', '', 'Som planerat', '', '', '', '', 'Extremt tungt']
 
 export function PostWorkoutCheckCard() {
+  const t = useTranslations('components.postWorkoutCheckCard')
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [submittingId, setSubmittingId] = useState<string | null>(null)
@@ -94,7 +94,7 @@ export function PostWorkoutCheckCard() {
 
             // Mark as read
             if (!n.readAt) {
-              fetch(`/api/athlete/notifications/${n.id}`, {
+              void fetch(`/api/athlete/notifications/${n.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'read' }),
@@ -110,7 +110,7 @@ export function PostWorkoutCheckCard() {
       }
     }
 
-    fetchNotifications()
+    void fetchNotifications()
   }, [])
 
   function updateFeedback(
@@ -182,9 +182,23 @@ export function PostWorkoutCheckCard() {
     const diffHours = Math.floor(diffMins / 60)
 
     if (diffHours >= 1) {
-      return `${diffHours}h sedan`
+      return t('time.hoursAgo', { count: diffHours })
     }
-    return `${diffMins} min sedan`
+    return t('time.minutesAgo', { count: diffMins })
+  }
+
+  function getEnergyLabel(value: number) {
+    if (value === 1) return t('scales.energy.exhausted')
+    if (value === 5) return t('scales.energy.normal')
+    if (value === 10) return t('scales.energy.energized')
+    return value
+  }
+
+  function getDifficultyLabel(value: number) {
+    if (value === 1) return t('scales.difficulty.easy')
+    if (value === 5) return t('scales.difficulty.planned')
+    if (value === 10) return t('scales.difficulty.extremelyHeavy')
+    return value
   }
 
   // Don't render if loading or no notifications
@@ -252,7 +266,7 @@ export function PostWorkoutCheckCard() {
                 <ChevronRight
                   className={cn('h-4 w-4 transition-transform', isExpanded && 'rotate-90')}
                 />
-                {isExpanded ? 'Dölj formulär' : 'Ge feedback'}
+                {isExpanded ? t('actions.hideForm') : t('actions.giveFeedback')}
               </button>
 
               {isExpanded && feedback && (
@@ -260,7 +274,7 @@ export function PostWorkoutCheckCard() {
                   {/* Overall Feeling */}
                   <div className="space-y-2">
                     <Label className="text-sm text-emerald-800 dark:text-emerald-200">
-                      Hur kändes passet överlag?
+                      {t('fields.overallFeeling')}
                     </Label>
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{feelingEmojis[feedback.overallFeeling - 1]}</span>
@@ -281,7 +295,7 @@ export function PostWorkoutCheckCard() {
                   {/* Energy Level */}
                   <div className="space-y-2">
                     <Label className="text-sm text-emerald-800 dark:text-emerald-200">
-                      Energinivå under passet?
+                      {t('fields.energy')}
                     </Label>
                     <div className="flex items-center gap-2">
                       <Zap className="h-5 w-5 text-emerald-500" />
@@ -294,7 +308,7 @@ export function PostWorkoutCheckCard() {
                         className="flex-1"
                       />
                       <span className="text-xs text-emerald-600 dark:text-emerald-400 w-16 text-right">
-                        {energyLabels[feedback.energyLevel - 1] || feedback.energyLevel}
+                        {getEnergyLabel(feedback.energyLevel)}
                       </span>
                     </div>
                   </div>
@@ -302,7 +316,7 @@ export function PostWorkoutCheckCard() {
                   {/* Difficulty */}
                   <div className="space-y-2">
                     <Label className="text-sm text-emerald-800 dark:text-emerald-200">
-                      Hur tungt kändes det?
+                      {t('fields.difficulty')}
                     </Label>
                     <div className="flex items-center gap-2">
                       <ThumbsUp className="h-5 w-5 text-emerald-500" />
@@ -315,7 +329,7 @@ export function PostWorkoutCheckCard() {
                         className="flex-1"
                       />
                       <span className="text-xs text-emerald-600 dark:text-emerald-400 w-24 text-right">
-                        {difficultyLabels[feedback.difficulty - 1] || feedback.difficulty}
+                        {getDifficultyLabel(feedback.difficulty)}
                       </span>
                     </div>
                   </div>
@@ -324,14 +338,14 @@ export function PostWorkoutCheckCard() {
                   <div className="space-y-2">
                     <Label className="text-sm text-emerald-800 dark:text-emerald-200 flex items-center gap-1">
                       <AlertCircle className="h-4 w-4" />
-                      Smärta eller obehag? (valfritt)
+                      {t('fields.pain')}
                     </Label>
                     <Textarea
                       value={feedback.painOrDiscomfort}
                       onChange={(e) =>
                         updateFeedback(notification.id, 'painOrDiscomfort', e.target.value)
                       }
-                      placeholder="Beskriv eventuell smärta eller obehag..."
+                      placeholder={t('placeholders.pain')}
                       className="min-h-[60px] bg-white/50 dark:bg-black/20 border-emerald-200 dark:border-emerald-700"
                     />
                   </div>
@@ -339,12 +353,12 @@ export function PostWorkoutCheckCard() {
                   {/* Notes */}
                   <div className="space-y-2">
                     <Label className="text-sm text-emerald-800 dark:text-emerald-200">
-                      Övriga anteckningar (valfritt)
+                      {t('fields.notes')}
                     </Label>
                     <Textarea
                       value={feedback.notes}
                       onChange={(e) => updateFeedback(notification.id, 'notes', e.target.value)}
-                      placeholder="Något annat du vill notera..."
+                      placeholder={t('placeholders.notes')}
                       className="min-h-[60px] bg-white/50 dark:bg-black/20 border-emerald-200 dark:border-emerald-700"
                     />
                   </div>
@@ -368,12 +382,12 @@ export function PostWorkoutCheckCard() {
                     {submittingId === notification.id ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Skickar...
+                        {t('actions.sending')}
                       </>
                     ) : (
                       <>
                         <Send className="h-4 w-4 mr-2" />
-                        Skicka feedback
+                        {t('actions.submit')}
                       </>
                     )}
                   </Button>

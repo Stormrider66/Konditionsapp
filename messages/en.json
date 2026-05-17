@@ -3806,6 +3806,41 @@
         }
       }
     },
+    "postWorkoutCheckCard": {
+      "time": {
+        "hoursAgo": "{count}h ago",
+        "minutesAgo": "{count} min ago"
+      },
+      "actions": {
+        "giveFeedback": "Give feedback",
+        "hideForm": "Hide form",
+        "submit": "Send feedback",
+        "sending": "Sending..."
+      },
+      "fields": {
+        "overallFeeling": "How did the workout feel overall?",
+        "energy": "Energy level during the workout?",
+        "difficulty": "How hard did it feel?",
+        "pain": "Pain or discomfort? (optional)",
+        "notes": "Other notes (optional)"
+      },
+      "placeholders": {
+        "pain": "Describe any pain or discomfort...",
+        "notes": "Anything else you want to note..."
+      },
+      "scales": {
+        "energy": {
+          "exhausted": "Exhausted",
+          "normal": "Normal",
+          "energized": "Energized"
+        },
+        "difficulty": {
+          "easy": "Easy",
+          "planned": "As planned",
+          "extremelyHeavy": "Extremely hard"
+        }
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Training library",
