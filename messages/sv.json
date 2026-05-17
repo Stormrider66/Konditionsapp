@@ -3770,6 +3770,67 @@
         "estimatedTime": "Uppskattad tid: {minutes} min"
       }
     },
+    "strengthFocusMode": {
+      "sections": {
+        "warmup": "Uppvärmning",
+        "main": "Huvuddel",
+        "prehab": "Prehab",
+        "core": "Core",
+        "cooldown": "Nedvarvning"
+      },
+      "completion": {
+        "title": "Pass klart!",
+        "setsLogged": "{count} set loggade",
+        "rpeQuestion": "Hur tungt kändes passet? RPE: {rpe}",
+        "easy": "Lätt",
+        "maximal": "Maximalt",
+        "finishWorkout": "Slutför pass"
+      },
+      "actions": {
+        "close": "Stäng",
+        "previous": "Förra",
+        "next": "Nästa",
+        "done": "Klart",
+        "skip": "Hoppa"
+      },
+      "empty": "Inga övningar att visa",
+      "rest": {
+        "stage": "Paus innan nästa övning",
+        "round": "Vila",
+        "skip": "Hoppa över vila"
+      },
+      "block": {
+        "primary": "Huvudövning",
+        "followUp": "Följd {stage}",
+        "roundCounter": "Runda {current} / {total}"
+      },
+      "targets": {
+        "round": "Runda",
+        "set": "Set",
+        "weight": "Vikt",
+        "percentOf1rm": "{percent}% av {oneRepMax}kg",
+        "missing1rm": "Saknar 1RM"
+      },
+      "pr": {
+        "firstEstimate": "Första PR-uppskattningen!",
+        "newEstimate": "Ny PR-uppskattning!",
+        "previousDelta": "(var {previous} kg, +{delta} kg)",
+        "save": "Spara som PR",
+        "dismiss": "Avfärda"
+      },
+      "logging": {
+        "logRound": "Logga runda {current} av {total}",
+        "logSetCounter": "Logga set {current} av {total}",
+        "weightKg": "Vikt (kg)",
+        "rpeOptional": "RPE (valfritt): {rpe}",
+        "submitSet": "Logga set"
+      },
+      "previousSets": {
+        "title": "Loggade set:",
+        "setNumber": "Set {number}"
+      },
+      "instructions": "Instruktioner"
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",

@@ -34,6 +34,7 @@ import {
   confirmFutureCompletion,
   readFutureCompletionWarning,
 } from '@/lib/workouts/future-completion-client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface SetLogSummary {
   id: string
@@ -210,7 +211,17 @@ const SECTION_COLORS: Record<string, string> = {
   COOLDOWN: 'text-green-500',
 }
 
+const SECTION_LABEL_KEYS: Record<string, string> = {
+  WARMUP: 'sections.warmup',
+  MAIN: 'sections.main',
+  PREHAB: 'sections.prehab',
+  CORE: 'sections.core',
+  COOLDOWN: 'sections.cooldown',
+}
+
 export function StrengthFocusMode({ assignmentId, onClose, onComplete }: StrengthFocusModeProps) {
+  const t = useTranslations('components.strengthFocusMode')
+  const locale = useLocale()
   const [exercises, setExercises] = useState<FocusModeExercise[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
@@ -273,7 +284,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
     }
   }, [assignmentId])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => { void fetchData() }, [fetchData])
 
   // Rest timer countdown
   useEffect(() => {
@@ -355,7 +366,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
     // network call so the PR comparison below is consistent with the
     // pre-log state — the post-log fetchData() will overwrite it.
     const stageOneRepMax = activeStage.oneRepMax ?? null
-    const stageExerciseName = activeStage.nameSv || activeStage.name
+    const stageExerciseName = locale === 'sv' ? activeStage.nameSv || activeStage.name : activeStage.name
     const stageExerciseId = activeStage.exerciseId
 
     try {
@@ -531,12 +542,12 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6">
         <Check className="h-16 w-16 text-green-500 mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Pass klart!</h2>
-        <p className="text-muted-foreground mb-6">{progress.completedSets} set loggade</p>
+        <h2 className="text-2xl font-bold mb-2">{t('completion.title')}</h2>
+        <p className="text-muted-foreground mb-6">{t('completion.setsLogged', { count: progress.completedSets })}</p>
 
         <div className="w-full max-w-xs space-y-4">
           <div>
-            <p className="text-sm font-medium mb-2">Hur tungt kändes passet? RPE: {sessionRpe}</p>
+            <p className="text-sm font-medium mb-2">{t('completion.rpeQuestion', { rpe: sessionRpe })}</p>
             <Slider
               value={[sessionRpe]}
               onValueChange={(v) => setSessionRpe(v[0])}
@@ -545,17 +556,17 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
               step={1}
             />
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>Lätt</span>
-              <span>Maximalt</span>
+              <span>{t('completion.easy')}</span>
+              <span>{t('completion.maximal')}</span>
             </div>
           </div>
 
           <Button className="w-full" size="lg" onClick={handleComplete} disabled={isCompleting}>
             {isCompleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
-            Slutför pass
+            {t('completion.finishWorkout')}
           </Button>
           <Button variant="ghost" className="w-full" onClick={onClose}>
-            Stäng
+            {t('actions.close')}
           </Button>
         </div>
       </div>
@@ -566,8 +577,8 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
     return (
       <div className="fixed inset-0 z-50 bg-background flex items-center justify-center p-6">
         <div className="text-center">
-          <p className="text-muted-foreground">Inga övningar att visa</p>
-          <Button className="mt-4" onClick={onClose}>Stäng</Button>
+          <p className="text-muted-foreground">{t('empty')}</p>
+          <Button className="mt-4" onClick={onClose}>{t('actions.close')}</Button>
         </div>
       </div>
     )
@@ -575,17 +586,19 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
 
   const SectionIcon = SECTION_ICONS[currentExercise.section] || Dumbbell
   const sectionColor = SECTION_COLORS[currentExercise.section] || 'text-gray-500'
+  const sectionLabelKey = SECTION_LABEL_KEYS[currentExercise.section]
   const setsRemaining = activeStage.totalRounds - activeStage.completedSets
   const hasBlock = followUpsCount > 0
   const currentRound = activeStage.completedSets + 1
-  const restLabel = restReason === 'stage' ? 'Paus innan nästa övning' : 'Vila'
+  const restLabel = restReason === 'stage' ? t('rest.stage') : t('rest.round')
+  const activeStageName = locale === 'sv' ? activeStage.nameSv || activeStage.name : activeStage.name
 
   // Build stage chips: primary → follow-up 1 → follow-up 2
   const blockStages = hasBlock
     ? [
-        { name: currentExercise.nameSv || currentExercise.name, isPrimary: true },
+        { name: locale === 'sv' ? currentExercise.nameSv || currentExercise.name : currentExercise.name, isPrimary: true },
         ...(currentExercise.followUps ?? []).map((f) => ({
-          name: f.nameSv || f.name,
+          name: locale === 'sv' ? f.nameSv || f.name : f.name,
           isPrimary: false,
         })),
       ]
@@ -638,23 +651,23 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
                 {currentIndex + 1}/{exercises.length}
               </Badge>
               <Badge variant="outline" className={`text-xs ${sectionColor}`}>
-                {currentExercise.section}
+                {sectionLabelKey ? t(sectionLabelKey) : currentExercise.section}
               </Badge>
               {hasBlock && (
                 <Badge variant="secondary" className="text-xs">
                   <Link2 className="h-3 w-3 mr-1" />
                   {activeStage.stage === 0
-                    ? 'Huvudövning'
-                    : `Följd ${activeStage.stage}`}
+                    ? t('block.primary')
+                    : t('block.followUp', { stage: activeStage.stage })}
                 </Badge>
               )}
               {hasBlock && (
                 <Badge variant="outline" className="text-xs">
-                  Runda {currentRound} / {activeStage.totalRounds}
+                  {t('block.roundCounter', { current: currentRound, total: activeStage.totalRounds })}
                 </Badge>
               )}
             </div>
-            <h1 className="text-xl font-bold">{activeStage.nameSv || activeStage.name}</h1>
+            <h1 className="text-xl font-bold">{activeStageName}</h1>
             {activeStage.notes && (
               <p className="text-sm text-muted-foreground mt-1">{activeStage.notes}</p>
             )}
@@ -685,7 +698,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
           {/* Target */}
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="rounded-lg bg-muted/50 p-3">
-              <p className="text-xs text-muted-foreground">{hasBlock ? 'Runda' : 'Set'}</p>
+              <p className="text-xs text-muted-foreground">{hasBlock ? t('targets.round') : t('targets.set')}</p>
               <p className="text-lg font-bold">
                 {activeStage.completedSets}/{activeStage.totalRounds}
               </p>
@@ -695,7 +708,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
               <p className="text-lg font-bold">{activeStage.repsTarget}</p>
             </div>
             <div className="rounded-lg bg-muted/50 p-3">
-              <p className="text-xs text-muted-foreground">Vikt</p>
+              <p className="text-xs text-muted-foreground">{t('targets.weight')}</p>
               <p className="text-lg font-bold">
                 {activeStage.weight != null
                   ? `${activeStage.weight}kg`
@@ -705,12 +718,12 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
               </p>
               {activeStage.weightPercent != null && activeStage.oneRepMax != null && (
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {activeStage.weightPercent}% av {activeStage.oneRepMax}kg
+                  {t('targets.percentOf1rm', { percent: activeStage.weightPercent, oneRepMax: activeStage.oneRepMax })}
                 </p>
               )}
               {activeStage.weightPercent != null && activeStage.oneRepMax == null && (
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Saknar 1RM
+                  {t('targets.missing1rm')}
                 </p>
               )}
             </div>
@@ -728,8 +741,8 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-100">
                     {prSuggestion.previousMax == null
-                      ? 'Första PR-uppskattningen!'
-                      : 'Ny PR-uppskattning!'}
+                      ? t('pr.firstEstimate')
+                      : t('pr.newEstimate')}
                   </p>
                   <p className="text-xs text-yellow-800 dark:text-yellow-200 mt-0.5">
                     {prSuggestion.exerciseName}: {prSuggestion.oneRepMax} kg
@@ -737,8 +750,10 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
                       <>
                         {' '}
                         <span className="opacity-70">
-                          (var {prSuggestion.previousMax} kg, +
-                          {(prSuggestion.oneRepMax - prSuggestion.previousMax).toFixed(1)} kg)
+                          {t('pr.previousDelta', {
+                            previous: prSuggestion.previousMax,
+                            delta: (prSuggestion.oneRepMax - prSuggestion.previousMax).toFixed(1),
+                          })}
                         </span>
                       </>
                     )}
@@ -752,7 +767,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
                   ) : (
                     <Check className="h-3.5 w-3.5 mr-1" />
                   )}
-                  Spara som PR
+                  {t('pr.save')}
                 </Button>
                 <Button
                   size="sm"
@@ -760,7 +775,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
                   onClick={() => setPrSuggestion(null)}
                   disabled={isSavingPR}
                 >
-                  Avfärda
+                  {t('pr.dismiss')}
                 </Button>
               </div>
             </div>
@@ -775,7 +790,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
               </p>
               <p className="text-xs text-muted-foreground mt-1">{restLabel}</p>
               <Button variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => setIsResting(false)}>
-                Hoppa över vila
+                {t('rest.skip')}
               </Button>
             </div>
           )}
@@ -784,11 +799,11 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
           {setsRemaining > 0 && !isResting && (
             <div className="space-y-3 rounded-lg border p-4">
               <p className="text-sm font-medium">
-                Logga {hasBlock ? 'runda' : 'set'} {currentRound} av {activeStage.totalRounds}
+                {t(hasBlock ? 'logging.logRound' : 'logging.logSetCounter', { current: currentRound, total: activeStage.totalRounds })}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-foreground">Vikt (kg)</label>
+                  <label className="text-xs font-medium text-foreground">{t('logging.weightKg')}</label>
                   <Input
                     type="number"
                     value={logWeight}
@@ -814,7 +829,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
               </div>
 
               <div>
-                <label className="text-xs font-medium text-foreground">RPE (valfritt): {logRpe || '—'}</label>
+                  <label className="text-xs font-medium text-foreground">{t('logging.rpeOptional', { rpe: logRpe || '—' })}</label>
                 <Slider
                   value={[logRpe ?? 6]}
                   onValueChange={(v) => setLogRpe(v[0])}
@@ -835,7 +850,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
                 ) : (
                   <Check className="h-4 w-4 mr-2" />
                 )}
-                Logga set
+                {t('logging.submitSet')}
               </Button>
             </div>
           )}
@@ -843,10 +858,10 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
           {/* Previous sets for the active stage */}
           {activeStage.setLogs.length > 0 && (
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground font-medium">Loggade set:</p>
+              <p className="text-xs text-muted-foreground font-medium">{t('previousSets.title')}</p>
               {activeStage.setLogs.map((log) => (
                 <div key={log.id} className="flex justify-between text-sm bg-muted/30 rounded px-3 py-1.5">
-                  <span>Set {log.setNumber}</span>
+                  <span>{t('previousSets.setNumber', { number: log.setNumber })}</span>
                   <span className="font-mono">{log.weight}kg × {log.repsCompleted}{log.rpe ? ` @RPE ${log.rpe}` : ''}</span>
                   {log.estimated1RM && <span className="text-xs text-muted-foreground">~{Math.round(log.estimated1RM)}kg 1RM</span>}
                 </div>
@@ -857,7 +872,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
           {/* Instructions */}
           {activeStage.instructions && (
             <div className="text-sm text-muted-foreground border-t pt-3">
-              <p className="font-medium text-foreground mb-1">Instruktioner</p>
+              <p className="font-medium text-foreground mb-1">{t('instructions')}</p>
               <p className="whitespace-pre-line">{activeStage.instructions}</p>
             </div>
           )}
@@ -868,7 +883,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
       <div className="sticky bottom-0 bg-background border-t px-4 py-3 flex items-center justify-between">
         <Button variant="ghost" size="sm" onClick={goPrev} disabled={currentIndex === 0}>
           <ChevronLeft className="h-4 w-4 mr-1" />
-          Förra
+          {t('actions.previous')}
         </Button>
 
         <span className="text-xs text-muted-foreground">
@@ -878,15 +893,15 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
         {setsRemaining <= 0 || currentExercise.section === 'WARMUP' || currentExercise.section === 'COOLDOWN' ? (
           <Button size="sm" onClick={goNext}>
             {currentIndex < exercises.length - 1 ? (
-              <>Nästa <ChevronRight className="h-4 w-4 ml-1" /></>
+              <>{t('actions.next')} <ChevronRight className="h-4 w-4 ml-1" /></>
             ) : (
-              <>Klart <Check className="h-4 w-4 ml-1" /></>
+              <>{t('actions.done')} <Check className="h-4 w-4 ml-1" /></>
             )}
           </Button>
         ) : (
           <Button variant="ghost" size="sm" onClick={goNext}>
             <SkipForward className="h-4 w-4 mr-1" />
-            Hoppa
+            {t('actions.skip')}
           </Button>
         )}
       </div>

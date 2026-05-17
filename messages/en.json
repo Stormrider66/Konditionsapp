@@ -3770,6 +3770,67 @@
         "estimatedTime": "Estimated time: {minutes} min"
       }
     },
+    "strengthFocusMode": {
+      "sections": {
+        "warmup": "Warmup",
+        "main": "Main",
+        "prehab": "Prehab",
+        "core": "Core",
+        "cooldown": "Cooldown"
+      },
+      "completion": {
+        "title": "Workout complete!",
+        "setsLogged": "{count} sets logged",
+        "rpeQuestion": "How hard did the workout feel? RPE: {rpe}",
+        "easy": "Easy",
+        "maximal": "Maximal",
+        "finishWorkout": "Finish workout"
+      },
+      "actions": {
+        "close": "Close",
+        "previous": "Previous",
+        "next": "Next",
+        "done": "Done",
+        "skip": "Skip"
+      },
+      "empty": "No exercises to show",
+      "rest": {
+        "stage": "Pause before next exercise",
+        "round": "Rest",
+        "skip": "Skip rest"
+      },
+      "block": {
+        "primary": "Main exercise",
+        "followUp": "Follow-up {stage}",
+        "roundCounter": "Round {current} / {total}"
+      },
+      "targets": {
+        "round": "Round",
+        "set": "Set",
+        "weight": "Weight",
+        "percentOf1rm": "{percent}% of {oneRepMax}kg",
+        "missing1rm": "Missing 1RM"
+      },
+      "pr": {
+        "firstEstimate": "First PR estimate!",
+        "newEstimate": "New PR estimate!",
+        "previousDelta": "(was {previous} kg, +{delta} kg)",
+        "save": "Save as PR",
+        "dismiss": "Dismiss"
+      },
+      "logging": {
+        "logRound": "Log round {current} of {total}",
+        "logSetCounter": "Log set {current} of {total}",
+        "weightKg": "Weight (kg)",
+        "rpeOptional": "RPE (optional): {rpe}",
+        "submitSet": "Log set"
+      },
+      "previousSets": {
+        "title": "Logged sets:",
+        "setNumber": "Set {number}"
+      },
+      "instructions": "Instructions"
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",
