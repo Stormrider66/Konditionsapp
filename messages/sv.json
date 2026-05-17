@@ -327,6 +327,24 @@
         "upcoming": "Kommande Program",
         "past": "Avslutade Program"
       }
+    },
+    "videoAnalysis": {
+      "backToProfile": "Tillbaka till profil",
+      "title": "Ladda upp video",
+      "description": "Ladda upp en video av din teknik för analys",
+      "upload": {
+        "title": "Ny videoanalys",
+        "description": "Ladda upp en video av din löpstil, lyft eller annan teknik. Din coach kommer att analysera videon och ge feedback."
+      },
+      "recent": {
+        "title": "Dina videoanalyser",
+        "description": "Klicka på en analys för att se detaljerad feedback"
+      },
+      "errors": {
+        "missingVideo": "Videon saknas för denna analys.",
+        "invalidUrl": "Videon kunde inte laddas (ogiltigt URL-format).",
+        "accessDenied": "Kunde inte ladda videon (åtkomstfel). Försök igen senare."
+      }
     }
   },
   "nav": {

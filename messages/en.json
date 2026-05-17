@@ -327,6 +327,24 @@
         "upcoming": "Upcoming Programs",
         "past": "Completed Programs"
       }
+    },
+    "videoAnalysis": {
+      "backToProfile": "Back to profile",
+      "title": "Upload video",
+      "description": "Upload a video of your technique for analysis",
+      "upload": {
+        "title": "New video analysis",
+        "description": "Upload a video of your running form, lift, or other technique. Your coach will analyze the video and provide feedback."
+      },
+      "recent": {
+        "title": "Your video analyses",
+        "description": "Click an analysis to see detailed feedback"
+      },
+      "errors": {
+        "missingVideo": "The video is missing for this analysis.",
+        "invalidUrl": "The video could not be loaded (invalid URL format).",
+        "accessDenied": "Could not load the video (access error). Try again later."
+      }
     }
   },
   "nav": {

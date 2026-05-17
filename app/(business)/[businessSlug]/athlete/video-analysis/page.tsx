@@ -19,6 +19,7 @@ import { AthleteVideoUploader } from '@/components/athlete/video/AthleteVideoUpl
 import { VideoAnalysisDetailCard, AIPoseAnalysis } from '@/components/athlete/video/VideoAnalysisDetailCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { getTranslations } from '@/i18n/server'
 
 type VideoAnalysisRow = {
   id: string
@@ -44,6 +45,7 @@ interface BusinessVideoAnalysisPageProps {
 
 export default async function BusinessVideoAnalysisPage({ params }: BusinessVideoAnalysisPageProps) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.videoAnalysis')
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -83,7 +85,7 @@ export default async function BusinessVideoAnalysisPage({ params }: BusinessVide
         return {
           ...analysis,
           videoUrl: null,
-          videoError: 'Videon saknas för denna analys.',
+          videoError: t('errors.missingVideo'),
         }
       }
 
@@ -110,14 +112,14 @@ export default async function BusinessVideoAnalysisPage({ params }: BusinessVide
           return {
             ...analysis,
             videoUrl: null,
-            videoError: 'Videon kunde inte laddas (ogiltigt URL-format).',
+            videoError: t('errors.invalidUrl'),
           }
         }
         // Non-HTTP, non-path value - shouldn't happen, but treat as error
         return {
           ...analysis,
           videoUrl: null,
-          videoError: 'Videon saknas för denna analys.',
+          videoError: t('errors.missingVideo'),
         }
       }
 
@@ -131,7 +133,7 @@ export default async function BusinessVideoAnalysisPage({ params }: BusinessVide
         return {
           ...analysis,
           videoUrl: null,
-          videoError: 'Kunde inte ladda videon (åtkomstfel). Försök igen senare.',
+          videoError: t('errors.accessDenied'),
         }
       }
     })
@@ -144,7 +146,7 @@ export default async function BusinessVideoAnalysisPage({ params }: BusinessVide
         <Link href={`${basePath}/athlete/profile?tab=technique`}>
           <Button variant="ghost" size="sm" className="gap-2 mb-4">
             <ArrowLeft className="h-4 w-4" />
-            Tillbaka till profil
+            {t('backToProfile')}
           </Button>
         </Link>
 
@@ -153,8 +155,8 @@ export default async function BusinessVideoAnalysisPage({ params }: BusinessVide
             <Video className="h-6 w-6 text-purple-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Ladda upp video</h1>
-            <p className="text-muted-foreground text-sm">Ladda upp en video av din teknik for analys</p>
+            <h1 className="text-2xl font-bold">{t('title')}</h1>
+            <p className="text-muted-foreground text-sm">{t('description')}</p>
           </div>
         </div>
       </div>
@@ -162,10 +164,9 @@ export default async function BusinessVideoAnalysisPage({ params }: BusinessVide
       {/* Upload Section */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Ny videoanalys</CardTitle>
+          <CardTitle>{t('upload.title')}</CardTitle>
           <CardDescription>
-            Ladda upp en video av din lopstil, lyft eller annan teknik. Din coach kommer att analysera videon och ge
-            feedback.
+            {t('upload.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -177,8 +178,8 @@ export default async function BusinessVideoAnalysisPage({ params }: BusinessVide
       {analysesWithSignedUrls.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Dina videoanalyser</CardTitle>
-            <CardDescription>Klicka på en analys för att se detaljerad feedback</CardDescription>
+            <CardTitle>{t('recent.title')}</CardTitle>
+            <CardDescription>{t('recent.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
