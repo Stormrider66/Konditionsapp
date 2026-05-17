@@ -8,7 +8,6 @@
  */
 
 import { useState, useCallback, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -42,6 +41,7 @@ import { Player } from '@remotion/player'
 import { ExerciseAnimation } from '@/remotion/exercises/ExerciseAnimation'
 import { useToast } from '@/hooks/use-toast'
 import { emitWorkoutLogged } from '@/lib/events/workout-events'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface FocusModeExercise {
   id: string
@@ -103,28 +103,28 @@ interface WorkoutFocusModeProps {
 
 const SECTION_CONFIG = {
   WARMUP: {
-    label: 'Uppvärmning',
+    labelKey: 'sections.warmup',
     color: 'bg-yellow-500',
     textColor: 'text-yellow-600',
     bgColor: 'bg-yellow-50',
     icon: Flame,
   },
   MAIN: {
-    label: 'Huvudpass',
+    labelKey: 'sections.main',
     color: 'bg-blue-500',
     textColor: 'text-blue-600',
     bgColor: 'bg-blue-50',
     icon: Dumbbell,
   },
   CORE: {
-    label: 'Core',
+    labelKey: 'sections.core',
     color: 'bg-purple-500',
     textColor: 'text-purple-600',
     bgColor: 'bg-purple-50',
     icon: Target,
   },
   COOLDOWN: {
-    label: 'Nedvarvning',
+    labelKey: 'sections.cooldown',
     color: 'bg-green-500',
     textColor: 'text-green-600',
     bgColor: 'bg-green-50',
@@ -137,13 +137,14 @@ export function WorkoutFocusMode({
   athleteId,
   existingLogId,
   workout,
-  sections,
+  sections: _sections,
   exercises: initialExercises,
   progress: initialProgress,
   onClose,
   onComplete,
 }: WorkoutFocusModeProps) {
-  const router = useRouter()
+  const t = useTranslations('components.workoutFocusMode')
+  const locale = useLocale()
   const { toast } = useToast()
   const [exercises, setExercises] = useState(initialExercises)
   const [progress, setProgress] = useState(initialProgress)
@@ -269,8 +270,8 @@ export function WorkoutFocusMode({
     } catch (err) {
       console.error('Error logging set:', err)
       toast({
-        title: 'Kunde inte spara set',
-        description: 'Försök igen',
+        title: t('toast.setError.title'),
+        description: t('toast.retry'),
         variant: 'destructive',
       })
       throw err
@@ -295,8 +296,8 @@ export function WorkoutFocusMode({
       })
 
       toast({
-        title: 'Pass slutfört!',
-        description: 'Bra jobbat!',
+        title: t('toast.completed.title'),
+        description: t('toast.completed.description'),
       })
 
       emitWorkoutLogged()
@@ -305,8 +306,8 @@ export function WorkoutFocusMode({
     } catch (err) {
       console.error('Error completing workout:', err)
       toast({
-        title: 'Kunde inte slutföra pass',
-        description: 'Försök igen',
+        title: t('toast.completeError.title'),
+        description: t('toast.retry'),
         variant: 'destructive',
       })
     } finally {
@@ -348,7 +349,7 @@ export function WorkoutFocusMode({
         <div className="text-center flex-1">
           <p className="font-medium text-sm">{workout.name}</p>
           <Badge className={`${sectionConfig.color} text-white text-xs`}>
-            {sectionConfig.label}
+            {t(sectionConfig.labelKey)}
           </Badge>
         </div>
         <Button
@@ -356,7 +357,7 @@ export function WorkoutFocusMode({
           size="sm"
           onClick={() => setShowCompleteDialog(true)}
         >
-          Avsluta
+          {t('actions.finish')}
         </Button>
       </header>
 
@@ -364,9 +365,9 @@ export function WorkoutFocusMode({
       <div className="px-4 py-2 bg-muted/30">
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
           <span>
-            Övning {currentIndex + 1} av {exercises.length}
+            {t('progress.exerciseCounter', { current: currentIndex + 1, total: exercises.length })}
           </span>
-          <span>{progress.percentComplete}% klart</span>
+          <span>{t('progress.percentComplete', { percent: progress.percentComplete })}</span>
         </div>
         <Progress value={progress.percentComplete} className="h-2" />
       </div>
@@ -480,7 +481,7 @@ export function WorkoutFocusMode({
                   /* Fallback: Text-only display when no images */
                   <div className="text-center">
                     <h2 className="text-2xl font-bold">
-                      {currentExercise.nameSv || currentExercise.name}
+                      {locale === 'sv' ? currentExercise.nameSv || currentExercise.name : currentExercise.name}
                     </h2>
                     <p className="text-muted-foreground">
                       {currentExercise.sets} set × {currentExercise.repsTarget} reps
@@ -502,7 +503,7 @@ export function WorkoutFocusMode({
                     onClick={() => setShowInstructions(true)}
                   >
                     <Info className="h-4 w-4 mr-2" />
-                    Visa instruktioner
+                    {t('instructions.show')}
                   </Button>
                 )}
 
@@ -534,7 +535,7 @@ export function WorkoutFocusMode({
                           </div>
                         ) : (
                           <p className="text-xs text-muted-foreground">
-                            {isCurrent ? 'Aktuellt' : 'Väntar'}
+                            {isCurrent ? t('sets.current') : t('sets.waiting')}
                           </p>
                         )}
                       </div>
@@ -545,7 +546,7 @@ export function WorkoutFocusMode({
                 {/* Rest time info */}
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                   <Timer className="h-4 w-4" />
-                  <span>Vila: {currentExercise.restSeconds} sekunder</span>
+                  <span>{t('rest.label', { seconds: currentExercise.restSeconds })}</span>
                 </div>
 
                 {/* Set logging form */}
@@ -567,14 +568,14 @@ export function WorkoutFocusMode({
                     <CardContent className="pt-6 text-center">
                       <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400 mx-auto mb-2" />
                       <p className="font-medium text-green-800 dark:text-green-200">
-                        Övning klar!
+                        {t('exerciseComplete.title')}
                       </p>
                       {currentIndex < exercises.length - 1 ? (
                         <Button
                           className="mt-4"
                           onClick={goToNext}
                         >
-                          Nästa övning
+                          {t('actions.nextExercise')}
                           <ChevronRight className="ml-2 h-4 w-4" />
                         </Button>
                       ) : (
@@ -582,7 +583,7 @@ export function WorkoutFocusMode({
                           className="mt-4"
                           onClick={() => setShowCompleteDialog(true)}
                         >
-                          Avsluta pass
+                          {t('actions.finishWorkout')}
                         </Button>
                       )}
                     </CardContent>
@@ -610,14 +611,14 @@ export function WorkoutFocusMode({
             disabled={currentIndex === 0}
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
-            Föregående
+            {t('actions.previous')}
           </Button>
           <Button
             variant="outline"
             onClick={goToNext}
             disabled={currentIndex >= exercises.length - 1}
           >
-            Nästa
+            {t('actions.next')}
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </footer>
@@ -628,7 +629,7 @@ export function WorkoutFocusMode({
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {currentExercise?.nameSv || currentExercise?.name}
+              {currentExercise ? (locale === 'sv' ? currentExercise.nameSv || currentExercise.name : currentExercise.name) : ''}
             </DialogTitle>
           </DialogHeader>
           {currentExercise?.videoUrl && (
@@ -646,7 +647,7 @@ export function WorkoutFocusMode({
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Inga instruktioner tillgängliga.
+              {t('instructions.empty')}
             </p>
           )}
         </DialogContent>
@@ -656,17 +657,17 @@ export function WorkoutFocusMode({
       <Dialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Avsluta pass</DialogTitle>
+            <DialogTitle>{t('completeDialog.title')}</DialogTitle>
             <DialogDescription>
               {progress.isComplete
-                ? 'Bra jobbat! Alla övningar är klara.'
-                : `Du har gjort ${progress.completedSets} av ${progress.totalSetsTarget} set.`}
+                ? t('completeDialog.allDone')
+                : t('completeDialog.partial', { completed: progress.completedSets, total: progress.totalSetsTarget })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4">
             <label className="text-sm font-medium mb-2 block">
-              Hur svårt var passet? (RPE)
+              {t('completeDialog.rpeQuestion')}
             </label>
             <div className="flex items-center gap-2">
               {[5, 6, 7, 8, 9, 10].map((rpe) => (
@@ -683,12 +684,12 @@ export function WorkoutFocusMode({
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {sessionRPE <= 6
-                ? 'Lätt'
+                ? t('rpe.easy')
                 : sessionRPE <= 7
-                  ? 'Måttligt'
+                  ? t('rpe.moderate')
                   : sessionRPE <= 8
-                    ? 'Svårt'
-                    : 'Mycket svårt'}
+                    ? t('rpe.hard')
+                    : t('rpe.veryHard')}
             </p>
           </div>
 
@@ -697,7 +698,7 @@ export function WorkoutFocusMode({
               variant="outline"
               onClick={() => setShowCompleteDialog(false)}
             >
-              Fortsätt träna
+              {t('actions.continueTraining')}
             </Button>
             <Button onClick={handleComplete} disabled={isCompleting}>
               {isCompleting ? (
@@ -705,7 +706,7 @@ export function WorkoutFocusMode({
               ) : (
                 <CheckCircle2 className="h-4 w-4 mr-2" />
               )}
-              Avsluta
+              {t('actions.finish')}
             </Button>
           </DialogFooter>
         </DialogContent>
