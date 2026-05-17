@@ -63,8 +63,36 @@ function getWeekDates(baseDate: Date): Date[] {
   return dates
 }
 
+function getMonthDates(baseDate: Date): Date[] {
+  const start = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1)
+  const end = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0)
+  const dates: Date[] = []
+
+  for (let day = 1; day <= end.getDate(); day++) {
+    dates.push(new Date(start.getFullYear(), start.getMonth(), day))
+  }
+
+  return dates
+}
+
 function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
+function planningColumnFor(type: string): 'ice' | 'physical' | 'team' | 'other' | 'annual' {
+  if (type === 'PRACTICE' || type === 'ICE_PRACTICE') return 'ice'
+  if (['STRENGTH', 'CARDIO', 'HYBRID', 'AGILITY', 'PREHAB', 'PLYOMETRICS', 'INTERVAL_SESSION'].includes(type)) {
+    return 'physical'
+  }
+  if (type === 'GAME' || type === 'TEST') return 'team'
+  if (type === 'ANNUAL_PLAN') return 'annual'
+  return 'other'
+}
+
+function compactEventText(event: TeamEvent): string {
+  const time = event.allDay ? '' : formatTime(event.startDate)
+  const location = event.location ? ` ${event.location}` : ''
+  return `${time}${time ? ' ' : ''}${event.title}${location}`
 }
 
 interface TeamCalendarViewProps {
@@ -78,22 +106,24 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
   const [loading, setLoading] = useState(true)
   const [weekBase, setWeekBase] = useState(new Date())
   const [selectedEvent, setSelectedEvent] = useState<TeamEvent | null>(null)
+  const [viewMode, setViewMode] = useState<'week' | 'planning'>('week')
 
   const weekDates = getWeekDates(weekBase)
-  const weekStart = weekDates[0]
-  const weekEnd = new Date(weekDates[6])
-  weekEnd.setHours(23, 59, 59, 999)
+  const monthDates = getMonthDates(weekBase)
+  const rangeStart = viewMode === 'planning' ? monthDates[0] : weekDates[0]
+  const rangeEnd = new Date(viewMode === 'planning' ? monthDates[monthDates.length - 1] : weekDates[6])
+  rangeEnd.setHours(23, 59, 59, 999)
 
   // Stabilize the ISO strings outside the dep array — react-hooks v6
   // requires deps to be simple expressions (no method calls).
-  const weekStartIso = weekStart.toISOString()
-  const weekEndIso = weekEnd.toISOString()
+  const rangeStartIso = rangeStart.toISOString()
+  const rangeEndIso = rangeEnd.toISOString()
 
   const fetchEvents = useCallback(async () => {
     try {
       const params = new URLSearchParams({
-        from: weekStartIso,
-        to: weekEndIso,
+        from: rangeStartIso,
+        to: rangeEndIso,
       })
       if (businessSlug) params.set('businessSlug', businessSlug)
       const res = await fetch(`/api/coach/teams/${teamId}/events?${params}`, {
@@ -108,7 +138,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
     } finally {
       setLoading(false)
     }
-  }, [teamId, businessSlug, weekStartIso, weekEndIso])
+  }, [teamId, businessSlug, rangeStartIso, rangeEndIso])
 
   useEffect(() => {
     void fetchEvents()
@@ -116,7 +146,11 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
 
   const navigateWeek = (direction: number) => {
     const next = new Date(weekBase)
-    next.setDate(next.getDate() + direction * 7)
+    if (viewMode === 'planning') {
+      next.setMonth(next.getMonth() + direction)
+    } else {
+      next.setDate(next.getDate() + direction * 7)
+    }
     setWeekBase(next)
     setLoading(true)
   }
@@ -167,10 +201,36 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
             <ChevronRight className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium ml-2">
-            {weekDates[0].toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} - {weekDates[6].toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })}
+            {viewMode === 'planning'
+              ? weekBase.toLocaleDateString('sv-SE', { month: 'long', year: 'numeric' })
+              : `${weekDates[0].toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} - ${weekDates[6].toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })}`}
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex rounded-md border bg-background p-0.5">
+            <Button
+              variant={viewMode === 'week' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 px-3"
+              onClick={() => {
+                setViewMode('week')
+                setLoading(true)
+              }}
+            >
+              Vecka
+            </Button>
+            <Button
+              variant={viewMode === 'planning' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 px-3"
+              onClick={() => {
+                setViewMode('planning')
+                setLoading(true)
+              }}
+            >
+              Planering
+            </Button>
+          </div>
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-3.5 w-3.5 mr-1.5" />
             Exportera .ics
@@ -179,12 +239,80 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
         </div>
       </div>
 
-      {/* Week view */}
+      {/* Calendar view */}
       {loading ? (
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
           ))}
+        </div>
+      ) : viewMode === 'planning' ? (
+        <div className="overflow-x-auto rounded-lg border bg-background">
+          <table className="w-full min-w-[960px] border-collapse text-sm">
+            <thead>
+              <tr className="bg-muted/70 text-left">
+                <th className="w-16 border-r px-2 py-2 font-semibold">v.</th>
+                <th className="w-16 border-r px-2 py-2 font-semibold">Dag</th>
+                <th className="w-28 border-r px-2 py-2 font-semibold">Datum</th>
+                <th className="border-r px-2 py-2 font-semibold">Is</th>
+                <th className="border-r px-2 py-2 font-semibold">Fys</th>
+                <th className="border-r px-2 py-2 font-semibold">Match / lag</th>
+                <th className="border-r px-2 py-2 font-semibold">Övrigt</th>
+                <th className="px-2 py-2 font-semibold bg-amber-100 text-amber-950">Årshjul</th>
+              </tr>
+            </thead>
+            <tbody>
+              {monthDates.map((date) => {
+                const dayEvents = events.filter((e) => isSameDay(new Date(e.startDate), date))
+                const grouped = {
+                  ice: dayEvents.filter((event) => planningColumnFor(event.type) === 'ice'),
+                  physical: dayEvents.filter((event) => planningColumnFor(event.type) === 'physical'),
+                  team: dayEvents.filter((event) => planningColumnFor(event.type) === 'team'),
+                  other: dayEvents.filter((event) => planningColumnFor(event.type) === 'other'),
+                  annual: dayEvents.filter((event) => planningColumnFor(event.type) === 'annual'),
+                }
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6
+                const dayName = date.toLocaleDateString('sv-SE', { weekday: 'short' }).toUpperCase()
+                const weekNumber = Math.ceil((((date.getTime() - new Date(date.getFullYear(), 0, 1).getTime()) / 86400000) + new Date(date.getFullYear(), 0, 1).getDay() + 1) / 7)
+
+                const renderCell = (cellEvents: TeamEvent[]) => (
+                  <div className="space-y-1">
+                    {cellEvents.length === 0 ? (
+                      <span className="text-muted-foreground">—</span>
+                    ) : (
+                      cellEvents.map((event) => {
+                        const typeConf = getTypeConfig(event.type)
+                        return (
+                          <button
+                            key={event.id}
+                            type="button"
+                            className="block w-full rounded-sm px-1.5 py-1 text-left hover:bg-muted"
+                            onClick={() => setSelectedEvent(event)}
+                          >
+                            <span className={`mr-1 inline-block h-2 w-2 rounded-full ${typeConf.color}`} />
+                            <span className="font-medium">{compactEventText(event)}</span>
+                          </button>
+                        )
+                      })
+                    )}
+                  </div>
+                )
+
+                return (
+                  <tr key={date.toISOString()} className={isWeekend ? 'bg-muted/40' : ''}>
+                    <td className="border-r border-t px-2 py-2 text-muted-foreground">{date.getDay() === 1 ? `v.${weekNumber}` : ''}</td>
+                    <td className={`border-r border-t px-2 py-2 font-semibold ${date.getDay() === 0 ? 'text-red-600' : ''}`}>{dayName}</td>
+                    <td className="border-r border-t px-2 py-2">{date.getDate()}</td>
+                    <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.ice)}</td>
+                    <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.physical)}</td>
+                    <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.team)}</td>
+                    <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.other)}</td>
+                    <td className="border-t bg-amber-50 px-2 py-2 align-top">{renderCell(grouped.annual)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       ) : (
         <div className="space-y-1">

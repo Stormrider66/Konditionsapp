@@ -28,7 +28,7 @@ enum EventImpact {
   NORMAL // Normal training continues
 }
 
-/// Team calendar events (ice/off-ice sessions, games, tests, meetings, off-days)
+/// Team calendar events (ice/off-ice sessions, games, tests, annual plan notes, meetings, off-days)
 model TeamEvent {
   id     String @id @default(uuid())
   teamId String

@@ -12,6 +12,7 @@ export const TEAM_EVENT_TYPES = [
   'INTERVAL_SESSION',
   'OFF_DAY',
   'MEETING',
+  'ANNUAL_PLAN',
   'OTHER',
 ] as const
 
@@ -31,6 +32,7 @@ export const TEAM_EVENT_TYPE_LABELS: Record<TeamEventType, string> = {
   INTERVAL_SESSION: 'Intervallpass',
   OFF_DAY: 'Vilodag',
   MEETING: 'Möte',
+  ANNUAL_PLAN: 'Årshjul',
   OTHER: 'Övrigt',
 }
 
@@ -48,6 +50,7 @@ export const TEAM_EVENT_TYPE_COLORS: Record<TeamEventType, string> = {
   INTERVAL_SESSION: 'bg-orange-500',
   OFF_DAY: 'bg-green-500',
   MEETING: 'bg-yellow-500',
+  ANNUAL_PLAN: 'bg-amber-500',
   OTHER: 'bg-gray-500',
 }
 
