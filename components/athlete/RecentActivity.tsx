@@ -5,18 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Activity, CheckCircle2, Clock, MapPin } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import type { Locale as DateFnsLocale } from 'date-fns'
+import { enUS, sv } from 'date-fns/locale'
 
 import { DashboardActivityLog } from '@/types/prisma-types'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME, type WorkoutTheme } from '@/lib/themes'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface RecentActivityProps {
   logs: DashboardActivityLog[]
 }
 
 export function RecentActivity({ logs }: RecentActivityProps) {
+  const t = useTranslations('components.recentActivity')
+  const locale = useLocale()
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+  const dateLocale = locale === 'en' ? enUS : sv
 
   if (logs.length === 0) {
     return (
@@ -32,7 +37,7 @@ export function RecentActivity({ logs }: RecentActivityProps) {
             style={{ color: theme.colors.textPrimary }}
           >
             <Activity className="h-5 w-5" />
-            Senaste aktivitet
+            {t('title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -41,9 +46,9 @@ export function RecentActivity({ logs }: RecentActivityProps) {
               className="mx-auto h-12 w-12 mb-4"
               style={{ color: theme.colors.textMuted }}
             />
-            <p style={{ color: theme.colors.textMuted }}>Ingen aktivitet ännu</p>
+            <p style={{ color: theme.colors.textMuted }}>{t('emptyTitle')}</p>
             <p className="text-sm mt-2" style={{ color: theme.colors.textMuted }}>
-              Logga ditt första träningspass för att komma igång
+              {t('emptyDescription')}
             </p>
           </div>
         </CardContent>
@@ -64,19 +69,35 @@ export function RecentActivity({ logs }: RecentActivityProps) {
           style={{ color: theme.colors.textPrimary }}
         >
           <Activity className="h-5 w-5" />
-          Senaste aktivitet
+          {t('title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {logs.map((log) => (
-          <LogCard key={log.id} log={log} theme={theme} />
+          <LogCard
+            key={log.id}
+            log={log}
+            theme={theme}
+            dateLocale={dateLocale}
+            feedbackLabel={t('feedbackLabel')}
+          />
         ))}
       </CardContent>
     </Card>
   )
 }
 
-function LogCard({ log, theme }: { log: DashboardActivityLog; theme: WorkoutTheme }) {
+function LogCard({
+  log,
+  theme,
+  dateLocale,
+  feedbackLabel,
+}: {
+  log: DashboardActivityLog
+  theme: WorkoutTheme
+  dateLocale: DateFnsLocale
+  feedbackLabel: string
+}) {
   return (
     <div
       className="border rounded-lg p-3 space-y-2"
@@ -102,7 +123,7 @@ function LogCard({ log, theme }: { log: DashboardActivityLog; theme: WorkoutThem
             {log.completedAt &&
               formatDistanceToNow(new Date(log.completedAt), {
                 addSuffix: true,
-                locale: sv,
+                locale: dateLocale,
               })}
           </p>
         </div>
@@ -153,7 +174,7 @@ function LogCard({ log, theme }: { log: DashboardActivityLog; theme: WorkoutThem
             className="text-xs font-medium mb-1"
             style={{ color: theme.id === 'FITAPP_DARK' ? '#93c5fd' : '#1e3a8a' }}
           >
-            Feedback från tränare:
+            {feedbackLabel}
           </p>
           <p
             className="text-xs"

@@ -2913,6 +2913,12 @@
         "pace": "Tempo (min/km)"
       }
     },
+    "recentActivity": {
+      "title": "Senaste aktivitet",
+      "emptyTitle": "Ingen aktivitet ännu",
+      "emptyDescription": "Logga ditt första träningspass för att komma igång",
+      "feedbackLabel": "Feedback från tränare:"
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

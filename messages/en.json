@@ -2913,6 +2913,12 @@
         "pace": "Pace (min/km)"
       }
     },
+    "recentActivity": {
+      "title": "Recent activity",
+      "emptyTitle": "No activity yet",
+      "emptyDescription": "Log your first workout to get started",
+      "feedbackLabel": "Coach feedback:"
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",
