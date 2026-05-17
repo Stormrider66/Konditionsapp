@@ -4643,6 +4643,58 @@
       },
       "workoutTime": " at {time}"
     },
+    "nutritionDashboard": {
+      "title": "Food & Nutrition",
+      "errors": {
+        "fetchGuidance": "Could not fetch nutrition guidance",
+        "generic": "Something went wrong"
+      },
+      "actions": {
+        "retry": "Try again",
+        "settings": "Settings",
+        "previousDay": "Previous day",
+        "nextDay": "Next day",
+        "jumpToToday": "Jump to today",
+        "nutritionStats": "Nutrition stats",
+        "scanMeal": "Scan meal",
+        "refresh": "Refresh"
+      },
+      "empty": {
+        "title": "No nutrition data available",
+        "description": "Set your dietary preferences to get personalized recommendations"
+      },
+      "alerts": {
+        "doubleDay": {
+          "title": "Double day!",
+          "description": "You have two workouts today. Focus on fast recovery between sessions."
+        },
+        "raceWeek": {
+          "title": "Race week!",
+          "description": "Increase carbohydrate intake and reduce high-fiber foods in the final days."
+        }
+      },
+      "mealStructure": {
+        "title": "Meal structure",
+        "meals": {
+          "breakfast": "Breakfast",
+          "morningSnack": "Morning snack",
+          "lunch": "Lunch",
+          "afternoonSnack": "Afternoon snack",
+          "dinner": "Dinner",
+          "eveningSnack": "Evening snack"
+        }
+      },
+      "restDay": {
+        "title": "Rest day",
+        "todayDescription": "No workouts scheduled today. Perfect day for fiber-rich food and micronutrients!",
+        "pastDescription": "No registered workouts this day."
+      },
+      "tomorrow": {
+        "title": "Tomorrow",
+        "tip": "Tip: Remember to refill glycogen stores tonight!"
+      },
+      "tipsTitle": "Tips for today"
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

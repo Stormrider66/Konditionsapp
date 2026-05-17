@@ -11,7 +11,7 @@
 
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -30,15 +30,16 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { format, parseISO, subDays, addDays as addDaysFn } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { NutritionTargets, NutritionTargetsSkeleton } from './NutritionTargets'
 import { NutritionTrendChart } from './NutritionTrendChart'
-import { WorkoutNutritionCard, WorkoutNutritionCardSkeleton } from './WorkoutNutritionCard'
+import { WorkoutNutritionCard } from './WorkoutNutritionCard'
 import { NutritionTipCard } from './NutritionTipCard'
 import { NutritionScore } from '@/components/athlete/nutrition/NutritionScore'
 import { DeficitSurplusTracker } from '@/components/athlete/nutrition/DeficitSurplusTracker'
 import type { DailyNutritionGuidance } from '@/lib/nutrition-timing'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface DailyAggregate {
   date: string
@@ -79,6 +80,8 @@ function toISODate(d: Date): string {
 }
 
 export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
+  const t = useTranslations('components.nutritionDashboard')
+  const locale = useLocale()
   const basePath = useBasePath()
 
   // Compute "today" lazily and only on the client — avoids SSR/client hydration
@@ -134,11 +137,11 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
     const reqId = ++guidanceRequestIdRef.current
     const qs = date === todayStr ? '' : `?date=${date}`
     const res = await fetch(`/api/nutrition/guidance${qs}`)
-    if (!res.ok) throw new Error('Kunde inte hämta kostråd')
+    if (!res.ok) throw new Error(t('errors.fetchGuidance'))
     const data = await res.json()
     // Drop this response if a newer request has been dispatched in the meantime.
     if (reqId === guidanceRequestIdRef.current) setGuidance(data.guidance)
-  }, [todayStr])
+  }, [todayStr, t])
 
   const fetchAll = useCallback(async () => {
     if (!selectedDate || !todayStr) return
@@ -147,14 +150,14 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
     try {
       await Promise.all([fetchGuidance(selectedDate), fetchRangeData()])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : t('errors.generic'))
     } finally {
       setIsLoading(false)
     }
-  }, [fetchGuidance, fetchRangeData, selectedDate, todayStr])
+  }, [fetchGuidance, fetchRangeData, selectedDate, todayStr, t])
 
   useEffect(() => {
-    if (selectedDate && todayStr) fetchAll()
+    if (selectedDate && todayStr) void fetchAll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId, selectedDate && todayStr ? 'ready' : 'pending'])
 
@@ -162,9 +165,9 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
   useEffect(() => {
     if (!selectedDate || !todayStr) return
     fetchGuidance(selectedDate).catch((err) => {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : t('errors.generic'))
     })
-  }, [selectedDate, todayStr, fetchGuidance])
+  }, [selectedDate, todayStr, fetchGuidance, t])
 
   // Re-fetch when a meal or workout changes — bumps today's macro targets.
   useEffect(() => {
@@ -208,7 +211,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
             <p className="text-red-200">{error}</p>
             <Button variant="outline" onClick={fetchAll} className="gap-2 border-red-500/30 hover:bg-red-500/20 text-red-200">
               <RefreshCw className="h-4 w-4" />
-              Försök igen
+              {t('actions.retry')}
             </Button>
           </div>
         </GlassCardContent>
@@ -222,14 +225,14 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
         <GlassCardContent className="p-6">
           <div className="flex flex-col items-center justify-center text-center space-y-3">
             <Utensils className="h-10 w-10 text-slate-400" />
-            <p className="text-slate-200">Ingen kostdata tillgänglig</p>
+            <p className="text-slate-200">{t('empty.title')}</p>
             <p className="text-sm text-slate-400">
-              Ställ in dina kostpreferenser för att få personliga rekommendationer
+              {t('empty.description')}
             </p>
             <Button asChild variant="outline" className="gap-2 bg-white/5 border-white/10 hover:bg-white/10 text-white">
               <Link href={`${basePath}/athlete/settings/nutrition`}>
                 <Settings className="h-4 w-4" />
-                Inställningar
+                {t('actions.settings')}
               </Link>
             </Button>
           </div>
@@ -238,7 +241,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
     )
   }
 
-  const formattedDate = format(parseISO(selectedDate), 'EEEE d MMMM', { locale: sv })
+  const formattedDate = format(parseISO(selectedDate), 'EEEE d MMMM', { locale: locale === 'en' ? enUS : sv })
 
   // Consumed intake for the selected day (may be empty on past days with no logs)
   const selectedData = dailyHistory.find(d => d.date === selectedDate)
@@ -266,7 +269,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Utensils className="h-5 w-5 text-cyan-500 dark:text-cyan-400" />
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white transition-colors">Kost & Näring</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white transition-colors">{t('title')}</h2>
         </div>
         <div className="flex items-center gap-1">
           <Button
@@ -275,7 +278,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
             onClick={goPrev}
             disabled={!canGoBack}
             className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-30 transition-all"
-            title="Föregående dag"
+            title={t('actions.previousDay')}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -284,7 +287,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
             onClick={() => setSelectedDate(todayStr)}
             disabled={isToday}
             className="text-sm text-slate-500 dark:text-slate-400 capitalize transition-colors min-w-[110px] text-center hover:text-slate-900 dark:hover:text-white disabled:hover:text-slate-500 dark:disabled:hover:text-slate-400"
-            title={isToday ? formattedDate : 'Hoppa till idag'}
+            title={isToday ? formattedDate : t('actions.jumpToToday')}
           >
             {formattedDate}
           </button>
@@ -294,16 +297,16 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
             onClick={goNext}
             disabled={!canGoForward}
             className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-30 transition-all"
-            title="Nästa dag"
+            title={t('actions.nextDay')}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all" title="Koststatistik">
+          <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all" title={t('actions.nutritionStats')}>
             <Link href={`${basePath}/athlete/nutrition`}>
               <TrendingUp className="h-4 w-4" />
             </Link>
           </Button>
-          <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all" title="Skanna måltid">
+          <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all" title={t('actions.scanMeal')}>
             <Link href={`${basePath}/athlete/nutrition/scan?returnTo=nutrition`}>
               <Camera className="h-4 w-4" />
             </Link>
@@ -313,11 +316,11 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
             size="icon"
             onClick={fetchAll}
             className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
-            title="Uppdatera"
+            title={t('actions.refresh')}
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all" title="Inställningar">
+          <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all" title={t('actions.settings')}>
             <Link href={`${basePath}/athlete/settings/nutrition`}>
               <Settings className="h-4 w-4" />
             </Link>
@@ -330,8 +333,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
         <Alert className="bg-amber-100 dark:bg-amber-950/40 border-amber-200 dark:border-amber-500/30">
           <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-500" />
           <AlertDescription className="text-amber-800 dark:text-amber-200">
-            <span className="font-medium text-amber-900 dark:text-amber-100">Dubbeldag!</span> Du har två pass idag.
-            Fokusera på snabb återhämtning mellan passen.
+            <span className="font-medium text-amber-900 dark:text-amber-100">{t('alerts.doubleDay.title')}</span> {t('alerts.doubleDay.description')}
           </AlertDescription>
         </Alert>
       )}
@@ -340,8 +342,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
         <Alert className="bg-purple-100 dark:bg-purple-950/40 border-purple-200 dark:border-purple-500/30">
           <Calendar className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           <AlertDescription className="text-purple-800 dark:text-purple-200">
-            <span className="font-medium text-purple-900 dark:text-purple-100">Tävlingsvecka!</span> Öka kolhydratintaget
-            och minska fiberrik mat de sista dagarna.
+            <span className="font-medium text-purple-900 dark:text-purple-100">{t('alerts.raceWeek.title')}</span> {t('alerts.raceWeek.description')}
           </AlertDescription>
         </Alert>
       )}
@@ -392,27 +393,27 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
         {isToday && guidance.mealSuggestions && (
           <GlassCard>
             <GlassCardHeader className="pb-2">
-              <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400 transition-colors">Måltidsstruktur</GlassCardTitle>
+              <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400 transition-colors">{t('mealStructure.title')}</GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent>
               <div className="space-y-2">
                 {guidance.mealSuggestions.breakfast && (
-                  <MealRow label="Frukost" suggestion={guidance.mealSuggestions.breakfast} />
+                  <MealRow label={t('mealStructure.meals.breakfast')} suggestion={guidance.mealSuggestions.breakfast} />
                 )}
                 {guidance.mealSuggestions.morningSnack && (
-                  <MealRow label="Förmiddagsmellanmål" suggestion={guidance.mealSuggestions.morningSnack} />
+                  <MealRow label={t('mealStructure.meals.morningSnack')} suggestion={guidance.mealSuggestions.morningSnack} />
                 )}
                 {guidance.mealSuggestions.lunch && (
-                  <MealRow label="Lunch" suggestion={guidance.mealSuggestions.lunch} />
+                  <MealRow label={t('mealStructure.meals.lunch')} suggestion={guidance.mealSuggestions.lunch} />
                 )}
                 {guidance.mealSuggestions.afternoonSnack && (
-                  <MealRow label="Eftermiddagsmellanmål" suggestion={guidance.mealSuggestions.afternoonSnack} />
+                  <MealRow label={t('mealStructure.meals.afternoonSnack')} suggestion={guidance.mealSuggestions.afternoonSnack} />
                 )}
                 {guidance.mealSuggestions.dinner && (
-                  <MealRow label="Middag" suggestion={guidance.mealSuggestions.dinner} />
+                  <MealRow label={t('mealStructure.meals.dinner')} suggestion={guidance.mealSuggestions.dinner} />
                 )}
                 {guidance.mealSuggestions.eveningSnack && (
-                  <MealRow label="Kvällsmellanmål" suggestion={guidance.mealSuggestions.eveningSnack} />
+                  <MealRow label={t('mealStructure.meals.eveningSnack')} suggestion={guidance.mealSuggestions.eveningSnack} />
                 )}
               </div>
             </GlassCardContent>
@@ -440,11 +441,11 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
                 <div className="p-3 bg-slate-100 dark:bg-slate-800/50 rounded-full transition-colors">
                   <Calendar className="h-6 w-6 text-slate-500 dark:text-slate-400" />
                 </div>
-                <p className="font-medium text-slate-900 dark:text-white transition-colors">Vilodag</p>
+                <p className="font-medium text-slate-900 dark:text-white transition-colors">{t('restDay.title')}</p>
                 <p className="text-sm text-slate-600 dark:text-slate-400 transition-colors">
                   {isToday
-                    ? 'Inga träningspass schemalagda idag. Perfekt dag för fiberrik mat och mikronäringsämnen!'
-                    : 'Inga registrerade pass denna dag.'}
+                    ? t('restDay.todayDescription')
+                    : t('restDay.pastDescription')}
                 </p>
               </div>
             </GlassCardContent>
@@ -457,7 +458,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
             <GlassCardHeader className="pb-2">
               <GlassCardTitle className="text-sm text-slate-600 dark:text-slate-400 flex items-center gap-2 transition-colors">
                 <Calendar className="h-4 w-4" />
-                Imorgon
+                {t('tomorrow.title')}
               </GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent>
@@ -474,7 +475,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
                   </div>
                 ))}
                 <p className="text-xs text-orange-600 dark:text-orange-400 pt-2 transition-colors">
-                  Tip: Tänk på att fylla på glykogenlagren ikväll!
+                  {t('tomorrow.tip')}
                 </p>
               </div>
             </GlassCardContent>
@@ -484,7 +485,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
         {/* Tips — contain "idag/imorgon" references; only show on today. */}
         {isToday && guidance.tips && guidance.tips.length > 0 && (
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 transition-colors">Tips för idag</h3>
+            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 transition-colors">{t('tipsTitle')}</h3>
             {guidance.tips.slice(0, 3).map((tip, index) => (
               <NutritionTipCard
                 key={index}

@@ -4643,6 +4643,58 @@
       },
       "workoutTime": " kl {time}"
     },
+    "nutritionDashboard": {
+      "title": "Kost & Näring",
+      "errors": {
+        "fetchGuidance": "Kunde inte hämta kostråd",
+        "generic": "Ett fel uppstod"
+      },
+      "actions": {
+        "retry": "Försök igen",
+        "settings": "Inställningar",
+        "previousDay": "Föregående dag",
+        "nextDay": "Nästa dag",
+        "jumpToToday": "Hoppa till idag",
+        "nutritionStats": "Koststatistik",
+        "scanMeal": "Skanna måltid",
+        "refresh": "Uppdatera"
+      },
+      "empty": {
+        "title": "Ingen kostdata tillgänglig",
+        "description": "Ställ in dina kostpreferenser för att få personliga rekommendationer"
+      },
+      "alerts": {
+        "doubleDay": {
+          "title": "Dubbeldag!",
+          "description": "Du har två pass idag. Fokusera på snabb återhämtning mellan passen."
+        },
+        "raceWeek": {
+          "title": "Tävlingsvecka!",
+          "description": "Öka kolhydratintaget och minska fiberrik mat de sista dagarna."
+        }
+      },
+      "mealStructure": {
+        "title": "Måltidsstruktur",
+        "meals": {
+          "breakfast": "Frukost",
+          "morningSnack": "Förmiddagsmellanmål",
+          "lunch": "Lunch",
+          "afternoonSnack": "Eftermiddagsmellanmål",
+          "dinner": "Middag",
+          "eveningSnack": "Kvällsmellanmål"
+        }
+      },
+      "restDay": {
+        "title": "Vilodag",
+        "todayDescription": "Inga träningspass schemalagda idag. Perfekt dag för fiberrik mat och mikronäringsämnen!",
+        "pastDescription": "Inga registrerade pass denna dag."
+      },
+      "tomorrow": {
+        "title": "Imorgon",
+        "tip": "Tip: Tänk på att fylla på glykogenlagren ikväll!"
+      },
+      "tipsTitle": "Tips för idag"
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {
