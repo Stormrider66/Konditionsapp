@@ -4802,6 +4802,57 @@
         "caloriesRegistered": "{calories} kcal registrerade"
       }
     },
+    "voiceMealCapture": {
+      "mealTypes": {
+        "breakfast": "Frukost",
+        "morningSnack": "Förmiddagsmellanmål",
+        "lunch": "Lunch",
+        "afternoonSnack": "Eftermiddagsmellanmål",
+        "preWorkout": "Före träning",
+        "postWorkout": "Efter träning",
+        "dinner": "Middag",
+        "eveningSnack": "Kvällsmellanmål"
+      },
+      "errors": {
+        "microphoneStart": "Kunde inte starta mikrofonen. Kontrollera att du gett tillåtelse.",
+        "transcribe": "Transkribering misslyckades",
+        "saveMeal": "Kunde inte spara måltid"
+      },
+      "record": {
+        "description": "Tryck för att spela in och beskriv vad du ätit",
+        "start": "Tryck för att spela in",
+        "stop": "Tryck för att stoppa"
+      },
+      "transcribing": "Transkriberar...",
+      "analyzing": "Analyserar näringsvärden...",
+      "saving": "Sparar måltid...",
+      "review": {
+        "mealType": "Måltidstyp",
+        "description": "Beskrivning",
+        "descriptionPlaceholder": "Vad åt du?",
+        "estimatedMacros": "AI-uppskattade näringsvärden",
+        "enhancedMode": "Detaljerad makroanalys aktiv",
+        "fatBreakdown": "{saturated}g mättat, {mono}g enkelomättat, {poly}g fleromättat",
+        "carbBreakdown": "{sugar}g socker, {complex}g komplexa",
+        "noFatBreakdown": "Ingen detaljerad fettfördelning returnerades i denna analys.",
+        "noCarbBreakdown": "Ingen detaljerad kolhydratfördelning returnerades i denna analys."
+      },
+      "macros": {
+        "calories": "Kalorier",
+        "proteinGrams": "Protein (g)",
+        "carbsGrams": "Kolhydrater (g)",
+        "fatGrams": "Fett (g)",
+        "fat": "Fett",
+        "carbs": "Kolhydrater"
+      },
+      "actions": {
+        "recordAgain": "Spela in igen",
+        "saveMeal": "Spara måltid"
+      },
+      "done": {
+        "title": "Måltid sparad!"
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

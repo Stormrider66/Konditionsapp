@@ -16,6 +16,7 @@ import { Mic, MicOff, Loader2, Check, AlertCircle, Sparkles } from 'lucide-react
 import { MealType } from '@prisma/client'
 import { cn } from '@/lib/utils'
 import { guessDefaultMealType } from '@/lib/nutrition/guess-meal-type'
+import { useTranslations } from '@/i18n/client'
 
 interface VoiceMealCaptureProps {
   onMealSaved?: () => void
@@ -25,17 +26,18 @@ interface VoiceMealCaptureProps {
 type Step = 'RECORD' | 'TRANSCRIBING' | 'ANALYZING' | 'REVIEW' | 'SAVING' | 'DONE'
 
 const MEAL_TYPE_LABELS: Record<string, string> = {
-  BREAKFAST: 'Frukost',
-  MORNING_SNACK: 'Förmiddagsmellanmål',
-  LUNCH: 'Lunch',
-  AFTERNOON_SNACK: 'Eftermiddagsmellanmål',
-  PRE_WORKOUT: 'Före träning',
-  POST_WORKOUT: 'Efter träning',
-  DINNER: 'Middag',
-  EVENING_SNACK: 'Kvällsmellanmål',
+  BREAKFAST: 'mealTypes.breakfast',
+  MORNING_SNACK: 'mealTypes.morningSnack',
+  LUNCH: 'mealTypes.lunch',
+  AFTERNOON_SNACK: 'mealTypes.afternoonSnack',
+  PRE_WORKOUT: 'mealTypes.preWorkout',
+  POST_WORKOUT: 'mealTypes.postWorkout',
+  DINNER: 'mealTypes.dinner',
+  EVENING_SNACK: 'mealTypes.eveningSnack',
 }
 
 export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps) {
+  const t = useTranslations('components.voiceMealCapture')
   const [step, setStep] = useState<Step>('RECORD')
   const [isRecording, setIsRecording] = useState(false)
   const [transcribedText, setTranscribedText] = useState('')
@@ -59,42 +61,7 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
 
-  const startRecording = useCallback(async () => {
-    try {
-      setError(null)
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const preferredTypes = ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/wav']
-      const supportedType = preferredTypes.find((t) => MediaRecorder.isTypeSupported(t))
-      const mediaRecorder = new MediaRecorder(stream, supportedType ? { mimeType: supportedType } : undefined)
-
-      chunksRef.current = []
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data)
-      }
-
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop())
-        const blob = new Blob(chunksRef.current, { type: mediaRecorder.mimeType })
-        await transcribeAudio(blob, mediaRecorder.mimeType)
-      }
-
-      mediaRecorderRef.current = mediaRecorder
-      mediaRecorder.start()
-      setIsRecording(true)
-    } catch {
-      setError('Kunde inte starta mikrofonen. Kontrollera att du gett tillåtelse.')
-    }
-  }, [])
-
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop()
-      setIsRecording(false)
-      setStep('TRANSCRIBING')
-    }
-  }, [])
-
-  const transcribeAudio = async (blob: Blob, mimeType: string) => {
+  const transcribeAudio = useCallback(async (blob: Blob, mimeType: string) => {
     try {
       const formData = new FormData()
       const ext = mimeType.includes('webm') ? 'webm' : mimeType.includes('ogg') ? 'ogg' : mimeType.includes('wav') ? 'wav' : 'mp4'
@@ -107,7 +74,7 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
 
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || 'Transkribering misslyckades')
+        throw new Error(data.error || t('errors.transcribe'))
       }
 
       const data = await res.json()
@@ -154,10 +121,45 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
 
       setStep('REVIEW')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Transkribering misslyckades')
+      setError(err instanceof Error ? err.message : t('errors.transcribe'))
       setStep('RECORD')
     }
-  }
+  }, [t])
+
+  const startRecording = useCallback(async () => {
+    try {
+      setError(null)
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const preferredTypes = ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/wav']
+      const supportedType = preferredTypes.find((t) => MediaRecorder.isTypeSupported(t))
+      const mediaRecorder = new MediaRecorder(stream, supportedType ? { mimeType: supportedType } : undefined)
+
+      chunksRef.current = []
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop())
+        const blob = new Blob(chunksRef.current, { type: mediaRecorder.mimeType })
+        await transcribeAudio(blob, mediaRecorder.mimeType)
+      }
+
+      mediaRecorderRef.current = mediaRecorder
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch {
+      setError(t('errors.microphoneStart'))
+    }
+  }, [t, transcribeAudio])
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+      setStep('TRANSCRIBING')
+    }
+  }, [])
 
   const handleSave = async () => {
     if (!transcribedText.trim()) return
@@ -191,14 +193,14 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
 
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || 'Kunde inte spara måltid')
+        throw new Error(data.error || t('errors.saveMeal'))
       }
 
       setStep('DONE')
       onMealSaved?.()
       setTimeout(() => onClose?.(), 1500)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kunde inte spara måltid')
+      setError(err instanceof Error ? err.message : t('errors.saveMeal'))
       setStep('REVIEW')
     }
   }
@@ -209,7 +211,7 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
         <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
           <Check className="h-8 w-8 text-green-500" />
         </div>
-        <p className="text-lg font-semibold">Måltid sparad!</p>
+        <p className="text-lg font-semibold">{t('done.title')}</p>
       </div>
     )
   }
@@ -226,7 +228,7 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
       {step === 'RECORD' && (
         <div className="flex flex-col items-center gap-6 py-8">
           <p className="text-sm text-muted-foreground text-center">
-            Tryck för att spela in och beskriv vad du ätit
+            {t('record.description')}
           </p>
           <button
             onClick={isRecording ? stopRecording : startRecording}
@@ -244,7 +246,7 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
             )}
           </button>
           <p className="text-sm text-muted-foreground">
-            {isRecording ? 'Tryck för att stoppa' : 'Tryck för att spela in'}
+            {isRecording ? t('record.stop') : t('record.start')}
           </p>
         </div>
       )}
@@ -252,29 +254,29 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
       {step === 'TRANSCRIBING' && (
         <div className="flex flex-col items-center gap-4 py-12">
           <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-          <p className="text-sm text-muted-foreground">Transkriberar...</p>
+          <p className="text-sm text-muted-foreground">{t('transcribing')}</p>
         </div>
       )}
 
       {step === 'ANALYZING' && (
         <div className="flex flex-col items-center gap-4 py-12">
           <Sparkles className="h-8 w-8 text-cyan-500 animate-pulse" />
-          <p className="text-sm text-muted-foreground">Analyserar näringsvärden...</p>
+          <p className="text-sm text-muted-foreground">{t('analyzing')}</p>
         </div>
       )}
 
       {step === 'REVIEW' && (
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Måltidstyp</Label>
+            <Label>{t('review.mealType')}</Label>
             <Select value={mealType} onValueChange={(v) => setMealType(v as MealType)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(MEAL_TYPE_LABELS).map(([value, label]) => (
+                {Object.entries(MEAL_TYPE_LABELS).map(([value, labelKey]) => (
                   <SelectItem key={value} value={value}>
-                    {label}
+                    {t(labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -282,12 +284,12 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
           </div>
 
           <div className="space-y-2">
-            <Label>Beskrivning</Label>
+            <Label>{t('review.description')}</Label>
             <Textarea
               value={transcribedText}
               onChange={(e) => setTranscribedText(e.target.value)}
               rows={3}
-              placeholder="Vad åt du?"
+              placeholder={t('review.descriptionPlaceholder')}
             />
           </div>
 
@@ -296,11 +298,11 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground flex items-center gap-1">
                 <Sparkles className="h-3 w-3" />
-                AI-uppskattade näringsvärden
+                {t('review.estimatedMacros')}
               </Label>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Kalorier</label>
+                  <label className="text-xs text-muted-foreground">{t('macros.calories')}</label>
                   <Input
                     type="number"
                     value={macros.calories ?? ''}
@@ -308,7 +310,7 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Protein (g)</label>
+                  <label className="text-xs text-muted-foreground">{t('macros.proteinGrams')}</label>
                   <Input
                     type="number"
                     step="0.1"
@@ -317,7 +319,7 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Kolhydrater (g)</label>
+                  <label className="text-xs text-muted-foreground">{t('macros.carbsGrams')}</label>
                   <Input
                     type="number"
                     step="0.1"
@@ -326,7 +328,7 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Fett (g)</label>
+                  <label className="text-xs text-muted-foreground">{t('macros.fatGrams')}</label>
                   <Input
                     type="number"
                     step="0.1"
@@ -337,18 +339,25 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
               </div>
               {enhancedMode && (
                 <div className="p-2 rounded bg-muted text-xs text-muted-foreground space-y-1">
-                  <p className="font-medium text-foreground">Detaljerad makroanalys aktiv</p>
+                  <p className="font-medium text-foreground">{t('review.enhancedMode')}</p>
                   <p>
-                    <span className="font-medium">Fett:</span>{' '}
+                    <span className="font-medium">{t('macros.fat')}:</span>{' '}
                     {macros.saturatedFatGrams != null || macros.monounsaturatedFatGrams != null || macros.polyunsaturatedFatGrams != null
-                      ? `${macros.saturatedFatGrams?.toFixed(1) ?? '0.0'}g mättat, ${macros.monounsaturatedFatGrams?.toFixed(1) ?? '0.0'}g enkelomättat, ${macros.polyunsaturatedFatGrams?.toFixed(1) ?? '0.0'}g fleromättat`
-                      : 'Ingen detaljerad fettfördelning returnerades i denna analys.'}
+                      ? t('review.fatBreakdown', {
+                        saturated: macros.saturatedFatGrams?.toFixed(1) ?? '0.0',
+                        mono: macros.monounsaturatedFatGrams?.toFixed(1) ?? '0.0',
+                        poly: macros.polyunsaturatedFatGrams?.toFixed(1) ?? '0.0',
+                      })
+                      : t('review.noFatBreakdown')}
                   </p>
                   <p>
-                    <span className="font-medium">Kolhydrater:</span>{' '}
+                    <span className="font-medium">{t('macros.carbs')}:</span>{' '}
                     {macros.sugarGrams != null || macros.complexCarbsGrams != null
-                      ? `${macros.sugarGrams?.toFixed(1) ?? '0.0'}g socker, ${macros.complexCarbsGrams?.toFixed(1) ?? '0.0'}g komplexa`
-                      : 'Ingen detaljerad kolhydratfördelning returnerades i denna analys.'}
+                      ? t('review.carbBreakdown', {
+                        sugar: macros.sugarGrams?.toFixed(1) ?? '0.0',
+                        complex: macros.complexCarbsGrams?.toFixed(1) ?? '0.0',
+                      })
+                      : t('review.noCarbBreakdown')}
                   </p>
                 </div>
               )}
@@ -364,14 +373,14 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
                 setStep('RECORD')
               }}
             >
-              Spela in igen
+              {t('actions.recordAgain')}
             </Button>
             <Button
               className="flex-1"
               onClick={handleSave}
               disabled={!transcribedText.trim()}
             >
-              Spara måltid
+              {t('actions.saveMeal')}
             </Button>
           </div>
         </div>
@@ -380,7 +389,7 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
       {step === 'SAVING' && (
         <div className="flex flex-col items-center gap-4 py-12">
           <Loader2 className="h-8 w-8 animate-spin" />
-          <p className="text-sm text-muted-foreground">Sparar måltid...</p>
+          <p className="text-sm text-muted-foreground">{t('saving')}</p>
         </div>
       )}
     </div>

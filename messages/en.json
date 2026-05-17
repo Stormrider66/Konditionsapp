@@ -4802,6 +4802,57 @@
         "caloriesRegistered": "{calories} kcal registered"
       }
     },
+    "voiceMealCapture": {
+      "mealTypes": {
+        "breakfast": "Breakfast",
+        "morningSnack": "Morning snack",
+        "lunch": "Lunch",
+        "afternoonSnack": "Afternoon snack",
+        "preWorkout": "Pre-workout",
+        "postWorkout": "Post-workout",
+        "dinner": "Dinner",
+        "eveningSnack": "Evening snack"
+      },
+      "errors": {
+        "microphoneStart": "Could not start the microphone. Check that you have granted permission.",
+        "transcribe": "Transcription failed",
+        "saveMeal": "Could not save meal"
+      },
+      "record": {
+        "description": "Tap to record and describe what you ate",
+        "start": "Tap to record",
+        "stop": "Tap to stop"
+      },
+      "transcribing": "Transcribing...",
+      "analyzing": "Analyzing nutrition values...",
+      "saving": "Saving meal...",
+      "review": {
+        "mealType": "Meal type",
+        "description": "Description",
+        "descriptionPlaceholder": "What did you eat?",
+        "estimatedMacros": "AI-estimated nutrition values",
+        "enhancedMode": "Detailed macro analysis active",
+        "fatBreakdown": "{saturated}g saturated, {mono}g monounsaturated, {poly}g polyunsaturated",
+        "carbBreakdown": "{sugar}g sugar, {complex}g complex",
+        "noFatBreakdown": "No detailed fat breakdown was returned in this analysis.",
+        "noCarbBreakdown": "No detailed carbohydrate breakdown was returned in this analysis."
+      },
+      "macros": {
+        "calories": "Calories",
+        "proteinGrams": "Protein (g)",
+        "carbsGrams": "Carbohydrates (g)",
+        "fatGrams": "Fat (g)",
+        "fat": "Fat",
+        "carbs": "Carbohydrates"
+      },
+      "actions": {
+        "recordAgain": "Record again",
+        "saveMeal": "Save meal"
+      },
+      "done": {
+        "title": "Meal saved!"
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {
