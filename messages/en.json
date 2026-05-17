@@ -3890,6 +3890,32 @@
         "defaultSuffix": "in this workout. Tap the camera icon at each interval to scan your lactate value."
       }
     },
+    "setLoggingForm": {
+      "previous": "Previous: {weight} kg × {reps}",
+      "fields": {
+        "weight": "Load (kg)",
+        "targetReps": "(target: {target})",
+        "rpe": "RPE (difficulty)"
+      },
+      "rpe": {
+        "easy": "Easy",
+        "hard": "Hard"
+      },
+      "vbt": {
+        "toggle": "Velocity / power / time",
+        "velocity": "Velocity",
+        "power": "Power",
+        "time": "Time",
+        "mean": "Mean",
+        "peak": "Peak"
+      },
+      "actions": {
+        "log": "Log",
+        "saving": "Saving...",
+        "saved": "Saved!",
+        "logSet": "Log set"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",

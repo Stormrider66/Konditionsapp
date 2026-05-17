@@ -22,6 +22,7 @@ import {
   Plus,
 } from 'lucide-react'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { useTranslations } from '@/i18n/client'
 
 interface SetLoggingFormProps {
   exerciseId: string
@@ -61,6 +62,7 @@ export function SetLoggingForm({
   disabled = false,
   compact = false,
 }: SetLoggingFormProps) {
+  const t = useTranslations('components.setLoggingForm')
   // Parse target reps if it's a range like "8-12"
   const parseTargetReps = (reps: number | string): number => {
     if (typeof reps === 'number') return reps
@@ -220,7 +222,7 @@ export function SetLoggingForm({
           ) : isSuccess ? (
             <Check className="h-4 w-4" />
           ) : (
-            'Logga'
+            t('actions.log')
           )}
         </Button>
       </div>
@@ -233,14 +235,14 @@ export function SetLoggingForm({
         <h4 className="font-medium">Set {setNumber}</h4>
         {previousWeight && previousReps && (
           <Badge variant="outline" className="text-xs">
-            Förra: {previousWeight} kg × {previousReps}
+            {t('previous', { weight: previousWeight, reps: previousReps })}
           </Badge>
         )}
       </div>
 
       {/* Weight Input */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">Belastning (kg)</Label>
+        <Label className="text-sm font-medium text-foreground">{t('fields.weight')}</Label>
         <div className="flex items-center gap-2">
           <Button
             variant="secondary"
@@ -294,7 +296,7 @@ export function SetLoggingForm({
           Repetitioner
           {targetReps && (
             <span className="text-muted-foreground ml-1">
-              (mål: {targetReps})
+              {t('fields.targetReps', { target: targetReps })}
             </span>
           )}
         </Label>
@@ -333,7 +335,7 @@ export function SetLoggingForm({
       {/* RPE Slider */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-foreground">RPE (svårighetsgrad) <InfoTooltip conceptKey="rpe" /></Label>
+          <Label className="text-sm font-medium text-foreground">{t('fields.rpe')} <InfoTooltip conceptKey="rpe" /></Label>
           <Badge
             className={
               rpeTouched
@@ -357,8 +359,8 @@ export function SetLoggingForm({
           disabled={disabled}
         />
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Lätt</span>
-          <span>Svårt</span>
+          <span>{t('rpe.easy')}</span>
+          <span>{t('rpe.hard')}</span>
         </div>
       </div>
 
@@ -370,7 +372,7 @@ export function SetLoggingForm({
           className="flex w-full items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground"
         >
           <Gauge className="h-4 w-4 text-muted-foreground" />
-          Hastighet / kraft / tid
+          {t('vbt.toggle')}
           <ChevronDown
             className={`ml-auto h-4 w-4 text-muted-foreground transition-transform ${
               showVBT ? 'rotate-180' : ''
@@ -381,13 +383,13 @@ export function SetLoggingForm({
           <div className="space-y-4 border-t border-border px-3 pb-3 pt-3">
             <div className="space-y-1.5">
               <div className="flex items-baseline justify-between">
-                <Label className="text-sm font-medium text-foreground">Hastighet</Label>
+                <Label className="text-sm font-medium text-foreground">{t('vbt.velocity')}</Label>
                 <span className="text-xs text-muted-foreground">m/s</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Medel
+                    {t('vbt.mean')}
                   </span>
                   <Input
                     type="number"
@@ -402,7 +404,7 @@ export function SetLoggingForm({
                 </div>
                 <div>
                   <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Topp
+                    {t('vbt.peak')}
                   </span>
                   <Input
                     type="number"
@@ -419,13 +421,13 @@ export function SetLoggingForm({
             </div>
             <div className="space-y-1.5">
               <div className="flex items-baseline justify-between">
-                <Label className="text-sm font-medium text-foreground">Effekt</Label>
+                <Label className="text-sm font-medium text-foreground">{t('vbt.power')}</Label>
                 <span className="text-xs text-muted-foreground">W</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Medel
+                    {t('vbt.mean')}
                   </span>
                   <Input
                     type="number"
@@ -439,7 +441,7 @@ export function SetLoggingForm({
                 </div>
                 <div>
                   <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Topp
+                    {t('vbt.peak')}
                   </span>
                   <Input
                     type="number"
@@ -455,13 +457,13 @@ export function SetLoggingForm({
             </div>
             <div className="space-y-1.5">
               <div className="flex items-baseline justify-between">
-                <Label className="text-sm font-medium text-foreground">Tid</Label>
+                <Label className="text-sm font-medium text-foreground">{t('vbt.time')}</Label>
                 <span className="text-xs text-muted-foreground">s</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Medel
+                    {t('vbt.mean')}
                   </span>
                   <Input
                     type="number"
@@ -476,7 +478,7 @@ export function SetLoggingForm({
                 </div>
                 <div>
                   <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Topp
+                    {t('vbt.peak')}
                   </span>
                   <Input
                     type="number"
@@ -504,15 +506,15 @@ export function SetLoggingForm({
         {isSubmitting ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Sparar...
+            {t('actions.saving')}
           </>
         ) : isSuccess ? (
           <>
             <Check className="mr-2 h-4 w-4" />
-            Sparad!
+            {t('actions.saved')}
           </>
         ) : (
-          'Logga set'
+          t('actions.logSet')
         )}
       </Button>
     </div>

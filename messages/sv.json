@@ -3890,6 +3890,32 @@
         "defaultSuffix": "i detta pass. Tryck på kameraikonen vid varje intervall för att scanna ditt laktatvärde."
       }
     },
+    "setLoggingForm": {
+      "previous": "Förra: {weight} kg × {reps}",
+      "fields": {
+        "weight": "Belastning (kg)",
+        "targetReps": "(mål: {target})",
+        "rpe": "RPE (svårighetsgrad)"
+      },
+      "rpe": {
+        "easy": "Lätt",
+        "hard": "Svårt"
+      },
+      "vbt": {
+        "toggle": "Hastighet / kraft / tid",
+        "velocity": "Hastighet",
+        "power": "Effekt",
+        "time": "Tid",
+        "mean": "Medel",
+        "peak": "Topp"
+      },
+      "actions": {
+        "log": "Logga",
+        "saving": "Sparar...",
+        "saved": "Sparad!",
+        "logSet": "Logga set"
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",
