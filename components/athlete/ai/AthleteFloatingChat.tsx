@@ -405,7 +405,7 @@ export function AthleteFloatingChat({
     utterance.pitch = 1
     utterance.onstart = () => {
       setIsSpeakingAssistant(true)
-      setVoicePlaybackStatus('Använder webbläsarens röst.')
+      setVoicePlaybackStatus(t('voice.status.browserVoice'))
     }
     utterance.onend = () => {
       setIsSpeakingAssistant(false)
@@ -417,7 +417,7 @@ export function AthleteFloatingChat({
     }
     window.speechSynthesis.speak(utterance)
     return true
-  }, [isBrowserSpeechSupported])
+  }, [isBrowserSpeechSupported, t])
 
   const playPremiumAssistantReply = useCallback(async (text: string): Promise<boolean> => {
     if (premiumVoiceUnavailableRef.current) return false
@@ -430,7 +430,7 @@ export function AthleteFloatingChat({
     const controller = new AbortController()
     assistantSpeechAbortRef.current = controller
     setIsGeneratingAssistantAudio(true)
-    setVoicePlaybackStatus('Skapar AI-röst...')
+    setVoicePlaybackStatus(t('voice.status.creatingAiVoice'))
 
     try {
       const response = await fetch('/api/ai/chat/speech', {
@@ -458,7 +458,7 @@ export function AthleteFloatingChat({
       audio.onplay = () => {
         setIsGeneratingAssistantAudio(false)
         setIsSpeakingAssistant(true)
-        setVoicePlaybackStatus('Spelar AI-röst...')
+        setVoicePlaybackStatus(t('voice.status.playingAiVoice'))
       }
       audio.onended = () => {
         setIsSpeakingAssistant(false)
@@ -485,7 +485,7 @@ export function AthleteFloatingChat({
       }
       setIsGeneratingAssistantAudio(false)
     }
-  }, [stopAssistantSpeech])
+  }, [stopAssistantSpeech, t])
 
   const speakAssistantReply = useCallback(async (text: string) => {
     if (!isSpokenRepliesEnabled || !isSpeechSupported) return
@@ -495,25 +495,26 @@ export function AthleteFloatingChat({
 
     const usedBrowserVoice = speakBrowserAssistantReply(text)
     if (usedBrowserVoice) {
-      setVoicePlaybackStatus(premiumVoiceUnavailableRef.current ? 'Använder webbläsarens röst.' : null)
+      setVoicePlaybackStatus(premiumVoiceUnavailableRef.current ? t('voice.status.browserVoice') : null)
       return
     }
 
-    setVoicePlaybackStatus('Röstsvar kunde inte spelas i den här webbläsaren.')
+    setVoicePlaybackStatus(t('voice.status.playbackUnavailable'))
   }, [
     isSpeechSupported,
     isSpokenRepliesEnabled,
     playPremiumAssistantReply,
     speakBrowserAssistantReply,
+    t,
   ])
 
   const toggleSpokenReplies = useCallback(() => {
     if (!isSpeechSupported) {
-      const message = 'Röstsvar stöds inte i den här webbläsaren.'
+      const message = t('voice.unsupported.message')
       addAssistantNotice(message)
       toast({
-        title: 'Röstsvar stöds inte',
-        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        title: t('voice.unsupported.title'),
+        description: t('voice.unsupported.description'),
         variant: 'destructive',
       })
       return
@@ -529,7 +530,7 @@ export function AthleteFloatingChat({
       }
       return next
     })
-  }, [addAssistantNotice, isSpeechSupported, stopAssistantSpeech, toast])
+  }, [addAssistantNotice, isSpeechSupported, stopAssistantSpeech, t, toast])
 
   const cancelVoiceAutoSend = useCallback(() => {
     if (voiceAutoSendTimeoutRef.current) {
@@ -561,11 +562,11 @@ export function AthleteFloatingChat({
 
   const toggleVoiceOperatorMode = useCallback(() => {
     if (!isVoiceOperatorModeEnabled && !isSpeechSupported) {
-      const message = 'Voice operator-läget behöver röstsvar, men den här webbläsaren stödjer inte uppläsning.'
+      const message = t('voice.operatorUnsupported.message')
       addAssistantNotice(message)
       toast({
-        title: 'Voice operator kan inte startas',
-        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        title: t('voice.operatorUnsupported.title'),
+        description: t('voice.unsupported.description'),
         variant: 'destructive',
       })
       return
@@ -580,17 +581,17 @@ export function AthleteFloatingChat({
       setIsVoiceAutoSendEnabled(true)
       window.localStorage.setItem(ATHLETE_SPOKEN_REPLIES_KEY, 'true')
       window.localStorage.setItem(ATHLETE_VOICE_AUTO_SEND_KEY, 'true')
-      addAssistantNotice('Voice operator-läget är aktivt. Jag lyssnar via mikrofonen, skickar efter en kort paus och säger mina svar högt. Åtgärder som skapar eller ändrar något kräver fortfarande bekräftelse.')
+      addAssistantNotice(t('voice.operatorEnabled.notice'))
       toast({
-        title: 'Voice operator aktiv',
-        description: 'Röstsvar och automatisk röstsändning är på.',
+        title: t('voice.operatorEnabled.title'),
+        description: t('voice.operatorEnabled.description'),
       })
     } else {
       cancelVoiceAutoSend()
-      addAssistantNotice('Voice operator-läget är avstängt. Du kan fortfarande använda mikrofonen manuellt.')
+      addAssistantNotice(t('voice.operatorDisabled.notice'))
       toast({
-        title: 'Voice operator avstängd',
-        description: 'Röstinställningarna kan fortfarande styras separat.',
+        title: t('voice.operatorDisabled.title'),
+        description: t('voice.operatorDisabled.description'),
       })
     }
   }, [
@@ -598,6 +599,7 @@ export function AthleteFloatingChat({
     cancelVoiceAutoSend,
     isSpeechSupported,
     isVoiceOperatorModeEnabled,
+    t,
     toast,
   ])
 
@@ -706,15 +708,15 @@ export function AthleteFloatingChat({
         setConsentStatus('granted')
       } else {
         toast({
-          title: 'Kunde inte spara samtycke',
-          description: 'Försök igen senare.',
+          title: t('consentSave.errorTitle'),
+          description: t('common.tryAgainLater'),
           variant: 'destructive',
         })
       }
     } catch {
       toast({
-        title: 'Kunde inte spara samtycke',
-        description: 'Ett oväntat fel uppstod.',
+        title: t('consentSave.errorTitle'),
+        description: t('common.unexpectedError'),
         variant: 'destructive',
       })
     } finally {
@@ -771,21 +773,21 @@ export function AthleteFloatingChat({
   const startRealtimeVoice = useCallback(async () => {
     if (isRealtimeVoiceConnecting || isRealtimeVoiceActive) return
     if (typeof window === 'undefined' || !window.RTCPeerConnection) {
-      const message = 'Live voice stöds inte i den här webbläsaren.'
+      const message = t('realtime.unsupported.message')
       addAssistantNotice(message)
       toast({
-        title: 'Live voice stöds inte',
-        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        title: t('realtime.unsupported.title'),
+        description: t('voice.unsupported.description'),
         variant: 'destructive',
       })
       return
     }
     if (!navigator.mediaDevices?.getUserMedia) {
-      const message = 'Jag kan inte starta live voice eftersom mikrofonåtkomst saknas.'
+      const message = t('realtime.microphoneMissing.message')
       addAssistantNotice(message)
       toast({
-        title: 'Mikrofon saknas',
-        description: 'Tillåt mikrofonåtkomst och försök igen.',
+        title: t('realtime.microphoneMissing.title'),
+        description: t('realtime.microphoneMissing.description'),
         variant: 'destructive',
       })
       return
@@ -794,7 +796,7 @@ export function AthleteFloatingChat({
     stopAssistantSpeech()
     cancelVoiceAutoSend()
     setIsRealtimeVoiceConnecting(true)
-    setRealtimeVoiceStatus('Startar live voice...')
+    setRealtimeVoiceStatus(t('realtime.starting'))
 
     let peer: RTCPeerConnection | null = null
     let mediaStream: MediaStream | null = null
@@ -819,10 +821,10 @@ export function AthleteFloatingChat({
           }
           setIsRealtimeVoiceConnecting(false)
           setIsRealtimeVoiceActive(true)
-          setRealtimeVoiceStatus('Live voice aktiv. Åtgärder kräver fortsatt bekräftelse i chatten.')
+          setRealtimeVoiceStatus(t('realtime.activeConfirmation'))
         }
         if (['failed', 'closed', 'disconnected'].includes(peer.connectionState)) {
-          stopRealtimeVoice('Live voice är frånkopplad.', 'disconnected')
+          stopRealtimeVoice(t('realtime.disconnected'), 'disconnected')
         }
       }
 
@@ -835,22 +837,22 @@ export function AthleteFloatingChat({
       const dataChannel = peer.createDataChannel('oai-events')
       realtimeDataChannelRef.current = dataChannel
       dataChannel.onopen = () => {
-        setRealtimeVoiceStatus('Live voice lyssnar.')
+        setRealtimeVoiceStatus(t('realtime.listening'))
       }
       dataChannel.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as { type?: string; error?: { message?: string } }
           addRealtimeUsageFromEvent(realtimeUsageRef.current, data)
           if (data.type === 'error') {
-            const message = data.error?.message || 'Live voice fick ett okänt fel.'
+            const message = data.error?.message || t('realtime.unknownError')
             setRealtimeVoiceStatus(message)
-            addAssistantNotice(`Live voice kunde inte fortsätta: ${message}`)
+            addAssistantNotice(t('realtime.continueFailed', { message }))
           } else if (data.type === 'response.audio_transcript.done') {
-            setRealtimeVoiceStatus('Live voice svarade.')
+            setRealtimeVoiceStatus(t('realtime.responded'))
           } else if (data.type === 'input_audio_buffer.speech_started') {
-            setRealtimeVoiceStatus('Live voice lyssnar...')
+            setRealtimeVoiceStatus(t('realtime.listeningInProgress'))
           } else if (data.type === 'input_audio_buffer.speech_stopped') {
-            setRealtimeVoiceStatus('Bearbetar live voice...')
+            setRealtimeVoiceStatus(t('realtime.processing'))
           }
         } catch {
           // Ignore non-JSON realtime diagnostics.
@@ -860,7 +862,7 @@ export function AthleteFloatingChat({
       const offer = await peer.createOffer()
       await peer.setLocalDescription(offer)
       if (!offer.sdp) {
-        throw new Error('Kunde inte skapa WebRTC-offer.')
+        throw new Error(t('realtime.offerFailed'))
       }
 
       const response = await fetch('/api/ai/chat/realtime-call', {
@@ -875,7 +877,7 @@ export function AthleteFloatingChat({
       })
       const answerSdp = await response.text()
       if (!response.ok) {
-        let message = 'Kunde inte starta OpenAI live voice.'
+        let message = t('realtime.openAiStartFailed')
         try {
           const parsed = JSON.parse(answerSdp) as { error?: string }
           message = parsed.error || message
@@ -886,13 +888,13 @@ export function AthleteFloatingChat({
       }
 
       await peer.setRemoteDescription({ type: 'answer', sdp: answerSdp })
-      setRealtimeVoiceStatus('Ansluter live voice...')
+      setRealtimeVoiceStatus(t('realtime.connecting'))
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Kunde inte starta live voice.'
+      const message = error instanceof Error ? error.message : t('realtime.startFailed')
       stopRealtimeVoice(message, 'error')
-      addAssistantNotice(`Jag kunde inte starta live voice: ${message}`)
+      addAssistantNotice(t('realtime.startFailedNotice', { message }))
       toast({
-        title: 'Live voice kunde inte starta',
+        title: t('realtime.startFailedTitle'),
         description: message,
         variant: 'destructive',
       })
@@ -904,12 +906,13 @@ export function AthleteFloatingChat({
     isRealtimeVoiceConnecting,
     stopAssistantSpeech,
     stopRealtimeVoice,
+    t,
     toast,
   ])
 
   const toggleRealtimeVoice = useCallback(() => {
     if (isRealtimeVoiceActive || isRealtimeVoiceConnecting) {
-      stopRealtimeVoice('Live voice är avstängd.', 'user_stopped')
+      stopRealtimeVoice(t('realtime.stopped'), 'user_stopped')
       return
     }
     void startRealtimeVoice()
@@ -918,6 +921,7 @@ export function AthleteFloatingChat({
     isRealtimeVoiceConnecting,
     startRealtimeVoice,
     stopRealtimeVoice,
+    t,
   ])
 
   // Manual input state
@@ -1023,7 +1027,7 @@ export function AthleteFloatingChat({
       if (errorMessage.includes('SUBSCRIPTION_REQUIRED') || errorMessage.includes('403')) {
         setSubscriptionError({
           code: 'SUBSCRIPTION_REQUIRED',
-          message: 'Du har nått din månadsgräns för AI-chatt.',
+          message: t('subscription.monthlyLimitReached'),
           upgradeUrl: '/athlete/subscription',
         })
         return
@@ -1034,7 +1038,7 @@ export function AthleteFloatingChat({
       }
 
       toast({
-        title: 'Kunde inte skicka meddelande',
+        title: t('send.errorTitle'),
         description: error.message,
         variant: 'destructive',
       })
@@ -1179,22 +1183,22 @@ export function AthleteFloatingChat({
 
       if (response.ok) {
         toast({
-          title: 'Program sparat!',
-          description: `"${detectedProgram.program.name}" har sparats.`,
+          title: t('programSave.savedTitle'),
+          description: t('programSave.savedDescription', { name: detectedProgram.program.name }),
         })
         setDetectedProgram(null)
       } else {
         const data = await response.json()
         toast({
-          title: 'Kunde inte spara programmet',
-          description: data.error || 'Försök igen senare.',
+          title: t('programSave.errorTitle'),
+          description: data.error || t('common.tryAgainLater'),
           variant: 'destructive',
         })
       }
     } catch {
       toast({
-        title: 'Fel vid sparning',
-        description: 'Ett oväntat fel uppstod.',
+        title: t('programSave.failureTitle'),
+        description: t('common.unexpectedError'),
         variant: 'destructive',
       })
     } finally {
@@ -1213,7 +1217,7 @@ export function AthleteFloatingChat({
     const messageContent = rawMessage.trim()
     if (!messageContent || isLoading) return
     if (!configReady) {
-      addAssistantNotice('Jag kan inte skicka just nu eftersom AI-inställningarna inte är färdigladdade. Vänta några sekunder och försök igen.')
+      addAssistantNotice(t('send.configNotReady'))
       return
     }
 
@@ -1269,6 +1273,7 @@ export function AthleteFloatingChat({
     selectedIntent,
     selectedSkillIds,
     sendMessage,
+    t,
   ])
 
   const scheduleVoiceAutoSend = useCallback((message: string) => {
@@ -1296,18 +1301,18 @@ export function AthleteFloatingChat({
       const data = await response.json().catch(() => ({}))
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Kunde inte transkribera röstmeddelandet.')
+        throw new Error(data.error || t('voice.transcriptionFailed'))
       }
 
       const text = typeof data.text === 'string' ? data.text.trim() : ''
       if (!text) {
-        throw new Error('Jag hörde inget tydligt i röstmeddelandet.')
+        throw new Error(t('voice.noClearAudio'))
       }
       return text
     } finally {
       setIsTranscribingVoice(false)
     }
-  }, [])
+  }, [t])
 
   async function handleVoiceButtonClick() {
     if (isVoiceRecording) {
@@ -1319,11 +1324,11 @@ export function AthleteFloatingChat({
     cancelVoiceAutoSend()
 
     if (!isVoiceSupported) {
-      const message = 'Röstinmatning stöds inte i den här webbläsaren.'
+      const message = t('voice.inputUnsupported.message')
       addAssistantNotice(message)
       toast({
-        title: 'Röstinmatning stöds inte',
-        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        title: t('voice.inputUnsupported.title'),
+        description: t('voice.unsupported.description'),
         variant: 'destructive',
       })
       return
@@ -1338,7 +1343,7 @@ export function AthleteFloatingChat({
       voiceRecordingPromiseRef.current = null
 
       if (audioBlob.size === 0) {
-        throw new Error('Jag fick ingen ljuddata från mikrofonen.')
+        throw new Error(t('voice.noAudioData'))
       }
 
       const transcript = await transcribeVoiceBlob(audioBlob)
@@ -1349,20 +1354,20 @@ export function AthleteFloatingChat({
       if (isVoiceAutoSendEnabled) {
         scheduleVoiceAutoSend(nextInputValue)
         toast({
-          title: 'Röst transkriberad',
-          description: 'Jag skickar meddelandet automatiskt om en liten stund.',
+          title: t('voice.transcribed.title'),
+          description: t('voice.transcribed.autoSendDescription'),
         })
       } else {
         toast({
-          title: 'Röst transkriberad',
-          description: 'Texten ligger i meddelandefältet.',
+          title: t('voice.transcribed.title'),
+          description: t('voice.transcribed.manualDescription'),
         })
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Kunde inte hantera röstmeddelandet.'
-      addAssistantNotice(`Jag kunde inte använda röstmeddelandet: ${message}`)
+      const message = error instanceof Error ? error.message : t('voice.handleFailed')
+      addAssistantNotice(t('voice.handleFailedNotice', { message }))
       toast({
-        title: 'Kunde inte använda rösten',
+        title: t('voice.handleFailedTitle'),
         description: message,
         variant: 'destructive',
       })

@@ -6803,7 +6803,8 @@
       "subscription": {
         "title": "Prenumeration krävs",
         "description": "Uppgradera din prenumeration för att fortsätta använda AI-chatten.",
-        "action": "Uppgradera prenumeration"
+        "action": "Uppgradera prenumeration",
+        "monthlyLimitReached": "Du har nått din månadsgräns för AI-chatt."
       },
       "consent": {
         "title": "Samtycke krävs",
@@ -6823,7 +6824,31 @@
       "realtime": {
         "active": "Live voice aktiv",
         "stopped": "Live voice är avstängd.",
-        "stop": "Stoppa"
+        "stop": "Stoppa",
+        "unsupported": {
+          "title": "Live voice stöds inte",
+          "message": "Live voice stöds inte i den här webbläsaren."
+        },
+        "microphoneMissing": {
+          "title": "Mikrofon saknas",
+          "message": "Jag kan inte starta live voice eftersom mikrofonåtkomst saknas.",
+          "description": "Tillåt mikrofonåtkomst och försök igen."
+        },
+        "starting": "Startar live voice...",
+        "activeConfirmation": "Live voice aktiv. Åtgärder kräver fortsatt bekräftelse i chatten.",
+        "disconnected": "Live voice är frånkopplad.",
+        "listening": "Live voice lyssnar.",
+        "unknownError": "Live voice fick ett okänt fel.",
+        "continueFailed": "Live voice kunde inte fortsätta: {message}",
+        "responded": "Live voice svarade.",
+        "listeningInProgress": "Live voice lyssnar...",
+        "processing": "Bearbetar live voice...",
+        "offerFailed": "Kunde inte skapa WebRTC-offer.",
+        "openAiStartFailed": "Kunde inte starta OpenAI live voice.",
+        "connecting": "Ansluter live voice...",
+        "startFailed": "Kunde inte starta live voice.",
+        "startFailedNotice": "Jag kunde inte starta live voice: {message}",
+        "startFailedTitle": "Live voice kunde inte starta"
       },
       "empty": {
         "greeting": "Hej!",
@@ -6838,6 +6863,23 @@
       "programDetected": {
         "weeks": "{count} veckor",
         "save": "Spara program"
+      },
+      "programSave": {
+        "savedTitle": "Program sparat!",
+        "savedDescription": "\"{name}\" har sparats.",
+        "errorTitle": "Kunde inte spara programmet",
+        "failureTitle": "Fel vid sparning"
+      },
+      "consentSave": {
+        "errorTitle": "Kunde inte spara samtycke"
+      },
+      "send": {
+        "errorTitle": "Kunde inte skicka meddelande",
+        "configNotReady": "Jag kan inte skicka just nu eftersom AI-inställningarna inte är färdigladdade. Vänta några sekunder och försök igen."
+      },
+      "common": {
+        "tryAgainLater": "Försök igen senare.",
+        "unexpectedError": "Ett oväntat fel uppstod."
       },
       "input": {
         "placeholder": "Skriv ett meddelande..."
@@ -6860,7 +6902,47 @@
         "cancel": "Avbryt",
         "readingAnswer": "Läser upp svaret...",
         "creatingAiVoice": "Skapar AI-röst...",
-        "aiGenerated": "Rösten är AI-genererad."
+        "aiGenerated": "Rösten är AI-genererad.",
+        "status": {
+          "browserVoice": "Använder webbläsarens röst.",
+          "creatingAiVoice": "Skapar AI-röst...",
+          "playingAiVoice": "Spelar AI-röst...",
+          "playbackUnavailable": "Röstsvar kunde inte spelas i den här webbläsaren."
+        },
+        "unsupported": {
+          "title": "Röstsvar stöds inte",
+          "message": "Röstsvar stöds inte i den här webbläsaren.",
+          "description": "Testa en modern version av Safari, Chrome eller Edge."
+        },
+        "operatorUnsupported": {
+          "title": "Voice operator kan inte startas",
+          "message": "Voice operator-läget behöver röstsvar, men den här webbläsaren stödjer inte uppläsning."
+        },
+        "operatorEnabled": {
+          "title": "Voice operator aktiv",
+          "description": "Röstsvar och automatisk röstsändning är på.",
+          "notice": "Voice operator-läget är aktivt. Jag lyssnar via mikrofonen, skickar efter en kort paus och säger mina svar högt. Åtgärder som skapar eller ändrar något kräver fortfarande bekräftelse."
+        },
+        "operatorDisabled": {
+          "title": "Voice operator avstängd",
+          "description": "Röstinställningarna kan fortfarande styras separat.",
+          "notice": "Voice operator-läget är avstängt. Du kan fortfarande använda mikrofonen manuellt."
+        },
+        "transcriptionFailed": "Kunde inte transkribera röstmeddelandet.",
+        "noClearAudio": "Jag hörde inget tydligt i röstmeddelandet.",
+        "inputUnsupported": {
+          "title": "Röstinmatning stöds inte",
+          "message": "Röstinmatning stöds inte i den här webbläsaren."
+        },
+        "noAudioData": "Jag fick ingen ljuddata från mikrofonen.",
+        "transcribed": {
+          "title": "Röst transkriberad",
+          "autoSendDescription": "Jag skickar meddelandet automatiskt om en liten stund.",
+          "manualDescription": "Texten ligger i meddelandefältet."
+        },
+        "handleFailed": "Kunde inte hantera röstmeddelandet.",
+        "handleFailedNotice": "Jag kunde inte använda röstmeddelandet: {message}",
+        "handleFailedTitle": "Kunde inte använda rösten"
       }
     },
     "ouraHealthCard": {

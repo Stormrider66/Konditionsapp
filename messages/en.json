@@ -6803,7 +6803,8 @@
       "subscription": {
         "title": "Subscription required",
         "description": "Upgrade your subscription to keep using the AI chat.",
-        "action": "Upgrade subscription"
+        "action": "Upgrade subscription",
+        "monthlyLimitReached": "You have reached your monthly AI chat limit."
       },
       "consent": {
         "title": "Consent required",
@@ -6823,7 +6824,31 @@
       "realtime": {
         "active": "Live voice active",
         "stopped": "Live voice is off.",
-        "stop": "Stop"
+        "stop": "Stop",
+        "unsupported": {
+          "title": "Live voice is not supported",
+          "message": "Live voice is not supported in this browser."
+        },
+        "microphoneMissing": {
+          "title": "Microphone unavailable",
+          "message": "I cannot start live voice because microphone access is unavailable.",
+          "description": "Allow microphone access and try again."
+        },
+        "starting": "Starting live voice...",
+        "activeConfirmation": "Live voice active. Actions still require confirmation in chat.",
+        "disconnected": "Live voice disconnected.",
+        "listening": "Live voice listening.",
+        "unknownError": "Live voice received an unknown error.",
+        "continueFailed": "Live voice could not continue: {message}",
+        "responded": "Live voice responded.",
+        "listeningInProgress": "Live voice listening...",
+        "processing": "Processing live voice...",
+        "offerFailed": "Could not create WebRTC offer.",
+        "openAiStartFailed": "Could not start OpenAI live voice.",
+        "connecting": "Connecting live voice...",
+        "startFailed": "Could not start live voice.",
+        "startFailedNotice": "I could not start live voice: {message}",
+        "startFailedTitle": "Live voice could not start"
       },
       "empty": {
         "greeting": "Hi!",
@@ -6838,6 +6863,23 @@
       "programDetected": {
         "weeks": "{count} weeks",
         "save": "Save program"
+      },
+      "programSave": {
+        "savedTitle": "Program saved!",
+        "savedDescription": "\"{name}\" has been saved.",
+        "errorTitle": "Could not save program",
+        "failureTitle": "Save failed"
+      },
+      "consentSave": {
+        "errorTitle": "Could not save consent"
+      },
+      "send": {
+        "errorTitle": "Could not send message",
+        "configNotReady": "I cannot send right now because the AI settings have not finished loading. Wait a few seconds and try again."
+      },
+      "common": {
+        "tryAgainLater": "Try again later.",
+        "unexpectedError": "An unexpected error occurred."
       },
       "input": {
         "placeholder": "Write a message..."
@@ -6860,7 +6902,47 @@
         "cancel": "Cancel",
         "readingAnswer": "Reading the answer...",
         "creatingAiVoice": "Creating AI voice...",
-        "aiGenerated": "The voice is AI-generated."
+        "aiGenerated": "The voice is AI-generated.",
+        "status": {
+          "browserVoice": "Using the browser voice.",
+          "creatingAiVoice": "Creating AI voice...",
+          "playingAiVoice": "Playing AI voice...",
+          "playbackUnavailable": "Spoken replies could not be played in this browser."
+        },
+        "unsupported": {
+          "title": "Spoken replies are not supported",
+          "message": "Spoken replies are not supported in this browser.",
+          "description": "Try a modern version of Safari, Chrome, or Edge."
+        },
+        "operatorUnsupported": {
+          "title": "Voice operator cannot start",
+          "message": "Voice operator mode needs spoken replies, but this browser does not support speech playback."
+        },
+        "operatorEnabled": {
+          "title": "Voice operator active",
+          "description": "Spoken replies and automatic voice sending are on.",
+          "notice": "Voice operator mode is active. I am listening through the microphone, sending after a short pause, and speaking my replies aloud. Actions that create or change something still require confirmation."
+        },
+        "operatorDisabled": {
+          "title": "Voice operator off",
+          "description": "Voice settings can still be controlled separately.",
+          "notice": "Voice operator mode is off. You can still use the microphone manually."
+        },
+        "transcriptionFailed": "Could not transcribe the voice message.",
+        "noClearAudio": "I did not hear anything clear in the voice message.",
+        "inputUnsupported": {
+          "title": "Voice input is not supported",
+          "message": "Voice input is not supported in this browser."
+        },
+        "noAudioData": "I did not receive any audio data from the microphone.",
+        "transcribed": {
+          "title": "Voice transcribed",
+          "autoSendDescription": "I will send the message automatically in a moment.",
+          "manualDescription": "The text is in the message field."
+        },
+        "handleFailed": "Could not handle the voice message.",
+        "handleFailedNotice": "I could not use the voice message: {message}",
+        "handleFailedTitle": "Could not use the voice"
       }
     },
     "ouraHealthCard": {
