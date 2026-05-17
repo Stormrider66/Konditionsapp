@@ -279,6 +279,26 @@
       "metadataTitle": "Concept2 | Trainomics",
       "metadataDescription": "Concept2 Logbook data and analysis",
       "description": "RowErg, SkiErg, and BikeErg training data"
+    },
+    "calendarConnections": {
+      "metadataTitle": "Calendar connections | Trainomics",
+      "metadataDescription": "Connect external calendars to see all events in one place",
+      "backToCalendar": "BACK TO CALENDAR",
+      "titlePrefix": "Calendar",
+      "titleAccent": "connections",
+      "description": "Connect your external calendars to see work, private events, and other blockers alongside your training schedule.",
+      "loading": "Loading connections..."
+    },
+    "benchmarkSchedule": {
+      "emptyTitle": "Test schedule",
+      "emptyDescription": "You do not have an active training program yet. Contact your coach.",
+      "title": "My test schedule",
+      "description": "Planned field tests to track your progress through the season."
+    },
+    "programImport": {
+      "backToPrograms": "Back to my programs",
+      "title": "Import a training program",
+      "description": "Have you received a program as a PDF, Excel file, screenshot, or handwritten text? Drop it here — the AI interprets the structure and adds it to your calendar as soon as you publish."
     }
   },
   "nav": {

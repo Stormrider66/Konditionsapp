@@ -279,6 +279,26 @@
       "metadataTitle": "Concept2 | Trainomics",
       "metadataDescription": "Concept2 Logbook data och analys",
       "description": "RowErg, SkiErg och BikeErg träningsdata"
+    },
+    "calendarConnections": {
+      "metadataTitle": "Kalenderanslutningar | Trainomics",
+      "metadataDescription": "Anslut externa kalendrar för att se alla händelser på ett ställe",
+      "backToCalendar": "TILLBAKA TILL KALENDERN",
+      "titlePrefix": "Kalender",
+      "titleAccent": "anslutningar",
+      "description": "Anslut dina externa kalendrar för att se arbete, privata händelser och andra blockerare tillsammans med ditt träningsschema.",
+      "loading": "Laddar anslutningar..."
+    },
+    "benchmarkSchedule": {
+      "emptyTitle": "Testschema",
+      "emptyDescription": "Du har inget aktivt träningsprogram ännu. Kontakta din tränare.",
+      "title": "Mitt testschema",
+      "description": "Planerade fälttester för att följa dina framsteg genom säsongen."
+    },
+    "programImport": {
+      "backToPrograms": "Tillbaka till mina program",
+      "title": "Importera ett träningsprogram",
+      "description": "Har du fått ett program som PDF, Excel, skärmdump eller skrivet för hand? Släpp det här — AI:n tolkar upplägget och lägger det i din kalender så fort du publicerar."
     }
   },
   "nav": {

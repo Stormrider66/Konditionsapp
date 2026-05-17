@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { ImportProgramClient } from '@/components/programs/import/ImportProgramClient'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -14,6 +15,7 @@ interface PageProps {
 
 export default async function AthleteImportProgramPage({ params }: PageProps) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.programImport')
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -37,18 +39,16 @@ export default async function AthleteImportProgramPage({ params }: PageProps) {
           className="mb-6 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka till mina program
+          {t('backToPrograms')}
         </Button>
       </Link>
 
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-white">
-          Importera ett träningsprogram
+          {t('title')}
         </h1>
         <p className="text-slate-600 dark:text-slate-400">
-          Har du fått ett program som PDF, Excel, skärmdump eller skrivet för
-          hand? Släpp det här — AI:n tolkar upplägget och lägger det i din
-          kalender så fort du publicerar.
+          {t('description')}
         </p>
       </div>
 

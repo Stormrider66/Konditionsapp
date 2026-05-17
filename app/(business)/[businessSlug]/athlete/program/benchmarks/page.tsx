@@ -10,6 +10,7 @@ import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { BenchmarkSchedule } from '@/components/athlete/program/BenchmarkSchedule'
 import { prisma } from '@/lib/prisma'
+import { getTranslations } from '@/i18n/server'
 
 interface BusinessBenchmarkSchedulePageProps {
   params: Promise<{ businessSlug: string }>
@@ -18,6 +19,7 @@ interface BusinessBenchmarkSchedulePageProps {
 
 export default async function BusinessBenchmarkSchedulePage({ params, searchParams }: BusinessBenchmarkSchedulePageProps) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.benchmarkSchedule')
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -53,9 +55,9 @@ export default async function BusinessBenchmarkSchedulePage({ params, searchPara
   if (!programId) {
     return (
       <div className="container max-w-4xl mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-4">Testschema</h1>
+        <h1 className="text-3xl font-bold mb-4">{t('emptyTitle')}</h1>
         <p className="text-muted-foreground">
-          Du har inget aktivt träningsprogram ännu. Kontakta din tränare.
+          {t('emptyDescription')}
         </p>
       </div>
     )
@@ -64,9 +66,9 @@ export default async function BusinessBenchmarkSchedulePage({ params, searchPara
   return (
     <div className="container max-w-4xl mx-auto py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Mitt testschema</h1>
+        <h1 className="text-3xl font-bold mb-2">{t('title')}</h1>
         <p className="text-muted-foreground">
-          Planerade fälttester för att följa dina framsteg genom säsongen.
+          {t('description')}
         </p>
       </div>
 

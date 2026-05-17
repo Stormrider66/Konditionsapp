@@ -8,10 +8,14 @@ import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { CalendarConnectionsClient } from '@/app/athlete/settings/calendars/CalendarConnectionsClient'
 import { Button } from '@/components/ui/button'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Kalenderanslutningar | Trainomics',
-  description: 'Anslut externa kalendrar för att se alla händelser på ett ställe',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.calendarConnections')
+  return {
+    title: t('metadataTitle'),
+    description: t('metadataDescription'),
+  }
 }
 
 interface BusinessCalendarConnectionsPageProps {
@@ -20,6 +24,7 @@ interface BusinessCalendarConnectionsPageProps {
 
 export default async function BusinessCalendarConnectionsPage({ params }: BusinessCalendarConnectionsPageProps) {
   const { businessSlug } = await params
+  const t = await getTranslations('athletePages.calendarConnections')
   const { user } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
@@ -97,7 +102,7 @@ export default async function BusinessCalendarConnectionsPage({ params }: Busine
           <Link href={`${basePath}/athlete/calendar`}>
             <Button variant="ghost" className="text-slate-600 hover:text-slate-950 hover:bg-slate-100 group dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5">
               <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-              TILLBAKA TILL KALENDERN
+              {t('backToCalendar')}
             </Button>
           </Link>
         </div>
@@ -108,16 +113,15 @@ export default async function BusinessCalendarConnectionsPage({ params }: Busine
           </div>
           <div>
             <h1 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tighter mb-1 text-slate-950 dark:text-white">
-              Kalender<span className="text-orange-400">anslutningar</span>
+              {t('titlePrefix')}<span className="text-orange-400">{t('titleAccent')}</span>
             </h1>
             <p className="text-slate-600 font-medium max-w-2xl dark:text-slate-400">
-              Anslut dina externa kalendrar för att se arbete, privata händelser och andra blockerare
-              tillsammans med ditt träningsschema.
+              {t('description')}
             </p>
           </div>
         </div>
 
-        <Suspense fallback={<div className="animate-pulse text-slate-500 font-black uppercase tracking-widest text-center py-20">Laddar anslutningar...</div>}>
+        <Suspense fallback={<div className="animate-pulse text-slate-500 font-black uppercase tracking-widest text-center py-20">{t('loading')}</div>}>
           <CalendarConnectionsClient
             clientId={data.clientId}
             connections={data.connections}
