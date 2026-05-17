@@ -4,14 +4,18 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { AthleteRehabOverview } from '@/app/athlete/rehab/AthleteRehabOverview'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
 }
 
-export const metadata = {
-  title: 'Rehabilitering | Athlete',
-  description: 'Se dina aktiva rehabiliteringsprogram och övningar',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.rehab')
+  return {
+    title: t('metadataTitle'),
+    description: t('metadataDescription'),
+  }
 }
 
 export default async function BusinessAthleteRehabPage({ params }: PageProps) {

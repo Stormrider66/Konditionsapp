@@ -4,10 +4,14 @@ import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { WODHistoryClient } from '@/app/athlete/wod/history/WODHistoryClient'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'WOD Historik | Konditionstest',
-  description: 'Se dina tidigare AI-genererade träningspass',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.wodHistory')
+  return {
+    title: t('metadataTitle'),
+    description: t('metadataDescription'),
+  }
 }
 
 interface BusinessWODHistoryPageProps {

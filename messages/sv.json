@@ -173,6 +173,34 @@
       "description": "Ett oväntat fel uppstod. Försök igen eller gå tillbaka till dashboarden.",
       "errorId": "Fel-ID: {id}",
       "tryAgain": "Försök igen"
+    },
+    "settings": {
+      "metadataTitle": "Inställningar | Atlet",
+      "metadataDescription": "Hantera dina inställningar"
+    },
+    "injuryPrevention": {
+      "metadataTitle": "Skadeförebyggande | Atlet",
+      "metadataDescription": "Övervaka din belastning och förebygg skador"
+    },
+    "trainingLibrary": {
+      "metadataTitle": "Träningsbibliotek | Athlete",
+      "metadataDescription": "All din träning samlad på ett ställe"
+    },
+    "cardio": {
+      "metadataTitle": "Cardio Pass | Trainomics",
+      "metadataDescription": "Dina löppass, cykelpass och simpass"
+    },
+    "rehab": {
+      "metadataTitle": "Rehabilitering | Athlete",
+      "metadataDescription": "Se dina aktiva rehabiliteringsprogram och övningar"
+    },
+    "prs": {
+      "metadataTitle": "Mina PR | Athlete",
+      "metadataDescription": "Aktuella 1RM per övning"
+    },
+    "wodHistory": {
+      "metadataTitle": "WOD Historik | Konditionstest",
+      "metadataDescription": "Se dina tidigare AI-genererade träningspass"
     }
   },
   "nav": {

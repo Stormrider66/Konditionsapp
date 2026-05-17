@@ -8,10 +8,14 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { TrainingLibraryClient } from '@/components/athlete/TrainingLibraryClient'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Träningsbibliotek | Athlete',
-  description: 'All din träning samlad på ett ställe',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.trainingLibrary')
+  return {
+    title: t('metadataTitle'),
+    description: t('metadataDescription'),
+  }
 }
 
 interface PageProps {

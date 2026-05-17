@@ -14,10 +14,14 @@ import { getAthleteSelfServiceAccess } from '@/lib/auth/tier-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { AthleteCardioClient } from '@/components/athlete/cardio/AthleteCardioClient'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Cardio Pass | Trainomics',
-  description: 'Dina löppass, cykelpass och simpass',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.cardio')
+  return {
+    title: t('metadataTitle'),
+    description: t('metadataDescription'),
+  }
 }
 
 interface BusinessCardioPageProps {

@@ -12,10 +12,14 @@ import { notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { AthleteStrengthPRTable } from '@/components/athlete/strength/AthleteStrengthPRTable'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Mina PR | Athlete',
-  description: 'Aktuella 1RM per övning',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.prs')
+  return {
+    title: t('metadataTitle'),
+    description: t('metadataDescription'),
+  }
 }
 
 export const dynamic = 'force-dynamic'

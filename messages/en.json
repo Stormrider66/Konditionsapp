@@ -173,6 +173,34 @@
       "description": "An unexpected error occurred. Try again or go back to the dashboard.",
       "errorId": "Error ID: {id}",
       "tryAgain": "Try again"
+    },
+    "settings": {
+      "metadataTitle": "Settings | Athlete",
+      "metadataDescription": "Manage your settings"
+    },
+    "injuryPrevention": {
+      "metadataTitle": "Injury prevention | Athlete",
+      "metadataDescription": "Monitor your load and prevent injuries"
+    },
+    "trainingLibrary": {
+      "metadataTitle": "Training library | Athlete",
+      "metadataDescription": "All your training in one place"
+    },
+    "cardio": {
+      "metadataTitle": "Cardio workouts | Trainomics",
+      "metadataDescription": "Your running, cycling, and swimming workouts"
+    },
+    "rehab": {
+      "metadataTitle": "Rehabilitation | Athlete",
+      "metadataDescription": "View your active rehabilitation programs and exercises"
+    },
+    "prs": {
+      "metadataTitle": "My PRs | Athlete",
+      "metadataDescription": "Current 1RM per exercise"
+    },
+    "wodHistory": {
+      "metadataTitle": "WOD History | Konditionstest",
+      "metadataDescription": "View your previous AI-generated workouts"
     }
   },
   "nav": {

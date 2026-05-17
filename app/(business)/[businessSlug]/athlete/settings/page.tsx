@@ -4,10 +4,14 @@ import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { AthleteSettingsClient } from '@/app/athlete/settings/AthleteSettingsClient'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Inställningar | Atlet',
-  description: 'Hantera dina inställningar',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.settings')
+  return {
+    title: t('metadataTitle'),
+    description: t('metadataDescription'),
+  }
 }
 
 interface BusinessSettingsPageProps {

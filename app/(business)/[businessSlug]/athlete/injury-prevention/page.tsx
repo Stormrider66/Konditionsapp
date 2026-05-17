@@ -3,10 +3,14 @@ import { notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { InjuryPreventionDashboard } from '@/components/athlete/injury-prevention'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Skadeförebyggande | Atlet',
-  description: 'Övervaka din belastning och förebygg skador',
+export async function generateMetadata() {
+  const t = await getTranslations('athletePages.injuryPrevention')
+  return {
+    title: t('metadataTitle'),
+    description: t('metadataDescription'),
+  }
 }
 
 interface BusinessInjuryPreventionPageProps {
