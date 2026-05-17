@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { useTranslations } from '@/i18n/client'
 import {
   Clock,
   Dumbbell,
@@ -47,32 +48,34 @@ function formatTimeWindow(baseHour: number, offsetHours: number, duration: numbe
 }
 
 export function MealTimingGuide({ workoutSession, className }: MealTimingGuideProps) {
+  const t = useTranslations('components.mealTimingGuide')
+
   const recommendations = useMemo((): TimingRecommendation[] => {
     if (!workoutSession) {
       // Rest day recommendations
       return [
         {
           timeWindow: '07:00 - 09:00',
-          label: 'Frukost',
-          description: 'Balanserad måltid med protein, kolhydrater och fett',
+          label: t('recommendations.rest.breakfast.label'),
+          description: t('recommendations.rest.breakfast.description'),
           priority: 'medium',
-          macroFocus: '20-30g protein, fullkorn, hälsosamma fetter',
+          macroFocus: t('recommendations.rest.breakfast.macroFocus'),
           icon: Utensils,
         },
         {
           timeWindow: '12:00 - 13:00',
-          label: 'Lunch',
-          description: 'Huvudmåltid med fokus på protein och grönsaker',
+          label: t('recommendations.rest.lunch.label'),
+          description: t('recommendations.rest.lunch.description'),
           priority: 'medium',
-          macroFocus: '30-40g protein, rikligt med grönsaker',
+          macroFocus: t('recommendations.rest.lunch.macroFocus'),
           icon: Utensils,
         },
         {
           timeWindow: '18:00 - 19:00',
-          label: 'Middag',
-          description: 'Måttlig måltid, undvik tunga måltider sent',
+          label: t('recommendations.rest.dinner.label'),
+          description: t('recommendations.rest.dinner.description'),
           priority: 'medium',
-          macroFocus: '25-35g protein, begränsa kolhydrater vid viktnedgång',
+          macroFocus: t('recommendations.rest.dinner.macroFocus'),
           icon: Utensils,
         },
       ]
@@ -84,10 +87,10 @@ export function MealTimingGuide({ workoutSession, className }: MealTimingGuidePr
     // Pre-workout meal (2-3 hours before)
     recs.push({
       timeWindow: formatTimeWindow(workoutHour, -3, 1),
-      label: 'Sista större måltid',
-      description: 'Ät din sista större måltid 2-3 timmar före träning för optimal energi',
+      label: t('recommendations.workout.preMeal.label'),
+      description: t('recommendations.workout.preMeal.description'),
       priority: 'high',
-      macroFocus: '40-60g kolhydrater, 20-30g protein, låg fett',
+      macroFocus: t('recommendations.workout.preMeal.macroFocus'),
       icon: Utensils,
     })
 
@@ -95,19 +98,29 @@ export function MealTimingGuide({ workoutSession, className }: MealTimingGuidePr
     if (workoutSession.intensity !== 'low') {
       recs.push({
         timeWindow: formatTimeWindow(workoutHour, -1, 0.5),
-        label: 'Pre-workout snack',
-        description: 'Lätt snack för extra energi om behov finns',
+        label: t('recommendations.workout.preSnack.label'),
+        description: t('recommendations.workout.preSnack.description'),
         priority: 'medium',
-        macroFocus: '20-30g snabba kolhydrater (frukt, riskakor)',
+        macroFocus: t('recommendations.workout.preSnack.macroFocus'),
         icon: Timer,
       })
     }
+
+    const intensityKey =
+      workoutSession.intensity === 'high'
+        ? 'high'
+        : workoutSession.intensity === 'moderate'
+          ? 'moderate'
+          : 'low'
 
     // Workout window
     recs.push({
       timeWindow: workoutSession.time,
       label: workoutSession.type,
-      description: `${workoutSession.duration} min ${workoutSession.intensity === 'high' ? 'intensiv' : workoutSession.intensity === 'moderate' ? 'måttlig' : 'lätt'} träning`,
+      description: t('recommendations.workout.session.description', {
+        duration: workoutSession.duration,
+        intensity: t(`intensity.${intensityKey}`),
+      }),
       priority: 'high',
       icon: Dumbbell,
     })
@@ -115,10 +128,10 @@ export function MealTimingGuide({ workoutSession, className }: MealTimingGuidePr
     // Post-workout (within 30-60 min)
     recs.push({
       timeWindow: formatTimeWindow(workoutHour, Math.ceil(workoutSession.duration / 60), 1),
-      label: 'Post-workout',
-      description: 'Optimal tid för återhämtning - ät inom 30-60 minuter',
+      label: t('recommendations.workout.postWorkout.label'),
+      description: t('recommendations.workout.postWorkout.description'),
       priority: 'high',
-      macroFocus: '20-40g protein, 50-100g kolhydrater',
+      macroFocus: t('recommendations.workout.postWorkout.macroFocus'),
       icon: CheckCircle2,
     })
 
@@ -127,10 +140,10 @@ export function MealTimingGuide({ workoutSession, className }: MealTimingGuidePr
       const dinnerHour = Math.max(workoutHour + 3, 18)
       recs.push({
         timeWindow: formatTimeWindow(dinnerHour, 0, 1),
-        label: 'Middag',
-        description: 'Komplett måltid för fortsatt återhämtning',
+        label: t('recommendations.workout.dinner.label'),
+        description: t('recommendations.workout.dinner.description'),
         priority: 'medium',
-        macroFocus: '30-40g protein, grönsaker, måttliga kolhydrater',
+        macroFocus: t('recommendations.workout.dinner.macroFocus'),
         icon: Utensils,
       })
     }
@@ -139,7 +152,7 @@ export function MealTimingGuide({ workoutSession, className }: MealTimingGuidePr
       const getHour = (tw: string) => parseInt(tw.split(':')[0])
       return getHour(a.timeWindow) - getHour(b.timeWindow)
     })
-  }, [workoutSession])
+  }, [t, workoutSession])
 
   const getPriorityColor = (priority: TimingRecommendation['priority']) => {
     switch (priority) {
@@ -157,12 +170,15 @@ export function MealTimingGuide({ workoutSession, className }: MealTimingGuidePr
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5" />
-          Måltidstiming
+          {t('title')}
         </CardTitle>
         <CardDescription>
           {workoutSession
-            ? `Optimerad för ${workoutSession.type.toLowerCase()} kl ${workoutSession.time}`
-            : 'Vilodag - fokus på återhämtning'}
+            ? t('description.workout', {
+                type: workoutSession.type.toLowerCase(),
+                time: workoutSession.time,
+              })
+            : t('description.rest')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -213,23 +229,23 @@ export function MealTimingGuide({ workoutSession, className }: MealTimingGuidePr
           <div className="border-t pt-4 space-y-2">
             <h4 className="font-medium text-sm flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-yellow-500" />
-              Viktiga tips
+              {t('tips.title')}
             </h4>
             <ul className="text-xs text-muted-foreground space-y-1.5">
               {workoutSession ? (
                 <>
-                  <li>• Undvik fettrik mat 1-2 timmar före träning</li>
-                  <li>• Drick 500ml vatten 2 timmar före träning</li>
-                  <li>• Protein efter träning hjälper muskelåterhämtning</li>
+                  <li>{t('tips.workout.lowFat')}</li>
+                  <li>{t('tips.workout.water')}</li>
+                  <li>{t('tips.workout.protein')}</li>
                   {workoutSession.intensity === 'high' && (
-                    <li>• Vid intensiv träning - extra fokus på kolhydrater före och efter</li>
+                    <li>{t('tips.workout.highIntensity')}</li>
                   )}
                 </>
               ) : (
                 <>
-                  <li>• Vilodagar är viktiga för återhämtning</li>
-                  <li>• Behåll proteinintaget för muskelunderhåll</li>
-                  <li>• Kan minska kolhydrater något på vilodagar</li>
+                  <li>{t('tips.rest.recovery')}</li>
+                  <li>{t('tips.rest.protein')}</li>
+                  <li>{t('tips.rest.carbs')}</li>
                 </>
               )}
             </ul>

@@ -4968,6 +4968,76 @@
         "completeProtein": "Complete protein"
       }
     },
+    "mealTimingGuide": {
+      "title": "Meal timing",
+      "description": {
+        "workout": "Optimized for {type} at {time}",
+        "rest": "Rest day - focus on recovery"
+      },
+      "intensity": {
+        "high": "intense",
+        "moderate": "moderate",
+        "low": "easy"
+      },
+      "recommendations": {
+        "rest": {
+          "breakfast": {
+            "label": "Breakfast",
+            "description": "Balanced meal with protein, carbohydrates, and fat",
+            "macroFocus": "20-30g protein, whole grains, healthy fats"
+          },
+          "lunch": {
+            "label": "Lunch",
+            "description": "Main meal focused on protein and vegetables",
+            "macroFocus": "30-40g protein, plenty of vegetables"
+          },
+          "dinner": {
+            "label": "Dinner",
+            "description": "Moderate meal, avoid heavy meals late",
+            "macroFocus": "25-35g protein, limit carbohydrates during weight loss"
+          }
+        },
+        "workout": {
+          "preMeal": {
+            "label": "Last larger meal",
+            "description": "Eat your last larger meal 2-3 hours before training for optimal energy",
+            "macroFocus": "40-60g carbs, 20-30g protein, low fat"
+          },
+          "preSnack": {
+            "label": "Pre-workout snack",
+            "description": "Light snack for extra energy if needed",
+            "macroFocus": "20-30g fast carbs (fruit, rice cakes)"
+          },
+          "session": {
+            "description": "{duration} min {intensity} training"
+          },
+          "postWorkout": {
+            "label": "Post-workout",
+            "description": "Optimal recovery window - eat within 30-60 minutes",
+            "macroFocus": "20-40g protein, 50-100g carbs"
+          },
+          "dinner": {
+            "label": "Dinner",
+            "description": "Complete meal for continued recovery",
+            "macroFocus": "30-40g protein, vegetables, moderate carbohydrates"
+          }
+        }
+      },
+      "tips": {
+        "title": "Important tips",
+        "workout": {
+          "lowFat": "• Avoid high-fat food 1-2 hours before training",
+          "water": "• Drink 500ml water 2 hours before training",
+          "protein": "• Protein after training supports muscle recovery",
+          "highIntensity": "• For intense training - pay extra attention to carbohydrates before and after"
+        },
+        "rest": {
+          "recovery": "• Rest days are important for recovery",
+          "protein": "• Keep protein intake up for muscle maintenance",
+          "carbs": "• You can reduce carbohydrates slightly on rest days"
+        }
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

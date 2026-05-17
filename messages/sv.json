@@ -4968,6 +4968,76 @@
         "completeProtein": "Komplett protein"
       }
     },
+    "mealTimingGuide": {
+      "title": "Måltidstiming",
+      "description": {
+        "workout": "Optimerad för {type} kl {time}",
+        "rest": "Vilodag - fokus på återhämtning"
+      },
+      "intensity": {
+        "high": "intensiv",
+        "moderate": "måttlig",
+        "low": "lätt"
+      },
+      "recommendations": {
+        "rest": {
+          "breakfast": {
+            "label": "Frukost",
+            "description": "Balanserad måltid med protein, kolhydrater och fett",
+            "macroFocus": "20-30g protein, fullkorn, hälsosamma fetter"
+          },
+          "lunch": {
+            "label": "Lunch",
+            "description": "Huvudmåltid med fokus på protein och grönsaker",
+            "macroFocus": "30-40g protein, rikligt med grönsaker"
+          },
+          "dinner": {
+            "label": "Middag",
+            "description": "Måttlig måltid, undvik tunga måltider sent",
+            "macroFocus": "25-35g protein, begränsa kolhydrater vid viktnedgång"
+          }
+        },
+        "workout": {
+          "preMeal": {
+            "label": "Sista större måltid",
+            "description": "Ät din sista större måltid 2-3 timmar före träning för optimal energi",
+            "macroFocus": "40-60g kolhydrater, 20-30g protein, låg fett"
+          },
+          "preSnack": {
+            "label": "Pre-workout snack",
+            "description": "Lätt snack för extra energi om behov finns",
+            "macroFocus": "20-30g snabba kolhydrater (frukt, riskakor)"
+          },
+          "session": {
+            "description": "{duration} min {intensity} träning"
+          },
+          "postWorkout": {
+            "label": "Post-workout",
+            "description": "Optimal tid för återhämtning - ät inom 30-60 minuter",
+            "macroFocus": "20-40g protein, 50-100g kolhydrater"
+          },
+          "dinner": {
+            "label": "Middag",
+            "description": "Komplett måltid för fortsatt återhämtning",
+            "macroFocus": "30-40g protein, grönsaker, måttliga kolhydrater"
+          }
+        }
+      },
+      "tips": {
+        "title": "Viktiga tips",
+        "workout": {
+          "lowFat": "• Undvik fettrik mat 1-2 timmar före träning",
+          "water": "• Drick 500ml vatten 2 timmar före träning",
+          "protein": "• Protein efter träning hjälper muskelåterhämtning",
+          "highIntensity": "• Vid intensiv träning - extra fokus på kolhydrater före och efter"
+        },
+        "rest": {
+          "recovery": "• Vilodagar är viktiga för återhämtning",
+          "protein": "• Behåll proteinintaget för muskelunderhåll",
+          "carbs": "• Kan minska kolhydrater något på vilodagar"
+        }
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {
