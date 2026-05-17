@@ -32,7 +32,7 @@ import {
   type TeamEventContentStatus,
   type TeamEventType,
 } from '@/lib/team-calendar/event-types'
-import { CheckCircle2, Dumbbell, ExternalLink, HeartPulse, Plus, Printer, Route, Send, Trash2, Zap } from 'lucide-react'
+import { CheckCircle2, Copy, Dumbbell, ExternalLink, HeartPulse, Plus, Printer, Route, Send, Trash2, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { IceHockeyRink, type DrillStructure } from '@/components/coach/drills/IceHockeyRink'
@@ -112,6 +112,12 @@ function dateValue(iso: string) {
 function timeValue(iso: string | null) {
   if (!iso) return ''
   return new Date(iso).toTimeString().slice(0, 5)
+}
+
+function addDaysToIso(iso: string, days: number) {
+  const date = new Date(iso)
+  date.setDate(date.getDate() + days)
+  return date.toISOString()
 }
 
 function builderLinkFor(type: TeamEventType, businessSlug?: string) {
@@ -306,6 +312,7 @@ export function EditEventDialog({
   const [savedDrills, setSavedDrills] = useState<SavedDrill[]>([])
   const [loadingWorkouts, setLoadingWorkouts] = useState(false)
   const [assigning, setAssigning] = useState(false)
+  const [duplicating, setDuplicating] = useState(false)
   const builderLink = builderLinkFor(type, businessSlug)
   const isPhysicalSession = PHYSICAL_TEAM_EVENT_TYPES.includes(type)
   const isIcePractice = type === 'PRACTICE' || type === 'ICE_PRACTICE'
@@ -475,6 +482,52 @@ export function EditEventDialog({
     const nextBlocks = practiceBlocks.filter((block) => block.id !== id)
     setPracticeBlocks(nextBlocks)
     setDescription(practiceBlocksToDescription(nextBlocks))
+  }
+
+  const handleDuplicateNextWeek = async () => {
+    if (!canEdit) {
+      toast.error('Din roll kan bara visa den här händelsen')
+      return
+    }
+    if (!event || !title.trim()) return
+
+    setDuplicating(true)
+    try {
+      const params = new URLSearchParams()
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const res = await fetch(`/api/coach/teams/${teamId}/events${params.size ? `?${params}` : ''}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          type,
+          description: description.trim() || undefined,
+          location: location.trim() || undefined,
+          startDate: addDaysToIso(event.startDate, 7),
+          endDate: event.endDate ? addDaysToIso(event.endDate, 7) : undefined,
+          allDay,
+          contentStatus,
+          contentOwner,
+          practicePlan: isIcePractice ? practiceBlocks : null,
+          linkedWorkoutType: linkedWorkoutId === 'none' ? null : linkedWorkoutType,
+          linkedWorkoutId: linkedWorkoutId === 'none' ? null : linkedWorkoutId,
+          linkedWorkoutName: linkedWorkoutId === 'none' ? null : linkedWorkoutName,
+        }),
+      })
+
+      if (!res.ok) throw new Error('Failed')
+
+      toast.success('Passet kopierades till nästa vecka')
+      onOpenChange(false)
+      onUpdated()
+    } catch {
+      toast.error('Kunde inte kopiera passet')
+    } finally {
+      setDuplicating(false)
+    }
   }
 
   const handleAssignToTeam = async () => {
@@ -980,13 +1033,24 @@ export function EditEventDialog({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Avbryt
+        <div className="flex flex-col-reverse gap-2 mt-4 sm:flex-row sm:justify-between">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleDuplicateNextWeek}
+            disabled={duplicating || !canEdit || !event}
+          >
+            <Copy className="mr-1.5 h-3.5 w-3.5" />
+            {duplicating ? 'Kopierar...' : 'Kopiera +7 dagar'}
           </Button>
-          <Button onClick={handleUpdate} disabled={loading || !canEdit}>
-            {canEdit ? (loading ? 'Sparar...' : 'Spara') : 'Endast visning'}
-          </Button>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Avbryt
+            </Button>
+            <Button onClick={handleUpdate} disabled={loading || !canEdit}>
+              {canEdit ? (loading ? 'Sparar...' : 'Spara') : 'Endast visning'}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
