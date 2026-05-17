@@ -3144,6 +3144,28 @@
         "puck": "Puck"
       }
     },
+    "mealInputMethodSelector": {
+      "title": "Logga mat",
+      "description": "Välj hur du vill registrera din måltid",
+      "methods": {
+        "photo": {
+          "label": "Foto",
+          "description": "Ta en bild på din mat"
+        },
+        "voice": {
+          "label": "Röst",
+          "description": "Beskriv vad du ätit"
+        },
+        "quick": {
+          "label": "Skriv",
+          "description": "Snabblogga eller bygg från ingredienser"
+        },
+        "recipe": {
+          "label": "Receptbild",
+          "description": "Ladda upp ett fotograferat recept"
+        }
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

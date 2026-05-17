@@ -3144,6 +3144,28 @@
         "puck": "Puck"
       }
     },
+    "mealInputMethodSelector": {
+      "title": "Log food",
+      "description": "Choose how you want to record your meal",
+      "methods": {
+        "photo": {
+          "label": "Photo",
+          "description": "Take a photo of your food"
+        },
+        "voice": {
+          "label": "Voice",
+          "description": "Describe what you ate"
+        },
+        "quick": {
+          "label": "Write",
+          "description": "Quick log or build from ingredients"
+        },
+        "recipe": {
+          "label": "Recipe photo",
+          "description": "Upload a photographed recipe"
+        }
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",
