@@ -8,8 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
-import { getAccessibleTeam } from '@/lib/coach/team-access'
+import { getAccessibleTeam, getWritableTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
+import { TEAM_EVENT_TYPES } from '@/lib/team-calendar/event-types'
 import { z } from 'zod'
 
 interface RouteContext {
@@ -19,7 +20,7 @@ interface RouteContext {
 const createEventSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
-  type: z.enum(['PRACTICE', 'GAME', 'TEST', 'INTERVAL_SESSION', 'OFF_DAY', 'MEETING', 'OTHER']).default('PRACTICE'),
+  type: z.enum(TEAM_EVENT_TYPES).default('PRACTICE'),
   location: z.string().max(200).optional(),
   startDate: z.string(), // ISO datetime
   endDate: z.string().optional(),
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
-    // Verify coach can access this team in the requested business.
+    // Verify staff can access this team in the requested business.
     const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
 
     if (!team) {
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
-    const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
+    const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'events')
 
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })

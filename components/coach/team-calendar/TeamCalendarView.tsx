@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CreateEventDialog } from './CreateEventDialog'
+import { EditEventDialog } from './EditEventDialog'
+import { TEAM_EVENT_TYPE_COLORS, TEAM_EVENT_TYPE_LABELS, isTeamEventType } from '@/lib/team-calendar/event-types'
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,7 +13,6 @@ import {
   Clock,
   Download,
   Trash2,
-  Calendar,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -29,22 +29,22 @@ interface TeamEvent {
   intervalSession: { id: string; name: string; status: string } | null
 }
 
-const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  PRACTICE: { label: 'Träning', color: 'bg-blue-500' },
-  GAME: { label: 'Match', color: 'bg-red-500' },
-  TEST: { label: 'Test', color: 'bg-purple-500' },
-  INTERVAL_SESSION: { label: 'Intervall', color: 'bg-orange-500' },
-  OFF_DAY: { label: 'Vilodag', color: 'bg-green-500' },
-  MEETING: { label: 'Möte', color: 'bg-yellow-500' },
-  OTHER: { label: 'Övrigt', color: 'bg-gray-500' },
+function getTypeConfig(type: string) {
+  if (isTeamEventType(type)) {
+    return {
+      label: TEAM_EVENT_TYPE_LABELS[type],
+      color: TEAM_EVENT_TYPE_COLORS[type],
+    }
+  }
+  return { label: 'Övrigt', color: 'bg-gray-500' }
+}
+
+function firstDescriptionLine(description: string | null): string | null {
+  return description?.split('\n').map((line) => line.trim()).find(Boolean) ?? null
 }
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 function getWeekDates(baseDate: Date): Date[] {
@@ -73,10 +73,11 @@ interface TeamCalendarViewProps {
   businessSlug?: string
 }
 
-export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalendarViewProps) {
+export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: TeamCalendarViewProps) {
   const [events, setEvents] = useState<TeamEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [weekBase, setWeekBase] = useState(new Date())
+  const [selectedEvent, setSelectedEvent] = useState<TeamEvent | null>(null)
 
   const weekDates = getWeekDates(weekBase)
   const weekStart = weekDates[0]
@@ -110,7 +111,7 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
   }, [teamId, businessSlug, weekStartIso, weekEndIso])
 
   useEffect(() => {
-    fetchEvents()
+    void fetchEvents()
   }, [fetchEvents])
 
   const navigateWeek = (direction: number) => {
@@ -220,11 +221,21 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
                   ) : (
                     <div className="space-y-1">
                       {dayEvents.map((event) => {
-                        const typeConf = TYPE_CONFIG[event.type] || TYPE_CONFIG.OTHER
+                        const typeConf = getTypeConfig(event.type)
+                        const descriptionLine = firstDescriptionLine(event.description)
                         return (
                           <div
                             key={event.id}
-                            className="flex items-start gap-2 p-2 rounded-md bg-card border text-sm group"
+                            className="flex items-start gap-2 p-2 rounded-md bg-card border text-sm group cursor-pointer hover:border-primary/40 hover:bg-muted/30"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setSelectedEvent(event)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                setSelectedEvent(event)
+                              }
+                            }}
                           >
                             <div className={`w-1 self-stretch rounded-full shrink-0 ${typeConf.color}`} />
                             <div className="flex-1 min-w-0">
@@ -249,12 +260,20 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
                                   </span>
                                 )}
                               </div>
+                              {descriptionLine && (
+                                <div className="text-xs text-muted-foreground mt-1 truncate">
+                                  {descriptionLine}
+                                </div>
+                              )}
                             </div>
                             <Button
                               variant="ghost"
                               size="sm"
                               className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 text-destructive shrink-0"
-                              onClick={() => handleDelete(event.id)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                void handleDelete(event.id)
+                              }}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -269,6 +288,16 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
           })}
         </div>
       )}
+
+      <EditEventDialog
+        event={selectedEvent}
+        teamId={teamId}
+        businessSlug={businessSlug}
+        onOpenChange={(open) => {
+          if (!open) setSelectedEvent(null)
+        }}
+        onUpdated={fetchEvents}
+      />
     </div>
   )
 }

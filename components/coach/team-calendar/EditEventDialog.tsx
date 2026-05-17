@@ -1,12 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,32 +20,44 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { TEAM_EVENT_TYPE_LABELS, TEAM_EVENT_TYPES, type TeamEventType } from '@/lib/team-calendar/event-types'
-import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
-const CONTENT_OWNER_OPTIONS = [
-  { value: 'coach', label: 'Tränarstab' },
-  { value: 'physical_trainer', label: 'Fystränare' },
-  { value: 'physio', label: 'Fysioterapeut' },
-  { value: 'shared', label: 'Delat ansvar' },
-]
-
-const CONTENT_STATUS_OPTIONS = [
-  { value: 'planned_shell', label: 'Planerad ram' },
-  { value: 'needs_content', label: 'Behöver innehåll' },
-  { value: 'content_added', label: 'Innehåll klart' },
-]
-
-interface CreateEventDialogProps {
-  teamId: string
-  businessSlug?: string
-  onCreated: () => void
+interface EditableTeamEvent {
+  id: string
+  title: string
+  description: string | null
+  type: string
+  location: string | null
+  startDate: string
+  endDate: string | null
+  allDay: boolean
 }
 
-export function CreateEventDialog({ teamId, businessSlug, onCreated }: CreateEventDialogProps) {
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+interface EditEventDialogProps {
+  event: EditableTeamEvent | null
+  teamId: string
+  businessSlug?: string
+  onOpenChange: (open: boolean) => void
+  onUpdated: () => void
+}
 
+function dateValue(iso: string) {
+  return new Date(iso).toISOString().slice(0, 10)
+}
+
+function timeValue(iso: string | null) {
+  if (!iso) return ''
+  return new Date(iso).toTimeString().slice(0, 5)
+}
+
+export function EditEventDialog({
+  event,
+  teamId,
+  businessSlug,
+  onOpenChange,
+  onUpdated,
+}: EditEventDialogProps) {
+  const [loading, setLoading] = useState(false)
   const [title, setTitle] = useState('')
   const [type, setType] = useState<TeamEventType>('PRACTICE')
   const [description, setDescription] = useState('')
@@ -55,22 +66,21 @@ export function CreateEventDialog({ teamId, businessSlug, onCreated }: CreateEve
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
   const [allDay, setAllDay] = useState(false)
-  const [contentOwner, setContentOwner] = useState('physical_trainer')
-  const [contentStatus, setContentStatus] = useState('planned_shell')
 
-  const buildDescription = () => {
-    const ownerLabel = CONTENT_OWNER_OPTIONS.find((option) => option.value === contentOwner)?.label ?? 'Delat ansvar'
-    const statusLabel = CONTENT_STATUS_OPTIONS.find((option) => option.value === contentStatus)?.label ?? 'Planerad ram'
-    const planningLines = [
-      `Planeringsstatus: ${statusLabel}`,
-      `Innehållsansvarig: ${ownerLabel}`,
-    ]
-    const notes = description.trim()
-    return notes ? `${planningLines.join('\n')}\n\n${notes}` : planningLines.join('\n')
-  }
+  useEffect(() => {
+    if (!event) return
+    setTitle(event.title)
+    setType(TEAM_EVENT_TYPES.includes(event.type as TeamEventType) ? event.type as TeamEventType : 'OTHER')
+    setDescription(event.description ?? '')
+    setLocation(event.location ?? '')
+    setStartDate(dateValue(event.startDate))
+    setStartTime(timeValue(event.startDate))
+    setEndTime(timeValue(event.endDate))
+    setAllDay(event.allDay)
+  }, [event])
 
-  const handleCreate = async () => {
-    if (!title.trim() || !startDate) {
+  const handleUpdate = async () => {
+    if (!event || !title.trim() || !startDate) {
       toast.error('Ange titel och datum')
       return
     }
@@ -80,15 +90,14 @@ export function CreateEventDialog({ teamId, businessSlug, onCreated }: CreateEve
       const startDateTime = allDay
         ? `${startDate}T00:00:00`
         : `${startDate}T${startTime || '09:00'}:00`
-
       const endDateTime = endTime && !allDay
         ? `${startDate}T${endTime}:00`
-        : undefined
+        : null
 
       const params = new URLSearchParams()
       if (businessSlug) params.set('businessSlug', businessSlug)
-      const res = await fetch(`/api/coach/teams/${teamId}/events${params.size ? `?${params}` : ''}`, {
-        method: 'POST',
+      const res = await fetch(`/api/coach/teams/${teamId}/events/${event.id}${params.size ? `?${params}` : ''}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
@@ -96,8 +105,8 @@ export function CreateEventDialog({ teamId, businessSlug, onCreated }: CreateEve
         body: JSON.stringify({
           title: title.trim(),
           type,
-          description: buildDescription(),
-          location: location.trim() || undefined,
+          description: description.trim() || null,
+          location: location.trim() || null,
           startDate: startDateTime,
           endDate: endDateTime,
           allDay,
@@ -106,41 +115,21 @@ export function CreateEventDialog({ teamId, businessSlug, onCreated }: CreateEve
 
       if (!res.ok) throw new Error('Failed')
 
-      toast.success('Händelse skapad')
-      setOpen(false)
-      resetForm()
-      onCreated()
+      toast.success('Händelse uppdaterad')
+      onOpenChange(false)
+      onUpdated()
     } catch {
-      toast.error('Kunde inte skapa händelse')
+      toast.error('Kunde inte uppdatera händelse')
     } finally {
       setLoading(false)
     }
   }
 
-  const resetForm = () => {
-    setTitle('')
-    setType('PRACTICE')
-    setDescription('')
-    setLocation('')
-    setStartDate('')
-    setStartTime('')
-    setEndTime('')
-    setAllDay(false)
-    setContentOwner('physical_trainer')
-    setContentStatus('planned_shell')
-  }
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="h-4 w-4 mr-1.5" />
-          Ny händelse
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+    <Dialog open={Boolean(event)} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Skapa händelse</DialogTitle>
+          <DialogTitle>Planera pass</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -149,7 +138,7 @@ export function CreateEventDialog({ teamId, businessSlug, onCreated }: CreateEve
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="t.ex. Styrketräning, Match vs AIK"
+              placeholder="t.ex. Is + styrka"
             />
           </div>
 
@@ -169,39 +158,6 @@ export function CreateEventDialog({ teamId, businessSlug, onCreated }: CreateEve
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Status</Label>
-              <Select value={contentStatus} onValueChange={setContentStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONTENT_STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Innehåll</Label>
-              <Select value={contentOwner} onValueChange={setContentOwner}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONTENT_OWNER_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
           <div className="space-y-2">
             <Label>Datum</Label>
             <Input
@@ -213,11 +169,11 @@ export function CreateEventDialog({ teamId, businessSlug, onCreated }: CreateEve
 
           <div className="flex items-center gap-2">
             <Switch
-              id="all-day"
+              id="edit-all-day"
               checked={allDay}
               onCheckedChange={setAllDay}
             />
-            <Label htmlFor="all-day" className="text-sm">Heldag</Label>
+            <Label htmlFor="edit-all-day" className="text-sm">Heldag</Label>
           </div>
 
           {!allDay && (
@@ -242,7 +198,7 @@ export function CreateEventDialog({ teamId, businessSlug, onCreated }: CreateEve
           )}
 
           <div className="space-y-2">
-            <Label>Plats (valfritt)</Label>
+            <Label>Plats</Label>
             <Input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
@@ -251,22 +207,22 @@ export function CreateEventDialog({ teamId, businessSlug, onCreated }: CreateEve
           </div>
 
           <div className="space-y-2">
-            <Label>Plan och innehåll (valfritt)</Label>
+            <Label>Plan och innehåll</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Lägg in plan, fokus, övningar eller instruktioner..."
-              rows={3}
+              placeholder="Fyll i passets innehåll, fokus, övningar eller ansvar..."
+              rows={6}
             />
           </div>
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Avbryt
           </Button>
-          <Button onClick={handleCreate} disabled={loading}>
-            {loading ? 'Skapar...' : 'Skapa'}
+          <Button onClick={handleUpdate} disabled={loading}>
+            {loading ? 'Sparar...' : 'Spara'}
           </Button>
         </div>
       </DialogContent>

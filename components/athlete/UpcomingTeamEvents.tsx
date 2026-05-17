@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { TEAM_EVENT_TYPE_COLORS, TEAM_EVENT_TYPE_LABELS, isTeamEventType } from '@/lib/team-calendar/event-types'
 import { Calendar, MapPin, Clock } from 'lucide-react'
 
 interface TeamEvent {
@@ -16,14 +17,14 @@ interface TeamEvent {
   allDay: boolean
 }
 
-const TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  PRACTICE: { label: 'Träning', color: 'bg-blue-500' },
-  GAME: { label: 'Match', color: 'bg-red-500' },
-  TEST: { label: 'Test', color: 'bg-purple-500' },
-  INTERVAL_SESSION: { label: 'Intervall', color: 'bg-orange-500' },
-  OFF_DAY: { label: 'Vilodag', color: 'bg-green-500' },
-  MEETING: { label: 'Möte', color: 'bg-yellow-500' },
-  OTHER: { label: 'Övrigt', color: 'bg-gray-500' },
+function getTypeConfig(type: string) {
+  if (isTeamEventType(type)) {
+    return {
+      label: TEAM_EVENT_TYPE_LABELS[type],
+      color: TEAM_EVENT_TYPE_COLORS[type],
+    }
+  }
+  return { label: 'Övrigt', color: 'bg-gray-500' }
 }
 
 function formatEventDate(iso: string): string {
@@ -59,7 +60,7 @@ export function UpcomingTeamEvents() {
         setLoading(false)
       }
     }
-    fetchEvents()
+    void fetchEvents()
   }, [])
 
   if (loading) return null
@@ -75,7 +76,7 @@ export function UpcomingTeamEvents() {
       </CardHeader>
       <CardContent className="space-y-2">
         {events.slice(0, 5).map((event) => {
-          const typeConf = TYPE_LABELS[event.type] || TYPE_LABELS.OTHER
+          const typeConf = getTypeConfig(event.type)
           return (
             <div key={event.id} className="flex items-start gap-2 py-1.5">
               <div className={`w-1 self-stretch rounded-full shrink-0 ${typeConf.color}`} />

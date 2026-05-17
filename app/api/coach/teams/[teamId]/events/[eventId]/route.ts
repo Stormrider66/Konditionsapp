@@ -9,8 +9,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
-import { getAccessibleTeam } from '@/lib/coach/team-access'
+import { getAccessibleTeam, getWritableTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
+import { TEAM_EVENT_TYPES } from '@/lib/team-calendar/event-types'
 import { z } from 'zod'
 
 interface RouteContext {
@@ -20,7 +21,7 @@ interface RouteContext {
 const updateEventSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).optional().nullable(),
-  type: z.enum(['PRACTICE', 'GAME', 'TEST', 'INTERVAL_SESSION', 'OFF_DAY', 'MEETING', 'OTHER']).optional(),
+  type: z.enum(TEAM_EVENT_TYPES).optional(),
   location: z.string().max(200).optional().nullable(),
   startDate: z.string().optional(),
   endDate: z.string().optional().nullable(),
@@ -70,7 +71,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     const { teamId, eventId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
-    const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
+    const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'events')
 
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
@@ -128,7 +129,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     const { teamId, eventId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
-    const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
+    const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'events')
 
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
