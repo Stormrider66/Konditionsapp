@@ -205,6 +205,186 @@
         "genericError": "Something went wrong"
       }
     },
+    "dashboardSettings": {
+      "title": "Customize dashboard",
+      "subtitle": "Choose which widgets you want to see and in what order ({visible} of {total} visible)",
+      "tip": {
+        "title": "Tip:",
+        "description": "Some widgets only appear when they are relevant to your selected sport. If you change sport, the dashboard view adapts automatically - you do not need to change settings every time."
+      },
+      "presetsTitle": "Quick settings",
+      "presetsDescription": "Preset combinations for different focus areas. You can fine-tune afterwards.",
+      "categoryDescription": "{count} widgets - reorder with the arrows",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "required": "required",
+      "confirmReset": "Reset all widgets to default settings?",
+      "unsavedChanges": "Unsaved changes",
+      "messages": {
+        "preview": "Previewing \"{name}\" - click Save to activate",
+        "saved": "Settings saved!",
+        "saveError": "Could not save settings",
+        "genericError": "An error occurred",
+        "reset": "Reset to default settings"
+      },
+      "actions": {
+        "reset": "Reset",
+        "save": "Save",
+        "saving": "Saving..."
+      },
+      "sportVisibility": {
+        "currentSport": "• shown for your sport",
+        "someSports": "• only for some sports"
+      },
+      "presets": {
+        "standard": {
+          "name": "Standard",
+          "description": "Show everything - the complete dashboard view"
+        },
+        "minimal": {
+          "name": "Minimal",
+          "description": "Only the essentials: today's workout, readiness, and programs"
+        },
+        "performance": {
+          "name": "Performance",
+          "description": "Focus on training analysis, trends, and AI insights"
+        },
+        "recovery": {
+          "name": "Recovery",
+          "description": "Focus on readiness, sleep, nutrition, and mental health"
+        },
+        "sportFocus": {
+          "name": "Sport focus",
+          "description": "Adapted to your primary sport (team, endurance, or strength focus)"
+        }
+      },
+      "categories": {
+        "overview": "Overview",
+        "training": "Training",
+        "health": "Health & recovery",
+        "aiInsights": "AI insights",
+        "nutrition": "Nutrition",
+        "social": "Team & social",
+        "sportSpecific": "Sport-specific",
+        "coachClients": "Clients",
+        "coachTeam": "Team",
+        "coachBusiness": "Business"
+      },
+      "widgets": {
+        "hero-card-slider": {
+          "name": "Today's workout",
+          "description": "Shows today's scheduled workouts and WODs"
+        },
+        "readiness-panel": {
+          "name": "Readiness",
+          "description": "Daily recovery, training load, and fatigue"
+        },
+        "milestone-celebration": {
+          "name": "Milestones",
+          "description": "Celebrates achieved milestones and PRs"
+        },
+        "morning-briefing": {
+          "name": "Morning briefing",
+          "description": "AI-generated daily summary"
+        },
+        "pre-workout-nudge": {
+          "name": "Pre-workout prep",
+          "description": "Reminders and prep tips before workouts"
+        },
+        "pattern-alert": {
+          "name": "Pattern detection",
+          "description": "AI detects recurring patterns in your training"
+        },
+        "mental-prep": {
+          "name": "Mental prep",
+          "description": "Mental coaching before important workouts and competitions"
+        },
+        "nutrition-timing": {
+          "name": "Nutrition timing",
+          "description": "Suggested nutrition before/after workouts"
+        },
+        "race-fueling": {
+          "name": "Race fueling",
+          "description": "Carbohydrate plan for races and long sessions"
+        },
+        "post-workout-check": {
+          "name": "Post-workout check",
+          "description": "Quick feedback after completed workouts"
+        },
+        "ai-suggestions-banner": {
+          "name": "AI suggestions",
+          "description": "Intelligent training suggestions based on your data"
+        },
+        "sport-specific-dashboard": {
+          "name": "Sport-specific overview",
+          "description": "Specialized view for your primary sport"
+        },
+        "upcoming-team-events": {
+          "name": "Upcoming team activities",
+          "description": "Practices, matches, and tests from your team"
+        },
+        "upcoming-workouts": {
+          "name": "Upcoming workouts",
+          "description": "Scheduled workouts for the next 7 days"
+        },
+        "weekly-training-summary": {
+          "name": "Weekly summary",
+          "description": "Summary of this week's training"
+        },
+        "training-trend-chart": {
+          "name": "Training trends",
+          "description": "12 weeks of training load over time"
+        },
+        "zone-distribution-chart": {
+          "name": "Zone distribution",
+          "description": "Distribution of training across intensity zones"
+        },
+        "nutrition-dashboard": {
+          "name": "Nutrition",
+          "description": "Today's nutrition intake and macros"
+        },
+        "integrated-recent-activity": {
+          "name": "Recent activities",
+          "description": "Strava, Garmin, and logged training"
+        },
+        "interval-results-history": {
+          "name": "Interval results",
+          "description": "History from live interval tests"
+        },
+        "athlete-drill-list": {
+          "name": "Drills",
+          "description": "Assigned drills and exercises from your coach"
+        },
+        "accountability-streak": {
+          "name": "Streak",
+          "description": "Daily accountability streak"
+        },
+        "agent-recommendations": {
+          "name": "AI recommendations",
+          "description": "Personal recommendations from the AI agent"
+        },
+        "active-restrictions": {
+          "name": "Active restrictions",
+          "description": "Injuries and training restrictions - safety critical"
+        },
+        "active-programs": {
+          "name": "Active programs",
+          "description": "Ongoing training programs"
+        },
+        "wod-history-summary": {
+          "name": "WOD history",
+          "description": "AI-generated workouts and statistics"
+        },
+        "garmin-health-card": {
+          "name": "Garmin health data",
+          "description": "HRV, resting heart rate, sleep, and stress from Garmin"
+        },
+        "oura-health-card": {
+          "name": "Oura Ring",
+          "description": "Readiness, sleep score, HRV, resting heart rate, and SpO2 from Oura"
+        }
+      }
+    },
     "calendarConnections": {
       "backToCalendar": "BACK TO CALENDAR",
       "titlePrefix": "Calendar",

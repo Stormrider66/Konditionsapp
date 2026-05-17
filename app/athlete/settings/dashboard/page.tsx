@@ -19,7 +19,6 @@ import {
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import {
   getAthleteWidgets,
-  CATEGORY_LABELS,
   PRESETS,
   type PresetKey,
   type WidgetCategory,
@@ -27,6 +26,7 @@ import {
 } from '@/lib/dashboard/widget-registry'
 import { Sparkles } from 'lucide-react'
 import type { SportType } from '@prisma/client'
+import { useTranslations } from '@/i18n/client'
 
 interface PreferenceRow {
   widgetKey: string
@@ -41,6 +41,32 @@ interface WidgetState {
   definition: WidgetDefinition
 }
 
+type SaveMessage = {
+  tone: 'success' | 'error' | 'info'
+  text: string
+}
+
+const PRESET_KEYS: Record<PresetKey, { name: string; description: string }> = {
+  standard: { name: 'presets.standard.name', description: 'presets.standard.description' },
+  minimal: { name: 'presets.minimal.name', description: 'presets.minimal.description' },
+  performance: { name: 'presets.performance.name', description: 'presets.performance.description' },
+  recovery: { name: 'presets.recovery.name', description: 'presets.recovery.description' },
+  'sport-focus': { name: 'presets.sportFocus.name', description: 'presets.sportFocus.description' },
+}
+
+const CATEGORY_KEYS: Record<WidgetCategory, string> = {
+  overview: 'categories.overview',
+  training: 'categories.training',
+  health: 'categories.health',
+  'ai-insights': 'categories.aiInsights',
+  nutrition: 'categories.nutrition',
+  social: 'categories.social',
+  'sport-specific': 'categories.sportSpecific',
+  'coach-clients': 'categories.coachClients',
+  'coach-team': 'categories.coachTeam',
+  'coach-business': 'categories.coachBusiness',
+}
+
 interface DashboardSettingsPageProps {
   /** The athlete's currently active sport — used to make presets sport-aware. */
   currentSport?: SportType | null
@@ -48,6 +74,7 @@ interface DashboardSettingsPageProps {
 
 export default function DashboardSettingsPage({ currentSport = null }: DashboardSettingsPageProps = {}) {
   const basePath = useBasePath()
+  const t = useTranslations('pages.dashboardSettings')
   const allWidgets = useMemo(() => getAthleteWidgets(), [])
 
   // Build initial state from registry defaults — overridden by saved prefs after fetch.
@@ -63,7 +90,7 @@ export default function DashboardSettingsPage({ currentSport = null }: Dashboard
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [saveMessage, setSaveMessage] = useState<SaveMessage | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -90,7 +117,7 @@ export default function DashboardSettingsPage({ currentSport = null }: Dashboard
         setIsLoading(false)
       }
     }
-    load()
+    void load()
   }, [])
 
   // Group widgets by category, preserving the current order within each group
@@ -130,7 +157,11 @@ export default function DashboardSettingsPage({ currentSport = null }: Dashboard
       }))
     )
     setHasChanges(true)
-    setSaveMessage(`Förhandsgranskning av "${preset.name}" — klicka Spara för att aktivera`)
+    const presetName = t(PRESET_KEYS[presetKey].name)
+    setSaveMessage({
+      tone: 'info',
+      text: t('messages.preview', { name: presetName }),
+    })
   }
 
   /**
@@ -178,28 +209,28 @@ export default function DashboardSettingsPage({ currentSport = null }: Dashboard
 
       if (res.ok) {
         setHasChanges(false)
-        setSaveMessage('Inställningar sparade!')
+        setSaveMessage({ tone: 'success', text: t('messages.saved') })
         setTimeout(() => setSaveMessage(null), 3000)
       } else {
-        setSaveMessage('Kunde inte spara inställningar')
+        setSaveMessage({ tone: 'error', text: t('messages.saveError') })
       }
     } catch (err) {
       console.error('Failed to save dashboard preferences', err)
-      setSaveMessage('Ett fel uppstod')
+      setSaveMessage({ tone: 'error', text: t('messages.genericError') })
     } finally {
       setIsSaving(false)
     }
   }
 
   async function reset() {
-    if (!confirm('Återställ alla widgets till standardinställningar?')) return
+    if (!confirm(t('confirmReset'))) return
     setIsSaving(true)
     try {
       const res = await fetch('/api/dashboard/preferences?role=ATHLETE', { method: 'DELETE' })
       if (res.ok) {
         setWidgets(buildDefaults())
         setHasChanges(false)
-        setSaveMessage('Återställt till standardinställningar')
+        setSaveMessage({ tone: 'success', text: t('messages.reset') })
         setTimeout(() => setSaveMessage(null), 3000)
       }
     } catch (err) {
@@ -234,10 +265,10 @@ export default function DashboardSettingsPage({ currentSport = null }: Dashboard
         <div className="flex-1">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <LayoutDashboard className="h-6 w-6" />
-            Anpassa dashboard
+            {t('title')}
           </h1>
           <p className="text-muted-foreground text-sm">
-            Välj vilka widgets du vill se och i vilken ordning ({visibleCount} av {totalCount} synliga)
+            {t('subtitle', { visible: visibleCount, total: totalCount })}
           </p>
         </div>
       </div>
@@ -246,8 +277,7 @@ export default function DashboardSettingsPage({ currentSport = null }: Dashboard
       <Card>
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground">
-            <strong className="text-foreground">Tips:</strong> Vissa widgets visas bara när de är relevanta för din valda sport.
-            Om du byter sport anpassas dashboardvyn automatiskt — du behöver inte ändra inställningarna varje gång.
+            <strong className="text-foreground">{t('tip.title')}</strong> {t('tip.description')}
           </p>
         </CardContent>
       </Card>
@@ -257,27 +287,24 @@ export default function DashboardSettingsPage({ currentSport = null }: Dashboard
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-amber-500" />
-            Snabbinställningar
+            {t('presetsTitle')}
           </CardTitle>
           <CardDescription>
-            Förvalda kombinationer för olika fokus. Du kan finjustera efteråt.
+            {t('presetsDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {(Object.keys(PRESETS) as PresetKey[]).map(key => {
-            const p = PRESETS[key]
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => applyPreset(key)}
-                className="text-left p-3 rounded-lg border bg-card hover:bg-muted/40 transition"
-              >
-                <p className="font-medium">{p.name}</p>
-                <p className="text-xs text-muted-foreground">{p.description}</p>
-              </button>
-            )
-          })}
+          {(Object.keys(PRESETS) as PresetKey[]).map(key => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => applyPreset(key)}
+              className="text-left p-3 rounded-lg border bg-card hover:bg-muted/40 transition"
+            >
+              <p className="font-medium">{t(PRESET_KEYS[key].name)}</p>
+              <p className="text-xs text-muted-foreground">{t(PRESET_KEYS[key].description)}</p>
+            </button>
+          ))}
         </CardContent>
       </Card>
 
@@ -288,9 +315,9 @@ export default function DashboardSettingsPage({ currentSport = null }: Dashboard
         return (
           <Card key={category}>
             <CardHeader>
-              <CardTitle>{CATEGORY_LABELS[category]}</CardTitle>
+              <CardTitle>{t(CATEGORY_KEYS[category])}</CardTitle>
               <CardDescription>
-                {items.length} widget{items.length === 1 ? '' : 's'} {'\u2022'} ändra ordning med pilarna
+                {t('categoryDescription', { count: items.length })}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -307,7 +334,7 @@ export default function DashboardSettingsPage({ currentSport = null }: Dashboard
                       className="h-6 w-6"
                       disabled={idx === 0}
                       onClick={() => move(w, 'up')}
-                      aria-label="Flytta upp"
+                      aria-label={t('moveUp')}
                     >
                       <ChevronUp className="h-4 w-4" />
                     </Button>
@@ -317,7 +344,7 @@ export default function DashboardSettingsPage({ currentSport = null }: Dashboard
                       className="h-6 w-6"
                       disabled={idx === items.length - 1}
                       onClick={() => move(w, 'down')}
-                      aria-label="Flytta ner"
+                      aria-label={t('moveDown')}
                     >
                       <ChevronDown className="h-4 w-4" />
                     </Button>
@@ -326,21 +353,21 @@ export default function DashboardSettingsPage({ currentSport = null }: Dashboard
                   {/* Widget info */}
                   <div className="flex-1 min-w-0">
                     <Label className="text-base font-medium flex items-center gap-2 flex-wrap">
-                      {w.definition.name}
+                      {t(`widgets.${w.key}.name`)}
                       {w.definition.required && (
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                          <Lock className="h-3 w-3" /> krävs
+                          <Lock className="h-3 w-3" /> {t('required')}
                         </span>
                       )}
                       {w.definition.sports && w.definition.sports.length > 0 && (
                         <span className="text-xs text-amber-600 dark:text-amber-400">
                           {currentSport && w.definition.sports.includes(currentSport)
-                            ? '• visas för din sport'
-                            : '• endast för vissa sporter'}
+                            ? t('sportVisibility.currentSport')
+                            : t('sportVisibility.someSports')}
                         </span>
                       )}
                     </Label>
-                    <p className="text-sm text-muted-foreground">{w.definition.description}</p>
+                    <p className="text-sm text-muted-foreground">{t(`widgets.${w.key}.description`)}</p>
                   </div>
 
                   {/* Visibility toggle */}
@@ -361,33 +388,35 @@ export default function DashboardSettingsPage({ currentSport = null }: Dashboard
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={reset} disabled={isSaving}>
             <RotateCcw className="h-4 w-4 mr-2" />
-            Återställ
+            {t('actions.reset')}
           </Button>
           {saveMessage && (
             <p
               className={`text-sm ${
-                saveMessage.includes('sparade') || saveMessage.includes('Återställt')
+                saveMessage.tone === 'success'
                   ? 'text-green-600'
-                  : 'text-red-600'
+                  : saveMessage.tone === 'error'
+                    ? 'text-red-600'
+                    : 'text-muted-foreground'
               }`}
             >
-              {saveMessage}
+              {saveMessage.text}
             </p>
           )}
           {hasChanges && !saveMessage && (
-            <p className="text-sm text-muted-foreground">Osparade ändringar</p>
+            <p className="text-sm text-muted-foreground">{t('unsavedChanges')}</p>
           )}
         </div>
         <Button onClick={save} disabled={isSaving || !hasChanges}>
           {isSaving ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Sparar...
+              {t('actions.saving')}
             </>
           ) : (
             <>
               <Save className="h-4 w-4 mr-2" />
-              Spara
+              {t('actions.save')}
             </>
           )}
         </Button>

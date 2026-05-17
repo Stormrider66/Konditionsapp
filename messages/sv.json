@@ -205,6 +205,186 @@
         "genericError": "Något gick fel"
       }
     },
+    "dashboardSettings": {
+      "title": "Anpassa dashboard",
+      "subtitle": "Välj vilka widgets du vill se och i vilken ordning ({visible} av {total} synliga)",
+      "tip": {
+        "title": "Tips:",
+        "description": "Vissa widgets visas bara när de är relevanta för din valda sport. Om du byter sport anpassas dashboardvyn automatiskt - du behöver inte ändra inställningarna varje gång."
+      },
+      "presetsTitle": "Snabbinställningar",
+      "presetsDescription": "Förvalda kombinationer för olika fokus. Du kan finjustera efteråt.",
+      "categoryDescription": "{count} widgets - ändra ordning med pilarna",
+      "moveUp": "Flytta upp",
+      "moveDown": "Flytta ner",
+      "required": "krävs",
+      "confirmReset": "Återställ alla widgets till standardinställningar?",
+      "unsavedChanges": "Osparade ändringar",
+      "messages": {
+        "preview": "Förhandsgranskning av \"{name}\" - klicka Spara för att aktivera",
+        "saved": "Inställningar sparade!",
+        "saveError": "Kunde inte spara inställningar",
+        "genericError": "Ett fel uppstod",
+        "reset": "Återställt till standardinställningar"
+      },
+      "actions": {
+        "reset": "Återställ",
+        "save": "Spara",
+        "saving": "Sparar..."
+      },
+      "sportVisibility": {
+        "currentSport": "• visas för din sport",
+        "someSports": "• endast för vissa sporter"
+      },
+      "presets": {
+        "standard": {
+          "name": "Standard",
+          "description": "Visa allt - den fullständiga dashboard-vyn"
+        },
+        "minimal": {
+          "name": "Minimal",
+          "description": "Bara det viktigaste: dagens pass, readiness och program"
+        },
+        "performance": {
+          "name": "Prestation",
+          "description": "Fokus på träningsanalys, trender och AI-insikter"
+        },
+        "recovery": {
+          "name": "Återhämtning",
+          "description": "Fokus på readiness, sömn, näring och mental hälsa"
+        },
+        "sportFocus": {
+          "name": "Sport-fokus",
+          "description": "Anpassad efter din primära sport (lag-, kondition- eller styrkefokus)"
+        }
+      },
+      "categories": {
+        "overview": "Översikt",
+        "training": "Träning",
+        "health": "Hälsa & återhämtning",
+        "aiInsights": "AI-insikter",
+        "nutrition": "Kost",
+        "social": "Lag & socialt",
+        "sportSpecific": "Sportspecifikt",
+        "coachClients": "Klienter",
+        "coachTeam": "Lag",
+        "coachBusiness": "Verksamhet"
+      },
+      "widgets": {
+        "hero-card-slider": {
+          "name": "Dagens pass",
+          "description": "Visar dagens schemalagda pass och WODs"
+        },
+        "readiness-panel": {
+          "name": "Readiness",
+          "description": "Daglig återhämtning, träningsbelastning och fatigue"
+        },
+        "milestone-celebration": {
+          "name": "Milstolpar",
+          "description": "Firar uppnådda milstolpar och PRs"
+        },
+        "morning-briefing": {
+          "name": "Morgonbriefing",
+          "description": "AI-genererad daglig sammanfattning"
+        },
+        "pre-workout-nudge": {
+          "name": "Förberedelser inför pass",
+          "description": "Påminnelser och förberedande tips innan pass"
+        },
+        "pattern-alert": {
+          "name": "Mönsterdetektering",
+          "description": "AI upptäcker återkommande mönster i din träning"
+        },
+        "mental-prep": {
+          "name": "Mental förberedelse",
+          "description": "Mental coaching inför viktiga pass och tävlingar"
+        },
+        "nutrition-timing": {
+          "name": "Näringstiming",
+          "description": "Förslag på näringsintag före/efter pass"
+        },
+        "race-fueling": {
+          "name": "Tävlingsenergi",
+          "description": "Kolhydratsplan för tävling och långpass"
+        },
+        "post-workout-check": {
+          "name": "Efterträningskoll",
+          "description": "Snabb återkoppling efter genomfört pass"
+        },
+        "ai-suggestions-banner": {
+          "name": "AI-förslag",
+          "description": "Intelligenta träningsförslag baserade på din data"
+        },
+        "sport-specific-dashboard": {
+          "name": "Sportspecifik översikt",
+          "description": "Specialiserad vy för din primära sport"
+        },
+        "upcoming-team-events": {
+          "name": "Kommande lagaktiviteter",
+          "description": "Träningar, matcher och tester från ditt lag"
+        },
+        "upcoming-workouts": {
+          "name": "Kommande pass",
+          "description": "Schemalagda pass kommande 7 dagar"
+        },
+        "weekly-training-summary": {
+          "name": "Veckosammanfattning",
+          "description": "Sammanställning av veckans träning"
+        },
+        "training-trend-chart": {
+          "name": "Träningstrender",
+          "description": "12 veckors träningsbelastning över tid"
+        },
+        "zone-distribution-chart": {
+          "name": "Zonfördelning",
+          "description": "Fördelning av träning över intensitetszoner"
+        },
+        "nutrition-dashboard": {
+          "name": "Kost",
+          "description": "Dagens näringsintag och makros"
+        },
+        "integrated-recent-activity": {
+          "name": "Senaste aktiviteter",
+          "description": "Strava, Garmin och loggad träning"
+        },
+        "interval-results-history": {
+          "name": "Intervallresultat",
+          "description": "Historik från live-intervalltester"
+        },
+        "athlete-drill-list": {
+          "name": "Drills",
+          "description": "Tilldelade drills och övningar från coach"
+        },
+        "accountability-streak": {
+          "name": "Streak",
+          "description": "Daglig accountability-streak"
+        },
+        "agent-recommendations": {
+          "name": "AI-rekommendationer",
+          "description": "Personliga rekommendationer från AI-agenten"
+        },
+        "active-restrictions": {
+          "name": "Aktiva restriktioner",
+          "description": "Skador och träningsrestriktioner - säkerhetskritiskt"
+        },
+        "active-programs": {
+          "name": "Aktiva program",
+          "description": "Pågående träningsprogram"
+        },
+        "wod-history-summary": {
+          "name": "WOD-historik",
+          "description": "AI-genererade pass och statistik"
+        },
+        "garmin-health-card": {
+          "name": "Garmin hälsodata",
+          "description": "HRV, vilopuls, sömn och stress från Garmin"
+        },
+        "oura-health-card": {
+          "name": "Oura Ring",
+          "description": "Beredskap, sömnpoäng, HRV, vilopuls och SpO2 från Oura"
+        }
+      }
+    },
     "calendarConnections": {
       "backToCalendar": "TILLBAKA TILL KALENDERN",
       "titlePrefix": "Kalender",
