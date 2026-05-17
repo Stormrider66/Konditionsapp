@@ -6945,6 +6945,36 @@
         "handleFailedTitle": "Kunde inte använda rösten"
       }
     },
+    "hybridWorkoutCard": {
+      "statuses": {
+        "pending": "Planerad",
+        "scheduled": "Pågående",
+        "completed": "Slutförd",
+        "skipped": "Hoppades över",
+        "modified": "Modifierad"
+      },
+      "formats": {
+        "forTime": "For Time",
+        "amrap": "AMRAP",
+        "emom": "EMOM",
+        "tabata": "Tabata",
+        "chipper": "Chipper",
+        "ladder": "Ladder",
+        "intervals": "Intervaller",
+        "hyrox": "HYROX"
+      },
+      "dates": {
+        "today": "Idag",
+        "tomorrow": "Imorgon"
+      },
+      "rounds": "{count} rundor",
+      "movements": "{count} övningar",
+      "actions": {
+        "completed": "Slutförd",
+        "continueWorkout": "Fortsätt pass",
+        "startFocusMode": "Starta Focus Mode"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

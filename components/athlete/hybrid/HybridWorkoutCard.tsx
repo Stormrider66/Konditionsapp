@@ -23,6 +23,7 @@ import {
   MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 type HybridFormat =
   | 'FOR_TIME'
@@ -60,52 +61,54 @@ interface HybridWorkoutCardProps {
   onStartFocusMode: (assignmentId: string) => void
 }
 
-const STATUS_BADGES: Record<AssignmentStatus, { label: string; className: string }> = {
-  PENDING: { label: 'Planerad', className: 'bg-gray-100 text-gray-700' },
-  SCHEDULED: { label: 'Pågående', className: 'bg-blue-100 text-blue-700' },
-  COMPLETED: { label: 'Slutförd', className: 'bg-green-100 text-green-700' },
-  SKIPPED: { label: 'Hoppades över', className: 'bg-yellow-100 text-yellow-700' },
-  MODIFIED: { label: 'Modifierad', className: 'bg-purple-100 text-purple-700' },
+type TranslationKey = Parameters<ReturnType<typeof useTranslations>>[0]
+
+const STATUS_BADGES: Record<AssignmentStatus, { labelKey: TranslationKey; className: string }> = {
+  PENDING: { labelKey: 'statuses.pending', className: 'bg-gray-100 text-gray-700' },
+  SCHEDULED: { labelKey: 'statuses.scheduled', className: 'bg-blue-100 text-blue-700' },
+  COMPLETED: { labelKey: 'statuses.completed', className: 'bg-green-100 text-green-700' },
+  SKIPPED: { labelKey: 'statuses.skipped', className: 'bg-yellow-100 text-yellow-700' },
+  MODIFIED: { labelKey: 'statuses.modified', className: 'bg-purple-100 text-purple-700' },
 }
 
-const FORMAT_INFO: Record<HybridFormat, { label: string; badge: string; icon: React.ReactNode }> = {
+const FORMAT_INFO: Record<HybridFormat, { labelKey: TranslationKey; badge: string; icon: React.ReactNode }> = {
   FOR_TIME: {
-    label: 'For Time',
+    labelKey: 'formats.forTime',
     badge: 'bg-blue-100 text-blue-700',
     icon: <Timer className="h-3 w-3" />,
   },
   AMRAP: {
-    label: 'AMRAP',
+    labelKey: 'formats.amrap',
     badge: 'bg-red-100 text-red-700',
     icon: <Repeat className="h-3 w-3" />,
   },
   EMOM: {
-    label: 'EMOM',
+    labelKey: 'formats.emom',
     badge: 'bg-green-100 text-green-700',
     icon: <Clock className="h-3 w-3" />,
   },
   TABATA: {
-    label: 'Tabata',
+    labelKey: 'formats.tabata',
     badge: 'bg-orange-100 text-orange-700',
     icon: <Flame className="h-3 w-3" />,
   },
   CHIPPER: {
-    label: 'Chipper',
+    labelKey: 'formats.chipper',
     badge: 'bg-purple-100 text-purple-700',
     icon: <Target className="h-3 w-3" />,
   },
   LADDER: {
-    label: 'Ladder',
+    labelKey: 'formats.ladder',
     badge: 'bg-indigo-100 text-indigo-700',
     icon: <Target className="h-3 w-3" />,
   },
   INTERVALS: {
-    label: 'Intervaller',
+    labelKey: 'formats.intervals',
     badge: 'bg-teal-100 text-teal-700',
     icon: <Timer className="h-3 w-3" />,
   },
   HYROX_SIM: {
-    label: 'HYROX',
+    labelKey: 'formats.hyrox',
     badge: 'bg-yellow-100 text-yellow-700',
     icon: <Flame className="h-3 w-3" />,
   },
@@ -120,7 +123,6 @@ const SCALING_BADGES: Record<string, string> = {
 
 export function HybridWorkoutCard({
   id,
-  workoutId,
   workoutName,
   description,
   format,
@@ -140,6 +142,8 @@ export function HybridWorkoutCard({
   location,
   onStartFocusMode,
 }: HybridWorkoutCardProps) {
+  const t = useTranslations('components.hybridWorkoutCard')
+  const locale = useLocale()
   const isCompleted = status === 'COMPLETED'
   const isInProgress = status === 'SCHEDULED'
   const formatInfo = FORMAT_INFO[format]
@@ -158,12 +162,12 @@ export function HybridWorkoutCard({
     tomorrow.setDate(tomorrow.getDate() + 1)
 
     if (date.toDateString() === today.toDateString()) {
-      return 'Idag'
+      return t('dates.today')
     }
     if (date.toDateString() === tomorrow.toDateString()) {
-      return 'Imorgon'
+      return t('dates.tomorrow')
     }
-    return date.toLocaleDateString('sv-SE', {
+    return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
@@ -184,14 +188,14 @@ export function HybridWorkoutCard({
             <div className="flex items-center gap-2 flex-wrap">
               <Badge className={cn('text-xs', formatInfo.badge)}>
                 {formatInfo.icon}
-                <span className="ml-1">{formatInfo.label}</span>
+                <span className="ml-1">{t(formatInfo.labelKey)}</span>
               </Badge>
               <Badge className={cn('text-xs', SCALING_BADGES[scalingLevel])}>
                 {scalingLevel}
               </Badge>
               <Badge className={cn('text-xs', STATUS_BADGES[status].className)}>
                 {isCompleted && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                {STATUS_BADGES[status].label}
+                {t(STATUS_BADGES[status].labelKey)}
               </Badge>
             </div>
             <CardTitle className="text-lg">{workoutName}</CardTitle>
@@ -229,12 +233,12 @@ export function HybridWorkoutCard({
           {totalRounds && (
             <div className="flex items-center gap-1 text-muted-foreground">
               <Repeat className="h-4 w-4" />
-              {totalRounds} rundor
+              {t('rounds', { count: totalRounds })}
             </div>
           )}
           <div className="flex items-center gap-1 text-muted-foreground">
             <Dumbbell className="h-4 w-4" />
-            {movementCount} övningar
+            {t('movements', { count: movementCount })}
           </div>
         </div>
 
@@ -264,13 +268,13 @@ export function HybridWorkoutCard({
         {isCompleted ? (
           <Button variant="outline" className="w-full" disabled>
             <CheckCircle2 className="h-4 w-4 mr-2" />
-            Slutförd
+            {t('actions.completed')}
           </Button>
         ) : isInProgress ? (
           <div className="flex gap-2">
             <Button className="flex-1" onClick={() => onStartFocusMode(id)}>
               <Play className="h-4 w-4 mr-2" />
-              Fortsätt pass
+              {t('actions.continueWorkout')}
             </Button>
             <HeadlessVoiceCoachLauncher assignmentId={id} workoutType="hybrid" />
           </div>
@@ -278,7 +282,7 @@ export function HybridWorkoutCard({
           <div className="flex gap-2">
             <Button className="flex-1" onClick={() => onStartFocusMode(id)}>
               <Play className="h-4 w-4 mr-2" />
-              Starta Focus Mode
+              {t('actions.startFocusMode')}
             </Button>
             <HeadlessVoiceCoachLauncher assignmentId={id} workoutType="hybrid" />
           </div>

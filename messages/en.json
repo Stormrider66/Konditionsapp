@@ -6945,6 +6945,36 @@
         "handleFailedTitle": "Could not use the voice"
       }
     },
+    "hybridWorkoutCard": {
+      "statuses": {
+        "pending": "Planned",
+        "scheduled": "In progress",
+        "completed": "Completed",
+        "skipped": "Skipped",
+        "modified": "Modified"
+      },
+      "formats": {
+        "forTime": "For Time",
+        "amrap": "AMRAP",
+        "emom": "EMOM",
+        "tabata": "Tabata",
+        "chipper": "Chipper",
+        "ladder": "Ladder",
+        "intervals": "Intervals",
+        "hyrox": "HYROX"
+      },
+      "dates": {
+        "today": "Today",
+        "tomorrow": "Tomorrow"
+      },
+      "rounds": "{count} rounds",
+      "movements": "{count} movements",
+      "actions": {
+        "completed": "Completed",
+        "continueWorkout": "Continue workout",
+        "startFocusMode": "Start Focus Mode"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
