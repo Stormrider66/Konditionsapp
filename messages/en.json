@@ -3215,6 +3215,17 @@
         "minRPE": "Lowest RPE (hard workout)"
       }
     },
+    "loadTrendChart": {
+      "title": "Load trend (14 days)",
+      "acuteLoad": "Acute (7d)",
+      "chronicLoad": "Chronic (28d)",
+      "empty": "No load data available",
+      "trends": {
+        "rising": "Rising",
+        "falling": "Falling",
+        "stable": "Stable"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",

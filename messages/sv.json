@@ -3215,6 +3215,17 @@
         "minRPE": "Lägsta RPE (hårt pass)"
       }
     },
+    "loadTrendChart": {
+      "title": "Belastningstrend (14 dagar)",
+      "acuteLoad": "Akut (7d)",
+      "chronicLoad": "Kronisk (28d)",
+      "empty": "Ingen belastningsdata tillgänglig",
+      "trends": {
+        "rising": "Ökande",
+        "falling": "Minskande",
+        "stable": "Stabil"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

@@ -10,6 +10,7 @@
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine } from 'recharts'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 type LoadTrend = 'RISING' | 'FALLING' | 'STABLE'
 
@@ -26,32 +27,34 @@ interface LoadTrendChartProps {
   className?: string
 }
 
-const TREND_CONFIG: Record<LoadTrend, { icon: typeof TrendingUp; label: string; color: string }> = {
+const TREND_CONFIG: Record<LoadTrend, { icon: typeof TrendingUp; labelKey: string; color: string }> = {
   RISING: {
     icon: TrendingUp,
-    label: 'Ökande',
+    labelKey: 'trends.rising',
     color: 'text-orange-500',
   },
   FALLING: {
     icon: TrendingDown,
-    label: 'Minskande',
+    labelKey: 'trends.falling',
     color: 'text-blue-500',
   },
   STABLE: {
     icon: Minus,
-    label: 'Stabil',
+    labelKey: 'trends.stable',
     color: 'text-green-500',
   },
 }
 
 export function LoadTrendChart({ loadHistory, trend, className }: LoadTrendChartProps) {
+  const t = useTranslations('components.loadTrendChart')
+  const locale = useLocale()
   const trendCfg = TREND_CONFIG[trend] || TREND_CONFIG.STABLE
   const TrendIcon = trendCfg.icon
 
   // Format date for display
   const formattedData = loadHistory.map((entry) => ({
     ...entry,
-    displayDate: new Date(entry.date).toLocaleDateString('sv-SE', {
+    displayDate: new Date(entry.date).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
       day: 'numeric',
       month: 'short',
     }),
@@ -67,11 +70,11 @@ export function LoadTrendChart({ loadHistory, trend, className }: LoadTrendChart
       {/* Header with trend indicator */}
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium text-muted-foreground">
-          Belastningstrend (14 dagar)
+          {t('title')}
         </h4>
         <div className={cn('flex items-center gap-1', trendCfg.color)}>
           <TrendIcon className="h-4 w-4" />
-          <span className="text-xs font-medium">{trendCfg.label}</span>
+          <span className="text-xs font-medium">{t(trendCfg.labelKey)}</span>
         </div>
       </div>
 
@@ -114,7 +117,7 @@ export function LoadTrendChart({ loadHistory, trend, className }: LoadTrendChart
                 labelStyle={{ fontWeight: 'bold' }}
                 formatter={(value: number, name: string) => [
                   value.toFixed(0),
-                  name === 'acuteLoad' ? 'Akut (7d)' : 'Kronisk (28d)',
+                  name === 'acuteLoad' ? t('acuteLoad') : t('chronicLoad'),
                 ]}
               />
               {/* Reference lines for optimal ACWR range */}
@@ -145,7 +148,7 @@ export function LoadTrendChart({ loadHistory, trend, className }: LoadTrendChart
         </div>
       ) : (
         <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">
-          Ingen belastningsdata tillgänglig
+          {t('empty')}
         </div>
       )}
 
@@ -153,11 +156,11 @@ export function LoadTrendChart({ loadHistory, trend, className }: LoadTrendChart
       <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-1">
           <div className="w-3 h-0.5 bg-primary" />
-          <span>Akut (7d)</span>
+          <span>{t('acuteLoad')}</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-0.5 bg-green-500" />
-          <span>Kronisk (28d)</span>
+          <span>{t('chronicLoad')}</span>
         </div>
       </div>
     </div>
