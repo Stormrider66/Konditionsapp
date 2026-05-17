@@ -328,6 +328,30 @@
       "backToDashboard": "Back to dashboard",
       "title": "Nutrition stats",
       "subtitle": "Trends, goals & distribution"
+    },
+    "lactateEntry": {
+      "title": "Report lactate values",
+      "description": "Register your lactate values from a test. At least 4 stages are required for D-max analysis.",
+      "tips": {
+        "title": "Tips for best results:",
+        "stageDuration": "Each stage should be 3 minutes long",
+        "measureImmediately": "Measure lactate immediately after each stage",
+        "increaseGradually": "Increase intensity gradually between stages",
+        "minimumStages": "At least 4 stages are required, but 6-8 stages provide better analysis",
+        "photoVerification": "Take a photo of the lactate meter for verification"
+      }
+    },
+    "programReport": {
+      "emptyTitle": "Program report",
+      "emptyDescription": "You do not have an active training program yet. Contact your coach.",
+      "title": "My program report",
+      "description": "Detailed overview of your training program with zones, tests, and race strategies."
+    },
+    "benchmarkSchedule": {
+      "emptyTitle": "Test schedule",
+      "emptyDescription": "You do not have an active training program yet. Contact your coach.",
+      "title": "My test schedule",
+      "description": "Planned field tests for tracking your progress through the season."
     }
   },
   "home": {

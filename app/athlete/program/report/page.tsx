@@ -13,6 +13,7 @@ import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils';
 import { ProgramReportViewer } from '@/components/athlete/program/ProgramReportViewer';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
+import { getTranslations } from '@/i18n/server';
 
 interface ProgramReportPageProps {
   searchParams: Promise<{
@@ -21,6 +22,7 @@ interface ProgramReportPageProps {
 }
 
 export default async function ProgramReportPage({ searchParams }: ProgramReportPageProps) {
+  const t = await getTranslations('pages.programReport');
   const { clientId } = await requireAthleteOrCoachInAthleteMode();
   const resolvedParams = await searchParams;
 
@@ -49,9 +51,9 @@ export default async function ProgramReportPage({ searchParams }: ProgramReportP
   if (!programId) {
     return (
       <div className="container max-w-4xl mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-4">Programrapport</h1>
+        <h1 className="text-3xl font-bold mb-4">{t('emptyTitle')}</h1>
         <p className="text-muted-foreground">
-          Du har inget aktivt träningsprogram ännu. Kontakta din tränare.
+          {t('emptyDescription')}
         </p>
       </div>
     );
@@ -60,9 +62,9 @@ export default async function ProgramReportPage({ searchParams }: ProgramReportP
   return (
     <div className="container max-w-4xl mx-auto py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Min programrapport</h1>
+        <h1 className="text-3xl font-bold mb-2">{t('title')}</h1>
         <p className="text-muted-foreground">
-          Detaljerad översikt över ditt träningsprogram med zoner, tester och loppstrategier.
+          {t('description')}
         </p>
       </div>
 

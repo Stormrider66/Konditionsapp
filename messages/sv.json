@@ -328,6 +328,30 @@
       "backToDashboard": "Tillbaka till dashboard",
       "title": "Koststatistik",
       "subtitle": "Trender, mål & fördelning"
+    },
+    "lactateEntry": {
+      "title": "Rapportera laktatvärden",
+      "description": "Registrera dina laktatvärden från ett test. Minst 4 steg krävs för D-max analys.",
+      "tips": {
+        "title": "Tips för bästa resultat:",
+        "stageDuration": "Varje steg ska vara 3 minuter långt",
+        "measureImmediately": "Mät laktat direkt efter varje steg",
+        "increaseGradually": "Öka intensiteten gradvis mellan stegen",
+        "minimumStages": "Minst 4 steg krävs, men 6-8 steg ger bättre analys",
+        "photoVerification": "Ta ett foto på laktatmätaren för verifiering"
+      }
+    },
+    "programReport": {
+      "emptyTitle": "Programrapport",
+      "emptyDescription": "Du har inget aktivt träningsprogram ännu. Kontakta din tränare.",
+      "title": "Min programrapport",
+      "description": "Detaljerad översikt över ditt träningsprogram med zoner, tester och loppstrategier."
+    },
+    "benchmarkSchedule": {
+      "emptyTitle": "Testschema",
+      "emptyDescription": "Du har inget aktivt träningsprogram ännu. Kontakta din tränare.",
+      "title": "Mitt testschema",
+      "description": "Planerade fälttester för att följa dina framsteg genom säsongen."
     }
   },
   "home": {
