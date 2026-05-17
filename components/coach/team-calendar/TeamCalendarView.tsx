@@ -82,6 +82,8 @@ interface TeamCalendarPermissions {
   assignableContentTypes: TeamEventType[]
 }
 
+type PlanningFilter = 'all' | 'iceMissingPlan' | 'needsContent' | 'ready' | 'assigned' | 'ice' | 'physical'
+
 function getTypeConfig(type: string) {
   if (isTeamEventType(type)) {
     return {
@@ -267,6 +269,27 @@ function PlanningBadges({ event, compact = false }: { event: TeamEvent; compact?
   )
 }
 
+function eventMatchesPlanningFilter(event: TeamEvent, filter: PlanningFilter): boolean {
+  if (filter === 'all') return true
+  if (filter === 'iceMissingPlan') return isIcePracticeEvent(event) && !hasPracticePlan(event)
+  if (filter === 'needsContent') return eventNeedsContent(event)
+  if (filter === 'ready') return isPhysicalEvent(event) && Boolean(event.linkedWorkoutId) && event.contentStatus === 'CONTENT_READY' && !event.assignedBroadcastId
+  if (filter === 'assigned') return Boolean(event.assignedBroadcastId)
+  if (filter === 'ice') return isIcePracticeEvent(event)
+  if (filter === 'physical') return isPhysicalEvent(event)
+  return true
+}
+
+const PLANNING_FILTERS: Array<{ value: PlanningFilter; label: string }> = [
+  { value: 'all', label: 'Alla' },
+  { value: 'iceMissingPlan', label: 'Saknar isplan' },
+  { value: 'needsContent', label: 'Behöver innehåll' },
+  { value: 'ready', label: 'Klara fys' },
+  { value: 'assigned', label: 'Tilldelade' },
+  { value: 'ice', label: 'Is' },
+  { value: 'physical', label: 'Fys' },
+]
+
 function inputDateValue(date: Date): string {
   const year = date.getFullYear()
   const month = `${date.getMonth() + 1}`.padStart(2, '0')
@@ -303,6 +326,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
   const [weekBase, setWeekBase] = useState(new Date())
   const [selectedEvent, setSelectedEvent] = useState<TeamEvent | null>(null)
   const [viewMode, setViewMode] = useState<'week' | 'planning'>('week')
+  const [planningFilter, setPlanningFilter] = useState<PlanningFilter>('all')
   const [queueOwnerFilter, setQueueOwnerFilter] = useState<'all' | TeamEventContentOwner>('all')
   const [queueStatusFilter, setQueueStatusFilter] = useState<'open' | TeamEventContentStatus>('open')
   const [calendarPermissions, setCalendarPermissions] = useState<TeamCalendarPermissions | null>(null)
@@ -312,6 +336,19 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
     .filter((event) => queueStatusFilter === 'open' || event.contentStatus === queueStatusFilter)
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
   const allOpenContentQueue = events.filter(eventNeedsContent)
+  const visibleEvents = events.filter((event) => eventMatchesPlanningFilter(event, planningFilter))
+  const planningFilterCounts = PLANNING_FILTERS.reduce<Record<PlanningFilter, number>>((acc, filter) => {
+    acc[filter.value] = events.filter((event) => eventMatchesPlanningFilter(event, filter.value)).length
+    return acc
+  }, {
+    all: 0,
+    iceMissingPlan: 0,
+    needsContent: 0,
+    ready: 0,
+    assigned: 0,
+    ice: 0,
+    physical: 0,
+  })
 
   const weekDates = getWeekDates(weekBase)
   const monthDates = getMonthDates(weekBase)
@@ -466,6 +503,30 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
         </div>
       </div>
 
+      <div className="rounded-lg border bg-background p-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <Filter className="h-3.5 w-3.5" />
+            Visa
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {PLANNING_FILTERS.map((filter) => (
+              <Button
+                key={filter.value}
+                type="button"
+                variant={planningFilter === filter.value ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setPlanningFilter(filter.value)}
+              >
+                {filter.label}
+                <span className="ml-1 text-[10px] opacity-70">{planningFilterCounts[filter.value]}</span>
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {allOpenContentQueue.length > 0 && (
         <div className="rounded-lg border bg-amber-50/70 p-3 text-amber-950">
           <div className="flex flex-col gap-3">
@@ -577,7 +638,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
             </thead>
             <tbody>
               {monthDates.map((date) => {
-                const dayEvents = events.filter((e) => isSameDay(new Date(e.startDate), date))
+                const dayEvents = visibleEvents.filter((e) => isSameDay(new Date(e.startDate), date))
                 const grouped = {
                   ice: dayEvents.filter((event) => planningColumnFor(event.type) === 'ice'),
                   physical: dayEvents.filter((event) => planningColumnFor(event.type) === 'physical'),
@@ -690,7 +751,7 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
       ) : (
         <div className="space-y-1">
           {weekDates.map((date) => {
-            const dayEvents = events.filter((e) => isSameDay(new Date(e.startDate), date))
+            const dayEvents = visibleEvents.filter((e) => isSameDay(new Date(e.startDate), date))
             const isToday = isSameDay(date, today)
             const isPast = date < today && !isToday
             const dayName = date.toLocaleDateString('sv-SE', { weekday: 'short' })
