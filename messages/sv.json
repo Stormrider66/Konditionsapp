@@ -7468,6 +7468,50 @@
         "errorDescription": "Försök igen"
       }
     },
+    "athleteProgramCalendar": {
+      "emptyWeeks": "Inga veckor tillgängliga",
+      "titlePrefix": "Tränings",
+      "titleAccent": "kalender",
+      "subtitle": "Följ din plan vecka för vecka",
+      "week": "Vecka",
+      "phaseLabel": "Fas",
+      "current": "Aktuell",
+      "goal": "Mål",
+      "emptyWorkoutsForWeek": "Inga träningspass planerade för denna vecka.",
+      "activeRest": "Aktiv vila",
+      "completed": "Klar",
+      "actions": {
+        "expandAll": "Expandera alla",
+        "collapseAll": "Minimera alla",
+        "viewLog": "Visa logg",
+        "startWorkout": "Starta pass"
+      },
+      "days": {
+        "monday": "Måndag",
+        "tuesday": "Tisdag",
+        "wednesday": "Onsdag",
+        "thursday": "Torsdag",
+        "friday": "Fredag",
+        "saturday": "Lördag",
+        "sunday": "Söndag"
+      },
+      "phase": {
+        "base": "Bas",
+        "build": "Uppbyggnad",
+        "peak": "Peak",
+        "taper": "Taper",
+        "recovery": "Återhämtning",
+        "transition": "Övergång"
+      },
+      "intensity": {
+        "recovery": "Återhämtning",
+        "easy": "Lätt",
+        "moderate": "Måttlig",
+        "threshold": "Tröskel",
+        "interval": "Intervall",
+        "max": "Maximal"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

@@ -7468,6 +7468,50 @@
         "errorDescription": "Try again"
       }
     },
+    "athleteProgramCalendar": {
+      "emptyWeeks": "No weeks available",
+      "titlePrefix": "Training",
+      "titleAccent": "calendar",
+      "subtitle": "Follow your plan week by week",
+      "week": "Week",
+      "phaseLabel": "Phase",
+      "current": "Current",
+      "goal": "Goal",
+      "emptyWorkoutsForWeek": "No workouts planned for this week.",
+      "activeRest": "Active rest",
+      "completed": "Done",
+      "actions": {
+        "expandAll": "Expand all",
+        "collapseAll": "Collapse all",
+        "viewLog": "View log",
+        "startWorkout": "Start workout"
+      },
+      "days": {
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday"
+      },
+      "phase": {
+        "base": "Base",
+        "build": "Build",
+        "peak": "Peak",
+        "taper": "Taper",
+        "recovery": "Recovery",
+        "transition": "Transition"
+      },
+      "intensity": {
+        "recovery": "Recovery",
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "threshold": "Threshold",
+        "interval": "Interval",
+        "max": "Maximal"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
