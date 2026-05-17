@@ -4853,6 +4853,47 @@
         "title": "Måltid sparad!"
       }
     },
+    "nutritionScore": {
+      "title": "Nutritionspoäng",
+      "empty": "Börja logga måltider för att se din poäng.",
+      "basedOnDays": "Baserat på {count} dagar med loggning",
+      "latestBreakdown": "Senaste dagens breakdown",
+      "bestDay": "Bästa dag",
+      "worstDay": "Sämsta dag",
+      "scorePoints": "{score} poäng",
+      "categories": {
+        "calories": "Kalorier",
+        "protein": "Protein",
+        "carbs": "Kolhydrater",
+        "fat": "Fett",
+        "meals": "Måltider"
+      },
+      "descriptions": {
+        "onTarget": "Inom mål",
+        "nearTarget": "Nära mål",
+        "outsideTarget": "Utanför mål",
+        "excellent": "Utmärkt",
+        "good": "Bra",
+        "needsIncrease": "Behöver ökas",
+        "balanced": "Balanserat",
+        "couldBeBetter": "Kunde vara bättre",
+        "adjustIntake": "Justera intaget",
+        "mealCountGood": "{count} måltider - bra!",
+        "moreMealsRecommended": "Fler måltider rekommenderas"
+      },
+      "grades": {
+        "excellent": "Utmärkt",
+        "veryGood": "Mycket bra",
+        "good": "Bra",
+        "canImprove": "Kan förbättras",
+        "focusMore": "Fokusera mer"
+      },
+      "trend": {
+        "improving": "Förbättras",
+        "declining": "Försämras",
+        "stable": "Stabilt"
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

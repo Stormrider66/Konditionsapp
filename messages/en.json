@@ -4853,6 +4853,47 @@
         "title": "Meal saved!"
       }
     },
+    "nutritionScore": {
+      "title": "Nutrition score",
+      "empty": "Start logging meals to see your score.",
+      "basedOnDays": "Based on {count} days of logging",
+      "latestBreakdown": "Latest day breakdown",
+      "bestDay": "Best day",
+      "worstDay": "Worst day",
+      "scorePoints": "{score} points",
+      "categories": {
+        "calories": "Calories",
+        "protein": "Protein",
+        "carbs": "Carbohydrates",
+        "fat": "Fat",
+        "meals": "Meals"
+      },
+      "descriptions": {
+        "onTarget": "On target",
+        "nearTarget": "Near target",
+        "outsideTarget": "Outside target",
+        "excellent": "Excellent",
+        "good": "Good",
+        "needsIncrease": "Needs to increase",
+        "balanced": "Balanced",
+        "couldBeBetter": "Could be better",
+        "adjustIntake": "Adjust intake",
+        "mealCountGood": "{count} meals - good!",
+        "moreMealsRecommended": "More meals recommended"
+      },
+      "grades": {
+        "excellent": "Excellent",
+        "veryGood": "Very good",
+        "good": "Good",
+        "canImprove": "Can improve",
+        "focusMore": "Focus more"
+      },
+      "trend": {
+        "improving": "Improving",
+        "declining": "Declining",
+        "stable": "Stable"
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

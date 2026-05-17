@@ -13,6 +13,7 @@ import {
   Target,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface DailyNutritionData {
   date: string
@@ -38,10 +39,11 @@ interface NutritionScoreProps {
 }
 
 interface ScoreBreakdown {
-  category: string
+  categoryKey: string
   score: number
   maxScore: number
-  description: string
+  descriptionKey: string
+  descriptionValues?: Record<string, number>
 }
 
 function calculateDailyScore(
@@ -54,64 +56,66 @@ function calculateDailyScore(
   const calorieDeviation = Math.abs(data.calories - goals.calories) / goals.calories
   const calorieScore = calorieDeviation <= 0.1 ? 25 : calorieDeviation <= 0.2 ? 20 : calorieDeviation <= 0.3 ? 15 : 5
   breakdown.push({
-    category: 'Kalorier',
+    categoryKey: 'categories.calories',
     score: calorieScore,
     maxScore: 25,
-    description: calorieDeviation <= 0.1 ? 'Inom mål' : calorieDeviation <= 0.2 ? 'Nära mål' : 'Utanför mål',
+    descriptionKey: calorieDeviation <= 0.1 ? 'descriptions.onTarget' : calorieDeviation <= 0.2 ? 'descriptions.nearTarget' : 'descriptions.outsideTarget',
   })
 
   // Protein target (30 points) - hitting 90%+ is perfect
   const proteinRatio = data.proteinGrams / goals.proteinGrams
   const proteinScore = proteinRatio >= 0.9 ? 30 : proteinRatio >= 0.8 ? 24 : proteinRatio >= 0.7 ? 18 : proteinRatio >= 0.5 ? 10 : 5
   breakdown.push({
-    category: 'Protein',
+    categoryKey: 'categories.protein',
     score: proteinScore,
     maxScore: 30,
-    description: proteinRatio >= 0.9 ? 'Utmärkt' : proteinRatio >= 0.7 ? 'Bra' : 'Behöver ökas',
+    descriptionKey: proteinRatio >= 0.9 ? 'descriptions.excellent' : proteinRatio >= 0.7 ? 'descriptions.good' : 'descriptions.needsIncrease',
   })
 
   // Carbs balance (20 points)
   const carbsRatio = data.carbsGrams / goals.carbsGrams
   const carbsScore = carbsRatio >= 0.8 && carbsRatio <= 1.2 ? 20 : carbsRatio >= 0.6 && carbsRatio <= 1.4 ? 15 : 8
   breakdown.push({
-    category: 'Kolhydrater',
+    categoryKey: 'categories.carbs',
     score: carbsScore,
     maxScore: 20,
-    description: carbsRatio >= 0.8 && carbsRatio <= 1.2 ? 'Balanserat' : 'Kunde vara bättre',
+    descriptionKey: carbsRatio >= 0.8 && carbsRatio <= 1.2 ? 'descriptions.balanced' : 'descriptions.couldBeBetter',
   })
 
   // Fat balance (15 points)
   const fatRatio = data.fatGrams / goals.fatGrams
   const fatScore = fatRatio >= 0.7 && fatRatio <= 1.3 ? 15 : fatRatio >= 0.5 && fatRatio <= 1.5 ? 10 : 5
   breakdown.push({
-    category: 'Fett',
+    categoryKey: 'categories.fat',
     score: fatScore,
     maxScore: 15,
-    description: fatRatio >= 0.7 && fatRatio <= 1.3 ? 'Balanserat' : 'Justera intaget',
+    descriptionKey: fatRatio >= 0.7 && fatRatio <= 1.3 ? 'descriptions.balanced' : 'descriptions.adjustIntake',
   })
 
   // Meal frequency (10 points) - 3-5 meals is ideal
   const mealScore = data.mealCount >= 3 && data.mealCount <= 5 ? 10 : data.mealCount >= 2 ? 7 : 3
   breakdown.push({
-    category: 'Måltider',
+    categoryKey: 'categories.meals',
     score: mealScore,
     maxScore: 10,
-    description: data.mealCount >= 3 ? `${data.mealCount} måltider - bra!` : 'Fler måltider rekommenderas',
+    descriptionKey: data.mealCount >= 3 ? 'descriptions.mealCountGood' : 'descriptions.moreMealsRecommended',
+    descriptionValues: data.mealCount >= 3 ? { count: data.mealCount } : undefined,
   })
 
   const totalScore = breakdown.reduce((sum, b) => sum + b.score, 0)
   return { score: totalScore, breakdown }
 }
 
-function getScoreGrade(score: number): { label: string; color: string; emoji: string } {
-  if (score >= 90) return { label: 'Utmärkt', color: 'text-green-500', emoji: '🏆' }
-  if (score >= 75) return { label: 'Mycket bra', color: 'text-green-400', emoji: '⭐' }
-  if (score >= 60) return { label: 'Bra', color: 'text-yellow-500', emoji: '👍' }
-  if (score >= 45) return { label: 'Kan förbättras', color: 'text-orange-500', emoji: '💪' }
-  return { label: 'Fokusera mer', color: 'text-red-500', emoji: '🎯' }
+function getScoreGrade(score: number): { labelKey: string; color: string; emoji: string } {
+  if (score >= 90) return { labelKey: 'grades.excellent', color: 'text-green-500', emoji: '🏆' }
+  if (score >= 75) return { labelKey: 'grades.veryGood', color: 'text-green-400', emoji: '⭐' }
+  if (score >= 60) return { labelKey: 'grades.good', color: 'text-yellow-500', emoji: '👍' }
+  if (score >= 45) return { labelKey: 'grades.canImprove', color: 'text-orange-500', emoji: '💪' }
+  return { labelKey: 'grades.focusMore', color: 'text-red-500', emoji: '🎯' }
 }
 
 export function NutritionScore({ dailyData, goals, className, variant = 'default' }: NutritionScoreProps) {
+  const t = useTranslations('components.nutritionScore')
   const isGlass = variant === 'glass'
   const analysis = useMemo(() => {
     if (dailyData.length === 0) {
@@ -158,12 +162,12 @@ export function NutritionScore({ dailyData, goals, className, variant = 'default
         <EmptyHeader>
           <EmptyTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5" />
-            Nutritionspoäng
+            {t('title')}
           </EmptyTitle>
         </EmptyHeader>
         <EmptyContent>
           <p className={isGlass ? 'text-slate-500 dark:text-slate-400' : 'text-muted-foreground'}>
-            Börja logga måltider för att se din poäng.
+            {t('empty')}
           </p>
         </EmptyContent>
       </EmptyCard>
@@ -185,10 +189,10 @@ export function NutritionScore({ dailyData, goals, className, variant = 'default
       <Header>
         <Title className="flex items-center gap-2">
           <Trophy className="h-5 w-5" />
-          Nutritionspoäng
+          {t('title')}
         </Title>
         <Description>
-          Baserat på {analysis.daysLogged} dagar med loggning
+          {t('basedOnDays', { count: analysis.daysLogged })}
         </Description>
       </Header>
       <Content className="space-y-6">
@@ -200,24 +204,24 @@ export function NutritionScore({ dailyData, goals, className, variant = 'default
           </div>
           <div className={cn("flex items-center justify-center gap-2 text-lg font-medium", grade.color)}>
             <span>{grade.emoji}</span>
-            <span>{grade.label}</span>
+            <span>{t(grade.labelKey)}</span>
           </div>
           {/* Trend */}
           <div className={cn("flex items-center justify-center gap-1 mt-2 text-sm", mutedText)}>
             {analysis.trend > 2 ? (
               <>
                 <TrendingUp className="h-4 w-4 text-green-500" />
-                <span>Förbättras</span>
+                <span>{t('trend.improving')}</span>
               </>
             ) : analysis.trend < -2 ? (
               <>
                 <TrendingDown className="h-4 w-4 text-red-500" />
-                <span>Försämras</span>
+                <span>{t('trend.declining')}</span>
               </>
             ) : (
               <>
                 <Minus className="h-4 w-4" />
-                <span>Stabilt</span>
+                <span>{t('trend.stable')}</span>
               </>
             )}
           </div>
@@ -225,17 +229,17 @@ export function NutritionScore({ dailyData, goals, className, variant = 'default
 
         {/* Score Breakdown */}
         <div className="space-y-3">
-          <h4 className={cn("font-medium text-sm", mainText)}>Senaste dagens breakdown</h4>
+          <h4 className={cn("font-medium text-sm", mainText)}>{t('latestBreakdown')}</h4>
           {analysis.latestBreakdown.map((item) => (
-            <div key={item.category} className="space-y-1">
+            <div key={item.categoryKey} className="space-y-1">
               <div className="flex items-center justify-between text-sm">
-                <span className={mainText}>{item.category}</span>
+                <span className={mainText}>{t(item.categoryKey)}</span>
                 <span className={mutedText}>
                   {item.score}/{item.maxScore}
                 </span>
               </div>
               <Progress value={(item.score / item.maxScore) * 100} className="h-2" />
-              <p className={cn("text-xs", mutedText)}>{item.description}</p>
+              <p className={cn("text-xs", mutedText)}>{t(item.descriptionKey, item.descriptionValues)}</p>
             </div>
           ))}
         </div>
@@ -244,13 +248,13 @@ export function NutritionScore({ dailyData, goals, className, variant = 'default
         <div className="grid grid-cols-2 gap-4 text-center text-sm">
           <div className="p-3 rounded-lg bg-green-500/10">
             <Star className="h-4 w-4 mx-auto mb-1 text-green-500" />
-            <p className={cn("font-medium", mainText)}>Bästa dag</p>
-            <p className={mutedText}>{analysis.bestDay.score} poäng</p>
+            <p className={cn("font-medium", mainText)}>{t('bestDay')}</p>
+            <p className={mutedText}>{t('scorePoints', { score: analysis.bestDay.score ?? 0 })}</p>
           </div>
           <div className="p-3 rounded-lg bg-red-500/10">
             <Target className="h-4 w-4 mx-auto mb-1 text-red-500" />
-            <p className={cn("font-medium", mainText)}>Sämsta dag</p>
-            <p className={mutedText}>{analysis.worstDay.score} poäng</p>
+            <p className={cn("font-medium", mainText)}>{t('worstDay')}</p>
+            <p className={mutedText}>{t('scorePoints', { score: analysis.worstDay.score ?? 0 })}</p>
           </div>
         </div>
       </Content>
