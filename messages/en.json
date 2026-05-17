@@ -214,6 +214,92 @@
         "veryTough": "Very tough"
       }
     },
+    "history": {
+      "back": "Back",
+      "titlePrefix": "Training",
+      "titleAccent": " history",
+      "description": "Overview of your completed workouts and progress",
+      "fallbackAdHocName": "Ad-hoc workout",
+      "stats": {
+        "totalWorkouts": "Total workouts",
+        "latest": "Last {period}",
+        "totalDistance": "Total distance",
+        "kilometersCompleted": "kilometers completed",
+        "totalTime": "Total time",
+        "effectiveTraining": "effective training",
+        "averageRpe": "Avg RPE",
+        "perceivedEffort": "perceived effort"
+      },
+      "filters": {
+        "title": "Filter",
+        "description": "Choose timeframe and training type",
+        "timeframe": "Timeframe",
+        "trainingType": "Training type",
+        "all": "All"
+      },
+      "timeframes": {
+        "sevenDays": "7 days",
+        "thirtyDays": "30 days",
+        "threeMonths": "3 months",
+        "sixMonths": "6 months",
+        "oneYear": "1 year"
+      },
+      "timeframeSummaries": {
+        "sevenDays": "7 days",
+        "thirtyDays": "30 days",
+        "threeMonths": "3 months",
+        "sixMonths": "6 months",
+        "oneYear": "year"
+      },
+      "workoutTypes": {
+        "running": "Running",
+        "cycling": "Cycling",
+        "strength": "Strength",
+        "core": "Core",
+        "plyometric": "Plyometrics",
+        "recovery": "Recovery",
+        "skiing": "Skiing",
+        "other": "Other",
+        "cardio": "Cardio",
+        "hybrid": "Hybrid",
+        "agility": "Agility",
+        "mixed": "Mixed",
+        "swimming": "Swimming",
+        "rowing": "Rowing",
+        "walking": "Walking",
+        "crossTraining": "Cross-training",
+        "hyrox": "HYROX"
+      },
+      "table": {
+        "title": "All workouts",
+        "description": "Detailed overview of all your completed workouts",
+        "empty": "No workouts found for the selected period",
+        "date": "Date",
+        "workout": "Workout",
+        "category": "Category",
+        "distance": "Distance",
+        "time": "Time",
+        "action": "Action",
+        "view": "View"
+      },
+      "sources": {
+        "aiWorkout": "AI workout",
+        "aiChat": "AI chat",
+        "customWorkout": "Custom workout",
+        "aiGeneratedWorkout": "AI-generated workout",
+        "aiChatWorkout": "AI chat workout",
+        "studioWorkout": "Studio workout"
+      },
+      "garmin": {
+        "averageHeartRate": "Average heart rate",
+        "maxHeartRate": "Max heart rate",
+        "maxPrefix": "max",
+        "pace": "Pace",
+        "averageWatts": "Average watts",
+        "calories": "Calories",
+        "elevationGain": "Elevation gain"
+      }
+    },
     "dashboard": {
       "welcomeBack": "Welcome back",
       "quickActions": {

@@ -214,6 +214,92 @@
         "veryTough": "Väldigt tufft"
       }
     },
+    "history": {
+      "back": "Tillbaka",
+      "titlePrefix": "Tränings",
+      "titleAccent": "historik",
+      "description": "Översikt över dina genomförda träningspass och framsteg",
+      "fallbackAdHocName": "Ad-hoc pass",
+      "stats": {
+        "totalWorkouts": "Totalt pass",
+        "latest": "Senaste {period}",
+        "totalDistance": "Total distans",
+        "kilometersCompleted": "kilometer körda",
+        "totalTime": "Total tid",
+        "effectiveTraining": "effektiv träning",
+        "averageRpe": "Snitt RPE",
+        "perceivedEffort": "upplevd ansträngning"
+      },
+      "filters": {
+        "title": "Filtrera",
+        "description": "Välj tidsperiod och typ av träning",
+        "timeframe": "Tidsperiod",
+        "trainingType": "Typ av träning",
+        "all": "Alla"
+      },
+      "timeframes": {
+        "sevenDays": "7 dagar",
+        "thirtyDays": "30 dagar",
+        "threeMonths": "3 månader",
+        "sixMonths": "6 månader",
+        "oneYear": "1 år"
+      },
+      "timeframeSummaries": {
+        "sevenDays": "7 dagarna",
+        "thirtyDays": "30 dagarna",
+        "threeMonths": "3 månaderna",
+        "sixMonths": "6 månaderna",
+        "oneYear": "året"
+      },
+      "workoutTypes": {
+        "running": "Löpning",
+        "cycling": "Cykling",
+        "strength": "Styrka",
+        "core": "Core",
+        "plyometric": "Plyometri",
+        "recovery": "Återhämtning",
+        "skiing": "Skidåkning",
+        "other": "Annat",
+        "cardio": "Kondition",
+        "hybrid": "Hybrid",
+        "agility": "Agility",
+        "mixed": "Mixat",
+        "swimming": "Simning",
+        "rowing": "Rodd",
+        "walking": "Promenad",
+        "crossTraining": "Kondition",
+        "hyrox": "HYROX"
+      },
+      "table": {
+        "title": "Alla träningspass",
+        "description": "Detaljerad översikt över alla dina genomförda pass",
+        "empty": "Inga pass hittades för vald period",
+        "date": "Datum",
+        "workout": "Träningspass",
+        "category": "Kategori",
+        "distance": "Distans",
+        "time": "Tid",
+        "action": "Åtgärd",
+        "view": "Visa"
+      },
+      "sources": {
+        "aiWorkout": "AI-pass",
+        "aiChat": "AI-chatt",
+        "customWorkout": "Eget pass",
+        "aiGeneratedWorkout": "AI-genererat pass",
+        "aiChatWorkout": "AI-chatt pass",
+        "studioWorkout": "Studio-pass"
+      },
+      "garmin": {
+        "averageHeartRate": "Snittpuls",
+        "maxHeartRate": "Maxpuls",
+        "maxPrefix": "max",
+        "pace": "Tempo",
+        "averageWatts": "Snittwatt",
+        "calories": "Kalorier",
+        "elevationGain": "Höjdmeter"
+      }
+    },
     "dashboard": {
       "welcomeBack": "Välkommen tillbaka",
       "quickActions": {
