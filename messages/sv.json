@@ -3022,6 +3022,26 @@
         "muscleMass": "Mål muskelmassa"
       }
     },
+    "trendAnalysis": {
+      "title": "AI-analys",
+      "emptyDescription": "Lägg till din första mätning för att få AI-driven analys.",
+      "basedOnMeasurements": "Baserat på {count, plural, =1 {# mätning} other {# mätningar}}",
+      "perWeek": "vecka",
+      "recommendations": "Rekommendationer",
+      "metrics": {
+        "weight": "Vikt",
+        "bodyFat": "Kroppsfett",
+        "muscleMass": "Muskelmassa"
+      },
+      "status": {
+        "excellent": "Utmärkt",
+        "good": "Bra",
+        "onTrack": "På rätt väg",
+        "slow": "Långsam progress",
+        "concerning": "Behöver uppmärksamhet",
+        "unknown": "Behöver mer data"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

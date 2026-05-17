@@ -3022,6 +3022,26 @@
         "muscleMass": "Target muscle mass"
       }
     },
+    "trendAnalysis": {
+      "title": "AI analysis",
+      "emptyDescription": "Add your first measurement to get AI-driven analysis.",
+      "basedOnMeasurements": "Based on {count, plural, =1 {# measurement} other {# measurements}}",
+      "perWeek": "week",
+      "recommendations": "Recommendations",
+      "metrics": {
+        "weight": "Weight",
+        "bodyFat": "Body fat",
+        "muscleMass": "Muscle mass"
+      },
+      "status": {
+        "excellent": "Excellent",
+        "good": "Good",
+        "onTrack": "On track",
+        "slow": "Slow progress",
+        "concerning": "Needs attention",
+        "unknown": "Needs more data"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",

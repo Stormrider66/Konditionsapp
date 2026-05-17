@@ -20,6 +20,7 @@ import {
   type AnalysisOptions
 } from '@/lib/ai/body-composition-analyzer'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface TrendAnalysisProps {
   measurements: BodyCompositionMeasurement[]
@@ -40,14 +41,20 @@ function TrendIcon({ direction }: { direction: string }) {
   }
 }
 
-function StatusBadge({ status }: { status: BodyCompAnalysis['progressStatus'] }) {
+function StatusBadge({
+  status,
+  labels,
+}: {
+  status: BodyCompAnalysis['progressStatus']
+  labels: Record<string, string>
+}) {
   const config: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-    excellent: { label: 'Utmärkt', variant: 'default' },
-    good: { label: 'Bra', variant: 'default' },
-    on_track: { label: 'På rätt väg', variant: 'secondary' },
-    slow: { label: 'Långsam progress', variant: 'outline' },
-    concerning: { label: 'Behöver uppmärksamhet', variant: 'destructive' },
-    unknown: { label: 'Behöver mer data', variant: 'outline' },
+    excellent: { label: labels.excellent, variant: 'default' },
+    good: { label: labels.good, variant: 'default' },
+    on_track: { label: labels.onTrack, variant: 'secondary' },
+    slow: { label: labels.slow, variant: 'outline' },
+    concerning: { label: labels.concerning, variant: 'destructive' },
+    unknown: { label: labels.unknown, variant: 'outline' },
   }
 
   const { label, variant } = config[status] || config.unknown
@@ -62,6 +69,7 @@ function TrendCard({
   direction,
   unit,
   isGood,
+  perWeekLabel,
 }: {
   title: string
   value: number | null | undefined
@@ -69,6 +77,7 @@ function TrendCard({
   direction?: string
   unit: string
   isGood?: boolean
+  perWeekLabel: string
 }) {
   if (value == null) return null
 
@@ -86,7 +95,7 @@ function TrendCard({
           "text-sm mt-1",
           isGood ? "text-green-600" : weeklyChange > 0 ? "text-red-500" : "text-muted-foreground"
         )}>
-          {weeklyChange > 0 ? '+' : ''}{weeklyChange.toFixed(2)} {unit}/vecka
+          {weeklyChange > 0 ? '+' : ''}{weeklyChange.toFixed(2)} {unit}/{perWeekLabel}
         </div>
       )}
     </div>
@@ -94,6 +103,7 @@ function TrendCard({
 }
 
 export function TrendAnalysis({ measurements, options, className }: TrendAnalysisProps) {
+  const t = useTranslations('components.trendAnalysis')
   const analysis = useMemo(
     () => analyzeBodyComposition(measurements, options),
     [measurements, options]
@@ -109,12 +119,12 @@ export function TrendAnalysis({ measurements, options, className }: TrendAnalysi
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
-            AI-analys
+            {t('title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Lägg till din första mätning för att få AI-driven analys.
+            {t('emptyDescription')}
           </p>
         </CardContent>
       </Card>
@@ -128,13 +138,23 @@ export function TrendAnalysis({ measurements, options, className }: TrendAnalysi
           <div>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
-              AI-analys
+              {t('title')}
             </CardTitle>
             <CardDescription>
-              Baserat på {measurements.length} mätningar
+              {t('basedOnMeasurements', { count: measurements.length })}
             </CardDescription>
           </div>
-          <StatusBadge status={analysis.progressStatus} />
+          <StatusBadge
+            status={analysis.progressStatus}
+            labels={{
+              excellent: t('status.excellent'),
+              good: t('status.good'),
+              onTrack: t('status.onTrack'),
+              slow: t('status.slow'),
+              concerning: t('status.concerning'),
+              unknown: t('status.unknown'),
+            }}
+          />
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -146,28 +166,31 @@ export function TrendAnalysis({ measurements, options, className }: TrendAnalysi
         {/* Trend Cards */}
         <div className="grid gap-4 md:grid-cols-3">
           <TrendCard
-            title="Vikt"
+            title={t('metrics.weight')}
             value={latestMeasurement.weightKg}
             weeklyChange={analysis.weeklyWeightChange}
             direction={analysis.weightTrend?.direction}
             unit="kg"
             isGood={options?.goal === 'weight_loss' && (analysis.weeklyWeightChange ?? 0) < 0}
+            perWeekLabel={t('perWeek')}
           />
           <TrendCard
-            title="Kroppsfett"
+            title={t('metrics.bodyFat')}
             value={latestMeasurement.bodyFatPercent}
             weeklyChange={analysis.weeklyFatChange}
             direction={analysis.fatTrend?.direction}
             unit="%"
             isGood={(analysis.weeklyFatChange ?? 0) < 0}
+            perWeekLabel={t('perWeek')}
           />
           <TrendCard
-            title="Muskelmassa"
+            title={t('metrics.muscleMass')}
             value={latestMeasurement.muscleMassKg}
             weeklyChange={analysis.weeklyMuscleChange}
             direction={analysis.muscleTrend?.direction}
             unit="kg"
             isGood={(analysis.weeklyMuscleChange ?? 0) > 0}
+            perWeekLabel={t('perWeek')}
           />
         </div>
 
@@ -186,7 +209,7 @@ export function TrendAnalysis({ measurements, options, className }: TrendAnalysi
         {/* Recommendations */}
         {analysis.recommendations.length > 0 && (
           <div className="space-y-2">
-            <h4 className="font-medium text-sm">Rekommendationer</h4>
+            <h4 className="font-medium text-sm">{t('recommendations')}</h4>
             <ul className="space-y-2">
               {analysis.recommendations.map((rec, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
