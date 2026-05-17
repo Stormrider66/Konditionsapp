@@ -161,6 +161,98 @@
           "description": "Fill in a structured form"
         }
       }
+    },
+    "aiNotifications": {
+      "title": "AI notifications",
+      "description": "Customize how your AI coach communicates with you",
+      "notificationTypes": {
+        "title": "Notification types",
+        "description": "Choose which AI-powered notifications you want to receive",
+        "morningBriefing": {
+          "label": "Morning briefing",
+          "description": "Daily summary and tips based on your data"
+        },
+        "preWorkout": {
+          "label": "Pre-workout reminders",
+          "description": "Preparation tips before upcoming workouts"
+        },
+        "postWorkout": {
+          "label": "Post-workout check-in",
+          "description": "Ask how the workout felt after a completed session"
+        },
+        "patternAlerts": {
+          "label": "Pattern alerts",
+          "description": "Warnings for negative trends in sleep, fatigue, or recovery"
+        },
+        "milestones": {
+          "label": "Milestone celebrations",
+          "description": "Celebrate PRs, streaks, and other achievements"
+        },
+        "weather": {
+          "label": "Weather alerts",
+          "description": "Tips based on weather for outdoor training (coming soon)"
+        }
+      },
+      "timing": {
+        "title": "Timing settings",
+        "description": "Customize when you want to receive notifications",
+        "morningBriefingTime": "Morning briefing time",
+        "morningBriefingHelp": "When you want to receive your daily morning briefing",
+        "preWorkoutLeadTime": "Advance notice before training",
+        "preWorkoutLeadHelp": "How long before training you want reminders"
+      },
+      "leadTimes": {
+        "thirtyMinutes": "30 minutes",
+        "oneHour": "1 hour",
+        "ninetyMinutes": "1.5 hours",
+        "twoHours": "2 hours",
+        "threeHours": "3 hours",
+        "fourHours": "4 hours"
+      },
+      "communication": {
+        "title": "Communication style",
+        "description": "Customize how the AI communicates with you",
+        "verbosityLabel": "Detail level",
+        "motivationLabel": "Motivation style"
+      },
+      "verbosity": {
+        "minimal": {
+          "label": "Minimal",
+          "description": "Short, concise messages"
+        },
+        "normal": {
+          "label": "Normal",
+          "description": "Balanced amount of information"
+        },
+        "detailed": {
+          "label": "Detailed",
+          "description": "More detailed explanations"
+        }
+      },
+      "motivation": {
+        "supportive": {
+          "label": "Supportive",
+          "description": "Calm and understanding tone"
+        },
+        "balanced": {
+          "label": "Balanced",
+          "description": "Mix of support and challenge"
+        },
+        "challenging": {
+          "label": "Challenging",
+          "description": "Push-yourself attitude"
+        }
+      },
+      "saveMessages": {
+        "saved": "Settings saved!",
+        "saveFailed": "Could not save settings",
+        "error": "Something went wrong"
+      },
+      "unsavedChanges": "You have unsaved changes",
+      "actions": {
+        "saving": "Saving...",
+        "save": "Save settings"
+      }
     }
   },
   "home": {

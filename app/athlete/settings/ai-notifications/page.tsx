@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -30,6 +29,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useTranslations } from '@/i18n/client'
 
 interface Preferences {
   morningBriefingEnabled: boolean
@@ -60,34 +60,34 @@ const defaultPreferences: Preferences = {
 }
 
 const verbosityOptions = [
-  { value: 'MINIMAL', label: 'Minimal', description: 'Korta, koncisa meddelanden' },
-  { value: 'NORMAL', label: 'Normal', description: 'Balanserad mängd information' },
-  { value: 'DETAILED', label: 'Detaljerad', description: 'Mer utförliga förklaringar' },
+  { value: 'MINIMAL', labelKey: 'verbosity.minimal.label', descriptionKey: 'verbosity.minimal.description' },
+  { value: 'NORMAL', labelKey: 'verbosity.normal.label', descriptionKey: 'verbosity.normal.description' },
+  { value: 'DETAILED', labelKey: 'verbosity.detailed.label', descriptionKey: 'verbosity.detailed.description' },
 ]
 
 const motivationOptions = [
-  { value: 'SUPPORTIVE', label: 'Stöttande', description: 'Lugnande och förstående ton' },
-  { value: 'BALANCED', label: 'Balanserad', description: 'Mix av stöd och utmaning' },
-  { value: 'CHALLENGING', label: 'Utmanande', description: 'Push-dig-själv-attityd' },
+  { value: 'SUPPORTIVE', labelKey: 'motivation.supportive.label', descriptionKey: 'motivation.supportive.description' },
+  { value: 'BALANCED', labelKey: 'motivation.balanced.label', descriptionKey: 'motivation.balanced.description' },
+  { value: 'CHALLENGING', labelKey: 'motivation.challenging.label', descriptionKey: 'motivation.challenging.description' },
 ]
 
 const leadTimeOptions = [
-  { value: 30, label: '30 minuter' },
-  { value: 60, label: '1 timme' },
-  { value: 90, label: '1,5 timmar' },
-  { value: 120, label: '2 timmar' },
-  { value: 180, label: '3 timmar' },
-  { value: 240, label: '4 timmar' },
+  { value: 30, labelKey: 'leadTimes.thirtyMinutes' },
+  { value: 60, labelKey: 'leadTimes.oneHour' },
+  { value: 90, labelKey: 'leadTimes.ninetyMinutes' },
+  { value: 120, labelKey: 'leadTimes.twoHours' },
+  { value: 180, labelKey: 'leadTimes.threeHours' },
+  { value: 240, labelKey: 'leadTimes.fourHours' },
 ]
 
 export default function AINotificationSettingsPage() {
+  const t = useTranslations('pages.aiNotifications')
   const basePath = useBasePath()
-  const router = useRouter()
   const [preferences, setPreferences] = useState<Preferences>(defaultPreferences)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [saveMessage, setSaveMessage] = useState<'saved' | 'saveFailed' | 'error' | null>(null)
 
   useEffect(() => {
     async function fetchPreferences() {
@@ -106,7 +106,7 @@ export default function AINotificationSettingsPage() {
       }
     }
 
-    fetchPreferences()
+    void fetchPreferences()
   }, [])
 
   function updatePreference<K extends keyof Preferences>(key: K, value: Preferences[K]) {
@@ -128,14 +128,14 @@ export default function AINotificationSettingsPage() {
 
       if (response.ok) {
         setHasChanges(false)
-        setSaveMessage('Inställningar sparade!')
+        setSaveMessage('saved')
         setTimeout(() => setSaveMessage(null), 3000)
       } else {
-        setSaveMessage('Kunde inte spara inställningar')
+        setSaveMessage('saveFailed')
       }
     } catch (error) {
       console.error('Error saving preferences:', error)
-      setSaveMessage('Ett fel uppstod')
+      setSaveMessage('error')
     } finally {
       setIsSaving(false)
     }
@@ -161,9 +161,9 @@ export default function AINotificationSettingsPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">AI-notifikationer</h1>
+          <h1 className="text-2xl font-bold">{t('title')}</h1>
           <p className="text-muted-foreground">
-            Anpassa hur din AI-coach kommunicerar med dig
+            {t('description')}
           </p>
         </div>
       </div>
@@ -173,10 +173,10 @@ export default function AINotificationSettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Notifikationstyper
+            {t('notificationTypes.title')}
           </CardTitle>
           <CardDescription>
-            Välj vilka AI-drivna notifikationer du vill ta emot
+            {t('notificationTypes.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -187,9 +187,9 @@ export default function AINotificationSettingsPage() {
                 <Sun className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <Label className="text-base font-medium">Morgonbriefing</Label>
+                <Label className="text-base font-medium">{t('notificationTypes.morningBriefing.label')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Daglig sammanfattning och tips baserat på din data
+                  {t('notificationTypes.morningBriefing.description')}
                 </p>
               </div>
             </div>
@@ -206,9 +206,9 @@ export default function AINotificationSettingsPage() {
                 <Dumbbell className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <Label className="text-base font-medium">Pre-workout påminnelser</Label>
+                <Label className="text-base font-medium">{t('notificationTypes.preWorkout.label')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Förberedande tips inför kommande träningspass
+                  {t('notificationTypes.preWorkout.description')}
                 </p>
               </div>
             </div>
@@ -225,9 +225,9 @@ export default function AINotificationSettingsPage() {
                 <ClipboardCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <Label className="text-base font-medium">Post-workout check-in</Label>
+                <Label className="text-base font-medium">{t('notificationTypes.postWorkout.label')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Fråga om hur träningen kändes efter avslutat pass
+                  {t('notificationTypes.postWorkout.description')}
                 </p>
               </div>
             </div>
@@ -244,9 +244,9 @@ export default function AINotificationSettingsPage() {
                 <TrendingDown className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <Label className="text-base font-medium">Mönstervarningar</Label>
+                <Label className="text-base font-medium">{t('notificationTypes.patternAlerts.label')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Varningar vid negativa trender i sömn, trötthet eller återhämtning
+                  {t('notificationTypes.patternAlerts.description')}
                 </p>
               </div>
             </div>
@@ -263,9 +263,9 @@ export default function AINotificationSettingsPage() {
                 <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
               </div>
               <div>
-                <Label className="text-base font-medium">Milstolpsfiranden</Label>
+                <Label className="text-base font-medium">{t('notificationTypes.milestones.label')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Fira PRs, streaks och andra prestationer
+                  {t('notificationTypes.milestones.description')}
                 </p>
               </div>
             </div>
@@ -282,9 +282,9 @@ export default function AINotificationSettingsPage() {
                 <Cloud className="h-5 w-5 text-sky-600 dark:text-sky-400" />
               </div>
               <div>
-                <Label className="text-base font-medium">Vädervarningar</Label>
+                <Label className="text-base font-medium">{t('notificationTypes.weather.label')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Tips baserat på väder för utomhusträning (kommer snart)
+                  {t('notificationTypes.weather.description')}
                 </p>
               </div>
             </div>
@@ -300,15 +300,15 @@ export default function AINotificationSettingsPage() {
       {/* Timing Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Tidsinställningar</CardTitle>
+          <CardTitle>{t('timing.title')}</CardTitle>
           <CardDescription>
-            Anpassa när du vill ta emot notifikationer
+            {t('timing.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Morning Briefing Time */}
           <div className="grid gap-2">
-            <Label htmlFor="briefing-time">Tid för morgonbriefing</Label>
+            <Label htmlFor="briefing-time">{t('timing.morningBriefingTime')}</Label>
             <Input
               id="briefing-time"
               type="time"
@@ -317,13 +317,13 @@ export default function AINotificationSettingsPage() {
               className="w-32"
             />
             <p className="text-xs text-muted-foreground">
-              När du vill få din dagliga morgonbriefing
+              {t('timing.morningBriefingHelp')}
             </p>
           </div>
 
           {/* Pre-Workout Lead Time */}
           <div className="grid gap-2">
-            <Label>Förvarning innan träning</Label>
+            <Label>{t('timing.preWorkoutLeadTime')}</Label>
             <Select
               value={preferences.preWorkoutLeadTime.toString()}
               onValueChange={(v) => updatePreference('preWorkoutLeadTime', parseInt(v))}
@@ -334,13 +334,13 @@ export default function AINotificationSettingsPage() {
               <SelectContent>
                 {leadTimeOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value.toString()}>
-                    {option.label}
+                    {t(option.labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Hur lång tid innan träning du vill få påminnelser
+              {t('timing.preWorkoutLeadHelp')}
             </p>
           </div>
         </CardContent>
@@ -351,10 +351,10 @@ export default function AINotificationSettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            Kommunikationsstil
+            {t('communication.title')}
           </CardTitle>
           <CardDescription>
-            Anpassa hur AI:n kommunicerar med dig
+            {t('communication.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -362,7 +362,7 @@ export default function AINotificationSettingsPage() {
           <div className="grid gap-3">
             <Label className="flex items-center gap-2">
               <Volume2 className="h-4 w-4" />
-              Detaljnivå
+              {t('communication.verbosityLabel')}
             </Label>
             <div className="grid gap-2">
               {verbosityOptions.map((option) => (
@@ -390,8 +390,8 @@ export default function AINotificationSettingsPage() {
                     }`}
                   />
                   <div>
-                    <p className="font-medium">{option.label}</p>
-                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                    <p className="font-medium">{t(option.labelKey)}</p>
+                    <p className="text-sm text-muted-foreground">{t(option.descriptionKey)}</p>
                   </div>
                 </label>
               ))}
@@ -400,7 +400,7 @@ export default function AINotificationSettingsPage() {
 
           {/* Motivation Style */}
           <div className="grid gap-3">
-            <Label>Motivationsstil</Label>
+            <Label>{t('communication.motivationLabel')}</Label>
             <div className="grid gap-2">
               {motivationOptions.map((option) => (
                 <label
@@ -427,8 +427,8 @@ export default function AINotificationSettingsPage() {
                     }`}
                   />
                   <div>
-                    <p className="font-medium">{option.label}</p>
-                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                    <p className="font-medium">{t(option.labelKey)}</p>
+                    <p className="text-sm text-muted-foreground">{t(option.descriptionKey)}</p>
                   </div>
                 </label>
               ))}
@@ -443,26 +443,26 @@ export default function AINotificationSettingsPage() {
           {saveMessage && (
             <p
               className={`text-sm ${
-                saveMessage.includes('sparade') ? 'text-green-600' : 'text-red-600'
+                saveMessage === 'saved' ? 'text-green-600' : 'text-red-600'
               }`}
             >
-              {saveMessage}
+              {t(`saveMessages.${saveMessage}`)}
             </p>
           )}
           {hasChanges && !saveMessage && (
-            <p className="text-sm text-muted-foreground">Du har osparade ändringar</p>
+            <p className="text-sm text-muted-foreground">{t('unsavedChanges')}</p>
           )}
         </div>
         <Button onClick={handleSave} disabled={isSaving || !hasChanges}>
           {isSaving ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Sparar...
+              {t('actions.saving')}
             </>
           ) : (
             <>
               <Save className="h-4 w-4 mr-2" />
-              Spara inställningar
+              {t('actions.save')}
             </>
           )}
         </Button>

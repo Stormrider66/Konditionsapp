@@ -161,6 +161,98 @@
           "description": "Fyll i ett strukturerat formulär"
         }
       }
+    },
+    "aiNotifications": {
+      "title": "AI-notifikationer",
+      "description": "Anpassa hur din AI-coach kommunicerar med dig",
+      "notificationTypes": {
+        "title": "Notifikationstyper",
+        "description": "Välj vilka AI-drivna notifikationer du vill ta emot",
+        "morningBriefing": {
+          "label": "Morgonbriefing",
+          "description": "Daglig sammanfattning och tips baserat på din data"
+        },
+        "preWorkout": {
+          "label": "Pre-workout påminnelser",
+          "description": "Förberedande tips inför kommande träningspass"
+        },
+        "postWorkout": {
+          "label": "Post-workout check-in",
+          "description": "Fråga om hur träningen kändes efter avslutat pass"
+        },
+        "patternAlerts": {
+          "label": "Mönstervarningar",
+          "description": "Varningar vid negativa trender i sömn, trötthet eller återhämtning"
+        },
+        "milestones": {
+          "label": "Milstolpsfiranden",
+          "description": "Fira PRs, streaks och andra prestationer"
+        },
+        "weather": {
+          "label": "Vädervarningar",
+          "description": "Tips baserat på väder för utomhusträning (kommer snart)"
+        }
+      },
+      "timing": {
+        "title": "Tidsinställningar",
+        "description": "Anpassa när du vill ta emot notifikationer",
+        "morningBriefingTime": "Tid för morgonbriefing",
+        "morningBriefingHelp": "När du vill få din dagliga morgonbriefing",
+        "preWorkoutLeadTime": "Förvarning innan träning",
+        "preWorkoutLeadHelp": "Hur lång tid innan träning du vill få påminnelser"
+      },
+      "leadTimes": {
+        "thirtyMinutes": "30 minuter",
+        "oneHour": "1 timme",
+        "ninetyMinutes": "1,5 timmar",
+        "twoHours": "2 timmar",
+        "threeHours": "3 timmar",
+        "fourHours": "4 timmar"
+      },
+      "communication": {
+        "title": "Kommunikationsstil",
+        "description": "Anpassa hur AI:n kommunicerar med dig",
+        "verbosityLabel": "Detaljnivå",
+        "motivationLabel": "Motivationsstil"
+      },
+      "verbosity": {
+        "minimal": {
+          "label": "Minimal",
+          "description": "Korta, koncisa meddelanden"
+        },
+        "normal": {
+          "label": "Normal",
+          "description": "Balanserad mängd information"
+        },
+        "detailed": {
+          "label": "Detaljerad",
+          "description": "Mer utförliga förklaringar"
+        }
+      },
+      "motivation": {
+        "supportive": {
+          "label": "Stöttande",
+          "description": "Lugnande och förstående ton"
+        },
+        "balanced": {
+          "label": "Balanserad",
+          "description": "Mix av stöd och utmaning"
+        },
+        "challenging": {
+          "label": "Utmanande",
+          "description": "Push-dig-själv-attityd"
+        }
+      },
+      "saveMessages": {
+        "saved": "Inställningar sparade!",
+        "saveFailed": "Kunde inte spara inställningar",
+        "error": "Ett fel uppstod"
+      },
+      "unsavedChanges": "Du har osparade ändringar",
+      "actions": {
+        "saving": "Sparar...",
+        "save": "Spara inställningar"
+      }
     }
   },
   "home": {
