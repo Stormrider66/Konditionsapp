@@ -71,7 +71,39 @@
       "cardio": {
         "title": "Cardio Sessions | Trainomics",
         "description": "Your running, cycling, and swimming sessions"
+      },
+      "nutritionWrapped": {
+        "title": "Nutrition Summary | Nutrition",
+        "description": "Your monthly and yearly nutrition summary"
+      },
+      "foodHistory": {
+        "title": "Food History | Nutrition",
+        "description": "See what you have eaten and your trends"
+      },
+      "prs": {
+        "title": "My PRs | Athlete",
+        "description": "Current 1RM by exercise"
+      },
+      "wodHistory": {
+        "title": "WOD History | Konditionstest",
+        "description": "See your previous AI-generated workouts"
+      },
+      "rehab": {
+        "title": "Rehabilitation | Athlete",
+        "description": "See your active rehabilitation programs and exercises"
       }
+    }
+  },
+  "pages": {
+    "nutritionWrapped": {
+      "backToNutrition": "Back to nutrition stats",
+      "title": "Nutrition Summary",
+      "subtitle": "Your wrapped — monthly & yearly overview"
+    },
+    "foodHistory": {
+      "backToNutrition": "Back to nutrition stats",
+      "title": "Food History",
+      "subtitle": "Your foods & nutrition sources"
     }
   },
   "home": {

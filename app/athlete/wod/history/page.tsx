@@ -1,11 +1,15 @@
-import { redirect } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { WODHistoryClient } from './WODHistoryClient'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'WOD Historik | Konditionstest',
-  description: 'Se dina tidigare AI-genererade träningspass',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.wodHistory')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 export default async function WODHistoryPage() {

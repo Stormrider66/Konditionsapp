@@ -71,7 +71,39 @@
       "cardio": {
         "title": "Cardio Pass | Trainomics",
         "description": "Dina löppass, cykelpass och simpass"
+      },
+      "nutritionWrapped": {
+        "title": "Kostsammanfattning | Kost",
+        "description": "Din månads- och årssammanfattning av kost"
+      },
+      "foodHistory": {
+        "title": "Mathistorik | Kost",
+        "description": "Se vad du har ätit och dina trender"
+      },
+      "prs": {
+        "title": "Mina PR | Athlete",
+        "description": "Aktuella 1RM per övning"
+      },
+      "wodHistory": {
+        "title": "WOD Historik | Konditionstest",
+        "description": "Se dina tidigare AI-genererade träningspass"
+      },
+      "rehab": {
+        "title": "Rehabilitering | Athlete",
+        "description": "Se dina aktiva rehabiliteringsprogram och övningar"
       }
+    }
+  },
+  "pages": {
+    "nutritionWrapped": {
+      "backToNutrition": "Tillbaka till koststatistik",
+      "title": "Kostsammanfattning",
+      "subtitle": "Din wrapped — månads & årsöversikt"
+    },
+    "foodHistory": {
+      "backToNutrition": "Tillbaka till koststatistik",
+      "title": "Mathistorik",
+      "subtitle": "Dina livsmedel & näringskällor"
     }
   },
   "home": {

@@ -3,13 +3,19 @@ import { FoodHistoryPage } from '@/components/nutrition/FoodHistoryPage'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Apple } from 'lucide-react'
 import Link from 'next/link'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Mathistorik | Kost',
-  description: 'Se vad du har ätit och dina trender',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.foodHistory')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 export default async function StandardFoodHistoryPage() {
+  const t = await getTranslations('pages.foodHistory')
   await requireAthleteOrCoachInAthleteMode()
 
   return (
@@ -23,7 +29,7 @@ export default async function StandardFoodHistoryPage() {
         <Link href="/athlete/nutrition">
           <Button variant="ghost" size="sm" className="gap-2 mb-6 text-slate-600 hover:text-slate-950 hover:bg-slate-100 rounded-full px-4 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5">
             <ArrowLeft className="h-4 w-4" />
-            Tillbaka till koststatistik
+            {t('backToNutrition')}
           </Button>
         </Link>
 
@@ -33,10 +39,10 @@ export default async function StandardFoodHistoryPage() {
           </div>
           <div>
             <h1 className="text-3xl font-black italic uppercase tracking-tight text-slate-950 leading-none dark:text-white">
-              Mathistorik
+              {t('title')}
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">
-              Dina livsmedel & näringskällor
+              {t('subtitle')}
             </p>
           </div>
         </div>

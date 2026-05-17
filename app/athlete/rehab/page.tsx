@@ -2,10 +2,15 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { AthleteRehabOverview } from './AthleteRehabOverview'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Rehabilitering | Athlete',
-  description: 'Se dina aktiva rehabiliteringsprogram och övningar',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.rehab')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 export default async function AthleteRehabPage() {

@@ -7,10 +7,15 @@
 
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { AthleteStrengthPRTable } from '@/components/athlete/strength/AthleteStrengthPRTable'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Mina PR | Athlete',
-  description: 'Aktuella 1RM per övning',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.prs')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 export const dynamic = 'force-dynamic'
