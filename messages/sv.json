@@ -5317,6 +5317,35 @@
       },
       "previewAlt": "Förhandsgranskning"
     },
+    "adHocVoiceCapture": {
+      "title": "Spela in röstmeddelande",
+      "date": {
+        "label": "När genomfördes passet?",
+        "placeholder": "Välj datum"
+      },
+      "actions": {
+        "startRecording": "Börja spela in",
+        "resume": "Fortsätt",
+        "pause": "Pausa",
+        "stop": "Stoppa",
+        "recordAgain": "Spela in igen",
+        "uploading": "Laddar upp...",
+        "analyzing": "Analyserar...",
+        "continue": "Fortsätt"
+      },
+      "errors": {
+        "permissionDenied": "Mikrofonåtkomst nekades. Vänligen ge tillstånd i din webbläsare.",
+        "startFailed": "Kunde inte starta inspelning. Kontrollera att din mikrofon fungerar.",
+        "uploadFailed": "Det gick inte att ladda upp ljudfilen"
+      },
+      "maxDuration": "Max {minutes} minuter",
+      "tips": {
+        "title": "Tips:",
+        "workoutType": "Beskriv vilken typ av pass du gjorde",
+        "duration": "Nämn duration, distans eller antal set/reps",
+        "feel": "Berätta hur tungt eller lätt det kändes"
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

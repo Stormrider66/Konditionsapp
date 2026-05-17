@@ -5317,6 +5317,35 @@
       },
       "previewAlt": "Preview"
     },
+    "adHocVoiceCapture": {
+      "title": "Record a voice message",
+      "date": {
+        "label": "When did you complete the workout?",
+        "placeholder": "Choose date"
+      },
+      "actions": {
+        "startRecording": "Start recording",
+        "resume": "Resume",
+        "pause": "Pause",
+        "stop": "Stop",
+        "recordAgain": "Record again",
+        "uploading": "Uploading...",
+        "analyzing": "Analyzing...",
+        "continue": "Continue"
+      },
+      "errors": {
+        "permissionDenied": "Microphone access was denied. Please grant permission in your browser.",
+        "startFailed": "Could not start recording. Check that your microphone works.",
+        "uploadFailed": "The audio file could not be uploaded"
+      },
+      "maxDuration": "Max {minutes} minutes",
+      "tips": {
+        "title": "Tips:",
+        "workoutType": "Describe what type of workout you did",
+        "duration": "Mention duration, distance, or number of sets/reps",
+        "feel": "Say how hard or easy it felt"
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

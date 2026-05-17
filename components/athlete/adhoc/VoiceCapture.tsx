@@ -13,7 +13,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   Mic,
   Square,
@@ -24,6 +24,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface VoiceCaptureProps {
   onSubmit: (data: { audioUrl: string; workoutDate: Date }) => Promise<void>
@@ -36,6 +37,8 @@ export function VoiceCapture({
   isProcessing,
   maxDuration = 120, // 2 minutes default
 }: VoiceCaptureProps) {
+  const t = useTranslations('components.adHocVoiceCapture')
+  const locale = useLocale()
   const [workoutDate, setWorkoutDate] = useState<Date>(new Date())
   const [isRecording, setIsRecording] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
@@ -52,6 +55,7 @@ export function VoiceCapture({
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const dateLocale = locale === 'en' ? enUS : sv
 
   // Clean up on unmount
   useEffect(() => {
@@ -121,12 +125,12 @@ export function VoiceCapture({
       console.error('Error accessing microphone:', err)
       if ((err as Error).name === 'NotAllowedError') {
         setPermissionDenied(true)
-        setError('Mikrofonåtkomst nekades. Vänligen ge tillstånd i din webbläsare.')
+        setError(t('errors.permissionDenied'))
       } else {
-        setError('Kunde inte starta inspelning. Kontrollera att din mikrofon fungerar.')
+        setError(t('errors.startFailed'))
       }
     }
-  }, [maxDuration, stopRecording])
+  }, [maxDuration, stopRecording, t])
 
   const togglePause = useCallback(() => {
     if (!mediaRecorderRef.current) return
@@ -160,7 +164,7 @@ export function VoiceCapture({
     if (isPlaying) {
       audioRef.current.pause()
     } else {
-      audioRef.current.play()
+      void audioRef.current.play()
     }
     setIsPlaying(!isPlaying)
   }
@@ -188,7 +192,7 @@ export function VoiceCapture({
 
       if (!uploadRes.ok) {
         const data = await uploadRes.json()
-        throw new Error(data.error || 'Failed to upload audio')
+        throw new Error(data.error || t('errors.uploadFailed'))
       }
 
       const uploadData = await uploadRes.json()
@@ -198,7 +202,7 @@ export function VoiceCapture({
       await onSubmit({ audioUrl: uploadedUrl, workoutDate })
     } catch (error) {
       console.error('Error uploading audio:', error)
-      setError(error instanceof Error ? error.message : 'Det gick inte att ladda upp ljudfilen')
+      setError(error instanceof Error ? error.message : t('errors.uploadFailed'))
     } finally {
       setUploading(false)
     }
@@ -217,14 +221,14 @@ export function VoiceCapture({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Mic className="h-5 w-5" />
-          Spela in röstmeddelande
+          {t('title')}
         </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
         {/* Date picker */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">När genomfördes passet?</label>
+          <label className="text-sm font-medium">{t('date.label')}</label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -236,9 +240,9 @@ export function VoiceCapture({
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {workoutDate ? (
-                  format(workoutDate, 'PPP', { locale: sv })
+                  format(workoutDate, 'PPP', { locale: dateLocale })
                 ) : (
-                  <span>Välj datum</span>
+                  <span>{t('date.placeholder')}</span>
                 )}
               </Button>
             </PopoverTrigger>
@@ -249,7 +253,7 @@ export function VoiceCapture({
                 onSelect={(date) => date && setWorkoutDate(date)}
                 disabled={(date) => date > new Date()}
                 initialFocus
-                locale={sv}
+                locale={dateLocale}
               />
             </PopoverContent>
           </Popover>
@@ -288,7 +292,7 @@ export function VoiceCapture({
                     disabled={permissionDenied || isSubmitting}
                   >
                     <Mic className="h-5 w-5 mr-2" />
-                    Börja spela in
+                    {t('actions.startRecording')}
                   </Button>
                 ) : (
                   <>
@@ -300,12 +304,12 @@ export function VoiceCapture({
                       {isPaused ? (
                         <>
                           <Play className="h-5 w-5 mr-2" />
-                          Fortsätt
+                          {t('actions.resume')}
                         </>
                       ) : (
                         <>
                           <Pause className="h-5 w-5 mr-2" />
-                          Pausa
+                          {t('actions.pause')}
                         </>
                       )}
                     </Button>
@@ -315,7 +319,7 @@ export function VoiceCapture({
                       onClick={stopRecording}
                     >
                       <Square className="h-5 w-5 mr-2" />
-                      Stoppa
+                      {t('actions.stop')}
                     </Button>
                   </>
                 )}
@@ -323,7 +327,7 @@ export function VoiceCapture({
 
               {/* Max duration info */}
               <p className="text-sm text-muted-foreground">
-                Max {Math.floor(maxDuration / 60)} minuter
+                {t('maxDuration', { minutes: Math.floor(maxDuration / 60) })}
               </p>
             </div>
           ) : (
@@ -367,7 +371,7 @@ export function VoiceCapture({
                 disabled={isSubmitting}
               >
                 <RotateCw className="h-4 w-4 mr-2" />
-                Spela in igen
+                {t('actions.recordAgain')}
               </Button>
             </div>
           )}
@@ -376,11 +380,11 @@ export function VoiceCapture({
         {/* Tips */}
         {!audioUrl && !isRecording && (
           <div className="rounded-lg border bg-muted/30 p-4">
-            <p className="text-sm font-medium mb-2">Tips:</p>
+            <p className="text-sm font-medium mb-2">{t('tips.title')}</p>
             <ul className="text-sm text-muted-foreground space-y-1">
-              <li>Beskriv vilken typ av pass du gjorde</li>
-              <li>Nämn duration, distans eller antal set/reps</li>
-              <li>Berätta hur tungt eller lätt det kändes</li>
+              <li>{t('tips.workoutType')}</li>
+              <li>{t('tips.duration')}</li>
+              <li>{t('tips.feel')}</li>
             </ul>
           </div>
         )}
@@ -402,10 +406,10 @@ export function VoiceCapture({
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {uploading ? 'Laddar upp...' : 'Analyserar...'}
+              {uploading ? t('actions.uploading') : t('actions.analyzing')}
             </>
           ) : (
-            'Fortsätt'
+            t('actions.continue')
           )}
         </Button>
       </CardFooter>
