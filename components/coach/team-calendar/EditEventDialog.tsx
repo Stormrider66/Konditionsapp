@@ -41,6 +41,7 @@ import {
   makePracticeBlock,
   newPracticeBlock,
   practiceBlocksToDescription,
+  withPracticePlanningDefaults,
   type PracticeBlock,
   type PracticeTemplateKind,
 } from '@/lib/team-calendar/practice-plan'
@@ -256,6 +257,37 @@ const PRACTICE_BLOCK_TYPES: Array<{ value: PracticeBlock['type']; label: string 
   { value: 'cooldown', label: 'Nedvarvning' },
 ]
 
+const RINK_ZONE_OPTIONS: Array<{ value: NonNullable<PracticeBlock['rinkZone']>; label: string }> = [
+  { value: 'full_ice', label: 'Helplan' },
+  { value: 'offensive_zone', label: 'Anfallszon' },
+  { value: 'defensive_zone', label: 'Försvarszon' },
+  { value: 'neutral_zone', label: 'Mittzon' },
+  { value: 'half_ice', label: 'Halvplan' },
+  { value: 'stations', label: 'Stationer' },
+]
+
+const INTENSITY_OPTIONS: Array<{ value: NonNullable<PracticeBlock['intensity']>; label: string }> = [
+  { value: 'low', label: 'Låg' },
+  { value: 'medium', label: 'Medel' },
+  { value: 'high', label: 'Hög' },
+  { value: 'game', label: 'Matchlik' },
+]
+
+const TACTICAL_CATEGORY_OPTIONS: Array<{ value: NonNullable<PracticeBlock['tacticalCategory']>; label: string }> = [
+  { value: 'skills', label: 'Teknik' },
+  { value: 'breakout', label: 'Uppspel' },
+  { value: 'forecheck', label: 'Forecheck' },
+  { value: 'transition', label: 'Omställning' },
+  { value: 'special_teams', label: 'Special teams' },
+  { value: 'small_area', label: 'Smålagsspel' },
+  { value: 'finishing', label: 'Avslut' },
+  { value: 'goalie', label: 'Målvakt' },
+]
+
+const optionLabel = <T extends string>(options: Array<{ value: T; label: string }>, value?: T | null) => {
+  return options.find((option) => option.value === value)?.label
+}
+
 function blockFromSavedDrill(drill: SavedDrill): PracticeBlock {
   return makePracticeBlock({
     type: 'technical',
@@ -266,6 +298,11 @@ function blockFromSavedDrill(drill: SavedDrill): PracticeBlock {
     coachingPoints: '',
     groups: '',
     equipment: '',
+    rinkZone: 'stations',
+    intensity: 'medium',
+    tacticalCategory: 'skills',
+    lineGroups: '',
+    goalieNotes: '',
     drillId: drill.id,
     drillStructure: drill.structure,
   })
@@ -313,6 +350,7 @@ export function EditEventDialog({
   const [workoutOptions, setWorkoutOptions] = useState<WorkoutOption[]>([])
   const [practiceBlocks, setPracticeBlocks] = useState<PracticeBlock[]>([])
   const [savedDrills, setSavedDrills] = useState<SavedDrill[]>([])
+  const [drillSearch, setDrillSearch] = useState('')
   const [loadingWorkouts, setLoadingWorkouts] = useState(false)
   const [assigning, setAssigning] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
@@ -336,6 +374,19 @@ export function EditEventDialog({
   })
   const workflowStepIndex = PHYSICAL_WORKFLOW_STEPS.findIndex((step) => step.key === workflowKey)
   const WorkflowIcon = workflowCopy.icon
+  const practiceMinutes = practiceBlocks.reduce((sum, block) => sum + (Number(block.duration) || 0), 0)
+  const highIntensityBlocks = practiceBlocks.filter((block) => block.intensity === 'high' || block.intensity === 'game').length
+  const goalieBlockCount = practiceBlocks.filter((block) => block.type === 'goalie' || block.tacticalCategory === 'goalie' || Boolean(block.goalieNotes?.trim())).length
+  const practiceZoneSummary = Array.from(new Set(
+    practiceBlocks
+      .map((block) => optionLabel(RINK_ZONE_OPTIONS, block.rinkZone))
+      .filter(Boolean) as string[]
+  )).slice(0, 3).join(', ')
+  const filteredSavedDrills = savedDrills.filter((drill) => {
+    const query = drillSearch.trim().toLowerCase()
+    if (!query) return true
+    return `${drill.title} ${drill.description ?? ''}`.toLowerCase().includes(query)
+  })
 
   useEffect(() => {
     if (!event) return
@@ -359,7 +410,7 @@ export function EditEventDialog({
     )
     setLinkedWorkoutId(event.linkedWorkoutId ?? 'none')
     setLinkedWorkoutName(event.linkedWorkoutName ?? null)
-    setPracticeBlocks(Array.isArray(event.practicePlan) ? event.practicePlan : [])
+    setPracticeBlocks(Array.isArray(event.practicePlan) ? event.practicePlan.map(withPracticePlanningDefaults) : [])
   }, [event])
 
   useEffect(() => {
@@ -833,12 +884,12 @@ export function EditEventDialog({
                   <div>
                     <div className="text-sm font-medium">Ispass-plan</div>
                     <div className="text-xs text-muted-foreground">
-                      Bygg passet i block med tid, fokus och coachingpunkter.
+                      Bygg passet i block med tid, zoner, roller, målvaktsnoter och coachingpunkter.
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="text-xs text-muted-foreground">
-                      {practiceBlocks.reduce((sum, block) => sum + (Number(block.duration) || 0), 0)} min totalt
+                      {practiceMinutes} min totalt
                     </div>
                     {practiceSheetHref && (
                       <Button asChild type="button" variant="outline" size="sm">
@@ -850,6 +901,26 @@ export function EditEventDialog({
                     )}
                   </div>
                 </div>
+                {practiceBlocks.length > 0 && (
+                  <div className="grid gap-2 text-xs sm:grid-cols-4">
+                    <div className="rounded-md border bg-background px-3 py-2">
+                      <div className="text-muted-foreground">Block</div>
+                      <div className="font-semibold">{practiceBlocks.length} st</div>
+                    </div>
+                    <div className="rounded-md border bg-background px-3 py-2">
+                      <div className="text-muted-foreground">Zoner</div>
+                      <div className="font-semibold">{practiceZoneSummary || 'Ej satt'}</div>
+                    </div>
+                    <div className="rounded-md border bg-background px-3 py-2">
+                      <div className="text-muted-foreground">Hög belastning</div>
+                      <div className="font-semibold">{highIntensityBlocks} block</div>
+                    </div>
+                    <div className="rounded-md border bg-background px-3 py-2">
+                      <div className="text-muted-foreground">Målvakt</div>
+                      <div className="font-semibold">{goalieBlockCount} block</div>
+                    </div>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
@@ -889,18 +960,27 @@ export function EditEventDialog({
                     Block
                   </Button>
                   {savedDrills.length > 0 && (
-                    <Select onValueChange={addSavedDrillBlock} disabled={!canEdit}>
-                      <SelectTrigger className="h-9 w-[190px]">
-                        <SelectValue placeholder="+ Sparad övning" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {savedDrills.map((drill) => (
-                          <SelectItem key={drill.id} value={drill.id}>
-                            {drill.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex flex-wrap gap-2">
+                      <Input
+                        value={drillSearch}
+                        disabled={!canEdit}
+                        onChange={(e) => setDrillSearch(e.target.value)}
+                        placeholder="Sök övning..."
+                        className="h-9 w-[170px]"
+                      />
+                      <Select onValueChange={addSavedDrillBlock} disabled={!canEdit || filteredSavedDrills.length === 0}>
+                        <SelectTrigger className="h-9 w-[190px]">
+                          <SelectValue placeholder="+ Sparad övning" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredSavedDrills.map((drill) => (
+                            <SelectItem key={drill.id} value={drill.id}>
+                              {drill.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   )}
                 </div>
 
@@ -909,7 +989,24 @@ export function EditEventDialog({
                     {practiceBlocks.map((block, index) => (
                       <div key={block.id} className="rounded-md border bg-background p-3">
                         <div className="mb-3 flex items-center justify-between gap-2">
-                          <div className="text-xs font-medium text-muted-foreground">Block {index + 1}</div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="text-xs font-medium text-muted-foreground">Block {index + 1}</div>
+                            {block.rinkZone && (
+                              <Badge variant="outline" className="text-[10px]">
+                                {optionLabel(RINK_ZONE_OPTIONS, block.rinkZone)}
+                              </Badge>
+                            )}
+                            {block.intensity && (
+                              <Badge variant={block.intensity === 'high' || block.intensity === 'game' ? 'default' : 'secondary'} className="text-[10px]">
+                                {optionLabel(INTENSITY_OPTIONS, block.intensity)}
+                              </Badge>
+                            )}
+                            {block.tacticalCategory && (
+                              <Badge variant="secondary" className="text-[10px]">
+                                {optionLabel(TACTICAL_CATEGORY_OPTIONS, block.tacticalCategory)}
+                              </Badge>
+                            )}
+                          </div>
                           <Button
                             type="button"
                             variant="ghost"
@@ -982,6 +1079,65 @@ export function EditEventDialog({
                             />
                           </div>
                         </div>
+                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Rinkzon</Label>
+                            <Select
+                              value={block.rinkZone ?? 'full_ice'}
+                              disabled={!canEdit}
+                              onValueChange={(value) => updatePracticeBlock(block.id, { rinkZone: value as PracticeBlock['rinkZone'] })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {RINK_ZONE_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Intensitet</Label>
+                            <Select
+                              value={block.intensity ?? 'medium'}
+                              disabled={!canEdit}
+                              onValueChange={(value) => updatePracticeBlock(block.id, { intensity: value as PracticeBlock['intensity'] })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {INTENSITY_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Taktisk kategori</Label>
+                            <Select
+                              value={block.tacticalCategory ?? 'skills'}
+                              disabled={!canEdit}
+                              onValueChange={(value) => updatePracticeBlock(block.id, { tacticalCategory: value as PracticeBlock['tacticalCategory'] })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {TACTICAL_CATEGORY_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
                         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <div className="space-y-1">
                             <Label className="text-xs">Grupp / kedja</Label>
@@ -999,6 +1155,26 @@ export function EditEventDialog({
                               disabled={!canEdit}
                               onChange={(e) => updatePracticeBlock(block.id, { equipment: e.target.value })}
                               placeholder="t.ex. puckar, koner, småmål"
+                            />
+                          </div>
+                        </div>
+                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Kedjor / roller</Label>
+                            <Input
+                              value={block.lineGroups ?? ''}
+                              disabled={!canEdit}
+                              onChange={(e) => updatePracticeBlock(block.id, { lineGroups: e.target.value })}
+                              placeholder="t.ex. femma 1 mot femma 2, PP1/BP1"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Målvaktsnoter</Label>
+                            <Input
+                              value={block.goalieNotes ?? ''}
+                              disabled={!canEdit}
+                              onChange={(e) => updatePracticeBlock(block.id, { goalieNotes: e.target.value })}
+                              placeholder="t.ex. returkontroll, sidled, puckstart"
                             />
                           </div>
                         </div>

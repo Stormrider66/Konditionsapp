@@ -34,6 +34,33 @@ const BLOCK_TYPE_LABELS: Record<string, string> = {
   cooldown: 'Nedvarvning',
 }
 
+const RINK_ZONE_LABELS: Record<string, string> = {
+  full_ice: 'Helplan',
+  offensive_zone: 'Anfallszon',
+  defensive_zone: 'Försvarszon',
+  neutral_zone: 'Mittzon',
+  half_ice: 'Halvplan',
+  stations: 'Stationer',
+}
+
+const INTENSITY_LABELS: Record<string, string> = {
+  low: 'Låg',
+  medium: 'Medel',
+  high: 'Hög',
+  game: 'Matchlik',
+}
+
+const TACTICAL_CATEGORY_LABELS: Record<string, string> = {
+  skills: 'Teknik',
+  breakout: 'Uppspel',
+  forecheck: 'Forecheck',
+  transition: 'Omställning',
+  special_teams: 'Special teams',
+  small_area: 'Smålagsspel',
+  finishing: 'Avslut',
+  goalie: 'Målvakt',
+}
+
 function isPracticeBlock(value: unknown): value is PracticeBlock {
   return Boolean(value && typeof value === 'object' && 'title' in value)
 }
@@ -135,8 +162,8 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
   const staffHref = `/${businessSlug}/coach/teams/${teamId}/calendar/${eventId}/practice-sheet`
   const playerHref = `${staffHref}?audience=players`
   const focusAreas = uniqueTextValues(practiceBlocks.map((block) => block.focus))
-  const equipment = uniqueTextValues(practiceBlocks.map((block) => block.equipment))
-  const groups = uniqueTextValues(practiceBlocks.map((block) => block.groups))
+  const rinkZones = uniqueTextValues(practiceBlocks.map((block) => block.rinkZone ? RINK_ZONE_LABELS[block.rinkZone] : null))
+  const highIntensityBlocks = practiceBlocks.filter((block) => block.intensity === 'high' || block.intensity === 'game').length
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-6 text-slate-950 print:bg-white print:px-0 print:py-0">
@@ -192,15 +219,15 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
             <p className="mt-1 font-semibold">{practiceBlocks.length} st</p>
           </div>
           <div className="rounded-md border bg-slate-50 p-3 print:bg-white">
-            <p className="text-xs font-semibold uppercase text-slate-500">Fokus</p>
-            <p className="mt-1 font-semibold">{summarizeList(focusAreas)}</p>
+            <p className="text-xs font-semibold uppercase text-slate-500">{isPlayerVersion ? 'Fokus' : 'Zoner'}</p>
+            <p className="mt-1 font-semibold">{isPlayerVersion ? summarizeList(focusAreas) : summarizeList(rinkZones)}</p>
           </div>
           <div className="rounded-md border bg-slate-50 p-3 print:bg-white">
             <p className="text-xs font-semibold uppercase text-slate-500">
-              {isPlayerVersion ? 'Version' : 'Material/grupper'}
+              {isPlayerVersion ? 'Version' : 'Belastning'}
             </p>
             <p className="mt-1 font-semibold">
-              {isPlayerVersion ? 'Delningsbar spelarvy' : summarizeList([...equipment, ...groups])}
+              {isPlayerVersion ? 'Delningsbar spelarvy' : `${highIntensityBlocks} högintensiva block`}
             </p>
           </div>
         </section>
@@ -218,6 +245,11 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-semibold uppercase text-slate-500">Block {index + 1}</span>
                       <Badge variant="secondary">{BLOCK_TYPE_LABELS[block.type ?? ''] ?? 'Block'}</Badge>
+                      {block.rinkZone && <Badge variant="outline">{RINK_ZONE_LABELS[block.rinkZone] ?? block.rinkZone}</Badge>}
+                      {block.intensity && <Badge variant="outline">{INTENSITY_LABELS[block.intensity] ?? block.intensity}</Badge>}
+                      {block.tacticalCategory && (
+                        <Badge variant="outline">{TACTICAL_CATEGORY_LABELS[block.tacticalCategory] ?? block.tacticalCategory}</Badge>
+                      )}
                       {block.drillId && <Badge variant="outline">Sparad övning</Badge>}
                     </div>
                     <h2 className="mt-2 text-xl font-semibold">{block.title || 'Namnlöst block'}</h2>
@@ -244,6 +276,22 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
                       <div className="rounded-md bg-slate-50 p-2 print:border print:bg-white">
                         <span className="font-semibold">Material: </span>
                         {block.equipment}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!isPlayerVersion && (block.lineGroups || block.goalieNotes) && (
+                  <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                    {block.lineGroups && (
+                      <div className="rounded-md bg-slate-50 p-2 print:border print:bg-white">
+                        <span className="font-semibold">Kedjor/roller: </span>
+                        {block.lineGroups}
+                      </div>
+                    )}
+                    {block.goalieNotes && (
+                      <div className="rounded-md bg-slate-50 p-2 print:border print:bg-white">
+                        <span className="font-semibold">Målvakt: </span>
+                        {block.goalieNotes}
                       </div>
                     )}
                   </div>

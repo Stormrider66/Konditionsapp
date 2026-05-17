@@ -8,6 +8,11 @@ export interface PracticeBlock {
   coachingPoints: string
   groups?: string
   equipment?: string
+  rinkZone?: 'full_ice' | 'offensive_zone' | 'defensive_zone' | 'neutral_zone' | 'half_ice' | 'stations'
+  intensity?: 'low' | 'medium' | 'high' | 'game'
+  tacticalCategory?: 'skills' | 'breakout' | 'forecheck' | 'transition' | 'special_teams' | 'small_area' | 'finishing' | 'goalie'
+  lineGroups?: string
+  goalieNotes?: string
   drillId?: string | null
   drillStructure?: unknown
 }
@@ -25,8 +30,13 @@ export function blockSummary(block: PracticeBlock) {
   if (block.focus) lines.push(`Fokus: ${block.focus}`)
   if (block.groups) lines.push(`Grupp: ${block.groups}`)
   if (block.equipment) lines.push(`Material: ${block.equipment}`)
+  if (block.rinkZone) lines.push(`Zon: ${block.rinkZone}`)
+  if (block.intensity) lines.push(`Intensitet: ${block.intensity}`)
+  if (block.tacticalCategory) lines.push(`Kategori: ${block.tacticalCategory}`)
+  if (block.lineGroups) lines.push(`Kedjor/roller: ${block.lineGroups}`)
   if (block.description) lines.push(block.description)
   if (block.coachingPoints) lines.push(`Coaching: ${block.coachingPoints}`)
+  if (block.goalieNotes) lines.push(`Målvakt: ${block.goalieNotes}`)
   return lines.join('\n')
 }
 
@@ -38,8 +48,37 @@ export function makePracticeBlock(input: Omit<PracticeBlock, 'id'>): PracticeBlo
   return { id: blockId(), ...input }
 }
 
+function defaultTacticalCategory(block: PracticeBlock): NonNullable<PracticeBlock['tacticalCategory']> {
+  if (block.type === 'small_game') return 'small_area'
+  if (block.type === 'special_teams') return 'special_teams'
+  if (block.type === 'goalie') return 'goalie'
+  if (block.focus.toLowerCase().includes('avslut')) return 'finishing'
+  if (block.focus.toLowerCase().includes('omställ') || block.title.toLowerCase().includes('spelvänd')) return 'transition'
+  if (block.title.toLowerCase().includes('breakout') || block.focus.toLowerCase().includes('uppspel')) return 'breakout'
+  if (block.title.toLowerCase().includes('forecheck')) return 'forecheck'
+  return 'skills'
+}
+
+function defaultIntensity(block: PracticeBlock): NonNullable<PracticeBlock['intensity']> {
+  if (block.type === 'cooldown') return 'low'
+  if (block.type === 'small_game') return 'high'
+  if (block.focus.toLowerCase().includes('match')) return 'game'
+  return 'medium'
+}
+
+export function withPracticePlanningDefaults(block: PracticeBlock): PracticeBlock {
+  return {
+    ...block,
+    rinkZone: block.rinkZone ?? 'full_ice',
+    intensity: block.intensity ?? defaultIntensity(block),
+    tacticalCategory: block.tacticalCategory ?? defaultTacticalCategory(block),
+    lineGroups: block.lineGroups ?? '',
+    goalieNotes: block.goalieNotes ?? '',
+  }
+}
+
 export function newPracticeBlock(): PracticeBlock {
-  return makePracticeBlock({
+  return withPracticePlanningDefaults(makePracticeBlock({
     type: 'technical',
     title: 'Nytt block',
     duration: 10,
@@ -48,7 +87,12 @@ export function newPracticeBlock(): PracticeBlock {
     coachingPoints: '',
     groups: '',
     equipment: '',
-  })
+    rinkZone: 'full_ice',
+    intensity: 'medium',
+    tacticalCategory: 'skills',
+    lineGroups: '',
+    goalieNotes: '',
+  }))
 }
 
 export function icePracticeTemplate(kind: PracticeTemplateKind): PracticeBlock[] {
@@ -59,7 +103,7 @@ export function icePracticeTemplate(kind: PracticeTemplateKind): PracticeBlock[]
       makePracticeBlock({ type: 'small_game', title: '2v2 / 3v3 korta byten', duration: 15, focus: 'Beslut i små ytor', groups: 'Färggrupper', equipment: 'Småmål eller avgränsare', description: 'Smålagsspel med 30-40 sek byten.', coachingPoints: 'Spelbarhet, snabb återerövring, kommunikation.' }),
       makePracticeBlock({ type: 'technical', title: 'Fartmoment + avslut', duration: 15, focus: 'Övergångar', groups: 'Forwards/backar i par', equipment: 'Puckar, mål', description: 'Övergång från fart till avslut med trafik mot mål.', coachingPoints: 'Attackera med fart, andra våg mot retur.' }),
       makePracticeBlock({ type: 'cooldown', title: 'Nedvarvning + samling', duration: 5, focus: 'Summering', groups: 'Alla', equipment: '', description: 'Lugn åkning och kort samling.', coachingPoints: 'Lyft 1-2 nycklar till nästa pass.' }),
-    ]
+    ].map(withPracticePlanningDefaults)
   }
 
   if (kind === 'tactical') {
@@ -69,7 +113,7 @@ export function icePracticeTemplate(kind: PracticeTemplateKind): PracticeBlock[]
       makePracticeBlock({ type: 'tactical', title: 'Forecheck/backcheck', duration: 15, focus: 'Styrning och avstånd', groups: 'Lagdelar', equipment: 'Puckar', description: 'Lagdelar jobbar med triggers och hemgångar.', coachingPoints: 'Rätt sida, korta avstånd, tydliga triggers.' }),
       makePracticeBlock({ type: 'special_teams', title: 'Zonspel / special teams', duration: 15, focus: 'Roller', groups: 'PP/BP-enheter', equipment: 'Puckar, tavla', description: 'Repetera PP/BP eller försvar/anfall i zon.', coachingPoints: 'Tydliga roller och nästa aktion.' }),
       makePracticeBlock({ type: 'cooldown', title: 'Samling', duration: 5, focus: 'Nycklar', groups: 'Alla', equipment: '', description: '1-2 prioriteringar till nästa match.', coachingPoints: 'Kort och tydligt.' }),
-    ]
+    ].map(withPracticePlanningDefaults)
   }
 
   return [
@@ -78,5 +122,5 @@ export function icePracticeTemplate(kind: PracticeTemplateKind): PracticeBlock[]
     makePracticeBlock({ type: 'tactical', title: 'Spelvändningar + hemgångar', duration: 15, focus: 'Matchdetaljer', groups: 'Femman / lagdelar', equipment: 'Puckar', description: 'Övergångar med defensiv sortering.', coachingPoints: 'Första hem, andra styr, tredje säkrar.' }),
     makePracticeBlock({ type: 'special_teams', title: 'PP / BP / tekningar', duration: 12, focus: 'Special teams', groups: 'Special teams-enheter', equipment: 'Puckar, tavla', description: 'Repetera fasta situationer och roller.', coachingPoints: 'Startposition, första beslut, returjobb.' }),
     makePracticeBlock({ type: 'small_game', title: 'Kort spel + matchplan', duration: 8, focus: 'Energi', groups: 'Alla', equipment: 'Puckar', description: 'Kort intensivt spel och tydlig matchplan.', coachingPoints: 'Avsluta med självförtroende.' }),
-  ]
+  ].map(withPracticePlanningDefaults)
 }
