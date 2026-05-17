@@ -13,19 +13,7 @@ import {
   SkipBack,
   User,
 } from 'lucide-react'
-
-// ─── Types ──────────────────────────────────────────────────────────────
-
-interface Movement {
-  id: string
-  fromX: number
-  fromY: number
-  toX: number
-  toY: number
-  type: 'skate' | 'pass' | 'shot' | 'puck'
-  color?: string
-  dashed?: boolean
-}
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface AthleteDrillViewerProps {
   title: string
@@ -35,11 +23,11 @@ interface AthleteDrillViewerProps {
   highlightPosition?: string // e.g. "LW" — athlete's position
 }
 
-const MOVEMENT_LABELS: Record<string, string> = {
-  skate: 'Åkning',
-  pass: 'Passning',
-  shot: 'Skott',
-  puck: 'Puck',
+const MOVEMENT_LABEL_KEYS: Record<string, string> = {
+  skate: 'movements.skate',
+  pass: 'movements.pass',
+  shot: 'movements.shot',
+  puck: 'movements.puck',
 }
 
 const MOVEMENT_COLORS: Record<string, string> = {
@@ -58,12 +46,15 @@ export function AthleteDrillViewer({
   sportType = 'ICE_HOCKEY',
   highlightPosition,
 }: AthleteDrillViewerProps) {
+  const t = useTranslations('components.athleteDrillViewer')
+  const locale = useLocale()
+  const drillLocale = locale === 'en' ? 'en' : 'sv'
   const [currentStep, setCurrentStep] = useState(-1) // -1 = overview
   const [showAnimation, setShowAnimation] = useState(false)
   const sportConfig = useMemo(() => getSportConfig(sportType), [sportType])
   const SurfaceComponent = sportConfig.Surface
 
-  const movements = structure.movements || []
+  const movements = useMemo(() => structure.movements || [], [structure.movements])
   const totalSteps = movements.length
 
   // Highlighted player (the athlete's position)
@@ -110,13 +101,13 @@ export function AthleteDrillViewer({
       <div className="space-y-3">
         <Button variant="ghost" size="sm" onClick={() => setShowAnimation(false)}>
           <ChevronLeft className="h-4 w-4 mr-1" />
-          Steg-för-steg
+          {t('stepByStep')}
         </Button>
         <DrillAnimationPlayer
           title={title}
           description={description}
           structure={structure}
-          locale="sv"
+          locale={drillLocale}
           sportType={sportType as DrillSportType}
         />
       </div>
@@ -251,10 +242,10 @@ export function AthleteDrillViewer({
               className="text-[10px]"
               style={{ backgroundColor: MOVEMENT_COLORS[currentMovement.type], color: 'white' }}
             >
-              {MOVEMENT_LABELS[currentMovement.type]}
+              {t(MOVEMENT_LABEL_KEYS[currentMovement.type])}
             </Badge>
             <span className="text-sm font-medium">
-              Steg {currentStep + 1} av {totalSteps}
+              {t('stepOfTotal', { step: currentStep + 1, total: totalSteps })}
             </span>
           </div>
         </div>
@@ -262,7 +253,7 @@ export function AthleteDrillViewer({
 
       {currentStep < 0 && (
         <div className="bg-muted/50 rounded-md px-3 py-2 text-sm text-muted-foreground">
-          Översikt — alla rörelser visas
+          {t('overviewDescription')}
         </div>
       )}
 
@@ -277,7 +268,7 @@ export function AthleteDrillViewer({
             className="h-8"
           >
             <SkipBack className="h-3.5 w-3.5 mr-1" />
-            Översikt
+            {t('overview')}
           </Button>
           <Button
             variant="outline"
@@ -314,7 +305,7 @@ export function AthleteDrillViewer({
               onClick={() => setShowAnimation(true)}
             >
               <Play className="h-3.5 w-3.5 mr-1" />
-              Animera
+              {t('animate')}
             </Button>
           )}
         </div>

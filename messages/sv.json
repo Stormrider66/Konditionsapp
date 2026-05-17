@@ -3131,6 +3131,19 @@
         "fetchFailed": "Kunde inte hämta PR"
       }
     },
+    "athleteDrillViewer": {
+      "stepByStep": "Steg-för-steg",
+      "stepOfTotal": "Steg {step} av {total}",
+      "overviewDescription": "Översikt — alla rörelser visas",
+      "overview": "Översikt",
+      "animate": "Animera",
+      "movements": {
+        "skate": "Åkning",
+        "pass": "Passning",
+        "shot": "Skott",
+        "puck": "Puck"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

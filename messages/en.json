@@ -3131,6 +3131,19 @@
         "fetchFailed": "Could not fetch PRs"
       }
     },
+    "athleteDrillViewer": {
+      "stepByStep": "Step by step",
+      "stepOfTotal": "Step {step} of {total}",
+      "overviewDescription": "Overview — all movements shown",
+      "overview": "Overview",
+      "animate": "Animate",
+      "movements": {
+        "skate": "Skating",
+        "pass": "Pass",
+        "shot": "Shot",
+        "puck": "Puck"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",
