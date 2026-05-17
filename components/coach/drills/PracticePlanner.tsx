@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -17,7 +19,6 @@ import { DrillTemplateLibrary } from './DrillTemplateLibrary'
 import type { DrillTemplate } from '@/lib/drills/templates'
 import {
   Plus,
-  GripVertical,
   Trash2,
   Clock,
   Save,
@@ -33,9 +34,12 @@ import { toast } from 'sonner'
 interface PracticeBlock {
   id: string
   type: 'drill' | 'custom'
+  focus: PracticeBlockFocus
   title: string
   description?: string
   durationMinutes: number
+  workRest?: string
+  coachingNotes?: string
   structure?: DrillStructure
   templateId?: string
 }
@@ -63,8 +67,57 @@ function nextBlockId() {
 }
 
 const DEFAULT_BLOCKS: PracticeBlock[] = [
-  { id: 'default-warmup', type: 'custom', title: 'Uppvärmning', durationMinutes: 10 },
+  { id: 'default-warmup', type: 'custom', focus: 'warmup', title: 'Uppvärmning', durationMinutes: 10 },
 ]
+
+type PracticeBlockFocus =
+  | 'warmup'
+  | 'skill'
+  | 'skating'
+  | 'tactical'
+  | 'specialTeams'
+  | 'smallArea'
+  | 'conditioning'
+  | 'game'
+  | 'cooldown'
+
+const BLOCK_FOCUS_OPTIONS: { value: PracticeBlockFocus; label: string }[] = [
+  { value: 'warmup', label: 'Uppvärmning' },
+  { value: 'skill', label: 'Teknik' },
+  { value: 'skating', label: 'Skridsko' },
+  { value: 'tactical', label: 'Taktik' },
+  { value: 'specialTeams', label: 'Special teams' },
+  { value: 'smallArea', label: 'Smålagsspel' },
+  { value: 'conditioning', label: 'Fys på is' },
+  { value: 'game', label: 'Spel' },
+  { value: 'cooldown', label: 'Nedvarvning' },
+]
+
+const PRACTICE_PHASE_OPTIONS = [
+  'Försäsong',
+  'Säsong',
+  'Matchförberedande',
+  'Återhämtning',
+  'Camp',
+]
+
+const INTENSITY_OPTIONS = [
+  'Låg',
+  'Måttlig',
+  'Hög',
+  'Matchlik',
+]
+
+function getTemplateFocus(category: DrillTemplate['category']): PracticeBlockFocus {
+  if (category === 'warmup') return 'warmup'
+  if (category === 'shooting' || category === 'passing' || category === 'rush') return 'skill'
+  if (category === 'powerplay' || category === 'penaltykill') return 'specialTeams'
+  return 'tactical'
+}
+
+function focusLabel(focus: PracticeBlockFocus) {
+  return BLOCK_FOCUS_OPTIONS.find((option) => option.value === focus)?.label ?? focus
+}
 
 // ─── Component ──────────────────────────────────────────────────────────
 
@@ -74,6 +127,11 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
   const [teamId, setTeamId] = useState('')
   const [date, setDate] = useState('')
   const [startTime, setStartTime] = useState('17:00')
+  const [practicePhase, setPracticePhase] = useState('Säsong')
+  const [practiceIntensity, setPracticeIntensity] = useState('Måttlig')
+  const [lineGroups, setLineGroups] = useState('')
+  const [goalieNotes, setGoalieNotes] = useState('')
+  const [coachNotes, setCoachNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [showTemplatePickerFor, setShowTemplatePickerFor] = useState<number | null>(null)
   const [savedDrills, setSavedDrills] = useState<SavedDrill[]>([])
@@ -92,7 +150,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
         // silently fail
       }
     }
-    fetchDrills()
+    void fetchDrills()
   }, [])
 
   const totalMinutes = useMemo(
@@ -106,6 +164,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
       {
         id: nextBlockId(),
         type: 'custom',
+        focus: 'skill',
         title: 'Ny aktivitet',
         durationMinutes: 10,
       },
@@ -117,6 +176,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
       const newBlock: PracticeBlock = {
         id: nextBlockId(),
         type: 'drill',
+        focus: getTemplateFocus(template.category),
         title: template.name,
         description: template.description,
         durationMinutes: 15,
@@ -141,6 +201,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
       const newBlock: PracticeBlock = {
         id: nextBlockId(),
         type: 'drill',
+        focus: 'skill',
         title: drill.title,
         description: drill.description || undefined,
         durationMinutes: 15,
@@ -178,12 +239,12 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
 
   // Build timeline with start times
   const timeline = useMemo(() => {
-    let cumulative = 0
-    return blocks.map((block) => {
-      const startMin = cumulative
-      cumulative += block.durationMinutes
-      return { ...block, startMin, endMin: cumulative }
-    })
+    return blocks.reduce<Array<PracticeBlock & { startMin: number; endMin: number }>>((items, block) => {
+      const startMin = items.at(-1)?.endMin ?? 0
+      const endMin = startMin + block.durationMinutes
+      items.push({ ...block, startMin, endMin })
+      return items
+    }, [])
   }, [blocks])
 
   const formatTime = useCallback(
@@ -217,11 +278,24 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
     const planText = timeline
       .map(
         (b) =>
-          `${formatTime(b.startMin)}-${formatTime(b.endMin)} ${b.title} (${b.durationMinutes} min)${b.description ? `\n  ${b.description}` : ''}`
+          [
+            `${formatTime(b.startMin)}-${formatTime(b.endMin)} ${b.title} (${b.durationMinutes} min)`,
+            `  Fokus: ${focusLabel(b.focus)}${b.workRest ? ` | Arbete/vila: ${b.workRest}` : ''}`,
+            b.description ? `  ${b.description}` : null,
+            b.coachingNotes ? `  Coachning: ${b.coachingNotes}` : null,
+          ].filter(Boolean).join('\n')
       )
       .join('\n')
 
-    const fullDescription = `Träningsplan — ${totalMinutes} min\n\n${planText}`
+    const meta = [
+      `Fas: ${practicePhase}`,
+      `Intensitet: ${practiceIntensity}`,
+      lineGroups ? `Kedjor/grupper: ${lineGroups}` : null,
+      goalieNotes ? `Målvakter: ${goalieNotes}` : null,
+      coachNotes ? `Coachnoteringar: ${coachNotes}` : null,
+    ].filter(Boolean).join('\n')
+
+    const fullDescription = `Träningsplan — ${totalMinutes} min\n${meta ? `\n${meta}` : ''}\n\n${planText}`
 
     setSaving(true)
     try {
@@ -245,6 +319,9 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
       setBlocks(DEFAULT_BLOCKS)
       setTitle('')
       setDate('')
+      setLineGroups('')
+      setGoalieNotes('')
+      setCoachNotes('')
     } catch {
       toast.error('Kunde inte spara träningsplanen')
     } finally {
@@ -262,7 +339,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
             Träningsplanering
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Bygg en komplett träning med övningar och tidsblock.
+            Bygg en komplett isträning med teknik, taktik, special teams, kedjor och tidsblock.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -311,6 +388,66 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
                 className="h-8 text-sm"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Fas</Label>
+              <Select value={practicePhase} onValueChange={setPracticePhase}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRACTICE_PHASE_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Intensitet</Label>
+              <Select value={practiceIntensity} onValueChange={setPracticeIntensity}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {INTENSITY_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Kedjor / grupper</Label>
+              <Textarea
+                value={lineGroups}
+                onChange={(e) => setLineGroups(e.target.value)}
+                placeholder="T.ex. backpar, femmor, färggrupper..."
+                rows={2}
+                className="text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Målvakter</Label>
+              <Textarea
+                value={goalieNotes}
+                onChange={(e) => setGoalieNotes(e.target.value)}
+                placeholder="T.ex. separat uppvärmning, skottvolym, teknikfokus..."
+                rows={2}
+                className="text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Coachnoteringar</Label>
+              <Textarea
+                value={coachNotes}
+                onChange={(e) => setCoachNotes(e.target.value)}
+                placeholder="Nyckelbudskap, påminnelser, belastningsstyrning..."
+                rows={2}
+                className="text-sm"
               />
             </div>
           </div>
@@ -369,11 +506,18 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                 </div>
 
                 {/* Title */}
-                <Input
-                  value={block.title}
-                  onChange={(e) => updateBlock(block.id, { title: e.target.value })}
-                  className="h-7 text-sm font-medium flex-1"
-                />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={block.title}
+                      onChange={(e) => updateBlock(block.id, { title: e.target.value })}
+                      className="h-7 text-sm font-medium flex-1"
+                    />
+                    <Badge variant="outline" className="hidden shrink-0 text-[10px] sm:inline-flex">
+                      {focusLabel(block.focus)}
+                    </Badge>
+                  </div>
+                </div>
 
                 {/* Duration */}
                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -401,6 +545,45 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-[160px_160px_1fr]">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Fokus</Label>
+                  <Select
+                    value={block.focus}
+                    onValueChange={(value) => updateBlock(block.id, { focus: value as PracticeBlockFocus })}
+                  >
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BLOCK_FOCUS_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Arbete/vila</Label>
+                  <Input
+                    value={block.workRest || ''}
+                    onChange={(e) => updateBlock(block.id, { workRest: e.target.value || undefined })}
+                    placeholder="T.ex. 40/20"
+                    className="h-7 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Coachning</Label>
+                  <Input
+                    value={block.coachingNotes || ''}
+                    onChange={(e) => updateBlock(block.id, { coachingNotes: e.target.value || undefined })}
+                    placeholder="Nyckelpunkt för blocket..."
+                    className="h-7 text-xs"
+                  />
+                </div>
               </div>
 
               {/* Drill preview (expandable) */}
