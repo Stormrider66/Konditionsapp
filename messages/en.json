@@ -7789,6 +7789,32 @@
         }
       }
     },
+    "aiModelSettings": {
+      "recommended": "Recommended",
+      "footer": "The selected quality level is used for WOD generation and the AI assistant",
+      "empty": {
+        "title": "No AI available",
+        "description": "AI is not enabled right now"
+      },
+      "errors": {
+        "fetch": "Could not fetch AI settings",
+        "save": "Could not save the setting"
+      },
+      "tiers": {
+        "fast": {
+          "label": "Fast",
+          "description": "Quick responses for simpler tasks"
+        },
+        "balanced": {
+          "label": "Balanced",
+          "description": "Best balance between quality and speed"
+        },
+        "powerful": {
+          "label": "Powerful",
+          "description": "Highest quality for complex tasks"
+        }
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

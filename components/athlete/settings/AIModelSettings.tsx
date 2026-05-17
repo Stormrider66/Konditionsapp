@@ -4,7 +4,7 @@
  * AIModelSettings
  *
  * Component for selecting preferred AI quality tier in athlete settings.
- * Shows 3 simple tiers (Snabb / Balanserad / Kraftfull) instead of raw model names.
+ * Shows 3 simple quality tiers instead of raw model names.
  */
 
 import { useState, useEffect } from 'react'
@@ -13,6 +13,7 @@ import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { ModelIntent } from '@/types/ai-models'
+import { useTranslations } from '@/i18n/client'
 
 interface IntentTier {
   intent: ModelIntent
@@ -27,17 +28,12 @@ const TIER_ICONS = {
   flame: Flame,
 } as const
 
-const TIER_COLORS: Record<ModelIntent, string> = {
-  fast: 'bg-blue-500/20 border-blue-500/30 text-blue-600',
-  balanced: 'bg-orange-500/20 border-orange-500/30 text-orange-600',
-  powerful: 'bg-purple-500/20 border-purple-500/30 text-purple-600',
-}
-
 interface AIModelSettingsProps {
   variant?: 'default' | 'glass'
 }
 
-export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
+export function AIModelSettings({ variant: _variant = 'glass' }: AIModelSettingsProps) {
+  const t = useTranslations('components.aiModelSettings')
   const [tiers, setTiers] = useState<IntentTier[]>([])
   const [selectedIntent, setSelectedIntent] = useState<ModelIntent | null>(null)
   const [savedIntent, setSavedIntent] = useState<ModelIntent | null>(null)
@@ -75,14 +71,14 @@ export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
         }
       } catch (err) {
         console.error('Failed to fetch AI tiers:', err)
-        setError('Kunde inte hämta AI-inställningar')
+        setError(t('errors.fetch'))
       } finally {
         setLoading(false)
       }
     }
 
-    fetchData()
-  }, [])
+    void fetchData()
+  }, [t])
 
   // Save intent preference
   const handleSelectIntent = async (intent: ModelIntent) => {
@@ -104,7 +100,7 @@ export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
       setSavedIntent(intent)
     } catch (err) {
       console.error('Failed to save intent preference:', err)
-      setError('Kunde inte spara inställningen')
+      setError(t('errors.save'))
       setSelectedIntent(savedIntent)
     } finally {
       setSaving(false)
@@ -126,8 +122,8 @@ export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
       <GlassCard>
         <GlassCardContent className="p-6 text-center text-slate-500 dark:text-slate-400">
           <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">Ingen AI tillgänglig</p>
-          <p className="text-xs mt-1">AI är inte aktiverat just nu</p>
+          <p className="text-sm">{t('empty.title')}</p>
+          <p className="text-xs mt-1">{t('empty.description')}</p>
         </GlassCardContent>
       </GlassCard>
     )
@@ -146,6 +142,8 @@ export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
         const isSelected = selectedIntent === tier.intent
         const isSaved = savedIntent === tier.intent
         const isRecommended = tier.intent === 'balanced'
+        const label = t(`tiers.${tier.intent}.label`)
+        const description = t(`tiers.${tier.intent}.description`)
 
         return (
           <GlassCard
@@ -173,16 +171,16 @@ export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-bold text-slate-900 dark:text-white">
-                        {tier.label}
+                        {label}
                       </h4>
                       {isRecommended && (
                         <Badge className="text-[10px] bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-500/30">
-                          Rekommenderad
+                          {t('recommended')}
                         </Badge>
                       )}
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {tier.description}
+                      {description}
                     </p>
                   </div>
                 </div>
@@ -209,7 +207,7 @@ export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
       })}
 
       <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center mt-4">
-        Vald kvalitetsnivå används för WOD-generering och AI-assistenten
+        {t('footer')}
       </p>
     </div>
   )

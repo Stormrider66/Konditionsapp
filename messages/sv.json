@@ -7789,6 +7789,32 @@
         }
       }
     },
+    "aiModelSettings": {
+      "recommended": "Rekommenderad",
+      "footer": "Vald kvalitetsnivå används för WOD-generering och AI-assistenten",
+      "empty": {
+        "title": "Ingen AI tillgänglig",
+        "description": "AI är inte aktiverat just nu"
+      },
+      "errors": {
+        "fetch": "Kunde inte hämta AI-inställningar",
+        "save": "Kunde inte spara inställningen"
+      },
+      "tiers": {
+        "fast": {
+          "label": "Snabb",
+          "description": "Snabba svar för enklare uppgifter"
+        },
+        "balanced": {
+          "label": "Balanserad",
+          "description": "Bästa balansen mellan kvalitet och hastighet"
+        },
+        "powerful": {
+          "label": "Kraftfull",
+          "description": "Högsta kvalitet för komplexa uppgifter"
+        }
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",
