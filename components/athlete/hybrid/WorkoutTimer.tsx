@@ -23,12 +23,11 @@ import {
   RotateCcw,
   Volume2,
   VolumeX,
-  Clock,
   Timer,
-  Repeat,
   ChevronUp,
   ChevronDown,
 } from 'lucide-react';
+import { useTranslations } from '@/i18n/client';
 
 type TimerMode = 'FOR_TIME' | 'AMRAP' | 'EMOM' | 'TABATA' | 'INTERVALS' | 'STOPWATCH';
 
@@ -51,6 +50,7 @@ export function WorkoutTimer({
   onComplete,
   onRoundComplete,
 }: WorkoutTimerProps) {
+  const t = useTranslations('components.workoutTimer');
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [currentRound, setCurrentRound] = useState(1);
@@ -89,7 +89,6 @@ export function WorkoutTimer({
       case 'TABATA':
       case 'INTERVALS': {
         // Count down within current interval
-        const intervalMs = (isWorkPeriod ? workSeconds : restSeconds) * 1000;
         const totalIntervalMs = (workSeconds + restSeconds) * 1000;
         const positionInRound = elapsedMs % totalIntervalMs;
 
@@ -106,7 +105,7 @@ export function WorkoutTimer({
       default:
         return elapsedMs;
     }
-  }, [mode, totalSeconds, elapsedMs, workSeconds, restSeconds, isWorkPeriod]);
+  }, [mode, totalSeconds, elapsedMs, workSeconds, restSeconds]);
 
   // Format time for display
   const formatTime = (ms: number, showMs = false): string => {
@@ -130,7 +129,8 @@ export function WorkoutTimer({
 
     try {
       if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioContextRef.current = new (window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       }
       const ctx = audioContextRef.current;
       const oscillator = ctx.createOscillator();
@@ -265,25 +265,25 @@ export function WorkoutTimer({
   const getModeLabel = () => {
     switch (mode) {
       case 'FOR_TIME':
-        return totalSeconds > 0 ? 'For Time (Time Cap)' : 'For Time';
+        return totalSeconds > 0 ? t('modes.forTimeWithCap') : t('modes.forTime');
       case 'AMRAP':
-        return 'AMRAP';
+        return t('modes.amrap');
       case 'EMOM':
-        return 'EMOM';
+        return t('modes.emom');
       case 'TABATA':
-        return 'Tabata';
+        return t('modes.tabata');
       case 'INTERVALS':
-        return 'Intervaller';
+        return t('modes.intervals');
       case 'STOPWATCH':
       default:
-        return 'Stoppur';
+        return t('modes.stopwatch');
     }
   };
 
   // Get period label for interval modes
   const getPeriodLabel = () => {
     if (mode === 'TABATA' || mode === 'INTERVALS') {
-      return isWorkPeriod ? 'ARBETE' : 'VILA';
+      return isWorkPeriod ? t('period.work') : t('period.rest');
     }
     return null;
   };
@@ -302,6 +302,7 @@ export function WorkoutTimer({
             variant="ghost"
             size="icon"
             onClick={() => setSoundEnabled(!soundEnabled)}
+            aria-label={soundEnabled ? t('aria.mute') : t('aria.unmute')}
           >
             {soundEnabled ? (
               <Volume2 className="h-4 w-4" />
@@ -350,7 +351,7 @@ export function WorkoutTimer({
               </Button>
             )}
             <div className="text-center">
-              <div className="text-sm text-muted-foreground">Runda</div>
+              <div className="text-sm text-muted-foreground">{t('round')}</div>
               <div className="text-3xl font-bold">
                 {currentRound}
                 {(mode === 'EMOM' || mode === 'TABATA' || mode === 'INTERVALS') && (
@@ -380,19 +381,19 @@ export function WorkoutTimer({
             {isRunning ? (
               <>
                 <Pause className="h-5 w-5 mr-1" />
-                Paus
+                {t('actions.pause')}
               </>
             ) : (
               <>
                 <Play className="h-5 w-5 mr-1" />
-                Start
+                {t('actions.start')}
               </>
             )}
           </Button>
 
           {(mode === 'FOR_TIME' || mode === 'STOPWATCH') && elapsedMs > 0 && (
             <Button variant="default" onClick={stopAndSave}>
-              Spara
+              {t('actions.save')}
             </Button>
           )}
         </div>
@@ -400,7 +401,7 @@ export function WorkoutTimer({
         {/* Elapsed time display for countdown modes */}
         {(mode === 'AMRAP' || (mode === 'FOR_TIME' && totalSeconds > 0)) && (
           <div className="text-center text-sm text-muted-foreground">
-            Förfluten tid: {formatTime(elapsedMs)}
+            {t('elapsedTime', { time: formatTime(elapsedMs) })}
           </div>
         )}
       </CardContent>

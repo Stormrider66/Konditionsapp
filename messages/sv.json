@@ -7085,6 +7085,32 @@
         "mute": "Stäng av ljud"
       }
     },
+    "workoutTimer": {
+      "modes": {
+        "forTimeWithCap": "For Time (Time Cap)",
+        "forTime": "For Time",
+        "amrap": "AMRAP",
+        "emom": "EMOM",
+        "tabata": "Tabata",
+        "intervals": "Intervaller",
+        "stopwatch": "Stoppur"
+      },
+      "period": {
+        "work": "ARBETE",
+        "rest": "VILA"
+      },
+      "round": "Runda",
+      "actions": {
+        "pause": "Paus",
+        "start": "Start",
+        "save": "Spara"
+      },
+      "aria": {
+        "mute": "Stäng av ljud",
+        "unmute": "Aktivera ljud"
+      },
+      "elapsedTime": "Förfluten tid: {time}"
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

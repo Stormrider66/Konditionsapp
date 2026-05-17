@@ -7085,6 +7085,32 @@
         "mute": "Mute sound"
       }
     },
+    "workoutTimer": {
+      "modes": {
+        "forTimeWithCap": "For Time (Time Cap)",
+        "forTime": "For Time",
+        "amrap": "AMRAP",
+        "emom": "EMOM",
+        "tabata": "Tabata",
+        "intervals": "Intervals",
+        "stopwatch": "Stopwatch"
+      },
+      "period": {
+        "work": "WORK",
+        "rest": "REST"
+      },
+      "round": "Round",
+      "actions": {
+        "pause": "Pause",
+        "start": "Start",
+        "save": "Save"
+      },
+      "aria": {
+        "mute": "Mute sound",
+        "unmute": "Turn on sound"
+      },
+      "elapsedTime": "Elapsed time: {time}"
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
