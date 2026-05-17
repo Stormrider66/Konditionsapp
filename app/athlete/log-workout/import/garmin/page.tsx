@@ -6,7 +6,7 @@
  * Lists available Garmin activities for import.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -26,8 +26,9 @@ import {
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface GarminActivity {
   id: string
@@ -45,6 +46,9 @@ interface GarminActivity {
 }
 
 export default function GarminImportPage() {
+  const t = useTranslations('pages.logWorkoutInputs')
+  const locale = useLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const basePath = useBasePath()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -52,11 +56,7 @@ export default function GarminImportPage() {
   const [activities, setActivities] = useState<GarminActivity[]>([])
   const [error, setError] = useState<string>()
 
-  useEffect(() => {
-    fetchActivities()
-  }, [])
-
-  const fetchActivities = async () => {
+  const fetchActivities = useCallback(async () => {
     try {
       setLoading(true)
       setError(undefined)
@@ -72,11 +72,15 @@ export default function GarminImportPage() {
       setActivities(data.data.activities)
     } catch (error) {
       console.error('Error fetching Garmin activities:', error)
-      setError(error instanceof Error ? error.message : 'Ett fel uppstod')
+      setError(error instanceof Error ? error.message : t('errors.generic'))
     } finally {
       setLoading(false)
     }
-  }
+  }, [t])
+
+  useEffect(() => {
+    void fetchActivities()
+  }, [fetchActivities])
 
   const handleImport = async (garminId: string) => {
     try {
@@ -94,13 +98,13 @@ export default function GarminImportPage() {
       }
 
       const data = await res.json()
-      toast.success('Aktivitet importerad!')
+      toast.success(t('import.toastSuccess'))
 
       // Redirect to review page
       router.push(`${basePath}/athlete/log-workout/${data.data.id}/review`)
     } catch (error) {
       console.error('Error importing activity:', error)
-      toast.error(error instanceof Error ? error.message : 'Det gick inte att importera')
+      toast.error(error instanceof Error ? error.message : t('import.toastError'))
       setImporting(null)
     }
   }
@@ -135,7 +139,7 @@ export default function GarminImportPage() {
               Garmin Connect Import
             </h1>
             <p className="text-muted-foreground">
-              Välj en aktivitet att importera
+              {t('import.description')}
             </p>
           </div>
         </div>
@@ -170,7 +174,7 @@ export default function GarminImportPage() {
           <CardContent className="p-4 text-center">
             <p className="text-red-600 dark:text-red-400">{error}</p>
             <Button variant="outline" className="mt-4" onClick={fetchActivities}>
-              Försök igen
+              {t('actions.retry')}
             </Button>
           </CardContent>
         </Card>
@@ -181,9 +185,9 @@ export default function GarminImportPage() {
         <Card>
           <CardContent className="p-8 text-center">
             <Watch className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-semibold mb-2">Inga aktiviteter hittades</h3>
+            <h3 className="font-semibold mb-2">{t('import.emptyTitle')}</h3>
             <p className="text-sm text-muted-foreground">
-              Se till att ditt Garmin Connect-konto är kopplat och synkroniserat
+              {t('import.emptyDescription', { provider: 'Garmin Connect' })}
             </p>
           </CardContent>
         </Card>
@@ -215,7 +219,7 @@ export default function GarminImportPage() {
                     </div>
 
                     <p className="text-sm text-muted-foreground mb-2">
-                      {format(new Date(activity.startTime), 'PPP', { locale: sv })}
+                      {format(new Date(activity.startTime), 'PPP', { locale: dateLocale })}
                     </p>
 
                     <div className="flex flex-wrap gap-4 text-sm">
@@ -244,7 +248,7 @@ export default function GarminImportPage() {
                     {activity.alreadyImported ? (
                       <Badge variant="secondary" className="gap-1">
                         <Check className="h-3 w-3" />
-                        Importerad
+                        {t('actions.imported')}
                       </Badge>
                     ) : (
                       <Button
@@ -255,7 +259,7 @@ export default function GarminImportPage() {
                         {importing === activity.activityId ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          'Importera'
+                          t('actions.import')
                         )}
                       </Button>
                     )}

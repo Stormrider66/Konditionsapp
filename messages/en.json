@@ -356,7 +356,28 @@
     "logWorkoutInputs": {
       "errors": {
         "title": "Something went wrong",
+        "shortTitle": "Error",
         "generic": "Something went wrong"
+      },
+      "actions": {
+        "retry": "Try again",
+        "import": "Import",
+        "imported": "Imported"
+      },
+      "import": {
+        "description": "Choose an activity to import",
+        "emptyTitle": "No activities found",
+        "emptyDescription": "Make sure your {provider} account is connected and synced",
+        "toastSuccess": "Activity imported!",
+        "toastError": "Could not import"
+      },
+      "review": {
+        "title": "Review workout",
+        "description": "Check that the details are correct",
+        "alreadyConfirmed": "This workout has already been confirmed",
+        "notReady": "The workout is not ready for review",
+        "loadFailed": "Could not load the workout",
+        "toastSuccess": "Workout saved!"
       },
       "photo": {
         "title": "Take a photo",

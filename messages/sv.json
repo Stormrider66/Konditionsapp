@@ -356,7 +356,28 @@
     "logWorkoutInputs": {
       "errors": {
         "title": "Något gick fel",
+        "shortTitle": "Fel",
         "generic": "Ett fel uppstod"
+      },
+      "actions": {
+        "retry": "Försök igen",
+        "import": "Importera",
+        "imported": "Importerad"
+      },
+      "import": {
+        "description": "Välj en aktivitet att importera",
+        "emptyTitle": "Inga aktiviteter hittades",
+        "emptyDescription": "Se till att ditt {provider}-konto är kopplat och synkroniserat",
+        "toastSuccess": "Aktivitet importerad!",
+        "toastError": "Det gick inte att importera"
+      },
+      "review": {
+        "title": "Granska pass",
+        "description": "Kontrollera att uppgifterna stämmer",
+        "alreadyConfirmed": "Detta pass är redan bekräftat",
+        "notReady": "Passet är inte redo för granskning",
+        "loadFailed": "Kunde inte ladda passet",
+        "toastSuccess": "Passet har sparats!"
       },
       "photo": {
         "title": "Ta en bild",

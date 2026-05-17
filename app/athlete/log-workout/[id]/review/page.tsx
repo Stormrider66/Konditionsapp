@@ -17,12 +17,14 @@ import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { toast } from 'sonner'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { emitWorkoutLogged } from '@/lib/events/workout-events'
+import { useTranslations } from '@/i18n/client'
 
 interface ReviewPageProps {
   params: Promise<{ id: string }>
 }
 
 export default function ReviewPage({ params }: ReviewPageProps) {
+  const t = useTranslations('pages.logWorkoutInputs')
   const basePath = useBasePath()
   const { id } = use(params)
   const router = useRouter()
@@ -47,26 +49,26 @@ export default function ReviewPage({ params }: ReviewPageProps) {
 
       if (data.data.status === 'CONFIRMED') {
         // Already confirmed, redirect to athlete dashboard
-        toast.info('Detta pass är redan bekräftat')
+        toast.info(t('review.alreadyConfirmed'))
         router.push(`${basePath}/athlete/dashboard`)
         return
       }
 
       if (data.data.status !== 'READY_FOR_REVIEW') {
-        throw new Error('Passet är inte redo för granskning')
+        throw new Error(t('review.notReady'))
       }
 
       setParsedWorkout(data.data.parsedStructure as ParsedWorkout)
     } catch (error) {
       console.error('Error fetching workout:', error)
-      setError(error instanceof Error ? error.message : 'Ett fel uppstod')
+      setError(error instanceof Error ? error.message : t('errors.generic'))
     } finally {
       setLoading(false)
     }
-  }, [id, router, basePath])
+  }, [id, router, basePath, t])
 
   useEffect(() => {
-    fetchWorkoutData()
+    void fetchWorkoutData()
   }, [fetchWorkoutData])
 
   const handleConfirm = async (data: {
@@ -89,12 +91,12 @@ export default function ReviewPage({ params }: ReviewPageProps) {
         throw new Error(errorData.error || 'Failed to confirm workout')
       }
 
-      toast.success('Passet har sparats!')
+      toast.success(t('review.toastSuccess'))
       emitWorkoutLogged()
       router.push(`${basePath}/athlete/dashboard`)
     } catch (error) {
       console.error('Error confirming workout:', error)
-      toast.error(error instanceof Error ? error.message : 'Det gick inte att spara passet')
+      toast.error(error instanceof Error ? error.message : t('manual.toastError'))
     } finally {
       setSubmitting(false)
     }
@@ -124,13 +126,13 @@ export default function ReviewPage({ params }: ReviewPageProps) {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Fel</h1>
+            <h1 className="text-2xl font-bold">{t('errors.shortTitle')}</h1>
           </div>
         </div>
 
         <ProcessingStatus
           state="error"
-          errorMessage={error || 'Kunde inte ladda passet'}
+          errorMessage={error || t('review.loadFailed')}
           onRetry={fetchWorkoutData}
         />
       </div>
@@ -147,9 +149,9 @@ export default function ReviewPage({ params }: ReviewPageProps) {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Granska pass</h1>
+          <h1 className="text-2xl font-bold">{t('review.title')}</h1>
           <p className="text-muted-foreground">
-            Kontrollera att uppgifterna stämmer
+            {t('review.description')}
           </p>
         </div>
       </div>
