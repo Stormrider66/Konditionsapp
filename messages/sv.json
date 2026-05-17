@@ -2772,6 +2772,47 @@
       "workouts": "Pass",
       "total": "Totalt"
     },
+    "exportDataButton": {
+      "trigger": "Exportera data",
+      "formatLabel": "Exportformat",
+      "csvFile": "CSV-fil",
+      "jsonFile": "JSON-fil",
+      "emptyAlert": "Ingen data att exportera",
+      "fileBaseName": "traningsdata",
+      "csvHeaders": {
+        "date": "Datum",
+        "workout": "Pass",
+        "program": "Program",
+        "type": "Typ",
+        "intensity": "Intensitet",
+        "distanceKm": "Distans (km)",
+        "durationMin": "Tid (min)",
+        "pace": "Tempo",
+        "averageHeartRate": "Snitt-puls",
+        "maxHeartRate": "Max-puls",
+        "difficulty": "Svårighetsgrad",
+        "feeling": "Känsla",
+        "notes": "Anteckningar"
+      },
+      "workoutTypes": {
+        "running": "Löpning",
+        "cycling": "Cykling",
+        "strength": "Styrka",
+        "core": "Core",
+        "plyometric": "Plyometri",
+        "recovery": "Återhämtning",
+        "skiing": "Skidåkning",
+        "other": "Annat"
+      },
+      "intensities": {
+        "recovery": "Återhämtning",
+        "easy": "Lätt",
+        "moderate": "Måttlig",
+        "threshold": "Tröskel",
+        "interval": "Intervall",
+        "max": "Max"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Kosttajming",
       "subtitle": {

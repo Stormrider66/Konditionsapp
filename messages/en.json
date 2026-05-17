@@ -2772,6 +2772,47 @@
       "workouts": "Workouts",
       "total": "Total"
     },
+    "exportDataButton": {
+      "trigger": "Export data",
+      "formatLabel": "Export format",
+      "csvFile": "CSV file",
+      "jsonFile": "JSON file",
+      "emptyAlert": "No data to export",
+      "fileBaseName": "training_data",
+      "csvHeaders": {
+        "date": "Date",
+        "workout": "Workout",
+        "program": "Program",
+        "type": "Type",
+        "intensity": "Intensity",
+        "distanceKm": "Distance (km)",
+        "durationMin": "Time (min)",
+        "pace": "Pace",
+        "averageHeartRate": "Average HR",
+        "maxHeartRate": "Max HR",
+        "difficulty": "Difficulty",
+        "feeling": "Feeling",
+        "notes": "Notes"
+      },
+      "workoutTypes": {
+        "running": "Running",
+        "cycling": "Cycling",
+        "strength": "Strength",
+        "core": "Core",
+        "plyometric": "Plyometrics",
+        "recovery": "Recovery",
+        "skiing": "Skiing",
+        "other": "Other"
+      },
+      "intensities": {
+        "recovery": "Recovery",
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "threshold": "Threshold",
+        "interval": "Interval",
+        "max": "Max"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Nutrition timing",
       "subtitle": {

@@ -13,44 +13,76 @@ import {
 import { Download, FileText, Table } from 'lucide-react'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale, useTranslations } from '@/i18n/client'
+
+interface WorkoutLogExportRow {
+  completedAt?: Date | string | null
+  distance?: number | null
+  duration?: number | null
+  avgPace?: string | null
+  avgHR?: number | null
+  maxHR?: number | null
+  perceivedEffort?: number | null
+  difficulty?: number | null
+  feeling?: string | null
+  notes?: string | null
+  coachFeedback?: string | null
+  coachViewedAt?: Date | string | null
+  workout: {
+    name: string
+    type: string
+    intensity: string
+    day: {
+      week: {
+        program: {
+          name: string
+        }
+      }
+    }
+  }
+}
 
 interface ExportDataButtonProps {
-  logs: any[]
+  logs: WorkoutLogExportRow[]
 }
 
 export function ExportDataButton({ logs }: ExportDataButtonProps) {
+  const t = useTranslations('components.exportDataButton')
+  const locale = useLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
+
   function exportToCSV() {
     if (logs.length === 0) {
-      alert('Ingen data att exportera')
+      alert(t('emptyAlert'))
       return
     }
 
     // Create CSV headers
     const headers = [
-      'Datum',
-      'Pass',
-      'Program',
-      'Typ',
-      'Intensitet',
-      'Distans (km)',
-      'Tid (min)',
-      'Tempo',
-      'Snitt-puls',
-      'Max-puls',
+      t('csvHeaders.date'),
+      t('csvHeaders.workout'),
+      t('csvHeaders.program'),
+      t('csvHeaders.type'),
+      t('csvHeaders.intensity'),
+      t('csvHeaders.distanceKm'),
+      t('csvHeaders.durationMin'),
+      t('csvHeaders.pace'),
+      t('csvHeaders.averageHeartRate'),
+      t('csvHeaders.maxHeartRate'),
       'RPE',
-      'Svårighetsgrad',
-      'Känsla',
-      'Anteckningar',
+      t('csvHeaders.difficulty'),
+      t('csvHeaders.feeling'),
+      t('csvHeaders.notes'),
     ]
 
     // Create CSV rows
     const rows = logs.map((log) => [
-      log.completedAt ? format(new Date(log.completedAt), 'yyyy-MM-dd', { locale: sv }) : '',
+      log.completedAt ? format(new Date(log.completedAt), 'yyyy-MM-dd', { locale: dateLocale }) : '',
       log.workout.name,
       log.workout.day.week.program.name,
-      formatWorkoutType(log.workout.type),
-      formatIntensity(log.workout.intensity),
+      formatWorkoutType(log.workout.type, t),
+      formatIntensity(log.workout.intensity, t),
       log.distance || '',
       log.duration || '',
       log.avgPace || '',
@@ -73,7 +105,7 @@ export function ExportDataButton({ logs }: ExportDataButtonProps) {
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
-    link.setAttribute('download', `traningsdata_${format(new Date(), 'yyyy-MM-dd')}.csv`)
+    link.setAttribute('download', `${t('fileBaseName')}_${format(new Date(), 'yyyy-MM-dd')}.csv`)
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
@@ -82,7 +114,7 @@ export function ExportDataButton({ logs }: ExportDataButtonProps) {
 
   function exportToJSON() {
     if (logs.length === 0) {
-      alert('Ingen data att exportera')
+      alert(t('emptyAlert'))
       return
     }
 
@@ -125,7 +157,7 @@ export function ExportDataButton({ logs }: ExportDataButtonProps) {
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
-    link.setAttribute('download', `traningsdata_${format(new Date(), 'yyyy-MM-dd')}.json`)
+    link.setAttribute('download', `${t('fileBaseName')}_${format(new Date(), 'yyyy-MM-dd')}.json`)
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
@@ -137,21 +169,21 @@ export function ExportDataButton({ logs }: ExportDataButtonProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm">
           <Download className="mr-2 h-4 w-4" />
-          Exportera data
+          {t('trigger')}
           <InfoTooltip conceptKey="exportFormats" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Exportformat</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('formatLabel')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={exportToCSV}>
           <Table className="mr-2 h-4 w-4" />
-          CSV-fil
+          {t('csvFile')}
           <span className="ml-2 text-xs text-muted-foreground">(Excel)</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={exportToJSON}>
           <FileText className="mr-2 h-4 w-4" />
-          JSON-fil
+          {t('jsonFile')}
           <span className="ml-2 text-xs text-muted-foreground">(Backup)</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -160,28 +192,44 @@ export function ExportDataButton({ logs }: ExportDataButtonProps) {
 }
 
 // Helper functions
-function formatWorkoutType(type: string): string {
-  const types: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    STRENGTH: 'Styrka',
-    CORE: 'Core',
-    PLYOMETRIC: 'Plyometri',
-    RECOVERY: 'Återhämtning',
-    SKIING: 'Skidåkning',
-    OTHER: 'Annat',
+function formatWorkoutType(type: string, t: (key: string) => string): string {
+  switch (type) {
+    case 'RUNNING':
+      return t('workoutTypes.running')
+    case 'CYCLING':
+      return t('workoutTypes.cycling')
+    case 'STRENGTH':
+      return t('workoutTypes.strength')
+    case 'CORE':
+      return t('workoutTypes.core')
+    case 'PLYOMETRIC':
+      return t('workoutTypes.plyometric')
+    case 'RECOVERY':
+      return t('workoutTypes.recovery')
+    case 'SKIING':
+      return t('workoutTypes.skiing')
+    case 'OTHER':
+      return t('workoutTypes.other')
+    default:
+      return type
   }
-  return types[type] || type
 }
 
-function formatIntensity(intensity: string): string {
-  const intensities: Record<string, string> = {
-    RECOVERY: 'Återhämtning',
-    EASY: 'Lätt',
-    MODERATE: 'Måttlig',
-    THRESHOLD: 'Tröskel',
-    INTERVAL: 'Intervall',
-    MAX: 'Max',
+function formatIntensity(intensity: string, t: (key: string) => string): string {
+  switch (intensity) {
+    case 'RECOVERY':
+      return t('intensities.recovery')
+    case 'EASY':
+      return t('intensities.easy')
+    case 'MODERATE':
+      return t('intensities.moderate')
+    case 'THRESHOLD':
+      return t('intensities.threshold')
+    case 'INTERVAL':
+      return t('intensities.interval')
+    case 'MAX':
+      return t('intensities.max')
+    default:
+      return intensity
   }
-  return intensities[intensity] || intensity
 }
