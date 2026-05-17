@@ -3649,6 +3649,74 @@
       "videoAnalysis": "Video Analys",
       "describeMeal": "Beskriv din måltid"
     },
+    "trainingLibraryClient": {
+      "header": {
+        "title": "Träningsbibliotek",
+        "description": "All din träning samlad på ett ställe"
+      },
+      "tabs": {
+        "history": "Historik",
+        "createWorkout": "Skapa pass"
+      },
+      "categories": {
+        "all": "Alla",
+        "strength": "Styrka",
+        "cardio": "Cardio",
+        "hybrid": "Hybrid",
+        "agility": "Agility",
+        "aiWorkouts": "AI-pass"
+      },
+      "hybridHistory": {
+        "emptyTitle": "Ingen hybrid-historik ännu",
+        "emptyDescription": "Slutförda hybridpass visas här."
+      },
+      "hybridTemplates": {
+        "title": "Hybridmallar",
+        "description": "Hybridmallar kommer snart."
+      },
+      "pro": {
+        "title": "PRO-funktion",
+        "description": "Uppgradera till PRO för att bläddra och skapa pass på egen hand.",
+        "currentPlan": "Din plan: {tier}",
+        "upgradeNow": "Uppgradera nu"
+      }
+    },
+    "athleteStrengthClient": {
+      "tabs": {
+        "history": "Historik",
+        "templates": "Mallar",
+        "assigned": "Tilldelade ({count})",
+        "progression": "Progression"
+      },
+      "phaseLabels": {
+        "anatomicalAdaptation": "Anatom. Anpassning",
+        "maximumStrength": "Maxstyrka",
+        "power": "Power",
+        "maintenance": "Underhåll",
+        "taper": "Taper"
+      },
+      "history": {
+        "emptyTitle": "Ingen historik ännu",
+        "emptyDescription": "Slutförda styrkepass visas här.",
+        "completed": "Slutförd"
+      },
+      "upcoming": {
+        "emptyTitle": "Inga kommande pass",
+        "emptyDescription": "Du har inga schemalagda styrkepass just nu.",
+        "browseTemplates": "Bläddra mallar",
+        "contactCoach": "Kontakta din coach för att få styrkepass tilldelade.",
+        "today": "Idag"
+      },
+      "pro": {
+        "title": "PRO-funktion",
+        "description": "Uppgradera till PRO för att bläddra och schemalägga styrkepass på egen hand.",
+        "currentPlan": "Din plan: {tier}",
+        "upgradeNow": "Uppgradera nu"
+      },
+      "progression": {
+        "loading": "Laddar progression..."
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "Visa allt",
       "connectLogbook": "Anslut Concept2 Logbook",

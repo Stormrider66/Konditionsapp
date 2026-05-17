@@ -3649,6 +3649,74 @@
       "videoAnalysis": "Video Analysis",
       "describeMeal": "Describe your meal"
     },
+    "trainingLibraryClient": {
+      "header": {
+        "title": "Training library",
+        "description": "All your training in one place"
+      },
+      "tabs": {
+        "history": "History",
+        "createWorkout": "Create workout"
+      },
+      "categories": {
+        "all": "All",
+        "strength": "Strength",
+        "cardio": "Cardio",
+        "hybrid": "Hybrid",
+        "agility": "Agility",
+        "aiWorkouts": "AI workouts"
+      },
+      "hybridHistory": {
+        "emptyTitle": "No hybrid history yet",
+        "emptyDescription": "Completed hybrid workouts appear here."
+      },
+      "hybridTemplates": {
+        "title": "Hybrid templates",
+        "description": "Hybrid templates are coming soon."
+      },
+      "pro": {
+        "title": "PRO feature",
+        "description": "Upgrade to PRO to browse and create workouts on your own.",
+        "currentPlan": "Your plan: {tier}",
+        "upgradeNow": "Upgrade now"
+      }
+    },
+    "athleteStrengthClient": {
+      "tabs": {
+        "history": "History",
+        "templates": "Templates",
+        "assigned": "Assigned ({count})",
+        "progression": "Progression"
+      },
+      "phaseLabels": {
+        "anatomicalAdaptation": "Anatom. adaptation",
+        "maximumStrength": "Max strength",
+        "power": "Power",
+        "maintenance": "Maintenance",
+        "taper": "Taper"
+      },
+      "history": {
+        "emptyTitle": "No history yet",
+        "emptyDescription": "Completed strength sessions appear here.",
+        "completed": "Completed"
+      },
+      "upcoming": {
+        "emptyTitle": "No upcoming sessions",
+        "emptyDescription": "You do not have any scheduled strength sessions right now.",
+        "browseTemplates": "Browse templates",
+        "contactCoach": "Contact your coach to get strength sessions assigned.",
+        "today": "Today"
+      },
+      "pro": {
+        "title": "PRO feature",
+        "description": "Upgrade to PRO to browse and schedule strength sessions on your own.",
+        "currentPlan": "Your plan: {tier}",
+        "upgradeNow": "Upgrade now"
+      },
+      "progression": {
+        "loading": "Loading progression..."
+      }
+    },
     "concept2SummaryWidget": {
       "viewAll": "View all",
       "connectLogbook": "Connect Concept2 Logbook",

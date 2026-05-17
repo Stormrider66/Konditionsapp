@@ -14,9 +14,6 @@ import Link from 'next/link'
 import {
   GlassCard,
   GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle
 } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,10 +21,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import dynamic from 'next/dynamic'
 import { StrengthTemplateSelector } from '@/components/athlete/strength/StrengthTemplateSelector'
 import { StrengthFocusMode } from '@/components/athlete/strength/StrengthFocusMode'
+import { useLocale, useTranslations } from '@/i18n/client'
+
+function ProgressionLoading() {
+  const t = useTranslations('components.athleteStrengthClient')
+
+  return <div className="p-8 text-center text-muted-foreground">{t('progression.loading')}</div>
+}
 
 const ProgressionDashboard = dynamic(
   () => import('@/components/coach/progression/ProgressionDashboard').then(mod => mod.ProgressionDashboard),
-  { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground">Laddar progression...</div> }
+  { ssr: false, loading: () => <ProgressionLoading /> }
 )
 import {
   Dumbbell,
@@ -45,14 +49,14 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 
-const PHASE_LABELS: Record<string, { label: string; color: string }> = {
-  ANATOMICAL_ADAPTATION: { label: 'Anatom. Anpassning', color: 'bg-blue-500' },
-  MAXIMUM_STRENGTH: { label: 'Maxstyrka', color: 'bg-red-500' },
-  POWER: { label: 'Power', color: 'bg-orange-500' },
-  MAINTENANCE: { label: 'Underhåll', color: 'bg-emerald-500' },
-  TAPER: { label: 'Taper', color: 'bg-purple-500' },
+const PHASE_LABELS: Record<string, { labelKey: string; color: string }> = {
+  ANATOMICAL_ADAPTATION: { labelKey: 'phaseLabels.anatomicalAdaptation', color: 'bg-blue-500' },
+  MAXIMUM_STRENGTH: { labelKey: 'phaseLabels.maximumStrength', color: 'bg-red-500' },
+  POWER: { labelKey: 'phaseLabels.power', color: 'bg-orange-500' },
+  MAINTENANCE: { labelKey: 'phaseLabels.maintenance', color: 'bg-emerald-500' },
+  TAPER: { labelKey: 'phaseLabels.taper', color: 'bg-purple-500' },
 }
 
 interface Assignment {
@@ -88,6 +92,9 @@ export function AthleteStrengthClient({
   basePath = '',
 }: AthleteStrengthClientProps) {
   const router = useRouter()
+  const t = useTranslations('components.athleteStrengthClient')
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
   const [activeTab, setActiveTab] = useState<string>('history')
   const [focusModeAssignmentId, setFocusModeAssignmentId] = useState<string | null>(null)
 
@@ -105,28 +112,28 @@ export function AthleteStrengthClient({
             className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
           >
             <History className="h-4 w-4" />
-            Historik
+            {t('tabs.history')}
           </TabsTrigger>
           <TabsTrigger
             value="browse"
             className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
           >
             <Library className="h-4 w-4" />
-            Mallar
+            {t('tabs.templates')}
           </TabsTrigger>
           <TabsTrigger
             value="upcoming"
             className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
           >
             <CalendarDays className="h-4 w-4" />
-            Tilldelade ({upcomingAssignments.length})
+            {t('tabs.assigned', { count: upcomingAssignments.length })}
           </TabsTrigger>
           <TabsTrigger
             value="progression"
             className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
           >
             <TrendingUp className="h-4 w-4" />
-            Progression
+            {t('tabs.progression')}
           </TabsTrigger>
         </TabsList>
 
@@ -137,9 +144,9 @@ export function AthleteStrengthClient({
                 <div className="w-16 h-16 bg-slate-100 dark:bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <History className="h-8 w-8 text-slate-300 dark:text-slate-500" />
                 </div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Ingen historik ännu</h3>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">{t('history.emptyTitle')}</h3>
                 <p className="text-slate-500 dark:text-slate-400 font-medium">
-                  Slutförda styrkepass visas här.
+                  {t('history.emptyDescription')}
                 </p>
               </GlassCardContent>
             </GlassCard>
@@ -147,7 +154,7 @@ export function AthleteStrengthClient({
             <div className="space-y-4">
               {completedAssignments.map((assignment) => {
                 const phaseInfo = PHASE_LABELS[assignment.phase] || {
-                  label: assignment.phase,
+                  labelKey: assignment.phase,
                   color: 'bg-slate-500',
                 }
                 const assignedDate = new Date(assignment.assignedDate)
@@ -175,7 +182,7 @@ export function AthleteStrengthClient({
                             <div className="flex items-center gap-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex-wrap">
                               <span className="flex items-center gap-1.5">
                                 <Calendar className="h-3.5 w-3.5" />
-                                {format(assignedDate, 'EEEE d MMMM', { locale: sv })}
+                                {format(assignedDate, 'EEEE d MMMM', { locale: dateLocale })}
                               </span>
                               {assignment.estimatedDuration && (
                                 <span className="flex items-center gap-1.5">
@@ -188,10 +195,10 @@ export function AthleteStrengthClient({
                         </div>
                         <div className="flex items-center gap-4">
                           <Badge className={`${phaseInfo.color} text-white border-0 font-bold uppercase tracking-wider shadow-sm`}>
-                            {phaseInfo.label}
+                            {PHASE_LABELS[assignment.phase] ? t(phaseInfo.labelKey) : phaseInfo.labelKey}
                           </Badge>
                           <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 font-bold uppercase tracking-wide border-0">
-                            Slutförd
+                            {t('history.completed')}
                           </Badge>
                         </div>
                       </div>
@@ -210,18 +217,18 @@ export function AthleteStrengthClient({
                 <div className="w-16 h-16 bg-slate-100 dark:bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Calendar className="h-8 w-8 text-slate-300 dark:text-slate-500" />
                 </div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Inga kommande pass</h3>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">{t('upcoming.emptyTitle')}</h3>
                 <p className="text-slate-500 dark:text-slate-400 font-medium mb-6">
-                  Du har inga schemalagda styrkepass just nu.
+                  {t('upcoming.emptyDescription')}
                 </p>
                 {selfServiceEnabled ? (
                   <Button onClick={() => setActiveTab('browse')} className="bg-blue-600 hover:bg-blue-700 text-white font-bold">
                     <Library className="h-4 w-4 mr-2" />
-                    Bläddra mallar
+                    {t('upcoming.browseTemplates')}
                   </Button>
                 ) : (
                   <p className="text-sm text-slate-400 font-medium">
-                    Kontakta din coach för att få styrkepass tilldelade.
+                    {t('upcoming.contactCoach')}
                   </p>
                 )}
               </GlassCardContent>
@@ -230,7 +237,7 @@ export function AthleteStrengthClient({
             <div className="space-y-4">
               {upcomingAssignments.map((assignment) => {
                 const phaseInfo = PHASE_LABELS[assignment.phase] || {
-                  label: assignment.phase,
+                  labelKey: assignment.phase,
                   color: 'bg-slate-500',
                 }
                 const assignedDate = new Date(assignment.assignedDate)
@@ -263,7 +270,7 @@ export function AthleteStrengthClient({
                               </h3>
                               {isToday && (
                                 <Badge variant="default" className="text-[10px] font-black uppercase tracking-wider bg-blue-600 hover:bg-blue-700">
-                                  Idag
+                                  {t('upcoming.today')}
                                 </Badge>
                               )}
                             </div>
@@ -271,7 +278,7 @@ export function AthleteStrengthClient({
                               <span className="flex items-center gap-1.5">
                                 <Calendar className="h-3.5 w-3.5" />
                                 {format(assignedDate, 'EEEE d MMMM', {
-                                  locale: sv,
+                                  locale: dateLocale,
                                 })}
                               </span>
                               {assignment.startTime && (
@@ -297,7 +304,7 @@ export function AthleteStrengthClient({
                         </div>
                         <div className="flex items-center gap-4">
                           <Badge className={`${phaseInfo.color} text-white border-0 font-bold uppercase tracking-wider shadow-sm`}>
-                            {phaseInfo.label}
+                            {PHASE_LABELS[assignment.phase] ? t(phaseInfo.labelKey) : phaseInfo.labelKey}
                           </Badge>
                           <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">
                             <Play className="h-4 w-4 text-white ml-0.5" />
@@ -322,15 +329,14 @@ export function AthleteStrengthClient({
                   <Lock className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
                 </div>
                 <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">
-                  PRO-funktion
+                  {t('pro.title')}
                 </h3>
                 <p className="text-slate-500 dark:text-slate-400 font-medium mb-8 max-w-md mx-auto">
-                  Uppgradera till PRO för att bläddra och schemalägga
-                  styrkepass på egen hand.
+                  {t('pro.description')}
                 </p>
                 <div className="flex items-center justify-center gap-3 mb-8">
                   <Badge variant="outline" className="text-xs font-bold uppercase tracking-wider py-1 px-3 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300">
-                    Din plan: {subscriptionTier}
+                    {t('pro.currentPlan', { tier: subscriptionTier })}
                   </Badge>
                   <ChevronRight className="h-4 w-4 text-slate-300" />
                   <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold uppercase tracking-wider py-1 px-3 border-0">
@@ -340,7 +346,7 @@ export function AthleteStrengthClient({
                 </div>
                 <Button variant="outline" asChild className="font-bold border-slate-200 hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5">
                   <Link href={`${basePath}/athlete/subscription`}>
-                    Uppgradera nu
+                    {t('pro.upgradeNow')}
                   </Link>
                 </Button>
               </GlassCardContent>
@@ -354,7 +360,7 @@ export function AthleteStrengthClient({
           ) : (
             <div className="text-center py-12 text-muted-foreground">
               <TrendingUp className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-              <p>Progressionsdata laddas...</p>
+              <p>{t('progression.loading')}</p>
             </div>
           )}
         </TabsContent>

@@ -22,6 +22,7 @@ import { AthleteCardioClient } from '@/components/athlete/cardio/AthleteCardioCl
 import { AgilityDashboard } from '@/components/athlete/AgilityDashboard'
 import { WODHistorySection, type WODSummaryItem } from '@/components/athlete/WODHistorySection'
 import type { AgilityWorkoutResult, TimingGateResult } from '@/types'
+import { useTranslations } from '@/i18n/client'
 
 interface Assignment {
   id: string
@@ -74,19 +75,19 @@ interface TrainingLibraryClientProps {
   wodHistory?: WODSummaryItem[]
 }
 
-const historyCategoryFilters: { value: CategoryFilter; label: string; icon: React.ElementType }[] = [
-  { value: 'alla', label: 'Alla', icon: History },
-  { value: 'styrka', label: 'Styrka', icon: Dumbbell },
-  { value: 'cardio', label: 'Cardio', icon: Heart },
-  { value: 'hybrid', label: 'Hybrid', icon: Flame },
-  { value: 'agility', label: 'Agility', icon: Zap },
-  { value: 'ai-pass', label: 'AI-Pass', icon: Sparkles },
+const historyCategoryFilters: { value: CategoryFilter; labelKey: string; icon: React.ElementType }[] = [
+  { value: 'alla', labelKey: 'categories.all', icon: History },
+  { value: 'styrka', labelKey: 'categories.strength', icon: Dumbbell },
+  { value: 'cardio', labelKey: 'categories.cardio', icon: Heart },
+  { value: 'hybrid', labelKey: 'categories.hybrid', icon: Flame },
+  { value: 'agility', labelKey: 'categories.agility', icon: Zap },
+  { value: 'ai-pass', labelKey: 'categories.aiWorkouts', icon: Sparkles },
 ]
 
-const createCategoryFilters: { value: CreateCategoryFilter; label: string; icon: React.ElementType }[] = [
-  { value: 'styrka', label: 'Styrka', icon: Dumbbell },
-  { value: 'cardio', label: 'Cardio', icon: Heart },
-  { value: 'hybrid', label: 'Hybrid', icon: Flame },
+const createCategoryFilters: { value: CreateCategoryFilter; labelKey: string; icon: React.ElementType }[] = [
+  { value: 'styrka', labelKey: 'categories.strength', icon: Dumbbell },
+  { value: 'cardio', labelKey: 'categories.cardio', icon: Heart },
+  { value: 'hybrid', labelKey: 'categories.hybrid', icon: Flame },
 ]
 
 export function TrainingLibraryClient({
@@ -101,6 +102,7 @@ export function TrainingLibraryClient({
   agilityTimingResults,
   wodHistory = [],
 }: TrainingLibraryClientProps) {
+  const t = useTranslations('components.trainingLibraryClient')
   const [topTab, setTopTab] = useState<string>('historik')
   const [historyCategory, setHistoryCategory] = useState<CategoryFilter>('alla')
   const [createCategory, setCreateCategory] = useState<CreateCategoryFilter>('styrka')
@@ -110,10 +112,10 @@ export function TrainingLibraryClient({
       {/* Page Header */}
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900 dark:text-white uppercase italic">
-          Träningsbibliotek
+          {t('header.title')}
         </h1>
         <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">
-          All din träning samlad på ett ställe
+          {t('header.description')}
         </p>
       </div>
 
@@ -125,14 +127,14 @@ export function TrainingLibraryClient({
             className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
           >
             <History className="h-4 w-4" />
-            Historik
+            {t('tabs.history')}
           </TabsTrigger>
           <TabsTrigger
             value="skapa"
             className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
           >
             <Plus className="h-4 w-4" />
-            Skapa Pass
+            {t('tabs.createWorkout')}
           </TabsTrigger>
         </TabsList>
 
@@ -153,7 +155,7 @@ export function TrainingLibraryClient({
                   }`}
                 >
                   <filter.icon className="h-3.5 w-3.5" />
-                  {filter.label}
+                  {t(filter.labelKey)}
                 </button>
               )
             })}
@@ -165,7 +167,7 @@ export function TrainingLibraryClient({
               {historyCategory === 'alla' && (
                 <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4 flex items-center gap-2">
                   <Dumbbell className="h-5 w-5 text-blue-500" />
-                  Styrka
+                  {t('categories.strength')}
                 </h2>
               )}
               <AthleteStrengthClient
@@ -229,10 +231,10 @@ export function TrainingLibraryClient({
                 <Flame className="h-8 w-8 text-slate-300 dark:text-slate-500" />
               </div>
               <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">
-                Ingen hybrid-historik ännu
+                {t('hybridHistory.emptyTitle')}
               </h3>
               <p className="text-slate-500 dark:text-slate-400 font-medium">
-                Slutförda hybridpass visas här.
+                {t('hybridHistory.emptyDescription')}
               </p>
             </div>
           )}
@@ -257,7 +259,7 @@ export function TrainingLibraryClient({
                       }`}
                     >
                       <filter.icon className="h-3.5 w-3.5" />
-                      {filter.label}
+                      {t(filter.labelKey)}
                     </button>
                   )
                 })}
@@ -287,10 +289,10 @@ export function TrainingLibraryClient({
                     <Flame className="h-8 w-8 text-slate-300 dark:text-slate-500" />
                   </div>
                   <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">
-                    Hybridmallar
+                    {t('hybridTemplates.title')}
                   </h3>
                   <p className="text-slate-500 dark:text-slate-400 font-medium mb-6">
-                    Hybridmallar kommer snart.
+                    {t('hybridTemplates.description')}
                   </p>
                 </div>
               )}
@@ -302,14 +304,14 @@ export function TrainingLibraryClient({
                 <Lock className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
               </div>
               <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">
-                PRO-funktion
+                {t('pro.title')}
               </h3>
               <p className="text-slate-500 dark:text-slate-400 font-medium mb-8 max-w-md mx-auto">
-                Uppgradera till PRO för att bläddra och skapa pass på egen hand.
+                {t('pro.description')}
               </p>
               <div className="flex items-center justify-center gap-3 mb-8">
                 <Badge variant="outline" className="text-xs font-bold uppercase tracking-wider py-1 px-3 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300">
-                  Din plan: {subscriptionTier}
+                  {t('pro.currentPlan', { tier: subscriptionTier })}
                 </Badge>
                 <ChevronRight className="h-4 w-4 text-slate-300" />
                 <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold uppercase tracking-wider py-1 px-3 border-0">
@@ -319,7 +321,7 @@ export function TrainingLibraryClient({
               </div>
               <Button variant="outline" asChild className="font-bold border-slate-200 hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5">
                 <Link href={`${basePath}/athlete/subscription`}>
-                  Uppgradera nu
+                  {t('pro.upgradeNow')}
                 </Link>
               </Button>
             </div>
