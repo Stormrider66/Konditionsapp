@@ -68,6 +68,7 @@ export const TEAM_EVENT_CONTENT_STATUSES = [
   'PLANNED',
   'NEEDS_CONTENT',
   'CONTENT_READY',
+  'ASSIGNED',
 ] as const
 
 export type TeamEventContentStatus = (typeof TEAM_EVENT_CONTENT_STATUSES)[number]
@@ -76,6 +77,7 @@ export const TEAM_EVENT_CONTENT_STATUS_LABELS: Record<TeamEventContentStatus, st
   PLANNED: 'Planerad ram',
   NEEDS_CONTENT: 'Behöver innehåll',
   CONTENT_READY: 'Innehåll klart',
+  ASSIGNED: 'Tilldelat',
 }
 
 export const TEAM_EVENT_CONTENT_OWNERS = [

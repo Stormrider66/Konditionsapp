@@ -19,7 +19,7 @@ interface RouteContext {
 
 // Validation schema for team workout assignment
 const teamAssignWorkoutSchema = z.object({
-  workoutType: z.enum(['strength', 'cardio', 'hybrid']),
+  workoutType: z.enum(['strength', 'cardio', 'hybrid', 'agility']),
   workoutId: z.string().uuid(),
   assignedDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
     message: 'Invalid date format',
@@ -158,6 +158,21 @@ export async function POST(request: NextRequest, context: RouteContext) {
         )
       }
       workoutName = workout.name
+    } else if (workoutType === 'agility') {
+      const workout = await prisma.agilityWorkout.findFirst({
+        where: {
+          id: workoutId,
+          OR: [{ coachId: user.id }, { isPublic: true }],
+        },
+        select: { name: true },
+      })
+      if (!workout) {
+        return NextResponse.json(
+          { success: false, error: 'Agility workout not found' },
+          { status: 404 }
+        )
+      }
+      workoutName = workout.name
     }
 
     // Create broadcast and assignments in a transaction
@@ -170,6 +185,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           strengthSessionId: workoutType === 'strength' ? workoutId : null,
           cardioSessionId: workoutType === 'cardio' ? workoutId : null,
           hybridWorkoutId: workoutType === 'hybrid' ? workoutId : null,
+          agilityWorkoutId: workoutType === 'agility' ? workoutId : null,
           assignedDate: date,
           notes: notes || null,
           startTime: startTime || null,
@@ -235,6 +251,25 @@ export async function POST(request: NextRequest, context: RouteContext) {
             scheduledBy: startTime ? user.id : null,
             responsibleCoachId: responsibleCoachId || null,
             status: 'PENDING',
+            teamBroadcastId: broadcast.id,
+          })),
+          skipDuplicates: true,
+        })
+      } else if (workoutType === 'agility') {
+        await tx.agilityWorkoutAssignment.createMany({
+          data: eligibleMembers.map((member) => ({
+            workoutId,
+            athleteId: member.id,
+            assignedDate: date,
+            assignedBy: user.id,
+            notes: notes || null,
+            startTime: startTime || null,
+            endTime: endTime || null,
+            locationId: locationId || null,
+            locationName: locationName || null,
+            scheduledBy: startTime ? user.id : null,
+            responsibleCoachId: responsibleCoachId || null,
+            status: 'ASSIGNED',
             teamBroadcastId: broadcast.id,
           })),
           skipDuplicates: true,

@@ -43,6 +43,8 @@ interface TeamEvent {
   linkedWorkoutType?: string | null
   linkedWorkoutId?: string | null
   linkedWorkoutName?: string | null
+  assignedBroadcastId?: string | null
+  assignedAt?: string | null
   createdBy: { name: string }
   intervalSession: { id: string; name: string; status: string } | null
 }
@@ -115,6 +117,7 @@ function compactEventText(event: TeamEvent): string {
 
 function eventNeedsContent(event: TeamEvent): boolean {
   if (!PHYSICAL_TEAM_EVENT_TYPES.includes(event.type as TeamEventType)) return false
+  if (event.contentStatus === 'ASSIGNED' || event.assignedBroadcastId) return false
   return event.contentStatus !== 'CONTENT_READY' || !event.linkedWorkoutId
 }
 
@@ -494,6 +497,11 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                                   {contentStatusLabel(event.contentStatus)}
                                 </span>
                               )}
+                              {event.assignedBroadcastId && (
+                                <span className="ml-1 rounded bg-emerald-100 px-1 text-[10px] text-emerald-800">
+                                  Tilldelat
+                                </span>
+                              )}
                             </button>
                           )
                         })}
@@ -580,6 +588,11 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                                 {eventNeedsContent(event) && (
                                   <Badge variant="outline" className="shrink-0 border-amber-300 bg-amber-50 text-[10px] text-amber-800">
                                     {contentStatusLabel(event.contentStatus)}
+                                  </Badge>
+                                )}
+                                {event.assignedBroadcastId && (
+                                  <Badge variant="outline" className="shrink-0 border-emerald-300 bg-emerald-50 text-[10px] text-emerald-800">
+                                    Tilldelat
                                   </Badge>
                                 )}
                               </div>

@@ -31,7 +31,7 @@ import {
   type TeamEventContentStatus,
   type TeamEventType,
 } from '@/lib/team-calendar/event-types'
-import { Dumbbell, ExternalLink, HeartPulse, Route, Zap } from 'lucide-react'
+import { CheckCircle2, Dumbbell, ExternalLink, HeartPulse, Route, Send, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -49,6 +49,8 @@ interface EditableTeamEvent {
   linkedWorkoutType?: string | null
   linkedWorkoutId?: string | null
   linkedWorkoutName?: string | null
+  assignedBroadcastId?: string | null
+  assignedAt?: string | null
 }
 
 interface EditEventDialogProps {
@@ -122,9 +124,12 @@ export function EditEventDialog({
   const [linkedWorkoutName, setLinkedWorkoutName] = useState<string | null>(null)
   const [workoutOptions, setWorkoutOptions] = useState<WorkoutOption[]>([])
   const [loadingWorkouts, setLoadingWorkouts] = useState(false)
+  const [assigning, setAssigning] = useState(false)
   const builderLink = builderLinkFor(type, businessSlug)
   const isPhysicalSession = PHYSICAL_TEAM_EVENT_TYPES.includes(type)
   const linkedWorkoutType = workoutTypeForEventType(type)
+  const canAssignPersistedWorkout = Boolean(event?.linkedWorkoutId && event?.linkedWorkoutType && !event.assignedBroadcastId)
+  const isAssigned = Boolean(event?.assignedBroadcastId)
 
   useEffect(() => {
     if (!event) return
@@ -225,6 +230,34 @@ export function EditEventDialog({
       toast.error('Kunde inte uppdatera händelse')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAssignToTeam = async () => {
+    if (!event || !canAssignPersistedWorkout) return
+
+    setAssigning(true)
+    try {
+      const params = new URLSearchParams()
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const res = await fetch(`/api/coach/teams/${teamId}/events/${event.id}/assign-workout${params.size ? `?${params}` : ''}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
+        },
+        body: JSON.stringify({ notes: description.trim() || undefined }),
+      })
+
+      if (!res.ok) throw new Error('Failed')
+      const data = await res.json()
+      toast.success(`Tilldelat till ${data.assignmentCount ?? 'laget'} spelare`)
+      onOpenChange(false)
+      onUpdated()
+    } catch {
+      toast.error('Kunde inte tilldela passet')
+    } finally {
+      setAssigning(false)
     }
   }
 
@@ -341,6 +374,33 @@ export function EditEventDialog({
                   {linkedWorkoutName && (
                     <div className="text-xs text-muted-foreground">
                       Kopplat: {linkedWorkoutName}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-md border bg-background p-3">
+                  {isAssigned ? (
+                    <div className="flex items-center gap-2 text-sm text-emerald-700">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Passet är tilldelat laget.
+                    </div>
+                  ) : canAssignPersistedWorkout ? (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="text-xs text-muted-foreground">
+                        Skapa teamtilldelning med datum, tid och plats från kalendern.
+                      </div>
+                      <Button type="button" size="sm" onClick={handleAssignToTeam} disabled={assigning}>
+                        <Send className="mr-1.5 h-3.5 w-3.5" />
+                        {assigning ? 'Tilldelar...' : 'Tilldela laget'}
+                      </Button>
+                    </div>
+                  ) : linkedWorkoutId !== 'none' ? (
+                    <div className="text-xs text-muted-foreground">
+                      Spara händelsen först, sedan kan passet tilldelas laget.
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground">
+                      Koppla ett färdigt pass för att kunna tilldela laget.
                     </div>
                   )}
                 </div>

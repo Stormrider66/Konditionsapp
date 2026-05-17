@@ -46,6 +46,8 @@ model TeamEvent {
   linkedWorkoutType String? // STRENGTH, CARDIO, HYBRID, AGILITY
   linkedWorkoutId   String?
   linkedWorkoutName String?
+  assignedBroadcastId String?
+  assignedAt          DateTime?
 
   // Date/time
   startDate DateTime
@@ -76,6 +78,7 @@ model TeamEvent {
   @@index([teamId, startDate])
   @@index([teamId, type])
   @@index([teamId, contentStatus])
+  @@index([assignedBroadcastId])
   @@index([createdById])
 }
 
