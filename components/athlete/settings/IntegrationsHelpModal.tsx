@@ -36,26 +36,28 @@ import {
   Info,
   Zap,
 } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 export function IntegrationsHelpModal() {
   const [open, setOpen] = useState(false)
+  const t = useTranslations('components.integrationsHelpModal')
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="h-8 w-8">
           <HelpCircle className="h-4 w-4" />
-          <span className="sr-only">Hjälp om integrationer</span>
+          <span className="sr-only">{t('triggerLabel')}</span>
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <HelpCircle className="h-5 w-5" />
-            Hur integrationer fungerar
+            {t('title')}
           </SheetTitle>
           <SheetDescription>
-            Lär dig hur du ansluter och synkroniserar data från dina träningsappar
+            {t('description')}
           </SheetDescription>
         </SheetHeader>
 
@@ -65,10 +67,9 @@ export function IntegrationsHelpModal() {
             <div className="flex items-start gap-3">
               <Info className="h-5 w-5 text-blue-600 mt-0.5" />
               <div>
-                <h3 className="font-medium text-blue-900">Översikt</h3>
+                <h3 className="font-medium text-blue-900">{t('overview.title')}</h3>
                 <p className="text-sm text-blue-800 mt-1">
-                  Integrationer låter dig automatiskt synkronisera träningsdata från externa
-                  tjänster. Data hämtas via säkra API-anslutningar med OAuth-autentisering.
+                  {t('overview.description')}
                 </p>
               </div>
             </div>
@@ -76,25 +77,25 @@ export function IntegrationsHelpModal() {
 
           {/* Data Flow Diagram */}
           <div className="rounded-lg border p-4">
-            <h3 className="font-medium mb-3">Så flödar din data</h3>
+            <h3 className="font-medium mb-3">{t('dataFlow.title')}</h3>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground flex-wrap">
               <div className="flex items-center gap-1 bg-gray-100 rounded px-2 py-1">
                 <Smartphone className="h-4 w-4" />
-                <span>Din enhet</span>
+                <span>{t('dataFlow.device')}</span>
               </div>
               <ArrowRight className="h-4 w-4" />
               <div className="flex items-center gap-1 bg-gray-100 rounded px-2 py-1">
                 <Cloud className="h-4 w-4" />
-                <span>Molntjänst</span>
+                <span>{t('dataFlow.cloud')}</span>
               </div>
               <ArrowRight className="h-4 w-4" />
               <div className="flex items-center gap-1 bg-primary/10 rounded px-2 py-1 text-primary">
                 <Zap className="h-4 w-4" />
-                <span>Denna app</span>
+                <span>{t('dataFlow.app')}</span>
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-3 text-center">
-              Data synkroniseras via tjänsternas officiella API:er
+              {t('dataFlow.footer')}
             </p>
           </div>
 
@@ -112,45 +113,45 @@ export function IntegrationsHelpModal() {
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pt-2">
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Vad synkroniseras</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('sections.synced')}</h4>
                   <ul className="text-sm text-muted-foreground space-y-1">
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-3 w-3 text-green-500" />
-                      Löpning, cykling, simning och andra aktiviteter
+                      {t('strava.synced.activities')}
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-3 w-3 text-green-500" />
-                      Distans, tid, tempo och höjdmeter
+                      {t('strava.synced.metrics')}
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-3 w-3 text-green-500" />
-                      Pulsdata (om tillgänglig)
+                      {t('strava.synced.heartRate')}
                     </li>
                   </ul>
                 </div>
 
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Krav</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('sections.requirements')}</h4>
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Strava-konto (gratis eller premium)</li>
-                    <li>• Strava-appen på din telefon eller klocka</li>
+                    <li>• {t('strava.requirements.account')}</li>
+                    <li>• {t('strava.requirements.app')}</li>
                   </ul>
                 </div>
 
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Så här fungerar det</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('sections.howItWorks')}</h4>
                   <ol className="text-sm text-muted-foreground space-y-2">
                     <li className="flex gap-2">
                       <span className="font-medium text-foreground">1.</span>
-                      Spela in aktivitet med Strava-appen eller synka från din klocka
+                      {t('strava.steps.record')}
                     </li>
                     <li className="flex gap-2">
                       <span className="font-medium text-foreground">2.</span>
-                      Aktiviteten laddas upp till Strava automatiskt
+                      {t('strava.steps.upload')}
                     </li>
                     <li className="flex gap-2">
                       <span className="font-medium text-foreground">3.</span>
-                      Klicka &quot;Synka nu&quot; för att hämta nya aktiviteter hit
+                      {t('strava.steps.sync')}
                     </li>
                   </ol>
                 </div>
@@ -159,8 +160,8 @@ export function IntegrationsHelpModal() {
                   <div className="flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
                     <div className="text-sm text-yellow-800">
-                      <p className="font-medium">Tips</p>
-                      <p>Strava kan ta några minuter att bearbeta din aktivitet efter uppladdning.</p>
+                      <p className="font-medium">{t('commonTips.title')}</p>
+                      <p>{t('strava.tip')}</p>
                     </div>
                   </div>
                 </div>
@@ -179,7 +180,7 @@ export function IntegrationsHelpModal() {
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pt-2">
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Vad synkroniseras</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('sections.synced')}</h4>
                   <ul className="text-sm text-muted-foreground space-y-1">
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-3 w-3 text-green-500" />
@@ -187,42 +188,42 @@ export function IntegrationsHelpModal() {
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-3 w-3 text-green-500" />
-                      Sömndata och sömnkvalitet
+                      {t('garmin.synced.sleep')}
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-3 w-3 text-green-500" />
-                      Stressnivå och Body Battery
+                      {t('garmin.synced.stress')}
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-3 w-3 text-green-500" />
-                      Vilopuls
+                      {t('garmin.synced.restingHr')}
                     </li>
                   </ul>
                 </div>
 
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Krav</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('sections.requirements')}</h4>
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Garmin-konto</li>
-                    <li>• Garmin-klocka eller enhet med HRV-stöd</li>
-                    <li>• Garmin Connect-appen</li>
+                    <li>• {t('garmin.requirements.account')}</li>
+                    <li>• {t('garmin.requirements.device')}</li>
+                    <li>• {t('garmin.requirements.app')}</li>
                   </ul>
                 </div>
 
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Så här fungerar det</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('sections.howItWorks')}</h4>
                   <ol className="text-sm text-muted-foreground space-y-2">
                     <li className="flex gap-2">
                       <span className="font-medium text-foreground">1.</span>
-                      Bär din Garmin-klocka dygnet runt för sömnspårning
+                      {t('garmin.steps.wear')}
                     </li>
                     <li className="flex gap-2">
                       <span className="font-medium text-foreground">2.</span>
-                      Synka klockan med Garmin Connect-appen
+                      {t('garmin.steps.syncWatch')}
                     </li>
                     <li className="flex gap-2">
                       <span className="font-medium text-foreground">3.</span>
-                      Data hämtas automatiskt till denna app
+                      {t('garmin.steps.fetch')}
                     </li>
                   </ol>
                 </div>
@@ -231,8 +232,8 @@ export function IntegrationsHelpModal() {
                   <div className="flex items-start gap-2">
                     <Info className="h-4 w-4 text-blue-600 mt-0.5" />
                     <div className="text-sm text-blue-800">
-                      <p className="font-medium">HRV-mätning</p>
-                      <p>För bästa HRV-data, bär klockan under sömn. Morgon-HRV mäts automatiskt.</p>
+                      <p className="font-medium">{t('garmin.hrv.title')}</p>
+                      <p>{t('garmin.hrv.description')}</p>
                     </div>
                   </div>
                 </div>
@@ -251,37 +252,37 @@ export function IntegrationsHelpModal() {
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pt-2">
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Vad synkroniseras</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('sections.synced')}</h4>
                   <ul className="text-sm text-muted-foreground space-y-1">
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-3 w-3 text-green-500" />
-                      RowErg (roddmaskin) pass
+                      {t('concept2.synced.rowErg')}
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-3 w-3 text-green-500" />
-                      SkiErg pass
+                      {t('concept2.synced.skiErg')}
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-3 w-3 text-green-500" />
-                      BikeErg pass
+                      {t('concept2.synced.bikeErg')}
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-3 w-3 text-green-500" />
-                      Distans, tid, tempo, watt, drag factor
+                      {t('concept2.synced.metrics')}
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-3 w-3 text-green-500" />
-                      Intervaller och splits
+                      {t('concept2.synced.intervals')}
                     </li>
                   </ul>
                 </div>
 
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Krav</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('sections.requirements')}</h4>
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Concept2-konto på log.concept2.com</li>
-                    <li>• Concept2-maskin med PM5-display</li>
-                    <li>• <strong>ErgData-appen</strong> (rekommenderas starkt)</li>
+                    <li>• {t('concept2.requirements.account')}</li>
+                    <li>• {t('concept2.requirements.machine')}</li>
+                    <li>• <strong>{t('concept2.requirements.ergDataStrong')}</strong> {t('concept2.requirements.recommended')}</li>
                   </ul>
                 </div>
 
@@ -289,45 +290,44 @@ export function IntegrationsHelpModal() {
                   <div className="flex items-start gap-2">
                     <Smartphone className="h-4 w-4 text-cyan-600 mt-0.5" />
                     <div className="text-sm text-cyan-800">
-                      <p className="font-medium">ErgData-appen är nyckeln!</p>
+                      <p className="font-medium">{t('concept2.ergData.title')}</p>
                       <p className="mt-1">
-                        Anslut din telefon via Bluetooth till PM5-displayen under passet.
-                        ErgData laddar automatiskt upp ditt pass till Concept2 Logbook när du är klar.
+                        {t('concept2.ergData.description')}
                       </p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Så här fungerar det</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('sections.howItWorks')}</h4>
                   <ol className="text-sm text-muted-foreground space-y-2">
                     <li className="flex gap-2">
                       <span className="font-medium text-foreground">1.</span>
-                      Öppna ErgData-appen och anslut till din Concept2-maskin via Bluetooth
+                      {t('concept2.steps.open')}
                     </li>
                     <li className="flex gap-2">
                       <span className="font-medium text-foreground">2.</span>
-                      Genomför ditt pass - ErgData spelar in automatiskt
+                      {t('concept2.steps.workout')}
                     </li>
                     <li className="flex gap-2">
                       <span className="font-medium text-foreground">3.</span>
-                      När passet är klart laddas det upp till Concept2 Logbook
+                      {t('concept2.steps.upload')}
                     </li>
                     <li className="flex gap-2">
                       <span className="font-medium text-foreground">4.</span>
-                      Klicka &quot;Synka nu&quot; här för att hämta passet
+                      {t('concept2.steps.sync')}
                     </li>
                   </ol>
                 </div>
 
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Alternativa metoder</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('concept2.alternatives.title')}</h4>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Om du inte använder ErgData kan du också:
+                    {t('concept2.alternatives.intro')}
                   </p>
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Spara till USB-minne och ladda upp på log.concept2.com</li>
-                    <li>• Manuellt logga ditt pass på log.concept2.com</li>
+                    <li>• {t('concept2.alternatives.usb')}</li>
+                    <li>• {t('concept2.alternatives.manual')}</li>
                   </ul>
                 </div>
 
@@ -335,10 +335,9 @@ export function IntegrationsHelpModal() {
                   <div className="flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
                     <div className="text-sm text-yellow-800">
-                      <p className="font-medium">Viktigt</p>
+                      <p className="font-medium">{t('concept2.important.title')}</p>
                       <p>
-                        Data hämtas från Concept2 Logbook, inte direkt från maskinen.
-                        Se till att dina pass laddas upp dit först.
+                        {t('concept2.important.description')}
                       </p>
                     </div>
                   </div>
@@ -351,27 +350,25 @@ export function IntegrationsHelpModal() {
           <div className="rounded-lg border p-4">
             <h3 className="font-medium mb-3 flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
-              Vanliga problem
+              {t('troubleshooting.title')}
             </h3>
             <div className="space-y-3 text-sm">
               <div>
-                <p className="font-medium">Data synkroniseras inte?</p>
+                <p className="font-medium">{t('troubleshooting.notSyncing.title')}</p>
                 <p className="text-muted-foreground">
-                  Kontrollera att du är inloggad i respektive app och att data har laddats upp
-                  till molntjänsten först.
+                  {t('troubleshooting.notSyncing.description')}
                 </p>
               </div>
               <div>
-                <p className="font-medium">Anslutningen fungerar inte?</p>
+                <p className="font-medium">{t('troubleshooting.connection.title')}</p>
                 <p className="text-muted-foreground">
-                  Prova att koppla bort och ansluta igen. Du kan behöva godkänna åtkomst på nytt.
+                  {t('troubleshooting.connection.description')}
                 </p>
               </div>
               <div>
-                <p className="font-medium">Saknas aktiviteter?</p>
+                <p className="font-medium">{t('troubleshooting.missing.title')}</p>
                 <p className="text-muted-foreground">
-                  Endast aktiviteter från de senaste 30-90 dagarna hämtas. Äldre data kan
-                  importeras manuellt vid behov.
+                  {t('troubleshooting.missing.description')}
                 </p>
               </div>
             </div>
@@ -379,11 +376,9 @@ export function IntegrationsHelpModal() {
 
           {/* Privacy Note */}
           <div className="rounded-lg bg-gray-50 p-4 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground mb-1">Om din data</p>
+            <p className="font-medium text-foreground mb-1">{t('privacy.title')}</p>
             <p>
-              Vi använder endast officiella API:er med OAuth-autentisering. Din data lagras
-              säkert och delas aldrig med tredje part. Du kan när som helst koppla bort en
-              integration för att stoppa synkroniseringen.
+              {t('privacy.description')}
             </p>
           </div>
         </div>

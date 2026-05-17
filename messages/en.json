@@ -8411,6 +8411,122 @@
         "recoverySourceUpdateError": "Could not update recovery source"
       }
     },
+    "integrationsHelpModal": {
+      "triggerLabel": "Integration help",
+      "title": "How integrations work",
+      "description": "Learn how to connect and sync data from your training apps",
+      "overview": {
+        "title": "Overview",
+        "description": "Integrations let you automatically sync training data from external services. Data is fetched through secure API connections with OAuth authentication."
+      },
+      "dataFlow": {
+        "title": "How your data flows",
+        "device": "Your device",
+        "cloud": "Cloud service",
+        "app": "This app",
+        "footer": "Data is synced through the services' official APIs"
+      },
+      "sections": {
+        "synced": "What syncs",
+        "requirements": "Requirements",
+        "howItWorks": "How it works"
+      },
+      "commonTips": {
+        "title": "Tip"
+      },
+      "strava": {
+        "synced": {
+          "activities": "Running, cycling, swimming, and other activities",
+          "metrics": "Distance, time, pace, and elevation",
+          "heartRate": "Heart-rate data (if available)"
+        },
+        "requirements": {
+          "account": "Strava account (free or premium)",
+          "app": "The Strava app on your phone or watch"
+        },
+        "steps": {
+          "record": "Record activity with the Strava app or sync from your watch",
+          "upload": "The activity uploads to Strava automatically",
+          "sync": "Click \"Sync now\" to fetch new activities here"
+        },
+        "tip": "Strava can take a few minutes to process your activity after upload."
+      },
+      "garmin": {
+        "synced": {
+          "sleep": "Sleep data and sleep quality",
+          "stress": "Stress level and Body Battery",
+          "restingHr": "Resting heart rate"
+        },
+        "requirements": {
+          "account": "Garmin account",
+          "device": "Garmin watch or device with HRV support",
+          "app": "Garmin Connect app"
+        },
+        "steps": {
+          "wear": "Wear your Garmin watch around the clock for sleep tracking",
+          "syncWatch": "Sync the watch with the Garmin Connect app",
+          "fetch": "Data is fetched automatically into this app"
+        },
+        "hrv": {
+          "title": "HRV measurement",
+          "description": "For the best HRV data, wear the watch while sleeping. Morning HRV is measured automatically."
+        }
+      },
+      "concept2": {
+        "synced": {
+          "rowErg": "RowErg workouts",
+          "skiErg": "SkiErg workouts",
+          "bikeErg": "BikeErg workouts",
+          "metrics": "Distance, time, pace, watts, drag factor",
+          "intervals": "Intervals and splits"
+        },
+        "requirements": {
+          "account": "Concept2 account at log.concept2.com",
+          "machine": "Concept2 machine with PM5 display",
+          "ergDataStrong": "ErgData app",
+          "recommended": "(strongly recommended)"
+        },
+        "ergData": {
+          "title": "The ErgData app is key!",
+          "description": "Connect your phone via Bluetooth to the PM5 display during the workout. ErgData automatically uploads your workout to Concept2 Logbook when you are done."
+        },
+        "steps": {
+          "open": "Open the ErgData app and connect to your Concept2 machine via Bluetooth",
+          "workout": "Complete your workout - ErgData records automatically",
+          "upload": "When the workout is done, it uploads to Concept2 Logbook",
+          "sync": "Click \"Sync now\" here to fetch the workout"
+        },
+        "alternatives": {
+          "title": "Alternative methods",
+          "intro": "If you do not use ErgData, you can also:",
+          "usb": "Save to USB drive and upload at log.concept2.com",
+          "manual": "Manually log your workout at log.concept2.com"
+        },
+        "important": {
+          "title": "Important",
+          "description": "Data is fetched from Concept2 Logbook, not directly from the machine. Make sure your workouts are uploaded there first."
+        }
+      },
+      "troubleshooting": {
+        "title": "Common issues",
+        "notSyncing": {
+          "title": "Data not syncing?",
+          "description": "Check that you are signed into each app and that data has uploaded to the cloud service first."
+        },
+        "connection": {
+          "title": "Connection not working?",
+          "description": "Try disconnecting and connecting again. You may need to approve access again."
+        },
+        "missing": {
+          "title": "Missing activities?",
+          "description": "Only activities from the last 30-90 days are fetched. Older data can be imported manually if needed."
+        }
+      },
+      "privacy": {
+        "title": "About your data",
+        "description": "We only use official APIs with OAuth authentication. Your data is stored securely and never shared with third parties. You can disconnect an integration at any time to stop syncing."
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

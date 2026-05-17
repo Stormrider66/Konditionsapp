@@ -8411,6 +8411,122 @@
         "recoverySourceUpdateError": "Kunde inte uppdatera återhämtningskälla"
       }
     },
+    "integrationsHelpModal": {
+      "triggerLabel": "Hjälp om integrationer",
+      "title": "Hur integrationer fungerar",
+      "description": "Lär dig hur du ansluter och synkroniserar data från dina träningsappar",
+      "overview": {
+        "title": "Översikt",
+        "description": "Integrationer låter dig automatiskt synkronisera träningsdata från externa tjänster. Data hämtas via säkra API-anslutningar med OAuth-autentisering."
+      },
+      "dataFlow": {
+        "title": "Så flödar din data",
+        "device": "Din enhet",
+        "cloud": "Molntjänst",
+        "app": "Denna app",
+        "footer": "Data synkroniseras via tjänsternas officiella API:er"
+      },
+      "sections": {
+        "synced": "Vad synkroniseras",
+        "requirements": "Krav",
+        "howItWorks": "Så här fungerar det"
+      },
+      "commonTips": {
+        "title": "Tips"
+      },
+      "strava": {
+        "synced": {
+          "activities": "Löpning, cykling, simning och andra aktiviteter",
+          "metrics": "Distans, tid, tempo och höjdmeter",
+          "heartRate": "Pulsdata (om tillgänglig)"
+        },
+        "requirements": {
+          "account": "Strava-konto (gratis eller premium)",
+          "app": "Strava-appen på din telefon eller klocka"
+        },
+        "steps": {
+          "record": "Spela in aktivitet med Strava-appen eller synka från din klocka",
+          "upload": "Aktiviteten laddas upp till Strava automatiskt",
+          "sync": "Klicka \"Synka nu\" för att hämta nya aktiviteter hit"
+        },
+        "tip": "Strava kan ta några minuter att bearbeta din aktivitet efter uppladdning."
+      },
+      "garmin": {
+        "synced": {
+          "sleep": "Sömndata och sömnkvalitet",
+          "stress": "Stressnivå och Body Battery",
+          "restingHr": "Vilopuls"
+        },
+        "requirements": {
+          "account": "Garmin-konto",
+          "device": "Garmin-klocka eller enhet med HRV-stöd",
+          "app": "Garmin Connect-appen"
+        },
+        "steps": {
+          "wear": "Bär din Garmin-klocka dygnet runt för sömnspårning",
+          "syncWatch": "Synka klockan med Garmin Connect-appen",
+          "fetch": "Data hämtas automatiskt till denna app"
+        },
+        "hrv": {
+          "title": "HRV-mätning",
+          "description": "För bästa HRV-data, bär klockan under sömn. Morgon-HRV mäts automatiskt."
+        }
+      },
+      "concept2": {
+        "synced": {
+          "rowErg": "RowErg (roddmaskin) pass",
+          "skiErg": "SkiErg pass",
+          "bikeErg": "BikeErg pass",
+          "metrics": "Distans, tid, tempo, watt, drag factor",
+          "intervals": "Intervaller och splits"
+        },
+        "requirements": {
+          "account": "Concept2-konto på log.concept2.com",
+          "machine": "Concept2-maskin med PM5-display",
+          "ergDataStrong": "ErgData-appen",
+          "recommended": "(rekommenderas starkt)"
+        },
+        "ergData": {
+          "title": "ErgData-appen är nyckeln!",
+          "description": "Anslut din telefon via Bluetooth till PM5-displayen under passet. ErgData laddar automatiskt upp ditt pass till Concept2 Logbook när du är klar."
+        },
+        "steps": {
+          "open": "Öppna ErgData-appen och anslut till din Concept2-maskin via Bluetooth",
+          "workout": "Genomför ditt pass - ErgData spelar in automatiskt",
+          "upload": "När passet är klart laddas det upp till Concept2 Logbook",
+          "sync": "Klicka \"Synka nu\" här för att hämta passet"
+        },
+        "alternatives": {
+          "title": "Alternativa metoder",
+          "intro": "Om du inte använder ErgData kan du också:",
+          "usb": "Spara till USB-minne och ladda upp på log.concept2.com",
+          "manual": "Manuellt logga ditt pass på log.concept2.com"
+        },
+        "important": {
+          "title": "Viktigt",
+          "description": "Data hämtas från Concept2 Logbook, inte direkt från maskinen. Se till att dina pass laddas upp dit först."
+        }
+      },
+      "troubleshooting": {
+        "title": "Vanliga problem",
+        "notSyncing": {
+          "title": "Data synkroniseras inte?",
+          "description": "Kontrollera att du är inloggad i respektive app och att data har laddats upp till molntjänsten först."
+        },
+        "connection": {
+          "title": "Anslutningen fungerar inte?",
+          "description": "Prova att koppla bort och ansluta igen. Du kan behöva godkänna åtkomst på nytt."
+        },
+        "missing": {
+          "title": "Saknas aktiviteter?",
+          "description": "Endast aktiviteter från de senaste 30-90 dagarna hämtas. Äldre data kan importeras manuellt vid behov."
+        }
+      },
+      "privacy": {
+        "title": "Om din data",
+        "description": "Vi använder endast officiella API:er med OAuth-autentisering. Din data lagras säkert och delas aldrig med tredje part. Du kan när som helst koppla bort en integration för att stoppa synkroniseringen."
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",
