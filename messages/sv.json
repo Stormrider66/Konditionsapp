@@ -7654,6 +7654,32 @@
         "category": "Inga pass hittades i denna kategori."
       }
     },
+    "workoutTemplateDetailClient": {
+      "back": "Tillbaka",
+      "usageCount": "{count} gånger använd",
+      "exerciseCount": "{count} övningar",
+      "restSeconds": "Vila {seconds}s",
+      "actions": {
+        "start": "Starta pass",
+        "starting": "Startar..."
+      },
+      "category": {
+        "strength": "Styrka",
+        "cardio": "Cardio",
+        "functional": "Funktionell",
+        "core": "Core",
+        "stretching": "Stretching"
+      },
+      "difficulty": {
+        "beginner": "Nybörjare",
+        "intermediate": "Medel",
+        "advanced": "Avancerad"
+      },
+      "favorite": {
+        "add": "Lägg till favorit",
+        "remove": "Ta bort favorit"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

@@ -4,19 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Heart, Clock, Dumbbell, ChevronDown, ChevronUp, Loader2, Activity, Flame, Target, StretchHorizontal } from 'lucide-react'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useLocale, useTranslations } from '@/i18n/client'
 
-const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  STRENGTH: { label: 'Styrka', color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400', icon: Dumbbell },
-  CARDIO: { label: 'Cardio', color: 'bg-red-500/10 text-red-600 dark:text-red-400', icon: Activity },
-  FUNCTIONAL: { label: 'Funktionell', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400', icon: Flame },
-  CORE: { label: 'Core', color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', icon: Target },
-  STRETCHING: { label: 'Stretching', color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400', icon: StretchHorizontal },
-}
-
-const DIFFICULTY_LABELS: Record<string, string> = {
-  BEGINNER: 'Nybörjare',
-  INTERMEDIATE: 'Medel',
-  ADVANCED: 'Avancerad',
+const CATEGORY_CONFIG: Record<string, { color: string; icon: React.ElementType }> = {
+  STRENGTH: { color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400', icon: Dumbbell },
+  CARDIO: { color: 'bg-red-500/10 text-red-600 dark:text-red-400', icon: Activity },
+  FUNCTIONAL: { color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400', icon: Flame },
+  CORE: { color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', icon: Target },
+  STRETCHING: { color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400', icon: StretchHorizontal },
 }
 
 const SECTION_COLORS: Record<string, string> = {
@@ -66,6 +61,8 @@ interface WorkoutTemplateDetailClientProps {
 }
 
 export function WorkoutTemplateDetailClient({ template }: WorkoutTemplateDetailClientProps) {
+  const t = useTranslations('components.workoutTemplateDetailClient')
+  const locale = useLocale()
   const router = useRouter()
   const basePath = useBasePath()
   const [isFavorite, setIsFavorite] = useState(template.isFavorite)
@@ -77,6 +74,20 @@ export function WorkoutTemplateDetailClient({ template }: WorkoutTemplateDetailC
 
   const categoryConfig = CATEGORY_CONFIG[template.category] || CATEGORY_CONFIG.STRENGTH
   const CategoryIcon = categoryConfig.icon
+  const categoryLabels: Record<string, string> = {
+    STRENGTH: t('category.strength'),
+    CARDIO: t('category.cardio'),
+    FUNCTIONAL: t('category.functional'),
+    CORE: t('category.core'),
+    STRETCHING: t('category.stretching'),
+  }
+  const difficultyLabels: Record<string, string> = {
+    BEGINNER: t('difficulty.beginner'),
+    INTERMEDIATE: t('difficulty.intermediate'),
+    ADVANCED: t('difficulty.advanced'),
+  }
+  const templateName = locale === 'en' ? template.name : template.nameSv
+  const templateDescription = locale === 'en' ? template.description : template.descriptionSv
 
   const toggleSection = (index: number) => {
     setExpandedSections((prev) => ({ ...prev, [index]: !prev[index] }))
@@ -115,7 +126,7 @@ export function WorkoutTemplateDetailClient({ template }: WorkoutTemplateDetailC
         className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 mb-6 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Tillbaka
+        {t('back')}
       </button>
 
       {/* Hero section */}
@@ -124,16 +135,16 @@ export function WorkoutTemplateDetailClient({ template }: WorkoutTemplateDetailC
           <div className="space-y-2">
             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${categoryConfig.color}`}>
               <CategoryIcon className="h-3 w-3" />
-              {categoryConfig.label}
+              {categoryLabels[template.category] || template.category}
             </span>
             <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
-              {template.nameSv}
+              {templateName}
             </h1>
           </div>
           <button
             onClick={handleToggleFavorite}
             className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-            aria-label={isFavorite ? 'Ta bort favorit' : 'Lägg till favorit'}
+            aria-label={isFavorite ? t('favorite.remove') : t('favorite.add')}
           >
             <Heart
               className={`h-5 w-5 ${
@@ -143,9 +154,9 @@ export function WorkoutTemplateDetailClient({ template }: WorkoutTemplateDetailC
           </button>
         </div>
 
-        {template.descriptionSv && (
+        {templateDescription && (
           <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-            {template.descriptionSv}
+            {templateDescription}
           </p>
         )}
 
@@ -156,10 +167,10 @@ export function WorkoutTemplateDetailClient({ template }: WorkoutTemplateDetailC
             {template.estimatedDuration} min
           </span>
           <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700/50 text-xs font-medium">
-            {DIFFICULTY_LABELS[template.difficulty]}
+            {difficultyLabels[template.difficulty] || template.difficulty}
           </span>
           {template.usageCount > 0 && (
-            <span className="text-xs text-slate-400">{template.usageCount} gånger använd</span>
+            <span className="text-xs text-slate-400">{t('usageCount', { count: template.usageCount })}</span>
           )}
         </div>
 
@@ -208,7 +219,7 @@ export function WorkoutTemplateDetailClient({ template }: WorkoutTemplateDetailC
                   {section.label}
                 </h3>
                 <span className="text-xs text-slate-400 dark:text-slate-500">
-                  {section.exercises.length} övningar
+                  {t('exerciseCount', { count: section.exercises.length })}
                 </span>
               </div>
               {expandedSections[sIndex] ? (
@@ -227,7 +238,7 @@ export function WorkoutTemplateDetailClient({ template }: WorkoutTemplateDetailC
                   >
                     <div className="space-y-0.5">
                       <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                        {exercise.nameSv}
+                        {locale === 'en' ? exercise.name : exercise.nameSv}
                       </p>
                       {exercise.notes && (
                         <p className="text-xs text-slate-400 dark:text-slate-500">{exercise.notes}</p>
@@ -242,7 +253,7 @@ export function WorkoutTemplateDetailClient({ template }: WorkoutTemplateDetailC
                       )}
                       {exercise.weight && <p>{exercise.weight}</p>}
                       {exercise.rest != null && exercise.rest > 0 && (
-                        <p className="text-slate-400">Vila {exercise.rest}s</p>
+                        <p className="text-slate-400">{t('restSeconds', { seconds: exercise.rest })}</p>
                       )}
                     </div>
                   </div>
@@ -263,10 +274,10 @@ export function WorkoutTemplateDetailClient({ template }: WorkoutTemplateDetailC
           {starting ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />
-              Startar...
+              {t('actions.starting')}
             </>
           ) : (
-            'Starta pass'
+            t('actions.start')
           )}
         </button>
       </div>

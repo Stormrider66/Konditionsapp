@@ -7654,6 +7654,32 @@
         "category": "No workouts found in this category."
       }
     },
+    "workoutTemplateDetailClient": {
+      "back": "Back",
+      "usageCount": "Used {count} times",
+      "exerciseCount": "{count} exercises",
+      "restSeconds": "Rest {seconds}s",
+      "actions": {
+        "start": "Start workout",
+        "starting": "Starting..."
+      },
+      "category": {
+        "strength": "Strength",
+        "cardio": "Cardio",
+        "functional": "Functional",
+        "core": "Core",
+        "stretching": "Stretching"
+      },
+      "difficulty": {
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced"
+      },
+      "favorite": {
+        "add": "Add favorite",
+        "remove": "Remove favorite"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
