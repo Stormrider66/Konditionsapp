@@ -162,6 +162,17 @@
         "startSession": "Starta pass",
         "findSession": "Hitta pass"
       }
+    },
+    "checkIn": {
+      "titlePrefix": "Daglig",
+      "titleAccent": "Check-in",
+      "description": "Ta 60 sekunder för att logga ditt mående. Vi anpassar din träning i realtid baserat på din återhämtning."
+    },
+    "error": {
+      "title": "Något gick fel",
+      "description": "Ett oväntat fel uppstod. Försök igen eller gå tillbaka till dashboarden.",
+      "errorId": "Fel-ID: {id}",
+      "tryAgain": "Försök igen"
     }
   },
   "nav": {

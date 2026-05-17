@@ -162,6 +162,17 @@
         "startSession": "Start session",
         "findSession": "Find session"
       }
+    },
+    "checkIn": {
+      "titlePrefix": "Daily",
+      "titleAccent": "Check-in",
+      "description": "Take 60 seconds to log how you feel. We adapt your training in real time based on your recovery."
+    },
+    "error": {
+      "title": "Something went wrong",
+      "description": "An unexpected error occurred. Try again or go back to the dashboard.",
+      "errorId": "Error ID: {id}",
+      "tryAgain": "Try again"
     }
   },
   "nav": {
