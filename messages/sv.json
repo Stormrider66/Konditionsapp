@@ -7269,6 +7269,23 @@
         "description": "Fortsätt logga din träning för personliga tips!"
       }
     },
+    "injuryPreventionWidget": {
+      "title": "Skadeförebyggande",
+      "error": "Kunde inte ladda skadedata",
+      "loadRatio": "Belastningskvot",
+      "noData": "Ingen data",
+      "activeInjuries": "Aktiva skador",
+      "none": "Inga",
+      "warningCount": "{count, plural, one {# varning} other {# varningar}}",
+      "viewDashboard": "Visa dashboard",
+      "zones": {
+        "detraining": "Avträning",
+        "optimal": "Optimal",
+        "caution": "Varning",
+        "danger": "Fara",
+        "critical": "Kritisk"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

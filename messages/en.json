@@ -7269,6 +7269,23 @@
         "description": "Keep logging your training for personalized tips."
       }
     },
+    "injuryPreventionWidget": {
+      "title": "Injury prevention",
+      "error": "Could not load injury data",
+      "loadRatio": "Load ratio",
+      "noData": "No data",
+      "activeInjuries": "Active injuries",
+      "none": "None",
+      "warningCount": "{count, plural, one {# warning} other {# warnings}}",
+      "viewDashboard": "View dashboard",
+      "zones": {
+        "detraining": "Detraining",
+        "optimal": "Optimal",
+        "caution": "Caution",
+        "danger": "Danger",
+        "critical": "Critical"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",

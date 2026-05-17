@@ -14,6 +14,7 @@ import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useTranslations } from '@/i18n/client'
 
 type ACWRZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL'
 
@@ -36,29 +37,31 @@ interface InjuryPreventionWidgetProps {
   className?: string
 }
 
-const ZONE_CONFIG: Record<ACWRZone, { label: string; color: string; bgColor: string }> = {
+type TranslationKey = Parameters<ReturnType<typeof useTranslations>>[0]
+
+const ZONE_CONFIG: Record<ACWRZone, { labelKey: TranslationKey; color: string; bgColor: string }> = {
   DETRAINING: {
-    label: 'Avträning',
+    labelKey: 'zones.detraining',
     color: 'text-gray-500',
     bgColor: 'bg-gray-500/10',
   },
   OPTIMAL: {
-    label: 'Optimal',
+    labelKey: 'zones.optimal',
     color: 'text-green-500',
     bgColor: 'bg-green-500/10',
   },
   CAUTION: {
-    label: 'Varning',
+    labelKey: 'zones.caution',
     color: 'text-yellow-500',
     bgColor: 'bg-yellow-500/10',
   },
   DANGER: {
-    label: 'Fara',
+    labelKey: 'zones.danger',
     color: 'text-orange-500',
     bgColor: 'bg-orange-500/10',
   },
   CRITICAL: {
-    label: 'Kritisk',
+    labelKey: 'zones.critical',
     color: 'text-red-500',
     bgColor: 'bg-red-500/10',
   },
@@ -67,6 +70,7 @@ const ZONE_CONFIG: Record<ACWRZone, { label: string; color: string; bgColor: str
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function InjuryPreventionWidget({ className }: InjuryPreventionWidgetProps) {
+  const t = useTranslations('components.injuryPreventionWidget')
   const basePath = useBasePath()
   const { data, error, isLoading } = useSWR<InjuryPreventionResponse>(
     '/api/athlete/injury-prevention',
@@ -92,7 +96,7 @@ export function InjuryPreventionWidget({ className }: InjuryPreventionWidgetProp
       <GlassCard className={className}>
         <GlassCardContent className="flex flex-col items-center justify-center py-6 text-muted-foreground">
           <AlertCircle className="h-6 w-6 mb-2 text-red-500" />
-          <p className="text-sm">Kunde inte ladda skadedata</p>
+          <p className="text-sm">{t('error')}</p>
         </GlassCardContent>
       </GlassCard>
     )
@@ -107,14 +111,14 @@ export function InjuryPreventionWidget({ className }: InjuryPreventionWidgetProp
       <GlassCardHeader className="pb-2">
         <GlassCardTitle className="flex items-center gap-2 text-sm">
           <Shield className="h-4 w-4 text-blue-500" />
-          Skadeförebyggande
+          {t('title')}
         </GlassCardTitle>
       </GlassCardHeader>
 
       <GlassCardContent className="pt-0 space-y-3">
         {/* ACWR Status */}
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Belastningskvot</span>
+          <span className="text-sm text-muted-foreground">{t('loadRatio')}</span>
           <div className="flex items-center gap-2">
             {acwr.current !== null ? (
               <>
@@ -129,19 +133,19 @@ export function InjuryPreventionWidget({ className }: InjuryPreventionWidgetProp
                       zoneConfig.color
                     )}
                   >
-                    {zoneConfig.label}
+                    {t(zoneConfig.labelKey)}
                   </span>
                 )}
               </>
             ) : (
-              <span className="text-sm text-muted-foreground">Ingen data</span>
+              <span className="text-sm text-muted-foreground">{t('noData')}</span>
             )}
           </div>
         </div>
 
         {/* Active injuries count */}
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Aktiva skador</span>
+          <span className="text-sm text-muted-foreground">{t('activeInjuries')}</span>
           <div className="flex items-center gap-1">
             <Activity
               className={cn(
@@ -155,7 +159,7 @@ export function InjuryPreventionWidget({ className }: InjuryPreventionWidgetProp
                 activeInjuries.length > 0 ? 'text-orange-500' : 'text-green-500'
               )}
             >
-              {activeInjuries.length > 0 ? activeInjuries.length : 'Inga'}
+              {activeInjuries.length > 0 ? activeInjuries.length : t('none')}
             </span>
           </div>
         </div>
@@ -165,7 +169,7 @@ export function InjuryPreventionWidget({ className }: InjuryPreventionWidgetProp
           <div className="flex items-center gap-2 text-orange-500 bg-orange-500/10 rounded-md px-2 py-1.5">
             <AlertCircle className="h-4 w-4" />
             <span className="text-xs font-medium">
-              {warningCount} {warningCount === 1 ? 'varning' : 'varningar'}
+              {t('warningCount', { count: warningCount })}
             </span>
           </div>
         )}
@@ -173,7 +177,7 @@ export function InjuryPreventionWidget({ className }: InjuryPreventionWidgetProp
         {/* Link to full dashboard */}
         <Link href={`${basePath}/athlete/injury-prevention`} className="block">
           <Button variant="ghost" size="sm" className="w-full justify-between text-muted-foreground hover:text-foreground">
-            <span>Visa dashboard</span>
+            <span>{t('viewDashboard')}</span>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </Link>
