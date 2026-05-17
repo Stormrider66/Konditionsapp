@@ -2360,6 +2360,51 @@
       "customLocationPlaceholder": "Enter location (e.g. Main gym)",
       "chooseFromList": "Choose from list instead",
       "addToAthleteCalendar": "Add to athlete calendar"
+    },
+    "invitationsClient": {
+      "title": "Invitations",
+      "newInvitation": "New invitation",
+      "dialog": {
+        "title": "Create invitation",
+        "description": "Create an invitation code athletes can use to sign up",
+        "create": "Create invitation"
+      },
+      "fields": {
+        "type": "Type",
+        "recipientName": "Recipient name (optional)",
+        "recipientEmail": "Recipient email (optional)",
+        "maxUses": "Max uses",
+        "expiresInDays": "Valid for (days)"
+      },
+      "types": {
+        "athleteSignup": "Athlete signup",
+        "reportView": "Report view"
+      },
+      "empty": {
+        "title": "No invitations yet",
+        "description": "Create invitation codes athletes can use to sign up",
+        "createFirst": "Create first invitation"
+      },
+      "status": {
+        "expired": "Expired",
+        "used": "Used"
+      },
+      "recipientPrefix": "To:",
+      "uses": "{current}/{max} uses",
+      "expires": "Expires {date}",
+      "usedBy": "Used by: {name}",
+      "toasts": {
+        "createdTitle": "Invitation created",
+        "createdDescription": "The invitation code has been created",
+        "deletedTitle": "Invitation deleted",
+        "deletedDescription": "The invitation code has been deleted",
+        "copiedTitle": "Copied!",
+        "copiedDescription": "The invitation link has been copied",
+        "errorTitle": "Error",
+        "createFailed": "Could not create invitation",
+        "deleteFailed": "Could not delete invitation",
+        "copyFailed": "Could not copy the link"
+      }
     }
   },
   "infographic": {

@@ -10,7 +10,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -31,9 +31,9 @@ import {
   Clock,
   Users,
   UserPlus,
-  Link2,
 } from 'lucide-react'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface Invitation {
   id: string
@@ -53,7 +53,10 @@ interface InvitationsClientProps {
   userId: string
 }
 
-export function InvitationsClient({ invitations: initialInvitations, userId }: InvitationsClientProps) {
+export function InvitationsClient({ invitations: initialInvitations, userId: _userId }: InvitationsClientProps) {
+  const t = useTranslations('components.invitationsClient')
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const { toast } = useToast()
   const pathname = usePathname()
   const businessSlug = getBusinessSlugFromPathname(pathname)
@@ -94,20 +97,20 @@ export function InvitationsClient({ invitations: initialInvitations, userId }: I
           expiresInDays: 30,
         })
         toast({
-          title: 'Inbjudan skapad',
-          description: 'Inbjudningskoden har skapats',
+          title: t('toasts.createdTitle'),
+          description: t('toasts.createdDescription'),
         })
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte skapa inbjudan',
+          title: t('toasts.errorTitle'),
+          description: data.error || t('toasts.createFailed'),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte skapa inbjudan',
+        title: t('toasts.errorTitle'),
+        description: t('toasts.createFailed'),
         variant: 'destructive',
       })
     } finally {
@@ -124,21 +127,21 @@ export function InvitationsClient({ invitations: initialInvitations, userId }: I
       if (response.ok) {
         setInvitations(invitations.filter((inv) => inv.code !== code))
         toast({
-          title: 'Inbjudan borttagen',
-          description: 'Inbjudningskoden har tagits bort',
+          title: t('toasts.deletedTitle'),
+          description: t('toasts.deletedDescription'),
         })
       } else {
         const data = await response.json()
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte ta bort inbjudan',
+          title: t('toasts.errorTitle'),
+          description: data.error || t('toasts.deleteFailed'),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte ta bort inbjudan',
+        title: t('toasts.errorTitle'),
+        description: t('toasts.deleteFailed'),
         variant: 'destructive',
       })
     }
@@ -150,21 +153,21 @@ export function InvitationsClient({ invitations: initialInvitations, userId }: I
       await navigator.clipboard.writeText(link)
       setCopiedId(code)
       toast({
-        title: 'Kopierad!',
-        description: 'Inbjudningslänken har kopierats',
+        title: t('toasts.copiedTitle'),
+        description: t('toasts.copiedDescription'),
       })
       setTimeout(() => setCopiedId(null), 2000)
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte kopiera länken',
+        title: t('toasts.errorTitle'),
+        description: t('toasts.copyFailed'),
         variant: 'destructive',
       })
     }
   }
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('sv-SE', {
+    return new Date(date).toLocaleDateString(dateLocale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -179,9 +182,9 @@ export function InvitationsClient({ invitations: initialInvitations, userId }: I
   const getTypeLabel = (type: string) => {
     switch (type) {
       case 'ATHLETE_SIGNUP':
-        return 'Atlet-registrering'
+        return t('types.athleteSignup')
       case 'REPORT_VIEW':
-        return 'Rapportvisning'
+        return t('types.reportView')
       case 'REFERRAL':
         return 'Referral'
       default:
@@ -202,7 +205,7 @@ export function InvitationsClient({ invitations: initialInvitations, userId }: I
             </Link>
             <div className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
-              <h1 className="text-lg font-semibold">Inbjudningar</h1>
+              <h1 className="text-lg font-semibold">{t('title')}</h1>
             </div>
           </div>
 
@@ -210,32 +213,32 @@ export function InvitationsClient({ invitations: initialInvitations, userId }: I
             <DialogTrigger asChild>
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />
-                Ny inbjudan
+                {t('newInvitation')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Skapa inbjudan</DialogTitle>
+                <DialogTitle>{t('dialog.title')}</DialogTitle>
                 <DialogDescription>
-                  Skapa en inbjudningskod som atleter kan använda för att registrera sig
+                  {t('dialog.description')}
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Typ</label>
+                  <label className="text-sm font-medium">{t('fields.type')}</label>
                   <select
                     className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                   >
-                    <option value="ATHLETE_SIGNUP">Atlet-registrering</option>
+                    <option value="ATHLETE_SIGNUP">{t('types.athleteSignup')}</option>
                     <option value="REFERRAL">Referral</option>
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Mottagarens namn (valfritt)</label>
+                  <label className="text-sm font-medium">{t('fields.recipientName')}</label>
                   <input
                     type="text"
                     className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -246,7 +249,7 @@ export function InvitationsClient({ invitations: initialInvitations, userId }: I
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Mottagarens e-post (valfritt)</label>
+                  <label className="text-sm font-medium">{t('fields.recipientEmail')}</label>
                   <input
                     type="email"
                     className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -258,7 +261,7 @@ export function InvitationsClient({ invitations: initialInvitations, userId }: I
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Max användningar</label>
+                    <label className="text-sm font-medium">{t('fields.maxUses')}</label>
                     <input
                       type="number"
                       min="1"
@@ -270,7 +273,7 @@ export function InvitationsClient({ invitations: initialInvitations, userId }: I
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Giltig i (dagar)</label>
+                    <label className="text-sm font-medium">{t('fields.expiresInDays')}</label>
                     <input
                       type="number"
                       min="1"
@@ -288,7 +291,7 @@ export function InvitationsClient({ invitations: initialInvitations, userId }: I
                   ) : (
                     <Plus className="h-4 w-4 mr-2" />
                   )}
-                  Skapa inbjudan
+                  {t('dialog.create')}
                 </Button>
               </div>
             </DialogContent>
@@ -302,13 +305,13 @@ export function InvitationsClient({ invitations: initialInvitations, userId }: I
           <Card>
             <CardContent className="py-12 text-center">
               <UserPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-medium mb-2">Inga inbjudningar ännu</h3>
+              <h3 className="font-medium mb-2">{t('empty.title')}</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Skapa inbjudningskoder som atleter kan använda för att registrera sig
+                {t('empty.description')}
               </p>
               <Button onClick={() => setIsCreateOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Skapa första inbjudan
+                {t('empty.createFirst')}
               </Button>
             </CardContent>
           </Card>
@@ -331,19 +334,19 @@ export function InvitationsClient({ invitations: initialInvitations, userId }: I
                         </span>
                         {expired && (
                           <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded">
-                            Utgången
+                            {t('status.expired')}
                           </span>
                         )}
                         {used && !expired && (
                           <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
-                            Använd
+                            {t('status.used')}
                           </span>
                         )}
                       </div>
 
                       {invitation.recipientName && (
                         <p className="text-sm">
-                          <span className="text-muted-foreground">Till:</span> {invitation.recipientName}
+                          <span className="text-muted-foreground">{t('recipientPrefix')}</span> {invitation.recipientName}
                           {invitation.recipientEmail && ` (${invitation.recipientEmail})`}
                         </p>
                       )}
@@ -351,19 +354,19 @@ export function InvitationsClient({ invitations: initialInvitations, userId }: I
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Users className="h-3 w-3" />
-                          {invitation.currentUses}/{invitation.maxUses} användningar
+                          {t('uses', { current: invitation.currentUses, max: invitation.maxUses })}
                         </span>
                         {invitation.expiresAt && (
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            Utgår {formatDate(invitation.expiresAt)}
+                            {t('expires', { date: formatDate(invitation.expiresAt) })}
                           </span>
                         )}
                       </div>
 
                       {invitation.usedByClient && (
                         <p className="text-xs text-green-600">
-                          Använd av: {invitation.usedByClient.name}
+                          {t('usedBy', { name: invitation.usedByClient.name })}
                         </p>
                       )}
                     </div>

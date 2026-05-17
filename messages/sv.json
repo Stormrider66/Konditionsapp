@@ -2360,6 +2360,51 @@
       "customLocationPlaceholder": "Ange plats (t.ex. Huvudgymmet)",
       "chooseFromList": "Välj från lista istället",
       "addToAthleteCalendar": "Lägg till i atletens kalender"
+    },
+    "invitationsClient": {
+      "title": "Inbjudningar",
+      "newInvitation": "Ny inbjudan",
+      "dialog": {
+        "title": "Skapa inbjudan",
+        "description": "Skapa en inbjudningskod som atleter kan använda för att registrera sig",
+        "create": "Skapa inbjudan"
+      },
+      "fields": {
+        "type": "Typ",
+        "recipientName": "Mottagarens namn (valfritt)",
+        "recipientEmail": "Mottagarens e-post (valfritt)",
+        "maxUses": "Max användningar",
+        "expiresInDays": "Giltig i (dagar)"
+      },
+      "types": {
+        "athleteSignup": "Atlet-registrering",
+        "reportView": "Rapportvisning"
+      },
+      "empty": {
+        "title": "Inga inbjudningar ännu",
+        "description": "Skapa inbjudningskoder som atleter kan använda för att registrera sig",
+        "createFirst": "Skapa första inbjudan"
+      },
+      "status": {
+        "expired": "Utgången",
+        "used": "Använd"
+      },
+      "recipientPrefix": "Till:",
+      "uses": "{current}/{max} användningar",
+      "expires": "Utgår {date}",
+      "usedBy": "Använd av: {name}",
+      "toasts": {
+        "createdTitle": "Inbjudan skapad",
+        "createdDescription": "Inbjudningskoden har skapats",
+        "deletedTitle": "Inbjudan borttagen",
+        "deletedDescription": "Inbjudningskoden har tagits bort",
+        "copiedTitle": "Kopierad!",
+        "copiedDescription": "Inbjudningslänken har kopierats",
+        "errorTitle": "Fel",
+        "createFailed": "Kunde inte skapa inbjudan",
+        "deleteFailed": "Kunde inte ta bort inbjudan",
+        "copyFailed": "Kunde inte kopiera länken"
+      }
     }
   },
   "infographic": {
