@@ -130,6 +130,37 @@
       "titleAccent": "anslutningar",
       "description": "Anslut dina externa kalendrar för att se arbete, privata händelser och andra blockerare tillsammans med ditt träningsschema.",
       "loading": "Laddar anslutningar..."
+    },
+    "logWorkout": {
+      "title": "Logga ett pass",
+      "description": "Välj hur du vill registrera ditt träningspass",
+      "info": "Passet kommer att analyseras med AI och läggas till i din träningshistorik",
+      "methods": {
+        "text": {
+          "label": "Skriv",
+          "description": "Skriv en beskrivning av passet"
+        },
+        "photo": {
+          "label": "Foto",
+          "description": "Ta en bild av whiteboard eller papper"
+        },
+        "voice": {
+          "label": "Röst",
+          "description": "Beskriv passet med ett röstmeddelande"
+        },
+        "strava": {
+          "label": "Strava",
+          "description": "Importera från din Strava-aktivitet"
+        },
+        "garmin": {
+          "label": "Garmin Connect",
+          "description": "Importera från din Garmin Connect-aktivitet"
+        },
+        "manual": {
+          "label": "Formulär",
+          "description": "Fyll i ett strukturerat formulär"
+        }
+      }
     }
   },
   "home": {

@@ -130,6 +130,37 @@
       "titleAccent": "connections",
       "description": "Connect your external calendars to see work, private events, and other blockers together with your training schedule.",
       "loading": "Loading connections..."
+    },
+    "logWorkout": {
+      "title": "Log a workout",
+      "description": "Choose how you want to register your workout",
+      "info": "The workout will be analyzed with AI and added to your training history",
+      "methods": {
+        "text": {
+          "label": "Write",
+          "description": "Write a description of the workout"
+        },
+        "photo": {
+          "label": "Photo",
+          "description": "Take a photo of a whiteboard or paper"
+        },
+        "voice": {
+          "label": "Voice",
+          "description": "Describe the workout with a voice message"
+        },
+        "strava": {
+          "label": "Strava",
+          "description": "Import from your Strava activity"
+        },
+        "garmin": {
+          "label": "Garmin Connect",
+          "description": "Import from your Garmin Connect activity"
+        },
+        "manual": {
+          "label": "Form",
+          "description": "Fill in a structured form"
+        }
+      }
     }
   },
   "home": {
