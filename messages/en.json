@@ -2959,6 +2959,48 @@
         "generic": "Something went wrong"
       }
     },
+    "vbtUploadWidget": {
+      "title": "Upload VBT data",
+      "dropzone": {
+        "active": "Drop the file here",
+        "idle": "Drag and drop a CSV file",
+        "supportedDevices": "Supports Vmaxpro, Vitruve, GymAware, and more."
+      },
+      "devices": {
+        "autoDetect": "Auto-detect"
+      },
+      "fields": {
+        "device": "Device",
+        "sessionDate": "Training date (optional)",
+        "bodyWeight": "Body weight (kg)",
+        "notes": "Notes (optional)"
+      },
+      "placeholders": {
+        "bodyWeight": "e.g. 75.5",
+        "sessionRpe": "e.g. 7",
+        "notes": "Add notes about the session..."
+      },
+      "success": {
+        "title": "Upload successful!",
+        "description": "{reps} reps from {exercises} exercises were imported.",
+        "importedExercises": "Imported exercises:"
+      },
+      "actions": {
+        "uploading": "Uploading...",
+        "upload": "Upload",
+        "cancel": "Cancel",
+        "uploadNew": "Upload new file"
+      },
+      "help": {
+        "exportCsv": "Export a CSV from your VBT app and upload it here.",
+        "autoSave": "Data is saved automatically and linked to your exercise library."
+      },
+      "errors": {
+        "selectCsv": "Please choose a CSV file",
+        "uploadFailed": "Upload failed",
+        "generic": "Something went wrong"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Nutrition timing",
       "subtitle": {

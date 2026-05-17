@@ -2959,6 +2959,48 @@
         "generic": "Ett fel uppstod"
       }
     },
+    "vbtUploadWidget": {
+      "title": "Ladda upp VBT-data",
+      "dropzone": {
+        "active": "Släpp filen här",
+        "idle": "Dra och släpp CSV-fil",
+        "supportedDevices": "Stöd för Vmaxpro, Vitruve, GymAware m.fl."
+      },
+      "devices": {
+        "autoDetect": "Identifiera automatiskt"
+      },
+      "fields": {
+        "device": "Enhet",
+        "sessionDate": "Träningsdatum (valfritt)",
+        "bodyWeight": "Kroppsvikt (kg)",
+        "notes": "Anteckningar (valfritt)"
+      },
+      "placeholders": {
+        "bodyWeight": "t.ex. 75.5",
+        "sessionRpe": "t.ex. 7",
+        "notes": "Lägg till anteckningar om passet..."
+      },
+      "success": {
+        "title": "Uppladdning lyckades!",
+        "description": "{reps} repetitioner från {exercises} övningar importerades.",
+        "importedExercises": "Importerade övningar:"
+      },
+      "actions": {
+        "uploading": "Laddar upp...",
+        "upload": "Ladda upp",
+        "cancel": "Avbryt",
+        "uploadNew": "Ladda upp ny fil"
+      },
+      "help": {
+        "exportCsv": "Exportera CSV från din VBT-app och ladda upp här.",
+        "autoSave": "Data sparas automatiskt och kopplas till ditt övningsbibliotek."
+      },
+      "errors": {
+        "selectCsv": "Vänligen välj en CSV-fil",
+        "uploadFailed": "Uppladdning misslyckades",
+        "generic": "Ett fel uppstod"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Kosttajming",
       "subtitle": {

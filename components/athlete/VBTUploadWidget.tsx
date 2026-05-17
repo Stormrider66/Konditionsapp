@@ -37,6 +37,7 @@ import {
   Gauge,
   Dumbbell,
 } from 'lucide-react';
+import { useTranslations } from '@/i18n/client';
 
 interface VBTUploadWidgetProps {
   clientId: string;
@@ -59,7 +60,7 @@ interface UploadResult {
 }
 
 const DEVICE_OPTIONS = [
-  { value: 'GENERIC', label: 'Auto-detect' },
+  { value: 'GENERIC', labelKey: 'devices.autoDetect' },
   { value: 'VMAXPRO', label: 'Vmaxpro / Enode' },
   { value: 'VITRUVE', label: 'Vitruve' },
   { value: 'GYMAWARE', label: 'GymAware' },
@@ -72,6 +73,7 @@ export function VBTUploadWidget({
   clientId,
   onUploadComplete,
 }: VBTUploadWidgetProps) {
+  const t = useTranslations('components.vbtUploadWidget');
   const [file, setFile] = useState<File | null>(null);
   const [deviceType, setDeviceType] = useState('GENERIC');
   const [sessionDate, setSessionDate] = useState('');
@@ -94,9 +96,9 @@ export function VBTUploadWidget({
       setResult(null);
       setError(null);
     } else {
-      setError('Vänligen välj en CSV-fil');
+      setError(t('errors.selectCsv'));
     }
-  }, []);
+  }, [t]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -133,7 +135,7 @@ export function VBTUploadWidget({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Uppladdning misslyckades');
+        throw new Error(data.error || t('errors.uploadFailed'));
       }
 
       setResult(data);
@@ -142,7 +144,7 @@ export function VBTUploadWidget({
         onUploadComplete(data.sessionId);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod');
+      setError(err instanceof Error ? err.message : t('errors.generic'));
     } finally {
       setIsUploading(false);
     }
@@ -162,7 +164,7 @@ export function VBTUploadWidget({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Gauge className="h-5 w-5" />
-          Ladda upp VBT-data
+          {t('title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -192,10 +194,10 @@ export function VBTUploadWidget({
                 <>
                   <Upload className="h-10 w-10 text-muted-foreground" />
                   <p className="font-medium">
-                    {isDragActive ? 'Släpp filen här' : 'Dra och släpp CSV-fil'}
+                    {isDragActive ? t('dropzone.active') : t('dropzone.idle')}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Stöd för Vmaxpro, Vitruve, GymAware m.fl.
+                    {t('dropzone.supportedDevices')}
                   </p>
                 </>
               )}
@@ -207,7 +209,7 @@ export function VBTUploadWidget({
         {file && !result?.success && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="deviceType">Enhet</Label>
+              <Label htmlFor="deviceType">{t('fields.device')}</Label>
               <Select value={deviceType} onValueChange={setDeviceType}>
                 <SelectTrigger id="deviceType">
                   <SelectValue />
@@ -215,7 +217,7 @@ export function VBTUploadWidget({
                 <SelectContent>
                   {DEVICE_OPTIONS.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                      {opt.labelKey ? t(opt.labelKey) : opt.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -223,7 +225,7 @@ export function VBTUploadWidget({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sessionDate">Träningsdatum (valfritt)</Label>
+              <Label htmlFor="sessionDate">{t('fields.sessionDate')}</Label>
               <Input
                 id="sessionDate"
                 type="date"
@@ -238,12 +240,12 @@ export function VBTUploadWidget({
         {file && !result?.success && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="bodyWeight">Kroppsvikt (kg)</Label>
+              <Label htmlFor="bodyWeight">{t('fields.bodyWeight')}</Label>
               <Input
                 id="bodyWeight"
                 type="number"
                 step="0.1"
-                placeholder="t.ex. 75.5"
+                placeholder={t('placeholders.bodyWeight')}
                 value={bodyWeight}
                 onChange={(e) => setBodyWeight(e.target.value)}
               />
@@ -256,7 +258,7 @@ export function VBTUploadWidget({
                 type="number"
                 min="1"
                 max="10"
-                placeholder="t.ex. 7"
+                placeholder={t('placeholders.sessionRpe')}
                 value={sessionRPE}
                 onChange={(e) => setSessionRPE(e.target.value)}
               />
@@ -266,10 +268,10 @@ export function VBTUploadWidget({
 
         {file && !result?.success && (
           <div className="space-y-2">
-            <Label htmlFor="notes">Anteckningar (valfritt)</Label>
+            <Label htmlFor="notes">{t('fields.notes')}</Label>
             <Textarea
               id="notes"
-              placeholder="Lägg till anteckningar om passet..."
+              placeholder={t('placeholders.notes')}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
@@ -291,16 +293,16 @@ export function VBTUploadWidget({
             <Alert className="bg-green-50 border-green-200">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                <span className="font-medium">Uppladdning lyckades!</span>
+                <span className="font-medium">{t('success.title')}</span>
                 <br />
-                {result.totalReps} repetitioner från {result.exerciseCount} övningar importerades.
+                {t('success.description', { reps: result.totalReps, exercises: result.exerciseCount })}
               </AlertDescription>
             </Alert>
 
             {/* Exercise Summary */}
             {result.exercises && result.exercises.length > 0 && (
               <div className="space-y-2">
-                <p className="text-sm font-medium">Importerade övningar:</p>
+                <p className="text-sm font-medium">{t('success.importedExercises')}</p>
                 <div className="flex flex-wrap gap-2">
                   {result.exercises.map((ex, i) => (
                     <Badge
@@ -347,33 +349,33 @@ export function VBTUploadWidget({
                 {isUploading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Laddar upp...
+                    {t('actions.uploading')}
                   </>
                 ) : (
                   <>
                     <Upload className="mr-2 h-4 w-4" />
-                    Ladda upp
+                    {t('actions.upload')}
                   </>
                 )}
               </Button>
               {file && (
                 <Button variant="outline" onClick={handleReset}>
-                  Avbryt
+                  {t('actions.cancel')}
                 </Button>
               )}
             </>
           ) : (
             <Button onClick={handleReset} className="flex-1">
-              Ladda upp ny fil
+              {t('actions.uploadNew')}
             </Button>
           )}
         </div>
 
         {/* Help Text */}
         <p className="text-xs text-muted-foreground text-center">
-          Exportera CSV från din VBT-app och ladda upp här.
+          {t('help.exportCsv')}
           <br />
-          Data sparas automatiskt och kopplas till din övningsbibliotek.
+          {t('help.autoSave')}
         </p>
       </CardContent>
     </Card>
