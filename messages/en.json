@@ -4501,6 +4501,21 @@
         "start": "Start"
       }
     },
+    "readinessDashboard": {
+      "garmin": {
+        "synced": "Synced {time}",
+        "connected": "Connected",
+        "description": "Automatically synced health data from Garmin",
+        "restingHr": "Resting HR",
+        "sleep": "Sleep",
+        "quality": "Quality: {score}/10",
+        "sleepDetails": "Sleep details",
+        "deepSleep": "Deep sleep: {minutes} min",
+        "lightSleep": "Light: {minutes} min",
+        "stepsToday": "Steps today",
+        "activeMinutes": "Active minutes"
+      }
+    },
     "exportDataButton": {
       "trigger": "Export data",
       "formatLabel": "Export format",

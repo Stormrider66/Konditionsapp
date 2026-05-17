@@ -32,7 +32,8 @@ import {
   Legend,
 } from 'recharts'
 import { formatDistanceToNow } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface ReadinessDashboardProps {
   clientId: string
@@ -124,6 +125,9 @@ interface ReadinessData {
 }
 
 export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
+  const t = useTranslations('components.readinessDashboard')
+  const locale = useLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const [data, setData] = useState<ReadinessData | null>(null)
   const [garminData, setGarminData] = useState<GarminData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -158,7 +162,7 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
       }
     }
 
-    fetchData()
+    void fetchData()
   }, [clientId])
 
   // Rich page context for AI chat
@@ -399,11 +403,16 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
               </CardTitle>
               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                 {garminData.lastSyncAt
-                  ? `Synkad ${formatDistanceToNow(new Date(garminData.lastSyncAt), { addSuffix: true, locale: sv })}`
-                  : 'Ansluten'}
+                  ? t('garmin.synced', {
+                      time: formatDistanceToNow(new Date(garminData.lastSyncAt), {
+                        addSuffix: true,
+                        locale: dateLocale,
+                      }),
+                    })
+                  : t('garmin.connected')}
               </Badge>
             </div>
-            <CardDescription>Automatiskt synkade hälsodata från Garmin</CardDescription>
+            <CardDescription>{t('garmin.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -424,7 +433,7 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
               {/* RHR */}
               {garminData.data.restingHR && (
                 <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">Vilo-HR</div>
+                  <div className="text-xs text-muted-foreground">{t('garmin.restingHr')}</div>
                   <div className="text-xl font-bold">{garminData.data.restingHR} bpm</div>
                 </div>
               )}
@@ -434,11 +443,13 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground flex items-center gap-1">
                     <Moon className="h-3 w-3" />
-                    Sömn
+                    {t('garmin.sleep')}
                   </div>
                   <div className="text-xl font-bold">{garminData.data.sleepHours} h</div>
                   {garminData.data.sleepQuality && (
-                    <div className="text-xs text-muted-foreground">Kvalitet: {garminData.data.sleepQuality}/10</div>
+                    <div className="text-xs text-muted-foreground">
+                      {t('garmin.quality', { score: garminData.data.sleepQuality })}
+                    </div>
                   )}
                 </div>
               )}
@@ -446,16 +457,18 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
               {/* Sleep Details */}
               {garminData.data.sleepDetails && (
                 <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground flex items-center gap-1.5">Sömndetaljer <InfoTooltip conceptKey="sleepBreakdown" /></div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    {t('garmin.sleepDetails')} <InfoTooltip conceptKey="sleepBreakdown" />
+                  </div>
                   <div className="text-xs space-y-0.5">
                     {garminData.data.sleepDetails.deepSleepMinutes !== undefined && (
-                      <div>Djupsömn: {Math.round(garminData.data.sleepDetails.deepSleepMinutes)} min</div>
+                      <div>{t('garmin.deepSleep', { minutes: Math.round(garminData.data.sleepDetails.deepSleepMinutes) })}</div>
                     )}
                     {garminData.data.sleepDetails.remSleepMinutes !== undefined && (
                       <div>REM: {Math.round(garminData.data.sleepDetails.remSleepMinutes)} min</div>
                     )}
                     {garminData.data.sleepDetails.lightSleepMinutes !== undefined && (
-                      <div>Lätt: {Math.round(garminData.data.sleepDetails.lightSleepMinutes)} min</div>
+                      <div>{t('garmin.lightSleep', { minutes: Math.round(garminData.data.sleepDetails.lightSleepMinutes) })}</div>
                     )}
                   </div>
                 </div>
@@ -472,7 +485,7 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
               {/* Steps */}
               {garminData.data.steps && (
                 <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">Steg idag</div>
+                  <div className="text-xs text-muted-foreground">{t('garmin.stepsToday')}</div>
                   <div className="text-xl font-bold">{garminData.data.steps.toLocaleString()}</div>
                 </div>
               )}
@@ -480,7 +493,7 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
               {/* Active Minutes */}
               {garminData.data.activeMinutes && (
                 <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">Aktiva minuter</div>
+                  <div className="text-xs text-muted-foreground">{t('garmin.activeMinutes')}</div>
                   <div className="text-xl font-bold">{garminData.data.activeMinutes} min</div>
                 </div>
               )}

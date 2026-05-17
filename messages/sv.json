@@ -4501,6 +4501,21 @@
         "start": "Starta"
       }
     },
+    "readinessDashboard": {
+      "garmin": {
+        "synced": "Synkad {time}",
+        "connected": "Ansluten",
+        "description": "Automatiskt synkade hälsodata från Garmin",
+        "restingHr": "Vilo-HR",
+        "sleep": "Sömn",
+        "quality": "Kvalitet: {score}/10",
+        "sleepDetails": "Sömndetaljer",
+        "deepSleep": "Djupsömn: {minutes} min",
+        "lightSleep": "Lätt: {minutes} min",
+        "stepsToday": "Steg idag",
+        "activeMinutes": "Aktiva minuter"
+      }
+    },
     "exportDataButton": {
       "trigger": "Exportera data",
       "formatLabel": "Exportformat",
