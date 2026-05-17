@@ -179,23 +179,23 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
       if (recurrenceCount <= 1) return [parent]
 
-      const children = await Promise.all(
-        Array.from({ length: recurrenceCount - 1 }, (_, index) => {
-          const weekOffset = (index + 1) * recurrenceIntervalWeeks
-          return tx.teamEvent.create({
-            data: {
-              ...baseData,
-              startDate: addWeeks(startDate, weekOffset),
-              endDate: endDate ? addWeeks(endDate, weekOffset) : null,
-              intervalSessionId: undefined,
-              recurrenceParentId: parent.id,
-            },
-            include: {
-              createdBy: { select: { name: true } },
-            },
-          })
+      const children = []
+      for (let index = 0; index < recurrenceCount - 1; index += 1) {
+        const weekOffset = (index + 1) * recurrenceIntervalWeeks
+        const child = await tx.teamEvent.create({
+          data: {
+            ...baseData,
+            startDate: addWeeks(startDate, weekOffset),
+            endDate: endDate ? addWeeks(endDate, weekOffset) : null,
+            intervalSessionId: undefined,
+            recurrenceParentId: parent.id,
+          },
+          include: {
+            createdBy: { select: { name: true } },
+          },
         })
-      )
+        children.push(child)
+      }
 
       return [parent, ...children]
     })

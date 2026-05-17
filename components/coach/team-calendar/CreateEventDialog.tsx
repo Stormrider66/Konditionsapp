@@ -9,6 +9,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -69,6 +70,7 @@ export function CreateEventDialog({
   const initialType = availableEventTypes.includes(defaultType) ? defaultType : availableEventTypes[0] ?? defaultType
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const [title, setTitle] = useState(defaultTitle)
   const [type, setType] = useState<TeamEventType>(initialType)
@@ -93,21 +95,27 @@ export function CreateEventDialog({
   }
 
   const handleCreate = async () => {
+    setCreateError(null)
     if (!title.trim() || !startDate) {
+      setCreateError('Ange titel och datum innan du skapar händelsen.')
       toast.error('Ange titel och datum')
       return
     }
     if (!availableEventTypes.includes(type)) {
+      setCreateError('Din roll kan inte skapa den här typen av händelse.')
       toast.error('Din roll kan inte skapa den här typen av händelse')
       return
     }
     const recurrenceCount = repeatWeekly ? Number.parseInt(repeatWeeks, 10) : 1
     if (repeatWeekly && (!Number.isFinite(recurrenceCount) || recurrenceCount < 2 || recurrenceCount > 52)) {
+      setCreateError('Välj mellan 2 och 52 veckor.')
       toast.error('Välj mellan 2 och 52 veckor')
       return
     }
 
     setLoading(true)
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 20000)
     try {
       const startDateTime = allDay
         ? `${startDate}T00:00:00`
@@ -121,6 +129,7 @@ export function CreateEventDialog({
       if (businessSlug) params.set('businessSlug', businessSlug)
       const res = await fetch(`/api/coach/teams/${teamId}/events${params.size ? `?${params}` : ''}`, {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
@@ -153,8 +162,15 @@ export function CreateEventDialog({
       resetForm()
       onCreated()
     } catch (error) {
-      toast.error(error instanceof Error && error.message !== 'Failed' ? error.message : 'Kunde inte skapa händelse')
+      const message = error instanceof DOMException && error.name === 'AbortError'
+        ? 'Det tog för lång tid att skapa händelsen. Försök igen, eller skapa färre veckor åt gången.'
+        : error instanceof Error && error.message !== 'Failed'
+          ? error.message
+          : 'Kunde inte skapa händelse'
+      setCreateError(message)
+      toast.error(message)
     } finally {
+      window.clearTimeout(timeout)
       setLoading(false)
     }
   }
@@ -173,6 +189,7 @@ export function CreateEventDialog({
     setPracticeBlocks([])
     setRepeatWeekly(false)
     setRepeatWeeks('4')
+    setCreateError(null)
   }
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -186,6 +203,7 @@ export function CreateEventDialog({
       setPracticeBlocks([])
       setRepeatWeekly(false)
       setRepeatWeeks('4')
+      setCreateError(null)
     }
   }
 
@@ -402,8 +420,14 @@ export function CreateEventDialog({
           </div>
         </div>
 
+        {createError && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertDescription>{createError}</AlertDescription>
+          </Alert>
+        )}
+
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
             Avbryt
           </Button>
           <Button onClick={handleCreate} disabled={loading}>
