@@ -15,15 +15,16 @@ import { TextInput } from '@/components/athlete/adhoc/TextInput'
 import { ProcessingStatus } from '@/components/athlete/adhoc/ProcessingStatus'
 import { toast } from 'sonner'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useTranslations } from '@/i18n/client'
 
 type PageState = 'input' | 'processing' | 'error'
 
 export default function TextInputPage() {
+  const t = useTranslations('pages.logWorkoutInputs')
   const basePath = useBasePath()
   const router = useRouter()
   const [state, setState] = useState<PageState>('input')
   const [errorMessage, setErrorMessage] = useState<string>()
-  const [adHocId, setAdHocId] = useState<string>()
   const [inputData, setInputData] = useState<{ text: string; workoutDate: Date }>()
 
   const handleSubmit = async (data: { text: string; workoutDate: Date }) => {
@@ -50,7 +51,6 @@ export default function TextInputPage() {
 
       const createData = await createRes.json()
       const workoutId = createData.data.id
-      setAdHocId(workoutId)
 
       // Step 2: Process with AI
       const processRes = await fetch(`/api/adhoc-workouts/${workoutId}/process`, {
@@ -67,8 +67,8 @@ export default function TextInputPage() {
     } catch (error) {
       console.error('Error submitting workout:', error)
       setState('error')
-      setErrorMessage(error instanceof Error ? error.message : 'Ett fel uppstod')
-      toast.error('Det gick inte att analysera passet')
+      setErrorMessage(error instanceof Error ? error.message : t('errors.generic'))
+      toast.error(t('text.toastError'))
     }
   }
 
@@ -85,7 +85,7 @@ export default function TextInputPage() {
       <div className="container max-w-2xl py-8">
         <ProcessingStatus
           state="processing"
-          message="AI:n analyserar din beskrivning..."
+          message={t('text.processing')}
         />
       </div>
     )
@@ -99,7 +99,7 @@ export default function TextInputPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Något gick fel</h1>
+            <h1 className="text-2xl font-bold">{t('errors.title')}</h1>
           </div>
         </div>
 
@@ -122,9 +122,9 @@ export default function TextInputPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Skriv in pass</h1>
+          <h1 className="text-2xl font-bold">{t('text.title')}</h1>
           <p className="text-muted-foreground">
-            Beskriv ditt träningspass med egna ord
+            {t('text.description')}
           </p>
         </div>
       </div>

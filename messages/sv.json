@@ -352,6 +352,36 @@
       "emptyDescription": "Du har inget aktivt träningsprogram ännu. Kontakta din tränare.",
       "title": "Mitt testschema",
       "description": "Planerade fälttester för att följa dina framsteg genom säsongen."
+    },
+    "logWorkoutInputs": {
+      "errors": {
+        "title": "Något gick fel",
+        "generic": "Ett fel uppstod"
+      },
+      "photo": {
+        "title": "Ta en bild",
+        "description": "Fotografera ett whiteboard, träningsprogram eller anteckningar",
+        "processing": "AI:n analyserar din bild...",
+        "toastError": "Det gick inte att analysera bilden"
+      },
+      "voice": {
+        "title": "Röstmeddelande",
+        "description": "Beskriv ditt träningspass med din röst",
+        "processing": "AI:n transkriberar och analyserar din inspelning...",
+        "toastError": "Det gick inte att analysera inspelningen"
+      },
+      "text": {
+        "title": "Skriv in pass",
+        "description": "Beskriv ditt träningspass med egna ord",
+        "processing": "AI:n analyserar din beskrivning...",
+        "toastError": "Det gick inte att analysera passet"
+      },
+      "manual": {
+        "title": "Fyll i formulär",
+        "description": "Ange detaljer om ditt träningspass manuellt",
+        "processing": "Sparar ditt pass...",
+        "toastError": "Det gick inte att spara passet"
+      }
     }
   },
   "home": {

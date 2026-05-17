@@ -15,10 +15,12 @@ import { VoiceCapture } from '@/components/athlete/adhoc/VoiceCapture'
 import { ProcessingStatus } from '@/components/athlete/adhoc/ProcessingStatus'
 import { toast } from 'sonner'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useTranslations } from '@/i18n/client'
 
 type PageState = 'input' | 'processing' | 'error'
 
 export default function VoiceInputPage() {
+  const t = useTranslations('pages.logWorkoutInputs')
   const basePath = useBasePath()
   const router = useRouter()
   const [state, setState] = useState<PageState>('input')
@@ -65,8 +67,8 @@ export default function VoiceInputPage() {
     } catch (error) {
       console.error('Error submitting voice recording:', error)
       setState('error')
-      setErrorMessage(error instanceof Error ? error.message : 'Ett fel uppstod')
-      toast.error('Det gick inte att analysera inspelningen')
+      setErrorMessage(error instanceof Error ? error.message : t('errors.generic'))
+      toast.error(t('voice.toastError'))
     }
   }
 
@@ -83,7 +85,7 @@ export default function VoiceInputPage() {
       <div className="container max-w-2xl py-8">
         <ProcessingStatus
           state="processing"
-          message="AI:n transkriberar och analyserar din inspelning..."
+          message={t('voice.processing')}
         />
       </div>
     )
@@ -97,7 +99,7 @@ export default function VoiceInputPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Något gick fel</h1>
+            <h1 className="text-2xl font-bold">{t('errors.title')}</h1>
           </div>
         </div>
 
@@ -120,9 +122,9 @@ export default function VoiceInputPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Röstmeddelande</h1>
+          <h1 className="text-2xl font-bold">{t('voice.title')}</h1>
           <p className="text-muted-foreground">
-            Beskriv ditt träningspass med din röst
+            {t('voice.description')}
           </p>
         </div>
       </div>

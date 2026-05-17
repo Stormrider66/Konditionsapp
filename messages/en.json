@@ -352,6 +352,36 @@
       "emptyDescription": "You do not have an active training program yet. Contact your coach.",
       "title": "My test schedule",
       "description": "Planned field tests for tracking your progress through the season."
+    },
+    "logWorkoutInputs": {
+      "errors": {
+        "title": "Something went wrong",
+        "generic": "Something went wrong"
+      },
+      "photo": {
+        "title": "Take a photo",
+        "description": "Photograph a whiteboard, training program, or notes",
+        "processing": "The AI is analyzing your image...",
+        "toastError": "Could not analyze the image"
+      },
+      "voice": {
+        "title": "Voice message",
+        "description": "Describe your workout with your voice",
+        "processing": "The AI is transcribing and analyzing your recording...",
+        "toastError": "Could not analyze the recording"
+      },
+      "text": {
+        "title": "Write workout",
+        "description": "Describe your workout in your own words",
+        "processing": "The AI is analyzing your description...",
+        "toastError": "Could not analyze the workout"
+      },
+      "manual": {
+        "title": "Fill in form",
+        "description": "Enter details about your workout manually",
+        "processing": "Saving your workout...",
+        "toastError": "Could not save the workout"
+      }
     }
   },
   "home": {

@@ -16,10 +16,12 @@ import { ProcessingStatus } from '@/components/athlete/adhoc/ProcessingStatus'
 import { toast } from 'sonner'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useTranslations } from '@/i18n/client'
 
 type PageState = 'input' | 'processing' | 'error'
 
 export default function ManualFormPage() {
+  const t = useTranslations('pages.logWorkoutInputs')
   const basePath = useBasePath()
   const router = useRouter()
   const [state, setState] = useState<PageState>('input')
@@ -70,8 +72,8 @@ export default function ManualFormPage() {
     } catch (error) {
       console.error('Error submitting form:', error)
       setState('error')
-      setErrorMessage(error instanceof Error ? error.message : 'Ett fel uppstod')
-      toast.error('Det gick inte att spara passet')
+      setErrorMessage(error instanceof Error ? error.message : t('errors.generic'))
+      toast.error(t('manual.toastError'))
     }
   }
 
@@ -84,7 +86,7 @@ export default function ManualFormPage() {
       <div className="container max-w-2xl py-8">
         <ProcessingStatus
           state="processing"
-          message="Sparar ditt pass..."
+          message={t('manual.processing')}
         />
       </div>
     )
@@ -98,7 +100,7 @@ export default function ManualFormPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Något gick fel</h1>
+            <h1 className="text-2xl font-bold">{t('errors.title')}</h1>
           </div>
         </div>
 
@@ -121,9 +123,9 @@ export default function ManualFormPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Fyll i formulär</h1>
+          <h1 className="text-2xl font-bold">{t('manual.title')}</h1>
           <p className="text-muted-foreground">
-            Ange detaljer om ditt träningspass manuellt
+            {t('manual.description')}
           </p>
         </div>
       </div>

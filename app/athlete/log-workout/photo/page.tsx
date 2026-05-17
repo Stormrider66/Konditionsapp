@@ -15,10 +15,12 @@ import { PhotoCapture } from '@/components/athlete/adhoc/PhotoCapture'
 import { ProcessingStatus } from '@/components/athlete/adhoc/ProcessingStatus'
 import { toast } from 'sonner'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useTranslations } from '@/i18n/client'
 
 type PageState = 'input' | 'processing' | 'error'
 
 export default function PhotoInputPage() {
+  const t = useTranslations('pages.logWorkoutInputs')
   const basePath = useBasePath()
   const router = useRouter()
   const [state, setState] = useState<PageState>('input')
@@ -65,8 +67,8 @@ export default function PhotoInputPage() {
     } catch (error) {
       console.error('Error submitting photo:', error)
       setState('error')
-      setErrorMessage(error instanceof Error ? error.message : 'Ett fel uppstod')
-      toast.error('Det gick inte att analysera bilden')
+      setErrorMessage(error instanceof Error ? error.message : t('errors.generic'))
+      toast.error(t('photo.toastError'))
     }
   }
 
@@ -83,7 +85,7 @@ export default function PhotoInputPage() {
       <div className="container max-w-2xl py-8">
         <ProcessingStatus
           state="processing"
-          message="AI:n analyserar din bild..."
+          message={t('photo.processing')}
         />
       </div>
     )
@@ -97,7 +99,7 @@ export default function PhotoInputPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Något gick fel</h1>
+            <h1 className="text-2xl font-bold">{t('errors.title')}</h1>
           </div>
         </div>
 
@@ -120,9 +122,9 @@ export default function PhotoInputPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Ta en bild</h1>
+          <h1 className="text-2xl font-bold">{t('photo.title')}</h1>
           <p className="text-muted-foreground">
-            Fotografera ett whiteboard, träningsprogram eller anteckningar
+            {t('photo.description')}
           </p>
         </div>
       </div>
