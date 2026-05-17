@@ -5,6 +5,7 @@ import { Info } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { getInfoEntry } from '@/lib/info-content'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface InfoTooltipProps {
   conceptKey: string
@@ -21,11 +22,15 @@ export function InfoTooltip({
   align = 'center',
   className,
 }: InfoTooltipProps) {
+  const t = useTranslations('components.infoTooltip')
   const [showDetailed, setShowDetailed] = useState(false)
   const [mounted, setMounted] = useState(false)
   const entry = getInfoEntry(conceptKey)
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setMounted(true), 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [])
 
   if (!entry) return null
 
@@ -42,7 +47,7 @@ export function InfoTooltip({
           'inline-flex items-center justify-center rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer',
           className
         )}
-        aria-label={`Information om ${entry.title}`}
+        aria-label={t('ariaLabel', { title: entry.title })}
       >
         <Info className={iconSize} />
       </span>
@@ -59,7 +64,7 @@ export function InfoTooltip({
             'inline-flex items-center justify-center rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer',
             className
           )}
-          aria-label={`Information om ${entry.title}`}
+          aria-label={t('ariaLabel', { title: entry.title })}
         >
           <Info className={iconSize} />
         </span>
@@ -82,7 +87,7 @@ export function InfoTooltip({
               onClick={() => setShowDetailed(true)}
               className="text-xs text-primary hover:underline font-medium"
             >
-              Läs mer
+              {t('readMore')}
             </button>
           )}
         </div>

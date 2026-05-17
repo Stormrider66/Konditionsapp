@@ -3031,6 +3031,61 @@
         "pain": "Pain: {pain}/10",
         "phase": "Phase: {phase}"
       }
+    },
+    "fitnessSummary": {
+      "title": {
+        "empty": "Fitness Estimate",
+        "result": "Your Fitness Estimate"
+      },
+      "empty": {
+        "description": "We need more data to estimate your fitness level. Consider adding heart rate data or a recent race time."
+      },
+      "actions": {
+        "continue": "Continue to Dashboard",
+        "scheduleFieldTest": "Schedule Field Test"
+      },
+      "confidence": {
+        "label": "Confidence",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "fitnessLevels": {
+        "untrained": "Untrained",
+        "beginner": "Beginner",
+        "recreational": "Recreational",
+        "trained": "Trained",
+        "wellTrained": "Well trained",
+        "elite": "Elite"
+      },
+      "estimatedVo2max": "Estimated VO2max",
+      "zoneWidth": "Training Zone 2 Width",
+      "ofMaxHr": "of max HR",
+      "zones": {
+        "easy": "Easy",
+        "zone2": "Zone 2",
+        "hard": "Hard"
+      },
+      "narrowZone": {
+        "title": "Narrow Zone 2 Detected",
+        "description": "Your aerobic zone is relatively narrow. To stay in the right intensity during easy workouts, consider using walk/run intervals (e.g., 2 min running, 1 min walking)."
+      },
+      "basedOn": "Based on",
+      "sources": {
+        "raceTime": "Race time",
+        "watchVo2max": "Watch VO2max",
+        "restingHr": "Resting HR",
+        "experienceLevel": "Experience level",
+        "multiple": "Multiple sources"
+      },
+      "fieldTest": {
+        "title": "Want more accurate zones?",
+        "description": "A field test (like a 30-minute time trial or a lactate threshold test) provides much more accurate training zones. We recommend doing one within the first few weeks."
+      }
+    },
+    "infoTooltip": {
+      "ariaLabel": "Information about {title}",
+      "readMore": "Read more"
     }
   },
   "infographic": {

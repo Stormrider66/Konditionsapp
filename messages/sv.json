@@ -3031,6 +3031,61 @@
         "pain": "Smärta: {pain}/10",
         "phase": "Fas: {phase}"
       }
+    },
+    "fitnessSummary": {
+      "title": {
+        "empty": "Konditionsuppskattning",
+        "result": "Din konditionsuppskattning"
+      },
+      "empty": {
+        "description": "Vi behöver mer data för att uppskatta din konditionsnivå. Överväg att lägga till pulsdata eller en nylig tävlingstid."
+      },
+      "actions": {
+        "continue": "Fortsätt till Dashboard",
+        "scheduleFieldTest": "Boka fälttest"
+      },
+      "confidence": {
+        "label": "Säkerhet",
+        "high": "Hög",
+        "medium": "Medel",
+        "low": "Låg"
+      },
+      "fitnessLevels": {
+        "untrained": "Otränad",
+        "beginner": "Nybörjare",
+        "recreational": "Motionär",
+        "trained": "Tränad",
+        "wellTrained": "Vältränad",
+        "elite": "Elit"
+      },
+      "estimatedVo2max": "Uppskattad VO2max",
+      "zoneWidth": "Zon 2-bredd",
+      "ofMaxHr": "av maxpuls",
+      "zones": {
+        "easy": "Lätt",
+        "zone2": "Zon 2",
+        "hard": "Hårt"
+      },
+      "narrowZone": {
+        "title": "Smal zon 2 upptäckt",
+        "description": "Din aeroba zon är relativt smal. För att hålla rätt intensitet under lätta pass, överväg att använda gång/löp-intervaller (t.ex. 2 min löpning, 1 min gång)."
+      },
+      "basedOn": "Baserat på",
+      "sources": {
+        "raceTime": "Tävlingstid",
+        "watchVo2max": "Klock-VO2max",
+        "restingHr": "Vilopuls",
+        "experienceLevel": "Erfarenhetsnivå",
+        "multiple": "Flera källor"
+      },
+      "fieldTest": {
+        "title": "Vill du ha mer exakta zoner?",
+        "description": "Ett fälttest (som ett 30-minuters tempopass eller ett laktattröskeltest) ger mycket mer exakta träningszoner. Vi rekommenderar att göra ett inom de första veckorna."
+      }
+    },
+    "infoTooltip": {
+      "ariaLabel": "Information om {title}",
+      "readMore": "Läs mer"
     }
   },
   "infographic": {

@@ -3,17 +3,15 @@
 import { useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { Activity, Heart, Target, AlertTriangle, CheckCircle, ArrowRight } from 'lucide-react'
 import {
   estimateFitnessLevel,
-  getFitnessLevelDisplayName,
-  getConfidenceDisplayName,
   type FitnessEstimationInput,
 } from '@/lib/training/fitness-estimation'
 import type { FitnessEstimate } from '@/types'
 import type { BiometricsData } from './BiometricsStep'
+import { useTranslations } from '@/i18n/client'
 
 interface RecentRaceTime {
   distance: '1500M' | '1_MILE' | '3K' | '5K' | '10K' | 'HALF_MARATHON' | 'MARATHON'
@@ -37,11 +35,11 @@ export function FitnessSummary({
   experienceLevel,
   age,
   gender,
-  locale = 'sv',
+  locale: _locale = 'sv',
   onContinue,
   onScheduleFieldTest,
 }: FitnessSummaryProps) {
-  const t = (en: string, sv: string) => (locale === 'sv' ? sv : en)
+  const t = useTranslations('components.fitnessSummary')
 
   // Calculate fitness estimate from available data
   const fitnessEstimate = useMemo((): FitnessEstimate | null => {
@@ -108,6 +106,25 @@ export function FitnessSummary({
     }
   }
 
+  const getFitnessLevelLabel = (level: FitnessEstimate['level']) => {
+    switch (level) {
+      case 'UNTRAINED': return t('fitnessLevels.untrained')
+      case 'BEGINNER': return t('fitnessLevels.beginner')
+      case 'RECREATIONAL': return t('fitnessLevels.recreational')
+      case 'TRAINED': return t('fitnessLevels.trained')
+      case 'WELL_TRAINED': return t('fitnessLevels.wellTrained')
+      case 'ELITE': return t('fitnessLevels.elite')
+    }
+  }
+
+  const getConfidenceLabel = (confidence: FitnessEstimate['confidence']) => {
+    switch (confidence) {
+      case 'HIGH': return t('confidence.high')
+      case 'MEDIUM': return t('confidence.medium')
+      case 'LOW': return t('confidence.low')
+    }
+  }
+
   // Calculate zone width for visualization
   const getZoneWidth = (estimate: FitnessEstimate) => {
     return estimate.lt2PercentHRmax - estimate.lt1PercentHRmax
@@ -119,18 +136,15 @@ export function FitnessSummary({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            {t('Fitness Estimate', 'Konditionsuppskattning')}
+            {t('title.empty')}
           </CardTitle>
           <CardDescription>
-            {t(
-              'We need more data to estimate your fitness level. Consider adding heart rate data or a recent race time.',
-              'Vi behöver mer data för att uppskatta din konditionsnivå. Överväg att lägga till pulsdata eller en nylig tävlingstid.'
-            )}
+            {t('empty.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={onContinue} className="w-full">
-            {t('Continue to Dashboard', 'Fortsätt till Dashboard')}
+            {t('actions.continue')}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </CardContent>
@@ -149,10 +163,10 @@ export function FitnessSummary({
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-primary" />
-              {t('Your Fitness Estimate', 'Din konditionsuppskattning')}
+              {t('title.result')}
             </CardTitle>
             <Badge className={getConfidenceColor(fitnessEstimate.confidence)}>
-              {t('Confidence', 'Säkerhet')}: {getConfidenceDisplayName(fitnessEstimate.confidence)}
+              {t('confidence.label')}: {getConfidenceLabel(fitnessEstimate.confidence)}
             </Badge>
           </div>
         </CardHeader>
@@ -160,11 +174,11 @@ export function FitnessSummary({
           {/* Fitness Level */}
           <div className="text-center space-y-2">
             <Badge className={`text-lg px-4 py-2 ${getLevelColor(fitnessEstimate.level)}`}>
-              {getFitnessLevelDisplayName(fitnessEstimate.level)}
+              {getFitnessLevelLabel(fitnessEstimate.level)}
             </Badge>
             {fitnessEstimate.estimatedVO2max && (
               <p className="text-sm text-muted-foreground">
-                {t('Estimated VO2max', 'Uppskattad VO2max')}: ~{Math.round(fitnessEstimate.estimatedVO2max)} ml/kg/min
+                {t('estimatedVo2max')}: ~{Math.round(fitnessEstimate.estimatedVO2max)} ml/kg/min
               </p>
             )}
           </div>
@@ -172,8 +186,8 @@ export function FitnessSummary({
           {/* Zone Visualization */}
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">{t('Training Zone 2 Width', 'Zon 2-bredd')}</span>
-              <span className="font-medium">{zoneWidth}% {t('of max HR', 'av maxpuls')}</span>
+              <span className="text-muted-foreground">{t('zoneWidth')}</span>
+              <span className="font-medium">{zoneWidth}% {t('ofMaxHr')}</span>
             </div>
             <div className="relative h-8 bg-muted rounded-full overflow-hidden">
               {/* Zone 1 */}
@@ -196,9 +210,9 @@ export function FitnessSummary({
               />
               {/* Labels */}
               <div className="absolute inset-0 flex items-center justify-between px-2 text-xs font-medium">
-                <span className="text-blue-700">{t('Easy', 'Lätt')}</span>
-                <span className="text-green-700">{t('Zone 2', 'Zon 2')}</span>
-                <span className="text-orange-700">{t('Hard', 'Hårt')}</span>
+                <span className="text-blue-700">{t('zones.easy')}</span>
+                <span className="text-green-700">{t('zones.zone2')}</span>
+                <span className="text-orange-700">{t('zones.hard')}</span>
               </div>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
@@ -217,13 +231,10 @@ export function FitnessSummary({
                   <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <p className="font-medium text-amber-800">
-                      {t('Narrow Zone 2 Detected', 'Smal zon 2 upptäckt')}
+                      {t('narrowZone.title')}
                     </p>
                     <p className="text-sm text-amber-700">
-                      {t(
-                        'Your aerobic zone is relatively narrow. To stay in the right intensity during easy workouts, consider using walk/run intervals (e.g., 2 min running, 1 min walking).',
-                        'Din aeroba zon är relativt smal. För att hålla rätt intensitet under lätta pass, överväg att använda gång/löp-intervaller (t.ex. 2 min löpning, 1 min gång).'
-                      )}
+                      {t('narrowZone.description')}
                     </p>
                   </div>
                 </div>
@@ -234,37 +245,37 @@ export function FitnessSummary({
           {/* Data Sources */}
           <div className="border rounded-lg p-4 bg-muted/30">
             <p className="text-sm font-medium mb-2">
-              {t('Based on', 'Baserat på')}:
+              {t('basedOn')}:
             </p>
             <div className="flex flex-wrap gap-2">
               {fitnessEstimate.source === 'RACE_TIME' && (
                 <Badge variant="outline" className="text-xs">
                   <Target className="h-3 w-3 mr-1" />
-                  {t('Race time', 'Tävlingstid')}
+                  {t('sources.raceTime')}
                 </Badge>
               )}
               {fitnessEstimate.source === 'WATCH_ESTIMATE' && (
                 <Badge variant="outline" className="text-xs">
                   <Activity className="h-3 w-3 mr-1" />
-                  {t('Watch VO2max', 'Klock-VO2max')}
+                  {t('sources.watchVo2max')}
                 </Badge>
               )}
               {fitnessEstimate.source === 'RESTING_HR' && (
                 <Badge variant="outline" className="text-xs">
                   <Heart className="h-3 w-3 mr-1" />
-                  {t('Resting HR', 'Vilopuls')}
+                  {t('sources.restingHr')}
                 </Badge>
               )}
               {fitnessEstimate.source === 'EXPERIENCE' && (
                 <Badge variant="outline" className="text-xs">
                   <CheckCircle className="h-3 w-3 mr-1" />
-                  {t('Experience level', 'Erfarenhetsnivå')}
+                  {t('sources.experienceLevel')}
                 </Badge>
               )}
               {fitnessEstimate.source === 'COMBINED' && (
                 <Badge variant="outline" className="text-xs">
                   <Activity className="h-3 w-3 mr-1" />
-                  {t('Multiple sources', 'Flera källor')}
+                  {t('sources.multiple')}
                 </Badge>
               )}
             </div>
@@ -278,20 +289,17 @@ export function FitnessSummary({
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Target className="h-4 w-4 text-blue-600" />
-              {t('Want more accurate zones?', 'Vill du ha mer exakta zoner?')}
+              {t('fieldTest.title')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              {t(
-                'A field test (like a 30-minute time trial or a lactate threshold test) provides much more accurate training zones. We recommend doing one within the first few weeks.',
-                'Ett fälttest (som ett 30-minuters tempopass eller ett laktattröskeltest) ger mycket mer exakta träningszoner. Vi rekommenderar att göra ett inom de första veckorna.'
-              )}
+              {t('fieldTest.description')}
             </p>
             {onScheduleFieldTest && (
               <Button variant="outline" size="sm" onClick={onScheduleFieldTest}>
                 <Target className="h-4 w-4 mr-2" />
-                {t('Schedule Field Test', 'Boka fälttest')}
+                {t('actions.scheduleFieldTest')}
               </Button>
             )}
           </CardContent>
@@ -300,7 +308,7 @@ export function FitnessSummary({
 
       {/* Continue Button */}
       <Button onClick={onContinue} className="w-full" size="lg">
-        {t('Continue to Dashboard', 'Fortsätt till Dashboard')}
+        {t('actions.continue')}
         <ArrowRight className="ml-2 h-4 w-4" />
       </Button>
     </div>
