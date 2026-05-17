@@ -3,13 +3,19 @@ import { PrivacySettings } from '@/components/athlete/settings/PrivacySettings'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Shield } from 'lucide-react'
 import Link from 'next/link'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Integritet & Delning | Inställningar',
-  description: 'Hantera vad din coach kan se',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.privacySettings')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 export default async function PrivacySettingsPage() {
+  const t = await getTranslations('pages.privacySettings')
   await requireAthleteOrCoachInAthleteMode()
 
   return (
@@ -23,7 +29,7 @@ export default async function PrivacySettingsPage() {
         <Link href="/athlete/settings">
           <Button variant="ghost" size="sm" className="gap-2 mb-6 text-slate-600 hover:text-slate-950 hover:bg-slate-100 rounded-full px-4 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5">
             <ArrowLeft className="h-4 w-4" />
-            Tillbaka till inställningar
+            {t('backToSettings')}
           </Button>
         </Link>
 
@@ -33,10 +39,10 @@ export default async function PrivacySettingsPage() {
           </div>
           <div>
             <h1 className="text-3xl font-black italic uppercase tracking-tight text-slate-950 leading-none dark:text-white">
-              Integritet
+              {t('title')}
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">
-              Styr vad din coach kan se
+              {t('subtitle')}
             </p>
           </div>
         </div>

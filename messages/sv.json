@@ -91,6 +91,14 @@
       "rehab": {
         "title": "Rehabilitering | Athlete",
         "description": "Se dina aktiva rehabiliteringsprogram och övningar"
+      },
+      "privacySettings": {
+        "title": "Integritet & Delning | Inställningar",
+        "description": "Hantera vad din coach kan se"
+      },
+      "calendarConnections": {
+        "title": "Kalenderanslutningar | Trainomics",
+        "description": "Anslut externa kalendrar för att se alla händelser på ett ställe"
       }
     }
   },
@@ -104,6 +112,18 @@
       "backToNutrition": "Tillbaka till koststatistik",
       "title": "Mathistorik",
       "subtitle": "Dina livsmedel & näringskällor"
+    },
+    "privacySettings": {
+      "backToSettings": "Tillbaka till inställningar",
+      "title": "Integritet",
+      "subtitle": "Styr vad din coach kan se"
+    },
+    "calendarConnections": {
+      "backToCalendar": "TILLBAKA TILL KALENDERN",
+      "titlePrefix": "Kalender",
+      "titleAccent": "anslutningar",
+      "description": "Anslut dina externa kalendrar för att se arbete, privata händelser och andra blockerare tillsammans med ditt träningsschema.",
+      "loading": "Laddar anslutningar..."
     }
   },
   "home": {

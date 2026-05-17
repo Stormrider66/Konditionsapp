@@ -6,10 +6,15 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { CalendarConnectionsClient } from './CalendarConnectionsClient'
 import { Button } from '@/components/ui/button'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Kalenderanslutningar | Trainomics',
-  description: 'Anslut externa kalendrar för att se alla händelser på ett ställe',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.calendarConnections')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 async function getClientData() {
@@ -80,6 +85,7 @@ async function getClientData() {
 }
 
 export default async function CalendarConnectionsPage() {
+  const t = await getTranslations('pages.calendarConnections')
   const data = await getClientData()
 
   return (
@@ -93,7 +99,7 @@ export default async function CalendarConnectionsPage() {
           <Link href="/athlete/calendar">
             <Button variant="ghost" className="text-slate-600 hover:text-slate-950 hover:bg-slate-100 group dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5">
               <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-              TILLBAKA TILL KALENDERN
+              {t('backToCalendar')}
             </Button>
           </Link>
         </div>
@@ -104,16 +110,15 @@ export default async function CalendarConnectionsPage() {
           </div>
           <div>
             <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-1 text-slate-950 dark:text-white">
-              Kalender<span className="text-orange-400">anslutningar</span>
+              {t('titlePrefix')}<span className="text-orange-400">{t('titleAccent')}</span>
             </h1>
             <p className="text-slate-600 font-medium max-w-2xl dark:text-slate-400">
-              Anslut dina externa kalendrar för att se arbete, privata händelser och andra blockerare
-              tillsammans med ditt träningsschema.
+              {t('description')}
             </p>
           </div>
         </div>
 
-        <Suspense fallback={<div className="animate-pulse text-slate-500 font-black uppercase tracking-widest text-center py-20">Laddar anslutningar...</div>}>
+        <Suspense fallback={<div className="animate-pulse text-slate-500 font-black uppercase tracking-widest text-center py-20">{t('loading')}</div>}>
           <CalendarConnectionsClient
             clientId={data.clientId}
             connections={data.connections}

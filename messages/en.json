@@ -91,6 +91,14 @@
       "rehab": {
         "title": "Rehabilitation | Athlete",
         "description": "See your active rehabilitation programs and exercises"
+      },
+      "privacySettings": {
+        "title": "Privacy & Sharing | Settings",
+        "description": "Manage what your coach can see"
+      },
+      "calendarConnections": {
+        "title": "Calendar Connections | Trainomics",
+        "description": "Connect external calendars to see all events in one place"
       }
     }
   },
@@ -104,6 +112,18 @@
       "backToNutrition": "Back to nutrition stats",
       "title": "Food History",
       "subtitle": "Your foods & nutrition sources"
+    },
+    "privacySettings": {
+      "backToSettings": "Back to settings",
+      "title": "Privacy",
+      "subtitle": "Control what your coach can see"
+    },
+    "calendarConnections": {
+      "backToCalendar": "BACK TO CALENDAR",
+      "titlePrefix": "Calendar",
+      "titleAccent": "connections",
+      "description": "Connect your external calendars to see work, private events, and other blockers together with your training schedule.",
+      "loading": "Loading connections..."
     }
   },
   "home": {
