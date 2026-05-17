@@ -19,10 +19,10 @@
  */
 
 import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, ChevronDown, ChevronRight, Trophy, Info } from 'lucide-react'
 import { PR_UNIT_LABELS, isPrUnit, type PrUnit } from '@/lib/strength/units'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface OneRepMaxEntry {
   id: string
@@ -45,15 +45,15 @@ interface OneRepMaxGroup {
 
 const SOURCE_META: Record<
   string,
-  { label: string; variant: 'default' | 'secondary' | 'outline' }
+  { labelKey: string; variant: 'default' | 'secondary' | 'outline' }
 > = {
-  TESTED: { label: 'Testat', variant: 'default' },
-  CALCULATED: { label: 'Beräknat', variant: 'secondary' },
-  ESTIMATED: { label: 'Auto', variant: 'outline' },
+  TESTED: { labelKey: 'sources.tested', variant: 'default' },
+  CALCULATED: { labelKey: 'sources.calculated', variant: 'secondary' },
+  ESTIMATED: { labelKey: 'sources.estimated', variant: 'outline' },
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', {
+function formatDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -61,6 +61,8 @@ function formatDate(iso: string): string {
 }
 
 export function AthleteStrengthPRTable() {
+  const t = useTranslations('components.athleteStrengthPrTable')
+  const locale = useLocale()
   const [groups, setGroups] = useState<OneRepMaxGroup[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -75,16 +77,16 @@ export function AthleteStrengthPRTable() {
         const body = await res.json()
         if (!cancelled && body.success) setGroups(body.data)
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Kunde inte hämta PR')
+        if (!cancelled) setError(e instanceof Error ? e.message : t('errors.fetchFailed'))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
     }
-    load()
+    void load()
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [t])
 
   const toggle = (id: string) =>
     setExpanded((prev) => {
@@ -110,10 +112,9 @@ export function AthleteStrengthPRTable() {
     return (
       <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-6 text-center text-muted-foreground space-y-2">
         <Trophy className="h-10 w-10 mx-auto opacity-30" />
-        <p className="text-sm">Inga PR loggade ännu.</p>
+        <p className="text-sm">{t('emptyTitle')}</p>
         <p className="text-xs">
-          PRs kommer hit när din coach loggat ett testpass eller när du själv slår
-          ditt rekord under ett pass.
+          {t('emptyDescription')}
         </p>
       </div>
     )
@@ -124,11 +125,10 @@ export function AthleteStrengthPRTable() {
       <div>
         <h2 className="text-lg font-semibold flex items-center gap-2 dark:text-white">
           <Trophy className="h-5 w-5 text-yellow-500" />
-          Mina PR
+          {t('title')}
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Aktuella 1RM per övning. Värdena används för att räkna ut vikt i pass där
-          coachen valt &quot;% av 1RM&quot;.
+          {t('description')}
         </p>
       </div>
 
@@ -136,10 +136,12 @@ export function AthleteStrengthPRTable() {
         {groups.map((g) => {
           const isOpen = expanded.has(g.exerciseId)
           const sourceMeta = SOURCE_META[g.current.source] ?? {
-            label: g.current.source,
+            labelKey: '',
             variant: 'outline' as const,
           }
-          const displayName = g.exerciseNameSv || g.exerciseName
+          const displayName = locale === 'sv'
+            ? g.exerciseNameSv || g.exerciseName
+            : g.exerciseName || g.exerciseNameSv
           const unit = isPrUnit(g.current.unit) ? g.current.unit : ('KG' as PrUnit)
 
           return (
@@ -158,20 +160,20 @@ export function AthleteStrengthPRTable() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-sm truncate">{displayName}</span>
                     <Badge variant={sourceMeta.variant} className="text-[10px] py-0">
-                      {sourceMeta.label}
+                      {sourceMeta.labelKey ? t(sourceMeta.labelKey) : g.current.source}
                     </Badge>
                     {g.current.source === 'ESTIMATED' && (
                       <Badge
                         variant="outline"
                         className="text-[10px] py-0 text-orange-600 border-orange-300"
                       >
-                        Väntar på bekräftelse
+                        {t('pendingConfirmation')}
                       </Badge>
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {formatDate(g.current.date)}
-                    {g.history.length > 1 && ` · ${g.history.length} mätningar`}
+                    {formatDate(g.current.date, locale)}
+                    {g.history.length > 1 && ` · ${t('measurementCount', { count: g.history.length })}`}
                   </div>
                 </div>
                 <div className="text-right shrink-0">
@@ -187,23 +189,23 @@ export function AthleteStrengthPRTable() {
               {isOpen && (
                 <div className="bg-muted/20 px-3 py-2 space-y-1">
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">
-                    Historik
+                    {t('history')}
                   </p>
                   {g.history.map((h, idx) => {
                     const prev = g.history[idx + 1]
                     const delta = prev ? h.oneRepMax - prev.oneRepMax : null
                     const meta = SOURCE_META[h.source] ?? {
-                      label: h.source,
+                      labelKey: '',
                       variant: 'outline' as const,
                     }
                     const hUnit = isPrUnit(h.unit) ? h.unit : ('KG' as PrUnit)
                     return (
                       <div key={h.id} className="flex items-center gap-2 text-xs">
                         <span className="w-24 text-muted-foreground tabular-nums">
-                          {formatDate(h.date)}
+                          {formatDate(h.date, locale)}
                         </span>
                         <Badge variant={meta.variant} className="text-[10px] py-0 shrink-0">
-                          {meta.label}
+                          {meta.labelKey ? t(meta.labelKey) : h.source}
                         </Badge>
                         <span className="font-mono ml-auto">
                           {h.oneRepMax} {PR_UNIT_LABELS[hUnit]}
@@ -233,8 +235,7 @@ export function AthleteStrengthPRTable() {
       <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
         <Info className="h-3 w-3 mt-0.5 shrink-0" />
         <span>
-          Auto-uppskattade PRs väntar på din coach att bekräfta dem. Värdet räknas
-          fortfarande som ditt aktuella max tills coachen tar ställning.
+          {t('estimatedInfo')}
         </span>
       </div>
     </div>

@@ -3113,6 +3113,24 @@
         "interval": "Intervall (I)"
       }
     },
+    "athleteStrengthPrTable": {
+      "title": "Mina PR",
+      "description": "Aktuella 1RM per övning. Värdena används för att räkna ut vikt i pass där coachen valt \"% av 1RM\".",
+      "emptyTitle": "Inga PR loggade ännu.",
+      "emptyDescription": "PRs kommer hit när din coach loggat ett testpass eller när du själv slår ditt rekord under ett pass.",
+      "pendingConfirmation": "Väntar på bekräftelse",
+      "measurementCount": "{count, plural, =1 {# mätning} other {# mätningar}}",
+      "history": "Historik",
+      "estimatedInfo": "Auto-uppskattade PRs väntar på din coach att bekräfta dem. Värdet räknas fortfarande som ditt aktuella max tills coachen tar ställning.",
+      "sources": {
+        "tested": "Testat",
+        "calculated": "Beräknat",
+        "estimated": "Auto"
+      },
+      "errors": {
+        "fetchFailed": "Kunde inte hämta PR"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

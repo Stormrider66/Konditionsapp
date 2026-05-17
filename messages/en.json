@@ -3113,6 +3113,24 @@
         "interval": "Interval (I)"
       }
     },
+    "athleteStrengthPrTable": {
+      "title": "My PRs",
+      "description": "Current 1RM per exercise. These values are used to calculate workout weights where your coach selected \"% of 1RM\".",
+      "emptyTitle": "No PRs logged yet.",
+      "emptyDescription": "PRs will appear here when your coach logs a test session or when you beat your record during a workout.",
+      "pendingConfirmation": "Waiting for confirmation",
+      "measurementCount": "{count, plural, =1 {# measurement} other {# measurements}}",
+      "history": "History",
+      "estimatedInfo": "Auto-estimated PRs are waiting for your coach to confirm them. The value still counts as your current max until your coach reviews it.",
+      "sources": {
+        "tested": "Tested",
+        "calculated": "Calculated",
+        "estimated": "Auto"
+      },
+      "errors": {
+        "fetchFailed": "Could not fetch PRs"
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",
