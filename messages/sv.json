@@ -7027,6 +7027,41 @@
         "startWorkout": "Starta pass"
       }
     },
+    "hybridFocusModeWorkout": {
+      "formats": {
+        "forTime": "For Time",
+        "amrap": "AMRAP",
+        "emom": "EMOM",
+        "tabata": "Tabata",
+        "chipper": "Chipper",
+        "ladder": "Ladder",
+        "intervals": "Intervaller",
+        "hyroxSim": "HYROX Sim"
+      },
+      "movementsPerRound": "Övningar per runda:",
+      "roundOfTotal": "Runda {current} av {total}",
+      "actions": {
+        "roundDone": "Runda klar",
+        "finishWorkout": "Slutför pass"
+      },
+      "exit": {
+        "title": "Avsluta pass?",
+        "description": "Du har slutfört {completed} av {total} rundor. Dina framsteg sparas.",
+        "continue": "Fortsätt träna",
+        "end": "Avsluta"
+      },
+      "completion": {
+        "title": "Pass slutfört!",
+        "description": "Bra jobbat! Du slutförde {completed} rundor.",
+        "time": "Tid: {time}"
+      },
+      "rpe": {
+        "label": "Hur tungt kändes passet? (RPE)",
+        "easy": "Lätt",
+        "moderate": "Måttligt",
+        "hard": "Hårt"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

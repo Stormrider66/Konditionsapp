@@ -6,7 +6,7 @@
  * Full-screen hybrid workout execution with format-specific timers.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -23,7 +23,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { X, Activity, CheckCircle2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 import { AMRAPTimer, EMOMTimer, ForTimeTimer, TabataTimer } from './timers'
 import { MovementCheckCard } from './MovementCheckCard'
@@ -31,6 +30,7 @@ import { RoundTracker } from './RoundTracker'
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
 import { LiveVoiceCoachButton } from '@/components/athlete/cardio/LiveVoiceCoachButton'
+import { useTranslations } from '@/i18n/client'
 
 type HybridFormat =
   | 'FOR_TIME'
@@ -84,28 +84,28 @@ interface HybridFocusModeWorkoutProps {
   ) => Promise<void>
 }
 
-const FORMAT_LABELS: Record<HybridFormat, string> = {
-  FOR_TIME: 'For Time',
-  AMRAP: 'AMRAP',
-  EMOM: 'EMOM',
-  TABATA: 'Tabata',
-  CHIPPER: 'Chipper',
-  LADDER: 'Ladder',
-  INTERVALS: 'Intervaller',
-  HYROX_SIM: 'HYROX Sim',
+type TranslationKey = Parameters<ReturnType<typeof useTranslations>>[0]
+
+const FORMAT_LABELS: Record<HybridFormat, TranslationKey> = {
+  FOR_TIME: 'formats.forTime',
+  AMRAP: 'formats.amrap',
+  EMOM: 'formats.emom',
+  TABATA: 'formats.tabata',
+  CHIPPER: 'formats.chipper',
+  LADDER: 'formats.ladder',
+  INTERVALS: 'formats.intervals',
+  HYROX_SIM: 'formats.hyroxSim',
 }
 
 export function HybridFocusModeWorkout({
   assignmentId,
   workoutName,
-  workoutDescription,
   format,
   timeCap = 0,
   workTime = 60,
   restTime = 0,
   totalRounds,
   totalMinutes,
-  repScheme,
   repSchemeArray = [],
   movements: initialMovements,
   scalingLevel,
@@ -113,7 +113,8 @@ export function HybridFocusModeWorkout({
   onComplete,
   onRoundComplete,
 }: HybridFocusModeWorkoutProps) {
-  const [movements, setMovements] = useState<Movement[]>(initialMovements)
+  const t = useTranslations('components.hybridFocusModeWorkout')
+  const movements = initialMovements
   const [currentRound, setCurrentRound] = useState(1)
   const [completedRounds, setCompletedRounds] = useState(0)
   const [elapsedTime, setElapsedTime] = useState(0)
@@ -153,7 +154,7 @@ export function HybridFocusModeWorkout({
       onExtendSegment: () => {},
       onMarkSegmentComplete: () => {},
       onCompleteRound: () => {
-        handleRoundComplete()
+        void handleRoundComplete()
       },
       onGetWorkoutTimer: () => ({
         elapsedSeconds: elapsedRef.current,
@@ -170,8 +171,6 @@ export function HybridFocusModeWorkout({
     () => movementStatus[currentRound] || {},
     [movementStatus, currentRound]
   )
-  const allMovementsComplete = movements.every((m) => currentRoundStatus[m.id])
-
   // Calculate progress
   const progressPercent = totalRounds > 0 ? (completedRounds / totalRounds) * 100 : 0
 
@@ -339,7 +338,7 @@ export function HybridFocusModeWorkout({
     if (!isChecklistFormat) {
       return (
         <div className="mt-4 space-y-2 max-h-48 overflow-y-auto">
-          <p className="text-sm text-muted-foreground mb-2">Övningar per runda:</p>
+          <p className="text-sm text-muted-foreground mb-2">{t('movementsPerRound')}</p>
           {movements.map((movement) => (
             <div
               key={movement.id}
@@ -362,7 +361,7 @@ export function HybridFocusModeWorkout({
         {/* Round info */}
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
-            Runda {currentRound} av {totalRounds}
+            {t('roundOfTotal', { current: currentRound, total: totalRounds })}
           </span>
           {repSchemeArray[currentRound - 1] && (
             <Badge variant="outline">
@@ -405,7 +404,7 @@ export function HybridFocusModeWorkout({
           disabled={isSubmitting}
         >
           <CheckCircle2 className="h-5 w-5 mr-2" />
-          {currentRound >= totalRounds ? 'Slutför pass' : 'Runda klar'}
+          {currentRound >= totalRounds ? t('actions.finishWorkout') : t('actions.roundDone')}
         </Button>
       </div>
     )
@@ -424,7 +423,7 @@ export function HybridFocusModeWorkout({
           <h1 className="font-semibold text-sm">{workoutName}</h1>
           <div className="flex items-center justify-center gap-2">
             <Badge variant="outline" className="text-xs">
-              {FORMAT_LABELS[format]}
+              {t(FORMAT_LABELS[format])}
             </Badge>
             <Badge variant="secondary" className="text-xs">
               {scalingLevel}
@@ -481,15 +480,14 @@ export function HybridFocusModeWorkout({
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Avsluta pass?</AlertDialogTitle>
+            <AlertDialogTitle>{t('exit.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Du har slutfört {completedRounds} av {totalRounds} rundor.
-              Din framsteg sparas.
+              {t('exit.description', { completed: completedRounds, total: totalRounds })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Fortsätt träna</AlertDialogCancel>
-            <AlertDialogAction onClick={onClose}>Avsluta</AlertDialogAction>
+            <AlertDialogCancel>{t('exit.continue')}</AlertDialogCancel>
+            <AlertDialogAction onClick={onClose}>{t('exit.end')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -500,11 +498,13 @@ export function HybridFocusModeWorkout({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500" />
-              Pass slutfört!
+              {t('completion.title')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Bra jobbat! Du slutförde {completedRounds} rundor.
-              {elapsedTime > 0 && ` Tid: ${Math.floor(elapsedTime / 60)}:${(elapsedTime % 60).toString().padStart(2, '0')}`}
+              {t('completion.description', { completed: completedRounds })}
+              {elapsedTime > 0 && ` ${t('completion.time', {
+                time: `${Math.floor(elapsedTime / 60)}:${(elapsedTime % 60).toString().padStart(2, '0')}`,
+              })}`}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -514,7 +514,7 @@ export function HybridFocusModeWorkout({
               <div className="flex items-center justify-between">
                 <Label className="flex items-center gap-2">
                   <Activity className="h-4 w-4" />
-                  Hur tungt kändes passet? (RPE)
+                  {t('rpe.label')}
                 </Label>
                 <Badge variant="outline" className="text-lg px-3">
                   {sessionRPE}
@@ -529,16 +529,16 @@ export function HybridFocusModeWorkout({
                 className="w-full"
               />
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Lätt</span>
-                <span>Måttligt</span>
-                <span>Hårt</span>
+                <span>{t('rpe.easy')}</span>
+                <span>{t('rpe.moderate')}</span>
+                <span>{t('rpe.hard')}</span>
               </div>
             </div>
           </div>
 
           <AlertDialogFooter>
             <AlertDialogAction onClick={handleFinalComplete}>
-              Slutför pass
+              {t('actions.finishWorkout')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -7027,6 +7027,41 @@
         "startWorkout": "Start workout"
       }
     },
+    "hybridFocusModeWorkout": {
+      "formats": {
+        "forTime": "For Time",
+        "amrap": "AMRAP",
+        "emom": "EMOM",
+        "tabata": "Tabata",
+        "chipper": "Chipper",
+        "ladder": "Ladder",
+        "intervals": "Intervals",
+        "hyroxSim": "HYROX Sim"
+      },
+      "movementsPerRound": "Exercises per round:",
+      "roundOfTotal": "Round {current} of {total}",
+      "actions": {
+        "roundDone": "Round done",
+        "finishWorkout": "Finish workout"
+      },
+      "exit": {
+        "title": "End workout?",
+        "description": "You have completed {completed} of {total} rounds. Your progress will be saved.",
+        "continue": "Keep training",
+        "end": "End"
+      },
+      "completion": {
+        "title": "Workout complete!",
+        "description": "Nice work! You completed {completed} rounds.",
+        "time": "Time: {time}"
+      },
+      "rpe": {
+        "label": "How hard did the workout feel? (RPE)",
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "hard": "Hard"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
