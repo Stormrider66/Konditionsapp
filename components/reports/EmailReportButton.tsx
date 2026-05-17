@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
+import { useTranslations } from '@/i18n/client'
 
 interface EmailReportButtonProps {
   reportData: ReportData
@@ -32,6 +33,7 @@ export function EmailReportButton({
   size = 'default',
   className = '',
 }: EmailReportButtonProps) {
+  const t = useTranslations('components.emailReportButton')
   const { toast } = useToast()
   const [showDialog, setShowDialog] = useState(false)
   const [isSending, setIsSending] = useState(false)
@@ -41,8 +43,8 @@ export function EmailReportButton({
   const handleSendEmail = async () => {
     if (!email) {
       toast({
-        title: 'Fel',
-        description: 'Vänligen ange en e-postadress',
+        title: t('toast.errorTitle'),
+        description: t('toast.emailRequired'),
         variant: 'destructive',
       })
       return
@@ -52,8 +54,8 @@ export function EmailReportButton({
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
       toast({
-        title: 'Fel',
-        description: 'Vänligen ange en giltig e-postadress',
+        title: t('toast.errorTitle'),
+        description: t('toast.emailInvalid'),
         variant: 'destructive',
       })
       return
@@ -64,16 +66,16 @@ export function EmailReportButton({
 
       // Generate PDF as base64
       toast({
-        title: 'Genererar PDF...',
-        description: 'Detta kan ta några sekunder',
+        title: t('toast.generatingTitle'),
+        description: t('toast.generatingDescription'),
       })
 
       const pdfBase64 = await generatePDFAsBase64(reportData)
 
       // Send email
       toast({
-        title: 'Skickar e-post...',
-        description: 'Vänta medan rapporten skickas',
+        title: t('toast.sendingTitle'),
+        description: t('toast.sendingDescription'),
       })
 
       const response = await fetch('/api/send-report-email', {
@@ -95,12 +97,12 @@ export function EmailReportButton({
       const result = await response.json()
 
       if (!result.success) {
-        throw new Error(result.error || 'Kunde inte skicka e-post')
+        throw new Error(result.error || t('toast.sendFailed'))
       }
 
       toast({
-        title: 'E-post skickad!',
-        description: `Rapporten har skickats till ${email}`,
+        title: t('toast.sentTitle'),
+        description: t('toast.sentDescription', { email }),
       })
 
       setShowDialog(false)
@@ -108,8 +110,8 @@ export function EmailReportButton({
     } catch (error) {
       console.error('Error sending email:', error)
       toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Kunde inte skicka e-post',
+        title: t('toast.errorTitle'),
+        description: error instanceof Error ? error.message : t('toast.sendFailed'),
         variant: 'destructive',
       })
     } finally {
@@ -126,39 +128,39 @@ export function EmailReportButton({
         className={className}
       >
         <Mail className="w-4 h-4 mr-2" />
-        Skicka via E-post
+        {t('button')}
       </Button>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Skicka testrapport via e-post</DialogTitle>
+            <DialogTitle>{t('dialog.title')}</DialogTitle>
             <DialogDescription>
-              Rapporten kommer att skickas som en PDF-bilaga till mottagaren.
+              {t('dialog.description')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="email">E-postadress</Label>
+              <Label htmlFor="email">{t('email.label')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="exempel@email.com"
+                placeholder={t('email.placeholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isSending}
               />
               <p className="text-sm text-muted-foreground">
-                Rapporten skickas till: {reportData.client.name}
+                {t('email.recipient', { name: reportData.client.name })}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="custom-message">Personligt meddelande (valfritt)</Label>
+              <Label htmlFor="custom-message">{t('customMessage.label')}</Label>
               <Textarea
                 id="custom-message"
-                placeholder="Skriv ett personligt meddelande till mottagaren..."
+                placeholder={t('customMessage.placeholder')}
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
                 rows={4}
@@ -168,13 +170,13 @@ export function EmailReportButton({
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-sm text-blue-900">
-                <strong>Innehåll:</strong>
+                <strong>{t('content.title')}</strong>
               </p>
               <ul className="text-sm text-blue-800 mt-2 space-y-1 ml-4 list-disc">
-                <li>Testdatum: {format(reportData.test.testDate, 'yyyy-MM-dd')}</li>
-                <li>Testledare: {reportData.testLeader}</li>
-                <li>Organisation: {reportData.organization}</li>
-                <li>PDF-rapport med alla resultat och träningszoner</li>
+                <li>{t('content.testDate', { date: format(reportData.test.testDate, 'yyyy-MM-dd') })}</li>
+                <li>{t('content.testLeader', { testLeader: reportData.testLeader })}</li>
+                <li>{t('content.organization', { organization: reportData.organization })}</li>
+                <li>{t('content.pdfReport')}</li>
               </ul>
             </div>
           </div>
@@ -185,18 +187,18 @@ export function EmailReportButton({
               onClick={() => setShowDialog(false)}
               disabled={isSending}
             >
-              Avbryt
+              {t('actions.cancel')}
             </Button>
             <Button onClick={handleSendEmail} disabled={isSending}>
               {isSending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Skickar...
+                  {t('actions.sending')}
                 </>
               ) : (
                 <>
                   <Mail className="w-4 h-4 mr-2" />
-                  Skicka
+                  {t('actions.send')}
                 </>
               )}
             </Button>

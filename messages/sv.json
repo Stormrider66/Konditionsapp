@@ -3287,6 +3287,46 @@
         "terms": "Användarvillkor"
       }
     },
+    "emailReportButton": {
+      "button": "Skicka via E-post",
+      "toast": {
+        "errorTitle": "Fel",
+        "emailRequired": "Vänligen ange en e-postadress",
+        "emailInvalid": "Vänligen ange en giltig e-postadress",
+        "generatingTitle": "Genererar PDF...",
+        "generatingDescription": "Detta kan ta några sekunder",
+        "sendingTitle": "Skickar e-post...",
+        "sendingDescription": "Vänta medan rapporten skickas",
+        "sendFailed": "Kunde inte skicka e-post",
+        "sentTitle": "E-post skickad!",
+        "sentDescription": "Rapporten har skickats till {email}"
+      },
+      "dialog": {
+        "title": "Skicka testrapport via e-post",
+        "description": "Rapporten kommer att skickas som en PDF-bilaga till mottagaren."
+      },
+      "email": {
+        "label": "E-postadress",
+        "placeholder": "exempel@email.com",
+        "recipient": "Rapporten skickas till: {name}"
+      },
+      "customMessage": {
+        "label": "Personligt meddelande (valfritt)",
+        "placeholder": "Skriv ett personligt meddelande till mottagaren..."
+      },
+      "content": {
+        "title": "Innehåll:",
+        "testDate": "Testdatum: {date}",
+        "testLeader": "Testledare: {testLeader}",
+        "organization": "Organisation: {organization}",
+        "pdfReport": "PDF-rapport med alla resultat och träningszoner"
+      },
+      "actions": {
+        "cancel": "Avbryt",
+        "send": "Skicka",
+        "sending": "Skickar..."
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT-historik",
       "emptyTitle": "Ingen VBT-data ännu",

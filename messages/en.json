@@ -3287,6 +3287,46 @@
         "terms": "Terms of service"
       }
     },
+    "emailReportButton": {
+      "button": "Send by email",
+      "toast": {
+        "errorTitle": "Error",
+        "emailRequired": "Please enter an email address",
+        "emailInvalid": "Please enter a valid email address",
+        "generatingTitle": "Generating PDF...",
+        "generatingDescription": "This may take a few seconds",
+        "sendingTitle": "Sending email...",
+        "sendingDescription": "Please wait while the report is sent",
+        "sendFailed": "Could not send email",
+        "sentTitle": "Email sent!",
+        "sentDescription": "The report has been sent to {email}"
+      },
+      "dialog": {
+        "title": "Send test report by email",
+        "description": "The report will be sent to the recipient as a PDF attachment."
+      },
+      "email": {
+        "label": "Email address",
+        "placeholder": "example@email.com",
+        "recipient": "Report will be sent to: {name}"
+      },
+      "customMessage": {
+        "label": "Personal message (optional)",
+        "placeholder": "Write a personal message to the recipient..."
+      },
+      "content": {
+        "title": "Contents:",
+        "testDate": "Test date: {date}",
+        "testLeader": "Test leader: {testLeader}",
+        "organization": "Organization: {organization}",
+        "pdfReport": "PDF report with all results and training zones"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "send": "Send",
+        "sending": "Sending..."
+      }
+    },
     "vbtSessionHistory": {
       "title": "VBT history",
       "emptyTitle": "No VBT data yet",
