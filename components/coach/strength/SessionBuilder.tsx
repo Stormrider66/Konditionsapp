@@ -70,7 +70,7 @@ const PHASE_REVERSE_MAP: Record<string, string> = {
 
 interface SessionBuilderProps {
   initialData?: StrengthSessionData | null
-  onSaved?: () => void
+  onSaved?: (sessionId?: string, sessionName?: string) => void
   onCancel?: () => void
 }
 
@@ -353,10 +353,11 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
       })
 
       if (response.ok) {
+        const result = await response.json()
         toast.success(isEditing ? 'Pass uppdaterat!' : 'Pass sparat!', {
           description: `"${sessionName}" har ${isEditing ? 'uppdaterats' : 'sparats'}.`,
         })
-        onSaved?.()
+        onSaved?.(result.id || result.session?.id || initialData?.id, sessionName)
       } else {
         const data = await response.json()
         toast.error('Kunde inte spara', {

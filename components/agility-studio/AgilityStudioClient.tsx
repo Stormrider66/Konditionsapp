@@ -32,6 +32,7 @@ import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog
 import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutDialog'
 import { toAgilityWorkoutBundle } from '@/components/workouts/import/converters'
 import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calendar/TeamCalendarStudioContextBanner'
+import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calendar-workout-link'
 
 interface Athlete {
   id: string
@@ -77,6 +78,7 @@ export default function AgilityStudioClient({
   const [drills, setDrills] = useState(initialDrills)
   const [workouts, setWorkouts] = useState(initialWorkouts)
   const [timingSessions, setTimingSessions] = useState(initialTimingSessions)
+  const teamCalendarLink = useTeamCalendarWorkoutLink('AGILITY')
 
   // Calendar assignment flow
   const fromCalendar = searchParams.get('fromCalendar') === 'true'
@@ -91,10 +93,13 @@ export default function AgilityStudioClient({
     return undefined
   }, [pathname])
 
-  const handleWorkoutCreated = (newWorkout: AgilityWorkout) => {
+  const handleWorkoutCreated = async (newWorkout: AgilityWorkout) => {
     setWorkouts(prev => [newWorkout, ...prev])
     setShowWorkoutBuilder(false)
-    if (fromCalendar && calendarClientId && calendarDate && newWorkout.id) {
+    if (teamCalendarLink.fromTeamCalendar && newWorkout.id) {
+      await teamCalendarLink.linkSavedWorkout(newWorkout.id, newWorkout.name)
+      setActiveTab('workouts')
+    } else if (fromCalendar && calendarClientId && calendarDate && newWorkout.id) {
       setCalendarAssignSessionId(newWorkout.id)
     } else {
       setActiveTab('workouts')
@@ -268,7 +273,7 @@ export default function AgilityStudioClient({
           // coach doesn't navigate forward.
           initialStep={builderInitialStep}
           onSave={(w) => {
-            handleWorkoutCreated(w)
+            void handleWorkoutCreated(w)
             setImportedWorkoutSeed(null)
           }}
           onClose={() => {

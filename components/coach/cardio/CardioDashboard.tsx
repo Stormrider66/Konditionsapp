@@ -15,6 +15,7 @@ import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog
 import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutDialog'
 import { toCardioSessionData } from '@/components/workouts/import/converters'
 import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calendar/TeamCalendarStudioContextBanner'
+import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calendar-workout-link'
 
 interface CardioDashboardProps {
   businessId?: string
@@ -27,6 +28,7 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
   const [editSession, setEditSession] = React.useState<CardioSessionData | null>(null)
   const [showAutoGenerate, setShowAutoGenerate] = React.useState(false)
   const [showImporter, setShowImporter] = React.useState(false)
+  const teamCalendarLink = useTeamCalendarWorkoutLink('CARDIO')
 
   // Calendar assignment flow
   const fromCalendar = searchParams.get('fromCalendar') === 'true'
@@ -119,8 +121,12 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
         <TabsContent value="builder">
           <CardioSessionBuilder
             initialData={editSession}
-            onSaved={(sessionId) => {
-              if (fromCalendar && calendarClientId && calendarDate && sessionId) {
+            onSaved={async (sessionId, sessionName) => {
+              if (teamCalendarLink.fromTeamCalendar && sessionId) {
+                await teamCalendarLink.linkSavedWorkout(sessionId, sessionName)
+                setEditSession(null)
+                setActiveTab('library')
+              } else if (fromCalendar && calendarClientId && calendarDate && sessionId) {
                 setCalendarAssignSessionId(sessionId)
               } else {
                 setEditSession(null)

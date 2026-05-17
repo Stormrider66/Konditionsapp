@@ -72,6 +72,7 @@ import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog
 import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutDialog';
 import { toHybridBuilderInitialData } from '@/components/workouts/import/converters';
 import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calendar/TeamCalendarStudioContextBanner';
+import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calendar-workout-link';
 
 interface HybridMovement {
   id: string;
@@ -168,6 +169,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [isTeamAssignOpen, setIsTeamAssignOpen] = useState(false);
+  const teamCalendarLink = useTeamCalendarWorkoutLink('HYBRID');
 
   // Calendar assignment flow
   const fromCalendar = searchParams.get('fromCalendar') === 'true';
@@ -372,15 +374,20 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
               </DialogHeader>
               <HybridWorkoutBuilder
                 initialData={importedInitialData ?? undefined}
-                onSave={(workoutId) => {
-                  if (fromCalendar && calendarClientId && calendarDate && workoutId) {
+                onSave={async (workoutId, workoutName) => {
+                  if (teamCalendarLink.fromTeamCalendar && workoutId) {
+                    await teamCalendarLink.linkSavedWorkout(workoutId, workoutName);
+                    setIsCreateOpen(false);
+                    setImportedInitialData(null);
+                    void fetchWorkouts();
+                  } else if (fromCalendar && calendarClientId && calendarDate && workoutId) {
                     setIsCreateOpen(false);
                     setImportedInitialData(null);
                     setCalendarAssignSessionId(workoutId);
                   } else {
                     setIsCreateOpen(false);
                     setImportedInitialData(null);
-                    fetchWorkouts();
+                    void fetchWorkouts();
                   }
                 }}
                 onCancel={() => {

@@ -346,7 +346,7 @@ interface SectionWorkoutBuilderProps {
       }>
     }
   } | null
-  onSaved?: (sessionId?: string) => void
+  onSaved?: (sessionId?: string, sessionName?: string) => void
   onCancel?: () => void
 }
 
@@ -1066,7 +1066,7 @@ export function SectionWorkoutBuilder({
           description: `"${sessionName}" har ${isEditing ? 'uppdaterats' : 'sparats'}.`,
         })
         const savedId = result.id || result.session?.id || initialData?.id
-        onSaved?.(savedId)
+        onSaved?.(savedId, sessionName)
       } else {
         const data = await response.json()
         toast.error('Kunde inte spara', {

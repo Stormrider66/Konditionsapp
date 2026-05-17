@@ -33,6 +33,7 @@ import { MuscleGroupDashboard } from '@/components/strength/MuscleGroupDashboard
 import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutDialog'
 import { toStrengthSessionData } from '@/components/workouts/import/converters'
 import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calendar/TeamCalendarStudioContextBanner'
+import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calendar-workout-link'
 
 const ProgressionDashboard = dynamic(
   () => import('@/components/coach/progression/ProgressionDashboard').then(mod => mod.ProgressionDashboard),
@@ -96,6 +97,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
   const [weeklyAthleteId, setWeeklyAthleteId] = useState<string | null>(null)
   const [weeklyAthleteName, setWeeklyAthleteName] = useState<string | null>(null)
   const [showWeeklyAssignDialog, setShowWeeklyAssignDialog] = useState(false)
+  const teamCalendarLink = useTeamCalendarWorkoutLink('STRENGTH')
 
   // Progression tab state
   const [progressionAthletes, setProgressionAthletes] = useState<Array<{ id: string; name: string }>>([])
@@ -619,8 +621,12 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
           {useSectionBuilder ? (
             <SectionWorkoutBuilder
               initialData={editSession}
-              onSaved={(sessionId) => {
-                if (fromCalendar && calendarClientId && calendarDate && sessionId) {
+              onSaved={async (sessionId, sessionName) => {
+                if (teamCalendarLink.fromTeamCalendar && sessionId) {
+                  await teamCalendarLink.linkSavedWorkout(sessionId, sessionName)
+                  setEditSession(null)
+                  setActiveTab('sessions')
+                } else if (fromCalendar && calendarClientId && calendarDate && sessionId) {
                   setCalendarAssignSessionId(sessionId)
                 } else if (weeklySessionQueue.length > 0) {
                   // Track saved session ID
@@ -664,7 +670,10 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
           ) : (
             <SessionBuilder
               initialData={editSession}
-              onSaved={() => {
+              onSaved={async (sessionId, sessionName) => {
+                if (teamCalendarLink.fromTeamCalendar && sessionId) {
+                  await teamCalendarLink.linkSavedWorkout(sessionId, sessionName)
+                }
                 setEditSession(null)
                 setActiveTab('sessions')
               }}
