@@ -8,10 +8,15 @@
 import { requireCoach } from '@/lib/auth-utils'
 import { redirect } from 'next/navigation'
 import { UnifiedCalendarClient } from './UnifiedCalendarClient'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Samlad Kalender — Trainomics',
-  description: 'Se ditt schema från alla organisationer på ett ställe.',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.my.calendar')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 export default async function UnifiedCalendarPage() {
