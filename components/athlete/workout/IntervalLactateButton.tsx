@@ -8,12 +8,12 @@
  */
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Droplets, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LactateScanButton } from '@/components/shared/LactateScanButton';
 import type { LactateMeterOCRResult } from '@/lib/validations/gemini-schemas';
+import { useTranslations } from '@/i18n/client';
 
 interface IntervalLactateButtonProps {
   clientId: string;
@@ -34,17 +34,15 @@ export function IntervalLactateButton({
   intervalNumber,
   segmentDescription,
 }: IntervalLactateButtonProps) {
+  const t = useTranslations('components.intervalLactateButton');
   const { toast } = useToast();
   const [reading, setReading] = useState<CapturedReading | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
 
   async function handleValueDetected(
     value: number,
     confidence: number,
     _rawResult: LactateMeterOCRResult
   ) {
-    setIsSaving(true);
-
     try {
       const response = await fetch('/api/lactate/quick-capture', {
         method: 'POST',
@@ -55,12 +53,12 @@ export function IntervalLactateButton({
           lactateValue: value,
           confidence,
           intervalNumber,
-          context: segmentDescription || `Intervall ${intervalNumber}`,
+          context: segmentDescription || t('intervalLabel', { intervalNumber }),
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Kunde inte spara');
+        throw new Error('Failed to save interval lactate');
       }
 
       setReading({
@@ -70,18 +68,16 @@ export function IntervalLactateButton({
       });
 
       toast({
-        title: `Intervall ${intervalNumber}: ${value} mmol/L`,
-        description: 'Laktatvärde registrerat',
+        title: t('toast.savedTitle', { intervalNumber, value }),
+        description: t('toast.savedDescription'),
       });
     } catch (error) {
       console.error('Failed to save interval lactate:', error);
       toast({
-        title: 'Kunde inte spara',
-        description: 'Försök igen',
+        title: t('toast.errorTitle'),
+        description: t('toast.errorDescription'),
         variant: 'destructive',
       });
-    } finally {
-      setIsSaving(false);
     }
   }
 
@@ -102,7 +98,7 @@ export function IntervalLactateButton({
     <LactateScanButton
       onValueDetected={handleValueDetected}
       clientId={clientId}
-      testStageContext={`Intervall ${intervalNumber}`}
+      testStageContext={t('intervalLabel', { intervalNumber })}
       size="sm"
       iconOnly
       variant="ghost"
@@ -126,11 +122,13 @@ export function IntervalLactateSummary({
   workoutId,
   intervalCount,
 }: IntervalLactateSummaryProps) {
+  const t = useTranslations('components.intervalLactateButton');
+
   return (
     <div className="flex flex-wrap gap-2 items-center">
       <span className="text-xs text-muted-foreground mr-1">
         <Droplets className="h-3 w-3 inline mr-1" />
-        Laktat:
+        {t('summaryLabel')}:
       </span>
       {Array.from({ length: intervalCount }, (_, i) => (
         <div key={i} className="flex items-center gap-1">

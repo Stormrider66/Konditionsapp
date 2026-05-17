@@ -7445,6 +7445,29 @@
         "polarization": "Polarisering"
       }
     },
+    "intervalResultsHistory": {
+      "empty": "Inga intervallsessioner ännu",
+      "fallbackSessionName": "Intervallsession",
+      "errors": {
+        "fetch": "Kunde inte hämta intervallresultat"
+      },
+      "stats": {
+        "average": "Snitt",
+        "best": "Bästa",
+        "maxLactate": "Max laktat",
+        "laps": "Varv"
+      }
+    },
+    "intervalLactateButton": {
+      "intervalLabel": "Intervall {intervalNumber}",
+      "summaryLabel": "Laktat",
+      "toast": {
+        "savedTitle": "Intervall {intervalNumber}: {value} mmol/L",
+        "savedDescription": "Laktatvärde registrerat",
+        "errorTitle": "Kunde inte spara",
+        "errorDescription": "Försök igen"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

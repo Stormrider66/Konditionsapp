@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Timer, TrendingDown, TrendingUp, Minus } from 'lucide-react'
 import { toast } from 'sonner'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface Split {
   interval: number
@@ -35,8 +36,12 @@ function formatSplit(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}.${tenths}`
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })
+function formatDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 }
 
 function getTrend(current: number | null, previous: number | null): 'faster' | 'slower' | 'same' | null {
@@ -53,6 +58,8 @@ interface IntervalResultsHistoryProps {
 }
 
 export function IntervalResultsHistory({ apiUrl = '/api/athlete/interval-results' }: IntervalResultsHistoryProps) {
+  const t = useTranslations('components.intervalResultsHistory')
+  const locale = useLocale()
   const [results, setResults] = useState<SessionResult[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -65,13 +72,13 @@ export function IntervalResultsHistory({ apiUrl = '/api/athlete/interval-results
           setResults(data.results || data.sessions || [])
         }
       } catch {
-        toast.error('Kunde inte hämta intervallresultat')
+        toast.error(t('errors.fetch'))
       } finally {
         setLoading(false)
       }
     }
-    fetchResults()
-  }, [apiUrl])
+    void fetchResults()
+  }, [apiUrl, t])
 
   if (loading) {
     return (
@@ -87,7 +94,7 @@ export function IntervalResultsHistory({ apiUrl = '/api/athlete/interval-results
     return (
       <div className="text-center py-12 text-muted-foreground">
         <Timer className="h-8 w-8 mx-auto mb-2 opacity-40" />
-        <p>Inga intervallsessioner ännu</p>
+        <p>{t('empty')}</p>
       </div>
     )
   }
@@ -105,10 +112,10 @@ export function IntervalResultsHistory({ apiUrl = '/api/athlete/interval-results
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <h3 className="font-semibold text-sm">
-                    {session.sessionName || 'Intervallsession'}
+                    {session.sessionName || t('fallbackSessionName')}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    {formatDate(session.date)}
+                    {formatDate(session.date, locale)}
                     {session.teamName && ` · ${session.teamName}`}
                     {session.coachName && ` · ${session.coachName}`}
                   </p>
@@ -135,13 +142,13 @@ export function IntervalResultsHistory({ apiUrl = '/api/athlete/interval-results
               <div className="flex gap-4 text-sm">
                 {session.avgSplitMs !== null && (
                   <div>
-                    <span className="text-muted-foreground text-xs">Snitt </span>
+                    <span className="text-muted-foreground text-xs">{t('stats.average')} </span>
                     <span className="font-mono font-semibold">{formatSplit(session.avgSplitMs)}</span>
                   </div>
                 )}
                 {session.bestSplitMs !== null && (
                   <div>
-                    <span className="text-muted-foreground text-xs">Bästa </span>
+                    <span className="text-muted-foreground text-xs">{t('stats.best')} </span>
                     <span className="font-mono font-semibold text-green-600 dark:text-green-400">
                       {formatSplit(session.bestSplitMs)}
                     </span>
@@ -149,12 +156,12 @@ export function IntervalResultsHistory({ apiUrl = '/api/athlete/interval-results
                 )}
                 {session.maxLactate !== null && (
                   <div>
-                    <span className="text-muted-foreground text-xs">Max laktat </span>
+                    <span className="text-muted-foreground text-xs">{t('stats.maxLactate')} </span>
                     <span className="font-mono font-semibold">{session.maxLactate.toFixed(1)}</span>
                   </div>
                 )}
                 <div>
-                  <span className="text-muted-foreground text-xs">Varv </span>
+                  <span className="text-muted-foreground text-xs">{t('stats.laps')} </span>
                   <span className="font-semibold">{session.totalLaps}</span>
                 </div>
               </div>

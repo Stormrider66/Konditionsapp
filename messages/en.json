@@ -7445,6 +7445,29 @@
         "polarization": "Polarization"
       }
     },
+    "intervalResultsHistory": {
+      "empty": "No interval sessions yet",
+      "fallbackSessionName": "Interval session",
+      "errors": {
+        "fetch": "Could not fetch interval results"
+      },
+      "stats": {
+        "average": "Avg",
+        "best": "Best",
+        "maxLactate": "Max lactate",
+        "laps": "Laps"
+      }
+    },
+    "intervalLactateButton": {
+      "intervalLabel": "Interval {intervalNumber}",
+      "summaryLabel": "Lactate",
+      "toast": {
+        "savedTitle": "Interval {intervalNumber}: {value} mmol/L",
+        "savedDescription": "Lactate value registered",
+        "errorTitle": "Could not save",
+        "errorDescription": "Try again"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
