@@ -7062,6 +7062,29 @@
         "hard": "Hårt"
       }
     },
+    "amrapTimer": {
+      "timeCap": "{time} tidsgräns",
+      "rounds": "rundor",
+      "remaining": "{time} kvar",
+      "timeUp": "Tid ute!",
+      "roundDone": "+ Runda klar"
+    },
+    "tabataTimer": {
+      "workRest": "{work}s arbete / {rest}s vila",
+      "round": "Runda",
+      "done": "Klar!",
+      "phase": {
+        "work": "ARBETE",
+        "rest": "VILA"
+      },
+      "aria": {
+        "pause": "Pausa timer",
+        "start": "Starta timer",
+        "reset": "Återställ timer",
+        "unmute": "Aktivera ljud",
+        "mute": "Stäng av ljud"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Beredskap",
       "sleepScore": "Sömnpoäng",

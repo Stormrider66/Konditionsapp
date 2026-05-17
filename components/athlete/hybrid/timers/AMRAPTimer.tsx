@@ -20,6 +20,7 @@ import {
   Target,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface AMRAPTimerProps {
   /** Time cap in seconds */
@@ -41,6 +42,7 @@ export function AMRAPTimer({
   onRoundComplete,
   autoStart = false,
 }: AMRAPTimerProps) {
+  const t = useTranslations('components.amrapTimer')
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [isRunning, setIsRunning] = useState(autoStart)
   const [isMuted, setIsMuted] = useState(false)
@@ -70,7 +72,7 @@ export function AMRAPTimer({
         oscillator.start()
         setTimeout(() => {
           oscillator.stop()
-          audioContext.close()
+          void audioContext.close()
         }, duration)
       } catch {
         // Audio context not supported
@@ -188,7 +190,7 @@ export function AMRAPTimer({
           AMRAP
         </Badge>
         <span className="text-sm text-muted-foreground">
-          {formatTime(timeCap)} tidsgräns
+          {t('timeCap', { time: formatTime(timeCap) })}
         </span>
       </div>
 
@@ -196,7 +198,7 @@ export function AMRAPTimer({
       <div className="flex items-center gap-4">
         <Target className="h-5 w-5 text-muted-foreground" />
         <span className="text-4xl font-bold">{roundCount}</span>
-        <span className="text-lg text-muted-foreground">rundor</span>
+        <span className="text-lg text-muted-foreground">{t('rounds')}</span>
       </div>
 
       {/* Timer display */}
@@ -247,7 +249,7 @@ export function AMRAPTimer({
               <div className="flex items-center gap-1 mt-1">
                 <Clock className="h-3 w-3 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
-                  {remaining > 0 ? `${formatTime(remaining)} kvar` : 'Tid ute!'}
+                  {remaining > 0 ? t('remaining', { time: formatTime(remaining) }) : t('timeUp')}
                 </span>
               </div>
             </>
@@ -262,7 +264,7 @@ export function AMRAPTimer({
           className="h-14 px-8"
           onClick={onRoundComplete}
         >
-          + Runda klar
+          {t('roundDone')}
         </Button>
       )}
 

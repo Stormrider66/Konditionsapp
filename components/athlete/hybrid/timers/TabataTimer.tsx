@@ -17,6 +17,7 @@ import {
   VolumeX,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface TabataTimerProps {
   /** Work time per interval (default 20) */
@@ -41,7 +42,7 @@ export function TabataTimer({
   onRoundComplete,
   autoStart = false,
 }: TabataTimerProps) {
-  const roundDuration = workTime + restTime
+  const t = useTranslations('components.tabataTimer')
   const [secondsRemaining, setSecondsRemaining] = useState(workTime)
   const [currentRound, setCurrentRound] = useState(1)
   const [phase, setPhase] = useState<'WORK' | 'REST'>('WORK')
@@ -73,7 +74,7 @@ export function TabataTimer({
         oscillator.start()
         setTimeout(() => {
           oscillator.stop()
-          audioContext.close()
+          void audioContext.close()
         }, duration)
       } catch {
         // Audio context not supported
@@ -204,13 +205,13 @@ export function TabataTimer({
           TABATA
         </Badge>
         <span className="text-sm text-muted-foreground">
-          {workTime}s arbete / {restTime}s vila
+          {t('workRest', { work: workTime, rest: restTime })}
         </span>
       </div>
 
       {/* Round indicator */}
       <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Runda</span>
+        <span className="text-sm text-muted-foreground">{t('round')}</span>
         <span className="text-3xl font-bold">{Math.min(currentRound, totalRounds)}</span>
         <span className="text-lg text-muted-foreground">/ {totalRounds}</span>
       </div>
@@ -261,7 +262,7 @@ export function TabataTimer({
               <Play className="h-8 w-8" />
             </Button>
           ) : isComplete ? (
-            <span className="text-2xl font-bold text-green-500">Klar!</span>
+            <span className="text-2xl font-bold text-green-500">{t('done')}</span>
           ) : (
             <>
               <Badge
@@ -272,7 +273,7 @@ export function TabataTimer({
                     : 'bg-blue-500 text-white'
                 )}
               >
-                {phase === 'WORK' ? 'ARBETE' : 'VILA'}
+                {phase === 'WORK' ? t('phase.work') : t('phase.rest')}
               </Badge>
               <span
                 className={cn(
@@ -314,18 +315,18 @@ export function TabataTimer({
             variant="outline"
             size="icon"
             onClick={toggleTimer}
-            aria-label={isRunning ? 'Pausa timer' : 'Starta timer'}
+            aria-label={isRunning ? t('aria.pause') : t('aria.start')}
           >
             {isRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
           </Button>
-          <Button variant="outline" size="icon" onClick={resetTimer} aria-label="Återställ timer">
+          <Button variant="outline" size="icon" onClick={resetTimer} aria-label={t('aria.reset')}>
             <RotateCcw className="h-5 w-5" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsMuted(!isMuted)}
-            aria-label={isMuted ? 'Aktivera ljud' : 'Stäng av ljud'}
+            aria-label={isMuted ? t('aria.unmute') : t('aria.mute')}
           >
             {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
           </Button>

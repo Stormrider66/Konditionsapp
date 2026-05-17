@@ -7062,6 +7062,29 @@
         "hard": "Hard"
       }
     },
+    "amrapTimer": {
+      "timeCap": "{time} time cap",
+      "rounds": "rounds",
+      "remaining": "{time} left",
+      "timeUp": "Time up!",
+      "roundDone": "+ Round done"
+    },
+    "tabataTimer": {
+      "workRest": "{work}s work / {rest}s rest",
+      "round": "Round",
+      "done": "Done!",
+      "phase": {
+        "work": "WORK",
+        "rest": "REST"
+      },
+      "aria": {
+        "pause": "Pause timer",
+        "start": "Start timer",
+        "reset": "Reset timer",
+        "unmute": "Turn on sound",
+        "mute": "Mute sound"
+      }
+    },
     "ouraHealthCard": {
       "readiness": "Readiness",
       "sleepScore": "Sleep score",
