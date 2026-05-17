@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Loader2, Sparkles, AlertCircle, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { MergedProgram } from '@/lib/ai/program-generator'
+import { useTranslations } from '@/i18n/client'
 
 interface ChatProgramProgressCardProps {
   sessionId: string
@@ -34,11 +35,12 @@ export function ChatProgramProgressCard({
   onComplete,
   onError,
 }: ChatProgramProgressCardProps) {
+  const t = useTranslations('components.chatProgramProgressCard')
   const [progress, setProgress] = useState<ProgressState>({
     currentPhase: 0,
     totalPhases,
     progressPercent: 0,
-    progressMessage: 'Startar generering...',
+    progressMessage: t('status.starting'),
     status: 'PENDING',
   })
   const [error, setError] = useState<string | null>(null)
@@ -67,7 +69,7 @@ export function ChatProgramProgressCard({
 
         if (data.type === 'error') {
           es.close()
-          const errorMsg = data.error || 'Programgenereringen misslyckades.'
+          const errorMsg = data.error || t('errors.title')
           setError(errorMsg)
           onError?.(errorMsg)
         }
@@ -80,7 +82,7 @@ export function ChatProgramProgressCard({
       // EventSource will auto-reconnect for transient errors
       // Only set error if the connection is closed
       if (es.readyState === EventSource.CLOSED) {
-        setError('Anslutningen bröts. Programmet genereras fortfarande i bakgrunden.')
+        setError(t('errors.connectionClosed'))
       }
     }
 
@@ -88,13 +90,16 @@ export function ChatProgramProgressCard({
       es.close()
       eventSourceRef.current = null
     }
-  }, [sessionId, totalPhases, onComplete, onError])
+  }, [sessionId, totalPhases, onComplete, onError, t])
 
   const statusMessages: Record<string, string> = {
-    PENDING: 'Förbereder generering...',
-    GENERATING_OUTLINE: 'Skapar programstruktur...',
-    GENERATING_PHASE: `Genererar fas ${progress.currentPhase} av ${progress.totalPhases}...`,
-    MERGING: 'Slår ihop alla faser...',
+    PENDING: t('status.pending'),
+    GENERATING_OUTLINE: t('status.generatingOutline'),
+    GENERATING_PHASE: t('status.generatingPhase', {
+      current: progress.currentPhase,
+      total: progress.totalPhases,
+    }),
+    MERGING: t('status.merging'),
   }
 
   if (error) {
@@ -106,7 +111,7 @@ export function ChatProgramProgressCard({
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-red-900 dark:text-red-200">
-              Programgenereringen misslyckades
+              {t('errors.title')}
             </p>
             <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
               {error}
@@ -125,13 +130,13 @@ export function ChatProgramProgressCard({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-200">
-            Skapar träningsprogram
+            {t('title')}
           </p>
           <div className="flex items-center gap-2 mt-0.5 text-[11px] text-indigo-600 dark:text-indigo-400">
             <span>{sport}</span>
             <span className="text-indigo-300 dark:text-indigo-600">|</span>
             <span className="inline-flex items-center gap-0.5">
-              <Calendar className="h-3 w-3" /> {totalWeeks} veckor
+              <Calendar className="h-3 w-3" /> {t('weeks', { count: totalWeeks })}
             </span>
             <span className="text-indigo-300 dark:text-indigo-600">|</span>
             <span>~{estimatedMinutes} min</span>
@@ -158,7 +163,7 @@ export function ChatProgramProgressCard({
         <div className="flex items-center justify-between text-[11px] text-indigo-600 dark:text-indigo-400">
           <span className="flex items-center gap-1">
             <Loader2 className="h-3 w-3 animate-spin" />
-            {progress.progressMessage || statusMessages[progress.status] || 'Genererar...'}
+            {progress.progressMessage || statusMessages[progress.status] || t('status.generating')}
           </span>
           <span>{Math.round(progress.progressPercent)}%</span>
         </div>

@@ -5490,6 +5490,22 @@
         "saveWorkout": "Spara pass"
       }
     },
+    "chatProgramProgressCard": {
+      "title": "Skapar träningsprogram",
+      "weeks": "{count} veckor",
+      "status": {
+        "starting": "Startar generering...",
+        "pending": "Förbereder generering...",
+        "generatingOutline": "Skapar programstruktur...",
+        "generatingPhase": "Genererar fas {current} av {total}...",
+        "merging": "Slår ihop alla faser...",
+        "generating": "Genererar..."
+      },
+      "errors": {
+        "title": "Programgenereringen misslyckades",
+        "connectionClosed": "Anslutningen bröts. Programmet genereras fortfarande i bakgrunden."
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

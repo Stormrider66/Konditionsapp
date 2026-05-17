@@ -5490,6 +5490,22 @@
         "saveWorkout": "Save workout"
       }
     },
+    "chatProgramProgressCard": {
+      "title": "Creating training program",
+      "weeks": "{count} weeks",
+      "status": {
+        "starting": "Starting generation...",
+        "pending": "Preparing generation...",
+        "generatingOutline": "Creating program structure...",
+        "generatingPhase": "Generating phase {current} of {total}...",
+        "merging": "Merging all phases...",
+        "generating": "Generating..."
+      },
+      "errors": {
+        "title": "Program generation failed",
+        "connectionClosed": "The connection was lost. The program is still being generated in the background."
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {
