@@ -81,6 +81,15 @@ interface PracticeBlock {
   focus: string
   description: string
   coachingPoints: string
+  drillId?: string | null
+  drillStructure?: unknown
+}
+
+interface SavedDrill {
+  id: string
+  title: string
+  description: string | null
+  structure: unknown
 }
 
 interface EditEventDialogProps {
@@ -201,6 +210,19 @@ function newPracticeBlock(): PracticeBlock {
   })
 }
 
+function blockFromSavedDrill(drill: SavedDrill): PracticeBlock {
+  return makeBlock({
+    type: 'technical',
+    title: drill.title,
+    duration: 15,
+    focus: 'Övning',
+    description: drill.description ?? '',
+    coachingPoints: '',
+    drillId: drill.id,
+    drillStructure: drill.structure,
+  })
+}
+
 function icePracticeTemplate(kind: 'skills' | 'tactical' | 'gamePrep'): PracticeBlock[] {
   if (kind === 'skills') {
     return [
@@ -261,6 +283,7 @@ export function EditEventDialog({
   const [linkedWorkoutName, setLinkedWorkoutName] = useState<string | null>(null)
   const [workoutOptions, setWorkoutOptions] = useState<WorkoutOption[]>([])
   const [practiceBlocks, setPracticeBlocks] = useState<PracticeBlock[]>([])
+  const [savedDrills, setSavedDrills] = useState<SavedDrill[]>([])
   const [loadingWorkouts, setLoadingWorkouts] = useState(false)
   const [assigning, setAssigning] = useState(false)
   const builderLink = builderLinkFor(type, businessSlug)
@@ -325,6 +348,26 @@ export function EditEventDialog({
 
     void loadOptions()
   }, [event, isPhysicalSession, linkedWorkoutType, teamId, businessSlug])
+
+  useEffect(() => {
+    if (!event || !isIcePractice) {
+      setSavedDrills([])
+      return
+    }
+
+    const loadSavedDrills = async () => {
+      try {
+        const res = await fetch('/api/coach/drills?shared=true&sportType=ICE_HOCKEY')
+        if (!res.ok) throw new Error('Failed')
+        const data = await res.json()
+        setSavedDrills(data.drills || [])
+      } catch {
+        setSavedDrills([])
+      }
+    }
+
+    void loadSavedDrills()
+  }, [event, isIcePractice])
 
   const handleUpdate = async () => {
     if (!canEdit) {
@@ -396,6 +439,14 @@ export function EditEventDialog({
 
   const addPracticeBlock = () => {
     const nextBlocks = [...practiceBlocks, newPracticeBlock()]
+    setPracticeBlocks(nextBlocks)
+    setDescription(practiceBlocksToDescription(nextBlocks))
+  }
+
+  const addSavedDrillBlock = (drillId: string) => {
+    const drill = savedDrills.find((item) => item.id === drillId)
+    if (!drill) return
+    const nextBlocks = [...practiceBlocks, blockFromSavedDrill(drill)]
     setPracticeBlocks(nextBlocks)
     setDescription(practiceBlocksToDescription(nextBlocks))
   }
@@ -710,6 +761,20 @@ export function EditEventDialog({
                     <Plus className="mr-1.5 h-3.5 w-3.5" />
                     Block
                   </Button>
+                  {savedDrills.length > 0 && (
+                    <Select onValueChange={addSavedDrillBlock} disabled={!canEdit}>
+                      <SelectTrigger className="h-9 w-[190px]">
+                        <SelectValue placeholder="+ Sparad övning" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {savedDrills.map((drill) => (
+                          <SelectItem key={drill.id} value={drill.id}>
+                            {drill.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 {practiceBlocks.length > 0 && (
@@ -750,6 +815,11 @@ export function EditEventDialog({
                             />
                           </div>
                         </div>
+                        {block.drillId && (
+                          <div className="mt-2 rounded-md bg-blue-50 px-2 py-1 text-xs text-blue-800">
+                            Kopplad till sparad övning
+                          </div>
+                        )}
                         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <div className="space-y-1">
                             <Label className="text-xs">Blocktyp</Label>

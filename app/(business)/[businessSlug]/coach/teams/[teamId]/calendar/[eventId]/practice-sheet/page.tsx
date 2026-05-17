@@ -25,6 +25,7 @@ interface PracticeBlock {
   focus?: string
   description?: string
   coachingPoints?: string
+  drillId?: string | null
 }
 
 const BLOCK_TYPE_LABELS: Record<string, string> = {
@@ -158,6 +159,7 @@ export default async function PracticeSheetPage({ params }: PageProps) {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-semibold uppercase text-slate-500">Block {index + 1}</span>
                       <Badge variant="secondary">{BLOCK_TYPE_LABELS[block.type ?? ''] ?? 'Block'}</Badge>
+                      {block.drillId && <Badge variant="outline">Sparad övning</Badge>}
                     </div>
                     <h2 className="mt-2 text-xl font-semibold">{block.title || 'Namnlöst block'}</h2>
                   </div>
