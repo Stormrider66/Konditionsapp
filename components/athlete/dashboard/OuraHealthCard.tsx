@@ -11,6 +11,7 @@
 
 import { Activity, Heart, Moon, Sparkles, Wind, Zap } from 'lucide-react'
 import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardContent } from '@/components/ui/GlassCard'
+import { useTranslations } from '@/i18n/client'
 
 interface OuraSleepBreakdown {
   totalSleepMinutes?: number | null
@@ -49,12 +50,14 @@ function scoreColor(score: number | null | undefined): string {
   return 'text-orange-400'
 }
 
-function scoreLabel(score: number | null | undefined): string {
+type OuraHealthTranslator = ReturnType<typeof useTranslations>
+
+function scoreLabel(score: number | null | undefined, t: OuraHealthTranslator): string {
   if (score == null) return ''
-  if (score >= 85) return 'Optimal'
-  if (score >= 70) return 'Bra'
+  if (score >= 85) return t('score.optimal')
+  if (score >= 70) return t('score.good')
   if (score >= 55) return 'OK'
-  return 'Låg'
+  return t('score.low')
 }
 
 function stressBadgeColor(summary: string | null | undefined): string {
@@ -71,17 +74,19 @@ function stressBadgeColor(summary: string | null | undefined): string {
   }
 }
 
-function stressBadgeLabel(summary: string | null | undefined): string {
+function stressBadgeLabel(summary: string | null | undefined, t: OuraHealthTranslator): string {
   switch (summary) {
-    case 'restored': return 'Återhämtad'
+    case 'restored': return t('stress.restored')
     case 'normal': return 'Normal'
-    case 'balanced': return 'Balanserad'
-    case 'stressful': return 'Stressig'
+    case 'balanced': return t('stress.balanced')
+    case 'stressful': return t('stress.stressful')
     default: return ''
   }
 }
 
 export function OuraHealthCard({ oura }: OuraHealthCardProps) {
+  const t = useTranslations('components.ouraHealthCard')
+
   if (!oura) return null
 
   const sleep = oura.sleep
@@ -122,13 +127,13 @@ export function OuraHealthCard({ oura }: OuraHealthCardProps) {
               <div className="rounded-lg bg-violet-500/5 border border-violet-500/20 p-3">
                 <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-violet-300/80 mb-1">
                   <Zap className="h-3 w-3" />
-                  Beredskap
+                  {t('readiness')}
                 </div>
                 <div className={`text-2xl font-black ${scoreColor(readiness)}`}>
                   {readiness}<span className="text-sm font-medium text-slate-500">/100</span>
                 </div>
                 <div className={`text-[10px] font-bold uppercase tracking-wider ${scoreColor(readiness)}`}>
-                  {scoreLabel(readiness)}
+                  {scoreLabel(readiness, t)}
                 </div>
               </div>
             )}
@@ -136,13 +141,13 @@ export function OuraHealthCard({ oura }: OuraHealthCardProps) {
               <div className="rounded-lg bg-indigo-500/5 border border-indigo-500/20 p-3">
                 <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300/80 mb-1">
                   <Moon className="h-3 w-3" />
-                  Sömnpoäng
+                  {t('sleepScore')}
                 </div>
                 <div className={`text-2xl font-black ${scoreColor(sleepScore)}`}>
                   {sleepScore}<span className="text-sm font-medium text-slate-500">/100</span>
                 </div>
                 <div className={`text-[10px] font-bold uppercase tracking-wider ${scoreColor(sleepScore)}`}>
-                  {scoreLabel(sleepScore)}
+                  {scoreLabel(sleepScore, t)}
                 </div>
               </div>
             )}
@@ -167,7 +172,7 @@ export function OuraHealthCard({ oura }: OuraHealthCardProps) {
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 text-xs text-slate-500">
                 <Heart className="h-3.5 w-3.5 text-red-400" />
-                Vilo-HR
+                {t('restingHr')}
               </div>
               <div className="text-xl font-black text-white">
                 {Math.round(restingHR)} <span className="text-sm font-medium text-slate-500">bpm</span>
@@ -179,14 +184,14 @@ export function OuraHealthCard({ oura }: OuraHealthCardProps) {
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 text-xs text-slate-500">
                 <Moon className="h-3.5 w-3.5 text-indigo-400" />
-                Sömn
+                {t('sleep')}
               </div>
               <div className="text-xl font-black text-white">
                 {sleepHours.toFixed(1)} <span className="text-sm font-medium text-slate-500">h</span>
               </div>
               {sleep?.efficiency != null && (
                 <div className="text-[10px] font-bold text-slate-500">
-                  Effektivitet: {Math.round(sleep.efficiency)}%
+                  {t('efficiency', { percent: Math.round(sleep.efficiency) })}
                 </div>
               )}
             </div>
@@ -209,12 +214,12 @@ export function OuraHealthCard({ oura }: OuraHealthCardProps) {
         {sleep && (sleep.deepMinutes != null || sleep.remMinutes != null) && (
           <div className="mt-4 pt-3 border-t border-white/5">
             <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">
-              Sömndetaljer
+              {t('sleepDetails')}
             </div>
             <div className="grid grid-cols-3 gap-2 text-xs">
               {sleep.deepMinutes != null && (
                 <div>
-                  <div className="text-slate-500">Djupsömn</div>
+                  <div className="text-slate-500">{t('deepSleep')}</div>
                   <div className="font-bold text-white">{Math.round(sleep.deepMinutes)} min</div>
                 </div>
               )}
@@ -226,7 +231,7 @@ export function OuraHealthCard({ oura }: OuraHealthCardProps) {
               )}
               {sleep.lightMinutes != null && (
                 <div>
-                  <div className="text-slate-500">Lätt</div>
+                  <div className="text-slate-500">{t('lightSleep')}</div>
                   <div className="font-bold text-white">{Math.round(sleep.lightMinutes)} min</div>
                 </div>
               )}
@@ -238,17 +243,17 @@ export function OuraHealthCard({ oura }: OuraHealthCardProps) {
         {stressDay && (
           <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-xs">
             <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">
-              Dagens stress
+              {t('dailyStress')}
             </span>
             <span className={`text-[10px] font-bold uppercase tracking-widest ${stressBadgeColor(stressDay)}`}>
-              {stressBadgeLabel(stressDay) || stressDay}
+              {stressBadgeLabel(stressDay, t) || stressDay}
             </span>
           </div>
         )}
 
         {/* Brand attribution (no formal Oura requirement, just clean labelling) */}
         <div className="mt-4 pt-3 border-t border-white/5 text-[10px] text-slate-600 italic">
-          Data från Oura Ring
+          {t('attribution')}
         </div>
       </GlassCardContent>
     </GlassCard>

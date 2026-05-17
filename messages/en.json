@@ -3128,6 +3128,28 @@
     "aiAllowanceBlockedAction": {
       "fallbackLabel": "Manage AI credits",
       "defaultMessage": "AI credits are exhausted for this period."
+    },
+    "ouraHealthCard": {
+      "readiness": "Readiness",
+      "sleepScore": "Sleep score",
+      "restingHr": "Resting HR",
+      "sleep": "Sleep",
+      "efficiency": "Efficiency: {percent}%",
+      "sleepDetails": "Sleep details",
+      "deepSleep": "Deep sleep",
+      "lightSleep": "Light",
+      "dailyStress": "Daily stress",
+      "attribution": "Data from Oura Ring",
+      "score": {
+        "optimal": "Optimal",
+        "good": "Good",
+        "low": "Low"
+      },
+      "stress": {
+        "restored": "Restored",
+        "balanced": "Balanced",
+        "stressful": "Stressful"
+      }
     }
   },
   "infographic": {

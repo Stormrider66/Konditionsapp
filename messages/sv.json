@@ -3128,6 +3128,28 @@
     "aiAllowanceBlockedAction": {
       "fallbackLabel": "Hantera AI-krediter",
       "defaultMessage": "AI-krediterna är slut för perioden."
+    },
+    "ouraHealthCard": {
+      "readiness": "Beredskap",
+      "sleepScore": "Sömnpoäng",
+      "restingHr": "Vilo-HR",
+      "sleep": "Sömn",
+      "efficiency": "Effektivitet: {percent}%",
+      "sleepDetails": "Sömndetaljer",
+      "deepSleep": "Djupsömn",
+      "lightSleep": "Lätt",
+      "dailyStress": "Dagens stress",
+      "attribution": "Data från Oura Ring",
+      "score": {
+        "optimal": "Optimal",
+        "good": "Bra",
+        "low": "Låg"
+      },
+      "stress": {
+        "restored": "Återhämtad",
+        "balanced": "Balanserad",
+        "stressful": "Stressig"
+      }
     }
   },
   "infographic": {
