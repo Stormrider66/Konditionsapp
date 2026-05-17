@@ -2885,6 +2885,19 @@
         "noData": "No data"
       }
     },
+    "vbtSessionHistory": {
+      "title": "VBT history",
+      "emptyTitle": "No VBT data yet",
+      "emptyDescription": "Upload a CSV export from your VBT device",
+      "confirmDelete": "Are you sure you want to delete this session?",
+      "exerciseCount": "{count} exercises",
+      "moreExercises": "+{count} more",
+      "errors": {
+        "fetchFailed": "Could not fetch VBT sessions",
+        "deleteFailed": "Could not delete the session",
+        "generic": "Something went wrong"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Nutrition timing",
       "subtitle": {

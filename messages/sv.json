@@ -2885,6 +2885,19 @@
         "noData": "Inga data"
       }
     },
+    "vbtSessionHistory": {
+      "title": "VBT-historik",
+      "emptyTitle": "Ingen VBT-data ännu",
+      "emptyDescription": "Ladda upp en CSV-export från din VBT-enhet",
+      "confirmDelete": "Är du säker på att du vill ta bort denna session?",
+      "exerciseCount": "{count} övningar",
+      "moreExercises": "+{count} mer",
+      "errors": {
+        "fetchFailed": "Kunde inte hämta VBT-sessioner",
+        "deleteFailed": "Kunde inte ta bort sessionen",
+        "generic": "Ett fel uppstod"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Kosttajming",
       "subtitle": {

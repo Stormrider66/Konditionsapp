@@ -21,7 +21,8 @@ import {
   Smartphone,
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { enUS, sv } from 'date-fns/locale';
+import { useLocale, useTranslations } from '@/i18n/client';
 
 interface VBTSession {
   id: string;
@@ -66,6 +67,7 @@ export function VBTSessionHistory({
   limit = 10,
   onSessionClick,
 }: VBTSessionHistoryProps) {
+  const t = useTranslations('components.vbtSessionHistory');
   const [sessions, setSessions] = useState<VBTSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,26 +81,26 @@ export function VBTSessionHistory({
       );
 
       if (!response.ok) {
-        throw new Error('Kunde inte hämta VBT-sessioner');
+        throw new Error(t('errors.fetchFailed'));
       }
 
       const data = await response.json();
       setSessions(data.sessions || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod');
+      setError(err instanceof Error ? err.message : t('errors.generic'));
     } finally {
       setIsLoading(false);
     }
-  }, [clientId, limit]);
+  }, [clientId, limit, t]);
 
   useEffect(() => {
-    fetchSessions();
+    void fetchSessions();
   }, [fetchSessions]);
 
   const handleDelete = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (!confirm('Är du säker på att du vill ta bort denna session?')) {
+    if (!confirm(t('confirmDelete'))) {
       return;
     }
 
@@ -111,12 +113,12 @@ export function VBTSessionHistory({
       );
 
       if (!response.ok) {
-        throw new Error('Kunde inte ta bort sessionen');
+        throw new Error(t('errors.deleteFailed'));
       }
 
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Ett fel uppstod');
+      alert(err instanceof Error ? err.message : t('errors.generic'));
     } finally {
       setDeletingId(null);
     }
@@ -128,7 +130,7 @@ export function VBTSessionHistory({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Gauge className="h-5 w-5" />
-            VBT-historik
+            {t('title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -146,7 +148,7 @@ export function VBTSessionHistory({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Gauge className="h-5 w-5" />
-            VBT-historik
+            {t('title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -161,16 +163,16 @@ export function VBTSessionHistory({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Gauge className="h-5 w-5" />
-          VBT-historik
+          {t('title')}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {sessions.length === 0 ? (
           <div className="text-center py-8">
             <Gauge className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Ingen VBT-data ännu</p>
+            <p className="text-muted-foreground">{t('emptyTitle')}</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Ladda upp en CSV-export från din VBT-enhet
+              {t('emptyDescription')}
             </p>
           </div>
         ) : (
@@ -182,6 +184,7 @@ export function VBTSessionHistory({
                 onClick={() => onSessionClick?.(session.id)}
                 onDelete={(e) => handleDelete(session.id, e)}
                 isDeleting={deletingId === session.id}
+                t={t}
               />
             ))}
           </div>
@@ -196,12 +199,16 @@ function SessionCard({
   onClick,
   onDelete,
   isDeleting,
+  t,
 }: {
   session: VBTSession;
   onClick?: () => void;
   onDelete: (e: React.MouseEvent) => void;
   isDeleting: boolean;
+  t: (key: string, values?: Record<string, string | number | Date>) => string;
 }) {
+  const locale = useLocale();
+  const dateLocale = locale === 'en' ? enUS : sv;
   const sessionDate = new Date(session.sessionDate);
 
   return (
@@ -216,12 +223,12 @@ function SessionCard({
           <div className="flex items-center gap-2 mb-1">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium text-sm">
-              {format(sessionDate, 'EEEE d MMMM', { locale: sv })}
+              {format(sessionDate, 'EEEE d MMMM', { locale: dateLocale })}
             </span>
             <span className="text-xs text-muted-foreground">
               {formatDistanceToNow(sessionDate, {
                 addSuffix: true,
-                locale: sv,
+                locale: dateLocale,
               })}
             </span>
           </div>
@@ -230,7 +237,7 @@ function SessionCard({
               <Smartphone className="h-3 w-3 mr-1" />
               {DEVICE_LABELS[session.deviceType] || session.deviceType}
             </Badge>
-            <span>{session.exerciseCount} övningar</span>
+            <span>{t('exerciseCount', { count: session.exerciseCount })}</span>
             <span>{session.totalSets} set</span>
             <span>{session.totalReps} reps</span>
             {session.sessionRPE && (
@@ -276,7 +283,7 @@ function SessionCard({
         ))}
         {session.exercises.length > 4 && (
           <Badge variant="outline" className="text-xs font-normal">
-            +{session.exercises.length - 4} mer
+            {t('moreExercises', { count: session.exercises.length - 4 })}
           </Badge>
         )}
       </div>
