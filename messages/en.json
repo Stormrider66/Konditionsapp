@@ -4271,6 +4271,38 @@
         "same": "Same protein intake regardless of training"
       }
     },
+    "nutritionQualityCard": {
+      "title": "Fat & protein quality",
+      "lowCoverageWarning": "Low data coverage. Most protein/fat could not be classified, so quality should be interpreted cautiously.",
+      "targetMarker": "{percent}% target",
+      "totalGrams": "{grams} total",
+      "metrics": {
+        "completeProtein": "Complete protein",
+        "ofKnownProtein": "{grams} of known protein",
+        "plantProtein": "Plant-based protein",
+        "fatBreakdown": "Fat breakdown",
+        "fatCoverage": "fat type data coverage"
+      },
+      "completeProteinShare": "Complete protein share",
+      "status": {
+        "lowConfidence": "Low confidence",
+        "targetReached": "Target reached",
+        "remaining": "{percent}% left to target"
+      },
+      "coverageDescription": "Calculated on protein where quality can be assessed. Data coverage: {percent}%.",
+      "proteinSource": "Protein source",
+      "fatType": "Fat type",
+      "segments": {
+        "saturated": "Saturated",
+        "mono": "Monounsaturated",
+        "poly": "Polyunsaturated",
+        "other": "Unknown/other",
+        "animal": "Animal",
+        "plant": "Plant-based",
+        "mixed": "Mixed",
+        "unknown": "Unknown"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Nutrition timing",
       "subtitle": {

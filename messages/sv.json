@@ -4271,6 +4271,38 @@
         "same": "Samma proteinintag oavsett träning"
       }
     },
+    "nutritionQualityCard": {
+      "title": "Fett & proteinkvalitet",
+      "lowCoverageWarning": "Låg datatäckning. Största delen av protein/fett kunde inte klassificeras, så kvaliteten ska tolkas försiktigt.",
+      "targetMarker": "{percent}% mål",
+      "totalGrams": "{grams} totalt",
+      "metrics": {
+        "completeProtein": "Fullvärdigt protein",
+        "ofKnownProtein": "{grams} av känt protein",
+        "plantProtein": "Växtbaserat protein",
+        "fatBreakdown": "Fettfördelning",
+        "fatCoverage": "datatäckning för fettyp"
+      },
+      "completeProteinShare": "Andel fullvärdigt protein",
+      "status": {
+        "lowConfidence": "Låg säkerhet",
+        "targetReached": "Mål uppnått",
+        "remaining": "{percent}% kvar till mål"
+      },
+      "coverageDescription": "Beräknat på protein där kvaliteten kan bedömas. Datatäckning: {percent}%.",
+      "proteinSource": "Proteinkälla",
+      "fatType": "Fettyp",
+      "segments": {
+        "saturated": "Mättat",
+        "mono": "Enkelomättat",
+        "poly": "Fleromättat",
+        "other": "Okänt/övrigt",
+        "animal": "Animaliskt",
+        "plant": "Växtbaserat",
+        "mixed": "Blandat",
+        "unknown": "Okänt"
+      }
+    },
     "nutritionTimingCard": {
       "title": "Kosttajming",
       "subtitle": {
