@@ -5506,6 +5506,39 @@
         "connectionClosed": "The connection was lost. The program is still being generated in the background."
       }
     },
+    "chatWorkoutCard": {
+      "types": {
+        "strength": "Strength",
+        "cardio": "Cardio",
+        "mixed": "Mixed",
+        "core": "Core"
+      },
+      "intensities": {
+        "recovery": "Recovery",
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "threshold": "Threshold"
+      },
+      "exerciseCount": "{count} exercises",
+      "actions": {
+        "review": "Review",
+        "added": "Added!",
+        "addToSchedule": "Add to schedule"
+      },
+      "toast": {
+        "added": {
+          "title": "Added to schedule!",
+          "description": "The workout now appears on your dashboard."
+        },
+        "addFailed": {
+          "title": "Could not add",
+          "description": "Something went wrong."
+        },
+        "error": {
+          "title": "An error occurred"
+        }
+      }
+    },
     "macroPieChart": {
       "title": "Macro split",
       "macros": {

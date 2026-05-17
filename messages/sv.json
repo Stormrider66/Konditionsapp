@@ -5506,6 +5506,39 @@
         "connectionClosed": "Anslutningen bröts. Programmet genereras fortfarande i bakgrunden."
       }
     },
+    "chatWorkoutCard": {
+      "types": {
+        "strength": "Styrka",
+        "cardio": "Kondition",
+        "mixed": "Blandat",
+        "core": "Core"
+      },
+      "intensities": {
+        "recovery": "Återhämtning",
+        "easy": "Lätt",
+        "moderate": "Måttlig",
+        "threshold": "Tröskel"
+      },
+      "exerciseCount": "{count} övningar",
+      "actions": {
+        "review": "Granska",
+        "added": "Tillagd!",
+        "addToSchedule": "Lägg till i Schema"
+      },
+      "toast": {
+        "added": {
+          "title": "Tillagd i schemat!",
+          "description": "Passet visas nu på din dashboard."
+        },
+        "addFailed": {
+          "title": "Kunde inte lägga till",
+          "description": "Något gick fel."
+        },
+        "error": {
+          "title": "Ett fel uppstod"
+        }
+      }
+    },
     "macroPieChart": {
       "title": "Makrofördelning",
       "macros": {

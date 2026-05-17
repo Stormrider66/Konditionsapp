@@ -8,6 +8,7 @@ import { Player } from '@remotion/player'
 import { ExerciseAnimation } from '@/remotion/exercises/ExerciseAnimation'
 import { scheduleWODToDashboard } from '@/app/actions/schedule-wod'
 import { useToast } from '@/hooks/use-toast'
+import { useTranslations } from '@/i18n/client'
 
 interface ChatWorkoutCardProps {
   wodId: string
@@ -23,17 +24,17 @@ interface ChatWorkoutCardProps {
 }
 
 const typeLabels: Record<string, string> = {
-  strength: 'Styrka',
-  cardio: 'Kondition',
-  mixed: 'Blandat',
-  core: 'Core',
+  strength: 'strength',
+  cardio: 'cardio',
+  mixed: 'mixed',
+  core: 'core',
 }
 
 const intensityLabels: Record<string, string> = {
-  recovery: 'Återhämtning',
-  easy: 'Lätt',
-  moderate: 'Måttlig',
-  threshold: 'Tröskel',
+  recovery: 'recovery',
+  easy: 'easy',
+  moderate: 'moderate',
+  threshold: 'threshold',
 }
 
 export function ChatWorkoutCard({
@@ -46,6 +47,7 @@ export function ChatWorkoutCard({
   basePath,
   previewImages = [],
 }: ChatWorkoutCardProps) {
+  const t = useTranslations('components.chatWorkoutCard')
   const router = useRouter()
   const { toast } = useToast()
   const [isScheduling, setIsScheduling] = useState(false)
@@ -59,20 +61,20 @@ export function ChatWorkoutCard({
       if (res.success) {
         setIsScheduled(true)
         toast({
-          title: 'Tillagd i schemat!',
-          description: 'Passet visas nu på din dashboard.',
+          title: t('toast.added.title'),
+          description: t('toast.added.description'),
         })
         router.push(`${basePath}/athlete/dashboard`)
       } else {
         toast({
-          title: 'Kunde inte lägga till',
-          description: res.error || 'Något gick fel.',
+          title: t('toast.addFailed.title'),
+          description: res.error || t('toast.addFailed.description'),
           variant: 'destructive'
         })
       }
-    } catch (e) {
+    } catch {
       toast({
-        title: 'Ett fel uppstod',
+        title: t('toast.error.title'),
         variant: 'destructive'
       })
     } finally {
@@ -113,17 +115,19 @@ export function ChatWorkoutCard({
                 <Clock className="h-3 w-3" /> {duration} min
               </span>
               <span className="text-emerald-300 dark:text-emerald-600">|</span>
-              <span>{typeLabels[workoutType] || workoutType}</span>
+              <span>{typeLabels[workoutType] ? t(`types.${typeLabels[workoutType]}`) : workoutType}</span>
               {intensity && (
                 <>
                   <span className="text-emerald-300 dark:text-emerald-600">|</span>
                   <span className="inline-flex items-center gap-0.5">
-                    <Flame className="h-3 w-3" /> {intensityLabels[intensity] || intensity}
+                    <Flame className="h-3 w-3" /> {intensityLabels[intensity]
+                      ? t(`intensities.${intensityLabels[intensity]}`)
+                      : intensity}
                   </span>
                 </>
               )}
               <span className="text-emerald-300 dark:text-emerald-600">|</span>
-              <span>{exerciseCount} övningar</span>
+              <span>{t('exerciseCount', { count: exerciseCount })}</span>
             </div>
           </div>
         </div>
@@ -136,7 +140,7 @@ export function ChatWorkoutCard({
             onClick={() => router.push(`${basePath}/athlete/wod/${wodId}`)}
           >
             <ArrowRight className="h-3 w-3 mr-1" />
-            Granska
+            {t('actions.review')}
           </Button>
           <Button
             size="sm"
@@ -149,11 +153,10 @@ export function ChatWorkoutCard({
             ) : (
               <LayoutDashboard className="h-3 w-3 mr-1" />
             )}
-            {isScheduled ? 'Tillagd!' : 'Lägg till i Schema'}
+            {isScheduled ? t('actions.added') : t('actions.addToSchedule')}
           </Button>
         </div>
       </div>
     </div>
   )
 }
-
