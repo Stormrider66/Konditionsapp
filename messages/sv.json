@@ -2877,6 +2877,73 @@
         "viewCalendar": "Visa kalender"
       },
       "athletes": "{count} atleter"
+    },
+    "gymClientListCard": {
+      "title": "PT-klienter",
+      "empty": "Inga PT-klienter",
+      "viewAll": "Visa alla {count}",
+      "dates": {
+        "today": "Idag",
+        "yesterday": "Igår",
+        "days": "{days}d",
+        "weeks": "{weeks}v"
+      }
+    },
+    "gymClientBoard": {
+      "title": "Klienter",
+      "more": "+{count} fler",
+      "chips": {
+        "prThisWeek": "{name}: PR denna vecka",
+        "plateau": "{name}: Platå {count} övn",
+        "regression": "{name}: Regression"
+      },
+      "filters": {
+        "all": "Alla",
+        "plateau": "Platå",
+        "prThisWeek": "PR denna vecka",
+        "needsIncrease": "Behöver lastökning"
+      },
+      "empty": {
+        "noClients": "Inga klienter",
+        "noFilterMatches": "Inga klienter matchar filtret"
+      }
+    },
+    "gymClientCard": {
+      "sport": {
+        "strength": "Styrka"
+      },
+      "labels": {
+        "phase": "Fas:",
+        "status": "Status:"
+      },
+      "phases": {
+        "anatomicalAdaptation": "Anpassning",
+        "maximumStrength": "Max Styrka",
+        "power": "Power",
+        "maintenance": "Underhåll",
+        "taper": "Taper"
+      },
+      "statuses": {
+        "onTrack": "På spåret",
+        "plateau": "Platå",
+        "regressing": "Regression",
+        "deloadNeeded": "Deload"
+      },
+      "metrics": {
+        "sessions": "Pass",
+        "thisWeekShort": "denna v",
+        "weight": "Vikt"
+      },
+      "badges": {
+        "prThisWeek": "PR denna vecka",
+        "plateau": "Platå: {count, plural, one {# övning} other {# övningar}}",
+        "readyForIncrease": "{count} redo för ökning",
+        "injuries": "{count, plural, one {# skada} other {# skador}}"
+      },
+      "actions": {
+        "viewProfile": "Visa profil",
+        "assignWorkout": "Tilldela pass"
+      }
     }
   },
   "infographic": {

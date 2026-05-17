@@ -12,6 +12,7 @@ import {
   ArrowDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 export interface GymClientStatus {
   id: string
@@ -58,27 +59,12 @@ function getBorderColor(client: GymClientStatus): string {
   return 'border-l-4 border-l-transparent'
 }
 
-const phaseLabels: Record<string, string> = {
-  ANATOMICAL_ADAPTATION: 'Anpassning',
-  MAXIMUM_STRENGTH: 'Max Styrka',
-  POWER: 'Power',
-  MAINTENANCE: 'Underhåll',
-  TAPER: 'Taper',
-}
-
 const phaseColors: Record<string, string> = {
   ANATOMICAL_ADAPTATION: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   MAXIMUM_STRENGTH: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   POWER: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
   MAINTENANCE: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   TAPER: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-}
-
-const statusLabels: Record<string, string> = {
-  ON_TRACK: 'På spåret',
-  PLATEAU: 'Platå',
-  REGRESSING: 'Regression',
-  DELOAD_NEEDED: 'Deload',
 }
 
 const statusColors: Record<string, string> = {
@@ -102,7 +88,21 @@ function DeltaDisplay({ value, unit, invert }: { value: number | null; unit?: st
 }
 
 export function GymClientCard({ client, basePath }: GymClientCardProps) {
+  const t = useTranslations('components.gymClientCard')
   const borderColor = getBorderColor(client)
+  const phaseLabels: Record<string, string> = {
+    ANATOMICAL_ADAPTATION: t('phases.anatomicalAdaptation'),
+    MAXIMUM_STRENGTH: t('phases.maximumStrength'),
+    POWER: t('phases.power'),
+    MAINTENANCE: t('phases.maintenance'),
+    TAPER: t('phases.taper'),
+  }
+  const statusLabels: Record<string, string> = {
+    ON_TRACK: t('statuses.onTrack'),
+    PLATEAU: t('statuses.plateau'),
+    REGRESSING: t('statuses.regressing'),
+    DELOAD_NEEDED: t('statuses.deloadNeeded'),
+  }
   const e1rmDelta = client.topEstimated1RM && client.previous1RM
     ? Math.round((client.topEstimated1RM - client.previous1RM) * 10) / 10
     : null
@@ -122,7 +122,7 @@ export function GymClientCard({ client, basePath }: GymClientCardProps) {
             <p className="font-semibold text-sm truncate dark:text-slate-200">{client.name}</p>
           </div>
           <Badge variant="secondary" className="text-[10px] h-5 flex-shrink-0 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-            Styrka
+            {t('sport.strength')}
           </Badge>
         </div>
 
@@ -130,7 +130,7 @@ export function GymClientCard({ client, basePath }: GymClientCardProps) {
         <div className="flex items-center gap-2 text-xs">
           {client.currentPhase && (
             <>
-              <span className="text-muted-foreground">Fas:</span>
+              <span className="text-muted-foreground">{t('labels.phase')}</span>
               <Badge className={cn('text-[10px] h-5', phaseColors[client.currentPhase] ?? 'bg-slate-100 text-slate-600')}>
                 {phaseLabels[client.currentPhase] ?? client.currentPhase}
               </Badge>
@@ -138,7 +138,7 @@ export function GymClientCard({ client, basePath }: GymClientCardProps) {
           )}
           {client.worstProgressionStatus && (
             <>
-              <span className="text-muted-foreground ml-1">Status:</span>
+              <span className="text-muted-foreground ml-1">{t('labels.status')}</span>
               <span className={cn('font-medium', statusColors[client.worstProgressionStatus] ?? '')}>
                 {statusLabels[client.worstProgressionStatus] ?? client.worstProgressionStatus}
               </span>
@@ -158,15 +158,15 @@ export function GymClientCard({ client, basePath }: GymClientCardProps) {
           </div>
           {/* Sessions */}
           <div>
-            <p className="text-[10px] text-muted-foreground mb-0.5">Pass</p>
+            <p className="text-[10px] text-muted-foreground mb-0.5">{t('metrics.sessions')}</p>
             <p className="text-xs font-semibold dark:text-slate-200">
               {client.completedSessionsThisWeek}/{client.totalSessionsThisWeek}
             </p>
-            <span className="text-[10px] text-muted-foreground">denna v</span>
+            <span className="text-[10px] text-muted-foreground">{t('metrics.thisWeekShort')}</span>
           </div>
           {/* Weight */}
           <div>
-            <p className="text-[10px] text-muted-foreground mb-0.5">Vikt</p>
+            <p className="text-[10px] text-muted-foreground mb-0.5">{t('metrics.weight')}</p>
             <p className="text-xs font-semibold dark:text-slate-200">
               {client.latestWeight !== null ? `${client.latestWeight} kg` : '-'}
             </p>
@@ -187,24 +187,24 @@ export function GymClientCard({ client, basePath }: GymClientCardProps) {
           {client.hasPRThisWeek && (
             <Badge className="text-[10px] h-5 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-0">
               <Trophy className="h-3 w-3 mr-0.5" />
-              PR denna vecka
+              {t('badges.prThisWeek')}
             </Badge>
           )}
           {client.plateauExercises > 0 && (
             <Badge variant="outline" className="text-[10px] h-5 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
               <AlertTriangle className="h-3 w-3 mr-0.5" />
-              Platå: {client.plateauExercises} {client.plateauExercises === 1 ? 'övning' : 'övningar'}
+              {t('badges.plateau', { count: client.plateauExercises })}
             </Badge>
           )}
           {client.readyForIncreaseCount > 0 && (
             <Badge variant="outline" className="text-[10px] h-5 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
               <ArrowUp className="h-3 w-3 mr-0.5" />
-              {client.readyForIncreaseCount} redo för ökning
+              {t('badges.readyForIncrease', { count: client.readyForIncreaseCount })}
             </Badge>
           )}
           {client.injuryCount > 0 && (
             <Badge variant="outline" className="text-[10px] h-5 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
-              {client.injuryCount} {client.injuryCount === 1 ? 'skada' : 'skador'}
+              {t('badges.injuries', { count: client.injuryCount })}
             </Badge>
           )}
         </div>
@@ -214,13 +214,13 @@ export function GymClientCard({ client, basePath }: GymClientCardProps) {
           <Link href={`${basePath}/coach/clients/${client.id}`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full text-xs h-7">
               <User className="h-3 w-3 mr-1" />
-              Visa profil
+              {t('actions.viewProfile')}
             </Button>
           </Link>
           <Link href={`${basePath}/coach/strength`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full text-xs h-7 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/20">
               <Dumbbell className="h-3 w-3 mr-1" />
-              Tilldela pass
+              {t('actions.assignWorkout')}
             </Button>
           </Link>
         </div>

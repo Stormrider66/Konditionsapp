@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { GymClientCard, type GymClientStatus } from '@/components/coach/dashboard/GymClientCard'
+import { useTranslations } from '@/i18n/client'
 
 type FilterType = 'all' | 'plateau' | 'pr' | 'needs_increase'
 
@@ -26,27 +27,31 @@ interface AttentionChip {
   color: string
 }
 
-function buildAttentionChips(clients: GymClientStatus[]): AttentionChip[] {
+type GymClientBoardTranslator = ReturnType<typeof useTranslations>
+
+function buildAttentionChips(clients: GymClientStatus[], t: GymClientBoardTranslator): AttentionChip[] {
   const chips: AttentionChip[] = []
   for (const c of clients) {
+    const firstName = c.name.split(' ')[0]
+
     if (c.hasPRThisWeek) {
       chips.push({
         clientId: c.id,
-        label: `${c.name.split(' ')[0]}: PR denna vecka`,
+        label: t('chips.prThisWeek', { name: firstName }),
         color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
       })
     }
     if (c.plateauExercises > 0) {
       chips.push({
         clientId: c.id,
-        label: `${c.name.split(' ')[0]}: Platå ${c.plateauExercises} övn`,
+        label: t('chips.plateau', { name: firstName, count: c.plateauExercises }),
         color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
       })
     }
     if (c.worstProgressionStatus === 'REGRESSING') {
       chips.push({
         clientId: c.id,
-        label: `${c.name.split(' ')[0]}: Regression`,
+        label: t('chips.regression', { name: firstName }),
         color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
       })
     }
@@ -66,6 +71,7 @@ function urgencyScore(c: GymClientStatus): number {
 }
 
 export function GymClientBoard({ clients, basePath }: GymClientBoardProps) {
+  const t = useTranslations('components.gymClientBoard')
   const [filter, setFilter] = useState<FilterType>('all')
 
   const filtered = useMemo(() => {
@@ -93,7 +99,7 @@ export function GymClientBoard({ clients, basePath }: GymClientBoardProps) {
     return result
   }, [clients, filter])
 
-  const attentionChips = useMemo(() => buildAttentionChips(clients), [clients])
+  const attentionChips = useMemo(() => buildAttentionChips(clients, t), [clients, t])
 
   const filterCounts = useMemo(() => ({
     plateau: clients.filter(c => c.plateauExercises > 0 || c.worstProgressionStatus === 'PLATEAU' || c.worstProgressionStatus === 'DELOAD_NEEDED').length,
@@ -105,7 +111,7 @@ export function GymClientBoard({ clients, basePath }: GymClientBoardProps) {
     return (
       <div className="text-center py-12 text-muted-foreground">
         <Dumbbell className="h-10 w-10 mx-auto mb-2 opacity-50" />
-        <p className="text-sm">Inga klienter</p>
+        <p className="text-sm">{t('empty.noClients')}</p>
       </div>
     )
   }
@@ -125,7 +131,7 @@ export function GymClientBoard({ clients, basePath }: GymClientBoardProps) {
           ))}
           {attentionChips.length > 6 && (
             <Badge variant="secondary" className="text-[11px] whitespace-nowrap">
-              +{attentionChips.length - 6} fler
+              {t('more', { count: attentionChips.length - 6 })}
             </Badge>
           )}
         </div>
@@ -136,7 +142,7 @@ export function GymClientBoard({ clients, basePath }: GymClientBoardProps) {
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold dark:text-slate-200 flex items-center gap-2">
             <Dumbbell className="h-4 w-4 text-purple-500" />
-            Klienter
+            {t('title')}
             <Badge variant="secondary" className="text-xs">{clients.length}</Badge>
           </h3>
         </div>
@@ -147,7 +153,7 @@ export function GymClientBoard({ clients, basePath }: GymClientBoardProps) {
             className="text-xs h-7"
             onClick={() => setFilter('all')}
           >
-            Alla
+            {t('filters.all')}
           </Button>
           <Button
             variant={filter === 'plateau' ? 'default' : 'ghost'}
@@ -156,7 +162,7 @@ export function GymClientBoard({ clients, basePath }: GymClientBoardProps) {
             onClick={() => setFilter('plateau')}
           >
             <AlertTriangle className="h-3 w-3 mr-1" />
-            Platå
+            {t('filters.plateau')}
             {filterCounts.plateau > 0 && (
               <Badge variant="outline" className="ml-1 text-[10px] h-4 px-1">
                 {filterCounts.plateau}
@@ -170,7 +176,7 @@ export function GymClientBoard({ clients, basePath }: GymClientBoardProps) {
             onClick={() => setFilter('pr')}
           >
             <Trophy className="h-3 w-3 mr-1" />
-            PR denna vecka
+            {t('filters.prThisWeek')}
             {filterCounts.pr > 0 && (
               <Badge variant="outline" className="ml-1 text-[10px] h-4 px-1">
                 {filterCounts.pr}
@@ -184,7 +190,7 @@ export function GymClientBoard({ clients, basePath }: GymClientBoardProps) {
             onClick={() => setFilter('needs_increase')}
           >
             <ArrowUp className="h-3 w-3 mr-1" />
-            Behöver lastökning
+            {t('filters.needsIncrease')}
             {filterCounts.needs_increase > 0 && (
               <Badge variant="outline" className="ml-1 text-[10px] h-4 px-1">
                 {filterCounts.needs_increase}
@@ -198,7 +204,7 @@ export function GymClientBoard({ clients, basePath }: GymClientBoardProps) {
       {filtered.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <Filter className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">Inga klienter matchar filtret</p>
+          <p className="text-sm">{t('empty.noFilterMatches')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

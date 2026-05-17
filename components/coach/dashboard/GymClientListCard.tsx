@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button'
 import {
   Dumbbell,
   Users,
-  TrendingUp,
   AlertTriangle,
   ArrowRight,
   Loader2,
@@ -21,6 +20,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { GymClientStatus } from '@/components/coach/dashboard/GymClientCard'
+import { useTranslations } from '@/i18n/client'
 
 interface GymClientListCardProps {
   basePath: string
@@ -40,15 +40,18 @@ function getProgressionColor(status: string | null): string {
   }
 }
 
-function formatLastActivity(days: number | null): string {
+type GymClientListTranslator = ReturnType<typeof useTranslations>
+
+function formatLastActivity(days: number | null, t: GymClientListTranslator): string {
   if (days === null) return '-'
-  if (days === 0) return 'Idag'
-  if (days === 1) return 'Igår'
-  if (days < 7) return `${days}d`
-  return `${Math.floor(days / 7)}v`
+  if (days === 0) return t('dates.today')
+  if (days === 1) return t('dates.yesterday')
+  if (days < 7) return t('dates.days', { days })
+  return t('dates.weeks', { weeks: Math.floor(days / 7) })
 }
 
 export function GymClientListCard({ basePath }: GymClientListCardProps) {
+  const t = useTranslations('components.gymClientListCard')
   const [clients, setClients] = useState<GymClientStatus[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -72,7 +75,11 @@ export function GymClientListCard({ basePath }: GymClientListCardProps) {
   }, [basePath])
 
   useEffect(() => {
-    fetchClients()
+    const timeoutId = window.setTimeout(() => {
+      void fetchClients()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [fetchClients])
 
   return (
@@ -81,7 +88,7 @@ export function GymClientListCard({ basePath }: GymClientListCardProps) {
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-base flex items-center gap-2">
             <Dumbbell className="h-4 w-4 text-orange-500" />
-            PT-klienter
+            {t('title')}
           </GlassCardTitle>
           <Badge variant="secondary" className="text-xs">{clients.length}</Badge>
         </div>
@@ -94,7 +101,7 @@ export function GymClientListCard({ basePath }: GymClientListCardProps) {
         ) : clients.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground">
             <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Inga PT-klienter</p>
+            <p className="text-sm">{t('empty')}</p>
           </div>
         ) : (
           <div className="space-y-1">
@@ -127,7 +134,7 @@ export function GymClientListCard({ basePath }: GymClientListCardProps) {
                     {client.completedSessionsThisWeek}/{client.totalSessionsThisWeek}
                   </span>
                   <span className={cn('text-[10px] w-6 text-right', getProgressionColor(client.worstProgressionStatus))}>
-                    {formatLastActivity(client.daysSinceLastActivity)}
+                    {formatLastActivity(client.daysSinceLastActivity, t)}
                   </span>
                 </div>
               </Link>
@@ -135,7 +142,7 @@ export function GymClientListCard({ basePath }: GymClientListCardProps) {
             {clients.length > 8 && (
               <Link href={`${basePath}/coach/clients`} className="block">
                 <Button variant="ghost" size="sm" className="text-xs w-full mt-1">
-                  Visa alla {clients.length} <ArrowRight className="h-3 w-3 ml-1" />
+                  {t('viewAll', { count: clients.length })} <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>
               </Link>
             )}

@@ -2877,6 +2877,73 @@
         "viewCalendar": "View calendar"
       },
       "athletes": "{count} athletes"
+    },
+    "gymClientListCard": {
+      "title": "PT clients",
+      "empty": "No PT clients",
+      "viewAll": "View all {count}",
+      "dates": {
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "days": "{days}d",
+        "weeks": "{weeks}w"
+      }
+    },
+    "gymClientBoard": {
+      "title": "Clients",
+      "more": "+{count} more",
+      "chips": {
+        "prThisWeek": "{name}: PR this week",
+        "plateau": "{name}: Plateau {count} ex",
+        "regression": "{name}: Regression"
+      },
+      "filters": {
+        "all": "All",
+        "plateau": "Plateau",
+        "prThisWeek": "PR this week",
+        "needsIncrease": "Needs load increase"
+      },
+      "empty": {
+        "noClients": "No clients",
+        "noFilterMatches": "No clients match the filter"
+      }
+    },
+    "gymClientCard": {
+      "sport": {
+        "strength": "Strength"
+      },
+      "labels": {
+        "phase": "Phase:",
+        "status": "Status:"
+      },
+      "phases": {
+        "anatomicalAdaptation": "Adaptation",
+        "maximumStrength": "Max Strength",
+        "power": "Power",
+        "maintenance": "Maintenance",
+        "taper": "Taper"
+      },
+      "statuses": {
+        "onTrack": "On track",
+        "plateau": "Plateau",
+        "regressing": "Regression",
+        "deloadNeeded": "Deload"
+      },
+      "metrics": {
+        "sessions": "Sessions",
+        "thisWeekShort": "this wk",
+        "weight": "Weight"
+      },
+      "badges": {
+        "prThisWeek": "PR this week",
+        "plateau": "Plateau: {count, plural, one {# exercise} other {# exercises}}",
+        "readyForIncrease": "{count} ready for increase",
+        "injuries": "{count, plural, one {# injury} other {# injuries}}"
+      },
+      "actions": {
+        "viewProfile": "View profile",
+        "assignWorkout": "Assign workout"
+      }
     }
   },
   "infographic": {
