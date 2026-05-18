@@ -107,6 +107,10 @@
         "title": "VBT Data | Trainomics",
         "description": "Velocity-Based Training data och analys"
       },
+      "ergometer": {
+        "title": "Ergometer | Trainomics",
+        "description": "Ergomertester, zoner och progression"
+      },
       "concept2": {
         "title": "Concept2 | Trainomics",
         "description": "Concept2 Logbook data och analys"
@@ -148,6 +152,12 @@
       "messageSuccess": "Klart att skicka.",
       "messageError": "Försök igen från Branding-fliken.",
       "returnToHome": "Till {appName}"
+    },
+    "athlete": {
+      "ergometer": {
+        "title": "Ergometertester",
+        "subtitle": "Rodd, SkiErg, BikeErg, Wattbike och Air Bike"
+      }
     },
     "nutritionWrapped": {
       "backToNutrition": "Tillbaka till koststatistik",
@@ -4717,9 +4727,61 @@
           "planned": "Planerat",
           "actual": "Faktiskt",
           "status": "Status",
-          "feedback": "Feedback",
+        "feedback": "Feedback",
           "action": "Åtgärd"
         }
+      }
+    },
+    "ergometerDashboard": {
+      "typeLabels": {
+        "concept2Row": "Roddmaskin",
+        "concept2SkiErg": "SkiErg",
+        "concept2BikeErg": "BikeErg",
+        "wattbike": "Wattbike",
+        "assaultBike": "Air Bike"
+      },
+      "shortLabels": {
+        "concept2Row": "Rodd",
+        "concept2SkiErg": "Ski",
+        "concept2BikeErg": "Bike",
+        "wattbike": "Watt",
+        "assaultBike": "Air"
+      },
+      "metrics": {
+        "cp": "CP",
+        "ftp": "FTP"
+      },
+      "empty": {
+        "title": "Mina Ergometer-zoner",
+        "description": "Inga träningszoner beräknade än",
+        "help": "Genomför ett ergometertest för att få personliga träningszoner.",
+        "contact": "Kontakta din tränare för att boka ett test."
+      },
+      "alerts": {
+        "retest": "Ditt senaste test är {age} gammalt. Överväg att göra ett nytt test för att uppdatera dina zoner."
+      },
+      "zones": {
+        "title": "Zoner"
+      },
+      "threshold": {
+        "description": "Baserat på {metric}:",
+        "testedOn": "Testad {date}"
+      },
+      "zoneDetails": {
+        "pace": "Tempo /500m:"
+      },
+      "legend": {
+        "zone1": "Återhämtning och basuthållighet. Använd för längre pass.",
+        "zone3": "Tempoökning. Lättare intervaller och längre pass.",
+        "zone4": "Tröskelträning. 4–20 minuters intervaller.",
+        "zone56": "Hög intensitet. Korta, hårda intervaller (30 s–5 min)."
+      },
+      "pageContext": {
+        "title": "Ergometer-zoner",
+        "summary": "Ergometer: {machineCount} maskiner med zoner.",
+        "activeSummary": "Aktiv: {activeType} med {metric} {metricValue}W{wPrime}",
+        "wPrime": ", W' {value}kJ",
+        "zonesSummary": "{zoneCount} träningszoner."
       }
     },
     "careTeam": {

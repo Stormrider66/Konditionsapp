@@ -107,6 +107,10 @@
         "title": "VBT Data | Trainomics",
         "description": "Velocity-Based Training data and analysis"
       },
+      "ergometer": {
+        "title": "Ergometer | Trainomics",
+        "description": "Ergometer tests, zones, and progression"
+      },
       "concept2": {
         "title": "Concept2 | Trainomics",
         "description": "Concept2 Logbook data and analysis"
@@ -148,6 +152,12 @@
       "messageSuccess": "Ready to send.",
       "messageError": "Please try again from the Branding tab.",
       "returnToHome": "Back to {appName}"
+    },
+    "athlete": {
+      "ergometer": {
+        "title": "Ergometer tests",
+        "subtitle": "Row, SkiErg, BikeErg, Wattbike and Air Bike"
+      }
     },
     "nutritionWrapped": {
       "backToNutrition": "Back to nutrition stats",
@@ -4719,7 +4729,59 @@
           "status": "Status",
           "feedback": "Feedback",
         "action": "Action"
+        }
       }
+    },
+    "ergometerDashboard": {
+      "typeLabels": {
+        "concept2Row": "Rowing machine",
+        "concept2SkiErg": "SkiErg",
+        "concept2BikeErg": "BikeErg",
+        "wattbike": "Wattbike",
+        "assaultBike": "Air Bike"
+      },
+      "shortLabels": {
+        "concept2Row": "Row",
+        "concept2SkiErg": "Ski",
+        "concept2BikeErg": "Bike",
+        "wattbike": "Watt",
+        "assaultBike": "Air"
+      },
+      "metrics": {
+        "cp": "CP",
+        "ftp": "FTP"
+      },
+      "empty": {
+        "title": "My ergometer zones",
+        "description": "No training zones have been calculated yet",
+        "help": "Complete an ergometer test to get personalized training zones.",
+        "contact": "Contact your coach to book a test."
+      },
+      "alerts": {
+        "retest": "Your latest test is {age} old. Consider taking a new test to update your zones."
+      },
+      "zones": {
+        "title": "Zones"
+      },
+      "threshold": {
+        "description": "Based on {metric}:",
+        "testedOn": "Tested {date}"
+      },
+      "zoneDetails": {
+        "pace": "Pace /500m:"
+      },
+      "legend": {
+        "zone1": "Recovery and aerobic base. Use for longer sessions.",
+        "zone3": "Threshold work. Easier intervals and longer sessions.",
+        "zone4": "Threshold training. 4–20 minute intervals.",
+        "zone56": "High intensity. Short, hard intervals (30s–5min)."
+      },
+      "pageContext": {
+        "title": "Ergometer zones",
+        "summary": "Ergometer: {machineCount} machines with zones.",
+        "activeSummary": "Active: {activeType} with {metric} {metricValue}W{wPrime}",
+        "wPrime": ", W' {value}kJ",
+        "zonesSummary": "{zoneCount} training zones."
       }
     },
     "metricsCharts": {
