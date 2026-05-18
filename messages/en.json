@@ -5180,6 +5180,189 @@
           "trx": "TRX/Sling trainer"
         }
       },
+      "functionalFitness": {
+        "titles": {
+          "experienceAndFocus": "Experience and focus",
+          "gymAndEquipment": "Gym and equipment",
+          "benchmarkWorkouts": "Benchmark workouts",
+          "strengthOneRM": "Strength (1RM)",
+          "gymnasticsSkills": "Gymnastics skills",
+          "olympicLifting": "Olympic lifts and training setup"
+        },
+        "descriptions": {
+          "experienceAndFocus": "Tell us about your background and what you want to focus on",
+          "gymAndEquipment": "What type of gym do you train at and what equipment do you have access to?",
+          "benchmarkWorkouts": "Your best times on classic benchmark workouts (leave blank if unknown)",
+          "strengthOneRM": "Your max lifts in kg (leave blank if unknown)",
+          "gymnasticsSkills": "What level are you at on different gymnastics movements?",
+          "olympicLifting": "Your olympic lifting experience and how you like to train"
+        },
+        "labels": {
+          "experienceLevel": "Experience level",
+          "yearsTraining": "Years of training",
+          "primaryFocus": "Primary focus",
+          "gymType": "Type of gym",
+          "equipmentAvailable": "Available equipment",
+          "backSquat": "Back squat",
+          "frontSquat": "Front squat",
+          "deadlift": "Deadlift",
+          "strictPress": "Strict press",
+          "cleanAndJerk": "Clean & Jerk",
+          "snatch": "Snatch",
+          "pullUps": "Pull-ups",
+          "handstandPushUps": "Handstand push-ups",
+          "toeToBar": "Toes to bar",
+          "doubleUnders": "Double-unders",
+          "ropeClimbs": "Rope climbs",
+          "ringDips": "Ring dips",
+          "handstandWalk": "Handstand walk",
+          "maxPullUps": "Max pull-ups (reps)",
+          "maxMuscleUps": "Max muscle-ups (reps)",
+          "maxHspu": "Max HSPU (reps)",
+          "maxDoubleUnders": "Max double-unders (reps)",
+          "olympicLiftingLevel": "Olympic lifting level",
+          "preferredWodDuration": "Preferred WOD duration (minutes)",
+          "weeklyTrainingDays": "Training days per week",
+          "competitionInterest": "Competition interest",
+          "competitionInterestValue": "I am interested in competing"
+        },
+        "placeholders": {
+          "selectLevel": "Choose level",
+          "selectFocus": "Choose focus",
+          "selectGymType": "Choose gym type",
+          "kg": "kg",
+          "maxReps": "Max reps",
+          "preferredWodDuration": "20",
+          "weeklyTrainingDays": "4"
+        },
+        "experienceLevels": {
+          "beginner": {
+            "label": "Beginner",
+            "description": "New to functional fitness (<1 year)"
+          },
+          "intermediate": {
+            "label": "Intermediate",
+            "description": "1-3 years experience, knows the basics"
+          },
+          "advanced": {
+            "label": "Advanced",
+            "description": "3+ years, comfortable with most movements"
+          },
+          "competitor": {
+            "label": "Competitor",
+            "description": "Competes in competitions, high technical level"
+          }
+        },
+        "focusOptions": {
+          "general": {
+            "label": "General fitness",
+            "description": "Balanced training"
+          },
+          "strength": {
+            "label": "Strength",
+            "description": "Focus on heavy lifts and PRs"
+          },
+          "endurance": {
+            "label": "Endurance",
+            "description": "Cardio and metabolic conditioning"
+          },
+          "gymnastics": {
+            "label": "Gymnastics",
+            "description": "Bodyweight movements and skills"
+          },
+          "competition": {
+            "label": "Competition",
+            "description": "Prepare for competitions"
+          }
+        },
+        "gymTypes": {
+          "commercial": "Commercial gym",
+          "functionalBox": "Functional box/CrossFit box",
+          "home": "Home gym",
+          "garage": "Garage gym"
+        },
+        "equipmentOptions": {
+          "barbell": "Barbell",
+          "dumbbells": "Dumbbells",
+          "kettlebells": "Kettlebells",
+          "pullUpBar": "Pull-up bar",
+          "rings": "Rings",
+          "rower": "Rowing machine",
+          "skiErg": "SkiErg",
+          "assaultBike": "Assault/Echo bike",
+          "plyoBox": "Plyo box",
+          "wallBall": "Wall balls",
+          "rope": "Rope",
+          "ghd": "GHD",
+          "sled": "Sled",
+          "sandbag": "Sandbag",
+          "jumpRope": "Jump rope"
+        },
+        "pullUpLevels": {
+          "none": "No pull-ups",
+          "banded": "With band",
+          "strict": "Strict",
+          "kipping": "Kipping",
+          "butterfly": "Butterfly",
+          "muscleUp": "Muscle-ups"
+        },
+        "hspuLevels": {
+          "none": "No HSPU",
+          "pike": "Pike push-ups",
+          "box": "Box pike",
+          "wallFacing": "Wall facing",
+          "strict": "Strict",
+          "kipping": "Kipping",
+          "freestanding": "Freestanding"
+        },
+        "toesToBarLevels": {
+          "none": "No T2B",
+          "hangingKnee": "Hanging knee raises",
+          "kipping": "Kipping T2B",
+          "strict": "Strict T2B"
+        },
+        "doubleUndersLevels": {
+          "none": "No double-unders",
+          "learning": "Learning",
+          "consistent": "Can do several",
+          "unbroken50": "Unbroken 50+"
+        },
+        "ropeClimbLevels": {
+          "none": "No rope climbs",
+          "withLegs": "With legs",
+          "legless": "Legless"
+        },
+        "ringDipsLevels": {
+          "none": "No ring dips",
+          "banded": "With band",
+          "strict": "Strict",
+          "kipping": "Kipping"
+        },
+        "hsWalkLevels": {
+          "none": "No HS walks",
+          "wallWalks": "Wall walks",
+          "shortDistance": "Short distance",
+          "proficient": "Proficient"
+        },
+        "olympicLiftingLevels": {
+          "none": {
+            "label": "No experience",
+            "description": "Has not trained olympic lifts"
+          },
+          "learning": {
+            "label": "Learning",
+            "description": "Know the basics and need to work on technique"
+          },
+          "competent": {
+            "label": "Competent",
+            "description": "Good technique, can lift heavy"
+          },
+          "proficient": {
+            "label": "Very good",
+            "description": "Strong technique, competition level"
+          }
+        }
+      },
       "hockey": {
         "sections": {
           "positionAndTeam": {

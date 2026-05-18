@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Dumbbell, Timer, Target, Flame, Medal, Zap } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 // ==================== TYPES ====================
 
@@ -107,103 +108,103 @@ export const DEFAULT_FUNCTIONAL_FITNESS_SETTINGS: FunctionalFitnessSettings = {
 // ==================== CONSTANTS ====================
 
 const EXPERIENCE_LEVELS = [
-  { value: 'beginner', label: 'Nybörjare', description: 'Ny till funktionell träning (<1 år)' },
-  { value: 'intermediate', label: 'Medel', description: '1-3 års erfarenhet, behärskar grunderna' },
-  { value: 'advanced', label: 'Avancerad', description: '3+ år, behärskar de flesta rörelser' },
-  { value: 'competitor', label: 'Tävlande', description: 'Deltar i tävlingar, hög teknisk nivå' },
+  { value: 'beginner', label: 'experienceLevels.beginner.label', description: 'experienceLevels.beginner.description' },
+  { value: 'intermediate', label: 'experienceLevels.intermediate.label', description: 'experienceLevels.intermediate.description' },
+  { value: 'advanced', label: 'experienceLevels.advanced.label', description: 'experienceLevels.advanced.description' },
+  { value: 'competitor', label: 'experienceLevels.competitor.label', description: 'experienceLevels.competitor.description' },
 ]
 
 const PRIMARY_FOCUS = [
-  { value: 'general', label: 'Allmän fitness', description: 'Balanserad träning' },
-  { value: 'strength', label: 'Styrka', description: 'Fokus på tunga lyft och PRs' },
-  { value: 'endurance', label: 'Uthållighet', description: 'Cardio och metabolisk kondition' },
-  { value: 'gymnastics', label: 'Gymnastik', description: 'Kroppsviktsrörelser och skills' },
-  { value: 'competition', label: 'Tävling', description: 'Förbered för tävlingar' },
+  { value: 'general', label: 'focusOptions.general.label', description: 'focusOptions.general.description' },
+  { value: 'strength', label: 'focusOptions.strength.label', description: 'focusOptions.strength.description' },
+  { value: 'endurance', label: 'focusOptions.endurance.label', description: 'focusOptions.endurance.description' },
+  { value: 'gymnastics', label: 'focusOptions.gymnastics.label', description: 'focusOptions.gymnastics.description' },
+  { value: 'competition', label: 'focusOptions.competition.label', description: 'focusOptions.competition.description' },
 ]
 
 const GYM_TYPES = [
-  { value: 'commercial', label: 'Vanligt gym' },
-  { value: 'functional_box', label: 'Funktionell box/CrossFit-box' },
-  { value: 'home', label: 'Hemmagym' },
-  { value: 'garage', label: 'Garage gym' },
+  { value: 'commercial', label: 'gymTypes.commercial' },
+  { value: 'functional_box', label: 'gymTypes.functionalBox' },
+  { value: 'home', label: 'gymTypes.home' },
+  { value: 'garage', label: 'gymTypes.garage' },
 ]
 
 const EQUIPMENT_OPTIONS = [
-  { id: 'barbell', label: 'Skivstång' },
-  { id: 'dumbbells', label: 'Hantlar' },
-  { id: 'kettlebells', label: 'Kettlebells' },
-  { id: 'pull_up_bar', label: 'Pull-up bar' },
-  { id: 'rings', label: 'Ringar' },
-  { id: 'rower', label: 'Roddmaskin' },
-  { id: 'ski_erg', label: 'SkiErg' },
-  { id: 'assault_bike', label: 'Assault/Echo Bike' },
-  { id: 'plyo_box', label: 'Plyo-box' },
-  { id: 'wall_ball', label: 'Wall balls' },
-  { id: 'rope', label: 'Klätterrep' },
-  { id: 'ghd', label: 'GHD' },
-  { id: 'sled', label: 'Släde' },
-  { id: 'sandbag', label: 'Sandsäck' },
-  { id: 'jump_rope', label: 'Hopprep' },
+  { id: 'barbell', label: 'equipmentOptions.barbell' },
+  { id: 'dumbbells', label: 'equipmentOptions.dumbbells' },
+  { id: 'kettlebells', label: 'equipmentOptions.kettlebells' },
+  { id: 'pull_up_bar', label: 'equipmentOptions.pullUpBar' },
+  { id: 'rings', label: 'equipmentOptions.rings' },
+  { id: 'rower', label: 'equipmentOptions.rower' },
+  { id: 'ski_erg', label: 'equipmentOptions.skiErg' },
+  { id: 'assault_bike', label: 'equipmentOptions.assaultBike' },
+  { id: 'plyo_box', label: 'equipmentOptions.plyoBox' },
+  { id: 'wall_ball', label: 'equipmentOptions.wallBall' },
+  { id: 'rope', label: 'equipmentOptions.rope' },
+  { id: 'ghd', label: 'equipmentOptions.ghd' },
+  { id: 'sled', label: 'equipmentOptions.sled' },
+  { id: 'sandbag', label: 'equipmentOptions.sandbag' },
+  { id: 'jump_rope', label: 'equipmentOptions.jumpRope' },
 ]
 
 const PULL_UP_LEVELS = [
-  { value: 'none', label: 'Inga pull-ups' },
-  { value: 'banded', label: 'Med band' },
-  { value: 'strict', label: 'Strikta' },
-  { value: 'kipping', label: 'Kipping' },
-  { value: 'butterfly', label: 'Butterfly' },
-  { value: 'muscle_up', label: 'Muscle-ups' },
+  { value: 'none', label: 'pullUpLevels.none' },
+  { value: 'banded', label: 'pullUpLevels.banded' },
+  { value: 'strict', label: 'pullUpLevels.strict' },
+  { value: 'kipping', label: 'pullUpLevels.kipping' },
+  { value: 'butterfly', label: 'pullUpLevels.butterfly' },
+  { value: 'muscle_up', label: 'pullUpLevels.muscleUp' },
 ]
 
 const HSPU_LEVELS = [
-  { value: 'none', label: 'Inga HSPU' },
-  { value: 'pike', label: 'Pike push-ups' },
-  { value: 'box', label: 'Box pike' },
-  { value: 'wall', label: 'Wall facing' },
-  { value: 'strict', label: 'Strikta' },
-  { value: 'kipping', label: 'Kipping' },
-  { value: 'freestanding', label: 'Fristående' },
+  { value: 'none', label: 'hspuLevels.none' },
+  { value: 'pike', label: 'hspuLevels.pike' },
+  { value: 'box', label: 'hspuLevels.box' },
+  { value: 'wall', label: 'hspuLevels.wallFacing' },
+  { value: 'strict', label: 'hspuLevels.strict' },
+  { value: 'kipping', label: 'hspuLevels.kipping' },
+  { value: 'freestanding', label: 'hspuLevels.freestanding' },
 ]
 
 const TTB_LEVELS = [
-  { value: 'none', label: 'Inga T2B' },
-  { value: 'hanging_knee', label: 'Hanging knee raises' },
-  { value: 'kipping', label: 'Kipping T2B' },
-  { value: 'strict', label: 'Strikta T2B' },
+  { value: 'none', label: 'toesToBarLevels.none' },
+  { value: 'hanging_knee', label: 'toesToBarLevels.hangingKnee' },
+  { value: 'kipping', label: 'toesToBarLevels.kipping' },
+  { value: 'strict', label: 'toesToBarLevels.strict' },
 ]
 
 const DU_LEVELS = [
-  { value: 'none', label: 'Inga double-unders' },
-  { value: 'learning', label: 'Lär sig' },
-  { value: 'consistent', label: 'Kan göra flera' },
-  { value: 'unbroken_50', label: 'Unbroken 50+' },
+  { value: 'none', label: 'doubleUndersLevels.none' },
+  { value: 'learning', label: 'doubleUndersLevels.learning' },
+  { value: 'consistent', label: 'doubleUndersLevels.consistent' },
+  { value: 'unbroken_50', label: 'doubleUndersLevels.unbroken50' },
 ]
 
 const ROPE_CLIMB_LEVELS = [
-  { value: 'none', label: 'Inga rope climbs' },
-  { value: 'with_legs', label: 'Med bengrep' },
-  { value: 'legless', label: 'Legless' },
+  { value: 'none', label: 'ropeClimbLevels.none' },
+  { value: 'with_legs', label: 'ropeClimbLevels.withLegs' },
+  { value: 'legless', label: 'ropeClimbLevels.legless' },
 ]
 
 const RING_DIP_LEVELS = [
-  { value: 'none', label: 'Inga ring dips' },
-  { value: 'banded', label: 'Med band' },
-  { value: 'strict', label: 'Strikta' },
-  { value: 'kipping', label: 'Kipping' },
+  { value: 'none', label: 'ringDipsLevels.none' },
+  { value: 'banded', label: 'ringDipsLevels.banded' },
+  { value: 'strict', label: 'ringDipsLevels.strict' },
+  { value: 'kipping', label: 'ringDipsLevels.kipping' },
 ]
 
 const HS_WALK_LEVELS = [
-  { value: 'none', label: 'Inga HS walks' },
-  { value: 'wall_walks', label: 'Wall walks' },
-  { value: 'short_distance', label: 'Kort distans' },
-  { value: 'proficient', label: 'Behärskar' },
+  { value: 'none', label: 'hsWalkLevels.none' },
+  { value: 'wall_walks', label: 'hsWalkLevels.wallWalks' },
+  { value: 'short_distance', label: 'hsWalkLevels.shortDistance' },
+  { value: 'proficient', label: 'hsWalkLevels.proficient' },
 ]
 
 const OLYMPIC_LIFTING_LEVELS = [
-  { value: 'none', label: 'Ingen erfarenhet', description: 'Har inte tränat olympiska lyft' },
-  { value: 'learning', label: 'Lär sig', description: 'Kan grunderna, behöver arbeta på teknik' },
-  { value: 'competent', label: 'Kompetent', description: 'Bra teknik, kan lyfta tungt' },
-  { value: 'proficient', label: 'Mycket duktig', description: 'Stark teknik, tävlingsnivå' },
+  { value: 'none', label: 'olympicLiftingLevels.none.label', description: 'olympicLiftingLevels.none.description' },
+  { value: 'learning', label: 'olympicLiftingLevels.learning.label', description: 'olympicLiftingLevels.learning.description' },
+  { value: 'competent', label: 'olympicLiftingLevels.competent.label', description: 'olympicLiftingLevels.competent.description' },
+  { value: 'proficient', label: 'olympicLiftingLevels.proficient.label', description: 'olympicLiftingLevels.proficient.description' },
 ]
 
 // ==================== COMPONENT ====================
@@ -214,6 +215,7 @@ interface FunctionalFitnessOnboardingProps {
 }
 
 export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFitnessOnboardingProps) {
+  const t = useTranslations('components.onboarding.functionalFitness')
   const updateField = <K extends keyof FunctionalFitnessSettings>(field: K, value: FunctionalFitnessSettings[K]) => {
     onUpdate({ ...settings, [field]: value })
   }
@@ -270,29 +272,29 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-orange-500" />
-            Erfarenhet & Fokus
+            {t('titles.experienceAndFocus')}
           </CardTitle>
           <CardDescription>
-            Berätta om din bakgrund och vad du vill fokusera på
+            {t('descriptions.experienceAndFocus')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Erfarenhetsnivå</Label>
+              <Label>{t('labels.experienceLevel')}</Label>
               <Select
                 value={settings.experienceLevel}
                 onValueChange={(value) => updateField('experienceLevel', value as FunctionalFitnessSettings['experienceLevel'])}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj nivå" />
+                  <SelectValue placeholder={t('placeholders.selectLevel')} />
                 </SelectTrigger>
                 <SelectContent>
                   {EXPERIENCE_LEVELS.map((level) => (
                     <SelectItem key={level.value} value={level.value}>
                       <div>
-                        <div className="font-medium">{level.label}</div>
-                        <div className="text-xs text-muted-foreground">{level.description}</div>
+                        <div className="font-medium">{t(level.label)}</div>
+                        <div className="text-xs text-muted-foreground">{t(level.description)}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -301,7 +303,7 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
             </div>
 
             <div className="space-y-2">
-              <Label>År av träning</Label>
+              <Label>{t('labels.yearsTraining')}</Label>
               <Input
                 type="number"
                 min={0}
@@ -313,20 +315,20 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
           </div>
 
           <div className="space-y-2">
-            <Label>Primärt fokus</Label>
+            <Label>{t('labels.primaryFocus')}</Label>
             <Select
               value={settings.primaryFocus}
               onValueChange={(value) => updateField('primaryFocus', value as FunctionalFitnessSettings['primaryFocus'])}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Välj fokus" />
+                <SelectValue placeholder={t('placeholders.selectFocus')} />
               </SelectTrigger>
               <SelectContent>
                 {PRIMARY_FOCUS.map((focus) => (
                   <SelectItem key={focus.value} value={focus.value}>
                     <div>
-                      <div className="font-medium">{focus.label}</div>
-                      <div className="text-xs text-muted-foreground">{focus.description}</div>
+                      <div className="font-medium">{t(focus.label)}</div>
+                      <div className="text-xs text-muted-foreground">{t(focus.description)}</div>
                     </div>
                   </SelectItem>
                 ))}
@@ -341,26 +343,26 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Dumbbell className="h-5 w-5 text-blue-500" />
-            Gym & Utrustning
+            {t('titles.gymAndEquipment')}
           </CardTitle>
           <CardDescription>
-            Vilken typ av gym tränar du på och vilken utrustning har du tillgång till?
+            {t('descriptions.gymAndEquipment')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Typ av gym</Label>
+            <Label>{t('labels.gymType')}</Label>
             <Select
               value={settings.gymType}
               onValueChange={(value) => updateField('gymType', value as FunctionalFitnessSettings['gymType'])}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Välj gymtyp" />
+                <SelectValue placeholder={t('placeholders.selectGymType')} />
               </SelectTrigger>
               <SelectContent>
                 {GYM_TYPES.map((type) => (
                   <SelectItem key={type.value} value={type.value}>
-                    {type.label}
+                    {t(type.label)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -368,7 +370,7 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
           </div>
 
           <div className="space-y-2">
-            <Label>Tillgänglig utrustning</Label>
+            <Label>{t('labels.equipmentAvailable')}</Label>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
               {EQUIPMENT_OPTIONS.map((equipment) => (
                 <div
@@ -386,7 +388,7 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
                     onCheckedChange={() => toggleEquipment(equipment.id)}
                   />
                   <Label htmlFor={equipment.id} className="text-sm cursor-pointer">
-                    {equipment.label}
+                    {t(equipment.label)}
                   </Label>
                 </div>
               ))}
@@ -400,16 +402,16 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Timer className="h-5 w-5 text-green-500" />
-            Benchmark-tider
+            {t('titles.benchmarkWorkouts')}
           </CardTitle>
           <CardDescription>
-            Dina bästa tider på klassiska benchmark-workouts (lämna tomt om okänt)
+            {t('descriptions.benchmarkWorkouts')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
+                <Label className="flex items-center gap-2">
                 Fran
                 <Badge variant="secondary" className="text-xs">21-15-9</Badge>
               </Label>
@@ -481,69 +483,69 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Flame className="h-5 w-5 text-red-500" />
-            Styrka (1RM)
+            {t('titles.strengthOneRM')}
           </CardTitle>
           <CardDescription>
-            Dina max-lyft i kg (lämna tomt om okänt)
+            {t('descriptions.strengthOneRM')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="space-y-2">
-              <Label>Back Squat</Label>
+              <Label>{t('labels.backSquat')}</Label>
               <Input
                 type="number"
-                placeholder="kg"
+                placeholder={t('placeholders.kg')}
                 value={settings.benchmarks.backSquat1RM || ''}
                 onChange={(e) => updateBenchmark('backSquat1RM', e.target.value ? parseInt(e.target.value) : null)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Front Squat</Label>
+              <Label>{t('labels.frontSquat')}</Label>
               <Input
                 type="number"
-                placeholder="kg"
+                placeholder={t('placeholders.kg')}
                 value={settings.benchmarks.frontSquat1RM || ''}
                 onChange={(e) => updateBenchmark('frontSquat1RM', e.target.value ? parseInt(e.target.value) : null)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Deadlift</Label>
+              <Label>{t('labels.deadlift')}</Label>
               <Input
                 type="number"
-                placeholder="kg"
+                placeholder={t('placeholders.kg')}
                 value={settings.benchmarks.deadlift1RM || ''}
                 onChange={(e) => updateBenchmark('deadlift1RM', e.target.value ? parseInt(e.target.value) : null)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Strict Press</Label>
+              <Label>{t('labels.strictPress')}</Label>
               <Input
                 type="number"
-                placeholder="kg"
+                placeholder={t('placeholders.kg')}
                 value={settings.benchmarks.strictPress1RM || ''}
                 onChange={(e) => updateBenchmark('strictPress1RM', e.target.value ? parseInt(e.target.value) : null)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Clean & Jerk</Label>
+              <Label>{t('labels.cleanAndJerk')}</Label>
               <Input
                 type="number"
-                placeholder="kg"
+                placeholder={t('placeholders.kg')}
                 value={settings.benchmarks.cleanAndJerk1RM || ''}
                 onChange={(e) => updateBenchmark('cleanAndJerk1RM', e.target.value ? parseInt(e.target.value) : null)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Snatch</Label>
+              <Label>{t('labels.snatch')}</Label>
               <Input
                 type="number"
-                placeholder="kg"
+                placeholder={t('placeholders.kg')}
                 value={settings.benchmarks.snatch1RM || ''}
                 onChange={(e) => updateBenchmark('snatch1RM', e.target.value ? parseInt(e.target.value) : null)}
               />
@@ -557,16 +559,16 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-purple-500" />
-            Gymnastik-skills
+            {t('titles.gymnasticsSkills')}
           </CardTitle>
           <CardDescription>
-            Vilken nivå har du på olika gymnastik-rörelser?
+            {t('descriptions.gymnasticsSkills')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Pull-ups</Label>
+              <Label>{t('labels.pullUps')}</Label>
               <Select
                 value={settings.gymnasticsSkills.pullUps}
                 onValueChange={(value) => updateGymnasticsSkill('pullUps', value as FunctionalFitnessSettings['gymnasticsSkills']['pullUps'])}
@@ -576,14 +578,14 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
                 </SelectTrigger>
                 <SelectContent>
                   {PULL_UP_LEVELS.map((level) => (
-                    <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                    <SelectItem key={level.value} value={level.value}>{t(level.label)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Handstand Push-ups</Label>
+              <Label>{t('labels.handstandPushUps')}</Label>
               <Select
                 value={settings.gymnasticsSkills.handstandPushUps}
                 onValueChange={(value) => updateGymnasticsSkill('handstandPushUps', value as FunctionalFitnessSettings['gymnasticsSkills']['handstandPushUps'])}
@@ -593,14 +595,14 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
                 </SelectTrigger>
                 <SelectContent>
                   {HSPU_LEVELS.map((level) => (
-                    <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                    <SelectItem key={level.value} value={level.value}>{t(level.label)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Toes to Bar</Label>
+              <Label>{t('labels.toeToBar')}</Label>
               <Select
                 value={settings.gymnasticsSkills.toeToBar}
                 onValueChange={(value) => updateGymnasticsSkill('toeToBar', value as FunctionalFitnessSettings['gymnasticsSkills']['toeToBar'])}
@@ -610,14 +612,14 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
                 </SelectTrigger>
                 <SelectContent>
                   {TTB_LEVELS.map((level) => (
-                    <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                    <SelectItem key={level.value} value={level.value}>{t(level.label)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Double-unders</Label>
+              <Label>{t('labels.doubleUnders')}</Label>
               <Select
                 value={settings.gymnasticsSkills.doubleUnders}
                 onValueChange={(value) => updateGymnasticsSkill('doubleUnders', value as FunctionalFitnessSettings['gymnasticsSkills']['doubleUnders'])}
@@ -627,14 +629,14 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
                 </SelectTrigger>
                 <SelectContent>
                   {DU_LEVELS.map((level) => (
-                    <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                    <SelectItem key={level.value} value={level.value}>{t(level.label)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Rope Climbs</Label>
+              <Label>{t('labels.ropeClimbs')}</Label>
               <Select
                 value={settings.gymnasticsSkills.ropeClimbs}
                 onValueChange={(value) => updateGymnasticsSkill('ropeClimbs', value as FunctionalFitnessSettings['gymnasticsSkills']['ropeClimbs'])}
@@ -644,14 +646,14 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
                 </SelectTrigger>
                 <SelectContent>
                   {ROPE_CLIMB_LEVELS.map((level) => (
-                    <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                    <SelectItem key={level.value} value={level.value}>{t(level.label)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Ring Dips</Label>
+              <Label>{t('labels.ringDips')}</Label>
               <Select
                 value={settings.gymnasticsSkills.ringDips}
                 onValueChange={(value) => updateGymnasticsSkill('ringDips', value as FunctionalFitnessSettings['gymnasticsSkills']['ringDips'])}
@@ -661,14 +663,14 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
                 </SelectTrigger>
                 <SelectContent>
                   {RING_DIP_LEVELS.map((level) => (
-                    <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                    <SelectItem key={level.value} value={level.value}>{t(level.label)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Handstand Walk</Label>
+              <Label>{t('labels.handstandWalk')}</Label>
               <Select
                 value={settings.gymnasticsSkills.handstandWalk}
                 onValueChange={(value) => updateGymnasticsSkill('handstandWalk', value as FunctionalFitnessSettings['gymnasticsSkills']['handstandWalk'])}
@@ -678,7 +680,7 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
                 </SelectTrigger>
                 <SelectContent>
                   {HS_WALK_LEVELS.map((level) => (
-                    <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                    <SelectItem key={level.value} value={level.value}>{t(level.label)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -687,40 +689,40 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
             <div className="space-y-2">
-              <Label>Max Pull-ups (reps)</Label>
+              <Label>{t('labels.maxPullUps')}</Label>
               <Input
                 type="number"
-                placeholder="Max reps"
+                placeholder={t('placeholders.maxReps')}
                 value={settings.benchmarks.maxPullUps || ''}
                 onChange={(e) => updateBenchmark('maxPullUps', e.target.value ? parseInt(e.target.value) : null)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Max Muscle-ups (reps)</Label>
+              <Label>{t('labels.maxMuscleUps')}</Label>
               <Input
                 type="number"
-                placeholder="Max reps"
+                placeholder={t('placeholders.maxReps')}
                 value={settings.benchmarks.maxMuscleUps || ''}
                 onChange={(e) => updateBenchmark('maxMuscleUps', e.target.value ? parseInt(e.target.value) : null)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Max HSPU (reps)</Label>
+              <Label>{t('labels.maxHspu')}</Label>
               <Input
                 type="number"
-                placeholder="Max reps"
+                placeholder={t('placeholders.maxReps')}
                 value={settings.benchmarks.maxHSPU || ''}
                 onChange={(e) => updateBenchmark('maxHSPU', e.target.value ? parseInt(e.target.value) : null)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Max Double-unders (reps)</Label>
+              <Label>{t('labels.maxDoubleUnders')}</Label>
               <Input
                 type="number"
-                placeholder="Max reps"
+                placeholder={t('placeholders.maxReps')}
                 value={settings.benchmarks.maxDoubleUnders || ''}
                 onChange={(e) => updateBenchmark('maxDoubleUnders', e.target.value ? parseInt(e.target.value) : null)}
               />
@@ -734,28 +736,28 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Medal className="h-5 w-5 text-yellow-500" />
-            Olympiska lyft & Träningsupplägg
+            {t('titles.olympicLifting')}
           </CardTitle>
           <CardDescription>
-            Din erfarenhet av olympiska lyft och hur du vill träna
+            {t('descriptions.olympicLifting')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Olympisk lyftnivå</Label>
+            <Label>{t('labels.olympicLiftingLevel')}</Label>
             <Select
               value={settings.olympicLiftingLevel}
               onValueChange={(value) => updateField('olympicLiftingLevel', value as FunctionalFitnessSettings['olympicLiftingLevel'])}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Välj nivå" />
+                <SelectValue placeholder={t('placeholders.selectLevel')} />
               </SelectTrigger>
               <SelectContent>
                 {OLYMPIC_LIFTING_LEVELS.map((level) => (
                   <SelectItem key={level.value} value={level.value}>
                     <div>
-                      <div className="font-medium">{level.label}</div>
-                      <div className="text-xs text-muted-foreground">{level.description}</div>
+                      <div className="font-medium">{t(level.label)}</div>
+                      <div className="text-xs text-muted-foreground">{t(level.description)}</div>
                     </div>
                   </SelectItem>
                 ))}
@@ -765,29 +767,31 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
             <div className="space-y-2">
-              <Label>Föredragen WOD-längd (minuter)</Label>
+              <Label>{t('labels.preferredWodDuration')}</Label>
               <Input
                 type="number"
                 min={5}
                 max={60}
                 value={settings.preferredWODDuration}
+                placeholder={t('placeholders.preferredWodDuration')}
                 onChange={(e) => updateField('preferredWODDuration', parseInt(e.target.value) || 20)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Träningsdagar/vecka</Label>
+              <Label>{t('labels.weeklyTrainingDays')}</Label>
               <Input
                 type="number"
                 min={1}
                 max={7}
                 value={settings.weeklyTrainingDays}
+                placeholder={t('placeholders.weeklyTrainingDays')}
                 onChange={(e) => updateField('weeklyTrainingDays', parseInt(e.target.value) || 4)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Tävlingsintresse</Label>
+              <Label>{t('labels.competitionInterest')}</Label>
               <div
                 className={`flex items-center space-x-2 p-3 rounded-lg border cursor-pointer transition-colors ${
                   settings.competitionInterest
@@ -802,7 +806,7 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
                   onCheckedChange={(checked) => updateField('competitionInterest', checked === true)}
                 />
                 <Label htmlFor="competition" className="cursor-pointer">
-                  Jag är intresserad av att tävla
+                  {t('labels.competitionInterestValue')}
                 </Label>
               </div>
             </div>

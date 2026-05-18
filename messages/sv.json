@@ -5068,6 +5068,189 @@
           "trx": "TRX/Sling trainer"
         }
       },
+      "functionalFitness": {
+        "titles": {
+          "experienceAndFocus": "Erfarenhet och fokus",
+          "gymAndEquipment": "Gym och utrustning",
+          "benchmarkWorkouts": "Benchmark-workouts",
+          "strengthOneRM": "Styrka (1RM)",
+          "gymnasticsSkills": "Gymnastikfärdigheter",
+          "olympicLifting": "Olympiska lyft och träningsupplägg"
+        },
+        "descriptions": {
+          "experienceAndFocus": "Berätta om din bakgrund och vad du vill fokusera på",
+          "gymAndEquipment": "Vilken typ av gym tränar du på och vilken utrustning har du tillgång till?",
+          "benchmarkWorkouts": "Dina bästa tider på klassiska benchmark-workouts (lämna tomt om okänt)",
+          "strengthOneRM": "Dina max-lyft i kg (lämna tomt om okänt)",
+          "gymnasticsSkills": "Vilken nivå har du på olika gymnastikrörelser?",
+          "olympicLifting": "Din erfarenhet av olympiska lyft och hur du vill träna"
+        },
+        "labels": {
+          "experienceLevel": "Erfarenhetsnivå",
+          "yearsTraining": "År av träning",
+          "primaryFocus": "Primärt fokus",
+          "gymType": "Typ av gym",
+          "equipmentAvailable": "Tillgänglig utrustning",
+          "backSquat": "Baksquat",
+          "frontSquat": "Framsquat",
+          "deadlift": "Marklyft",
+          "strictPress": "Strikta pressar",
+          "cleanAndJerk": "Clean & Jerk",
+          "snatch": "Snatch",
+          "pullUps": "Pull-ups",
+          "handstandPushUps": "Handstand-push-ups",
+          "toeToBar": "Toes to bar",
+          "doubleUnders": "Double-unders",
+          "ropeClimbs": "Rope climbs",
+          "ringDips": "Ring dips",
+          "handstandWalk": "Handstand walk",
+          "maxPullUps": "Max pull-ups (reps)",
+          "maxMuscleUps": "Max muscle-ups (reps)",
+          "maxHspu": "Max HSPU (reps)",
+          "maxDoubleUnders": "Max double-unders (reps)",
+          "olympicLiftingLevel": "Olympisk lyftnivå",
+          "preferredWodDuration": "Önskad WOD-längd (minuter)",
+          "weeklyTrainingDays": "Träningsdagar/vecka",
+          "competitionInterest": "Tävlingsintresse",
+          "competitionInterestValue": "Jag är intresserad av att tävla"
+        },
+        "placeholders": {
+          "selectLevel": "Välj nivå",
+          "selectFocus": "Välj fokus",
+          "selectGymType": "Välj gymtyp",
+          "kg": "kg",
+          "maxReps": "Max reps",
+          "preferredWodDuration": "20",
+          "weeklyTrainingDays": "4"
+        },
+        "experienceLevels": {
+          "beginner": {
+            "label": "Nybörjare",
+            "description": "Ny till funktionell träning (<1 år)"
+          },
+          "intermediate": {
+            "label": "Medel",
+            "description": "1-3 års erfarenhet, behärskar grunderna"
+          },
+          "advanced": {
+            "label": "Avancerad",
+            "description": "3+ år, behärskar de flesta rörelser"
+          },
+          "competitor": {
+            "label": "Tävlande",
+            "description": "Deltar i tävlingar, hög teknisk nivå"
+          }
+        },
+        "focusOptions": {
+          "general": {
+            "label": "Allmän fitness",
+            "description": "Balanserad träning"
+          },
+          "strength": {
+            "label": "Styrka",
+            "description": "Fokus på tunga lyft och PRs"
+          },
+          "endurance": {
+            "label": "Uthållighet",
+            "description": "Cardio och metabolisk kondition"
+          },
+          "gymnastics": {
+            "label": "Gymnastik",
+            "description": "Kroppsviktsrörelser och färdigheter"
+          },
+          "competition": {
+            "label": "Tävling",
+            "description": "Förbereda för tävlingar"
+          }
+        },
+        "gymTypes": {
+          "commercial": "Vanligt gym",
+          "functionalBox": "Funktionell box/CrossFit-box",
+          "home": "Hemmagym",
+          "garage": "Garagegym"
+        },
+        "equipmentOptions": {
+          "barbell": "Skivstång",
+          "dumbbells": "Hantlar",
+          "kettlebells": "Kettlebells",
+          "pullUpBar": "Pull-up bar",
+          "rings": "Ringar",
+          "rower": "Roddmaskin",
+          "skiErg": "SkiErg",
+          "assaultBike": "Assault/Echo bike",
+          "plyoBox": "Plyo-box",
+          "wallBall": "Wall balls",
+          "rope": "Rep",
+          "ghd": "GHD",
+          "sled": "Släde",
+          "sandbag": "Sandsäck",
+          "jumpRope": "Hopprep"
+        },
+        "pullUpLevels": {
+          "none": "Inga pull-ups",
+          "banded": "Med band",
+          "strict": "Strikt",
+          "kipping": "Kipping",
+          "butterfly": "Butterfly",
+          "muscleUp": "Muscle-ups"
+        },
+        "hspuLevels": {
+          "none": "Inga HSPU",
+          "pike": "Pike push-ups",
+          "box": "Box pike",
+          "wallFacing": "Vänd mot vägg",
+          "strict": "Strikt",
+          "kipping": "Kipping",
+          "freestanding": "Fristående"
+        },
+        "toesToBarLevels": {
+          "none": "Inga T2B",
+          "hangingKnee": "Hängande knävälvningar",
+          "kipping": "Kipping T2B",
+          "strict": "Strikta T2B"
+        },
+        "doubleUndersLevels": {
+          "none": "Inga double-unders",
+          "learning": "Lär sig",
+          "consistent": "Kan göra flera",
+          "unbroken50": "Flera i rad 50+"
+        },
+        "ropeClimbLevels": {
+          "none": "Inga rope climbs",
+          "withLegs": "Med benlås",
+          "legless": "Utan ben"
+        },
+        "ringDipsLevels": {
+          "none": "Inga ring dips",
+          "banded": "Med band",
+          "strict": "Strikt",
+          "kipping": "Kipping"
+        },
+        "hsWalkLevels": {
+          "none": "Inga HS-walks",
+          "wallWalks": "Wall walks",
+          "shortDistance": "Kort distans",
+          "proficient": "Behärskar"
+        },
+        "olympicLiftingLevels": {
+          "none": {
+            "label": "Ingen erfarenhet",
+            "description": "Har inte tränat olympiska lyft"
+          },
+          "learning": {
+            "label": "Lär sig",
+            "description": "Kan grunderna, behöver arbeta med teknik"
+          },
+          "competent": {
+            "label": "Kompetent",
+            "description": "Bra teknik, kan lyfta tungt"
+          },
+          "proficient": {
+            "label": "Mycket duktig",
+            "description": "Stark teknik, tävlingsnivå"
+          }
+        }
+      },
       "nutrition": {
         "titles": {
           "goal": "Vad är ditt mål?",
