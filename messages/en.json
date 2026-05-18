@@ -4071,6 +4071,26 @@
       "videoAnalysis": "Video Analysis",
       "describeMeal": "Describe your meal"
     },
+    "lactateScan": {
+      "buttonText": "Scan lactate",
+      "dialogTitle": "Lactate Reading",
+      "dialogDescription": "AI is analyzing the image of your lactate meter",
+      "imageAlt": "Lactate meter",
+      "analyzing": "Analyzing...",
+      "scanError": "Could not analyze the image",
+      "scanErrorFallback": "An error occurred",
+      "scanFailureTitle": "Could not read the meter",
+      "autoAcceptDescription": "High confidence - value is ready to use",
+      "valueLabel": "Lactate",
+      "successTitle": "Lactate value recorded",
+      "successSuffix": "mmol/L has been added",
+      "readValueLabel": "Detected value",
+      "confidenceSuffix": "confidence",
+      "tipsTitle": "Tips for better results:",
+      "unusualValue": "The value looks unusual. Please verify it is correct.",
+      "retake": "Retake",
+      "useValue": "Use value"
+    },
     "sportSelector": {
       "selected": {
         "en": "Selected",

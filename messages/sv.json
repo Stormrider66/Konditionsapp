@@ -4071,6 +4071,26 @@
       "videoAnalysis": "Video Analys",
       "describeMeal": "Beskriv din måltid"
     },
+    "lactateScan": {
+      "buttonText": "Skanna laktat",
+      "dialogTitle": "Laktatavläsning",
+      "dialogDescription": "AI analyserar bilden av din laktatmätare",
+      "imageAlt": "Laktatmätare",
+      "analyzing": "Analyserar...",
+      "scanError": "Kunde inte analysera bilden",
+      "scanErrorFallback": "Ett fel uppstod",
+      "scanFailureTitle": "Kunde inte läsa av mätaren",
+      "autoAcceptDescription": "Hög konfidens - värdet är klart att använda",
+      "valueLabel": "Laktat",
+      "successTitle": "Laktatvärde registrerat",
+      "successSuffix": "mmol/L har lagts till",
+      "readValueLabel": "Avläst värde",
+      "confidenceSuffix": "konfidens",
+      "tipsTitle": "Tips för bättre resultat:",
+      "unusualValue": "Värdet verkar ovanligt. Kontrollera att det stämmer.",
+      "retake": "Ta om",
+      "useValue": "Använd värde"
+    },
     "sportSelector": {
       "selected": {
         "en": "Selected",

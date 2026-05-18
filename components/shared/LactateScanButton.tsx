@@ -25,6 +25,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Camera, Loader2, CheckCircle, AlertTriangle, RotateCcw, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslations } from '@/i18n/client';
 import type { LactateMeterOCRResult } from '@/lib/validations/gemini-schemas';
 import {
   type AiAllowanceExhaustedError,
@@ -59,10 +60,12 @@ export function LactateScanButton({
   testStageContext,
   variant = 'outline',
   size = 'default',
-  buttonText = 'Scanna laktat',
+  buttonText,
   iconOnly = false,
   className,
 }: LactateScanButtonProps) {
+  const t = useTranslations('components.lactateScan');
+  const buttonTextLabel = buttonText ?? t('buttonText');
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -137,7 +140,7 @@ export function LactateScanButton({
         const errorData = await response.json().catch(() => null);
         const allowanceError = parseAiAllowanceError(errorData);
         if (allowanceError) throw allowanceError;
-        throw new Error(errorData?.error || 'Kunde inte analysera bilden');
+        throw new Error(errorData?.error || t('scanError'));
       }
 
       const data = await response.json();
@@ -146,13 +149,13 @@ export function LactateScanButton({
       // Auto-accept if confidence is high
       if (data.result.reading.confidence >= 0.9) {
         toast({
-          title: `Laktat: ${data.result.reading.lactateValue} mmol/L`,
-          description: 'Hög konfidens - värdet är klart att använda',
+          title: `${t('valueLabel')}: ${data.result.reading.lactateValue} mmol/L`,
+          description: t('autoAcceptDescription'),
         });
       }
     } catch (err) {
       console.error('Lactate OCR error:', err);
-      const message = err instanceof Error ? err.message : 'Ett fel uppstod';
+      const message = err instanceof Error ? err.message : t('scanErrorFallback');
       const description = isAiAllowanceExhaustedError(err)
         ? showAiAllowanceError(err)
         : message;
@@ -161,7 +164,7 @@ export function LactateScanButton({
         setAiAllowanceAction(null);
       }
       toast({
-        title: 'Kunde inte läsa av mätaren',
+        title: t('scanFailureTitle'),
         description,
         variant: 'destructive',
       });
@@ -179,8 +182,8 @@ export function LactateScanButton({
       );
       handleClose();
       toast({
-        title: 'Laktatvärde registrerat',
-        description: `${result.reading.lactateValue} mmol/L har lagts till`,
+        title: t('successTitle'),
+        description: `${result.reading.lactateValue} mmol/L ${t('successSuffix')}`,
       });
     }
   }
@@ -222,7 +225,7 @@ export function LactateScanButton({
         className={className}
       >
         <Camera className={iconOnly ? 'h-4 w-4' : 'h-4 w-4 mr-2'} />
-        {!iconOnly && buttonText}
+        {!iconOnly && buttonTextLabel}
       </Button>
 
       {/* Result dialog */}
@@ -231,10 +234,10 @@ export function LactateScanButton({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-yellow-500" />
-              Laktatavläsning
+              {t('dialogTitle')}
             </DialogTitle>
             <DialogDescription>
-              AI analyserar bilden av din laktatmätare
+              {t('dialogDescription')}
             </DialogDescription>
           </DialogHeader>
 
@@ -244,7 +247,7 @@ export function LactateScanButton({
               <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
                 <Image
                   src={previewUrl}
-                  alt="Laktatmätare"
+                  alt={t('imageAlt')}
                   fill
                   className="object-contain"
                   unoptimized
@@ -253,7 +256,7 @@ export function LactateScanButton({
                   <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
                     <div className="text-center">
                       <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">Analyserar...</p>
+                      <p className="text-sm text-muted-foreground">{t('analyzing')}</p>
                     </div>
                   </div>
                 )}
@@ -276,7 +279,7 @@ export function LactateScanButton({
               <div className="space-y-3">
                 {/* Main value */}
                 <div className="text-center p-4 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-1">Avläst värde</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t('readValueLabel')}</p>
                   <p className="text-4xl font-bold">
                     {result.reading.lactateValue}
                     <span className="text-lg font-normal ml-1">mmol/L</span>
@@ -285,7 +288,7 @@ export function LactateScanButton({
                     <Badge
                       variant={result.reading.confidence >= 0.8 ? 'default' : 'secondary'}
                     >
-                      {Math.round(result.reading.confidence * 100)}% konfidens
+                      {Math.round(result.reading.confidence * 100)}% {t('confidenceSuffix')}
                     </Badge>
                     {result.deviceInfo.detectedBrand !== 'UNKNOWN' && (
                       <Badge variant="outline">
@@ -308,7 +311,7 @@ export function LactateScanButton({
                 {/* Image quality issues */}
                 {result.imageQuality.issues.length > 0 && (
                   <div className="text-sm text-muted-foreground">
-                    <p className="font-medium mb-1">Tips för bättre resultat:</p>
+                    <p className="font-medium mb-1">{t('tipsTitle')}</p>
                     <ul className="list-disc list-inside space-y-0.5">
                       {result.imageQuality.issues.map((issue, i) => (
                         <li key={i}>{issue.suggestion}</li>
@@ -322,7 +325,7 @@ export function LactateScanButton({
                   <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                      Värdet verkar ovanligt. Kontrollera att det stämmer.
+                      {t('unusualValue')}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -338,7 +341,7 @@ export function LactateScanButton({
                 className="flex-1"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Ta om
+                {t('retake')}
               </Button>
               {result && !error && (
                 <Button
@@ -347,7 +350,7 @@ export function LactateScanButton({
                   className="flex-1"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Använd värde
+                  {t('useValue')}
                 </Button>
               )}
             </div>
